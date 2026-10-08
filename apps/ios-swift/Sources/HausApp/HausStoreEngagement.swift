@@ -30,45 +30,62 @@ extension HausStore {
         guard let serverID = activeServer?.id else { return }
         model.transcript = { [weak self] in self?.messagesByChatID[chatID]?.messages ?? [] }
         let input = ChatEngagementInput(chatId: chatID, serverId: serverID)
-        async let engagements: Void = streamChatEngagements(input: input, into: model)
-        async let thoughts: Void = streamChatThoughts(input: input, into: model)
+        async let engagements: Void = restartingChatStream("chat.onEngagement", input: input) { store in
+            try await store.streamChatEngagements(input: input, into: model)
+        }
+        async let thoughts: Void = restartingChatStream("chat.onThought", input: input) { store in
+            try await store.streamChatThoughts(input: input, into: model)
+        }
         _ = await (engagements, thoughts)
     }
 
-    private func streamChatEngagements(input: ChatEngagementInput, into model: ChatTypingModel) async {
-        do {
-            let events: AsyncThrowingStream<ChatEngagementEvent, Error> = client.subscribe(
-                "chat.onEngagement",
-                input: input,
-                // The stream never replays, so every (re)connect re-reads the durable state.
-                onConnected: { [weak self] in
-                    await self?.reloadChatEngagements(input: input, into: model)
-                }
-            )
-            for try await event in events
-            where event.serverID == input.serverId && event.chatID == input.chatId {
-                model.apply(event)
+    /// The transport reconnects transport failures itself; a stream it will
+    /// not retry, or one the Server ended, restarts here with the same capped
+    /// backoff as the Server-wide streams, for as long as the strip is open.
+    private func restartingChatStream(
+        _ path: String,
+        input: ChatEngagementInput,
+        run: @MainActor (HausStore) async throws -> Void
+    ) async {
+        var attempt = 0
+        while !Task.isCancelled, activeServer?.id == input.serverId {
+            let startedAt = Date()
+            do {
+                try await run(self)
+            } catch {
+                guard !Task.isCancelled else { return }
+                Self.logger.warning("\(path, privacy: .public) stream stopped: \(error.localizedDescription, privacy: .public)")
             }
-        } catch {
-            guard !Task.isCancelled else { return }
-            Self.logger.warning("Chat engagement stream ended: \(error.localizedDescription, privacy: .public)")
+            if Date().timeIntervalSince(startedAt) >= Self.streamStableInterval { attempt = 0 }
+            try? await Task.sleep(for: RetryBackoff.delay(attempt: attempt))
+            attempt += 1
+        }
+    }
+
+    private func streamChatEngagements(input: ChatEngagementInput, into model: ChatTypingModel) async throws {
+        let events: AsyncThrowingStream<ChatEngagementEvent, Error> = client.subscribe(
+            "chat.onEngagement",
+            input: input,
+            // The stream never replays, so every (re)connect re-reads the durable state.
+            onConnected: { [weak self] in
+                await self?.reloadChatEngagements(input: input, into: model)
+            }
+        )
+        for try await event in events
+        where event.serverID == input.serverId && event.chatID == input.chatId {
+            model.apply(event)
         }
     }
 
     /// Thoughts are never recovered: one missed while disconnected is simply gone.
-    private func streamChatThoughts(input: ChatEngagementInput, into model: ChatTypingModel) async {
-        do {
-            let thoughts: AsyncThrowingStream<AgentThoughtEvent, Error> = client.subscribe(
-                "chat.onThought",
-                input: input
-            )
-            for try await thought in thoughts
-            where thought.serverID == input.serverId && thought.chatID == input.chatId {
-                model.receive(thought)
-            }
-        } catch {
-            guard !Task.isCancelled else { return }
-            Self.logger.warning("Chat thought stream ended: \(error.localizedDescription, privacy: .public)")
+    private func streamChatThoughts(input: ChatEngagementInput, into model: ChatTypingModel) async throws {
+        let thoughts: AsyncThrowingStream<AgentThoughtEvent, Error> = client.subscribe(
+            "chat.onThought",
+            input: input
+        )
+        for try await thought in thoughts
+        where thought.serverID == input.serverId && thought.chatID == input.chatId {
+            model.receive(thought)
         }
     }
 
