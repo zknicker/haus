@@ -318,9 +318,9 @@ test('answers the fire context for a Reminder-caused message and refuses the res
             anchorChatId: channelId,
             anchorMessageId,
             commandId: 'provenance-reminder-1',
-            fireAt: new Date('2026-07-26T13:00:00.000Z'),
             repeat: 'daily@09:00',
             serverId,
+            timezone: 'America/New_York',
             title: 'Check the deploy',
         },
         { now: () => new Date('2026-07-26T12:00:00.000Z') }

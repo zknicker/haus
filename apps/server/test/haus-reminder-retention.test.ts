@@ -87,7 +87,7 @@ test('keeps a reminder that fired 10 days ago', async () => {
 
 test('keeps a recurring reminder and its recent fire, dropping the expired one', async () => {
     const reminder = await fireOneShot('retention-recurring', daysBeforeSweep(40), {
-        repeat: 'daily@09:00',
+        repeat: 'every:1d',
     });
     await tickReminders(connection.db, { now: () => daysBeforeSweep(2) });
     const [row] = (await harness.sql`

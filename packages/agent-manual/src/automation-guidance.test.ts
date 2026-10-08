@@ -33,3 +33,21 @@ test('trigger manual retains setup, recovery, and payload boundaries', () => {
         expect(body).toContain(detail);
     }
 });
+
+test('reminder manual resolves calendar timezones from the requester, not home time', () => {
+    const topic = getManualTopic('reminder')?.body;
+    for (const detail of [
+        'the zone of the person the reminder is for',
+        'haus server info --humans --query <handle>',
+        'haus channel members',
+        'ask which one before scheduling',
+        'starts it at the next slot',
+        'refuses a `--fire-at` that is not a slot',
+        '"Fridays at 3 AM Eastern"',
+    ]) {
+        expect(topic).toContain(detail);
+    }
+    const recipe = getManualTopic('recipes/technique/reminder-cron')?.body;
+    expect(recipe).toContain("--timezone` set to the requester's zone");
+    expect(recipe).toContain('haus server info --humans');
+});

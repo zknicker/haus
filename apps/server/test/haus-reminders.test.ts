@@ -62,15 +62,15 @@ afterAll(async () => {
 
 describe('reminders', () => {
     test('schedules an author-owned reminder once and posts no receipt', async () => {
-        const fireAt = new Date('2026-07-27T14:00:00.000Z');
         const input = {
             anchorChatId: chatId,
             anchorMessageId,
             commandId: 'reminder-command-schedule-1',
-            fireAt,
+            fireAt: new Date('2026-07-27T13:00:00.000Z'),
             repeat: 'daily@09:00',
             script: 'printf "check"',
             serverId,
+            timezone: 'America/New_York',
             title: 'Check deployment',
         };
 
@@ -91,7 +91,7 @@ describe('reminders', () => {
             expect.objectContaining({
                 anchorChatId: chatId,
                 anchorMessageId,
-                fireAt: fireAt.toISOString(),
+                fireAt: input.fireAt.toISOString(),
                 hasScript: true,
                 id: created.reminder.id,
                 ownerAgentId: agentId,
@@ -170,7 +170,7 @@ describe('reminders', () => {
         expect(new Set(results.map((result) => result.reminder.id)).size).toBe(1);
     });
 
-    test('rejects an Agent timezone that cannot drive wall-clock recurrence', async () => {
+    test('rejects an Agent home timezone the reminder would store', async () => {
         const invalidAgentId = 'agt_invalid_timezone';
         await addAgent(invalidAgentId);
         await harness.sql`
@@ -187,7 +187,7 @@ describe('reminders', () => {
                     anchorMessageId,
                     commandId: 'invalid-timezone-schedule',
                     fireAt: new Date('2026-07-27T16:00:00.000Z'),
-                    repeat: 'daily@09:00',
+                    repeat: 'every:1d',
                     serverId,
                     title: 'Invalid timezone',
                 },
@@ -245,10 +245,10 @@ describe('reminders', () => {
                 anchorChatId: chatId,
                 anchorMessageId,
                 commandId: 'reminder-command-fire-1',
-                fireAt: new Date('2026-07-26T13:00:00.000Z'),
                 repeat: 'daily@09:00',
                 script,
                 serverId,
+                timezone: 'America/New_York',
                 title: 'Run local watchdog',
             },
             { now: () => new Date('2026-07-26T12:00:00.000Z') }
@@ -320,9 +320,9 @@ describe('reminders', () => {
                 anchorChatId: chatId,
                 anchorMessageId,
                 commandId: 'reminder-command-cancel-schedule',
-                fireAt: new Date('2026-07-28T13:00:00.000Z'),
                 repeat: 'daily@09:00',
                 serverId,
+                timezone: 'America/New_York',
                 title: 'Cancel race',
             },
             { now: () => new Date('2026-07-28T12:00:00.000Z') }
@@ -431,7 +431,7 @@ describe('reminders', () => {
         const updateInput = {
             commandId: 'reminder-command-update',
             expectedVersion: 1,
-            fireAt: new Date('2026-07-30T14:00:00.000Z'),
+            fireAt: new Date('2026-07-29T14:00:00.000Z'),
             reminderId: scheduled.reminder.id,
             repeat: 'weekly:mon,wed@10:00',
             script: 'echo opaque',

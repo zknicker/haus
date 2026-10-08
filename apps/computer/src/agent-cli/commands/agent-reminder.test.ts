@@ -75,7 +75,6 @@ describe('Agent reminder CLI', () => {
             });
             const result = runReminderSchedule(
                 args({
-                    '--delay-seconds': '120',
                     '--message-id': 'deadbeef',
                     '--repeat': 'weekly:fri@09:00',
                     '--timezone': 'America/New_York',
@@ -86,13 +85,69 @@ describe('Agent reminder CLI', () => {
             if (timezone === 'America/New_York') {
                 await result;
                 expect(lines.join('')).toContain(
-                    `fires ${reminder.fireAt} repeats weekly:fri@09:00 in America/New_York`
+                    'Every Friday at 09:00 America/New_York; next fire Thu 2026-07-30 12:00 EDT (2026-07-30T16:00:00.000Z)'
                 );
             } else {
                 await expect(result).rejects.toThrow('receipt');
                 expect(lines).toHaveLength(0);
             }
         }
+    });
+
+    test('lets the Server derive a calendar repeat’s first fire and echoes cadence and zone', async () => {
+        const requests: AgentApiRequest[] = [];
+        const lines: string[] = [];
+        const weekly = {
+            ...reminder,
+            fireAt: '2026-10-12T19:57:00.000Z',
+            repeat: 'weekly:mon@15:57',
+            timezone: 'America/New_York',
+        };
+        const client = requester((route, input) => {
+            if (route.endsWith('/capabilities')) {
+                return { supportsReminderTimezone: true };
+            }
+            requests.push(input);
+            return { reminder: weekly };
+        });
+
+        await runReminderSchedule(
+            args({
+                '--command-id': 'weekly-review-1',
+                '--message-id': 'deadbeef',
+                '--repeat': 'weekly:mon@15:57',
+                '--timezone': 'America/New_York',
+                '--title': reminder.title,
+            }),
+            { client, write: (line) => lines.push(line) }
+        );
+
+        expect(requests[0]?.body).not.toHaveProperty('fireAt');
+        expect(requests[0]?.body).toMatchObject({ commandId: 'weekly-review-1' });
+        expect(lines.join('')).toContain(
+            'Every Monday at 15:57 America/New_York; next fire Mon 2026-10-12 15:57 EDT (2026-10-12T19:57:00.000Z)'
+        );
+    });
+
+    test('refuses a relative delay for a calendar repeat before any request', async () => {
+        const routes: string[] = [];
+        const client = requester((route) => {
+            routes.push(route);
+            return { supportsReminderTimezone: true };
+        });
+        await expect(
+            runReminderSchedule(
+                args({
+                    '--delay-seconds': '120',
+                    '--message-id': 'deadbeef',
+                    '--repeat': 'daily@09:00',
+                    '--timezone': 'America/New_York',
+                    '--title': reminder.title,
+                }),
+                { client, write: () => undefined }
+            )
+        ).rejects.toThrow('drop --delay-seconds');
+        expect(routes).toEqual([]);
     });
 
     test('retries a schedule with the same idempotency key', async () => {

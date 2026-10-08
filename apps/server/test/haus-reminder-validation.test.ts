@@ -68,7 +68,6 @@ test('unsupported timezone changes fail before changing a reminder or recording 
     );
     const scheduleInput = {
         commandId: 'validation-schedule',
-        fireAt: new Date(Date.now() + 86_400_000).toISOString(),
         messageId: anchor.message.id,
         repeat: 'daily@09:00',
         timezone: 'America/New_York',
@@ -130,6 +129,78 @@ test('unsupported timezone changes fail before changing a reminder or recording 
             repeat: 'weekly:fri@09:00',
             version: reminder.version + 1,
         },
+    });
+});
+
+test('calendar schedules start on a cadence slot and refuse off-slot fire times', async () => {
+    await fixture.harness.sql`
+        insert into channel_agent_participants (server_id,chat_id,agent_id)
+        values (${fixture.serverId},${fixture.channelId},${fixture.coveAgentId})
+        on conflict do nothing
+    `;
+    const anchor = await fixture.owner.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'Mondays at 3:57 PM Eastern, please.',
+        nonce: 'validation-slot-consent',
+        serverId: fixture.serverId,
+    });
+    const runner = await fixture.mintRunner(
+        'run_reminder_slots',
+        fixture.coveAgentId,
+        undefined,
+        false
+    );
+    const weekly = {
+        messageId: anchor.message.id,
+        repeat: 'weekly:mon@15:57',
+        timezone: 'America/New_York',
+        title: 'Weekly Review',
+    };
+
+    const derived = await post(runner.token, 'schedule', { ...weekly, commandId: 'slot-derived' });
+    expect(derived.status).toBe(200);
+    const { reminder } = await derived.json();
+    const fireAt = new Date(reminder.fireAt);
+    const wallClock = new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        hourCycle: 'h23',
+        minute: '2-digit',
+        timeZone: 'America/New_York',
+        weekday: 'short',
+    }).format(fireAt);
+    expect(wallClock).toBe('Mon 15:57');
+    expect(fireAt.getTime()).toBeGreaterThan(Date.now());
+
+    const offSlot = await post(runner.token, 'schedule', {
+        ...weekly,
+        commandId: 'slot-off',
+        fireAt: new Date(fireAt.getTime() + 60_000).toISOString(),
+    });
+    expect(offSlot.status).toBe(409);
+    expect(await offSlot.json()).toMatchObject({
+        code: 'INVALID_ARG',
+        message: expect.stringContaining('is not a weekly:mon@15:57 slot in America/New_York'),
+    });
+
+    const zoneless = await post(runner.token, 'schedule', {
+        ...weekly,
+        commandId: 'slot-zoneless',
+        timezone: undefined,
+    });
+    expect(zoneless.status).toBe(409);
+    expect(await zoneless.json()).toMatchObject({
+        message: expect.stringContaining('needs an explicit IANA timezone'),
+    });
+
+    const moved = await post(runner.token, 'update', {
+        commandId: 'slot-update-off',
+        expectedVersion: reminder.version,
+        fireAt: new Date(fireAt.getTime() + 3_600_000).toISOString(),
+        id: reminder.id,
+    });
+    expect(moved.status).toBe(409);
+    expect(await moved.json()).toMatchObject({
+        message: expect.stringContaining('is not a weekly:mon@15:57 slot'),
     });
 });
 

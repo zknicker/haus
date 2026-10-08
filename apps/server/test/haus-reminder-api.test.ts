@@ -261,7 +261,7 @@ async function schedule(commandId: string, title: string) {
             anchorMessageId,
             commandId,
             fireAt: new Date('2026-07-27T14:00:00.000Z'),
-            repeat: 'daily@09:00',
+            repeat: 'every:1d',
             serverId,
             title,
         },

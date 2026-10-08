@@ -17,6 +17,7 @@ function directory(viewerUserId: string, overrides: Partial<ServerMemberDirector
             handle: null,
             joinedAt: '2026-01-01T00:00:00.000Z',
             role: 'owner' as const,
+            timezone: null,
             userId: ownerId,
         },
         {
@@ -27,6 +28,7 @@ function directory(viewerUserId: string, overrides: Partial<ServerMemberDirector
             handle: null,
             joinedAt: '2026-01-02T00:00:00.000Z',
             role: 'admin' as const,
+            timezone: null,
             userId: adminId,
         },
         {
@@ -37,6 +39,7 @@ function directory(viewerUserId: string, overrides: Partial<ServerMemberDirector
             handle: null,
             joinedAt: '2026-01-03T00:00:00.000Z',
             role: 'member' as const,
+            timezone: null,
             userId: memberId,
         },
     ];
@@ -92,6 +95,7 @@ test('revoking Owner is its own action rather than a mislabelled demotion', () =
                 handle: null,
                 joinedAt: '2026-01-01T00:00:00.000Z',
                 role: 'owner',
+                timezone: null,
                 userId: ownerId,
             },
             {
@@ -102,6 +106,7 @@ test('revoking Owner is its own action rather than a mislabelled demotion', () =
                 handle: null,
                 joinedAt: '2026-01-02T00:00:00.000Z',
                 role: 'owner',
+                timezone: null,
                 userId: 'usr_ddddddowner2',
             },
         ],
@@ -146,6 +151,7 @@ test('the last Owner sees the protected actions explained rather than hidden', (
                 handle: null,
                 joinedAt: '2026-01-01T00:00:00.000Z',
                 role: 'owner',
+                timezone: null,
                 userId: ownerId,
             },
         ],

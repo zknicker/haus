@@ -1,7 +1,12 @@
 import { expect, test } from 'bun:test';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { CHANNEL_SUBCOMMANDS, runChannelAdd, runServerInfo } from './agent-directory.ts';
+import {
+    CHANNEL_SUBCOMMANDS,
+    runChannelAdd,
+    runChannelMembers,
+    runServerInfo,
+} from './agent-directory.ts';
 
 function args(values: Record<string, string>): ParsedArgs {
     return { flags: {}, help: false, positionals: [], valueLists: {}, values };
@@ -94,6 +99,58 @@ test('server directory gives copyable ID-backed references for people and agents
     });
 
     expect(output.join('')).toContain('[@beacon](agent://agt_beacon) — Ads');
-    expect(output.join('')).toContain('[@knicker](user://usr_zach) — Owner');
+    expect(output.join('')).toContain('[@knicker](user://usr_zach) [timezone: unknown] — Owner');
     expect(output.join('')).toContain('keep its identity across handle changes');
+});
+
+test('people lookup shows each human’s timezone so Agents can resolve calendar reminders', async () => {
+    const output: string[] = [];
+    await runServerInfo(args({}), {
+        client: requester([], {
+            agents: [],
+            channels: [],
+            hasMore: { agents: false, channels: false, humans: false },
+            humans: [
+                {
+                    description: null,
+                    handle: 'zach',
+                    id: 'usr_zach',
+                    timezone: 'America/New_York',
+                },
+                { description: null, handle: 'kai', id: 'usr_kai', timezone: null },
+            ],
+            limit: 50,
+            offset: 0,
+            total: { agents: 0, channels: 0, humans: 2 },
+        }),
+        write: (text) => output.push(text),
+    });
+
+    expect(output.join('')).toContain('[@zach](user://usr_zach) [timezone: America/New_York]');
+    expect(output.join('')).toContain('[@kai](user://usr_kai) [timezone: unknown]');
+});
+
+test('channel members show a human’s timezone and no zone for Agents', async () => {
+    const output: string[] = [];
+    await runChannelMembers(
+        { ...args({}), positionals: ['#product'] },
+        {
+            client: requester([], {
+                members: [
+                    { description: null, handle: 'beacon', role: 'agent' },
+                    {
+                        description: 'Owner',
+                        handle: 'zach',
+                        role: 'human',
+                        timezone: 'Europe/Berlin',
+                    },
+                ],
+                target: '#product',
+            }),
+            write: (text) => output.push(text),
+        }
+    );
+
+    expect(output.join('')).toContain('@beacon [agent]\n');
+    expect(output.join('')).toContain('@zach [human] [timezone: Europe/Berlin] — Owner');
 });

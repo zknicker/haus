@@ -28,10 +28,10 @@ test('an unresolved human profile keeps identity labels and its independent Agen
 
 test('Profile settings renders disabled identity fields before its directory resolves', () => {
     const markup = render(<ProfileSettings serverId={server.id} />);
-    for (const label of ['Identity', 'Photo', 'Display Name', 'Handle']) {
+    for (const label of ['Identity', 'Photo', 'Display Name', 'Handle', 'Timezone']) {
         expect(markup).toContain(label);
     }
-    expect(markup.match(/<input[^>]*disabled/gu)).toHaveLength(2);
+    expect(markup.match(/<input[^>]*disabled/gu)).toHaveLength(3);
     expect(markup).toContain('aria-busy="true"');
 });
 

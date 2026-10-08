@@ -56,3 +56,11 @@ test('stable keys reject relative fire times and empty or unbounded ids', () => 
         expect(() => scheduleCommandId({ ...args, values: invalid })).toThrow();
     }
 });
+
+test('a calendar repeat keeps a retry-stable command id without a saved first fire', () => {
+    const { '--fire-at': _derived, ...calendar } = values;
+    expect(scheduleCommandId({ ...args, values: { ...calendar, '--repeat': 'daily@09:00' } })).toBe(
+        'cove-review-consent-1'
+    );
+    expect(() => scheduleCommandId({ ...args, values: calendar })).toThrow('--fire-at');
+});

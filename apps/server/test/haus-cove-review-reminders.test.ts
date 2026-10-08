@@ -98,7 +98,6 @@ test('explicit recurrence timezone is durable, DST-aware, validated and part of 
     );
     const body = {
         commandId: 'review-explicit-zone',
-        fireAt: new Date(Date.now() + 86_400_000).toISOString(),
         messageId: anchor.message.id,
         repeat: 'weekly:fri@09:00',
         timezone: 'America/New_York',

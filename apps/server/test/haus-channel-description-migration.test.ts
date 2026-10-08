@@ -27,8 +27,15 @@ test('migration 0068 describes each existing #all and leaves other channels blan
         await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
         const journalPath = join(folder, 'meta/_journal.json');
         const journal = JSON.parse(await readFile(journalPath, 'utf8'));
-        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 67);
-        await writeFile(journalPath, JSON.stringify(journal));
+        const throughMigration = (idx: number) =>
+            writeFile(
+                journalPath,
+                JSON.stringify({
+                    ...journal,
+                    entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
+                })
+            );
+        await throughMigration(67);
         await database.unsafe('CREATE DATABASE haus_channel_description_test');
         await migrateHausDatabase(url.toString(), 'haus', 'haus', folder);
         upgraded = new SQL(url.toString());
@@ -39,7 +46,9 @@ test('migration 0068 describes each existing #all and leaves other channels blan
             ('cht_all_two', 'srv_two', 'channel', 'all', true),
             ('cht_product', 'srv_one', 'channel', 'product', false)`;
 
-        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
+        // Later migrations stay out of this upgrade, so the receipt names 0068 alone.
+        await throughMigration(68);
+        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus', folder)).toEqual([
             '0068_channel_descriptions',
         ]);
         expect(await upgraded`SELECT id, description FROM chats ORDER BY id`).toEqual([

@@ -19,9 +19,14 @@ const client = (supported: boolean) =>
     }) as AgentApiRequester;
 
 test('calendar repeat cannot silently omit its recurrence timezone', async () => {
-    await expect(
-        scheduleTimezone(args({ '--repeat': 'weekly:fri@09:00' }), client(true))
-    ).rejects.toThrow('explicit --timezone');
+    const missing = scheduleTimezone(args({ '--repeat': 'weekly:fri@09:00' }), client(true));
+    await expect(missing).rejects.toThrow('the IANA zone of the person they are for');
+    // The error teaches the lookup, because the Agent has no zone of its own to offer.
+    const nextAction = await missing.catch(
+        (cause: AgentCliError) => cause.options.nextAction ?? ''
+    );
+    expect(nextAction).toContain('haus server info --humans --query <handle>');
+    expect(nextAction).toContain('ask which one before scheduling');
     expect(await scheduleTimezone(args({ '--repeat': 'every:7d' }), client(false))).toBeUndefined();
 });
 
