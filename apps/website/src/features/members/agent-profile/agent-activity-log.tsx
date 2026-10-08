@@ -72,7 +72,9 @@ export function ActivityLog({
     serverId,
     serverSlug,
 }: ActivityLogProps) {
-    const days = readLogDays(entries, filter);
+    const isRunning = entries.some((entry) => entry.row.latest.kind === 'active');
+    const now = useLogNow(isRunning);
+    const days = readLogDays(entries, filter, now);
     const showAgent = filter.agentIds.length > 1;
     const [toggled, setToggled] = React.useState<ReadonlyMap<string, boolean>>(new Map());
     const openByDefault = readOpenOnArrival(days);
@@ -91,10 +93,6 @@ export function ActivityLog({
             );
         },
     }));
-    const isRunning = days.some((day) =>
-        day.entries.some((entry) => entry.row.latest.kind === 'active')
-    );
-    const now = useLogNow(isRunning);
     const root = React.useRef<HTMLDivElement>(null);
     const [viewedKey, setViewedKey] = useViewedDay(root);
     const viewed = days.findIndex((day) => day.key === viewedKey);
@@ -145,11 +143,13 @@ export function ActivityLog({
                                 data-log-day={logDay.key}
                                 key={logDay.key}
                             >
-                                {/* The pinned strip names the first day; later days get a row. */}
-                                {dayIndex > 0 ? (
-                                    <h3 className="px-(--trace-pad) pt-6 pb-1 font-medium text-muted text-xs">
-                                        {logDay.label}
-                                    </h3>
+                                <h3 className="border-separator border-b px-(--trace-pad) pt-4 pb-2 font-semibold text-sm">
+                                    {logDay.label}
+                                </h3>
+                                {logDay.entries.length === 0 ? (
+                                    <p className="px-(--trace-pad) py-3 text-muted text-sm">
+                                        No activity
+                                    </p>
                                 ) : null}
                                 <div className="grid min-w-0 divide-y divide-separator">
                                     {logDay.entries.map((entry) => (
