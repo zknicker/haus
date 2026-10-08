@@ -15,7 +15,8 @@ public enum HeaderEngagementStyle: Sendable, Equatable {
 ///
 /// It owns the Chat's `ChatTypingModel` and its live connection, so the
 /// state goes away with the Chat; a foreground return reconnects, which
-/// re-reads the durable engagements. Tapping the row opens Working now.
+/// re-reads the durable engagements. Tapping the row opens Working now;
+/// bubbles pass touches through to the transcript.
 struct HeaderEngagement: View {
     let chatID: String
     let style: HeaderEngagementStyle
@@ -79,7 +80,9 @@ private struct HeaderEngagementContent: View {
                     EngagementThoughtBubble(name: bubble.typist.name, text: bubble.thought.text)
                         .id(bubble.thought.id)
                         .transition(bubbleTransition)
-                        .onTapGesture { isShowingWorkingNow = true }
+                        // A bubble floats over the transcript for a moment;
+                        // it must never take a tap meant for a message under it.
+                        .allowsHitTesting(false)
                 }
             }
         }
