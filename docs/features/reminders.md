@@ -2,7 +2,7 @@
 summary: Hosted, author-owned reminders anchored to Server messages, answered by the Agent's own marked message, with pending Agent attention, a per-fire execution history, and Agent-profile visibility.
 read_when:
   - changing reminder scheduling, cadences, timezones, fires, script payloads, or run history
-  - changing Agent-profile reminder visibility
+  - changing Agent-profile reminder visibility, rows, or the reminder detail sheet
   - changing how a reminder fire appears in a conversation
   - changing how scheduled work waits for an offline Agent
 ---
@@ -42,12 +42,16 @@ new command id.
   card behind it work the same for every automation — see
   [Chat](chat.md#in-the-box). Each fire the Agent acts on is its own message;
   answers to a recurring reminder never pile into one Thread.
-- **Clear schedule times.** The Agent profile shows the next fire and calendar
-  cadence in the reminder's agreed timezone, with a readable zone label. It adds
-  your local equivalent when the UTC offsets differ at that fire. Fixed intervals
-  remain durations; they are not relabelled as daily clock appointments. History
-  labels execution timestamps as your time and shows cadence frequency without
-  assuming a schedule timezone that its records do not contain.
+- **Clear schedule times.** A reminder is one of two kinds, one-time or
+  recurring, and every profile surface says which first. Rows and the detail
+  read in your own time; the schedule's agreed timezone, with a readable zone
+  label and its clock there when the UTC offsets differ, lives only in the
+  detail. Calendar cadences are converted to your zone on the date of the next
+  fire, so DST and a slot that lands on another weekday for you come out right.
+  Fixed intervals remain durations; they are not relabelled as daily clock
+  appointments. History labels execution timestamps as your time and shows
+  cadence frequency without assuming a schedule timezone that its records do not
+  contain.
 - **Stable recurrence.** Supported repeats are `every:<positive>[mhd]`,
   `daily@HH:MM`, and `weekly:days@HH:MM`. Calendar repeats (`daily@`,
   `weekly:`) recur in the reminder's explicit IANA timezone, which the Server
@@ -104,9 +108,20 @@ new command id.
   reaches the Agent on the wake itself, not as a message in the conversation, and
   the Agent decides whether it is worth saying.
 - **Agent profiles.** Server Owners and Admins can see an Agent's reminders on
-  that Agent's profile, each row showing the title, its description, and the
-  next wake. There is no Server-wide Reminders page. Script contents
-  remain redacted.
+  that Agent's profile. Each row is one line: a kind icon (a calendar for
+  one-time, a repeat mark for recurring), the title, and a short schedule —
+  `Once · Tomorrow at 9:00 AM` or `Every Monday at 3:57 PM · Next run Mon,
+  Oct 12`, naming the next run's clock only when the cadence does not already
+  say it. Pressing a row opens the reminder's detail sheet, shaped like a
+  Trigger's: the title and kind (`One-time reminder` / `Recurring reminder`),
+  then **Schedule** (next run, repeats, timezone), **Instructions** (the full
+  description, when it differs from the title), **Context** (the chat it was set
+  in, when it was created, and an attached script's size), and for a recurring
+  reminder its **Run history** from `reminder.runs`, newest first, noting a run
+  that woke late. **Cancel Reminder** asks first, then cancels with
+  `reminder.cancel` against the snapshot's version; the reminder leaves the
+  schedule and the sheet closes. There is no Server-wide Reminders page. Script
+  contents remain redacted.
 - **Schedule, then history.** The profile's Reminders section is the schedule:
   it lists only scheduled reminders and its count is the number of wakes still
   coming. Nothing that has already happened is listed beside them. History is
@@ -121,13 +136,12 @@ new command id.
   leaves it blank, because the answer link already says so. The drawer states
   its own retention, because the Server deletes a fire after
   `REMINDER_HISTORY_RETENTION_DAYS`, and says so when the read is capped at its
-  limit. Both surfaces are read-only, and the log is fetched only when the
-  drawer opens.
+  limit. The log is fetched only when the drawer opens.
 - **Snapshot freshness.** The Agent profile keeps the last hosted snapshot
   visible and refreshes stale reminder data on mount or reconnect.
 
 Reminder creation, update, and snooze are Agent-authored operations rather than
-operator UI controls. Offline fires wait durably, Computer reconnect resends
+operator UI controls; canceling is the one operator action. Offline fires wait durably, Computer reconnect resends
 them, and a completed Agent turn—or a durable send before later cleanup
 failure—acknowledges ordinary reminder attention.
 

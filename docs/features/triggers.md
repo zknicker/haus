@@ -41,7 +41,11 @@ only a hash. Losing it means rotating, not recovering it.
 
 ## Managing one
 
-Opening a Trigger from the Automations tab shows its detail:
+Each row on the Automations tab is one line, the same anatomy as a Reminder
+row: a webhook icon, the title, and its activity (`Last fired 3h ago · 4 fires`
+or `Never fired`). Only a disabled Trigger carries a status chip; armed is the
+norm. Opening a Trigger shows its detail, headed by its title and kind
+(`Webhook trigger`):
 
 - **Active** arms or disables it. A disabled Trigger refuses every POST and keeps
   its history.
@@ -63,7 +67,8 @@ Opening a Trigger from the Automations tab shows its detail:
   Trigger's title and kind are snapshotted onto the message — but their hover
   card and context card lose everything that was read live.
 
-Each row shows who created it — a person's handle, or the owning Agent.
+The detail's **Created by** row names who created it — a person's handle, or
+the owning Agent.
 
 ## Product behavior
 

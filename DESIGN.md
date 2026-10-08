@@ -752,6 +752,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   `--reminder-mark-soft` or `--trigger-mark-soft`, then the title in the mark ink, `font-medium`,
   truncating; its elbow takes `--*-mark-line`. A turn shows one context line: when it has a cause,
   the cause line replaces its reply line.
+  The Automations list (Agent profile) carries the same vocabulary on its rows: the ItemCard icon
+  slot fills with `--reminder-mark-soft` or `--trigger-mark-soft` and inks a 20px glyph in the mark
+  color (`automation-mark--*` in `default-theme.css`); the glyph tells one-time from recurring.
   The recipient and cancel action remain visible; the original excerpt is available on hover.
   The header uses the lighter background token, with cancel aligned above Send. The selected
   message row, including its avatar and header, uses `--reply-highlight` (70% of accent-soft)
