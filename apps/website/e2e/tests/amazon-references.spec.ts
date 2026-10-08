@@ -42,51 +42,62 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
         });
     });
     let detailCalls = 0;
-    await page.route('**/trpc/**', async (route) => {
-        const request = route.request();
-        const url = new URL(request.url());
-        const paths = url.pathname.split('/trpc/')[1]?.split(',') ?? [];
-        if (!paths.some((path) => path.startsWith('mcp.amazonProduct'))) {
-            await route.continue();
-            return;
-        }
-        const inputs = request.postDataJSON();
-        const results = await Promise.all(
-            paths.map(async (path, index) => {
-                if (path === 'mcp.amazonProducts') {
-                    return { result: { data: [{ status: 'found', product: summary }] } };
-                }
-                if (path === 'mcp.amazonProductDetail') {
-                    detailCalls += 1;
-                    return {
+    const slowAsin = 'B0DDZPDF14';
+    let releaseSlow: () => void = () => undefined;
+    const slowReleased = new Promise<void>((resolve) => {
+        releaseSlow = resolve;
+    });
+    // Each chip read is its own unbatched request, so the mock answers one procedure at a time.
+    await page.route('**/trpc/mcp.amazonProduct*', async (route) => {
+        const path = new URL(route.request().url()).pathname.split('/trpc/')[1];
+        const input = route.request().postDataJSON() as { asin: string };
+        if (path === 'mcp.amazonProduct') {
+            if (input.asin === slowAsin) {
+                await slowReleased;
+                await route.fulfill({
+                    json: {
                         result: {
                             data: {
-                                ...summary,
-                                price: { amountMinor: 1999, currencyCode: 'USD' },
-                                bulletPoints: ['Soft fabric', 'Classic fit'],
+                                status: 'found',
+                                product: { ...summary, asin: slowAsin, shortName: 'Slow Shirt' },
                             },
                         },
-                    };
-                }
-                const response = await page.request.post(`${url.origin}/trpc/${path}?batch=1`, {
-                    headers: request.headers(),
-                    data: { 0: inputs[index] },
+                    },
                 });
-                return (await response.json())[0];
-            })
-        );
-        await route.fulfill({ json: results });
+                return;
+            }
+            await route.fulfill({
+                json: { result: { data: { status: 'found', product: summary } } },
+            });
+            return;
+        }
+        detailCalls += 1;
+        await route.fulfill({
+            json: {
+                result: {
+                    data: {
+                        ...summary,
+                        price: { amountMinor: 1999, currencyCode: 'USD' },
+                        bulletPoints: ['Soft fabric', 'Classic fit'],
+                    },
+                },
+            },
+        });
     });
     await client.chat.send.mutate({
         chatId,
         serverId: server.id,
         nonce: 'amazon-preview',
         content:
-            'Compare **B07XN9T11R** with [the listing](https://www.amazon.com/dp/B07XN9T11R).\n\nKeep `B07XN9T11R` as code.',
+            'Compare **B07XN9T11R** with [the listing](https://www.amazon.com/dp/B07XN9T11R) and B0DDZPDF14.\n\nKeep `B07XN9T11R` as code.',
     });
     await page.goto(`/s/amazon-references/chats/${chatId}`);
     const chips = page.getByRole('link', { name: 'Open Freaky Lunch Lady on Amazon' });
+    // Chips resolve independently: these fill in while the slow product is still loading.
     await expect(chips).toHaveCount(2);
+    await expect(page.getByRole('link', { name: `Open ${slowAsin} on Amazon` })).toHaveCount(1);
+    releaseSlow();
+    await expect(page.getByRole('link', { name: 'Open Slow Shirt on Amazon' })).toHaveCount(1);
     await expect(page.locator('code').filter({ hasText: 'B07XN9T11R' })).toBeVisible();
     expect(detailCalls).toBe(0);
     expect(originalImageRequests).toBe(0);

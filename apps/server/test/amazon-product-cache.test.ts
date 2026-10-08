@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { readAmazonProductSummaries } from '../src/amazon-products/read-products.ts';
+import { readAmazonProductSummary } from '../src/amazon-products/read-products.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
@@ -14,48 +14,41 @@ test('product cache shares lookups and rechecks connection state before serving 
     const effects = makeServerRuntime();
     const client = createHausClient(harness, await harness.clerk.mintSessionToken('product-cache'));
     let reads = 0;
-    let enrichmentReady = true;
     const unknownAsin = 'B000000000';
     const upstream = makeClient('RankWrangler', {
         call: async (args) => {
             const request = args.arguments as Record<string, unknown>;
             expect(request).toMatchObject({
-                operation: 'getMany',
+                operation: 'get',
+                marketplaceId: 'ATVPDKIKX0DER',
                 include: ['shortName', 'cutoutThumbnail'],
             });
             reads += 1;
-            const known = (request.products as { asin: string }[]).some(
-                (product) => product.asin === 'B07XN9T11R'
-            );
-            const enrichment = enrichmentReady
-                ? {
-                      shortName: 'Freaky Lunch Lady',
-                      cutoutThumbnail: {
-                          status: 'available',
-                          url: 'https://images.example.com/cutout.webp',
-                      },
-                      pending: [],
-                  }
-                : {
-                      shortName: null,
-                      cutoutThumbnail: { status: 'pending' },
-                      pending: ['shortName', 'cutoutThumbnail'],
-                  };
+            if (request.asin !== 'B07XN9T11R') {
+                return {
+                    isError: true,
+                    structuredContent: { error: { code: 'NOT_FOUND', retryable: false } },
+                };
+            }
             return {
                 structuredContent: {
-                    operation: 'getMany',
-                    data: known
-                        ? [
-                              {
-                                  asin: 'B07XN9T11R',
-                                  marketplaceId: 'ATVPDKIKX0DER',
-                                  title: 'Freaky Lunch Lady Halloween Shirt',
-                                  thumbnail: { status: 'unavailable' },
-                                  amazonListingStatus: 'active',
-                                  ...enrichment,
-                              },
-                          ]
-                        : [],
+                    operation: 'get',
+                    data: {
+                        asin: 'B07XN9T11R',
+                        marketplaceId: 'ATVPDKIKX0DER',
+                        listing: {
+                            title: 'Freaky Lunch Lady Halloween Shirt',
+                            brand: 'Halloween by 14th Floor',
+                            shortName: 'Freaky Lunch Lady',
+                            cutoutThumbnail: {
+                                status: 'available',
+                                url: 'https://images.example.com/cutout.webp',
+                            },
+                            thumbnail: { status: 'unavailable' },
+                            amazonListingStatus: 'active',
+                        },
+                        price: null,
+                    },
                 },
             };
         },
@@ -74,60 +67,47 @@ test('product cache shares lookups and rechecks connection state before serving 
         const member = await findUserByClerkId(db.db, 'product-cache');
         const input = {
             serverId: server.id,
-            products: [{ asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const }],
+            product: { asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const },
         };
-        expect(await readAmazonProductSummaries(db.db, runtime, member, input)).toBeNull();
+        expect(await readAmazonProductSummary(db.db, runtime, member, input)).toBeNull();
         await harness.sql`update mcp_connections set connected = true, tools = ARRAY['rankwrangler_product'] where id = ${account.id}`;
         const results = await Promise.all([
-            readAmazonProductSummaries(db.db, runtime, member, input),
-            readAmazonProductSummaries(db.db, runtime, member, input),
+            readAmazonProductSummary(db.db, runtime, member, input),
+            readAmazonProductSummary(db.db, runtime, member, input),
         ]);
         expect(results[0]).toEqual(results[1]);
         expect(reads).toBe(1);
-        expect(results[0]?.[0]).toMatchObject({
+        expect(results[0]).toMatchObject({
             status: 'found',
             product: {
+                shortName: 'Freaky Lunch Lady',
+                brand: 'Halloween by 14th Floor',
                 cutoutThumbnail: {
                     status: 'available',
                     url: 'https://images.example.com/cutout.webp',
                 },
             },
         });
+        await readAmazonProductSummary(db.db, runtime, member, input);
+        expect(reads).toBe(1);
         await harness.sql`update mcp_connections set connected = false where id = ${account.id}`;
-        expect(await readAmazonProductSummaries(db.db, runtime, member, input)).toBeNull();
+        expect(await readAmazonProductSummary(db.db, runtime, member, input)).toBeNull();
         await runtime.closeConnection(account.id);
         await harness.sql`update mcp_connections set connected = true where id = ${account.id}`;
-        enrichmentReady = false;
-        const [pending] = (await readAmazonProductSummaries(db.db, runtime, member, input)) ?? [];
+        await readAmazonProductSummary(db.db, runtime, member, input);
         expect(reads).toBe(2);
-        expect(pending).toMatchObject({
-            status: 'found',
-            product: {
-                title: 'Freaky Lunch Lady Halloween Shirt',
-                shortName: null,
-                cutoutThumbnail: null,
-                enrichment: 'pending',
-            },
-        });
-        await readAmazonProductSummaries(db.db, runtime, member, input);
-        expect(reads).toBe(2);
-        await Bun.sleep(2100);
-        enrichmentReady = true;
-        const [ready] = (await readAmazonProductSummaries(db.db, runtime, member, input)) ?? [];
-        expect(reads).toBe(3);
-        expect(ready).toMatchObject({
-            status: 'found',
-            product: { shortName: 'Freaky Lunch Lady', enrichment: 'ready' },
-        });
-        const unknown = { asin: unknownAsin, marketplaceId: 'ATVPDKIKX0DER' as const };
-        const mixed = await readAmazonProductSummaries(db.db, runtime, member, {
+        const unknown = {
             ...input,
-            products: [...input.products, unknown],
+            product: { asin: unknownAsin, marketplaceId: 'ATVPDKIKX0DER' as const },
+        };
+        expect(await readAmazonProductSummary(db.db, runtime, member, unknown)).toEqual({
+            ...unknown.product,
+            status: 'unavailable',
         });
+        // Misses are not cached.
+        await readAmazonProductSummary(db.db, runtime, member, unknown);
         expect(reads).toBe(4);
-        expect(mixed?.map((result) => result.status)).toEqual(['found', 'unavailable']);
-        expect(mixed?.[1]).toEqual({ ...unknown, status: 'unavailable' });
-        await expect(readAmazonProductSummaries(db.db, runtime, null, input)).rejects.toThrow();
+        await expect(readAmazonProductSummary(db.db, runtime, null, input)).rejects.toThrow();
     } finally {
         await runtime.close();
         await effects.dispose();

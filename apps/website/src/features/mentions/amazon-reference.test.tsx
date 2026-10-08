@@ -15,7 +15,6 @@ const summary = {
     brand: 'Lunch Lady Designs',
     thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
     amazonListingStatus: 'active',
-    enrichment: 'ready',
 } satisfies AmazonProductSummary;
 const chip = (lookup: AmazonProductLookup) =>
     renderToStaticMarkup(<AmazonReferenceChip lookup={lookup} product={identity} />);
@@ -59,7 +58,7 @@ test('loaded product data fills the label and cutout in place', () => {
     const unenriched = chip({
         status: 'ready',
         detailFailed: false,
-        product: { ...summary, shortName: null, cutoutThumbnail: null, enrichment: 'pending' },
+        product: { ...summary, shortName: null, cutoutThumbnail: null },
     });
     expect(unenriched).toContain('aria-label="Open B07XN9T11R on Amazon"');
     expect(unenriched).toContain('https://images.example.com/product.jpg');

@@ -35,7 +35,6 @@ test('settled data wins over earlier failures', () => {
                     thumbnail: { status: 'unavailable' },
                     cutoutThumbnail: null,
                     amazonListingStatus: 'active',
-                    enrichment: 'ready',
                 },
             },
         })

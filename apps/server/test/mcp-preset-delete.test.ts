@@ -23,15 +23,10 @@ afterAll(async () => {
 });
 
 test('product previews require membership and a connected RankWrangler account', async () => {
-    const input = {
-        serverId,
-        products: [{ asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const }],
-    };
-    await expect(outsider.trpc.mcp.amazonProducts.query(input)).rejects.toThrow();
-    await expect(owner.trpc.mcp.amazonProducts.query(input)).resolves.toBeNull();
-    await expect(
-        owner.trpc.mcp.amazonProductDetail.query({ serverId, ...input.products[0] })
-    ).resolves.toBeNull();
+    const input = { serverId, asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const };
+    await expect(outsider.trpc.mcp.amazonProduct.query(input)).rejects.toThrow();
+    await expect(owner.trpc.mcp.amazonProduct.query(input)).resolves.toBeNull();
+    await expect(owner.trpc.mcp.amazonProductDetail.query(input)).resolves.toBeNull();
 });
 
 test('GitHub lands as an OAuth preset awaiting sign-in', async () => {

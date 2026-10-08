@@ -11,7 +11,6 @@ const product = {
     brand: 'Lunch Lady Designs',
     thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
     amazonListingStatus: 'active',
-    enrichment: 'ready',
 } satisfies AmazonProductSummary;
 test('reads RankWrangler structured and text MCP envelopes', () => {
     const payload = {

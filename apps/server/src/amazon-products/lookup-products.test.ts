@@ -1,37 +1,29 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
-import type { AmazonProductResult } from '@haus/api';
 import { McpUpstreamError } from '../server-mcp/errors.ts';
-import { lookupProductSummaries, type RankWranglerRead } from './lookup-products.ts';
+import { lookupProductSummary, type RankWranglerRead } from './lookup-products.ts';
 
 const identity = { asin: 'B07X1MGDCN', marketplaceId: 'ATVPDKIKX0DER' } as const;
-const other = { asin: 'B0DDZPDF14', marketplaceId: 'ATVPDKIKX0DER' } as const;
-const basics = {
+const listing = {
     title: 'Flamingoween Halloween Flamingo Shirt',
+    brand: 'Flamingo Designs',
     thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
     amazonListingStatus: 'active',
 } as const;
-const ready = {
-    ...identity,
-    ...basics,
+const get = (enrichment: object, asin: string = identity.asin) => ({
+    structuredContent: {
+        operation: 'get',
+        data: {
+            asin,
+            marketplaceId: identity.marketplaceId,
+            listing: { ...listing, ...enrichment, bulletPoints: [] },
+            price: null,
+        },
+    },
+});
+const enriched = {
     shortName: 'Flamingoween',
     cutoutThumbnail: { status: 'available', url: 'https://images.example.com/cutout.webp' },
-    pending: [],
-};
-const pending = {
-    ...identity,
-    ...basics,
-    shortName: null,
-    cutoutThumbnail: { status: 'pending' },
-    pending: ['shortName', 'cutoutThumbnail'],
-};
-const settledNone = {
-    ...identity,
-    ...basics,
-    shortName: null,
-    cutoutThumbnail: { status: 'unavailable' },
-    pending: [],
-};
-const getMany = (...data: unknown[]) => ({ structuredContent: { operation: 'getMany', data } });
+} as const;
 const upstreamError = (code: string, retryable: boolean, retryAfterSeconds = 2) => ({
     isError: true,
     content: [
@@ -42,117 +34,67 @@ const upstreamError = (code: string, retryable: boolean, retryAfterSeconds = 2) 
 const warn = spyOn(console, 'warn').mockImplementation(() => undefined);
 afterEach(() => warn.mockClear());
 
-function readReturning(response: unknown) {
+async function lookup(response: unknown) {
     const calls: Record<string, unknown>[] = [];
     const read: RankWranglerRead = async (args) => {
         calls.push(args);
         return response;
     };
-    return { calls, read };
+    return { calls, result: await lookupProductSummary(read, identity) };
 }
 
-async function lookup(response: unknown, products = [identity, other]) {
-    const { calls, read } = readReturning(response);
-    const results = lookupProductSummaries(read, products);
-    const settled = await Promise.all(products.map((product) => results.get(product.asin)));
-    return { calls, settled };
-}
-
-test('makes exactly one getMany with include for the whole batch', async () => {
-    const { calls } = await lookup(getMany(ready, { ...ready, ...other }));
+test('makes exactly one get with the summary fields', async () => {
+    const { calls } = await lookup(get(enriched));
     expect(calls).toEqual([
-        {
-            operation: 'getMany',
-            products: [identity, other],
-            include: ['shortName', 'cutoutThumbnail'],
-        },
+        { operation: 'get', ...identity, include: ['shortName', 'cutoutThumbnail'] },
     ]);
 });
 
-test('a ready item returns its short name and cutout, marked ready', async () => {
-    const { settled } = await lookup(getMany(ready), [identity]);
-    expect(settled[0]).toEqual({
+test('an enriched listing returns its short name, cutout, and brand', async () => {
+    const { result } = await lookup(get(enriched));
+    expect(result).toEqual({ status: 'found', product: { ...identity, ...listing, ...enriched } });
+});
+
+test('enrichment RankWrangler could not finish settles as absent', async () => {
+    const { result } = await lookup(
+        get({ shortName: null, cutoutThumbnail: { status: 'unavailable' } })
+    );
+    expect(result).toMatchObject({
         status: 'found',
-        product: {
-            ...identity,
-            ...basics,
-            brand: null,
-            shortName: 'Flamingoween',
-            cutoutThumbnail: { status: 'available', url: 'https://images.example.com/cutout.webp' },
-            enrichment: 'ready',
-        },
+        product: { shortName: null, cutoutThumbnail: { status: 'unavailable' } },
     });
 });
 
-test('a pending item returns its basics, marked pending', async () => {
-    const { settled } = await lookup(getMany(pending), [identity]);
-    expect(found(settled[0])).toMatchObject({
-        ...basics,
-        shortName: null,
-        cutoutThumbnail: null,
-        enrichment: 'pending',
-    });
-});
-
-test('a settled item without enrichment is ready with an unavailable cutout', async () => {
-    const { settled } = await lookup(getMany(settledNone), [identity]);
-    expect(found(settled[0])).toMatchObject({
-        shortName: null,
-        cutoutThumbnail: { status: 'unavailable' },
-        enrichment: 'ready',
-    });
-});
-
-test('rejects a pending list naming fields Haus did not request', async () => {
-    const { settled } = await lookup(getMany({ ...pending, pending: ['marketData'] }), [identity]);
-    expect(settled[0]).toEqual({ ...identity, status: 'unavailable' });
+test('a response for a different product is unavailable', async () => {
+    const { result } = await lookup(get(enriched, 'B0DDZPDF14'));
+    expect(result).toEqual({ ...identity, status: 'unavailable' });
     expect(warn).toHaveBeenCalledTimes(1);
 });
 
-test('a product getMany omits is unavailable without failing its siblings', async () => {
-    const { settled } = await lookup(getMany(ready));
-    expect(settled[0]).toMatchObject({ status: 'found' });
-    expect(settled[1]).toEqual({ ...other, status: 'unavailable' });
-});
-
-test('a retryable batch error makes every product temporarily unavailable', async () => {
-    const { calls, settled } = await lookup(upstreamError('TEMPORARILY_UNAVAILABLE', true, 5));
-    expect(settled).toEqual([
-        { ...identity, status: 'temporarilyUnavailable', retryAfterSeconds: 5 },
-        { ...other, status: 'temporarilyUnavailable', retryAfterSeconds: 5 },
-    ]);
+test('a retryable error is temporarily unavailable without a warning', async () => {
+    const { calls, result } = await lookup(upstreamError('TEMPORARILY_UNAVAILABLE', true, 5));
+    expect(result).toEqual({ ...identity, status: 'temporarilyUnavailable', retryAfterSeconds: 5 });
     expect(calls).toHaveLength(1);
     expect(warn).not.toHaveBeenCalled();
 });
 
 test('retry waits are clamped to the contract bounds', async () => {
-    const { settled } = await lookup(upstreamError('TEMPORARILY_UNAVAILABLE', true, 600));
-    expect(settled[0]).toMatchObject({ retryAfterSeconds: 30 });
+    const { result } = await lookup(upstreamError('TEMPORARILY_UNAVAILABLE', true, 600));
+    expect(result).toMatchObject({ retryAfterSeconds: 30 });
 });
 
 test('an MCP timeout is transient with the default wait', async () => {
     const read: RankWranglerRead = () =>
         Promise.reject(new McpUpstreamError('MCP_TIMEOUT', 'The MCP invocation timed out.'));
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(summary).toEqual({
+    expect(await lookupProductSummary(read, identity)).toEqual({
         ...identity,
         status: 'temporarilyUnavailable',
         retryAfterSeconds: 2,
     });
 });
 
-test('a non-retryable batch error makes every product unavailable', async () => {
-    const { settled } = await lookup(upstreamError('INTERNAL', false));
-    expect(settled).toEqual([
-        { ...identity, status: 'unavailable' },
-        { ...other, status: 'unavailable' },
-    ]);
+test('a non-retryable error, such as an unknown ASIN, is unavailable', async () => {
+    const { result } = await lookup(upstreamError('NOT_FOUND', false));
+    expect(result).toEqual({ ...identity, status: 'unavailable' });
     expect(warn).toHaveBeenCalledTimes(1);
 });
-
-function found(result: AmazonProductResult | undefined) {
-    if (result?.status !== 'found') {
-        throw new Error(`Expected a found product, got ${result?.status}`);
-    }
-    return result.product;
-}

@@ -34,7 +34,7 @@ function recordingUtils() {
             invitation: { list: { invalidate: invalidate('invitation.list') } },
             mcp: {
                 list: { invalidate: invalidate('mcp.list') },
-                amazonProducts: { invalidate: invalidate('mcp.amazonProducts') },
+                amazonProduct: { invalidate: invalidate('mcp.amazonProduct') },
                 amazonProductDetail: { invalidate: invalidate('mcp.amazonProductDetail') },
             },
             member: {
@@ -200,7 +200,7 @@ test('MCP events invalidate connections and their product previews', () => {
 
     expect(names(invalidated)).toEqual([
         'mcp.list',
-        'mcp.amazonProducts',
+        'mcp.amazonProduct',
         'mcp.amazonProductDetail',
     ]);
 });
