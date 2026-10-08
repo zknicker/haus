@@ -56,6 +56,11 @@ extension TranscriptScrollAnchor {
     /// back at its old viewport offset. `rectForRow` uses the table's content
     /// coordinate space, so the same delta works for the vertically flipped
     /// table without instantiating off-screen rows.
+    ///
+    /// A restore can land the viewport on a row UIKit has only estimated — a
+    /// tall reply arriving below a reader who scrolled up — and laying that
+    /// row out corrects its height, which moves every row after it. So the
+    /// restore repeats until the anchor stops moving.
     func restore<Item: Identifiable & Equatable>(
         in table: UITableView,
         items: [Item]
@@ -63,14 +68,16 @@ extension TranscriptScrollAnchor {
         guard let itemIndex = items.firstIndex(where: { $0.id == itemID }) else { return }
         let row = items.count - 1 - itemIndex
         let indexPath = IndexPath(row: row, section: 0)
-        table.layoutIfNeeded()
-        let currentOffset = table.rectForRow(at: indexPath).minY - table.bounds.minY
-        let delta = currentOffset - viewportOffset
-        guard abs(delta) > 0.25 else { return }
-        table.setContentOffset(
-            CGPoint(x: table.contentOffset.x, y: table.contentOffset.y + delta),
-            animated: false
-        )
+        for _ in 0..<4 {
+            table.layoutIfNeeded()
+            let currentOffset = table.rectForRow(at: indexPath).minY - table.bounds.minY
+            let delta = currentOffset - viewportOffset
+            guard abs(delta) > 0.25 else { return }
+            table.setContentOffset(
+                CGPoint(x: table.contentOffset.x, y: table.contentOffset.y + delta),
+                animated: false
+            )
+        }
         table.layoutIfNeeded()
     }
 }
