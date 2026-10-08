@@ -12,7 +12,6 @@ test('the eval carries the product prompt visuals pointer verbatim', () => {
         midTurnNotices: true,
         os: 'macOS',
         runtimeVersion: 'test',
-        webAccess: null,
         workspacePath: '/workbench',
     });
 

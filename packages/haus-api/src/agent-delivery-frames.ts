@@ -40,7 +40,6 @@ export const agentStartCommandSchema = z
         unreadElsewhere: z.array(unreadElsewhereSchema).max(50).default([]),
         /** Additionally drainable when the harness session resumes: alive-idle parity. */
         warmDrainItemIds: drainItemIdsSchema,
-        webAccess: z.enum(['fetch-only', 'search', 'search-only']).optional(),
     })
     .strict();
 

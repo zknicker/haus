@@ -47,6 +47,7 @@ module.exports = {
         'electron/external-link-handlers.cjs',
         'electron/main.cjs',
         'electron/preload.cjs',
+        'electron/provider-app-deeplinks.cjs',
         'electron/query-cache-handoff.cjs',
         'electron/tab-drag-geometry.cjs',
         'electron/tab-drag-ipc.cjs',

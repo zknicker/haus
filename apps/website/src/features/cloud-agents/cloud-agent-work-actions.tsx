@@ -16,7 +16,8 @@ import { openExternalLink } from '../../lib/open-external-link.ts';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
 import { appLink, serverChatRoute } from '../servers/server-routes.ts';
 import {
-    openCloudAgentProviderUrl,
+    canOpenCloudAgentProvider,
+    openCloudAgentProvider,
     openInCloudAgentProviderLabel,
 } from './cloud-agent-provider-presentation.ts';
 import { useCloudAgentCancelAction } from './use-cloud-agent-cancel-action.ts';
@@ -40,11 +41,11 @@ export function CloudAgentWorkActions({
     const cancel = useCloudAgentCancelAction(work);
     const conversationChatId = context?.conversationChatId ?? context?.chatId ?? null;
     const providerLabel = openInCloudAgentProviderLabel(work.provider);
-    const providerUrl = work.providerUrl;
+    const canOpenProvider = canOpenCloudAgentProvider(work);
 
     const runAction = (key: React.Key) => {
-        if (key === 'provider' && providerUrl) {
-            openCloudAgentProviderUrl(work.provider, providerUrl);
+        if (key === 'provider' && canOpenProvider) {
+            openCloudAgentProvider(work);
             return;
         }
         if (key === 'link' && conversationChatId && server) {
@@ -66,12 +67,7 @@ export function CloudAgentWorkActions({
                     View PR
                 </Button>
             ) : (
-                <Button
-                    isDisabled={!providerUrl}
-                    onPress={() =>
-                        providerUrl && openCloudAgentProviderUrl(work.provider, providerUrl)
-                    }
-                >
+                <Button isDisabled={!canOpenProvider} onPress={() => openCloudAgentProvider(work)}>
                     <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                     {providerLabel}
                 </Button>
@@ -92,7 +88,7 @@ export function CloudAgentWorkActions({
                     <Dropdown.Menu onAction={runAction}>
                         <Dropdown.Item
                             id="provider"
-                            isDisabled={!providerUrl}
+                            isDisabled={!canOpenProvider}
                             textValue={providerLabel}
                         >
                             <Icon icon={ArrowUpRight01Icon} size={16} />

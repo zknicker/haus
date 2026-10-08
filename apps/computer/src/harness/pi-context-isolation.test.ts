@@ -1,13 +1,15 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { ensureNativeSkillLinks } from './native-skill-links.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 interface ResourceLoader {
     getAgentsFiles(): { agentsFiles: { path: string; content: string }[] };
+    getSkills(): { skills: { filePath: string; name: string }[] };
     reload(): Promise<void>;
 }
 interface ResourceLoaderClass {
@@ -27,8 +29,87 @@ afterEach(async () => {
 // Pi's resource loader reads AGENTS.md and CLAUDE.md from its cwd and every ancestor to `/`,
 // which reached the operator's home. Haus patches the adapter to pass `noContextFiles`.
 test('a Pi session loads no context files from the workspace or its ancestors', async () => {
-    const { agentRoot, homeDir, workspace } = await canaryTree();
-    const loaders = await recordResourceLoaders(async () => {
+    const loaders = await startPiSession(await canaryTree());
+
+    expect(loaders.length).toBeGreaterThan(0);
+    for (const loader of loaders) {
+        expect(loader.getAgentsFiles().agentsFiles).toEqual([]);
+    }
+}, 30_000);
+
+// Pi runs in the Computer process, so its native skill discovery reads the operator's HOME and
+// the adapter kept only workspace skills. Haus patches it to read the Agent's linked library.
+test('a Pi session sees exactly the skills in its Agent library', async () => {
+    const tree = await canaryTree();
+    const skillsDir = join(tree.agentRoot, 'skills');
+    await mkdir(join(skillsDir, 'library-skill'), { recursive: true });
+    await writeFile(
+        join(skillsDir, 'library-skill', 'SKILL.md'),
+        '---\nname: library-skill\ndescription: A skill from the Agent library.\n---\nBody.\n'
+    );
+    await mkdir(join(tree.workspace, '.agents', 'skills', 'workspace-skill'), { recursive: true });
+    await writeFile(
+        join(tree.workspace, '.agents', 'skills', 'workspace-skill', 'SKILL.md'),
+        '---\nname: workspace-skill\ndescription: Not part of the library.\n---\nBody.\n'
+    );
+    await ensureNativeSkillLinks(tree.homeDir, skillsDir);
+
+    const loaders = await startPiSession(tree);
+
+    expect(loaders.length).toBeGreaterThan(0);
+    for (const loader of loaders) {
+        expect(loader.getSkills().skills.map((skill) => skill.name)).toEqual(['library-skill']);
+    }
+}, 30_000);
+
+// Every harness records the skills it wrote in a manifest inside its native skill directory,
+// which links to the Agent's canonical library. Haus passes no skills, so a turn must leave the
+// library free of that manifest (patched in @ai-sdk/harness `writeSkills`).
+test('a Pi turn writes no harness manifest into the Agent library', async () => {
+    const tree = await canaryTree();
+    const skillsDir = join(tree.agentRoot, 'skills');
+    await mkdir(skillsDir, { recursive: true });
+    await ensureNativeSkillLinks(tree.homeDir, skillsDir);
+    const sandboxSession = await createLocalTrustedSandboxProvider({
+        homeDir: tree.homeDir,
+        hostHomeDir: join(tree.agentRoot, 'host'),
+        rootDir: tree.agentRoot,
+        runtime,
+    }).createSession?.();
+    if (!sandboxSession) {
+        throw new Error('Sandbox provider did not create a session.');
+    }
+    const harness = createHarnessForRuntime('pi', 'medium');
+    const session = await harness.doStart({
+        sandboxSession,
+        sessionId: 'agt_pi-skill-manifest',
+        sessionWorkDir: tree.workspace,
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+    try {
+        // Skill sync runs before the turn reaches a model, so the turn itself may fail here.
+        const control = await session.doPromptTurn({
+            emit: () => undefined,
+            prompt: 'Start.',
+            skills: [],
+            tools: [],
+        });
+        await Promise.race([
+            Promise.resolve(control.done).catch(() => undefined),
+            Bun.sleep(15_000),
+        ]);
+        expect(await readdir(skillsDir)).toEqual([]);
+    } finally {
+        await session.doDestroy?.();
+        await sandboxSession.destroy?.();
+    }
+}, 30_000);
+
+async function startPiSession({
+    agentRoot,
+    homeDir,
+    workspace,
+}: Awaited<ReturnType<typeof canaryTree>>): Promise<ResourceLoader[]> {
+    return await recordResourceLoaders(async () => {
         const sandboxSession = await createLocalTrustedSandboxProvider({
             homeDir,
             hostHomeDir: join(agentRoot, 'host'),
@@ -47,12 +128,7 @@ test('a Pi session loads no context files from the workspace or its ancestors', 
         await session.doDestroy?.();
         await sandboxSession.destroy?.();
     });
-
-    expect(loaders.length).toBeGreaterThan(0);
-    for (const loader of loaders) {
-        expect(loader.getAgentsFiles().agentsFiles).toEqual([]);
-    }
-}, 30_000);
+}
 
 test('the canary tree leaks into an unpatched Pi resource loader', async () => {
     const { parent, workspace } = await canaryTree();

@@ -18,8 +18,9 @@ export interface DesktopPageOpeners {
 
 /**
  * Desktop opens a Thread, a chat's Files, and an artifact as pages (ADR 0039).
- * From a page each opener is a link from its tab (the other pane in split);
- * from window chrome it goes to a place from the focused pane. A new-tab
+ * From a page each opener is a link from its tab; from window chrome it goes
+ * to a place from the focused pane. A Thread always lands in the right pane
+ * (`pagePlacement`). A new-tab
  * gesture opens a new tab (`tab-open-gesture.ts`). Null on the
  * web, where the chat side pane hosts them.
  */

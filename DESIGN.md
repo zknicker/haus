@@ -763,6 +763,13 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   The bar occupies the reserved transcript space above the input without changing layout or
   scrolling messages. The typing row rides above the bar in the same stack, so both stay visible; while the bar is open the stack paints `background`, so transcript text never shows behind the typing row. Its cancel button preserves pointer focus instead of flashing input focus;
   keyboard focus remains available.
+- **Composer file drop:** A file drag over a chat or Thread recedes that surface behind a 90%
+  `background` scrim and draws an inset dashed `accent` frame at the shell radius tier
+  (`.card-shell`), with a filled accent icon, "Drop files to attach", and a muted limit line.
+  It fades on `springs.moderate`, the frame settles from 98% scale, reduced motion fades only,
+  and it never takes pointer events. Only file drags show it, only on the pane under the
+  pointer. Composer attachments stay stock `ChatAttachment` tiles and cards; file cards read
+  "PDF · 243 KB", and tiles pop in and out while neighbors slide closed.
 - **Chat card backgrounds:** Thread/task previews and Cloud Agent cards share
   `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './app.tsx';
 import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
+import { installStrayFileDropGuard } from './features/servers/chat/composer-file-drop.ts';
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
 import { HausClerkProvider } from './lib/clerk.tsx';
 import { getDesktopBridge, isElectronDesktopApp } from './lib/desktop-bridge.ts';
@@ -14,6 +15,8 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
     throw new Error('Root element not found.');
 }
+
+installStrayFileDropGuard(window);
 
 if (isElectronDesktopApp() && navigator.userAgent.includes('Mac')) {
     document.documentElement.classList.add('macos-electron');

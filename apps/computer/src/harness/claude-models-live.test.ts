@@ -109,14 +109,12 @@ async function withClaudeAgent(
             runtime,
             runtimeId: 'claude-code',
             tools: {},
-            webAccess: null,
             workspaceDir,
         },
         {
             harness: createHarnessForRuntime(
                 'claude-code',
                 'medium',
-                false,
                 bridgeStoreDirForHost(),
                 modelId
             ),

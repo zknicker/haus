@@ -204,7 +204,9 @@ page stays blank while its Agent loads.
 * Two navigator policies place a push (`resolveTabNavigation`, `tab-navigation.ts`). Inside a
   page (`page`), `replace` and a push to the same page key (`tabPageKey`) stay in the tab; a push
   to another page is a link and goes through `openLink` (the other pane when two exist, else the
-  same tab; a link never opens the second pane, only a tab `move` does). Window chrome — the
+  same tab). The reducer's placement applies `pagePlacement` (`desktop-tabs-model.ts`) to every
+  entry point after the existing-tab match: an Agent profile or Settings opens a new tab after the
+  source, and a Thread opens a new tab in the right pane, creating it. Window chrome — the
   sidebar, command menu, settings rail — renders under `ShellTabRouter`, bound to the focused
   pane's current tab (`shell`), so its pushes navigate that tab and its selection reads that
   tab's location. Command-click intent rides router state (`tabIntentState`); paths outside the

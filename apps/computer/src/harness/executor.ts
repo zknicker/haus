@@ -10,7 +10,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
-import { Cause, Effect, Exit } from 'effect';
+import { Effect } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
@@ -34,6 +34,7 @@ import {
     createComputerExecutionJournal,
 } from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
+import { journalError, journalOutcome } from './journal-outcome.ts';
 import { takeMemorySizeNotice } from './memory-size-notice.ts';
 import { AgentSessionResumeRejectedError, isPromptResumeRejection } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
@@ -84,7 +85,6 @@ export interface HarnessTurnInput extends TurnDelivery {
     thoughts?: import('./thought-narrator.ts').AgentThoughtNarrator;
     tools: ToolSet;
     turnTimings?: AgentTurnTimings;
-    webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspaceDir: string;
 }
 
@@ -101,22 +101,6 @@ export interface HarnessTurnResult {
 
 export type { HarnessTokenUsage } from './token-usage.ts';
 export { HarnessTurnFailedError } from './turn-stream.ts';
-
-function journalOutcome(
-    exit: Exit.Exit<HarnessTurnResult, HarnessStreamForeignError>,
-    signal?: AbortSignal
-): 'completed' | 'failed' | 'interrupted' {
-    if (Exit.isSuccess(exit)) {
-        return exit.value.aborted ? 'interrupted' : 'completed';
-    }
-    return signal?.aborted || Cause.isInterruptedOnly(exit.cause) ? 'interrupted' : 'failed';
-}
-
-function journalError(exit: Exit.Exit<HarnessTurnResult, HarnessStreamForeignError>) {
-    return Exit.isFailure(exit)
-        ? Cause.pretty(Cause.map(exit.cause, (failure) => failure.cause))
-        : undefined;
-}
 
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
     input.turnTimings?.setReasoningEffort(input.reasoningEffort);
@@ -188,7 +172,6 @@ async function executeHarnessTurn(
     const harness = createHarnessForRuntime(
         input.runtimeId,
         input.reasoningEffort,
-        input.webAccess !== null,
         bridgeStoreDirForHost(),
         input.modelId
     );

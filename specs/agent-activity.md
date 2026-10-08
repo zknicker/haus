@@ -247,8 +247,10 @@ the log scrolls, and below a 42rem log drops the strip, keeping the day bar. Poi
 lights its turn in the log and names it in the readout; pointing at a turn or step lights its
 block and the step's span; pressing a block opens its turn and brings it into view.
 
-Under the band, turns sit under day rows (`Yesterday`, `Oct 4`; the band names the first day),
-newest first, as collapsible groups divided by hairlines. Rows run edge to edge — hover, linked,
+Under the band, turns sit under day rows (`Today`, `Yesterday`, `Oct 4`), including the first day.
+Every calendar day from today through the oldest loaded turn appears; a day without turns for
+the selected Agents says `No activity`. An empty log still shows today. Under each heading,
+turns run newest first as collapsible groups divided by hairlines. Rows run edge to edge — hover, linked,
 and failure tints included — while text keeps the shell's page gutter. A turn's header is one line
 on the log's columns: start time (tabular), a status glyph only when it is news — failed,
 interrupted, or still working, with a folded repeat count (`3×`) after the title — then the title

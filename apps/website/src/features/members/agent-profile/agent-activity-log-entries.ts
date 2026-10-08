@@ -6,7 +6,7 @@ import type { TurnTraceStatus } from '../../turn-trace/turn-trace-tool-model.ts'
 import type { TimelineStatus } from './agent-activity-log-overview-model.ts';
 import type { StepMark } from './agent-activity-log-stores.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
-import { groupTurnRowsByDay, type TurnRowTitle } from './agent-turn-row-model.ts';
+import { formatDayLabel, localDayKey, type TurnRowTitle } from './agent-turn-row-model.ts';
 import { collapseRecentActivity, type RecentActivityRow } from './recent-activity-rows.ts';
 import { useAgentsTurnRowTitles } from './use-turn-row-titles.ts';
 
@@ -39,10 +39,11 @@ export interface ActivityLogDay {
     readonly label: string;
 }
 
-/** Entries newest first under `Today`, `Yesterday`, `Oct 4`, after the filter. */
+/** Every local day from today through the oldest loaded turn, including quiet days. */
 export function readLogDays(
     entries: readonly ActivityLogEntry[],
-    filter: ActivityLogFilter
+    filter: ActivityLogFilter,
+    now = Date.now()
 ): ActivityLogDay[] {
     const shown = entries
         .filter((entry) => filter.agentIds.includes(entry.agent.id))
@@ -50,20 +51,36 @@ export function readLogDays(
             (left, right) =>
                 Date.parse(right.row.latest.startedAt) - Date.parse(left.row.latest.startedAt)
         );
-    const byRow = new Map(shown.map((entry) => [entry.row, entry]));
-    return groupTurnRowsByDay(shown.map((entry) => entry.row)).map((day) => ({
-        entries: day.rows.map((row) => byRow.get(row) as ActivityLogEntry),
-        key: day.key,
-        label: day.label,
-    }));
+    const byDay = new Map<string, ActivityLogEntry[]>();
+    for (const entry of shown) {
+        const key = localDayKey(new Date(entry.row.latest.startedAt));
+        const dayEntries = byDay.get(key) ?? [];
+        dayEntries.push(entry);
+        byDay.set(key, dayEntries);
+    }
+    const oldest = shown.at(-1);
+    const end = new Date(oldest ? oldest.row.latest.startedAt : now);
+    end.setHours(0, 0, 0, 0);
+    const newest = shown[0];
+    const cursor = new Date(newest ? Math.max(now, Date.parse(newest.row.latest.startedAt)) : now);
+    cursor.setHours(0, 0, 0, 0);
+    const days: ActivityLogDay[] = [];
+    while (cursor >= end) {
+        const key = localDayKey(cursor);
+        days.push({ entries: byDay.get(key) ?? [], key, label: formatDayLabel(cursor, now) });
+        cursor.setDate(cursor.getDate() - 1);
+    }
+    return days;
 }
 
-/** The newest day's latest turns open on arrival; everything older waits for a click. */
+/** The newest populated day's latest turns open on arrival. */
 const openOnArrival = 10;
 
 export function readOpenOnArrival(days: readonly ActivityLogDay[]): ReadonlySet<string> {
     return new Set(
-        (days[0]?.entries ?? []).slice(0, openOnArrival).map((entry) => entry.row.latest.runId)
+        (days.find((day) => day.entries.length > 0)?.entries ?? [])
+            .slice(0, openOnArrival)
+            .map((entry) => entry.row.latest.runId)
     );
 }
 

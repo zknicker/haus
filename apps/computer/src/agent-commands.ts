@@ -29,7 +29,6 @@ export interface AgentStartCommand {
     unreadElsewhere?: UnreadElsewhere[];
     /** Additionally drainable when the harness session resumes: alive-idle parity. */
     warmDrainItemIds?: string[];
-    webAccess?: 'fetch-only' | 'search' | 'search-only';
 }
 
 /** One chat holding queued work no row of the current frame represents. */

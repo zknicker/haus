@@ -3,7 +3,6 @@ import type { HarnessV1 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { HarnessTurnInput } from './executor.ts';
-import { inactiveWebToolSettings } from './runtime-web-tools.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 /**
@@ -38,17 +37,29 @@ const GROK_FOREIGN_MCP_SOURCES_OFF = {
     GROK_MANAGED_MCPS_ENABLED: 'false',
 } as const;
 
+/**
+ * Claude Code builtins Haus switches off. The first six match Raft's `CLAUDE_DISALLOWED_TOOLS`:
+ * plan mode and the runtime's own wakeups and cron jobs, which Haus Reminders own.
+ * `askUserQuestions` (native `AskUserQuestion`) waits on a host answer Haus never sends; Agents
+ * ask humans in a Haus message instead. `Monitor` streams a background process, which cannot
+ * outlive the turn (`CLAUDE_NO_BACKGROUND_TASKS_ENV`).
+ */
+export const CLAUDE_INACTIVE_TOOLS = [
+    'EnterPlanMode',
+    'ExitPlanMode',
+    'ScheduleWakeup',
+    'CronCreate',
+    'CronList',
+    'CronDelete',
+    'askUserQuestions',
+    'Monitor',
+    'RemoteTrigger',
+    'PushNotification',
+] as const;
+
 type AgentConstructionInput = Pick<
     HarnessTurnInput,
-    | 'agentId'
-    | 'env'
-    | 'homeDir'
-    | 'modelId'
-    | 'runtime'
-    | 'runtimeId'
-    | 'tools'
-    | 'webAccess'
-    | 'workspaceDir'
+    'agentId' | 'env' | 'homeDir' | 'modelId' | 'runtime' | 'runtimeId' | 'tools' | 'workspaceDir'
 >;
 
 /**
@@ -56,7 +67,8 @@ type AgentConstructionInput = Pick<
  * reads its native skill directory, and `ensureNativeSkillLinks` already points
  * those at the one canonical library, so asking the harness to materialize its
  * own copies would write the library back over itself — which the harness now
- * refuses, since it only overwrites skill directories it owns.
+ * refuses, since it only overwrites skill directories it owns. In-process Pi reads
+ * the same link through the patched `@ai-sdk/harness-pi` skill loader.
  */
 export function createHarnessAgent(
     input: AgentConstructionInput,
@@ -65,7 +77,7 @@ export function createHarnessAgent(
     return new HarnessAgent({
         harness: options.harness,
         id: input.agentId,
-        ...inactiveWebToolSettings(options.harness, input),
+        ...inactiveToolSettings(input.runtimeId),
         instructions: options.instructions,
         model: input.modelId,
         permissionMode: 'allow-all',
@@ -74,6 +86,13 @@ export function createHarnessAgent(
         sandboxConfig: { workDir: basename(input.workspaceDir) },
         tools: input.tools,
     });
+}
+
+/** Builtins the runtime's harness must not offer; only Claude Code filters builtins. */
+export function inactiveToolSettings(
+    runtimeId: string
+): { inactiveTools: string[] } | Record<string, never> {
+    return runtimeId === 'claude-code' ? { inactiveTools: [...CLAUDE_INACTIVE_TOOLS] } : {};
 }
 
 export function sandboxOptions(
@@ -88,6 +107,9 @@ export function sandboxOptions(
                 ...input.env,
                 ...GROK_INSTRUCTION_COMPAT_ENV,
                 ...GROK_FOREIGN_MCP_SOURCES_OFF,
+                // Grok 1.0.13 `features.ask_user_question`: its question waits on a host answer
+                // Haus never sends, so Agents ask humans in a Haus message instead.
+                GROK_ASK_USER_QUESTION: 'false',
                 GROK_HOME: join(input.homeDir, '.grok'),
                 GROK_MAX_MCP_OUTPUT_BYTES: String(GROK_MCP_OUTPUT_BYTES),
                 // Haus Agents run without sub-agents; Grok 1.0.13 then omits `spawn_subagent`.

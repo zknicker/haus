@@ -1,31 +1,66 @@
 import { afterAll, expect, test } from 'bun:test';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
+import {
+    CLAUDE_INACTIVE_TOOLS,
+    createHarnessAgent,
+    inactiveToolSettings,
+    sandboxOptions,
+} from './create-agent.ts';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
-for (const webAccess of [null, 'search', 'fetch-only', 'search-only'] as const) {
-    test(`constructs the real Claude Agent with web access ${webAccess}`, () => {
-        expect(() =>
-            createHarnessAgent(
-                {
-                    agentId: 'agt_constructor',
-                    env: {},
-                    homeDir: '/tmp/haus-constructor/home',
-                    modelId: 'claude-fable-5-1',
-                    runtime,
-                    runtimeId: 'claude-code',
-                    tools: {},
-                    webAccess,
-                    workspaceDir: '/tmp/haus-constructor/workspace',
-                },
-                { harness: createClaudeCode(), instructions: 'Test.' }
-            )
-        ).not.toThrow();
+test('constructs the real Claude Agent', () => {
+    expect(() =>
+        createHarnessAgent(
+            {
+                agentId: 'agt_constructor',
+                env: {},
+                homeDir: '/tmp/haus-constructor/home',
+                modelId: 'claude-fable-5-1',
+                runtime,
+                runtimeId: 'claude-code',
+                tools: {},
+                workspaceDir: '/tmp/haus-constructor/workspace',
+            },
+            { harness: createClaudeCode(), instructions: 'Test.' }
+        )
+    ).not.toThrow();
+});
+
+test('Claude Code Agents lose plan mode, runtime scheduling, AskUserQuestion, Monitor, and remote triggers but keep web tools', () => {
+    const builtinTools = createClaudeCode().builtinTools as Readonly<
+        Record<string, { nativeName?: string }>
+    >;
+    // An unknown name fails Agent construction, so each must stay a real builtin.
+    const nativeNames = CLAUDE_INACTIVE_TOOLS.map((name) => {
+        expect(builtinTools).toHaveProperty(name);
+        return builtinTools[name]?.nativeName ?? name;
     });
-}
+    expect(nativeNames).toEqual([
+        'EnterPlanMode',
+        'ExitPlanMode',
+        'ScheduleWakeup',
+        'CronCreate',
+        'CronList',
+        'CronDelete',
+        'AskUserQuestion',
+        'Monitor',
+        'RemoteTrigger',
+        'PushNotification',
+    ]);
+    expect(inactiveToolSettings('claude-code')).toEqual({
+        inactiveTools: [...CLAUDE_INACTIVE_TOOLS],
+    });
+    expect(builtinTools).toHaveProperty('webSearch');
+    expect(builtinTools).toHaveProperty('WebFetch');
+    expect(CLAUDE_INACTIVE_TOOLS).not.toContain('webSearch');
+    expect(CLAUDE_INACTIVE_TOOLS).not.toContain('WebFetch');
+    for (const runtimeId of ['codex', 'grok-build', 'pi']) {
+        expect(inactiveToolSettings(runtimeId)).toEqual({});
+    }
+});
 
 const grokInput = {
     agentId: 'agt_grok',
@@ -35,13 +70,13 @@ const grokInput = {
     runtime,
     runtimeId: 'grok-build',
     tools: {},
-    webAccess: null,
     workspaceDir: '/tmp/haus-constructor/workspace',
 } as const;
 
-test('Grok Build inlines MCP output, spawns no sub-agents, and loads no foreign MCP or instruction config', () => {
+test('Grok Build inlines MCP output, spawns no sub-agents, asks no native questions, and loads no foreign MCP or instruction config', () => {
     expect(sandboxOptions(grokInput).env).toEqual({
         EXISTING: 'kept',
+        GROK_ASK_USER_QUESTION: 'false',
         GROK_CLAUDE_AGENTS_ENABLED: 'false',
         GROK_CLAUDE_RULES_ENABLED: 'false',
         GROK_CURSOR_AGENTS_ENABLED: 'false',

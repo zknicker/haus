@@ -49,9 +49,6 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     if (!facts) {
         return null;
     }
-    const webAccess = ['fetch-only', 'search', 'search-only'].includes(frame.webAccess as string)
-        ? (frame.webAccess as 'fetch-only' | 'search' | 'search-only')
-        : undefined;
     const traceContext = parseTurnTraceContext(frame.traceContext);
     if (frame.traceContext !== undefined && !traceContext) {
         return null;
@@ -72,7 +69,6 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
         type: 'start',
         unreadElsewhere,
         warmDrainItemIds,
-        ...(webAccess ? { webAccess } : {}),
     };
 }
 

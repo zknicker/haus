@@ -212,7 +212,6 @@ function turnInput(harness: HarnessV1, signal: AbortSignal): HarnessTurnInput {
         signal,
         skillsDir: join(root, 'skills'),
         totalPending: 0,
-        webAccess: null,
         workspaceDir: join(root, 'workspace'),
         tools: {},
         harnessAgentFactory: (turn) =>

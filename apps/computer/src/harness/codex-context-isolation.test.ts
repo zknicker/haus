@@ -27,7 +27,7 @@ afterAll(async () => {
 const CANARIES = ['CANARY_HOST_HOME', 'CANARY_PARENT_AGENTS', 'CANARY_WORKSPACE_AGENTS'];
 
 test('Codex launches with project docs off', () => {
-    const config = JSON.parse(codexAcpEnvironment({ webSearch: false }).CODEX_CONFIG ?? '');
+    const config = JSON.parse(codexAcpEnvironment({}).CODEX_CONFIG ?? '');
     expect(config.project_doc_max_bytes).toBe(0);
 });
 
@@ -36,7 +36,7 @@ liveTest(
     async () => {
         const codex = await installPinnedCodex(join(root, 'bridge'));
         const tree = await canaryTree('prompt-input');
-        const config = JSON.parse(codexAcpEnvironment({ webSearch: false }).CODEX_CONFIG ?? '');
+        const config = JSON.parse(codexAcpEnvironment({}).CODEX_CONFIG ?? '');
 
         const before = await promptInput(codex, tree, {
             codexHome: join(tree.hostHome, '.codex'),
@@ -71,11 +71,10 @@ liveTest(
             runtime,
             runtimeId: 'codex',
             tools: {},
-            webAccess: null,
             workspaceDir: tree.workspace,
         } as const;
         const agent = new HarnessAgent({
-            harness: createHarnessForRuntime('codex', 'default', false, bridgeStoreDirForHost()),
+            harness: createHarnessForRuntime('codex', 'default', bridgeStoreDirForHost()),
             instructions: 'Your Haus code word is CANARY_HAUS_INSTRUCTIONS.',
             model: input.modelId,
             permissionMode: 'allow-all',
@@ -159,7 +158,7 @@ async function promptInput(
 
 /** Runs the Computer's own Codex bootstrap in `dir`; returns the pinned Codex CLI entry. */
 async function installPinnedCodex(dir: string): Promise<string> {
-    const harness = createHarnessForRuntime('codex', 'default', false, bridgeStoreDirForHost());
+    const harness = createHarnessForRuntime('codex', 'default', bridgeStoreDirForHost());
     const bootstrap = await harness.getBootstrap?.();
     if (!bootstrap) {
         throw new Error('Missing Codex bootstrap');

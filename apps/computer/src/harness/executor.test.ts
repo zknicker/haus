@@ -250,7 +250,6 @@ function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
         totalPending: 1,
-        webAccess: null,
         workspaceDir: join(agentRoot, 'workspace'),
         drainItemIds: [],
         serverId: 'srv_executor_test',

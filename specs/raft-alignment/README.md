@@ -81,9 +81,10 @@ Agents run concurrently on the same Computer, including across Server attachment
 Computer-wide job queue.
 Codex, Claude Code, and Pi all receive an isolated per-Agent logical `HOME`; native locations such
 as `.agents/skills` and `.claude/skills` resolve to the Agent's canonical writable `skills/`
-directory. The Computer passes that directory through the AI SDK harness skill contract, making it
-the exact set visible to every executor while excluding host-global, cross-Agent, and
-cross-Computer skills. This deliberately diverges from Raft's ambient host-global discovery:
+directory. Each executor reads that native location, making it the exact set visible to every
+executor while excluding host-global, cross-Agent, and cross-Computer skills. Pi runs inside the
+Computer process, so a bounded `@ai-sdk/harness-pi` patch points its skill loader at the Agent's
+native `.agents/skills` instead of the operator's HOME and the workspace. This deliberately diverges from Raft's ambient host-global discovery:
 runtime-compatible global skill folders on the physical machine are opt-in import sources only.
 Haus also diverges from Raft on ambient instruction files: Raft treats a runtime's
 `CLAUDE.md`/`AGENTS.md` loading as a feature of the runtime (Raft source

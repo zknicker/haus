@@ -13,6 +13,10 @@ turns interleaved, newest first, under day rows, with a pinned day bar and overv
 turn header names its Agent. An Agent's own profile has an Activity tab that is the same log
 filtered to that Agent.
 
+Every day from today through the oldest loaded turn has a heading, including the first day.
+Days without turns for the selected Agents show `No activity`. Loading older activity extends
+this calendar range; an entirely empty log still shows today's heading.
+
 The Agent menu at the end of the day bar narrows the page to chosen Agents. The choice lives in
 the page address (`?agents=…`), so a narrowed view survives reload and can be shared. Older turns
 load a page at a time with `Load older activity`.

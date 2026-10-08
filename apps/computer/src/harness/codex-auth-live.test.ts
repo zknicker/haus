@@ -30,7 +30,7 @@ liveTest(
             JSON.stringify({ auth_mode: 'apikey', OPENAI_API_KEY: 'sk-proj-haus-invalid-0000' })
         );
         const agent = new HarnessAgent({
-            harness: createHarnessForRuntime('codex', 'default', false, bridgeStoreDirForHost()),
+            harness: createHarnessForRuntime('codex', 'default', bridgeStoreDirForHost()),
             model: 'gpt-5.6-luna',
             permissionMode: 'allow-all',
             sandbox: createLocalTrustedSandboxProvider({

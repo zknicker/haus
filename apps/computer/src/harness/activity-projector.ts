@@ -93,11 +93,6 @@ export function createHarnessActivityProjector(
 ) {
     const registry = createComputerActivityRegistry();
     registry.registerHausHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
-    registry.registerHausHostTool({
-        category: 'browsing',
-        name: 'web_fetch',
-        toolRef: 'web-fetch',
-    });
     return createComputerActivityProjector({ ...input, registry });
 }
 

@@ -1,5 +1,5 @@
 diff --git a/dist/agent/index.js b/dist/agent/index.js
-index 60ebc95..5021785 100644
+index 60ebc959297a7adb6a80d296aa872942ec949bb6..5021785371e33d737719f12adcfafdc07c9ecf4e 100644
 --- a/dist/agent/index.js
 +++ b/dist/agent/index.js
 @@ -1138,6 +1138,7 @@ function stripParsedToolInputWorkDir({
@@ -35,3 +35,37 @@ index 60ebc95..5021785 100644
          remaining = remaining.slice(followingIndex);
        }
        continue;
+diff --git a/dist/utils/index.js b/dist/utils/index.js
+index 01ed8662fbb54fda56a04e8b8c4b997cf12d7d1e..435f28ceae4c83983e61d934799fa8d725ea35b3 100644
+--- a/dist/utils/index.js
++++ b/dist/utils/index.js
+@@ -1370,6 +1370,12 @@ async function writeSkills({
+     manifestPath,
+     abortSignal
+   });
++  // Haus: with nothing to write and nothing owned, leave the directory alone.
++  // Haus passes no skills; the native skill directory links to the Agent's
++  // canonical skill library, which must not gain a harness manifest.
++  if (projectedSkills.length === 0 && existingManifest == null) {
++    return { changed: false, written: [], removed: [], unchanged: [] };
++  }
+   const nextEntries = projectedSkills.map(({ name, hash }) => ({ name, hash }));
+   const nextByName = new Map(nextEntries.map((entry) => [entry.name, entry]));
+   if (existingManifest?.state === "pending") {
+diff --git a/src/utils/write-skills.ts b/src/utils/write-skills.ts
+index d2b4cb23bd3dcd12a8ca1e0cfca7bce708094075..7bfa77e907757633b5ed156c925328a7d5b80704 100644
+--- a/src/utils/write-skills.ts
++++ b/src/utils/write-skills.ts
+@@ -90,6 +90,12 @@ export async function writeSkills({
+     manifestPath,
+     abortSignal,
+   });
++  // Haus: with nothing to write and nothing owned, leave the directory alone.
++  // Haus passes no skills; the native skill directory links to the Agent's
++  // canonical skill library, which must not gain a harness manifest.
++  if (projectedSkills.length === 0 && existingManifest == null) {
++    return { changed: false, written: [], removed: [], unchanged: [] };
++  }
+   const nextEntries = projectedSkills.map(({ name, hash }) => ({ name, hash }));
+   const nextByName = new Map(nextEntries.map(entry => [entry.name, entry]));
+ 

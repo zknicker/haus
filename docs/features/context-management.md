@@ -112,9 +112,13 @@ Grok Agent still sees such files it or a repository puts in its workspace. Haus 
 `*-context-isolation*.test.ts` files under `apps/computer/src/harness/` prove
 each row; the Grok live test fails when Grok changes this behavior.
 
-Sub-agents run on Claude Code only, and only in the foreground:
-`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` removes the Agent tool's `run_in_background`, so a
-sub-agent finishes inside its parent turn. Codex launches with `agents.enabled = false` and
+Sub-agents run on Claude Code only, and only in the foreground. Claude Code runs no background
+work at all: the harness bridge opens one query per turn and ends the CLI at that turn's result,
+so anything left running in the background would die with the turn and its completion notice
+would never arrive. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` removes `run_in_background` from the
+Agent and Bash tools, turns off auto-backgrounding (a foreground command that times out stops
+instead of detaching), and disables Ctrl+B; `Monitor` is in the disallowed tools
+(`CLAUDE_INACTIVE_TOOLS`). A sub-agent therefore finishes inside its parent turn. Codex launches with `agents.enabled = false` and
 `features.multi_agent = false` in `CODEX_CONFIG`, and Grok Build with `GROK_SUBAGENTS=0`, so
 neither offers a spawn tool.
 

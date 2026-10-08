@@ -155,21 +155,6 @@ export const agentRuntimeMcpDisconnectResultSchema = z.object({
     ok: z.boolean(),
 });
 
-export const agentRuntimeHostToolIdSchema = z.enum(['browser', 'web_fetch']);
-export const agentRuntimeHostToolSchema = z.object({
-    available: z.boolean(),
-    description: z.string(),
-    granted: z.boolean(),
-    id: agentRuntimeHostToolIdSchema,
-    name: z.string(),
-});
-export const agentRuntimeHostToolListSchema = z.object({
-    tools: z.array(agentRuntimeHostToolSchema),
-});
-export const agentRuntimeHostToolGrantUpdateSchema = z.object({
-    enabled: z.boolean(),
-});
-
 export type AgentRuntimeMcpAgentToolGrant = z.infer<typeof agentRuntimeMcpAgentToolGrantSchema>;
 export type AgentRuntimeMcpAgentToolGrantList = z.infer<
     typeof agentRuntimeMcpAgentToolGrantListSchema
@@ -195,9 +180,6 @@ export type AgentRuntimeMcpPresetAccountCreate = z.infer<
 >;
 export type AgentRuntimeMcpTool = z.infer<typeof agentRuntimeMcpToolSchema>;
 export type AgentRuntimeMcpToolList = z.infer<typeof agentRuntimeMcpToolListSchema>;
-export type AgentRuntimeHostToolId = z.infer<typeof agentRuntimeHostToolIdSchema>;
-export type AgentRuntimeHostTool = z.infer<typeof agentRuntimeHostToolSchema>;
-export type AgentRuntimeHostToolList = z.infer<typeof agentRuntimeHostToolListSchema>;
 
 function validateMcpConnectionInput(
     value: z.infer<typeof agentRuntimeMcpConnectionInputSchema>,

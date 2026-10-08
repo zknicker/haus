@@ -10,7 +10,6 @@ test('acknowledgment-only celebrations use a reaction rather than an emoji-only 
         initialRole: null,
         os: 'test',
         runtimeVersion: 'test',
-        webAccess: null,
         workspacePath: '/workspace',
     });
     expect(prompt).toContain(
