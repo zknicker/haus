@@ -157,7 +157,8 @@ extension HausStore {
             health: computerHealthLabel(computer.health),
             isHealthy: computer.health == .healthy,
             system: computerSystemLabel(computer),
-            version: "v\(computer.productVersion ?? "—")"
+            // A Computer that has never reported has no version to show.
+            version: computer.productVersion.map { "v\($0)" } ?? ""
         )
     }
 
