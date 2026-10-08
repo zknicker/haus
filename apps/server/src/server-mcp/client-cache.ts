@@ -3,11 +3,13 @@ import { type EffectRuntime, settle } from '@haus/effect';
 import * as Effect from 'effect/Effect';
 import * as Exit from 'effect/Exit';
 import * as Scope from 'effect/Scope';
+import { classifyMcpClientFailure } from './client-failure.ts';
 import { McpClientAcquireError, McpClientRetiredError } from './errors.ts';
 
 export type ClientFactory = (connectionId: string, signal: AbortSignal) => Promise<MCPClient>;
 
-type ClientEntryState = 'acquiring' | 'ready' | 'retired';
+/** `draining`: a session failure unlisted the entry; in-flight calls finish before it closes. */
+type ClientEntryState = 'acquiring' | 'ready' | 'draining' | 'retired';
 
 interface ClientEntry {
     acquisition: Promise<MCPClient>;
@@ -24,6 +26,7 @@ interface ClientEntry {
 
 export class McpClientCache {
     private readonly entries = new Map<string, ClientEntry>();
+    private readonly draining = new Set<ClientEntry>();
     private readonly concreteCloses = new WeakMap<MCPClient, Promise<void>>();
 
     constructor(
@@ -57,7 +60,7 @@ export class McpClientCache {
             return result;
         } catch (cause) {
             if (!signal?.aborted) {
-                void this.discard(entry).catch(() => undefined);
+                this.retireAfterFailure(entry, cause);
             }
             throw cause;
         } finally {
@@ -66,20 +69,16 @@ export class McpClientCache {
     }
 
     async closeConnection(connectionId: string, timeoutMs: number): Promise<void> {
-        const entry = this.entries.get(connectionId);
-        if (!entry) {
-            return;
-        }
-        await this.waitForClose(this.discard(entry), timeoutMs);
+        const entries = [...this.entries.values(), ...this.draining].filter(
+            (entry) => entry.connectionId === connectionId
+        );
+        await this.closeEntries(entries, timeoutMs);
     }
 
     async closeAll(timeoutMs: number): Promise<void> {
-        const entries = [...this.entries.values()];
+        const entries = [...this.entries.values(), ...this.draining];
         this.entries.clear();
-        const cleanup = Promise.allSettled(entries.map((entry) => this.discard(entry))).then(
-            () => undefined
-        );
-        await this.waitForClose(cleanup, timeoutMs);
+        await this.closeEntries(entries, timeoutMs);
     }
 
     private acquire(connectionId: string): ClientEntry {
@@ -128,9 +127,30 @@ export class McpClientCache {
     }
 
     private finishOperation(entry: ClientEntry, operation: AbortController): boolean {
-        const current = this.isCurrentReady(entry) && entry.operations.has(operation);
+        const usable = this.isCurrentReady(entry) || entry.state === 'draining';
+        const current = usable && entry.operations.has(operation);
         entry.operations.delete(operation);
+        if (entry.state === 'draining' && entry.operations.size === 0) {
+            void this.discard(entry);
+        }
         return current;
+    }
+
+    /**
+     * A failure while acquiring is an initialize failure: abort and discard. A session failure
+     * unlists a ready client so new calls rebuild, without aborting its in-flight calls.
+     */
+    private retireAfterFailure(entry: ClientEntry, cause: unknown): void {
+        if (entry.state === 'acquiring') {
+            void this.discard(entry);
+            return;
+        }
+        if (entry.state !== 'ready' || classifyMcpClientFailure(cause) === 'operation') {
+            return;
+        }
+        this.entries.delete(entry.connectionId);
+        entry.state = 'draining';
+        this.draining.add(entry);
     }
 
     private discard(entry: ClientEntry, abortOperations = true): Promise<void> {
@@ -140,6 +160,7 @@ export class McpClientCache {
         if (this.entries.get(entry.connectionId) === entry) {
             this.entries.delete(entry.connectionId);
         }
+        this.draining.delete(entry);
         entry.state = 'retired';
         entry.acquisitionAbort.abort();
         if (abortOperations) {
@@ -235,23 +256,16 @@ export class McpClientCache {
         return close;
     }
 
-    private async waitForClose(close: Promise<void>, timeoutMs: number): Promise<void> {
-        await new Promise<void>((resolve) => {
-            let settled = false;
-            let timer: ReturnType<typeof setTimeout> | undefined;
-            const finish = () => {
-                if (settled) {
-                    return;
-                }
-                settled = true;
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                resolve();
-            };
-            timer = setTimeout(finish, Math.max(0, timeoutMs));
-            void close.then(finish, finish);
-        });
+    private async closeEntries(entries: ClientEntry[], timeoutMs: number): Promise<void> {
+        // Bounded so a hanging upstream close never blocks disconnect or shutdown.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([
+            Promise.allSettled(entries.map((entry) => this.discard(entry))),
+            new Promise<void>((resolve) => {
+                timer = setTimeout(resolve, Math.max(0, timeoutMs));
+            }),
+        ]);
+        clearTimeout(timer);
     }
 
     private runEffect<A, E>(
