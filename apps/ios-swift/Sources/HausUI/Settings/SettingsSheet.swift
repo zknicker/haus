@@ -180,7 +180,8 @@ public struct SettingsSheet: View {
                 joined: viewer.joined,
                 description: value,
                 avatarURL: viewer.avatarURL,
-                initials: viewer.initials
+                initials: viewer.initials,
+                timezone: viewer.timezone
             )
             let saved = try await persistence.saveHumanProfile(
                 draft.id,

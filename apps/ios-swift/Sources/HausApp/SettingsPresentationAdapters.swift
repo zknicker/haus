@@ -40,6 +40,10 @@ extension HausStore {
             saveAgentAvatar: { [weak self] agentID, payload in
                 guard let self else { throw CancellationError() }
                 return try await self.saveAgentAvatar(agentID: agentID, payload: payload)
+            },
+            saveHumanTimezone: { [weak self] userID, timezone in
+                guard let self else { throw CancellationError() }
+                return try await self.saveHumanTimezone(userID: userID, timezone: timezone)
             }
         )
     }
@@ -86,7 +90,8 @@ extension HausStore {
                 role: member.role.rawValue.capitalized,
                 joined: member.joinedAt.formatted(date: .abbreviated, time: .omitted),
                 description: member.description ?? "",
-                avatarURL: resolvedAvatarURL(member.avatarURL)
+                avatarURL: resolvedAvatarURL(member.avatarURL),
+                timezone: member.timezone
             )
         }
         guard let viewer = people.first(where: { $0.id == directory.viewerUserID }) else { return nil }

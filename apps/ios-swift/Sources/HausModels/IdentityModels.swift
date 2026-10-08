@@ -237,6 +237,8 @@ public struct MemberSummary: Codable, Identifiable, Sendable, Equatable {
     public let handle: String?
     public let joinedAt: Date
     public let role: MemberRole
+    /// The human's IANA zone; nil until an App reports one or on older Servers.
+    public let timezone: String?
     public let userID: String
 
     enum CodingKeys: String, CodingKey {
@@ -247,6 +249,7 @@ public struct MemberSummary: Codable, Identifiable, Sendable, Equatable {
         case handle
         case joinedAt
         case role
+        case timezone
         case userID = "userId"
     }
 

@@ -35,9 +35,32 @@ extension HausStore {
             input: SyncHumanIdentityInput(
                 email: user?.primaryEmailAddress?.emailAddress,
                 name: name,
-                serverID: serverID
+                serverID: serverID,
+                timezone: HumanTimezone.deviceZone()
             )
         )
+    }
+
+    /// `member.setTimezone`, then the member list the Profile row reads from.
+    func saveHumanTimezone(userID: String, timezone: String) async throws -> SettingsPerson {
+        guard let serverID = activeServer?.id,
+              let directory = members,
+              directory.viewerUserID == userID else {
+            throw HausStoreError.profileUnavailable
+        }
+        let _: TRPCNoContent = try await client.mutation(
+            "member.setTimezone",
+            input: SetHumanTimezoneInput(serverID: serverID, timezone: timezone)
+        )
+        let refreshed: MemberList = try await client.query(
+            "member.list",
+            input: ServerScopedInput(serverId: serverID)
+        )
+        members = refreshed
+        guard let viewer = settingsData?.viewer else {
+            throw HausStoreError.profileUnavailable
+        }
+        return viewer
     }
 
     func saveHumanProfile(

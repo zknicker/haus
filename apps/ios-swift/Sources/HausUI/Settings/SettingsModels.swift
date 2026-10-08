@@ -37,6 +37,8 @@ public struct SettingsPerson: Identifiable, Hashable, Sendable {
     public let description: String
     public let avatarURL: URL?
     public let initials: String
+    /// The human's IANA zone, nil until an App reports one.
+    public let timezone: String?
 
     public init(
         id: String,
@@ -47,7 +49,8 @@ public struct SettingsPerson: Identifiable, Hashable, Sendable {
         joined: String = "",
         description: String = "",
         avatarURL: URL? = nil,
-        initials: String? = nil
+        initials: String? = nil,
+        timezone: String? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -58,6 +61,7 @@ public struct SettingsPerson: Identifiable, Hashable, Sendable {
         self.description = description
         self.avatarURL = avatarURL
         self.initials = initials ?? Self.makeInitials(from: displayName)
+        self.timezone = timezone
     }
 
     private static func makeInitials(from name: String) -> String {
@@ -171,76 +175,6 @@ public struct SettingsData: Hashable, Sendable {
     }
 }
 
-/// Server-backed profile mutations owned by the app/client layer. Settings views
-/// receive narrow seams and canonical Server values; avatar payloads are already validated.
-public struct SettingsPersistence: Sendable {
-    public let generateAgentAvatar: @Sendable (String, String) async throws -> AvatarImagePayload
-    public let saveHumanProfile: @Sendable (String, String, String?, String) async throws -> SettingsPerson
-    public let saveAgentProfile: @Sendable (String, String, String) async throws -> SettingsAgent
-    public let saveAgentRuntime: @Sendable (String, AgentRuntimeConfiguration) async throws -> SettingsAgent
-    public let saveHumanAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson
-    public let saveAgentAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
-
-    public init(
-        generateAgentAvatar: @escaping @Sendable (String, String) async throws -> AvatarImagePayload,
-        saveHumanProfile: @escaping @Sendable (String, String, String?, String) async throws -> SettingsPerson,
-        saveAgentProfile: @escaping @Sendable (String, String, String) async throws -> SettingsAgent,
-        saveAgentRuntime: @escaping @Sendable (String, AgentRuntimeConfiguration) async throws -> SettingsAgent,
-        saveHumanAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson,
-        saveAgentAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
-    ) {
-        self.generateAgentAvatar = generateAgentAvatar
-        self.saveHumanProfile = saveHumanProfile
-        self.saveAgentProfile = saveAgentProfile
-        self.saveAgentRuntime = saveAgentRuntime
-        self.saveHumanAvatar = saveHumanAvatar
-        self.saveAgentAvatar = saveAgentAvatar
-    }
-
-    public static let preview = SettingsPersistence(
-        generateAgentAvatar: { _, _ in
-            throw CancellationError()
-        },
-        saveHumanProfile: { id, displayName, handle, description in
-            let person = SettingsFixtures.viewer
-            return SettingsPerson(
-                id: id,
-                displayName: displayName,
-                handle: handle,
-                email: person.email,
-                role: person.role,
-                joined: person.joined,
-                description: description,
-                avatarURL: person.avatarURL,
-                initials: person.initials
-            )
-        },
-        saveAgentProfile: { id, displayName, description in
-            let agent = SettingsFixtures.cove
-            return SettingsAgent(
-                id: id,
-                displayName: displayName,
-                handle: agent.handle,
-                description: description,
-                runtime: agent.runtime,
-                model: agent.model,
-                status: agent.status,
-                avatarURL: agent.avatarURL,
-                presence: agent.presence,
-                initials: agent.initials,
-                canGenerateAvatar: agent.canGenerateAvatar
-            )
-        },
-        saveAgentRuntime: { _, _ in SettingsFixtures.cove },
-        saveHumanAvatar: { _, _ in
-            SettingsFixtures.viewer
-        },
-        saveAgentAvatar: { _, _ in
-            SettingsFixtures.cove
-        }
-    )
-}
-
 public enum SettingsFixtures {
     public static let server = SettingsServer(
         id: "server-haus",
@@ -258,7 +192,8 @@ public enum SettingsFixtures {
         email: "zknicker@gmail.com",
         role: "Owner",
         joined: "Aug 11, 2026",
-        initials: "ZK"
+        initials: "ZK",
+        timezone: "America/New_York"
     )
 
     public static let cove = SettingsAgent(

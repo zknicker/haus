@@ -25,6 +25,11 @@ extension SettingsSheet {
                     await MainActor.run {
                         updateViewer(saved)
                     }
+                },
+                onSaveTimezone: { timezone in
+                    let saved = try await persistence.saveHumanTimezone(data.viewer.id, timezone)
+                    updateViewer(saved)
+                    return saved
                 }
             )
         case .agent(let id):

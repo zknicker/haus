@@ -64,8 +64,8 @@ export const syncHumanIdentityInputSchema = z
         serverId: idSchema,
         /**
          * The device zone. It fills only a blank, so a zone the human chose in
-         * Settings survives every later sign-in. Optional because the iPhone App
-         * does not report one yet.
+         * Settings survives every later sign-in. Optional because a device can
+         * report a zone the Server refuses, which the App then leaves out.
          */
         timezone: humanTimezoneSchema.optional(),
     })

@@ -1,21 +1,28 @@
 import Foundation
 
 /// Input for `member.syncIdentity`.
+///
+/// `timezone` is the device zone. The Server fills it only while the human's
+/// zone is blank, and the key is optional rather than nullable, so a missing
+/// zone is omitted instead of sent as null.
 public struct SyncHumanIdentityInput: Encodable, Sendable {
     public let email: String?
     public let name: String?
     public let serverID: String
+    public let timezone: String?
 
-    public init(email: String?, name: String?, serverID: String) {
+    public init(email: String?, name: String?, serverID: String, timezone: String? = nil) {
         self.email = email
         self.name = name
         self.serverID = serverID
+        self.timezone = timezone
     }
 
     private enum CodingKeys: String, CodingKey {
         case email
         case name
         case serverID = "serverId"
+        case timezone
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -31,6 +38,7 @@ public struct SyncHumanIdentityInput: Encodable, Sendable {
             try container.encodeNil(forKey: .name)
         }
         try container.encode(serverID, forKey: .serverID)
+        try container.encodeIfPresent(timezone, forKey: .timezone)
     }
 }
 

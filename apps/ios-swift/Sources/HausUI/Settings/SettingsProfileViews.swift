@@ -5,23 +5,29 @@ struct HumanProfileView: View {
     let onEditDescription: (String, String) -> Void
     let onSave: (SettingsPerson) async throws -> SettingsPerson
     let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
+    let onSaveTimezone: (String) async throws -> SettingsPerson
     @State private var name: String
     @State private var savedName: String
     @State private var handle: String
     @State private var savedHandle: String
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var timezone: String?
+    @State private var isPickingTimezone = false
 
     init(
         person: SettingsPerson,
         onEditDescription: @escaping (String, String) -> Void,
         onSave: @escaping (SettingsPerson) async throws -> SettingsPerson = { $0 },
-        onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in }
+        onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in },
+        onSaveTimezone: @escaping (String) async throws -> SettingsPerson = { _ in SettingsFixtures.viewer }
     ) {
         self.person = person
         self.onEditDescription = onEditDescription
         self.onSave = onSave
         self.onSaveAvatar = onSaveAvatar
+        self.onSaveTimezone = onSaveTimezone
+        _timezone = State(initialValue: person.timezone)
         _name = State(initialValue: person.displayName)
         _savedName = State(initialValue: person.displayName)
         _handle = State(initialValue: person.handle ?? "")
@@ -71,6 +77,8 @@ struct HumanProfileView: View {
                     }
                 }
 
+                TimezoneSection(timezone: timezone) { isPickingTimezone = true }
+
                 SettingsSection("Account") {
                     SettingsListGroup {
                         ValueRow("Email", value: person.email ?? "Unavailable", icon: .email)
@@ -92,6 +100,11 @@ struct HumanProfileView: View {
         }
         .scrollIndicators(.hidden)
         .background(HausPlatformColor.groupedBackground)
+        .navigationDestination(isPresented: $isPickingTimezone) {
+            TimezonePickerView(selection: timezone) { zone in
+                Task { await saveTimezone(zone) }
+            }
+        }
         .navigationTitle("Profile")
         .hausInlineNavigationTitle()
         #if os(iOS)
@@ -111,6 +124,21 @@ struct HumanProfileView: View {
                 .disabled(!hasIdentityChanges || isSaving)
                 .accessibilityLabel("Save profile")
             }
+        }
+    }
+
+    /// Shows the choice at once and settles on the Server's canonical name;
+    /// a refused save puts the previous zone back.
+    private func saveTimezone(_ zone: String) async {
+        guard zone != timezone else { return }
+        let previous = timezone
+        timezone = zone
+        errorMessage = nil
+        do {
+            timezone = try await onSaveTimezone(zone).timezone ?? zone
+        } catch {
+            timezone = previous
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -140,158 +168,14 @@ struct HumanProfileView: View {
                 joined: person.joined,
                 description: person.description,
                 avatarURL: person.avatarURL,
-                initials: person.initials
+                initials: person.initials,
+                timezone: person.timezone
             )
             let saved = try await onSave(draft)
             name = saved.displayName
             savedName = saved.displayName
             handle = saved.handle ?? normalizedHandle
             savedHandle = saved.handle ?? normalizedHandle
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isSaving = false
-    }
-}
-
-struct AgentProfileView: View {
-    let agent: SettingsAgent
-    let onEditDescription: (String, String) -> Void
-    let onSave: (SettingsAgent) async throws -> SettingsAgent
-    let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
-    let onOpenAvatarGenerator: () -> Void
-    let onOpenRuntimeConfiguration: () -> Void
-    @State private var name: String
-    @State private var savedName: String
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-
-    init(
-        agent: SettingsAgent,
-        onEditDescription: @escaping (String, String) -> Void,
-        onSave: @escaping (SettingsAgent) async throws -> SettingsAgent = { $0 },
-        onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in },
-        onOpenAvatarGenerator: @escaping () -> Void = {},
-        onOpenRuntimeConfiguration: @escaping () -> Void = {}
-    ) {
-        self.agent = agent
-        self.onEditDescription = onEditDescription
-        self.onSave = onSave
-        self.onSaveAvatar = onSaveAvatar
-        self.onOpenAvatarGenerator = onOpenAvatarGenerator
-        self.onOpenRuntimeConfiguration = onOpenRuntimeConfiguration
-        _name = State(initialValue: agent.displayName)
-        _savedName = State(initialValue: agent.displayName)
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(spacing: 6) {
-                    ProfileHero(
-                        initials: agent.initials,
-                        avatarURL: agent.avatarURL,
-                        presence: agent.presence,
-                        displayName: name,
-                        handle: "@\(agent.handle)",
-                        onSaveAvatar: onSaveAvatar
-                    )
-                    if agent.canGenerateAvatar {
-                        AgentAvatarGeneratorEntry(onOpen: onOpenAvatarGenerator)
-                    }
-                }
-
-                SettingsSection("Identity") {
-                    SettingsListGroup {
-                        SettingsRow(title: "Name", icon: .account, showsDivider: true, layout: .stacksAtAccessibilitySizes) {
-                            TextField("Name", text: $name)
-                                .font(.body)
-                                .settingsRowValueAlignment()
-                                .hausWordsAutocapitalization()
-                                .submitLabel(.done)
-                                .onSubmit { Task { await saveName() } }
-                                .accessibilityLabel("Name")
-                        }
-                        DisclosureRow(
-                            "Description",
-                            subtitle: agent.description.isEmpty ? "No description yet." : agent.description,
-                            icon: .description,
-                            showsDivider: false,
-                            action: {
-                                onEditDescription(agent.id, "Description")
-                            }
-                        )
-                    }
-                }
-
-                AgentExecutionSettingsSection(
-                    agent: agent,
-                    onOpenRuntimeConfiguration: onOpenRuntimeConfiguration
-                )
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .padding(.horizontal, 16)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 28)
-        }
-        .scrollIndicators(.hidden)
-        .background(HausPlatformColor.groupedBackground)
-        .navigationTitle(agent.displayName)
-        .hausInlineNavigationTitle()
-        #if os(iOS)
-        .toolbarBackground(HausPlatformColor.groupedBackground, for: .navigationBar)
-        #endif
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    Task { await saveName() }
-                } label: {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Text("Save")
-                    }
-                }
-                .disabled(!hasNameChanges || isSaving)
-                .accessibilityLabel("Save name")
-            }
-        }
-    }
-
-    private var hasNameChanges: Bool {
-        name.trimmingCharacters(in: .whitespacesAndNewlines) != savedName
-    }
-
-    private func saveName() async {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, trimmedName != savedName, !isSaving else { return }
-
-        isSaving = true
-        errorMessage = nil
-        do {
-            let draft = SettingsAgent(
-                id: agent.id,
-                displayName: trimmedName,
-                handle: agent.handle,
-                description: agent.description,
-                runtime: agent.runtime,
-                model: agent.model,
-                status: agent.status,
-                avatarURL: agent.avatarURL,
-                presence: agent.presence,
-                initials: agent.initials,
-                canGenerateAvatar: agent.canGenerateAvatar,
-                runtimeConfiguration: agent.runtimeConfiguration
-            )
-            let saved = try await onSave(draft)
-            name = saved.displayName
-            savedName = saved.displayName
         } catch {
             errorMessage = error.localizedDescription
         }
