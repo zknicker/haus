@@ -19,6 +19,15 @@ public struct MessageComposerView: View {
     @FocusState.Binding private var isTextFocused: Bool
     @AccessibilityFocusState private var isAttachmentButtonFocused: Bool
     @State private var attachmentReadyFeedback = 0
+    @State private var sendFeedback = 0
+    @State private var sendFailureFeedback = 0
+    /// Fixed metrics the composer owns, scaled with Dynamic Type so the pill,
+    /// the send circle, and the one-line field grow with the text.
+    @ScaledMetric(relativeTo: .body) private var compactFieldHeightLimit: CGFloat = 24
+    @ScaledMetric(relativeTo: .body) private var sendDiameter: CGFloat = 34
+    @ScaledMetric(relativeTo: .body) private var sendGlyphSize: CGFloat = 19
+    @ScaledMetric(relativeTo: .body) private var attachmentHitSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var attachmentGlyphSize: CGFloat = 21
     /// True while a surface tap re-issues a focus summons, so the momentary
     /// focus drop never reaches the expansion layout.
     @State private var isReissuingFocus = false
@@ -74,6 +83,8 @@ public struct MessageComposerView: View {
             .animation(.easeOut(duration: 0.24), value: interaction.attachments.count)
             .animation(.smooth(duration: 0.22), value: isConnected)
             .sensoryFeedback(.success, trigger: attachmentReadyFeedback)
+            .sensoryFeedback(.impact(weight: .light), trigger: sendFeedback)
+            .sensoryFeedback(.error, trigger: sendFailureFeedback)
             // Text focus belongs to the portal freeze, which restores exactly what the portal
             // interrupted; this view only moves VoiceOver's cursor back to the plus button when no
             // keyboard is coming back to claim it.
@@ -188,7 +199,11 @@ public struct MessageComposerView: View {
                 attachmentStrip.transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            ComposerControlLayout(expansion: isExpanded ? 1 : 0) {
+            ComposerControlLayout(
+                expansion: isExpanded ? 1 : 0,
+                compactFieldHeightLimit: compactFieldHeightLimit,
+                compactMinimumHeight: sendDiameter
+            ) {
                 attachmentButton
                 messageField
                 sendButton
@@ -219,9 +234,9 @@ public struct MessageComposerView: View {
         Button(action: submit) {
             Circle()
                 .fill(canSend ? HausPlatformColor.label : HausPlatformColor.disabledControlFill)
-                .frame(width: 34, height: 34)
+                .frame(width: sendDiameter, height: sendDiameter)
                 .overlay {
-                    HausIcon(.send, size: 19, weight: 2.4)
+                    HausIcon(.send, size: sendGlyphSize, weight: 2.4)
                         .foregroundStyle(HausPlatformColor.background)
                 }
                 .compositingGroup()
@@ -239,8 +254,8 @@ public struct MessageComposerView: View {
                 interaction.overlay = opens ? .sources : nil
             }
         } label: {
-            HausIcon(.plus, size: 21, weight: 1.8)
-                .frame(width: 32, height: 32)
+            HausIcon(.plus, size: attachmentGlyphSize, weight: 1.8)
+                .frame(width: attachmentHitSize, height: attachmentHitSize)
                 .contentShape(.circle)
         }
         .buttonStyle(.pressable)
@@ -361,6 +376,7 @@ public struct MessageComposerView: View {
         text = ""
         interaction.attachments = []
         interaction.errorMessage = nil
+        sendFeedback += 1
         Task {
             if await onSend(content, submittedAttachments) {
                 submittedAttachments.forEach(ComposerAttachmentStager.remove)
@@ -369,6 +385,7 @@ public struct MessageComposerView: View {
             text = text.isEmpty ? content : [content, text].filter { !$0.isEmpty }.joined(separator: "\n")
             interaction.attachments = submittedAttachments + interaction.attachments
             interaction.errorMessage = "Message not sent. Your draft is ready to retry."
+            sendFailureFeedback += 1
         }
     }
 

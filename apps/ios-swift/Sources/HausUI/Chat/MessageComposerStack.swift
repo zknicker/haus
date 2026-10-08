@@ -33,6 +33,8 @@ struct MessageComposerStack<Status: View, Surface: View>: View {
             options: mentionOptions
         )
         return VStack(alignment: .leading, spacing: 8) {
+            // A typing or thinking strip belongs here, above the status: it
+            // rides the same stack animation as everything else in it.
             status()
             MessageComposerMentionPicker(text: $text, options: mentionOptions)
             if let inlineReply {
