@@ -1474,6 +1474,7 @@ export interface components {
         AgentDirectoryPerson: {
             handle: string;
             description: string | null;
+            timezone?: string | null;
         };
         AgentChannel: {
             handle: string;
@@ -1503,6 +1504,7 @@ export interface components {
             description: string | null;
             /** @enum {string} */
             role: "human" | "agent";
+            timezone?: string | null;
         };
         AgentChannelMembers: {
             target: string;
@@ -1697,10 +1699,11 @@ export interface components {
             commandId: string;
             description?: string;
             /** Format: date-time */
-            fireAt: string;
+            fireAt?: string;
             messageId: string;
             repeat?: string;
             script?: string;
+            timezone?: string;
             title: string;
         };
         AgentReminderSnoozeRequest: {

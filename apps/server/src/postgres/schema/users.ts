@@ -18,6 +18,10 @@ export const usersTable = pgTable(
         displayName: text('display_name'),
         email: text('email'),
         id: text('id').primaryKey(),
+        // The human's IANA zone. The App captures the device zone when unset,
+        // and the human can change it in Settings. Agents read it to resolve
+        // calendar reminders; instants stay UTC everywhere else.
+        timezone: text('timezone'),
     },
     (table) => [uniqueIndex('users_clerk_user_id_key').on(table.clerkUserId)]
 );

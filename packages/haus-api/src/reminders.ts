@@ -125,13 +125,15 @@ export const reminderCancelInputSchema = z
  * `haus reminder schedule` behind the loopback proxy. `commandId` is the
  * idempotency key, scoped to the authoring Agent: the same key and input replay
  * the first result. Title and description lengths are checked by the reminder
- * model, whose error teaches the Agent the format.
+ * model, whose error teaches the Agent the format. A calendar repeat (`daily@`,
+ * `weekly:`) requires `timezone` and may omit `fireAt`: the Server derives the
+ * next slot, and refuses a supplied first fire that is not on one.
  */
 export const agentReminderScheduleInputSchema = z
     .object({
         commandId: agentIdempotencyKeySchema,
         description: z.string().min(1).optional(),
-        fireAt: z.iso.datetime(),
+        fireAt: z.iso.datetime().optional(),
         messageId: z.string().min(1),
         repeat: z.string().min(1).optional(),
         script: z.string().min(1).optional(),

@@ -1,4 +1,9 @@
-import type { ServerMember, SyncHumanIdentityInput, UpdateHumanProfileInput } from '@haus/api';
+import type {
+    ServerMember,
+    SetHumanTimezoneInput,
+    SyncHumanIdentityInput,
+    UpdateHumanProfileInput,
+} from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
@@ -13,9 +18,9 @@ import { requireServerMembership } from './server-access.ts';
 import { lockServerRow } from './server-lock.ts';
 
 /**
- * Seeds a human's profile from the Clerk identity the App reports. It only
- * fills blanks: once a human has chosen a display name it is theirs, and a
- * later sign-in must not overwrite it with the Clerk value.
+ * Seeds a human's profile from the Clerk identity and device zone the App
+ * reports. It only fills blanks: once a human has chosen a display name or a
+ * timezone it is theirs, and a later sign-in must not overwrite it.
  */
 export async function syncHumanIdentity(
     db: HausDatabase,
@@ -33,6 +38,7 @@ export async function syncHumanIdentity(
             .select({
                 displayName: usersTable.displayName,
                 handle: serverMembershipsTable.handle,
+                timezone: usersTable.timezone,
             })
             .from(serverMembershipsTable)
             .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
@@ -64,6 +70,7 @@ export async function syncHumanIdentity(
             .set({
                 displayName: displayName && displayName.length > 0 ? displayName : null,
                 email: input.email?.trim() || null,
+                timezone: existing.timezone ?? input.timezone ?? null,
             })
             .where(eq(usersTable.id, member.id));
         await tx
@@ -119,6 +126,25 @@ export async function updateHumanProfile(
         }
         throw cause;
     }
+}
+
+/** A human sets their own timezone; it applies on every Server they belong to. */
+export async function setHumanTimezone(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: SetHumanTimezoneInput
+): Promise<void> {
+    if (!member) {
+        throw new Error('Signing in is required to set a timezone.');
+    }
+
+    await db.transaction(async (tx) => {
+        await requireServerMembership(tx, member, input.serverId);
+        await tx
+            .update(usersTable)
+            .set({ timezone: input.timezone })
+            .where(eq(usersTable.id, member.id));
+    });
 }
 
 export function humanMemberLabel(member: Pick<ServerMember, 'displayName' | 'userId'>): string {

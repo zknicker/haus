@@ -101,6 +101,7 @@ export async function readAgentChannelMembers(
             .select({
                 description: usersTable.description,
                 handle: serverMembershipsTable.handle,
+                timezone: usersTable.timezone,
             })
             .from(channelParticipantsTable)
             .innerJoin(
@@ -129,6 +130,7 @@ export async function readAgentChannelMembers(
                 description: human.description,
                 handle: human.handle,
                 role: 'human' as const,
+                timezone: human.timezone,
             })),
         ],
         target: `#${channel.name}`,
@@ -228,6 +230,7 @@ async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: Agent
             description: usersTable.description,
             handle: serverMembershipsTable.handle,
             id: serverMembershipsTable.userId,
+            timezone: usersTable.timezone,
         })
         .from(serverMembershipsTable)
         .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
@@ -244,7 +247,13 @@ async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: Agent
         .offset(input.offset)
         .limit(input.limit)
         .then((rows) =>
-            rows.map((row) => ({ description: row.description, handle: row.handle, id: row.id }))
+            rows.map((row) => ({
+                description: row.description,
+                handle: row.handle,
+                id: row.id,
+                // A human's zone is how an Agent resolves their calendar reminders.
+                timezone: row.timezone,
+            }))
         );
 }
 

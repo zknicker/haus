@@ -48,7 +48,8 @@ export interface ScheduleReminderInput {
     anchorMessageId: string;
     commandId: string;
     description?: string | null;
-    fireAt: Date;
+    /** Optional only for calendar repeats, whose first fire the Server derives. */
+    fireAt?: Date;
     repeat?: string | null;
     script?: string | null;
     serverId: string;

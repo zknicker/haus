@@ -2143,6 +2143,9 @@ components:
       properties:
         handle: { type: string }
         description: { type: [string, 'null'] }
+        # Humans only: their IANA zone, or null when their App has not reported
+        # one. Agents resolve calendar reminders with it.
+        timezone: { type: [string, 'null'] }
     AgentChannel:
       type: object
       additionalProperties: false
@@ -2195,6 +2198,8 @@ components:
         handle: { type: [string, 'null'] }
         description: { type: [string, 'null'] }
         role: { type: string, enum: [human, agent] }
+        # Humans only: their IANA zone, or null when unknown.
+        timezone: { type: [string, 'null'] }
     AgentChannelMembers:
       type: object
       additionalProperties: false
@@ -2547,17 +2552,22 @@ components:
     AgentReminderScheduleRequest:
       type: object
       additionalProperties: false
-      required: [commandId, fireAt, messageId, title]
+      required: [commandId, messageId, title]
       properties:
         # Idempotency key, scoped to the authoring Agent. The same key and
         # request replay the original reminder; a different request under it is
         # refused with IDEMPOTENCY_KEY_REUSED.
         commandId: { type: string, minLength: 1, maxLength: 128 }
         description: { type: string, minLength: 1 }
+        # Required for one-shots and every: repeats. A daily@ or weekly: repeat
+        # may omit it: the Server derives the next slot in timezone. A supplied
+        # first fire must fall on a slot.
         fireAt: { type: string, format: date-time }
         messageId: { type: string, minLength: 1 }
         repeat: { type: string, minLength: 1 }
         script: { type: string, minLength: 1 }
+        # IANA zone; required for daily@ and weekly: repeats.
+        timezone: { type: string, minLength: 1 }
         title: { type: string, minLength: 1 }
     AgentReminderSnoozeRequest:
       type: object

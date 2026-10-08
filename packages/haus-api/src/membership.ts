@@ -27,6 +27,8 @@ export const serverMemberSchema = z
         handle: participantHandleSchema.nullable(),
         joinedAt: timestampSchema,
         role: serverRoleSchema,
+        /** The human's IANA zone; null until their App reports one. */
+        timezone: z.string().nullable(),
         userId: idSchema,
     })
     .strict();
@@ -35,6 +37,14 @@ export type ServerMember = z.infer<typeof serverMemberSchema>;
 
 export const humanDisplayNameSchema = z.string().trim().min(1).max(80);
 export const humanDescriptionSchema = z.string().trim().max(500);
+
+/** An IANA zone name the runtime can format in, such as `America/New_York`. */
+export const humanTimezoneSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .refine(isIanaTimezone, { message: 'Use an IANA timezone, such as America/New_York.' });
 
 /**
  * The App reports the signed-in human's Clerk identity so the Server can seed
@@ -45,6 +55,12 @@ export const syncHumanIdentityInputSchema = z
         email: z.string().trim().max(320).nullable(),
         name: z.string().trim().max(80).nullable(),
         serverId: idSchema,
+        /**
+         * The device zone. It fills only a blank, so a zone the human chose in
+         * Settings survives every later sign-in. Optional because the iPhone App
+         * does not report one yet.
+         */
+        timezone: humanTimezoneSchema.optional(),
     })
     .strict();
 
@@ -61,6 +77,13 @@ export const updateHumanProfileInputSchema = z
     .strict();
 
 export type UpdateHumanProfileInput = z.infer<typeof updateHumanProfileInputSchema>;
+
+/** A human sets their own timezone; the Server judges that from the caller. */
+export const setHumanTimezoneInputSchema = z
+    .object({ serverId: idSchema, timezone: humanTimezoneSchema })
+    .strict();
+
+export type SetHumanTimezoneInput = z.infer<typeof setHumanTimezoneInputSchema>;
 
 /**
  * The directory carries the viewer's own identity and role, so the App renders
@@ -173,3 +196,12 @@ export const serverInvitationPreviewSchema = z
 export const acceptedServerInvitationSchema = z
     .object({ serverId: idSchema, serverSlug: z.string().min(1) })
     .strict();
+
+function isIanaTimezone(value: string): boolean {
+    try {
+        new Intl.DateTimeFormat('en-US', { timeZone: value }).format();
+        return true;
+    } catch {
+        return false;
+    }
+}

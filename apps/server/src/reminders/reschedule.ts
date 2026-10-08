@@ -21,6 +21,7 @@ import {
     validReminderDescription,
     validReminderTitle,
 } from './reminder-model.ts';
+import { alignUpdateToCadence } from './schedule-timing.ts';
 
 interface UpdateReminderInput extends ReminderCommandInput {
     description?: string | null;
@@ -154,11 +155,14 @@ async function applyReschedule(
         if (reminder.status === 'canceled') {
             throw new Error('A canceled reminder cannot be changed.');
         }
-        if (reminder.status === 'fired' && change.values.fireAt === undefined) {
+        const values =
+            change.action === 'update'
+                ? alignUpdateToCadence(change.values, reminder, change.now)
+                : change.values;
+        if (reminder.status === 'fired' && values.fireAt === undefined) {
             throw new Error('A fired reminder needs a new future fire time.');
         }
-        const effectiveRepeat =
-            change.values.repeat === undefined ? reminder.repeat : change.values.repeat;
+        const effectiveRepeat = values.repeat === undefined ? reminder.repeat : values.repeat;
         if (effectiveRepeat) {
             const repeat = parseReminderRepeat(effectiveRepeat);
             if (!repeat) {
@@ -166,14 +170,14 @@ async function applyReschedule(
             }
             nextReminderFireAt(
                 repeat,
-                (change.values.fireAt ?? reminder.fireAt).getTime(),
+                (values.fireAt ?? reminder.fireAt).getTime(),
                 reminder.timezone
             );
         }
         const [updated] = await tx
             .update(remindersTable)
             .set({
-                ...change.values,
+                ...values,
                 status: 'scheduled',
                 updatedAt: change.now,
                 version: reminder.version + 1,

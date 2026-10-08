@@ -31,6 +31,7 @@ export async function listServerMembers(
             handle: serverMembershipsTable.handle,
             joinedAt: serverMembershipsTable.joinedAt,
             role: serverMembershipsTable.role,
+            timezone: usersTable.timezone,
             userId: serverMembershipsTable.userId,
         })
         .from(serverMembershipsTable)

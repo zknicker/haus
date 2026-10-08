@@ -10,7 +10,7 @@ import {
     remindersTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { isValidReminderTimezone, nextReminderFireAt, parseReminderRepeat } from './cadence.ts';
+import { parseReminderRepeat } from './cadence.ts';
 import { lockReminderCommand, parseReminderCommandResult } from './mutations.ts';
 import { insertReminderChangedEvent } from './reminder-events.ts';
 import {
@@ -27,6 +27,7 @@ import {
     validReminderDescription,
     validReminderTitle,
 } from './reminder-model.ts';
+import { resolveScheduleTiming } from './schedule-timing.ts';
 
 export {
     cancelReminder,
@@ -63,7 +64,9 @@ export async function scheduleReminder(
         anchorChatId: input.anchorChatId,
         anchorMessageId: input.anchorMessageId,
         description,
-        fireAt: input.fireAt.toISOString(),
+        // A derived calendar first fire is not part of the request, so a replay
+        // after that slot passes still matches.
+        fireAt: input.fireAt?.toISOString() ?? null,
         repeat: repeat?.spec ?? input.repeat ?? null,
         script: input.script ?? null,
         title,
@@ -76,7 +79,7 @@ export async function scheduleReminder(
     const legacyFingerprint = JSON.stringify({
         anchorChatId: input.anchorChatId,
         anchorMessageId: input.anchorMessageId,
-        fireAt: input.fireAt.toISOString(),
+        fireAt: input.fireAt?.toISOString() ?? null,
         repeat: repeat?.spec ?? input.repeat ?? null,
         script: input.script ?? null,
         title,
@@ -133,15 +136,15 @@ export async function scheduleReminder(
             validReminderDescription(description);
         }
         validateScheduleInput(input, { repeat });
-        const timezone = validatedTimezone(input.timezone, agent.homeTimezone);
-        if (repeat) {
-            nextReminderFireAt(repeat, input.fireAt.getTime(), timezone);
-        }
+        const { fireAt, timezone } = resolveScheduleTiming(input, repeat, {
+            homeTimezone: agent.homeTimezone,
+            now,
+        });
         await requireChatWritable(tx, {
             chatId: input.anchorChatId,
             serverId: input.serverId,
         });
-        if (input.fireAt.getTime() <= now.getTime()) {
+        if (fireAt.getTime() <= now.getTime()) {
             throw new ReminderScheduleExpiredError();
         }
 
@@ -158,7 +161,7 @@ export async function scheduleReminder(
                 anchorMessageId: input.anchorMessageId,
                 createdAt: now,
                 description,
-                fireAt: input.fireAt,
+                fireAt,
                 id: reminderId,
                 ownerAgentId: agentId,
                 repeat: repeat?.spec ?? input.repeat ?? null,
@@ -257,12 +260,4 @@ export async function listReminders(
         )
     );
     return rows.map(({ agent, reminder }) => toReminder(reminder, agent.handle));
-}
-
-function validatedTimezone(explicit: string | undefined, home: string): string {
-    const timezone = explicit ?? home;
-    if (!isValidReminderTimezone(timezone)) {
-        throw new Error('Provide a valid IANA timezone for the reminder.');
-    }
-    return timezone;
 }

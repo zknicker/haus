@@ -20,7 +20,7 @@ export async function scheduleAgentReminder(
     input: {
         commandId: string;
         description?: string;
-        fireAt: string;
+        fireAt?: string;
         messageId: string;
         repeat?: string;
         script?: string;
@@ -29,7 +29,7 @@ export async function scheduleAgentReminder(
     }
 ) {
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
-    const fireAt = new Date(input.fireAt);
+    const fireAt = input.fireAt === undefined ? undefined : new Date(input.fireAt);
     const result = await scheduleReminder(
         db,
         runner.agentId,

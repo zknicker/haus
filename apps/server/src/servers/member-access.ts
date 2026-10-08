@@ -50,6 +50,7 @@ export interface CurrentMembership {
     handle?: null | string;
     joinedAt: Date;
     role: ServerRole;
+    timezone?: null | string;
     userId: string;
 }
 
@@ -68,6 +69,7 @@ export async function findCurrentMembership(
             handle: serverMembershipsTable.handle,
             joinedAt: serverMembershipsTable.joinedAt,
             role: serverMembershipsTable.role,
+            timezone: usersTable.timezone,
             userId: serverMembershipsTable.userId,
         })
         .from(serverMembershipsTable)
@@ -121,6 +123,7 @@ export function toServerMember(membership: CurrentMembership): ServerMember {
         handle: membership.handle ?? null,
         joinedAt: membership.joinedAt.toISOString(),
         role: membership.role,
+        timezone: membership.timezone ?? null,
         userId: membership.userId,
     };
 }
