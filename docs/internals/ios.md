@@ -87,8 +87,11 @@ lift. Like the header, the row stops growing past the largest standard text size
 stops at the first accessibility size. There are no haptics: this is ambient information. The
 App's emoji faces are not ported.
 
-A stopped Agent's DM says so above the composer, with Start for Owners and Admins (`agent.start`,
-then an Agent directory refresh; success and failure haptics, an inline line on failure). An Agent
+A stopped Agent's DM says so above the composer (`StoppedAgentNotice`): one glass card on the
+composer's own material with a stop glyph, "<Agent> is stopped", what that means, and a prominent Start
+for Owners and Admins (`agent.start`, then an Agent directory refresh; a spinner stands in for the
+label while it runs, a success haptic, and a native alert on failure). It is a deliberate product
+notice, not send status: a stopped Agent will not see what is sent. An Agent
 the Server paused after repeated failures (`wakePause`) explains why on its Chat-details profile,
 in the App's `agent-wake-pause-model.ts` copy; the phone offers no Restart.
 
@@ -621,8 +624,18 @@ confirming verb (Create, Save); an informational sheet with nothing to confirm �
 details, Archived, and the Settings root alike — uses Done in the confirmation slot; and a pushed
 screen uses the system back chevron rather than an explicit control.
 
-There is no shell banner. A failure is told where it happened, the way iOS apps do it. A send that
-does not reach Server stays in the transcript as the viewer's own optimistic row, at its sent
+There is no shell banner and no send status. A send is optimistic, as on the web: the row lands in
+the transcript the moment the viewer sends, drawn exactly as the durable row that replaces it — no
+caption, spinner, dimming, or "Sending" anywhere, including the row's accessibility label and its
+attachments, which show their staged files and simply ignore taps until Server names them. The
+only trace is behavior the web also withholds: no reactions, drawer, or reply actions on a row Server
+has not named. The send itself runs in the background. `chat.send` and `attachment.reserve` are
+idempotent by nonce, so `IdempotentRetry` (HausTransport) replays them through transport failures
+(timeouts, a dropped or absent connection, a 502/503/504) with 1s, 3s, and 8s waits before giving
+up; anything Server actually answered fails at once. A slow Server therefore shows nothing at all.
+
+A failure is told where it happened, the way iOS apps do it. A send that does not reach Server
+after those retries stays in the transcript as the viewer's own optimistic row, at its sent
 position, marked failed (iMessage's pattern): a red `exclamationmark.circle.fill` beside the row, a
 red "Not sent" caption under it, and an error haptic. The composer clears on send either way, because
 the content lives in the row. Tapping the row opens a confirmation dialog with Try Again and Delete
@@ -641,8 +654,11 @@ when nothing left it at all (no Server).
 A page of history or replies the reader asked for that fails to load says so in place: the
 transcript's load-older accessory turns into a quiet "Couldn't load earlier messages · Try Again" line
 (`TranscriptLoadOlderButton`). Background work (event catch-up, foreground refresh, stream recovery,
-history refresh, Cloud Agent refresh) logs instead: the offline indicator already speaks for
-connectivity. The jump-to-message alert and the Inline replies region's Retry keep their own failure
+history refresh, Cloud Agent refresh) logs instead: the header already speaks for connectivity.
+Lost connectivity is header state, never a banner over the transcript (`ConnectionOutage`): once the
+Server connection has been down for two seconds the Chat header's title, or a Thread's navigation
+subtitle, reads "Connecting…" until it returns, so a stream that drops and reconnects says nothing.
+A file the composer could not stage is a native "Couldn’t Add Attachment" alert. The jump-to-message alert and the Inline replies region's Retry keep their own failure
 states.
 
 Search focuses its field as the sheet opens, so the keyboard is already up. Each result marks the
@@ -819,7 +835,8 @@ stay times of day.
 author to the same parent as the row above skips the line and joins that row's block, so an
 acknowledgment and its follow-up read as one answer. A shown reference always opens a new identity
 block, and a plain message never joins a reply's block. The composer states the pending target as
-"Replying to **Name**" with a cancel control.
+"Replying to **Name**" with a cancel control, and lets go of it the moment the reply is sent —
+the reply is already in the transcript — taking it back only when nothing left the composer.
 
 Cloud agents use the same Server records as the web App. Settings → Cloud agents lets an Owner or
 Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
@@ -957,9 +974,14 @@ never its shape. A Chat row's quoted last line is Server's own `lastMessage` pro
 raw Markdown; collapsing it to one plain line is the reader's job.
 
 Swift optimistic Chat and Thread rows remain app-local and keyed by the client nonce. Thread replies
-use the canonical parent Chat plus anchor-message contract. A failed mutation removes its optimistic
-row and restores the exact draft, while a successful row remains pending until a refreshed Server
-page contains the matching nonce. On returning to the foreground, the app keeps cached presentation
+use the canonical parent Chat plus anchor-message contract. A failed mutation keeps its row, marked
+"Not sent", for Try Again or Delete, while a successful row remains pending until a refreshed Server
+page contains the matching nonce. The transcript is the durable page in Server order followed by
+`OptimisticMessageRow.unsettled` rows in send order; pages load as whole snapshots, so a message
+that arrives while a send is in flight sits above it, and the page that carries the nonce places
+the row by sequence. The send receipt's canonical id is adopted first, so that page swaps the row in
+place under the same id. `OptimisticTranscriptTests` pins confirmation, interleaving, rapid sends,
+and failed-then-retried rows. On returning to the foreground, the app keeps cached presentation
 visible, refetches its Server snapshot in one gathered pass — applied as a single repaint, with
 every Chat surface on the stack refetched eagerly: the deepest open Chat first, then the canvas Chat
 underneath it, so popping a Thread reveals a parent that is already fresh instead of one round trip
@@ -1185,8 +1207,8 @@ attachment record exists. A file is reserved in the Chat its composer is anchore
 Thread reply is the parent Chat — a first reply has no Thread chat id yet, and Server re-homes the
 attachment to the Thread the reply lands in. A Thread with no replies therefore accepts an attachment
 on its first reply, exactly as the web composer does. Pending rows show the selected files while
-upload is unresolved, failures
-restore the exact text and files for retry, and successful Server attachments render identically in
+upload is unresolved, with no upload indicator; a failed send keeps the text and files on its
+"Not sent" row for Try Again, and successful Server attachments render identically in
 main timelines and Thread replies. Opening an image attachment opens the attachment viewer described
 above; every other kind resolves its cached file and presents the native Quick Look surface. The
 client enforces the Server's 50 MiB limit before reservation.
@@ -1257,7 +1279,8 @@ closures from `HausApp` rather than owning Server transport or inventing mobile-
 The Chat timeline uses cursor-based pages. Reconnect catch-up walks missed Server events before live
 delivery continues, and loaded affected Chat pages are refetched in sequence order. Optimistic sends
 remain app-local and are keyed by the client nonce. A pending row retires only after the canonical
-Server message arrives; a failed send restores its content to the composer for an explicit retry.
+Server message arrives; a failed send stays in the transcript as a "Not sent" row for an explicit
+retry.
 Optimistic rows never patch durable history.
 
 The native Chat shell navigates over a typed destination rather than assuming every sidebar row is a
