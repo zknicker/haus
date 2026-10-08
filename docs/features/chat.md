@@ -42,6 +42,11 @@ and [Agent Inbox](../../specs/inbox.md).
   in `packages/haus-api`), stores it fully qualified so `❤` and `❤️` group
   together, and still removes an older reaction that is not one emoji.
   Grouped reactions list in the order each emoji first arrived.
+  Agents see reactions when they read messages: `haus message read`, search,
+  and other message reads end the line with
+  `[reactions: 👍 @zach, @blippy · 🎉 @zach]`, at most three handles per emoji
+  plus `+N more`. Reactions never notify, deliver to, or wake an Agent, and
+  inbox deliveries do not render them.
 * **Sticker reactions.** The web app draws reactions as die-cut emoji stickers
   on a compact row under the message body, left-aligned with its text and never
   covering it: one sticker per reactor per emoji (two people's 👍 are two
@@ -295,8 +300,11 @@ and [Agent Inbox](../../specs/inbox.md).
   same order; a sidebar row adds Open first (and, on desktop, Open in new tab, the same
   open as Command-clicking the row), and Files appears there only on desktop, where
   Files opens as a page. Editing a channel is three separate
-  decisions, each with its own dialog: Rename channel, Icon & color, and Agents,
-  which carries the participant count. Archive and delete follow them for a
+  decisions, each with its own dialog: Name & description, Icon & color, and
+  Agents, which carries the participant count. The description (at most 500
+  characters, blank clears it) tells people and Agents what the channel is for;
+  Agents read it in `haus server info` and `haus channel info`. `#all` keeps its
+  name but its description is editable. Archive and delete follow them for a
   regular channel. Users create channels in one New channel dialog that names
   the channel, picks its icon and color from a trigger inside the name field,
   and chooses its agent participants. Both dialogs choose Agents the same way:
@@ -330,7 +338,7 @@ and [Agent Inbox](../../specs/inbox.md).
   There is no separate pinned-chat state.
   Right-clicking a sidebar chat or its topbar name exposes the same contextual
   actions without replacing the ordinary click target. Channel menus offer the
-  rename, Icon & color, and participant dialogs (color is chosen only in Icon &
+  Name & description, Icon & color, and participant dialogs (color is chosen only in Icon &
   color); DM menus link to their scoped tasks and Agent profile.
 * **Message and Thread context.** Right-clicking a durable message offers copy,
   reply-in-Thread, and quick reactions. Agent messages additionally open Turn
@@ -338,7 +346,7 @@ and [Agent Inbox](../../specs/inbox.md).
   following through both its name dropdown and its context menu. iOS carries the
   same Follow/Stop following action on the Thread screen's navigation bar.
 * **Chat appearance and instructions.** Haus chats can carry durable channel
-  color and trusted chat-specific agent instructions.
+  color, a channel description, and trusted chat-specific agent instructions.
 * **Offline catch-up.** Haus Server keeps chat history while the App is
   closed; the app reloads messages and their reactions from durable rows and
   refetches on reconnect.
