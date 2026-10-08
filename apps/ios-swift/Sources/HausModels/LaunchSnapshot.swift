@@ -72,7 +72,9 @@ public actor LaunchSnapshotStore {
         self.fileURL = fileURL
     }
 
-    /// `Application Support/Haus/launch-snapshot.json`.
+    /// `Application Support/Haus/launch-snapshot.json`. Application Support
+    /// rather than Caches so storage pressure cannot purge the cold-launch
+    /// paint; `save` excludes the directory from device backups instead.
     public static func applicationSupport() -> LaunchSnapshotStore {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
@@ -100,10 +102,14 @@ public actor LaunchSnapshotStore {
 
     public func save(_ snapshot: LaunchSnapshot) throws {
         let data = try HausJSON.encoder().encode(snapshot)
-        try FileManager.default.createDirectory(
-            at: fileURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
+        var directory = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        // Message pages and the member directory (emails included) are a
+        // device-local cache; they must not ride along in iCloud or Finder
+        // backups. Set on the directory, it survives each atomic replace.
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try directory.setResourceValues(values)
         try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 

@@ -44,6 +44,17 @@ struct LaunchSnapshotTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
+    @Test("The snapshot directory is excluded from device backups")
+    func excludedFromBackup() async throws {
+        let url = temporaryFile()
+        let store = LaunchSnapshotStore(fileURL: url)
+        try await store.save(fixtureSnapshot(userID: "user_preview"))
+        try await store.save(fixtureSnapshot(userID: "user_preview"))
+
+        let values = try url.deletingLastPathComponent().resourceValues(forKeys: [.isExcludedFromBackupKey])
+        #expect(values.isExcludedFromBackup == true)
+    }
+
     @Test("Clearing on sign-out leaves nothing to paint")
     func clearRemovesTheSnapshot() async throws {
         let store = LaunchSnapshotStore(fileURL: temporaryFile())
