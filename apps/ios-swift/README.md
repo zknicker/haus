@@ -40,8 +40,9 @@ UIKit rendering checks run in Simulator, because `swift test` on macOS excludes 
 xcodebuild -project Haus.xcodeproj -scheme Haus -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:HausRenderingTests -parallel-testing-enabled NO test
 ```
 
-`SimulatorTests` covers text measurement invalidation, shared avatar decoding, and repeatable
-transcript rendering benchmarks. The benchmarks use 24 fixed Markdown messages and measure ten
+`SimulatorTests` covers text measurement invalidation, shared avatar decoding, code-block row
+layout, the transcript substrate's update cost and resting positions, and repeatable transcript
+rendering benchmarks. The benchmarks use 24 fixed Markdown messages and measure ten
 transcript remounts or forty scroll-layout steps per sample. They isolate native layout work from
 authentication and network latency; they do not measure device frame rate. The long-history fixture
 uses 1,000 variable-length Markdown messages and renders 200 at a time, checking cell reuse while
