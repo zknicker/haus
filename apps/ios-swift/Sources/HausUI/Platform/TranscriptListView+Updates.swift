@@ -16,6 +16,7 @@ extension TranscriptListCoordinator {
             ? .refresh
             : TranscriptListUpdate.classify(old: items.map(\.id), new: view.items.map(\.id))
         let wasNearNewest = nearNewest.countsAsNear(distance: distanceFromNewest(table))
+        let offsetBefore = table.contentOffset.y
         let previousItems = items
         let previousShowsAccessory = showsAccessory
         let revisionChanged = view.rowRevision != appliedRowRevision
@@ -72,7 +73,9 @@ extension TranscriptListCoordinator {
             settleAppend(
                 table: table,
                 appended: max(0, update.tailInsertionCount - replaced),
-                behavior: appendBehavior
+                behavior: appendBehavior,
+                offsetBefore: offsetBefore,
+                wasNearNewest: wasNearNewest
             )
         }
 

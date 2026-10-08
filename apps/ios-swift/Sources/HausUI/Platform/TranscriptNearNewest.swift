@@ -35,12 +35,11 @@ struct TranscriptNearNewest {
         isSettling || Self.isNear(distance: distance)
     }
 
-    /// Identifies one settle. A settle is closed by two racing signals — the
-    /// scroll view's end-of-animation callback and a deferred fallback for the
-    /// flights that never produce one — and by anything that takes the viewport
-    /// away from it. Whichever arrives first closes it; every later signal
-    /// carrying a superseded ticket is ignored, so it cannot close the settle
-    /// that replaced this one.
+    /// Identifies one settle. A settle is closed by its travel arriving home
+    /// (`TranscriptSettleTravel`) or by anything that takes the viewport away
+    /// from it. Whichever comes first closes it; a later close carrying a
+    /// superseded ticket is ignored, so it cannot close the settle that
+    /// replaced this one.
     struct SettleTicket: Equatable, Sendable {
         fileprivate let generation: Int
     }

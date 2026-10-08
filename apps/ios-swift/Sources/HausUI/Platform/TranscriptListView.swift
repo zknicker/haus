@@ -134,7 +134,7 @@ where Item.ID == String {
     var view: TranscriptListView<Item, Row, Accessory>?
     var items: [Item] = []
     var showsAccessory = false
-    private var appliedInsets: UIEdgeInsets?
+    private(set) var appliedInsets: UIEdgeInsets?
     var appliedRowRevision = 0
     /// Rows re-hosted by updates since mount; the substrate's cost, counted
     /// so tests can pin that an inset change re-hosts nothing.
@@ -158,6 +158,10 @@ where Item.ID == String {
     /// Driven from `TranscriptListView+NearNewest`.
     var nearNewest = TranscriptNearNewest()
     var nearNewestSyncScheduled = false
+    /// The settle in flight and its frame clock; `TranscriptListView+SettleTravel`.
+    var settleTravel: TranscriptSettleTravel?
+    var settleLink: TranscriptSettleLink?
+    weak var table: UITableView?
     /// The visible set last handed upward, so a scroll that changes nothing
     /// about which rows are on screen — an inset write, a re-host — does not
     /// wake the read path every runloop turn.
@@ -167,6 +171,7 @@ where Item.ID == String {
 
     func install(view: TranscriptListView<Item, Row, Accessory>, table: UITableView) {
         self.view = view
+        self.table = table
         items = view.items
         showsAccessory = view.showsAccessory
         appliedRowRevision = view.rowRevision
@@ -191,18 +196,32 @@ where Item.ID == String {
             right: 0
         )
         guard insets != appliedInsets else { return }
-        let isFirst = appliedInsets == nil
+        let previousTop = appliedInsets?.top
+        let isFirst = previousTop == nil
         appliedInsets = insets
-        table.contentInset = insets
+        let rides = isFirst || (wasNearNewest && !table.isDragging && !table.isDecelerating)
+        let shrinks = previousTop.map { insets.top < $0 } ?? false
+        let eases = rides && (settleTravel != nil || shrinks)
+        // UIKit clamps the offset into the inset it is handed; an easing
+        // transcript holds it open to where the rows stand until it arrives.
+        var tableInsets = insets
+        if eases { tableInsets.top = max(insets.top, -table.contentOffset.y) }
+        table.contentInset = tableInsets
         table.verticalScrollIndicatorInsets = UIEdgeInsets(
             top: view.bottomInset, left: 0, bottom: view.topInset, right: 0
         )
-        // A resting transcript rides an inset change: the composer or keyboard
-        // growing must lift the newest message, not slide over it.
-        if isFirst || (wasNearNewest && !table.isDragging && !table.isDecelerating) {
-            let rest = -insets.top
-            let followedTop = followedTopItemID == nil ? rest : newestTopOffset(table)
-            table.contentOffset = CGPoint(x: 0, y: max(rest, followedTop))
+        // A resting transcript rides an inset change. Growing lifts the newest
+        // message at once, so nothing slides under the composer. Shrinking
+        // eases: the composer drops its attachment strip in one frame while
+        // its glass collapses over several, and a snap dropped the transcript
+        // a frame before a send's row arrived. A settle in flight re-reads home.
+        guard rides else { return }
+        if settleTravel != nil {
+            stepSettle(table)
+        } else if eases {
+            settleToNewest(table: table)
+        } else {
+            table.contentOffset = CGPoint(x: 0, y: settleHome(table))
         }
     }
 
@@ -269,12 +288,7 @@ where Item.ID == String {
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
-        // The normal close for a settle: the travel is over, so the reading
-        // this schedules is the destination it actually reached — landed
-        // home first if the inset moved under it.
-        let wasSettling = nearNewest.isSettling
-        endSettling()
-        if wasSettling, let table = scrollView as? UITableView { land(table) }
+        // A reveal's `scrollToRow` travel is over; settles close themselves.
         scheduleNearNewestSync(scrollView)
     }
 

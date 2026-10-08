@@ -6,21 +6,21 @@ import UIKit
 /// publishing of whether it is showing that item.
 ///
 /// The rule itself is `TranscriptNearNewest`; this is the geometry it reads, the
-/// signals that close each settle, and the two intents that open one — an append
-/// the policy wants animated, and a reveal of the newest row.
-/// How long a settle waits for `scrollViewDidEndScrollingAnimation` before
-/// closing itself. A little past UIKit's own scroll-animation duration, so the
-/// fallback only fires for the flights that never report one.
-private let settleFallbackDelay: TimeInterval = 0.4
-
+/// travel that carries each settle (`TranscriptListView+SettleTravel`), and the
+/// two intents that open one — an append the policy wants animated, and a reveal
+/// of the newest row.
 extension TranscriptListCoordinator {
+    /// `offsetBefore` is the offset the update found, before any inset it
+    /// carries was applied.
     func settleAppend(
         table: UITableView,
         appended: Int,
-        behavior: TranscriptAppendBehavior
+        behavior: TranscriptAppendBehavior,
+        offsetBefore: CGFloat,
+        wasNearNewest: Bool
     ) {
         if behavior != .stay { heldAnchor = nil }
-        let rest = CGPoint(x: 0, y: -table.contentInset.top)
+        let rest = CGPoint(x: 0, y: restingOffset(table))
         switch behavior {
         case .snapToNewest:
             endSettling()
@@ -32,16 +32,18 @@ extension TranscriptListCoordinator {
             if appended == 0, nearNewest.isSettling { break }
             // In flipped space inserted rows appear in place; the ease-in is
             // staged by holding the viewport on the previous newest row and
-            // releasing it toward rest, across everything that arrived.
+            // releasing it toward rest, across everything that arrived. The
+            // hold is where that row stood before this update: a send that
+            // also collapses the composer moves rest in the same update, and
+            // holding against the new rest dropped the transcript by the
+            // collapse before the row eased in.
             let insertedHeight = (0..<appended).reduce(CGFloat.zero) { height, row in
                 height + table.rectForRow(at: IndexPath(row: row, section: 0)).height
             }
-            table.contentOffset = CGPoint(x: 0, y: rest.y + insertedHeight)
+            let held = wasNearNewest ? offsetBefore : rest.y
+            setTravelOffset(held + insertedHeight, in: table)
             followedTopItemID = behavior == .followNewest ? items.last?.id : nil
-            let destination = behavior == .followNewest
-                ? CGPoint(x: 0, y: max(rest.y, newestTopOffset(table)))
-                : rest
-            settleToNewest(table: table, rest: destination)
+            settleToNewest(table: table)
         case .stay:
             // `.stay` declines a new settle; it does not abandon one in
             // flight. That travel still owns the viewport and is still bound
@@ -64,12 +66,11 @@ extension TranscriptListCoordinator {
         heldAnchor = nil
         // The newest item's home is the resting edge, not the viewport center.
         guard index < items.count - 1 else {
-            let rest = CGPoint(x: 0, y: -table.contentInset.top)
             if reveal.animated {
-                settleToNewest(table: table, rest: rest)
+                settleToNewest(table: table)
             } else {
                 endSettling()
-                table.contentOffset = rest
+                table.contentOffset = CGPoint(x: 0, y: restingOffset(table))
             }
             return
         }
@@ -84,7 +85,7 @@ extension TranscriptListCoordinator {
     /// The offset that puts the newest row's top just below the header
     /// clearance. Past rest only when that row is taller than the viewport.
     func newestTopOffset(_ table: UITableView) -> CGFloat {
-        guard !items.isEmpty else { return -table.contentInset.top }
+        guard !items.isEmpty else { return restingOffset(table) }
         let newest = table.rectForRow(at: IndexPath(row: 0, section: 0))
         // Flipped: a row's maxY is its visual top, and the table's bottom
         // inset is the visual top clearance.
@@ -103,70 +104,29 @@ extension TranscriptListCoordinator {
         }
         guard !nearNewest.isSettling, !table.isDragging, !table.isDecelerating else { return }
         let top = newestTopOffset(table)
-        guard top > -table.contentInset.top, abs(table.contentOffset.y - top) > 0.5 else { return }
+        guard top > restingOffset(table), abs(table.contentOffset.y - top) > 0.5 else { return }
         table.contentOffset = CGPoint(x: 0, y: top)
     }
 
     /// Distance from the resting (newest) edge, in points. Zero at rest.
     func distanceFromNewest(_ scrollView: UIScrollView) -> CGFloat {
-        scrollView.contentOffset.y + scrollView.contentInset.top
+        scrollView.contentOffset.y + (appliedInsets?.top ?? scrollView.contentInset.top)
     }
 
-    /// Runs the settle toward the newest edge and publishes the reading it
-    /// leaves behind.
-    ///
-    /// The travel belongs to the scroll view: `setContentOffset(_:animated:)`
-    /// moves the real offset frame by frame, so the table lays out the rows the
-    /// viewport passes over. A `UIView.animate` block on `contentOffset` looks
-    /// the same and is not — it writes the destination offset immediately and
-    /// animates only the layer, so the table lays out once, at the destination,
-    /// and everything travelled through paints blank.
-    ///
-    /// What the scroll view does not give back is a guaranteed close.
-    /// `scrollViewDidEndScrollingAnimation` is silent when a `contentInset`
-    /// write lands mid-flight (the composer collapsing right after a send) and
-    /// cancels the travel, and that silence would leave the settle open forever,
-    /// publishing "showing the newest item" over a viewport stranded anywhere.
-    /// So each settle also carries a deferred fallback, armed a little past
-    /// UIKit's own duration; whichever signal arrives first closes the settle
-    /// and the other finds its ticket superseded.
-    func settleToNewest(table: UITableView, rest: CGPoint) {
-        guard table.contentOffset != rest else {
-            endSettling()
-            scheduleNearNewestSync(table)
-            return
-        }
-        let ticket = nearNewest.beginSettling()
-        table.setContentOffset(rest, animated: true)
-        DispatchQueue.main.asyncAfter(deadline: .now() + settleFallbackDelay) {
-            [weak self, weak table] in
-            MainActor.assumeIsolated {
-                guard let self, self.nearNewest.endSettling(ticket) else { return }
-                guard let table else { return }
-                self.land(table)
-                self.scheduleNearNewestSync(table)
-            }
-        }
+    /// The offset that rests on the newest edge. Read from the inset the
+    /// screen asked for, not the table's: a travel can hold the table's inset
+    /// open past it for the few frames it takes to arrive.
+    func restingOffset(_ table: UITableView) -> CGFloat {
+        -(appliedInsets?.top ?? table.contentInset.top)
     }
 
-    /// Puts a settle that closed short of home onto it. A travel UIKit
-    /// cancelled — an inset write mid-flight, the composer collapsing right
-    /// after a send — otherwise strands the viewport wherever it stopped,
-    /// with the newest row under the composer and the chevron up. Home is
-    /// read now, not when the settle began, because that inset write is
-    /// usually what moved it.
-    func land(_ table: UITableView) {
-        guard !table.isDragging, !table.isDecelerating else { return }
-        let rest = -table.contentInset.top
-        let home = followedTopItemID == nil ? rest : max(rest, newestTopOffset(table))
-        guard abs(table.contentOffset.y - home) > 0.5 else { return }
-        table.setContentOffset(CGPoint(x: 0, y: home), animated: false)
-    }
-
-    /// Ends any settle in flight and orphans the signals that would have closed
-    /// it.
-    func endSettling() {
-        nearNewest.endSettling()
+    /// Where a settle comes to rest: the resting edge, or a followed reply's
+    /// top once that reply is taller than the viewport. Read live, never
+    /// captured, because the inset and the followed row both move under a
+    /// travel.
+    func settleHome(_ table: UITableView) -> CGFloat {
+        let rest = restingOffset(table)
+        return followedTopItemID == nil ? rest : max(rest, newestTopOffset(table))
     }
 
     /// Hands up the ids of the rows the viewport is showing, newest first.
