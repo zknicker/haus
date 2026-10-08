@@ -11,6 +11,7 @@ import {
     iosIconArtifactFiles,
     iosIconArtifactManifestFile,
     iosIconCompilationOptions,
+    iosLaunchCatalogSourceDirectory,
     requiredIOSIconXcodeBuild,
     writeIOSIconArtifactManifest,
 } from './ios-icon-artifact.mjs';
@@ -27,10 +28,12 @@ if (!force && artifactMatchesSource(outputDirectory)) {
 
 const stagedDirectory = mkdtempSync(path.join(tmpdir(), 'haus-ios-icon-'));
 const stagedIcon = path.join(stagedDirectory, 'mac-icon.icon');
+const stagedLaunchCatalog = path.join(stagedDirectory, 'Launch.xcassets');
 const stagedOutput = path.join(stagedDirectory, 'output');
 
 mkdirSync(stagedOutput, { recursive: true });
 cpSync(path.join(repoRoot, 'assets', 'mac-icon.icon'), stagedIcon, { recursive: true });
+cpSync(iosLaunchCatalogSourceDirectory, stagedLaunchCatalog, { recursive: true });
 
 const xcodeVersion = run('xcodebuild', ['-version'], { captureOutput: true });
 if (!xcodeVersion.includes(`Build version ${requiredIOSIconXcodeBuild}`)) {
@@ -42,6 +45,7 @@ console.log(xcodeVersion.trim());
 run('xcrun', [
     'actool',
     stagedIcon,
+    stagedLaunchCatalog,
     '--app-icon',
     iosIconCompilationOptions.appIcon,
     '--compile',

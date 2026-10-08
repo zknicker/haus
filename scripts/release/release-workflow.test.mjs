@@ -175,7 +175,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(prepareIOSIconSource, /requiredIOSIconXcodeBuild/);
     assert.doesNotMatch(workflow, /haus-xcode27|prepare_ios_icon|haus-ios-icon/);
-    assert.match(publishIOSSource, /EXCLUDED_SOURCE_FILE_NAMES=mac-icon\.icon/);
+    assert.match(publishIOSSource, /EXCLUDED_SOURCE_FILE_NAMES=mac-icon\.icon Launch\.xcassets/);
     assert.match(
         publishIOSSource,
         /const ipaPath = findExportedIPA\(exportPath\);[\s\S]*?assertInstalledIOSIcon\([\s\S]*?assertExportedCommunicationNotifications\(exportedApp\);[\s\S]*?run\('xcrun', appStoreConnectUploadArgs\(ipaPath\)\)/

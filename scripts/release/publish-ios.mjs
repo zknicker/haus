@@ -101,7 +101,8 @@ async function main(input) {
         `MARKETING_VERSION=${input.version}`,
         `CURRENT_PROJECT_VERSION=${input.buildNumber}`,
         'ENABLE_USER_SCRIPT_SANDBOXING=NO',
-        'EXCLUDED_SOURCE_FILE_NAMES=mac-icon.icon',
+        // Both catalog sources ship precompiled in HAUS_PRECOMPILED_IOS_ICON_DIR.
+        'EXCLUDED_SOURCE_FILE_NAMES=mac-icon.icon Launch.xcassets',
         `HAUS_PRECOMPILED_IOS_ICON_DIR=${iconArtifactDirectory}`,
     ]);
     assertInstalledIOSIcon({
