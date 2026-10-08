@@ -5,7 +5,10 @@ import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
-import { useChatMessageNavigation } from '../../../hooks/servers/use-chat-message-navigation.ts';
+import {
+    type ScrollToMessage,
+    useChatMessageNavigation,
+} from '../../../hooks/servers/use-chat-message-navigation.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
@@ -54,8 +57,10 @@ export function ChatView({
     const { clearInlineReply, clearSentInlineReply, inlineReply, selectInlineReply } =
         useChatInlineReply(chat.id);
     const transcriptRef = React.useRef<HTMLDivElement | null>(null);
+    const scrollerRef = React.useRef<ScrollToMessage | null>(null);
     const { revealMessage } = useChatMessageNavigation({
         chatId: chat.id,
+        scroller: scrollerRef,
         transcript: transcriptRef,
         fetchOlderHistory: messages.fetchOlderHistory,
         hasOlderHistory: messages.hasOlderHistory,
@@ -202,6 +207,7 @@ export function ChatView({
                 isFetchingOlderHistory={messages.isFetchingOlderHistory}
                 isPending={messages.isPending}
                 rowCount={transcriptMessages?.length ?? 0}
+                scrollerRef={scrollerRef}
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
                         chatId={chat.id}

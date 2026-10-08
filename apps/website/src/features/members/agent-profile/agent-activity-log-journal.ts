@@ -53,7 +53,9 @@ export function useLogTurnJournal({
         access,
         agentId,
         enabled: isLive && isAdmitted,
-        live: true,
+        // Closed, the overview's marks still follow activity events; only an
+        // open turn polls each second for reasoning.
+        live: isOpen,
         runId: turn.runId,
         serverId,
     });

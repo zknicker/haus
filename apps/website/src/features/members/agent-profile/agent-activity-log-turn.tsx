@@ -12,6 +12,7 @@ import {
 } from '../../turn-trace/turn-trace-grid.tsx';
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
 import { TurnTraceScopeProvider } from '../../turn-trace/turn-trace-scope.tsx';
+import { TurnTraceScroll } from '../../turn-trace/turn-trace-scroll.tsx';
 import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from '../../turn-trace/turn-trace-view.ts';
 import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
@@ -196,10 +197,13 @@ function TurnSteps({
             <LogNote>{view.error?.message ?? 'No activity was recorded for this turn.'}</LogNote>
         );
     }
+    // Steps a live turn adds above an open step must not move it.
     return (
-        <TraceNested>
-            <TurnTraceSteps steps={view.steps} />
-        </TraceNested>
+        <TurnTraceScroll>
+            <TraceNested>
+                <TurnTraceSteps steps={view.steps} />
+            </TraceNested>
+        </TurnTraceScroll>
     );
 }
 

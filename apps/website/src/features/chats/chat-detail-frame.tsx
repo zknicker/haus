@@ -5,7 +5,9 @@ import {
     MessageScrollerContent,
     MessageScrollerProvider,
     MessageScrollerViewport,
+    useMessageScroller,
 } from '../../components/chats/message-scroller.tsx';
+import type { ScrollToMessage } from '../../hooks/servers/use-chat-message-navigation.ts';
 import { ChatFooterSurface, chatFooterClearanceClassName } from './chat-footer-surface.tsx';
 import { ChatScrollPositionMemory } from './chat-scroll-position-memory.tsx';
 import { ChatTranscriptLoadingIndicator } from './chat-transcript-loading-indicator.tsx';
@@ -26,6 +28,7 @@ export function ChatDetailFrame({
     isFetchingOlderHistory = false,
     isPending,
     rowCount,
+    scrollerRef,
     timelineContent,
     transcriptRef,
 }: {
@@ -43,6 +46,8 @@ export function ChatDetailFrame({
     isFetchingOlderHistory?: boolean;
     isPending: boolean;
     rowCount: number;
+    /** Receives the scroller's own jump, for a caller outside it (message reveal). */
+    scrollerRef?: React.RefObject<ScrollToMessage | null>;
     timelineContent: (scrollContentRef: React.RefObject<HTMLDivElement | null>) => React.ReactNode;
     /** The transcript's content element, for a caller that finds its own rows (message reveal). */
     transcriptRef?: React.RefObject<HTMLDivElement | null>;
@@ -69,6 +74,7 @@ export function ChatDetailFrame({
 
     return (
         <MessageScrollerProvider autoScroll={hasTimelineContent} defaultScrollPosition="end">
+            {scrollerRef ? <MessageScrollerJump target={scrollerRef} /> : null}
             <div className="flex min-h-0 flex-1 overflow-hidden">
                 <div className="relative flex min-w-0 flex-1 flex-col">
                     {header}
@@ -138,6 +144,18 @@ export function ChatDetailFrame({
             </div>
         </MessageScrollerProvider>
     );
+}
+
+/** Hands the scroller's jump to a ref outside its provider while the transcript is shown. */
+function MessageScrollerJump({ target }: { target: React.RefObject<ScrollToMessage | null> }) {
+    const { scrollToMessage } = useMessageScroller();
+    React.useLayoutEffect(() => {
+        target.current = (id) => scrollToMessage(id, { align: 'center', behavior: 'instant' });
+        return () => {
+            target.current = null;
+        };
+    }, [scrollToMessage, target]);
+    return null;
 }
 
 export function chatTimelineHasContent(input: {

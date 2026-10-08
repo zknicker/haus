@@ -6,6 +6,9 @@ export interface ChatMessageJumpTarget {
     sequence: number;
 }
 
+/** The transcript scroller's own jump, keyed by a scroller item's `messageId`. */
+export type ScrollToMessage = (id: string) => boolean;
+
 interface NavigationSnapshot {
     chatId: string;
     fetchOlderHistory: () => Promise<unknown>;
@@ -26,18 +29,25 @@ type Transcript = React.RefObject<ParentNode | null>;
  * while the target sequence is outside the loaded range. A generation token
  * makes a pending jump harmless when the user starts another jump or changes
  * Chats before the request finishes.
+ *
+ * `scroller` is the transcript scroller's own jump. A reveal goes through it so
+ * the scroller leaves its follow-the-end mode: a bare `scrollIntoView` leaves it
+ * following the end, and the next resize (the older page that just loaded)
+ * pins the transcript back to the bottom.
  */
 export function useChatMessageNavigation({
     chatId,
     fetchOlderHistory,
     hasOlderHistory,
     messages,
+    scroller,
     transcript,
 }: {
     chatId: string;
     fetchOlderHistory: () => Promise<unknown>;
     hasOlderHistory: boolean;
     messages: readonly ChatMessageJumpTarget[] | undefined;
+    scroller?: React.RefObject<ScrollToMessage | null>;
     transcript: Transcript;
 }) {
     const requestGeneration = React.useRef(0);
@@ -61,7 +71,7 @@ export function useChatMessageNavigation({
     snapshot.current = { chatId, fetchOlderHistory, hasOlderHistory, messages, transcript };
 
     const revealMessage = React.useCallback(
-        (target: ChatMessageJumpTarget, scrollToMessage?: (id: string) => boolean) => {
+        (target: ChatMessageJumpTarget, scrollToMessage?: ScrollToMessage) => {
             const generation = requestGeneration.current + 1;
             requestGeneration.current = generation;
 
@@ -70,10 +80,10 @@ export function useChatMessageNavigation({
                 requestGeneration,
                 snapshot,
                 target,
-                scrollToMessage,
+                scrollToMessage: scrollToMessage ?? ((id) => scroller?.current?.(id) ?? false),
             });
         },
-        []
+        [scroller]
     );
 
     return { revealMessage };
