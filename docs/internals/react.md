@@ -204,7 +204,9 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   controlled `<Router>` per mounted tab nested inside the window's data router. It resets React
   Router's outer contexts (`UNSAFE_*`), so every page's `useLocation`, `useParams`, `useNavigate`,
   `<Navigate>`, and `<Link>` act on its own tab without call-site changes; `tab-router.test.tsx`
-  guards that nesting across `react-router-dom` upgrades. Panes are geometry only: every mounted
+  guards that nesting across `react-router-dom` upgrades. A patch keeps `useNavigate` (and so
+  `setSearchParams`) stable across a tab's navigations, as it is under the web's data router
+  (`tab-router-stability.test.tsx`, [Dependency Patches](../operations/dependency-patches.md)). Panes are geometry only: every mounted
   frame renders in one `DesktopTabLayer` over them, keyed by tab id in id order and never
   reparented, and CSS positions each frame over its pane's rect (`use-pane-rects.ts` publishes the
   rects as custom properties from a ResizeObserver, so a divider drag re-renders no tab).
@@ -227,7 +229,9 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   keep caches fresh for every tab. The window hash mirrors the focused tab
   (`history.replaceState`) and only seeds a window with no stored tabs.
 * Page code reads tab presence, not the window: `useTabPresence()` (`shown`, `focusedPane`)
-  gates mark-read and window-level key handlers; the web default is always shown. Desktop-only
+  gates mark-read and window-level key handlers; the web default is always shown. Presence
+  flips on every tab or kept-view show and hide, so a reader that needs only the tab id uses
+  `useTabId()`, and a large view puts its presence read in a leaf (`ChatReadState`). Desktop-only
   openers (`useDesktopPageOpeners` for Threads, Files, and artifacts) are null on the web, where
   the chat's side panel (`useChatThreadPane`, `useChatFilesPane`) hosts them. A page that can be a
   tab renders host-agnostically (no outlet context from outside its tab router) and works at

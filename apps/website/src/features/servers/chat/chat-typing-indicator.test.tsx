@@ -126,7 +126,6 @@ function renderFooter(inlineReply: ChatInlineReplyTarget | null) {
             onInlineReplyCancel={() => undefined}
             onInlineReplySent={() => undefined}
             peerRetired={false}
-            readSequence={undefined}
             server={{ role: 'member' } as ServerDetail}
         />
     );

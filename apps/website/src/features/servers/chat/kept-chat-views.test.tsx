@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
-import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
+import { TabIdContext, useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
+import { useDesktopPageOpeners } from '../../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { installFakeDom } from '../../../test-support/fake-dom.ts';
 import { PageTopbar, ShellTopbar, TopbarProvider } from '../../shell/shell-topbar.tsx';
 import { KeptChatViews, keepChatView } from './kept-chat-views.tsx';
@@ -121,3 +122,39 @@ function visibleBands(node: Node, hidden = false): string[] {
     }
     return Array.from(node.childNodes, (child) => visibleBands(child, off)).flat();
 }
+
+const openerRenders: Record<string, number> = {};
+
+/** Reads only the tab id, as a chat view's Thread and artifact openers do. */
+const TabIdReader = React.memo(function TabIdReader({ chatId }: { chatId: string }) {
+    useDesktopPageOpeners();
+    openerRenders[chatId] = (openerRenders[chatId] ?? 0) + 1;
+    return null;
+});
+
+test('showing or hiding a kept view does not re-render its tab-id readers', async () => {
+    const { act } = React;
+    const { createRoot } = await import('react-dom/client');
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    const show = (chatId: string) =>
+        act(() =>
+            root.render(
+                <TabIdContext value="t1">
+                    <KeptChatViews
+                        chatId={chatId}
+                        renderChat={(id) => <TabIdReader chatId={id} />}
+                        serverId="s"
+                    />
+                </TabIdContext>
+            )
+        );
+
+    await show('a');
+    await show('b');
+    await show('a');
+    // Presence flipped for both views twice; each reader rendered only when it mounted.
+    expect(openerRenders).toEqual({ a: 1, b: 1 });
+
+    await act(() => root.unmount());
+});

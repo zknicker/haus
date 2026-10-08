@@ -10,7 +10,6 @@ import {
     useChatMessageNavigation,
 } from '../../../hooks/servers/use-chat-message-navigation.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
-import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
@@ -20,6 +19,7 @@ import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
+import { ChatReadState } from './chat-read-state.tsx';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
 import { ChatViewFooter } from './chat-view-footer.tsx';
@@ -86,12 +86,9 @@ export function ChatView({
     });
     const threadSelection = thread.selection;
     const visibleRead = useVisibleChatSequence(chat.id);
-    const read = useChatRead({
-        chatId: messages.data ? chat.id : undefined,
-        enabled: !(threadSelection && threadTakeover && activeSidePane === 'thread'),
-        sequence: messages.data ? visibleRead.sequence : undefined,
-        serverId: messages.data ? chat.serverId : undefined,
-    });
+    const threadCoversChat = Boolean(
+        threadSelection && threadTakeover && activeSidePane === 'thread'
+    );
     const ensureDm = useDmEnsure(onOpenChat);
     const humans = useHumanDirectory(chat.serverId);
     const peerRetired = chat.kind === 'dm' && chat.peerAgentRetired;
@@ -191,17 +188,24 @@ export function ChatView({
                     void messages.fetchOlderHistory();
                 }}
                 footer={
-                    <ChatViewFooter
-                        chat={chat}
-                        chatName={chatName}
-                        ensureDmError={ensureDm.error}
-                        inlineReply={inlineReply}
-                        onInlineReplyCancel={clearInlineReply}
-                        onInlineReplySent={clearSentInlineReply}
-                        peerRetired={peerRetired}
-                        readSequence={read.data?.sequence}
-                        server={server}
-                    />
+                    <>
+                        <ChatReadState
+                            chatId={messages.data ? chat.id : undefined}
+                            enabled={!threadCoversChat}
+                            sequence={messages.data ? visibleRead.sequence : undefined}
+                            serverId={messages.data ? chat.serverId : undefined}
+                        />
+                        <ChatViewFooter
+                            chat={chat}
+                            chatName={chatName}
+                            ensureDmError={ensureDm.error}
+                            inlineReply={inlineReply}
+                            onInlineReplyCancel={clearInlineReply}
+                            onInlineReplySent={clearSentInlineReply}
+                            peerRetired={peerRetired}
+                            server={server}
+                        />
+                    </>
                 }
                 hasOlderHistory={messages.hasOlderHistory}
                 hasTransientTimelineContent={pendingMessages.length > 0}

@@ -8,7 +8,7 @@ import {
 } from '../../routes/app/desktop-page-paths.ts';
 import { useOptionalDesktopTabs } from './desktop-tabs-context.ts';
 import { currentOpenGesture } from './tab-open-gesture.ts';
-import { useTabPresence } from './tab-presence.ts';
+import { useTabId } from './tab-presence.ts';
 
 export interface DesktopPageOpeners {
     openArtifact: (target: ArtifactPageTarget, title?: string) => void;
@@ -27,7 +27,7 @@ export interface DesktopPageOpeners {
 export function useDesktopPageOpeners(): DesktopPageOpeners | null {
     const tabs = useOptionalDesktopTabs();
     const slug = React.use(DesktopShellContext)?.server.slug;
-    const { tabId } = useTabPresence();
+    const tabId = useTabId();
     const openLink = tabs?.openLink;
     const openInFocusedPane = tabs?.openInFocusedPane;
     return React.useMemo<DesktopPageOpeners | null>(() => {

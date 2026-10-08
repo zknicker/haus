@@ -32,7 +32,9 @@ import type { OpenGesture } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
  * React Router forbids a `<Router>` inside another; this adapter is the one
  * place that resets the outer router's contexts. It relies on React Router's
  * exported `UNSAFE_*` contexts: a router upgrade must re-run
- * `tab-router.test.tsx`.
+ * `tab-router.test.tsx`. A declarative `<Router>`'s stock `useNavigate`
+ * changes identity on every navigation; the React Router patch keeps it stable
+ * here as on the web's data router (`tab-router-stability.test.tsx`).
  */
 export function IsolatedTabRouter({
     children,

@@ -5,7 +5,7 @@ import {
     useOptionalDesktopTabsSelector,
 } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentLocation, type TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
-import { useTabPresence } from '../../hooks/desktop-tabs/tab-presence.ts';
+import { useTabId } from '../../hooks/desktop-tabs/tab-presence.ts';
 import { cn } from '../../lib/utils.ts';
 import { useTabIdentity } from './use-tab-identity.ts';
 import { WorkspaceBandTabLabel } from './workspace-band-tab-label.ts';
@@ -37,7 +37,7 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
  */
 export function ShellTopbar() {
     const slot = React.use(TopbarContext);
-    const inTab = useTabPresence().tabId !== null;
+    const inTab = useTabId() !== null;
     return (
         <header
             className={cn(
@@ -102,7 +102,7 @@ export function KeptTopbarScope({
  */
 export function PageTopbar({ children }: { children: React.ReactNode }) {
     const slot = React.use(TopbarContext);
-    const { tabId } = useTabPresence();
+    const tabId = useTabId();
     // Only this tab's location: another tab's change never re-renders the band.
     const location = useOptionalDesktopTabsSelector(useOptionalDesktopTabs(), (state) => {
         const tab = tabId ? state.tabs[tabId] : undefined;

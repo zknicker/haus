@@ -15,7 +15,6 @@ export function ChatViewFooter({
     onInlineReplyCancel,
     onInlineReplySent,
     peerRetired,
-    readSequence,
     server,
 }: {
     chat: Chat;
@@ -25,7 +24,6 @@ export function ChatViewFooter({
     onInlineReplyCancel: () => void;
     onInlineReplySent: (messageId: string) => void;
     peerRetired: boolean;
-    readSequence: number | undefined;
     server: ServerDetail;
 }) {
     return (
@@ -33,9 +31,6 @@ export function ChatViewFooter({
             {ensureDmError && !peerRetired ? (
                 <p className="px-9 text-danger text-sm">{ensureDmError.message}</p>
             ) : null}
-            <span className="sr-only" data-testid="read-state">
-                {readSequence ? `Read through ${readSequence}` : ''}
-            </span>
             {chat.archivedAt ? (
                 <ArchivedChannelBar
                     canManage={server.role === 'owner' || server.role === 'admin'}

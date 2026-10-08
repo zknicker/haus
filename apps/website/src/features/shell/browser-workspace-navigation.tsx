@@ -13,7 +13,7 @@ import {
     stepPageHistory,
 } from '../../hooks/browser/page-history-step.ts';
 import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
-import { useTabPresence } from '../../hooks/desktop-tabs/tab-presence.ts';
+import { useTabId } from '../../hooks/desktop-tabs/tab-presence.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { PageToolbarButton } from './page-toolbar.tsx';
 
@@ -48,7 +48,7 @@ export function BrowserWorkspaceNavigation({ tab }: { tab: BrowserTab }) {
 export function PageHistoryButtons({ view }: { view: BrowserTab | null }) {
     const workspace = useBrowserViews();
     const tabs = useDesktopTabs();
-    const { tabId } = useTabPresence();
+    const tabId = useTabId();
     const history = tabId ? tabs.tab(tabId)?.history : undefined;
     const can = (direction: HistoryDirection) =>
         history !== undefined && pageHistoryStep({ direction, history, view }) !== null;

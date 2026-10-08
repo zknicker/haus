@@ -32,3 +32,14 @@ export const TabPresenceContext = React.createContext<TabPresence>(routedPagePre
 export function useTabPresence(): TabPresence {
     return React.use(TabPresenceContext);
 }
+
+/**
+ * The enclosing tab's id alone (null on the web and outside a tab frame).
+ * Presence flips whenever a tab or kept view shows or hides; a reader that
+ * needs only the id reads this, so those flips do not re-render it.
+ */
+export const TabIdContext = React.createContext<string | null>(null);
+
+export function useTabId(): string | null {
+    return React.use(TabIdContext);
+}

@@ -21,14 +21,11 @@ import { KeptChatViews } from './kept-chat-views.tsx';
 export function ChatPage({ chatId, server }: { chatId: string; server: ServerDetail }) {
     const [searchParams] = useSearchParams();
     const taskMessageId = searchParams.get('task');
+    // Stable across navigations, desktop tab routers included (patched React Router).
     const navigate = useNavigate();
-    const navigateRef = React.useRef(navigate);
-    React.useLayoutEffect(() => {
-        navigateRef.current = navigate;
-    });
     const onOpenChat = React.useCallback(
-        (nextChatId: string) => navigateRef.current(serverChatRoute(server.slug, nextChatId)),
-        [server.slug]
+        (nextChatId: string) => navigate(serverChatRoute(server.slug, nextChatId)),
+        [navigate, server.slug]
     );
     return (
         <KeptChatViews

@@ -109,7 +109,8 @@
     "react-aria-components@1.21.1": "patches/react-aria-components@1.21.1.patch",
     "@ai-sdk/harness@1.0.133": "patches/@ai-sdk%2Fharness@1.0.133.patch",
     "@ai-sdk/harness-pi@1.0.135": "patches/@ai-sdk%2Fharness-pi@1.0.135.patch",
-    "@ai-sdk/harness-claude-code@1.0.143": "patches/@ai-sdk%2Fharness-claude-code@1.0.143.patch"
+    "@ai-sdk/harness-claude-code@1.0.143": "patches/@ai-sdk%2Fharness-claude-code@1.0.143.patch",
+    "react-router@7.13.1": "patches/react-router@7.13.1.patch"
   },
   "trustedDependencies": [
     "heroui-pro",

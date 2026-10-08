@@ -1,0 +1,164 @@
+diff --git a/dist/development/chunk-LFPYN7LY.mjs b/dist/development/chunk-LFPYN7LY.mjs
+index 1318333ce8e4b77ad73ed1c2e16991f181c8565e..1147bc099d7bcb1c0aa57e0f06257f6db24b04f3 100644
+--- a/dist/development/chunk-LFPYN7LY.mjs
++++ b/dist/development/chunk-LFPYN7LY.mjs
+@@ -5618,8 +5618,10 @@ function useNavigateUnstable() {
+   let { pathname: locationPathname } = useLocation();
+   let routePathnamesJson = JSON.stringify(getResolveToMatches(matches));
+   let activeRef = React2.useRef(false);
++  let resolveFromRef = React2.useRef({ locationPathname, routePathnamesJson });
+   useIsomorphicLayoutEffect(() => {
+     activeRef.current = true;
++    resolveFromRef.current = { locationPathname, routePathnamesJson };
+   });
+   let navigate = React2.useCallback(
+     (to, options = {}) => {
+@@ -5631,8 +5633,8 @@ function useNavigateUnstable() {
+       }
+       let path = resolveTo(
+         to,
+-        JSON.parse(routePathnamesJson),
+-        locationPathname,
++        JSON.parse(resolveFromRef.current.routePathnamesJson),
++        resolveFromRef.current.locationPathname,
+         options.relative === "path"
+       );
+       if (dataRouterContext == null && basename !== "/") {
+@@ -5644,13 +5646,7 @@ function useNavigateUnstable() {
+         options
+       );
+     },
+-    [
+-      basename,
+-      navigator,
+-      routePathnamesJson,
+-      locationPathname,
+-      dataRouterContext
+-    ]
++    [basename, navigator, dataRouterContext]
+   );
+   return navigate;
+ }
+diff --git a/dist/development/chunk-XOLAXE2Z.js b/dist/development/chunk-XOLAXE2Z.js
+index 0ee9fc32c73047ba6f36826d4f4495bbff218b98..04ffc26b98215370cf5ce540f49cff6775e28587 100644
+--- a/dist/development/chunk-XOLAXE2Z.js
++++ b/dist/development/chunk-XOLAXE2Z.js
+@@ -6841,8 +6841,10 @@ function useNavigateUnstable() {
+   let { pathname: locationPathname } = useLocation();
+   let routePathnamesJson = JSON.stringify(getResolveToMatches(matches));
+   let activeRef = React3.useRef(false);
++  let resolveFromRef = React3.useRef({ locationPathname, routePathnamesJson });
+   useIsomorphicLayoutEffect(() => {
+     activeRef.current = true;
++    resolveFromRef.current = { locationPathname, routePathnamesJson };
+   });
+   let navigate = React3.useCallback(
+     (to, options = {}) => {
+@@ -6854,8 +6856,8 @@ function useNavigateUnstable() {
+       }
+       let path = resolveTo(
+         to,
+-        JSON.parse(routePathnamesJson),
+-        locationPathname,
++        JSON.parse(resolveFromRef.current.routePathnamesJson),
++        resolveFromRef.current.locationPathname,
+         options.relative === "path"
+       );
+       if (dataRouterContext == null && basename !== "/") {
+@@ -6867,13 +6869,7 @@ function useNavigateUnstable() {
+         options
+       );
+     },
+-    [
+-      basename,
+-      navigator,
+-      routePathnamesJson,
+-      locationPathname,
+-      dataRouterContext
+-    ]
++    [basename, navigator, dataRouterContext]
+   );
+   return navigate;
+ }
+diff --git a/dist/production/chunk-772H4TVR.js b/dist/production/chunk-772H4TVR.js
+index 10045d87a1b28a9469d0d5fd54f31d2de316fa4a..6c0d6f2c67e59b58347fbbb4aa60c71bb84213e6 100644
+--- a/dist/production/chunk-772H4TVR.js
++++ b/dist/production/chunk-772H4TVR.js
+@@ -6841,8 +6841,10 @@ function useNavigateUnstable() {
+   let { pathname: locationPathname } = useLocation();
+   let routePathnamesJson = JSON.stringify(getResolveToMatches(matches));
+   let activeRef = React3.useRef(false);
++  let resolveFromRef = React3.useRef({ locationPathname, routePathnamesJson });
+   useIsomorphicLayoutEffect(() => {
+     activeRef.current = true;
++    resolveFromRef.current = { locationPathname, routePathnamesJson };
+   });
+   let navigate = React3.useCallback(
+     (to, options = {}) => {
+@@ -6854,8 +6856,8 @@ function useNavigateUnstable() {
+       }
+       let path = resolveTo(
+         to,
+-        JSON.parse(routePathnamesJson),
+-        locationPathname,
++        JSON.parse(resolveFromRef.current.routePathnamesJson),
++        resolveFromRef.current.locationPathname,
+         options.relative === "path"
+       );
+       if (dataRouterContext == null && basename !== "/") {
+@@ -6867,13 +6869,7 @@ function useNavigateUnstable() {
+         options
+       );
+     },
+-    [
+-      basename,
+-      navigator,
+-      routePathnamesJson,
+-      locationPathname,
+-      dataRouterContext
+-    ]
++    [basename, navigator, dataRouterContext]
+   );
+   return navigate;
+ }
+diff --git a/dist/production/chunk-RJCJ3EYF.mjs b/dist/production/chunk-RJCJ3EYF.mjs
+index 3b51c3d86825fb5e7b1c96c6470bb5f8112962e2..9e7ad2b47c45b2ca1cb35b3c7199d91782237a7f 100644
+--- a/dist/production/chunk-RJCJ3EYF.mjs
++++ b/dist/production/chunk-RJCJ3EYF.mjs
+@@ -5618,8 +5618,10 @@ function useNavigateUnstable() {
+   let { pathname: locationPathname } = useLocation();
+   let routePathnamesJson = JSON.stringify(getResolveToMatches(matches));
+   let activeRef = React2.useRef(false);
++  let resolveFromRef = React2.useRef({ locationPathname, routePathnamesJson });
+   useIsomorphicLayoutEffect(() => {
+     activeRef.current = true;
++    resolveFromRef.current = { locationPathname, routePathnamesJson };
+   });
+   let navigate = React2.useCallback(
+     (to, options = {}) => {
+@@ -5631,8 +5633,8 @@ function useNavigateUnstable() {
+       }
+       let path = resolveTo(
+         to,
+-        JSON.parse(routePathnamesJson),
+-        locationPathname,
++        JSON.parse(resolveFromRef.current.routePathnamesJson),
++        resolveFromRef.current.locationPathname,
+         options.relative === "path"
+       );
+       if (dataRouterContext == null && basename !== "/") {
+@@ -5644,13 +5646,7 @@ function useNavigateUnstable() {
+         options
+       );
+     },
+-    [
+-      basename,
+-      navigator,
+-      routePathnamesJson,
+-      locationPathname,
+-      dataRouterContext
+-    ]
++    [basename, navigator, dataRouterContext]
+   );
+   return navigate;
+ }

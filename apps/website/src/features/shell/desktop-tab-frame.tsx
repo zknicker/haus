@@ -3,7 +3,11 @@ import { RouterProvider } from 'react-aria-components';
 import { Outlet, type RouteObject, useNavigate, useRoutes } from 'react-router-dom';
 import { useDesktopTabsSelector } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentEntry, type TabHistoryEntry } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
-import { type TabPresence, TabPresenceContext } from '../../hooks/desktop-tabs/tab-presence.ts';
+import {
+    TabIdContext,
+    type TabPresence,
+    TabPresenceContext,
+} from '../../hooks/desktop-tabs/tab-presence.ts';
 import { serverPageRoutes } from '../../routes/app/server-page-routes.tsx';
 import { BrowserTabPage } from './browser-tab-page.tsx';
 import { usePaneFocus } from './desktop-tab-layer.tsx';
@@ -63,7 +67,9 @@ export const DesktopTabFrame = React.memo(function DesktopTabFrame({
                     onPointerDownCapture={focus}
                     ref={frame}
                 >
-                    <TabPage entry={entry} tabId={tabId} />
+                    <TabIdContext value={tabId}>
+                        <TabPage entry={entry} tabId={tabId} />
+                    </TabIdContext>
                 </div>
             </TabPresenceContext>
         </React.Activity>

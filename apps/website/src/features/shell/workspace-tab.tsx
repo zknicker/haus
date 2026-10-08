@@ -57,14 +57,17 @@ export function WorkspaceTabMark({ children }: { children: React.ReactNode }) {
 export function WorkspaceTabLabel({ children }: { children: string }) {
     const ref = React.useRef<HTMLSpanElement>(null);
     const [overflowing, setOverflowing] = React.useState(false);
-    // biome-ignore lint/correctness/useExhaustiveDependencies: a new title can overflow at the same box size, which no resize reports.
+    // A new title can overflow at the same box size, which no resize reports, so
+    // each title gets a fresh observer: its first notification measures it. Read
+    // only there, after layout; a read here would force a synchronous layout in
+    // the commit of every tab switch that renames a tab.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: re-observe per title, see above.
     React.useLayoutEffect(() => {
         const label = ref.current;
         if (!label) {
             return;
         }
         const measure = () => setOverflowing(label.scrollWidth > label.clientWidth);
-        measure();
         const observer = new ResizeObserver(measure);
         observer.observe(label);
         return () => observer.disconnect();
