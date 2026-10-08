@@ -24,8 +24,15 @@ public struct ThreadDetailView: View {
     /// on this; the anchor and task rows carry no Server sequence, so the App
     /// simply cannot resolve them.
     private let onVisibleMessagesChange: ([String]) -> Void
+    /// Where the Thread lives — "#design", or "DM" — shown under the title.
+    private let contextLabel: String?
 
     @State private var draft = ""
+    @State private var projection = ThreadTranscriptProjection()
+    /// A Thread known to have replies opens blank until its first reply page
+    /// lands, so the push never shows the anchor first and then snaps to the
+    /// newest reply. See `ThreadOpening`.
+    @State private var awaitsFirstReplies: Bool
     @State private var isNearNewest = true
     @State private var reveal: TranscriptReveal?
     /// Same ownership rule as the Chat timeline: the screen presents, the rows
@@ -38,7 +45,7 @@ public struct ThreadDetailView: View {
     /// Hosted rows do not inherit the environment; see `MessageTimelineView`.
     @Environment(\.reactionStickers) var reactionBoard
     /// The message whose long-press drawer is open.
-    @State private var actionMessage: MessagePresentation?
+    @State var actionMessage: MessagePresentation?
     /// The message a resting finger is holding; with `actionMessage` it tints
     /// the row. See `MessageTimelineView`.
     @State private var heldMessageID: String?
@@ -65,10 +72,13 @@ public struct ThreadDetailView: View {
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         follow: ThreadFollow? = nil,
+        contextLabel: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = { replies }
+        self.contextLabel = contextLabel
+        _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
         self.pending = pending
         self.isConnected = isConnected
         self.isReadOnly = isReadOnly
@@ -99,10 +109,13 @@ public struct ThreadDetailView: View {
         inlineReplies: ThreadInlineReplies? = nil,
         onOpenAgent: @escaping (String) -> Void = { _ in },
         follow: ThreadFollow? = nil,
+        contextLabel: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = replies
+        self.contextLabel = contextLabel
+        _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
         self.pending = pending
         self.isConnected = isConnected
         self.isReadOnly = isReadOnly
@@ -116,27 +129,25 @@ public struct ThreadDetailView: View {
     }
 
     public var body: some View {
-        _ = reactionBoard?.revision
         let replies = replyProvider()
         let inlineReplyMessages = inlineReplies?.messages() ?? []
-        let items = ThreadTranscriptItem.items(
+        projection.update(
             anchor: anchor,
             replies: replies,
             pending: pending,
             includesInlineReplies: inlineReplies != nil,
             inlineReplies: inlineReplyMessages
         )
-        // Read here, in the screen's own body, so a visual's height report
-        // re-renders the screen and the table re-hosts its visible rows. Read
-        // only inside a row it would land on the cell's hosting view, which the
-        // table never asks about.
-        _ = visualHeights.revision
-        // The press tint, read here for the same reason.
-        _ = (heldMessageID, actionMessage?.id)
+        let items = projection.items
+        // Read here, in the screen's own body, so each input subscribes this
+        // body; see `rowRevision`.
+        let rowRevision = rowRevision
+        let isHoldingOpen = awaitsFirstReplies && replies.isEmpty
 
         return GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
-                transcript(items: items)
+                transcript(items: items, rowRevision: rowRevision)
+                    .opacity(isHoldingOpen ? 0 : 1)
                     // Same shape as the chat screen: replies run under the floating glass
                     // composer and the inset reserves their clearance.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -173,15 +184,14 @@ public struct ThreadDetailView: View {
         .background(.background)
         .attachmentPreview(
             $attachmentPreview,
-            images: AttachmentImagePages.pages(in: [anchor] + inlineReplyMessages + replies),
+            images: projection.imagePages,
             tiles: attachmentTiles,
             onOpen: onOpenAttachment
         )
-        .onChange(of: ([anchor] + inlineReplyMessages + replies).map(\.id)) { _, ids in
+        .onChange(of: projection.messageIDs) { _, ids in
             visualHeights.retain(messageIDs: Set(ids))
         }
-        .navigationTitle("Thread")
-        .hausInlineNavigationTitle()
+        .threadNavigationTitle(ThreadOpening.title(anchor: anchor), subtitle: contextLabel)
         .toolbar {
             if let follow {
                 ToolbarItem(placement: .automatic) {
@@ -190,6 +200,13 @@ public struct ThreadDetailView: View {
             }
         }
         .task(id: inlineReplies?.id) { if let inlineReplies { _ = await inlineReplies.load() } }
+        // A first page that never comes (offline, a failed fetch) must not
+        // leave the Thread blank.
+        .task {
+            guard awaitsFirstReplies else { return }
+            try? await Task.sleep(for: ThreadOpening.holdLimit)
+            awaitsFirstReplies = false
+        }
         // Already in the Thread, so the drawer offers reactions and copying.
         .messageActionDrawer(for: $actionMessage, board: reactionBoard)
     }
@@ -198,7 +215,7 @@ public struct ThreadDetailView: View {
     /// timeline, so the bottom anchor, keyboard rides, and history prepends
     /// are structural here too. The anchor and its task metadata are simply
     /// the transcript's oldest items.
-    private func transcript(items: [ThreadTranscriptItem]) -> some View {
+    private func transcript(items: [ThreadTranscriptItem], rowRevision: Int) -> some View {
         GeometryReader { proxy in
             TranscriptListView(
                 items: items,
@@ -214,7 +231,9 @@ public struct ThreadDetailView: View {
                         latestIsPending: items.last?.isPending == true
                     ) {
                     case .settle: .snapToNewest
-                    case .animate: .animateToNewest
+                    // The viewer's own send lands whole; anyone else's reply
+                    // is read from its top.
+                    case .animate: items.last?.isPending == true ? .animateToNewest : .followNewest
                     case .stay: .stay
                     }
                 },
@@ -224,6 +243,7 @@ public struct ThreadDetailView: View {
                 onVisibleItems: onVisibleMessagesChange,
                 onLongPress: { item in actionMessage = Self.drawerMessage(for: item) },
                 onHoldChange: { item in heldMessageID = item.flatMap(Self.drawerMessage(for:))?.id },
+                rowRevision: rowRevision,
                 row: { item in threadRow(item) },
                 accessory: {
                     loadOlderAccessory
@@ -235,7 +255,7 @@ public struct ThreadDetailView: View {
             .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
             .overlay(alignment: .bottom) {
                 if !isNearNewest || history.hasNewer {
-                    GlassChromeButton(.icon(.arrowDown), label: "Scroll to latest reply") {
+                    TranscriptJumpButton(label: "Scroll to latest reply") {
                         Task {
                             let id = history.hasNewer ? await history.loadLatest() : replyProvider().last?.id
                             if let id {
@@ -248,6 +268,27 @@ public struct ThreadDetailView: View {
                 }
             }
         }
+    }
+
+    /// Everything a row draws from beyond its item, read in the screen's own
+    /// body so a change re-hosts the visible rows: a visual's height report,
+    /// a pending own reaction, the press tint, and the parent chain's and
+    /// history's load state that the region and accessory rows show.
+    private var rowRevision: Int {
+        var hasher = Hasher()
+        hasher.combine(visualHeights.revision)
+        hasher.combine(reactionBoard?.revision)
+        hasher.combine(heldMessageID)
+        hasher.combine(actionMessage?.id)
+        hasher.combine(history.hasOlder)
+        hasher.combine(history.isLoading)
+        if let inlineReplies {
+            hasher.combine(inlineReplies.isLoaded())
+            hasher.combine(inlineReplies.isLoading())
+            hasher.combine(inlineReplies.hasOlder())
+            hasher.combine(inlineReplies.hasNewer())
+        }
+        return hasher.finalize()
     }
 
     /// Whether a row shows the press tint: held now, or its drawer is open.

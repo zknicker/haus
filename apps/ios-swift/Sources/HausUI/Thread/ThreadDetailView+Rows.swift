@@ -24,7 +24,8 @@ extension ThreadDetailView {
                 visualHeights: visualHeights,
                 onOpenAgent: onOpenAgent,
                 reactionBoard: reactionBoard,
-                isPressed: isPressed(message)
+                isPressed: isPressed(message),
+                accessibilityActions: accessibilityActions(for: message)
             )
             .padding(.top, 4)
         case .threadHeader:
@@ -34,6 +35,9 @@ extension ThreadDetailView {
                 .padding(.top, 10)
         case .pendingSend:
             ThreadPendingSendRow()
+        case .dayDivider(let date, _):
+            TranscriptDayDivider(date: date)
+                .padding(.top, 14)
         }
     }
 
@@ -50,7 +54,21 @@ extension ThreadDetailView {
             visualHeights: visualHeights,
             onOpenAgent: onOpenAgent,
             reactionBoard: reactionBoard,
-            isPressed: isPressed(message)
+            isPressed: isPressed(message),
+            accessibilityActions: accessibilityActions(for: message)
+        )
+    }
+
+    /// Inside the Thread the drawer offers reactions and copying; VoiceOver
+    /// gets the same.
+    func accessibilityActions(for message: MessagePresentation) -> MessageRowAccessibilityActions {
+        .forMessage(
+            message,
+            canReplyInline: false,
+            canOpenThread: false,
+            onReact: { actionMessage = message },
+            onReply: {},
+            onOpenThread: {}
         )
     }
 
@@ -60,7 +78,7 @@ extension ThreadDetailView {
         switch item {
         case .anchor(let message, _), .inlineReply(let message), .reply(let message):
             message.isPending ? nil : message
-        case .taskMetadata, .inlineReplies, .threadHeader, .pendingSend:
+        case .taskMetadata, .inlineReplies, .threadHeader, .pendingSend, .dayDivider:
             nil
         }
     }

@@ -66,11 +66,21 @@ extension AuthenticatedHausView {
             inlineReplies: inlineReplies(for: thread),
             onOpenAgent: openAgentFromThread,
             follow: threadFollow(for: thread),
+            contextLabel: threadContextLabel(for: thread),
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {
             guard let chatID = resolvedThreadChatID(for: thread) else { return }
             await store.openChat(chatID: chatID)
+        }
+    }
+
+    /// Where the Thread lives, under its title: the channel, or "DM".
+    func threadContextLabel(for thread: ThreadSelection) -> String? {
+        guard let chat = store.chatsByID[thread.parentChatID] else { return nil }
+        switch chat.kind {
+        case .channel: return chat.name.map { "#\($0)" }
+        case .dm: return "DM"
         }
     }
 

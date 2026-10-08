@@ -2,18 +2,13 @@ import SwiftUI
 
 /// The task work-surface metadata that follows its anchor message.
 ///
-/// The anchor remains the canonical task title. This view intentionally renders
-/// only the Server-owned task fields, so opening a task never duplicates that
-/// title in the Thread surface.
+/// The anchor remains the canonical task title and the navigation bar names
+/// the Task by number, so this view renders only the Server-owned task fields.
 struct ThreadTaskMetadataView: View {
     let task: TaskPresentation
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Task #\(task.number)")
-                .font(.headline)
-                .monospacedDigit()
-
             LabeledContent("Status") {
                 TaskStatusLabel(status: task.status)
             }

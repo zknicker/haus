@@ -53,3 +53,18 @@ extension MessageTimelineView {
         if case .message = target { highlightedMessageID = messageID }
     }
 }
+
+extension MessageTimelineView {
+    /// The drawer's actions for VoiceOver, which cannot reach the row's long
+    /// press.
+    func rowAccessibilityActions(for message: MessagePresentation) -> MessageRowAccessibilityActions {
+        .forMessage(
+            message,
+            canReplyInline: allowsInlineReplies,
+            canOpenThread: true,
+            onReact: { actionMessage = message },
+            onReply: { onSelectInlineReply(message) },
+            onOpenThread: { onOpenThread(message) }
+        )
+    }
+}
