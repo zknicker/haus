@@ -4,23 +4,32 @@ extension TRPCClient {
     public func subscribe<Event: Decodable & Sendable>(
         _ path: String,
         options: TRPCSubscriptionOptions = .init(),
-        onConnected: (@Sendable () async -> Void)? = nil
+        onConnected: (@Sendable () async -> Void)? = nil,
+        onDisconnected: (@Sendable () async -> Void)? = nil
     ) -> AsyncThrowingStream<Event, Error> {
-        makeSubscription(path: path, input: nil, options: options, onConnected: onConnected)
+        makeSubscription(
+            path: path,
+            input: nil,
+            options: options,
+            onConnected: onConnected,
+            onDisconnected: onDisconnected
+        )
     }
 
     public func subscribe<Input: Encodable, Event: Decodable & Sendable>(
         _ path: String,
         input: Input,
         options: TRPCSubscriptionOptions = .init(),
-        onConnected: (@Sendable () async -> Void)? = nil
+        onConnected: (@Sendable () async -> Void)? = nil,
+        onDisconnected: (@Sendable () async -> Void)? = nil
     ) -> AsyncThrowingStream<Event, Error> {
         do {
             return makeSubscription(
                 path: path,
                 input: try encode(input),
                 options: options,
-                onConnected: onConnected
+                onConnected: onConnected,
+                onDisconnected: onDisconnected
             )
         } catch {
             return AsyncThrowingStream { continuation in
@@ -33,7 +42,8 @@ extension TRPCClient {
         path: String,
         input: Data?,
         options: TRPCSubscriptionOptions,
-        onConnected: (@Sendable () async -> Void)?
+        onConnected: (@Sendable () async -> Void)?,
+        onDisconnected: (@Sendable () async -> Void)?
     ) -> AsyncThrowingStream<Event, Error> {
         AsyncThrowingStream { continuation in
             // Detached so the read loop never runs on the subscriber's actor:
@@ -45,6 +55,7 @@ extension TRPCClient {
                         input: input,
                         options: options,
                         onConnected: onConnected,
+                        onDisconnected: onDisconnected,
                         yield: { event in continuation.yield(event) }
                     )
                     continuation.finish()
@@ -65,6 +76,7 @@ extension TRPCClient {
         input: Data?,
         options: TRPCSubscriptionOptions,
         onConnected: (@Sendable () async -> Void)?,
+        onDisconnected: (@Sendable () async -> Void)?,
         yield: @escaping @Sendable (Event) -> Void
     ) async throws {
         _ = try procedureURL(path: path)
@@ -81,6 +93,8 @@ extension TRPCClient {
                 if ended || !options.reconnect {
                     return
                 }
+                // The Server dropped a live stream; it reconnects at once.
+                await onDisconnected?()
                 retryDelay = options.initialRetryDelayNanoseconds
             } catch is CancellationError {
                 throw CancellationError()
@@ -92,6 +106,10 @@ extension TRPCClient {
                 guard options.reconnect else {
                     throw error
                 }
+                // Reconnecting hides the outage from the stream's consumer,
+                // so the transport says so here: a refused or dropped
+                // connection is reported on every failed attempt.
+                await onDisconnected?()
                 try await Task.sleep(nanoseconds: retryDelay)
                 let doubled = retryDelay.multipliedReportingOverflow(by: 2)
                 retryDelay = doubled.overflow

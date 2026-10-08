@@ -658,6 +658,10 @@ history refresh, Cloud Agent refresh) logs instead: the header already speaks fo
 Lost connectivity is header state, never a banner over the transcript (`ConnectionOutage`): once the
 Server connection has been down for two seconds the Chat header's title, or a Thread's navigation
 subtitle, reads "Connecting…" until it returns, so a stream that drops and reconnects says nothing.
+The Server connection is the Store's `isConnected`, which follows the live streams: the transport
+retries transport failures inside a subscription, so an outage never ends the stream, and
+`subscribe` reports each failed attempt or dropped stream (`onDisconnected`) and each reconnect
+(`onConnected`) instead (`TRPCSubscriptionOutageTests`).
 A file the composer could not stage is a native "Couldn’t Add Attachment" alert. The jump-to-message alert and the Inline replies region's Retry keep their own failure
 states.
 

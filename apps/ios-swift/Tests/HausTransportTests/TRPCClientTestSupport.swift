@@ -50,7 +50,10 @@ final class StubURLProtocol: URLProtocol {
 
     override func startLoading() {
         do {
-            let result = try XCTUnwrap(Self.requestHandler?(request))
+            // A handler's thrown error is the transport failure it simulates;
+            // only a missing handler is a test failure.
+            let handler = try XCTUnwrap(Self.requestHandler)
+            let result = try handler(request)
             client?.urlProtocol(
                 self,
                 didReceive: result.response,

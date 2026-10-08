@@ -7,7 +7,8 @@ import OSLog
 ///
 /// The three subscriptions are one unit: each recovers its own snapshot on
 /// connect, and a teardown cancels them together. The transport reconnects
-/// transport failures on its own; an error it will not retry (an auth or
+/// transport failures on its own and reports each failed attempt and each
+/// reconnect, which is what `isConnected` follows; an error it will not retry (an auth or
 /// procedure error) or a stream the Server ended reaches `streamEnded`, which
 /// restarts the unit with capped backoff behind a fresh session token. The
 /// chat stream's connect callback is the catch-up after that restart.
@@ -65,7 +66,15 @@ extension HausStore {
             input: ServerScopedInput(serverId: serverID),
             onConnected: { [weak self] in
                 guard let self else { return }
+                if reportsOutage { await self.markConnected() }
                 await onConnected(self)
+            },
+            // The transport retries transport failures inside the stream, so
+            // an outage never ends it; each failed attempt is reported here,
+            // and the header's grace period absorbs a quick reconnect.
+            onDisconnected: { [weak self] in
+                guard reportsOutage, let self else { return }
+                await self.markDisconnected()
             }
         )
         return Task { [weak self] in
