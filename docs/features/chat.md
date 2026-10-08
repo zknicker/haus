@@ -251,8 +251,15 @@ and [Agent Inbox](../../specs/inbox.md).
   per-file diff view. Selecting text in a diff or workspace file preview
   offers "Quote in chat", inserting the quoted lines plus a `haus://`
   source link into the composer — the universal review gesture.
-* **Artifacts.** Code, images, files, diffs, documents, and charts render as
-  durable outputs attached to messages.
+* **Inline visuals.** Agents answer numbers, comparisons, and "pick one" design
+  questions with a chart, report, or UI mockup drawn right in their message, in
+  the Haus theme, followed by a short takeaway rather than a recap of the
+  numbers. Design guidance lives in the factory-managed `visuals` skill (see
+  [Skills](skills.md)); rendering is described in
+  [Widgets](../internals/widgets.md).
+* **Artifacts.** Code, images, files, diffs, documents, and longer pages render
+  as durable outputs attached to messages; an agent makes one when asked for
+  something to keep, share, or revisit.
 * **Receipts.** Message creation is acknowledged by id. Sends return no
   turns — delivery to agents is planner-owned (see
   [Agent Inbox](../../specs/inbox.md)).
