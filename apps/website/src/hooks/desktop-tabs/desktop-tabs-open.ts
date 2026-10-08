@@ -56,9 +56,6 @@ export function openLink(
     // A new-tab gesture: a tab after the source by the opener rule, in the background for
     // Command- or middle-click, selected when Shift is held (Chrome's dispositions).
     if (intent === 'newTab' || intent === 'backgroundTab') {
-        if (pagePlacement(location) === 'sidePane') {
-            return openInSidePane(state, location, newId, intent);
-        }
         const placed = insertFromOpener(
             putTab(state, newTab(newId, location, newId)),
             fromTabId,
@@ -108,9 +105,6 @@ export function openInFocusedPane(
     const current = focusedTabId(state);
     if (!current) {
         return selectTab(appendToPane(state, 'primary', location, newId), newId, { focus: true });
-    }
-    if (intent !== 'newTabAtEnd' && pagePlacement(location) === 'sidePane') {
-        return openInSidePane(state, location, newId, intent);
     }
     const created = putTab(state, newTab(newId, location, newId));
     if (intent === 'newTabAtEnd') {
@@ -192,7 +186,7 @@ function goToPlace(
     }
     const placement = pagePlacement(location);
     if (placement === 'sidePane') {
-        return openInSidePane(state, location, newId, 'newTab');
+        return openInSidePane(state, location, newId);
     }
     // A blank new tab page becomes the page instead of being left behind.
     if (placement === 'newTab' && currentLocation(tab).kind !== 'newTab') {
@@ -231,17 +225,15 @@ export function navigateTab(
 }
 
 /**
- * A Thread's tab: after the right pane's shown tab, creating that pane in a one-pane window.
- * Selected with its pane focused, or left unfocused for a background gesture.
+ * A plain Thread open: a selected tab after the right pane's shown tab, creating that pane in a
+ * one-pane window. New-tab gestures skip this and open beside the source like any page.
  */
 function openInSidePane(
     state: DesktopTabsState,
     location: TabLocation,
-    newId: string,
-    intent: 'backgroundTab' | 'newTab'
+    newId: string
 ): DesktopTabsState {
-    const placed = appendToPane(state, 'secondary', location, newId);
-    return intent === 'backgroundTab' ? placed : selectTab(placed, newId, { focus: true });
+    return selectTab(appendToPane(state, 'secondary', location, newId), newId, { focus: true });
 }
 
 function appendToPane(

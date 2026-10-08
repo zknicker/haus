@@ -158,8 +158,8 @@ notification, a deep link, or the native menu's Settings… and Find….
   task, a search filter) pushes onto that tab. Else an Agent profile or Settings opens as a new
   selected tab after the current one, and a Thread opens as a new selected tab in the right pane,
   creating that pane in a one-pane window and focusing it, wherever it is opened from (both panes,
-  the sidebar, a notification). A Command- or middle-click Thread opens in the right pane in the
-  background. Else, if the current tab shows an app page or the
+  the sidebar, a notification). Command-, Shift-, and middle-click on a Thread skip the right pane
+  and open a new tab beside the source like any page. Else, if the current tab shows an app page or the
   new tab page, it navigates (Back returns), like Linear's sidebar. Else the current tab shows a
   web page, and the place opens as a new selected tab right after it; the web page is untouched.
 - **Which tab is current.** The sidebar, command menu, notifications, and deep links act on the

@@ -127,23 +127,31 @@ describe('Threads open in the side pane', () => {
         expect(describeTabs(state)).toMatchObject({ primary: 'threads/c1/m1* chats/c1' });
     });
 
-    test('a background gesture opens it unselected in the side pane without moving focus', () => {
-        const state = run(split(), {
+    test('new-tab gestures open it beside the source like any page, never the side pane', () => {
+        const background = run(start(), {
             fromTabId: 't0',
             intent: 'backgroundTab',
             kind: 'openLink',
             location: thread,
         });
-        expect(describeTabs(state)).toEqual({
+        expect(describeTabs(background)).toEqual({
             focused: 'primary',
-            primary: 'inbox*',
-            secondary: 'tasks* threads/c1/m1',
+            primary: 'inbox* threads/c1/m1',
+            secondary: '-',
         });
+        const selected = run(start(), {
+            fromTabId: 't0',
+            intent: 'newTab',
+            kind: 'openLink',
+            location: thread,
+        });
+        expect(describeTabs(selected).primary).toBe('inbox threads/c1/m1*');
+        expect(selected.secondary).toBeNull();
     });
 
     test('the sidebar and notifications follow the same rule', () => {
         const fromChrome = run(start(), {
-            intent: 'newTab',
+            intent: 'current',
             kind: 'openInFocusedPane',
             location: thread,
         });

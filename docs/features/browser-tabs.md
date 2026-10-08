@@ -156,8 +156,8 @@ menu's Settings (Command-comma) and Find (Command-F).
 | Command-Shift-click or Shift-click | New selected tab after its tab | New selected tab after the focused pane's current tab | New selected tab |
 | Context menu: Open in new tab / Open Link in New Tab | — | New background tab (sidebar row) | New background tab |
 
-New tabs land by the opener rule; a web link with two panes lands in the other pane, and a Thread
-always lands in the right pane (Command- or middle-click: in the background there). Command
+New tabs land by the opener rule; a web link with two panes lands in the other pane, and a plain
+Thread open lands in the right pane (Command-, Shift-, and middle-click instead open a new tab beside the source, like any page). Command
 means Control off macOS. A sidebar row takes the same modifiers from the keyboard (Command-Return
 is a background tab). Command menu results take them from the mouse only; Return runs the plain
 open. Middle-click on a link or chip never autoscrolls.
