@@ -4,6 +4,7 @@ import {
     currentLocation,
     type DesktopTabsState,
     type PaneSide,
+    pagePlacement,
     paneOfTab,
     shownTabIds,
     type TabLocation,
@@ -20,8 +21,9 @@ import {
 import type { FocusedPaneOpenIntent, TabOpenIntent } from './tab-navigation.ts';
 
 /**
- * Two panes: a plain in-page link goes to a place in the OTHER pane (the reading
+ * Two panes: a plain in-page link to a place goes to the OTHER pane (the reading
  * pane stays put). Set false to have links act on their own pane like the sidebar.
+ * Agent, Settings, and Thread links follow `pagePlacement` instead.
  */
 export const inPageLinksUseOtherPane = true;
 
@@ -39,7 +41,6 @@ export function openLink(
     if (!fromPane) {
         return state;
     }
-    // Links never open the second pane; with one pane they stay in it.
     const split = state.secondary !== null;
     // Web locations always open a new tab: the other pane when there are two, beside the source
     // otherwise, after that pane's current tab by the opener rule. Selected unless the gesture
@@ -55,6 +56,9 @@ export function openLink(
     // A new-tab gesture: a tab after the source by the opener rule, in the background for
     // Command- or middle-click, selected when Shift is held (Chrome's dispositions).
     if (intent === 'newTab' || intent === 'backgroundTab') {
+        if (pagePlacement(location) === 'sidePane') {
+            return openInSidePane(state, location, newId, intent);
+        }
         const placed = insertFromOpener(
             putTab(state, newTab(newId, location, newId)),
             fromTabId,
@@ -65,7 +69,7 @@ export function openLink(
     if (intent === 'here') {
         return navigateTab(state, fromTabId, location, 'push', newId);
     }
-    if (!(split && inPageLinksUseOtherPane)) {
+    if (!(split && inPageLinksUseOtherPane) || pagePlacement(location) !== 'place') {
         return goToPlace(state, {
             candidates: placeCandidates(state),
             location,
@@ -104,6 +108,9 @@ export function openInFocusedPane(
     const current = focusedTabId(state);
     if (!current) {
         return selectTab(appendToPane(state, 'primary', location, newId), newId, { focus: true });
+    }
+    if (intent !== 'newTabAtEnd' && pagePlacement(location) === 'sidePane') {
+        return openInSidePane(state, location, newId, intent);
     }
     const created = putTab(state, newTab(newId, location, newId));
     if (intent === 'newTabAtEnd') {
@@ -156,8 +163,10 @@ export function reveal(
  * The one place rule (ADR 0039), from `tabId`:
  * 1. a tab among `candidates` already on that page is selected, pushing the address only
  *    when it drills in further;
- * 2. else `tabId` navigates (push) when it shows an app page or a new tab page;
- * 3. else (a web page) the place opens as a new selected tab right after it, so a page
+ * 2. else an Agent profile or Settings opens as a new selected tab after `tabId`, and a
+ *    Thread as a new selected tab in the right pane (`pagePlacement`);
+ * 3. else `tabId` navigates (push) when it shows an app page or a new tab page;
+ * 4. else (a web page) the place opens as a new selected tab right after it, so a page
  *    you are reading is never replaced by a place.
  */
 function goToPlace(
@@ -180,6 +189,15 @@ function goToPlace(
     const tab = state.tabs[tabId];
     if (!tab) {
         return state;
+    }
+    const placement = pagePlacement(location);
+    if (placement === 'sidePane') {
+        return openInSidePane(state, location, newId, 'newTab');
+    }
+    // A blank new tab page becomes the page instead of being left behind.
+    if (placement === 'newTab' && currentLocation(tab).kind !== 'newTab') {
+        const created = putTab(state, newTab(newId, location, newId));
+        return selectTab(insertFromOpener(created, tabId, newId), newId, { focus });
     }
     if (currentLocation(tab).kind !== 'browser') {
         return selectTab(navigateTab(state, tabId, location, 'push', newId), tabId, { focus });
@@ -210,6 +228,20 @@ export function navigateTab(
         ...tab,
         history: navigateHistory(tab.history, location, mode, entryKey),
     });
+}
+
+/**
+ * A Thread's tab: after the right pane's shown tab, creating that pane in a one-pane window.
+ * Selected with its pane focused, or left unfocused for a background gesture.
+ */
+function openInSidePane(
+    state: DesktopTabsState,
+    location: TabLocation,
+    newId: string,
+    intent: 'backgroundTab' | 'newTab'
+): DesktopTabsState {
+    const placed = appendToPane(state, 'secondary', location, newId);
+    return intent === 'backgroundTab' ? placed : selectTab(placed, newId, { focus: true });
 }
 
 function appendToPane(

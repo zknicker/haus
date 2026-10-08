@@ -3,8 +3,8 @@ import { tabPageKey } from './desktop-tabs-model.ts';
 import { type OpenGestureEvent, openIntentFromEvent } from './tab-open-gesture.ts';
 
 /**
- * Why a tab navigates (ADR 0039). `auto` follows the window's rules (two
- * panes: the other pane; one pane: the place rule). `backgroundTab` is Command- or
+ * Why a tab navigates (ADR 0039). `auto` follows the window's rules (the
+ * destination's `pagePlacement`, then two panes: the other pane; one pane: the place rule). `backgroundTab` is Command- or
  * middle-click, `newTab` adds Shift (`tab-open-gesture.ts`). `here` forces the current tab (a
  * page's own drill-down that happens to change page key, such as an Agent hub card).
  */
