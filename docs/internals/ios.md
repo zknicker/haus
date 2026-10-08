@@ -114,12 +114,23 @@ profile values and avatars originate from Server records; the app must not creat
 state. On startup, iOS reports the signed-in Clerk name and email through `member.syncIdentity` before
 reading the member list, matching the web app's default-handle bootstrap. The sync runs beside the
 Chat and Agent list reads and is never fatal: a failure logs, the member list loads anyway, and the
-sync retries with backoff, refreshing the member list once it lands. A human edits their
+sync retries with backoff, refreshing the member list once it lands. The same sync reports the device zone
+(`HumanTimezone.deviceZone`, which leaves out a zone the Server would refuse, such as an offset);
+the Server keeps it only while the human's timezone is blank. Profile's Timezone row pushes a
+searchable list of every zone the phone knows and saves through `member.setTimezone`; Haus never
+prompts when the device zone later differs. A human edits their
 Server-scoped handle alongside their display name. Native validation mirrors
 the shared handle grammar for immediate feedback, while `member.updateProfile` carries the active
 `serverId` and Server remains authoritative for cross-human/Agent uniqueness. The app also reads
 Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
+
+Owners and Admins open an Agent's Automations from its Settings profile (`AgentAutomationsView`):
+scheduled Reminders, then Triggers, read through `reminder.list` and `trigger.list` and phrased by
+`ReminderSchedulePresentation` and `ReminderCadence` in HausModels, ports of the App's
+`reminder-schedule-presentation.ts` and `reminder-cadence.ts` with the same tests. Rows push a
+Reminder detail (with `reminder.runs` and Cancel Reminder) or a read-only Trigger detail (with
+`trigger.runs`). Trigger authoring and the Agent-wide history drawers stay in the App.
 
 Owners and Admins can edit an Agent's runtime, model, and reasoning in its Settings profile through
 `agent.configure`. Choices come from its assigned Computer's reported inventory. The native reasoning

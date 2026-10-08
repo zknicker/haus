@@ -77,4 +77,5 @@ display-only.
 - A calendar schedule's derived first fire is not part of its command fingerprint, so a retry
   with the same command id replays without a saved `--fire-at`.
 - Humans whose App has never reported a zone show `timezone: unknown` in lookup; the Agent asks.
-  The iPhone App does not report a zone yet.
+  The iPhone app reports its device zone the same way, skipping a zone the
+  Server would refuse.

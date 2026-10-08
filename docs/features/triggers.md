@@ -57,6 +57,10 @@ norm. Opening a Trigger shows its detail, headed by its title and kind
   secret needed. It is how you check the wiring before handing the URL out.
 - **Fire history** lists what has arrived, newest first, with the time, payload
   size, and idempotency key.
+- **On iPhone** (Settings > Agents > an Agent > Automations), a Trigger's
+  detail is read-only: status, creator, activity, instruction, the chat it is
+  anchored on, and its fire history. Creating, editing, arming, rotating, test
+  fires, deletion, and the Agent-wide log stay in the desktop and web App.
 - **History** opens the Agent-wide fire log. It includes fires from every
   Trigger, links to an Agent answer when one exists, and labels a retained fire
   whose Trigger was removed. It remains the history path after a Trigger's

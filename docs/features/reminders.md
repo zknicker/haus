@@ -57,8 +57,9 @@ new command id.
   `weekly:`) recur in the reminder's explicit IANA timezone, which the Server
   requires; it never falls back to the Agent's UTC home time. After downtime the
   Server fires once and advances from now, never bursts missed slots.
-- **The requester's zone.** Every human has a timezone preference: the App
-  reports the device zone when none is set, and Settings > Profile changes it.
+- **The requester's zone.** Every human has a timezone preference: the App and
+  the iPhone app report the device zone when none is set, and Settings > Profile
+  (a searchable Timezone row on both) changes it.
   Agents read it from `haus server info --humans` and `haus channel members`,
   pass the requester's zone as `--timezone`, ask when it is unknown or people
   disagree, and restate it when confirming ("Fridays at 3 AM Eastern"). See
@@ -137,6 +138,15 @@ new command id.
   its own retention, because the Server deletes a fire after
   `REMINDER_HISTORY_RETENTION_DAYS`, and says so when the read is capped at its
   limit. The log is fetched only when the drawer opens.
+- **iPhone.** Owners and Admins reach the same list from Settings > Agents >
+  an Agent > Automations: Reminders then Triggers, with the same one-line rows,
+  tinted kind marks, and viewer-local phrasing (`AgentAutomationsView`).
+  Pressing a reminder pushes its detail with the same Schedule, Instructions,
+  Context, and Run history groups; **Set in** opens that chat and closes
+  Settings. Cancel Reminder confirms, then cancels with the snapshot's version
+  and a fresh command id, and rereads the list whether or not the Server
+  accepted it, because a fire bumps the version. The History drawer is not on
+  the phone.
 - **Snapshot freshness.** The Agent profile keeps the last hosted snapshot
   visible and refreshes stale reminder data on mount or reconnect.
 
