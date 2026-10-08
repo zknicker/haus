@@ -45,11 +45,15 @@ rows always come from Server reads, never from lifecycle text.
 
 The open Chat and the open Thread show who is answering them in a typing strip above the composer,
 the App's ADR 0035/0036 feature. `ChatComposerStatus` sits at the top of each composer inset and
-takes no space while nobody is engaged; the strip then shows the engaged Agents' avatars on the
+takes no space while nobody is engaged, and the strip opens and closes its room through an
+animatable height (`ChatTypingReveal`) so the composer inset, and the transcript resting on it, move
+a frame at a time instead of jumping a row. The phone deliberately does not reserve the row as the App
+does: an empty row above every composer costs more on a phone than a short glide. The strip shows the engaged Agents' avatars on the
 transcript's avatar rail and one shimmering line — the latest thought while one is up, otherwise
 "Juniper is typing" with three hopping dots (still under Reduce Motion). Engagement and thoughts are
 Chat-scoped, so `HausStoreEngagement` subscribes to `chat.onEngagement` and `chat.onThought` only for
-as long as the strip's task lives, re-reads `chat.engagements` on every (re)connect, and reconnects
+as long as the strip's task lives, re-reads `chat.engagements` on every (re)connect, restarts a
+stream the transport will not retry with the Server-wide streams' capped backoff, and reconnects
 after a background return. `ChatTypingModel` ports the App's timing: a `--done` reply holds its Agent
 until the reply is in the transcript (two seconds at most), thoughts pace and extend as on the web, and
 both clear the moment their run stops engaging the Chat. Tapping the strip brings back the latest
@@ -411,7 +415,9 @@ nothing: tapping one presents `ArtifactPageSheet` from the frontmost controller 
 controller of their own), which reads the page through `agent.workspaceFile` — the App's artifact pane
 read — and draws it in `VisualWebView` with scrolling on, the app's tokens injected after `<head>` and
 a viewport rule added when the page has none. Blank while it loads; a Computer that does not answer is
-a calm unavailable state with Try Again, never an error string. The App installs the reader in
+a calm unavailable state with Try Again, never an error string. A read that never reached the Server
+(a `URLError`), or a relay failure while the App's live streams are down (`isConnected` false), says
+the phone is offline instead, since blaming the Computer would name the wrong thing to fix. The App installs the reader in
 `ArtifactPageReader` at its root, beside `InAppReferenceRoutes`.
 
 An Agent's message that answers a Reminder or Trigger fire carries a `cause` (ADR 0026), and the Chat
@@ -911,7 +917,10 @@ cache check so a cached answer leaves the calling view subscribed to exactly wha
 would. Rows are cheap to rebuild; body parsing is not, so each message's parsed body (visual fences,
 rich blocks, resolved reference chips) is memoized by id, content, and a reference revision
 (`MessageBodyMemo`, `ReferenceDirectory`) that moves only when a chip-visible name, avatar, or
-channel appearance changes. Presence and unread churn rebuild rows from cached bodies, and a page,
+channel appearance changes. A Thread chip's label comes from another page — its anchor's first line
+in the parent Chat — so a parsed body also records each Thread chip's resolved label and reparses
+when it would now differ, and a page write retires the rows of every Chat that links into that page
+(`ReferenceReferrers`). Presence and unread churn rebuild rows from cached bodies, and a page,
 optimistic-row, or cloud-work write retires only the Chats whose values changed. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
 row's presentation id is a real Server id from that moment and its ForEach identity never changes
 when the durable row arrives. Chat and Thread timelines keep a 200-message window in Server sequence
@@ -1237,7 +1246,9 @@ Server rewrites an Agent's Thread mention to `chat://<chatId>?thread=<anchorMess
 as in the shared parser). It wears the App's thread glyph, names its anchor's first line once the parent
 page holds the anchor, and keeps that wire target as its `.link`; the coordinator asks
 `InAppReferenceRoutes` before handing any URL to the system, and the App's installed route pushes the
-Thread over its parent Chat, fetching the anchor when the page is not loaded. UIKit's own link machinery decides the
+Thread over its parent Chat, fetching the anchor when the page is not loaded. A table cell is SwiftUI
+`Text` rather than the text view, so its links go through `openURL`; `RichMessageTableView` installs
+`inAppReferenceRoutes()` there, and a Thread chip in a cell opens its Thread the same way. UIKit's own link machinery decides the
 tap, and `RichMessageLinkCoordinator` — the representable's `UITextViewDelegate` — decides only what
 it means: `textView(_:primaryActionFor:defaultAction:)` returns a `UIAction` that hands the address
 to `UIApplication.open`, and `textView(_:menuConfigurationFor:defaultMenu:)` returns nil so a link
@@ -1407,6 +1418,15 @@ artifact may use an isolated web canvas inside a native route when the artifact 
 browser APIs; that canvas would receive a narrow serialized contract and would not own authentication,
 navigation, Server queries, or durable app state. An ```` ```artifact ```` page is the one such
 canvas today (see the artifact cards above).
+
+Corners come from one scale, `HausRadius`, beside `HausPlatformColor`: `inline` 4 for text-run plates
+such as inline code, `small` 8 for compact controls, `medium` 12 for content inside a transcript or
+list row (cards, code blocks, image tiles, press tints, the action list), `large` 16 for standalone
+surfaces and floating banners, and `grouped` 22 for Settings sections, always `.continuous`
+(`.haus(_:)`). A surface takes its tier by role. A box forced to an exact side derives its corner
+instead: an icon mark is `HausRadius.mark(side:)`, a third of its side, the Channel icon's shape, and a
+box nested in a rounded surface is concentric with it (`HausRadius.nested(in:inset:)`). The composer's
+own surfaces and portal keep their measured corners for now.
 
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
 floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
