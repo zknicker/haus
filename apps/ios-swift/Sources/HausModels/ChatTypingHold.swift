@@ -1,11 +1,11 @@
 import Foundation
 
-/// One Agent kept in the typing strip after its engagement ended, until its
+/// One Agent kept in the header's engagement row after its engagement ended, until its
 /// reply shows (the App's `chat-typing-hold.ts`).
 ///
 /// A `--done` reply ends engagement live, but its message reaches the
 /// transcript after the Chat lane's batch and refetch, up to a second later.
-/// The strip keeps that Agent until the reply is there, and gives up after
+/// The row keeps that Agent until the reply is there, and gives up after
 /// `replyHold`.
 public struct ChatTypingHold: Sendable, Equatable {
     public static let replyHold: TimeInterval = 2
@@ -21,7 +21,7 @@ public struct ChatTypingHold: Sendable, Equatable {
         self.expiresAt = expiresAt
     }
 
-    /// The engagement the strip keeps showing while this hold waits.
+    /// The engagement the row keeps showing while this hold waits.
     public var engagement: ChatEngagement {
         ChatEngagement(agentID: end.agentID, chatID: end.chatID, runID: end.runID, startedAt: end.emittedAt)
     }

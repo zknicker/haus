@@ -2,7 +2,7 @@ import Foundation
 import HausModels
 import SwiftUI
 
-/// One Agent answering the open Chat, as the strip draws it.
+/// One Agent answering the open Chat, as the header draws it.
 public struct ChatTypist: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
@@ -15,9 +15,9 @@ public struct ChatTypist: Identifiable, Hashable, Sendable {
     }
 }
 
-/// What the typing strip reads from the App: the live connection for one
+/// What the header's engagement row reads from the App: the live connection for one
 /// Chat and the Agent directory that names its typists. Installed once at the
-/// app root; absent in previews, where the strip shows nothing.
+/// app root; absent in previews, where the header shows nothing extra.
 public struct ChatEngagementSource: Sendable {
     /// Streams one Chat's engagements and thoughts into the model until the
     /// task is cancelled. Every (re)connect re-reads the durable state.
@@ -39,7 +39,8 @@ extension EnvironmentValues {
     @Entry public var chatEngagementSource: ChatEngagementSource?
 }
 
-/// The strip's words, mirroring the App's `chat-typing.ts`.
+/// The engagement row's words. The row itself shows no text, so these are
+/// what VoiceOver reads for it.
 public enum ChatTypingLabel {
     /// One typist per engaged Agent, in engagement order, each Agent once.
     public static func typists(
@@ -56,13 +57,13 @@ public enum ChatTypingLabel {
         }
     }
 
-    /// "Juniper is typing", "Juniper and Cove are typing", and from three on
-    /// "Juniper, Cove, and 2 others are typing".
+    /// "Juniper is working", "Juniper and Cove are working", and from three on
+    /// "Juniper, Cove, and 2 others are working".
     public static func text(_ names: [String]) -> String? {
         guard let first = names.first else { return nil }
-        guard names.count > 1 else { return "\(first) is typing" }
-        if names.count == 2 { return "\(first) and \(names[1]) are typing" }
+        guard names.count > 1 else { return "\(first) is working" }
+        if names.count == 2 { return "\(first) and \(names[1]) are working" }
         let others = names.count - 2
-        return "\(first), \(names[1]), and \(others) \(others == 1 ? "other" : "others") are typing"
+        return "\(first), \(names[1]), and \(others) \(others == 1 ? "other" : "others") are working"
     }
 }

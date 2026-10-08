@@ -3,11 +3,11 @@ import HausModels
 import HausTransport
 import HausUI
 
-/// The typing strip's live connection for one open Chat (ADR 0035, 0036).
+/// The header engagement row's live connection for one open Chat (ADR 0035, 0036).
 ///
 /// Engagement and thoughts are Chat-scoped streams, unlike the Server-wide
 /// streams in `HausStoreEventStreams.swift`, so they live exactly as long as
-/// the strip that shows them: the strip runs `connectChatTyping` in its own
+/// the header row that shows them: `HeaderEngagement` runs `connectChatTyping` in its own
 /// task, and leaving the Chat cancels both subscriptions.
 extension HausStore {
     var chatEngagementSource: ChatEngagementSource {
@@ -41,7 +41,7 @@ extension HausStore {
 
     /// The transport reconnects transport failures itself; a stream it will
     /// not retry, or one the Server ended, restarts here with the same capped
-    /// backoff as the Server-wide streams, for as long as the strip is open.
+    /// backoff as the Server-wide streams, for as long as the row's Chat is open.
     private func restartingChatStream(
         _ path: String,
         input: ChatEngagementInput,

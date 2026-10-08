@@ -99,6 +99,7 @@ public struct ChatScreenView: View {
             // plain inset because the soft edge below only paints behind a declared bar.
             .chromeBar(edge: .top, spacing: 0) {
                 header
+                    .overlay(alignment: .top) { engagement }
                     .padding(.top, contentInsets.top)
                     .openingEntrance(.header)
             }
@@ -110,7 +111,7 @@ public struct ChatScreenView: View {
             // reach it are the ones its glass is already refracting.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
-                    ChatComposerStatus(chatID: chat.durableChat?.id, peerAgentID: chat.kind.peerAgentID)
+                    ChatComposerStatus(peerAgentID: chat.kind.peerAgentID)
                     MessageComposerView(
                         text: $draft,
                         interaction: composerInteraction,
@@ -258,6 +259,16 @@ public struct ChatScreenView: View {
         }
     }
 
+    /// Who is answering: an overlay under the title, so it never moves the transcript.
+    @ViewBuilder
+    private var engagement: some View {
+        if let chatID = chat.durableChat?.id {
+            HeaderEngagement(chatID: chatID, style: chat.kind.engagementStyle)
+                .fixedSize(horizontal: false, vertical: true)
+                .offset(y: HausChrome.headerHeight - 8)
+        }
+    }
+
     @ViewBuilder
     private var chatIdentity: some View {
         switch chat.kind {
@@ -279,5 +290,10 @@ private extension ChatKind {
 
     var isChannel: Bool {
         if case .channel = self { true } else { false }
+    }
+
+    /// An Agent DM's title already shows its Agent, so its row is the thought.
+    var engagementStyle: HeaderEngagementStyle {
+        if case .agentDirectMessage = self { .subtitle } else { .roster }
     }
 }

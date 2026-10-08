@@ -20,9 +20,11 @@ public struct ThreadDetailView: View {
     let onOpenAgent: (String) -> Void
     /// Nil until Server has a Thread row to follow.
     private let follow: ThreadFollow?
-    /// The Thread's own Chat, whose engaged Agents the typing strip shows.
+    /// The Thread's own Chat, whose engaged Agents the header row shows.
     /// Nil until the first reply creates it.
     private let engagementChatID: String?
+    /// How that row reads: the channel roster, or a DM Thread's thought subtitle.
+    private let engagementStyle: HeaderEngagementStyle
     /// The reply ids the transcript is showing. Read acknowledgement is built
     /// on this; the anchor and task rows carry no Server sequence, so the App
     /// simply cannot resolve them.
@@ -77,6 +79,7 @@ public struct ThreadDetailView: View {
         follow: ThreadFollow? = nil,
         contextLabel: String? = nil,
         engagementChatID: String? = nil,
+        engagementStyle: HeaderEngagementStyle = .roster,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
@@ -93,6 +96,7 @@ public struct ThreadDetailView: View {
         self.onOpenAgent = onOpenAgent
         self.follow = follow
         self.engagementChatID = engagementChatID
+        self.engagementStyle = engagementStyle
         self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
@@ -116,6 +120,7 @@ public struct ThreadDetailView: View {
         follow: ThreadFollow? = nil,
         contextLabel: String? = nil,
         engagementChatID: String? = nil,
+        engagementStyle: HeaderEngagementStyle = .roster,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
@@ -132,6 +137,7 @@ public struct ThreadDetailView: View {
         self.onOpenAgent = onOpenAgent
         self.follow = follow
         self.engagementChatID = engagementChatID
+        self.engagementStyle = engagementStyle
         self.onVisibleMessagesChange = onVisibleMessagesChange
     }
 
@@ -161,23 +167,27 @@ public struct ThreadDetailView: View {
                         if isReadOnly {
                             ThreadReadOnlyNotice()
                         } else {
-                            VStack(spacing: 0) {
-                                ChatComposerStatus(chatID: engagementChatID)
-                                MessageComposerView(
-                                    text: $draft,
-                                    interaction: composerInteraction,
-                                    placeholder: "Reply in thread",
-                                    isConnected: isConnected,
-                                    isTextFocused: $isComposerFocused,
-                                    transitionNamespace: composerTransitionNamespace,
-                                    onSend: { content, attachments in
-                                        guard !pending else { return false }
-                                        return await onSend(content, attachments)
-                                    }
-                                )
-                            }
+                            MessageComposerView(
+                                text: $draft,
+                                interaction: composerInteraction,
+                                placeholder: "Reply in thread",
+                                isConnected: isConnected,
+                                isTextFocused: $isComposerFocused,
+                                transitionNamespace: composerTransitionNamespace,
+                                onSend: { content, attachments in
+                                    guard !pending else { return false }
+                                    return await onSend(content, attachments)
+                                }
+                            )
                         }
                     }
+            }
+            // Who is answering hangs just under the navigation bar's subtitle,
+            // over the transcript rather than in its layout.
+            .overlay(alignment: .top) {
+                if let engagementChatID {
+                    HeaderEngagement(chatID: engagementChatID, style: engagementStyle, underNavigationBar: true)
+                }
             }
             // Same contract as the Chat screen: the portal draws in an overlay window above the
             // keyboard, measured against the display rather than against this screen.

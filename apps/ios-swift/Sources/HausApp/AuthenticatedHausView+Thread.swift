@@ -72,6 +72,7 @@ extension AuthenticatedHausView {
             follow: threadFollow(for: thread),
             contextLabel: threadContextLabel(for: thread),
             engagementChatID: resolvedThreadChatID(for: thread),
+            engagementStyle: threadEngagementStyle(for: thread),
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {
@@ -87,6 +88,11 @@ extension AuthenticatedHausView {
         case .channel: return chat.name.map { "#\($0)" }
         case .dm: return "DM"
         }
+    }
+
+    /// A DM Thread's Agent is the DM's, so its row is the thought, as in the DM.
+    func threadEngagementStyle(for thread: ThreadSelection) -> HeaderEngagementStyle {
+        if case .dm = store.chatsByID[thread.parentChatID]?.kind { .subtitle } else { .roster }
     }
 
     func resolvedThreadChatID(for thread: ThreadSelection) -> String? {
