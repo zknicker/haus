@@ -51,7 +51,7 @@ public struct ThreadDetailView: View {
     @State var actionMessage: MessagePresentation?
     /// The message a resting finger is holding; with `actionMessage` it tints
     /// the row. See `MessageTimelineView`.
-    @State private var heldMessageID: String?
+    @State var heldMessageID: String?
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -278,31 +278,5 @@ public struct ThreadDetailView: View {
                 }
             }
         }
-    }
-
-    /// Everything a row draws from beyond its item, read in the screen's own
-    /// body so a change re-hosts the visible rows: a visual's height report,
-    /// a pending own reaction, the press tint, and the parent chain's and
-    /// history's load state that the region and accessory rows show.
-    private var rowRevision: Int {
-        var hasher = Hasher()
-        hasher.combine(visualHeights.revision)
-        hasher.combine(reactionBoard?.revision)
-        hasher.combine(heldMessageID)
-        hasher.combine(actionMessage?.id)
-        hasher.combine(history.hasOlder)
-        hasher.combine(history.isLoading)
-        if let inlineReplies {
-            hasher.combine(inlineReplies.isLoaded())
-            hasher.combine(inlineReplies.isLoading())
-            hasher.combine(inlineReplies.hasOlder())
-            hasher.combine(inlineReplies.hasNewer())
-        }
-        return hasher.finalize()
-    }
-
-    /// Whether a row shows the press tint: held now, or its drawer is open.
-    func isPressed(_ message: MessagePresentation) -> Bool {
-        message.id == heldMessageID || message.id == actionMessage?.id
     }
 }
