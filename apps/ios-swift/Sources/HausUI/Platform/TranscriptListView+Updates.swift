@@ -59,9 +59,19 @@ extension TranscriptListCoordinator {
         }
 
         if let appendBehavior {
+            // Only rows that add to the tail are staged in. One that replaces
+            // a removed newest row (a send confirmed under a new id) is
+            // already in view; staging it replayed the send from a row lower.
+            var replaced = 0
+            if case .window = update {
+                replaced = TranscriptListUpdate.replacedTailCount(
+                    old: previousItems.map(\.id),
+                    new: view.items.map(\.id)
+                )
+            }
             settleAppend(
                 table: table,
-                appended: update.tailInsertionCount,
+                appended: max(0, update.tailInsertionCount - replaced),
                 behavior: appendBehavior
             )
         }

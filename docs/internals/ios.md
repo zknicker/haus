@@ -684,7 +684,11 @@ What remains above the substrate is intent, not position management. `Transcript
 classifies each snapshot change exactly (refresh, append, prepend, reset — pinned in
 `TranscriptListUpdateTests`), `MessageTimelineTailScroll` / `ThreadReplyReveal` still decide what an
 append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. A
-viewer's own send eases in whole (`animateToNewest`); anyone else's reply arriving while the
+viewer's own send eases in whole (`animateToNewest`), once: when the send is confirmed and its
+optimistic row hands over to the durable row under a new id, that tail insertion replaces a row rather
+than adding one (`TranscriptListUpdate.replacedTailCount`), so nothing is staged again and a travel
+already in flight finishes; staging it replayed the send from one row lower, which in a short Thread
+showed the anchor and hid the reply. Anyone else's reply arriving while the
 reader is at the tail is followed from its top (`followNewest`): once it is taller than the
 viewport its top is held just below the header as it streams in, the way Claude reads a long
 answer, until a drag, a reveal, or a newer item ends the hold. A reader who scrolled up is never
@@ -1401,7 +1405,9 @@ Native Thread routes are anchored by the parent message id, which exists before 
 created. The route also carries the parent Chat id and may carry a resolved Thread Chat id. Opening an
 unthreaded message therefore needs no speculative Server write: the first reply sends the parent Chat
 id plus the anchor message id, adopts the returned child Chat id, and continues on the same screen.
-Thread optimistic rows stay keyed by the anchor across that transition. Existing Threads reuse the
+Thread optimistic rows stay keyed by the anchor across that transition; once Server names the child
+Chat, the Store records the provisional key's adoption (`adoptedChatIDs`) and `threadChatID` answers
+with it, so the open screen reads the Chat the row moved into before the parent page refetches. Existing Threads reuse the
 same route and shared timeline presentation with their child Chat id already resolved. If another
 client creates the Thread while that route is open, the refreshed parent summary supplies the child
 Chat id and the native screen adopts it without remounting. Back navigation carries the parent Chat id

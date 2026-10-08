@@ -179,8 +179,11 @@ extension HausStore {
     }
 
     func adoptPendingMessages(from sourceChatID: String, to canonicalChatID: String) {
-        guard sourceChatID != canonicalChatID,
-              let pending = pendingMessagesByChatID.removeValue(forKey: sourceChatID),
+        guard sourceChatID != canonicalChatID else { return }
+        if adoptedChatIDs[sourceChatID] != canonicalChatID {
+            adoptedChatIDs[sourceChatID] = canonicalChatID
+        }
+        guard let pending = pendingMessagesByChatID.removeValue(forKey: sourceChatID),
               !pending.isEmpty
         else { return }
 

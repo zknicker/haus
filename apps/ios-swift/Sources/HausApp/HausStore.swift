@@ -68,6 +68,8 @@ final class HausStore {
     var serverTasks: [TaskListItem]?
     var activeCloudAgentWork: [ActiveCloudAgentWork]?
     var serverUsage: ServerUsageSnapshot?
+    /// Provisional send keys (a first Thread reply's) and the Chat Server put them in.
+    var adoptedChatIDs: [String: String] = [:]
     /// How many background-tier tasks the Server-wide Task lens last hid. Zero
     /// whenever the last Server-wide read already widened the lens, which is
     /// what `task.list` reports for it.

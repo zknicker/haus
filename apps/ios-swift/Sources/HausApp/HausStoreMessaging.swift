@@ -4,10 +4,15 @@ import HausUI
 import OSLog
 
 extension HausStore {
+    /// The anchor's child Chat: from the parent page's Thread summary, or, for a
+    /// first reply whose parent page has not refetched yet, the Chat Server
+    /// moved the optimistic row into. Without the second, the open Thread read
+    /// its emptied provisional key for a beat and jumped back to the anchor.
     func threadChatID(parentChatID: String, anchorMessageID: String) -> String? {
         messagesByChatID[parentChatID]?.threads.first {
             $0.anchorMessageID == anchorMessageID
         }?.threadChatID
+            ?? adoptedChatIDs[pendingThreadChatID(anchorMessageID: anchorMessageID)]
     }
 
     /// Local-only key for optimistic replies before Server creates the child
