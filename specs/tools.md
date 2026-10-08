@@ -15,5 +15,7 @@ tools with no per-Agent gate and no prompt section (Claude Code `WebSearch` and 
 
 Native builtins that would bypass Haus or wait on a host answer stay off
 (`apps/computer/src/harness/create-agent.ts`): Claude Code runs without plan mode, `ScheduleWakeup`,
-and the `Cron*` tools (Raft's disallowed set; Haus Reminders own scheduling) and without
-`AskUserQuestion`; Grok Build runs without `ask_user_question`. Agents ask humans in a Haus message.
+and the `Cron*` tools (Raft's disallowed set; Haus Reminders own scheduling), without
+`AskUserQuestion`, and without `Monitor` (background work cannot outlive a Haus turn; see
+[Context management](../docs/features/context-management.md)); Grok Build runs without
+`ask_user_question`. Agents ask humans in a Haus message.

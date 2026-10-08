@@ -41,7 +41,8 @@ const GROK_FOREIGN_MCP_SOURCES_OFF = {
  * Claude Code builtins Haus switches off. The first six match Raft's `CLAUDE_DISALLOWED_TOOLS`:
  * plan mode and the runtime's own wakeups and cron jobs, which Haus Reminders own.
  * `askUserQuestions` (native `AskUserQuestion`) waits on a host answer Haus never sends; Agents
- * ask humans in a Haus message instead.
+ * ask humans in a Haus message instead. `Monitor` streams a background process, which cannot
+ * outlive the turn (`CLAUDE_NO_BACKGROUND_TASKS_ENV`).
  */
 export const CLAUDE_INACTIVE_TOOLS = [
     'EnterPlanMode',
@@ -51,6 +52,7 @@ export const CLAUDE_INACTIVE_TOOLS = [
     'CronList',
     'CronDelete',
     'askUserQuestions',
+    'Monitor',
 ] as const;
 
 type AgentConstructionInput = Pick<

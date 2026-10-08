@@ -29,7 +29,7 @@ test('constructs the real Claude Agent', () => {
     ).not.toThrow();
 });
 
-test('Claude Code Agents lose plan mode, runtime scheduling, and AskUserQuestion but keep web tools', () => {
+test('Claude Code Agents lose plan mode, runtime scheduling, AskUserQuestion, and Monitor but keep web tools', () => {
     const builtinTools = createClaudeCode().builtinTools as Readonly<
         Record<string, { nativeName?: string }>
     >;
@@ -46,6 +46,7 @@ test('Claude Code Agents lose plan mode, runtime scheduling, and AskUserQuestion
         'CronList',
         'CronDelete',
         'AskUserQuestion',
+        'Monitor',
     ]);
     expect(inactiveToolSettings('claude-code')).toEqual({
         inactiveTools: [...CLAUDE_INACTIVE_TOOLS],

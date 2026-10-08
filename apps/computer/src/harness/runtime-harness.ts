@@ -16,10 +16,13 @@ import { withCodexAcpBootstrap } from './codex-acp-bootstrap.ts';
 export const CLAUDE_SETTING_SOURCES = ['user'] as const;
 
 /**
- * Claude Code sub-agents run in the foreground only: this drops `run_in_background` from the
- * Agent tool, so a sub-agent finishes inside the parent turn and the turn ends in one result.
+ * Claude Code runs no background work. The harness bridge opens one query per turn and ends the
+ * CLI at that turn's result, so a background shell, sub-agent, or monitor would die with the
+ * turn and its completion notice would never arrive. The flag drops `run_in_background` from the
+ * Agent and Bash tools and stops auto-backgrounding, so a timed-out foreground command stops
+ * instead of detaching; `Monitor` is switched off separately (`CLAUDE_INACTIVE_TOOLS`).
  */
-export const CLAUDE_FOREGROUND_SUBAGENTS_ENV = {
+export const CLAUDE_NO_BACKGROUND_TASKS_ENV = {
     CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
 } as const;
 
@@ -50,7 +53,7 @@ export function createHarnessForRuntime(
             return withComputerBridgeBootstrap(
                 createClaudeCode({
                     settingSources: [...CLAUDE_SETTING_SOURCES],
-                    env: CLAUDE_FOREGROUND_SUBAGENTS_ENV,
+                    env: CLAUDE_NO_BACKGROUND_TASKS_ENV,
                     effort: reasoningEffort === 'default' ? undefined : reasoningEffort,
                     ...(modelId === 'claude-haiku-4-5'
                         ? { thinking: { type: 'enabled' as const } }
