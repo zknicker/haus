@@ -76,16 +76,34 @@ private struct RichMessageTableCell: View {
     let isHeader: Bool
     var columnLabel: String?
 
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
-        Text(RichMessageInlineText.attributed(segments, textStyle: textStyle))
+        // A `Text` link in a hosted transcript row never receives its tap, so
+        // a cell with one link is the link: the whole cell opens it through
+        // `openURL`, which `inAppReferenceRoutes()` points at the App's routes.
+        // A link cell does not select: selection would take the tap.
+        let soleLink = RichMessageInlineText.soleActivationURL(segments)
+        let text = Text(RichMessageInlineText.attributed(
+            segments,
+            textStyle: textStyle,
+            carriesLinks: soleLink == nil
+        ))
             .fontWeight(isHeader ? .medium : nil)
             .foregroundStyle(isHeader ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
             .monospacedDigit()
             .multilineTextAlignment(textAlignment)
-            .textSelection(.enabled)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .accessibilityLabel(accessibilityLabel)
+        if let soleLink {
+            text
+                .contentShape(.rect)
+                .onTapGesture { openURL(soleLink) }
+                .accessibilityAddTraits(.isLink)
+        } else {
+            text.textSelection(.enabled)
+        }
     }
 
     private var textAlignment: TextAlignment {

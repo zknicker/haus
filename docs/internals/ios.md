@@ -1274,8 +1274,12 @@ as in the shared parser). It wears the App's thread glyph, names its anchor's fi
 page holds the anchor, and keeps that wire target as its `.link`; the coordinator asks
 `InAppReferenceRoutes` before handing any URL to the system, and the App's installed route pushes the
 Thread over its parent Chat, fetching the anchor when the page is not loaded. A table cell is SwiftUI
-`Text` rather than the text view, so its links go through `openURL`; `RichMessageTableView` installs
-`inAppReferenceRoutes()` there, and a Thread chip in a cell opens its Thread the same way. UIKit's own link machinery decides the
+`Text` rather than the text view, and a `Text` link inside a hosted transcript row never receives its
+tap. So a cell carrying exactly one link is that link as a whole: it drops the dead `.link`, takes a
+tap gesture that calls `openURL`, and gives up text selection, which would take the tap.
+`RichMessageTableView` installs `inAppReferenceRoutes()` on that `openURL`, so a Thread chip in a
+cell opens its Thread the same way. A cell with two or more links still draws them, and they stay
+inert on the phone. UIKit's own link machinery decides the
 tap, and `RichMessageLinkCoordinator` — the representable's `UITextViewDelegate` — decides only what
 it means: `textView(_:primaryActionFor:defaultAction:)` returns a `UIAction` that hands the address
 to `UIApplication.open`, and `textView(_:menuConfigurationFor:defaultMenu:)` returns nil so a link

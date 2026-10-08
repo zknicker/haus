@@ -83,6 +83,19 @@ struct ThreadReferenceTests {
         #expect(!InAppReferenceRoutes.handle(try #require(URL(string: "https://haus.dev"))))
     }
 
+    /// A `Text` link in a hosted row never gets its tap, so a cell with one
+    /// link opens it as a whole and draws it without the dead `.link`.
+    @Test func aCellWithOneThreadChipIsThatLink() throws {
+        let cell = RichMessageParser.parse("[#plan](chat://cht_1?thread=msg_2)") { _, _, _ in nil }
+        #expect(RichMessageInlineText.soleActivationURL(cell)?.absoluteString == "chat://cht_1?thread=msg_2")
+        let drawn = RichMessageInlineText.attributed(cell, textStyle: .body, carriesLinks: false)
+        #expect(drawn.runs.allSatisfy { $0.link == nil })
+
+        let two = RichMessageParser.parse("[a](https://a.dev) [b](https://b.dev)") { _, _, _ in nil }
+        #expect(RichMessageInlineText.soleActivationURL(two) == nil)
+        #expect(RichMessageInlineText.soleActivationURL(RichMessageParser.parse("plain") { _, _, _ in nil }) == nil)
+    }
+
     @Test func titleIsTheAnchorsFirstLineCutAt64() {
         #expect(ThreadReferenceTarget.title(anchorContent: "\n  \n**Launch** plan for [#product](chat://c)\nmore") == "Launch plan for #product")
         #expect(ThreadReferenceTarget.title(anchorContent: "   ") == "Thread")
