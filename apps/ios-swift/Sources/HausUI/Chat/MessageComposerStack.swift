@@ -33,8 +33,8 @@ struct MessageComposerStack<Status: View, Surface: View>: View {
             options: mentionOptions
         )
         return VStack(alignment: .leading, spacing: 8) {
-            // A typing or thinking strip belongs here, above the status: it
-            // rides the same stack animation as everything else in it.
+            // The typing strip and stopped-Agent notice sit above this stack, in
+            // `ChatComposerStatus`, outside the composer's horizontal inset.
             status()
             MessageComposerMentionPicker(text: $text, options: mentionOptions)
             if let inlineReply {

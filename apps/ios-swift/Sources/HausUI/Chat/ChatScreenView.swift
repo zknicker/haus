@@ -105,27 +105,30 @@ public struct ChatScreenView: View {
             // transcript never puts a sharp row below the composer, and the only rows that
             // reach it are the ones its glass is already refracting.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                MessageComposerView(
-                    text: $draft,
-                    interaction: composerInteraction,
-                    placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
-                    isConnected: isConnected,
-                    isTextFocused: $isComposerFocused,
-                    allowsAttachments: chat.durableChat != nil,
-                    mentionOptions: mentionOptions,
-                    inlineReply: inlineReply,
-                    onCancelInlineReply: { inlineReply = nil },
-                    transitionNamespace: composerTransitionNamespace,
-                    onSend: sendMessage
-                )
-                .padding(.bottom, chatBottomInset)
-                // The shell ignores the keyboard safe area, so this manual inset is the only
-                // keyboard response the canvas has — and it arrives as plain data through a
-                // GeometryReader, outside the keyboard's own animation transaction. Without
-                // this, the transcript and composer teleport to the keyboard-up layout while
-                // the keyboard is still sliding in below them.
-                .animation(ComposerKeyboardMotion.travel, value: chatBottomInset)
-                .openingEntrance(.composer)
+                VStack(spacing: 0) {
+                    ChatComposerStatus(chatID: chat.durableChat?.id, peerAgentID: chat.kind.peerAgentID)
+                    MessageComposerView(
+                        text: $draft,
+                        interaction: composerInteraction,
+                        placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
+                        isConnected: isConnected,
+                        isTextFocused: $isComposerFocused,
+                        allowsAttachments: chat.durableChat != nil,
+                        mentionOptions: mentionOptions,
+                        inlineReply: inlineReply,
+                        onCancelInlineReply: { inlineReply = nil },
+                        transitionNamespace: composerTransitionNamespace,
+                        onSend: sendMessage
+                    )
+                    .padding(.bottom, chatBottomInset)
+                    // The shell ignores the keyboard safe area, so this manual inset is the only
+                    // keyboard response the canvas has — and it arrives as plain data through a
+                    // GeometryReader, outside the keyboard's own animation transaction. Without
+                    // this, the transcript and composer teleport to the keyboard-up layout while
+                    // the keyboard is still sliding in below them.
+                    .animation(ComposerKeyboardMotion.travel, value: chatBottomInset)
+                    .openingEntrance(.composer)
+                }
             }
             // The portal is drawn in an overlay window above the keyboard, measured against the
             // display rather than against this screen: the card keeps its full height and its gap
@@ -253,6 +256,10 @@ public struct ChatScreenView: View {
 }
 
 private extension ChatKind {
+    var peerAgentID: String? {
+        if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
+    }
+
     var isChannel: Bool {
         if case .channel = self { true } else { false }
     }

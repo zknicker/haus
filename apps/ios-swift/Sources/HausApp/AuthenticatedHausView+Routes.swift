@@ -156,7 +156,7 @@ extension AuthenticatedHausView {
 
     /// Every Thread push, whichever row opened it. Nothing but the route is
     /// needed to open one.
-    private func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
+    func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
         if let parentChatID {
             selectedDestinationID = .chat(parentChatID)
         }

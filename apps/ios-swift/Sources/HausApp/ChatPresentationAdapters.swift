@@ -134,11 +134,15 @@ extension HausStore {
     /// field derivations in step with `SettingsAgent`.
     func agentProfilePresentation(agentID: String) -> AgentProfilePresentation? {
         guard let agent = agentsByID[agentID] else { return nil }
+        let runtime = settingsRuntimeDisplayName(agent.effectiveRuntimeID ?? agent.desiredRuntimeID)
         return AgentProfilePresentation(
             handle: agent.handle,
             description: agent.description ?? "",
-            runtime: settingsRuntimeDisplayName(agent.effectiveRuntimeID ?? agent.desiredRuntimeID),
-            model: agent.effectiveModelID ?? agent.desiredModelID
+            runtime: runtime,
+            model: agent.effectiveModelID ?? agent.desiredModelID,
+            wakePause: agent.wakePause.map {
+                AgentWakePauseCopy.presentation(agentName: agent.displayName, runtimeLabel: runtime, wakePause: $0)
+            }
         )
     }
 }

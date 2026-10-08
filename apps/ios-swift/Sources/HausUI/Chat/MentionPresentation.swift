@@ -17,6 +17,9 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     case plugin
     case pullRequest
     case skill
+    /// A Thread, by its parent Chat and anchor Message
+    /// (`chat://<chatId>?thread=<anchorMessageId>`); see `ThreadReferenceTarget`.
+    case thread
     case website
 }
 
@@ -159,6 +162,9 @@ public struct RichReferencePresentation: Hashable, Sendable {
     public var activationURL: URL? {
         switch kind {
         case .pullRequest, .website: RichReferenceWireForm.activationURL(for: id)
+        // An in-app address: the text view's link coordinator routes it to the
+        // Thread instead of handing it to the system (`InAppReferenceRoutes`).
+        case .thread: ThreadReferenceTarget(wireTarget: id).flatMap { _ in URL(string: id) }
         default: nil
         }
     }
@@ -175,6 +181,7 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .file: .glyph(.document)
         case .pullRequest: .glyph(.pullRequest)
         case .skill: overrideMark ?? .glyph(.skill)
+        case .thread: .glyph(.thread)
         case .website: .glyph(.website)
         }
     }

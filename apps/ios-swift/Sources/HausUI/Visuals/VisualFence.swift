@@ -23,14 +23,17 @@ public struct VisualSegment: Sendable, Hashable, Identifiable {
     }
 }
 
-/// A message body split into the prose it says and the visuals it draws.
+/// A message body split into the prose it says, the visuals it draws, and the
+/// artifact pages it links.
 public struct VisualMessageBody: Sendable, Hashable {
     public let prose: String
     public let visuals: [VisualSegment]
+    public let artifacts: [ArtifactSegment]
 
-    public init(prose: String, visuals: [VisualSegment]) {
+    public init(prose: String, visuals: [VisualSegment], artifacts: [ArtifactSegment] = []) {
         self.prose = prose
         self.visuals = visuals
+        self.artifacts = artifacts
     }
 }
 
@@ -92,12 +95,15 @@ public enum VisualFence {
     }
 
     /// The web's transcript placement: every text segment concatenated in order
-    /// and trimmed as one prose block, then the fences in order.
+    /// and trimmed as one prose block, then the fences in order. Artifact
+    /// fences come out first — their JSON is never prose — and their cards sit
+    /// after the visuals, the same below-the-prose placement.
     public static func body(_ content: String) -> VisualMessageBody {
+        let (unfenced, artifacts) = ArtifactFence.extract(content)
         var prose = ""
         var visuals: [VisualSegment] = []
 
-        for segment in split(content) {
+        for segment in split(unfenced) {
             switch segment {
             case let .text(text):
                 prose += text
@@ -110,7 +116,8 @@ public enum VisualFence {
 
         return VisualMessageBody(
             prose: prose.trimmingCharacters(in: .whitespacesAndNewlines),
-            visuals: visuals
+            visuals: visuals,
+            artifacts: artifacts
         )
     }
 

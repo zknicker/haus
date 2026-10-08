@@ -20,6 +20,12 @@ struct AgentProfileDetailsView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
 
+            if let wakePause = profile?.wakePause {
+                Section {
+                    AgentWakePauseNotice(pause: wakePause)
+                }
+            }
+
             if let about = profile?.about {
                 Section("About") {
                     Text(about)

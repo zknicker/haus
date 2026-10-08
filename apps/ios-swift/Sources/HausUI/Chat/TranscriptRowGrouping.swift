@@ -31,8 +31,11 @@ struct TranscriptRowGrouping: Equatable {
             !calendar.isDate($0.createdAt, inSameDayAs: message.createdAt)
         } ?? true
 
+        // A cause line sits above its message's identity, so that message
+        // always opens its own block.
         guard let previous,
               !startsDay,
+              message.cause == nil,
               previous.author.id == message.author.id,
               message.createdAt.timeIntervalSince(previous.createdAt) < Self.continuationWindow
         else {

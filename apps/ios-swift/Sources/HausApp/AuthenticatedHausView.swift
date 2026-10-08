@@ -64,6 +64,8 @@ struct AuthenticatedHausView: View {
                     .environment(\.opensWithEntrance, !openingEntranceFinished)
                     .environment(\.reactionStickers, store.reactionStickers)
                     .environment(\.cloudAgentCancel, cloudAgentCancel)
+                    .environment(\.chatEngagementSource, store.chatEngagementSource)
+                    .environment(\.stoppedAgentSource, store.stoppedAgentSource)
                     .task {
                         guard !openingEntranceFinished else { return }
                         try? await Task.sleep(for: .seconds(1.2))
@@ -72,6 +74,7 @@ struct AuthenticatedHausView: View {
             }
         }
         .task { await store.start() }
+        .onAppear(perform: installTranscriptRoutes)
         .sheet(item: $agentCall) { request in AgentCallView(request: request, client: store.client) }
         .onChange(of: selectedDestinationID) { previous, current in
             // The first selection lands from the shell's own sync; a change

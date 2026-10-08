@@ -51,8 +51,8 @@ enum MessageClipboard {
 }
 
 extension View {
-    /// Reads a message's identity block as one element — author, time, then
-    /// what it says — carrying the drawer's actions.
+    /// Reads a message's identity block as one element — the fire it answers,
+    /// author, time, then what it says — carrying the drawer's actions.
     func messageRowAccessibility(
         _ message: MessagePresentation,
         actions: MessageRowAccessibilityActions
@@ -82,7 +82,8 @@ enum MessageRowAccessibilityLabel {
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
         let when = day == "Today" ? time : "\(day), \(time)"
-        return [message.author.name, when, body, message.isPending ? "Sending" : nil]
+        // The cause line draws above the identity block but reads as part of it.
+        return [message.cause?.accessibilityLabel, message.author.name, when, body, message.isPending ? "Sending" : nil]
             .compactMap { $0?.isEmpty == false ? $0 : nil }
             .joined(separator: ", ")
     }
