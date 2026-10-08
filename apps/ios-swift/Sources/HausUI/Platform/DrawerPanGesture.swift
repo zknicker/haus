@@ -17,12 +17,15 @@ final class DrawerPanDelegate: NSObject, UIGestureRecognizerDelegate {
         return DrawerInteraction.accepts(velocity: pan.velocity(in: pan.view), isOpen: isOpen())
     }
 
-    /// Lets the timeline keep tracking until this drag actually begins.
+    /// Lets the timeline keep tracking until this drag actually begins, and
+    /// nothing else: a row's tap must fail once the drawer has the finger.
+    /// The canvas travels with the finger, so the touch ends inside the row
+    /// it started on and a still-live tap fired on release.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
     ) -> Bool {
-        true
+        other.view is UIScrollView
     }
 
     /// Leaves horizontally scrollable content, such as staged attachments,

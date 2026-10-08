@@ -679,7 +679,10 @@ canvas to the finger, moves it one to one inside its travel, and stops at both e
 sits behind the canvas past either edge; `DrawerInteraction` owns that math and its release decision,
 so a flick settles the drawer by velocity and a slow drag settles it by position. The drag uses a UIKit pan recognizer so it can claim
 only horizontal movement, cancel an in-flight vertical timeline scroll once it begins, and leave
-horizontally scrollable content such as staged attachments alone. There is no edge-only hit zone and
+horizontally scrollable content such as staged attachments alone. It recognizes alongside scroll views
+only, so once it begins every tap and press under the finger fails: the canvas travels with the
+finger, so a drag ends inside the row it started on, and a still-live row tap would open that Chat
+on release (`DrawerPanDelegateTests`). There is no edge-only hit zone and
 no all-or-nothing open. Because the drawer owns every right-drag on the canvas, no canvas row carries
 a leading swipe action: a row's swipe actions sit on the trailing edge (swipe-left), as the Inbox's
 Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Selecting a Chat is the only action that closes the drawer; every sidebar

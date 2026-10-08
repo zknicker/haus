@@ -25,6 +25,7 @@
 		2D59ED3AEE18F90971211BC7 /* HausStoreEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A505BEC3D0CB539BE1085D6 /* HausStoreEngagement.swift */; };
 		2DA4E995560C3C0E770FC121 /* HausStoreCloudAgents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5905A0B13F5B6C3D1B243267 /* HausStoreCloudAgents.swift */; };
 		36E11B61F6B7923EF0774757 /* ActivityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 876CEDBE5B2CC4CDF301EFF6 /* ActivityPresentationAdapters.swift */; };
+		39EEB584383C49126A3A58A9 /* DrawerPanDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B1E79D62CDCC8E8BC2268C /* DrawerPanDelegateTests.swift */; };
 		3C7596C63D050A5AD2F99480 /* HausStoreMessageBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98180CA66F0FB2C45C041767 /* HausStoreMessageBodies.swift */; };
 		3DF2040138423821D77FC199 /* HausStoreArtifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C52F0B1DA203DF7B2F7F315D /* HausStoreArtifacts.swift */; };
 		3EC31C6D2A9BC16BEBB57141 /* ChatPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */; };
@@ -125,6 +126,7 @@
 		0C0F44CF7F9F5FCFA3C846AD /* MessageRenderingPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageRenderingPerformanceTests.swift; sourceTree = "<group>"; };
 		0F9EFBB5526328D1634FC1F3 /* AuthenticatedHausView+Thread.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Thread.swift"; sourceTree = "<group>"; };
 		114C9BE553275D26E429E17F /* HausStoreChatReads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreChatReads.swift; sourceTree = "<group>"; };
+		17B1E79D62CDCC8E8BC2268C /* DrawerPanDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerPanDelegateTests.swift; sourceTree = "<group>"; };
 		197041FDE46D01CE30061965 /* HausStoreActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreActivity.swift; sourceTree = "<group>"; };
 		19D2775FC5AB696722A326FE /* Haus.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Haus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A65F91E2B21B774C3DBC0A3 /* HausStoreSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreSupport.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 			isa = PBXGroup;
 			children = (
 				0A9452EF0C34538A8523C32B /* CodeBlockRowLayoutTests.swift */,
+				17B1E79D62CDCC8E8BC2268C /* DrawerPanDelegateTests.swift */,
 				A25C9CB2C17FDE37245B3CE1 /* LongTranscriptPerformanceTests.swift */,
 				2CCA5EAECEFF7A9AE34DFB26 /* MessageHistoryNavigationTests.swift */,
 				0C0F44CF7F9F5FCFA3C846AD /* MessageRenderingPerformanceTests.swift */,
@@ -532,6 +535,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				29FABC5EB976C4941B46402D /* CodeBlockRowLayoutTests.swift in Sources */,
+				39EEB584383C49126A3A58A9 /* DrawerPanDelegateTests.swift in Sources */,
 				DC65B9DA2EBFE374F9FCA953 /* LongTranscriptPerformanceTests.swift in Sources */,
 				FBA812BFF6948CDE7B63A9CB /* MessageHistoryNavigationTests.swift in Sources */,
 				5EF0958A96B24C8375100293 /* MessageRenderingPerformanceTests.swift in Sources */,
