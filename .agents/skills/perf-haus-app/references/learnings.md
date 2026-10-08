@@ -51,6 +51,27 @@ Hidden views leave duplicate DOM: probes and e2e locators must scope to the disp
 A context value that changes on every dispatch re-renders every kept tab. Use an external store
 with selectors and stable command functions: `hooks/desktop-tabs/desktop-tabs-store.ts`.
 
+## Desktop is its own render profile
+
+A warm desktop channel switch rendered ~24,600 components against ~2,800 on the web, invisible to
+the web harness. Each desktop tab runs under a declarative `<Router>` (`IsolatedTabRouter`), and
+stock React Router hands out a new `navigate` (so a new `setSearchParams`) there on every location
+change; the web's data router does not. Every callback built on them (reference activation,
+thread open) changed per switch, rebuilt the transcript's row context, and re-rendered every row
+in every kept view, revealed and hidden. `patches/react-router@7.13.1.patch` makes declarative
+`useNavigate` stable (`features/shell/tab-router-stability.test.tsx`): warm renders 24.8k → 2.6k,
+warm visible 95 → 51 ms, LoAF blocking 53 → 10 ms (prod, CPU×1).
+
+- Count renders in real Electron, not just Chrome: instrument `renderWithHooks` in
+  `react-dom-client.production.js` (call a global counter), build a prod bundle, restore the file,
+  and diff per-switch totals before and after. A total far above the web's names the cascade.
+- Tab presence flips on every tab and kept-view show/hide. Id-only readers use `useTabId()`; a
+  large view keeps its presence read in a leaf (`ChatReadState`).
+- Never read layout in a layout effect or rAF on the switch path: each read forced a full style
+  and layout (~10 ms over ~1,440 elements). Measure in a ResizeObserver callback
+  (`WorkspaceTabLabel`) or after paint (the message scroller's visibility snapshot, in the
+  `@shadcn/react` patch).
+
 ## Prefetch and warming
 
 Prefetch on hover, focus, and press (`hooks/servers/use-preload-chat.ts`), plus idle warming of
