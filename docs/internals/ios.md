@@ -43,22 +43,47 @@ and active message search. Older reads cannot replace the recovered snapshot. Ot
 only update activity; foreground and reconnect recovery remain independent fallback paths. Message
 rows always come from Server reads, never from lifecycle text.
 
-The open Chat and the open Thread show who is answering them in a typing strip above the composer,
-the App's ADR 0035/0036 feature. `ChatComposerStatus` sits at the top of each composer inset and
-takes no space while nobody is engaged, and the strip opens and closes its room through an
-animatable height (`ChatTypingReveal`) so the composer inset, and the transcript resting on it, move
-a frame at a time instead of jumping a row. The phone deliberately does not reserve the row as the App
-does: an empty row above every composer costs more on a phone than a short glide. The strip shows the engaged Agents' avatars on the
-transcript's avatar rail and one shimmering line — the latest thought while one is up, otherwise
-"Juniper is typing" with three hopping dots (still under Reduce Motion). Engagement and thoughts are
-Chat-scoped, so `HausStoreEngagement` subscribes to `chat.onEngagement` and `chat.onThought` only for
-as long as the strip's task lives, re-reads `chat.engagements` on every (re)connect, restarts a
-stream the transport will not retry with the Server-wide streams' capped backoff, and reconnects
-after a background return. A newer Server never breaks the stream: an engagement frame of an unknown
-type is skipped (`ChatEngagementFrame`), and an unknown end reason reads as settled. `ChatTypingModel` ports the App's timing: a `--done` reply holds its Agent
-until the reply is in the transcript (two seconds at most), thoughts pace and extend as on the web, and
-both clear the moment their run stops engaging the Chat. Tapping the strip brings back the latest
-thought, the phone's stand-in for the App's hover recall. The App's emoji faces are not ported.
+The open Chat and the open Thread show who is answering them in their header, the App's ADR
+0035/0036 feature in a phone shape. `HeaderEngagement` hangs a compact row just under the title as
+an overlay, never as a row in the layout, so it comes and goes without moving the transcript
+scrolling beneath it; the row sits on a band of bar material so a passing message never reads
+through it. In a channel the row is the working Agents' 18-point avatars, overlapped and ringed
+(three at most, then "+N"), followed by the hopping dots — no visible "is typing" words. Each new
+thought drops as one glass bubble (`EngagementThoughtBubble`, "**Blippy** Found a timing race…",
+one line, cut at 300 points) from under the row over the oldest visible messages, and the speaking
+Agent's avatar lifts slightly while it shows. In an Agent DM the title already names the Agent, so
+the row is that Agent's latest thought as a one-line secondary subtitle, crossfading as thoughts
+change, with the dots trailing (only the dots before a first thought). A Thread puts the same row
+just under its navigation bar's subtitle, channel style in a channel and subtitle style in a DM;
+there the band reaches up to the screen top, because the system bar draws no material. Tapping the
+row or a bubble opens Working now (`WorkingNowSheet`), a small-detent sheet with one live row per
+working Agent and its latest thought; it says "Everyone's done" and closes itself when the last
+Agent finishes. It is the phone's stand-in for the App's hover recall.
+
+Bubbles take turns through `EngagementThoughtQueue` (HausModels), a pure clock-driven state machine:
+a bubble holds 2.2 seconds, yields after 1.5 seconds when another waits, and leaves 0.35 seconds
+for its exit before the next drops in, so bubbles never overlap. Only an Agent's latest waiting
+thought is kept, in the place its first one took, so a backlog never builds and every Agent gets
+its turn. This deliberately replaces the App's single-line 5–7.5 second holds and spacing: a
+bubble over the transcript should be glanceable, and the queue is what keeps several Agents fair.
+The same words again from the Agent whose bubble is up add nothing. A waiting thought needs its
+run still engaging the Chat, so an Agent that leaves without replying drops out of the row and
+takes its waiting line with it; the bubble already up stays only while its Agent is held for a
+`--done` reply.
+
+Engagement and thoughts are Chat-scoped, so `HausStoreEngagement` subscribes to `chat.onEngagement`
+and `chat.onThought` only for as long as the header row's task lives, re-reads `chat.engagements`
+on every (re)connect, restarts a stream the transport will not retry with the Server-wide streams'
+capped backoff, and reconnects after a background return. A newer Server never breaks the stream:
+an engagement frame of an unknown type is skipped (`ChatEngagementFrame`), and an unknown end
+reason reads as settled. `ChatTypingModel` keeps the App's reply hold: a `--done` reply holds its
+Agent, in its place in the row, until the reply is in the transcript (two seconds at most).
+VoiceOver reads the row as one element ("Blippy and Tiny are working", with a hint to open
+details) and hears new thoughts as low-priority announcements, at most one every four seconds,
+that never move focus. Under Reduce Motion bubbles crossfade in place with no drop and no avatar
+lift. Like the header, the row stops growing past the largest standard text size; the bubble
+stops at the first accessibility size. There are no haptics: this is ambient information. The
+App's emoji faces are not ported.
 
 A stopped Agent's DM says so above the composer, with Start for Owners and Admins (`agent.start`,
 then an Agent directory refresh; success and failure haptics, an inline line on failure). An Agent
@@ -1035,8 +1060,7 @@ frame by frame, plus the announced end frame of `keyboardWillChangeFrame`, which
 that leaves while the screen is mid-transition. Each reading carries its own transaction — the
 keyboard's curve (`ComposerKeyboardMotion.travel`) when UIKit animates the keyboard, none while a
 finger drags it — so the composer rides the keyboard's top edge through the rise, the fall, and a
-drag in either direction, and the typing strip rides with it because it shares the composer's
-stack. A keyboard frame counts only while something is first responder: after a cancelled back
+drag in either direction. A keyboard frame counts only while something is first responder: after a cancelled back
 swipe out of a Thread, UIKit keeps reporting a 233-point keyboard that is not on screen.
 
 Do not go back to SwiftUI's keyboard safe area read through the shell's `GeometryReader`: it
