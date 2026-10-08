@@ -1,12 +1,16 @@
 import {
     amazonProductDetailSchema,
     amazonProductIdentitySchema,
-    amazonProductSummarySchema,
+    amazonProductResultSchema,
 } from '@haus/api';
 import { z } from 'zod';
-import { readAmazonProducts } from '../../amazon-products/read-products.ts';
+import {
+    readAmazonProductDetail,
+    readAmazonProductSummaries,
+} from '../../amazon-products/read-products.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
+/** One result per requested product; `null` when no RankWrangler account is connected. */
 export const amazonProducts = memberProcedure
     .input(
         z.object({
@@ -14,29 +18,24 @@ export const amazonProducts = memberProcedure
             products: z.array(amazonProductIdentitySchema).min(1).max(50),
         })
     )
-    .output(z.array(amazonProductSummarySchema).nullable())
+    .output(z.array(amazonProductResultSchema).nullable())
     .query(async ({ ctx, input }) => {
-        const result = await readAmazonProducts(ctx.hausDb, ctx.mcpRuntime, ctx.member, {
-            ...input,
-            detail: false,
-        });
-        if (result === null) {
-            return null;
-        }
-        return result.map((product) => amazonProductSummarySchema.parse(product));
+        const results = await readAmazonProductSummaries(
+            ctx.hausDb,
+            ctx.mcpRuntime,
+            ctx.member,
+            input
+        );
+        return results?.map((result) => amazonProductResultSchema.parse(result)) ?? null;
     });
 
 export const amazonProductDetail = memberProcedure
     .input(amazonProductIdentitySchema.extend({ serverId: z.string() }))
     .output(amazonProductDetailSchema.nullable())
-    .query(async ({ ctx, input }) => {
-        const result = await readAmazonProducts(ctx.hausDb, ctx.mcpRuntime, ctx.member, {
-            serverId: input.serverId,
-            products: [{ asin: input.asin, marketplaceId: input.marketplaceId }],
-            detail: true,
-        });
-        if (result === null) {
-            return null;
-        }
-        return result[0] ?? null;
-    });
+    .query(
+        async ({ ctx, input }) =>
+            await readAmazonProductDetail(ctx.hausDb, ctx.mcpRuntime, ctx.member, {
+                serverId: input.serverId,
+                product: { asin: input.asin, marketplaceId: input.marketplaceId },
+            })
+    );

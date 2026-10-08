@@ -11,11 +11,13 @@ import { z } from 'zod';
 export class RankWranglerError extends Error {
     readonly code: string;
     readonly retryable: boolean;
-    constructor(code: string, retryable: boolean) {
+    readonly retryAfterSeconds: number | null;
+    constructor(code: string, retryable: boolean, retryAfterSeconds: number | null = null) {
         super(`RankWrangler product lookup failed (${code}).`);
         this.name = 'RankWranglerError';
         this.code = code;
         this.retryable = retryable;
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 }
 
@@ -25,7 +27,11 @@ const envelopeSchema = z.object({
     content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional(),
 });
 const errorBodySchema = z.object({
-    error: z.object({ code: z.string(), retryable: z.boolean().optional() }),
+    error: z.object({
+        code: z.string(),
+        retryable: z.boolean().optional(),
+        retryAfterSeconds: z.number().nonnegative().optional(),
+    }),
 });
 
 export function rankWranglerPayload(result: unknown): unknown {
@@ -34,7 +40,8 @@ export function rankWranglerPayload(result: unknown): unknown {
     if (envelope.isError) {
         const body = errorBodySchema.safeParse(envelope.structuredContent ?? parseJson(text));
         if (body.success) {
-            throw new RankWranglerError(body.data.error.code, body.data.error.retryable ?? false);
+            const { code, retryable, retryAfterSeconds } = body.data.error;
+            throw new RankWranglerError(code, retryable ?? false, retryAfterSeconds ?? null);
         }
         throw new Error('RankWrangler product lookup failed.');
     }

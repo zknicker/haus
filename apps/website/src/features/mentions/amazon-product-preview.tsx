@@ -1,7 +1,7 @@
 import type { AmazonProductSummary } from '@haus/api';
-import type { AmazonProductLookup } from './use-amazon-product.ts';
+import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 
-/** One hover card shape across loading, ready, failed, and disconnected lookups. */
+/** One hover card shape across every lookup state; only the notice line changes. */
 export function AmazonProductPreview({
     asin,
     lookup,
@@ -15,7 +15,7 @@ export function AmazonProductPreview({
     return (
         <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-center gap-2">
             <div
-                aria-busy={lookup.status === 'loading' || undefined}
+                aria-busy={lookupInProgress(lookup) || undefined}
                 className="hover-card__content haus-hover-card dark flex min-w-0 flex-col gap-0.5"
             >
                 <strong className="line-clamp-2 font-semibold text-foreground text-sm leading-snug">
@@ -63,11 +63,20 @@ export function productImage(product: AmazonProductSummary): string | undefined 
     return product.thumbnail.status === 'available' ? product.thumbnail.url : undefined;
 }
 
-function previewNotice(lookup: AmazonProductLookup): string | undefined {
+/** Loading and retrying share the chip's pending look; the hover card tells them apart. */
+export function lookupInProgress(lookup: AmazonProductLookup): boolean {
+    return lookup.status === 'loading' || lookup.status === 'retrying';
+}
+
+export function previewNotice(lookup: AmazonProductLookup): string | undefined {
     switch (lookup.status) {
         case 'loading':
             return 'Fetching product details…';
-        case 'failed':
+        case 'retrying':
+            return 'Product details are taking longer than usual. Retrying…';
+        case 'temporarilyUnavailable':
+            return 'Product details are temporarily unavailable. We’ll try again shortly.';
+        case 'unavailable':
             return 'Product details unavailable';
         case 'disconnected':
             return 'Connect RankWrangler for product details';

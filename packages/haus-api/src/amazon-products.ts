@@ -30,6 +30,28 @@ export const amazonProductDetailSchema = amazonProductSummarySchema.extend({
 export type AmazonProductSummary = z.infer<typeof amazonProductSummarySchema>;
 export type AmazonProductDetail = z.infer<typeof amazonProductDetailSchema>;
 
+/** Upper bound on the wait Server passes through from RankWrangler's `retryAfterSeconds`. */
+export const amazonProductMaxRetryAfterSeconds = 30;
+
+/**
+ * One requested product's outcome in a batched `mcp.amazonProducts` read.
+ * `temporarilyUnavailable` is a transient upstream problem worth retrying after
+ * `retryAfterSeconds`; `unavailable` is final (unknown ASIN or a permanent error).
+ */
+export const amazonProductResultSchema = z.discriminatedUnion('status', [
+    z.object({ status: z.literal('found'), product: amazonProductSummarySchema }),
+    amazonProductIdentitySchema.extend({
+        status: z.literal('temporarilyUnavailable'),
+        retryAfterSeconds: z.number().int().min(1).max(amazonProductMaxRetryAfterSeconds),
+    }),
+    amazonProductIdentitySchema.extend({ status: z.literal('unavailable') }),
+]);
+export type AmazonProductResult = z.infer<typeof amazonProductResultSchema>;
+
+export function amazonProductResultAsin(result: AmazonProductResult): string {
+    return result.status === 'found' ? result.product.asin : result.asin;
+}
+
 export function parseAmazonProduct(value: string): AmazonProductIdentity | null {
     let asin = value;
     if (!/^B[A-Z0-9]{9}$/u.test(value)) {
