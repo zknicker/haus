@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00FD80110BEDED94E108B7C1 /* TranscriptListBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0398C0C36E82B7CCFB1D1A19 /* TranscriptListBehaviorTests.swift */; };
 		01100AC621CCA8668751E9E9 /* HausStoreThreads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A37944B4BE5E4BA55D847B0 /* HausStoreThreads.swift */; };
 		036C7762C629E5EAE0884A8B /* HausStoreLaunchSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459A88E8ECAFA371E4300FF9 /* HausStoreLaunchSnapshot.swift */; };
 		0B354A8B657EE023A9EE4E61 /* VoiceAudioStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */; };
@@ -20,6 +21,7 @@
 		23F49FE4C0A512B9B169FD44 /* HausStoreChatReads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9BE553275D26E429E17F /* HausStoreChatReads.swift */; };
 		2504F0CD7C8B54F1D41065A0 /* HausNotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 48C78DBB9691AD8E16A14C9E /* HausNotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		251F4347D29A196865AE3129 /* HausStoreInlineReplies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 789E7748649B73A8DADD1383 /* HausStoreInlineReplies.swift */; };
+		29FABC5EB976C4941B46402D /* CodeBlockRowLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A9452EF0C34538A8523C32B /* CodeBlockRowLayoutTests.swift */; };
 		2DA4E995560C3C0E770FC121 /* HausStoreCloudAgents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5905A0B13F5B6C3D1B243267 /* HausStoreCloudAgents.swift */; };
 		36E11B61F6B7923EF0774757 /* ActivityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 876CEDBE5B2CC4CDF301EFF6 /* ActivityPresentationAdapters.swift */; };
 		3EC31C6D2A9BC16BEBB57141 /* ChatPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */; };
@@ -108,7 +110,9 @@
 /* Begin PBXFileReference section */
 		020A718A9A0014626B19C74B /* HausOpeningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausOpeningView.swift; sourceTree = "<group>"; };
 		0329C162166D08C65D149B64 /* HausStoreTasks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreTasks.swift; sourceTree = "<group>"; };
+		0398C0C36E82B7CCFB1D1A19 /* TranscriptListBehaviorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptListBehaviorTests.swift; sourceTree = "<group>"; };
 		0771A40C5602C904730B80CD /* TranscriptRenderingPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptRenderingPerformanceTests.swift; sourceTree = "<group>"; };
+		0A9452EF0C34538A8523C32B /* CodeBlockRowLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeBlockRowLayoutTests.swift; sourceTree = "<group>"; };
 		0C0F44CF7F9F5FCFA3C846AD /* MessageRenderingPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageRenderingPerformanceTests.swift; sourceTree = "<group>"; };
 		0F9EFBB5526328D1634FC1F3 /* AuthenticatedHausView+Thread.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Thread.swift"; sourceTree = "<group>"; };
 		114C9BE553275D26E429E17F /* HausStoreChatReads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreChatReads.swift; sourceTree = "<group>"; };
@@ -258,9 +262,11 @@
 		9A4DAC557DDDCB5EF3037449 /* SimulatorTests */ = {
 			isa = PBXGroup;
 			children = (
+				0A9452EF0C34538A8523C32B /* CodeBlockRowLayoutTests.swift */,
 				A25C9CB2C17FDE37245B3CE1 /* LongTranscriptPerformanceTests.swift */,
 				2CCA5EAECEFF7A9AE34DFB26 /* MessageHistoryNavigationTests.swift */,
 				0C0F44CF7F9F5FCFA3C846AD /* MessageRenderingPerformanceTests.swift */,
+				0398C0C36E82B7CCFB1D1A19 /* TranscriptListBehaviorTests.swift */,
 				0771A40C5602C904730B80CD /* TranscriptRenderingPerformanceTests.swift */,
 				6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */,
 				33D6A4874EFA3EF4859BCD4F /* VoiceAudioStartupTests.swift */,
@@ -497,9 +503,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				29FABC5EB976C4941B46402D /* CodeBlockRowLayoutTests.swift in Sources */,
 				DC65B9DA2EBFE374F9FCA953 /* LongTranscriptPerformanceTests.swift in Sources */,
 				FBA812BFF6948CDE7B63A9CB /* MessageHistoryNavigationTests.swift in Sources */,
 				5EF0958A96B24C8375100293 /* MessageRenderingPerformanceTests.swift in Sources */,
+				00FD80110BEDED94E108B7C1 /* TranscriptListBehaviorTests.swift in Sources */,
 				AF15E7CEEDD94078E44902A6 /* TranscriptRenderingPerformanceTests.swift in Sources */,
 				E7AED1D7D7B0AA1AE73102EE /* TranscriptWindowScrollingTests.swift in Sources */,
 				0B354A8B657EE023A9EE4E61 /* VoiceAudioStartup.swift in Sources */,

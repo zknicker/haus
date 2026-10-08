@@ -54,6 +54,10 @@ where Item.ID == String {
     /// drifts off the row, or the transcript scrolls. A tap never reports.
     /// Only installed alongside `onLongPress`.
     var onHoldChange: ((Item?) -> Void)? = nil
+    /// Everything rows and the accessory draw from beyond their own item —
+    /// a press tint, a registry's revision. Rows are re-hosted only when their
+    /// item changes or this does, so an inset-only update re-hosts nothing.
+    var rowRevision = 0
     @ViewBuilder let row: (Item) -> Row
     @ViewBuilder let accessory: () -> Accessory
 
@@ -131,6 +135,21 @@ where Item.ID == String {
     var items: [Item] = []
     var showsAccessory = false
     private var appliedInsets: UIEdgeInsets?
+    var appliedRowRevision = 0
+    /// Rows re-hosted by updates since mount; the substrate's cost, counted
+    /// so tests can pin that an inset change re-hosts nothing.
+    var reconfiguredRowCount = 0
+    /// The newest item, when it arrived while the reader was at the tail and
+    /// its top is being held in view rather than its end. Driven from
+    /// `TranscriptListView+NearNewest`.
+    var followedTopItemID: String?
+    /// Installed by `TranscriptListView+RowPress`.
+    var rowPress: TranscriptRowPress?
+    /// The last update's anchor, re-applied as late row heights land; see
+    /// `TranscriptListView+AnchorHold`.
+    var heldAnchor: (anchor: TranscriptScrollAnchor, offset: CGFloat)?
+    var isReapplyingAnchor = false
+    var contentSizeObservation: NSKeyValueObservation?
     var handledRevealToken: UUID?
     /// The near-newest answer the view currently holds. It is cached here and
     /// not read back from the binding: the binding write is asynchronous, so a
@@ -150,8 +169,10 @@ where Item.ID == String {
         self.view = view
         items = view.items
         showsAccessory = view.showsAccessory
+        appliedRowRevision = view.rowRevision
         applyInsets(view: view, table: table, wasNearNewest: true)
         table.reloadData()
+        observeContentSize(of: table)
         scheduleNearNewestSync(table)
     }
 
@@ -179,17 +200,9 @@ where Item.ID == String {
         // A resting transcript rides an inset change: the composer or keyboard
         // growing must lift the newest message, not slide over it.
         if isFirst || (wasNearNewest && !table.isDragging && !table.isDecelerating) {
-            table.contentOffset = CGPoint(x: 0, y: -insets.top)
-        }
-    }
-
-    /// Hosting configurations capture SwiftUI state by value, so every SwiftUI
-    /// update re-hosts the rows that are on screen; off-screen rows pick up
-    /// current state when they dequeue.
-    func reconfigureVisibleRows(table: UITableView) {
-        for indexPath in table.indexPathsForVisibleRows ?? [] {
-            guard let cell = table.cellForRow(at: indexPath) else { continue }
-            configure(cell: cell, at: indexPath)
+            let rest = -insets.top
+            let followedTop = followedTopItemID == nil ? rest : newestTopOffset(table)
+            table.contentOffset = CGPoint(x: 0, y: max(rest, followedTop))
         }
     }
 
@@ -236,29 +249,6 @@ where Item.ID == String {
         cell.stackForReactionStamps(order: items.count - 1 - indexPath.row)
     }
 
-    // MARK: Long press
-
-    private var rowPress: TranscriptRowPress?
-
-    func installRowPress(on table: UITableView) {
-        let press = TranscriptRowPress()
-        press.onHoldChange = { [weak self] indexPath in
-            guard let self else { return }
-            view?.onHoldChange?(indexPath.flatMap(item(at:)))
-        }
-        press.onPress = { [weak self] indexPath in
-            guard let self, let item = item(at: indexPath) else { return }
-            view?.onLongPress?(item)
-        }
-        press.install(on: table)
-        rowPress = press
-    }
-
-    /// The item a row shows, or nil for the history accessory.
-    private func item(at indexPath: IndexPath) -> Item? {
-        indexPath.row < items.count ? items[items.count - 1 - indexPath.row] : nil
-    }
-
     // MARK: UITableViewDelegate
 
     @objc func contentTapped() {
@@ -273,13 +263,18 @@ where Item.ID == String {
         // A touch owns the viewport from here; nothing is travelling to rest,
         // and nothing the finger rested on is being held any more.
         endSettling()
+        followedTopItemID = nil
+        heldAnchor = nil
         rowPress?.cancelHold()
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         // The normal close for a settle: the travel is over, so the reading
-        // this schedules is the destination it actually reached.
+        // this schedules is the destination it actually reached — landed
+        // home first if the inset moved under it.
+        let wasSettling = nearNewest.isSettling
         endSettling()
+        if wasSettling, let table = scrollView as? UITableView { land(table) }
         scheduleNearNewestSync(scrollView)
     }
 

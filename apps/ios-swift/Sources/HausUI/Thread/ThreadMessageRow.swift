@@ -15,6 +15,8 @@ struct ThreadMessageRow: View {
     var reactionBoard: ReactionStickerBoard?
     /// Held under a finger, or the target of the open action drawer.
     var isPressed = false
+    /// The drawer's actions, for VoiceOver.
+    var accessibilityActions: MessageRowAccessibilityActions = .none
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -26,23 +28,26 @@ struct ThreadMessageRow: View {
             )
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    Text(message.author.name)
-                        .font(.body.weight(.semibold))
-                        .lineLimit(1)
-                    Text(message.createdAt, format: .dateTime.hour().minute())
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(alignment: .firstTextBaseline, spacing: 7) {
+                        Text(message.author.name)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(1)
+                        Text(message.createdAt, format: .dateTime.hour().minute())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
-                if !message.prose.isEmpty {
-                    RichMessageContentView(
-                        blocks: message.richBlocks,
-                        textStyle: emphasized ? .body : .subheadline
-                    )
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    if !message.prose.isEmpty {
+                        RichMessageContentView(
+                            blocks: message.richBlocks,
+                            textStyle: emphasized ? .body : .subheadline
+                        )
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
+                .messageRowAccessibility(message, actions: accessibilityActions)
 
                 MessageVisualStack(
                     message: message,

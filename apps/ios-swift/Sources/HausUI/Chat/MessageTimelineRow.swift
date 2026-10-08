@@ -20,6 +20,8 @@ struct MessageTimelineRow: View {
     let onOpenThread: () -> Void
     let onOpenInlineReply: (MessageReplyReferencePresentation) -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    /// The drawer's actions, for VoiceOver.
+    var accessibilityActions: MessageRowAccessibilityActions = .none
     @AppStorage(ShowTasksInChat.storageKey) private var showTasksInChat = false
 
     var body: some View {
@@ -51,21 +53,24 @@ struct MessageTimelineRow: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                if !isContinuation {
-                    HStack(alignment: .firstTextBaseline, spacing: 7) {
-                        Text(message.author.name)
-                            .font(.body.weight(.semibold))
-                            .lineLimit(1)
-                        Text(message.createdAt, format: .dateTime.hour().minute())
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    if !isContinuation {
+                        HStack(alignment: .firstTextBaseline, spacing: 7) {
+                            Text(message.author.name)
+                                .font(.body.weight(.semibold))
+                                .lineLimit(1)
+                            Text(message.createdAt, format: .dateTime.hour().minute())
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if !message.prose.isEmpty {
+                        RichMessageContentView(blocks: message.richBlocks)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-
-                if !message.prose.isEmpty {
-                    RichMessageContentView(blocks: message.richBlocks)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                .messageRowAccessibility(message, actions: accessibilityActions)
 
                 MessageVisualStack(
                     message: message,

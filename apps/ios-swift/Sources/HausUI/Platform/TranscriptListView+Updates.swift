@@ -7,13 +7,18 @@ extension TranscriptListCoordinator {
     func update(view: TranscriptListView<Item, Row, Accessory>, table: UITableView) {
         self.view = view
 
-        let update = TranscriptListUpdate.classify(
-            old: items.map(\.id),
-            new: view.items.map(\.id)
-        )
+        // The common update is one that changes nothing about the rows — a
+        // drawer pan, a keyboard inset frame. Callers memoize their item
+        // arrays, so this comparison is a storage-identity check, and nothing
+        // below it walks the transcript.
+        let itemsUnchanged = view.items == items
+        let update: TranscriptListUpdate = itemsUnchanged
+            ? .refresh
+            : TranscriptListUpdate.classify(old: items.map(\.id), new: view.items.map(\.id))
         let wasNearNewest = nearNewest.countsAsNear(distance: distanceFromNewest(table))
         let previousItems = items
         let previousShowsAccessory = showsAccessory
+        let revisionChanged = view.rowRevision != appliedRowRevision
         let appendBehavior: TranscriptAppendBehavior? = update.tailInsertionCount > 0
             ? view.onAppend(previousItems, view.items, wasNearNewest)
             : nil
@@ -21,7 +26,9 @@ extension TranscriptListCoordinator {
             update: update,
             appendBehavior: appendBehavior,
             wasNearNewest: wasNearNewest
-        )
+        ) && !(itemsUnchanged && !revisionChanged)
+            // A followed reply's top owns the viewport; see `holdFollowedTop`.
+            && !(followedTopItemID != nil && view.items.last?.id == followedTopItemID)
         let anchor = preserveAnchor
             ? TranscriptScrollAnchor.capture(
                 table: table,
@@ -31,6 +38,7 @@ extension TranscriptListCoordinator {
             : nil
         items = view.items
         showsAccessory = view.showsAccessory
+        appliedRowRevision = view.rowRevision
 
         applyInsets(view: view, table: table, wasNearNewest: wasNearNewest)
 
@@ -58,13 +66,61 @@ extension TranscriptListCoordinator {
             )
         }
 
-        reconfigureVisibleRows(table: table)
-        table.layoutIfNeeded()
-        anchor?.restore(in: table, items: items)
+        if update != .reset {
+            reconfigure(
+                rows: TranscriptRowReconfiguration.rows(
+                    visible: (table.indexPathsForVisibleRows ?? []).map(\.row),
+                    itemCount: items.count,
+                    revisionChanged: revisionChanged,
+                    changedItem: itemsUnchanged ? { _ in false } : changedItem(in: previousItems)
+                ),
+                table: table
+            )
+        }
+        if !(itemsUnchanged && !revisionChanged) {
+            table.layoutIfNeeded()
+        }
+        if let anchor {
+            hold(anchor, in: table)
+        } else if wasNearNewest {
+            // At the tail there is nothing to hold; scrolled away, a no-op
+            // update keeps holding what the last real one anchored.
+            heldAnchor = nil
+        }
+        holdFollowedTop(table: table)
         performReveal(view: view, table: table)
         // Covers every path above — a reset's `reloadData`, an inset change, an
         // append's settle — with one reading taken after all of them.
         scheduleNearNewestSync(table)
+    }
+
+    /// Whether the item a row now shows differs from what that row's cell was
+    /// last configured with. A new id is not "changed": an inserted row was
+    /// just configured by the insertion.
+    private func changedItem(in previousItems: [Item]) -> (Int) -> Bool {
+        let previous = Dictionary(
+            previousItems.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return { [items] row in
+            let item = items[items.count - 1 - row]
+            guard let old = previous[item.id] else { return false }
+            return old != item
+        }
+    }
+
+    /// Re-hosts exactly these rows and lets the table re-measure them. A plain
+    /// configuration swap is not enough: the table keeps the height it measured
+    /// for the old content, so a row that grew in place (a streamed reply)
+    /// drew its new content over the rows around it.
+    private func reconfigure(rows: [Int], table: UITableView) {
+        reconfiguredRowCount += rows.count
+        guard !rows.isEmpty else { return }
+        UIView.performWithoutAnimation {
+            table.performBatchUpdates {
+                table.reconfigureRows(at: rows.map { IndexPath(row: $0, section: 0) })
+            }
+        }
     }
 
     private func shouldPreserveAnchor(

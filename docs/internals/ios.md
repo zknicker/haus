@@ -171,6 +171,12 @@ has arrived, and a header row full of pipes stays a paragraph until its delimite
 table appears once and then grows a row at a time instead of reflowing. A single newline is still a
 line break, the way `remark-breaks` makes it one on the App.
 
+A fenced code block is a horizontal `ScrollView` whose text is fixed at its ideal size on both
+axes (`RichMessageCodeBlockView`). A transcript cell is first laid out at UIKit's placeholder height,
+and an unfixed `Text` truncated to one line there and never re-measured, so a thirty-line block
+drew one line centred in a row sized for all thirty. The plate keeps the column's trailing margin
+and fades its trailing edge while more of the longest line is off to the right.
+
 Blocks draw as a `VStack` of `RichMessageBlockView`, and every run of running text — prose, headings,
 list rows, quoted prose — goes through the same TextKit body the chips need, so selection, copy, the
 row's long press, and link taps are exactly what they were. A table is a native `Grid` inside a
@@ -366,13 +372,13 @@ transcript, and changing it rebuilds the document and reloads the frame the same
 does.
 
 Height is the screen's, not the card's. Transcript rows are hosted in `UIHostingConfiguration` cells
-inside the flipped table, which re-hosts a row only when state above the table changes
-(`TranscriptListView.reconfigureVisibleRows`, driven from `updateUIView`) — a height measured inside
-a cell has nowhere to go. So `VisualHeightRegistry` holds measured heights keyed
+inside the flipped table, which re-hosts a visible row only when its own item changes or the
+screen's `rowRevision` does (`TranscriptRowReconfiguration`, driven from `updateUIView`) — a height
+measured inside a cell has nowhere to go. So `VisualHeightRegistry` holds measured heights keyed
 by message id and fence ordinal, exactly as `AttachmentImageTileRegistry` holds tile anchors, and
-`MessageTimelineView` and `ThreadDetailView` each own one. The screen's own body reads the
-registry's `revision`, which is what turns a frame's report into a re-render, a reconfigure, and a
-row at its new height. A visual draws no shell — transparent, unbordered, filling the message
+`MessageTimelineView` and `ThreadDetailView` each own one. The screen folds the registry's
+`revision` into `rowRevision`, which is what turns a frame's report into a re-render, a reconfigure,
+and a row at its new height. A visual draws no shell — transparent, unbordered, filling the message
 column, the same inline frame as the web (ADR 0031) — and uses natural document height,
 with 240pt reserved until the first report, a 120pt minimum, and a 100,000pt resource guard for
 pathological documents, matching the web. Height changes apply immediately without animation or
@@ -627,7 +633,22 @@ with the newest message still visible, which is the keyboard behavior the produc
 What remains above the substrate is intent, not position management. `TranscriptListUpdate`
 classifies each snapshot change exactly (refresh, append, prepend, reset — pinned in
 `TranscriptListUpdateTests`), `MessageTimelineTailScroll` / `ThreadReplyReveal` still decide what an
-append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. The list
+append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. A
+viewer's own send eases in whole (`animateToNewest`); anyone else's reply arriving while the
+reader is at the tail is followed from its top (`followNewest`): once it is taller than the
+viewport its top is held just below the header as it streams in, the way Claude reads a long
+answer, until a drag, a reveal, or a newer item ends the hold. A reader who scrolled up is never
+moved: the update's anchor is held, and every later content-size change — a long row arriving
+below them and sizing itself a moment after the update — re-applies it until anything else moves
+the viewport (`TranscriptListView+AnchorHold`).
+
+An update costs what it changes. The screens memoize their row items per page
+(`MessageTimelineProjection`, `ThreadTranscriptProjection`), so the body that runs on every frame of
+a drawer pan or keyboard rise hands the list the same array storage and the list's comparison is an
+identity check. A visible row is re-hosted and re-measured (`reconfigureRows`) only when its item
+changed — which is how a row that grew in place, a streamed reply, gets its new height — or when
+`rowRevision`, everything rows read beyond their item (a press tint, a registry's revision, history
+load state), changed. An inset-only update re-hosts nothing; `TranscriptListBehaviorTests` pins it. The list
 passes the previous snapshot to append policy: a Thread's anchor and task metadata are not prior
 replies, so its first fetched reply page settles immediately rather than animating through history.
 
@@ -649,7 +670,9 @@ destination offset immediately, and leaves everything the viewport passes over b
 therefore holds a single-use `SettleTicket`, closed by whichever arrives first —
 `scrollViewDidEndScrollingAnimation`, or a deferred fallback armed just past UIKit's own duration for
 the flights that never report one, such as a mid-flight inset write cancelling the travel — while a
-drag closes it on the spot and orphans both. Without that guarantee a cancelled settle would keep
+drag closes it on the spot and orphans both. Whichever closes it lands the viewport on the settle's
+home as it stands then (`land`): a travel UIKit cancelled — the composer collapsing right after a
+send — otherwise stranded the newest row under the composer with the chevron up. Without that guarantee a cancelled settle would keep
 publishing "showing the newest item" over a viewport stranded anywhere, which is the stale chevron
 this contract exists to prevent.
 
@@ -664,6 +687,10 @@ of a flipped cell renders upside down; the screen answers it with the message dr
 An inline reply in a Channel or DM leads its identity block with one quiet parent line, the App's
 `InlineReplyPreview`: an elbow in the avatar rail curving toward the parent author's small avatar,
 name, and a one-line excerpt, with no card, bar, or icon. The whole line jumps to the parent.
+`TranscriptRowGrouping` also opens each calendar day with a quiet divider (`TranscriptDayDivider`:
+Today, Yesterday, a weekday within the week, then the date) and never lets an identity block run
+across one; a Thread places the same divider between replies as items of its own. Row timestamps
+stay times of day.
 `TranscriptRowGrouping` owns the App's `markRepeatedReplyReferences` rule: a reply from the same
 author to the same parent as the row above skips the line and joins that row's block, so an
 acknowledgment and its follow-up read as one answer. A shown reference always opens a new identity
@@ -717,6 +744,11 @@ the user never visited as read and strand them there once the Tasks list pops. A
 the open Chat while it is on screen, and the shell's Chat selection resumes ownership when it pops;
 the covered canvas Chat stays named so its page keeps refreshing underneath, but read
 acknowledgements belong to the deepest surface alone.
+
+A Thread is titled "Thread", or "Task #N" for a Task's Thread, with its conversation ("#design", or
+"DM") as the subtitle (`ThreadOpening`). One the anchor says has replies opens blank until its first
+reply page lands — at most `ThreadOpening.holdLimit` — so the push never draws the anchor first and
+then snaps to the newest reply.
 
 The Inbox is the phone's landing screen and the sidebar's anchor. It mirrors the App page section
 for section — header, **Active this week**, **Unread**, **Happening now** —
@@ -1037,7 +1069,9 @@ reactors list inside the sheet, one line per sticker, the viewer's own first wit
 removed on press, which is iOS's place for what the App shows on hover. Inset grouped cards follow:
 Reply (where the Chat has inline replies) and Reply in Thread or Open Thread, then Copy Text. The
 Thread's drawer keeps reactions and Copy Text. A chosen action runs after the sheet has gone, so a
-push or the composer's focus never races the dismissal.
+push or the composer's focus never races the dismissal. VoiceOver cannot reach the row's long press, so each
+message's identity block reads as one element — author, time, body — carrying the drawer's actions
+as rotor actions (React opens the drawer; `MessageRowAccessibility`).
 
 The smiley turns the drawer, in place, into the emoji picker at 75% of the screen (draggable to full;
 the reactors list opens the same way)

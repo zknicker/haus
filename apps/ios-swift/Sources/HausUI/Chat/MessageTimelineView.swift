@@ -8,9 +8,9 @@ public struct MessageTimelineView: View {
     let messages: [MessagePresentation]
     let isMessageHistoryLoaded: Bool
     private let emptyStateDescription: String
-    private let onOpenThread: (MessagePresentation) -> Void
-    private let allowsInlineReplies: Bool
-    private let onSelectInlineReply: (MessagePresentation) -> Void
+    let onOpenThread: (MessagePresentation) -> Void
+    let allowsInlineReplies: Bool
+    let onSelectInlineReply: (MessagePresentation) -> Void
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
     let history: MessageHistoryNavigation
@@ -29,6 +29,8 @@ public struct MessageTimelineView: View {
     /// attachment tiles are: rows live in table cells the screen has to
     /// re-host. See `VisualHeightRegistry`.
     @State private var visualHeights = VisualHeightRegistry()
+    /// Per-page work, done once per page; see `MessageTimelineProjection`.
+    @State private var projection = MessageTimelineProjection()
     @State var highlightedMessageID: String?
     @State private var isNearNewest = true
     @State var reveal: TranscriptReveal?
@@ -44,7 +46,7 @@ public struct MessageTimelineView: View {
     /// so the screen reads the board and hands it to each row.
     @Environment(\.reactionStickers) private var reactionBoard
     /// The message whose long-press drawer is open.
-    @State private var actionMessage: MessagePresentation?
+    @State var actionMessage: MessagePresentation?
     /// The message a resting finger is holding, before and through its long
     /// press. Together with `actionMessage` it tints the row.
     @State private var heldMessageID: String?
@@ -87,20 +89,11 @@ public struct MessageTimelineView: View {
     /// explicit clearances, so the transcript runs to the screen edges and
     /// passes under the header's and the composer's glass.
     public var body: some View {
-        let indexByID = messageIndexByID
-        // Read here, in the screen's own body, so a visual's height report
-        // re-renders the screen and the table re-hosts its visible rows. The
-        // card reads the registry too, but a cell's hosting view invalidating
-        // itself is not what re-measures the row: only a change ABOVE the table
-        // reaches `updateUIView` and its `reconfigureVisibleRows`. Every screen
-        // that owns a registry has to read `revision` for its cards to grow.
-        _ = visualHeights.revision
-        // The same for a pending own reaction, which grows a row's pile before
-        // any page changes.
-        _ = reactionBoard?.revision
-        // And for the press tint: rows read these inside the table's row
-        // closure, which SwiftUI does not track as this body's dependency.
-        _ = (heldMessageID, actionMessage?.id)
+        projection.update(messages)
+        let entries = projection.entries
+        // Read here, in the screen's own body, so each input subscribes this
+        // body; see `rowRevision`.
+        let rowRevision = rowRevision
         return GeometryReader { proxy in
             if messages.isEmpty && isMessageHistoryLoaded {
                 ContentUnavailableView(
@@ -117,34 +110,27 @@ public struct MessageTimelineView: View {
                 .ignoresSafeArea()
             } else {
                 TranscriptListView(
-                    items: messages,
+                    items: entries,
                     topInset: proxy.safeAreaInsets.top,
                     bottomInset: proxy.safeAreaInsets.bottom,
                     showsAccessory: history.hasOlder,
                     onAppend: { _, items, isNearNewest in
-                        switch MessageTimelineTailScroll.decide(
-                            hadMessages: true,
-                            isNearBottom: isNearNewest && history.followsLatest,
-                            isLatestPending: items.last?.isPending == true
-                        ) {
-                        case .ignore: .stay
-                        case .snap: .snapToNewest
-                        case .animate: .animateToNewest
-                        }
+                        appendBehavior(items, isNearNewest: isNearNewest)
                     },
                     reveal: reveal,
                     isNearNewest: $isNearNewest,
                     onVisibleItems: onVisibleMessagesChange,
                     animatesEntrance: opensWithEntrance,
-                    onLongPress: { message in
-                        if !message.isPending { actionMessage = message }
+                    onLongPress: { entry in
+                        if !entry.message.isPending { actionMessage = entry.message }
                     },
                     // A pending message opens no drawer, so it takes no tint.
-                    onHoldChange: { message in
-                        heldMessageID = message?.isPending == false ? message?.id : nil
+                    onHoldChange: { entry in
+                        heldMessageID = entry?.message.isPending == false ? entry?.id : nil
                     },
-                    row: { message in
-                        timelineRow(message, indexByID: indexByID)
+                    rowRevision: rowRevision,
+                    row: { entry in
+                        timelineRow(entry)
                     },
                     accessory: {
                         loadOlderAccessory
@@ -161,7 +147,7 @@ public struct MessageTimelineView: View {
         // area, so the button rides above the glass instead of under it.
         .overlay(alignment: .bottom) {
             if !isNearNewest || history.hasNewer {
-                GlassChromeButton(.icon(.arrowDown), label: "Scroll to latest message") {
+                TranscriptJumpButton(label: "Scroll to latest message") {
                     requestHistoryReveal(.latest)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -172,7 +158,7 @@ public struct MessageTimelineView: View {
         .animation(.easeOut(duration: 0.18), value: isNearNewest)
         .attachmentPreview(
             $attachmentPreview,
-            images: AttachmentImagePages.pages(in: messages),
+            images: projection.imagePages,
             tiles: attachmentTiles,
             onOpen: onOpenAttachment
         )
@@ -201,7 +187,7 @@ public struct MessageTimelineView: View {
         } message: {
             Text(historyRevealError ?? "The message could not be loaded.")
         }
-        .onChange(of: messages.map(\.id)) { _, ids in
+        .onChange(of: projection.messageIDs) { _, ids in
             visualHeights.retain(messageIDs: Set(ids))
         }
         .task(id: highlightedMessageID) {
@@ -223,32 +209,67 @@ public struct MessageTimelineView: View {
         }
     }
 
-    /// Row lookups run once per hosted row on every update, so the index is a
-    /// dictionary rather than a scan of the page.
-    private var messageIndexByID: [String: Int] {
-        Dictionary(
-            uniqueKeysWithValues: messages.enumerated().map { ($0.element.id, $0.offset) }
-        )
+    /// Everything a row draws from beyond its entry. Read here, in the
+    /// screen's own body, so a visual's height report, a pending own
+    /// reaction, or a press re-renders the screen and the table re-hosts its
+    /// visible rows: the rows read these inside the table's row closure, which
+    /// SwiftUI does not track as this body's dependency.
+    private var rowRevision: Int {
+        var hasher = Hasher()
+        hasher.combine(visualHeights.revision)
+        hasher.combine(reactionBoard?.revision)
+        hasher.combine(heldMessageID)
+        hasher.combine(actionMessage?.id)
+        hasher.combine(highlightedMessageID)
+        hasher.combine(history.hasOlder)
+        hasher.combine(history.isLoading)
+        return hasher.finalize()
+    }
+
+    private func appendBehavior(
+        _ items: [MessageTimelineEntry],
+        isNearNewest: Bool
+    ) -> TranscriptAppendBehavior {
+        let isLatestPending = items.last?.message.isPending == true
+        switch MessageTimelineTailScroll.decide(
+            hadMessages: true,
+            isNearBottom: isNearNewest && history.followsLatest,
+            isLatestPending: isLatestPending
+        ) {
+        case .ignore: return .stay
+        case .snap: return .snapToNewest
+        // The reader's own send lands whole; anyone else's reply is read from
+        // its top.
+        case .animate: return isLatestPending ? .animateToNewest : .followNewest
+        }
     }
 
     @ViewBuilder
-    private func timelineRow(_ message: MessagePresentation, indexByID: [String: Int]) -> some View {
-        let index = indexByID[message.id] ?? 0
-        let grouping = TranscriptRowGrouping(message, after: index > 0 ? messages[index - 1] : nil)
-        MessageTimelineRow(
-            message: message,
-            isContinuation: grouping.isContinuation,
-            showsReplyReference: grouping.showsReplyReference,
-            isHighlighted: highlightedMessageID == message.id,
-            isPressed: message.id == heldMessageID || message.id == actionMessage?.id,
-            attachmentPreview: $attachmentPreview,
-            attachmentTiles: attachmentTiles,
-            visualHeights: visualHeights,
-            reactionBoard: reactionBoard,
-            onOpenThread: { onOpenThread(message) },
-            onOpenInlineReply: requestInlineReply,
-            onOpenAttachment: onOpenAttachment
-        )
-        .padding(.top, index == 0 ? 0 : grouping.isContinuation ? 4 : 16)
+    private func timelineRow(_ entry: MessageTimelineEntry) -> some View {
+        let message = entry.message
+        let grouping = entry.grouping
+        VStack(alignment: .leading, spacing: 0) {
+            if grouping.startsDay {
+                TranscriptDayDivider(date: message.createdAt)
+                    .padding(.top, entry.isFirst ? 0 : 12)
+                    .padding(.bottom, 4)
+            }
+            MessageTimelineRow(
+                message: message,
+                isContinuation: grouping.isContinuation,
+                showsReplyReference: grouping.showsReplyReference,
+                isHighlighted: highlightedMessageID == message.id,
+                isPressed: message.id == heldMessageID || message.id == actionMessage?.id,
+                attachmentPreview: $attachmentPreview,
+                attachmentTiles: attachmentTiles,
+                visualHeights: visualHeights,
+                reactionBoard: reactionBoard,
+                onOpenThread: { onOpenThread(message) },
+                onOpenInlineReply: requestInlineReply,
+                onOpenAttachment: onOpenAttachment,
+                accessibilityActions: rowAccessibilityActions(for: message)
+            )
+            .padding(.top, entry.isFirst || grouping.startsDay ? 0 : grouping.isContinuation ? 4 : 16)
+        }
     }
 }

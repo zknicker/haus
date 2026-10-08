@@ -19,12 +19,14 @@ extension TranscriptListCoordinator {
         appended: Int,
         behavior: TranscriptAppendBehavior
     ) {
+        if behavior != .stay { heldAnchor = nil }
         let rest = CGPoint(x: 0, y: -table.contentInset.top)
         switch behavior {
         case .snapToNewest:
             endSettling()
+            followedTopItemID = nil
             table.contentOffset = rest
-        case .animateToNewest:
+        case .animateToNewest, .followNewest:
             // In flipped space inserted rows appear in place; the ease-in is
             // staged by holding the viewport on the previous newest row and
             // releasing it toward rest, across everything that arrived.
@@ -32,7 +34,11 @@ extension TranscriptListCoordinator {
                 height + table.rectForRow(at: IndexPath(row: row, section: 0)).height
             }
             table.contentOffset = CGPoint(x: 0, y: rest.y + insertedHeight)
-            settleToNewest(table: table, rest: rest)
+            followedTopItemID = behavior == .followNewest ? items.last?.id : nil
+            let destination = behavior == .followNewest
+                ? CGPoint(x: 0, y: max(rest.y, newestTopOffset(table)))
+                : rest
+            settleToNewest(table: table, rest: destination)
         case .stay:
             // `.stay` declines a new settle; it does not abandon one in
             // flight. That travel still owns the viewport and is still bound
@@ -51,6 +57,8 @@ extension TranscriptListCoordinator {
         guard let index = items.lastIndex(where: { $0.id == reveal.id }) else { return }
         table.layoutIfNeeded()
         handledRevealToken = reveal.token
+        followedTopItemID = nil
+        heldAnchor = nil
         // The newest item's home is the resting edge, not the viewport center.
         guard index < items.count - 1 else {
             let rest = CGPoint(x: 0, y: -table.contentInset.top)
@@ -68,6 +76,32 @@ extension TranscriptListCoordinator {
             at: .middle,
             animated: reveal.animated
         )
+    }
+
+    /// The offset that puts the newest row's top just below the header
+    /// clearance. Past rest only when that row is taller than the viewport.
+    func newestTopOffset(_ table: UITableView) -> CGFloat {
+        guard !items.isEmpty else { return -table.contentInset.top }
+        let newest = table.rectForRow(at: IndexPath(row: 0, section: 0))
+        // Flipped: a row's maxY is its visual top, and the table's bottom
+        // inset is the visual top clearance.
+        return newest.maxY - table.bounds.height + table.contentInset.bottom
+    }
+
+    /// Keeps a followed reply's top in view while it grows past the viewport,
+    /// the way a streamed answer reads from its beginning. A reply that still
+    /// fits stays bottom-anchored; a drag, a reveal, or a newer item ends the
+    /// hold.
+    func holdFollowedTop(table: UITableView) {
+        guard let followed = followedTopItemID else { return }
+        guard items.last?.id == followed else {
+            followedTopItemID = nil
+            return
+        }
+        guard !nearNewest.isSettling, !table.isDragging, !table.isDecelerating else { return }
+        let top = newestTopOffset(table)
+        guard top > -table.contentInset.top, abs(table.contentOffset.y - top) > 0.5 else { return }
+        table.contentOffset = CGPoint(x: 0, y: top)
     }
 
     /// Distance from the resting (newest) edge, in points. Zero at rest.
@@ -106,9 +140,24 @@ extension TranscriptListCoordinator {
             MainActor.assumeIsolated {
                 guard let self, self.nearNewest.endSettling(ticket) else { return }
                 guard let table else { return }
+                self.land(table)
                 self.scheduleNearNewestSync(table)
             }
         }
+    }
+
+    /// Puts a settle that closed short of home onto it. A travel UIKit
+    /// cancelled — an inset write mid-flight, the composer collapsing right
+    /// after a send — otherwise strands the viewport wherever it stopped,
+    /// with the newest row under the composer and the chevron up. Home is
+    /// read now, not when the settle began, because that inset write is
+    /// usually what moved it.
+    func land(_ table: UITableView) {
+        guard !table.isDragging, !table.isDecelerating else { return }
+        let rest = -table.contentInset.top
+        let home = followedTopItemID == nil ? rest : max(rest, newestTopOffset(table))
+        guard abs(table.contentOffset.y - home) > 0.5 else { return }
+        table.setContentOffset(CGPoint(x: 0, y: home), animated: false)
     }
 
     /// Ends any settle in flight and orphans the signals that would have closed

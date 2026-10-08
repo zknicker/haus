@@ -54,6 +54,10 @@ struct RichMessageBlockView: View {
 
 /// A list, flattened: one row per item, indented by its depth, with the marker
 /// the author wrote standing before the words.
+///
+/// Markers sit in a column as wide as the widest marker at their depth, right
+/// aligned, so "9." and "10." end at the same place and the words after them
+/// keep one left edge.
 struct RichMessageListView: View {
     let items: [RichMessageListItem]
     let textStyle: Font.TextStyle
@@ -61,13 +65,15 @@ struct RichMessageListView: View {
     let markRevision: Int
 
     var body: some View {
+        let widest = Self.widestMarkers(items)
         VStack(alignment: .leading, spacing: 3) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 HStack(alignment: .top, spacing: 6) {
-                    Text(marker(item))
-                        .font(.system(textStyle))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                    ZStack(alignment: .trailing) {
+                        // Reserves the column's width; never drawn.
+                        markerText(widest[item.depth] ?? Self.marker(item)).hidden()
+                        markerText(Self.marker(item))
+                    }
                     RichMessageInlineView(
                         segments: item.segments,
                         textStyle: textStyle,
@@ -81,10 +87,26 @@ struct RichMessageListView: View {
         }
     }
 
-    private func marker(_ item: RichMessageListItem) -> String {
+    private func markerText(_ marker: String) -> some View {
+        Text(marker)
+            .font(.system(textStyle))
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+    }
+
+    nonisolated static func marker(_ item: RichMessageListItem) -> String {
         switch item.marker {
         case .bullet: "\u{2022}"
         case .ordered(let number): "\(number)."
+        }
+    }
+
+    /// The longest marker at each depth. With tabular digits, the longest
+    /// string is the widest one.
+    nonisolated static func widestMarkers(_ items: [RichMessageListItem]) -> [Int: String] {
+        items.reduce(into: [:]) { widest, item in
+            let marker = Self.marker(item)
+            if marker.count > (widest[item.depth]?.count ?? 0) { widest[item.depth] = marker }
         }
     }
 }
@@ -120,29 +142,6 @@ struct RichMessageQuoteView: View {
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-/// A fenced code block: the App's secondary surface, the control corner, and a
-/// line that scrolls rather than wraps.
-struct RichMessageCodeBlockView: View {
-    let text: String
-    let textStyle: Font.TextStyle
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            Text(verbatim: text)
-                .font(.system(textStyle, design: .monospaced))
-                .textSelection(.enabled)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-        }
-        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-        .background(
-            HausPlatformColor.inputSurface,
-            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-        )
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
