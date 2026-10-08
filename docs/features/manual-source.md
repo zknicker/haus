@@ -49,7 +49,7 @@ Equivalent means the full substantive body and source metadata match after produ
 | `technique/group-chat-debug` | Equivalent | Full source behavior and metadata retained. |
 | `technique/html-artifact-discussion` | Adapted | Haus HTML artifact fence. |
 | `technique/login-with-raft` | Deliberately omitted | No Haus OAuth app registration/agent-login analogue. Latest source retained for audit only; no invented commands or action cards. |
-| `technique/memory-hygiene` | Equivalent | Full source behavior and metadata retained. |
+| `technique/memory-hygiene` | Adapted | Rewritten for Haus hot memory, notes/ topic files and chat-held history; preferences written as terse merged rules. |
 | `technique/preview-env` | Equivalent | Full source behavior and metadata retained. |
 | `technique/proof-of-work-receipts` | Adapted | Receipt in final inline answer. |
 | `technique/reminder-cron` | Adapted | Haus scripts, inbox fires, cause IDs and agreed quiet reporting; webhook link. |
