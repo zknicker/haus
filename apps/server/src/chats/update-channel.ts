@@ -20,11 +20,11 @@ export class ChannelNotFoundError extends Error {
 
 export interface UpdatedChannel {
     chat: Chat;
-    /** Null when the save changed no name, appearance, or Agent participant. */
+    /** Null when the save changed no name, description, appearance, or Agent participant. */
     event: ServerDurableEvent | null;
 }
 
-/** Renames a channel, updates its appearance, and replaces its Agent participant set. */
+/** Renames a channel, updates its description and appearance, and replaces its Agent participant set. */
 export async function updateChannel(
     db: HausDatabase,
     member: HausUser | null,
@@ -41,6 +41,7 @@ export async function updateChannel(
         const [chat] = await tx
             .select({
                 color: chatsTable.color,
+                description: chatsTable.description,
                 icon: chatsTable.icon,
                 id: chatsTable.id,
                 kind: chatsTable.kind,
@@ -80,16 +81,17 @@ export async function updateChannel(
         )
             .map((row) => row.agentId)
             .sort();
-        // `undefined` means the caller left that appearance field alone; `null`
-        // clears it.
+        // `undefined` means the caller left that field alone; `null` clears it.
         const appearance = {
             ...(input.color === undefined ? {} : { color: input.color }),
+            ...(input.description === undefined ? {} : { description: input.description }),
             ...(input.icon === undefined ? {} : { icon: input.icon }),
         };
         const changed =
             chat.name !== input.name ||
             previousAgentIds.join() !== agentIds.join() ||
             (appearance.color !== undefined && appearance.color !== chat.color) ||
+            (appearance.description !== undefined && appearance.description !== chat.description) ||
             (appearance.icon !== undefined && appearance.icon !== chat.icon);
 
         try {

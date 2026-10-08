@@ -78,6 +78,7 @@ export * from './attachments.ts';
 export * from './automation.ts';
 export * from './avatar.ts';
 export * from './avatar-generation.ts';
+export * from './channel-description.ts';
 export * from './chat.ts';
 export * from './chat-engagement.ts';
 export * from './chat-last-message.ts';

@@ -1,4 +1,5 @@
 import { channelColorSchema, channelIconSchema } from './channel-appearance.ts';
+import { channelDescriptionSchema, channelEditInputFields } from './channel-description.ts';
 import { chatMessageAuthorSchema, chatMessageReplySchema } from './chat-message-context.ts';
 
 export * from './channel-appearance.ts';
@@ -122,17 +123,13 @@ export const chatSendInputSchema = z
 
 export type ChatSendInput = z.infer<typeof chatSendInputSchema>;
 
-const channelAppearanceInputSchema = {
-    color: channelColorSchema.nullable().optional(),
-    icon: channelIconSchema.nullable().optional(),
-};
-
 export const chatSchema = z
     .object({
         archivedAt: timestampSchema.nullable(),
         archivedByUserId: idSchema.nullable(),
         color: channelColorSchema.nullable(),
         createdAt: timestampSchema,
+        description: channelDescriptionSchema.nullable(),
         icon: channelIconSchema.nullable(),
         id: idSchema,
         isAll: z.boolean(),
@@ -158,7 +155,7 @@ export const chatGetInputSchema = z.object({ chatId: idSchema, serverId: idSchem
 
 export const channelCreateInputSchema = z
     .object({
-        ...channelAppearanceInputSchema,
+        ...channelEditInputFields,
         agentIds: z.array(idSchema).min(1),
         name: z
             .string()
@@ -183,7 +180,7 @@ export type ChannelCreateInput = z.infer<typeof channelCreateInputSchema>;
 
 export const channelUpdateInputSchema = z
     .object({
-        ...channelAppearanceInputSchema,
+        ...channelEditInputFields,
         agentIds: z.array(idSchema).min(1),
         chatId: idSchema,
         name: z

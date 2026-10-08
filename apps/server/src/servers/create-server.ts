@@ -9,7 +9,12 @@ import {
     serversTable,
 } from '../postgres/schema.ts';
 import { ensureUserByClerkId } from '../users/haus-user.ts';
-import { allChannelName, onboardingOwnerChannelName, type ServerDetail } from './contracts.ts';
+import {
+    allChannelDescription,
+    allChannelName,
+    onboardingOwnerChannelName,
+    type ServerDetail,
+} from './contracts.ts';
 
 export interface CreateServerInput {
     clerkUserId: string;
@@ -37,6 +42,7 @@ export async function createServer(
     const server = { displayName: input.displayName, id: createOpaqueId('srv'), slug: input.slug };
     let viewerUserId = '';
     const channel = {
+        description: allChannelDescription,
         id: createOpaqueId('cht'),
         isAll: true,
         kind: 'channel' as const,
