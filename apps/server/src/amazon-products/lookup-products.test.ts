@@ -4,190 +4,150 @@ import { McpUpstreamError } from '../server-mcp/errors.ts';
 import { lookupProductSummaries, type RankWranglerRead } from './lookup-products.ts';
 
 const identity = { asin: 'B07X1MGDCN', marketplaceId: 'ATVPDKIKX0DER' } as const;
+const other = { asin: 'B0DDZPDF14', marketplaceId: 'ATVPDKIKX0DER' } as const;
 const basics = {
-    structuredContent: {
-        operation: 'getMany',
-        data: [
-            {
-                ...identity,
-                title: 'Flamingoween Halloween Flamingo Shirt',
-                thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
-                amazonListingStatus: 'active',
-            },
-        ],
-    },
+    title: 'Flamingoween Halloween Flamingo Shirt',
+    thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
+    amazonListingStatus: 'active',
+} as const;
+const ready = {
+    ...identity,
+    ...basics,
+    shortName: 'Flamingoween',
+    cutoutThumbnail: { status: 'available', url: 'https://images.example.com/cutout.webp' },
+    pending: [],
 };
+const pending = {
+    ...identity,
+    ...basics,
+    shortName: null,
+    cutoutThumbnail: { status: 'pending' },
+    pending: ['shortName', 'cutoutThumbnail'],
+};
+const settledNone = {
+    ...identity,
+    ...basics,
+    shortName: null,
+    cutoutThumbnail: { status: 'unavailable' },
+    pending: [],
+};
+const getMany = (...data: unknown[]) => ({ structuredContent: { operation: 'getMany', data } });
 const upstreamError = (code: string, retryable: boolean, retryAfterSeconds = 2) => ({
     isError: true,
     content: [
-        {
-            type: 'text',
-            text: JSON.stringify({ error: { code, retryable, retryAfterSeconds } }),
-        },
+        { type: 'text', text: JSON.stringify({ error: { code, retryable, retryAfterSeconds } }) },
     ],
 });
-const enrichedDetail = {
-    structuredContent: {
-        operation: 'get',
-        data: {
-            ...identity,
-            price: null,
-            listing: {
-                title: 'Flamingoween Halloween Flamingo Shirt',
-                brand: 'Halloween by 14th Floor',
-                shortName: 'Flamingoween',
-                cutoutThumbnail: {
-                    status: 'available',
-                    url: 'https://images.example.com/cutout.webp',
-                },
-                thumbnail: { status: 'unavailable' },
-                amazonListingStatus: 'active',
-            },
-        },
-    },
-};
 
 const warn = spyOn(console, 'warn').mockImplementation(() => undefined);
 afterEach(() => warn.mockClear());
 
-function readWith(enriched: unknown) {
+function readReturning(response: unknown) {
     const calls: Record<string, unknown>[] = [];
     const read: RankWranglerRead = async (args) => {
         calls.push(args);
-        return args.operation === 'getMany' ? basics : enriched;
+        return response;
     };
     return { calls, read };
 }
 
-test('unfinished enrichment still returns title and thumbnail, marked pending', async () => {
-    const { calls, read } = readWith(upstreamError('TEMPORARILY_UNAVAILABLE', true));
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(summary).toMatchObject({ status: 'found' });
-    expect(found(summary)).toMatchObject({
-        ...identity,
-        title: 'Flamingoween Halloween Flamingo Shirt',
-        thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
+async function lookup(response: unknown, products = [identity, other]) {
+    const { calls, read } = readReturning(response);
+    const results = lookupProductSummaries(read, products);
+    const settled = await Promise.all(products.map((product) => results.get(product.asin)));
+    return { calls, settled };
+}
+
+test('makes exactly one getMany with include for the whole batch', async () => {
+    const { calls } = await lookup(getMany(ready, { ...ready, ...other }));
+    expect(calls).toEqual([
+        {
+            operation: 'getMany',
+            products: [identity, other],
+            include: ['shortName', 'cutoutThumbnail'],
+        },
+    ]);
+});
+
+test('a ready item returns its short name and cutout, marked ready', async () => {
+    const { settled } = await lookup(getMany(ready), [identity]);
+    expect(settled[0]).toEqual({
+        status: 'found',
+        product: {
+            ...identity,
+            ...basics,
+            brand: null,
+            shortName: 'Flamingoween',
+            cutoutThumbnail: { status: 'available', url: 'https://images.example.com/cutout.webp' },
+            enrichment: 'ready',
+        },
+    });
+});
+
+test('a pending item returns its basics, marked pending', async () => {
+    const { settled } = await lookup(getMany(pending), [identity]);
+    expect(found(settled[0])).toMatchObject({
+        ...basics,
         shortName: null,
         cutoutThumbnail: null,
         enrichment: 'pending',
     });
-    expect(warn).not.toHaveBeenCalled();
-    expect(calls).toEqual([
-        { operation: 'getMany', products: [identity] },
-        { operation: 'get', ...identity, include: ['shortName', 'cutoutThumbnail'] },
-    ]);
 });
 
-test('a non-retryable enrichment error settles as ready without enrichment', async () => {
-    const { read } = readWith(upstreamError('NOT_FOUND', false));
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(found(summary)).toMatchObject({
+test('a settled item without enrichment is ready with an unavailable cutout', async () => {
+    const { settled } = await lookup(getMany(settledNone), [identity]);
+    expect(found(settled[0])).toMatchObject({
         shortName: null,
-        cutoutThumbnail: null,
+        cutoutThumbnail: { status: 'unavailable' },
         enrichment: 'ready',
     });
+});
+
+test('rejects a pending list naming fields Haus did not request', async () => {
+    const { settled } = await lookup(getMany({ ...pending, pending: ['marketData'] }), [identity]);
+    expect(settled[0]).toEqual({ ...identity, status: 'unavailable' });
     expect(warn).toHaveBeenCalledTimes(1);
 });
 
-test('a transport failure in enrichment still serves the basics', async () => {
-    const read: RankWranglerRead = async (args) => {
-        if (args.operation === 'getMany') {
-            return basics;
-        }
-        throw new Error('socket hang up');
-    };
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(found(summary)).toMatchObject({
-        title: 'Flamingoween Halloween Flamingo Shirt',
-        enrichment: 'ready',
-    });
-    expect(warn).toHaveBeenCalledTimes(1);
+test('a product getMany omits is unavailable without failing its siblings', async () => {
+    const { settled } = await lookup(getMany(ready));
+    expect(settled[0]).toMatchObject({ status: 'found' });
+    expect(settled[1]).toEqual({ ...other, status: 'unavailable' });
 });
 
-test('ready enrichment fills short name, cutout, and brand', async () => {
-    const { read } = readWith(enrichedDetail);
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(found(summary)).toMatchObject({
-        shortName: 'Flamingoween',
-        brand: 'Halloween by 14th Floor',
-        cutoutThumbnail: { status: 'available', url: 'https://images.example.com/cutout.webp' },
-        thumbnail: { status: 'available', url: 'https://images.example.com/product.jpg' },
-        enrichment: 'ready',
-    });
-});
-
-test('a retryable getMany failure falls back to the per-product read', async () => {
-    const read: RankWranglerRead = async (args) =>
-        args.operation === 'getMany'
-            ? upstreamError('TEMPORARILY_UNAVAILABLE', true)
-            : enrichedDetail;
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(summary).toEqual({
-        status: 'found',
-        product: {
-            ...identity,
-            title: 'Flamingoween Halloween Flamingo Shirt',
-            brand: 'Halloween by 14th Floor',
-            shortName: 'Flamingoween',
-            cutoutThumbnail: { status: 'available', url: 'https://images.example.com/cutout.webp' },
-            thumbnail: { status: 'unavailable' },
-            amazonListingStatus: 'active',
-            enrichment: 'ready',
-        },
-    });
-    expect(warn).not.toHaveBeenCalled();
-});
-
-test('an MCP timeout on getMany also falls back to the per-product read', async () => {
-    const read: RankWranglerRead = async (args) => {
-        if (args.operation === 'getMany') {
-            throw new McpUpstreamError('MCP_TIMEOUT', 'The MCP invocation timed out.');
-        }
-        return enrichedDetail;
-    };
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(found(summary)).toMatchObject({ shortName: 'Flamingoween' });
-});
-
-test('when both reads are retryable the product is temporarily unavailable', async () => {
-    const read: RankWranglerRead = async (args) =>
-        upstreamError('TEMPORARILY_UNAVAILABLE', true, args.operation === 'getMany' ? 2 : 5);
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(summary).toEqual({
-        ...identity,
-        status: 'temporarilyUnavailable',
-        retryAfterSeconds: 5,
-    });
+test('a retryable batch error makes every product temporarily unavailable', async () => {
+    const { calls, settled } = await lookup(upstreamError('TEMPORARILY_UNAVAILABLE', true, 5));
+    expect(settled).toEqual([
+        { ...identity, status: 'temporarilyUnavailable', retryAfterSeconds: 5 },
+        { ...other, status: 'temporarilyUnavailable', retryAfterSeconds: 5 },
+    ]);
+    expect(calls).toHaveLength(1);
     expect(warn).not.toHaveBeenCalled();
 });
 
 test('retry waits are clamped to the contract bounds', async () => {
-    const read: RankWranglerRead = async () => upstreamError('TEMPORARILY_UNAVAILABLE', true, 600);
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(summary).toMatchObject({ retryAfterSeconds: 30 });
+    const { settled } = await lookup(upstreamError('TEMPORARILY_UNAVAILABLE', true, 600));
+    expect(settled[0]).toMatchObject({ retryAfterSeconds: 30 });
 });
 
-test('permanent failures of both reads make the product unavailable', async () => {
-    const read: RankWranglerRead = async () => upstreamError('INTERNAL', false);
+test('an MCP timeout is transient with the default wait', async () => {
+    const read: RankWranglerRead = () =>
+        Promise.reject(new McpUpstreamError('MCP_TIMEOUT', 'The MCP invocation timed out.'));
     const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(summary).toEqual({ ...identity, status: 'unavailable' });
+    expect(summary).toEqual({
+        ...identity,
+        status: 'temporarilyUnavailable',
+        retryAfterSeconds: 2,
+    });
 });
 
-test('a product getMany omits is unavailable without failing its batch siblings', async () => {
-    const other = { asin: 'B0DDZPDF14', marketplaceId: 'ATVPDKIKX0DER' } as const;
-    const { read } = readWith(upstreamError('NOT_FOUND', false));
-    const results = lookupProductSummaries(read, [identity, other]);
-    expect(await results.get(identity.asin)).toMatchObject({ status: 'found' });
-    expect(await results.get(other.asin)).toEqual({ ...other, status: 'unavailable' });
-});
-
-test('a product getMany omits still resolves from its per-product read', async () => {
-    const read: RankWranglerRead = async (args) =>
-        args.operation === 'getMany'
-            ? { structuredContent: { operation: 'getMany', data: [] } }
-            : enrichedDetail;
-    const summary = await lookupProductSummaries(read, [identity]).get(identity.asin);
-    expect(found(summary)).toMatchObject({ shortName: 'Flamingoween' });
+test('a non-retryable batch error makes every product unavailable', async () => {
+    const { settled } = await lookup(upstreamError('INTERNAL', false));
+    expect(settled).toEqual([
+        { ...identity, status: 'unavailable' },
+        { ...other, status: 'unavailable' },
+    ]);
+    expect(warn).toHaveBeenCalledTimes(1);
 });
 
 function found(result: AmazonProductResult | undefined) {

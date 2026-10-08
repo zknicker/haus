@@ -19,82 +19,43 @@ test('product cache shares lookups and rechecks connection state before serving 
     const upstream = makeClient('RankWrangler', {
         call: async (args) => {
             const request = args.arguments as Record<string, unknown>;
-            if (request.operation === 'getMany') {
-                expect(request.products).toContainEqual({
-                    asin: expect.any(String),
-                    marketplaceId: 'ATVPDKIKX0DER',
-                });
-                reads += 1;
-                const known = (request.products as { asin: string }[]).some(
-                    (product) => product.asin === 'B07XN9T11R'
-                );
-                return {
-                    structuredContent: {
-                        operation: 'getMany',
-                        data: known
-                            ? [
-                                  {
-                                      asin: 'B07XN9T11R',
-                                      marketplaceId: 'ATVPDKIKX0DER',
-                                      title: 'Freaky Lunch Lady Halloween Shirt',
-                                      thumbnail: { status: 'unavailable' },
-                                      amazonListingStatus: 'active',
-                                  },
-                              ]
-                            : [],
-                    },
-                };
-            }
-            if (request.asin === unknownAsin) {
-                return {
-                    isError: true,
-                    content: [
-                        { type: 'text', text: '{"error":{"code":"NOT_FOUND","retryable":false}}' },
-                    ],
-                };
-            }
-            expect(request).toEqual({
-                operation: 'get',
-                asin: 'B07XN9T11R',
-                marketplaceId: 'ATVPDKIKX0DER',
+            expect(request).toMatchObject({
+                operation: 'getMany',
                 include: ['shortName', 'cutoutThumbnail'],
             });
-            if (!enrichmentReady) {
-                return {
-                    isError: true,
-                    content: [
-                        {
-                            type: 'text',
-                            text: JSON.stringify({
-                                error: {
-                                    code: 'TEMPORARILY_UNAVAILABLE',
-                                    retryable: true,
-                                    retryAfterSeconds: 2,
-                                },
-                            }),
-                        },
-                    ],
-                };
-            }
+            reads += 1;
+            const known = (request.products as { asin: string }[]).some(
+                (product) => product.asin === 'B07XN9T11R'
+            );
+            const enrichment = enrichmentReady
+                ? {
+                      shortName: 'Freaky Lunch Lady',
+                      cutoutThumbnail: {
+                          status: 'available',
+                          url: 'https://images.example.com/cutout.webp',
+                      },
+                      pending: [],
+                  }
+                : {
+                      shortName: null,
+                      cutoutThumbnail: { status: 'pending' },
+                      pending: ['shortName', 'cutoutThumbnail'],
+                  };
             return {
                 structuredContent: {
-                    operation: 'get',
-                    data: {
-                        asin: 'B07XN9T11R',
-                        marketplaceId: 'ATVPDKIKX0DER',
-                        listing: {
-                            title: 'Freaky Lunch Lady Halloween Shirt',
-                            shortName: 'Freaky Lunch Lady',
-                            cutoutThumbnail: {
-                                status: 'available',
-                                url: 'https://images.example.com/cutout.webp',
-                            },
-                            thumbnail: { status: 'unavailable' },
-                            amazonListingStatus: 'active',
-                            bulletPoints: [],
-                        },
-                        price: null,
-                    },
+                    operation: 'getMany',
+                    data: known
+                        ? [
+                              {
+                                  asin: 'B07XN9T11R',
+                                  marketplaceId: 'ATVPDKIKX0DER',
+                                  title: 'Freaky Lunch Lady Halloween Shirt',
+                                  thumbnail: { status: 'unavailable' },
+                                  amazonListingStatus: 'active',
+                                  ...enrichment,
+                              },
+                          ]
+                        : [],
                 },
             };
         },
@@ -163,6 +124,7 @@ test('product cache shares lookups and rechecks connection state before serving 
             ...input,
             products: [...input.products, unknown],
         });
+        expect(reads).toBe(4);
         expect(mixed?.map((result) => result.status)).toEqual(['found', 'unavailable']);
         expect(mixed?.[1]).toEqual({ ...unknown, status: 'unavailable' });
         await expect(readAmazonProductSummaries(db.db, runtime, null, input)).rejects.toThrow();
