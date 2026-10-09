@@ -30,7 +30,11 @@ export async function callMcpTool(
     client: MCPClient,
     request: { arguments: Record<string, unknown>; name: string; options: McpRequestOptions }
 ) {
-    await listings.get(client)?.catch(() => undefined);
+    const listing = listings.get(client);
+    if (listing) {
+        // A failed listing leaves the client unbound; the check below lists again.
+        await Promise.allSettled([listing]);
+    }
     if (!boundClients.has(client)) {
         await listAllTools(client, request.options);
     }
