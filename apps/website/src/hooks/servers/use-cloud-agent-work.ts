@@ -4,7 +4,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 export function useChatCloudAgentWork(serverId: string, chatId: string) {
     return hausTrpc.cloudAgentWork.listForChat.useQuery(
         { serverId, chatId },
-        queryPolicy.syncedSnapshot
+        queryPolicy.pushedSnapshot
     );
 }
 

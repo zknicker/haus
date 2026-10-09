@@ -6,7 +6,7 @@ export function useMembers(serverId: string | undefined, options?: { enabled?: b
     return hausTrpc.member.list.useQuery(
         { serverId: serverId ?? '' },
         {
-            ...queryPolicy.syncedSnapshot,
+            ...queryPolicy.pushedSnapshot,
             enabled: serverId !== undefined && options?.enabled !== false,
         }
     );

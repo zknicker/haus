@@ -31,6 +31,13 @@ export async function invalidateCloudAgentWorkChanges({
         )
     );
 
+    // A Chat's work list never stales on a timer (`queryPolicy.pushedSnapshot`)
+    // and is warmed by hover prefetch, so an older request still in flight
+    // must not land after this pass and erase the stale mark.
+    await Promise.all(
+        chatIds.map((chatId) => utils.cloudAgentWork.listForChat.cancel({ chatId, serverId }))
+    );
+
     await Promise.all([
         utils.cloudAgentWork.listActive.invalidate({ serverId }),
         ...chatIds.map((chatId) =>

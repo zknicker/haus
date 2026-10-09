@@ -5,7 +5,7 @@ export function useTaskLabels(serverId: string | undefined, options?: { enabled?
     return hausTrpc.taskLabel.list.useQuery(
         { serverId: serverId ?? '' },
         {
-            ...queryPolicy.syncedSnapshot,
+            ...queryPolicy.pushedSnapshot,
             enabled: serverId !== undefined && options?.enabled !== false,
         }
     );

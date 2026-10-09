@@ -10,7 +10,7 @@ export function useViewerTimeZone(serverId: string): string {
     const saved = hausTrpc.member.list.useQuery(
         { serverId },
         {
-            ...queryPolicy.syncedSnapshot,
+            ...queryPolicy.pushedSnapshot,
             select: (directory) =>
                 directory.members.find((member) => member.userId === directory.viewerUserId)
                     ?.timezone ?? null,

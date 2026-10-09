@@ -6,7 +6,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 export function useChats(serverId: string | undefined) {
     return hausTrpc.chat.list.useQuery(
         { serverId: serverId ?? '' },
-        { ...queryPolicy.syncedSnapshot, enabled: serverId !== undefined }
+        { ...queryPolicy.pushedSnapshot, enabled: serverId !== undefined }
     );
 }
 
@@ -20,7 +20,7 @@ export function useListedChat(serverId: string, chatId: string): Chat | undefine
         (chats: Chat[]) => chats.find((chat) => chat.id === chatId),
         [chatId]
     );
-    return hausTrpc.chat.list.useQuery({ serverId }, { ...queryPolicy.syncedSnapshot, select })
+    return hausTrpc.chat.list.useQuery({ serverId }, { ...queryPolicy.pushedSnapshot, select })
         .data;
 }
 
@@ -31,7 +31,7 @@ export function useListedChat(serverId: string, chatId: string): Chat | undefine
  * React Query re-runs it when the list or its identity changes.
  */
 export function useChatListSelection<T>(serverId: string, select: (chats: Chat[]) => T) {
-    return hausTrpc.chat.list.useQuery({ serverId }, { ...queryPolicy.syncedSnapshot, select })
+    return hausTrpc.chat.list.useQuery({ serverId }, { ...queryPolicy.pushedSnapshot, select })
         .data;
 }
 
@@ -116,7 +116,7 @@ export interface AgentDmEntry {
 export function useChatAppearances(serverId: string): ReadonlyMap<string, Chat> {
     const [select] = React.useState(createAppearanceSelector);
     return (
-        hausTrpc.chat.list.useQuery({ serverId }, { ...queryPolicy.syncedSnapshot, select }).data ??
+        hausTrpc.chat.list.useQuery({ serverId }, { ...queryPolicy.pushedSnapshot, select }).data ??
         noChats
     );
 }

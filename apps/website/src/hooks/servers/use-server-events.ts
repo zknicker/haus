@@ -21,6 +21,13 @@ export function useServerEvents(serverId: string | undefined, slug: string | und
         {
             enabled: serverId !== undefined,
             onData: createServerUpdateHandler(utils, serverId, slug),
+            // This stream never replays, so its (re)start re-reads what its
+            // events keep exact (query-reconnect-recovery.ts).
+            onStarted: () => {
+                if (serverId) {
+                    void recoverServerUpdateReads(utils, serverId);
+                }
+            },
             onError: (error) => {
                 if (!isMembershipLoss(error)) {
                     return;
@@ -103,9 +110,28 @@ export function createServerUpdateHandler(
         void utils.server.list.invalidate();
         invalidateMemberDetail(utils, serverId, event.memberId);
         void utils.member.list.invalidate({ serverId });
+        // List rows name human authors and carry human participants, which a
+        // profile edit or a membership change moves.
+        void utils.chat.list.invalidate({ serverId });
         void utils.invitation.list.invalidate({ serverId });
         void utils.cloudAgentSettings.get.invalidate({ serverId });
     };
+}
+
+/**
+ * The reads this stream keeps exact without a timer (`queryPolicy.pushedSnapshot`)
+ * and so owns after a gap: whatever changed while it was not listening. The
+ * App-wide reconnect pass skips them (`streamRecoveredReads['server.onUpdate']`).
+ */
+export function recoverServerUpdateReads(
+    utils: Pick<ServerEventUtils, 'chat' | 'member'>,
+    serverId: string
+) {
+    return Promise.all([
+        utils.chat.list.invalidate({ serverId }),
+        utils.member.get.invalidate({ serverId }),
+        utils.member.list.invalidate({ serverId }),
+    ]);
 }
 
 /** Without a known slug the detail read cannot be named, so every one refreshes. */

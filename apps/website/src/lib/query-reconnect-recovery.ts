@@ -36,6 +36,9 @@ export function createQueryReconnectHandler({
  * - `agent.onLifecycle` re-reads the Agent list and Agent details.
  * - `agent.onActivity` re-reads current activity, Activity History, turns, and
  *   usage.
+ * - `server.onUpdate` re-reads the reads it keeps exact without a timer
+ *   (`pushedSnapshotCoverage`): the Chat list and the member directory. Its
+ *   other reads still recover in the App-wide pass.
  *
  * The App-wide reconnect pass skips them, or every one would refetch twice.
  */
@@ -63,6 +66,7 @@ export const streamRecoveredReads = {
         'task.list',
         'taskLabel.list',
     ],
+    'server.onUpdate': ['chat.list', 'member.get', 'member.list'],
 } as const satisfies Record<string, readonly string[]>;
 
 /** Reads whose answer never changes once read, so a gap cannot have staled them. */
@@ -75,9 +79,9 @@ const skippedProcedures: ReadonlySet<string> = new Set([
 
 /**
  * Whether the App-wide reconnect pass refetches this query: a Server tRPC
- * read that no event stream recovers. `server.onUpdate` is one such stream —
- * it neither replays nor catches up, so its Server, member, Computer, MCP, and
- * settings reads recover here, as do reads with no stream at all (reminders,
+ * read that no event stream recovers. `server.onUpdate` never replays and
+ * re-reads only its pushed reads as it starts, so its Server, Computer, MCP,
+ * invitation, and settings reads recover here, as do reads with no stream at all (reminders,
  * triggers, delivery state). Queries outside tRPC (update checks, turn
  * outlines) are not Server state a socket gap can stale; their own policies own
  * when they refetch.

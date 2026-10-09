@@ -16,7 +16,7 @@ export function useInboxUnreadCount(serverId: string | undefined): {
 } {
     const count = hausTrpc.chat.list.useQuery(
         { serverId: serverId ?? '' },
-        { ...queryPolicy.syncedSnapshot, enabled: serverId !== undefined, select: countUnread }
+        { ...queryPolicy.pushedSnapshot, enabled: serverId !== undefined, select: countUnread }
     ).data;
 
     return { count: count ?? 0, isReady: count !== undefined };

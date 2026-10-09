@@ -27,7 +27,7 @@ export function usePreloadChat(serverId: string, chatId: string | undefined) {
         );
         void utils.cloudAgentWork.listForChat.prefetch(
             { chatId, serverId },
-            queryPolicy.syncedSnapshot
+            queryPolicy.pushedSnapshot
         );
     }, [chatId, queryClient, serverId, utils]);
 

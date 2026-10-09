@@ -26,6 +26,19 @@ export const queryPolicy = {
         ...stableQueryPolicy,
         staleTime: THIRTY_SECONDS_MS,
     },
+    /**
+     * A read whose every change reaches the App as a realtime event the App
+     * listens to, and whose stream recovers it after a gap. Events keep the
+     * cache exact, so a timer never stales it: a remount refetches only after
+     * an event (or a stream's recovery) invalidated it. `Infinity`, never
+     * `'static'`, so invalidation still works. Only reads in
+     * `pushedSnapshotCoverage` (lib/pushed-snapshot-coverage.ts) may use it,
+     * each naming the events that cover it.
+     */
+    pushedSnapshot: {
+        ...stableQueryPolicy,
+        staleTime: Number.POSITIVE_INFINITY,
+    },
     syncedSnapshot: {
         ...stableQueryPolicy,
         staleTime: THIRTY_SECONDS_MS,
