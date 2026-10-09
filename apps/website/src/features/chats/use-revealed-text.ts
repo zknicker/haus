@@ -263,6 +263,7 @@ function isRevealFormattingCharacter(character: string) {
 
 function usePrefersReducedMotion() {
     const [shouldReduceMotion, setShouldReduceMotion] = React.useState(prefersReducedMotion);
+    const latest = React.useRef(shouldReduceMotion);
 
     React.useEffect(() => {
         if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -270,7 +271,14 @@ function usePrefersReducedMotion() {
         }
 
         const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-        const update = () => setShouldReduceMotion(query.matches);
+        // A desktop tab reveal re-runs this effect in every reply; an
+        // unchanged preference queues no render.
+        const update = () => {
+            if (latest.current !== query.matches) {
+                latest.current = query.matches;
+                setShouldReduceMotion(query.matches);
+            }
+        };
 
         update();
         query.addEventListener('change', update);

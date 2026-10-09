@@ -28,8 +28,12 @@ export function useStreamingTextRanges(
     React.useLayoutEffect(() => {
         if (!enabled) {
             previousTextRef.current = text;
-            rangesRef.current = [];
-            setRanges([]);
+            // Settled text runs this on every mount and on every desktop tab
+            // reveal; with nothing to clear, it queues no render.
+            if (rangesRef.current.length > 0) {
+                rangesRef.current = [];
+                setRanges([]);
+            }
             return;
         }
 

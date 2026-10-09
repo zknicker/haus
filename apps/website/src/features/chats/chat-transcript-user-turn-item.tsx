@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
     ChatTranscriptMessageContent,
     renderTranscriptMessageAttachments,
@@ -8,7 +9,36 @@ import { useTranscriptRenderContextOptional } from './chat-transcript-render-con
 import { InlineReplyMessageSurface } from './inline-reply-action.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 
-export function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item: TranscriptItem }) {
+interface UserTurnItemProps {
+    from: 'assistant' | 'user';
+    item: TranscriptItem;
+}
+
+/**
+ * One message in a person's turn. The transcript model wraps every row in a
+ * fresh item on each build, but the rows keep their identity, so the item
+ * compares by row: a new message in a run of sends renders itself, not every
+ * message above it in the turn.
+ */
+export const UserTurnItem = React.memo(function UserTurnItem({ from, item }: UserTurnItemProps) {
+    return <UserTurnItemView from={from} item={item} />;
+}, sameUserTurnItem);
+
+function sameUserTurnItem(previous: UserTurnItemProps, next: UserTurnItemProps) {
+    if (previous.from !== next.from) {
+        return false;
+    }
+    if (previous.item === next.item) {
+        return true;
+    }
+    return (
+        previous.item.kind === 'row' &&
+        next.item.kind === 'row' &&
+        previous.item.row === next.item.row
+    );
+}
+
+function UserTurnItemView({ from, item }: UserTurnItemProps) {
     const context = useTranscriptRenderContextOptional();
 
     if (item.kind !== 'row' || item.row.kind !== 'message') {
