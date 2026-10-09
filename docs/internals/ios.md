@@ -876,12 +876,16 @@ The parent Chat's preview carries the Thread's cloud agents from `cloudAgentWork
 cards beside the ingress button, never inside it (`ThreadCloudAgentStackView`). One job is just its
 card. Two or more collapse like an iOS notification group: `N cloud agents` with a counts line
 (problems first and tinted — `1 failed · 2 no update · 6 working · 1 done`), a Show all control,
-the most urgent job's full card on top (failed, then no update, then working, done,
-cancelled/expired — `ThreadCloudAgentStack`), and up to two fixed-height edges peeking beneath it.
-Show all lists every job in that order — a calm working job without a pull request as a compact
-header-only card that opens the Thread, every other job as the full card — with Show less above and
-below. Expansion is `@State` per anchor and animates with a spring (a 150ms ease under Reduce
-Motion). The Thread connector keeps running down the left of the cards and turns in beside the top
+the full card of the job that most needs attention on top (the first failed job, else the first
+with no update, else the first started — `ThreadCloudAgentStack`), and up to two fixed-height edges
+peeking beneath it for the next jobs in start order. Jobs keep the order they were started (work
+`createdAt`, ties in the Server's order), so nothing re-sorts while agents work; the top card changes
+only when a job's state does. Show all lists every job in start order — a calm working job without
+a pull request as a compact header-only card that opens the Thread, every other job as the full
+card — with Show less above and below. Expansion lives in the session's
+`ThreadCloudAgentStackExpansion` (owned by `HausStore`, read through the environment), keyed by
+anchor Message id, so it survives the row scrolling away and the Chat reopening; stacks start
+collapsed. Toggling animates with a spring (a 150ms ease under Reduce Motion). The Thread connector keeps running down the left of the cards and turns in beside the top
 card, or beside the bottom Show less when expanded. Cards follow the
 [card contract](../../specs/cloud-agents.md): the Server's `job` headlines in Cursor's vocabulary
 (never "Queued"), an optional PR row, exactly one single-line status line

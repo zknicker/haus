@@ -98,8 +98,8 @@ and [Agent Inbox](../../specs/inbox.md).
   job beneath its anchor's Task header, always named after the job's title,
   with `#<n>` once it has a pull request and the card's job state (Working ·
   elapsed with a spinner, Done, Failed, Cancelled or Expired dimmed, or
-  `No update in <d>` as a warning; never queued). Failed and quiet jobs sort
-  first, then working, done, and cancelled or expired. The
+  `No update in <d>` as a warning; never queued). Rows keep the order the
+  jobs were started, oldest first, so they never move as jobs change state. The
   Server's conversation-scoped work list supplies these rows, grouped by
   Thread anchor. The preview's reply rows are the newest
   conversational replies and leave out work announcements, so each work

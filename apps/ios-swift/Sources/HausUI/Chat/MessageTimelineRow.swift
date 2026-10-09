@@ -116,6 +116,7 @@ struct MessageTimelineRow: View {
                     task: ingressTask
                 ) {
                     ThreadPreviewCard(
+                        anchorMessageID: message.id,
                         thread: message.thread,
                         task: ingressTask,
                         cloudAgents: message.threadCloudAgents,

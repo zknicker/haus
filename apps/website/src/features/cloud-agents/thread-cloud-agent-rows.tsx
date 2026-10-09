@@ -8,8 +8,8 @@ import { CloudAgentStatusDisc } from './cloud-agent-status-disc.tsx';
 import { type ThreadCloudAgentRow, threadCloudAgentRows } from './thread-cloud-agent-row-model.ts';
 
 /**
- * The Cloud Agent jobs inside a Thread, one informational row each, problems
- * first. The Thread surface's single button owns every click.
+ * The Cloud Agent jobs inside a Thread, one informational row each, in the
+ * order they were started. The Thread surface's single button owns every click.
  */
 export function ThreadCloudAgentRows({ works }: { works: readonly CloudAgentWork[] }) {
     const now = useRelativeNow(30_000);

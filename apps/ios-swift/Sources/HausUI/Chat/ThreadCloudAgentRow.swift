@@ -25,13 +25,12 @@ public struct ThreadCloudAgentRow: Identifiable, Hashable, Sendable {
         state == .working && tone == .standard && pullRequestNumber == nil
     }
 
-    /// One row per job, problems first: failed, then gone quiet, then working,
-    /// then done, then cancelled or expired. Ties keep the Server's order.
+    /// One row per job in the order the jobs were started (oldest first), so
+    /// rows never move while their jobs change state. Ties keep the Server's order.
     public static func rows(_ agents: [CloudAgentPresentation], at now: Date) -> [ThreadCloudAgentRow] {
-        agents.map { row($0, at: now) }
-            .enumerated()
-            .sorted { ($0.element.rank, $0.offset) < ($1.element.rank, $1.offset) }
-            .map(\.element)
+        agents.enumerated()
+            .sorted { ($0.element.work.createdAt, $0.offset) < ($1.element.work.createdAt, $1.offset) }
+            .map { row($0.element, at: now) }
     }
 
     static func row(_ agent: CloudAgentPresentation, at now: Date) -> ThreadCloudAgentRow {
@@ -53,22 +52,12 @@ public struct ThreadCloudAgentRow: Identifiable, Hashable, Sendable {
             pullRequestNumber: agent.pullRequestNumber
         )
     }
-
-    fileprivate var rank: Int {
-        if tone == .warning { return 1 }
-        switch state {
-        case .failed: return 0
-        case .working: return 2
-        case .done: return 3
-        case .cancelled, .expired: return 4
-        }
-    }
 }
 
 /// The Cloud Agent jobs a Thread preview states. One job is just its card. Two
 /// or more collapse into a notification-style stack: a header naming how many
-/// and how they stand, the most urgent job's card on top, and up to two edges
-/// peeking beneath it. Expanding lists every job in the same order.
+/// and how they stand, the job that most needs attention on top, and up to two
+/// edges peeking beneath it. Expanding lists every job in the order they started.
 public struct ThreadCloudAgentStack: Hashable, Sendable {
     public struct Count: Hashable, Sendable {
         public enum Tone: Hashable, Sendable { case danger, warning, standard }
@@ -88,11 +77,21 @@ public struct ThreadCloudAgentStack: Hashable, Sendable {
     /// One job needs no header, count, or stack: its card says everything.
     public var isSingle: Bool { rows.count == 1 }
 
-    /// The job that leads the collapsed stack, by the same order the rows use.
-    public var top: ThreadCloudAgentRow? { rows.first }
+    /// The job that leads the collapsed stack: the first failed job, else the
+    /// first gone quiet, else the first started. It changes only when a job's
+    /// state does, going quiet included.
+    public var top: ThreadCloudAgentRow? {
+        rows.first { $0.state == .failed } ?? rows.first { $0.tone == .warning } ?? rows.first
+    }
+
+    /// The jobs whose edges peek under the collapsed top card, in the order
+    /// they started.
+    public var peeks: [ThreadCloudAgentRow] {
+        Array(rows.filter { $0.id != top?.id }.prefix(Self.maxPeeks))
+    }
 
     /// How many card edges peek under the collapsed top card.
-    public var peekCount: Int { min(Self.maxPeeks, max(0, rows.count - 1)) }
+    public var peekCount: Int { peeks.count }
 
     public var title: String { "\(rows.count) cloud agents" }
 

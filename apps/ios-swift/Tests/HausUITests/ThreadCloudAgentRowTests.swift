@@ -7,7 +7,7 @@ private typealias Fixture = CloudAgentWorkFixture
 private typealias Job = CloudAgentWorkFixture.Job
 
 /// Ports the App's `thread-cloud-agent-row-model.test.ts`: one row per job,
-/// problems first.
+/// in the order the jobs were started.
 @Suite struct ThreadCloudAgentRowTests {
     private let now = Fixture.date("2026-09-04T12:10:00.000Z")
 
@@ -15,19 +15,40 @@ private typealias Job = CloudAgentWorkFixture.Job
         Fixture.iso(now.addingTimeInterval(Double(-minutes * 60)))
     }
 
-    @Test func everyJobGetsItsOwnRowProblemsFirstThenWorkingDoneCancelled() throws {
-        let fresh = minutesAgo(1)
+    @Test func everyJobGetsItsOwnRowInTheOrderTheJobsWereStarted() throws {
         let agents = try [
-            Fixture.work(id: "a", title: "Cancelled", status: "cancelled", job: Job.ended("cancelled", settledAt: nil)),
-            Fixture.work(id: "b", title: "Done", status: "completed", job: Job.done(startedAt: nil, settledAt: nil)),
-            Fixture.work(id: "c", title: "Working", updatedAt: fresh),
-            Fixture.work(id: "d", title: "Quiet", updatedAt: minutesAgo(52)),
-            Fixture.work(id: "e", title: "Failed", status: "failed", job: Job.failed()),
-            Fixture.work(id: "f", title: "Working too", updatedAt: fresh),
-            Fixture.work(id: "g", title: "Expired", status: "expired", job: Job.ended("expired", settledAt: nil))
+            Fixture.work(id: "a", title: "Third", status: "cancelled",
+                         job: Job.ended("cancelled", settledAt: nil), createdAt: minutesAgo(10)),
+            Fixture.work(id: "b", title: "First", status: "completed",
+                         job: Job.done(startedAt: nil, settledAt: nil), createdAt: minutesAgo(30)),
+            Fixture.work(id: "c", title: "Fifth", updatedAt: minutesAgo(1), createdAt: minutesAgo(5)),
+            Fixture.work(id: "d", title: "Second", updatedAt: minutesAgo(52), createdAt: minutesAgo(20)),
+            Fixture.work(id: "e", title: "Fourth", status: "failed", job: Job.failed(), createdAt: minutesAgo(8))
         ]
         #expect(ThreadCloudAgentRow.rows(agents, at: now).map(\.work.title)
-            == ["Failed", "Quiet", "Working", "Working too", "Done", "Cancelled", "Expired"])
+            == ["First", "Second", "Third", "Fourth", "Fifth"])
+    }
+
+    @Test func jobsStartedAtTheSameMomentKeepTheServerOrder() throws {
+        let agents = try [
+            Fixture.work(id: "a", title: "Listed first", status: "completed", job: Job.done(startedAt: nil, settledAt: nil)),
+            Fixture.work(id: "b", title: "Listed second", status: "failed", job: Job.failed())
+        ]
+        #expect(ThreadCloudAgentRow.rows(agents, at: now).map(\.work.title) == ["Listed first", "Listed second"])
+    }
+
+    @Test func aRowNeverMovesWhenItsJobChangesState() throws {
+        let before = try [
+            Fixture.work(id: "o", title: "Older", updatedAt: minutesAgo(1), createdAt: minutesAgo(20)),
+            Fixture.work(id: "n", title: "Newer", updatedAt: minutesAgo(1), createdAt: minutesAgo(10))
+        ]
+        let after = try [
+            Fixture.work(id: "n", title: "Newer", status: "failed", job: Job.failed(), createdAt: minutesAgo(10)),
+            Fixture.work(id: "o", title: "Older", status: "completed",
+                         job: Job.done(startedAt: nil, settledAt: nil), createdAt: minutesAgo(20))
+        ]
+        #expect(ThreadCloudAgentRow.rows(before, at: now).map(\.work.title) == ["Older", "Newer"])
+        #expect(ThreadCloudAgentRow.rows(after, at: now).map(\.work.title) == ["Older", "Newer"])
     }
 
     @Test func aRowStatesTheJobInTheCardVocabularyNeverQueued() throws {
@@ -90,13 +111,33 @@ private typealias Job = CloudAgentWorkFixture.Job
         #expect(stack.counts.map(\.tone) == [.danger, .warning, .standard, .standard, .standard])
     }
 
-    @Test func theMostUrgentJobLeadsTheStack() throws {
+    @Test func theFirstFailedJobLeadsTheStack() throws {
         #expect(ThreadCloudAgentStack(try fanOut(), at: now).top?.work.title == "Failed")
-        let calm = try [
-            Fixture.work(id: "d", status: "completed", job: Job.done(startedAt: nil, settledAt: nil)),
-            Fixture.work(id: "w", title: "Working", updatedAt: minutesAgo(1))
+    }
+
+    @Test func withoutAFailureTheFirstQuietJobLeadsTheStack() throws {
+        let agents = try [
+            Fixture.work(id: "w", title: "Working", updatedAt: minutesAgo(1)),
+            Fixture.work(id: "q1", title: "Quiet one", updatedAt: minutesAgo(52)),
+            Fixture.work(id: "q2", title: "Quiet two", updatedAt: minutesAgo(52))
         ]
-        #expect(ThreadCloudAgentStack(calm, at: now).top?.work.title == "Working")
+        #expect(ThreadCloudAgentStack(agents, at: now).top?.work.title == "Quiet one")
+    }
+
+    @Test func aCalmStackIsLedByTheFirstJobStarted() throws {
+        let calm = try [
+            Fixture.work(id: "w", title: "Working", updatedAt: minutesAgo(1), createdAt: minutesAgo(5)),
+            Fixture.work(id: "d", title: "Done", status: "completed",
+                         job: Job.done(startedAt: nil, settledAt: nil), createdAt: minutesAgo(9))
+        ]
+        #expect(ThreadCloudAgentStack(calm, at: now).top?.work.title == "Done")
+    }
+
+    @Test func peeksFollowTheStartOrderLeavingOutTheTopCard() throws {
+        let stack = ThreadCloudAgentStack(try fanOut(), at: now)
+        #expect(stack.peeks.map(\.work.title) == ["Working one", "Done"])
+        #expect(stack.rows.map(\.work.title)
+            == ["Working one", "Done", "Working two", "Failed", "Quiet", "Expired"])
     }
 
     @Test func aSingleJobIsJustItsCard() throws {
@@ -118,5 +159,20 @@ private typealias Job = CloudAgentWorkFixture.Job
     @Test func onlyACalmWorkingJobWithoutAPullRequestCollapsesToItsHeader() throws {
         let rows = ThreadCloudAgentStack(try fanOut(), at: now).rows
         #expect(rows.filter(\.usesCompactCard).map(\.work.title) == ["Working one", "Working two"])
+    }
+}
+
+@MainActor
+@Suite struct ThreadCloudAgentStackExpansionTests {
+    @Test func aStackStartsCollapsedAndRemembersItsExpansionPerThread() {
+        let expansion = ThreadCloudAgentStackExpansion()
+        #expect(!expansion.isExpanded(anchorMessageID: "msg_a"))
+
+        expansion.setExpanded(true, anchorMessageID: "msg_a")
+        #expect(expansion.isExpanded(anchorMessageID: "msg_a"))
+        #expect(!expansion.isExpanded(anchorMessageID: "msg_b"))
+
+        expansion.setExpanded(false, anchorMessageID: "msg_a")
+        #expect(!expansion.isExpanded(anchorMessageID: "msg_a"))
     }
 }

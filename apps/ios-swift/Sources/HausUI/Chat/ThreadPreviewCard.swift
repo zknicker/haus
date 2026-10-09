@@ -1,13 +1,16 @@
 import SwiftUI
 
 struct ThreadPreviewCard: View {
+    /// The Thread's anchor Message, which keys the stack's expansion.
+    let anchorMessageID: String
     let thread: ThreadPreviewPresentation?
     let task: TaskPresentation?
     var cloudAgents: [CloudAgentPresentation] = []
     let onOpen: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Local to this anchor's preview: expanding one Thread's stack leaves the others alone.
-    @State private var showsAllCloudAgents = false
+    @Environment(\.threadCloudAgentStackExpansion) private var stackExpansion
+    /// Stands in for the session's expansion in previews and fixtures.
+    @State private var localShowsAllCloudAgents = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -69,9 +72,20 @@ struct ThreadPreviewCard: View {
         // The cards carry their own controls, so they sit beside the ingress
         // button rather than inside it.
         if !cloudAgents.isEmpty {
-            ThreadCloudAgentStackView(agents: cloudAgents, isExpanded: $showsAllCloudAgents, onOpen: onOpen)
+            ThreadCloudAgentStackView(agents: cloudAgents, isExpanded: showsAllCloudAgents, onOpen: onOpen)
                 .padding(.top, 4)
         }
+    }
+
+    /// Expanding one Thread's stack leaves the others alone, and survives the
+    /// row scrolling away because the session, not this view, remembers it.
+    private var showsAllCloudAgents: Binding<Bool> {
+        guard let stackExpansion else { return $localShowsAllCloudAgents }
+        let anchorMessageID = anchorMessageID
+        return Binding(
+            get: { stackExpansion.isExpanded(anchorMessageID: anchorMessageID) },
+            set: { stackExpansion.setExpanded($0, anchorMessageID: anchorMessageID) }
+        )
     }
 
     private var replyLabel: String {
@@ -117,6 +131,6 @@ private struct ThreadPreviewReplyRow: View {
 }
 
 #Preview {
-    ThreadPreviewCard(thread: ChatFixtures.messages[2].thread, task: ChatFixtures.messages[2].task, onOpen: {})
+    ThreadPreviewCard(anchorMessageID: ChatFixtures.messages[2].id, thread: ChatFixtures.messages[2].thread, task: ChatFixtures.messages[2].task, onOpen: {})
         .padding(40)
 }

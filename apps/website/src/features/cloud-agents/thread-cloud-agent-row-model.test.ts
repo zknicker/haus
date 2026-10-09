@@ -28,17 +28,49 @@ function titles(works: CloudAgentWork[]) {
     return threadCloudAgentRows(works, now).map((row) => row.work.title);
 }
 
-test('every job gets its own row, problems first, then working, done, cancelled', () => {
+test('every job gets its own row in the order the jobs were started, whatever their state', () => {
     expect(
         titles([
-            work({ id: 'a', status: 'cancelled', title: 'Cancelled' }),
-            work({ id: 'b', status: 'completed', title: 'Done' }),
-            work({ id: 'c', ...fresh, title: 'Working' }),
-            work({ id: 'd', title: 'Quiet', updatedAt: minutesAgo(52) }),
-            work({ id: 'e', status: 'failed', title: 'Failed' }),
-            work({ id: 'f', ...fresh, title: 'Working too' }),
+            work({ createdAt: minutesAgo(10), id: 'a', status: 'cancelled', title: 'Third' }),
+            work({ createdAt: minutesAgo(30), id: 'b', status: 'completed', title: 'First' }),
+            work({ createdAt: minutesAgo(5), id: 'c', ...fresh, title: 'Fifth' }),
+            work({
+                createdAt: minutesAgo(20),
+                id: 'd',
+                title: 'Second',
+                updatedAt: minutesAgo(52),
+            }),
+            work({ createdAt: minutesAgo(8), id: 'e', status: 'failed', title: 'Fourth' }),
         ])
-    ).toEqual(['Failed', 'Quiet', 'Working', 'Working too', 'Done', 'Cancelled']);
+    ).toEqual(['First', 'Second', 'Third', 'Fourth', 'Fifth']);
+});
+
+test('jobs started at the same moment keep the Server order', () => {
+    expect(
+        titles([
+            work({ id: 'a', status: 'completed', title: 'Listed first' }),
+            work({ id: 'b', status: 'failed', title: 'Listed second' }),
+        ])
+    ).toEqual(['Listed first', 'Listed second']);
+});
+
+test('a row never moves when its job changes state', () => {
+    const started = (title: string, minutes: number) => ({
+        createdAt: minutesAgo(minutes),
+        id: title,
+        title,
+    });
+    const before = titles([
+        work({ ...started('Older', 20), ...fresh }),
+        work({ ...started('Newer', 10), ...fresh }),
+    ]);
+    const after = titles([
+        work({ ...started('Older', 20), status: 'completed' }),
+        work({ ...started('Newer', 10), status: 'failed' }),
+    ]);
+
+    expect(before).toEqual(['Older', 'Newer']);
+    expect(after).toEqual(before);
 });
 
 test('a row states the job in the card vocabulary, never queued', () => {

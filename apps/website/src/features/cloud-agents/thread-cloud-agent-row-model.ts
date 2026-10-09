@@ -23,17 +23,17 @@ export interface ThreadCloudAgentRow {
 }
 
 /**
- * One row per job, problems first: failed, then gone quiet, then working,
- * then done, then cancelled or expired. Ties keep the order the Server listed them in.
+ * One row per job in the order the jobs were started (oldest first), so rows
+ * never move while their jobs change state. Ties keep the Server's order.
  */
 export function threadCloudAgentRows(
     works: readonly CloudAgentWork[],
     now: number
 ): ThreadCloudAgentRow[] {
     return works
-        .map((work, index) => ({ index, row: toRow(work, now) }))
-        .sort((a, b) => rank(a.row) - rank(b.row) || a.index - b.index)
-        .map(({ row }) => row);
+        .map((work, index) => ({ createdAt: Date.parse(work.createdAt), index, work }))
+        .sort((a, b) => a.createdAt - b.createdAt || a.index - b.index)
+        .map(({ work }) => toRow(work, now));
 }
 
 function toRow(work: CloudAgentWork, now: number): ThreadCloudAgentRow {
@@ -58,16 +58,4 @@ function toRow(work: CloudAgentWork, now: number): ThreadCloudAgentRow {
         tone: 'default',
         work,
     };
-}
-
-const stateRank: Record<CloudAgentJobState, number> = {
-    cancelled: 4,
-    done: 3,
-    expired: 4,
-    failed: 0,
-    working: 2,
-};
-
-function rank(row: ThreadCloudAgentRow): number {
-    return row.tone === 'warning' ? 1 : stateRank[row.state];
 }

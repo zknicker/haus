@@ -64,6 +64,7 @@ struct AuthenticatedHausView: View {
                     .environment(\.opensWithEntrance, !openingEntranceFinished)
                     .environment(\.reactionStickers, store.reactionStickers)
                     .environment(\.cloudAgentCancel, cloudAgentCancel)
+                    .environment(\.threadCloudAgentStackExpansion, store.cloudAgentStackExpansion)
                     .environment(\.chatEngagementSource, store.chatEngagementSource)
                     .environment(\.stoppedAgentSource, store.stoppedAgentSource)
                     .task {

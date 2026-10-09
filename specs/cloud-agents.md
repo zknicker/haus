@@ -143,9 +143,8 @@ anchor's Task header, always named after the job's title (never its diff). Each 
 provider's mark, the title, `#<n>` once the job has a pull request, and the job state in the card's
 vocabulary: `Working · <elapsed>` with the spinner, `Done`, `Failed`, `Cancelled` or `Expired`
 (dimmed), or the warning `No update in <d>` for a live job quiet for ten minutes. It never says
-queued. Problems sort first — failed, then no update — then working, then done, then cancelled or
-expired; ties keep the Server's
-order. Done work stays listed. The preview's reply rows exclude work announcements, so each work appears once. The
+queued. Rows keep the order the jobs were started — oldest work `createdAt` first, ties in the
+Server's order — so a row never moves while its job changes state. Done work stays listed. The preview's reply rows exclude work announcements, so each work appears once. The
 entire preview opens the Thread; summary rows are not click targets.
 Server's conversation-scoped `cloudAgentWork.listForChat` read includes all statuses, grouped by
 Thread anchor. The Inbox's separate active-work read remains active-only.
@@ -200,8 +199,10 @@ iOS renders the same one card (`CloudAgentCard.swift`) in the parent Chat and th
 same `job` and status-line priority. Its Thread preview shows cards instead of text rows, in the
 same per-job order (`ThreadCloudAgentRow`): one job is its card; two or more collapse into a
 notification-style stack — `N cloud agents`, a counts line with problems first and tinted, Show
-all, the most urgent job's card on top, and up to two peeking edges — that expands to every job,
-with calm working jobs as compact header-only cards. The card itself has three platform
+all, the job that most needs attention on top (the first failed job, else the first with no
+update, else the first started), and up to two peeking edges for the next jobs in start order —
+that expands to every job in start order, with calm working jobs as compact header-only cards.
+Expansion is remembered per Thread anchor for the signed-in session; stacks start collapsed. The card itself has three platform
 deviations: it fills the iPhone message column rather than a fixed measure; the
 job-state chip trails the one-line repository row instead of the title, so its ticking width can
 only truncate the repository and never rewrap the title; and **Open in `<provider>`** is a bordered

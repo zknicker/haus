@@ -21,13 +21,14 @@ enum CloudAgentWorkFixture {
         updatedAt: String = start,
         activity: String? = nil,
         cancelRequestedAt: String? = nil,
-        providerUrl: String? = "https://cursor.com/agents?id=bc-1"
+        providerUrl: String? = "https://cursor.com/agents?id=bc-1",
+        createdAt: String = start
     ) throws -> CloudAgentPresentation {
         let runs = runs ?? [run(status: status == "queued" ? "queued" : status)]
         let json = """
         {"activity":\(activity.map { #"{"at":"\#(updatedAt)","summary":\#(quoted($0))}"# } ?? "null"),
          "agentId":"agt_one","cancelRequestedAt":\(optional(cancelRequestedAt)),"chatId":"cht_one",
-         "createdAt":"\(start)","id":"\(id)","job":\(job),"messageId":"msg_one","provider":"cursor",
+         "createdAt":"\(createdAt)","id":"\(id)","job":\(job),"messageId":"msg_one","provider":"cursor",
          "providerUrl":\(optional(providerUrl)),"repository":"haus/haus","runs":[\(runs.joined(separator: ","))],
          "startedAt":"\(start)","startingRef":null,"status":"\(status)","terminalAt":null,
          "title":\(quoted(title)),"updatedAt":"\(updatedAt)"}

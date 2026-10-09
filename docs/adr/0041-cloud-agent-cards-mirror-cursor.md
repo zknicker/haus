@@ -54,7 +54,8 @@ pointed the same way.
    warning, then the follow-up note, then activity or last update. One type size inside the card;
    weight and color carry hierarchy. Working uses an indeterminate spinner, because a part-filled
    disc implied progress Haus does not have.
-4. **Thread previews list jobs.** One row per job, named by its title, problems first.
+4. **Thread previews list jobs.** One row per job, named by its title, in the order the jobs were
+   started, so rows never move as jobs change state.
 5. **Follow-up delivery is bounded.** A non-retryable Cursor rejection fails the Run immediately
    with Cursor's reason. Busy or transient errors retry until a deadline, then fail. Orphaned Runs
    settle. Each of these settles a Run and so reaches the Agent through decision 2.

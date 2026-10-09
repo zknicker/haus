@@ -93,6 +93,7 @@ final class HausStore {
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
     @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }
+    @ObservationIgnored let cloudAgentStackExpansion = ThreadCloudAgentStackExpansion()
     // Stream recovery (`HausStoreEventStreams.swift`).
     @ObservationIgnored var streamRestart: Task<Void, Never>?
     @ObservationIgnored var streamRestartAttempt = 0

@@ -3,10 +3,10 @@ import HausModels
 
 /// The Cloud Agent jobs inside a Thread, below its preview. One job is just
 /// its card. Two or more collapse like an iOS notification group: a header
-/// with the count and how the jobs stand, the most urgent job's full card on
-/// top, and up to two fixed-height edges peeking beneath it, so nothing moves
-/// as time ticks. Show all fans every job out in the same order — working jobs
-/// as compact cards, the rest as full ones — with Show less above and below.
+/// with the count and how the jobs stand, the job that most needs attention on
+/// top, and up to two fixed-height edges peeking beneath it. Show all fans
+/// every job out in the order they started — working jobs as compact cards,
+/// the rest as full ones — with Show less above and below.
 struct ThreadCloudAgentStackView: View {
     let agents: [CloudAgentPresentation]
     @Binding var isExpanded: Bool
@@ -14,8 +14,8 @@ struct ThreadCloudAgentStackView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        // Ordering reads quiet time, which moves on its own; minutes are the
-        // finest unit the ordering cares about.
+        // Row order never reads the clock, but a job going quiet does: the
+        // tick refreshes the tally and the top card's choice, not the order.
         TimelineView(.periodic(from: .now, by: 30)) { context in
             content(ThreadCloudAgentStack(agents, at: context.date))
         }
@@ -29,7 +29,7 @@ struct ThreadCloudAgentStackView: View {
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 header(stack)
-                ForEach(isExpanded ? stack.rows : Array(stack.rows.prefix(1))) { row in
+                ForEach(isExpanded ? stack.rows : stack.top.map { [$0] } ?? []) { row in
                     if isExpanded {
                         card(row)
                             .transition(cardTransition)
