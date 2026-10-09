@@ -25,6 +25,23 @@ test('each hoisted row names its work and status without another click target', 
     expect(html).not.toContain('<a ');
 });
 
+test('a fan-out reads as one provider row with a count and status breakdown', () => {
+    const html = renderToStaticMarkup(
+        <ThreadCloudAgentRows
+            works={[
+                work({ id: 'caw_a', status: 'running', title: 'First repo' }),
+                work({ id: 'caw_b', status: 'running', title: 'Second repo' }),
+                work({ id: 'caw_c', status: 'completed', title: 'Third repo' }),
+            ]}
+        />
+    );
+
+    expect(html.match(/>Cursor<\/span>/g)).toHaveLength(1);
+    expect(html).toContain('3 agents');
+    expect(html).toContain('2 running · 1 done');
+    expect(html).not.toContain('First repo');
+});
+
 test('thread rows show the current outcome, including a pending cancellation', () => {
     for (const [overrides, label] of [
         [{ status: 'completed' }, 'Done'],
@@ -82,6 +99,8 @@ test('compact completed rows show recorded diff counts, not the task title', () 
     );
     expect(missing).toContain('>Done</span>');
     expect(missing).not.toContain('changed');
+    // Without a recorded diff a finished work still names itself.
+    expect(missing).toContain('Fix the failing migration');
 });
 
 test('the activity row carries what a live work is doing', () => {
