@@ -22,14 +22,14 @@ The App uses the Haus Server `mcp` tRPC router:
 
 `mcp.add` accepts one HTTPS remote endpoint plus no auth, secret headers, or MCP OAuth
 configuration. Public connection reads expose header names and discovered tool names, never secret
-values. Preset creation resolves immutable Server-owned coordinates; every preset creates an `oauth`
-connection. `google-calendar` and `github` present a configured Server OAuth client
+values. Preset creation resolves immutable Server-owned coordinates; each preset fixes its authentication kind. CoinGecko creates a keyless `none`
+connection to `https://mcp.api.coingecko.com/sse` and discovers tools immediately. `google-calendar` and `github` present a configured Server OAuth client
 (`HAUS_GOOGLE_OAUTH_CLIENT_*`, `HAUS_GITHUB_OAUTH_CLIENT_*`) because their authorization servers
 offer no dynamic client registration; without it, `mcp.startOAuth` fails with the client reported
 unavailable. Server reads that client from its environment on every use and never stores it on the
 connection, so a rotated secret reaches existing connections.
 
-`mcp.addPresetAccount` is a union keyed by `preset`: an OAuth preset accepts no token, and a
+`mcp.addPresetAccount` is a union keyed by `preset`: OAuth and keyless presets accept no token, and a
 bearer-token preset (`x`) requires `bearerToken`, a single header-safe token. Server stores it as an
 `Authorization: Bearer` secret header and connects immediately; the token is never returned.
 `mcp.replacePresetToken` swaps that token and clears grants; `mcp.replaceHeaders` rejects

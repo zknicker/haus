@@ -38,7 +38,7 @@ client registration, optional pre-registered clients, refresh tokens, and author
 trust. A cross-origin authorization server requires explicit operator confirmation.
 Credential-bearing endpoints require HTTPS.
 
-GitHub, Google Calendar, MerchBase, RankWrangler, and X are connection presets. Server owns their immutable endpoints
+GitHub, Google Calendar, MerchBase, RankWrangler, X, and CoinGecko are connection presets. Server owns their immutable endpoints
 and auth defaults; they use the same generic path as custom connections.
 
 ## Other capability kinds

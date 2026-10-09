@@ -835,6 +835,10 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   height a field, an icon, or a title + description already gives a row, so a Switch or
   fact row matches a Select row beside it. Controls in one group share one width, and rows in
   one list box are divided by a stock `Separator`.
+  Connection logos use `ConnectionGlyph` inside the shared surface tile: artwork occupies
+  75% of the box with `object-fit: contain`, preserving circular and irregular brand shapes
+  without cropping them. Artwork inherits the tile's corner radius so square brand
+  backgrounds have the same soft corners as the surrounding surface.
 - **Desktop window layout:** The desktop app has two layouts (Settings > Preferences > Window
   layout), both with a 44px full-width grey window band holding the traffic lights over a
   sidebar-width segment, then the tab strip from the content column's edge. **Band** (default) puts

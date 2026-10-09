@@ -23,8 +23,10 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, MerchBase, GitHub, and X are presets for endpoint and auth defaults.
-They remain ordinary MCP connections. GitHub is a one-click sign-in like Google Calendar: **Connect**
+RankWrangler, Google Calendar, MerchBase, GitHub, X, and CoinGecko are presets for endpoint and auth defaults.
+They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
+without an account or API key, subject to shared upstream rate limits. Agent access still requires
+an explicit grant. GitHub is a one-click sign-in like Google Calendar: **Connect**
 opens GitHub's authorization page for Haus's own OAuth App, and Server keeps the token refreshed.
 Server asks GitHub's hosted MCP for its default toolsets plus Actions, so Agents can read workflow
 runs and job logs and run a workflow.
