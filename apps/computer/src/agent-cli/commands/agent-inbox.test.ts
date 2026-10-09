@@ -46,15 +46,15 @@ const pendingBody = {
 
 test('inbox check reads the Server list and the pending snapshot together', async () => {
     const routed = routedClient({ list: listBody, pending: pendingBody });
-    const output = await inboxCheck(routed.client, { '--before': '1300' });
+    const output = await inboxCheck(routed.client, { '--before': 'MTMwMA' });
 
     expect(routed.requests.sort()).toEqual([
         '/api/agent/inbox',
-        '/api/agent/inbox/conversations?before=1300',
+        '/api/agent/inbox/conversations?before=MTMwMA',
     ]);
     expect(output).toBe(
         [
-            'Inbox: 1 unread conversation (1 DM, 0 with mentions). Activity before seq 1300, newest first.',
+            'Inbox: 1 unread conversation (1 DM, 0 with mentions). Older activity, newest first.',
             '',
             'dm:@richard · 3 unread · 2 new, not yet delivered · latest @richard 12m ago',
             '  open: haus message read --target "dm:@richard" --after 1200',
@@ -122,11 +122,11 @@ test('inbox check rejects bad flags before network I/O', async () => {
     await expect(inboxCheck(routed.client, { '--view': 'all' })).rejects.toThrow(
         '--view must be one of unread, mentions; got all'
     );
-    await expect(inboxCheck(routed.client, { '--before': 'abc' })).rejects.toThrow(
-        '--before must be a positive integer seq (copy it from the More: line); got abc'
+    await expect(inboxCheck(routed.client, { '--before': '   ' })).rejects.toThrow(
+        '--before must be the key printed on the More: line; got    '
     );
-    await expect(inboxCheck(routed.client, { '--before': '0' })).rejects.toThrow(
-        '--before must be a positive integer seq'
+    await expect(inboxCheck(routed.client, { '--before': 'x'.repeat(201) })).rejects.toThrow(
+        '--before must be the key printed on the More: line'
     );
     expect(routed.requests).toEqual([]);
 });

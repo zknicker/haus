@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { agentInboxConversationsResponseSchema } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import Fastify from 'fastify';
+import { decodeInboxActivityKey } from '../src/agent-api/inbox-activity-key.ts';
 import {
     conversationsSql,
     listAgentInboxConversations,
@@ -170,11 +171,11 @@ test('keyset paging walks every row once with stable totals', async () => {
     });
     expect(first.items.map((item) => item.target)).toEqual(['#beta', '#alpha']);
     expect(first.hasMore).toBe(true);
-    expect(first.nextBefore).toBe(first.items[1]?.activityKey ?? -1);
+    expect(first.nextBefore).toBe(first.items[1]?.activityKey ?? '');
 
     const second = await listAgentInboxConversations(db, readerRunner(seed), {
         ...unreadView,
-        before: first.nextBefore,
+        before: decodeInboxActivityKey(first.nextBefore ?? ''),
         limit: 2,
     });
     expect(second.items.map((item) => item.target)).toEqual(['#product']);
@@ -188,7 +189,7 @@ test('invalid arguments name the flag the way the CLI spells it', () => {
         '--view must be one of unread, mentions; got all'
     );
     expect(parseInboxConversationsQuery({ before: '0' })).toBe(
-        '--before must be a positive integer seq (copy it from the More: line); got 0'
+        '--before must be the key printed on the More: line; got 0'
     );
     expect(parseInboxConversationsQuery({ limit: '51' })).toBe(
         '--limit must be an integer from 1 to 50; got 51'
