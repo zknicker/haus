@@ -118,7 +118,7 @@ PostgreSQL owns the hosted collaboration tables
 | --- | --- |
 | `users` | Haus Users keyed by a unique `clerk_user_id`, plus the avatar they wear (`avatar_id`) |
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
-| `servers` / `server_onboarding` | Opaque id, address/display fields, commit-serialized Chat event cursor, and durable fresh-Server setup progress |
+| `servers` / `server_onboarding` | Opaque id, address/display fields, and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `push_devices` | One human's iPhone APNs registrations keyed by device token: environment, bundle id, and the last APNs refusal ([iPhone Push](../operations/ios-push.md)) |
 | `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, Clerk owner, and the CLI's post-persistence acknowledgement |
@@ -136,7 +136,6 @@ PostgreSQL owns the hosted collaboration tables
 | `message_causes` | The automation fire one message answers, whether that attribution was explicit or inferred, and the snapshot the mark keeps for good — title, summary, fire time, owning Agent, anchor Chat — at most one per message |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `agent_chat_reads` | One monotonic Agent read position per Chat, behind `haus inbox check` and `message read --unread`; it outlives session rotation ([Data model](data-model.md)) |
-| `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
 | `attachments` | Server/Chat-scoped metadata, upload state, content digest, and optional message association |
 | `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |
 | `task_labels` / `message_task_labels` | Small Server task-label catalog and task links |
@@ -474,8 +473,8 @@ Haus App's copy is presentation.
 
 Every remove, demote, and leave locks the `servers` row before counting Owners,
 so two Owners racing to unseat each other serialize and exactly one commits.
-That reuses the row which already serializes durable Chat event cursors rather
-than adding a second locking scheme.
+That reuses the Server row lock other Server-wide writes take rather than adding
+a second locking scheme.
 
 ## Invitations
 
