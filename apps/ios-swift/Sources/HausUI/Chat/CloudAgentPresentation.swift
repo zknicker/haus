@@ -1,93 +1,90 @@
 import Foundation
 import HausModels
 
+/// One Cloud Agent work as every surface reads it. Mirrors the App's
+/// `cloud-agent-presentation.ts`; the card's headline is the Server-derived
+/// `job`, never the newest Run's status.
 public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     public let work: CloudAgentWork
     /// The App link to the conversation holding the work, for Copy link. Nil
     /// when the Server or conversation is not known, which hides the action.
     public let conversationLink: URL?
+    /// The delegating Agent, who sends any follow-up. The App resolves it from
+    /// its Agent list; a retired Agent reads as `Agent <id suffix>`, like the App.
+    public let agentName: String
     public var id: String { work.id }
 
-    public init(work: CloudAgentWork, conversationLink: URL? = nil) {
+    /// A live work that has not reported for this long reads as gone quiet.
+    public static let staleAfter: TimeInterval = 10 * 60
+
+    public init(work: CloudAgentWork, conversationLink: URL? = nil, agentName: String? = nil) {
         self.work = work
         self.conversationLink = conversationLink
+        self.agentName = agentName ?? "Agent \(work.agentId.suffix(6))"
     }
 
     public var providerName: String { Self.providerName(work.provider) }
-    public var status: CloudAgentPresentationStatus {
-        if work.status.isActive, work.cancelRequestedAt != nil { return .cancelling }
-        switch work.status {
-        case .queued: return .queued
-        case .running: return .running
-        case .completed: return .completed
-        case .failed: return .failed
-        case .cancelled: return .cancelled
-        case .expired: return .expired
-        }
-    }
-    public var statusLabel: String { status.label }
 
     public static func providerName(_ provider: String) -> String {
         provider == "cursor" ? "Cursor" : provider
     }
 
-    public var durationLabel: String? {
-        guard work.status == .completed, let start = work.startedAt, let end = work.terminalAt else { return nil }
-        return Self.duration(seconds: Int(end.timeIntervalSince(start)))
+    /// The headline: the job's state, never its newest Run's. A working job
+    /// states how long it has been going; a done one how long it took.
+    public func jobText(at now: Date) -> String {
+        let label = Self.jobLabel(work.job.state)
+        switch work.job {
+        case .working(let startedAt, _):
+            guard let startedAt else { return label }
+            return "\(label) · \(Self.duration(from: startedAt, to: now))"
+        case .done(let startedAt, let settledAt, _):
+            guard let startedAt, let settledAt else { return label }
+            return "\(label) · \(Self.duration(from: startedAt, to: settledAt))"
+        case .failed, .cancelled, .expired:
+            return label
+        }
     }
 
-    public var branches: [CloudAgentBranch] {
-        work.runs.first?.branches ?? []
+    public static func jobLabel(_ state: CloudAgentJobState) -> String {
+        switch state {
+        case .working: "Working"
+        case .done: "Done"
+        case .failed: "Failed"
+        case .cancelled: "Cancelled"
+        case .expired: "Expired"
+        }
     }
 
-    /// The one branch the card states: the one that opened a pull request,
-    /// else the first the run wrote.
-    public var primaryBranch: CloudAgentBranch? {
-        branches.first { $0.pullRequestUrl != nil } ?? branches.first
+    /// How long a live work has been quiet, once that passes the stale
+    /// threshold. Reads the work's own `updatedAt`, which any Run's observation
+    /// advances, never Computer connection state.
+    public func quietFor(at now: Date) -> TimeInterval? {
+        guard work.status.isActive else { return nil }
+        let quiet = now.timeIntervalSince(work.updatedAt)
+        return quiet > Self.staleAfter ? quiet : nil
     }
 
-    public var pullRequestURL: URL? { Self.externalURL(primaryBranch?.pullRequestUrl) }
+    /// The branch evidence the job has produced: the newest Run that reported
+    /// a pull request, then the newest that reported any branch, so a
+    /// follow-up never hides the earlier pull request.
+    public var branch: CloudAgentBranch? {
+        let branches = work.runs.flatMap(\.branches)
+        return branches.first { $0.pullRequestUrl != nil } ?? branches.first
+    }
+
+    public var pullRequestURL: URL? { Self.externalURL(branch?.pullRequestUrl) }
 
     /// `PR #<n>` from the Computer's GitHub snapshot, else parsed from the
     /// provider's URL; an unrecognised URL keeps its link and loses the number.
     public var pullRequestNumber: Int? {
-        guard let branch = primaryBranch else { return nil }
+        guard let branch else { return nil }
         if let pr = branch.pullRequest { return pr.number }
-        guard let url = branch.pullRequestUrl, let range = url.range(of: #"/pull/(\d+)"#, options: .regularExpression)
-        else { return nil }
-        return Int(url[range].dropFirst("/pull/".count))
+        return branch.pullRequestUrl.flatMap(RichReferenceWireForm.pullRequestNumber(in:))
     }
 
-    /// The branch fact without repeating the card's repository, unless the
-    /// branch lives somewhere else. Before any branch, the starting ref.
-    public var branchLabel: String {
-        guard let branch = primaryBranch else {
-            return work.startingRef.map { "Base: \($0)" } ?? "No branch yet"
-        }
-        return branch.repository == work.repository ? branch.branch : "\(branch.repository) · \(branch.branch)"
-    }
-
-    /// What a live work is doing now; a settled work says nothing here.
-    public var activityLine: String? {
-        guard work.status.isActive, let summary = work.activity?.summary else { return nil }
-        let line = RichMessageParser.oneLinePreview(summary)
-        return line.isEmpty ? nil : line
-    }
-
+    /// Cancel is for a live Run nobody has asked to stop; the role gate is the
+    /// App's cancel action, installed only for Owners and Admins.
     public var canBeCancelled: Bool { work.status.isActive && work.cancelRequestedAt == nil }
-
-    /// A finished work states its diff when one was recorded, and otherwise its title.
-    public var compactDescription: String {
-        guard work.status == .completed, let diff = primaryBranch?.pullRequest else { return work.title }
-        return "\(diff.changedFiles) \(diff.changedFiles == 1 ? "file" : "files") changed · +\(diff.additions) −\(diff.deletions)"
-    }
-
-    public func statusText(at now: Date) -> String {
-        if work.status == .running, work.cancelRequestedAt == nil, let start = work.startedAt {
-            return "Running · \(Self.duration(seconds: Int(now.timeIntervalSince(start))))"
-        }
-        return [statusLabel, durationLabel].compactMap { $0 }.joined(separator: " · ")
-    }
 
     /// The Cloud Agent duration grammar, matching the App's
     /// `formatCloudAgentDuration`: `45s`, `25m`, `2h`, `2h 5m`, `26h 5m`.
@@ -102,8 +99,8 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         return remainder == 0 ? "\(hours)h" : "\(hours)h \(remainder)m"
     }
 
-    public func isStale(at now: Date) -> Bool {
-        work.status == .running && now.timeIntervalSince(work.updatedAt) > 600
+    static func duration(from start: Date, to end: Date) -> String {
+        duration(seconds: Int(end.timeIntervalSince(start).rounded(.down)))
     }
 
     /// The work a Message's Thread preview lists: everything delegated inside
@@ -119,23 +116,5 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         guard let value, let url = URL(string: value),
               ["https", "http"].contains(url.scheme?.lowercased()), url.host != nil else { return nil }
         return url
-    }
-}
-
-/// The outcome a Cloud Agent row states. Case order is the Thread preview's
-/// breakdown order: live states first, then settled ones.
-public enum CloudAgentPresentationStatus: CaseIterable, Hashable, Sendable {
-    case running, queued, cancelling, completed, failed, expired, cancelled
-
-    public var label: String {
-        switch self {
-        case .running: "Running"
-        case .queued: "Queued"
-        case .cancelling: "Cancelling"
-        case .completed: "Done"
-        case .failed: "Failed"
-        case .expired: "Expired"
-        case .cancelled: "Cancelled"
-        }
     }
 }

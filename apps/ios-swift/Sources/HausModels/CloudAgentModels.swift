@@ -23,6 +23,8 @@ public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
     public let terminalAt: Date?
     public let cancelRequestedAt: Date?
     public let activity: CloudAgentActivity?
+    /// The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`).
+    public let job: CloudAgentJob
     public let runs: [CloudAgentRun]
 }
 
@@ -34,6 +36,8 @@ public struct CloudAgentActivity: Codable, Hashable, Sendable {
 public struct CloudAgentRun: Codable, Hashable, Sendable {
     public let runId: String
     public let status: CloudAgentStatus
+    /// When the Run was queued: the job's start, or when a follow-up was sent.
+    public let createdAt: Date
     public let branches: [CloudAgentBranch]
     public let startedAt: Date?
     public let terminalAt: Date?

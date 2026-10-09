@@ -12,7 +12,11 @@ extension HausStore {
     }
 
     func cloudAgentPresentation(_ work: CloudAgentWork) -> CloudAgentPresentation {
-        CloudAgentPresentation(work: work, conversationLink: cloudAgentConversationLink(work))
+        CloudAgentPresentation(
+            work: work,
+            conversationLink: cloudAgentConversationLink(work),
+            agentName: agentsByID[work.agentId]?.displayName
+        )
     }
 
     func loadCloudAgentWork(serverID: String, chatID: String) async {

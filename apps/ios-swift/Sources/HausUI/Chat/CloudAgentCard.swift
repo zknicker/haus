@@ -5,73 +5,41 @@ import UIKit
 #endif
 
 /// The Cloud Agent work under the Message that delegated it — the same card
-/// in the Chat transcript and inside its Thread. Facts, then one control band:
-/// what the work is and how it is going, the branch and pull request it wrote,
-/// the diff size, and what it is doing now. The Message's author line above
-/// already says who delegated it and when, and the Thread preview below (once
-/// replies exist) is the way into the Thread, so the card carries neither.
+/// in the Chat transcript and inside its Thread. Four parts, top to bottom:
+/// the header (mark, title, the job's state, the repository), the pull
+/// request once one exists, exactly one status line, and the actions. The
+/// headline is the job's state in Cursor's vocabulary, so a follow-up waiting
+/// in Haus's queue never turns a finished job back into "Queued". The status
+/// line is always there and always one line, so the card changes height only
+/// when its pull request first appears. One text size throughout; weight and
+/// color carry the hierarchy. The Message's author line above already says
+/// who delegated it and when.
+///
+/// The compact form is the same card cut to its header — mark, title, the
+/// repository and the job's chip — for a working job listed in an expanded
+/// Thread stack, where the full card adds nothing but its actions.
 struct CloudAgentCard: View {
     let agent: CloudAgentPresentation
+    var isCompact = false
     @Environment(\.cloudAgentCancel) private var cancelAction
+    @Environment(\.openURL) private var openURL
     @State private var confirmingCancel = false
     @State private var cancelling = false
     @State private var cancelError: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
-                CloudAgentMark()
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(agent.work.title).font(.subheadline.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    // The mark names the provider; this line says only where.
-                    Text(agent.work.repository).font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-                TimelineView(.animation(minimumInterval: 1, paused: !agent.work.status.isActive)) { context in
-                    CloudAgentCardStatusCapsule(status: CloudAgentCardStatus(
-                        label: agent.statusText(at: context.date), tint: statusColor
-                    ))
-                }
+        TimelineView(.periodic(from: .now, by: isLive ? 1 : 60)) { context in
+            if isCompact {
+                header(now: context.date, titleLineLimit: 1)
+            } else {
+                content(now: context.date)
             }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Label {
-                    HStack(spacing: 0) {
-                        Text(agent.branchLabel).lineLimit(1).truncationMode(.middle)
-                        if let number = agent.pullRequestNumber {
-                            Text(" · PR #\(number)").fixedSize()
-                        }
-                    }
-                } icon: { Image(systemName: "arrow.triangle.branch") }
-                if let pr = agent.primaryBranch?.pullRequest {
-                    Label {
-                        HStack(spacing: 4) {
-                            Text("\(pr.changedFiles) \(pr.changedFiles == 1 ? "file" : "files") changed")
-                            Text("+\(pr.additions)").foregroundStyle(.green)
-                            Text("−\(pr.deletions)").foregroundStyle(.red)
-                        }
-                    } icon: { Image(systemName: "plusminus") }
-                }
-                TimelineView(.animation(minimumInterval: 60, paused: !agent.work.status.isActive)) { context in
-                    if let activity = activityText(at: context.date) {
-                        Label { Text(activity).lineLimit(2) } icon: { Image(systemName: "waveform.path.ecg") }
-                    }
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .labelStyle(CloudAgentMetaLabelStyle())
-
-            actions
         }
-        .padding(CloudAgentCardMetrics.padding)
+        .font(.subheadline)
+        .padding(.horizontal, CloudAgentCardMetrics.padding)
+        .padding(.vertical, isCompact ? 10 : CloudAgentCardMetrics.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HausPlatformColor.inputSurface, in: .haus(CloudAgentCardMetrics.cornerRadius))
-        .overlay {
-            RoundedRectangle.haus(CloudAgentCardMetrics.cornerRadius)
-                .strokeBorder(.secondary.opacity(0.18), lineWidth: 0.5)
-        }
+        .cloudAgentCardSurface(HausPlatformColor.inputSurface)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("cloud-agent-card-\(agent.id)")
         .confirmationDialog("Cancel this cloud agent run?", isPresented: $confirmingCancel) {
@@ -91,38 +59,67 @@ struct CloudAgentCard: View {
         } message: { Text(cancelError ?? "") }
     }
 
-    private var statusColor: Color {
-        if agent.work.status.isActive, agent.work.cancelRequestedAt != nil { return .secondary }
-        switch agent.work.status {
-        case .completed: return .green
-        case .failed, .expired: return .red
-        case .queued, .running: return .blue
-        case .cancelled: return .secondary
+    private func content(now: Date) -> some View {
+        let line = agent.statusLine(agentName: agent.agentName, at: now)
+        return VStack(alignment: .leading, spacing: 10) {
+            header(now: now, titleLineLimit: nil)
+
+            VStack(alignment: .leading, spacing: 4) {
+                if let number = agent.pullRequestNumber {
+                    CloudAgentPullRequestRow(number: number, pullRequest: agent.branch?.pullRequest)
+                }
+                Text(line.text)
+                    .foregroundStyle(CloudAgentTone.color(for: line.tone))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .accessibilityIdentifier("cloud-agent-status-line")
+            }
+
+            actions
         }
     }
 
-    private func activityText(at now: Date) -> String? {
-        let stale = agent.isStale(at: now)
-            ? "Last update \(agent.work.updatedAt.formatted(.relative(presentation: .named)))" : nil
-        let parts = [agent.activityLine, stale].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    private func header(now: Date, titleLineLimit: Int?) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            CloudAgentMark()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(agent.work.title).fontWeight(.semibold)
+                    .lineLimit(titleLineLimit)
+                    .fixedSize(horizontal: false, vertical: titleLineLimit == nil)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                // The chip shares the one-line repository row, so its
+                // ticking width can only truncate the repository, never
+                // rewrap the title and move the card's height. The mark
+                // names the provider; the repository says only where.
+                HStack(spacing: 8) {
+                    Text(agent.work.repository).foregroundStyle(.secondary).lineLimit(1)
+                    Spacer(minLength: 0)
+                    CloudAgentJobChip(state: agent.work.job.state, text: agent.jobText(at: now))
+                }
+            }
+        }
     }
 
-    /// One primary action — the pull request once there is one, the
-    /// provider's page until then — and a chevron menu with the rest.
+    /// A live job counts up; a settled one only ages its relative time.
+    private var isLive: Bool { agent.work.job.state == .working || agent.work.job.followUp != nil }
+
+    /// "View PR" leads once there is a pull request, because the result is
+    /// what a reader came for; the provider's own page is always next, beside
+    /// a chevron menu with the rarer actions.
     private var actions: some View {
         let providerURL = CloudAgentPresentation.externalURL(agent.work.providerUrl)
-        let openInProvider = "Open in \(agent.providerName)"
         return HStack(spacing: 6) {
             if let url = agent.pullRequestURL {
                 Link(destination: url) { actionLabel("View PR", systemImage: "arrow.triangle.pull") }
-            } else if let providerURL {
-                Link(destination: providerURL) { actionLabel(openInProvider, systemImage: "arrow.up.right") }
+                    .buttonStyle(.borderedProminent)
             }
+            Button {
+                if let providerURL { openURL(providerURL) }
+            } label: {
+                actionLabel("Open in \(agent.providerName)", systemImage: "arrow.up.right")
+            }
+            .disabled(providerURL == nil)
             Menu {
-                if let providerURL {
-                    Link(destination: providerURL) { Label(openInProvider, systemImage: "arrow.up.right") }
-                }
                 if let link = agent.conversationLink {
                     Button { copy(link) } label: { Label("Copy link", systemImage: "link") }
                 }
@@ -137,6 +134,7 @@ struct CloudAgentCard: View {
                     .frame(maxHeight: .infinity)
                     .accessibilityLabel("More cloud agent actions")
             }
+            .disabled(agent.conversationLink == nil && !canCancel)
         }
         .fixedSize(horizontal: false, vertical: true)
         .buttonStyle(.bordered)
@@ -144,7 +142,8 @@ struct CloudAgentCard: View {
         // and read as disabled. Label ink reads as live on both appearances.
         .tint(HausPlatformColor.label)
         .controlSize(.small)
-        .font(.caption.weight(.medium))
+        .fontWeight(.medium)
+        .lineLimit(1)
     }
 
     /// Icon and title packed together; a stock `Label` inherits whatever
@@ -165,6 +164,63 @@ struct CloudAgentCard: View {
     private var canCancel: Bool { cancelAction != nil && agent.canBeCancelled }
 }
 
+/// The headline chip: the job's glyph and its state, tinted by the one tone rule.
+private struct CloudAgentJobChip: View {
+    let state: CloudAgentJobState
+    let text: String
+
+    var body: some View {
+        let tint = CloudAgentTone.color(for: state)
+        HStack(spacing: 4) {
+            CloudAgentStatusGlyph(state: state, size: 13)
+            Text(text).fontWeight(.semibold).monospacedDigit()
+        }
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(tint.opacity(0.14), in: .capsule)
+        .fixedSize()
+    }
+}
+
+/// The result, once there is one: the pull request's number, its own state
+/// when the Computer's GitHub reading has it, and the size of the change.
+/// Added and removed are the one pair a reader scans without reading, so they
+/// keep color.
+private struct CloudAgentPullRequestRow: View {
+    let number: Int
+    let pullRequest: CloudAgentPullRequest?
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Image(systemName: "arrow.triangle.pull").foregroundStyle(.secondary)
+            (Text("PR #\(number)").fontWeight(.medium).foregroundColor(HausPlatformColor.label)
+                + details)
+                .lineLimit(1)
+        }
+        .accessibilityIdentifier("cloud-agent-pull-request")
+    }
+
+    private var details: Text {
+        guard let pullRequest else { return Text("") }
+        let files = "\(pullRequest.changedFiles) \(pullRequest.changedFiles == 1 ? "file" : "files")"
+        return Text(" · \(Self.stateLabel(pullRequest.state)) · \(files)").foregroundColor(.secondary)
+            + Text(" +\(pullRequest.additions)").foregroundColor(.green)
+            + Text(" −\(pullRequest.deletions)").foregroundColor(.red)
+    }
+
+    static func stateLabel(_ state: String) -> String {
+        switch state {
+        case "draft": "Draft"
+        case "open": "Open"
+        case "merged": "Merged"
+        case "closed": "Closed"
+        default: state.capitalized
+        }
+    }
+}
+
 /// Cancels a Cloud Agent run by work id. The app installs it for Owners and
 /// Admins; without it the card offers no Cancel run.
 public struct CloudAgentCancelAction: Sendable {
@@ -176,17 +232,6 @@ extension EnvironmentValues {
     @Entry public var cloudAgentCancel: CloudAgentCancelAction?
 }
 
-/// Icon and text on one baseline with a fixed icon column, so the card's
-/// fact rows start their text at one inset.
-private struct CloudAgentMetaLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
-            configuration.icon.frame(width: 14)
-            configuration.title
-        }
-    }
-}
-
 /// The card's box: the inset its contents sit in and the corner that inset is
 /// cut with, kept together so the two stay in step when either moves.
 enum CloudAgentCardMetrics {
@@ -194,25 +239,19 @@ enum CloudAgentCardMetrics {
     static let cornerRadius: CGFloat = HausRadius.medium
 }
 
-/// A finished-state fact about the run, drawn as a soft capsule. Work still
-/// running carries a live one; work still waiting on a human carries none.
-struct CloudAgentCardStatus: Equatable {
-    let label: String
-    let tint: Color
-}
-
-/// A finished-state fact, drawn the same size wherever it appears.
-struct CloudAgentCardStatusCapsule: View {
-    let status: CloudAgentCardStatus
-
-    var body: some View {
-        Text(status.label)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(status.tint)
-            .lineLimit(1)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(status.tint.opacity(0.14), in: .capsule)
-            .fixedSize()
+extension View {
+    /// The card's box in one fill. The page background goes under the
+    /// translucent system fill so a card stays opaque over whatever sits
+    /// behind it — the peeking edges of a Thread stack included.
+    func cloudAgentCardSurface(_ fill: Color) -> some View {
+        background {
+            RoundedRectangle.haus(CloudAgentCardMetrics.cornerRadius)
+                .fill(HausPlatformColor.background)
+                .overlay { RoundedRectangle.haus(CloudAgentCardMetrics.cornerRadius).fill(fill) }
+        }
+        .overlay {
+            RoundedRectangle.haus(CloudAgentCardMetrics.cornerRadius)
+                .strokeBorder(.secondary.opacity(0.18), lineWidth: 0.5)
+        }
     }
 }

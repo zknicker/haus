@@ -6,8 +6,17 @@ struct ThreadPreviewCard: View {
     var cloudAgents: [CloudAgentPresentation] = []
     let onOpen: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Local to this anchor's preview: expanding one Thread's stack leaves the others alone.
+    @State private var showsAllCloudAgents = false
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ingress
+        }
+    }
+
+    @ViewBuilder
+    private var ingress: some View {
         Button(action: onOpen) {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 5) {
@@ -47,34 +56,6 @@ struct ThreadPreviewCard: View {
                 .clipped()
                 .animation(rowAnimation, value: task?.status)
                 .animation(rowAnimation, value: task?.number)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    ForEach(cloudAgentSummaries) { summary in
-                        ZStack(alignment: .leading) {
-                            HStack(spacing: 5) {
-                                CloudAgentMark(size: 16, style: .glyph)
-                                    .frame(width: 18, height: 18)
-                                ViewThatFits(in: .horizontal) {
-                                    Text(summary.headline).lineLimit(1)
-                                    if let compact = summary.compactHeadline {
-                                        Text(compact).lineLimit(1)
-                                    }
-                                }
-                                .layoutPriority(1)
-                                if let detail = summary.detail {
-                                    Text(detail).lineLimit(1)
-                                }
-                            }
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .id([summary.headline, summary.detail])
-                            .transition(rowTransition)
-                        }
-                        .transition(rowTransition)
-                    }
-                }
-                .clipped()
-                .animation(rowAnimation, value: cloudAgentSummaries.map { [$0.id, $0.headline, $0.detail] })
             }
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .padding(.vertical, 4)
@@ -83,17 +64,19 @@ struct ThreadPreviewCard: View {
         .buttonStyle(.pressableRow(cornerRadius: HausRadius.medium))
         .accessibilityLabel(accessibilityLabel)
         .padding(.top, 6)
-        .anchorPreference(key: ThreadIngressAnchor.self, value: .bounds) { $0 }
+        .anchorPreference(key: ThreadIngressAnchor.self, value: .bounds) { ThreadIngressAnchors(ingress: $0) }
+
+        // The cards carry their own controls, so they sit beside the ingress
+        // button rather than inside it.
+        if !cloudAgents.isEmpty {
+            ThreadCloudAgentStackView(agents: cloudAgents, isExpanded: $showsAllCloudAgents, onOpen: onOpen)
+                .padding(.top, 4)
+        }
     }
 
     private var replyLabel: String {
         ThreadPreviewProjection.replyLabel(replyCount: thread?.replyCount ?? 0, hasTask: task != nil)
             ?? "Reply in thread"
-    }
-
-    /// One row per provider; a fan-out collapses to a count and a status breakdown.
-    private var cloudAgentSummaries: [ThreadCloudAgentSummary] {
-        ThreadCloudAgentSummary.summarize(cloudAgents)
     }
 
     private var rowAnimation: Animation {
@@ -114,7 +97,6 @@ struct ThreadPreviewCard: View {
             parts.append("\(reply.author.name): \(RichMessageParser.oneLinePreview(reply.content))")
         }
         if let task { parts.append("Task number \(task.number), \(task.status.rawValue)") }
-        parts += cloudAgentSummaries.map(\.accessibilityText)
         return parts.joined(separator: ". ") + ". Open thread"
     }
 }

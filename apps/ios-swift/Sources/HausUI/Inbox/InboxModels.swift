@@ -62,7 +62,7 @@ public struct InboxHappeningNowRow: Identifiable, Hashable, Sendable {
     public let mark: InboxMark
     /// The work's title, or the Agent's name.
     public let title: String
-    /// Trails the title: `Running · 25m`, `Queued`, or an Agent's time in its
+    /// Trails the title: `Working · 25m`, `Follow-up waiting · 2m`, or an Agent's time in its
     /// step. It is the fact that changes while the row sits there.
     public let status: String
     /// The second line: where the work came from, or the step an Agent is on.

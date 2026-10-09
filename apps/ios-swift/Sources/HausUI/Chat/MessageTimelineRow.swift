@@ -126,8 +126,8 @@ struct MessageTimelineRow: View {
             }
         }
         // The connector draws in this block's coordinates, below any reference.
-        .overlayPreferenceValue(ThreadIngressAnchor.self) { anchor in
-            ThreadIngressConnector(anchor: anchor, isContinuation: isContinuation)
+        .overlayPreferenceValue(ThreadIngressAnchor.self) { anchors in
+            ThreadIngressConnector(anchors: anchors, isContinuation: isContinuation)
         }
     }
 

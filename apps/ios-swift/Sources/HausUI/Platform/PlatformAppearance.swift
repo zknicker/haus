@@ -55,6 +55,24 @@ enum HausPlatformColor {
         #endif
     }
 
+    /// One step deeper than `inputSurface`: a surface sitting behind another.
+    static var recessedSurface: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .secondarySystemFill)
+        #else
+        Color(nsColor: .controlBackgroundColor)
+        #endif
+    }
+
+    /// Two steps deeper than `inputSurface`: the furthest surface in a stack.
+    static var deepRecessedSurface: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .systemFill)
+        #else
+        Color(nsColor: .controlBackgroundColor)
+        #endif
+    }
+
     static var separator: Color {
         #if canImport(UIKit)
         Color(uiColor: .separator)
