@@ -1,5 +1,6 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
+import type { TRPCError } from '@trpc/server';
 import { applyWSSHandler, type CreateWSSContextFnOptions } from '@trpc/server/adapters/ws';
 import { WebSocketServer } from 'ws';
 import type { HausContext } from './context.ts';
@@ -23,8 +24,17 @@ export function startHausWebSocketServer(server: Server, options: HausWebSocketS
 
     const handler = applyWSSHandler({
         createContext: (opts) => withSocketSession(options, opts),
+        onError: reportSocketProcedureError,
         router: hausRouter,
         wss,
+    });
+
+    wss.on('connection', (socket) => {
+        socket.once('close', (code) => {
+            if (!quietCloseCodes.has(code)) {
+                console.warn('[haus] App socket closed', { code });
+            }
+        });
     });
 
     const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -94,6 +104,33 @@ function withSocketSession(
         socket.once('close', () => socketSession.dispose());
     }
     return { ...ctx, socketSession };
+}
+
+/** Normal closure, a page going away, and a client close without a code. */
+const quietCloseCodes = new Set([1000, 1001, 1005]);
+
+/**
+ * A failed socket procedure — most often a subscription the Server ended — is
+ * otherwise invisible: the App only sees the error shape. Logs the procedure
+ * path, its tRPC code, and the error class, never input, payloads, or identity.
+ */
+function reportSocketProcedureError({
+    error,
+    path,
+    type,
+}: {
+    error: TRPCError;
+    path: string | undefined;
+    type: string;
+}) {
+    const cause = error.cause ?? error;
+    const log = error.code === 'INTERNAL_SERVER_ERROR' ? console.error : console.warn;
+    log('[haus] App socket procedure failed', {
+        code: error.code,
+        errorClass: cause instanceof Error ? cause.name : typeof cause,
+        path: path ?? 'unknown',
+        type,
+    });
 }
 
 function isTrpcWebSocketRequest(requestUrl: string) {
