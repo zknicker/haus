@@ -95,8 +95,8 @@ accumulates outside every index the live queue touches.
 ## Model Projection
 
 Server sends structured inbox rows, never a preformatted model prompt.
-Computer renders the exact target, short message id, home-timezone timestamp,
-sender type, sender handle, optional sender description, and body defined by
+Computer renders the exact target, short message id, explicit-UTC timestamp,
+a human sender's saved zone (`sender_tz=`, from the item's `senderTimezone`), sender type, sender handle, optional sender description, and body defined by
 the turn-shape spec. Server also preserves whether this Agent was personally
 mentioned as immutable per-recipient attention metadata; delivery suppression and model
 visibility do not infer from that flag.

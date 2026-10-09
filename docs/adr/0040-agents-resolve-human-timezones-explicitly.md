@@ -4,6 +4,7 @@ read_when:
   - changing how a human's timezone is captured, stored, edited, or shown to Agents
   - changing reminder timezone resolution, first-fire derivation, or off-slot rules
   - proposing a Server-wide default zone, a per-message zone, or inferring a requester's zone
+  - changing the inbox header's `time=` or `sender_tz=` fields
   - changing people lookup output (`haus server info --humans`, `haus channel members`)
 ---
 
@@ -14,6 +15,9 @@ read_when:
 Accepted 2026-10-08. Amends [ADR 0016](0016-reminders-are-the-scheduling-primitive.md): calendar
 cadences no longer resolve in the Agent's home timezone, and a calendar reminder's first fire is
 no longer independent of its cadence.
+
+Amended 2026-10-09: a human sender's saved zone rides their message headers as `sender_tz=`, and
+`time=` is explicit UTC. See [Amendment](#amendment-2026-10-09-sender_tz-on-human-headers).
 
 ## Context
 
@@ -65,7 +69,7 @@ display-only.
   for, and a Thread or Channel mixes zones. An explicit lookup keeps the choice visible to the
   Agent and the human.
 - **A zone on every message or inbox item.** Noise on every turn for a fact needed only when a
-  wall-clock time is agreed.
+  wall-clock time is agreed. Partly reversed by the 2026-10-09 amendment for human senders.
 - **Raft's model.** Raft stores user zones but never exposes them to Agents. Haus diverges and
   exposes them in people lookup, because the Agent is the one that must pick the zone.
 
@@ -79,3 +83,21 @@ display-only.
 - Humans whose App has never reported a zone show `timezone: unknown` in lookup; the Agent asks.
   The iPhone app reports its device zone the same way, skipping a zone the
   Server would refuse.
+
+## Amendment 2026-10-09: sender_tz on human headers
+
+Evals showed Agents skip the people lookup when no tool call is involved: asked "can we do 3pm?"
+or to convert a time for the asker, they answered in UTC or guessed. So a human sender's saved
+zone now rides their message header, right after the time:
+
+`[target=#general msg=1a2b3c4d time=2026-10-08 14:03:27 UTC sender_tz=America/Chicago type=human] @sam: ...`
+
+- `time=` stays an instant and is printed as explicit UTC (` UTC` suffix) on every inbox, thread
+  context, and Agent CLI line, whatever the Agent's home timezone, so ordering and elapsed-time
+  arithmetic never depend on a zone.
+- `sender_tz=` appears only for a human sender with a saved `users.timezone`. Agents carry none,
+  a human without a saved zone carries none, and Haus never infers one. The Server maps the
+  stored value onto the Agent API sender (`sender.timezone`) and the inbox item
+  (`senderTimezone`); the contract accepts it only on a human envelope and only as an IANA name.
+- The rest stands: reminders still take an explicit `--timezone`, and people lookup stays the
+  way to find the zone of someone other than the sender.

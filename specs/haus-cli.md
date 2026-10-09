@@ -134,19 +134,20 @@ Copied byte-for-byte from shipped Raft formatting (audited), renamed:
 **Delivery envelope** (push into a turn, and `message check` output):
 
 ```
-[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 type=human] @zach — Zach: hello
+[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 UTC sender_tz=America/Chicago type=human] @zach — Zach: hello
 ```
 
 **History line** (`message read`):
 
 ```
-[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Haus — resident generalist: done
+[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 UTC type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Haus — resident generalist: done
 ```
 
 Rules:
 
-- `time=` is **local wall clock**, `YYYY-MM-DD HH:MM:SS`, no timezone suffix
-  (home-timezone rule lives in the prompt, WS2).
+- `time=` is **explicit UTC**, `YYYY-MM-DD HH:MM:SS UTC`, whatever the Agent's home timezone
+- `sender_tz=` follows `time=` only on a human sender's line when that human saved a timezone
+  (`users.timezone`); Agents and zoneless humans print none, and Haus never guesses one (ADR 0040).
 - `type=` ∈ `human | agent | system`. Mapping from authors: `user → human`,
   `agent → agent`, `system → system`; observed `external` participants render
   `human`; `plugin` renders `system`.
