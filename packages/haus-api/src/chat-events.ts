@@ -50,15 +50,24 @@ export const messageReactionUpdatedEventSchema = z
 
 export type MessageReactionUpdatedEvent = z.infer<typeof messageReactionUpdatedEventSchema>;
 
-/** `chat.onRead`: the subscriber's own read marker moved. Delivered to the reader only. */
+/**
+ * `chat.onRead`: the subscriber's own read marker moved. Delivered to the reader only.
+ * A Thread read names the parent's anchor so the App invalidates its summary's unread
+ * count without needing the Thread context cached.
+ */
 export const chatReadEventSchema = z
     .object({
         chatId: idSchema,
         parentChatId: idSchema.nullable(),
         sequence: z.number().int().nonnegative(),
         serverId: idSchema,
+        /** The parent-Chat anchor of a Thread read; null outside a Thread. */
+        threadAnchorMessageId: idSchema.nullable(),
     })
-    .strict();
+    .strict()
+    .refine((event) => (event.parentChatId === null) === (event.threadAnchorMessageId === null), {
+        message: 'A Thread read names both its parent Chat and its anchor; other reads neither.',
+    });
 
 export type ChatReadEvent = z.infer<typeof chatReadEventSchema>;
 

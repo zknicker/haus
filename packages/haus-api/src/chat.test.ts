@@ -2,12 +2,14 @@ import { expect, test } from 'bun:test';
 import {
     channelCreateInputSchema,
     channelUpdateInputSchema,
+    chatMessagePageSchema,
     chatMessageSchema,
     chatMessagesInputSchema,
     chatSendInputSchema,
 } from './chat.ts';
 import {
     chatLifecycleEventSchema,
+    chatReadEventSchema,
     messageCreatedEventSchema,
     messageReactionUpdatedEventSchema,
 } from './chat-events.ts';
@@ -178,6 +180,35 @@ test('A Thread reply names its parent and anchor together, never a summary', () 
     ).toThrow();
     expect(() => messageCreatedEventSchema.parse({ ...reply, parentChatId: null })).toThrow();
     expect(() => messageCreatedEventSchema.parse({ ...reply, thread: null })).toThrow();
+});
+
+test('A Thread read names its parent and anchor together', () => {
+    const read = {
+        chatId: 'cht_thread',
+        parentChatId: 'cht_all',
+        sequence: 3,
+        serverId: 'srv_main',
+        threadAnchorMessageId: 'msg_anchor',
+    };
+    expect(chatReadEventSchema.parse(read)).toEqual(read);
+    expect(
+        chatReadEventSchema.parse({ ...read, parentChatId: null, threadAnchorMessageId: null })
+    ).toMatchObject({ threadAnchorMessageId: null });
+    expect(() => chatReadEventSchema.parse({ ...read, threadAnchorMessageId: null })).toThrow();
+    expect(() => chatReadEventSchema.parse({ ...read, parentChatId: null })).toThrow();
+});
+
+test('A message page reports how far its scan reached', () => {
+    const page = {
+        messages: [],
+        nextAfterSequence: null,
+        nextBeforeSequence: null,
+        scannedThroughSequence: 42,
+        threads: [],
+    };
+    expect(chatMessagePageSchema.parse(page)).toEqual(page);
+    const { scannedThroughSequence: _scanned, ...withoutScan } = page;
+    expect(() => chatMessagePageSchema.parse(withoutScan)).toThrow();
 });
 
 test('chat.message reads one entity with its viewer Thread summary, or null', () => {

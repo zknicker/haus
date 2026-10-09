@@ -267,6 +267,12 @@ export const chatMessagePageSchema = z
         messages: z.array(chatMessageSchema),
         nextBeforeSequence: z.number().int().positive().nullable(),
         nextAfterSequence: z.number().int().nonnegative().nullable(),
+        /**
+         * The highest Chat sequence this read examined. A filtered read
+         * (`replyRootMessageId`) can scan past its last match; the next tail read
+         * starts here instead of rescanning (specs/realtime-events.md).
+         */
+        scannedThroughSequence: z.number().int().nonnegative(),
         threads: z.array(threadSummarySchema),
     })
     .strict();
