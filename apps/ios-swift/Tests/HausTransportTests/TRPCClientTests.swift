@@ -17,7 +17,7 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.url?.path, "/trpc/server.list")
             XCTAssertEqual(request.value(forHTTPHeaderField: "content-type"), "application/json")
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "8")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "9")
             XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
             let body = try XCTUnwrap(request.httpBody ?? request.httpBodyStream.flatMap(readBody))
             XCTAssertEqual(
@@ -129,7 +129,7 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "accept"), "application/json")
             XCTAssertEqual(request.value(forHTTPHeaderField: "content-length"), String(bytes.count))
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "8")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "9")
             XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
             let body = try XCTUnwrap(request.httpBody ?? request.httpBodyStream.flatMap(readBody))
             XCTAssertEqual(body, bytes)
@@ -174,7 +174,7 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.httpMethod, "GET")
             XCTAssertEqual(request.url?.path, "/attachments/srv_123/att_123")
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "8")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "9")
             XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
             return response(headers: ["Content-Type": "text/plain"], data: bytes)
         }
@@ -229,7 +229,7 @@ final class TRPCClientTests: XCTestCase {
     func testSubscriptionReadsTRPC11SSEDataAndIgnoresControlEvents() async throws {
         StubURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "GET")
-            XCTAssertEqual(request.url?.path, "/trpc/chat.onEvent")
+            XCTAssertEqual(request.url?.path, "/trpc/chat.onMessageCreated")
             XCTAssertNotNil(request.url?.query?.range(of: "input="))
             XCTAssertEqual(request.value(forHTTPHeaderField: "accept"), "text/event-stream")
             let body = """
@@ -261,7 +261,7 @@ final class TRPCClientTests: XCTestCase {
 
         var values: [SubscriptionOutput] = []
         let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
-            "chat.onEvent",
+            "chat.onMessageCreated",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(reconnect: false)
         )
@@ -296,7 +296,7 @@ final class TRPCClientTests: XCTestCase {
 
         var values: [SubscriptionOutput] = []
         let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
-            "chat.onEvent",
+            "chat.onMessageCreated",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(reconnect: false)
         )
@@ -333,7 +333,7 @@ final class TRPCClientTests: XCTestCase {
         )
 
         let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
-            "chat.onEvent",
+            "chat.onMessageCreated",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(
                 initialRetryDelayNanoseconds: 1,

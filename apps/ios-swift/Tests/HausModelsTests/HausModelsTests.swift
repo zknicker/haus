@@ -61,6 +61,7 @@ final class HausModelsTests: XCTestCase {
             }
           ],
           "nextBeforeSequence": null,
+          "scannedThroughSequence": 1,
           "threads": [{"anchorMessageId":"message_1","followed":true,"latestReplyAt":"2026-08-15T14:01:00Z","recentReplies":[],"replyCount":1,"threadChatId":"thread_1","unreadCount":1}]
         }
         """
@@ -79,7 +80,7 @@ final class HausModelsTests: XCTestCase {
         }
     }
 
-    func testDecodesLifecycleAndDurableChatEvents() throws {
+    func testDecodesAgentLifecycleEvents() throws {
         let lifecycleJSON = """
         {"agentId":"agent_1","chatId":"chat_1","emittedAt":"2026-08-15T14:00:00.000Z","runId":"run_1","serverId":"server_1","phase":"settled","outcome":"completed"}
         """
@@ -90,83 +91,7 @@ final class HausModelsTests: XCTestCase {
         XCTAssertEqual(lifecycle.phase, .settled)
         XCTAssertEqual(lifecycle.outcome, .completed)
         XCTAssertTrue(lifecycle.id.hasPrefix("run_1:settled:"))
-
-        let eventJSON = """
-        {"chatId":"chat_1","createdAt":"2026-08-15T14:00:00Z","cursor":"42","id":"event_1","messageId":"message_1","parentChatId":null,"sequence":2,"serverId":"server_1","type":"message.created"}
-        """
-        let event = try HausJSON.decoder().decode(ChatEvent.self, from: Data(eventJSON.utf8))
-        XCTAssertEqual(event.type, .messageCreated)
-        XCTAssertEqual(event.messageID, "message_1")
-        XCTAssertEqual(event.cursor, "42")
-
-        let lifecycleEvent = try HausJSON.decoder().decode(
-            ChatEvent.self,
-            from: Data(
-                "{\"action\":\"deleted\",\"chatId\":\"chat_1\",\"createdAt\":\"2026-08-15T14:00:00Z\",\"cursor\":\"43\",\"id\":\"event_2\",\"parentChatId\":null,\"sequence\":0,\"serverId\":\"server_1\",\"type\":\"chat.lifecycle\"}".utf8
-            )
-        )
-        XCTAssertEqual(lifecycleEvent.action, "deleted")
     }
-
-    func testChatEventReplayStateAdvancesNumericallyAndDeduplicatesByID() {
-        let date = Date(timeIntervalSince1970: 1)
-        let first = ChatEvent(
-            chatID: "chat_1",
-            createdAt: date,
-            cursor: "9",
-            id: "event_9",
-            parentChatID: nil,
-            sequence: 1,
-            serverID: "server_1",
-            type: .messageCreated
-        )
-        let later = ChatEvent(
-            chatID: "chat_1",
-            createdAt: date,
-            cursor: "10",
-            id: "event_10",
-            parentChatID: nil,
-            sequence: 2,
-            serverID: "server_1",
-            type: .messageCreated
-        )
-
-        var replay = ChatEventReplayState(cursor: "8")
-        XCTAssertTrue(replay.receive(first))
-        XCTAssertFalse(replay.receive(first))
-        XCTAssertTrue(replay.receive(later))
-        XCTAssertEqual(replay.cursor, "10")
-        replay.advance(to: "9")
-        XCTAssertEqual(replay.cursor, "10")
-    }
-
-    func testChatEventReplayStateStillDispatchesAnEarlierGapAfterNewerLiveEvent() {
-        let date = Date(timeIntervalSince1970: 1)
-        func event(cursor: String) -> ChatEvent {
-            ChatEvent(
-                chatID: "chat_1",
-                createdAt: date,
-                cursor: cursor,
-                id: "event_\(cursor)",
-                parentChatID: nil,
-                sequence: Int(cursor) ?? 0,
-                serverID: "server_1",
-                type: .messageCreated
-            )
-        }
-
-        var replay = ChatEventReplayState(cursor: "5")
-        XCTAssertTrue(replay.receive(event(cursor: "8")))
-        XCTAssertTrue(replay.receive(event(cursor: "6")))
-        XCTAssertEqual(replay.cursor, "8")
-    }
-
-    func testChatEventCursorNormalizesLeadingZeroes() {
-        XCTAssertEqual(ChatEventCursor.later("009", "10"), "10")
-        XCTAssertEqual(ChatEventCursor.later("0010", "9"), "10")
-        XCTAssertEqual(ChatEventCursor.normalized("000"), "0")
-    }
-
     func testDecodesServerComputerSnapshot() throws {
         let json = """
         {
@@ -286,6 +211,7 @@ final class HausModelsTests: XCTestCase {
             {"attachments":[],"author":{"agentId":"agent_1","kind":"agent"},"chatId":"chat_1","content":"Reviewed.","createdAt":"2026-08-15T14:00:02Z","id":"message_2","nonce":"nonce_2","runId":"run_1","sequence":2,"serverId":"server_1","sessionGeneration":7}
           ],
           "nextBeforeSequence": null,
+          "scannedThroughSequence": 1,
           "threads": []
         }
         """

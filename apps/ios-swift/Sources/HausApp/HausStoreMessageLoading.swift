@@ -8,129 +8,23 @@ extension HausStore {
         lifecycleAvailability[agent.id] ?? agent.availability
     }
 
-    /// Refetches only the loaded message pages touched by the event batch,
-    /// while refreshing the Chat list once for ordering, unread counts, and
-    /// lifecycle changes. Event IDs make live/catch-up overlap idempotent.
-    func applyChatEvents(_ events: [ChatEvent], serverID: String) async {
-        guard activeServer?.id == serverID, chatEventServerID == serverID else { return }
-
-        var affectedChatIDs: Set<String> = []
-        var shouldReloadChats = false
-        var shouldReloadActiveCloudAgentWork = false
-        var shouldReloadTasks = false
-        var inlineRefreshChatIDs: Set<String> = []
-        for event in events {
-            guard event.serverID == serverID else { continue }
-            guard chatEventReplay.receive(event) else { continue }
-            inlineRefreshChatIDs.formUnion(inlineReplyRefreshChatIDs(for: event))
-
-            switch event.type {
-            case .messageCreated:
-                if let chatID = event.chatID {
-                    affectedChatIDs.insert(chatID)
-                }
-                if let parentChatID = event.parentChatID {
-                    affectedChatIDs.insert(parentChatID)
-                }
-                shouldReloadChats = true
-            case .messageReactionUpdated:
-                // Both lenses can show the message: its Thread and the parent
-                // transcript an anchor or inline reply sits in.
-                affectedChatIDs.formUnion([event.chatID, event.parentChatID].compactMap { $0 })
-                if let messageID = event.messageID {
-                    reactionStickers.noteLive(messageID: messageID, eventAt: event.createdAt)
-                }
-            case .cloudAgentWorkUpdated:
-                if let chatID = event.chatID {
-                    affectedChatIDs.insert(chatID)
-                }
-                if let parentChatID = event.parentChatID {
-                    affectedChatIDs.insert(parentChatID)
-                }
-                shouldReloadActiveCloudAgentWork = true
-            case .chatRead:
-                // Server addresses this event to the reader alone: the echo of
-                // this client's acknowledgement or a read on another device.
-                // It carries no unread count, so it asks for a Chat list read,
-                // which the coalesced refresh shares with the batch that
-                // triggered the acknowledgement.
-                shouldReloadChats = true
-            case .threadFollowUpdated:
-                if let parentChatID = event.parentChatID {
-                    affectedChatIDs.insert(parentChatID)
-                }
-                shouldReloadChats = true
-            case .taskCreated, .taskUpdated:
-                // Creating or changing a Task moves the Server Task lens and
-                // the transcript the Task was raised in, but not Chat ordering.
-                if let chatID = event.chatID {
-                    affectedChatIDs.insert(chatID)
-                }
-                shouldReloadTasks = true
-            case .chatLifecycle:
-                shouldReloadChats = true
-            case .taskLabelUpdated, .reminderChanged:
-                break
-            }
-        }
-
-        // Each loaded page is its own read, so they run side by side; the open
-        // Chat acknowledges as soon as its own page lands.
-        await withTaskGroup(of: Void.self) { group in
-            for chatID in affectedChatIDs where messagesByChatID[chatID] != nil {
-                group.addTask { await self.refreshLoadedPage(chatID: chatID) }
-            }
-        }
-        if !inlineRefreshChatIDs.isEmpty {
-            await refreshInlineReplies(for: inlineRefreshChatIDs)
-        }
-        if shouldReloadChats {
-            await refreshChatList(serverID: serverID)
-        }
-        // The Inbox snapshots refresh only when this client already holds them,
-        // the way the App's invalidation only refetches a live query: an event
-        // must not start a Server-wide read for a surface nobody has opened.
-        if shouldReloadTasks, serverTasks != nil {
-            await loadServerTasks()
-        }
-        if shouldReloadActiveCloudAgentWork, activeCloudAgentWork != nil {
-            await loadActiveCloudAgentWork()
-        }
-        // An Agent creating an Agent reaches this client as an ordinary
-        // `message.created`, and that message's `agent-created` body is the only
-        // notice the directory gets: this client does not consume
-        // `server.updated`. So a created Agent the directory has never seen is
-        // itself the refresh trigger, read from the pages just loaded.
-        if namesUnlistedLiveCreatedAgent(in: affectedChatIDs) {
-            try? await reloadAgents(serverID: serverID)
-        }
-    }
-
-    private func refreshLoadedPage(chatID: String) async {
-        await loadMessages(chatID: chatID)
-        if openChatID == chatID {
-            await markChatReadIfNeeded(chatID: chatID)
-        }
-    }
-
-    /// Whether a page just loaded names a live Agent the directory does not
-    /// hold — the one gap a directory refetch can close.
+    /// Whether a page just read names a live Agent the directory does not
+    /// hold — the one gap a directory refetch can close. An Agent creating an
+    /// Agent reaches this client as an ordinary message, whose `agent-created`
+    /// body is the only notice the directory gets.
     ///
     /// A body reading retired is skipped, and that is what keeps this from
     /// standing: the body is projected from the live Agent row on every read,
-    /// and the pages scanned here were refetched moments ago in this same
-    /// batch, so a retired Agent's body already says so and is never mistaken
-    /// for a stale directory. What remains is an Agent whose Computer was
-    /// removed, which drops it from `agent.list` without retiring it; that
-    /// costs one extra directory read per batch touching its Chat until the
-    /// Computer comes back, and asks for nothing this client can cache away.
-    private func namesUnlistedLiveCreatedAgent(in chatIDs: Set<String>) -> Bool {
+    /// so a retired Agent's body already says so and is never mistaken for a
+    /// stale directory. What remains is an Agent whose Computer was removed,
+    /// which drops it from `agent.list` without retiring it; that costs one
+    /// extra directory read per tail read touching it until the Computer comes
+    /// back.
+    func namesUnlistedLiveCreatedAgent(in page: ChatMessagePage) -> Bool {
         let listed = Set(agents.map(\.id))
-        return chatIDs.contains { chatID in
-            messagesByChatID[chatID]?.messages.contains { message in
-                guard case let .agentCreated(agent) = message.body else { return false }
-                return !(agent.retired || listed.contains(agent.agentID))
-            } ?? false
+        return page.messages.contains { message in
+            guard case let .agentCreated(agent) = message.body else { return false }
+            return !(agent.retired || listed.contains(agent.agentID))
         }
     }
 

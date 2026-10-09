@@ -63,7 +63,7 @@ extension HausStore {
     var unreadChatCount: Int? { unreadChats?.count }
 
     /// Every queued or running Cloud Agent work the viewer can see on this
-    /// Server, oldest first. `cloud-agent-work.updated` owns the refresh.
+    /// Server, oldest first. `cloudAgentWork.onUpdated` owns the refresh.
     func loadActiveCloudAgentWork() async {
         guard let serverID = activeServer?.id else { return }
         do {

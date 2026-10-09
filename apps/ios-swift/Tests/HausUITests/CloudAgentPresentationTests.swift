@@ -159,22 +159,4 @@ private typealias Job = CloudAgentWorkFixture.Job
             try Fixture.work(job: Job.working(startedAt: nil, followUp: Job.followUp("queued", since: Fixture.start)))
         }
     }
-
-    @Test func cloudUpdateDecodesAndReplaysWithoutBreakingChatStream() throws {
-        let json = """
-        {"type":"cloud-agent-work.updated","cloudAgentWorkId":"work-1",
-         "chatId":"thread-1","parentChatId":"channel-1","messageId":"delegation-1",
-         "serverId":"server-1","id":"event-1","sequence":8,"cursor":"9",
-         "createdAt":"2026-09-07T18:00:00.000Z"}
-        """
-        let event = try HausJSON.decoder().decode(ChatEvent.self, from: Data(json.utf8))
-        #expect(event.type == .cloudAgentWorkUpdated)
-        #expect(event.chatID == "thread-1")
-        #expect(event.parentChatID == "channel-1")
-        var replay = ChatEventReplayState()
-        let firstDelivery = replay.receive(event)
-        let repeatedDelivery = replay.receive(event)
-        #expect(firstDelivery)
-        #expect(!repeatedDelivery)
-    }
 }

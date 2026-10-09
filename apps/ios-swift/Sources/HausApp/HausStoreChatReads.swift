@@ -17,6 +17,7 @@ extension HausStore {
     func openChat(chatID: String) async {
         openChatID = chatID
         await loadMessages(chatID: chatID)
+        await revealTranscript(chatID: chatID)
         await markChatReadIfNeeded(chatID: chatID)
     }
 
@@ -66,11 +67,11 @@ extension HausStore {
     /// `ChatReadLedger` owns all four; this owns the mutation and the surface
     /// gate.
     ///
-    /// The durable `chat.read` event owns the Chat-list refresh, exactly as the
-    /// web App's `useChatRead` does. Server writes that event only when the read
-    /// actually moved, addresses it to the reader alone, and both live delivery
-    /// and the reconnect walk carry it, so one acknowledgement produces one list
-    /// refresh. Refreshing here as well made every opened Chat refetch twice.
+    /// The `chat.onRead` notification owns the Chat-list refresh, exactly as
+    /// the web App's stream does. Server publishes it only when the read
+    /// actually moved (the receipt's `advanced`) and addresses it to the reader
+    /// alone, so one acknowledgement produces one list refresh. Refreshing here
+    /// as well made every opened Chat refetch twice.
     func markChatReadIfNeeded(chatID: String) async {
         guard let serverID = activeServer?.id, openChatID == chatID else { return }
 

@@ -24,17 +24,6 @@ final class ChatMessageReactionsTests: XCTestCase {
         XCTAssertEqual(try decodeMessage(reactions: nil).reactions, [])
     }
 
-    func testReplacingReactionsPatchesOnlyThatMessage() throws {
-        let message = try decodeMessage(reactions: nil)
-        let page = ChatMessagePage(messages: [message], nextBeforeSequence: nil, threads: [])
-        let thumbs = [ChatMessageReaction(actors: [.init(id: "user_1", kind: .human)], emoji: "👍")]
-
-        let patched = try XCTUnwrap(page.replacingReactions(thumbs, messageID: "message_1"))
-        XCTAssertEqual(patched.messages[0].reactions, thumbs)
-        XCTAssertNil(patched.replacingReactions(thumbs, messageID: "message_1"))
-        XCTAssertNil(page.replacingReactions(thumbs, messageID: "missing"))
-    }
-
     func testEncodesTheReactInput() throws {
         let input = ChatMessageReactionInput(emoji: "👍", messageID: "m", remove: true, serverID: "s")
         let object = try JSONSerialization.jsonObject(with: HausJSON.encoder().encode(input)) as? [String: Any]

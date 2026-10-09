@@ -3,17 +3,6 @@ import XCTest
 @testable import HausModels
 
 final class ChatHistoryWindowTests: XCTestCase {
-    func testOldMessagePagePayloadDefaultsTheNewAfterCursor() throws {
-        let page = try HausJSON.decoder().decode(
-            ChatMessagePage.self,
-            from: Data(
-                "{\"messages\":[],\"nextBeforeSequence\":null,\"threads\":[]}".utf8
-            )
-        )
-
-        XCTAssertNil(page.nextAfterSequence)
-    }
-
     func testMessagePageCarriesAfterCursorAndPrependingKeepsNewestCursor() throws {
         let older = ChatMessagePage(
             messages: [try message(id: "one", sequence: 1)],

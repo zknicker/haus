@@ -13,21 +13,23 @@ extension HausStore {
     }
 }
 
+/// The running stream tasks, one per focused subscription, so one stream can
+/// be replaced or cancelled without touching its siblings.
 final class EventTaskBag: @unchecked Sendable {
     private let lock = NSLock()
-    private var tasks: [Task<Void, Never>] = []
+    private var tasks: [RealtimeStream: Task<Void, Never>] = [:]
 
-    func replace(with newTasks: [Task<Void, Never>]) {
+    func replace(_ stream: RealtimeStream, with task: Task<Void, Never>?) {
         lock.withLock {
-            tasks.forEach { $0.cancel() }
-            tasks = newTasks
+            tasks[stream]?.cancel()
+            tasks[stream] = task
         }
     }
 
     func cancelAll() {
         lock.withLock {
-            tasks.forEach { $0.cancel() }
-            tasks = []
+            tasks.values.forEach { $0.cancel() }
+            tasks = [:]
         }
     }
 }
@@ -41,16 +43,6 @@ struct ClerkSessionTokenProvider: SessionTokenProvider, @unchecked Sendable {
 }
 
 struct ServerScopedInput: Encodable, Sendable {
-    let serverId: String
-}
-
-struct ChatEventHead: Decodable, Sendable {
-    let cursor: String
-}
-
-struct ChatEventsInput: Encodable, Sendable {
-    let afterCursor: String
-    let limit: Int
     let serverId: String
 }
 

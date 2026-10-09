@@ -56,7 +56,7 @@ extension HausStore {
                 guard !Task.isCancelled else { return }
                 Self.logger.warning("\(path, privacy: .public) stream stopped: \(error.localizedDescription, privacy: .public)")
             }
-            if Date().timeIntervalSince(startedAt) >= Self.streamStableInterval { attempt = 0 }
+            if Date().timeIntervalSince(startedAt) >= RealtimeStreamRestarts.stableInterval { attempt = 0 }
             try? await Task.sleep(for: RetryBackoff.delay(attempt: attempt))
             attempt += 1
         }

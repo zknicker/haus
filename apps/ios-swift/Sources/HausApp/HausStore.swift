@@ -42,10 +42,23 @@ final class HausStore {
     private var storedChats: [ChatSummary] = []
     private var storedReceiptBackedAgentDMsByChatID: [String: String] = [:]
     private var storedMessagesByChatID: [String: ChatMessagePage] = [:]
+    // The normalized transcript cache and its targeted reads
+    // (`HausStoreTranscripts.swift`). `messagesByChatID` and
+    // `inlineReplyPagesByRootID` are its rendered pages.
+    @ObservationIgnored var transcripts = TranscriptStore()
+    @ObservationIgnored var transcriptReads = TranscriptReads()
+    @ObservationIgnored var entityLoads: [String: EntityLoad] = [:]
+    @ObservationIgnored var tailReadsInFlight: Set<TranscriptKey> = []
+    @ObservationIgnored var deletedChatIDs: Set<String> = []
+    @ObservationIgnored var staleEntities: Set<EntityRefresh> = []
+    @ObservationIgnored var staleTranscriptChatIDs: Set<String> = []
     /// Inline reply pages are filtered Server reads, so they stay separate from
     /// the ordinary Chat history page they came from.
-    var inlineReplyPagesByRootID: [String: ChatMessagePage] = [:]
+    private(set) var inlineReplyPagesByRootID: [String: ChatMessagePage] = [:]
     var inlineReplyChatIDByRootID: [String: String] = [:]
+    /// The viewer's follow presses not yet settled, by Thread Chat id. An
+    /// app-local overlay: the anchor entity is only ever written by a read.
+    var threadFollowOverlay: [String: Bool] = [:]
     var inlineReplyCacheGeneration = 0
     var inlineReplyLoadsInFlight: Set<String> = []
     // MARK: - Inbox snapshots
@@ -90,15 +103,16 @@ final class HausStore {
             if oldValue != sidebarOrder { projections.chatDestinations = nil }
         }
     }
-    var chatEventServerID: String?
-    var chatEventReplay = ChatEventReplayState()
     @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }
     @ObservationIgnored let cloudAgentStackExpansion = ThreadCloudAgentStackExpansion()
-    // Stream recovery (`HausStoreEventStreams.swift`).
-    @ObservationIgnored var streamRestart: Task<Void, Never>?
-    @ObservationIgnored var streamRestartAttempt = 0
-    @ObservationIgnored var streamsStartedAt: Date?
-    @ObservationIgnored var streamsHealthy = false
+    // Realtime streams (`HausStoreEventStreams.swift`).
+    @ObservationIgnored var realtimeServerID: String?
+    @ObservationIgnored var streamRestarts = RealtimeStreamRestarts()
+    @ObservationIgnored var streamRestartTasks: [RealtimeStream: Task<Void, Never>] = [:]
+    @ObservationIgnored var pendingRecovery: Set<RealtimeProjection> = []
+    @ObservationIgnored var recoveryFlush: Task<Void, Never>?
+    @ObservationIgnored var membershipLossInFlight = false
+    var streamsHealthy: Bool { realtimeServerID != nil && streamRestarts.allRunning }
     /// When the app last left the foreground, so a quick return can skip the
     /// full snapshot while its streams are still up.
     @ObservationIgnored var backgroundedAt: Date?
@@ -110,8 +124,6 @@ final class HausStore {
     @ObservationIgnored var launchSnapshotWrite: Task<Void, Never>?
     let launchSnapshots = LaunchSnapshotStore.applicationSupport()
     @ObservationIgnored var chatListRefreshAgain = false
-    var chatEventCatchUpInFlight = false
-    var chatEventCatchUpPending = false
     /// The deepest Chat surface on the user's stack, and the only Chat that
     /// acknowledges reads: it is what the user is actually looking at.
     var openChatID: String?
@@ -133,9 +145,9 @@ final class HausStore {
     @ObservationIgnored var isForegrounded = true
     var historyLoadsInFlight: Set<String> = []
     @ObservationIgnored var historyNavigation = ChatHistoryNavigationState()
-    /// Live SSE events accumulate here for one short window before the existing
-    /// batch applier runs; the catch-up walk already arrives batched.
-    @ObservationIgnored var liveChatEvents = ChatEventCoalescer()
+    /// Live Chat events from every focused stream accumulate here for one
+    /// short window, so a burst costs one read fan-out.
+    @ObservationIgnored var liveChatEvents = ChatEventCoalescer<ChatRealtimeEvent>()
     @ObservationIgnored var liveChatEventFlush: Task<Void, Never>?
     /// Recovery state invalidates mounted Chat reads when an Agent message has
     /// committed and supplies the revision that mounted Server search observes.
@@ -253,20 +265,22 @@ final class HausStore {
         }
     }
 
-    var messagesByChatID: [String: ChatMessagePage] {
-        get { storedMessagesByChatID }
-        set {
-            let changed = KeyedChanges.between(storedMessagesByChatID, newValue)
-            guard !changed.isEmpty else { return }
-            storedMessagesByChatID = newValue
-            scheduleLaunchSnapshotWrite()
-            // A Thread's rows resolve cloud-agent conversation links through
-            // its parent's page, so loaded Threads (pages the Chat list does
-            // not name) follow any page write.
-            let listedChatIDs = Set(storedChats.map(\.id))
-            let threadChatIDs = newValue.keys.filter { !listedChatIDs.contains($0) }
-            projections.retireMessages(chatIDs: changed.union(threadChatIDs))
-        }
+    /// Each Chat's rendered page, materialized from `transcripts`. Written only
+    /// by `publishTranscripts`, which a transcript write calls.
+    var messagesByChatID: [String: ChatMessagePage] { storedMessagesByChatID }
+
+    func setMessagePages(_ newValue: [String: ChatMessagePage], inlinePages: [String: ChatMessagePage]) {
+        if inlinePages != inlineReplyPagesByRootID { inlineReplyPagesByRootID = inlinePages }
+        let changed = KeyedChanges.between(storedMessagesByChatID, newValue)
+        guard !changed.isEmpty else { return }
+        storedMessagesByChatID = newValue
+        scheduleLaunchSnapshotWrite()
+        // A Thread's rows resolve cloud-agent conversation links through
+        // its parent's page, so loaded Threads (pages the Chat list does
+        // not name) follow any page write.
+        let listedChatIDs = Set(storedChats.map(\.id))
+        let threadChatIDs = newValue.keys.filter { !listedChatIDs.contains($0) }
+        projections.retireMessages(chatIDs: changed.union(threadChatIDs))
     }
 
     var pendingMessagesByChatID: [String: [PendingChatMessage]] {

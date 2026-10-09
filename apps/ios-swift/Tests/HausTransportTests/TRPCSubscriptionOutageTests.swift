@@ -37,7 +37,7 @@ final class TRPCSubscriptionOutageTests: XCTestCase {
         )
 
         let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
-            "chat.onEvent",
+            "chat.onMessageCreated",
             input: SubscriptionInput(serverID: "srv_123"),
             options: TRPCSubscriptionOptions(
                 initialRetryDelayNanoseconds: 1,

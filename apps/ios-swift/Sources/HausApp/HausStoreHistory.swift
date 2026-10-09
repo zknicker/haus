@@ -69,12 +69,18 @@ extension HausStore {
         }
         guard let ticket = historyNavigation.requests.begin(chatID: chatID, policy: policy) else { return false }
         historyLoadsInFlight.insert(chatID)
+        beginListRead(chatID: chatID)
         let readToken = agentMessageRecovery.beginRead(serverID: serverID, chatID: chatID)
         defer {
+            settleListRead(chatID: chatID)
             if let refresh = historyNavigation.requests.finish(ticket, chatID: chatID) {
                 historyLoadsInFlight.remove(chatID)
                 if refresh {
                     Task { await self.loadMessages(chatID: chatID) }
+                } else {
+                    // Lists are read one operation at a time: a tail an event
+                    // asked for while this read held the list runs now.
+                    Task { await self.drainTail(.chat(chatID)) }
                 }
                 trimMessageHistoryCache()
             }
@@ -91,24 +97,24 @@ extension HausStore {
                   historyNavigation.requests.isCurrent(ticket, chatID: chatID) else {
                 return false
             }
-            var window = ChatHistoryWindow(page: messagesByChatID[chatID] ?? page)
+            let write: TranscriptWrite
             switch direction {
             case .older:
-                window.prepend(page)
+                write = .older
                 historyNavigation.followingLatest[chatID] = false
             case .newer:
-                window.append(page)
+                write = .newer
                 historyNavigation.followingLatest[chatID] = false
             case .refresh:
-                window.refresh(latest: page, followingLatest: historyNavigation.followingLatest[chatID] ?? true)
+                write = .refresh(followingLatest: historyNavigation.followingLatest[chatID] ?? true)
             case .latest:
-                window.replace(with: page)
+                write = .replace
                 historyNavigation.followingLatest[chatID] = true
             case .around:
-                window.replace(with: page)
+                write = .replace
                 historyNavigation.followingLatest[chatID] = false
             }
-            messagesByChatID[chatID] = window.page
+            writeTranscript(page, to: .chat(chatID), as: write)
             reconcilePendingMessages(chatID: chatID, page: page)
             historyNavigation.retention.touch(chatID)
             return true
@@ -132,16 +138,17 @@ extension HausStore {
         let evictions = historyNavigation.retention.evictions(
             cachedIDs: Set(messagesByChatID.keys), protectedIDs: protected
         )
+        guard !evictions.isEmpty else { return }
         for chatID in evictions {
-            messagesByChatID.removeValue(forKey: chatID)
             cloudAgentWorkByChatID.removeValue(forKey: chatID)
             historyNavigation.followingLatest.removeValue(forKey: chatID)
             historyNavigation.visibleSequences.removeValue(forKey: chatID)
+            staleTranscriptChatIDs.remove(chatID)
             for rootID in inlineReplyChatIDByRootID.keys.filter({ inlineReplyChatIDByRootID[$0] == chatID }) {
-                inlineReplyPagesByRootID.removeValue(forKey: rootID)
                 inlineReplyChatIDByRootID.removeValue(forKey: rootID)
             }
         }
+        publishTranscripts(transcripts.removeLists { evictions.contains($0.chatID) })
     }
 
     func advanceHistoryViewport(chatID: String, messageIDs: [String]) {

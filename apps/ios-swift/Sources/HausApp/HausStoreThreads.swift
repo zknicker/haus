@@ -9,20 +9,21 @@ private let threadFollowLogger = Logger(
 
 /// Thread attention: who is listening to a child conversation.
 ///
-/// A Thread's follow state lives on the parent Chat page's `ThreadSummary`
-/// (ADR 0013), so this file never keeps a second copy of it. The toggle patches
-/// that page, Server's receipt settles it, and the durable
-/// `thread.follow.updated` fan-out — which already refetches the parent page and
-/// the Chat list in `HausStoreMessageLoading` — is what converges every other
-/// surface, including the other clients.
+/// A Thread's follow state lives on its anchor message's entity, the
+/// `ThreadSummary` the parent Chat page carries (ADR 0013). A press shows at
+/// once through an app-local overlay; the entity is only ever written by a
+/// read, so the receipt reads the anchor again and the overlay retires. The
+/// `thread.onFollowUpdated` notification converges every other surface.
 extension HausStore {
     /// Whether the viewer follows this Thread, or `nil` when the parent page
     /// carries no such Thread yet.
     func threadFollowed(threadChatID: String, parentChatID: String) -> Bool? {
-        ThreadFollowPatch.followed(
+        let settled = ThreadFollowState.followed(
             threadChatID: threadChatID,
             in: messagesByChatID[parentChatID]
         )
+        guard settled != nil else { return nil }
+        return threadFollowOverlay[threadChatID] ?? settled
     }
 
     func followThread(threadChatID: String, parentChatID: String) async {
@@ -33,14 +34,17 @@ extension HausStore {
         await setThreadFollow(false, threadChatID: threadChatID, parentChatID: parentChatID)
     }
 
-    /// Toggles the Thread optimistically, then keeps whichever value Server
-    /// answers with. A failed write rolls the summary back to what it said
-    /// before the press, so the control never states attention Server did not
-    /// record.
+    /// Shows the press at once, then settles on what Server answers. A failed
+    /// write drops the overlay, so the control never states attention Server
+    /// did not record.
     func setThreadFollow(_ follow: Bool, threadChatID: String, parentChatID: String) async {
         guard let serverID = activeServer?.id else { return }
-        let previous = threadFollowed(threadChatID: threadChatID, parentChatID: parentChatID)
-        applyThreadFollow(follow, threadChatID: threadChatID, parentChatID: parentChatID)
+        threadFollowOverlay[threadChatID] = follow
+        defer {
+            if threadFollowOverlay[threadChatID] == follow {
+                threadFollowOverlay.removeValue(forKey: threadChatID)
+            }
+        }
 
         do {
             let receipt: ThreadFollowReceipt = try await client.mutation(
@@ -51,38 +55,30 @@ extension HausStore {
                     threadChatID: threadChatID
                 )
             )
-            guard activeServer?.id == serverID else { return }
-            applyThreadFollow(
-                receipt.followed,
-                threadChatID: threadChatID,
-                parentChatID: parentChatID
-            )
+            guard activeServer?.id == serverID,
+                  let anchorID = messagesByChatID[parentChatID]?.threads
+                      .first(where: { $0.threadChatID == threadChatID })?.anchorMessageID
+            else { return }
+            threadFollowOverlay[threadChatID] = receipt.followed
+            await readThreadAnchor(EntityRefresh(chatID: parentChatID, messageID: anchorID))
+            if threadFollowOverlay[threadChatID] == receipt.followed {
+                threadFollowOverlay.removeValue(forKey: threadChatID)
+            }
         } catch is CancellationError {
-            // A popped screen cancels the write in flight; the durable event or
-            // the next page load states what Server kept.
+            // A popped screen cancels the write in flight; the realtime event
+            // or the next page load states what Server kept.
             return
         } catch {
-            if let previous {
-                applyThreadFollow(
-                    previous,
-                    threadChatID: threadChatID,
-                    parentChatID: parentChatID
-                )
-            }
             threadFollowLogger.error(
                 "Setting Thread follow failed: \(error.localizedDescription, privacy: .public)"
             )
         }
     }
 
-    /// Writes a follow state into the parent page, if that page still carries
-    /// the Thread and does not already say so.
-    private func applyThreadFollow(_ followed: Bool, threadChatID: String, parentChatID: String) {
-        guard let page = ThreadFollowPatch.page(
-            messagesByChatID[parentChatID],
-            followed: followed,
-            threadChatID: threadChatID
-        ) else { return }
-        messagesByChatID[parentChatID] = page
+    /// Reads the anchor entity and waits for it, so the overlay retires onto
+    /// the Server's summary rather than flickering back first.
+    private func readThreadAnchor(_ refresh: EntityRefresh) async {
+        refreshEntity(refresh)
+        await entityLoads[refresh.messageID]?.task.value
     }
 }

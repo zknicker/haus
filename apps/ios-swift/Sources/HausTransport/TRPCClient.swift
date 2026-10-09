@@ -177,7 +177,10 @@ public final class TRPCClient: Sendable {
         path: String,
         decodingError: Error? = nil
     ) throws -> Never {
-        if let shape = try? decoder.decode(TRPCErrorShape.self, from: data) {
+        // A refused subscribe answers with the same `{"error": …}` envelope a
+        // query does; a bare shape is accepted too.
+        let envelope = try? decoder.decode(TRPCResponseEnvelope<JSONValue>.self, from: data)
+        if let shape = envelope?.error ?? (try? decoder.decode(TRPCErrorShape.self, from: data)) {
             throw TRPCError(
                 message: shape.message,
                 code: shape.code,

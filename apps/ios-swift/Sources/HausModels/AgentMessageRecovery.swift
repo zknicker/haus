@@ -80,7 +80,7 @@ public struct AgentMessageRecoveryState: Equatable, Sendable {
     /// Advances the mounted Chat generations after the Server commits an Agent
     /// message. Non-sending phases and events for another Server are no-ops.
     /// The lifecycle stream is notification-only, so each confirmed send gets
-    /// one recovery pass; durable event replay remains the idempotent path.
+    /// one recovery pass; the message stream's tail reads stay the idempotent path.
     public mutating func beginRecovery(
         event: AgentLifecycleEvent,
         activeServerID: String,

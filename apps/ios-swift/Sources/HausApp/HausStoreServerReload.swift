@@ -6,13 +6,13 @@ import HausUI
 /// The launch: paint the last rendered state from disk, then load the live
 /// Server and reconcile.
 ///
-/// The live chain is three steps — `server.list`, `chat.eventHead`, then the
-/// Chat list, Agent list, and identity-synced member list together. Reading
-/// the event head before the lists makes them the proof of every event
-/// through it, so the chat stream's first connect walks only newer events
-/// instead of reloading the whole snapshot a second time. Computers, the
-/// badge, and activity load after the shell is up; no Chat surface waits on
-/// them, and the streams' own connects reload activity and presence.
+/// The live chain is two steps — `server.list`, then the Chat list, Agent
+/// list, and identity-synced member list together, with the pages the first
+/// frame shows. The focused streams start after it; their first connect
+/// reloads nothing these reads just answered, and the message stream's first
+/// connect tail-reads each loaded list to cover the gap before it subscribed.
+/// Computers and the badge load after the shell is up; no Chat surface waits
+/// on them, and the streams' own connects reload activity and presence.
 extension HausStore {
     func start() async {
         guard case .idle = state else { return }
@@ -44,13 +44,7 @@ extension HausStore {
                 state = .failed("You do not have a Haus Server yet.")
                 return
             }
-            let head: ChatEventHead = try await client.query(
-                "chat.eventHead",
-                input: ServerScopedInput(serverId: server.id)
-            )
             try await reloadServer(server.id)
-            chatEventServerID = server.id
-            chatEventReplay.reset(to: head.cursor)
             hasLiveServerState = true
             if case .loaded = state {} else { state = .loaded }
             markConnected()
@@ -91,9 +85,8 @@ extension HausStore {
         if !lifecycleAvailability.isEmpty { lifecycleAvailability.removeAll() }
         members = memberList
 
-        // Pages read after the event head, so the stream's catch-up covers
-        // them: every mounted surface (a disk paint may have read its page
-        // before the head), plus a cold launch's landing Chat.
+        // Every mounted surface (a disk paint may still show its old page),
+        // plus a cold launch's landing Chat.
         var pages = OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID)
         let landingChatID = preferredInitialChatID
             .flatMap { preferred in chats.first { $0.id == preferred }?.id }
@@ -161,13 +154,15 @@ extension HausStore {
 
     /// Server-scoped state painted for a Server the live list no longer
     /// leads with. Nothing of it may stand beside the new Server's reads.
-    private func discardServerScopedState() {
+    func discardServerScopedState() {
         guard activeServer != nil else { return }
         chats = []
         agents = []
         members = nil
-        messagesByChatID = [:]
+        resetTranscripts()
         pendingMessagesByChatID = [:]
         cloudAgentWorkByChatID = [:]
+        serverTasks = nil
+        activeCloudAgentWork = nil
     }
 }

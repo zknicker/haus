@@ -8,7 +8,7 @@ import Foundation
 /// user, or in another format version, is discarded rather than migrated.
 public struct LaunchSnapshot: Codable, Sendable, Equatable {
     /// Bump whenever a carried model's encoding changes shape.
-    public static let currentVersion = 1
+    public static let currentVersion = 2
     /// Pages beyond this many messages are not worth a cold-launch paint.
     public static let maximumPageMessages = 200
     public static let maximumPages = 3

@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// The default lens is the Server-wide read the Store already owns, so the
 /// screen reads that snapshot rather than keeping a second copy of the same
-/// query: a durable `task.created` or `task.updated` refreshes it and this
+/// query: a `task.onChanged` notification refreshes it and this
 /// screen repaints without anyone pulling to refresh. Only the widened lens —
 /// a reader deliberately looking at the background tier — comes back through
 /// `load`, because it is a different question and a temporary one.
