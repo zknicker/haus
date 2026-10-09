@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { appProtocolHeaders, appProtocolVersion } from '@haus/api/app-protocol';
 import { expect, type Page } from '@playwright/test';
@@ -12,6 +12,35 @@ import {
     readClerkSessionFixture,
     signInAsClerkHuman,
 } from './clerk-session.ts';
+import { type ServerState, serverStateFile } from './server-state.ts';
+
+/**
+ * Restarts only the Server process, like a deploy: PostgreSQL, Clerk, the
+ * port, and the browser session survive, and App sockets reconnect. Resolves
+ * once the new process answers its health route.
+ */
+export async function restartHausServer(timeoutMs = 40_000) {
+    const before = readServerState();
+    process.kill(before.harnessPid, 'SIGUSR2');
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        const after = readServerState();
+        if (after.generation > before.generation) {
+            const response = await fetch(
+                `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}/healthz`
+            );
+            if (response.ok) {
+                return after;
+            }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('The restarted Haus Server did not become healthy.');
+}
+
+function readServerState() {
+    return JSON.parse(readFileSync(serverStateFile(), 'utf8')) as ServerState;
+}
 
 export async function createTestServer(
     page: Page,
