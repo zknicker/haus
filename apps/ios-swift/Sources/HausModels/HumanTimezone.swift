@@ -11,6 +11,12 @@ public enum HumanTimezone {
         isAcceptable(identifier) ? identifier : nil
     }
 
+    /// The zone a viewer reads times in: their saved Profile zone, else the
+    /// device zone while the saved one is blank or unknown to the platform.
+    public static func viewerZone(saved: String?, device: TimeZone = .current) -> TimeZone {
+        saved.flatMap { TimeZone(identifier: $0) } ?? device
+    }
+
     /// An IANA-shaped name (`Region/City`, `UTC`) the platform also knows.
     public static func isAcceptable(_ identifier: String) -> Bool {
         let parts = identifier.split(separator: "/", omittingEmptySubsequences: false)

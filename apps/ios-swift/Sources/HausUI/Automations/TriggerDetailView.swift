@@ -7,6 +7,7 @@ import SwiftUI
 struct TriggerDetailView: View {
     let model: AgentAutomationsModel
     let triggerID: String
+    let viewerZone: TimeZone
     let onOpenChat: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -62,7 +63,7 @@ struct TriggerDetailView: View {
                             }
                             AutomationFactRow(
                                 title: "Created",
-                                value: AutomationFormatting.timestamp(trigger.createdAt),
+                                value: AutomationFormatting.timestamp(trigger.createdAt, zone: viewerZone),
                                 showsDivider: false
                             )
                         }
@@ -73,7 +74,7 @@ struct TriggerDetailView: View {
                         failed: firesFailed,
                         emptyText: "Nothing has fired this trigger yet."
                     ) { fire in
-                        (AutomationFormatting.timestamp(fire.receivedAt), AutomationFormatting.triggerFireDetail(fire))
+                        (AutomationFormatting.timestamp(fire.receivedAt, zone: viewerZone), AutomationFormatting.triggerFireDetail(fire))
                     }
                 }
                 .padding(.horizontal, 16)

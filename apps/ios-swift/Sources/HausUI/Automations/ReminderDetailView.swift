@@ -9,6 +9,7 @@ import SwiftUI
 struct ReminderDetailView: View {
     let model: AgentAutomationsModel
     let reminderID: String
+    let viewerZone: TimeZone
     let onOpenChat: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -33,7 +34,7 @@ struct ReminderDetailView: View {
 
     private func content(_ reminder: Reminder) -> some View {
         TimelineView(.everyMinute) { timeline in
-            let schedule = reminder.scheduleDetail(ReminderScheduleContext(now: timeline.date))
+            let schedule = reminder.scheduleDetail(ReminderScheduleContext(now: timeline.date, viewerZone: viewerZone))
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     AutomationDetailHeader(title: reminder.title, kindLabel: reminder.kind.label)
@@ -56,7 +57,7 @@ struct ReminderDetailView: View {
                             emptyText: "This reminder hasn't run yet."
                         ) { run in
                             (
-                                AutomationFormatting.timestamp(run.firedAt),
+                                AutomationFormatting.timestamp(run.firedAt, zone: viewerZone),
                                 AutomationFormatting.runDelay(firedAt: run.firedAt, scheduledFor: run.scheduledFor)
                             )
                         }
@@ -117,7 +118,7 @@ struct ReminderDetailView: View {
                 }
                 AutomationFactRow(
                     title: "Created",
-                    value: AutomationFormatting.timestamp(reminder.createdAt),
+                    value: AutomationFormatting.timestamp(reminder.createdAt, zone: viewerZone),
                     showsDivider: reminder.hasScript
                 )
                 if reminder.hasScript {

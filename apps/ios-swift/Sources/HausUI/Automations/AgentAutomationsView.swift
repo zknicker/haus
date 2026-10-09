@@ -7,17 +7,26 @@ import SwiftUI
 struct AgentAutomationsView: View {
     @State private var model: AgentAutomationsModel
     @State private var selection: AutomationSelection?
+    /// The viewer's saved zone; every time on these screens reads in it.
+    let viewerZone: TimeZone
     let onOpenChat: (String) -> Void
 
-    init(agentID: String, agentName: String, actions: AgentAutomationsActions, onOpenChat: @escaping (String) -> Void) {
+    init(
+        agentID: String,
+        agentName: String,
+        actions: AgentAutomationsActions,
+        viewerZone: TimeZone,
+        onOpenChat: @escaping (String) -> Void
+    ) {
         _model = State(initialValue: AgentAutomationsModel(agentID: agentID, agentName: agentName, actions: actions))
+        self.viewerZone = viewerZone
         self.onOpenChat = onOpenChat
     }
 
     var body: some View {
         // One clock for the screen, so "Today" turns into "Yesterday" on time.
         TimelineView(.everyMinute) { timeline in
-            let context = ReminderScheduleContext(now: timeline.date)
+            let context = ReminderScheduleContext(now: timeline.date, viewerZone: viewerZone)
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     reminders(context)
@@ -37,9 +46,9 @@ struct AgentAutomationsView: View {
         .navigationDestination(item: $selection) { selection in
             switch selection {
             case .reminder(let id):
-                ReminderDetailView(model: model, reminderID: id, onOpenChat: onOpenChat)
+                ReminderDetailView(model: model, reminderID: id, viewerZone: viewerZone, onOpenChat: onOpenChat)
             case .trigger(let id):
-                TriggerDetailView(model: model, triggerID: id, onOpenChat: onOpenChat)
+                TriggerDetailView(model: model, triggerID: id, viewerZone: viewerZone, onOpenChat: onOpenChat)
             }
         }
     }
@@ -122,6 +131,12 @@ struct AutomationNote: View {
 
 #Preview("Automations") {
     NavigationStack {
-        AgentAutomationsView(agentID: "agent-blippy", agentName: "Blippy", actions: .preview, onOpenChat: { _ in })
+        AgentAutomationsView(
+            agentID: "agent-blippy",
+            agentName: "Blippy",
+            actions: .preview,
+            viewerZone: HumanTimezone.viewerZone(saved: "America/New_York"),
+            onOpenChat: { _ in }
+        )
     }
 }

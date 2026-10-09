@@ -1,3 +1,4 @@
+import HausModels
 import SwiftUI
 
 extension SettingsSheet {
@@ -87,6 +88,7 @@ extension SettingsSheet {
                     agentID: agent.id,
                     agentName: agent.displayName,
                     actions: automations,
+                    viewerZone: HumanTimezone.viewerZone(saved: data.viewer.timezone),
                     onOpenChat: { chatID in
                         automations.openChat(chatID)
                         dismiss()

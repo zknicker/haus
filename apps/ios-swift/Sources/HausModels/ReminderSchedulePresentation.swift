@@ -17,14 +17,14 @@ public enum ReminderKind: Sendable {
     }
 }
 
-/// The viewer's clock: their device zone and locale, and the instant "today"
-/// is measured from.
+/// The viewer's clock: their saved zone (`HumanTimezone.viewerZone`), their
+/// locale, and the instant "today" is measured from.
 public struct ReminderScheduleContext: Sendable {
     public let locale: Locale
     public let now: Date
     public let viewerZone: TimeZone
 
-    public init(locale: Locale = .current, now: Date = Date(), viewerZone: TimeZone = .current) {
+    public init(locale: Locale = .current, now: Date = Date(), viewerZone: TimeZone) {
         self.locale = locale
         self.now = now
         self.viewerZone = viewerZone
@@ -51,7 +51,7 @@ public enum ReminderSchedulePresentation {
         fireAt: Date,
         repeatRule: String?,
         timezone: String,
-        context: ReminderScheduleContext = ReminderScheduleContext()
+        context: ReminderScheduleContext
     ) -> String {
         let time = ScheduleClock.clock(fireAt, context.viewerZone, context.locale)
         guard let repeatRule else {
@@ -73,7 +73,7 @@ public enum ReminderSchedulePresentation {
         fireAt: Date,
         repeatRule: String?,
         timezone: String,
-        context: ReminderScheduleContext = ReminderScheduleContext()
+        context: ReminderScheduleContext
     ) -> ReminderScheduleDetail {
         let clock = ScheduleClock.clock(fireAt, context.viewerZone, context.locale)
         let repeats = repeatRule.map {
@@ -145,13 +145,13 @@ public enum ReminderSchedulePresentation {
 public extension Reminder {
     var kind: ReminderKind { ReminderKind(repeatRule: repeatRule) }
 
-    func rowSummary(_ context: ReminderScheduleContext = ReminderScheduleContext()) -> String {
+    func rowSummary(_ context: ReminderScheduleContext) -> String {
         ReminderSchedulePresentation.rowSummary(
             fireAt: fireAt, repeatRule: repeatRule, timezone: timezone, context: context
         )
     }
 
-    func scheduleDetail(_ context: ReminderScheduleContext = ReminderScheduleContext()) -> ReminderScheduleDetail {
+    func scheduleDetail(_ context: ReminderScheduleContext) -> ReminderScheduleDetail {
         ReminderSchedulePresentation.detail(
             fireAt: fireAt, repeatRule: repeatRule, timezone: timezone, context: context
         )

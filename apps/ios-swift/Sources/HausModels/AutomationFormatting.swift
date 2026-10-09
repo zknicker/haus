@@ -67,7 +67,7 @@ public enum AutomationFormatting {
     }
 
     /// A settled instant, as the detail's Created and history rows show it.
-    public static func timestamp(_ date: Date, locale: Locale = .current, zone: TimeZone = .current) -> String {
+    public static func timestamp(_ date: Date, zone: TimeZone, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.timeZone = zone
