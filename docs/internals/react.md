@@ -252,6 +252,24 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   (composer focus, Thread pane sync to the route, pending message reveal) runs from
   `useViewShownChange`. A hidden view's queries stay observed, so it re-renders on its own chat's
   events and reads fresh at reveal. `kept-chat-view-invariants.test.tsx` pins each gate.
+* The chat transcript renders a window of its rows (`features/chats/transcript-render-window.ts`,
+  `chat-transcript-row-slot.tsx`), so a chat switch costs the rows on screen, not the transcript's
+  length. Every row keeps its `@shadcn/react` scroller item in the DOM; a row outside the window
+  is an empty placeholder at its estimated height with no `messageId`, so the scroller never
+  reports it as seen (read tracking counts rendered rows only), anchors to it, or restores to it,
+  and it carries `overflow-anchor: none` so native scroll anchoring holds a rendered row instead.
+  The window opens on the rows that fill `window.innerHeight` at the end, or around the row the
+  scroll memory will restore (`getRememberedChatScrollPosition`); after that rows join and never
+  leave: placeholders render as they come within a viewport of the visible range (one
+  `IntersectionObserver` rooted at the scroller), new rows render beside rendered ones, an older
+  page that reaches a rendered top renders its last viewport of rows at once so the prepend
+  restore measures real heights, and a reveal (`useChatMessageNavigation`) renders the rows around
+  its target before it finds the element (`renderMessage`). Day dividers always render and carry
+  no `messageId`: an older page from the same day slides in under the divider, which keeps its
+  place, so a divider anchor would hold still while the rows under it moved. TanStack Virtual's
+  absolute positioning is deliberately not used: the scroller's prepend detection, scroll
+  restore, visibility tracking, and native anchoring all work on in-flow direct children, and a
+  previous virtualizer needed ~900 lines of scroll control to replace them.
 * Routed destinations render their content inside one `PageColumn`, which owns
   the page gutter, max width, and the rhythm between sections. It encodes
   HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)

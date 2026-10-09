@@ -75,6 +75,36 @@ unchanged. The price is that nothing rides remount any more:
 - **One scroll-restore owner**, in a layout effect (`features/chats/chat-scroll-position-memory.tsx`).
   Two owners fight and produce a visible jump after paint.
 
+## Window the transcript
+
+A cold switch paid ~0.7 ms per mounted row, and every row of the loaded page mounted. The
+transcript now renders a window (`features/chats/transcript-render-window.ts`): rows that fill the
+opening viewport, then rows as they near it. Prod, CPU×1, cold paint 112 → 48 ms, warm 50 → 31;
+Electron cold visible 102 → 40, presented 130 → 72 (results-2026-10.md).
+
+- Keep the scroller's DOM contract. Every row keeps its scroller item; a row outside the window is
+  an empty placeholder at its estimated height. The `@shadcn/react` scroller detects prepends,
+  restores scroll, and tracks visibility on in-flow direct children, and native scroll anchoring
+  needs in-flow boxes. An absolutely positioned virtualizer replaces all of that (the June 2026
+  TanStack version needed ~900 lines of scroll control).
+- A placeholder has no `messageId`: read tracking counts only rendered rows, and the scroller
+  never anchors or restores to one. It also carries `overflow-anchor: none`, so the browser
+  anchors to a rendered row while the placeholder takes its real height.
+- Rows join and never leave: no remembered heights, no focus or open-popover loss on scroll, and
+  hidden kept views pay nothing. A long session that scrolls all history mounts it all, as before.
+- Measure anchoring by what the reader sees. `scroll-anchor-check.mjs` used to compare row motion
+  against scroll-offset change, which is blind to an anchoring failure; it now expects the
+  reference row to move exactly by the wheel. That exposed a pre-existing ~7,000 px jump when an
+  older page loaded near the top: the day divider stayed first, so the scroller saw no prepend,
+  and native anchoring does nothing at scroll offset 0. Dividers no longer anchor, and the
+  scroller restores its anchor on every non-following content change (dependency patch).
+- Rows that render a frame after a programmatic scroll restore are not corrected by native
+  anchoring. An older page reaching a rendered top therefore renders its last viewport of rows in
+  the same commit, so the restore measures real heights.
+- A patched dependency is cached by Vite's optimizer (`apps/website/node_modules/.vite`), whose
+  hash ignores `node_modules` contents. Delete it after regenerating a patch, or the dev stack and
+  App e2e keep running the previous patch.
+
 ## Shared state across kept views
 
 A context value that changes on every dispatch re-renders every kept tab. Use an external store

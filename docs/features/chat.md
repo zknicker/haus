@@ -254,6 +254,14 @@ and [Agent Inbox](../../specs/inbox.md).
   follow the bottom only when the reader was already following it. That choice
   survives backgrounding Haus and visiting Settings: returning catches up to the
   latest message for a reader at the bottom, or preserves their place in history.
+* **Long transcripts.** A chat renders only the messages near what is on screen,
+  plus about a screen above and below; older messages render as the reader scrolls
+  toward them, and a jump such as View in chat renders its target's neighborhood
+  first. Opening a chat costs the same however much history is loaded. Only
+  messages that actually rendered on screen count as seen for unread state.
+  Browser find (Command-F in a web browser) cannot match messages that have not
+  rendered yet; on desktop, Command-F in a chat opens Search, which reaches every
+  message and jumps to it.
 * **Changed files.** A turn that creates, modifies, or deletes workspace files
   shows a "Changed N files" chip under the agent's reply, and the full
   per-file diff view. Selecting text in a diff or workspace file preview

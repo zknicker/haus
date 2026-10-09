@@ -19,6 +19,24 @@ targets.
 
 Frames-to-visible after the pass: warm switches land in frame 1; cold in frame 2.
 
+## Transcript windowing (follow-up pass)
+
+Same stack and seed (51 rows per first page), prod, channels only, 5 reps. Before is the tree at
+31d2ca892 (kept views effect-alive). Median / p90 ms.
+
+| metric | cold before | cold after | warm before | warm after |
+| --- | --- | --- | --- | --- |
+| paint, CPU×1 | 112 / 154 | 48 / 61 | 50 / 53 | 31 / 34 |
+| stable, CPU×1 | 154 / 271 | 81 / 174 | – | – |
+| TBT, CPU×1 | 55 / 75 | 0 / 11 | 0 / 0 | 0 / 0 |
+| paint, CPU×4 | 725 / 860 | 259 / 344 | 283 / 313 | 155 / 180 |
+| TBT, CPU×4 | 658 / 785 | 190 / 481 | 203 / 234 | 89 / 110 |
+| DOM mutations | 134 | 45 | 0 | 0 |
+
+Real Electron (`switch.mjs`, prod, 4 reps CPU×1, 3 reps CPU×4), visible / presented medians:
+cold 102 / 130 → 40 / 72, warm 42 / 64 → 24 / 48; CPU×4 cold 610 / 694 → 280 / 352, warm
+219 / 259 → 168 / 205. Rendered rows per opened chat 51 → 15 at a 900 px window.
+
 ## Agent profile open
 
 | metric | first before | first after | cold before | cold after | warm before | warm after |
