@@ -21,6 +21,18 @@ describe('preset account auth', () => {
         ).toBe(false);
     });
 
+    test('CoinGecko connects without accepting credentials or endpoint overrides', () => {
+        const input = { ...base, preset: 'coingecko' };
+        expect(mcpPresetAccountCreateSchema.safeParse(input).success).toBe(true);
+        expect(mcpPresetAccountCreateSchema.safeParse({ ...input, bearerToken: 't' }).success).toBe(
+            false
+        );
+        expect(
+            mcpPresetAccountCreateSchema.safeParse({ ...input, url: 'https://other.example/mcp' })
+                .success
+        ).toBe(false);
+    });
+
     test('a bearer-token preset requires a single header-safe token', () => {
         const parse = (bearerToken?: string) =>
             mcpPresetAccountCreateSchema.safeParse({ ...base, bearerToken, preset: 'x' });
