@@ -5,13 +5,14 @@ import type {
 } from '@haus/api';
 import { isTerminalCloudAgentStatus } from '@haus/api';
 import { settle } from '@haus/effect';
-import { Clock, Deferred, type Duration, Effect, Exit, Scope } from 'effect';
+import { Deferred, type Duration, Effect, Exit, Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { type CloudAgentOperationError, foreign } from './foreign-operation.ts';
 import { withPullRequestEvidence } from './github/observation-evidence.ts';
 import { createPullRequestReader } from './github/pull-request-reader.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentLaunchScope } from './launch-scope.ts';
+import { CloudAgentLocalRuns } from './local-runs.ts';
 import { type EnrichObservation, ObservationReports } from './observation-reports.ts';
 import type {
     CloudAgentProvider,
@@ -26,6 +27,8 @@ interface WatchedRun {
     readonly ready: Deferred.Deferred<void>;
     ref: CloudAgentRunRef;
     terminal: boolean;
+    /** When this monitor first found no journal record for an unaddressed Run. */
+    unrecordedSince?: number;
     readonly wake: Deferred.Deferred<void>;
 }
 
@@ -43,8 +46,8 @@ export class CloudAgentWorkSupervisor {
     private detachPromise: Promise<void> = Promise.resolve();
     private readonly launches: CloudAgentLaunchScope;
     private readonly enrich: EnrichObservation;
+    private readonly localRuns: CloudAgentLocalRuns;
     private readonly provider: () => CloudAgentProvider;
-    private readonly sends: CloudAgentSendQueue;
 
     constructor(
         private readonly runtime: DaemonRuntime,
@@ -57,7 +60,8 @@ export class CloudAgentWorkSupervisor {
     ) {
         const journal = new CloudLaunchJournal(options.dataRoot);
         this.provider = options.provider ?? cloudAgentProvider;
-        this.sends = new CloudAgentSendQueue(runtime, journal, options.serverId, this.provider);
+        const sends = new CloudAgentSendQueue(runtime, journal, options.serverId, this.provider);
+        this.localRuns = new CloudAgentLocalRuns(journal, options.serverId, sends);
         this.launches = new CloudAgentLaunchScope(runtime);
         const reader = createPullRequestReader({ runtime });
         this.enrich =
@@ -227,48 +231,24 @@ export class CloudAgentWorkSupervisor {
             if (run.ref.providerAgentId && run.ref.providerRunId) {
                 return true;
             }
-            const recorded = yield* self.sends.advance(run.ref, () => run.cancelRequested);
-            if (recorded?.phase === 'pending') {
+            const state = yield* self.localRuns.resolve(run);
+            if (state.kind === 'unsent') {
+                if (state.observation) {
+                    self.observe(connection, run, state.observation);
+                }
                 return false;
             }
-            if (recorded?.phase === 'cancelled') {
-                self.observe(connection, run, {
-                    observedAt: new Date(yield* Clock.currentTimeMillis).toISOString(),
-                    status: 'cancelled',
-                });
-                return false;
-            }
-            if (recorded?.phase === 'launched') {
-                run.ref = {
-                    ...run.ref,
-                    providerAgentId: recorded.launch.providerAgentId,
-                    providerRunId: recorded.launch.providerRunId,
-                };
-                const observedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
-                self.observe(connection, run, {
-                    ...recorded.launch,
-                    providerUrl: recorded.launch.providerUrl ?? undefined,
-                    observedAt,
-                });
-                return !run.terminal;
-            }
-            const now = new Date(yield* Clock.currentTimeMillis).toISOString();
-            self.observe(
-                connection,
-                run,
-                recorded?.phase === 'rejected'
-                    ? { errorCode: 'provider-launch-rejected', observedAt: now, status: 'failed' }
-                    : {
-                          activity: {
-                              at: now,
-                              summary:
-                                  'Launch confirmation unavailable; inspect provider before retrying.',
-                          },
-                          observedAt: now,
-                          status: 'queued',
-                      }
-            );
-            return false;
+            run.ref = {
+                ...run.ref,
+                providerAgentId: state.launch.providerAgentId,
+                providerRunId: state.launch.providerRunId,
+            };
+            self.observe(connection, run, {
+                ...state.launch,
+                providerUrl: state.launch.providerUrl ?? undefined,
+                observedAt: state.observedAt,
+            });
+            return !run.terminal;
         });
     }
 

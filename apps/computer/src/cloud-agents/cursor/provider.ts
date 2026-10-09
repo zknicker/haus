@@ -1,5 +1,6 @@
 import {
     type CloudAgentLaunch,
+    CloudAgentLaunchRejectedError,
     type CloudAgentProvider,
     type CloudAgentProviderObservation,
     CloudAgentProviderUnavailableError,
@@ -13,6 +14,7 @@ import {
     type CursorRunAddress,
     type CursorTransport,
     CursorTransportUnavailableError,
+    cursorSendRejectionOf,
     isTerminalCursorRunStatus,
 } from './transport.ts';
 
@@ -63,12 +65,14 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
             }
         },
         async send(input: CloudAgentSendInput): Promise<CloudAgentLaunch> {
-            const launch = await transport.send({
-                agentId: input.providerAgentId,
-                idempotencyKey: input.idempotencyKey,
-                instructions: input.instructions,
-                model: input.model,
-            });
+            const launch = await classified(() =>
+                transport.send({
+                    agentId: input.providerAgentId,
+                    idempotencyKey: input.idempotencyKey,
+                    instructions: input.instructions,
+                    model: input.model,
+                })
+            );
             if (launch.agentId !== input.providerAgentId) {
                 throw new Error('Cursor follow-up returned a different provider Agent');
             }
@@ -80,14 +84,16 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
             };
         },
         async start(input: CloudAgentStartInput): Promise<CloudAgentLaunch> {
-            const launch = await transport.start({
-                idempotencyKey: input.idempotencyKey,
-                instructions: input.instructions,
-                model: input.model,
-                ref: input.ref,
-                repository: input.repository,
-                title: input.title,
-            });
+            const launch = await classified(() =>
+                transport.start({
+                    idempotencyKey: input.idempotencyKey,
+                    instructions: input.instructions,
+                    model: input.model,
+                    ref: input.ref,
+                    repository: input.repository,
+                    title: input.title,
+                })
+            );
             return {
                 providerAgentId: launch.agentId,
                 providerRunId: launch.reading.runId,
@@ -188,6 +194,21 @@ function readinessOf(
     return auth.connected
         ? { account: { email: auth.email, expiresAt: auth.expiresAt }, ready: true }
         : { ready: false, reason: auth.reason };
+}
+
+/** A definite Cursor refusal becomes the provider-neutral rejection; anything else stays retryable. */
+async function classified<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+        return await operation();
+    } catch (error) {
+        const rejection = cursorSendRejectionOf(error);
+        if (rejection) {
+            throw new CloudAgentLaunchRejectedError(rejection.message, {
+                providerCode: rejection.code,
+            });
+        }
+        throw error;
+    }
 }
 
 /**

@@ -9,6 +9,7 @@ import {
     cloudAgentModelSelectionOf,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
+import { launchRejection } from './send-delivery.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 export interface CloudAgentStartRequest {
@@ -93,16 +94,14 @@ export async function startCloudAgentWork(input: {
     const journal = new CloudLaunchJournal(input.dataRoot);
     const existing = await journal.read(input.serverId, ref);
     if (existing?.phase === 'rejected') {
+        const summary = existing.summary ?? 'The provider rejected the launch.';
         input.supervisor.report(ref, {
-            errorCode: 'provider-launch-rejected',
+            errorCode: existing.errorCode,
             observedAt: new Date().toISOString(),
             status: 'failed',
-            summary: 'The provider rejected the launch.',
+            summary,
         });
-        throw new CloudAgentLaunchFailedError(
-            receipt,
-            new Error('The provider rejected the launch.')
-        );
+        throw new CloudAgentLaunchFailedError(receipt, new Error(summary));
     }
     if (existing?.phase === 'launched') {
         await input.supervisor.reconcile([
@@ -147,12 +146,12 @@ export async function startCloudAgentWork(input: {
         });
     } catch (cause) {
         if (cause instanceof CloudAgentLaunchRejectedError) {
-            await journal.reject(input.serverId, ref);
+            const rejection = launchRejection(cause);
+            await journal.reject(input.serverId, ref, rejection);
             input.supervisor.report(ref, {
-                errorCode: 'provider-launch-rejected',
+                ...rejection,
                 observedAt: new Date().toISOString(),
                 status: 'failed',
-                summary: 'The provider rejected the launch.',
             });
             throw new CloudAgentLaunchFailedError(receipt, cause);
         }

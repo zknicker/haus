@@ -136,6 +136,57 @@ export interface CursorTransport {
     ): Promise<void>;
 }
 
+/** Cursor's definite refusal of a send, with Cursor's own code and words. */
+export interface CursorSendRejection {
+    code: string | null;
+    message: string;
+}
+
+/**
+ * Classifies a failed `start` or `send`. A definite refusal — bad credential,
+ * unknown Agent, invalid input, any 4xx other than busy or rate limiting —
+ * returns its reason; resending the same request cannot succeed. Request
+ * timeout (408), busy (409), too early (425), rate limiting (429), server errors, and anything without a provider status
+ * (network, SDK load, abort) return `null`: the caller may retry with the same
+ * idempotency key. SDK errors are matched by shape so the SDK stays lazily loaded.
+ */
+export function cursorSendRejectionOf(error: unknown): CursorSendRejection | null {
+    if (!(error instanceof Error) || error instanceof CursorTransportUnavailableError) {
+        return null;
+    }
+    const fields = error as Error & { code?: unknown; isRetryable?: unknown; status?: unknown };
+    const status = typeof fields.status === 'number' ? fields.status : null;
+    const code = typeof fields.code === 'string' && fields.code.length > 0 ? fields.code : null;
+    if (
+        code === 'agent_busy' ||
+        error.name === 'AgentBusyError' ||
+        error.name === 'RateLimitError' ||
+        error.name === 'NetworkError' ||
+        fields.isRetryable === true
+    ) {
+        return null;
+    }
+    const refusedByName = cursorRefusalNames.has(error.name);
+    const refusedByStatus = status !== null && status >= 400 && status < 500;
+    if (
+        (status !== null && retryableClientStatuses.has(status)) ||
+        !(refusedByName || refusedByStatus)
+    ) {
+        return null;
+    }
+    return { code, message: error.message };
+}
+
+/** 4xx statuses that describe a transient condition, not the request. */
+const retryableClientStatuses = new Set([408, 409, 425, 429]);
+
+const cursorRefusalNames = new Set([
+    'AgentNotFoundError',
+    'AuthenticationError',
+    'ConfigurationError',
+    'IntegrationNotConnectedError',
+]);
+
 /**
  * Thrown when `@cursor/sdk` itself cannot be loaded or reached on this
  * Computer, which is a different fact from a missing credential.

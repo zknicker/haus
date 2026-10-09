@@ -127,8 +127,20 @@ export interface CloudAgentProvider {
     ): Promise<void>;
 }
 
+/**
+ * The provider's definite refusal of a `start` or `send`: resending the same
+ * request cannot succeed. The message is the provider's own words. Any other
+ * error from `start` or `send` is retryable under the same idempotency key.
+ */
 export class CloudAgentLaunchRejectedError extends Error {
     override readonly name = 'CloudAgentLaunchRejectedError';
+    /** The provider's own error code, when it reported one. */
+    readonly providerCode: string | null;
+
+    constructor(message: string, options: { providerCode?: string | null } = {}) {
+        super(message);
+        this.providerCode = options.providerCode ?? null;
+    }
 }
 
 export class CloudAgentProviderUnavailableError extends Error {

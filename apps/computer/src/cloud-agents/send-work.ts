@@ -1,5 +1,5 @@
 import { agentCloudAgentSendReceiptSchema } from '@haus/api';
-import { CloudLaunchJournal } from './launch-journal.ts';
+import { CloudLaunchJournal, type CloudLaunchRecord } from './launch-journal.ts';
 import { CloudAgentServerError } from './launch-work.ts';
 import { cloudAgentModelSelectionOf } from './provider.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
@@ -46,7 +46,7 @@ export async function sendCloudAgentWork(input: {
         workId: receipt.work.id,
     };
     const journal = new CloudLaunchJournal(input.dataRoot);
-    await journal.claim(input.serverId, ref, {
+    const claimed = await journal.claim(input.serverId, ref, {
         phase: 'pending',
         workId: ref.workId,
         instructions,
@@ -55,9 +55,31 @@ export async function sendCloudAgentWork(input: {
         providerAgentId,
         predecessors: receipt.predecessors,
     });
+    if (!claimed) {
+        // A retry of this send may arrive after the Run's monitor settled it unsent.
+        const settled = await journal.read(input.serverId, ref);
+        if (settled?.phase === 'rejected' || settled?.phase === 'cancelled') {
+            throw new CloudAgentFollowUpSettledError(settled);
+        }
+    }
     for (const predecessor of receipt.predecessors) {
         input.supervisor.watch(predecessor);
     }
     input.supervisor.watch(ref);
     return receipt;
+}
+
+/** The follow-up was already settled without reaching the provider; this send cannot deliver it. */
+export class CloudAgentFollowUpSettledError extends Error {
+    readonly code = 'CLOUD_AGENT_FOLLOW_UP_SETTLED';
+
+    constructor(record: Extract<CloudLaunchRecord, { phase: 'rejected' | 'cancelled' }>) {
+        super(
+            record.phase === 'cancelled'
+                ? 'This follow-up was cancelled before it reached the provider. Send it again if it is still needed.'
+                : (record.summary ??
+                      'This follow-up was settled failed before it reached the provider.')
+        );
+        this.name = 'CloudAgentFollowUpSettledError';
+    }
 }

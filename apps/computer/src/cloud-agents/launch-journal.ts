@@ -10,6 +10,13 @@ const launchSchema = z.object({
     providerUrl: z.string().nullable(),
     status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
 });
+/** Retryable send failures so far; absent until the first attempt fails. */
+const deliverySchema = z.object({
+    attempts: z.number().int().positive(),
+    firstAttemptAt: z.string().min(1),
+    lastError: z.string(),
+    nextAttemptAt: z.string().min(1),
+});
 const recordSchema = z.discriminatedUnion('phase', [
     z.object({
         phase: z.literal('pending'),
@@ -33,13 +40,26 @@ const recordSchema = z.discriminatedUnion('phase', [
                 providerRunId: z.string().nullable(),
             })
         ),
+        delivery: deliverySchema.nullable().default(null),
     }),
     z.object({ phase: z.literal('cancelled'), workId: z.string() }),
     z.object({ phase: z.literal('launching'), workId: z.string() }),
     z.object({ phase: z.literal('launched'), workId: z.string(), launch: launchSchema }),
-    z.object({ phase: z.literal('rejected'), workId: z.string() }),
+    z.object({
+        phase: z.literal('rejected'),
+        workId: z.string(),
+        /** Absent in records written before rejections carried a reason. */
+        errorCode: z.string().min(1).default('provider-launch-rejected'),
+        summary: z.string().min(1).nullable().default(null),
+    }),
 ]);
 export type CloudLaunchRecord = z.infer<typeof recordSchema>;
+export type CloudPendingSend = Extract<CloudLaunchRecord, { phase: 'pending' }>;
+/** Why a Run settled failed without reaching the provider. */
+export interface CloudLaunchRejection {
+    errorCode: string;
+    summary: string;
+}
 
 /** Pending prompts stay on Computer in private files, removed when sent or cancelled. */
 export class CloudLaunchJournal {
@@ -62,12 +82,17 @@ export class CloudLaunchJournal {
         return record;
     }
 
-    /** Exclusive creation is the admission lock, including across process restarts. */
+    /**
+     * Exclusive creation is the admission lock, including across process
+     * restarts. A launch claims `launching`, a follow-up its pending prompt, and
+     * a Run that never got either claims its settled outcome so a late writer loses.
+     */
     async claim(
         serverId: string,
         ref: CloudAgentRunRef,
-        pending?: Extract<CloudLaunchRecord, { phase: 'pending' }>
+        initial?: z.input<typeof recordSchema>
     ): Promise<boolean> {
+        const record = recordSchema.parse(initial ?? { phase: 'launching', workId: ref.workId });
         await mkdir(this.directory(serverId), { recursive: true, mode: 0o700 });
         let file: FileHandle;
         try {
@@ -79,9 +104,7 @@ export class CloudLaunchJournal {
             throw cause;
         }
         try {
-            await file.writeFile(
-                JSON.stringify(pending ?? { phase: 'launching', workId: ref.workId })
-            );
+            await file.writeFile(JSON.stringify(record));
             await file.sync();
         } finally {
             await file.close();
@@ -94,8 +117,22 @@ export class CloudLaunchJournal {
         await this.write(serverId, ref, record);
     }
 
-    async reject(serverId: string, ref: CloudAgentRunRef): Promise<void> {
-        await this.write(serverId, ref, { phase: 'rejected', workId: ref.workId });
+    async reject(
+        serverId: string,
+        ref: CloudAgentRunRef,
+        rejection: CloudLaunchRejection
+    ): Promise<void> {
+        await this.write(serverId, ref, { phase: 'rejected', workId: ref.workId, ...rejection });
+    }
+
+    /** Records one retryable send failure; the prompt stays pending. */
+    async defer(
+        serverId: string,
+        ref: CloudAgentRunRef,
+        pending: CloudPendingSend,
+        delivery: NonNullable<CloudPendingSend['delivery']>
+    ): Promise<void> {
+        await this.write(serverId, ref, { ...pending, delivery });
     }
 
     async cancel(serverId: string, ref: CloudAgentRunRef): Promise<void> {
