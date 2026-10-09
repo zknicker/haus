@@ -86,7 +86,9 @@ function KeptChatView({ active, children }: { active: boolean; children: React.R
             <div
                 aria-hidden={active ? undefined : true}
                 className={cn(
-                    'col-start-1 row-start-1 flex min-h-0 min-w-0',
+                    // Column, so the chat fills the cell's width by stretch; in a row its
+                    // `min-width: auto` let a wide table push the composer past the pane.
+                    'col-start-1 row-start-1 flex min-h-0 min-w-0 flex-col',
                     !active && 'invisible [content-visibility:hidden]'
                 )}
                 data-kept-chat-view={active ? 'shown' : 'hidden'}

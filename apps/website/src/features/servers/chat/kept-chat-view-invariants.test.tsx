@@ -56,6 +56,18 @@ test('a hidden kept view is inert, aria-hidden, skipped by the renderer, and kee
     await unmount();
 });
 
+test('a kept view stacks its chat in a column so the chat cannot outgrow the pane', async () => {
+    // In a row, the chat surface's `min-width: auto` took a wide table's
+    // min-content and pushed the composer past the pane's right edge.
+    const { container, show, unmount } = await mountKept(() => null);
+    await show('a');
+    const [view] = keptViews(container) as [FakeView];
+    expect(view.getAttribute('class')?.split(' ')).toEqual(
+        expect.arrayContaining(['flex', 'flex-col', 'min-w-0'])
+    );
+    await unmount();
+});
+
 test('reveal and hide reach useViewShownChange after commit, never on mount', async () => {
     const changes: string[] = [];
     const shownInEffect: Record<string, boolean> = {};
