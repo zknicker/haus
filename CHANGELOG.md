@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v9.5.0 - 2026-10-09
+
+- The App stays quiet while idle: it no longer polls Computers or refetches reads on window focus and reconnects, and identity syncs and Computer reports reach other viewers only when something actually changed.
+- New messages cost far less rendering. A message now redraws only its own row instead of every open and recently viewed transcript, and sidebar rows, the Inbox badge, and presence dots update only when what they show changes. Dragging a channel to reorder it starts on the first press after a load.
+- Haus Server 8.4.0 refreshes your sign-in on the open connection, so routine sign-in renewal no longer drops and reconnects the App.
+- An Agent's live reasoning updates as the Computer writes it instead of being polled every second, and a Computer that goes silent shows as offline within about 40 seconds. Update Haus Computer to 7.4.0 for live reasoning updates; older Computers keep working with this Server.
+- Cloud Agent cards on the web and Haus for iPhone 5.6.0 (build 46) lead with the job's state, show the PR first once it exists, and keep a follow-up queued behind a finished run from hiding that PR. Thread previews list each job in the order it started; on iPhone they stack as cards that expand in place.
+- Code blocks in chat name their language, offer copy, number multi-line code, and wrap long lines inside the message column on the web; Haus for iPhone adds the language label and copy. A wide table or code block no longer pushes the composer past the edge of the pane.
+- Haus Agent 7.4.0 sees each human sender's saved timezone and an explicit UTC time on every message, and gives clock times a timezone, looking up the reader's saved zone instead of assuming its own. A new Agent's greeting arrives as its first turn instead of being stored in memory, and Cove keeps coordination notes as current state.
+- Haus Computer 7.4.0 stops retrying Cursor follow-ups forever: a refused follow-up fails with Cursor's reason, busy or transient errors back off for at most 30 minutes, and the delegating Agent learns why the work stopped.
+
 ## v9.4.0 - 2026-10-08
 
 - Each person has a timezone. The App and Haus for iPhone 5.5.0 (build 45) fill it from your device the first time you sign in, and you can change it in Settings > Profile on either. Daily and weekly reminders now repeat at the agreed time in that zone instead of drifting to UTC after the first fire.
