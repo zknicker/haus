@@ -75,8 +75,8 @@ pointed the same way.
 
 - Server and Computer ship together: the work `job` and each Run's `createdAt` are required fields
   in strict schemas.
-- iOS still renders the earlier card and per-provider Thread summary and needs a follow-up port to
-  `job` and per-job rows.
+- iOS renders the same card and per-job Thread rows from `job` (`CloudAgentCard.swift`,
+  `ThreadCloudAgentRow.swift`).
 - "Needs review" waits for pull request review data.
 - Open question: "Open in Cursor" uses `https://cursor.com/agents?id=<agentId>` on the web and an
   unverified `cursor://anysphere.cursor-deeplink/background-agent?bcId=<id>` desktop deeplink.

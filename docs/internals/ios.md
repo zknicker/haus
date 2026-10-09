@@ -872,18 +872,30 @@ Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting 
 sign-in browser on that Computer, not on the phone; iOS never receives the credential.
 
 Each delegation's typed Message body supplies its inline cloud-agent card in a Chat or Thread.
-The parent Chat's preview lists the Thread's cloud agents from `cloudAgentWork.listForChat`; the
-whole preview opens the Thread. Cards show status, repository, branch, available PR/diff evidence,
-external links, and cancellation inside the Thread for Owners/Admins. Missing diff evidence stays absent, not zero.
+The parent Chat's preview carries the Thread's cloud agents from `cloudAgentWork.listForChat` as
+cards beside the ingress button, never inside it (`ThreadCloudAgentStackView`). One job is just its
+card. Two or more collapse like an iOS notification group: `N cloud agents` with a counts line
+(problems first and tinted — `1 failed · 2 no update · 6 working · 1 done`), a Show all control,
+the most urgent job's full card on top (failed, then no update, then working, done,
+cancelled/expired — `ThreadCloudAgentStack`), and up to two fixed-height edges peeking beneath it.
+Show all lists every job in that order — a calm working job without a pull request as a compact
+header-only card that opens the Thread, every other job as the full card — with Show less above and
+below. Expansion is `@State` per anchor and animates with a spring (a 150ms ease under Reduce
+Motion). The Thread connector keeps running down the left of the cards and turns in beside the top
+card, or beside the bottom Show less when expanded. Cards follow the
+[card contract](../../specs/cloud-agents.md): the Server's `job` headlines in Cursor's vocabulary
+(never "Queued"), an optional PR row, exactly one single-line status line
+(`CloudAgentStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
+Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
 `cloud-agent-work.updated` refreshes the loaded Thread and parent Chat through the normal durable
 event/reconnect path. Cards scroll with their Messages and follow-ups update the same card.
 
 An anchor message owns one unboxed Thread ingress, joined to its avatar rail by a rounded connector.
 The reply count and chevron lead, followed by the latest Server-projected reply's avatar, author,
-and one-line snippet. Task status and cloud-agent status remain secondary notes. The whole ingress
-opens the Thread, including before a Task's first reply. Every row uses an 18pt identity mark.
-Reply, Task, and cloud-agent rows enter, exit, and swap with a 220ms slide/fade; Reduce Motion uses
-a 150ms crossfade. Cloud-agent activity timestamps do not trigger swaps. The count stays in place. The anchor
+and one-line snippet. Task status remains a secondary note; cloud agents sit below as cards (above).
+The whole ingress opens the Thread, including before a Task's first reply. Every row uses an 18pt
+identity mark. Reply and Task rows enter, exit, and swap with a 220ms slide/fade; Reduce Motion uses
+a 150ms crossfade. The count stays in place. The anchor
 message remains the task title and is never duplicated inside the ingress.
 
 Chat honors the App's own task visibility rule (`TaskVisibility.visibleInChat` in `HausModels`,
@@ -948,9 +960,10 @@ accessibility sizes the title may wrap and the trailing fact stacks under it ins
 title to a letter, and the mark scales with the text up to 64 points. Every row's separator starts
 under its title, whatever its mark drew. An Unread row
 is the Chat's name, its age, and the quoted line truncated to one line. A Cloud Agent work row is
-the work's title (`Cloud work` when untitled), its status (`Running · 3m`, `Running · 1h 59m`,
-`Queued`, `Cancelling` — `CloudAgentPresentation.duration`, the App's `formatCloudAgentDuration`,
-whose hours never roll into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
+the work's title (`Cloud work` when untitled), its job status (`Working · 3m`, `Working · 1h 59m`,
+or `Follow-up waiting · 2m` for a settled job listed only for its live follow-up —
+`CloudAgentPresentation.duration`, the App's `formatCloudAgentDuration`, whose hours never roll
+into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
 it is Cloud work, and carries a presence-style dot — yellow running, gray queued. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
 row marks read with a trailing swipe (swipe-left; `.swipeActions(edge: .trailing)`, full swipe
 allowed) whose button is a bare image, which iOS 26 draws as an icon-only circle (its accessibility label is "Mark read"),

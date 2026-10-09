@@ -196,14 +196,19 @@ observations update existing records rather than automatically posting channel c
 Only status glyphs, the card's job-state chip, and the status line's danger and warning tones carry
 lifecycle color. Liveness reads from the work's own `updatedAt`, never from Computer connection
 state.
-iOS renders the same one card (`CloudAgentCard.swift`) in the parent Chat and the Thread, with
-two platform deviations: the card fills the iPhone message column rather than a fixed measure,
-and the split button is a bordered primary action beside a chevron `Menu`. Copy link builds the
-App link from the configured Server origin, which is the App origin in production. Older clients and
-unknown body kinds render the Message `content` and the ordinary Thread preview.
-Web Thread-preview rows always show the job title and never a diff. iOS
-(`ThreadCloudAgentSummary`) still renders the earlier one-row-per-provider summary with Run statuses
-and the newest Run's diff counts until it adopts the per-job rows and the `job` field.
+iOS renders the same one card (`CloudAgentCard.swift`) in the parent Chat and the Thread from the
+same `job` and status-line priority. Its Thread preview shows cards instead of text rows, in the
+same per-job order (`ThreadCloudAgentRow`): one job is its card; two or more collapse into a
+notification-style stack — `N cloud agents`, a counts line with problems first and tinted, Show
+all, the most urgent job's card on top, and up to two peeking edges — that expands to every job,
+with calm working jobs as compact header-only cards. The card itself has three platform
+deviations: it fills the iPhone message column rather than a fixed measure; the
+job-state chip trails the one-line repository row instead of the title, so its ticking width can
+only truncate the repository and never rewrap the title; and **Open in `<provider>`** is a bordered
+button beside a chevron `Menu` rather than a split button. Working uses the native indeterminate
+`ProgressView`. Copy link builds the App link from the configured Server origin, which is the App
+origin in production. Older clients and unknown body kinds render the Message `content` and the
+ordinary Thread preview.
 
 Server has one Message reader that projects authors, attachments, Tasks, and typed bodies for every
 consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
