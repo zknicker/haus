@@ -1,28 +1,22 @@
 import cors from '@fastify/cors';
-import { makeProcessTelemetryRelay, settle, tracePromise } from '@haus/effect';
-import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
+import { settle, tracePromise } from '@haus/effect';
 import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
-import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
 import { AvatarImageService, OpenAiAvatarImageProvider } from './avatar-generation/index.ts';
-import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { purgeDeletedChannels } from './chats/channel-lifecycle.ts';
 import { ComputerConnections } from './computers/connections.ts';
-import { registerComputerRoutes } from './computers/routes.ts';
 import { markAllComputersOffline } from './computers/service.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { productionComputerManifestUrl } from './computers/update.ts';
-import { createHausContextFactory } from './haus-api/context.ts';
-import { hausRouter } from './haus-api/router.ts';
+import { createHausContextFactory, type HausContextDependencies } from './haus-api/context.ts';
 import { startHausWebSocketServer } from './haus-api/ws.ts';
 import { hausFastifyOptions } from './haus-fastify-options.ts';
 import { registerHausHealth } from './haus-health.ts';
-import { registerHausReleaseRoute } from './haus-release-route.ts';
 import type { HausServerApplicationOptions } from './haus-server-options.ts';
+import { registerHausServerRoutes } from './haus-server-routes.ts';
 import {
     type HausServerShutdownResources,
     makeHausServerShutdown,
@@ -35,7 +29,6 @@ import { connectHausDatabase } from './postgres/connection.ts';
 import { type ServerRecurringWork, startServerRecurringWork } from './recurring-work.ts';
 import { tickReminders } from './reminders/scheduler.ts';
 import { makeMcpIconResolver } from './server-mcp/icons.ts';
-import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
 import { McpRuntime } from './server-mcp/runtime.ts';
 import { ServerPostCommitWork } from './server-post-commit-work.ts';
@@ -43,7 +36,6 @@ import { makeServerRuntime } from './server-runtime.ts';
 import { startServerSweeps } from './server-sweeps.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
 import { TriggerRateLimiter } from './triggers/trigger-rate-limit.ts';
-import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 import { startVoiceSocket } from './voice/voice-socket.ts';
 
 export type { HausServerApplicationOptions } from './haus-server-options.ts';
@@ -123,7 +115,7 @@ export async function createHausServerApplication(
         // One inbound budget per trigger, shared by the public route and the
         // operator's test fire: a test costs exactly what a real delivery does.
         const triggerRateLimiter = new TriggerRateLimiter();
-        const createContext = createHausContextFactory({
+        const contextDependencies = {
             messageRouter: options.messageRouter,
             agentDelivery,
             appOrigin: options.appOrigin,
@@ -146,7 +138,8 @@ export async function createHausServerApplication(
             postCommitWork: startedPostCommitWork,
             runtime,
             triggerRateLimiter,
-        });
+        } satisfies HausContextDependencies;
+        const createContext = createHausContextFactory(contextDependencies);
         const isAllowedOrigin = (origin: string | undefined) =>
             isAllowedAppOrigin(origin, options.appOrigin);
 
@@ -161,44 +154,10 @@ export async function createHausServerApplication(
             },
         });
 
-        await registerAttachmentRoutes(startedApp, {
-            clerkSessions,
-            db: connectedHaus.db,
-            root: attachmentRoot,
-            runtime,
-        });
-        registerAvatarRoutes(startedApp, { db: connectedHaus.db });
-        registerComputerRoutes(startedApp, {
-            appOrigin: options.appOrigin,
-            db: connectedHaus.db,
-            telemetryRelay: makeProcessTelemetryRelay(),
-        });
-        registerAgentApiRoutes(startedApp, {
-            agentDelivery,
-            avatarImageService,
-            attachmentRoot,
-            computers: computerConnections,
-            db: connectedHaus.db,
-            mcpRuntime: startedMcpRuntime,
-            postCommitWork: startedPostCommitWork,
-        });
-        registerMcpOAuthCallback(startedApp, mcpOAuthRelay);
-        await registerTriggerRoutes(startedApp, {
-            db: connectedHaus.db,
-            delivery: agentDelivery,
-            limiter: triggerRateLimiter,
-            postCommitWork: startedPostCommitWork,
-            runtime,
-        });
-        registerHausReleaseRoute(startedApp, { releaseIdentity: options.releaseIdentity });
-
-        await startedApp.register(fastifyTRPCPlugin, {
-            prefix: '/trpc',
-            trpcOptions: {
-                allowMethodOverride: true,
-                createContext,
-                router: hausRouter,
-            },
+        await registerHausServerRoutes(startedApp, {
+            ...contextDependencies,
+            createContext,
+            releaseIdentity: options.releaseIdentity,
         });
 
         const startedWebSocketServer = startHausWebSocketServer(startedApp.server, {
