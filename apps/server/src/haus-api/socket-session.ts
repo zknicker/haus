@@ -53,6 +53,11 @@ export class SocketSession {
         };
     }
 
+    /** The Clerk user this socket is bound to, once a verification resolved one. */
+    get clerkUserId(): string | null {
+        return this.bound?.clerkUserId ?? null;
+    }
+
     /** The token every new operation on this socket is judged against. */
     get token(): string | null {
         return this.currentToken;
