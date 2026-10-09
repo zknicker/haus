@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { readAppSourceFiles } from '../test-support/source-files.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
 
 /**
@@ -11,10 +10,9 @@ import { queryClientDefaultOptions } from './query-policy.ts';
  * quietly reintroducing the refetch-per-mount and per-keystroke request storms
  * fixed in the query-caching overhaul. Do not widen an allowlist to make the
  * suite pass; a new entry is a deliberate policy decision that names its
- * reason.
+ * reason. Polling, timers, and keyless invalidation live in
+ * query-polling-contract.test.ts.
  */
-
-const sourceRoot = join(import.meta.dir, '..');
 
 /**
  * Files allowed to call useQuery without a named policy or explicit staleTime,
@@ -25,25 +23,8 @@ const defaultFloorAllowlist: Record<string, string> = {
         'invitation preview answers "is this token good right now"; mount refetch is correctness',
 };
 
-function listSourceFiles(dir: string): string[] {
-    const entries = readdirSync(dir, { withFileTypes: true });
-    return entries.flatMap((entry) => {
-        const path = join(dir, entry.name);
-        if (entry.isDirectory()) {
-            return listSourceFiles(path);
-        }
-        if (!/\.tsx?$/.test(entry.name) || /\.(test|spec)\.tsx?$/.test(entry.name)) {
-            return [];
-        }
-        return [path];
-    });
-}
-
 describe('query policy contract', () => {
-    const files = listSourceFiles(sourceRoot).map((path) => ({
-        content: readFileSync(path, 'utf8'),
-        path: relative(sourceRoot, path),
-    }));
+    const files = readAppSourceFiles();
 
     test('both tRPC clients share a default staleTime floor', () => {
         expect(queryClientDefaultOptions.queries.staleTime).toBeGreaterThanOrEqual(30_000);
