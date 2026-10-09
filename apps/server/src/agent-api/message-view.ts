@@ -89,6 +89,7 @@ export async function toAgentMessages(
                       displayName: usersTable.displayName,
                       handle: serverMembershipsTable.handle,
                       id: usersTable.id,
+                      timezone: usersTable.timezone,
                   })
                   .from(serverMembershipsTable)
                   .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
@@ -137,6 +138,8 @@ export async function toAgentMessages(
                 description: agent?.description ?? human?.description ?? null,
                 handle,
                 type: agent ? 'agent' : 'human',
+                // Validated on write; a human without a saved zone carries none.
+                ...(!agent && human?.timezone ? { timezone: human.timezone } : {}),
             },
             sequence: row.sequence,
             ...agentMessageBodies({ cloudAgentWork, createdAgent }),

@@ -227,6 +227,9 @@ function toQuotedMessage(message: HausAgentMessage): AgentThreadContextMessage {
         id: message.id,
         ...(description ? { senderDescription: description.slice(0, 500) } : {}),
         senderHandle: message.sender.handle ?? 'unknown',
+        ...(message.sender.type === 'human' && message.sender.timezone
+            ? { senderTimezone: message.sender.timezone }
+            : {}),
         senderType: message.sender.type === 'agent' ? 'agent' : 'human',
         sequence: message.sequence,
     };

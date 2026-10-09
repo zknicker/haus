@@ -106,6 +106,10 @@ interface InboxItemFacets {
 function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInboxItem {
     const { apiMessage, cloudAgentWork, target } = facets;
     const attention = Boolean(cloudAgentWork);
+    const sender = inboxSender({ attention, message: apiMessage, source: row.source, target });
+    // Only a human-authored envelope carries the human's saved zone; a task
+    // assignment wrapping a human's message is a system envelope.
+    const senderTimezone = sender.senderType === 'human' ? apiMessage?.sender.timezone : undefined;
     return {
         ...messageFacets(apiMessage),
         ...(row.addressedReason ? { addressed: true, addressedReason: row.addressedReason } : {}),
@@ -114,7 +118,8 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
         ...(facets.task ? { task: facets.task } : {}),
         ...(facets.threadContext ? { threadContext: facets.threadContext } : {}),
-        ...inboxSender({ attention, message: apiMessage, source: row.source, target }),
+        ...sender,
+        ...(senderTimezone ? { senderTimezone } : {}),
         chatId: row.chatId,
         content: attention ? '' : row.content,
         createdAt: row.createdAt.toISOString(),
