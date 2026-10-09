@@ -3,6 +3,7 @@ import {
     agentThreadContextSchema,
     chatMessageReplySchema,
     cloudAgentWorkAttentionSchema,
+    humanTimezoneSchema,
 } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
@@ -78,6 +79,9 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
             (item.addressedReason === undefined ||
                 addressedReasonSchema.safeParse(item.addressedReason).success) &&
             (item.senderDescription === undefined || typeof item.senderDescription === 'string') &&
+            (item.senderTimezone === undefined ||
+                (item.senderType === 'human' &&
+                    humanTimezoneSchema.safeParse(item.senderTimezone).success)) &&
             (item.message === undefined || isRecord(item.message)) &&
             (item.threadFollowReactivated === undefined ||
                 typeof item.threadFollowReactivated === 'boolean') &&

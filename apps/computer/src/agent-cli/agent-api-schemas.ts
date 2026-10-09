@@ -3,6 +3,7 @@ import {
     chatMessageReplySchema,
     type HausAgentMessage,
     type HausAgentSendResponse,
+    humanTimezoneSchema,
     taskOrigins,
 } from '@haus/api';
 import * as z from 'zod';
@@ -106,6 +107,7 @@ export const agentMessageSchema = z.object({
     sender: z.object({
         description: z.string().nullable(),
         handle: z.string().nullable(),
+        timezone: humanTimezoneSchema.optional(),
         type: z.enum(['human', 'agent', 'system']),
     }),
     sequence: z.number().int().positive(),

@@ -1,23 +1,30 @@
 /**
- * The header facts every inbox line prints — the `msg=` short id and the
- * `time=` wall clock — shared by envelopes, notices, and thread context lines.
+ * The header facts every inbox line prints — the `msg=` short id, the `time=`
+ * instant, and a human sender's `sender_tz=` — shared by envelopes, notices,
+ * thread context lines, and the Agent CLI.
  */
 
-/** A timestamp as the Agent's home-timezone wall clock, `YYYY-MM-DD HH:MM:SS`. */
-export function formatInboxTime(timestamp: string, homeTimezone: string): string {
-    const parts = new Intl.DateTimeFormat('en-US', {
-        day: '2-digit',
-        hour: '2-digit',
-        hourCycle: 'h23',
-        minute: '2-digit',
-        month: '2-digit',
-        second: '2-digit',
-        timeZone: homeTimezone,
-        year: 'numeric',
-    }).formatToParts(new Date(timestamp));
-    const value = (type: Intl.DateTimeFormatPartTypes) =>
-        parts.find((part) => part.type === type)?.value ?? '';
-    return `${value('year')}-${value('month')}-${value('day')} ${value('hour')}:${value('minute')}:${value('second')}`;
+/**
+ * An instant as explicit UTC, `YYYY-MM-DD HH:MM:SS UTC`. Message times stay UTC
+ * whatever the Agent's home timezone so ordering and elapsed-time arithmetic
+ * never depend on a zone; a human's own zone rides `sender_tz=` instead.
+ */
+export function formatInboxTime(timestamp: string): string {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+        throw new Error(`Invalid inbox time: ${timestamp}`);
+    }
+    return `${date.toISOString().slice(0, 19).replace('T', ' ')} UTC`;
+}
+
+/**
+ * The `time=` field and, for a human sender with a saved zone, the
+ * `sender_tz=` field right after it. Agents and humans without a saved zone
+ * print no `sender_tz=`; Haus never guesses one.
+ */
+export function formatInboxTimeFields(timestamp: string, senderTimezone?: string | null): string {
+    const zone = senderTimezone ? ` sender_tz=${senderTimezone}` : '';
+    return `time=${formatInboxTime(timestamp)}${zone}`;
 }
 
 /**

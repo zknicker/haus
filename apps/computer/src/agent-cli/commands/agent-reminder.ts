@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { formatLocalTime } from '../agent-format.ts';
+import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import {
@@ -318,7 +318,7 @@ export async function runReminderLog(args: ParsedArgs, deps: ReminderDeps): Prom
     const lines = response.runs.map((run) => {
         const exit = run.scriptExitCode === null ? '' : ` exit=${run.scriptExitCode}`;
         const output = run.output ? ` — ${clip(run.output)}` : '';
-        return `${formatLocalTime(run.firedAt)} ${run.reminderId} [${run.outcome}]${exit}${output}`;
+        return `${formatUtcTime(run.firedAt)} ${run.reminderId} [${run.outcome}]${exit}${output}`;
     });
     deps.write(`${lines.join('\n')}\n`);
     return 0;

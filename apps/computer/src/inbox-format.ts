@@ -2,7 +2,7 @@ import type { CloudAgentBranch } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
 import {
-    formatInboxTime,
+    formatInboxTimeFields,
     inboxBodyText,
     indentContinuationLines,
     shortInboxId,
@@ -28,7 +28,7 @@ const noticeGuidance = [
 ].join('\n');
 
 /** Exact model-visible drain shape from specs/inbox.md. */
-export function composeInboxDrain(items: AgentInboxItem[], homeTimezone = 'UTC'): string {
+export function composeInboxDrain(items: AgentInboxItem[]): string {
     if (items.length === 0) {
         return 'Start.';
     }
@@ -37,11 +37,9 @@ export function composeInboxDrain(items: AgentInboxItem[], homeTimezone = 'UTC')
         items.length === 1 ? 'New message received:' : 'New messages received:',
         '',
         ...items.map((item) => {
-            const envelope = formatEnvelope(item, homeTimezone);
+            const envelope = formatEnvelope(item);
             const context = contexts.get(item.id);
-            return context
-                ? `${formatThreadContext(context, homeTimezone)}\n\n${envelope}`
-                : envelope;
+            return context ? `${formatThreadContext(context)}\n\n${envelope}` : envelope;
         }),
         '',
         deliveryTrailer,
@@ -115,7 +113,7 @@ function plural(count: number, singular: string): string {
     return count === 1 ? singular : `${singular}s`;
 }
 
-function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
+function formatEnvelope(item: AgentInboxItem): string {
     if (item.cloudAgentWork) {
         return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
     }
@@ -128,7 +126,7 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
         : '';
     const mention = item.mentioned ? ' mentioned=true' : '';
     const envelope =
-        `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatInboxTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${mention}] ` +
+        `[target=${item.target} msg=${shortInboxId(item.id)} ${formatInboxTimeFields(item.createdAt, item.senderType === 'human' ? item.senderTimezone : null)} type=${item.senderType}${task}${mention}] ` +
         `${sender}: ${inboxBodyText(item.id, item.content)}${formatAttachmentSuffix(messageAttachments(item))}${formatInlineReplyContext(item.reply)}`;
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`

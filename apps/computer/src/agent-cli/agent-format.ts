@@ -1,35 +1,24 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
 import { formatAttachmentSuffix, formatThreadFollowRestoration } from '../inbox-format.ts';
-import { indentContinuationLines, shortInboxId } from '../inbox-header-format.ts';
+import { formatInboxTime, indentContinuationLines, shortInboxId } from '../inbox-header-format.ts';
 import { formatInlineReplyContext } from '../inline-reply-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
 
-export function formatLocalTime(timestamp: string): string {
-    const date = new Date(timestamp);
-    if (Number.isNaN(date.getTime())) {
+/** An Agent-facing instant: explicit UTC, `YYYY-MM-DD HH:MM:SS UTC`. */
+export function formatUtcTime(timestamp: string): string {
+    if (Number.isNaN(new Date(timestamp).getTime())) {
         throw new AgentCliError('INVALID_JSON_RESPONSE', `Invalid message time: ${timestamp}`);
     }
-    return [
-        date.getFullYear(),
-        '-',
-        pad(date.getMonth() + 1),
-        '-',
-        pad(date.getDate()),
-        ' ',
-        pad(date.getHours()),
-        ':',
-        pad(date.getMinutes()),
-        ':',
-        pad(date.getSeconds()),
-    ].join('');
+    return formatInboxTime(timestamp);
 }
 
 export function formatHistoryLine(message: AgentCliMessage): string {
     const attributes = [
         `seq=${message.sequence}`,
         `msg=${message.id}`,
-        `time=${formatLocalTime(message.created_at)}`,
+        `time=${formatUtcTime(message.created_at)}`,
+        ...senderTimezoneField(message),
         `type=${message.sender.type}`,
         ...(message.threadId ? [`threadId=${message.threadId}`] : []),
         ...(message.replyCount !== undefined ? [`replyCount=${message.replyCount}`] : []),
@@ -46,7 +35,8 @@ export function formatDeliveryEnvelope(
     const attributes = [
         `target=${target}`,
         `msg=${shortMessageId(message.id)}`,
-        `time=${formatLocalTime(message.created_at)}`,
+        `time=${formatUtcTime(message.created_at)}`,
+        ...senderTimezoneField(message),
         `type=${message.sender.type}`,
     ];
     const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${indentContinuationLines(message.content)}${messageSuffixes(message)}${formatInlineReplyContext(message.reply)}`;
@@ -66,7 +56,7 @@ export function formatAutomationEnvelope(event: AgentCliAutomationEvent): string
     const attributes = [
         `target=${event.target}`,
         `msg=${shortInboxId(event.id)}`,
-        `time=${formatLocalTime(event.createdAt)}`,
+        `time=${formatUtcTime(event.createdAt)}`,
         `type=${event.senderType}`,
     ];
     return `[${attributes.join(' ')}] @${event.senderHandle}: ${event.content}`;
@@ -79,6 +69,13 @@ export function formatSender(message: AgentCliMessage): string {
     return message.sender.description
         ? `@${handle} — ${indentContinuationLines(message.sender.description)}`
         : `@${handle}`;
+}
+
+/** A human sender's saved zone, right after `time=`; Agents and zoneless humans print none. */
+function senderTimezoneField(message: AgentCliMessage): string[] {
+    return message.sender.type === 'human' && message.sender.timezone
+        ? [`sender_tz=${message.sender.timezone}`]
+        : [];
 }
 
 export function shortMessageId(messageId: string): string {
@@ -156,8 +153,4 @@ function agentCreatedSuffix(message: AgentCliMessage): string {
         return '';
     }
     return ` [created @${created.handle}${created.retired ? ' (retired)' : ''}]`;
-}
-
-function pad(value: number): string {
-    return String(value).padStart(2, '0');
 }

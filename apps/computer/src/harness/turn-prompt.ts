@@ -84,7 +84,7 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
     );
     const body =
         drained.length > 0
-            ? [composeInboxDrain(drained, input.homeTimezone), notice].filter(Boolean).join('\n\n')
+            ? [composeInboxDrain(drained), notice].filter(Boolean).join('\n\n')
             : notice;
     return {
         drained,

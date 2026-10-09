@@ -16,8 +16,8 @@ import { AgentCliError } from './agent-error.ts';
 import {
     formatDeliveryEnvelope,
     formatHistoryLine,
-    formatLocalTime,
     formatSender,
+    formatUtcTime,
     shortMessageId,
 } from './agent-format.ts';
 
@@ -71,7 +71,7 @@ export function renderSearchResult(
         `<result ref="msg:${message.id}">`,
         `Source: ${source}`,
         `Sender: ${formatSender(message)}`,
-        `Time: ${formatLocalTime(message.created_at)}`,
+        `Time: ${formatUtcTime(message.created_at)}`,
         '<preview>',
         preview(message.content, query),
         '</preview>',

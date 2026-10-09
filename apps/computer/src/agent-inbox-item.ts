@@ -19,6 +19,8 @@ export interface AgentInboxItem {
     reply?: ChatMessageReply | null;
     senderDescription?: string;
     senderHandle: string;
+    /** The human sender's saved IANA zone; absent for Agents and humans without one. */
+    senderTimezone?: string;
     senderType: 'agent' | 'human' | 'system' | 'trigger';
     sequence: number;
     target: string;

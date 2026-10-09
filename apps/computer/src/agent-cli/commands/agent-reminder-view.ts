@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { formatLocalTime } from '../agent-format.ts';
+import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { describeCadence, formatZonedFire } from './reminder-cadence-label.ts';
 
@@ -56,7 +56,7 @@ export function describeReminder(reminder: z.infer<typeof reminderViewSchema>): 
             : '';
     const fire = reminder.timezone
         ? formatZonedFire(reminder.fireAt, reminder.timezone)
-        : formatLocalTime(reminder.fireAt);
+        : formatUtcTime(reminder.fireAt);
     const timing = reminder.repeat
         ? `${describeCadence(reminder.repeat, reminder.timezone)}; next fire ${fire}`
         : `fires ${fire}`;

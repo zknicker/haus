@@ -324,10 +324,7 @@ async function runFakeRuntime(
         env: {
             ...process.env,
             ...input.agentEnv,
-            HAUS_TURN_PROMPT: composeInboxDrain(
-                input.command.inbox ?? [],
-                input.command.homeTimezone ?? 'UTC'
-            ),
+            HAUS_TURN_PROMPT: composeInboxDrain(input.command.inbox ?? []),
             HOME: input.dirs.home,
         },
         signal: input.signal,

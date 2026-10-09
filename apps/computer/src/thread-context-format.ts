@@ -1,6 +1,10 @@
 import type { AgentThreadContext, AgentThreadContextMessage } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
-import { formatInboxTime, indentContinuationLines, shortInboxId } from './inbox-header-format.ts';
+import {
+    formatInboxTimeFields,
+    indentContinuationLines,
+    shortInboxId,
+} from './inbox-header-format.ts';
 
 /**
  * The drained items whose thread context this prompt renders: the first per
@@ -21,8 +25,8 @@ export function renderedThreadContexts(items: AgentInboxItem[]): Map<string, Age
 }
 
 /** Raft's thread-join block in Haus wording; it precedes the mention's envelope. */
-export function formatThreadContext(context: AgentThreadContext, homeTimezone: string): string {
-    const recent = context.recentMessages.map((message) => quote(message, homeTimezone));
+export function formatThreadContext(context: AgentThreadContext): string {
+    const recent = context.recentMessages.map(quote);
     return [
         '[Haus thread context: you were mentioned in a thread without model-visible context.]',
         `parent: ${context.parentTarget}`,
@@ -30,7 +34,7 @@ export function formatThreadContext(context: AgentThreadContext, homeTimezone: s
         `suggested next step: haus message read --target "${context.suggestedReadTarget}"`,
         '',
         'Parent message:',
-        quote(context.parentMessage, homeTimezone),
+        quote(context.parentMessage),
         '',
         `Recent thread context${context.truncated ? ' (truncated)' : ''}:`,
         ...(recent.length > 0 ? recent : ['- (no earlier thread replies)']),
@@ -47,10 +51,10 @@ export function threadContextVisibleMessages(context: AgentThreadContext) {
         .map((message) => ({ chatId: message.chatId, id: message.id, sequence: message.sequence }));
 }
 
-function quote(message: AgentThreadContextMessage, homeTimezone: string): string {
+function quote(message: AgentThreadContextMessage): string {
     const handle = indentContinuationLines(message.senderHandle);
     const sender = message.senderDescription
         ? `@${handle} — ${indentContinuationLines(message.senderDescription)}`
         : `@${handle}`;
-    return `- [msg=${shortInboxId(message.id)} seq=${message.sequence} time=${formatInboxTime(message.createdAt, homeTimezone)} type=${message.senderType}] ${sender}: ${indentContinuationLines(message.content)}`;
+    return `- [msg=${shortInboxId(message.id)} seq=${message.sequence} ${formatInboxTimeFields(message.createdAt, message.senderType === 'human' ? message.senderTimezone : null)} type=${message.senderType}] ${sender}: ${indentContinuationLines(message.content)}`;
 }

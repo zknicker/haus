@@ -15,7 +15,7 @@ import {
 } from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { formatLocalTime } from '../agent-format.ts';
+import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 
 // Request and render logic behind `haus trigger`. Trigger mutations are
@@ -160,14 +160,14 @@ function renderSecret(result: {
 
 function describeTrigger(trigger: AgentTrigger): string {
     const fired = trigger.lastFiredAt
-        ? `${trigger.fireCount} fires, last ${formatLocalTime(trigger.lastFiredAt)}`
+        ? `${trigger.fireCount} fires, last ${formatUtcTime(trigger.lastFiredAt)}`
         : 'never fired';
     return `${trigger.id} [${trigger.kind} · ${trigger.status}] "${trigger.title}" — ${fired}, anchored in ${trigger.anchorTarget} — ${trigger.url}`;
 }
 
 function describeFire(fire: TriggerFire): string {
     const dedupe = fire.dedupeKey ? ` dedupe=${fire.dedupeKey}` : '';
-    return `${formatLocalTime(fire.receivedAt)} ${fire.id} ${fire.payloadBytes}B${dedupe}`;
+    return `${formatUtcTime(fire.receivedAt)} ${fire.id} ${fire.payloadBytes}B${dedupe}`;
 }
 
 /** Metadata, a blank line, then the payload exactly as the Server stored it. */
