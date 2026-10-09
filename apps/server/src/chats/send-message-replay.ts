@@ -1,7 +1,7 @@
 import type { ChatMessageReceipt, ChatSendInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatEventsTable, chatMessagesTable } from '../postgres/schema.ts';
+import { chatMessagesTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { toChatMessage } from './message-shape.ts';
 import { readMessageRelations } from './read-message-relations.ts';
@@ -20,7 +20,6 @@ export async function readExistingChatMessage(
             chatId: chatMessagesTable.chatId,
             content: chatMessagesTable.content,
             createdAt: chatMessagesTable.createdAt,
-            eventCursor: chatEventsTable.cursor,
             id: chatMessagesTable.id,
             nonce: chatMessagesTable.nonce,
             replyRootMessageId: chatMessagesTable.replyRootMessageId,
@@ -31,14 +30,6 @@ export async function readExistingChatMessage(
             sessionGeneration: chatMessagesTable.sessionGeneration,
         })
         .from(chatMessagesTable)
-        .innerJoin(
-            chatEventsTable,
-            and(
-                eq(chatEventsTable.serverId, chatMessagesTable.serverId),
-                eq(chatEventsTable.messageId, chatMessagesTable.id),
-                eq(chatEventsTable.type, 'message.created')
-            )
-        )
         .where(
             and(
                 eq(chatMessagesTable.serverId, serverId),
@@ -76,7 +67,6 @@ export async function replayChatMessage(
     return {
         events: [],
         receipt: {
-            eventCursor: existing.eventCursor.toString(),
             idempotent: true,
             message: toChatMessage(existing, existingRelations),
             threadChatId,

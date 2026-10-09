@@ -2,7 +2,7 @@ import type { AttachmentMetadata, HausAgentMessage, MessageBodyKind } from '@hau
 import { and, eq } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatEventsTable, chatMessagesTable } from '../postgres/schema.ts';
+import { chatMessagesTable } from '../postgres/schema.ts';
 import { readInlineReplyContext } from './reply-context.ts';
 import type { SendAgentMessageInput, SendAgentMessageResult } from './send-agent-message.ts';
 import { AgentSendConflictError } from './send-agent-message.ts';
@@ -17,7 +17,6 @@ export async function readExistingAgentMessage(
             bodyKind: chatMessagesTable.bodyKind,
             content: chatMessagesTable.content,
             createdAt: chatMessagesTable.createdAt,
-            cursor: chatEventsTable.cursor,
             id: chatMessagesTable.id,
             nonce: chatMessagesTable.nonce,
             replyRootMessageId: chatMessagesTable.replyRootMessageId,
@@ -26,14 +25,6 @@ export async function readExistingAgentMessage(
             sequence: chatMessagesTable.sequence,
         })
         .from(chatMessagesTable)
-        .innerJoin(
-            chatEventsTable,
-            and(
-                eq(chatEventsTable.serverId, chatMessagesTable.serverId),
-                eq(chatEventsTable.messageId, chatMessagesTable.id),
-                eq(chatEventsTable.type, 'message.created')
-            )
-        )
         .where(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),

@@ -1,12 +1,9 @@
-import type { ReminderChangedEvent } from '@haus/api';
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatEventsTable,
-    chatsTable,
     reminderCommandsTable,
     reminderFiresTable,
     remindersTable,
@@ -117,55 +114,6 @@ export async function listOperatorReminderRuns(
         id: row.id,
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
-    }));
-}
-
-export async function listOperatorReminderChanges(
-    db: HausDatabase,
-    member: HausUser | null,
-    input: { afterCursor: string; limit: number; serverId: string }
-): Promise<ReminderChangedEvent[]> {
-    await requireReminderOperator(db, member, input.serverId);
-    const rows = await db
-        .select({
-            action: chatEventsTable.reminderAction,
-            chatId: chatEventsTable.chatId,
-            createdAt: chatEventsTable.createdAt,
-            cursor: chatEventsTable.cursor,
-            id: chatEventsTable.id,
-            parentChatId: chatsTable.parentChatId,
-            reminderId: chatEventsTable.reminderId,
-            sequence: chatEventsTable.sequence,
-            serverId: chatEventsTable.serverId,
-        })
-        .from(chatEventsTable)
-        .innerJoin(
-            chatsTable,
-            and(
-                eq(chatsTable.serverId, chatEventsTable.serverId),
-                eq(chatsTable.id, chatEventsTable.chatId)
-            )
-        )
-        .where(
-            and(
-                eq(chatEventsTable.serverId, input.serverId),
-                eq(chatEventsTable.type, 'reminder.changed'),
-                gt(chatEventsTable.cursor, BigInt(input.afterCursor))
-            )
-        )
-        .orderBy(chatEventsTable.cursor)
-        .limit(input.limit);
-    return rows.map((row) => ({
-        action: row.action as 'canceled' | 'fired' | 'scheduled' | 'snoozed' | 'updated',
-        chatId: row.chatId as string,
-        createdAt: row.createdAt.toISOString(),
-        cursor: row.cursor.toString(),
-        id: row.id,
-        parentChatId: row.parentChatId,
-        reminderId: row.reminderId as string,
-        sequence: row.sequence,
-        serverId: row.serverId,
-        type: 'reminder.changed',
     }));
 }
 
