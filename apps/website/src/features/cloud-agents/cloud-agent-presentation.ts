@@ -1,134 +1,119 @@
 import {
     type CloudAgentBranch,
+    type CloudAgentJobState,
     type CloudAgentStatus,
     type CloudAgentWork,
     cloudAgentPullRequestNumber,
     isTerminalCloudAgentStatus,
 } from '@haus/api';
-import { messagePreviewLine } from '../chats/message-preview-line.ts';
 
-/**
- * How one work reads right now. `cancelling` is not a stored status: a cancel
- * is recorded while the provider Run keeps going, and the surface says so
- * until an observation settles the Run.
- */
-export type CloudAgentPresentationStatus = 'cancelling' | CloudAgentStatus;
+export type CloudAgentTone = 'accent' | 'danger' | 'muted' | 'success' | 'warning';
 
-export type CloudAgentTone = 'accent' | 'danger' | 'muted' | 'success';
-
-/** A running work that has not reported for this long shows its last update. */
+/** A live work that has not reported for this long reads as gone quiet. */
 export const cloudAgentStaleAfterMs = 10 * 60_000;
 
-export interface CloudAgentWorkPresentationInput {
-    activity: CloudAgentWork['activity'];
-    cancelRequestedAt: string | null;
-    runs: readonly CloudAgentWork['runs'][number][];
-    startedAt: string | null;
-    status: CloudAgentStatus;
-    terminalAt: string | null;
-    updatedAt: string;
-}
+export type CloudAgentWorkPresentationInput = Pick<
+    CloudAgentWork,
+    'activity' | 'cancelRequestedAt' | 'job' | 'runs' | 'status' | 'updatedAt'
+>;
 
-export function cloudAgentPresentationStatus(
-    work: Pick<CloudAgentWorkPresentationInput, 'cancelRequestedAt' | 'status'>
-): CloudAgentPresentationStatus {
-    if (work.cancelRequestedAt && !isTerminalCloudAgentStatus(work.status)) {
-        return 'cancelling';
-    }
-    return work.status;
+export const cloudAgentJobLabels: Record<CloudAgentJobState, string> = {
+    cancelled: 'Cancelled',
+    done: 'Done',
+    expired: 'Expired',
+    failed: 'Failed',
+    working: 'Working',
+};
+
+/** A cancelled or expired job ended without failing, so it no longer asks for attention. */
+export function isEndedCloudAgentJob(state: CloudAgentJobState): boolean {
+    return state === 'cancelled' || state === 'expired';
 }
 
 /**
- * The one point of lifecycle color on the surface. A cancelled or cancelling
- * work is muted rather than dangerous: somebody asked for it.
+ * The one point of lifecycle color on the surface. A cancelled or expired job
+ * is muted rather than dangerous: somebody asked for it, or it ran out of time.
  */
-export function cloudAgentStatusTone(status: CloudAgentPresentationStatus): CloudAgentTone {
-    switch (status) {
-        case 'running':
+export function cloudAgentJobTone(state: CloudAgentJobState): CloudAgentTone {
+    switch (state) {
+        case 'working':
             return 'accent';
-        case 'completed':
+        case 'done':
             return 'success';
-        case 'expired':
         case 'failed':
             return 'danger';
-        default:
+        case 'cancelled':
+        case 'expired':
             return 'muted';
     }
 }
 
-/**
- * The trailing status one work reads as. A live work states how long it has
- * been going; a completed one states how long it took, because that is the
- * fact a reader scanning back needs. A failure states only that it failed —
- * the line beneath already carries the provider's own reason.
- */
-export function cloudAgentStatusText(work: CloudAgentWorkPresentationInput, now: number): string {
-    const status = cloudAgentPresentationStatus(work);
-
-    switch (status) {
-        case 'queued':
-            return 'Queued';
-        case 'cancelling':
-            return 'Cancelling';
-        case 'running': {
-            const elapsed = elapsedSince(work.startedAt, now);
-            return elapsed === null ? 'Running' : `Running · ${elapsed}`;
-        }
-        case 'completed': {
-            const duration = spanBetween(work.startedAt, work.terminalAt);
-            return duration === null ? 'Done' : `Done · ${duration}`;
-        }
+/** The Chip color the card's headline wears, from the one tone rule above. */
+export function cloudAgentJobChipColor(
+    state: CloudAgentJobState
+): 'accent' | 'danger' | 'default' | 'success' {
+    switch (state) {
+        case 'working':
+            return 'accent';
+        case 'done':
+            return 'success';
         case 'failed':
-            return 'Failed';
-        case 'expired':
-            return 'Expired';
+            return 'danger';
         case 'cancelled':
-            return 'Cancelled';
+        case 'expired':
+            return 'default';
     }
 }
 
 /**
- * The one muted line beneath the header: what the work is doing right now. A
- * settled work says nothing here — its own card states the branch, the pull
- * request, and the diff, and a provider's Run prose repeated at Chat scale
- * only crowded those facts out.
- *
- * A provider writes `activity` as Markdown, so it collapses to one flat line
- * here rather than at each surface that shows it.
+ * The headline one job reads as: the job's state, never its newest Run's. A
+ * working job states how long it has been going; a done one how long it took,
+ * because that is the fact a reader scanning back needs.
  */
-export function cloudAgentWorkActivityLine(work: CloudAgentWorkPresentationInput): null | string {
+export function cloudAgentJobText(job: CloudAgentWork['job'], now: number): string {
+    const label = cloudAgentJobLabels[job.state];
+    if (job.state === 'working') {
+        const elapsed = elapsedSince(job.startedAt, now);
+        return elapsed === null ? label : `${label} · ${elapsed}`;
+    }
+    if (job.state === 'done') {
+        const duration = spanBetween(job.startedAt, job.settledAt);
+        return duration === null ? label : `${label} · ${duration}`;
+    }
+    return label;
+}
+
+/**
+ * How long a live work has been quiet, once that passes the stale threshold:
+ * its newest Run is queued or running and none of its Runs has reported for a
+ * while. This reads from the work's own `updatedAt`, which any Run's
+ * observation advances, rather than from Computer connection state: the
+ * reader cares that nothing has been reported, not why.
+ */
+export function quietFor(
+    work: Pick<CloudAgentWorkPresentationInput, 'status' | 'updatedAt'>,
+    now: number
+): null | number {
     if (isTerminalCloudAgentStatus(work.status)) {
         return null;
     }
-    return oneLine(work.activity?.summary ?? null);
-}
-
-/**
- * A running work that has gone quiet. This reads from the work's own
- * `updatedAt` rather than from Computer connection state: the reader cares
- * that nothing has been reported, not why.
- */
-export function isCloudAgentWorkStale(
-    work: Pick<CloudAgentWorkPresentationInput, 'status' | 'updatedAt'>,
-    now: number
-): boolean {
-    if (work.status !== 'running') {
-        return false;
-    }
     const updatedAt = Date.parse(work.updatedAt);
-    return Number.isFinite(updatedAt) && now - updatedAt > cloudAgentStaleAfterMs;
+    if (!Number.isFinite(updatedAt) || now - updatedAt <= cloudAgentStaleAfterMs) {
+        return null;
+    }
+    return now - updatedAt;
 }
 
 /**
- * The branch evidence one work has produced, from its newest Run. A provider
- * may report several branches; the one that opened a pull request is the one a
- * human wants, so it wins over the rest and the first reported branch stands in
- * when none has.
+ * The branch evidence the job has produced. A follow-up Run reports nothing
+ * until it settles, so the newest Run that reported a pull request wins, then
+ * the newest Run that reported any branch: the pull request never disappears
+ * because a follow-up was sent.
  */
 export function cloudAgentWorkBranch(
     work: Pick<CloudAgentWorkPresentationInput, 'runs'>
 ): CloudAgentBranch | null {
-    const branches = work.runs.at(0)?.branches ?? [];
+    const branches = work.runs.flatMap((run) => run.branches);
     return branches.find((branch) => branch.pullRequestUrl !== null) ?? branches.at(0) ?? null;
 }
 
@@ -145,14 +130,6 @@ export function cloudAgentBranchPullRequestNumber(branch: CloudAgentBranch): nul
     return branch.pullRequestUrl === null
         ? null
         : cloudAgentPullRequestNumber(branch.pullRequestUrl);
-}
-
-/** The Chip color the card's status wears, from the one tone rule above. */
-export function cloudAgentStatusChipColor(
-    status: CloudAgentPresentationStatus
-): 'accent' | 'danger' | 'default' | 'success' {
-    const tone = cloudAgentStatusTone(status);
-    return tone === 'muted' ? 'default' : tone;
 }
 
 /** Owners and Admins may cancel; a settled Run has nothing left to stop. */
@@ -193,15 +170,6 @@ export function elapsedSince(startedAt: null | string, now: number): null | stri
         return null;
     }
     return formatCloudAgentDuration(Math.max(0, now - started));
-}
-
-/** Markdown a provider wrote, as the one muted line a surface can show. */
-function oneLine(text: null | string): null | string {
-    if (text === null) {
-        return null;
-    }
-    const line = messagePreviewLine(text);
-    return line === '' ? null : line;
 }
 
 export function spanBetween(startedAt: null | string, terminalAt: null | string): null | string {

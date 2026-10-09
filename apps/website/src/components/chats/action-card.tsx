@@ -149,29 +149,43 @@ function ActionCardStatus({ className, ...props }: React.ComponentProps<'span'>)
     return <span className={cn('ml-auto shrink-0', className)} data-slot="status" {...props} />;
 }
 
-/** The line under `Title`, inside `Content`: one truncated line of context. */
+/**
+ * The line under `Title`, inside `Content`: one truncated line of context. The
+ * card keeps one type size throughout; hierarchy is weight and color only.
+ */
 function ActionCardDescription({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
-            className={cn('min-w-0 truncate text-muted text-xs leading-5', className)}
+            className={cn('min-w-0 truncate text-muted text-sm leading-5', className)}
             data-slot="description"
             {...props}
         />
     );
 }
 
+const metaTones = {
+    danger: 'text-danger',
+    muted: 'text-muted',
+    warning: 'text-warning',
+} as const;
+
 /**
- * One muted detail row. Repeat it per fact; an optional leading icon sits at
- * 14px. The row is a block rather than a flex line so an over-long detail ends
+ * One detail row, muted unless its `tone` says the fact needs attention.
+ * Repeat it per fact; an optional leading icon sits at 14px. The row is a block rather than a flex line so an over-long detail ends
  * in an ellipsis: `text-overflow` never reaches the anonymous flex item a bare
  * string becomes, so a flex row clips mid-word instead. That makes the icon an
  * inline run, which is what it is here anyway.
  */
-function ActionCardMeta({ className, ...props }: React.ComponentProps<'div'>) {
+function ActionCardMeta({
+    className,
+    tone = 'muted',
+    ...props
+}: React.ComponentProps<'div'> & { tone?: keyof typeof metaTones }) {
     return (
         <div
             className={cn(
-                'block min-w-0 truncate text-muted text-xs leading-5 [&>svg]:me-1.5 [&>svg]:inline [&>svg]:size-3.5 [&>svg]:align-middle',
+                'block min-w-0 truncate text-sm leading-5 [&>svg]:me-1.5 [&>svg]:inline [&>svg]:size-3.5 [&>svg]:align-middle',
+                metaTones[tone],
                 className
             )}
             data-slot="meta"

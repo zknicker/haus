@@ -1,9 +1,10 @@
-import type { ActiveCloudAgentWork, Agent, CloudAgentProvider } from '@haus/api';
-import {
-    type CloudAgentPresentationStatus,
-    cloudAgentPresentationStatus,
-    cloudAgentStatusText,
-} from '../../cloud-agents/cloud-agent-presentation.ts';
+import type {
+    ActiveCloudAgentWork,
+    Agent,
+    CloudAgentJobState,
+    CloudAgentProvider,
+} from '@haus/api';
+import { cloudAgentJobText, elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
@@ -14,7 +15,7 @@ export interface HappeningNowWork {
     /** The work Message id, which is also the `?work=` deep link. */
     id: string;
     provider: CloudAgentProvider;
-    status: CloudAgentPresentationStatus;
+    state: CloudAgentJobState;
     statusText: string;
     title: string;
 }
@@ -38,10 +39,25 @@ export function toHappeningNowWork(
         chatLabel: conversationLabel(item, humans),
         id: item.work.messageId,
         provider: item.work.provider,
-        status: cloudAgentPresentationStatus(item.work),
-        statusText: cloudAgentStatusText(item.work, now),
+        ...liveStatus(item.work.job, now),
         title: item.work.title,
     }));
+}
+
+/**
+ * This list is what is running now, so a job listed only because a follow-up
+ * is live reads as that follow-up, not as the settled job behind it.
+ */
+function liveStatus(
+    job: ActiveCloudAgentWork['work']['job'],
+    now: number
+): Pick<HappeningNowWork, 'state' | 'statusText'> {
+    if (job.state === 'working' || !job.followUp) {
+        return { state: job.state, statusText: cloudAgentJobText(job, now) };
+    }
+    const elapsed = elapsedSince(job.followUp.since, now);
+    const label = `Follow-up ${job.followUp.state}`;
+    return { state: 'working', statusText: elapsed === null ? label : `${label} · ${elapsed}` };
 }
 
 function workAgentName(item: ActiveCloudAgentWork, agentsById: ReadonlyMap<string, Agent>): string {

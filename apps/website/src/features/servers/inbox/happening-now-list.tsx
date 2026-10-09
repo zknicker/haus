@@ -41,7 +41,7 @@ export function HappeningNowList({
                             keeps the fixed trailing column rather than
                             competing with the Chat it came from. */}
                         <InboxRowMeta>
-                            <CloudAgentStatusDisc className="size-3.5" status={row.work.status} />
+                            <CloudAgentStatusDisc className="size-3.5" state={row.work.state} />
                             <span>{row.work.statusText}</span>
                         </InboxRowMeta>
                     </InboxRow>

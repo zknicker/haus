@@ -64,7 +64,7 @@ export function ThreadMessageSurface({
             {/* One card everywhere: the transcript and the Thread render the
                 same work card. The way into the Thread is the Message's hover
                 action, or the reply preview below once replies exist. */}
-            {work ? <CloudAgentWorkCard work={work} /> : null}
+            {work ? <CloudAgentWorkCard agentName={row.message.sender} work={work} /> : null}
             {canOpenThread ? (
                 <ThreadSurfacePreview
                     hasReplies={hasReplies}
