@@ -51,8 +51,8 @@ async function mountTwoChats() {
     }
     const view = await harness.mount(
         <>
-            <TranscriptView chatId="cht_a" />
-            <TranscriptView chatId="cht_b" />
+            <TranscriptView chatId="cht_a" key="cht_a" />
+            <TranscriptView chatId="cht_b" key="cht_b" />
         </>
     );
     return { ...harness, ...view };
@@ -72,6 +72,20 @@ test('a new message in a full newest page renders its own row and no other row',
     expect(census.count('TranscriptRowSlot')).toBe(1);
     expect(census.count('TranscriptRowSlot', 'turn:msg_cht_a_7')).toBe(1);
     expect(census.count('TranscriptRenderRowView')).toBe(1);
+
+    await harness.unmount();
+});
+
+test('a message in another chat renders nothing in the open chat', async () => {
+    const harness = await mountTwoChats();
+    // cht_b is the chat on screen; the message lands in kept cht_a.
+    const census = await harness.change(() => {
+        harness.setMessages('cht_a', [...history('cht_a', 6), message('cht_a', 7, 'agt_tiny')]);
+    });
+
+    expect(census.count('TranscriptView', 'cht_b')).toBe(0);
+    expect(census.renders().filter((entry) => entry.includes('cht_b'))).toEqual([]);
+    expect(census.count('ChatTranscript')).toBe(1);
 
     await harness.unmount();
 });
