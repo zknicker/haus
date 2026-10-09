@@ -6,9 +6,9 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import { emitServerUpdated } from '../haus-api/server-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { publishRealtime } from '../realtime/topic.ts';
+import { agentUpdatedTopic } from '../realtime/topics.ts';
 import { createAgentFromAgent } from '../server-agents/create-agent-from-agent.ts';
 import { precheckAgentCreation } from '../server-agents/creation-request.ts';
 import { setAgentAvatarFromAgent } from '../server-agents/set-agent-avatar-from-agent.ts';
@@ -71,7 +71,7 @@ export function registerAgentAgentRoutes(
                 avatar
             );
             for (const event of created.events) {
-                emitDurableChatEvent({ audienceUserId: null, event });
+                publishRealtime(event);
             }
             const configure = created.configure;
             if (configure) {
@@ -79,9 +79,8 @@ export function registerAgentAgentRoutes(
                     dependencies.agentDelivery.configureAgent(configure)
                 );
             }
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: created.receipt.agent.agentId,
-                scope: 'agent',
                 serverId: runner.serverId,
             });
             return created.receipt;
@@ -106,9 +105,8 @@ export function registerAgentAgentRoutes(
         }
         try {
             const agent = await updateAgentDescription(dependencies.db, runner, parsed.data);
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: agent.agentId,
-                scope: 'agent',
                 serverId: runner.serverId,
             });
             return { agent };
@@ -139,9 +137,8 @@ export function registerAgentAgentRoutes(
                 agent: parsed.data.agent,
                 avatar: image,
             });
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: receipt.agent.agentId,
-                scope: 'agent',
                 serverId: runner.serverId,
             });
             return receipt;

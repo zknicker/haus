@@ -27,7 +27,7 @@ const messageRowSelection = {
     authorUserRevokedAt: serverMembershipsTable.revokedAt,
 };
 
-async function selectMessageRows(
+export async function selectMessageRows(
     db: HausDatabase,
     predicates: SQL<unknown>[],
     order: ReturnType<typeof asc> | ReturnType<typeof desc>,
@@ -65,7 +65,7 @@ async function hasMessage(db: HausDatabase, predicates: SQL<unknown>[]) {
     return message !== undefined;
 }
 
-type SelectedMessageRow = Awaited<ReturnType<typeof selectMessageRows>>[number];
+export type SelectedMessageRow = Awaited<ReturnType<typeof selectMessageRows>>[number];
 
 interface MessagePage {
     messages: SelectedMessageRow[];

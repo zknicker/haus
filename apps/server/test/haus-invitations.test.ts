@@ -222,11 +222,11 @@ test('invitations fail closed across Servers', async () => {
 test('issuing and revoking an invitation notifies an open Server subscription', async () => {
     const seen: { serverId: string }[] = [];
     const started = Promise.withResolvers<void>();
-    const subscription = owner.trpc.server.onUpdate.subscribe(
+    const subscription = owner.trpc.invitation.onUpdated.subscribe(
         { serverId },
         {
             onData: (event) => seen.push(event as { serverId: string }),
-            onError: () => started.reject(new Error('The Server subscription failed.')),
+            onError: () => started.reject(new Error('The invitation subscription failed.')),
             onStarted: () => started.resolve(),
         }
     );

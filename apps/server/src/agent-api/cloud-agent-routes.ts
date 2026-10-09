@@ -9,7 +9,6 @@ import { ZodError } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { InvalidInlineReplyError } from '../chats/reply-context.ts';
 import { createCloudAgentWork } from '../cloud-agents/create-cloud-agent-work.ts';
 import {
@@ -25,6 +24,7 @@ import { requestCloudAgentCancel } from '../cloud-agents/request-cloud-agent-can
 import { sendCloudAgentWork } from '../cloud-agents/send-cloud-agent-work.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { requireCancellableWorkAgent } from './cloud-agents.ts';
@@ -93,7 +93,7 @@ export function registerAgentCloudAgentRoutes(
         try {
             const sent = await sendCloudAgentWork(dependencies.db, runner, parsed.data);
             if (sent.event) {
-                emitDurableChatEvent({ audienceUserId: null, event: sent.event });
+                publishRealtime(sent.event);
             }
             return sent.receipt;
         } catch (cause) {
@@ -127,7 +127,7 @@ export function registerAgentCloudAgentRoutes(
                 dependencies.agentDelivery
             );
             for (const event of created.events) {
-                emitDurableChatEvent({ audienceUserId: null, event });
+                publishRealtime(event);
             }
             await dependencies.postCommitWork.wakeAgents(dependencies.agentDelivery, created.wakes);
             return created.receipt;
@@ -161,7 +161,7 @@ export function registerAgentCloudAgentRoutes(
                 serverId: runner.serverId,
                 workId: parsed.data.workId,
             });
-            emitDurableChatEvent({ audienceUserId: null, event: requested.event });
+            publishRealtime(requested.event);
             dependencies.computers.send(requested.computerId, requested.command);
             return { work: requested.work };
         } catch (cause) {

@@ -32,7 +32,11 @@ export function startHausWebSocketServer(server: Server, options: HausWebSocketS
     wss.on('connection', (socket) => {
         socket.once('close', (code) => {
             if (!quietCloseCodes.has(code)) {
-                console.warn('[haus] App socket closed', { code });
+                console.warn('[haus] App socket closed', {
+                    at: new Date().toISOString(),
+                    code,
+                    userId: socketSessions.get(socket)?.clerkUserId ?? null,
+                });
             }
         });
     });
@@ -98,6 +102,7 @@ function withSocketSession(
                 : { graceMs: options.socketSessionGraceMs },
     });
 
+    socketSessions.set(socket, socketSession);
     if (socket.readyState === socket.CLOSED || socket.readyState === socket.CLOSING) {
         socketSession.dispose();
     } else {
@@ -106,19 +111,25 @@ function withSocketSession(
     return { ...ctx, socketSession };
 }
 
+/** Each socket's session, so a close log can name the human it belonged to. */
+const socketSessions = new WeakMap<object, SocketSession>();
+
 /** Normal closure, a page going away, and a client close without a code. */
 const quietCloseCodes = new Set([1000, 1001, 1005]);
 
 /**
  * A failed socket procedure — most often a subscription the Server ended — is
  * otherwise invisible: the App only sees the error shape. Logs the procedure
- * path, its tRPC code, and the error class, never input, payloads, or identity.
+ * path, its tRPC code, the error class, the authenticated Clerk user when the
+ * socket has resolved one, and a timestamp; never input or payloads.
  */
 function reportSocketProcedureError({
+    ctx,
     error,
     path,
     type,
 }: {
+    ctx: HausContext | undefined;
     error: TRPCError;
     path: string | undefined;
     type: string;
@@ -126,10 +137,12 @@ function reportSocketProcedureError({
     const cause = error.cause ?? error;
     const log = error.code === 'INTERNAL_SERVER_ERROR' ? console.error : console.warn;
     log('[haus] App socket procedure failed', {
+        at: new Date().toISOString(),
         code: error.code,
         errorClass: cause instanceof Error ? cause.name : typeof cause,
         path: path ?? 'unknown',
         type,
+        userId: ctx?.socketSession?.clerkUserId ?? null,
     });
 }
 

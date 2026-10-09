@@ -47,7 +47,7 @@ test('accepts the same subscription once the socket carries a current session', 
 
 function subscribeStarted(client: HausClient) {
     const started = Promise.withResolvers<void>();
-    const subscription = client.trpc.server.onUpdate.subscribe(
+    const subscription = client.trpc.server.onUpdated.subscribe(
         { serverId },
         {
             onError: (error) => started.reject(error),

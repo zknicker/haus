@@ -1,4 +1,4 @@
-import type { MessageBodyKind, ServerDurableEvent } from '@haus/api';
+import type { MessageBodyKind } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import { resolveAgentSendTarget } from '../agent-api/resolve-send-target.ts';
@@ -8,11 +8,12 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { requireChatWritable } from './chat-access.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
-import { insertMessageCreatedEvent } from './message-created-event.ts';
+import { prepareMessageCreatedEvent } from './message-created-event.ts';
 import { resolveInlineReplyParent } from './reply-context.ts';
 
 export interface AgentAuthoredMessageChat {
@@ -29,7 +30,7 @@ export interface AgentAuthoredMessagePlan {
 export interface AgentAuthoredMessage {
     chat: AgentAuthoredMessageChat;
     chatId: string;
-    event: ServerDurableEvent;
+    event: PreparedRealtimeEvent;
     messageId: string;
     sequence: number;
     /** The conversation any answer or discussion happens in. */
@@ -184,12 +185,7 @@ export async function writeAgentAuthoredMessage(
     return {
         chat: plan.chat,
         chatId: plan.chatId,
-        event: await insertMessageCreatedEvent(db, {
-            chat: plan.chat,
-            message,
-            replyToAuthorUserId: reply?.parent.authorUserId ?? null,
-            serverId: runner.serverId,
-        }),
+        event: await prepareMessageCreatedEvent(db, message, reply?.parent.authorUserId ?? null),
         messageId: message.id,
         sequence: message.sequence,
         threadChatId,

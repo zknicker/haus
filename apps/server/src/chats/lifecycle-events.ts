@@ -1,46 +1,19 @@
-import type { ServerDurableEvent } from '@haus/api';
-import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable } from '../postgres/schema.ts';
-import { allocateEventCursor } from './allocate-event-cursor.ts';
+import { chatLifecycleTopic } from '../realtime/topics.ts';
 
 export type ChatLifecycleAction = 'archived' | 'created' | 'deleted' | 'unarchived' | 'updated';
 
 /**
- * The one writer of `chat.lifecycle` rows. The Chat id lives in
- * `lifecycle_chat_id`, outside the live Chat foreign key, so a `deleted`
- * notification survives the purge that follows it.
+ * Prepares `chat.lifecycle` for a Chat change the caller is about to commit.
+ * Chat-access scoped on delivery, except `deleted`, which reaches every Server
+ * member because the Chat is already gone from access.
  */
-export async function insertLifecycleEvent(
-    db: HausDatabase,
+export function prepareLifecycleEvent(
     input: { chatId: string; serverId: string },
-    action: ChatLifecycleAction,
-    createdAt: Date
-): Promise<ServerDurableEvent> {
-    const cursor = await allocateEventCursor(db, input.serverId);
-    const [event] = await db
-        .insert(chatEventsTable)
-        .values({
-            chatAction: action,
-            createdAt,
-            cursor,
-            id: createOpaqueId('evt'),
-            lifecycleChatId: input.chatId,
-            sequence: 0,
-            serverId: input.serverId,
-            type: 'chat.lifecycle',
-        })
-        .returning({ id: chatEventsTable.id });
-
-    return {
+    action: ChatLifecycleAction
+) {
+    return chatLifecycleTopic.prepare({
         action,
         chatId: input.chatId,
-        createdAt: createdAt.toISOString(),
-        cursor: cursor.toString(),
-        id: event.id,
-        parentChatId: null,
-        sequence: 0,
         serverId: input.serverId,
-        type: 'chat.lifecycle',
-    };
+    });
 }

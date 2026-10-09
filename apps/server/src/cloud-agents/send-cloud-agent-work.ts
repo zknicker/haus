@@ -1,13 +1,10 @@
 import { createHash } from 'node:crypto';
-import type {
-    AgentCloudAgentSendInput,
-    AgentCloudAgentSendReceipt,
-    ServerDurableEvent,
-} from '@haus/api';
+import type { AgentCloudAgentSendInput, AgentCloudAgentSendReceipt } from '@haus/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { emitWorkEvent } from './apply-cloud-agent-observation.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
@@ -19,7 +16,7 @@ export async function sendCloudAgentWork(
     db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCloudAgentSendInput
-): Promise<{ receipt: AgentCloudAgentSendReceipt; event: ServerDurableEvent | null }> {
+): Promise<{ receipt: AgentCloudAgentSendReceipt; event: PreparedRealtimeEvent | null }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const [row] = await tx
@@ -62,7 +59,7 @@ export async function sendCloudAgentWork(
                 )
             )
             .limit(1);
-        let event: ServerDurableEvent | null = null;
+        let event: PreparedRealtimeEvent | null = null;
         if (!existing) {
             const model = await resolveRunModel(tx, {
                 computerId: runner.computerId,

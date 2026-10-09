@@ -1,9 +1,9 @@
 import { agentSchema, configureAgentInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { configureAgent } from '../../server-agents/configure-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const configureAgentProcedure = memberProcedure
     .input(configureAgentInputSchema)
@@ -15,9 +15,8 @@ export const configureAgentProcedure = memberProcedure
                 agent: result.agent,
                 rotation: result.rotation,
             });
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: result.agent.id,
-                scope: 'agent',
                 serverId: input.serverId,
             });
             return result.agent;

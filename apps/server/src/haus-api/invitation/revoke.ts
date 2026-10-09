@@ -1,6 +1,6 @@
 import { revokeServerInvitationInputSchema, serverInvitationSchema } from '@haus/api';
+import { invitationUpdatedTopic } from '../../realtime/topics.ts';
 import { revokeServerInvitation } from '../../servers/revoke-invitation.ts';
-import { emitServerUpdated } from '../server-events.ts';
 import { invitationProcedure } from './procedure.ts';
 
 export const revokeInvitationProcedure = invitationProcedure
@@ -9,6 +9,6 @@ export const revokeInvitationProcedure = invitationProcedure
     .mutation(async ({ ctx, input }) => {
         const revoked = await revokeServerInvitation(ctx.hausDb, ctx.member, input);
 
-        emitServerUpdated({ serverId: input.serverId });
+        invitationUpdatedTopic.announce({ serverId: input.serverId });
         return revoked;
     });

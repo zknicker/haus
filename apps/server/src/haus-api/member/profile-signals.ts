@@ -1,7 +1,7 @@
 import type { HausDatabase } from '../../postgres/connection.ts';
+import { memberUpdatedTopic } from '../../realtime/topics.ts';
 import { listAccessibleServers } from '../../servers/accessible-servers.ts';
 import type { HausUser } from '../../users/haus-user.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 /**
  * Announces a profile change after it has committed. One human has one profile
@@ -19,6 +19,6 @@ export async function announceHumanProfileChange(
     }
 
     for (const server of await listAccessibleServers(db, member.id)) {
-        emitServerUpdated({ memberId: member.id, serverId: server.id });
+        memberUpdatedTopic.announce({ memberId: member.id, serverId: server.id });
     }
 }

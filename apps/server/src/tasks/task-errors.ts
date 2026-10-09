@@ -1,4 +1,5 @@
-import type { MessageTask, ServerDurableEvent } from '@haus/api';
+import type { MessageTask } from '@haus/api';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 
 export class TaskConflictError extends Error {
     constructor(message: string) {
@@ -15,6 +16,6 @@ export class TaskNotFoundError extends Error {
 }
 
 export interface TaskMutationResult {
-    event: ServerDurableEvent | null;
+    event: PreparedRealtimeEvent | null;
     task: MessageTask;
 }

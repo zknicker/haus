@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -37,7 +38,7 @@ afterAll(async () => {
 
 test('announces the creator DM once when a human-created trigger first opens it', async () => {
     const larkAgentId = await createAgent('Lark', 'lark');
-    const before = await owner.trpc.chat.eventHead.query({ serverId });
+    const realtime = captureAllTopics();
     const first = await owner.trpc.trigger.create.mutate({
         agentId: larkAgentId,
         kind: 'webhook',
@@ -51,10 +52,8 @@ test('announces the creator DM once when a human-created trigger first opens it'
         title: 'Reuses the DM',
     });
 
-    const events = await owner.trpc.chat.events.query({
-        afterCursor: before.cursor,
-        serverId,
-    });
+    const events = await publishedSince(realtime, serverId);
+    realtime.stop();
     expect(
         events.filter(
             (event) =>

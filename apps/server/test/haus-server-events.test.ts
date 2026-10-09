@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { ServerUpdatedEvent } from '@haus/api';
-import { emitServerUpdated, subscribeToServerUpdates } from '../src/haus-api/server-events.ts';
+import { agentUpdatedTopic, memberUpdatedTopic } from '../src/realtime/topics.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureTopic } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -61,33 +61,8 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('Computer reports carry a focused realtime invalidation scope', async () => {
-    const updates = watchServerUpdates();
-
-    emitServerUpdated({ scope: 'computer', serverId: 'srv_computer_scope' });
-
-    expect(await updates.next()).toMatchObject({
-        scope: 'computer',
-        serverId: 'srv_computer_scope',
-    });
-    updates.stop();
-});
-
-test('an Agent-scoped announcement names the Agent whose record moved', async () => {
-    const updates = watchServerUpdates();
-
-    emitServerUpdated({ agentId: 'agt_named', scope: 'agent', serverId: 'srv_named' });
-
-    expect(await updates.next()).toMatchObject({
-        agentId: 'agt_named',
-        scope: 'agent',
-        serverId: 'srv_named',
-    });
-    updates.stop();
-});
-
 test('configuring an Agent announces that Agent to the rest of the Server', async () => {
-    const updates = watchServerUpdates();
+    const updates = captureTopic(agentUpdatedTopic);
 
     await owner.trpc.agent.configure.mutate({
         agentId,
@@ -96,23 +71,23 @@ test('configuring an Agent announces that Agent to the rest of the Server', asyn
         serverId,
     });
 
-    expect(await updates.next()).toMatchObject({ agentId, scope: 'agent', serverId });
+    expect(await updates.next()).toEqual({ agentId, serverId });
     updates.stop();
 });
 
 test('starting and stopping an Agent announces its delivery change', async () => {
-    const updates = watchServerUpdates();
+    const updates = captureTopic(agentUpdatedTopic);
 
     await owner.trpc.agent.stop.mutate({ agentId, serverId });
-    expect(await updates.next()).toMatchObject({ agentId, scope: 'agent', serverId });
+    expect(await updates.next()).toEqual({ agentId, serverId });
 
     await owner.trpc.agent.start.mutate({ agentId, serverId });
-    expect(await updates.next()).toMatchObject({ agentId, scope: 'agent', serverId });
+    expect(await updates.next()).toEqual({ agentId, serverId });
     updates.stop();
 });
 
 test('a profile edit announces the human to every Server they belong to', async () => {
-    const updates = watchServerUpdates();
+    const updates = captureTopic(memberUpdatedTopic);
 
     await owner.trpc.member.updateProfile.mutate({
         description: 'Keeps the Server honest.',
@@ -120,39 +95,12 @@ test('a profile edit announces the human to every Server they belong to', async 
         serverId,
     });
 
-    expect(await updates.next()).toMatchObject({
+    expect(await updates.next((event) => event.serverId === serverId)).toEqual({
         memberId: ownerUserId,
-        scope: 'server',
         serverId,
     });
     updates.stop();
 });
-
-/**
- * Buffers announcements from the moment it is created, so a test can act first
- * and then read what the Server said without racing the emitter.
- */
-function watchServerUpdates() {
-    const controller = new AbortController();
-    const iterator = subscribeToServerUpdates(controller.signal)[Symbol.asyncIterator]();
-    const advance = () => {
-        const pending: Promise<IteratorResult<ServerUpdatedEvent>> = iterator.next();
-        // Stopping rejects whatever read is still outstanding, and by then no
-        // test is waiting on it.
-        pending.catch(() => undefined);
-        return pending;
-    };
-    let outstanding = advance();
-
-    return {
-        next: async () => {
-            const result = await outstanding;
-            outstanding = advance();
-            return result.value;
-        },
-        stop: () => controller.abort(),
-    };
-}
 
 async function signIn(clerkUserId: string) {
     const token = await harness.clerk.mintSessionToken(clerkUserId);

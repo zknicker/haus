@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import type { McpOAuthStartResult } from '@haus/api';
 import { eq } from 'drizzle-orm';
-import { emitServerUpdated } from '../haus-api/server-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
+import { mcpUpdatedTopic } from '../realtime/topics.ts';
 import { completeMcpAuthorization, startMcpAuthorization } from './oauth.ts';
 import type { McpRuntime } from './runtime.ts';
 
@@ -83,7 +83,7 @@ export class McpOAuthRelay {
                 .where(eq(mcpConnectionsTable.id, attempt.connectionId))
                 .returning({ serverId: mcpConnectionsTable.serverId });
             if (updated) {
-                emitServerUpdated({ scope: 'mcp', serverId: updated.serverId });
+                mcpUpdatedTopic.announce({ serverId: updated.serverId });
             }
             return { status: 'complete' };
         } catch (error) {

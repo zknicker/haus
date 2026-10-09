@@ -1,6 +1,6 @@
 import { chatMessageReceiptSchema, chatSendInputSchema } from '@haus/api';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { sendChatMessage } from '../../chats/send-message.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const sendChatMessageProcedure = chatProcedure
@@ -15,9 +15,7 @@ export const sendChatMessageProcedure = chatProcedure
             ctx.messageRouter
         );
 
-        for (const event of result.events) {
-            emitDurableChatEvent({ audienceUserId: null, event });
-        }
+        publishRealtime(result.events);
         // Durable pending work is authoritative; the response never waits on its wire nudge.
         void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
 

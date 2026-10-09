@@ -2,6 +2,7 @@ import { createRouter } from '../trpc.ts';
 import { cancelCloudAgentWorkProcedure } from './cancel.ts';
 import { listActiveCloudAgentWorkProcedure } from './list-active.ts';
 import { listChatCloudAgentWorkProcedure } from './list-for-chat.ts';
+import { onCloudAgentWorkUpdatedProcedure } from './on-updated.ts';
 
 /**
  * Humans read Cloud Agent work and may cancel it. Everything else about
@@ -11,4 +12,5 @@ export const cloudAgentWorkRouter = createRouter({
     cancel: cancelCloudAgentWorkProcedure,
     listActive: listActiveCloudAgentWorkProcedure,
     listForChat: listChatCloudAgentWorkProcedure,
+    onUpdated: onCloudAgentWorkUpdatedProcedure,
 });

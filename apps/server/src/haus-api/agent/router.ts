@@ -17,6 +17,7 @@ import { listAgentsProcedure } from './list.ts';
 import { onAgentActivityProcedure } from './on-activity.ts';
 import { onAgentExecutionJournalProcedure } from './on-execution-journal.ts';
 import { onAgentLifecycleProcedure } from './on-lifecycle.ts';
+import { onAgentUpdatedProcedure } from './on-updated.ts';
 import { resetAgentProcedure } from './reset.ts';
 import { restartAgentProcedure } from './restart.ts';
 import { agentRunTriggerProcedure } from './run-trigger.ts';
@@ -56,6 +57,7 @@ export const agentRouter = createRouter({
     onLifecycle: onAgentLifecycleProcedure,
     onActivity: onAgentActivityProcedure,
     onExecutionJournal: onAgentExecutionJournalProcedure,
+    onUpdated: onAgentUpdatedProcedure,
     reset: resetAgentProcedure,
     restart: restartAgentProcedure,
     runTrigger: agentRunTriggerProcedure,

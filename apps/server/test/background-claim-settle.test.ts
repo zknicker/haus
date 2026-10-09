@@ -3,7 +3,8 @@ import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { chatEventsTable, messageTasksTable } from '../src/postgres/schema.ts';
+import { messageTasksTable } from '../src/postgres/schema.ts';
+import { taskChangedTopic } from '../src/realtime/topics.ts';
 import {
     answerInChat,
     beginRun,
@@ -17,6 +18,7 @@ import {
     turnSummary,
 } from './background-claim-fixture.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
 let cluster: PostgresCluster;
 let connection: HausConnection;
@@ -206,16 +208,7 @@ test('a run a human stops leaves its claim tracked and in progress', async () =>
 test('an interrupted run leaves its claim tracked and emits a task update', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const run = await beginRun(connection.db, claim);
-    const before = await connection.db
-        .select({ messageId: chatEventsTable.messageId, type: chatEventsTable.type })
-        .from(chatEventsTable)
-        .where(
-            and(
-                eq(chatEventsTable.serverId, claim.serverId),
-                eq(chatEventsTable.messageId, claim.messageId),
-                eq(chatEventsTable.type, 'task.updated')
-            )
-        );
+    const updates = captureTopic(taskChangedTopic);
 
     await run.delivery.onTurnSettled(
         claim.computerId,
@@ -226,17 +219,16 @@ test('an interrupted run leaves its claim tracked and emits a task update', asyn
         status: 'in_progress',
         tier: 'tracked',
     });
-    const events = await connection.db
-        .select({ messageId: chatEventsTable.messageId, type: chatEventsTable.type })
-        .from(chatEventsTable)
-        .where(
-            and(
-                eq(chatEventsTable.serverId, claim.serverId),
-                eq(chatEventsTable.messageId, claim.messageId),
-                eq(chatEventsTable.type, 'task.updated')
-            )
-        );
-    expect(events).toHaveLength(before.length + 1);
+    await settleRealtime();
+    expect(updates.events).toEqual([
+        {
+            chatId: claim.chatId,
+            kind: 'updated',
+            messageId: claim.messageId,
+            serverId: claim.serverId,
+        },
+    ]);
+    updates.stop();
 });
 
 test('a claim the Agent closed itself settles without a second write', async () => {

@@ -1,7 +1,7 @@
 import { publishChatComposition } from '../../chats/composition-hub.ts';
 import { createOpaqueId } from '../../postgres/opaque-id.ts';
+import { memberUpdatedTopic, serverUpdatedTopic } from '../../realtime/topics.ts';
 import type { RemovedServerMember } from '../../servers/remove-member.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 /**
  * Announces a departure after the removal has committed. Nothing here is
@@ -25,5 +25,8 @@ export function announceDeparture(departure: RemovedServerMember): void {
         });
     }
 
-    emitServerUpdated({ serverId: departure.serverId });
+    memberUpdatedTopic.announce({ memberId: departure.userId, serverId: departure.serverId });
+    // The membership sentinel: the departed member's `server.onUpdated` rechecks
+    // and ends with `membership_lost`.
+    serverUpdatedTopic.announce({ serverId: departure.serverId });
 }

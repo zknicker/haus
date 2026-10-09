@@ -21,9 +21,9 @@ import {
 } from '@haus/api';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
@@ -67,7 +67,7 @@ export async function ingestReport(
         const recorded = await reportComputerUpdateProgress(db, computerId, update.data.update);
         if (recorded) {
             connections.setUpdatePhase(computerId, update.data.update.phase);
-            emitServerUpdated({ scope: 'computer', serverId });
+            computerUpdatedTopic.announce({ computerId, serverId });
         }
         return;
     }
@@ -108,9 +108,8 @@ export async function ingestReport(
     if (coveApply.success) {
         const changedServerId = await recordCoveApplyResult(db, computerId, coveApply.data);
         if (changedServerId) {
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: coveApply.data.agentId,
-                scope: 'agent',
                 serverId: changedServerId,
             });
             if (coveApply.data.status === 'applied') {
@@ -152,7 +151,7 @@ async function recordComputerReport(
     frame: unknown
 ) {
     if (await recordStateReport(db, computerId, serverId, frame)) {
-        emitServerUpdated({ computerId, scope: 'computer', serverId });
+        computerUpdatedTopic.announce({ computerId, serverId });
     }
 }
 

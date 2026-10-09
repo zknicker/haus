@@ -9,7 +9,6 @@ import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import { inferMessageCause } from '../automations/infer-message-cause.ts';
 import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { InvalidInlineReplyError } from '../chats/reply-context.ts';
 import {
     AgentMessageContentTooLongError,
@@ -17,6 +16,7 @@ import {
     sendAgentMessage,
 } from '../chats/send-agent-message.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
@@ -134,7 +134,7 @@ export function registerAgentMessageSendRoute(
                 serverId: runner.serverId,
             });
             for (const event of result.events) {
-                emitDurableChatEvent({ audienceUserId: null, event });
+                publishRealtime(event);
             }
             await options.postCommitWork.wakeAgents(options.agentDelivery, result.wakes);
             return { message: result.message, recentUnread: [], state: 'sent' as const };

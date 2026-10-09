@@ -1,5 +1,5 @@
 import { taskLabelCreateInputSchema, taskLabelMutationSchema } from '@haus/api';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
 import { createTaskLabel } from '../../tasks/task-labels.ts';
 import { taskProcedure } from '../task/procedure.ts';
 
@@ -8,6 +8,6 @@ export const createTaskLabelProcedure = taskProcedure
     .output(taskLabelMutationSchema)
     .mutation(async ({ ctx, input }) => {
         const result = await createTaskLabel(ctx.hausDb, ctx.member, input);
-        emitDurableChatEvent({ audienceUserId: null, event: result.event });
-        return { eventCursor: result.event.cursor, label: result.label };
+        publishRealtime(result.event);
+        return { label: result.label };
     });

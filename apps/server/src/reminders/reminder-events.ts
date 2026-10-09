@@ -1,77 +1,21 @@
-import type { ServerDurableEvent } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable, chatsTable } from '../postgres/schema.ts';
+import { reminderUpdatedTopic } from '../realtime/topics.ts';
 
 export type ReminderEventAction = 'canceled' | 'fired' | 'scheduled' | 'snoozed' | 'updated';
 
-export async function insertReminderChangedEvent(
-    db: HausDatabase,
-    input: {
-        action: ReminderEventAction;
-        chatId: string;
-        createdAt: Date;
-        parentChatId: string | null;
-        reminderId: string;
-        sequence: number;
-        serverId: string;
-    }
-): Promise<ServerDurableEvent> {
-    const cursor = await allocateEventCursor(db, input.serverId);
-    const [event] = await db
-        .insert(chatEventsTable)
-        .values({
-            chatId: input.chatId,
-            createdAt: input.createdAt,
-            cursor,
-            id: createOpaqueId('evt'),
-            reminderAction: input.action,
-            reminderId: input.reminderId,
-            sequence: input.sequence,
-            serverId: input.serverId,
-            type: 'reminder.changed',
-        })
-        .returning({ id: chatEventsTable.id });
-    return {
+/**
+ * Prepares `reminder.updated` for a reminder change about to commit. Owners and
+ * Admins refetch the reminder reads; the event carries only ids.
+ */
+export function prepareReminderEvent(input: {
+    action: ReminderEventAction;
+    ownerAgentId: string;
+    reminderId: string;
+    serverId: string;
+}) {
+    return reminderUpdatedTopic.prepare({
         action: input.action,
-        chatId: input.chatId,
-        createdAt: input.createdAt.toISOString(),
-        cursor: cursor.toString(),
-        id: event.id,
-        parentChatId: input.parentChatId,
+        ownerAgentId: input.ownerAgentId,
         reminderId: input.reminderId,
-        sequence: input.sequence,
         serverId: input.serverId,
-        type: 'reminder.changed',
-    };
-}
-
-export async function insertAnchoredReminderChangedEvent(
-    db: HausDatabase,
-    input: {
-        action: ReminderEventAction;
-        chatId: string;
-        createdAt: Date;
-        reminderId: string;
-        serverId: string;
-    }
-) {
-    const [chat] = await db
-        .select({
-            parentChatId: chatsTable.parentChatId,
-            sequence: chatsTable.lastMessageSequence,
-        })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
-        .limit(1);
-    if (!chat) {
-        throw new Error('The reminder anchor Chat no longer exists.');
-    }
-    return insertReminderChangedEvent(db, {
-        ...input,
-        parentChatId: chat.parentChatId,
-        sequence: chat.sequence,
     });
 }

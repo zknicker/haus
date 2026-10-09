@@ -110,7 +110,7 @@ function subscribeToServer(client: HausClient, serverId: string) {
     const timeout = setTimeout(() => {
         nextEvent.reject(new Error('Timed out waiting for a Server update.'));
     }, subscriptionTimeoutMs);
-    const subscription = client.trpc.server.onUpdate.subscribe(
+    const subscription = client.trpc.server.onUpdated.subscribe(
         { serverId },
         {
             onData: (event) => {

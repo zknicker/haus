@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { AgentTurnSummary, ServerUpdatedEvent } from '@haus/api';
+import type { AgentTurnSummary, AgentUpdatedEvent } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { readDeliveryState } from '../src/agent-delivery/store.ts';
-import { subscribeToServerUpdates } from '../src/haus-api/server-events.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentDeliveryTable } from '../src/postgres/schema.ts';
+import { agentUpdatedTopic } from '../src/realtime/topics.ts';
 import { FakeTransport, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -78,9 +78,7 @@ test('the same failure three times pauses; the sweep skips it until a human lift
         retryAfter: null,
         sameFailureStreak: 0,
     });
-    expect(await updates.stop()).toContainEqual(
-        expect.objectContaining({ agentId: seed.agentId, scope: 'agent' })
-    );
+    expect(await updates.stop()).toContainEqual(expect.objectContaining({ agentId: seed.agentId }));
 });
 
 test('agent and automation work never lift a wake pause', async () => {
@@ -192,10 +190,10 @@ async function expireRetryAfter(agentId: string) {
 
 function watchServerUpdates() {
     const controller = new AbortController();
-    const events: ServerUpdatedEvent[] = [];
+    const events: AgentUpdatedEvent[] = [];
     const listening = (async () => {
         try {
-            for await (const event of subscribeToServerUpdates(controller.signal)) {
+            for await (const { event } of agentUpdatedTopic.subscribe(controller.signal)) {
                 events.push(event);
             }
         } catch {

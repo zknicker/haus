@@ -6,15 +6,15 @@ import type {
     AgentTurnSummary,
     ReminderScriptCommand,
     ReminderScriptResult,
-    ServerDurableEvent,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentMessageDraftsTable, agentsTable, chatMessagesTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import {
     listReminderScriptCommands,
     settleReminderScript,
@@ -75,7 +75,7 @@ interface DispatchPlan {
     serverId: string;
     suppressSend?: boolean;
     /** `task.updated` for the tasks this run just made live. */
-    taskEvents?: ServerDurableEvent[];
+    taskEvents?: PreparedRealtimeEvent[];
 }
 
 interface DispatchOptions {
@@ -213,7 +213,7 @@ export class AgentDelivery {
             };
         });
         if (kill) {
-            emitTaskEvents(kill.taskEvents);
+            publishRealtime(kill.taskEvents);
             if (kill.activity) {
                 publishCommittedAgentActivity(kill.activity);
             }
@@ -258,7 +258,7 @@ export class AgentDelivery {
         }
         const interrupted = await this.interruptActiveRun(input);
         if (interrupted) {
-            emitTaskEvents(interrupted.taskEvents);
+            publishRealtime(interrupted.taskEvents);
             if (interrupted.activity) {
                 publishCommittedAgentActivity(interrupted.activity);
             }
@@ -298,7 +298,7 @@ export class AgentDelivery {
             await lockServerRow(tx, input.serverId);
             const state = await store.readDeliveryState(tx, input.agentId);
             let activity: AgentActivityEvent | null = null;
-            let taskEvents: ServerDurableEvent[] = [];
+            let taskEvents: PreparedRealtimeEvent[] = [];
             if (state?.activeRunId) {
                 await revokeRunnerCredentialsForRun(tx, {
                     agentId: input.agentId,
@@ -363,7 +363,7 @@ export class AgentDelivery {
                 taskEvents,
             };
         });
-        emitTaskEvents(result.taskEvents);
+        publishRealtime(result.taskEvents);
         if (result.activity) {
             publishCommittedAgentActivity(result.activity);
         }
@@ -523,7 +523,7 @@ export class AgentDelivery {
             if (!recovery) {
                 return;
             }
-            emitTaskEvents(recovery.taskEvents);
+            publishRealtime(recovery.taskEvents);
             if (recovery.activity) {
                 publishCommittedAgentActivity(recovery.activity);
             }
@@ -680,7 +680,7 @@ export class AgentDelivery {
         if (!settlement) {
             return;
         }
-        emitTaskEvents(settlement.taskEvents);
+        publishRealtime(settlement.taskEvents);
         if (settlement.activity) {
             publishCommittedAgentActivity(settlement.activity);
         }
@@ -1058,7 +1058,7 @@ export class AgentDelivery {
         if (!plan) {
             return;
         }
-        emitTaskEvents(plan.taskEvents ?? []);
+        publishRealtime(plan.taskEvents ?? []);
         for (const activity of plan.activities ?? []) {
             if (activity.category === 'starting_work' && activity.phase === 'started') {
                 continue;
@@ -1145,12 +1145,6 @@ function killedRun(
         runId: state.activeRunId ?? '',
         serverId: input.serverId,
     };
-}
-
-function emitTaskEvents(events: ServerDurableEvent[]): void {
-    for (const event of events) {
-        emitDurableChatEvent({ audienceUserId: null, event });
-    }
 }
 
 async function attachSummaryVisibility(

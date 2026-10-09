@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -132,7 +133,7 @@ test('an appearance-only change emits one updated lifecycle event', async () => 
         serverId,
     });
 
-    const beforePaint = await owner.trpc.chat.eventHead.query({ serverId });
+    const beforePaint = captureAllTopics();
     await owner.trpc.chat.updateChannel.mutate({
         agentIds: [agentId],
         chatId: channel.id,
@@ -140,13 +141,11 @@ test('an appearance-only change emits one updated lifecycle event', async () => 
         name: 'appearance-events',
         serverId,
     });
-    await expect(
-        owner.trpc.chat.events.query({ afterCursor: beforePaint.cursor, serverId })
-    ).resolves.toEqual([
+    await expect(publishedSince(beforePaint, serverId)).resolves.toEqual([
         expect.objectContaining({ action: 'updated', chatId: channel.id, type: 'chat.lifecycle' }),
     ]);
 
-    const beforeRepaint = await owner.trpc.chat.eventHead.query({ serverId });
+    const beforeRepaint = captureAllTopics();
     await owner.trpc.chat.updateChannel.mutate({
         agentIds: [agentId],
         chatId: channel.id,
@@ -154,9 +153,7 @@ test('an appearance-only change emits one updated lifecycle event', async () => 
         name: 'appearance-events',
         serverId,
     });
-    await expect(
-        owner.trpc.chat.events.query({ afterCursor: beforeRepaint.cursor, serverId })
-    ).resolves.toEqual([]);
+    await expect(publishedSince(beforeRepaint, serverId)).resolves.toEqual([]);
 });
 
 test('DM chats report no channel appearance', async () => {

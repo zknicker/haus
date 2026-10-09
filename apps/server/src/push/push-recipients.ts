@@ -1,8 +1,8 @@
 import {
+    type MessageCreatedEvent,
     type MessageNotificationReason,
     messageNotificationCandidates,
     messageNotificationReason,
-    type ServerDurableEvent,
 } from '@haus/api';
 import { and, eq, gte } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
@@ -11,8 +11,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatReadsTable, chatsTable } from '../postgres/schema.ts';
 import { readPushableMembers } from './push-devices.ts';
 import { type PushMessage, readPushMessage } from './push-message.ts';
-
-type MessageCreatedEvent = Extract<ServerDurableEvent, { type: 'message.created' }>;
 
 export interface PushRecipient {
     /** The human's unread Chats across every Server they belong to. */

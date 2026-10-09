@@ -1,13 +1,19 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { chatEventsTable, chatMessagesTable } from '../src/postgres/schema.ts';
+import { chatMessagesTable } from '../src/postgres/schema.ts';
+import { messageCreatedTopic } from '../src/realtime/topics.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureTopic } from './realtime-capture.ts';
+import { collectStream } from './realtime-stream.ts';
 
+// Chat events are live notifications over focused topics: nothing replays, and
+// each stream applies its own Chat access (specs/realtime-events.md).
 let harness: HausServerHarness;
 let connection: HausConnection;
 let owner: HausClient;
+let ownerUserId: string;
 let chatId: string;
 let serverId: string;
 
@@ -21,6 +27,7 @@ beforeAll(async () => {
     });
     chatId = server.channels[0].id;
     serverId = server.id;
+    ownerUserId = await readUserId('user_events_owner');
 });
 
 afterAll(async () => {
@@ -29,45 +36,28 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('durable cursors catch up messages sent while realtime is disconnected', async () => {
-    const first = await send('durable first', 'durable-event-1');
-    const initial = await owner.trpc.chat.events.query({ afterCursor: '0', serverId });
-    expect(initial).toMatchObject([
-        {
-            chatId,
-            cursor: first.eventCursor,
-            messageId: first.message.id,
-            serverId,
-            type: 'message.created',
-        },
-    ]);
+test('a send publishes message.created with its notification facts, live only', async () => {
+    const stream = collectStream(owner.trpc.chat.onMessageCreated, { serverId });
+    await stream.started;
+    const live = await send('live send', 'realtime-event-1');
 
-    const subscription = subscribeToChatEvents(owner, serverId);
-    await subscription.started;
-    const live = await send('durable live', 'durable-event-2');
-    await expect(subscription.nextEvent).resolves.toMatchObject({
-        cursor: live.eventCursor,
+    await expect(stream.next()).resolves.toEqual({
+        authorUserId: ownerUserId,
+        chatId,
+        conversationKind: 'channel',
+        mentionedUserIds: [],
         messageId: live.message.id,
-    });
-
-    const disconnected = await send('durable reconnect', 'durable-event-3');
-    const catchUp = await owner.trpc.chat.events.query({
-        afterCursor: live.eventCursor,
+        parentChatId: null,
+        replyToAuthorUserId: null,
+        sequence: live.message.sequence,
         serverId,
+        threadAnchorAuthorUserId: null,
+        threadAnchorMessageId: null,
     });
-    expect(catchUp).toMatchObject([
-        {
-            cursor: disconnected.eventCursor,
-            messageId: disconnected.message.id,
-            type: 'message.created',
-        },
-    ]);
-    await expect(owner.trpc.chat.eventHead.query({ serverId })).resolves.toEqual({
-        cursor: disconnected.eventCursor,
-    });
+    stream.stop();
 });
 
-test('a Thread reply persists and returns its parent Chat in the event', async () => {
+test('a Thread reply persists and names its parent Chat and anchor', async () => {
     const anchor = await send('thread event anchor', 'thread-event-anchor');
     const reply = await owner.trpc.chat.send.mutate({
         chatId,
@@ -77,11 +67,11 @@ test('a Thread reply persists and returns its parent Chat in the event', async (
         thread: { anchorMessageId: anchor.message.id },
     });
     const threadChatId = reply.threadChatId;
-    expect(threadChatId).not.toBeNull();
     if (!threadChatId) {
         throw new Error('Expected the Thread reply to return a child Chat id.');
     }
 
+    const created = captureTopic(messageCreatedTopic);
     const second = await owner.trpc.chat.send.mutate({
         chatId,
         content: 'thread event follow-up',
@@ -113,118 +103,86 @@ test('a Thread reply persists and returns its parent Chat in the event', async (
         sessionGeneration: null,
     });
 
-    const [storedEvent] = await connection.db
-        .select({
-            chatId: chatEventsTable.chatId,
-            messageId: chatEventsTable.messageId,
-            sequence: chatEventsTable.sequence,
-            type: chatEventsTable.type,
-        })
-        .from(chatEventsTable)
-        .where(
-            and(
-                eq(chatEventsTable.serverId, serverId),
-                eq(chatEventsTable.messageId, second.message.id)
-            )
-        );
-    expect(storedEvent).toEqual({
+    await expect(created.next()).resolves.toMatchObject({
         chatId: threadChatId,
         messageId: second.message.id,
+        parentChatId: chatId,
         sequence: 2,
-        type: 'message.created',
+        threadAnchorAuthorUserId: ownerUserId,
+        threadAnchorMessageId: anchor.message.id,
     });
-
-    const recovered = await owner.trpc.chat.events.query({
-        afterCursor: (BigInt(second.eventCursor) - 1n).toString(),
-        serverId,
-    });
-    expect(recovered).toContainEqual(
-        expect.objectContaining({
-            chatId: threadChatId,
-            messageId: second.message.id,
-            parentChatId: chatId,
-        })
-    );
+    created.stop();
 });
 
-test('event delivery skips an inaccessible Chat without terminating the Server feed', async () => {
+test('event delivery skips an inaccessible Chat without terminating the stream', async () => {
     const peer = await signIn('user_events_filter_peer');
     await peer.trpc.server.create.mutate({
         displayName: 'Filter Peer Root',
         slug: 'events-filter-peer',
     });
-    const [peerUser] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_events_filter_peer'
-    `) as { id: string }[];
+    const peerUserId = await readUserId('user_events_filter_peer');
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
-        values ('mem_events_filter_peer', ${serverId}, ${peerUser.id}, 'member')
+        values ('mem_events_filter_peer', ${serverId}, ${peerUserId}, 'member')
     `;
 
-    const subscription = subscribeToChatEvents(peer, serverId);
-    await subscription.started;
-    await send('not visible to peer', 'durable-event-filtered');
-    await subscription.expectNoEventFor(100);
+    const stream = collectStream(peer.trpc.chat.onMessageCreated, { serverId });
+    await stream.started;
+    await send('not visible to peer', 'realtime-event-filtered');
 
     await harness.sql`
         insert into channel_participants (server_id, chat_id, user_id)
-        values (${serverId}, ${chatId}, ${peerUser.id})
+        values (${serverId}, ${chatId}, ${peerUserId})
     `;
-    const visible = await send('visible after joining', 'durable-event-visible');
+    const visible = await send('visible after joining', 'realtime-event-visible');
 
-    await expect(subscription.nextEvent).resolves.toMatchObject({
-        messageId: visible.message.id,
-    });
+    // The first event delivered is the visible one: the hidden one was skipped
+    // and the stream kept going.
+    await expect(stream.next()).resolves.toMatchObject({ messageId: visible.message.id });
+    expect(stream.events).toHaveLength(1);
+    stream.stop();
     peer.close();
 });
 
-test('event subscription rechecks persisted membership revocation after the author speaks', async () => {
+test('a revoked membership ends the stream with membership_lost on its next delivery', async () => {
     const peer = await signIn('user_events_peer');
     await peer.trpc.server.create.mutate({ displayName: 'Peer Root', slug: 'events-peer' });
-    const [peerUser] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_events_peer'
-    `) as { id: string }[];
+    const peerUserId = await readUserId('user_events_peer');
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
-        values ('mem_events_peer', ${serverId}, ${peerUser.id}, 'member')
+        values ('mem_events_peer', ${serverId}, ${peerUserId}, 'member')
     `;
     await harness.sql`
         insert into channel_participants (server_id, chat_id, user_id)
-        values (${serverId}, ${chatId}, ${peerUser.id})
+        values (${serverId}, ${chatId}, ${peerUserId})
     `;
 
     await peer.trpc.chat.send.mutate({
         chatId,
         content: 'history survives revocation',
-        nonce: 'durable-event-peer-history',
+        nonce: 'realtime-event-peer-history',
         serverId,
     });
-    const subscription = subscribeToChatEvents(peer, serverId);
-    await subscription.started;
+    const stream = collectStream(peer.trpc.chat.onMessageCreated, { serverId });
+    await stream.started;
     await harness.sql`
         update server_memberships set revoked_at = now()
-        where server_id = ${serverId} and user_id = ${peerUser.id}
+        where server_id = ${serverId} and user_id = ${peerUserId}
     `;
-    await within(
-        send('membership was revoked', 'durable-event-revoked'),
-        'sending after membership revocation'
-    );
+    await send('membership was revoked', 'realtime-event-revoked');
 
-    await expect(within(subscription.nextEvent, 'receiving the revocation error')).rejects.toThrow(
-        /member/i
+    await expect(stream.ended()).resolves.toMatchObject({
+        data: { code: 'FORBIDDEN', hausRefusal: 'membership_lost' },
+    });
+    expect(stream.events).toEqual([]);
+    await expect(peer.trpc.server.list.query()).resolves.not.toContainEqual(
+        expect.objectContaining({ id: serverId })
     );
-    await expect(
-        within(peer.trpc.server.list.query(), 'listing Servers after revocation')
-    ).resolves.not.toContainEqual(expect.objectContaining({ id: serverId }));
-    await expect(
-        within(
-            harness.sql`
-                select content from chat_messages
-                where server_id = ${serverId} and author_user_id = ${peerUser.id}
-            `,
-            'reading history after revocation'
-        )
-    ).resolves.toEqual([{ content: 'history survives revocation' }]);
+    const history = await harness.sql`
+        select content from chat_messages
+        where server_id = ${serverId} and author_user_id = ${peerUserId}
+    `;
+    expect(history).toEqual([{ content: 'history survives revocation' }]);
     peer.close();
 });
 
@@ -235,10 +193,6 @@ test('queries, mutations, and subscriptions reject a human from another Server',
         slug: 'events-outsider',
     });
 
-    await expect(outsider.trpc.chat.events.query({ afterCursor: '0', serverId })).rejects.toThrow(
-        /member/i
-    );
-    await expect(outsider.trpc.chat.eventHead.query({ serverId })).rejects.toThrow(/member/i);
     await expect(outsider.trpc.chat.search.query({ query: 'durable', serverId })).rejects.toThrow(
         /member/i
     );
@@ -251,8 +205,10 @@ test('queries, mutations, and subscriptions reject a human from another Server',
         })
     ).rejects.toThrow(/member/i);
 
-    const subscription = subscribeToChatEvents(outsider, serverId);
-    await expect(subscription.started).rejects.toThrow(/member/i);
+    const stream = collectStream(outsider.trpc.chat.onMessageCreated, { serverId });
+    await expect(stream.ended()).resolves.toMatchObject({
+        data: { code: 'FORBIDDEN', hausRefusal: 'membership_lost' },
+    });
     outsider.close();
 });
 
@@ -260,57 +216,14 @@ function send(content: string, nonce: string) {
     return owner.trpc.chat.send.mutate({ chatId, content, nonce, serverId });
 }
 
-const subscriptionTimeoutMs = 5000;
-
-function subscribeToChatEvents(client: HausClient, subscribedServerId: string) {
-    const started = Promise.withResolvers<void>();
-    const nextEvent = Promise.withResolvers<unknown>();
-    const timeout = setTimeout(() => {
-        nextEvent.reject(new Error('Timed out waiting for a durable Chat event.'));
-    }, subscriptionTimeoutMs);
-    const subscription = client.trpc.chat.onEvent.subscribe(
-        { serverId: subscribedServerId },
-        {
-            onData: (event) => {
-                clearTimeout(timeout);
-                subscription.unsubscribe();
-                nextEvent.resolve(event);
-            },
-            onError: (error) => {
-                clearTimeout(timeout);
-                started.reject(error);
-                nextEvent.reject(error);
-            },
-            onStarted: () => started.resolve(),
-        }
-    );
-
-    started.promise.catch(() => undefined);
-    nextEvent.promise.catch(() => undefined);
-    return {
-        expectNoEventFor: async (milliseconds: number) => {
-            await Promise.race([
-                nextEvent.promise.then(() => {
-                    throw new Error('Received a durable Chat event for an inaccessible Chat.');
-                }),
-                Bun.sleep(milliseconds),
-            ]);
-        },
-        nextEvent: nextEvent.promise,
-        started: started.promise,
-    };
-}
-
 async function signIn(clerkUserId: string) {
     const token = await harness.clerk.mintSessionToken(clerkUserId);
     return createHausClient(harness, token);
 }
 
-async function within<T>(promise: Promise<T>, step: string): Promise<T> {
-    return await Promise.race([
-        promise,
-        Bun.sleep(2000).then(() => {
-            throw new Error(`Timed out ${step}.`);
-        }),
-    ]);
+async function readUserId(clerkUserId: string) {
+    const rows = (await harness.sql`
+        select id from users where clerk_user_id = ${clerkUserId}
+    `) as { id: string }[];
+    return rows[0]?.id ?? '';
 }

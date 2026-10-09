@@ -16,6 +16,7 @@ import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { invokeMcp } from './mcp-client.ts';
+import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
 import { registerServerRuntime, registerTestConnections } from './test-computer-connections.ts';
 
 let harness: HausServerHarness;
@@ -1358,6 +1359,7 @@ test('the ported Agent directory can inspect and change channel membership', asy
 });
 
 test('the ported Agent task flow creates, claims, updates, and releases its own work', async () => {
+    const realtime = captureAllTopics();
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_tasks_1' });
     const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
         nonce: 'agent_tasks_create_1',
@@ -1425,16 +1427,11 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         created_by_agent_id: agentId,
         created_by_user_id: null,
     });
-    const events = (await harness.sql`
-        select ce.event_type
-        from chat_events ce
-        inner join chat_messages cm
-            on cm.server_id = ce.server_id and cm.id = ce.message_id
-        where ce.server_id = ${serverId}
-          and cm.content = 'Audit the delivery boundary'
-        order by ce.cursor
-    `) as Array<{ event_type: string }>;
-    expect(events.map((event) => event.event_type)).toEqual([
+    const [taskMessage] = (await harness.sql`
+        select id from chat_messages
+        where server_id = ${serverId} and content = 'Audit the delivery boundary'
+    `) as Array<{ id: string }>;
+    expect(await publishedKinds(realtime, taskMessage?.id ?? '')).toEqual([
         'message.created',
         'task.created',
         'task.updated',
@@ -1507,16 +1504,11 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         message_id: regular.message.id,
         origin: 'claimed',
     });
-    const convertedEvents = (await harness.sql`
-        select event_type
-        from chat_events
-        where server_id = ${serverId} and message_id = ${regular.message.id}
-        order by cursor
-    `) as Array<{ event_type: string }>;
-    expect(convertedEvents.map((event) => event.event_type)).toEqual([
+    expect(await publishedKinds(realtime, regular.message.id)).toEqual([
         'message.created',
         'task.created',
     ]);
+    realtime.stop();
 });
 
 test('concurrent Agent claims choose one owner and the losing Agent cannot proceed', async () => {

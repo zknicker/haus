@@ -1,10 +1,10 @@
 import { agentSchema, updateAgentProfileInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { AgentDescriptionTooLongError } from '../../server-agents/errors.ts';
 import { updateAgentProfile } from '../../server-agents/update-agent-profile.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const updateAgentProfileProcedure = memberProcedure
     .input(updateAgentProfileInputSchema)
@@ -21,7 +21,7 @@ export const updateAgentProfileProcedure = memberProcedure
                 reasoningEffort: agent.desiredReasoningEffort,
                 runtimeId: agent.desiredRuntimeId,
             });
-            emitServerUpdated({ agentId: agent.id, scope: 'agent', serverId: input.serverId });
+            agentUpdatedTopic.announce({ agentId: agent.id, serverId: input.serverId });
             return agent;
         } catch (cause) {
             if (cause instanceof AgentDescriptionTooLongError) {

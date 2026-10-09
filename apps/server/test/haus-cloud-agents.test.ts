@@ -1,12 +1,13 @@
 import { expect, test } from 'bun:test';
 import type { CloudAgentWork } from '@haus/api';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 const fixture = cloudAgentFixture();
 
 test('one Cloud Agent work writes its Message, record, first Run, Thread, and events', async () => {
     const runner = await fixture.mintRunner('run_cloud_create');
-    const head = await fixture.owner.trpc.chat.eventHead.query({ serverId: fixture.serverId });
+    const realtime = captureAllTopics();
 
     const created = await fixture.postStart(
         runner,
@@ -44,19 +45,19 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
         parent_chat_id: fixture.channelId,
     });
 
-    const events = await fixture.owner.trpc.chat.events.query({
-        afterCursor: head.cursor,
-        serverId: fixture.serverId,
-    });
+    const events = await publishedSince(realtime, fixture.serverId);
+    realtime.stop();
     expect(events.map((event) => event.type)).toEqual([
+        'cloudAgentWork.updated',
         'message.created',
-        'cloud-agent-work.updated',
     ]);
-    expect(events[1]).toMatchObject({
+    expect(events[0]).toEqual({
         chatId: fixture.channelId,
-        cloudAgentWorkId: work.id,
         messageId: created.body.messageId,
-        type: 'cloud-agent-work.updated',
+        parentChatId: null,
+        serverId: fixture.serverId,
+        type: 'cloudAgentWork.updated',
+        workId: work.id,
     });
 
     const replay = await fixture.postStart(

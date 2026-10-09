@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -112,20 +113,18 @@ test('keeping an existing Agent while adding another preserves both', async () =
 });
 
 test('creating and changing a channel each emit one durable lifecycle event', async () => {
-    const beforeCreate = await owner.trpc.chat.eventHead.query({ serverId });
+    const beforeCreate = captureAllTopics();
     const channel = await owner.trpc.chat.createChannel.mutate({
         agentIds: [firstAgentId],
         name: 'lifecycle-events',
         serverId,
     });
 
-    await expect(
-        owner.trpc.chat.events.query({ afterCursor: beforeCreate.cursor, serverId })
-    ).resolves.toEqual([
+    await expect(publishedSince(beforeCreate, serverId)).resolves.toEqual([
         expect.objectContaining({ action: 'created', chatId: channel.id, type: 'chat.lifecycle' }),
     ]);
 
-    const beforeRename = await owner.trpc.chat.eventHead.query({ serverId });
+    const beforeRename = captureAllTopics();
     await owner.trpc.chat.updateChannel.mutate({
         agentIds: [secondAgentId],
         chatId: channel.id,
@@ -133,13 +132,11 @@ test('creating and changing a channel each emit one durable lifecycle event', as
         serverId,
     });
 
-    await expect(
-        owner.trpc.chat.events.query({ afterCursor: beforeRename.cursor, serverId })
-    ).resolves.toEqual([
+    await expect(publishedSince(beforeRename, serverId)).resolves.toEqual([
         expect.objectContaining({ action: 'updated', chatId: channel.id, type: 'chat.lifecycle' }),
     ]);
 
-    const beforeNoop = await owner.trpc.chat.eventHead.query({ serverId });
+    const beforeNoop = captureAllTopics();
     await owner.trpc.chat.updateChannel.mutate({
         agentIds: [secondAgentId],
         chatId: channel.id,
@@ -147,9 +144,7 @@ test('creating and changing a channel each emit one durable lifecycle event', as
         serverId,
     });
 
-    await expect(
-        owner.trpc.chat.events.query({ afterCursor: beforeNoop.cursor, serverId })
-    ).resolves.toEqual([]);
+    await expect(publishedSince(beforeNoop, serverId)).resolves.toEqual([]);
 });
 
 test('rejects Agents that do not belong to the Server', async () => {

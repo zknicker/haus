@@ -1,8 +1,8 @@
 import { normalizeReactionEmoji, reactionEmojiRule } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { changeAgentReaction } from './reactions.ts';
 
@@ -32,7 +32,7 @@ export function registerAgentReactionRoutes(app: FastifyInstance, db: HausDataba
         try {
             const result = await changeAgentReaction(db, runner, { ...parsed.data, emoji });
             if (result.event) {
-                emitDurableChatEvent({ audienceUserId: null, event: result.event });
+                publishRealtime(result.event);
             }
             return { message: result.message };
         } catch (cause) {

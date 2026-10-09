@@ -20,6 +20,8 @@ import { lockServerRow } from './server-lock.ts';
 export interface AcceptedServerInvitation {
     serverId: string;
     serverSlug: string;
+    /** The new member's user id, for the `member.updated` announcement. */
+    userId: string;
 }
 
 /**
@@ -138,7 +140,7 @@ export async function acceptServerInvitation(
             .set({ acceptedAt: sql`now()`, acceptedUserId: user.id })
             .where(eq(serverInvitationsTable.id, invitation.id));
 
-        return { serverId: invitation.serverId, serverSlug: server.slug };
+        return { serverId: invitation.serverId, serverSlug: server.slug, userId: user.id };
     });
 }
 

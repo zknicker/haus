@@ -64,8 +64,8 @@ test('a batch claim answers per task and keeps every granted claim and its event
         currentAssignee: { name: 'rook', type: 'agent' },
         kind: 'claim_conflict',
     });
-    expect(batch.events.map(({ messageId, type }) => ({ messageId, type }))).toEqual([
-        { messageId: first.messageId, type: 'task.updated' },
+    expect(batch.events.map(({ delivery }) => delivery.event)).toEqual([
+        expect.objectContaining({ kind: 'updated', messageId: first.messageId }),
     ]);
     const rows = (await harness.sql`
         select number, assignee_agent_id from message_tasks

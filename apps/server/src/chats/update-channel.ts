@@ -1,15 +1,16 @@
-import type { ChannelUpdateInput, Chat, ServerDurableEvent } from '@haus/api';
+import type { ChannelUpdateInput, Chat } from '@haus/api';
 import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { joinChannelAgents } from './channel-agent-membership.ts';
 import { requireChatWritable } from './chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from './create-channel.ts';
-import { insertLifecycleEvent } from './lifecycle-events.ts';
+import { prepareLifecycleEvent } from './lifecycle-events.ts';
 import { listChats } from './list-chats.ts';
 
 export class ChannelNotFoundError extends Error {
@@ -21,7 +22,7 @@ export class ChannelNotFoundError extends Error {
 export interface UpdatedChannel {
     chat: Chat;
     /** Null when the save changed no name, description, appearance, or Agent participant. */
-    event: ServerDurableEvent | null;
+    event: PreparedRealtimeEvent | null;
 }
 
 /** Renames a channel, updates its description and appearance, and replaces its Agent participant set. */
@@ -119,7 +120,7 @@ export async function updateChannel(
             );
         await joinChannelAgents(tx, { agentIds, chatId: input.chatId, serverId: input.serverId });
 
-        return changed ? await insertLifecycleEvent(tx, input, 'updated', new Date()) : null;
+        return changed ? prepareLifecycleEvent(input, 'updated') : null;
     });
 
     const channel = (await listChats(db, member, input.serverId)).find(

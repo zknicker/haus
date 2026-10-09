@@ -1,4 +1,4 @@
-import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@haus/api';
+import type { ChatMessageReceipt, ChatSendInput } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
@@ -12,22 +12,17 @@ import type { MessageRouter } from '../message-routing/jev.ts';
 import { prepareMessageRouting } from '../message-routing/route-human-message.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    chatEventsTable,
-    chatMessagesTable,
-    chatsTable,
-    threadFollowsTable,
-} from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable, threadFollowsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureThread } from '../threads/ensure-thread.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireActiveDmPeer } from './active-dm-peer.ts';
-import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
-import { readConversationKind, readThreadAnchorAuthorUserId } from './message-created-event.ts';
+import { prepareMessageCreatedEvent } from './message-created-event.ts';
 import { toChatMessage } from './message-shape.ts';
 import {
     InvalidInlineReplyError,
@@ -51,7 +46,8 @@ export class DirectThreadSendError extends Error {
 }
 
 export interface SendChatMessageResult {
-    events: ServerDurableEvent[];
+    /** Realtime events to publish once the send commits. */
+    events: PreparedRealtimeEvent[];
     receipt: ChatMessageReceipt;
     /** Agents whose durable pending inbox this send enqueued. */
     wakes: Array<{ agentId: string; serverId: string }>;
@@ -195,23 +191,11 @@ export async function sendChatMessage(
             });
         }
 
-        const eventCursor = await allocateEventCursor(tx, input.serverId);
-        const [event] = await tx
-            .insert(chatEventsTable)
-            .values({
-                chatId: writeChatId,
-                cursor: eventCursor,
-                id: createOpaqueId('evt'),
-                messageId: message.id,
-                sequence: message.sequence,
-                serverId: input.serverId,
-                type: 'message.created',
-            })
-            .returning({
-                createdAt: chatEventsTable.createdAt,
-                cursor: chatEventsTable.cursor,
-                id: chatEventsTable.id,
-            });
+        const created = await prepareMessageCreatedEvent(
+            tx,
+            message,
+            replyParent?.parent.authorUserId ?? null
+        );
 
         // Plan every Agent recipient under its Server-owned attention state in
         // this same transaction. The wire nudge remains separately recoverable.
@@ -248,34 +232,8 @@ export async function sendChatMessage(
         }
 
         return {
-            events: [
-                {
-                    authorUserId: message.authorUserId,
-                    chatId: message.chatId,
-                    conversationKind: await readConversationKind(tx, {
-                        chatId: message.chatId,
-                        serverId: input.serverId,
-                    }),
-                    createdAt: event.createdAt.toISOString(),
-                    cursor: event.cursor.toString(),
-                    id: event.id,
-                    mentionedUserIds: message.mentionedUserIds,
-                    messageId: message.id,
-                    parentChatId: thread?.parentChatId ?? null,
-                    replyToAuthorUserId: replyParent?.parent.authorUserId ?? null,
-                    sequence: message.sequence,
-                    serverId: message.serverId,
-                    threadAnchorAuthorUserId: thread
-                        ? await readThreadAnchorAuthorUserId(tx, {
-                              serverId: input.serverId,
-                              threadChatId: thread.id,
-                          })
-                        : null,
-                    type: 'message.created',
-                },
-            ],
+            events: [created],
             receipt: {
-                eventCursor: event.cursor.toString(),
                 idempotent: false,
                 // A human send never creates a typed body; this Message is text.
                 message: toChatMessage(message, {

@@ -1,9 +1,10 @@
-import type { ServerDurableEvent, Trigger, TriggerKind, TriggerStatus } from '@haus/api';
+import type { Trigger, TriggerKind, TriggerStatus } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import {
     hashTriggerSecret,
@@ -28,7 +29,7 @@ export type TriggerAuthorization = (tx: Transaction) => Promise<unknown>;
 export interface TriggerAnchor {
     chatId: string;
     /** A durable event the anchor resolution wrote, to emit once the trigger commits. */
-    event?: Extract<ServerDurableEvent, { type: 'message.created' }>;
+    event?: PreparedRealtimeEvent;
     /** The asking message, or null when the anchor is the Chat itself. */
     messageId: string | null;
 }
@@ -56,7 +57,7 @@ export async function createTriggerRow(
     resolveAnchor: (tx: Transaction, triggerId: string) => Promise<TriggerAnchor>,
     clock: TriggerClock
 ): Promise<{
-    event: Extract<ServerDurableEvent, { type: 'message.created' }> | null;
+    event: PreparedRealtimeEvent | null;
     secret: string;
     trigger: Trigger;
 }> {

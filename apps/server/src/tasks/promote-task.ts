@@ -1,11 +1,12 @@
-import type { MessageTask, ServerDurableEvent } from '@haus/api';
+import type { MessageTask } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { insertTaskEvent } from './task-events.ts';
+import { prepareTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
 export class TaskMessageNotFoundError extends Error {
@@ -27,7 +28,7 @@ export async function promoteMessageTask(
     member: HausUser | null,
     input: { messageId: string; serverId: string }
 ): Promise<{
-    event: ServerDurableEvent | null;
+    event: PreparedRealtimeEvent | null;
     idempotent: boolean;
     task: MessageTask;
 }> {
@@ -106,7 +107,7 @@ export async function promoteMessageTask(
         if (!task) {
             throw new Error('Task promotion did not persist.');
         }
-        const event = await insertTaskEvent(tx, {
+        const event = prepareTaskEvent({
             chatId: message.chatId,
             messageId: message.id,
             serverId: input.serverId,

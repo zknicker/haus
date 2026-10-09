@@ -1,31 +1,26 @@
-import type { MessageTask, ServerDurableEvent } from '@haus/api';
+import type { MessageTask } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
-import { readConversationKind } from '../chats/message-created-event.ts';
+import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    chatEventsTable,
-    chatMessagesTable,
-    chatsTable,
-    messageTasksTable,
-} from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { UntaskableMessageError } from './promote-task.ts';
 import { TaskNotFoundError } from './task-errors.ts';
-import { insertTaskEvent } from './task-events.ts';
+import { prepareTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
 export interface CreateTaskResult {
-    events: ServerDurableEvent[];
+    events: PreparedRealtimeEvent[];
     idempotent: boolean;
     task: MessageTask;
     wakes: Array<{ agentId: string; serverId: string }>;
@@ -127,44 +122,13 @@ export async function createTask(
             status: 'todo',
         });
 
-        const cursor = await allocateEventCursor(tx, input.serverId);
-        const [eventRow] = await tx
-            .insert(chatEventsTable)
-            .values({
-                chatId: input.chatId,
-                cursor,
-                id: createOpaqueId('evt'),
-                messageId: message.id,
-                sequence: message.sequence,
-                serverId: input.serverId,
-                type: 'message.created',
-            })
-            .returning({ createdAt: chatEventsTable.createdAt, id: chatEventsTable.id });
         const task = await findMessageTask(tx, input.serverId, message.id);
         if (!task) {
             throw new Error('Task creation did not persist.');
         }
 
-        const messageEvent: ServerDurableEvent = {
-            authorUserId: message.authorUserId,
-            chatId: input.chatId,
-            conversationKind: await readConversationKind(tx, {
-                chatId: input.chatId,
-                serverId: input.serverId,
-            }),
-            createdAt: eventRow.createdAt.toISOString(),
-            cursor: cursor.toString(),
-            id: eventRow.id,
-            mentionedUserIds: message.mentionedUserIds,
-            messageId: message.id,
-            parentChatId: null,
-            replyToAuthorUserId: null,
-            sequence: message.sequence,
-            serverId: input.serverId,
-            threadAnchorAuthorUserId: null,
-            type: 'message.created',
-        };
-        const taskEvent = await insertTaskEvent(tx, {
+        const messageEvent = await prepareMessageCreatedEvent(tx, message, null);
+        const taskEvent = prepareTaskEvent({
             chatId: input.chatId,
             messageId: message.id,
             serverId: input.serverId,

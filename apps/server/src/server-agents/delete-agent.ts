@@ -1,4 +1,4 @@
-import type { DeleteAgentInput, ServerDurableEvent } from '@haus/api';
+import type { DeleteAgentInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -11,6 +11,7 @@ import {
     reminderAgentAttentionTable,
     remindersTable,
 } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
@@ -22,7 +23,7 @@ export async function deleteAgent(
     db: HausDatabase,
     member: HausUser | null,
     input: DeleteAgentInput
-): Promise<{ agentId: string; computerId: string; taskEvents: ServerDurableEvent[] }> {
+): Promise<{ agentId: string; computerId: string; taskEvents: PreparedRealtimeEvent[] }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);

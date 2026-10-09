@@ -4,6 +4,7 @@ import { triggerPayloadMaxBytes } from '@haus/api';
 import { triggerBurstLimit } from '../src/triggers/trigger-rate-limit.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let agentId: string;
 let anchorMessageId: string;
@@ -130,9 +131,7 @@ test('writes no receipt and commits the fire row and the envelope the Agent will
     const created = await createTrigger('Sentry alert', { instruction: 'Post the failing job.' });
     const triggerId = created.body.trigger?.id ?? '';
 
-    const eventsBefore = (await harness.sql`
-        select id from chat_events where chat_id = ${channelId}
-    `) as { id: string }[];
+    const realtime = captureAllTopics();
 
     const fired = await fire(triggerId, {
         contentType: 'application/json',
@@ -200,10 +199,9 @@ test('writes no receipt and commits the fire row and the envelope the Agent will
 
     // No `message.created`, and no Trigger durable event either: a fire is
     // observed only in the Automations tab's history.
-    const eventsAfter = (await harness.sql`
-        select id from chat_events where chat_id = ${channelId}
-    `) as { id: string }[];
-    expect(eventsAfter).toEqual(eventsBefore);
+    const published = await publishedSince(realtime);
+    realtime.stop();
+    expect(published.filter((event) => event.chatId === channelId)).toEqual([]);
 
     const [counters] = (await harness.sql`
         select fire_count, last_fired_at, version from triggers where id = ${triggerId}

@@ -1,27 +1,22 @@
-import type { AgentActivityEvent, AgentTaskCreateInput, ServerDurableEvent } from '@haus/api';
+import type { AgentActivityEvent, AgentTaskCreateInput } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
-import { readConversationKind } from '../chats/message-created-event.ts';
+import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    chatEventsTable,
-    chatMessagesTable,
-    chatsTable,
-    messageTasksTable,
-} from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { taskAssignmentEnvelope, taskAssignmentKey } from '../tasks/task-assignment-envelope.ts';
-import { insertTaskEvent } from '../tasks/task-events.ts';
+import { prepareTaskEvent } from '../tasks/task-events.ts';
 import { messageSelection, targetForChat } from './message-view.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
 import {
@@ -67,7 +62,7 @@ export async function createAgentTasks(
         const sessionGeneration = await readAgentSessionGeneration(tx, runner.agentId);
         const created: AgentTaskRow[] = [];
         const activities: AgentActivityEvent[] = [];
-        const events: ServerDurableEvent[] = [];
+        const events: PreparedRealtimeEvent[] = [];
         const wakes = new Set<string>();
         for (const [index, title] of titles.entries()) {
             const startedActivity = await appendServerAgentActivity(tx, {
@@ -203,14 +198,16 @@ export async function createAgentTasks(
                 wakes.add(assigneeAgentId);
             }
             events.push(
-                await insertAgentMessageCreatedEvent(tx, {
-                    chatId,
-                    mentionedUserIds: mentionedUserIds(message.content),
-                    messageId: message.id,
-                    sequence: message.sequence,
-                    serverId: runner.serverId,
-                }),
-                await insertTaskEvent(tx, {
+                await prepareMessageCreatedEvent(
+                    tx,
+                    {
+                        ...message,
+                        mentionedUserIds: mentionedUserIds(message.content),
+                        serverId: runner.serverId,
+                    },
+                    null
+                ),
+                prepareTaskEvent({
                     chatId,
                     messageId: message.id,
                     serverId: runner.serverId,
@@ -235,49 +232,4 @@ export async function createAgentTasks(
             wakes: [...wakes].map((agentId) => ({ agentId, serverId: runner.serverId })),
         };
     });
-}
-
-async function insertAgentMessageCreatedEvent(
-    db: HausDatabase,
-    input: {
-        chatId: string;
-        mentionedUserIds: string[];
-        messageId: string;
-        sequence: number;
-        serverId: string;
-    }
-): Promise<ServerDurableEvent> {
-    const cursor = await allocateEventCursor(db, input.serverId);
-    const [event] = await db
-        .insert(chatEventsTable)
-        .values({
-            chatId: input.chatId,
-            cursor,
-            id: createOpaqueId('evt'),
-            messageId: input.messageId,
-            sequence: input.sequence,
-            serverId: input.serverId,
-            type: 'message.created',
-        })
-        .returning({ createdAt: chatEventsTable.createdAt, id: chatEventsTable.id });
-
-    return {
-        authorUserId: null,
-        chatId: input.chatId,
-        conversationKind: await readConversationKind(db, {
-            chatId: input.chatId,
-            serverId: input.serverId,
-        }),
-        createdAt: event.createdAt.toISOString(),
-        cursor: cursor.toString(),
-        id: event.id,
-        mentionedUserIds: input.mentionedUserIds,
-        messageId: input.messageId,
-        parentChatId: null,
-        replyToAuthorUserId: null,
-        sequence: input.sequence,
-        serverId: input.serverId,
-        threadAnchorAuthorUserId: null,
-        type: 'message.created',
-    };
 }

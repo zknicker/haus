@@ -1,6 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { chatLifecycleTopic } from '../src/realtime/topics.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureTopic, settleRealtime } from './realtime-capture.ts';
+import { collectStream } from './realtime-stream.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -66,32 +69,37 @@ afterAll(async () => {
 // Runs first so it observes the owner/peer DM's first resolution rather than
 // opening a second pair.
 test('a first DM resolution emits one lifecycle event scoped to its two members', async () => {
-    const before = await owner.trpc.chat.eventHead.query({ serverId: ownerServerId });
+    const input = { serverId: ownerServerId };
+    const streams = [owner, peer, outsider].map((client) =>
+        collectStream(client.trpc.chat.onLifecycle, input)
+    );
+    await Promise.all(streams.map((stream) => stream.started));
+    const [ownerStream, peerStream, outsiderStream] = streams;
     const dm = await owner.trpc.chat.ensureDm.mutate({ peerUserId, serverId: ownerServerId });
-    const created = expect.objectContaining({
-        action: 'created',
-        chatId: dm.id,
-        type: 'chat.lifecycle',
+    const created = { action: 'created', chatId: dm.id, serverId: ownerServerId };
+
+    await expect(ownerStream?.next()).resolves.toEqual(created);
+    await expect(peerStream?.next()).resolves.toEqual(created);
+    // A deletion reaches every member, so it fences the outsider's stream: the
+    // DM's creation would have arrived first.
+    chatLifecycleTopic.announce({
+        action: 'deleted',
+        chatId: 'cht_dm_fence',
+        serverId: ownerServerId,
     });
+    await expect(outsiderStream?.next()).resolves.toMatchObject({ chatId: 'cht_dm_fence' });
+    for (const stream of streams) {
+        stream.stop();
+    }
 
-    await expect(
-        owner.trpc.chat.events.query({ afterCursor: before.cursor, serverId: ownerServerId })
-    ).resolves.toEqual([created]);
-    await expect(
-        peer.trpc.chat.events.query({ afterCursor: before.cursor, serverId: ownerServerId })
-    ).resolves.toEqual([created]);
-    await expect(
-        outsider.trpc.chat.events.query({ afterCursor: before.cursor, serverId: ownerServerId })
-    ).resolves.toEqual([]);
-
-    const beforeReopen = await owner.trpc.chat.eventHead.query({ serverId: ownerServerId });
+    const reopen = captureTopic(chatLifecycleTopic);
     const ownerUserId = await readUserId('user_dm_owner');
     await expect(
         peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId: ownerServerId })
     ).resolves.toMatchObject({ id: dm.id });
-    await expect(
-        owner.trpc.chat.events.query({ afterCursor: beforeReopen.cursor, serverId: ownerServerId })
-    ).resolves.toEqual([]);
+    await settleRealtime();
+    expect(reopen.events).toEqual([]);
+    reopen.stop();
 });
 
 test('DM access and rows fail closed across participants and Servers', async () => {

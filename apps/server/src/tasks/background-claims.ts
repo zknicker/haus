@@ -1,9 +1,9 @@
-import type { ServerDurableEvent } from '@haus/api';
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, messageTasksTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { anchorMessageIdForThreadChatId } from '../threads/thread-id.ts';
-import { insertTaskEvent } from './task-events.ts';
+import { prepareTaskEvent } from './task-events.ts';
 
 type TaskWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
@@ -27,7 +27,7 @@ interface RunScope {
 export async function settleAgentBackgroundClaims(
     db: TaskWriter,
     scope: RunScope
-): Promise<ServerDurableEvent[]> {
+): Promise<PreparedRealtimeEvent[]> {
     const candidates = await db
         .select()
         .from(messageTasksTable)
@@ -60,10 +60,10 @@ export async function settleAgentBackgroundClaims(
     for (const held of await tasksHeldByRun(db, scope)) {
         changed.set(held.messageId, held);
     }
-    const events: ServerDurableEvent[] = [];
+    const events: PreparedRealtimeEvent[] = [];
     for (const task of changed.values()) {
         events.push(
-            await insertTaskEvent(db, {
+            prepareTaskEvent({
                 chatId: task.chatId,
                 messageId: task.messageId,
                 serverId: scope.serverId,
@@ -78,11 +78,11 @@ export async function settleAgentBackgroundClaims(
 export async function runLivenessTaskEvents(
     db: TaskWriter,
     scope: RunScope
-): Promise<ServerDurableEvent[]> {
-    const events: ServerDurableEvent[] = [];
+): Promise<PreparedRealtimeEvent[]> {
+    const events: PreparedRealtimeEvent[] = [];
     for (const task of await tasksHeldByRun(db, scope)) {
         events.push(
-            await insertTaskEvent(db, {
+            prepareTaskEvent({
                 chatId: task.chatId,
                 messageId: task.messageId,
                 serverId: scope.serverId,

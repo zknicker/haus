@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import {
+    type ComputerUpdatedEvent,
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
-    type ServerUpdatedEvent,
 } from '@haus/api';
-import { subscribeToServerUpdates } from '../src/haus-api/server-events.ts';
+import { computerUpdatedTopic } from '../src/realtime/topics.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 // A Computer re-sends its whole state after every turn and on a timer. Only a
@@ -17,7 +17,7 @@ const serverId = 'srv_quietreports0000';
 const computerId = 'cmp_quietreports0000';
 const agentId = 'agt_quietreports0000';
 const credential = 'quiet-computer-reports-credential-00';
-const announced: ServerUpdatedEvent[] = [];
+const announced: ComputerUpdatedEvent[] = [];
 const stopWatching = new AbortController();
 
 beforeAll(async () => {
@@ -47,7 +47,7 @@ beforeAll(async () => {
     `;
     void (async () => {
         try {
-            for await (const event of subscribeToServerUpdates(stopWatching.signal)) {
+            for await (const { event } of computerUpdatedTopic.subscribe(stopWatching.signal)) {
                 if (event.serverId === serverId) {
                     announced.push(event);
                 }
@@ -86,7 +86,7 @@ test('a repeated state report announces nothing; a changed one announces once', 
     await waitForAnnouncements(before + 3);
     await Bun.sleep(100);
     expect(announced.length).toBe(before + 3);
-    expect(announced.slice(before).every((event) => event.scope === 'computer')).toBeTrue();
+    expect(announced.slice(before).every((event) => event.computerId === computerId)).toBeTrue();
 
     const [row] = (await harness.sql`
         select reported_inventory->>'name' as name, effective_model_id

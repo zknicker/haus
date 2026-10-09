@@ -1,12 +1,13 @@
-import type { Chat, ServerDurableEvent } from '@haus/api';
+import type { Chat } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { insertLifecycleEvent } from './lifecycle-events.ts';
+import { prepareLifecycleEvent } from './lifecycle-events.ts';
 import { listChats } from './list-chats.ts';
 
 export class DmPeerNotFoundError extends Error {
@@ -26,7 +27,7 @@ export class InvalidDmPeerError extends Error {
 export interface EnsuredDm {
     chat: Chat;
     /** Null when the DM already existed; only its first resolution is a lifecycle change. */
-    event: ServerDurableEvent | null;
+    event: PreparedRealtimeEvent | null;
 }
 
 export async function ensureDm(
@@ -105,12 +106,7 @@ export async function ensureDm(
 
         const event =
             inserted.length > 0
-                ? await insertLifecycleEvent(
-                      tx,
-                      { chatId: chat.id, serverId: input.serverId },
-                      'created',
-                      new Date()
-                  )
+                ? prepareLifecycleEvent({ chatId: chat.id, serverId: input.serverId }, 'created')
                 : null;
 
         return { chatId: chat.id, event };

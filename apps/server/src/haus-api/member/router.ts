@@ -3,6 +3,7 @@ import { changeMemberRoleProcedure } from './change-role.ts';
 import { getMemberProcedure } from './get.ts';
 import { leaveServerProcedure } from './leave.ts';
 import { listMembersProcedure } from './list.ts';
+import { onMemberUpdatedProcedure } from './on-updated.ts';
 import { removeMemberProcedure } from './remove.ts';
 import { setHumanTimezoneProcedure } from './set-timezone.ts';
 import { syncHumanIdentityProcedure } from './sync-identity.ts';
@@ -13,6 +14,7 @@ export const memberRouter = createRouter({
     get: getMemberProcedure,
     leave: leaveServerProcedure,
     list: listMembersProcedure,
+    onUpdated: onMemberUpdatedProcedure,
     remove: removeMemberProcedure,
     setTimezone: setHumanTimezoneProcedure,
     syncIdentity: syncHumanIdentityProcedure,

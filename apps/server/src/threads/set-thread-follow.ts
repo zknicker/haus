@@ -1,9 +1,8 @@
 import { sql } from 'drizzle-orm';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable, threadFollowsTable } from '../postgres/schema.ts';
+import { threadFollowsTable } from '../postgres/schema.ts';
+import { threadFollowUpdatedTopic } from '../realtime/topics.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { ensureThread } from './ensure-thread.ts';
@@ -53,37 +52,18 @@ export async function setThreadFollow(
                     threadFollowsTable.userId,
                 ],
             });
-        const eventCursor = await allocateEventCursor(tx, input.serverId);
-        const [event] = await tx
-            .insert(chatEventsTable)
-            .values({
-                chatId: input.threadChatId,
-                cursor: eventCursor,
-                id: createOpaqueId('evt'),
-                readerUserId: member.id,
-                sequence: thread.lastMessageSequence,
-                serverId: input.serverId,
-                type: 'thread.follow.updated',
-            })
-            .returning({
-                createdAt: chatEventsTable.createdAt,
-                cursor: chatEventsTable.cursor,
-                id: chatEventsTable.id,
-            });
-
         return {
-            event: {
-                chatId: input.threadChatId,
-                createdAt: event.createdAt.toISOString(),
-                cursor: event.cursor.toString(),
-                id: event.id,
-                parentChatId: thread.parentChatId as string,
-                sequence: thread.lastMessageSequence,
-                serverId: input.serverId,
-                type: 'thread.follow.updated' as const,
-            },
+            event: threadFollowUpdatedTopic.prepare(
+                {
+                    anchorMessageId: pending.anchorMessageId,
+                    followed: input.follow,
+                    parentChatId: pending.parentChatId,
+                    serverId: input.serverId,
+                    threadChatId: input.threadChatId,
+                },
+                { audienceUserId: member.id }
+            ),
             receipt: {
-                eventCursor: event.cursor.toString(),
                 followed: input.follow,
                 serverId: input.serverId,
                 threadChatId: input.threadChatId,

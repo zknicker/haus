@@ -1,18 +1,18 @@
-import type { ChatReadReceipt, ServerDurableEvent } from '@haus/api';
+import type { ChatReadReceipt } from '@haus/api';
 import { and, eq, gt, isNull, lt, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable, chatReadsTable, chatsTable } from '../postgres/schema.ts';
+import { chatReadsTable, chatsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { chatReadTopic } from '../realtime/topics.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatAccess } from './chat-access.ts';
 
 type ReadTransaction = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
 export interface MarkChatReadResult {
     /** One reader-scoped `chat.read` per marker that moved. */
-    events: ServerDurableEvent[];
+    events: PreparedRealtimeEvent[];
     receipt: ChatReadReceipt;
 }
 
@@ -30,8 +30,8 @@ export async function markChatRead(
     return await db.transaction(async (tx) => {
         // Server row first, then authorize. Removal takes the Server row and
         // then deletes read markers; without this order a read marker would hold
-        // its own row while waiting for the Server event cursor, and the two
-        // would deadlock.
+        // its own row while waiting for the Server row, and the two would
+        // deadlock.
         await lockServerRow(tx, input.serverId);
         await requireChatAccess(tx, member, input);
 
@@ -41,6 +41,7 @@ export async function markChatRead(
 
         const [chat] = await tx
             .select({
+                anchorMessageId: chatsTable.anchorMessageId,
                 lastMessageSequence: chatsTable.lastMessageSequence,
                 parentChatId: chatsTable.parentChatId,
             })
@@ -53,6 +54,7 @@ export async function markChatRead(
         }
 
         const main = await advanceReadMarker(tx, {
+            anchorMessageId: chat.anchorMessageId,
             chatId: input.chatId,
             parentChatId: chat.parentChatId,
             readerUserId: member.id,
@@ -64,6 +66,7 @@ export async function markChatRead(
         if (input.includeThreads) {
             for (const thread of await readThreadsUnderChat(tx, input)) {
                 const advanced = await advanceReadMarker(tx, {
+                    anchorMessageId: thread.anchorMessageId,
                     chatId: thread.id,
                     parentChatId: input.chatId,
                     readerUserId: member.id,
@@ -80,7 +83,7 @@ export async function markChatRead(
             events,
             receipt: {
                 chatId: input.chatId,
-                eventCursor: main.event?.cursor ?? null,
+                advanced: main.event !== null,
                 sequence: main.sequence,
                 serverId: input.serverId,
             },
@@ -93,7 +96,11 @@ async function readThreadsUnderChat(
     input: { chatId: string; serverId: string }
 ) {
     return await tx
-        .select({ id: chatsTable.id, lastMessageSequence: chatsTable.lastMessageSequence })
+        .select({
+            anchorMessageId: chatsTable.anchorMessageId,
+            id: chatsTable.id,
+            lastMessageSequence: chatsTable.lastMessageSequence,
+        })
         .from(chatsTable)
         .where(
             and(
@@ -108,20 +115,22 @@ async function readThreadsUnderChat(
 }
 
 /**
- * Writes one marker forward-only and records its `chat.read` event. A marker
+ * Writes one marker forward-only and prepares its reader-only `chat.read` event. A marker
  * already at or past `sequence`, including one a concurrent read moved, is
  * left alone and emits nothing.
  */
 async function advanceReadMarker(
     tx: ReadTransaction,
     input: {
+        /** The parent-Chat anchor when this marker is a Thread's. */
+        anchorMessageId: string | null;
         chatId: string;
         parentChatId: string | null;
         readerUserId: string;
         sequence: number;
         serverId: string;
     }
-): Promise<{ event: ServerDurableEvent | null; sequence: number }> {
+): Promise<{ event: PreparedRealtimeEvent | null; sequence: number }> {
     const marker = and(
         eq(chatReadsTable.serverId, input.serverId),
         eq(chatReadsTable.chatId, input.chatId),
@@ -166,39 +175,17 @@ async function advanceReadMarker(
         return { event: null, sequence: current.sequence };
     }
 
-    const cursor = await allocateEventCursor(tx, input.serverId);
-    const [event] = await tx
-        .insert(chatEventsTable)
-        .values({
-            chatId: input.chatId,
-            cursor,
-            id: createOpaqueId('evt'),
-            readerUserId: input.readerUserId,
-            sequence: input.sequence,
-            serverId: input.serverId,
-            type: 'chat.read',
-        })
-        .returning({
-            createdAt: chatEventsTable.createdAt,
-            cursor: chatEventsTable.cursor,
-            id: chatEventsTable.id,
-        });
-
-    if (!event) {
-        throw new Error('Failed to record the Chat read event.');
-    }
-
     return {
-        event: {
-            chatId: input.chatId,
-            createdAt: event.createdAt.toISOString(),
-            cursor: event.cursor.toString(),
-            id: event.id,
-            parentChatId: input.parentChatId,
-            sequence: input.sequence,
-            serverId: input.serverId,
-            type: 'chat.read',
-        },
+        event: chatReadTopic.prepare(
+            {
+                chatId: input.chatId,
+                parentChatId: input.anchorMessageId ? input.parentChatId : null,
+                sequence: input.sequence,
+                serverId: input.serverId,
+                threadAnchorMessageId: input.parentChatId ? input.anchorMessageId : null,
+            },
+            { audienceUserId: input.readerUserId }
+        ),
         sequence: input.sequence,
     };
 }

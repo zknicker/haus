@@ -1,13 +1,14 @@
-import type { ChannelDeleteReceipt, ChannelLifecycleReceipt, ServerDurableEvent } from '@haus/api';
+import type { ChannelDeleteReceipt, ChannelLifecycleReceipt } from '@haus/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { purgeDeletedChannel } from './channel-deletion.ts';
-import { insertLifecycleEvent } from './lifecycle-events.ts';
+import { prepareLifecycleEvent } from './lifecycle-events.ts';
 
 export { purgeDeletedChannels } from './channel-deletion.ts';
 
@@ -26,7 +27,7 @@ export class ChannelLifecycleConflictError extends Error {
 }
 
 interface LifecycleResult<Receipt> {
-    event: ServerDurableEvent | null;
+    event: PreparedRealtimeEvent | null;
     receipt: Receipt;
 }
 
@@ -56,7 +57,7 @@ export async function archiveChannel(
             .set({ archivedAt, archivedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        const event = await insertLifecycleEvent(tx, input, 'archived', archivedAt);
+        const event = prepareLifecycleEvent(input, 'archived');
         return {
             event,
             receipt: {
@@ -84,12 +85,11 @@ export async function unarchiveChannel(
             };
         }
 
-        const changedAt = new Date();
         await tx
             .update(chatsTable)
             .set({ archivedAt: null, archivedByUserId: null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        const event = await insertLifecycleEvent(tx, input, 'unarchived', changedAt);
+        const event = prepareLifecycleEvent(input, 'unarchived');
         return {
             event,
             receipt: { archivedAt: null, chatId: channel.id, serverId: input.serverId },
@@ -120,7 +120,7 @@ export async function deleteChannel(
             .set({ deletedAt, deletedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        return await insertLifecycleEvent(tx, input, 'deleted', deletedAt);
+        return prepareLifecycleEvent(input, 'deleted');
     });
 
     await purgeDeletedChannel(db, attachmentRoot, input);

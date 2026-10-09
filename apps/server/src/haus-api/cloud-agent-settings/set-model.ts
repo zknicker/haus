@@ -6,8 +6,8 @@ import {
     CloudAgentSettingsDeniedError,
     setCloudAgentModel,
 } from '../../cloud-agents/cloud-agent-model.ts';
+import { cloudAgentSettingsUpdatedTopic } from '../../realtime/topics.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 /**
  * An Owner or Admin saves the Server's Cloud Agent model: Auto, or one
@@ -19,7 +19,7 @@ export const setCloudAgentModelProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         try {
             const settings = await setCloudAgentModel(ctx.hausDb, ctx.member, input);
-            emitServerUpdated({ scope: 'server', serverId: input.serverId });
+            cloudAgentSettingsUpdatedTopic.announce({ serverId: input.serverId });
             return settings;
         } catch (cause) {
             if (cause instanceof CloudAgentSettingsDeniedError) {

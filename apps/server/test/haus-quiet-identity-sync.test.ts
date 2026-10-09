@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { ServerUpdatedEvent } from '@haus/api';
-import { subscribeToServerUpdates } from '../src/haus-api/server-events.ts';
+import type { MemberUpdatedEvent } from '@haus/api';
+import { memberUpdatedTopic } from '../src/realtime/topics.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -9,7 +9,7 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 let harness: HausServerHarness;
 let owner: HausClient;
 let serverId: string;
-const announced: ServerUpdatedEvent[] = [];
+const announced: MemberUpdatedEvent[] = [];
 const stopWatching = new AbortController();
 
 beforeAll(async () => {
@@ -20,7 +20,7 @@ beforeAll(async () => {
     ).id;
     void (async () => {
         try {
-            for await (const event of subscribeToServerUpdates(stopWatching.signal)) {
+            for await (const { event } of memberUpdatedTopic.subscribe(stopWatching.signal)) {
                 if (event.serverId === serverId) {
                     announced.push(event);
                 }
@@ -46,7 +46,7 @@ const identity = {
 test('the first identity sync fills the profile and announces it', async () => {
     await owner.trpc.member.syncIdentity.mutate({ ...identity, serverId });
     await settle();
-    expect(announced.map((event) => event.scope)).toEqual(['server']);
+    expect(announced).toHaveLength(1);
     expect(announced[0]?.memberId).toBeString();
 });
 

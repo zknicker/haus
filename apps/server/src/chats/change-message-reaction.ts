@@ -1,20 +1,17 @@
-import type {
-    ChatMessageReactionInput,
-    ChatMessageReactionReceipt,
-    ServerDurableEvent,
-} from '@haus/api';
+import type { ChatMessageReactionInput, ChatMessageReactionReceipt } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { ChatAccessDeniedError, ChatNotFoundError, requireChatWriteAccess } from './chat-access.ts';
-import { insertMessageReactionEvent } from './message-reaction-event.ts';
+import { prepareMessageReactionEvent } from './message-reaction-event.ts';
 import { writeMessageReaction } from './message-reactions.ts';
 import { readMessagesById } from './read-messages-by-id.ts';
 
 export interface ChangeMessageReactionResult {
-    event: ServerDurableEvent | null;
+    event: PreparedRealtimeEvent | null;
     receipt: ChatMessageReactionReceipt;
 }
 
@@ -61,11 +58,10 @@ export async function changeMessageReaction(
         });
 
         return changed
-            ? await insertMessageReactionEvent(tx, {
+            ? prepareMessageReactionEvent({
                   chatId: message.chatId,
                   messageId: message.id,
                   parentChatId: chat.kind === 'thread' ? chat.parentChatId : null,
-                  sequence: message.sequence,
                   serverId: input.serverId,
               })
             : null;
@@ -82,7 +78,6 @@ export async function changeMessageReaction(
         event,
         receipt: {
             changed: event !== null,
-            eventCursor: event?.cursor ?? null,
             message,
         },
     };

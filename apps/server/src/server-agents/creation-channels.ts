@@ -1,4 +1,3 @@
-import type { ServerDurableEvent } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { AgentTargetError } from '../agent-api/resolve-target.ts';
 import {
@@ -6,9 +5,10 @@ import {
     type JoinableChannel,
     joinChannelAgents,
 } from '../chats/channel-agent-membership.ts';
-import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
+import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 
 /**
  * Every channel the creation named, refused whole when one of them is missing
@@ -80,17 +80,11 @@ export async function readAgentChannels(
  * from the channel, so every join announces itself the way a human's channel
  * save does.
  */
-export async function channelMembershipEvents(
-    db: HausDatabase,
+export function channelMembershipEvents(
     serverId: string,
     channels: readonly { id: string }[]
-): Promise<ServerDurableEvent[]> {
-    const events: ServerDurableEvent[] = [];
-    const now = new Date();
-    for (const channel of channels) {
-        events.push(
-            await insertLifecycleEvent(db, { chatId: channel.id, serverId }, 'updated', now)
-        );
-    }
-    return events;
+): PreparedRealtimeEvent[] {
+    return channels.map((channel) =>
+        prepareLifecycleEvent({ chatId: channel.id, serverId }, 'updated')
+    );
 }

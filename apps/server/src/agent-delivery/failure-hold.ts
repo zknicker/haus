@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
-import { emitServerUpdated } from '../haus-api/server-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentTurnsTable } from '../postgres/schema.ts';
+import { agentUpdatedTopic } from '../realtime/topics.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { readDeliveryState, setAgentChainTurns } from './store.ts';
 import {
@@ -37,7 +37,7 @@ export class WakePauseLifts {
         const serverId = this.pending.get(agentId);
         if (serverId) {
             this.pending.delete(agentId);
-            emitServerUpdated({ agentId, scope: 'agent', serverId });
+            agentUpdatedTopic.announce({ agentId, serverId });
         }
     }
 }

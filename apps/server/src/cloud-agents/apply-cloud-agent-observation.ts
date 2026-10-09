@@ -2,23 +2,19 @@ import {
     type CloudAgentObservation,
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
-    type ServerDurableEvent,
 } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import {
-    type CloudAgentEventChat,
-    insertCloudAgentWorkEvent,
-    readCloudAgentEventAnchor,
-} from './cloud-agent-events.ts';
+import { prepareCloudAgentWorkEvent, readCloudAgentEventChat } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 
 export interface AppliedCloudAgentObservation {
-    event: ServerDurableEvent;
+    event: PreparedRealtimeEvent;
     /** The delegating Agent to wake, set only when a Run just settled. */
     wake: { agentId: string; serverId: string } | null;
     work: CloudAgentWork;
@@ -146,17 +142,12 @@ export async function applyCloudAgentObservation(
 export async function emitWorkEvent(
     db: HausDatabase,
     input: { chatId: string; messageId: string; serverId: string; workId: string }
-): Promise<ServerDurableEvent> {
-    const anchor: { chat: CloudAgentEventChat; sequence: number } = await readCloudAgentEventAnchor(
-        db,
-        input
-    );
-    return await insertCloudAgentWorkEvent(db, {
-        chat: anchor.chat,
+): Promise<PreparedRealtimeEvent> {
+    return prepareCloudAgentWorkEvent({
+        chat: await readCloudAgentEventChat(db, input),
         chatId: input.chatId,
         cloudAgentWorkId: input.workId,
         messageId: input.messageId,
-        sequence: anchor.sequence,
         serverId: input.serverId,
     });
 }
