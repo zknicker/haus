@@ -505,6 +505,17 @@
         "timer": 0
       }
     },
+    "apps/server/src/haus-api/socket-session.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each App socket holds at most one session-expiry timer; refresh rearms it and dispose clears it, so it never outlives its socket.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 2
+      }
+    },
     "apps/server/src/haus-server-application.ts": {
       "disposition": "effect-owned",
       "reason": "The Server composition root creates one runtime and orders every owned service finalizer before database disposal.",
