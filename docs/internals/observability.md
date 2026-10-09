@@ -196,6 +196,10 @@ numeric unit without introducing a new instrument name.
 Each process supplies `service.instance.id` so cumulative metrics from separate
 Computers can be distinguished before aggregation. Instance identity is a
 resource attribute, not an Agent or turn metric label.
+A failed `haus.mcp.operation` span carries `haus.failure.kind`, a closed enum (`auth`, `timeout`,
+`http_status`, `jsonrpc`, `protocol`, `transport`, `other`) that splits upstream rejections from
+transport loss without recording upstream text. `protocol` marks the MCP request-validation codes
+(`-32020`–`-32022`), such as a missing `Mcp-Param-*` header.
 Trace spans may add identifiers from the closed allowlist in
 `packages/effect/src/telemetry.ts`. Never attach prompts, messages, MCP
 arguments/results, file contents, URLs, tokens, arbitrary errors, or user

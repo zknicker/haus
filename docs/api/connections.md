@@ -66,6 +66,13 @@ that tool's full schema; an unfiltered request returns the full granted catalog.
 Invocation resolves the tool, rechecks the grant, and invokes the upstream MCP from
 Server. Computer never receives MCP secrets, OAuth tokens, or upstream session state.
 
+MCP `2026-07-28` servers (GitHub's among them) can mark tool arguments with `x-mcp-header`, and
+reject a `tools/call` that lacks the matching `Mcp-Param-*` header with JSON-RPC `-32020`.
+`@ai-sdk/mcp` derives those headers only from a `tools/list` on the same client, so Server lists a
+client's tools once before its first call (`callMcpTool` in
+`apps/server/src/server-mcp/tool-catalog.ts`). Discovery on that client counts; a rebuilt client
+lists again.
+
 Invocation returns the upstream tool result. When that result carries `structuredContent`, Server
 drops the text block holding the same JSON, because a server that returns structured output also
 serializes it for text-only clients and Haus reads the structured form. Non-text content blocks and
@@ -84,12 +91,22 @@ its concurrent calls continue. A closed transport, network failure, HTTP 404 (ex
 calls already in flight on the old client run to completion, and the old client closes when they
 finish. Disconnecting the connection or stopping Server still aborts every in-flight call.
 
-Runner failures use stable codes:
+Runner failures are JSON `{code, message, retryable?}` with stable codes:
 
-- `MCP_DENIED` — the connection grant or requested tool is absent or revoked
-- `MCP_AUTH_REQUIRED` — the upstream account must be reconnected
-- `MCP_TIMEOUT` — the bounded upstream operation expired
-- `MCP_UNAVAILABLE` — another upstream or Server MCP failure
+- `MCP_DENIED` (403) — the connection grant or requested tool is absent or revoked
+- `MCP_AUTH_REQUIRED` (424) — the upstream account must be reconnected, including a 401/403,
+  an OAuth refresh failure, or a grant that needs a new browser flow
+- `MCP_TIMEOUT` (424) — the bounded upstream operation expired
+- `MCP_UNAVAILABLE` (424) — another upstream or Server MCP failure
+
+Upstream failures use 424 Failed Dependency, never 5xx: the production edge replaces origin 5xx
+bodies with an HTML page, which would erase the typed error. `MCP_UNAVAILABLE` messages name a
+safe upstream reason: the HTTP status, or the JSON-RPC code plus a short sanitized copy of the
+upstream message (single line, at most 200 characters, URLs and credential-shaped text redacted).
+Response bodies and URLs never leave Server (`apps/server/src/server-mcp/upstream-failure.ts`).
+Computer turns any unreadable, non-JSON, or mis-shaped Server response into `MCP_UNAVAILABLE`
+naming the HTTP status (`apps/computer/src/server-mcp-response.ts`), and its loopback proxy answers
+an unreadable or over-1-MiB Server body with a typed JSON error.
 
 `connected` describes retained connection identity, not momentary upstream health. These transient
 failures do not disconnect the account or erase its connection-level Agent grants.
