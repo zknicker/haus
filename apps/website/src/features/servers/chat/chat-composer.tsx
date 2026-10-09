@@ -1,9 +1,8 @@
-import type { Agent } from '@haus/api';
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useAgents } from '../../../hooks/members/use-agents.ts';
+import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
 import { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
 import {
@@ -25,8 +24,6 @@ import { submitChatComposer } from './submit-chat-composer.ts';
 import { useChatComposerCommands } from './use-chat-composer-commands.ts';
 import { useChatDraft } from './use-chat-draft.ts';
 import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
-
-const emptyAgents: Agent[] = [];
 
 export function ServerChatComposer({
     chatId,
@@ -74,8 +71,8 @@ export function ServerChatComposer({
      */
     variant?: 'primary' | 'secondary';
 }) {
-    const agents = useAgents(serverId);
-    const agentList = agents.data ?? emptyAgents;
+    // Mentions read who each Agent is, never its availability.
+    const agentList = useAgentAppearances(serverId);
     const {
         addAttachments,
         attachmentError,

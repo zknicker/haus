@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgentAvailability } from '../../hooks/members/use-agents.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
@@ -86,24 +85,28 @@ export function AgentTurnProfileAvatar({
     actorId,
     chatId,
     displayName,
-    opensAgentProfile,
+    openAgentProfile,
     profile,
     serverId,
 }: {
     actorId: string | null;
     chatId?: string;
     displayName: string;
-    opensAgentProfile: boolean;
+    openAgentProfile: ((agentId: string) => void) | undefined;
     profile: TranscriptActorProfile | null;
     serverId?: string;
 }) {
     const avatar = <AgentTurnAvatar name={displayName} profile={profile} />;
-    if (!(chatId && actorId && opensAgentProfile) || profile?.deleted) {
+    if (!(chatId && actorId && openAgentProfile) || profile?.deleted) {
         return avatar;
     }
 
     const trigger = (
-        <AgentTurnProfileButton agentId={actorId} displayName={displayName}>
+        <AgentTurnProfileButton
+            agentId={actorId}
+            displayName={displayName}
+            openAgentProfile={openAgentProfile}
+        >
             {avatar}
         </AgentTurnProfileButton>
     );
@@ -122,12 +125,13 @@ function AgentTurnProfileButton({
     agentId,
     children,
     displayName,
+    openAgentProfile,
 }: {
     agentId: string;
     children: React.ReactNode;
     displayName: string;
+    openAgentProfile: (agentId: string) => void;
 }) {
-    const openAgentProfile = useOpenAgentProfile();
     return (
         <button
             aria-label={`Open ${displayName}'s profile`}

@@ -50,7 +50,7 @@ export function useServerMentionComposer({
     onTextChange,
     serverId,
 }: {
-    agents: Agent[];
+    agents: readonly Agent[];
     chatTarget: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
     content: string;
     initialMentions?: readonly Mention[];

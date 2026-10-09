@@ -3,7 +3,7 @@ import * as React from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useChat } from '../../../hooks/servers/use-chat.ts';
 import { chatMessagesQueryOptions } from '../../../hooks/servers/use-chat-messages.ts';
-import { useChats } from '../../../hooks/servers/use-chats.ts';
+import { useListedChat } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
@@ -62,11 +62,11 @@ const ChatPageView = React.memo(function ChatPageView({
     // record instead of after it.
     const utils = hausTrpc.useUtils();
     usePrefetchInfiniteQuery(chatMessagesQueryOptions(utils.client, server.id, chatId));
-    const chats = useChats(server.id);
+    const listed = useListedChat(server.id, chatId);
     const chat = resolveChatPageChat({
         detail: chatQuery.data,
         isPending: chatQuery.isPending,
-        listed: chats.data?.find((candidate) => candidate.id === chatId),
+        listed,
     });
     // The route's `?task=` belongs to the shown chat; a hidden view keeps the one it last had.
     const taskMessageId = useActiveValue(active, routeTaskMessageId);

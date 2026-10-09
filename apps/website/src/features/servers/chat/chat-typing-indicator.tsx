@@ -4,7 +4,7 @@ import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentActivityListener } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
-import { useAgents } from '../../../hooks/members/use-agents.ts';
+import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import { useChatEngagement } from '../../../hooks/servers/use-chat-engagement.ts';
 import { springs } from '../../../lib/springs.ts';
 import { type ChatTypist, formatChatTypingLabel, resolveChatTypists } from './chat-typing.ts';
@@ -47,8 +47,8 @@ export function ChatTypingIndicator({
     const engagements = useChatEngagement(serverId, chatId, ends.onEnded);
     // A `--done` reply's Agent keeps its dots until the reply renders.
     const shown = withHeldEngagements(engagements, ends.holds);
-    const agents = useAgents(serverId);
-    const typists = shown.length > 0 ? resolveChatTypists(shown, agents.data ?? []) : [];
+    const agents = useAgentAppearances(serverId);
+    const typists = shown.length > 0 ? resolveChatTypists(shown, agents) : [];
 
     // 🤔 launches as an engagement appears, once; its run's `thinking` activity stays quiet.
     const thinking = React.useRef<ChatTypingThinkingLedger>({ launched: new Set() });

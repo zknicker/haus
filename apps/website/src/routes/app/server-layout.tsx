@@ -26,12 +26,9 @@ import { ServerShell } from './server-shell.tsx';
 export function ServerLayout() {
     const { slug = '' } = useParams();
     const server = useServer(slug);
-    const chats = useChats(server.data?.id);
     const currentServerSlug = server.data?.slug;
 
-    useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
     useUnfocusableAppMain();
-    useIdleChatWarming(server.data?.id, chats.data);
     // Desktop: the window layout's full-width band holds the tab rows. The web
     // has no layout and keeps its topbar in the main column.
     const topbarInWindow = useShellVariantSync() !== null;
@@ -65,6 +62,7 @@ export function ServerLayout() {
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
     return (
         <HausUpdateProvider canOperate={canOperate} serverId={server.data.id}>
+            <ChatListEffects serverId={server.data.id} />
             <TopbarProvider>
                 <CommandMenuProvider>
                     {isElectronDesktopApp() ? (
@@ -111,4 +109,15 @@ function WebServerLayout({
             topbarInWindow={topbarInWindow}
         />
     );
+}
+
+/**
+ * The layout's chat-list work in a leaf: the list changes on every message
+ * anywhere, and a read in the layout itself re-rendered the whole shell.
+ */
+function ChatListEffects({ serverId }: { serverId: string }) {
+    const chats = useChats(serverId);
+    useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
+    useIdleChatWarming(serverId, chats.data);
+    return null;
 }

@@ -1,6 +1,7 @@
+import type { Chat } from '@haus/api';
 import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
 import { MessageNotifications } from '../../features/notifications/message-notifications.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
@@ -17,12 +18,13 @@ import { HausUpdateFooterContainer } from '../../features/updates/haus-update-fo
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
-import { useChats } from '../../hooks/servers/use-chats.ts';
+import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import {
     setAppSidebarOpen,
     useDesktopSidebarToggle,
 } from '../../hooks/shell/use-app-sidebar-open.ts';
 import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
+import { useStableNavigate } from '../../hooks/shell/use-stable-navigate.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { cn } from '../../lib/utils.ts';
 import { preloadServerSection } from './server-route-modules.ts';
@@ -53,26 +55,35 @@ export function ServerShell({
 }) {
     const { slug } = server;
     const location = useLocation();
-    const navigate = useNavigate();
-    const chats = useChats(server.id);
+    const navigate = useStableNavigate();
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const selectedAgentDmId = resolveSelectedAgentDmId(location.pathname, slug);
     const active = resolveActiveSection(location.pathname, slug);
+    // Selected reads of the chat list, so a message anywhere (which reorders it
+    // and moves unread counts) does not re-render the whole shell.
+    const entryChatId = selectedChatId ?? readLastChatId(slug);
+    const selectListed = React.useCallback(
+        (chats: Chat[]) => chats.some((chat) => chat.id === selectedChatId),
+        [selectedChatId]
+    );
+    const selectSectionRoute = React.useCallback(
+        (chats: Chat[]) => resolveChatSectionRoute(chats, entryChatId, slug),
+        [entryChatId, slug]
+    );
+    const selectedChatListed = useChatListSelection(server.id, selectListed);
+    const chatSectionRoute =
+        useChatListSelection(server.id, selectSectionRoute) ??
+        resolveChatSectionRoute([], entryChatId, slug);
 
     React.useEffect(() => {
-        if (selectedChatId && chats.data?.some((chat) => chat.id === selectedChatId)) {
+        if (selectedChatId && selectedChatListed) {
             rememberLastChatId(slug, selectedChatId);
         }
-    }, [chats.data, selectedChatId, slug]);
+    }, [selectedChatId, selectedChatListed, slug]);
 
     const settingsSection = resolveSettingsSection(location.pathname, slug);
     const canOperate = server.role === 'owner' || server.role === 'admin';
     const activeSidebarPage = resolveSidebarPage(active);
-    const chatSectionRoute = resolveChatSectionRoute(
-        chats.data ?? [],
-        selectedChatId ?? readLastChatId(slug),
-        slug
-    );
     const settingsAction = (
         <SidebarSettingsAction
             onOpenSettings={() => navigate(serverSettingsRoute(slug))}

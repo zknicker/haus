@@ -4,30 +4,49 @@ import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import { type HausOutputs, hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { shareMessagePages } from './message-page-sharing.ts';
 
 export interface ChatMessagesOptions {
     /** Limits the read to one inline reply chain, including its root. */
     replyRootMessageId?: string;
 }
 
+/**
+ * A chat's loaded transcript. Returns only the fields its readers use: React
+ * Query re-renders a reader only for the result fields it touched, and
+ * spreading the result touches all of them, so every kept chat view would
+ * re-render on each background fetch and stale flip.
+ */
 export function useChatMessages(
     serverId: string | undefined,
     chatId: string | undefined,
     options?: ChatMessagesOptions
 ) {
     const utils = hausTrpc.useUtils();
-    const query = useInfiniteQuery({
+    const {
+        data: pagedData,
+        error,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isPending,
+        refetch,
+    } = useInfiniteQuery({
         ...chatMessagesQueryOptions(utils.client, serverId ?? '', chatId ?? '', options),
         enabled: serverId !== undefined && chatId !== undefined,
     });
-    const data = React.useMemo(() => mergeChatMessagePages(query.data?.pages), [query.data?.pages]);
+    const pages = pagedData?.pages;
+    const data = React.useMemo(() => mergeChatMessagePages(pages), [pages]);
+    const fetchOlderHistory = React.useCallback(() => fetchNextPage(), [fetchNextPage]);
 
     return {
-        ...query,
         data,
-        fetchOlderHistory: () => query.fetchNextPage(),
-        hasOlderHistory: Boolean(query.hasNextPage),
-        isFetchingOlderHistory: query.isFetchingNextPage,
+        error,
+        fetchOlderHistory,
+        hasOlderHistory: Boolean(hasNextPage),
+        isFetchingOlderHistory: isFetchingNextPage,
+        isPending,
+        refetch,
     };
 }
 
@@ -57,6 +76,7 @@ export function chatMessagesQueryOptions(
                 pageParam === undefined ? input : { ...input, beforeSequence: pageParam }
             ),
         queryKey,
+        structuralSharing: shareMessagePages,
     });
 }
 

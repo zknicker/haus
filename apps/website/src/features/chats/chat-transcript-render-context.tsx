@@ -76,8 +76,12 @@ export interface TranscriptRenderContextValue {
      */
     onToggleReaction?: (input: { emoji: string; messageId: string; remove: boolean }) => void;
     onUnfollowThread: (threadChatId: string) => void;
-    /** Agent avatars open the Agent's profile on click (ADR 0038). */
-    opensAgentProfiles?: boolean;
+    /**
+     * Agent avatars open the Agent's profile on click (ADR 0038). The surface
+     * hands one stable opener down, so avatars never read the router: a
+     * router read re-renders every avatar on every navigation.
+     */
+    openAgentProfile?: (agentId: string) => void;
     renderMessageAttachments?: (message: TranscriptMessage) => React.ReactNode;
     /**
      * A surface-owned block that belongs to one message but is not its body —

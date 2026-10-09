@@ -13,8 +13,11 @@ interface ProfileSource {
 
 /**
  * Names and faces for the actors a transcript renders. The returned resolver
- * keeps its identity across ordinary message refetches so the transcript's
- * render context — and therefore every memoized row — stays stable.
+ * keeps its identity across message updates so the transcript's render
+ * context — and therefore every memoized row — stays stable: it reads the
+ * historical profiles through a ref. A row resolves its author when it
+ * renders, which a new or changed message already causes, after the ref holds
+ * that message's profile.
  */
 export function useResolveActorProfile({
     agentsById,
@@ -26,6 +29,8 @@ export function useResolveActorProfile({
     messages: readonly ChatMessage[];
 }) {
     const historicalProfiles = useHistoricalActorProfiles(messages, humans);
+    const historicalRef = React.useRef(historicalProfiles);
+    historicalRef.current = historicalProfiles;
 
     return React.useCallback(
         (actor: TranscriptActor): TranscriptActorProfile | null => {
@@ -38,11 +43,11 @@ export function useResolveActorProfile({
 
                 return agent
                     ? liveAgentActorProfile(agent)
-                    : (historicalProfiles.get(`agent:${actor.id}`) ?? null);
+                    : (historicalRef.current.get(`agent:${actor.id}`) ?? null);
             }
 
             const member = humans.member(actor.id);
-            const historical = historicalProfiles.get(`human:${actor.id}`);
+            const historical = historicalRef.current.get(`human:${actor.id}`);
 
             if (!member && historical) {
                 return historical;
@@ -58,7 +63,7 @@ export function useResolveActorProfile({
                 availability: { kind: 'none' },
             };
         },
-        [agentsById, historicalProfiles, humans]
+        [agentsById, humans]
     );
 }
 

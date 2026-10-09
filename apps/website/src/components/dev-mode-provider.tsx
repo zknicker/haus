@@ -1,4 +1,12 @@
-import { createContext, type PropsWithChildren, useContext, useEffect, useState } from 'react';
+import {
+    createContext,
+    type PropsWithChildren,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
 import { getDesktopBridge } from '../lib/desktop-bridge.ts';
 
 /**
@@ -24,10 +32,11 @@ function getStoredDevMode(): boolean {
 export function DevModeProvider({ children }: PropsWithChildren) {
     const [devMode, setDevModeState] = useState<boolean>(() => getStoredDevMode());
 
-    const setDevMode = (enabled: boolean) => {
+    const setDevMode = useCallback((enabled: boolean) => {
         window.localStorage.setItem(storageKey, enabled ? 'on' : 'off');
         setDevModeState(enabled);
-    };
+    }, []);
+    const value = useMemo(() => ({ devMode, setDevMode }), [devMode, setDevMode]);
 
     useEffect(() => {
         // Through the bridge accessor, never `window` directly: the injected
@@ -42,11 +51,7 @@ export function DevModeProvider({ children }: PropsWithChildren) {
         return unsubscribe;
     }, []);
 
-    return (
-        <DevModeContext.Provider value={{ devMode, setDevMode }}>
-            {children}
-        </DevModeContext.Provider>
-    );
+    return <DevModeContext.Provider value={value}>{children}</DevModeContext.Provider>;
 }
 
 export function useDevMode() {

@@ -14,9 +14,10 @@ import type { TranscriptRenderWindow } from './transcript-render-window.ts';
  * to it; it renders its content once the window takes it. Day dividers carry
  * no `messageId` either: an older page from the same day slides in below the
  * divider, which keeps its place at the top, so a divider anchor would hold
- * still while the rows under it moved.
+ * still while the rows under it moved. Memoized: rows keep their identity
+ * across transcript updates, so only a changed row re-renders.
  */
-export function TranscriptRowSlot({
+export const TranscriptRowSlot = React.memo(function TranscriptRowSlot({
     renderWindow,
     row,
 }: {
@@ -41,6 +42,11 @@ export function TranscriptRowSlot({
         },
         [renderWindow, row]
     );
+    // Stable per row, so a rendered slot's scroller item sees the same props.
+    const placeholderStyle = React.useMemo<React.CSSProperties>(
+        () => ({ height: getEstimatedTranscriptRowSize(row), overflowAnchor: 'none' }),
+        [row]
+    );
 
     return (
         <MessageScrollerItem
@@ -56,13 +62,9 @@ export function TranscriptRowSlot({
             ref={rendered ? undefined : observe}
             // A placeholder is never the browser's scroll anchor: when it
             // renders at its real height, the rendered rows around it hold still.
-            style={
-                rendered
-                    ? undefined
-                    : { height: getEstimatedTranscriptRowSize(row), overflowAnchor: 'none' }
-            }
+            style={rendered ? undefined : placeholderStyle}
         >
             {rendered ? <TranscriptRenderRowItem row={row} /> : null}
         </MessageScrollerItem>
     );
-}
+});

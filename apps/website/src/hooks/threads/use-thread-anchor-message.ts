@@ -7,12 +7,14 @@ export function useThreadAnchorMessage(
     chatId: string,
     anchorMessageId: string | null
 ) {
-    const query = hausTrpc.chat.messages.useQuery(
+    // Named fields only: a spread would re-render the reader on every fetch-status flip.
+    const { data, error } = hausTrpc.chat.messages.useQuery(
         { aroundMessageId: anchorMessageId ?? '', chatId, limit: 1, serverId },
         { ...queryPolicy.syncedSnapshot, enabled: anchorMessageId !== null }
     );
     return {
-        ...query,
-        anchor: query.data?.messages.find((message) => message.id === anchorMessageId),
+        anchor: data?.messages.find((message) => message.id === anchorMessageId),
+        data,
+        error,
     };
 }

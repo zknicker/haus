@@ -4,6 +4,7 @@ import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import { type HausOutputs, hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { shareMessagePages } from './message-page-sharing.ts';
 
 export function useThreadMessages(serverId: string | undefined, threadChatId: string | undefined) {
     const utils = hausTrpc.useUtils();
@@ -13,34 +14,38 @@ export function useThreadMessages(serverId: string | undefined, threadChatId: st
         serverId: serverId ?? '',
     };
     const queryKey = threadMessagesQueryKey(input.serverId, input.chatId);
-    const query = useInfiniteQuery<
-        ThreadMessagePage,
-        Error,
-        InfiniteData<ThreadMessagePage>,
-        typeof queryKey,
-        number | undefined
-    >({
-        ...queryPolicy.syncedSnapshot,
-        enabled: serverId !== undefined && threadChatId !== undefined,
-        getNextPageParam: (lastPage) => lastPage.nextBeforeSequence ?? undefined,
-        initialPageParam: undefined as number | undefined,
-        queryFn: async ({ pageParam }) =>
-            await utils.client.chat.messages.query(
-                pageParam === undefined ? input : { ...input, beforeSequence: pageParam }
-            ),
-        queryKey,
-    });
-    const messages = React.useMemo(
-        () => mergeThreadMessagePages(query.data?.pages),
-        [query.data?.pages]
-    );
+    // Named fields only: spreading the result would subscribe the Thread to
+    // every fetch-status flip (see `useChatMessages`).
+    const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
+        useInfiniteQuery<
+            ThreadMessagePage,
+            Error,
+            InfiniteData<ThreadMessagePage>,
+            typeof queryKey,
+            number | undefined
+        >({
+            ...queryPolicy.syncedSnapshot,
+            enabled: serverId !== undefined && threadChatId !== undefined,
+            getNextPageParam: (lastPage) => lastPage.nextBeforeSequence ?? undefined,
+            initialPageParam: undefined as number | undefined,
+            queryFn: async ({ pageParam }) =>
+                await utils.client.chat.messages.query(
+                    pageParam === undefined ? input : { ...input, beforeSequence: pageParam }
+                ),
+            queryKey,
+            structuralSharing: shareMessagePages,
+        });
+    const pages = data?.pages;
+    const messages = React.useMemo(() => mergeThreadMessagePages(pages), [pages]);
 
     return {
-        ...query,
-        fetchOlderHistory: query.fetchNextPage,
-        hasOlderHistory: Boolean(query.hasNextPage),
-        isFetchingOlderHistory: query.isFetchingNextPage,
+        data,
+        error,
+        fetchOlderHistory: fetchNextPage,
+        hasOlderHistory: Boolean(hasNextPage),
+        isFetchingOlderHistory: isFetchingNextPage,
         messages,
+        refetch,
     };
 }
 

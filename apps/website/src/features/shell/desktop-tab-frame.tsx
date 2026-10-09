@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { RouterProvider } from 'react-aria-components';
-import { Outlet, type RouteObject, useNavigate, useRoutes } from 'react-router-dom';
+import { Outlet, type RouteObject, useRoutes } from 'react-router-dom';
 import { useDesktopTabsSelector } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentEntry, type TabHistoryEntry } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import {
@@ -8,6 +8,7 @@ import {
     type TabPresence,
     TabPresenceContext,
 } from '../../hooks/desktop-tabs/tab-presence.ts';
+import { useStableNavigate } from '../../hooks/shell/use-stable-navigate.ts';
 import { serverPageRoutes } from '../../routes/app/server-page-routes.tsx';
 import { BrowserTabPage } from './browser-tab-page.tsx';
 import { usePaneFocus } from './desktop-tab-layer.tsx';
@@ -139,8 +140,8 @@ const AppTabPage = React.memo(function AppTabPage({
 
 /** HeroUI links (`href` on a menu item or Link) navigate this tab, not the sidebar's. */
 function TabLinkRouter({ children }: { children: React.ReactNode }) {
-    const navigate = useNavigate();
-    return <RouterProvider navigate={(href) => navigate(href)}>{children}</RouterProvider>;
+    const navigate = useStableNavigate();
+    return <RouterProvider navigate={navigate}>{children}</RouterProvider>;
 }
 
 function TabRoutes() {

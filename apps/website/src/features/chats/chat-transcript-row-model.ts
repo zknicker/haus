@@ -1,6 +1,7 @@
 import { formatDayLabel } from '../../components/chats/day-divider.tsx';
 import type { TranscriptEntry, TranscriptItem, TranscriptRow } from './chat-transcript-model.ts';
 import { findTranscriptEntryActiveReply, getItemSessionKey } from './chat-transcript-model.ts';
+import { areTranscriptRenderRowsEqual } from './transcript-render-row-equality.ts';
 
 export type SessionNoticeRow = Extract<
     TranscriptRow,
@@ -130,7 +131,7 @@ export function computeStableTranscriptRenderRows(
     const result = rows.map((row, index) => {
         const previousRow = previous.byId.get(row.id);
         const nextRow =
-            previousRow && isTranscriptRenderRowUnchanged(previousRow, row) ? previousRow : row;
+            previousRow && areTranscriptRenderRowsEqual(previousRow, row) ? previousRow : row;
 
         next.set(row.id, nextRow);
 
@@ -142,29 +143,6 @@ export function computeStableTranscriptRenderRows(
     });
 
     return anyChanged ? { byId: next, result } : previous;
-}
-
-function isTranscriptRenderRowUnchanged(a: TranscriptRenderRow, b: TranscriptRenderRow) {
-    if (a.kind !== b.kind || a.id !== b.id) {
-        return false;
-    }
-
-    if (a.kind === 'hiddenCount') {
-        return true;
-    }
-
-    if (a.kind === 'dayDivider') {
-        return a.label === (b as typeof a).label;
-    }
-
-    const next = b as typeof a;
-
-    return (
-        a.entry === next.entry &&
-        a.followsRuntimeNotice === next.followsRuntimeNotice &&
-        a.sessionNotice === next.sessionNotice &&
-        a.turnStartedAt === next.turnStartedAt
-    );
 }
 
 /** A row's height before it renders: the placeholder a windowed transcript draws in its place. */

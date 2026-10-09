@@ -65,11 +65,10 @@ export function useTraceDepthStyle(): React.CSSProperties {
  */
 export function TraceGroup({ children }: { children: React.ReactNode }) {
     const depth = React.use(TraceDepthContext);
+    const branch = React.useMemo(() => ({ ...depth, opensBranch: true }), [depth]);
     return (
         <div className="min-w-0" data-trace-group>
-            <TraceDepthContext value={{ ...depth, opensBranch: true }}>
-                {children}
-            </TraceDepthContext>
+            <TraceDepthContext value={branch}>{children}</TraceDepthContext>
         </div>
     );
 }

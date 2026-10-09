@@ -19,13 +19,17 @@ export interface CurrentAgentActivityContextValue {
     activities: readonly CurrentAgentActivity[];
     isSnapshotReady: boolean;
     serverId: string | undefined;
-    /** Hands each committed live event to transient presentation; never replays. */
-    subscribeToActivity: (listener: AgentActivityListener) => () => void;
 }
+
+/** Hands each committed live event to transient presentation; never replays. */
+type SubscribeToActivity = (listener: AgentActivityListener) => () => void;
 
 const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityContextValue | null>(
     null
 );
+// Separate from the activity snapshot, which changes on every live event: a
+// listener in every kept chat view must not re-render when it does.
+const AgentActivitySubscriptionContext = React.createContext<SubscribeToActivity | null>(null);
 
 /**
  * Owns the one Server current-activity read and committed activity listener
@@ -137,12 +141,15 @@ export function AgentActivityProvider({
             activities,
             isSnapshotReady: query.isSuccess && agents.isSuccess,
             serverId,
-            subscribeToActivity,
         }),
-        [activities, agents.isSuccess, query.isSuccess, serverId, subscribeToActivity]
+        [activities, agents.isSuccess, query.isSuccess, serverId]
     );
 
-    return <CurrentAgentActivityContext value={value}>{children}</CurrentAgentActivityContext>;
+    return (
+        <AgentActivitySubscriptionContext value={subscribeToActivity}>
+            <CurrentAgentActivityContext value={value}>{children}</CurrentAgentActivityContext>
+        </AgentActivitySubscriptionContext>
+    );
 }
 
 /** Optional so shared identity components remain renderable in local previews. */
@@ -156,7 +163,7 @@ export function useOptionalCurrentAgentActivity() {
  * called, so callers need not memoize it.
  */
 export function useAgentActivityListener(listener: AgentActivityListener) {
-    const subscribe = React.use(CurrentAgentActivityContext)?.subscribeToActivity;
+    const subscribe = React.use(AgentActivitySubscriptionContext);
     const latest = React.useRef(listener);
     React.useLayoutEffect(() => {
         latest.current = listener;

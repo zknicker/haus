@@ -1,9 +1,9 @@
-import type { Chat } from '@haus/api';
 import * as React from 'react';
-import { useAgents } from '../../../hooks/members/use-agents.ts';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
+import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
 import { useChatMessageReaction } from '../../../hooks/servers/use-chat-message-reaction.ts';
-import { useChats } from '../../../hooks/servers/use-chats.ts';
+import { useChatAppearances } from '../../../hooks/servers/use-chats.ts';
 import { useChatCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
@@ -14,7 +14,6 @@ import type {
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import {
-    emptyChatAgents,
     emptyChatMessages,
     emptyChatThreads,
     useStableChatMessageRows,
@@ -26,7 +25,6 @@ import {
     renderPendingMessageAttachments,
 } from './pending-messages.tsx';
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
-import { useAgentAppearanceList } from './use-agent-appearance-list.ts';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } as const;
@@ -53,11 +51,9 @@ export function useChatTranscript({
     viewerUserId,
 }: ChatTranscriptInput) {
     const messageList = messages ?? emptyChatMessages;
-    const agents = useAgents(serverId);
     // Availability flips on every Agent turn; rows read it per avatar (`useAgentAvailability`),
     // so the rows' agent list changes only with the fields they render.
-    const agentList = useAgentAppearanceList(agents.data ?? emptyChatAgents);
-    const chats = useChats(serverId);
+    const agentList = useAgentAppearances(serverId);
     const download = useAttachmentDownload();
     const humans = useHumanDirectory(serverId);
     const reaction = useChatMessageReaction(chatId);
@@ -95,7 +91,8 @@ export function useChatTranscript({
         () => indexCloudAgentWorkByThreadAnchor(threadCloudAgentWork.data),
         [threadCloudAgentWork.data]
     );
-    const chatsById = useChatAppearanceById(chats.data);
+    // Reference chips read only a chat's mark; the list itself changes on every message.
+    const chatsById = useChatAppearances(serverId);
     // Read through a ref: these lookups answer a click or a row's own render,
     // both of which already happen after the newest snapshot landed. Depending
     // on them directly would rebuild the render context on every refetch.
@@ -115,6 +112,7 @@ export function useChatTranscript({
         humans,
         messages: messageList,
     });
+    const openAgentProfile = useOpenAgentProfile();
     const downloadAttachment = download.mutate;
     const downloadPending = download.isPending;
     const renderMessageAttachments = React.useCallback(
@@ -201,7 +199,7 @@ export function useChatTranscript({
                 onSelectInlineReply: onSelectInlineReply ? handleSelectInlineReply : undefined,
                 onToggleReaction,
                 onUnfollowThread: () => undefined,
-                opensAgentProfiles: true,
+                openAgentProfile,
                 renderMessageAttachments,
                 renderMessageContent: (message) => (
                     <ServerChatMessageContent
@@ -238,6 +236,7 @@ export function useChatTranscript({
             onStartDm,
             onSelectInlineReply,
             onToggleReaction,
+            openAgentProfile,
             renderMessageAttachments,
             replyTargetMessageId,
             resolveActorProfile,
@@ -250,21 +249,6 @@ export function useChatTranscript({
 
     return { downloadError: download.error?.message ?? null, renderContext, rows };
 }
-
-/**
- * Rows read a chat only for its reference mark (color, icon). The chat list
- * changes far more often than that, on every unread count, and a new map would
- * rebuild the render context and re-render every row, so the map keeps its
- * identity until a mark actually changes.
- */
-function useChatAppearanceById(chats: readonly Chat[] | undefined) {
-    const list = chats ?? emptyChats;
-    const key = list.map((chat) => `${chat.id}:${chat.color ?? ''}:${chat.icon ?? ''}`).join('|');
-    // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the appearance fields rows read.
-    return React.useMemo(() => new Map(list.map((chat) => [chat.id, chat])), [key]);
-}
-
-const emptyChats: readonly Chat[] = [];
 
 function useLatestRef<T>(value: T) {
     const ref = React.useRef(value);

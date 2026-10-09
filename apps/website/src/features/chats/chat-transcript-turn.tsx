@@ -336,7 +336,7 @@ function AgentTurnPresentation({
         composerId,
         turnDetails,
         onToggleReaction,
-        opensAgentProfiles,
+        openAgentProfile,
         repliedRunIds,
     } = context;
     const segments = groupAgentItems(items);
@@ -415,7 +415,7 @@ function AgentTurnPresentation({
                             actorId={actorId}
                             chatId={chatId}
                             displayName={displayName}
-                            opensAgentProfile={opensAgentProfiles ?? false}
+                            openAgentProfile={openAgentProfile}
                             profile={actorProfile}
                             serverId={turnDetails?.serverId}
                         />
