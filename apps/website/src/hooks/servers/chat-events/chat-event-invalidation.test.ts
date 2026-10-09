@@ -215,7 +215,10 @@ function recordingCaches() {
         },
         cloudAgentWork: {
             listActive: { invalidate: record('cloudAgentWork.listActive') },
-            listForChat: { invalidate: record('cloudAgentWork.listForChat') },
+            listForChat: {
+                cancel: async () => {},
+                invalidate: record('cloudAgentWork.listForChat'),
+            },
         },
         task: { list: { invalidate: record('task.list') } },
         taskLabel: { list: { invalidate: record('taskLabel.list') } },

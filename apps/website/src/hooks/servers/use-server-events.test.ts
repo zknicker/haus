@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { createServerUpdateHandler } from './use-server-events.ts';
+import { createServerUpdateHandler, recoverServerUpdateReads } from './use-server-events.ts';
 
 interface Invalidation {
     input?: unknown;
@@ -164,6 +164,8 @@ test('a named human refreshes only their own directory record', () => {
         { input: undefined, name: 'server.list' },
         { input: { serverId: 'server-one', userId: 'usr_ada' }, name: 'member.get' },
         { input: { serverId: 'server-one' }, name: 'member.list' },
+        // List rows name human authors and carry human participants.
+        { input: { serverId: 'server-one' }, name: 'chat.list' },
         { input: { serverId: 'server-one' }, name: 'invitation.list' },
         { input: { serverId: 'server-one' }, name: 'cloudAgentSettings.get' },
     ]);
@@ -202,5 +204,17 @@ test('MCP events invalidate connections and their product previews', () => {
         'mcp.list',
         'mcp.amazonProduct',
         'mcp.amazonProductDetail',
+    ]);
+});
+
+test('a (re)started Server stream re-reads the reads it keeps exact without a timer', async () => {
+    const { invalidated, utils } = recordingUtils();
+
+    await recoverServerUpdateReads(utils, 'server-one');
+
+    expect(invalidated).toEqual([
+        { input: { serverId: 'server-one' }, name: 'chat.list' },
+        { input: { serverId: 'server-one' }, name: 'member.get' },
+        { input: { serverId: 'server-one' }, name: 'member.list' },
     ]);
 });

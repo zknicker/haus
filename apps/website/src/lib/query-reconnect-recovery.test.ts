@@ -61,7 +61,7 @@ describe('reconnect recovery scope', () => {
         for (const read of [
             'server.bySlug',
             'server.list',
-            'member.list',
+            'invitation.list',
             'computer.list',
             'agent.deliveryState',
             'reminder.list',

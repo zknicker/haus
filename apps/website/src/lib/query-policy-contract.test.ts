@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { readAppSourceFiles } from '../test-support/source-files.ts';
-import { queryClientDefaultOptions } from './query-policy.ts';
+import { pushedSnapshotCoverage } from './pushed-snapshot-coverage.ts';
+import { queryClientDefaultOptions, queryPolicy } from './query-policy.ts';
+import { streamRecoveredReads } from './query-reconnect-recovery.ts';
 
 /**
  * Guarded contract for React Query usage. See docs/internals/react.md#queries.
@@ -21,6 +23,20 @@ import { queryClientDefaultOptions } from './query-policy.ts';
 const defaultFloorAllowlist: Record<string, string> = {
     'hooks/servers/use-accept-invitation.ts':
         'invitation preview answers "is this token good right now"; mount refetch is correctness',
+};
+
+/**
+ * Files that may set an infinite `staleTime` outside `queryPolicy.pushedSnapshot`.
+ * Each read is either immutable or owned by its own stream; a Server read that
+ * events keep exact uses the preset and joins `pushedSnapshotCoverage` instead.
+ */
+const infiniteStaleTimeAllowlist: Record<string, string> = {
+    'features/activation-preview/activation-preview-server.tsx':
+        'isolated preview client answering from fixtures; no Server behind it',
+    'hooks/servers/use-message-routing.ts':
+        'routing is immutable once the message and its inbox recipients commit',
+    'hooks/servers/use-preload-chat.ts':
+        'chat.engagements warm-up: volatile state its own stream re-reads on (re)start',
 };
 
 describe('query policy contract', () => {
@@ -70,6 +86,107 @@ describe('query policy contract', () => {
                 content && /queryPolicy\.|staleTime/.test(content),
                 `${path} now declares a policy; remove its allowlist entry`
             ).toBe(false);
+        }
+    });
+});
+
+/**
+ * `queryPolicy.pushedSnapshot` never stales on a timer, so a read may use it
+ * only once every Server write that changes it is proven to reach the App as
+ * an event (lib/pushed-snapshot-coverage.ts). These rules keep a future read
+ * from opting in without that proof, and keep every opted-in read's readers,
+ * listeners, and reconnect recovery in step.
+ */
+/** Code that applies the preset; a backticked mention in a comment does not count. */
+const usesPushedPreset = /(?<!`)queryPolicy\.pushedSnapshot\b/;
+
+describe('pushed snapshot contract', () => {
+    const files = readAppSourceFiles();
+    const byPath = new Map(files.map((file) => [file.path, file.content]));
+    const coverage = Object.entries(pushedSnapshotCoverage);
+
+    test('pushed reads still invalidate', () => {
+        // `'static'` would ignore invalidation; events must still be able to stale it.
+        expect(queryPolicy.pushedSnapshot.staleTime).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    test('only registered files use the pushed preset', () => {
+        const registered = new Set<string>(coverage.flatMap(([, entry]) => entry.files));
+        const offenders = files
+            .filter((file) => file.path !== 'lib/query-policy.ts')
+            .filter((file) => usesPushedPreset.test(file.content))
+            .filter((file) => !registered.has(file.path))
+            .map((file) => file.path);
+        expect(offenders).toEqual([]);
+    });
+
+    test('no read bypasses the preset with a bare infinite staleTime', () => {
+        const offenders = files
+            .filter((file) => file.path !== 'lib/query-policy.ts')
+            .filter((file) =>
+                /staleTime:\s*(Number\.POSITIVE_INFINITY|Infinity|'static')/.test(file.content)
+            )
+            .filter((file) => !(file.path in infiniteStaleTimeAllowlist))
+            .map((file) => file.path);
+        expect(offenders).toEqual([]);
+    });
+
+    test('every reader of a pushed read uses the pushed preset', () => {
+        // One reader on a timed policy would refetch the shared key on mount
+        // and hide a coverage gap behind it, so readers never mix policies.
+        for (const [read, entry] of coverage) {
+            const caller = new RegExp(
+                `\\.${read.replace('.', '\\.')}\\.(useQuery|useSuspenseQuery|useInfiniteQuery|prefetch|fetch|ensureData)\\(`,
+                'g'
+            );
+            for (const file of files) {
+                for (const match of file.content.matchAll(caller)) {
+                    const options = file.content.slice(match.index, match.index + 400);
+                    const policy = options.match(/queryPolicy\.(\w+)/)?.[1];
+                    expect(
+                        { file: file.path, policy, read },
+                        `${file.path} reads ${read} outside the pushed preset`
+                    ).toEqual({ file: file.path, policy: 'pushedSnapshot', read });
+                    expect(entry.files as readonly string[]).toContain(file.path);
+                }
+            }
+            for (const path of entry.files) {
+                expect(byPath.get(path), `${path} is registered for ${read}`).toMatch(
+                    usesPushedPreset
+                );
+            }
+        }
+    });
+
+    test('every covering event has a listener that refreshes the read', () => {
+        const chatListeners = files.filter(
+            (file) =>
+                file.path.startsWith('hooks/servers/chat-events/') &&
+                file.content.includes('useChatEvent(')
+        );
+        const serverListener = byPath.get('hooks/servers/use-server-events.ts') ?? '';
+        for (const [read, entry] of coverage) {
+            const refresh = `${read}.invalidate(`;
+            for (const event of entry.events) {
+                const listeners = event.startsWith('server.updated:')
+                    ? [serverListener]
+                    : chatListeners
+                          .filter((file) => file.content.includes(`'${event}'`))
+                          .map((file) => file.content);
+                expect(
+                    listeners.some((content) => content.includes(refresh)),
+                    `${read} names ${event}, but no ${event} listener refreshes it`
+                ).toBe(true);
+            }
+        }
+    });
+
+    test('every pushed read has a stream that recovers it after a gap', () => {
+        for (const [read, entry] of coverage) {
+            expect(entry.recovery.length).toBeGreaterThan(0);
+            for (const owner of entry.recovery) {
+                expect(streamRecoveredReads[owner] as readonly string[]).toContain(read);
+            }
         }
     });
 });
