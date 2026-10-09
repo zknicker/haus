@@ -86,7 +86,8 @@ test('Unread holds Tiny’s DM question; the claim is on Tasks', async () => {
 // against the provider every minute and wedge the Server's connection pool.
 test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
     const active = await owner.trpc.cloudAgentWork.listActive.query({ serverId });
-    expect(active).toHaveLength(5);
+    // Five gallery samples plus the seven running #repo-health fan-out rows.
+    expect(active).toHaveLength(12);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
     const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';

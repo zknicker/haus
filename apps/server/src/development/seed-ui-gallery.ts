@@ -5,6 +5,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { channelParticipantsTable, chatsTable, computersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { seedDevelopmentCloudFanoutThread } from './seed-cloud-fanout-thread.ts';
 import { findInboxSeedContext } from './seed-inbox-context.ts';
 import {
     type GalleryContext,
@@ -15,7 +16,10 @@ import {
     galleryWork,
 } from './seed-ui-gallery-records.ts';
 
-/** Idempotent gallery, separate from the Inbox seed so existing dev workspaces gain it too. */
+/**
+ * Idempotent gallery, separate from the Inbox seed so existing dev workspaces gain it too.
+ * The #repo-health fan-out rides along because it reuses the gallery's unattached Computer.
+ */
 export async function seedDevelopmentUiGallery(
     db: HausDatabase,
     input: { serverId: string; userId: string }
@@ -66,6 +70,7 @@ export async function seedDevelopmentUiGallery(
         await seedCloudExamples(tx, gallery);
         await seedCombinedExamples(tx, gallery);
     });
+    await seedDevelopmentCloudFanoutThread(db, input);
 }
 
 async function seedMentionExamples(db: HausDatabase, context: GalleryContext) {

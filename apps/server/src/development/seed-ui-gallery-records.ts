@@ -140,6 +140,7 @@ export async function galleryWork(
         title: string;
         status: CloudAgentStatus;
         cancelling?: boolean;
+        repository?: string;
         stale?: boolean;
         withBranch?: boolean;
     }
@@ -156,7 +157,7 @@ export async function galleryWork(
         agentId: context.agentId,
         computerId: context.computerId,
         provider: 'cursor',
-        repository: 'demo/ui-gallery',
+        repository: input.repository ?? 'demo/ui-gallery',
         startingRef: 'main',
         title: input.title,
         status: input.status,

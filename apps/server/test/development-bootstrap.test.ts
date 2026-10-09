@@ -59,8 +59,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(computersTable)).toHaveLength(2);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(3);
-    // Base workspace, the UI gallery channel and its threads, and #automations.
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(26);
+    // Base workspace, the UI gallery channel and its threads, #automations,
+    // and #repo-health with its Cloud Agent fan-out Thread.
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(28);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -70,7 +71,8 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(67);
+    // #repo-health adds its anchor and nine Cloud Agent work Messages.
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(77);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -179,7 +181,8 @@ test('seeds a demo workspace an operator can actually look at', async () => {
         (chat) => chat.isAll
     )?.id;
     // Threads are anchored to real channel messages, and one is followed.
-    expect(threads).toHaveLength(18);
+    // Includes the #repo-health fan-out Thread.
+    expect(threads).toHaveLength(19);
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(1);
 
