@@ -153,7 +153,7 @@ export function createTranscriptHarness() {
             root.render(<Providers>{node}</Providers>);
             await new Promise((resolve) => setTimeout(resolve, 0));
         });
-        return { unmount: () => act(() => root.unmount()) };
+        return { container, unmount: () => act(() => root.unmount()) };
     }
 
     /** Applies a cache change inside act and returns the renders it caused. */

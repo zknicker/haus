@@ -138,3 +138,18 @@ test('a background refetch and stale mark render no transcript', async () => {
 
     await harness.unmount();
 });
+
+test('a new message in a run of sends renders its own item, not the turn’s others', async () => {
+    const harness = await mountTwoChats();
+    // One person's consecutive sends share a turn.
+    const sends = (count: number) =>
+        Array.from({ length: count }, (_, index) => message('cht_a', index + 1));
+    await harness.change(() => harness.setMessages('cht_a', sends(4)));
+    const census = await harness.change(() => harness.setMessages('cht_a', sends(5)));
+
+    expect(census.count('UserTurn')).toBe(1);
+    expect(census.count('UserTurnItem')).toBe(1);
+    expect(census.count('UserTurnItemView')).toBe(1);
+
+    await harness.unmount();
+});

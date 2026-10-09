@@ -105,6 +105,8 @@ class FakeElement extends FakeNode {
         },
     };
     readonly namespaceURI = 'http://www.w3.org/1999/xhtml';
+    // Unsynced with `attributes`: components only write their own data flags here.
+    readonly dataset: Record<string, string> = {};
 
     get tagName() {
         return this.nodeName;
