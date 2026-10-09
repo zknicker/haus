@@ -167,6 +167,19 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
         stale: true,
     });
     await galleryThread(db, context, stale);
+    for (const [title, status, followUp] of [
+        ['Fix the reminder retry · follow-up waiting', 'completed', 'waiting'],
+        ['Fix the reminder retry · follow-up running', 'completed', 'running'],
+        ['Migrate settings storage · follow-up after failure', 'failed', 'waiting'],
+    ] as const) {
+        const followed = await galleryWork(db, context, {
+            followUp,
+            status,
+            title,
+            withBranch: status === 'completed',
+        });
+        await galleryThread(db, context, followed);
+    }
     const discussed = await galleryWork(db, context, {
         title: 'Review the navigation fix',
         status: 'completed',
