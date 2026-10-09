@@ -2,9 +2,9 @@ import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { escapeBareOrderedMarkers } from '../chats/bare-ordered-marker.ts';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
-import { amazonMarkdownComponents } from './amazon-markdown-components.tsx';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
 import type { Mention, ReferenceActivation } from './mention-types.ts';
+import { proseChipComponents } from './prose-chip-components.tsx';
 import {
     ContextLink,
     type PreparedLink,
@@ -22,6 +22,8 @@ interface ReferenceMarkdownProps {
     mentions?: readonly Mention[];
     onReferenceActivate?: ReferenceActivation;
     previewReferences?: boolean;
+    /** When the message was sent; time chips resolve relative days from it. */
+    sentAt?: string;
     serverId?: string;
 }
 
@@ -36,6 +38,7 @@ export const ReferenceMarkdown = React.memo(
         mentions,
         onReferenceActivate,
         previewReferences,
+        sentAt,
         serverId,
     }: ReferenceMarkdownProps) => {
         const prepared = prepareMarkdownReferences(content, mentions);
@@ -52,8 +55,12 @@ export const ReferenceMarkdown = React.memo(
         // Stable element types: a component created per render would remount the whole
         // message under the pointer, so a press that re-renders it (pane focus) lost its click.
         const components = React.useMemo(
-            () => ({ ...amazonMarkdownComponents(serverId), a: ContextLink, table: WideTable }),
-            [serverId]
+            () => ({
+                ...proseChipComponents({ sentAt, serverId }),
+                a: ContextLink,
+                table: WideTable,
+            }),
+            [sentAt, serverId]
         );
 
         return (
@@ -71,6 +78,7 @@ export const ReferenceMarkdown = React.memo(
         areMentionsEqual(previous.mentions, next.mentions) &&
         previous.onReferenceActivate === next.onReferenceActivate &&
         previous.previewReferences === next.previewReferences &&
+        previous.sentAt === next.sentAt &&
         previous.serverId === next.serverId
 );
 

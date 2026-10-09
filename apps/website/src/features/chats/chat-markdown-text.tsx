@@ -12,11 +12,14 @@ export function ChatMarkdownText({
     content,
     mentions,
     onReferenceActivate,
+    sentAt,
 }: {
     animatedRanges?: readonly ChatTextAnimationRange[];
     content: string;
     mentions?: readonly Mention[];
     onReferenceActivate?: ReferenceActivation;
+    /** The message's sent time, which time chips resolve relative days from. */
+    sentAt?: string;
 }) {
     const renderContext = useTranscriptRenderContextOptional();
     const chatId = renderContext?.chatId;
@@ -31,6 +34,7 @@ export function ChatMarkdownText({
                 mentions={mentions}
                 onReferenceActivate={onReferenceActivate}
                 previewReferences
+                sentAt={sentAt}
                 serverId={serverId}
             />
         );
@@ -71,6 +75,7 @@ export function ChatMarkdownText({
                     mentions={sliceMentions(mentions, block.start, block.start + block.text.length)}
                     onReferenceActivate={onReferenceActivate}
                     previewReferences
+                    sentAt={sentAt}
                     serverId={serverId}
                 />
             );

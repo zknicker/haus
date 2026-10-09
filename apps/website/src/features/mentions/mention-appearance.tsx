@@ -2,6 +2,7 @@ import { parseChatThreadReferenceTarget } from '@haus/api';
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     ChromeIcon,
+    Clock01Icon,
     CubeIcon,
     File01Icon,
     Folder01Icon,
@@ -36,6 +37,7 @@ const mentionIconKeys = [
     'pull-request',
     'skill',
     'thread',
+    'time',
     'unknown',
     'user',
     'website',
@@ -72,23 +74,18 @@ const defaultMentionAppearance = {
     product: { icon: 'image' },
     'pull-request': { icon: 'pull-request' },
     skill: { icon: 'skill' },
+    time: { icon: 'time' },
     user: { icon: 'user' },
     website: { icon: 'website' },
 } satisfies Record<ReferenceKind, MentionAppearance>;
 
 const skillAppearanceOverrides = {
-    'gh-issues': {
-        icon: 'github',
-        label: 'GitHub Issues',
-    },
+    'gh-issues': { icon: 'github', label: 'GitHub Issues' },
     github: { icon: 'github', label: 'GitHub' },
 } satisfies Record<string, MentionAppearanceOverride>;
 
 const capabilityAppearanceOverrides = {
-    'computer-use@openai-bundled': {
-        icon: 'plugin',
-        label: 'Computer Use',
-    },
+    'computer-use@openai-bundled': { icon: 'plugin', label: 'Computer Use' },
     'computer-use/google-chrome': {
         brandColor: 'var(--success)',
         icon: 'chrome',
@@ -118,6 +115,7 @@ const mentionIconMap = {
     'pull-request': GitPullRequestIcon,
     skill: AiSparklesIcon,
     thread: MessageMultiple02Icon,
+    time: Clock01Icon,
     unknown: MagicWand01Icon,
     user: UserIcon,
     website: Globe02Icon,
