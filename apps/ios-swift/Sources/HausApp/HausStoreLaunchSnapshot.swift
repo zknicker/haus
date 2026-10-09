@@ -21,9 +21,9 @@ extension HausStore {
         chats = snapshot.chats
         agents = snapshot.agents
         members = snapshot.members
-        messagesByChatID = snapshot.pagesByChatID
         serverUsage = snapshot.serverUsage
-        for chatID in snapshot.pagesByChatID.keys {
+        for (chatID, page) in snapshot.pagesByChatID {
+            writeTranscript(page, to: .chat(chatID), as: .replace)
             historyNavigation.retention.touch(chatID)
         }
         state = .loaded

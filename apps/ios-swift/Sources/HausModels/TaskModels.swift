@@ -139,13 +139,7 @@ public struct TaskUpdateInput: Encodable, Equatable, Sendable {
 }
 
 public struct TaskMutationReceipt: Decodable, Equatable, Sendable {
-    public let eventCursor: String?
     public let task: MessageTask
-
-    enum CodingKeys: String, CodingKey {
-        case eventCursor
-        case task
-    }
 }
 
 public extension TaskStatus {

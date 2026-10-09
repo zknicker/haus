@@ -26,8 +26,9 @@ extension HausStore {
     /// enough that a single message still lands as an immediate arrival.
     static let liveChatEventWindow = Duration.milliseconds(80)
 
-    /// Below this time in the background, a return skips the full snapshot.
-    static let quickReturnInterval: TimeInterval = 30
+    /// Below this time in the background, a return with healthy streams skips
+    /// the full snapshot: the focus stale window of specs/realtime-events.md.
+    static let quickReturnInterval: TimeInterval = 180
 
     /// Reads every snapshot projection concurrently.
     ///
@@ -90,7 +91,7 @@ extension HausStore {
 
         // A short trip away leaves healthy streams standing: any frame missed
         // while suspended is still in the socket, and a dropped socket
-        // reconnects and walks the event log on its own.
+        // reconnects and reloads its own projections.
         if streamsHealthy, isConnected,
            let backgroundedAt,
            Date().timeIntervalSince(backgroundedAt) < Self.quickReturnInterval {
@@ -100,16 +101,18 @@ extension HausStore {
 
         foregroundRefreshInFlight = true
         defer { foregroundRefreshInFlight = false }
-        stopEventStreams()
+        // Suspension most likely killed the sockets. Fresh streams subscribe
+        // first and the snapshot reads after, so nothing committed in between
+        // is missed; a fresh stream's first connect reloads nothing the
+        // snapshot is about to read.
+        startEventStreams(serverID: serverID)
 
         do {
             try await refreshServerSnapshot(serverID: serverID)
-            startEventStreams(serverID: serverID)
             markConnected()
         } catch {
             markDisconnected()
             Self.logger.error("Foreground refresh failed: \(error.localizedDescription, privacy: .public)")
-            startEventStreams(serverID: serverID)
         }
     }
 
@@ -122,20 +125,13 @@ extension HausStore {
         let snapshot = try await fetchServerSnapshot(serverID: serverID)
         apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
         await iconBadge
-        await refreshInlineReplies()
 
-        // Every Chat surface on the user's stack is refetched eagerly, not just
-        // the deepest one: a pushed Thread covers its parent Chat, and popping
-        // back to a page that is one round trip stale flashes pre-background
-        // content through the pop animation. Every other cached page is
-        // refreshed by the event walk that follows this snapshot, by live
-        // events, and by `openChat` when the user navigates back to it.
-        let stack = OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID)
-        await withTaskGroup(of: Void.self) { group in
-            for chatID in stack {
-                group.addTask { await self.loadMessages(chatID: chatID) }
-            }
-        }
+        // Every Chat surface on the user's stack reloads its loaded pages in
+        // bulk, not just the deepest one: a pushed Thread covers its parent
+        // Chat, and popping back to a page that is one round trip stale
+        // flashes pre-background content through the pop animation. Every
+        // other cached list reloads when `openChat` shows it again.
+        await recoverOpenTranscripts()
         // Reads belong to the deepest surface alone. A covered canvas Chat was
         // refreshed above but is not what the user is looking at.
         if let openChatID {
@@ -164,61 +160,5 @@ extension HausStore {
         if let activity = snapshot.activity {
             replaceActiveActivitySnapshot(activity)
         }
-    }
-
-    func handle(chatEvent event: ChatEvent, serverID: String) async {
-        markConnected()
-        await bufferLiveChatEvent(event, serverID: serverID)
-    }
-
-    /// Live delivery arrives one SSE frame at a time and each event fans out
-    /// into Server refetches, so a burst — an Agent posting a run of messages, a
-    /// reconnect echo — became one refetch and one shell repaint per frame.
-    /// Coalescing gives the live path the batched shape the catch-up walk
-    /// already has, without changing when events are consumed.
-    func bufferLiveChatEvent(_ event: ChatEvent, serverID: String) async {
-        switch liveChatEvents.buffer(event) {
-        case .scheduleFlush:
-            scheduleLiveChatEventFlush(serverID: serverID)
-        case .awaitScheduledFlush:
-            break
-        case .flushNow:
-            cancelScheduledLiveChatEventFlush()
-            await flushLiveChatEvents(serverID: serverID)
-        }
-    }
-
-    /// Drains whatever a window is still holding before its stream goes away.
-    /// The applier is async and this runs from synchronous teardown, so the
-    /// buffer is emptied here and the batch handed to a task the stream bag
-    /// does not own — cancelling the streams must not cancel their last batch.
-    func flushLiveChatEventsBeforeTeardown() {
-        cancelScheduledLiveChatEventFlush()
-        let batch = liveChatEvents.drain()
-        guard !batch.isEmpty, let serverID = chatEventServerID else { return }
-        Task { [weak self] in
-            await self?.applyChatEvents(batch, serverID: serverID)
-        }
-    }
-
-    private func scheduleLiveChatEventFlush(serverID: String) {
-        liveChatEventFlush?.cancel()
-        liveChatEventFlush = Task { [weak self] in
-            try? await Task.sleep(for: HausStore.liveChatEventWindow)
-            guard !Task.isCancelled else { return }
-            await self?.flushLiveChatEvents(serverID: serverID)
-        }
-    }
-
-    private func cancelScheduledLiveChatEventFlush() {
-        liveChatEventFlush?.cancel()
-        liveChatEventFlush = nil
-    }
-
-    private func flushLiveChatEvents(serverID: String) async {
-        liveChatEventFlush = nil
-        let batch = liveChatEvents.drain()
-        guard !batch.isEmpty else { return }
-        await applyChatEvents(batch, serverID: serverID)
     }
 }

@@ -42,7 +42,7 @@ public final class ReactionStickerBoard {
 
     // MARK: Events
 
-    /// A durable `message.reaction.updated` reached this client.
+    /// A live `chat.onMessageReactionUpdated` notification reached this client.
     public func noteLive(messageID: String, eventAt: Date, now: Date = .now) {
         ledger.noteLive(messageID: messageID, eventAt: eventAt, now: now)
     }

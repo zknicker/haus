@@ -58,26 +58,3 @@ public struct ChatMessageReactionReceipt: Decodable, Sendable, Equatable {
     public let changed: Bool
     public let message: ChatMessage
 }
-
-extension ChatMessagePage {
-    /// The page with one message's reactions replaced by what the Server just
-    /// answered, or `nil` when the page does not carry that message or it
-    /// already says so. The `chat.react` receipt lands through this, ahead of
-    /// the durable event's refetch.
-    public func replacingReactions(
-        _ reactions: [ChatMessageReaction],
-        messageID: String
-    ) -> ChatMessagePage? {
-        guard let index = messages.firstIndex(where: { $0.id == messageID }),
-              messages[index].reactions != reactions
-        else { return nil }
-        var patched = messages
-        patched[index].reactions = reactions
-        return ChatMessagePage(
-            messages: patched,
-            nextBeforeSequence: nextBeforeSequence,
-            nextAfterSequence: nextAfterSequence,
-            threads: threads
-        )
-    }
-}

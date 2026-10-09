@@ -3,84 +3,105 @@ import HausModels
 import HausTransport
 import OSLog
 
-/// Starting, stopping, observing, and recovering the Server's live streams.
+/// Starting, stopping, and restarting the Server's focused live streams
+/// (specs/realtime-events.md, iPhone impact).
 ///
-/// The three subscriptions are one unit: each recovers its own snapshot on
-/// connect, and a teardown cancels them together. The transport reconnects
-/// transport failures on its own and reports each failed attempt and each
-/// reconnect, which is what `isConnected` follows; an error it will not retry (an auth or
-/// procedure error) or a stream the Server ended reaches `streamEnded`, which
-/// restarts the unit with capped backoff behind a fresh session token. The
-/// chat stream's connect callback is the catch-up after that restart.
+/// Each subscription is its own task. The transport reconnects transport
+/// failures inside a stream and reports each attempt; an error it will not
+/// retry, or a stream the Server completed, ends that stream alone. The Store
+/// then restarts it with capped backoff, or follows its refusal class, and its
+/// siblings never notice. A restarted stream reloads only the projections it
+/// owns.
 extension HausStore {
-    /// A unit that stayed up this long earned a fresh backoff.
-    static let streamStableInterval: TimeInterval = 30
-
     func startEventStreams(serverID: String) {
         stopEventStreams()
         agentMessageRecovery.beginSession()
-        if chatEventServerID != serverID {
-            chatEventServerID = serverID
-            chatEventReplay.reset()
+        realtimeServerID = serverID
+        streamRestarts = RealtimeStreamRestarts()
+        for stream in RealtimeStream.allCases {
+            startStream(stream, serverID: serverID)
         }
-        streamsStartedAt = Date()
-        streamsHealthy = true
-
-        let chatTask = streamTask("chat.onEvent", serverID: serverID, reportsOutage: true) { store in
-            await store.catchUpChatEvents(serverID: serverID)
-        } handle: { (store, event: ChatEvent) in
-            await store.handle(chatEvent: event, serverID: serverID)
-        }
-        let lifecycleTask = streamTask("agent.onLifecycle", serverID: serverID, reportsOutage: true) { store in
-            await store.reloadAgentAvailability(serverID: serverID)
-        } handle: { (store, event: AgentLifecycleEvent) in
-            store.handle(lifecycleEvent: event)
-        }
-        // Semantic activity is decoration on top of lifecycle presence, so its
-        // loss restarts the unit without reporting the Server unreachable.
-        let activityTask = streamTask("agent.onActivity", serverID: serverID, reportsOutage: false) { store in
-            await store.reloadActiveActivity(serverID: serverID)
-        } handle: { (store, event: AgentActivityEvent) in
-            store.handle(activityEvent: event)
-        }
-        eventTasks.replace(with: [chatTask, lifecycleTask, activityTask])
     }
 
     func stopEventStreams() {
         flushLiveChatEventsBeforeTeardown()
-        streamRestart?.cancel()
-        streamRestart = nil
-        streamsHealthy = false
+        streamRestartTasks.values.forEach { $0.cancel() }
+        streamRestartTasks = [:]
+        recoveryFlush?.cancel()
+        recoveryFlush = nil
+        pendingRecovery = []
+        realtimeServerID = nil
         eventTasks.cancelAll()
     }
 
+    private func startStream(_ stream: RealtimeStream, serverID: String) {
+        let task: Task<Void, Never> = switch stream {
+        case .messageCreated:
+            streamTask(stream, serverID: serverID) { (store, event: MessageCreatedEvent) in
+                await store.receive(.messageCreated(event), serverID: serverID)
+            }
+        case .messageReactionUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: MessageReactionUpdatedEvent) in
+                await store.receive(.reactionUpdated(event), serverID: serverID)
+            }
+        case .chatRead:
+            streamTask(stream, serverID: serverID) { (store, event: ChatReadEvent) in
+                await store.receive(.read(event), serverID: serverID)
+            }
+        case .threadFollowUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: ThreadFollowUpdatedEvent) in
+                await store.receive(.threadFollowUpdated(event), serverID: serverID)
+            }
+        case .chatLifecycle:
+            streamTask(stream, serverID: serverID) { (store, event: ChatLifecycleEvent) in
+                await store.receive(.lifecycle(event), serverID: serverID)
+            }
+        case .cloudAgentWorkUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: CloudAgentWorkUpdatedEvent) in
+                await store.receive(.cloudAgentWorkUpdated(event), serverID: serverID)
+            }
+        case .taskChanged:
+            streamTask(stream, serverID: serverID) { (store, event: TaskChangedEvent) in
+                await store.receive(.taskChanged(event), serverID: serverID)
+            }
+        case .taskLabelUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: TaskLabelUpdatedEvent) in
+                await store.receive(.taskLabelUpdated(event), serverID: serverID)
+            }
+        case .agentLifecycle:
+            streamTask(stream, serverID: serverID) { (store, event: AgentLifecycleEvent) in
+                store.handle(lifecycleEvent: event)
+            }
+        case .agentActivity:
+            streamTask(stream, serverID: serverID) { (store, event: AgentActivityEvent) in
+                store.handle(activityEvent: event)
+            }
+        }
+        eventTasks.replace(stream, with: task)
+    }
+
     private func streamTask<Event: Decodable & Sendable>(
-        _ path: String,
+        _ stream: RealtimeStream,
         serverID: String,
-        reportsOutage: Bool,
-        onConnected: @escaping @MainActor (HausStore) async -> Void,
         handle: @escaping @MainActor (HausStore, Event) async -> Void
     ) -> Task<Void, Never> {
-        let stream: AsyncThrowingStream<Event, Error> = client.subscribe(
-            path,
+        let events: AsyncThrowingStream<Event, Error> = client.subscribe(
+            stream.path,
             input: ServerScopedInput(serverId: serverID),
             onConnected: { [weak self] in
-                guard let self else { return }
-                if reportsOutage { await self.markConnected() }
-                await onConnected(self)
+                await self?.streamConnected(stream, serverID: serverID)
             },
-            // The transport retries transport failures inside the stream, so
-            // an outage never ends it; each failed attempt is reported here,
-            // and the header's grace period absorbs a quick reconnect.
+            // Each failed transport attempt is reported here; the header's
+            // grace period absorbs a quick reconnect.
             onDisconnected: { [weak self] in
-                guard reportsOutage, let self else { return }
+                guard stream.reportsOutage, let self else { return }
                 await self.markDisconnected()
             }
         )
         return Task { [weak self] in
             var failure: Error?
             do {
-                for try await event in stream {
+                for try await event in events {
                     guard !Task.isCancelled, let self else { return }
                     await handle(self, event)
                 }
@@ -89,37 +110,88 @@ extension HausStore {
             }
             // A cancelled stream is a teardown we asked for, not an outage.
             guard !Task.isCancelled, let self else { return }
-            let reason = failure?.localizedDescription ?? "ended by the Server"
-            Self.logger.warning("\(path, privacy: .public) stream stopped: \(reason, privacy: .public)")
-            streamEnded(serverID: serverID, reportsOutage: reportsOutage)
+            let reason = failure?.localizedDescription ?? "completed by the Server"
+            Self.logger.warning("\(stream.path, privacy: .public) stream ended: \(reason, privacy: .public)")
+            streamEnded(stream, serverID: serverID, end: RealtimeStreamEnd(error: failure))
         }
     }
 
-    private func streamEnded(serverID: String, reportsOutage: Bool) {
-        if reportsOutage { markDisconnected() }
-        streamsHealthy = false
-        guard streamRestart == nil else { return }
-        if let startedAt = streamsStartedAt,
-           Date().timeIntervalSince(startedAt) >= Self.streamStableInterval {
-            streamRestartAttempt = 0
+    /// A stream (re)connected. The first connect after a launch or a
+    /// foreground refresh follows reads that are already fresh, so only a
+    /// restart reloads the stream's owned projections. Volatile presence and
+    /// activity re-read on every connect.
+    private func streamConnected(_ stream: RealtimeStream, serverID: String) async {
+        guard realtimeServerID == serverID, activeServer?.id == serverID else { return }
+        if stream.reportsOutage { markConnected() }
+        let isRestart = streamRestarts.connected(stream, at: Date())
+        switch stream {
+        case .agentLifecycle:
+            await reloadAgentAvailability(serverID: serverID)
+        case .agentActivity:
+            await reloadActiveActivity(serverID: serverID)
+        case .messageCreated where !isRestart:
+            // A message committed between the launch reads and this subscribe
+            // has no event; one tail read per loaded list closes that gap.
+            tailLoadedTranscripts()
+        default:
+            if isRestart { requestRecovery(stream.ownedProjections, serverID: serverID) }
         }
-        let delay = RetryBackoff.delay(attempt: streamRestartAttempt)
-        streamRestartAttempt += 1
-        streamRestart = Task { [weak self] in
+    }
+
+    private func streamEnded(_ stream: RealtimeStream, serverID: String, end: RealtimeStreamEnd) {
+        guard realtimeServerID == serverID else { return }
+        if stream.reportsOutage { markDisconnected() }
+        switch streamRestarts.ended(stream, by: end, at: Date()) {
+        case .stop:
+            Self.logger.notice("\(stream.path, privacy: .public) stopped: role required")
+        case .membershipLost:
+            Task { await self.handleMembershipLost(serverID: serverID) }
+        case let .restart(delay, reauthenticate):
+            scheduleRestart(stream, serverID: serverID, after: delay, reauthenticate: reauthenticate)
+        }
+    }
+
+    private func scheduleRestart(
+        _ stream: RealtimeStream,
+        serverID: String,
+        after delay: Duration,
+        reauthenticate: Bool
+    ) {
+        streamRestartTasks[stream]?.cancel()
+        streamRestartTasks[stream] = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
-            // Cleared before restarting, because starting stops any restart.
-            streamRestart = nil
-            guard case .loaded = state, activeServer?.id == serverID else { return }
-            // A rejected stream is most often an expired session; the next
-            // connect reads whatever token Clerk now holds.
-            do {
-                _ = try await clerk.auth.getToken(.init(skipCache: true))
-            } catch {
-                Self.logger.warning("Session token refresh failed: \(error.localizedDescription, privacy: .public)")
+            streamRestartTasks[stream] = nil
+            guard case .loaded = state, activeServer?.id == serverID, realtimeServerID == serverID else { return }
+            if reauthenticate {
+                // The next connect reads whatever token Clerk now holds.
+                do {
+                    _ = try await clerk.auth.getToken(.init(skipCache: true))
+                } catch {
+                    Self.logger.warning("Session token refresh failed: \(error.localizedDescription, privacy: .public)")
+                }
+                guard !Task.isCancelled, realtimeServerID == serverID else { return }
             }
-            guard !Task.isCancelled, activeServer?.id == serverID else { return }
-            startEventStreams(serverID: serverID)
+            startStream(stream, serverID: serverID)
         }
+    }
+
+    /// `membership_lost`: final for every stream of the Server. Closes the
+    /// siblings, cancels in-flight reads (a cancelled read writes nothing),
+    /// clears the Server's state, and reloads the Server list. Idempotent:
+    /// several streams may end with the refusal.
+    func handleMembershipLost(serverID: String) async {
+        guard activeServer?.id == serverID, !membershipLossInFlight else { return }
+        membershipLossInFlight = true
+        defer { membershipLossInFlight = false }
+        Self.logger.notice("Server membership lost; clearing its state")
+        stopEventStreams()
+        cancelTranscriptReads()
+        resetInlineReplyCache()
+        discardServerScopedState()
+        servers.removeAll { $0.id == serverID }
+        hasLiveServerState = false
+        state = .loading
+        await loadLiveServer(attempt: 0)
     }
 }

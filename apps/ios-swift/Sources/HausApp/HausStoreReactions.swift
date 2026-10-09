@@ -10,7 +10,7 @@ private let reactionLogger = Logger(subsystem: "chat.haus.ios", category: "react
 ///
 /// Reactions are durable Server state on each message row. What is app-local —
 /// the viewer's unconfirmed adds and which stickers arrived live — lives on
-/// `reactionStickers` and never touches a page.
+/// `reactionStickers` and never touches an entity.
 extension HausStore {
     static func makeReactionStickerBoard(store: @escaping @MainActor () -> HausStore?) -> ReactionStickerBoard {
         ReactionStickerBoard { messageID, emoji, remove in
@@ -20,8 +20,8 @@ extension HausStore {
     }
 
     /// Adds or removes the viewer's emoji. An add shows at once as a pending
-    /// sticker; the receipt patches every page carrying the message, and the
-    /// durable event converges the other lenses and clients.
+    /// sticker; the receipt reads the message entity again, which every list
+    /// showing it renders, and the realtime event converges other clients.
     func react(messageID: String, emoji: String, remove: Bool) async {
         guard let serverID = activeServer?.id, let viewerUserID = members?.viewerUserID else { return }
         if remove {
@@ -41,24 +41,12 @@ extension HausStore {
                 )
             )
             guard activeServer?.id == serverID else { return }
-            applyReactions(receipt.message.reactions, messageID: messageID)
+            // The entity is only ever written by a read, so the receipt asks
+            // for one; the pending sticker holds the press until it lands.
+            refreshEntity(EntityRefresh(chatID: receipt.message.chatID, messageID: messageID))
         } catch {
             reactionStickers.dropPending(messageID: messageID, emoji: emoji)
             reactionLogger.error("Reacting failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    /// Patches the message's reactions into every loaded page that shows it.
-    private func applyReactions(_ reactions: [ChatMessageReaction], messageID: String) {
-        for (chatID, page) in messagesByChatID {
-            if let patched = page.replacingReactions(reactions, messageID: messageID) {
-                messagesByChatID[chatID] = patched
-            }
-        }
-        for (rootID, page) in inlineReplyPagesByRootID {
-            if let patched = page.replacingReactions(reactions, messageID: messageID) {
-                inlineReplyPagesByRootID[rootID] = patched
-            }
         }
     }
 

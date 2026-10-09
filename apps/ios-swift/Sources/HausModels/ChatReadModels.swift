@@ -21,15 +21,17 @@ public struct ChatReadInput: Encodable, Sendable, Equatable {
     }
 }
 
+/// `advanced` is false when the marker was already there, in which case no
+/// `chat.onRead` event follows.
 public struct ChatReadReceipt: Codable, Sendable, Equatable {
+    public let advanced: Bool
     public let chatID: String
-    public let eventCursor: String?
     public let sequence: Int
     public let serverID: String
 
     enum CodingKeys: String, CodingKey {
+        case advanced
         case chatID = "chatId"
-        case eventCursor
         case sequence
         case serverID = "serverId"
     }
