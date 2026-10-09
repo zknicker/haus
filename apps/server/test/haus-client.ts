@@ -68,7 +68,7 @@ export function createHausClient(
     };
 }
 
-function createOriginWebSocket(origin: string) {
+export function createOriginWebSocket(origin: string) {
     return class extends WebSocket {
         constructor(url: string | URL, protocols?: string | string[]) {
             super(url, protocols, { headers: { Origin: origin } });

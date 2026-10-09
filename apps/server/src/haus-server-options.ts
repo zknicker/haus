@@ -45,6 +45,8 @@ export interface HausServerApplicationOptions {
     releaseIdentity?: HausReleaseIdentity | null;
     /** Controlled time seam for deterministic reminder and sweep lifecycle tests. */
     reminderClock?: ReminderClock;
+    /** How long an App WebSocket outlives its newest Clerk token's expiry; tests shorten it. */
+    socketSessionGraceMs?: number;
     /** Built Haus App assets. Omit only when another process serves the App in development. */
     staticAppRoot?: string;
     /** Interval seam for the boot sweeps; tests pass inert timers. */

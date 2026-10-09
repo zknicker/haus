@@ -4,12 +4,15 @@ import { applyWSSHandler, type CreateWSSContextFnOptions } from '@trpc/server/ad
 import { WebSocketServer } from 'ws';
 import type { HausContext } from './context.ts';
 import { hausRouter } from './router.ts';
+import { SocketSession, socketSessionExpiredCloseCode } from './socket-session.ts';
 
 const trpcWebSocketPath = '/trpc';
 
 interface HausWebSocketServerOptions {
     createContext(opts: CreateWSSContextFnOptions): HausContext;
     isAllowedOrigin(origin: string | undefined): boolean;
+    /** How long a socket outlives its newest token's expiry; tests shorten it. */
+    socketSessionGraceMs?: number;
 }
 
 export function startHausWebSocketServer(server: Server, options: HausWebSocketServerOptions) {
@@ -19,7 +22,7 @@ export function startHausWebSocketServer(server: Server, options: HausWebSocketS
     let isClosing = false;
 
     const handler = applyWSSHandler({
-        createContext: options.createContext,
+        createContext: (opts) => withSocketSession(options, opts),
         router: hausRouter,
         wss,
     });
@@ -63,6 +66,34 @@ export function startHausWebSocketServer(server: Server, options: HausWebSocketS
             wss.close();
         },
     };
+}
+
+/**
+ * Each App socket carries one live Clerk session (see `SocketSession`). The
+ * Server closes the socket once that session lapses unrefreshed, and the App
+ * reconnects with whatever session it now holds.
+ */
+function withSocketSession(
+    options: HausWebSocketServerOptions,
+    opts: CreateWSSContextFnOptions
+): HausContext {
+    const ctx = options.createContext(opts);
+    const socket = opts.res;
+    const socketSession = new SocketSession({
+        close: () => socket.close(socketSessionExpiredCloseCode, 'Haus session expired'),
+        openingToken: ctx.clerkSessionToken,
+        timing:
+            options.socketSessionGraceMs === undefined
+                ? undefined
+                : { graceMs: options.socketSessionGraceMs },
+    });
+
+    if (socket.readyState === socket.CLOSED || socket.readyState === socket.CLOSING) {
+        socketSession.dispose();
+    } else {
+        socket.once('close', () => socketSession.dispose());
+    }
+    return { ...ctx, socketSession };
 }
 
 function isTrpcWebSocketRequest(requestUrl: string) {

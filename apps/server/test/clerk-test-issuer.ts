@@ -17,7 +17,11 @@ export interface ClerkTestIssuer {
      * authority, and let them override `azp` to stand in for another frontend
      * on the same Clerk instance.
      */
-    mintSessionToken(clerkUserId: string, claims?: Record<string, unknown>): Promise<string>;
+    mintSessionToken(
+        clerkUserId: string,
+        claims?: Record<string, unknown>,
+        lifetimeSeconds?: number
+    ): Promise<string>;
     /**
      * Stands in for the Clerk Backend API's verified-email lookup, so the
      * Server can run its real invitation boundary against this issuer.
@@ -93,13 +97,13 @@ export async function startClerkTestIssuer(
                 .setExpirationTime(expiredAt)
                 .sign(privateKey);
         },
-        mintSessionToken(clerkUserId, claims = {}) {
+        mintSessionToken(clerkUserId, claims = {}, lifetimeSeconds = tokenLifetimeSeconds) {
             return new SignJWT({ azp: authorizedParty, ...claims })
                 .setProtectedHeader({ alg: 'RS256', kid: keyId })
                 .setIssuer(url)
                 .setSubject(clerkUserId)
                 .setIssuedAt()
-                .setExpirationTime(`${tokenLifetimeSeconds}s`)
+                .setExpirationTime(`${lifetimeSeconds}s`)
                 .sign(privateKey);
         },
         setVerifiedEmails(clerkUserId, emails) {

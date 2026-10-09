@@ -214,6 +214,7 @@ export async function createHausServerApplication(
         const startedWebSocketServer = startHausWebSocketServer(startedApp.server, {
             createContext,
             isAllowedOrigin,
+            socketSessionGraceMs: options.socketSessionGraceMs,
         });
         webSocketServer = startedWebSocketServer;
         voiceSocket = startVoiceSocket(startedApp.server, {

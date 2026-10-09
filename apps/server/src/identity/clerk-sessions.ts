@@ -7,7 +7,16 @@ import { createRemoteJWKSet, customFetch, type FetchImplementation, jwtVerify } 
  * they carry no Haus authority.
  */
 export interface ClerkSessions {
-    verify(token: string): Promise<{ clerkUserId: string }>;
+    verify(token: string): Promise<ClerkSessionIdentity>;
+}
+
+/** What one verified token says: whose it is, which Clerk session minted it, and until when. */
+export interface ClerkSessionIdentity {
+    /** Clerk's `sid`; null only for a token minted without one. */
+    clerkSessionId: string | null;
+    clerkUserId: string;
+    /** Token expiry (`exp`) in epoch milliseconds. */
+    expiresAt: number;
 }
 
 /**
@@ -96,7 +105,15 @@ export function createClerkSessions(
                 throw new Error('Clerk session token has no subject.');
             }
 
-            return { clerkUserId: payload.sub };
+            if (typeof payload.exp !== 'number') {
+                throw new Error('Clerk session token has no expiry.');
+            }
+
+            return {
+                clerkSessionId: typeof payload.sid === 'string' ? payload.sid : null,
+                clerkUserId: payload.sub,
+                expiresAt: payload.exp * 1000,
+            };
         },
     };
 }

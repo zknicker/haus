@@ -29,7 +29,7 @@ test('a signing-key fetch that never settles fails its own request and no other'
 
     // The stalled fetch is still pending. The next request must not inherit it.
     stall = false;
-    await expect(sessions.verify(token)).resolves.toEqual({ clerkUserId: 'user_wedge' });
+    await expect(sessions.verify(token)).resolves.toMatchObject({ clerkUserId: 'user_wedge' });
 });
 
 test('a token this App never asked for is refused', async () => {

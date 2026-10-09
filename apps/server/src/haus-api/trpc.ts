@@ -1,6 +1,9 @@
 import { appProtocolVersion } from '@haus/api';
 import { initTRPC, TRPCError } from '@trpc/server';
-import { ClerkSessionUnavailableError } from '../identity/clerk-sessions.ts';
+import {
+    type ClerkSessionIdentity,
+    ClerkSessionUnavailableError,
+} from '../identity/clerk-sessions.ts';
 import type { HausContext } from './context.ts';
 
 const t = initTRPC.context<HausContext>().create();
@@ -29,14 +32,18 @@ export const publicProcedure = appProcedure;
  * reading.
  */
 export const humanProcedure = appProcedure.use(async ({ ctx, next }) => {
-    if (!ctx.clerkSessionToken) {
+    // A WebSocket operation is judged against the socket's newest token, which
+    // the App refreshes in place (`session.refresh`).
+    const token = ctx.socketSession ? ctx.socketSession.token : ctx.clerkSessionToken;
+
+    if (!token) {
         throw unauthorized();
     }
 
-    let clerkUserId: string;
+    let identity: ClerkSessionIdentity;
 
     try {
-        ({ clerkUserId } = await ctx.clerkSessions.verify(ctx.clerkSessionToken));
+        identity = await ctx.clerkSessions.verify(token);
     } catch (cause) {
         // The signing keys never resolved, so this token was never judged.
         // Reporting it as a refusal would sign the human out over a Server
@@ -52,10 +59,11 @@ export const humanProcedure = appProcedure.use(async ({ ctx, next }) => {
         throw unauthorized(cause);
     }
 
-    return await next({ ctx: { ...ctx, clerkUserId } });
+    ctx.socketSession?.observe(token, identity);
+    return await next({ ctx: { ...ctx, clerkUserId: identity.clerkUserId } });
 });
 
-function unauthorized(cause?: unknown) {
+export function unauthorized(cause?: unknown) {
     return new TRPCError({
         cause,
         code: 'UNAUTHORIZED',

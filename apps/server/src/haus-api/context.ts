@@ -14,6 +14,7 @@ import type { McpRuntime } from '../server-mcp/runtime.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
 import { publicOrigin } from '../triggers/trigger-url.ts';
+import type { SocketSession } from './socket-session.ts';
 
 /**
  * Request context for the Haus Server. It carries the Clerk session
@@ -56,6 +57,12 @@ export interface HausContext {
      */
     requestOrigin: string;
     runtime: EffectRuntime<never>;
+    /**
+     * The App WebSocket's live Clerk session, when this operation rides one.
+     * Its token supersedes `clerkSessionToken` (the opening token) once the App
+     * refreshes it in place. Null for HTTP requests.
+     */
+    socketSession: SocketSession | null;
     /** The one in-memory inbound fire budget, shared by the public route and test fires. */
     triggerRateLimiter: TriggerRateLimiter;
 }
@@ -98,6 +105,7 @@ export function createHausContextFactory(dependencies: HausContextDependencies) 
             headers: opts?.req?.headers,
             protocol: opts?.req?.protocol,
         }),
+        socketSession: null,
     });
 }
 

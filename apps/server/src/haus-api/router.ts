@@ -15,6 +15,7 @@ import { memberRouter } from './member/router.ts';
 import { pushRouter } from './push/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
+import { sessionRouter } from './session/router.ts';
 import { statsRouter } from './stats/router.ts';
 import { taskRouter } from './task/router.ts';
 import { taskLabelRouter } from './task-label/router.ts';
@@ -43,6 +44,7 @@ export const hausRouter = createRouter({
     push: pushRouter,
     reminder: reminderRouter,
     server: serverRouter,
+    session: sessionRouter,
     stats: statsRouter,
     task: taskRouter,
     taskLabel: taskLabelRouter,

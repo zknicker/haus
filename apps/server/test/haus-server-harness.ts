@@ -70,6 +70,7 @@ export async function startHausServerHarness(
         openAiApiKey?: string;
         connectLive?: () => WebSocket;
         computerSocketLiveness?: ComputerSocketLivenessTiming;
+        socketSessionGraceMs?: number;
     } = {}
 ): Promise<HausServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster({
@@ -124,6 +125,7 @@ export async function startHausServerHarness(
                 openAiApiKey: options.openAiApiKey,
                 connectLive: options.connectLive,
                 computerSocketLiveness: options.computerSocketLiveness,
+                socketSessionGraceMs: options.socketSessionGraceMs,
             });
             await next.app.listen({ host: '127.0.0.1', port: 0 });
             application = next;

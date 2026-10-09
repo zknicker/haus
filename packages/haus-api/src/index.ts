@@ -122,6 +122,7 @@ export * from './runtime/skill-hub.ts';
 export * from './runtime/skills.ts';
 export * from './runtime/tool-setup.ts';
 export * from './server-events.ts';
+export * from './socket-session.ts';
 export * from './stats.ts';
 export * from './task.ts';
 export * from './task-shared.ts';
