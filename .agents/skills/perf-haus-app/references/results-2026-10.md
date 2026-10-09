@@ -49,6 +49,26 @@ cold 102 / 130 → 40 / 72, warm 42 / 64 → 24 / 48; CPU×4 cold 610 / 694 → 
 
 The "first" lists win (382 → 96 ms) is the nested-lazy Suspense throttle removed.
 
+## Render storms (component renders, real Electron)
+
+`scripts/perf/render-audit.mjs`, prod render-count bundle, five kept chat views (~400 messages
+each), #all shown. Before is 0d69cb6a3. Interactions are medians of 5 reps (window 2.5 s after
+the action); idle and the Agent turn (Tiny DM, one short reply) are 60 s, two runs each.
+Targets were idle ≤ 50/min, a message in another chat ≤ 500, in the open chat ≤ 1,000.
+
+| scenario | before | after |
+| --- | --- | --- |
+| idle 60 s on a channel | 4,230 / 3,164 | 130 / 272 |
+| message in the open chat | 10,174 | 2,820 |
+| message in another chat | 9,136 | 2,881 |
+| Agent turn 60 s | 22,458 / 24,351 | 4,406 / 4,420 |
+| warm switch (there + back) | 4,088 | 2,225 |
+| desktop tab switch (there + back) | 3,843 | 2,195 |
+| open Agent profile | 2,037 | 1,549 |
+
+Single-run outliers before reached 22–30k per message when an Agent woke mid-window. What
+remains is in learnings.md ("Render storms").
+
 ## Known remaining opportunities
 
 - **Cold-switch TBT is flat at CPU×4** (429 → 469 ms): first render of a chat's transcript is

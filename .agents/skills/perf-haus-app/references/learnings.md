@@ -121,15 +121,54 @@ in every kept view, revealed and hidden. `patches/react-router@7.13.1.patch` mak
 `useNavigate` stable (`features/shell/tab-router-stability.test.tsx`): warm renders 24.8k → 2.6k,
 warm visible 95 → 51 ms, LoAF blocking 53 → 10 ms (prod, CPU×1).
 
-- Count renders in real Electron, not just Chrome: instrument `renderWithHooks` in
-  `react-dom-client.production.js` (call a global counter), build a prod bundle, restore the file,
-  and diff per-switch totals before and after. A total far above the web's names the cascade.
+- Count renders in real Electron, not just Chrome: `scripts/perf/render-audit.mjs` against a
+  `HAUS_PERF_RENDER_AUDIT=1` bundle (a build-time `renderWithHooks` hook; node_modules stays
+  untouched). A total far above the web's names the cascade.
 - Tab presence flips on every tab and kept-view show/hide. Id-only readers use `useTabId()`; a
   large view keeps its presence read in a leaf (`ChatReadState`).
 - Never read layout in a layout effect or rAF on the switch path: each read forced a full style
   and layout (~10 ms over ~1,440 elements). Measure in a ResizeObserver callback
   (`WorkspaceTabLabel`) or after paint (the message scroller's visibility snapshot, in the
   `@shadcn/react` patch).
+
+## Render storms: one event, every kept view
+
+The October 2026 render audit found one message anywhere on the Server re-rendering 10–30k
+components (every rendered row of all five kept transcripts) and a quiet channel re-rendering
+3–15k per idle minute. Each cause was a kept view subscribed to something that churns, and each
+fix narrows the subscription; `features/servers/chat/transcript-render-isolation.test.tsx`
+pins them with a render census (`test-support/render-census.tsx`), and the audit's cascade
+roots (components re-rendering with unchanged props) name new ones.
+
+- **Index-wise structural sharing breaks on a sliding page.** A new message shifts the newest
+  page by one, so React Query's default sharing handed back a new object for every loaded
+  message, and the transcript (which uses message identity as its change signal) re-rendered
+  every row. Share by id: `hooks/servers/message-page-sharing.ts`.
+- **Order-sensitive keys churn on reorder.** The chat list is ordered by activity, so a key
+  joined in list order changed on every message anywhere. Sort the key, and read through
+  `select` (`useChatAppearances`, `useListedChat`, `useChatListSelection`) so readers re-render
+  only for the fields they use. Same for `agent.list`: availability flips every turn
+  (`useAgentAppearances`, `useAgentAvailability`).
+- **A spread query result tracks every field.** `{ ...query }` touches every getter, so React
+  Query re-rendered each kept `ChatView` on every fetch-status and stale flip. Return named
+  fields.
+- **Layout-level reads cascade.** `ServerLayout` and `ServerShell` read the chat list; every
+  message re-rendered the shell, which re-created route context and re-rendered the shown chat
+  view. Push such reads into a leaf (`ChatListEffects`) or a select.
+- **Stable functions in a churning context re-render their readers.** The activity listener
+  subscription lived beside the activity snapshot; it has its own context now.
+- **Router hooks per row.** `useOpenAgentProfile` read `useParams` in every avatar. The opener is
+  route-stable and handed down through the transcript render context; `useStableNavigate` keeps
+  HeroUI's router and sidebar providers from changing with the focused tab.
+- **Activity hide/reveal re-ran image loading.** Radix Avatar reset its status in effect
+  cleanup, so every avatar re-rendered on each desktop tab hide and reveal. Patched
+  (`patches/@radix-ui%2Freact-avatar@1.2.6.patch`); `EntityAvatar` keys its root by `src`.
+- **Live Agents add noise.** Automations and Agent wakes land mid-run; read medians of `--reps`.
+
+Remaining (render audit, after): the sidebar's chat navigation re-renders whole (~60% of a
+message's renders) on every chat-list update; every live avatar re-renders its presence badge
+on each availability flip; desktop tab reveal re-runs transcript reply-text and composer
+effects; idle renders follow socket session refresh and connection-state flips.
 
 ## Prefetch and warming
 

@@ -12,7 +12,11 @@ the first frame. Start from a **baseline**, change one owner at a time, and fini
 against that baseline. A claim without a before/after number from `scripts/perf` is a guess.
 
 Tools live in `scripts/perf/`; each script's header documents its flags. `bun run perf:web` is
-the interaction harness.
+the interaction harness. `scripts/perf/render-audit.mjs` counts component renders per
+interaction (idle, a message in the shown or a kept chat, an Agent turn, switches, profile
+open) in real Electron against a render-counting prod bundle
+(`HAUS_PERF_RENDER_AUDIT=1 scripts/perf/build-prod-bundle.sh`), and names the cascade roots;
+run it before and after any change to a kept view's subscriptions.
 
 ## Process
 

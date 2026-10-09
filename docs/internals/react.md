@@ -317,7 +317,10 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   Agent chips, the Inbox's live Agent rows, the chat-rail and DM menus, the
   Computer page's Agent table, Settings → Members — calls
   `useOpenAgentProfile` (`hooks/agents/use-open-agent-profile.ts`), a push to
-  the profile route that the desktop tab router places like any link. Real links use
+  the profile route that the desktop tab router places like any link. The opener
+  keeps one identity across navigations; a transcript calls it once and hands it
+  to its avatars through the render context (`openAgentProfile`), so rows never
+  read the router. Real links use
   `AgentProfileLink`, which keeps the href and routes its click through the
   same command. Hover shows the Agent hover card; there is no profile pane
   ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)).
@@ -504,11 +507,25 @@ A websocket-driven refetch replaces a whole query result, but a transcript
 typically changed one row. React Query's structural sharing hands back the same
 record objects for everything the server returned unchanged, so **source-object
 identity is the change signal** — hosted chat messages carry no version or
-`updatedAt` field to compare.
+`updatedAt` field to compare. Five kept chat views stay subscribed while hidden,
+so a read that churns re-renders all of them; `features/servers/chat/transcript-render-isolation.test.tsx`
+pins that one message renders one row.
 
+* Paged transcripts share by message id (`hooks/servers/message-page-sharing.ts`):
+  the newest page is a sliding window, and React Query's default index-wise
+  sharing gave every loaded message a new object on every new message.
 * View-model projections over synced lists reuse their previous output objects
   for unchanged source records, and return the previous array when nothing
-  moved. See `features/servers/chat/chat-message-projection.ts`.
+  moved. See `features/servers/chat/chat-message-projection.ts`. Render rows
+  compare structurally and keep their object, so memoized row slots skip.
+* A reader of a high-churn shared query takes only what it renders through
+  `select`: `useAgentAppearances` (Agents without availability, which flips every
+  turn), `useChatAppearances`, `useListedChat`, `useChatListSelection` (the chat
+  list reorders and moves unread counts on every message anywhere). A hook
+  returns named result fields, never a spread query result: a spread touches
+  every field, so React Query re-renders the reader on each fetch-status flip.
+* A context that carries both a high-churn value and a stable function splits
+  them (`AgentActivityProvider`'s snapshot and its listener subscription).
 * A render context that reaches rows through React context must hold its
   identity across those refetches, or every row re-renders regardless of how
   stable its props are. Keep event-time lookups behind a latest-value ref, keep
