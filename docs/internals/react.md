@@ -240,6 +240,18 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   drag for its whole length (`features/shell/tab-drag/`: a pure step machine, `stepTabDrag`, run
   by an engine that paints the dragged tab at the pointer outside React; rows re-render only when
   its slot changes and slide their tabs into place with FLIP, `use-row-flip.ts`).
+* The chat route keeps its five most recent chat views mounted and effect-alive
+  (`KeptChatViews`, `features/servers/chat/kept-chat-views.tsx`), stacked in one grid cell, so a
+  revisit is a CSS reveal in the next frame, not an `<Activity>` reveal that re-runs every effect.
+  A hidden view is `content-visibility: hidden`, invisible, `inert`, and `aria-hidden`; it holds
+  the route it last saw while shown (`HeldRoute`), and its presence reads not shown. Because its
+  effects keep running, anything that used to ride a remount gates on presence instead: render
+  differences read `useTabPresence().shown` in a leaf (window title, visible-sequence reporting,
+  typing streams), and imperative work reads `useViewShown()` (`hooks/desktop-tabs/view-shown.ts`):
+  window listeners and animation loops check `isShown()` when they fire, and reveal-time work
+  (composer focus, Thread pane sync to the route, pending message reveal) runs from
+  `useViewShownChange`. A hidden view's queries stay observed, so it re-renders on its own chat's
+  events and reads fresh at reveal. `kept-chat-view-invariants.test.tsx` pins each gate.
 * Routed destinations render their content inside one `PageColumn`, which owns
   the page gutter, max width, and the rhythm between sections. It encodes
   HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)

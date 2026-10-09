@@ -79,7 +79,7 @@ Run these after any change to navigation, kept views, prefetch, or cache patchin
   `agent-profile-performance`, `agent-live-turn`, `chat-typing`, `messaging`, `inbox-unread`.
 - Unit (`apps/website/src/`): `hooks/servers/chat-events/*`, `chat-navigation-cache`,
   `query-policy-contract`, `query-reconnect-recovery`, `agent-history-cache`,
-  `desktop-tabs-store`, `kept-chat-views`, `use-press-navigation`.
+  `desktop-tabs-store`, `kept-chat-views`, `kept-chat-view-invariants`, `use-press-navigation`.
 
 Hidden kept views leave duplicate DOM; e2e locators scope to the visible surface
 (`[data-slot="chat-surface"]:visible`), or they match a hidden chat's rows.

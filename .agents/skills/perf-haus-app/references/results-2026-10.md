@@ -38,10 +38,12 @@ The "first" lists win (382 → 96 ms) is the nested-lazy Suspense throttle remov
   --mode cpu`).
 - **Settled-message markdown parse is uncached** (`features/mentions/reference-markdown.tsx`):
   every mount reparses message bodies that never change.
-- **~45 ms reveal render of a kept view**: revealing an `<Activity>` subtree still re-renders it.
+- ~~45 ms reveal render of a kept view~~: done; kept views are effect-alive and CSS-hidden (see
+  learnings, "`<Activity>` vs effect-alive CSS hiding").
 - **No disk-persisted query cache**: a cold start renders empty until the first fetch.
 - **Packaged Electron loads the renderer remotely from haus.chat**, so desktop cold start pays
   network for the shell bundle.
 - **Vibrancy and `backdrop-filter` bands over the transcript are unmeasured in real Electron**;
   the harness runs in Chrome, where compositing cost differs.
-- **Per-chat subscriptions** (engagement, composition, thought) multiply with kept views.
+- ~~Per-chat subscriptions multiply with kept views~~: engagement and thought streams pause while a
+  kept view is hidden.

@@ -25,8 +25,8 @@ looking at the data layer.
 
 ## Keep views alive
 
-`features/servers/chat/kept-chat-views.tsx` keeps recent chat views mounted under
-`<Activity mode="hidden">`, so a revisit is a reveal, not a rebuild. A hidden kept view must:
+`features/servers/chat/kept-chat-views.tsx` keeps the five most recent chat views mounted, so a
+revisit is a reveal, not a rebuild. A hidden kept view must:
 
 - never mark the chat read, take focus, or show presence;
 - hide its band/topbar scope in the same commit it hides (`KeptTopbarScope`,
@@ -34,6 +34,35 @@ looking at the data layer.
 - sync its thread pane to the current URL on reveal.
 
 Hidden views leave duplicate DOM: probes and e2e locators must scope to the displayed surface.
+
+**`<Activity>` vs effect-alive CSS hiding.** `<Activity mode="hidden">` tears a hidden view's
+effects down and re-runs them on reveal: a new ProseMirror editor plus focus, scroller observers
+and rect reads, every streaming-text row's effects, and a second scheduler render pass, ~30–40 ms
+of a warm switch. Kept views are now effect-alive instead: stacked in one grid cell (no resize
+work on reveal), hidden with `content-visibility: hidden` + `visibility: hidden` + `inert` +
+`aria-hidden`. `visibility: hidden` alone still styles and lays out the subtree and measured
+worse. Electron prod, warm, CPU×1: visible 46 → 36 ms, presented 79 → 57 ms, LoAF blocking 1 → 0,
+DOM mutations 135 → 0; CPU×4: visible 177 → 149, presented 249 → 177, blocking 145 → 72. Cold is
+unchanged. The price is that nothing rides remount any more:
+
+- Every mount-time effect in the subtree must gate on presence or re-run on reveal. Render
+  differences read `useTabPresence().shown` in a leaf; imperative work reads `useViewShown()`
+  (`hooks/desktop-tabs/view-shown.ts`): listeners and rAF loops check `isShown()` when they fire,
+  reveal work runs from `useViewShownChange`. Each gate has a test in
+  `kept-chat-view-invariants.test.tsx`; audit the subtree for new effects when adding one.
+- A hidden view must not read the shown chat's route: `HeldRoute` holds the location and route
+  match it last saw (a hidden view saw `?thread=` and opened Threads for the wrong chat). A hidden
+  `<Navigate>` would navigate the shown tab; `ChatPageView` renders it only while active.
+- A hidden view's queries stay observed, so it re-renders on every change it subscribes to, at
+  sync priority. Agent availability flips every turn and was in the transcript's row context, so
+  each send re-rendered every row of all five kept transcripts (~450 ms script per send). Rows now
+  read availability per avatar (`useAgentAvailability`) and the row agent list is keyed on rendered
+  fields: per-send long frames back to zero. Measure the per-event cost
+  (`.perf/electron/event-cost.mjs`-style: send in the shown chat with five views kept) whenever a
+  kept view gains a subscription.
+- Per-chat streams (engagement, thought) pause while hidden; a reveal resubscribes and re-reads.
+- Reconnect (`invalidateQueries({ refetchType: 'active' })`) now refetches every kept chat's
+  record and transcript pages, not only the shown one.
 
 ## Render less per row
 
