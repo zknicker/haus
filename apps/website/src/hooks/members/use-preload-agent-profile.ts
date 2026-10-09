@@ -56,3 +56,17 @@ export function usePreloadAgentProfile(
         }
     }, [agentId, scope, slug, utils]);
 }
+
+/**
+ * `usePreloadAgentProfile(agentId, 'record')` for a caller that knows its
+ * Server, such as a sidebar row: it reads no route, so a navigation (a desktop
+ * tab switch) does not re-render it.
+ */
+export function usePreloadAgentRecord(serverId: string, agentId: string) {
+    const utils = hausTrpc.useUtils();
+    return React.useCallback(() => {
+        // The destination retries a failed module preload through its route frame.
+        void serverRouteModules.agent().catch(() => undefined);
+        void utils.agent.get.prefetch({ agentId, serverId }, queryPolicy.syncedSnapshot);
+    }, [agentId, serverId, utils]);
+}

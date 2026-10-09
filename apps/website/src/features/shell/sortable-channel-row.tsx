@@ -1,31 +1,42 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Agent, Chat } from '@haus/api';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+import { useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { chatNavigationName } from './chat-navigation-name.ts';
 import { ChatNavigationRow } from './chat-navigation-row.tsx';
 
 export type KeyboardCommand = 'cancel' | 'drop' | 'move-down' | 'move-up' | 'pick-up';
 
-/** Memoized like `ChatNavigationRow`: a navigation re-renders only the two rows it moves between. */
+/** The channel a keyboard command acts on, named for its announcements. */
+export interface SortableChannel {
+    id: string;
+    name: string;
+}
+
+/**
+ * Memoized like `ChatNavigationRow`, and reads its own list entry: a
+ * navigation re-renders only the two rows it moves between, and a chat-list
+ * update only the rows whose entry changed (or every row, when the order moves).
+ */
 export const SortableChannelRow = React.memo(function SortableChannelRow({
-    agent,
-    chat,
+    chatId,
     isCurrent,
     keyboardActive,
     onKeyboardCommand,
+    serverId,
     slug,
 }: {
-    agent: Agent | null;
-    chat: Chat;
+    chatId: string;
     isCurrent: boolean;
     keyboardActive: boolean;
-    onKeyboardCommand: (chat: Chat, command: KeyboardCommand) => void;
+    onKeyboardCommand: (channel: SortableChannel, command: KeyboardCommand) => void;
+    serverId: string;
     slug: string;
 }) {
+    const chat = useChatNavigationEntry(serverId, chatId);
     const shouldReduceMotion = useReducedMotion() === true;
-    const name = chatNavigationName(chat, agent);
+    const name = chat ? chatNavigationName(chat, null) : '';
     const {
         attributes,
         isDragging,
@@ -37,51 +48,59 @@ export const SortableChannelRow = React.memo(function SortableChannelRow({
     } = useSortable({
         animateLayoutChanges: () => !shouldReduceMotion,
         data: { name },
-        id: chat.id,
+        id: chatId,
         transition: shouldReduceMotion
             ? null
             : { duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
     });
-    const rowRef = React.useRef<HTMLDivElement | null>(null);
+    // The row element arrives after this component commits: React Aria renders
+    // collection items in a later pass. Holding it in state binds the gestures
+    // once it exists; reading a ref in an effect bound nothing until something
+    // else re-rendered the row, so the first drag after a load never started.
+    const [row, setRow] = React.useState<HTMLDivElement | null>(null);
     const setRowRef = React.useCallback(
         (node: HTMLDivElement | null) => {
-            rowRef.current = node;
+            setRow(node);
             setNodeRef(node);
             setActivatorNodeRef(node);
         },
         [setActivatorNodeRef, setNodeRef]
     );
+    const gesture = React.useRef({ chatId, keyboardActive, listeners, name, onKeyboardCommand });
+    React.useLayoutEffect(() => {
+        gesture.current = { chatId, keyboardActive, listeners, name, onKeyboardCommand };
+    });
 
     React.useEffect(() => {
-        const row = rowRef.current;
-        const activatePointerDrag = listeners?.onPointerDown;
-        if (!(row && activatePointerDrag)) {
+        if (!row) {
             return;
         }
         const handlePointerDown = (event: PointerEvent) => {
-            activatePointerDrag({ nativeEvent: event });
+            gesture.current.listeners?.onPointerDown?.({ nativeEvent: event });
         };
         const handleKeyDown = (event: KeyboardEvent) => {
-            const command = keyboardCommand(event.key, keyboardActive);
+            const current = gesture.current;
+            const command = keyboardCommand(event.key, current.keyboardActive);
             if (!command) {
                 return;
             }
             event.preventDefault();
-            onKeyboardCommand(chat, command);
+            current.onKeyboardCommand({ id: current.chatId, name: current.name }, command);
         };
         row.addEventListener('keydown', handleKeyDown);
-        // Capture, so the drag sensor arms before the row's press navigation re-renders it;
-        // that render can rebind this listener mid-dispatch and drop the drag.
+        // Capture, so the drag sensor arms before the row's press navigation re-renders it.
         row.addEventListener('pointerdown', handlePointerDown, true);
         return () => {
             row.removeEventListener('keydown', handleKeyDown);
             row.removeEventListener('pointerdown', handlePointerDown, true);
         };
-    }, [chat, keyboardActive, listeners, onKeyboardCommand]);
+    }, [row]);
 
+    if (!chat) {
+        return null;
+    }
     return (
         <ChatNavigationRow
-            agent={agent}
             ariaDescribedBy={attributes['aria-describedby']}
             chat={chat}
             className="no-drag sortable-channel-row"

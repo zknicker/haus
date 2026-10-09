@@ -2,7 +2,8 @@ import { expect, test } from 'bun:test';
 import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { createTRPCQueryUtils } from '@trpc/react-query';
+import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -13,51 +14,20 @@ import { CommandMenuProvider } from './command-menu-provider.tsx';
 import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
 
 test('hides a retired Agent DM from active navigation', () => {
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[]}
-            chats={[retiredDm()]}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedChatId={undefined}
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({ chats: [retiredDm()] });
 
     expect(markup).not.toContain('Fen');
     expect(markup).not.toContain('Retired');
 });
 
 test('hides the New agent action when no handler is given', () => {
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[]}
-            chats={[]}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedChatId={undefined}
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({});
 
     expect(markup).not.toContain('aria-label="New agent"');
 });
 
 test('shows the New agent action on Direct messages for a manager', () => {
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[]}
-            chats={[]}
-            onCreateAgent={() => undefined}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedChatId={undefined}
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({ onCreateAgent: () => undefined });
 
     expect(markup).toContain('aria-label="New agent"');
 });
@@ -73,22 +43,18 @@ test('renders each DM from its own Agent availability', () => {
         displayName: 'Tiny',
         id: 'agt_tiny00000000000',
     });
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[blippy, tiny]}
-            chats={[dm('chat_blippy', blippy), dm('chat_tiny', tiny)]}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedChatId="chat_blippy"
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({
+        agents: [blippy, tiny],
+        chats: [dm('chat_blippy', blippy), dm('chat_tiny', tiny)],
+        selectedChatId: 'chat_blippy',
+    });
 
-    expect(markup).toContain(`data-agent-id="${blippy.id}" data-agent-status="working"`);
-    expect(markup).toContain(`data-agent-id="${tiny.id}" data-agent-status="idle"`);
-    expect(markup).toContain('title="Working"');
-    expect(markup).toContain('title="Online"');
+    expect(markup).toMatch(
+        new RegExp(`data-agent-id="${blippy.id}".*?data-agent-status="working"[^>]*title="Working"`)
+    );
+    expect(markup).toMatch(
+        new RegExp(`data-agent-id="${tiny.id}".*?data-agent-status="idle"[^>]*title="Online"`)
+    );
 });
 
 test('renders an active Agent as an implicit DM without a Chat row', () => {
@@ -97,18 +63,7 @@ test('renders an active Agent as an implicit DM without a Chat row', () => {
         displayName: 'Blippy',
         id: 'agt_blippy000000000',
     });
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[blippy]}
-            chats={[]}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedAgentDmId={blippy.id}
-            selectedChatId={undefined}
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({ agents: [blippy], selectedAgentDmId: blippy.id });
 
     expect(markup).toContain('Blippy');
     expect(markup).toContain(`/s/haus/dm/${blippy.id}`);
@@ -116,17 +71,7 @@ test('renders an active Agent as an implicit DM without a Chat row', () => {
 });
 
 test('keeps a draggable channel row out of native window dragging without a handle', () => {
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[]}
-            chats={[channel()]}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedChatId={undefined}
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({ chats: [channel()] });
 
     expect(markup).toContain('no-drag sortable-channel-row');
     expect(markup).not.toContain('Reorder');
@@ -140,17 +85,10 @@ test('keeps context-menu chat rows on the stock Sidebar icon gap', () => {
         displayName: 'Blippy',
         id: 'agt_blippy000000000',
     });
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[blippy]}
-            chats={[channel(), dm('chat_blippy', blippy)]}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedChatId={undefined}
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({
+        agents: [blippy],
+        chats: [channel(), dm('chat_blippy', blippy)],
+    });
     const rowTriggers = markup.match(
         /context-menu__trigger flex min-w-0 flex-1 items-center gap-3/g
     );
@@ -160,20 +98,12 @@ test('keeps context-menu chat rows on the stock Sidebar icon gap', () => {
 });
 
 test('keeps unread count chips circular until the number needs a pill', () => {
-    const markup = renderSidebar(
-        <ChatNavigation
-            agents={[]}
-            chats={[
-                channel({ id: 'chat_one', unreadCount: 1 }),
-                channel({ id: 'chat_ten', unreadCount: 10 }),
-            ]}
-            onCreateChannel={() => undefined}
-            onPreloadSection={() => undefined}
-            selectedChatId={undefined}
-            serverId="server_one"
-            slug="haus"
-        />
-    );
+    const markup = renderNavigation({
+        chats: [
+            channel({ id: 'chat_one', unreadCount: 1 }),
+            channel({ id: 'chat_ten', unreadCount: 10 }),
+        ],
+    });
 
     expect(markup).toContain('aria-label="1 unread"');
     expect(markup).toContain('aria-label="10 unread"');
@@ -219,9 +149,22 @@ function channel(overrides: Partial<Pick<Chat, 'id' | 'unreadCount'>> = {}): Cha
     });
 }
 
-function renderSidebar(children: ReactNode) {
+const serverId = 'server_one';
+
+/** The sidebar over a cache seeded with the Server's chat and Agent lists. */
+function renderNavigation({
+    agents = [],
+    chats = [],
+    ...props
+}: {
+    agents?: Agent[];
+    chats?: Chat[];
+} & Partial<React.ComponentProps<typeof ChatNavigation>>) {
     const queryClient = new QueryClient();
     const client = hausTrpc.createClient({ links: [] });
+    const utils = createTRPCQueryUtils({ client, queryClient });
+    utils.agent.list.setData({ serverId }, agents);
+    utils.chat.list.setData({ serverId }, chats);
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
@@ -230,7 +173,14 @@ function renderSidebar(children: ReactNode) {
                         <Sidebar.Provider>
                             <ShellSidebar activePage="server" slug="dev">
                                 <ShellSidebarPage ariaLabel="Server" value="server">
-                                    {children}
+                                    <ChatNavigation
+                                        onCreateChannel={() => undefined}
+                                        onPreloadSection={() => undefined}
+                                        selectedChatId={undefined}
+                                        serverId={serverId}
+                                        slug="haus"
+                                        {...props}
+                                    />
                                 </ShellSidebarPage>
                             </ShellSidebar>
                         </Sidebar.Provider>

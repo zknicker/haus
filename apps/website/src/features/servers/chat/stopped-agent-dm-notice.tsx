@@ -1,5 +1,5 @@
 import { Button } from '@heroui/react';
-import { useAgent } from '../../../hooks/members/use-agent.ts';
+import { useStoppedAgentName } from '../../../hooks/members/use-agent.ts';
 import { useAgentStart } from '../../../hooks/members/use-agent-start.ts';
 
 /**
@@ -16,8 +16,8 @@ export function StoppedAgentDmNotice({
     canStart: boolean;
     serverId: string;
 }) {
-    const agent = useAgent(serverId, agentId);
-    if (agent.data?.availability !== 'stopped') {
+    const stoppedName = useStoppedAgentName(serverId, agentId);
+    if (stoppedName === null) {
         return null;
     }
     return (
@@ -25,10 +25,7 @@ export function StoppedAgentDmNotice({
             className="mx-auto flex w-full items-center justify-between gap-4 px-9 pb-2 text-muted text-sm"
             data-testid="stopped-agent-dm-notice"
         >
-            <p>
-                {agent.data.displayName} is stopped and won’t see new messages until it’s started
-                again.
-            </p>
+            <p>{stoppedName} is stopped and won’t see new messages until it’s started again.</p>
             {canStart ? <StartAgentButton agentId={agentId} serverId={serverId} /> : null}
         </div>
     );

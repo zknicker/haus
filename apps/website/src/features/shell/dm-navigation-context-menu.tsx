@@ -1,11 +1,10 @@
-import type { Agent } from '@haus/api';
 import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { DmContextMenuItems } from '../servers/chat/chat-context-menu-items.tsx';
 import { useDmActions } from '../servers/chat/use-dm-actions.ts';
 import { OpenInNewTabItem, openInNewTabKey, useOpenInNewTab } from './open-in-new-tab-item.tsx';
@@ -15,22 +14,26 @@ import { OpenInNewTabItem, openInNewTabKey, useOpenInNewTab } from './open-in-ne
  * menu has (Files only on desktop, which opens them as a page).
  */
 export function DmNavigationContextMenu({
-    agent,
+    agentId,
     chatId,
     chatName,
     children,
     href,
     slug,
 }: {
-    agent: Agent | null;
+    agentId: string | null;
     chatId: string | null;
     chatName: string;
     children: React.ReactNode;
     href: string;
     slug: string;
 }) {
-    const navigate = useNavigate();
-    const actions = useDmActions({ openFiles: useDesktopPageOpeners()?.openFiles, slug });
+    const navigate = useSidebarNavigate();
+    const actions = useDmActions({
+        openFiles: useDesktopPageOpeners()?.openFiles,
+        openPath: navigate,
+        slug,
+    });
     const openInNewTab = useOpenInNewTab();
     const onAction = (key: React.Key) => {
         if (key === 'open') {
@@ -41,7 +44,7 @@ export function DmNavigationContextMenu({
             openInNewTab?.(href);
             return;
         }
-        actions.run({ agent, chatId }, key);
+        actions.run({ agentId, chatId }, key);
     };
 
     return (
@@ -59,7 +62,7 @@ export function DmNavigationContextMenu({
                     <ContextMenu.Separator />
                     <DmContextMenuItems
                         files={actions.filesAvailable}
-                        hasAgent={Boolean(agent)}
+                        hasAgent={agentId !== null}
                         hasChat={Boolean(chatId)}
                     />
                 </ContextMenu.Menu>

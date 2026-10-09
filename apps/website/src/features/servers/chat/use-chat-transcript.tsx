@@ -51,7 +51,7 @@ export function useChatTranscript({
     viewerUserId,
 }: ChatTranscriptInput) {
     const messageList = messages ?? emptyChatMessages;
-    // Availability flips on every Agent turn; rows read it per avatar (`useAgentAvailability`),
+    // Availability flips on every Agent turn; rows read it per presence dot (`useAgentPresence`),
     // so the rows' agent list changes only with the fields they render.
     const agentList = useAgentAppearances(serverId);
     const download = useAttachmentDownload();

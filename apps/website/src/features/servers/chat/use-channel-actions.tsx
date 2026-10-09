@@ -1,7 +1,6 @@
 import type { Chat } from '@haus/api';
 import { toast } from '@heroui/react';
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
     useChannelArchive,
     useChannelDelete,
@@ -18,8 +17,8 @@ import { tasksRoute } from '../server-routes.ts';
 export interface ChatActionRoutes {
     /** The chat's Files. Omitted where a surface cannot open them, which hides the item. */
     openFiles?: (chatId: string) => void;
-    /** Tasks and profile links. Defaults to the surface's router. */
-    openPath?: (path: string) => void;
+    /** Tasks and profile links: the surface's own navigate (a router, a tab, the sidebar). */
+    openPath: (path: string) => void;
 }
 
 export interface ChannelActions {
@@ -50,7 +49,6 @@ export function useChannelActions({
     onDeleted?: (chat: Chat) => void;
     slug: string;
 }): ChannelActions {
-    const navigate = useNavigate();
     const role = useServer(slug).data?.role;
     const archive = useChannelArchive();
     const unarchive = useChannelUnarchive();
@@ -62,11 +60,10 @@ export function useChannelActions({
         kind: ChannelEditDialog;
     } | null>(null);
     const [deleting, setDeleting] = React.useState<Chat | null>(null);
-    const open = openPath ?? navigate;
 
     const run = (chat: Chat, key: React.Key) => {
         if (key === 'tasks') {
-            open(`${tasksRoute(slug)}?chat=${encodeURIComponent(chat.id)}`);
+            openPath(`${tasksRoute(slug)}?chat=${encodeURIComponent(chat.id)}`);
             return;
         }
         if (key === 'files') {

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAgents } from '../../hooks/members/use-agents.ts';
-import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useInboxUnreadCount } from '../../hooks/servers/use-inbox-unread-count.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
@@ -24,18 +23,18 @@ export function AppSidebar({
     selectedAgentDmId?: string;
 }) {
     const navigate = useNavigate();
-    const agents = useAgents(currentServer.id);
-    const chats = useChats(currentServer.id);
     const createChannel = useCreateServerChannel();
-    // The sidebar owns the Inbox badge's read, the same way it owns the chat
-    // list the unread chips ride on; the rows below stay presentation.
+    // The sidebar owns the Inbox badge's read; the chat rows read their own
+    // list entries.
     const inboxUnread = useInboxUnreadCount(currentServer.id);
     const [creatingChannel, setCreatingChannel] = React.useState(false);
     const [creatingAgent, setCreatingAgent] = React.useState(false);
+    // Read only while the new-channel dialog is open: the Agent list changes
+    // on every Agent turn, and the closed dialog has nothing to show.
+    const agents = useAgents(creatingChannel ? currentServer.id : undefined);
     const slug = currentServer.slug;
     const canManage = currentServer.role === 'owner' || currentServer.role === 'admin';
     const agentItems = agents.data ?? [];
-    const chatItems = chats.data ?? [];
     const channelAgents: ChannelAgentOption[] = agentItems.map((agent) => ({
         avatarUrl: agent.avatarUrl,
         id: agent.id,
@@ -49,8 +48,6 @@ export function AppSidebar({
     return (
         <>
             <ChatNavigation
-                agents={agentItems}
-                chats={chatItems}
                 inboxUnreadCount={inboxUnread.count}
                 onCreateAgent={canManage ? () => setCreatingAgent(true) : undefined}
                 onCreateChannel={openCreateChannel}
@@ -61,7 +58,6 @@ export function AppSidebar({
                 slug={slug}
             />
             <CreateAgentDialog
-                agents={agentItems}
                 onCreated={(agentId) => {
                     setCreatingAgent(false);
                     navigate(serverAgentDmRoute(slug, agentId));

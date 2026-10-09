@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import { Link } from 'react-router-dom';
 import { HausGhost } from '../../components/haus-ghost.tsx';
-import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
+import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { inboxRoute } from '../servers/server-routes.ts';
 import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts';
 
@@ -45,7 +45,7 @@ export function SidebarTitlebarStrip({
     settingsAction?: React.ReactNode;
     slug: string;
 }) {
-    const tempo = resolveAgentActivityGhostTempo(useOptionalCurrentAgentActivity());
+    const tempo = resolveAgentActivityGhostTempo(useOptionalServerWorkState());
 
     return (
         <div className="app-shell-titlebar-strip">

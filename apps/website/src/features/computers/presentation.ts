@@ -94,10 +94,14 @@ export function availabilityLabel(agent: {
     availability: Agent['availability'];
     wakePause?: Agent['wakePause'];
 }) {
-    if (agent.wakePause) {
+    return presenceLabel(agent.availability, Boolean(agent.wakePause));
+}
+
+export function presenceLabel(availability: Agent['availability'], paused: boolean) {
+    if (paused) {
         return 'Paused';
     }
-    switch (agent.availability) {
+    switch (availability) {
         case 'idle':
             return 'Online';
         case 'working':

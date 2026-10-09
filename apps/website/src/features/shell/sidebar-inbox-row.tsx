@@ -1,8 +1,9 @@
 import { Sidebar } from '@heroui-pro/react';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { HausGhost } from '../../components/haus-ghost.tsx';
-import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
-import { usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
+import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
+import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { inboxRoute } from '../servers/server-routes.ts';
 import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
@@ -51,9 +52,9 @@ export function SidebarInboxRow({
 }) {
     // The mesh drifts with the Server's live work wherever the mark is drawn,
     // so the tempo is read whether or not this row is the one drawing it.
-    const tempo = resolveAgentActivityGhostTempo(useOptionalCurrentAgentActivity());
+    const tempo = resolveAgentActivityGhostTempo(useOptionalServerWorkState());
     const href = inboxRoute(slug);
-    const pressRef = usePressNavigation(href, onPreload);
+    const pressRef = usePressNavigationWith(useSidebarNavigate(), href, onPreload);
 
     return (
         <Sidebar.MenuItem

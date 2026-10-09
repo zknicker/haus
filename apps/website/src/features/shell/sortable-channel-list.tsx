@@ -10,17 +10,18 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+import { useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { channelListModifiers } from './channel-drag-modifiers.ts';
-import { orderChannels, readChannelOrder, writeChannelOrder } from './channel-order.ts';
+import { orderChannelIds, readChannelOrder, writeChannelOrder } from './channel-order.ts';
 import { chatNavigationName } from './chat-navigation-name.ts';
 import { ChatNavigationRowContent } from './chat-navigation-row.tsx';
 import {
     type KeyboardCommand,
     keyboardCommand,
+    type SortableChannel,
     SortableChannelRow,
 } from './sortable-channel-row.tsx';
 import './sortable-channel-list.css';
@@ -39,21 +40,25 @@ const announcements: Announcements = {
         over ? `${sortableName(active)} is now at ${sortableName(over)}.` : undefined,
     onDragStart: ({ active }) => `Picked up ${sortableName(active)}.`,
 };
-interface KeyboardDrag {
-    id: string;
-    name: string;
+// Module-level: dnd-kit memoizes the sensor on this object, and a new one per render
+// re-renders every sortable row through its context.
+const pointerSensorOptions = { activationConstraint: { distance: 3 } };
+interface KeyboardDrag extends SortableChannel {
     originalIds: string[];
 }
 
-export function SortableChannelList({
-    agents,
-    channels,
+/**
+ * The Channels menu in the user's order. Memoized on the channel ids, which
+ * keep their identity until a channel joins, leaves, or moves; rows read their
+ * own entries.
+ */
+export const SortableChannelList = React.memo(function SortableChannelList({
+    channelIds,
     selectedChatId,
     serverId,
     slug,
 }: {
-    agents: Map<string, Agent>;
-    channels: Chat[];
+    channelIds: readonly string[];
     selectedChatId: string | undefined;
     serverId: string;
     slug: string;
@@ -66,18 +71,14 @@ export function SortableChannelList({
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [keyboardDrag, setKeyboardDrag] = React.useState<KeyboardDrag | null>(null);
     const [keyboardAnnouncement, setKeyboardAnnouncement] = React.useState('');
-    const orderedChannels = React.useMemo(
-        () => orderChannels(channels, storedIds),
-        [channels, storedIds]
+    // SortableContext keys its context on this array's identity: a new array
+    // re-renders every row.
+    const orderedIds = React.useMemo(
+        () => orderChannelIds(channelIds, storedIds),
+        [channelIds, storedIds]
     );
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 3 } }));
+    const sensors = useSensors(useSensor(PointerSensor, pointerSensorOptions));
     const shouldReduceMotion = useReducedMotion() === true;
-    const activeChannel = activeId
-        ? (orderedChannels.find(({ id }) => id === activeId) ?? null)
-        : null;
-    const activeAgent = activeChannel?.peerAgentId
-        ? (agents.get(activeChannel.peerAgentId) ?? null)
-        : null;
 
     const handleDragStart = ({ active }: DragStartEvent) => {
         setActiveId(String(active.id));
@@ -88,73 +89,72 @@ export function SortableChannelList({
         if (!over || active.id === over.id) {
             return;
         }
-        const previousIndex = orderedChannels.findIndex(({ id }) => id === active.id);
-        const nextIndex = orderedChannels.findIndex(({ id }) => id === over.id);
+        const previousIndex = orderedIds.indexOf(String(active.id));
+        const nextIndex = orderedIds.indexOf(String(over.id));
         if (previousIndex === -1 || nextIndex === -1) {
             return;
         }
-        const nextChannels = arrayMove(orderedChannels, previousIndex, nextIndex);
-        setStoredIds(nextChannels.map(({ id }) => id));
+        const nextIds = arrayMove(orderedIds, previousIndex, nextIndex);
+        setStoredIds(nextIds);
         if (storage) {
-            writeChannelOrder(storage, storageKey, nextChannels);
+            writeChannelOrder(storage, storageKey, nextIds);
         }
     };
-    const handleKeyboardCommand = React.useCallback(
-        (chat: Chat, command: KeyboardCommand) => {
-            const name = chatNavigationName(chat, null);
-            if (command === 'pick-up') {
-                setKeyboardDrag({
-                    id: chat.id,
-                    name,
-                    originalIds: orderedChannels.map(({ id }) => id),
-                });
-                setKeyboardAnnouncement(`Picked up channel ${name}.`);
-                return;
+    const runKeyboardCommand = (channel: SortableChannel, command: KeyboardCommand) => {
+        if (command === 'pick-up') {
+            setKeyboardDrag({ ...channel, originalIds: orderedIds });
+            setKeyboardAnnouncement(`Picked up channel ${channel.name}.`);
+            return;
+        }
+        if (!keyboardDrag || keyboardDrag.id !== channel.id) {
+            return;
+        }
+        if (command === 'cancel') {
+            setStoredIds(keyboardDrag.originalIds);
+            setKeyboardDrag(null);
+            setKeyboardAnnouncement(`Cancelled reordering channel ${keyboardDrag.name}.`);
+            return;
+        }
+        if (command === 'drop') {
+            if (storage) {
+                writeChannelOrder(storage, storageKey, orderedIds);
             }
-            if (!keyboardDrag || keyboardDrag.id !== chat.id) {
-                return;
-            }
-            if (command === 'cancel') {
-                setStoredIds(keyboardDrag.originalIds);
-                setKeyboardDrag(null);
-                setKeyboardAnnouncement(`Cancelled reordering channel ${keyboardDrag.name}.`);
-                return;
-            }
-            if (command === 'drop') {
-                if (storage) {
-                    writeChannelOrder(storage, storageKey, orderedChannels);
-                }
-                setKeyboardDrag(null);
-                setKeyboardAnnouncement(`Dropped channel ${keyboardDrag.name}.`);
-                return;
-            }
+            setKeyboardDrag(null);
+            setKeyboardAnnouncement(`Dropped channel ${keyboardDrag.name}.`);
+            return;
+        }
 
-            const currentIndex = orderedChannels.findIndex(({ id }) => id === chat.id);
-            const nextIndex = Math.max(
-                0,
-                Math.min(
-                    orderedChannels.length - 1,
-                    currentIndex + (command === 'move-down' ? 1 : -1)
-                )
-            );
-            if (currentIndex === nextIndex) {
-                return;
-            }
-            const nextChannels = arrayMove(orderedChannels, currentIndex, nextIndex);
-            setStoredIds(nextChannels.map(({ id }) => id));
-            setKeyboardAnnouncement(
-                `Moved channel ${keyboardDrag.name} to position ${nextIndex + 1} of ${nextChannels.length}.`
-            );
-        },
-        [keyboardDrag, orderedChannels, storage, storageKey]
+        const currentIndex = orderedIds.indexOf(channel.id);
+        const nextIndex = Math.max(
+            0,
+            Math.min(orderedIds.length - 1, currentIndex + (command === 'move-down' ? 1 : -1))
+        );
+        if (currentIndex === nextIndex) {
+            return;
+        }
+        const nextIds = arrayMove(orderedIds, currentIndex, nextIndex);
+        setStoredIds(nextIds);
+        setKeyboardAnnouncement(
+            `Moved channel ${keyboardDrag.name} to position ${nextIndex + 1} of ${nextIds.length}.`
+        );
+    };
+    // Rows take one stable command function, so a keyboard drag or a reorder
+    // does not re-render every row through its props.
+    const latestCommand = React.useRef(runKeyboardCommand);
+    React.useLayoutEffect(() => {
+        latestCommand.current = runKeyboardCommand;
+    });
+    const handleKeyboardCommand = React.useCallback(
+        (channel: SortableChannel, command: KeyboardCommand) =>
+            latestCommand.current(channel, command),
+        []
     );
 
     React.useEffect(() => {
         if (!keyboardDrag) {
             return;
         }
-        const chat = channels.find(({ id }) => id === keyboardDrag.id);
-        if (!chat) {
+        if (!channelIds.includes(keyboardDrag.id)) {
             setStoredIds(keyboardDrag.originalIds);
             setKeyboardDrag(null);
             setKeyboardAnnouncement(`Cancelled reordering channel ${keyboardDrag.name}.`);
@@ -162,7 +162,7 @@ export function SortableChannelList({
         }
         const handleActiveDragKey = (event: KeyboardEvent) => {
             if (event.key === 'Tab') {
-                handleKeyboardCommand(chat, 'cancel');
+                handleKeyboardCommand(keyboardDrag, 'cancel');
                 return;
             }
             const command = keyboardCommand(event.key, true);
@@ -173,16 +173,16 @@ export function SortableChannelList({
             // handle is picked up, the reorder interaction owns those keys.
             event.preventDefault();
             event.stopImmediatePropagation();
-            handleKeyboardCommand(chat, command);
+            handleKeyboardCommand(keyboardDrag, command);
         };
-        const cancelOnPointerDown = () => handleKeyboardCommand(chat, 'cancel');
+        const cancelOnPointerDown = () => handleKeyboardCommand(keyboardDrag, 'cancel');
         window.addEventListener('keydown', handleActiveDragKey, true);
         window.addEventListener('pointerdown', cancelOnPointerDown, true);
         return () => {
             window.removeEventListener('keydown', handleActiveDragKey, true);
             window.removeEventListener('pointerdown', cancelOnPointerDown, true);
         };
-    }, [channels, handleKeyboardCommand, keyboardDrag]);
+    }, [channelIds, handleKeyboardCommand, keyboardDrag]);
 
     return (
         <DndContext
@@ -194,19 +194,16 @@ export function SortableChannelList({
             onDragStart={handleDragStart}
             sensors={sensors}
         >
-            <SortableContext
-                items={orderedChannels.map(({ id }) => id)}
-                strategy={verticalListSortingStrategy}
-            >
+            <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
                 <Sidebar.Menu aria-label="Channels">
-                    {orderedChannels.map((chat) => (
+                    {orderedIds.map((chatId) => (
                         <SortableChannelRow
-                            agent={chat.peerAgentId ? (agents.get(chat.peerAgentId) ?? null) : null}
-                            chat={chat}
-                            isCurrent={chat.id === selectedChatId}
-                            key={chat.id}
-                            keyboardActive={keyboardDrag?.id === chat.id}
+                            chatId={chatId}
+                            isCurrent={chatId === selectedChatId}
+                            key={chatId}
+                            keyboardActive={keyboardDrag?.id === chatId}
                             onKeyboardCommand={handleKeyboardCommand}
+                            serverId={serverId}
                             slug={slug}
                         />
                     ))}
@@ -220,22 +217,26 @@ export function SortableChannelList({
                 }
                 modifiers={channelListModifiers}
             >
-                {activeChannel ? (
-                    <div className="sidebar__menu-item sortable-channel-overlay shadow-surface ring-1 ring-accent-foreground">
-                        <div className="sidebar__menu-item-content">
-                            <ChatNavigationRowContent
-                                agent={activeAgent}
-                                chat={activeChannel}
-                                name={chatNavigationName(activeChannel, activeAgent)}
-                            />
-                        </div>
-                    </div>
-                ) : null}
+                {activeId ? <DraggedChannel chatId={activeId} serverId={serverId} /> : null}
             </DragOverlay>
             <span aria-live="assertive" className="sr-only">
                 {keyboardAnnouncement}
             </span>
         </DndContext>
+    );
+});
+
+function DraggedChannel({ chatId, serverId }: { chatId: string; serverId: string }) {
+    const chat = useChatNavigationEntry(serverId, chatId);
+    if (!chat) {
+        return null;
+    }
+    return (
+        <div className="sidebar__menu-item sortable-channel-overlay shadow-surface ring-1 ring-accent-foreground">
+            <div className="sidebar__menu-item-content">
+                <ChatNavigationRowContent chat={chat} name={chatNavigationName(chat, null)} />
+            </div>
+        </div>
     );
 }
 

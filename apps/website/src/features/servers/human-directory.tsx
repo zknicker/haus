@@ -102,7 +102,6 @@ export function HumanDirectory({
                 slug={serverSlug}
             />
             <CreateAgentDialog
-                agents={agents.data ?? []}
                 onCreated={(agentId) => {
                     setCreatingAgent(false);
                     openAgentProfile(agentId);

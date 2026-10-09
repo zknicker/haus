@@ -1,24 +1,25 @@
-import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { mergeRefs } from '@react-aria/utils';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
+import { type ChatNavigationEntry, useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
-import { usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
+import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
-import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
 import { ChatNavigationContextMenu } from './chat-navigation-context-menu.tsx';
+import { chatNavigationName } from './chat-navigation-name.ts';
 
 /**
- * One Chat in the sidebar. Memoized on a boolean `isCurrent`, so a navigation
- * re-renders only the row it leaves and the row it lands on. A plain mouse
- * press opens the Chat, even one that then drags to reorder; keyboard and
- * modified clicks keep the link's own path.
+ * One Chat in the sidebar. Memoized on its own list entry and a boolean
+ * `isCurrent`: a navigation re-renders only the row it leaves and the row it
+ * lands on, and a chat-list update only the rows whose entry changed. A plain
+ * mouse press opens the Chat, even one that then drags to reorder; keyboard
+ * and modified clicks keep the link's own path.
  */
 export const ChatNavigationRow = React.memo(function ChatNavigationRow({
-    agent,
     ariaDescribedBy,
     chat,
     className,
@@ -28,9 +29,8 @@ export const ChatNavigationRow = React.memo(function ChatNavigationRow({
     slug,
     style,
 }: {
-    agent: Agent | null;
     ariaDescribedBy?: string;
-    chat: Chat;
+    chat: ChatNavigationEntry;
     className?: string;
     isCurrent: boolean;
     name: string;
@@ -40,7 +40,7 @@ export const ChatNavigationRow = React.memo(function ChatNavigationRow({
 }) {
     const { focusRef, preload } = usePreloadChat(chat.serverId, chat.id);
     const href = serverChatRoute(slug, chat.id);
-    const pressRef = usePressNavigation(href, preload);
+    const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
     const rowRef = React.useMemo(
         () => mergeRefs<HTMLDivElement>(ref, focusRef, pressRef),
         [focusRef, pressRef, ref]
@@ -57,26 +57,50 @@ export const ChatNavigationRow = React.memo(function ChatNavigationRow({
             style={style}
             textValue={name}
         >
-            <ChatNavigationContextMenu agent={agent} chat={chat} isCurrent={isCurrent} slug={slug}>
-                <ChatNavigationRowContent agent={agent} chat={chat} name={name} />
+            <ChatNavigationContextMenu chat={chat} isCurrent={isCurrent} slug={slug}>
+                <ChatNavigationRowContent chat={chat} name={name} />
             </ChatNavigationContextMenu>
         </Sidebar.MenuItem>
     );
 });
 
+/** A DM with people: a Chat row that reads its own list entry. */
+export const ListedChatNavigationRow = React.memo(function ListedChatNavigationRow({
+    chatId,
+    isCurrent,
+    serverId,
+    slug,
+}: {
+    chatId: string;
+    isCurrent: boolean;
+    serverId: string;
+    slug: string;
+}) {
+    const chat = useChatNavigationEntry(serverId, chatId);
+    if (!chat) {
+        return null;
+    }
+    return (
+        <ChatNavigationRow
+            chat={chat}
+            isCurrent={isCurrent}
+            name={chatNavigationName(chat, null)}
+            slug={slug}
+        />
+    );
+});
+
 export function ChatNavigationRowContent({
-    agent,
     chat,
     name,
 }: {
-    agent: Agent | null;
-    chat: Chat;
+    chat: ChatNavigationEntry;
     name: string;
 }) {
     return (
         <>
             <Sidebar.MenuIcon>
-                <ChatIcon agent={agent} chat={chat} />
+                <ChannelIconBox color={chat.color} icon={chat.icon} size="sidebar" />
             </Sidebar.MenuIcon>
             <Sidebar.MenuItemContent>
                 {/* Two optical pixels, not a spacing change: a chat's mark is a
@@ -96,23 +120,8 @@ export function ChatNavigationRowContent({
                 >
                     {name}
                 </Sidebar.MenuLabel>
-                <ChatRowChip chat={chat} />
+                {chat.unreadCount > 0 ? <UnreadCountChip count={chat.unreadCount} /> : null}
             </Sidebar.MenuItemContent>
         </>
     );
-}
-
-function ChatRowChip({ chat }: { chat: Chat }) {
-    if (chat.unreadCount === 0) {
-        return null;
-    }
-    return <UnreadCountChip count={chat.unreadCount} />;
-}
-
-function ChatIcon({ agent, chat }: { agent: Agent | null; chat: Chat }) {
-    if (!agent) {
-        return <ChannelIconBox color={chat.color} icon={chat.icon} size="sidebar" />;
-    }
-
-    return <AgentAvatar agent={agent} size={24} />;
 }

@@ -1,5 +1,7 @@
 import type { Agent, ComputerInventory } from '@haus/api';
 import { Alert, Modal, Spinner } from '@heroui/react';
+import type * as React from 'react';
+import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';
 import {
@@ -9,7 +11,6 @@ import {
 } from './agent-creation-form.tsx';
 
 interface AgentCreationDialogProps {
-    agents: readonly Agent[];
     error: { message: string } | null;
     isPending: boolean;
     onCreated: (agentId: string) => void;
@@ -20,7 +21,6 @@ interface AgentCreationDialogProps {
 }
 
 export function AgentCreationDialog({
-    agents,
     error,
     isPending,
     onCreated,
@@ -65,13 +65,13 @@ export function AgentCreationDialog({
                             </Alert>
                         </Modal.Body>
                     ) : (
-                        <AgentCreationForm
-                            agents={agents}
+                        <ServerAgentCreationForm
                             error={error}
                             isPending={isPending}
                             onCreated={onCreated}
                             onSubmit={onSubmit}
                             reported={reported}
+                            serverId={serverId}
                         />
                     )}
                 </Modal.Dialog>
@@ -79,3 +79,18 @@ export function AgentCreationDialog({
         </Modal.Backdrop>
     );
 }
+
+/**
+ * The form with the Server's Agents (it starts from Cove's configuration). It
+ * mounts only while the dialog is open, so the closed dialog the sidebar keeps
+ * does not re-render with every Agent turn.
+ */
+function ServerAgentCreationForm({
+    serverId,
+    ...props
+}: Omit<React.ComponentProps<typeof AgentCreationForm>, 'agents'> & { serverId: string }) {
+    const agents = useAgents(serverId).data ?? noAgents;
+    return <AgentCreationForm agents={agents} {...props} />;
+}
+
+const noAgents: readonly Agent[] = [];

@@ -145,12 +145,32 @@ export function AgentActivityProvider({
         [activities, agents.isSuccess, query.isSuccess, serverId]
     );
 
+    let workState: ServerWorkState = 'unsettled';
+    if (value.isSnapshotReady) {
+        workState = activities.length > 0 ? 'working' : 'quiet';
+    }
+
     return (
         <AgentActivitySubscriptionContext value={subscribeToActivity}>
-            <CurrentAgentActivityContext value={value}>{children}</CurrentAgentActivityContext>
+            <ServerWorkStateContext value={workState}>
+                <CurrentAgentActivityContext value={value}>{children}</CurrentAgentActivityContext>
+            </ServerWorkStateContext>
         </AgentActivitySubscriptionContext>
     );
 }
+
+/**
+ * Whether anyone works on this Server right now, for chrome that shows only
+ * that fact (the Haus mark's drift). The activity snapshot changes on every
+ * live event; this changes only when the fact does. Null outside a provider.
+ */
+export function useOptionalServerWorkState(): ServerWorkState | null {
+    return React.use(ServerWorkStateContext);
+}
+
+export type ServerWorkState = 'quiet' | 'unsettled' | 'working';
+
+const ServerWorkStateContext = React.createContext<ServerWorkState | null>(null);
 
 /** Optional so shared identity components remain renderable in local previews. */
 export function useOptionalCurrentAgentActivity() {

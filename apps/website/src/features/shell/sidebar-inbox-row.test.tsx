@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { Sidebar } from '@heroui-pro/react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { renderWithTrpc } from '../../test-support/trpc-test-provider.tsx';
 import { ChatNavigation } from './chat-navigation.tsx';
 import { CommandMenuProvider } from './command-menu-provider.tsx';
 import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
@@ -97,15 +97,13 @@ function inboxLabelClasses(markup: string): string {
 }
 
 function navigationMarkup(options?: { inboxUnreadCount?: number }) {
-    return renderToStaticMarkup(
+    return renderWithTrpc(
         <MemoryRouter>
             <CommandMenuProvider>
                 <Sidebar.Provider>
                     <ShellSidebar activePage="server" slug="dev">
                         <ShellSidebarPage ariaLabel="Server" value="server">
                             <ChatNavigation
-                                agents={[]}
-                                chats={[]}
                                 inboxUnreadCount={options?.inboxUnreadCount ?? 0}
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}

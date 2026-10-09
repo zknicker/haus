@@ -30,6 +30,7 @@ export function ChannelActions({
     const actions = useChannelActions({
         onDeleted: () => navigate(serverRoute(server.slug), { replace: true }),
         openFiles: onOpenFiles,
+        openPath: navigate,
         slug: server.slug,
     });
     const onAction = (key: React.Key) => actions.run(chat, key);

@@ -3,6 +3,7 @@ import { Button, Dropdown, Header, Label, Separator, Tooltip } from '@heroui/rea
 import { ContextMenu } from '@heroui-pro/react';
 import { MoreHorizontalIcon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { DmContextMenuItems } from './chat-context-menu-items.tsx';
 import { ChatSurfaceItems } from './chat-surface-items.tsx';
@@ -20,9 +21,13 @@ export function DmActions({
     peerAgent: Agent | null;
     slug: string;
 }) {
-    const actions = useDmActions({ openFiles: content?.onOpenFiles, slug });
+    const actions = useDmActions({
+        openFiles: content?.onOpenFiles,
+        openPath: useNavigate(),
+        slug,
+    });
     const runAction = (key: React.Key) =>
-        actions.run({ agent: peerAgent, chatId: content?.chatId ?? null }, key);
+        actions.run({ agentId: peerAgent?.id ?? null, chatId: content?.chatId ?? null }, key);
 
     return (
         <ContextMenu>

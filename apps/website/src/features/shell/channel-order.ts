@@ -1,16 +1,11 @@
-import type { Chat } from '@haus/api';
-
-export function orderChannels(channels: readonly Chat[], storedIds: readonly string[]): Chat[] {
-    const channelById = new Map(channels.map((channel) => [channel.id, channel]));
-    const ordered = storedIds.flatMap((id) => {
-        const channel = channelById.get(id);
-        if (!channel) {
-            return [];
-        }
-        channelById.delete(id);
-        return [channel];
-    });
-    return [...ordered, ...channelById.values()];
+/** The user's stored channel order first, then channels it has not placed yet, in Server order. */
+export function orderChannelIds(
+    channelIds: readonly string[],
+    storedIds: readonly string[]
+): string[] {
+    const unplaced = new Set(channelIds);
+    const ordered = storedIds.filter((id) => unplaced.delete(id));
+    return [...ordered, ...unplaced];
 }
 
 export function readChannelOrder(storage: Pick<Storage, 'getItem'>, key: string): string[] {
@@ -28,10 +23,10 @@ export function readChannelOrder(storage: Pick<Storage, 'getItem'>, key: string)
 export function writeChannelOrder(
     storage: Pick<Storage, 'setItem'>,
     key: string,
-    channels: readonly Chat[]
+    channelIds: readonly string[]
 ) {
     try {
-        storage.setItem(key, JSON.stringify(channels.map((channel) => channel.id)));
+        storage.setItem(key, JSON.stringify(channelIds));
     } catch {
         // Local presentation can still update when storage is unavailable.
     }

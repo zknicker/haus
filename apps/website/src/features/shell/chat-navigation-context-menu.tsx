@@ -1,13 +1,13 @@
-import type { Agent, Chat } from '@haus/api';
 import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
+import { type ChatNavigationEntry, useListedChat } from '../../hooks/servers/use-chats.ts';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { ChannelContextMenuItems } from '../servers/chat/chat-context-menu-items.tsx';
-import { useChannelActions } from '../servers/chat/use-channel-actions.tsx';
+import { type ChannelActions, useChannelActions } from '../servers/chat/use-channel-actions.tsx';
 import { serverChatRoute, serverRoute } from '../servers/server-routes.ts';
 import { DmNavigationContextMenu } from './dm-navigation-context-menu.tsx';
 import { OpenInNewTabItem, openInNewTabKey, useOpenInNewTab } from './open-in-new-tab-item.tsx';
@@ -18,14 +18,12 @@ import { OpenInNewTabItem, openInNewTabKey, useOpenInNewTab } from './open-in-ne
  * live; its page carries no actions band.
  */
 export function ChatNavigationContextMenu({
-    agent,
     chat,
     children,
     isCurrent,
     slug,
 }: {
-    agent: Agent | null;
-    chat: Chat;
+    chat: ChatNavigationEntry;
     children: React.ReactNode;
     isCurrent: boolean;
     slug: string;
@@ -33,9 +31,9 @@ export function ChatNavigationContextMenu({
     if (chat.kind === 'dm') {
         return (
             <DmNavigationContextMenu
-                agent={agent}
+                agentId={null}
                 chatId={chat.id}
-                chatName={agent?.displayName ?? chat.peerAgentDisplayName ?? 'DM'}
+                chatName={chat.peerAgentDisplayName ?? 'DM'}
                 href={serverChatRoute(slug, chat.id)}
                 slug={slug}
             >
@@ -44,31 +42,81 @@ export function ChatNavigationContextMenu({
         );
     }
     return (
-        <ChannelNavigationContextMenu chat={chat} isCurrent={isCurrent} slug={slug}>
+        <ChannelNavigationContextMenu
+            chatId={chat.id}
+            isCurrent={isCurrent}
+            serverId={chat.serverId}
+            slug={slug}
+        >
             {children}
         </ChannelNavigationContextMenu>
     );
 }
 
 function ChannelNavigationContextMenu({
-    chat,
+    chatId,
     children,
     isCurrent,
+    serverId,
     slug,
 }: {
-    chat: Chat;
+    chatId: string;
     children: React.ReactNode;
     isCurrent: boolean;
+    serverId: string;
     slug: string;
 }) {
-    const navigate = useNavigate();
+    const navigate = useSidebarNavigate();
     const actions = useChannelActions({
         // Deleting the channel you are in leaves it; any other page stays put.
         onDeleted: isCurrent ? () => navigate(serverRoute(slug), { replace: true }) : undefined,
         openFiles: useDesktopPageOpeners()?.openFiles,
+        openPath: navigate,
         slug,
     });
+
+    return (
+        <>
+            <ContextMenu>
+                {/* The trigger wraps Sidebar's icon and content slots, so it owns their stock gap. */}
+                <ContextMenu.Trigger className="flex min-w-0 flex-1 items-center gap-3">
+                    {children}
+                </ContextMenu.Trigger>
+                <ContextMenu.Popover>
+                    <ChannelRowMenu
+                        actions={actions}
+                        chatId={chatId}
+                        serverId={serverId}
+                        slug={slug}
+                    />
+                </ContextMenu.Popover>
+            </ContextMenu>
+            {actions.dialogs}
+        </>
+    );
+}
+
+/**
+ * The open menu's items. It reads the whole chat (archive state, participants)
+ * while the menu is open; the row itself reads only what it shows.
+ */
+function ChannelRowMenu({
+    actions,
+    chatId,
+    serverId,
+    slug,
+}: {
+    actions: ChannelActions;
+    chatId: string;
+    serverId: string;
+    slug: string;
+}) {
+    const navigate = useSidebarNavigate();
     const openInNewTab = useOpenInNewTab();
+    const chat = useListedChat(serverId, chatId);
+    if (!chat) {
+        return null;
+    }
     const chatName = chat.name ?? 'channel';
     const onAction = (key: React.Key) => {
         if (key === 'open') {
@@ -83,27 +131,16 @@ function ChannelNavigationContextMenu({
     };
 
     return (
-        <>
-            <ContextMenu>
-                {/* The trigger wraps Sidebar's icon and content slots, so it owns their stock gap. */}
-                <ContextMenu.Trigger className="flex min-w-0 flex-1 items-center gap-3">
-                    {children}
-                </ContextMenu.Trigger>
-                <ContextMenu.Popover>
-                    <ContextMenu.Menu onAction={onAction}>
-                        {/* A row's first menu item echoes what clicking it does;
-                            the chat's own commands follow in their usual order. */}
-                        <ContextMenu.Item id="open" textValue={`Open ${chatName}`}>
-                            <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
-                            <Label>Open channel</Label>
-                        </ContextMenu.Item>
-                        {openInNewTab ? <OpenInNewTabItem /> : null}
-                        <ContextMenu.Separator />
-                        <ChannelContextMenuItems actions={actions} chat={chat} />
-                    </ContextMenu.Menu>
-                </ContextMenu.Popover>
-            </ContextMenu>
-            {actions.dialogs}
-        </>
+        <ContextMenu.Menu onAction={onAction}>
+            {/* A row's first menu item echoes what clicking it does;
+                the chat's own commands follow in their usual order. */}
+            <ContextMenu.Item id="open" textValue={`Open ${chatName}`}>
+                <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
+                <Label>Open channel</Label>
+            </ContextMenu.Item>
+            {openInNewTab ? <OpenInNewTabItem /> : null}
+            <ContextMenu.Separator />
+            <ChannelContextMenuItems actions={actions} chat={chat} />
+        </ContextMenu.Menu>
     );
 }

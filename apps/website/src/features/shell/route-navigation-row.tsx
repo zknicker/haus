@@ -1,5 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
-import { usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
+import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 
 /**
@@ -19,7 +20,7 @@ export function RouteNavigationRow({
     onPreload: () => void;
     tab: 'activity' | 'tasks';
 }) {
-    const pressRef = usePressNavigation(href, onPreload);
+    const pressRef = usePressNavigationWith(useSidebarNavigate(), href, onPreload);
 
     return (
         <Sidebar.MenuItem

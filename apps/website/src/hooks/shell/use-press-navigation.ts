@@ -16,7 +16,15 @@ import { useNavigate } from 'react-router-dom';
  * cancels the press instead of performing the action.
  */
 export function usePressNavigation(href: string | undefined, onPress?: () => void) {
-    const navigate = useNavigate();
+    return usePressNavigationWith(useNavigate(), href, onPress);
+}
+
+/** `usePressNavigation` with a caller-owned navigate (the sidebar's, `useSidebarNavigate`). */
+export function usePressNavigationWith(
+    navigate: PressNavigation['navigate'],
+    href: string | undefined,
+    onPress?: () => void
+) {
     const latest = React.useRef<PressNavigation>({ href, navigate, onPress });
     // A pressed flag outlives a ref re-attach between pointer down and click (a tab
     // router's `navigate` changes identity with the location it just moved).
