@@ -15,7 +15,7 @@ import { ServerAccessDeniedError, ServerNotFoundError } from '../../servers/serv
  */
 export function toMembershipLossError(cause: unknown): RealtimeRefusalError | null {
     if (cause instanceof ServerAccessDeniedError || cause instanceof ServerNotFoundError) {
-        return membershipLostError(cause.message);
+        return membershipLostError(cause.message, cause);
     }
 
     return null;

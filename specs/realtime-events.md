@@ -189,8 +189,9 @@ stream:
 4. **Refusals are coded.** A failed membership check (start or recheck) ends the stream with a
    tRPC `FORBIDDEN` whose error `data` carries `hausRefusal: 'membership_lost'`
    (`realtimeRefusalSchema`, `realtimeRefusalDataKey`), set by `toMembershipLossError` and exposed
-   through the tRPC `errorFormatter`. A failed role check ends the stream with `FORBIDDEN` and
-   `hausRefusal: 'role_required'`. Only these two checks produce a `hausRefusal`.
+   through the tRPC `errorFormatter`; `serverProcedure` passes a refusal through before its
+   cause-class remap, so the code survives the middleware. A failed role check ends the stream with
+   `FORBIDDEN` and `hausRefusal: 'role_required'`. Only these two checks produce a `hausRefusal`.
 5. **An unexpected error ends only this stream.** It is logged (`[haus] realtime stream failed`,
    path, tRPC code, error class) and surfaces as `INTERNAL_SERVER_ERROR`; the App restarts it.
    Never translate an unknown error into a refusal.

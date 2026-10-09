@@ -27,11 +27,11 @@ test('an unexpected failure during delivery is never reported as losing access',
     expect(toMembershipLossError(undefined)).toBeNull();
 });
 
-// The refusal carries no cause: the Server procedure middleware remaps errors by
-// cause class, which would strip the refusal code. The message stays inspectable.
-test('the refusal keeps the original failure message', () => {
+// The refusal keeps its domain cause; `serverProcedure` passes refusals through
+// before remapping by cause class, so the code survives (haus-realtime-refusals).
+test('the refusal keeps the original failure message and cause', () => {
     const cause = new ServerAccessDeniedError();
 
     expect(toMembershipLossError(cause)?.message).toBe(cause.message);
-    expect(toMembershipLossError(cause)?.cause).toBeUndefined();
+    expect(toMembershipLossError(cause)?.cause).toBe(cause);
 });

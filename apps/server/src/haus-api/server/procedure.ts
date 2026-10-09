@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+import { RealtimeRefusalError } from '../../realtime/refusal.ts';
 import { ServerSlugTakenError } from '../../servers/create-server.ts';
 import { ServerDeleteDeniedError } from '../../servers/delete-server.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../../servers/server-access.ts';
@@ -14,6 +15,12 @@ export const serverProcedure = humanProcedure.use(async ({ next }) => {
 
     if (result.ok) {
         return result;
+    }
+
+    // A coded realtime refusal is already final; remapping by its cause would
+    // drop the `hausRefusal` the App keys on.
+    if (result.error instanceof RealtimeRefusalError) {
+        throw result.error;
     }
 
     const { cause } = result.error;

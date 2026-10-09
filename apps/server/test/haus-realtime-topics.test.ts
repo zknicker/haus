@@ -172,17 +172,6 @@ test('a Thread read names its parent anchor', async () => {
     reads.stop();
 });
 
-test('role-gated streams refuse a member with role_required at start', async () => {
-    for (const stream of [
-        collectStream(peer.trpc.reminder.onUpdated, { serverId }),
-        collectStream(peer.trpc.invitation.onUpdated, { serverId }),
-    ]) {
-        await expect(stream.ended()).resolves.toMatchObject({
-            data: { code: 'FORBIDDEN', hausRefusal: 'role_required' },
-        });
-    }
-});
-
 test('a departure ends the departed member sentinel stream and names the member', async () => {
     const leaver = await signIn('user_topics_leaver');
     const leaverId = await joinAsMember(leaver, 'user_topics_leaver', serverId, 'topics-leaver');

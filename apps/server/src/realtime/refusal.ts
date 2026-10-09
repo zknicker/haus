@@ -7,21 +7,24 @@ import { TRPCError } from '@trpc/server';
  * App can tell a final membership loss from a role refusal or a transient
  * failure. Only membership and role checks raise one.
  *
- * It deliberately carries no `cause`: the Server procedure middleware remaps
- * errors by cause class, and remapping would drop the code.
+ * `serverProcedure` passes a refusal through before its cause-class remap, so
+ * the code survives even when the refusal keeps its domain `cause`.
  */
 export class RealtimeRefusalError extends TRPCError {
     readonly refusal: RealtimeRefusal;
 
-    constructor(refusal: RealtimeRefusal, message: string) {
-        super({ code: 'FORBIDDEN', message });
+    constructor(refusal: RealtimeRefusal, message: string, cause?: unknown) {
+        super({ cause, code: 'FORBIDDEN', message });
         this.name = 'RealtimeRefusalError';
         this.refusal = refusal;
     }
 }
 
-export function membershipLostError(message = 'You are no longer a member of this Haus server.') {
-    return new RealtimeRefusalError('membership_lost', message);
+export function membershipLostError(
+    message = 'You are no longer a member of this Haus server.',
+    cause?: unknown
+) {
+    return new RealtimeRefusalError('membership_lost', message, cause);
 }
 
 export function roleRequiredError(message: string) {
