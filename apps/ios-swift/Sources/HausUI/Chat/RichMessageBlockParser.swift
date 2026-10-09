@@ -13,6 +13,7 @@ import Foundation
 public enum RichMessageBlockParser {
     public static func blocks(
         _ content: String,
+        timeChips: TimeChipContext? = nil,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
     ) -> [RichMessageBlock] {
         let lines = content.split(separator: "\n", omittingEmptySubsequences: false)
@@ -24,7 +25,7 @@ public enum RichMessageBlockParser {
             if line.trimmingCharacters(in: .whitespaces).isEmpty {
                 index += 1
             } else if !mayOpenBlock(line) {
-                blocks.append(paragraph(lines: lines, from: &index, resolve: resolve))
+                blocks.append(paragraph(lines: lines, from: &index, timeChips: timeChips, resolve: resolve))
             } else if let fence = CodeFence(opening: line) {
                 blocks.append(codeBlock(fence, lines: lines, from: &index))
             } else if isThematicBreak(line) {
@@ -32,19 +33,19 @@ public enum RichMessageBlockParser {
                 index += 1
             } else if let heading = heading(line) {
                 blocks.append(
-                    .heading(level: heading.level, RichMessageParser.parse(heading.text, resolve: resolve))
+                    .heading(level: heading.level, RichMessageParser.parse(heading.text, timeChips: timeChips, resolve: resolve))
                 )
                 index += 1
             } else if isQuote(line) {
                 blocks.append(quote(lines: lines, from: &index, resolve: resolve))
             } else if RichMessageTableParser.startsTable(lines: lines, at: index) {
                 blocks.append(
-                    .table(RichMessageTableParser.table(lines: lines, from: &index, resolve: resolve))
+                    .table(RichMessageTableParser.table(lines: lines, from: &index, timeChips: timeChips, resolve: resolve))
                 )
             } else if listItem(line) != nil {
-                blocks.append(list(lines: lines, from: &index, resolve: resolve))
+                blocks.append(list(lines: lines, from: &index, timeChips: timeChips, resolve: resolve))
             } else {
-                blocks.append(paragraph(lines: lines, from: &index, resolve: resolve))
+                blocks.append(paragraph(lines: lines, from: &index, timeChips: timeChips, resolve: resolve))
             }
         }
 
@@ -56,6 +57,7 @@ public enum RichMessageBlockParser {
     private static func paragraph(
         lines: [Substring],
         from index: inout Int,
+        timeChips: TimeChipContext?,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
     ) -> RichMessageBlock {
         var body: [Substring] = []
@@ -68,7 +70,7 @@ public enum RichMessageBlockParser {
         }
         // A single newline is a line break on both clients — the App renders
         // message Markdown with `remark-breaks` — so the run keeps it.
-        return .paragraph(RichMessageParser.parse(body.joined(separator: "\n"), resolve: resolve))
+        return .paragraph(RichMessageParser.parse(body.joined(separator: "\n"), timeChips: timeChips, resolve: resolve))
     }
 
     // MARK: - Quote
@@ -83,6 +85,7 @@ public enum RichMessageBlockParser {
             body.append(stripQuoteMarker(lines[index]))
             index += 1
         }
+        // Quoted text is someone else's words: its times stay as written.
         return .quote(blocks(body.joined(separator: "\n"), resolve: resolve))
     }
 
@@ -91,6 +94,7 @@ public enum RichMessageBlockParser {
     private static func list(
         lines: [Substring],
         from index: inout Int,
+        timeChips: TimeChipContext?,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
     ) -> RichMessageBlock {
         var items: [RichMessageListItem] = []
@@ -121,6 +125,7 @@ public enum RichMessageBlockParser {
                     marker: item.marker,
                     segments: RichMessageParser.parse(
                         continuedText(item.text, lines: lines, from: &index),
+                        timeChips: timeChips,
                         resolve: resolve
                     )
                 )

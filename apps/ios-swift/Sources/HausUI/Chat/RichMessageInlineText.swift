@@ -40,7 +40,7 @@ enum RichMessageInlineText {
         let urls = segments.compactMap { segment -> URL? in
             switch segment {
             case .text: nil
-            case .reference(let reference): reference.activationURL
+            case .reference(let reference): openableURL(reference)
             case .link(_, let target): RichReferenceWireForm.activationURL(for: target)
             }
         }
@@ -87,8 +87,14 @@ enum RichMessageInlineText {
         var piece = AttributedString(reference.label)
         piece.font = .system(textStyle, design: .default, weight: .medium)
         piece.foregroundColor = Color(platform: RichReferenceChipInk.labelTint(for: reference))
-        if let url = reference.activationURL { piece.link = url }
+        if let url = openableURL(reference) { piece.link = url }
         return piece
+    }
+
+    /// A time chip's details are a popover only the TextKit body presents; a
+    /// `Text` link would hand `time://` to the system, which opens nothing.
+    private static func openableURL(_ reference: RichReferencePresentation) -> URL? {
+        reference.kind == .time ? nil : reference.activationURL
     }
 
     private static func link(

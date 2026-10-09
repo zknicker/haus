@@ -259,6 +259,10 @@ struct ParsedMessageBody {
     /// the anchor was not loaded). A Thread chip reads another page rather
     /// than the reference directory, so the memo checks these on reuse.
     var threadChips: [String: String?] = [:]
+    /// The viewer's zone and day, and the sent time, the body's time chips were
+    /// worded under (nil with none). A chip says "Today" in a zone and resolves
+    /// "tomorrow" from the sent time, so any of them moving rewords it.
+    var timeChipStamp: String?
 }
 
 enum HausStoreError: LocalizedError {

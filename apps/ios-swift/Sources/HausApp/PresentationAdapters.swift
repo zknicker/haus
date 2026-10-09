@@ -93,7 +93,12 @@ extension HausStore {
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
+            let parsed = parsedBody(
+                id: message.id,
+                content: message.content,
+                chatID: message.chatID,
+                sentAt: message.createdAt
+            )
             let ownWork: CloudAgentWork? = if case .cloudAgentWork(let work) = message.body { work } else { nil }
             return MessagePresentation(
                 id: message.id,
@@ -134,7 +139,12 @@ extension HausStore {
             // An optimistic row goes through the same body resolution as a
             // durable one, so its mentions survive the trust check even when
             // trimming changes the string the composer staged.
-            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
+            let parsed = parsedBody(
+                id: message.id,
+                content: message.content,
+                chatID: message.chatID,
+                sentAt: message.createdAt
+            )
             return MessagePresentation(
                 id: message.id,
                 author: viewer,

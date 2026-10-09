@@ -177,7 +177,8 @@ final class RichMessageUITextView: UITextView {
 ///
 /// The text engine finds the link and decides the tap; this only says what the
 /// tap means. A single tap hands the address to the system — a website or
-/// pull-request chip, an ordinary anchor, a `mailto:` or `tel:` — and a long
+/// pull-request chip, an ordinary anchor, a `mailto:` or `tel:`; a time chip
+/// opens its zones in a popover (`TimeReferencePopover`); and a long
 /// press offers no menu of its own, because the press belongs to the row's
 /// message drawer, which `RichMessageUITextView` already refuses its own
 /// recognizers for.
@@ -189,6 +190,15 @@ final class RichMessageLinkCoordinator: NSObject, UITextViewDelegate {
         defaultAction: UIAction
     ) -> UIAction? {
         guard case .link(let url) = textItem.content else { return defaultAction }
+        if url.scheme == TimeReference.scheme,
+           let run = textView.textStorage.attribute(
+               .hausReference, at: textItem.range.location, effectiveRange: nil
+           ) as? RichReferenceRun {
+            return UIAction { [weak textView] _ in
+                guard let textView else { return }
+                TimeReferencePopover.present(run.reference, from: textView, characterRange: textItem.range)
+            }
+        }
         if let route = InAppReferenceRoutes.action(for: url) {
             return UIAction { _ in route() }
         }

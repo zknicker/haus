@@ -20,6 +20,9 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     /// A Thread, by its parent Chat and anchor Message
     /// (`chat://<chatId>?thread=<anchorMessageId>`); see `ThreadReferenceTarget`.
     case thread
+    /// A moment found in prose, by its UTC instant or `<start>/<end>`
+    /// interval; see `TimeChipFinder` and `TimeReference`.
+    case time
     case website
 }
 
@@ -141,19 +144,24 @@ public struct RichReferencePresentation: Hashable, Sendable {
     /// A channel reference's live appearance. Nil for every other kind, and
     /// nil for a channel the app cannot currently resolve.
     public let channelAppearance: ChannelAppearance?
+    /// The viewer's saved zone a time reference reads in. Nil for every other
+    /// kind, and nil for a time read without one, which reads in the device's.
+    public let viewerTimeZone: TimeZone?
 
     public init(
         id: String,
         kind: MentionPresentationKind,
         label: String,
         avatarURL: URL?,
-        channelAppearance: ChannelAppearance? = nil
+        channelAppearance: ChannelAppearance? = nil,
+        viewerTimeZone: TimeZone? = nil
     ) {
         self.id = id
         self.kind = kind
         self.label = label
         self.avatarURL = avatarURL
         self.channelAppearance = channelAppearance
+        self.viewerTimeZone = viewerTimeZone
     }
 
     /// The address this reference opens when it is activated. A web link and a
@@ -165,6 +173,9 @@ public struct RichReferencePresentation: Hashable, Sendable {
         // An in-app address: the text view's link coordinator routes it to the
         // Thread instead of handing it to the system (`InAppReferenceRoutes`).
         case .thread: ThreadReferenceTarget(wireTarget: id).flatMap { _ in URL(string: id) }
+        // Also in-app: the link coordinator answers it with the chip's zones.
+        // The instant's colons would read as a port, so they are escaped.
+        case .time: TimeReference.activationURL(for: id)
         default: nil
         }
     }
@@ -182,6 +193,7 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .pullRequest: .glyph(.pullRequest)
         case .skill: overrideMark ?? .glyph(.skill)
         case .thread: .glyph(.thread)
+        case .time: .glyph(.reminder)
         case .website: .glyph(.website)
         }
     }
