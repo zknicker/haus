@@ -43,8 +43,9 @@ new command id.
   [Chat](chat.md#in-the-box). Each fire the Agent acts on is its own message;
   answers to a recurring reminder never pile into one Thread.
 - **Clear schedule times.** A reminder is one of two kinds, one-time or
-  recurring, and every profile surface says which first. Rows and the detail
-  read in your own time; the schedule's agreed timezone, with a readable zone
+  recurring, and every profile surface says which first. Rows, the detail, and
+  history read in your own time: the timezone saved on your Profile, or the
+  device zone only while that is blank. The schedule's agreed timezone, with a readable zone
   label and its clock there when the UTC offsets differ, lives only in the
   detail. Calendar cadences are converted to your zone on the date of the next
   fire, so DST and a slot that lands on another weekday for you come out right.

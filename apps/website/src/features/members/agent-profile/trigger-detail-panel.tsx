@@ -137,7 +137,11 @@ export function TriggerDetailPanel({
                         onRotate={() => setConfirm('rotate')}
                         onTest={() => void testFire.testFire()}
                     />
-                    <TriggerFireHistory fires={runs.data} isPending={runs.isPending} />
+                    <TriggerFireHistory
+                        fires={runs.data}
+                        isPending={runs.isPending}
+                        serverId={serverId}
+                    />
                     {/* A failed save or delete belongs with the drawer's own
                         actions, as text — a boxed Alert here would outweigh
                         every row it sits under. */}

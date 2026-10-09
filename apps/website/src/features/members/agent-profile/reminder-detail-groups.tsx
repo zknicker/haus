@@ -3,6 +3,7 @@ import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Link } from 'react-router-dom';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
+import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { formatByteSize } from '../../../lib/format.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
@@ -15,9 +16,16 @@ import { formatReminderScheduleDetail, reminderKind } from './reminder-schedule-
  * When it runs, in the viewer's time. The schedule's own timezone lives here
  * and nowhere else: the row it was opened from stays one short line.
  */
-export function ReminderScheduleGroup({ reminder }: { reminder: Reminder }) {
+export function ReminderScheduleGroup({
+    reminder,
+    serverId,
+}: {
+    reminder: Reminder;
+    serverId: string;
+}) {
     const now = useRelativeNow();
-    const schedule = formatReminderScheduleDetail(reminder, { now });
+    const viewerZone = useViewerTimeZone(serverId);
+    const schedule = formatReminderScheduleDetail(reminder, { now, viewerZone });
 
     return (
         <ItemCardGroup variant="transparent">
@@ -73,6 +81,7 @@ export function ReminderContextGroup({
     serverSlug: string;
 }) {
     const chats = useChats(serverId);
+    const viewerZone = useViewerTimeZone(serverId);
     const chat = chats.data?.find((candidate) => candidate.id === reminder.anchorChatId);
 
     return (
@@ -92,7 +101,7 @@ export function ReminderContextGroup({
                 </AutomationFactRow>
                 <Separator />
                 <AutomationFactRow title="Created">
-                    {formatReminderTime(reminder.createdAt)}
+                    {formatReminderTime(reminder.createdAt, viewerZone)}
                 </AutomationFactRow>
                 {reminder.hasScript ? (
                     <>

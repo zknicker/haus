@@ -6,6 +6,7 @@ import {
     TRIGGER_HISTORY_LIMIT,
     useAgentTriggerHistory,
 } from '../../../hooks/members/use-agent-trigger-history.ts';
+import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { formatTriggerFireDetail, formatTriggerHistoryTime } from './agent-trigger-model.ts';
 
@@ -29,7 +30,8 @@ export function TriggerHistoryDrawer({
 }) {
     const history = useAgentTriggerHistory(serverId, agentId, isOpen);
     const rows = history.data;
-    const columns = executionColumns(serverSlug);
+    const viewerZone = useViewerTimeZone(serverId);
+    const columns = executionColumns(serverSlug, viewerZone);
 
     return (
         <Drawer.Backdrop isDismissable isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -64,7 +66,10 @@ export function TriggerHistoryDrawer({
     );
 }
 
-function executionColumns(serverSlug: string): DataGridColumn<TriggerHistoryEntry>[] {
+function executionColumns(
+    serverSlug: string,
+    viewerZone: string
+): DataGridColumn<TriggerHistoryEntry>[] {
     return [
         {
             cell: (entry) => (
@@ -85,7 +90,7 @@ function executionColumns(serverSlug: string): DataGridColumn<TriggerHistoryEntr
         {
             cell: (entry) => (
                 <span className="text-muted tabular-nums">
-                    {formatTriggerHistoryTime(entry.firedAt)}
+                    {formatTriggerHistoryTime(entry.firedAt, viewerZone)}
                 </span>
             ),
             header: 'Executed',

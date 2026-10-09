@@ -49,7 +49,7 @@ export function ReminderDetailPanel({
             </Sheet.Header>
             <Sheet.Body>
                 <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
-                    <ReminderScheduleGroup reminder={reminder} />
+                    <ReminderScheduleGroup reminder={reminder} serverId={serverId} />
                     {instructions ? <ReminderInstructionsGroup text={instructions} /> : null}
                     <ReminderContextGroup
                         reminder={reminder}

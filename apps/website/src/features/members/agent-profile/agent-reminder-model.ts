@@ -35,10 +35,11 @@ export function reminderDescription(reminder: Pick<Reminder, 'description' | 'ti
     return description && description !== reminder.title.trim() ? description : null;
 }
 
-export function formatReminderTime(value: string) {
+export function formatReminderTime(value: string, timeZone: string) {
     return new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
         timeStyle: 'short',
+        timeZone,
     }).format(new Date(value));
 }
 

@@ -2,6 +2,7 @@ import type { TriggerFire } from '@haus/api';
 import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
+import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 import { formatTriggerFireDetail, formatTriggerFireTime } from './agent-trigger-model.ts';
 
@@ -14,10 +15,13 @@ import { formatTriggerFireDetail, formatTriggerFireTime } from './agent-trigger-
 export function TriggerFireHistory({
     fires,
     isPending,
+    serverId,
 }: {
     fires: TriggerFire[] | undefined;
     isPending: boolean;
+    serverId: string;
 }) {
+    const viewerZone = useViewerTimeZone(serverId);
     const settled = isPending ? undefined : fires;
 
     return (
@@ -42,7 +46,7 @@ export function TriggerFireHistory({
                                 <ItemCard>
                                     <ItemCard.Content>
                                         <ItemCard.Title className="tabular-nums">
-                                            {formatTriggerFireTime(fire)}
+                                            {formatTriggerFireTime(fire, viewerZone)}
                                         </ItemCard.Title>
                                     </ItemCard.Content>
                                     <ItemCard.Action className="min-w-0 shrink">

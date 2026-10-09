@@ -2,6 +2,7 @@ import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
 import { useReminderRuns } from '../../../hooks/members/use-reminder-runs.ts';
+import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 import { formatReminderRunDelay, formatReminderTime } from './agent-reminder-model.ts';
 
@@ -18,6 +19,7 @@ export function ReminderRunHistory({
     serverId: string;
 }) {
     const runs = useReminderRuns(serverId, reminderId, true);
+    const viewerZone = useViewerTimeZone(serverId);
     // The Server returns oldest first.
     const settled = runs.data ? [...runs.data].reverse() : undefined;
 
@@ -53,7 +55,7 @@ export function ReminderRunHistory({
                                     <ItemCard>
                                         <ItemCard.Content>
                                             <ItemCard.Title className="tabular-nums">
-                                                {formatReminderTime(run.firedAt)}
+                                                {formatReminderTime(run.firedAt, viewerZone)}
                                             </ItemCard.Title>
                                         </ItemCard.Content>
                                         {delay ? (

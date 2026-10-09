@@ -5,6 +5,7 @@ import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
+import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import { resolveReminderDetail, scheduledReminders } from './agent-reminder-model.ts';
@@ -33,6 +34,7 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
     const [detailId, setDetailId] = React.useState<string | null>(null);
     // One clock for the section, so "Today" turns into "Yesterday" on time.
     const now = useRelativeNow();
+    const viewerZone = useViewerTimeZone(server.id);
 
     const scheduled = scheduledReminders(reminders.data ?? []);
     const detail = resolveReminderDetail(detailId, scheduled);
@@ -78,7 +80,7 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
                                 }
                                 kind="reminder"
                                 onPress={canView ? () => setDetailId(reminder.id) : undefined}
-                                summary={formatReminderRowSummary(reminder, { now })}
+                                summary={formatReminderRowSummary(reminder, { now, viewerZone })}
                                 title={reminder.title}
                             />
                         </React.Fragment>

@@ -74,18 +74,19 @@ export function triggerCreatorName(trigger: Pick<Trigger, 'createdByHandle'>, ow
     return trigger.createdByHandle ? `@${trigger.createdByHandle}` : ownerName;
 }
 
-export function formatTriggerFireTime(fire: Pick<TriggerFire, 'receivedAt'>) {
-    return formatTriggerDate(fire.receivedAt);
+export function formatTriggerFireTime(fire: Pick<TriggerFire, 'receivedAt'>, timeZone: string) {
+    return formatTriggerDate(fire.receivedAt, timeZone);
 }
 
-export function formatTriggerHistoryTime(value: string) {
-    return formatTriggerDate(value);
+export function formatTriggerHistoryTime(value: string, timeZone: string) {
+    return formatTriggerDate(value, timeZone);
 }
 
-function formatTriggerDate(value: string) {
+function formatTriggerDate(value: string, timeZone: string) {
     return new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
         timeStyle: 'short',
+        timeZone,
     }).format(new Date(value));
 }
 

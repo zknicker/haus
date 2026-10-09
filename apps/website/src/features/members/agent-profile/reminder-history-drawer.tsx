@@ -6,6 +6,7 @@ import {
     REMINDER_HISTORY_LIMIT,
     useAgentReminderHistory,
 } from '../../../hooks/members/use-agent-reminder-history.ts';
+import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { formatReminderTime, reminderExecutionOutcome } from './agent-reminder-model.ts';
 import { formatReminderCadence } from './reminder-cadence.ts';
@@ -35,7 +36,8 @@ export function ReminderHistoryDrawer({
 }) {
     const history = useAgentReminderHistory(serverId, agentId, isOpen);
     const rows = history.data;
-    const columns = executionColumns(serverSlug);
+    const viewerZone = useViewerTimeZone(serverId);
+    const columns = executionColumns(serverSlug, viewerZone);
 
     return (
         <Drawer.Backdrop isDismissable isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -81,7 +83,10 @@ export function ReminderHistoryDrawer({
  * one wake, so the columns read left to right as: which reminder, when it woke,
  * how often it wakes, what it produced, and where the answer went.
  */
-function executionColumns(serverSlug: string): DataGridColumn<ReminderHistoryEntry>[] {
+function executionColumns(
+    serverSlug: string,
+    viewerZone: string
+): DataGridColumn<ReminderHistoryEntry>[] {
     return [
         {
             accessorKey: 'title',
@@ -93,7 +98,9 @@ function executionColumns(serverSlug: string): DataGridColumn<ReminderHistoryEnt
         },
         {
             cell: (entry) => (
-                <span className="tabular-nums">{formatReminderTime(entry.firedAt)}</span>
+                <span className="tabular-nums">
+                    {formatReminderTime(entry.firedAt, viewerZone)}
+                </span>
             ),
             cellClassName: 'text-muted',
             header: 'Executed (your time)',

@@ -13,7 +13,8 @@ type ScheduleFields = Pick<Reminder, 'fireAt' | 'repeat' | 'timezone'>;
 export interface ScheduleContext {
     locale?: string;
     now?: number;
-    viewerZone?: string;
+    /** The viewer's saved zone (`useViewerTimeZone`), never assumed here. */
+    viewerZone: string;
 }
 
 export function reminderKind(reminder: Pick<Reminder, 'repeat'>): ReminderKind {
@@ -33,7 +34,7 @@ export function reminderKindLabel(kind: ReminderKind): string {
  */
 export function formatReminderRowSummary(
     reminder: ScheduleFields,
-    context: ScheduleContext = {}
+    context: ScheduleContext
 ): string {
     const { locale, now, viewerZone } = resolveContext(context);
     const fire = new Date(reminder.fireAt);
@@ -59,7 +60,7 @@ export interface ReminderScheduleDetail {
 /** The detail sheet's Schedule rows. This is where the schedule's own zone lives. */
 export function formatReminderScheduleDetail(
     reminder: ScheduleFields,
-    context: ScheduleContext = {}
+    context: ScheduleContext
 ): ReminderScheduleDetail {
     const { locale, now, viewerZone } = resolveContext(context);
     const fire = new Date(reminder.fireAt);
@@ -76,7 +77,7 @@ function resolveContext(context: ScheduleContext) {
     return {
         locale: context.locale,
         now: context.now ?? Date.now(),
-        viewerZone: context.viewerZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+        viewerZone: context.viewerZone,
     };
 }
 
