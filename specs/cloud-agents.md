@@ -138,9 +138,12 @@ Thread would hold nothing but the same card, so the Message's ordinary hover thr
 way in; once replies exist, the ordinary Thread preview below the card is. The preview never
 repeats the work's header or actions. Zero replies never reserves an empty Thread preview.
 
-**Thread preview.** Each Cloud Agent work inside a Thread gets an informational row below the
-anchor's Task header: provider, title, and status with elapsed or total duration. Completed work
-stays visible. The entire preview opens the Thread; individual work rows are not click targets.
+**Thread preview.** Cloud Agent work inside a Thread gets one informational summary row per
+provider below the anchor's Task header. A lone work names itself: provider, title (or its recorded
+diff once completed), and status. Several works from one provider read as a count and a status
+breakdown, live states first ("Cursor · 9 agents · 7 running · 1 done · 1 failed"). Completed work
+stays counted. The preview's reply rows exclude work announcements, so each work appears once. The
+entire preview opens the Thread; summary rows are not click targets.
 Server's conversation-scoped `cloudAgentWork.listForChat` read includes all statuses, grouped by
 Thread anchor. The Inbox's separate active-work read remains active-only.
 

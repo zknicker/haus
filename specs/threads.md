@@ -75,8 +75,10 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
   messages, thread composer.
 - The anchor message shows a highlight outline in the parent transcript while its pane is open,
   and a **thread preview block** underneath that opens the pane: a header ("3 replies · 2 new")
-  over the newest replies, oldest first, each with the author's avatar, name, one-line content,
-  and relative time. `ThreadSummary.recentReplies` carries those rows; an anchor whose
+  over the newest conversational replies, oldest first, each with the author's avatar, name,
+  one-line content, and relative time. `ThreadSummary.recentReplies` carries those rows and
+  excludes Cloud Agent work announcements, which the preview states once as its work summary;
+  `replyCount` and `unreadCount` still count every reply. An anchor whose
   Thread has no replies shows nothing, since "Reply in thread" already lives in the hover
   actions. A message carrying a task or a Thread never merges into a neighbouring row, so its
   block stays attached to its own prose.

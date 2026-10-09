@@ -94,11 +94,15 @@ and [Agent Inbox](../../specs/inbox.md).
   action inline; there is no detached overflow menu. The card has no Thread button: before any
   reply the Message's ordinary hover thread action opens the Thread, and once replies exist the
   ordinary Thread preview beneath the card is the way in and does not repeat the work's header.
-* **Hoisted work status.** Each Cloud Agent inside a Thread gets a compact row
-  beneath its anchor's Task header, showing provider, title, and status.
-  Completed work remains visible. The Server's conversation-scoped work list
-  supplies these rows, grouped by Thread anchor. The whole preview opens the
-  Thread; individual work rows are not click targets.
+* **Hoisted work status.** Cloud Agent work inside a Thread gets one compact
+  summary row per provider beneath its anchor's Task header. A lone work shows
+  provider, title, and status; several show a count and a status breakdown,
+  such as "9 agents · 7 running · 1 done · 1 failed". Completed work stays
+  counted. The Server's conversation-scoped work list supplies these rows,
+  grouped by Thread anchor. The preview's reply rows are the newest
+  conversational replies and leave out work announcements, so each work
+  appears once. The whole preview opens the Thread; summary rows are not click
+  targets.
 * **The work card.** In the Chat and inside the Thread, the work Message renders as
   the Agent's own words followed immediately by the work card, in sequence
   right where the Agent handed the work off. The card is presentation of the
