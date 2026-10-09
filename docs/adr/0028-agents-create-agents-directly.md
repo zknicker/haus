@@ -64,8 +64,9 @@ single retry is the recovery.
 
 **A new Agent arrives with a standing brief, not a DM.** `--brief` (≤ 4000 characters) is stored on
 the Agent row and rides every `agent-configure` command to the Computer, which renders it into the
-`MEMORY.md` it seeds under `## Standing brief from @<creator-handle>`, followed by the one line that
-turns it into a first move: say hello in `#all` in your own voice. It is seeded once — an owned
+`MEMORY.md` it seeds under `## Standing brief from @<creator-handle>`. The one line that turns it
+into a first move (say hello in `#all` in your own voice) is a private one-time instruction in the
+Agent's first turn input, as in Raft, never permanent memory (amended 2026-10-09). It is seeded once — an owned
 workspace is never overwritten — so the durable copy is the Server row, and a reprovision recovers
 it. A brief is a memory fact, not a product noun; "standing brief" appears in that heading and
 nowhere else in product prose.

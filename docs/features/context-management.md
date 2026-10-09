@@ -73,7 +73,9 @@ model session. Per-turn message delivery is an inbox concern; see
 - Creating an Agent schedules no continuation for its creator and no bootstrap
   turn for the new Agent. The create receipt is returned in the same command, and
   the new Agent's first turn is its next ordinary delivery — by then its standing
-  brief is already in the workspace memory the Computer seeded.
+  brief is already in the workspace memory the Computer seeded. When that Agent
+  has a brief, its first-generation cold start opens with a one-time line asking
+  it to say hello in `#all`; resumed turns and later generations never repeat it.
 - Restart recreates the Agent runner and resumes the same native conversation.
   Its next delivery uses the same refresh path without rotating the session generation or
   replaying `Start.`.

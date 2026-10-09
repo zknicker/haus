@@ -21,9 +21,14 @@ suggests improvements backed by current task and conversation evidence.
    real scheduling. A cadence in a brief is not an installed reminder.
 3. Extend Cove's refreshable playbook with continuing coordination. Reviews
    are opt-in, bounded to agreed accessible Chats, and quiet unless evidence
-   changes or a decision is needed. Store scope, consent, exact schedule input,
-   reminder id, pending decisions, and previously raised findings in Cove's
-   own notes, indexed by MEMORY.md. Never overwrite learned memory.
+   changes or a decision is needed. Store scope, offer state, reminder id,
+   pending decisions, open handoffs, and the last raised evidence per open
+   finding in Cove's own `notes/coordination.md`, indexed by MEMORY.md. Consent
+   and exact schedule input stay only while a schedule is in flight. The note is
+   current state rewritten in place, not a ledger: delivered message ids,
+   settled send attempts, per-run results and resolved findings are dropped,
+   while owner-declined suggestions stay so they are not raised again;
+   history stays in Haus chats. Never overwrite learned memory.
 4. Expose the reminder API's existing command id in the CLI. Persist an exact
    absolute first fire time and command id before scheduling; retry identical
    input, list and reconcile the current reminder after restart, update/snooze
@@ -61,7 +66,8 @@ offers. Reconcile uncertain sends against original Chat history; if delivery
 cannot be proved, wait for the owner. Notes do not provide exactly-once delivery.
 
 The normal Agent Workspace suite includes upgrade fixtures for d031 factory
-notes and the outgoing local daily-review guidance, all five offer states,
+notes, the outgoing local daily-review guidance, the shipped 9.0 ledger-style
+playbook, all five offer states,
 learned memory/objective preservation, and custom or missing factory files.
 The Computer suite includes opt-in native model regressions:
 `HAUS_RUN_COVE_WEEKLY_TEST=1 VARLOCK_ENV=test varlock run -- bun test apps/computer/src/harness/cove-weekly-offer.live.test.mjs`.

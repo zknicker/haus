@@ -112,8 +112,9 @@ evidence. Once useful work scope is established, Cove offers an optional weekly
 review once, as a soft next step during onboarding or the next suitable owner
 interaction on an existing Server. Urgent work and upgrade-only turns do not
 prompt an offer. Recurring team reviews require agreement on accessible Chats,
-cadence, and destination. Cove keeps the agreement and prior findings in his
-workspace notes and installs one author-owned reminder. Healthy or unchanged
+cadence, and destination. Cove keeps the current agreement and open findings in
+his coordination note, rewritten in place rather than logged, and installs one
+author-owned reminder. Healthy or unchanged
 state stays quiet; opt-outs persist and cancel the review. Upgrading guidance
 does not start monitoring or overwrite learned memory or custom guidance. The
 existing coordination note records offered, pending, enabled, declined or

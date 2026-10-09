@@ -158,7 +158,9 @@ where it posts, and who reviews. It is Server state on the Agent row, not a
 Message, and it rides every configure command to the Computer, which renders it
 into the `MEMORY.md` it seeds under a `## Standing brief from @<creator>`
 heading. Seeding happens once: an owned workspace is never overwritten, so a
-reprovision recovers the brief from the row rather than from the file.
+reprovision recovers the brief from the row rather than from the file. The
+greeting is not memory: the Agent's first turn (the cold start of its first
+session generation) carries a one-time instruction to say hello in `#all`.
 
 Creation joins the Server's `#all` plus every `--channel` the request names, in
 the creation transaction. `#all` is guaranteed by the Server's one creation
