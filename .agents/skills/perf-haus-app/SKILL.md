@@ -56,6 +56,39 @@ run it before and after any change to a kept view's subscriptions.
    row sizing or mounting changed. Done when every headline metric is reported with its
    before/after median and p90, regressions included.
 
+## Perf sweep
+
+Run after large App changes (kept views, navigation, shared providers, realtime or query
+plumbing) and before a release with significant UI work. In order:
+
+1. **Unit guards** (`apps/website`): `bun test src/lib/query-policy-contract.test.ts
+   src/lib/query-polling-contract.test.ts src/features/servers/chat/transcript-render-isolation.test.tsx`.
+   Polls, timers, focus/reconnect refetch, and keyless invalidation live in allowlists with a
+   reason per entry; one realtime change renders only the rows it changed.
+2. **App e2e guards**: `bun e2e/run-playwright.ts e2e/tests/idle-silence.spec.ts
+   e2e/tests/render-budget.spec.ts`. Idle silence fast-forwards ten fake-clock minutes on a
+   channel, the Inbox, and a profile, plus a Clerk rotation, hide/show, and offline/online, and
+   names any procedure beyond the allowlist. Render budgets count component renders per
+   interaction (react-scan's devtools-hook technique, dev bundle) against
+   `apps/website/e2e/render-budgets.json`: over by >20% fails with the top components; >20%
+   under prints a ratchet hint.
+3. **Interaction sweep**: `bun run perf:web` via `sweep.sh` on the prod bundle at CPU×1 and ×4,
+   compared (`compare.mjs`) with the baseline in
+   [references/results-2026-10.md](references/results-2026-10.md) or a fresh `before` sweep.
+4. **Real Electron**: `render-audit.mjs` (render-audit bundle) and `idle-network.mjs --electron`
+   in the desktop layout; the e2e lane only stubs the desktop shell.
+5. **One trace**: a cold switch with `switch-trace.mjs --cold --mode trace` on the dev bundle,
+   opened in Chrome DevTools Performance, where React 19.2's Performance Tracks (Scheduler,
+   Components) show which commit and component took the time.
+6. **Record**: update the results reference with before/after numbers, and ratchet any budget
+   the run beat by >20% (reseed with `HAUS_RENDER_BUDGET_RECORD=<file>` over 5+ runs, p90 + ~2%).
+
+Dev builds carry two toggles (never in a prod bundle; `features/dev-tools/`): **Alt+Shift+Q**
+opens React Query Devtools on the Server query cache, and **Alt+Shift+R** logs the top rendering
+components per second to the console. Both persist per device until pressed again. react-scan
+was evaluated and not added: 0.5.x pulls ~140 packages (eslint, oxlint, `@sentry/node`) through
+floating `latest` dependencies.
+
 ## Metrics
 
 All times are ms from the real `pointerdown`, read on the rAF after the region matched.
@@ -99,8 +132,11 @@ Run these after any change to navigation, kept views, prefetch, or cache patchin
 - App e2e (`apps/website/e2e/tests/`): `chat-navigation`, `route-performance`,
   `agent-profile-performance`, `agent-live-turn`, `chat-typing`, `messaging`, `inbox-unread`.
 - Unit (`apps/website/src/`): `hooks/servers/chat-events/*`, `chat-navigation-cache`,
-  `query-policy-contract`, `query-reconnect-recovery`, `agent-history-cache`,
-  `desktop-tabs-store`, `kept-chat-views`, `kept-chat-view-invariants`, `use-press-navigation`.
+  `query-policy-contract`, `query-polling-contract`, `query-reconnect-recovery`,
+  `agent-history-cache`, `desktop-tabs-store`, `kept-chat-views`, `kept-chat-view-invariants`,
+  `transcript-render-isolation`, `use-press-navigation`.
+- App e2e perf guards: `idle-silence` (after polling, socket session, or reconnect changes) and
+  `render-budget` (after kept-view subscriptions, providers, or router hooks change).
 
 Hidden kept views leave duplicate DOM; e2e locators scope to the visible surface
 (`[data-slot="chat-surface"]:visible`), or they match a hidden chat's rows.

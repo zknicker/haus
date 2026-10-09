@@ -434,8 +434,17 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
 
 Server events own cache invalidation; `staleTime` is only the fallback floor.
 The contract is executable in
-`apps/website/src/lib/query-policy-contract.test.ts` — do not widen its
-allowlists to make it pass.
+`apps/website/src/lib/query-policy-contract.test.ts` and
+`query-polling-contract.test.ts` — do not widen their allowlists to make them
+pass.
+
+* An idle App sends only justified polls. `refetchInterval`, `setInterval`, a
+  timer beside a fetch, focus or reconnect refetch, keyless
+  `invalidateQueries()`/`utils.invalidate()`, and `refetchQueries` outside
+  reconnect recovery each appear only in an allowlist entry that names its
+  reason. App e2e `idle-silence.spec.ts` checks the same promise on the wire
+  over ten fake-clock minutes, through a Clerk rotation, hide/show, and
+  offline/online.
 
 * Every `useQuery` declares a named `queryPolicy` preset from
   `lib/query-policy.ts` (or an explicit `staleTime` with a stated reason).
@@ -509,7 +518,9 @@ record objects for everything the server returned unchanged, so **source-object
 identity is the change signal** — hosted chat messages carry no version or
 `updatedAt` field to compare. Five kept chat views stay subscribed while hidden,
 so a read that churns re-renders all of them; `features/servers/chat/transcript-render-isolation.test.tsx`
-pins that one message renders one row.
+pins that one message renders one row, and App e2e `render-budget.spec.ts`
+holds whole-App renders per interaction to the ratchet in
+`apps/website/e2e/render-budgets.json`.
 
 * Paged transcripts share by message id (`hooks/servers/message-page-sharing.ts`):
   the newest page is a sliding window, and React Query's default index-wise
