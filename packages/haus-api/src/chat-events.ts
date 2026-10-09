@@ -1,29 +1,19 @@
 import * as z from 'zod';
-import { chatMessageSchema, threadSummarySchema } from './chat.ts';
 import { idSchema } from './chat-contract-primitives.ts';
-import { chatMessageReactionSchema } from './chat-message-reactions.ts';
 
 /**
  * Chat and Thread realtime events (specs/realtime-events.md). Each has its own
- * subscription taking `serverStreamInputSchema`. The Server authorizes every
- * delivery against the subscriber's Chat access, so an event may carry the
- * authorized row and the App patches its cache instead of refetching every
- * loaded transcript page.
+ * subscription taking `serverStreamInputSchema`. Events carry ids and small
+ * facts, never rows: the App answers each one with a read: a tail read
+ * (`chat.messages` after its cached tail) or invalidating `chat.message` entries, so the read
+ * is the truth and a duplicate, late, or reordered event converges.
  */
 
 /**
- * A Thread's summary as every member sees it: the viewer-relative `followed`
- * and `unreadCount` stay with the App's cached summary.
- */
-export const threadActivitySchema = threadSummarySchema.omit({ followed: true, unreadCount: true });
-
-export type ThreadActivity = z.infer<typeof threadActivitySchema>;
-
-/**
- * `chat.onMessageCreated`: the committed message row, nonce included so the
- * App retires its optimistic pending row, plus the addressing facts
- * `messageNotificationReason` reads. A Thread reply also carries the parent's
- * Thread activity after it.
+ * `chat.onMessageCreated`: a message committed. `sequence` lets the App skip
+ * a tail read its cache already covers. A Thread reply names the parent's
+ * anchor so the App invalidates the anchor entry (its Thread summary). The author, kind, and
+ * reply/anchor authors are the facts `messageNotificationReason` reads.
  */
 export const messageCreatedEventSchema = z
     .object({
@@ -31,24 +21,29 @@ export const messageCreatedEventSchema = z
         chatId: idSchema,
         conversationKind: z.enum(['channel', 'dm']), // A Thread reports its parent's kind.
         mentionedUserIds: z.array(idSchema),
-        message: chatMessageSchema,
+        messageId: idSchema,
         parentChatId: idSchema.nullable(),
         replyToAuthorUserId: idSchema.nullable(),
+        sequence: z.number().int().positive(),
         serverId: idSchema,
-        thread: threadActivitySchema.nullable(),
         threadAnchorAuthorUserId: idSchema.nullable(),
+        /** The parent-Chat anchor of a Thread reply; null outside a Thread. */
+        threadAnchorMessageId: idSchema.nullable(),
     })
-    .strict();
+    .strict()
+    .refine((event) => (event.parentChatId === null) === (event.threadAnchorMessageId === null), {
+        message:
+            'A Thread reply names both its parent Chat and its anchor; other messages neither.',
+    });
 
 export type MessageCreatedEvent = z.infer<typeof messageCreatedEventSchema>;
 
-/** `chat.onMessageReactionUpdated`: the message's whole reaction set after the change. */
+/** `chat.onMessageReactionUpdated`: one message's reaction set changed. */
 export const messageReactionUpdatedEventSchema = z
     .object({
         chatId: idSchema,
         messageId: idSchema,
         parentChatId: idSchema.nullable(),
-        reactions: z.array(chatMessageReactionSchema),
         serverId: idSchema,
     })
     .strict();
@@ -67,9 +62,13 @@ export const chatReadEventSchema = z
 
 export type ChatReadEvent = z.infer<typeof chatReadEventSchema>;
 
-/** `thread.onFollowUpdated`: the subscriber followed or unfollowed a Thread. Reader only. */
+/**
+ * `thread.onFollowUpdated`: the subscriber followed or unfollowed a Thread.
+ * Reader only. Names the anchor so the App invalidates that one entry.
+ */
 export const threadFollowUpdatedEventSchema = z
     .object({
+        anchorMessageId: idSchema,
         followed: z.boolean(),
         parentChatId: idSchema,
         serverId: idSchema,

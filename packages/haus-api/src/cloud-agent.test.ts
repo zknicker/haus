@@ -40,28 +40,16 @@ test('a Message body projects Cloud Agent work beside text', () => {
     );
 });
 
-test('a work update carries the re-projected Message and work rows', () => {
-    const message = {
-        author: { kind: 'human', userId: 'usr_human' },
-        body: { kind: 'cloud-agent-work', work },
+test('a work update names the work and its Message, never their rows', () => {
+    const event = {
         chatId: 'cht_product',
-        content: '',
-        createdAt: '2026-09-04T12:01:00.000Z',
-        id: 'msg_1234567890abcdef',
-        nonce: 'send-1',
-        runId: null,
-        sequence: 7,
-        serverId: 'srv_1',
-    };
-    const event = cloudAgentWorkUpdatedEventSchema.parse({
-        chatId: 'cht_product',
-        message,
+        messageId: 'msg_1234567890abcdef',
         parentChatId: null,
         serverId: 'srv_1',
-        work,
-    });
-    expect(event.message.body).toMatchObject({ kind: 'cloud-agent-work' });
-    expect(event.work.id).toBe('caw_1234567890abcdef');
+        workId: work.id,
+    };
+    expect(cloudAgentWorkUpdatedEventSchema.parse(event)).toEqual(event);
+    expect(() => cloudAgentWorkUpdatedEventSchema.parse({ ...event, work })).toThrow();
 });
 
 test('the Agent start input never carries provider instructions', () => {

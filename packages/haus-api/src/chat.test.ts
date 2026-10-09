@@ -10,8 +10,8 @@ import {
     chatLifecycleEventSchema,
     messageCreatedEventSchema,
     messageReactionUpdatedEventSchema,
-    threadActivitySchema,
 } from './chat-events.ts';
+import { chatMessageInputSchema, chatMessageReadSchema } from './chat-message-read.ts';
 import { chatMarkReadInputSchema } from './chat-read.ts';
 
 test('Chat sends accept only client intent and never an authoritative actor', () => {
@@ -111,15 +111,17 @@ test('Server messages and durable events keep stable Server and Chat identity', 
         chatId: message.chatId,
         conversationKind: 'channel',
         mentionedUserIds: [],
-        message,
+        messageId: message.id,
         parentChatId: null,
         replyToAuthorUserId: null,
+        sequence: message.sequence,
         serverId: message.serverId,
-        thread: null,
         threadAnchorAuthorUserId: null,
+        threadAnchorMessageId: null,
     });
-    // The row keeps its send nonce, which retires the App's optimistic pending row.
-    expect(created.message).toMatchObject({ id: 'msg_one', nonce: 'send-1', sequence: 1 });
+    expect(created).toMatchObject({ messageId: 'msg_one', sequence: 1 });
+    // Events carry ids and facts only: the App reads the row, never a payload copy.
+    expect(() => messageCreatedEventSchema.parse({ ...created, message })).toThrow();
     expect(() =>
         messageCreatedEventSchema.parse({ ...created, cursor: '4', type: 'message.created' })
     ).toThrow();
@@ -128,10 +130,23 @@ test('Server messages and durable events keep stable Server and Chat identity', 
             chatId: message.chatId,
             messageId: message.id,
             parentChatId: null,
+            serverId: message.serverId,
+        })
+    ).toEqual({
+        chatId: 'cht_all',
+        messageId: 'msg_one',
+        parentChatId: null,
+        serverId: 'srv_main',
+    });
+    expect(() =>
+        messageReactionUpdatedEventSchema.parse({
+            chatId: message.chatId,
+            messageId: message.id,
+            parentChatId: null,
             reactions: message.reactions,
             serverId: message.serverId,
         })
-    ).toMatchObject({ messageId: 'msg_one', reactions: [{ emoji: '👍' }] });
+    ).toThrow();
     expect(
         chatLifecycleEventSchema.parse({
             action: 'archived',
@@ -141,17 +156,60 @@ test('Server messages and durable events keep stable Server and Chat identity', 
     ).toEqual({ action: 'archived', chatId: 'cht_all', serverId: 'srv_main' });
 });
 
-test('A Thread reply carries viewer-neutral Thread activity, never the viewer state', () => {
-    const activity = {
-        anchorMessageId: 'msg_anchor',
-        latestReplyAt: '2026-07-26T12:00:00.000Z',
-        recentReplies: [],
-        replyCount: 3,
-        threadChatId: 'cht_thread',
+test('A Thread reply names its parent and anchor together, never a summary', () => {
+    const reply = {
+        authorUserId: 'usr_human',
+        chatId: 'cht_thread',
+        conversationKind: 'channel',
+        mentionedUserIds: [],
+        messageId: 'msg_reply',
+        parentChatId: 'cht_all',
+        replyToAuthorUserId: null,
+        sequence: 3,
+        serverId: 'srv_main',
+        threadAnchorAuthorUserId: 'usr_anchor',
+        threadAnchorMessageId: 'msg_anchor',
     };
-    expect(threadActivitySchema.parse(activity)).toEqual(activity);
-    expect(() => threadActivitySchema.parse({ ...activity, followed: true })).toThrow();
-    expect(() => threadActivitySchema.parse({ ...activity, unreadCount: 1 })).toThrow();
+    expect(messageCreatedEventSchema.parse(reply)).toMatchObject({
+        threadAnchorMessageId: 'msg_anchor',
+    });
+    expect(() =>
+        messageCreatedEventSchema.parse({ ...reply, threadAnchorMessageId: null })
+    ).toThrow();
+    expect(() => messageCreatedEventSchema.parse({ ...reply, parentChatId: null })).toThrow();
+    expect(() => messageCreatedEventSchema.parse({ ...reply, thread: null })).toThrow();
+});
+
+test('chat.message reads one entity with its viewer Thread summary, or null', () => {
+    const input = { chatId: 'cht_all', messageId: 'msg_one', serverId: 'srv_main' };
+    expect(chatMessageInputSchema.parse(input)).toEqual(input);
+    expect(() => chatMessageInputSchema.parse({ ...input, messageIds: ['msg_one'] })).toThrow();
+    const message = chatMessageSchema.parse({
+        author: { kind: 'human', userId: 'usr_human' },
+        body: { kind: 'text' },
+        chatId: 'cht_all',
+        content: 'Anchor.',
+        createdAt: '2026-07-26T12:00:00.000Z',
+        id: 'msg_one',
+        nonce: 'send-1',
+        runId: null,
+        sequence: 1,
+        serverId: 'srv_main',
+    });
+    const thread = {
+        anchorMessageId: 'msg_one',
+        followed: true,
+        latestReplyAt: '2026-07-26T12:01:00.000Z',
+        recentReplies: [],
+        replyCount: 2,
+        threadChatId: 'cht_thread',
+        unreadCount: 1,
+    };
+    expect(chatMessageReadSchema.parse({ message, thread })).toMatchObject({
+        thread: { unreadCount: 1 },
+    });
+    expect(chatMessageReadSchema.parse({ message, thread: null })?.thread).toBeNull();
+    expect(chatMessageReadSchema.parse(null)).toBeNull();
 });
 
 test('Server message history can preserve a deleted author profile', () => {

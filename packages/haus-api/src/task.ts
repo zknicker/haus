@@ -119,8 +119,8 @@ export const taskMutationSchema = z
 
 /**
  * `task.onChanged`: a task was created on, or changed on, its Message. Chat
- * access scoped. Carries the task so the App patches `message.task` in cached
- * transcripts instead of refetching them.
+ * access scoped. Ids only: the App invalidates that Message entry (`chat.message`)
+ * and `task.list`.
  */
 export const taskChangedEventSchema = z
     .object({
@@ -128,7 +128,6 @@ export const taskChangedEventSchema = z
         kind: z.enum(['created', 'updated']),
         messageId: idSchema,
         serverId: idSchema,
-        task: messageTaskSchema,
     })
     .strict();
 

@@ -26,17 +26,16 @@ export type ThreadCloudAgentWork = z.infer<typeof threadCloudAgentWorkSchema>;
 
 /**
  * `cloudAgentWork.onUpdated`: work was created, observed, or asked to cancel.
- * Chat access scoped. Carries the work row and its Message as re-projected
- * after the change (the Message `body` shows the current work and recent
- * Runs), so the App patches both in place instead of refetching transcripts.
+ * Chat access scoped. Ids only: the App invalidates the work's Message
+ * (`chat.message`) and the work lists.
  */
 export const cloudAgentWorkUpdatedEventSchema = z
     .object({
         chatId: idSchema,
-        message: chatMessageSchema,
+        messageId: idSchema,
         parentChatId: idSchema.nullable(),
         serverId: idSchema,
-        work: cloudAgentWorkSchema,
+        workId: idSchema,
     })
     .strict();
 
