@@ -33,6 +33,7 @@ import {
     serveDist,
     sidebarRow,
 } from './browser-session.mjs';
+import { socketRecorder, watchNetwork } from './idle-network-capture.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const scenario = typeof args.scenario === 'string' ? args.scenario : 'channel';
@@ -57,7 +58,7 @@ const record = (kind, detail = {}) => {
 const session = args.electron === true ? await openElectron() : await openChrome();
 const { page } = session;
 await page.addInitScript(socketRecorder);
-watchNetwork(page);
+watchNetwork(page, { base, record });
 
 await page.goto(`${base}/`);
 await page.waitForSelector('[data-slot="sidebar-menu-item"]', { timeout: 60_000 });
@@ -197,77 +198,6 @@ function setVisibility(target, state) {
         });
         document.dispatchEvent(new Event('visibilitychange'));
     }, state);
-}
-
-function watchNetwork(target) {
-    target.on('request', (request) => {
-        const url = new URL(request.url());
-        if (request.resourceType() === 'websocket' || !url.protocol.startsWith('http')) {
-            return;
-        }
-        // A dev bundle (Electron included) may call the Server port directly.
-        if (url.pathname.startsWith('/trpc/')) {
-            record('http-batch');
-            for (const procedure of url.pathname.slice('/trpc/'.length).split(',')) {
-                record('trpc', { procedure: decodeURIComponent(procedure) });
-            }
-            return;
-        }
-        if (
-            url.origin === new URL(base).origin &&
-            ['fetch', 'xhr'].includes(request.resourceType())
-        ) {
-            record('fetch', { procedure: `GET ${url.pathname}` });
-        }
-    });
-    target.on('websocket', (socket) => {
-        if (!new URL(socket.url()).pathname.startsWith('/trpc')) {
-            return;
-        }
-        record('ws-open');
-        socket.on('close', () => record('ws-close'));
-        socket.on('framesent', ({ payload }) => {
-            for (const message of parseFrames(payload)) {
-                if (message.method === 'subscription') {
-                    record('ws-subscribe', { procedure: message.params?.path });
-                } else if (message.method === 'mutation' || message.method === 'query') {
-                    record('ws-call', { procedure: message.params?.path });
-                }
-            }
-        });
-    });
-}
-
-function parseFrames(payload) {
-    if (typeof payload !== 'string' || !(payload.startsWith('{') || payload.startsWith('['))) {
-        return [];
-    }
-    try {
-        const parsed = JSON.parse(payload);
-        return Array.isArray(parsed) ? parsed : [parsed];
-    } catch {
-        return [];
-    }
-}
-
-// Runs in the page: keeps every App socket so ws-drop can close them like a network blip.
-function socketRecorder() {
-    const sockets = new Set();
-    const Native = window.WebSocket;
-    window.WebSocket = class extends Native {
-        constructor(...socketArgs) {
-            super(...socketArgs);
-            sockets.add(this);
-            this.addEventListener('close', () => sockets.delete(this));
-        }
-    };
-    window.__idleDropSockets = () => {
-        const open = [...sockets].filter((socket) => new URL(socket.url).pathname === '/trpc');
-        for (const socket of open) {
-            socket.close();
-        }
-        return open.length;
-    };
 }
 
 function report(measured) {

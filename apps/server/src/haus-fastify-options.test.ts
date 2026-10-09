@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import Fastify from 'fastify';
-import { hausFastifyOptions } from './haus-server-application.ts';
+import { hausFastifyOptions } from './haus-fastify-options.ts';
 
 // The App opens with a batch of eight procedures; Fastify's 100-character
 // default silently 404d it, so Members and Computers loaded with no data.

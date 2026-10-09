@@ -19,6 +19,7 @@ import { productionComputerManifestUrl } from './computers/update.ts';
 import { createHausContextFactory } from './haus-api/context.ts';
 import { hausRouter } from './haus-api/router.ts';
 import { startHausWebSocketServer } from './haus-api/ws.ts';
+import { hausFastifyOptions } from './haus-fastify-options.ts';
 import { registerHausHealth } from './haus-health.ts';
 import { registerHausReleaseRoute } from './haus-release-route.ts';
 import type { HausServerApplicationOptions } from './haus-server-options.ts';
@@ -52,17 +53,6 @@ export interface HausServerApplication {
     /** Binds the Server's port, closing the application if the bind fails. */
     listen(port: number): Promise<void>;
 }
-
-/**
- * tRPC batches every procedure name into one path segment, so the App's opening
- * batch runs past Fastify's 100-character `maxParamLength` default and 404s
- * instead of routing — intermittently leaving whole destinations without data.
- */
-export const hausFastifyOptions = {
-    bodyLimit: 12 * 1024 * 1024,
-    logger: false,
-    routerOptions: { maxParamLength: 5000 },
-} as const;
 
 export async function createHausServerApplication(
     options: HausServerApplicationOptions
