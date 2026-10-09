@@ -170,8 +170,7 @@ struct RichReferenceParityTests {
     }
 
     @Test func coversEveryReferenceKind() {
-        // A time chip has no wire form: it is found in prose (`TimeChipProseTests`).
-        let covered = Set(Self.table.map(\.kind)).union([.time])
+        let covered = Set(Self.table.map(\.kind))
         #expect(covered == Set(MentionPresentationKind.allCases))
     }
 
