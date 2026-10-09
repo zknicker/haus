@@ -253,6 +253,19 @@ chip inside a cell keeps its identity ink and its weight and loses only its pain
 are section labels rather than titles: the App's 19/17/13px ladder over a 14px body compresses to one
 step above the phone's 17pt body for `#` and `##` and to body size below that, semibold throughout.
 Fenced code sits on the App's secondary surface at the control corner and scrolls rather than wraps.
+
+A time chip is found in prose, not written as a link: a clock time with an explicit zone ("3 PM
+ET", "tomorrow at 9am Pacific", "10–11 AM ET"). `TimeChipFinder` is an exact mirror of
+`packages/haus-api/src/time-chips.ts`, which owns the grammar, and `TimeChipFinderTests` carries
+its test table case for case; a row added on one side belongs on the other. The parser chips
+paragraphs, list items, headings, and table cells when the store passes a `TimeChipContext` (the
+message's sent time and the viewer's saved zone, ADR 0040, the device zone while the member has
+none); code, blockquotes, and a time split by a line break stay as written. The chip is a clock
+mark and dotted underline worded by `TimeReference` exactly as the App's `time-chip-format.ts`
+words it ("Today at 3:00 PM EDT", "Sat, Oct 10 at…", "Today at 10:00 – 11:00 AM EDT"). A tap opens
+a system popover, kept a popover on iPhone, with that label, its distance from now, and the moment
+in the viewer's zone, Pacific, Eastern, and UTC, dropping the one the viewer already is. One-line
+previews show the text as written.
 Task lists, footnotes, setext headings, backslash escapes outside a table cell, and syntax
 highlighting inside a fence are deliberately not modelled.
 
@@ -1039,7 +1052,9 @@ rich blocks, resolved reference chips) is memoized by id, content, and a referen
 (`MessageBodyMemo`, `ReferenceDirectory`) that moves only when a chip-visible name, avatar, or
 channel appearance changes. A Thread chip's label comes from another page — its anchor's first line
 in the parent Chat — so a parsed body also records each Thread chip's resolved label and reparses
-when it would now differ, and a page write retires the rows of every Chat that links into that page
+when it would now differ; a body with time chips records the viewer zone, day, and sent time it
+worded them under and reparses when any moves, so "Today" follows a zone change and the next rebuild after
+midnight. A page write retires the rows of every Chat that links into that page
 (`ReferenceReferrers`). Presence and unread churn rebuild rows from cached bodies, and a page,
 optimistic-row, or cloud-work write retires only the Chats whose values changed. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
 row's presentation id is a real Server id from that moment and its ForEach identity never changes
