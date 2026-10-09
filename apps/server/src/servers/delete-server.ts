@@ -9,7 +9,6 @@ import {
     agentRunnerCredentialsTable,
     agentsTable,
     avatarsTable,
-    chatEventsTable,
     computersTable,
     reminderAgentAttentionTable,
     remindersTable,
@@ -145,15 +144,9 @@ export async function purgeDeletedServer(
                 .where(and(eq(serversTable.id, input.serverId), isNotNull(serversTable.deletedAt)))
                 .returning({ id: serversTable.id });
             if (deleted.length > 0) {
-                // A `task.label.updated` chat event carries only a Server id and a
-                // label id, so no cascading parent removes it when the Server row
-                // goes. Purge those stragglers explicitly, guarded by the delete
-                // above so a live Server is never touched. Avatar rows are the
-                // same shape of straggler: the Agent wearing one cascades away
-                // and leaves its bytes behind.
-                await tx
-                    .delete(chatEventsTable)
-                    .where(eq(chatEventsTable.serverId, input.serverId));
+                // Avatar rows have no cascading parent: the Agent wearing one
+                // cascades away and leaves its bytes behind. Purge them, guarded
+                // by the delete above so a live Server is never touched.
                 const avatarIds = worn.map((row) => row.avatarId).filter((id) => id !== null);
                 if (avatarIds.length > 0) {
                     await tx.delete(avatarsTable).where(inArray(avatarsTable.id, avatarIds));

@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { allocateEventCursor } from '../src/chats/allocate-event-cursor.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -10,7 +9,6 @@ import {
     agentsTable,
     agentThreadFollowsTable,
     channelAgentParticipantsTable,
-    chatEventsTable,
     chatMessagesTable,
     chatsTable,
 } from '../src/postgres/schema.ts';
@@ -28,8 +26,8 @@ export async function seedReader(db: HausDatabase): Promise<Seed> {
 }
 
 /**
- * One durable message as a real send writes it: the next Chat sequence, the
- * `message.created` event, and — for a recipient — a queued inbox row.
+ * One durable message as a real send writes it: the next Chat sequence and —
+ * for a recipient — a queued inbox row.
  */
 export async function postMessage(
     db: HausDatabase,
@@ -38,6 +36,8 @@ export async function postMessage(
         agentId?: string;
         chatId: string;
         content?: string;
+        createdAt?: Date;
+        id?: string;
         mentioned?: boolean;
         recipient?: boolean;
     }
@@ -53,26 +53,18 @@ export async function postMessage(
     if (!chat) {
         throw new Error('No such Chat.');
     }
-    const id = createOpaqueId('msg');
+    const id = input.id ?? createOpaqueId('msg');
     await db.insert(chatMessagesTable).values({
         authorAgentId: input.agentId ?? null,
         authorUserId: input.agentId ? null : seed.userId,
         chatId: input.chatId,
         content: input.content ?? 'hello',
+        ...(input.createdAt ? { createdAt: input.createdAt } : {}),
         id,
         nonce: createOpaqueId('nonce'),
         replyRootMessageId: id,
         sequence: chat.sequence,
         serverId: seed.serverId,
-    });
-    await db.insert(chatEventsTable).values({
-        chatId: input.chatId,
-        cursor: await allocateEventCursor(db, seed.serverId),
-        id: createOpaqueId('evt'),
-        messageId: id,
-        sequence: chat.sequence,
-        serverId: seed.serverId,
-        type: 'message.created',
     });
     if (input.recipient || input.mentioned) {
         await new AgentDelivery(db, new FakeTransport()).deliver({

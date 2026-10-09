@@ -42,7 +42,7 @@ export const agentInboxConversationsResponseSchema = z.object({
             unread: z.number().int().nonnegative(),
         })
     ),
-    nextBefore: z.number().int().positive().nullable(),
+    nextBefore: z.string().min(1).max(200).nullable(),
     totals: z.object({
         conversations: z.number().int().nonnegative(),
         dms: z.number().int().nonnegative(),

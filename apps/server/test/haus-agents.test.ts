@@ -496,12 +496,6 @@ test('retires an Agent immediately, preserves authored history, and then permits
         version: number;
     }>;
     expect(released).toEqual([{ assignee_agent_id: null, claimed_at: null, version: 2 }]);
-    const taskEvents = (await harness.sql`
-        select event_type from chat_events
-        where server_id = ${serverId} and message_id = 'msg_agent_tombstone'
-        order by cursor
-    `) as Array<{ event_type: string }>;
-    expect(taskEvents.map((event) => event.event_type)).toEqual(['task.updated']);
 
     await owner.trpc.computer.remove.mutate({
         computerId: computerA,

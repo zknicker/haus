@@ -561,28 +561,6 @@ test('does not resolve a task message through a different Server tenant', async 
     expect(crossServer).toEqual({ backgroundCount: 0, tasks: [] });
 });
 
-test('requires every task event to identify its authorized parent Chat', async () => {
-    const server = await owner.trpc.server.create.mutate({
-        displayName: 'Task Event Shape',
-        slug: 'task-event-shape',
-    });
-    const created = await owner.trpc.task.create.mutate({
-        chatId: server.channels[0].id,
-        content: 'Keep event authorization concrete',
-        nonce: 'task-event-shape',
-        serverId: server.id,
-    });
-    const insertInvalidEvent = async () => {
-        await harness.sql`
-            insert into chat_events (cursor, id, server_id, chat_id, event_type, message_id, sequence)
-            values (999999, ${`evt_${crypto.randomUUID()}`}, ${server.id}, null, 'task.updated',
-                ${created.task.messageId}, 1)
-        `;
-    };
-
-    await expect(insertInvalidEvent()).rejects.toThrow(/chat_events_shape/i);
-});
-
 test('recovers task state after a Server restart', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Recovery',

@@ -19,6 +19,7 @@ interface InboxDeps {
 
 const INBOX_UNAVAILABLE_NEXT_ACTION =
     'Retry in a moment; to drain new messages now use haus message check.';
+const maxBeforeLength = 200;
 
 export const INBOX_SUBCOMMANDS: SubCommand[] = [
     {
@@ -82,18 +83,19 @@ function parseView(raw: string | undefined): AgentInboxView {
     return view;
 }
 
-function parseBefore(raw: string | undefined): number | undefined {
+/** The key is opaque: the Server validates it; the CLI only bounds its size. */
+function parseBefore(raw: string | undefined): string | undefined {
     if (raw === undefined) {
         return undefined;
     }
     const value = raw.trim();
-    if (!/^[1-9][0-9]*$/u.test(value)) {
+    if (value.length === 0 || value.length > maxBeforeLength) {
         throw new AgentCliError(
             'INVALID_ARG',
-            `--before must be a positive integer seq (copy it from the More: line); got ${raw}`
+            `--before must be the key printed on the More: line; got ${raw.slice(0, maxBeforeLength)}`
         );
     }
-    return Number(value);
+    return value;
 }
 
 /** The list still renders without the queue snapshot; the output says what is missing. */

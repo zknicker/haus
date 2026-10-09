@@ -6,10 +6,16 @@ import type {
 import { sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import {
+    compareInboxActivity,
+    encodeInboxActivityKey,
+    type InboxActivityPosition,
+} from './inbox-activity-key.ts';
 import { visibleChatSql } from './message-view.ts';
 
 export interface InboxConversationsQuery {
-    before: number | null;
+    /** Rows strictly older than this position; null for the first page. */
+    before: InboxActivityPosition | null;
     limit: number;
     view: AgentInboxView;
 }
@@ -27,13 +33,14 @@ export async function listAgentInboxConversations(
     query: InboxConversationsQuery
 ): Promise<AgentInboxConversationsResponse> {
     const rows = (await db.execute(conversationsSql(runner))) as ConversationRow[];
-    const all = rows.map(toConversation).sort((a, b) => b.activityKey - a.activityKey);
+    const all = rows.map(toPositioned).sort((a, b) => compareInboxActivity(a.position, b.position));
+    const { before } = query;
     const inView = all.filter(
-        (row) =>
-            (query.view === 'unread' || row.mentions > 0) &&
-            (query.before === null || row.activityKey < query.before)
+        ({ conversation, position }) =>
+            (query.view === 'unread' || conversation.mentions > 0) &&
+            (before === null || compareInboxActivity(position, before) > 0)
     );
-    const items = inView.slice(0, query.limit);
+    const items = inView.slice(0, query.limit).map(({ conversation }) => conversation);
     const hasMore = inView.length > query.limit;
     return {
         hasMore,
@@ -41,19 +48,20 @@ export async function listAgentInboxConversations(
         nextBefore: hasMore ? (items.at(-1)?.activityKey ?? null) : null,
         totals: {
             conversations: all.length,
-            dms: all.filter((row) => row.kind === 'dm').length,
-            mentions: all.filter((row) => row.mentions > 0).length,
+            dms: all.filter(({ conversation }) => conversation.kind === 'dm').length,
+            mentions: all.filter(({ conversation }) => conversation.mentions > 0).length,
         },
         view: query.view,
     };
 }
 
 interface ConversationRow {
-    activityKey: string | null;
+    activityAt: string | null;
     chatId: string;
     kind: AgentInboxConversation['kind'];
     lastReadSequence: number;
     latestAt: Date | string | null;
+    latestId: string | null;
     latestSenderHandle: string | null;
     mentions: number;
     muted: boolean;
@@ -61,12 +69,21 @@ interface ConversationRow {
     unread: number;
 }
 
-/** A row without its newest message's created event cannot be ordered truthfully. */
-function toConversation(row: ConversationRow): AgentInboxConversation {
-    const activityKey = Number(row.activityKey);
-    if (!(Number.isSafeInteger(activityKey) && activityKey > 0)) {
-        throw new Error(`Inbox conversation ${row.chatId} has no message event cursor.`);
+interface PositionedConversation {
+    conversation: AgentInboxConversation;
+    position: InboxActivityPosition;
+}
+
+/** A row is ordered by its newest message; without one it cannot be ordered truthfully. */
+function toPositioned(row: ConversationRow): PositionedConversation {
+    if (row.activityAt === null || row.latestId === null) {
+        throw new Error(`Inbox conversation ${row.chatId} has no newest message.`);
     }
+    const position = { createdAt: row.activityAt, id: row.latestId };
+    return { conversation: toConversation(row, encodeInboxActivityKey(position)), position };
+}
+
+function toConversation(row: ConversationRow, activityKey: string): AgentInboxConversation {
     return {
         activityKey,
         chatId: row.chatId,
@@ -93,7 +110,9 @@ export function conversationsSql(runner: ResolvedRunner) {
             counts.mentions as mentions,
             latest.created_at as "latestAt",
             coalesce(latest_agent.handle, latest_human.handle) as "latestSenderHandle",
-            activity.cursor::text as "activityKey",
+            to_char(latest.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+                as "activityAt",
+            latest.id as "latestId",
             case
                 when chats.kind = 'channel' then '#' || chats.name
                 when chats.kind = 'dm' then 'dm:@' || dm_human.handle
@@ -161,12 +180,6 @@ export function conversationsSql(runner: ResolvedRunner) {
         left join server_memberships latest_human
             on latest_human.server_id = chats.server_id
             and latest_human.user_id = latest.author_user_id
-        left join lateral (
-            select max(event.cursor) as cursor from chat_events event
-            where event.server_id = chats.server_id
-              and event.message_id = latest.id
-              and event.event_type = 'message.created'
-        ) activity on true
         where chats.server_id = ${serverId}
           and chats.deleted_at is null
           and (parent.id is null or parent.deleted_at is null)

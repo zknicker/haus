@@ -40,7 +40,7 @@ test('a page with more renders open commands, the More trailer, and exactly one 
         list: list({
             hasMore: true,
             items: [dmRow, threadRow],
-            nextBefore: 1190,
+            nextBefore: 'MTE5MA',
             totals: { conversations: 43, dms: 2, mentions: 5 },
         }),
     });
@@ -53,7 +53,7 @@ test('a page with more renders open commands, the More trailer, and exactly one 
             '#general:3f4b1fd4 · 1 unread · mentions you · latest @alice 1h ago',
             '  open: haus message read --target "#general:3f4b1fd4" --after 1180',
             '',
-            'More: haus inbox check --before 1190',
+            'More: haus inbox check --before MTE5MA',
             'Next: open the first conversation above: haus message read --target "dm:@richard" --after 1200',
         ].join('\n')
     );
@@ -76,7 +76,7 @@ test('a singular count, repeat mentions, and old activity read naturally', () =>
 
 test('the last page has no More line and names its seq window', () => {
     const output = render({
-        before: 1190,
+        before: 'MTE5MA',
         list: list({
             items: [
                 {
@@ -93,7 +93,7 @@ test('the last page has no More line and names its seq window', () => {
     });
     expect(output).toBe(
         [
-            'Inbox: 43 unread conversations (2 DMs, 5 with mentions). Activity before seq 1190, newest first.',
+            'Inbox: 43 unread conversations (2 DMs, 5 with mentions). Older activity, newest first.',
             '',
             '#random · 3 unread',
             '  open: haus message read --target "#random"',
@@ -105,7 +105,7 @@ test('the last page has no More line and names its seq window', () => {
 
 test('a page past the end points back to the newest page', () => {
     expect(
-        render({ before: 5, list: list({ totals: { conversations: 3, dms: 0, mentions: 0 } }) })
+        render({ before: 'NQ', list: list({ totals: { conversations: 3, dms: 0, mentions: 0 } }) })
     ).toBe(
         [
             'Inbox: 3 unread conversations (0 DMs, 0 with mentions).',
@@ -120,7 +120,7 @@ test('mentions view has a mentions header and keeps the view on the More line', 
         list: list({
             hasMore: true,
             items: [threadRow],
-            nextBefore: 1190,
+            nextBefore: 'MTE5MA',
             totals: { conversations: 43, dms: 2, mentions: 5 },
             view: 'mentions',
         }),
@@ -129,7 +129,7 @@ test('mentions view has a mentions header and keeps the view on the More line', 
     expect(output).toStartWith(
         'Inbox: 5 conversations with unread mentions (of 43 unread conversations). Newest activity first.'
     );
-    expect(output).toContain('\nMore: haus inbox check --view mentions --before 1190\n');
+    expect(output).toContain('\nMore: haus inbox check --view mentions --before MTE5MA\n');
 
     expect(
         render({
@@ -145,7 +145,7 @@ test('mentions view has a mentions header and keeps the view on the More line', 
     );
     expect(
         render({
-            before: 9,
+            before: 'OQ',
             list: list({ totals: { conversations: 4, dms: 1, mentions: 2 }, view: 'mentions' }),
             view: 'mentions',
         })
@@ -175,7 +175,7 @@ test('pending rows annotate listed targets and lead the first page when the list
 
     // Pending-only rows belong to the newest page, not to older pages.
     const older = render({
-        before: 900,
+        before: 'OTAw',
         list: list({ items: [dmRow], totals: { conversations: 1, dms: 1, mentions: 0 } }),
         pendingRows: [pending({})],
     });

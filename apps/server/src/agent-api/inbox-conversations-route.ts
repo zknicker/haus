@@ -2,6 +2,7 @@ import { agentInboxConversationsResponseSchema, agentInboxViews } from '@haus/ap
 import type { FastifyInstance } from 'fastify';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
+import { decodeInboxActivityKey } from './inbox-activity-key.ts';
 import {
     type InboxConversationsQuery,
     listAgentInboxConversations,
@@ -61,9 +62,10 @@ export function parseInboxConversationsQuery(raw: unknown): InboxConversationsQu
     if (!agentInboxViews.includes(view as InboxConversationsQuery['view'])) {
         return `--view must be one of ${agentInboxViews.join(', ')}; got ${String(view)}`;
     }
-    const before = query.before;
-    if (before !== undefined && !(typeof before === 'string' && /^[1-9][0-9]*$/u.test(before))) {
-        return `--before must be a positive integer seq (copy it from the More: line); got ${String(before)}`;
+    const rawBefore = query.before;
+    const before = typeof rawBefore === 'string' ? decodeInboxActivityKey(rawBefore) : null;
+    if (rawBefore !== undefined && before === null) {
+        return `--before must be the key printed on the More: line; got ${String(rawBefore).slice(0, 200)}`;
     }
     const limit = query.limit ?? String(defaultLimit);
     const limitValue =
@@ -72,7 +74,7 @@ export function parseInboxConversationsQuery(raw: unknown): InboxConversationsQu
         return `--limit must be an integer from 1 to ${maxLimit}; got ${String(limit)}`;
     }
     return {
-        before: before === undefined ? null : Number(before),
+        before,
         limit: limitValue,
         view: view as InboxConversationsQuery['view'],
     };

@@ -197,7 +197,7 @@ test('writes no receipt and commits the fire row and the envelope the Agent will
         ].join('\n')
     );
 
-    // No `message.created`, and no Trigger durable event either: a fire is
+    // No receipt Message and no realtime topic publish: a fire is
     // observed only in the Automations tab's history.
     const published = await publishedSince(realtime);
     realtime.stop();

@@ -14,7 +14,7 @@ import type {
  * ends with exactly one `Next:` line.
  */
 export interface InboxCheckInput {
-    before?: number;
+    before?: string;
     list: AgentInboxConversations;
     nowMs: number;
     /** Why the pending queue snapshot could not be read. */
@@ -60,7 +60,7 @@ export function formatInboxCheck(input: InboxCheckInput): string {
         header +=
             input.before === undefined
                 ? ' Newest activity first.'
-                : ` Activity before seq ${input.before}, newest first.`;
+                : ' Older activity, newest first.';
     }
     const sections = [header];
     if (rows.length > 0) {

@@ -1,6 +1,6 @@
 import type { CloudAgentModelParams } from '@haus/api';
 import { sql } from 'drizzle-orm';
-import { bigint, check, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { check, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { bunJsonb } from './bun-jsonb.ts';
 
 /**
@@ -30,14 +30,10 @@ export const serversTable = pgTable(
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
         displayName: text('display_name').notNull(),
         id: text('id').primaryKey(),
-        lastChatEventCursor: bigint('last_chat_event_cursor', { mode: 'bigint' })
-            .notNull()
-            .default(sql`0`),
         slug: text('slug').notNull(),
     },
     (table) => [
         uniqueIndex('servers_slug_key').on(table.slug),
-        check('servers_nonnegative_chat_event_cursor', sql`${table.lastChatEventCursor} >= 0`),
         check(
             'servers_cloud_agent_model_id_length',
             sql`${table.cloudAgentModelId} is null or char_length(${table.cloudAgentModelId}) between 1 and 200`
