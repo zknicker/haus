@@ -1,0 +1,14 @@
+{
+  "notes": "Component renders per scenario in e2e/tests/render-budget.spec.ts (dev bundle, kept chat views). A ratchet: over budget by >20% fails; >20% under prints a hint to lower it. Reseed with HAUS_RENDER_BUDGET_RECORD=<file> over 5+ runs and take p90 plus ~2%. web = the browser layout; desktop = the desktop tab shell under the browser stub (each tab its own router), seeded 2026-10-09 on origin/main 902ef1b6e.",
+  "web": {
+    "idle-30s": 210,
+    "message-in-kept-chat": 1640,
+    "message-in-open-chat": 1115,
+    "warm-channel-switch": 935,
+    "open-agent-profile": 1500
+  },
+  "desktop": {
+    "warm-tab-switch": 885,
+    "message-in-background-tab": 525
+  }
+}
