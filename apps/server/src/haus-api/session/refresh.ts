@@ -38,7 +38,7 @@ export const refreshSocketSessionProcedure = publicProcedure
         const result = session.refresh(input.clerkSessionToken, identity);
         if (result === 'unbound') {
             throw new TRPCError({
-                code: 'PRECONDITION_FAILED',
+                code: 'CONFLICT',
                 message: 'This socket has no verified session to refresh. Reconnect.',
             });
         }

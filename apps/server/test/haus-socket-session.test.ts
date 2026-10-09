@@ -110,7 +110,7 @@ test('a socket with no verified session has nothing to refresh', async () => {
         socket.trpc.session.refresh.mutate({
             clerkSessionToken: await harness.clerk.mintSessionToken(owner, ownerSession),
         })
-    ).rejects.toMatchObject({ data: { code: 'PRECONDITION_FAILED' } });
+    ).rejects.toMatchObject({ data: { code: 'CONFLICT' } });
 });
 
 test('refresh is refused over HTTP', async () => {
