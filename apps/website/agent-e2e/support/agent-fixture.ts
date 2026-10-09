@@ -99,7 +99,6 @@ async function createAgent(
         displayName,
         handle: createHandle(profile.name, suffix, index),
         modelId: template.desiredModelId,
-        role: 'member',
         runtimeId: template.desiredRuntimeId,
         serverId: harness.serverId,
     })) as { agent: Agent };
