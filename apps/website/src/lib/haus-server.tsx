@@ -6,6 +6,7 @@ import {
     httpBatchLink,
     httpLink,
     splitLink,
+    TRPCClientError,
     type TRPCWebSocketClient,
     wsLink,
 } from '@trpc/client';
@@ -211,14 +212,21 @@ interface HausConnection {
 }
 
 /**
- * Hands a rotated token to the open socket. A socket that is not open needs
- * nothing: the next connection reads the current token from its params.
+ * Hands a rotated token to the open socket. A socket that is not open, or that
+ * drops mid-call, needs nothing: its next connection reads the current token
+ * from its params. Only the Server refusing the token rejects.
  */
 async function refreshHausSession(connection: HausConnection, token: string) {
     if (connection.wsClient.connection?.state !== 'open') {
         return;
     }
-    await connection.socketClient.session.refresh.mutate({ clerkSessionToken: token });
+    try {
+        await connection.socketClient.session.refresh.mutate({ clerkSessionToken: token });
+    } catch (error) {
+        if (error instanceof TRPCClientError && error.data?.code) {
+            throw error;
+        }
+    }
 }
 
 /** Re-authenticate the transport without replacing its tRPC or React providers. */
