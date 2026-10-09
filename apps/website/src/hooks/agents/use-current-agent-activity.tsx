@@ -4,6 +4,7 @@ import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { useAgents } from '../members/use-agents.ts';
+import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 import { invalidateServerAgentHistory, patchAgentActivityHistory } from './agent-history-cache.ts';
 import {
     type CurrentAgentActivity,
@@ -56,10 +57,13 @@ export function useCurrentAgentActivity(
         }
     );
 
-    hausTrpc.agent.onActivity.useSubscription(
+    const restart = useSubscriptionRestart('agent.onActivity', serverId);
+
+    const { reset } = hausTrpc.agent.onActivity.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
+            onError: (error) => restart.failed(error, reset),
             onData: (event) => {
                 if (event.serverId !== serverId) {
                     return;
@@ -78,7 +82,10 @@ export function useCurrentAgentActivity(
                     return { byAgentId: next, serverId: event.serverId };
                 });
             },
+            // Every start, a restart after an error included, refreshes the
+            // snapshot and history reads: activity events never replay.
             onStarted: () => {
+                restart.started();
                 setLiveState({ byAgentId: new Map(), serverId });
                 if (serverId) {
                     void utils.agent.activeActivity.invalidate({ serverId });

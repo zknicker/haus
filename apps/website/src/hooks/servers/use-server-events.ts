@@ -1,5 +1,6 @@
 import type { ServerUpdatedEvent } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 import { cachesClearedOnMembershipLoss } from './membership-caches.ts';
 import { isMembershipLoss } from './membership-loss.ts';
 
@@ -15,8 +16,9 @@ import { isMembershipLoss } from './membership-loss.ts';
  */
 export function useServerEvents(serverId: string | undefined, slug: string | undefined) {
     const utils = hausTrpc.useUtils();
+    const restart = useSubscriptionRestart('server.onUpdate', serverId);
 
-    hausTrpc.server.onUpdate.useSubscription(
+    const { reset } = hausTrpc.server.onUpdate.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
@@ -29,6 +31,8 @@ export function useServerEvents(serverId: string | undefined, slug: string | und
                 }
             },
             onError: (error) => {
+                // Any other failure restarts the stream; membership loss is final.
+                restart.failed(error, reset);
                 if (!isMembershipLoss(error)) {
                     return;
                 }
@@ -44,9 +48,22 @@ export function useServerEvents(serverId: string | undefined, slug: string | und
                     void cache.reset();
                 }
             },
+            // This stream never replays, and its reads recover only in the
+            // App-wide reconnect pass. A restart after an error reconnects no
+            // socket, so it refreshes every scope it would have heard about.
+            onStarted: () => {
+                if (restart.started()) {
+                    const handleUpdate = createServerUpdateHandler(utils, serverId, slug);
+                    for (const scope of serverUpdateScopes) {
+                        handleUpdate({ scope });
+                    }
+                }
+            },
         }
     );
 }
+
+const serverUpdateScopes = ['agent', 'computer', 'mcp', 'server'] as const;
 
 type ServerEventUtils = ReturnType<typeof hausTrpc.useUtils>;
 

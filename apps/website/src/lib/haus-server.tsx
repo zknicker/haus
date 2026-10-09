@@ -42,6 +42,8 @@ const DevPerfTools = import.meta.env.DEV
 // A local read of Clerk's cached token; Clerk rotates about every 50 seconds,
 // so a rotation reaches the socket well before the token it replaces expires.
 const sessionWatchIntervalMs = 10_000;
+// A PING after 15 s of socket silence; no PONG within 5 s closes the socket.
+const socketKeepAlive = { enabled: true, intervalMs: 15_000, pongTimeoutMs: 5000 };
 // Provenance only; the build injects the App package version (see vite.config).
 const productVersion = import.meta.env.VITE_HAUS_PRODUCT_VERSION ?? '0.0.0-dev';
 const HausServerConnectionContext = React.createContext<HausServerConnectionState>('connecting');
@@ -179,6 +181,10 @@ function createHausConnection(
                 productVersion,
             };
         },
+        // A socket half-open after sleep or a network change never errors on
+        // its own: its streams would sit silent. Without a PONG (the Server
+        // adapter answers PING) it closes, and the normal reconnect recovers.
+        keepAlive: socketKeepAlive,
         onClose: () => onConnectionState('reconnecting'),
         onOpen: () => onConnectionState('connected'),
         url: socketUrl.toString(),

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { invalidateSettledAgentHistory } from '../agents/agent-history-cache.ts';
+import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 import { recoverAgentMessage } from './agent-message-recovery.ts';
 
 export type AgentLifecycles = ReadonlyMap<string, AgentLifecycleEvent>;
@@ -16,11 +17,13 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
         events: Map<string, AgentLifecycleEvent>;
         serverId: string | undefined;
     }>({ events: new Map(), serverId });
+    const restart = useSubscriptionRestart('agent.onLifecycle', serverId);
 
-    hausTrpc.agent.onLifecycle.useSubscription(
+    const { reset } = hausTrpc.agent.onLifecycle.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
+            onError: (error) => restart.failed(error, reset),
             onData: (event) => {
                 if (event.serverId !== serverId) {
                     return;
@@ -62,7 +65,10 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                     ]);
                 }
             },
+            // Every start, a restart after an error included, recovers from the
+            // durable Agent reads: lifecycle events never replay.
             onStarted: () => {
+                restart.started();
                 if (serverId) {
                     void Promise.all([
                         utils.agent.get.invalidate(undefined, { exact: false }),

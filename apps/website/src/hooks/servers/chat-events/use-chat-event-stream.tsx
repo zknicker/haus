@@ -1,6 +1,7 @@
 import type { ServerDurableEvent } from '@haus/api';
 import * as React from 'react';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
+import { useSubscriptionRestart } from '../../realtime/use-subscription-restart.ts';
 import {
     chatEventBatchWindowMs,
     createChatEventBatch,
@@ -41,6 +42,7 @@ export function ChatEventStreamProvider({
     const eventStateRef = React.useRef({ cursor: '0', serverId });
     const batchRef = React.useRef(createChatEventBatch());
     const batchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const restart = useSubscriptionRestart('chat.onEvent', serverId);
 
     if (eventStateRef.current.serverId !== serverId) {
         eventStateRef.current = { cursor: '0', serverId };
@@ -132,10 +134,11 @@ export function ChatEventStreamProvider({
     // Server — or the app — flushes it instead of dropping it.
     React.useEffect(() => flushEventBatch, [flushEventBatch]);
 
-    hausTrpc.chat.onEvent.useSubscription(
+    const { reset } = hausTrpc.chat.onEvent.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
+            onError: (error) => restart.failed(error, reset),
             onData: (event) => {
                 if (eventStateRef.current.serverId === serverId) {
                     eventStateRef.current.cursor = laterEventCursor(
@@ -147,10 +150,12 @@ export function ChatEventStreamProvider({
                     batchTimerRef.current = setTimeout(flushEventBatch, chatEventBatchWindowMs);
                 }
             },
-            // This walk is the only recovery Chat reads get on a reconnect
-            // (query-reconnect-recovery.ts); a walk that fails falls back to
-            // the whole snapshot rather than leaving the gap unrecovered.
+            // This walk is the only recovery Chat reads get on a reconnect or a
+            // restart after an error (query-reconnect-recovery.ts); a walk that
+            // fails falls back to the whole snapshot rather than leaving the
+            // gap unrecovered.
             onStarted: () => {
+                restart.started();
                 catchUp().catch(() => refetchServerChatSnapshot());
             },
         }
