@@ -26,6 +26,8 @@ discovered tools. There is no Computer picker and no local or stdio transport.
 RankWrangler, Google Calendar, MerchBase, GitHub, and X are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. GitHub is a one-click sign-in like Google Calendar: **Connect**
 opens GitHub's authorization page for Haus's own OAuth App, and Server keeps the token refreshed.
+Server asks GitHub's hosted MCP for its default toolsets plus Actions, so Agents can read workflow
+runs and job logs and run a workflow.
 A GitHub organization with OAuth app access restrictions hides its private data until an
 organization owner approves the Haus app. X takes a token instead of a sign-in: pressing **+** asks
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
