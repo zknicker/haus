@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { collectStream } from './realtime-stream.ts';
 
 /**
  * Acceptance is one PostgreSQL transaction: the invitation is validated and
@@ -249,6 +250,25 @@ test('two humans sharing a verified address cannot both consume one invitation',
         where server_id = ${serverId} and email = ${shared} and accepted_at is not null
     `;
     expect(accepted.total).toBe(1);
+});
+
+test('acceptance publishes the new member id and the invitation change', async () => {
+    const invitee = await signIn('user_accept_announced', ['announced@haus.test']);
+    const { token } = await owner.trpc.invitation.create.mutate({
+        email: 'announced@haus.test',
+        serverId,
+    });
+    const members = collectStream(owner.trpc.member.onUpdated, { serverId });
+    const invitations = collectStream(owner.trpc.invitation.onUpdated, { serverId });
+    await Promise.all([members.started, invitations.started]);
+
+    await invitee.trpc.invitation.accept.mutate({ token });
+
+    const memberId = await readUserId('user_accept_announced');
+    await expect(members.next()).resolves.toEqual({ memberId, serverId });
+    await expect(invitations.next()).resolves.toEqual({ serverId });
+    members.stop();
+    invitations.stop();
 });
 
 async function readUserId(clerkUserId: string) {
