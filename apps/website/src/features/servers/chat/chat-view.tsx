@@ -16,6 +16,7 @@ import { WindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
+import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
@@ -59,8 +60,10 @@ export function ChatView({
         useChatInlineReply(chat.id);
     const transcriptRef = React.useRef<HTMLDivElement | null>(null);
     const scrollerRef = React.useRef<ScrollToMessage | null>(null);
+    const renderWindowRef = React.useRef<TranscriptRenderWindowHandle | null>(null);
     const { revealMessage } = useChatMessageNavigation({
         chatId: chat.id,
+        renderWindow: renderWindowRef,
         scroller: scrollerRef,
         transcript: transcriptRef,
         fetchOlderHistory: messages.fetchOlderHistory,
@@ -226,6 +229,7 @@ export function ChatView({
                         onStartDm={startDm}
                         onVisibleSequenceChange={visibleSequence.set}
                         pendingMessages={pendingMessages}
+                        renderWindowRef={renderWindowRef}
                         replyTargetMessageId={inlineReply?.messageId}
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}

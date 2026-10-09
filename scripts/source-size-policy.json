@@ -80,7 +80,6 @@
     "apps/website/src/features/chats/chat-rendering-geometry.browser.test.tsx": 749,
     "apps/website/src/features/chats/chat-transcript-model.test.ts": 835,
     "apps/website/src/features/chats/chat-transcript-model.ts": 609,
-    "apps/website/src/features/chats/chat-transcript-row-model.ts": 306,
     "apps/website/src/features/chats/chat-transcript-system-step.tsx": 371,
     "apps/website/src/features/chats/chat-transcript-tool-intents.ts": 305,
     "apps/website/src/features/chats/chat-transcript-turn.tsx": 887,

@@ -26,8 +26,6 @@ export interface StableTranscriptRenderRowsState {
     result: TranscriptRenderRow[];
 }
 
-export const transcriptRenderRowGap = 12;
-
 export function buildTranscriptRenderRows(entries: TranscriptEntry[], hiddenCount: number) {
     const rows: TranscriptRenderRow[] = [];
 
@@ -169,6 +167,7 @@ function isTranscriptRenderRowUnchanged(a: TranscriptRenderRow, b: TranscriptRen
     );
 }
 
+/** A row's height before it renders: the placeholder a windowed transcript draws in its place. */
 export function getEstimatedTranscriptRowSize(row: TranscriptRenderRow | undefined) {
     if (!row || row.kind === 'hiddenCount') {
         return 32;
@@ -191,13 +190,6 @@ export function getEstimatedTranscriptRowSize(row: TranscriptRenderRow | undefin
     }
 
     return 180;
-}
-
-export function getEstimatedTranscriptRowsSize(rows: TranscriptRenderRow[]) {
-    const rowSize = rows.reduce((total, row) => total + getEstimatedTranscriptRowSize(row), 0);
-    const gapSize = Math.max(rows.length - 1, 0) * transcriptRenderRowGap;
-
-    return rowSize + gapSize;
 }
 
 export function findTranscriptRenderRowActiveReply(

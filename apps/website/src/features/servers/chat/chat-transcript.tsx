@@ -7,6 +7,7 @@ import {
 } from '../../chats/chat-read-visibility.ts';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
+import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { ChatSendScroll } from './chat-send-scroll.tsx';
 import type { ChatTranscriptInput } from './chat-transcript-input.ts';
 import { useChatTranscript } from './use-chat-transcript.tsx';
@@ -15,10 +16,12 @@ export { useChatTranscript } from './use-chat-transcript.tsx';
 
 export function ChatTranscript({
     onVisibleSequenceChange,
+    renderWindowRef,
     scrollContentRef,
     ...input
 }: ChatTranscriptInput & {
     onVisibleSequenceChange?: (sequence: number | undefined) => void;
+    renderWindowRef?: React.RefObject<TranscriptRenderWindowHandle | null>;
     scrollContentRef?: React.RefObject<HTMLDivElement | null>;
 }) {
     const { downloadError, renderContext, rows } = useChatTranscript(input);
@@ -47,6 +50,7 @@ export function ChatTranscript({
                     ) : undefined
                 }
                 renderContext={renderContext}
+                renderWindowRef={renderWindowRef}
                 rows={rows}
                 scrollContentRef={scrollContentRef}
             />

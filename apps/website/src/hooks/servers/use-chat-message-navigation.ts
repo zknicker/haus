@@ -9,11 +9,19 @@ export interface ChatMessageJumpTarget {
 /** The transcript scroller's own jump, keyed by a scroller item's `messageId`. */
 export type ScrollToMessage = (id: string) => boolean;
 
+/**
+ * The transcript's render window: only rows near the viewport render, so a
+ * loaded message may have no element yet. `renderMessage` renders the rows
+ * around it and returns true when the caller must wait a frame to find it.
+ */
+type RenderWindow = React.RefObject<{ renderMessage(id: string): boolean } | null>;
+
 interface NavigationSnapshot {
     chatId: string;
     fetchOlderHistory: () => Promise<unknown>;
     hasOlderHistory: boolean;
     messages: readonly ChatMessageJumpTarget[] | undefined;
+    renderWindow: RenderWindow | undefined;
     transcript: Transcript;
 }
 
@@ -40,6 +48,7 @@ export function useChatMessageNavigation({
     fetchOlderHistory,
     hasOlderHistory,
     messages,
+    renderWindow,
     scroller,
     transcript,
 }: {
@@ -47,6 +56,7 @@ export function useChatMessageNavigation({
     fetchOlderHistory: () => Promise<unknown>;
     hasOlderHistory: boolean;
     messages: readonly ChatMessageJumpTarget[] | undefined;
+    renderWindow?: RenderWindow;
     scroller?: React.RefObject<ScrollToMessage | null>;
     transcript: Transcript;
 }) {
@@ -61,14 +71,22 @@ export function useChatMessageNavigation({
             requestGeneration.current += 1;
         };
     }, []);
-    const snapshot = React.useRef({
+    const snapshot = React.useRef<NavigationSnapshot>({
         chatId,
         fetchOlderHistory,
         hasOlderHistory,
         messages,
+        renderWindow,
         transcript,
     });
-    snapshot.current = { chatId, fetchOlderHistory, hasOlderHistory, messages, transcript };
+    snapshot.current = {
+        chatId,
+        fetchOlderHistory,
+        hasOlderHistory,
+        messages,
+        renderWindow,
+        transcript,
+    };
 
     const revealMessage = React.useCallback(
         (target: ChatMessageJumpTarget, scrollToMessage?: ScrollToMessage) => {
@@ -143,7 +161,15 @@ async function revealMessageInHistory({
     target: ChatMessageJumpTarget;
     scrollToMessage?: (id: string) => boolean;
 }) {
-    if (revealLoadedMessage(snapshot.current.transcript, target, scrollToMessage)) {
+    if (
+        await revealRenderedMessage(
+            snapshot,
+            target,
+            generation,
+            requestGeneration,
+            scrollToMessage
+        )
+    ) {
         return;
     }
 
@@ -161,11 +187,34 @@ async function revealMessageInHistory({
         await nextPaint();
         if (
             requestGeneration.current !== generation ||
-            revealLoadedMessage(snapshot.current.transcript, target, scrollToMessage)
+            (await revealRenderedMessage(
+                snapshot,
+                target,
+                generation,
+                requestGeneration,
+                scrollToMessage
+            ))
         ) {
             return;
         }
     }
+}
+
+/** Renders the target's rows when the window has not, then reveals it; true when handled. */
+async function revealRenderedMessage(
+    snapshot: { current: NavigationSnapshot },
+    target: ChatMessageJumpTarget,
+    generation: number,
+    requestGeneration: { current: number },
+    scrollToMessage?: (id: string) => boolean
+) {
+    if (snapshot.current.renderWindow?.current?.renderMessage(target.id)) {
+        await nextPaint();
+        if (requestGeneration.current !== generation) {
+            return true;
+        }
+    }
+    return revealLoadedMessage(snapshot.current.transcript, target, scrollToMessage);
 }
 
 async function fetchOlderPage(

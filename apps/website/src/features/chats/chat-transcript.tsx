@@ -1,8 +1,5 @@
 import * as React from 'react';
-import {
-    MessageScrollerContent,
-    MessageScrollerItem,
-} from '../../components/chats/message-scroller.tsx';
+import { MessageScrollerContent } from '../../components/chats/message-scroller.tsx';
 import { buildTranscriptEntries, type TranscriptRow } from './chat-transcript-model.ts';
 import {
     type TranscriptRenderContextValue,
@@ -13,16 +10,23 @@ import {
     computeStableTranscriptRenderRows,
     type StableTranscriptRenderRowsState,
 } from './chat-transcript-row-model.ts';
-import { TranscriptRenderRowItem } from './chat-transcript-rows.tsx';
+import { TranscriptRowSlot } from './chat-transcript-row-slot.tsx';
+import {
+    type TranscriptRenderWindowHandle,
+    useTranscriptRenderWindow,
+} from './use-transcript-render-window.ts';
 
 export function ChatTranscriptPresentation({
     leadingContent,
     renderContext,
+    renderWindowRef,
     rows,
     scrollContentRef,
 }: {
     leadingContent?: React.ReactNode;
     renderContext: TranscriptRenderContextValue;
+    /** Receives the render window, for a caller that reveals a message outside it. */
+    renderWindowRef?: React.RefObject<TranscriptRenderWindowHandle | null>;
     rows: TranscriptRow[];
     scrollContentRef?: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -32,6 +36,11 @@ export function ChatTranscriptPresentation({
         [entries, renderContext.hiddenCount]
     );
     const transcriptRows = useStableTranscriptRenderRows(rawTranscriptRows);
+    const renderWindow = useTranscriptRenderWindow(
+        transcriptRows,
+        renderContext.chatId,
+        renderWindowRef
+    );
 
     return (
         <TranscriptRenderProvider value={renderContext}>
@@ -42,21 +51,7 @@ export function ChatTranscriptPresentation({
                     {leadingContent}
                     {transcriptRows.map((row) =>
                         row.kind === 'hiddenCount' && renderContext.hiddenCount === 0 ? null : (
-                            <MessageScrollerItem
-                                // Rows keep the scroller's `content-visibility:
-                                // auto`, so off-screen rows skip style, layout,
-                                // and paint (and a revealed kept chat view
-                                // restyles only what is on screen). Its paint
-                                // containment would clip what a turn draws past
-                                // its row: the hover action island (-top-4)
-                                // and the hover wash (-mx-5). The clip margin
-                                // gives them that room.
-                                className="[overflow-clip-margin:1.25rem]"
-                                key={row.id}
-                                messageId={row.id}
-                            >
-                                <TranscriptRenderRowItem row={row} />
-                            </MessageScrollerItem>
+                            <TranscriptRowSlot key={row.id} renderWindow={renderWindow} row={row} />
                         )
                     )}
                 </MessageScrollerContent>

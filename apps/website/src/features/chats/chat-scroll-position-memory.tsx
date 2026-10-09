@@ -13,6 +13,11 @@ export type ChatScrollPosition =
 const scrollEndTolerance = 8;
 const rememberedChatScrollPositions = new Map<string, ChatScrollPosition>();
 
+/** Where a chat's transcript will restore to, so its render window opens there. */
+export function getRememberedChatScrollPosition(chatId: string): ChatScrollPosition | undefined {
+    return rememberedChatScrollPositions.get(chatId);
+}
+
 /**
  * The transcript's one scroll restorer. It restores in a layout effect, so the
  * first painted frame already shows the remembered row (or the end). It tracks
