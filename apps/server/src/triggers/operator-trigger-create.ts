@@ -1,6 +1,8 @@
-import type { Trigger, TriggerKind } from '@haus/api';
+import type { ServerDurableEvent, Trigger, TriggerKind } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
+import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
+import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent } from '../reminders/reminder-model.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -32,6 +34,8 @@ export async function createOperatorTrigger(
     clock: TriggerClock
 ): Promise<{ curl: string; secret: string; trigger: Trigger; url: string }> {
     const operator = await requireTriggerOperator(db, member, input.serverId);
+    // Set by the transaction callback; emitted only once the trigger commits.
+    let dmCreatedEvent: ServerDurableEvent | null = null;
     const created = await createTriggerRow(
         db,
         {
@@ -44,6 +48,7 @@ export async function createOperatorTrigger(
             title: input.title,
         },
         async (tx) => {
+            dmCreatedEvent = null;
             await requireTriggerOperator(tx, member, input.serverId);
             await requireActiveAgent(tx, input.serverId, input.agentId);
             const dm = await ensureAgentDmRecord(tx, {
@@ -52,10 +57,21 @@ export async function createOperatorTrigger(
                 userId: operator.id,
             });
             await requireChatWritable(tx, { chatId: dm.id, serverId: input.serverId });
+            if (dm.created) {
+                dmCreatedEvent = await insertLifecycleEvent(
+                    tx,
+                    { chatId: dm.id, serverId: input.serverId },
+                    'created',
+                    clock.now()
+                );
+            }
             return { chatId: dm.id, messageId: null };
         },
         clock
     );
+    if (dmCreatedEvent) {
+        emitDurableChatEvent({ audienceUserId: null, event: dmCreatedEvent });
+    }
 
     return {
         curl: triggerCurlCommand(created.trigger.url, created.secret),

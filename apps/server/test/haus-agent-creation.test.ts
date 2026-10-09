@@ -35,7 +35,10 @@ test('creation records the Agent and memberships without messages, threads, or i
         afterCursor: head.cursor,
         serverId: fixture.serverId,
     });
-    expect(events.map((event) => event.type)).toEqual(['chat.lifecycle']);
+    // The Server Owner's new DM with the Agent is announced, then the #all join.
+    expect(
+        events.map((event) => (event.type === 'chat.lifecycle' ? event.action : event.type))
+    ).toEqual(['created', 'updated']);
     expect(await updates.next()).toMatchObject({
         agentId,
         scope: 'agent',

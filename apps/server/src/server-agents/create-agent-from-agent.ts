@@ -11,6 +11,7 @@ import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
 import type { AvatarBytes } from '../avatars/avatar-bytes.ts';
 import { resolveAgentDmOwnerUserId } from '../chats/agent-dm-owner.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
+import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
@@ -110,13 +111,21 @@ export async function createAgentFromAgent(
             creatorAgentId: runner.agentId,
             serverId: runner.serverId,
         });
-        if (dmOwnerUserId) {
-            await ensureAgentDmRecord(tx, {
-                agentId: created.agent.id,
-                serverId: runner.serverId,
-                userId: dmOwnerUserId,
-            });
-        }
+        const dm = dmOwnerUserId
+            ? await ensureAgentDmRecord(tx, {
+                  agentId: created.agent.id,
+                  serverId: runner.serverId,
+                  userId: dmOwnerUserId,
+              })
+            : null;
+        const dmCreatedEvent = dm?.created
+            ? await insertLifecycleEvent(
+                  tx,
+                  { chatId: dm.id, serverId: runner.serverId },
+                  'created',
+                  new Date()
+              )
+            : null;
 
         // `#all` is joined by the shared creation seam; these are the lanes the
         // request named on top of it.
@@ -138,7 +147,10 @@ export async function createAgentFromAgent(
                 reasoningEffort: execution.reasoningEffort,
                 runtimeId: execution.runtimeId,
             },
-            events: await channelMembershipEvents(tx, runner.serverId, joined),
+            events: [
+                ...(dmCreatedEvent ? [dmCreatedEvent] : []),
+                ...(await channelMembershipEvents(tx, runner.serverId, joined)),
+            ],
             receipt: {
                 agent: summary,
                 avatar: avatar.outcome,

@@ -28,7 +28,12 @@ export const onChatEventProcedure = chatProcedure
                 continue;
             }
 
-            if (event.type === 'task.label.updated') {
+            // A deleted channel is gone from chat access, so every member hears
+            // it, matching catch-up replay; the event carries only ids.
+            if (
+                event.type === 'task.label.updated' ||
+                (event.type === 'chat.lifecycle' && event.action === 'deleted')
+            ) {
                 yield serverdurableeventSchema.parse(event);
                 continue;
             }
