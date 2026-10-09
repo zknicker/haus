@@ -13,6 +13,7 @@ import { resolveAccountLabel } from './account-label.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { asMcpArguments, McpDeniedError, McpReconnectRequiredError } from './errors.ts';
 import { createMcpOAuthProvider } from './oauth.ts';
+import { mcpRequestHeaders } from './preset-headers.ts';
 import { secureMcpFetch } from './secure-fetch.ts';
 import { callMcpTool, listAllTools, modelToolName } from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
@@ -216,7 +217,7 @@ export class McpRuntime {
                           )
                         : undefined,
                 fetch: secureMcpFetch,
-                headers: secret.headers,
+                headers: mcpRequestHeaders(connection.preset, secret.headers),
                 redirect: 'error',
                 type: 'http',
                 url: connection.url,
