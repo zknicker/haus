@@ -59,11 +59,13 @@ public enum TimeChipFinder {
 
     /// JavaScript's `[\w:]`: an ASCII word character or a colon.
     private static let wordOrColon = "[A-Za-z0-9_:]"
+    /// JavaScript's `\w`.
+    private static let word = "[A-Za-z0-9_]"
     private static let digit = "[0-9]"
     private static let space = #"[\t\n\x{0B}\f\r \x{A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}]"#
     private static let meridiem = #"[AaPp]\.?[Mm]\.?"#
     private static func clock(_ n: Int) -> String {
-        "(?<h\(n)>\(digit){1,2})(?::(?<m\(n)>\(digit){2}))?\(space)?(?<ap\(n)>\(meridiem))?"
+        "(?<h\(n)>\(digit){1,2})(?::(?<m\(n)>\(digit){2})(?::(?<s\(n)>\(digit){2}))?)?\(space)?(?<ap\(n)>\(meridiem))?"
     }
     private static let dayWord = "[Tt]oday|[Tt]onight|[Tt]omorrow|[Yy]esterday"
     private static let weekday =
@@ -71,22 +73,29 @@ public enum TimeChipFinder {
     private static let month =
         "Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?"
     private static func date(_ p: String) -> String {
-        "(?<\(p)Day>\(dayWord))|(?:(?:\(weekday))\\.?,?\(space)+)?(?:(?<\(p)Mon>\(month))\\.?\(space)+"
+        "(?<\(p)Day>\(dayWord))|(?:(?:[Nn]ext\(space)+)?(?:\(weekday))\\.?,?\(space)+)?(?:(?<\(p)Mon>\(month))\\.?\(space)+"
             + "(?<\(p)Dom>\(digit){1,2})(?:st|nd|rd|th)?(?:,?\(space)+(?<\(p)Year>\(digit){4}))?"
-            + "|(?<\(p)Iso>\(digit){4}-\(digit){2}-\(digit){2}))|(?<\(p)Wd>\(weekday))\\.?"
+            + "|(?<\(p)Iso>\(digit){4}-\(digit){2}-\(digit){2}))|(?:(?<\(p)Next>[Nn]ext)\(space)+)?(?<\(p)Wd>\(weekday))\\.?"
     }
-    private static let zone =
-        "(?<zone>UTC|GMT|(?<abbr>[ECMP])[SD]?T|Eastern|Central|Mountain|Pacific)(?:\(space)+[Tt]ime)?"
+    private static let ianaSegment = "[A-Z][A-Za-z_]*(?:-[a-z]+-[A-Z][A-Za-z_]*)?"
+    private static func zone(_ p: String) -> String {
+        "(?<\(p)iana>(?:Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)"
+            + "(?:/\(ianaSegment))+)"
+            + "|(?<\(p)zone>UTC|GMT|(?<\(p)abbr>[ECMP])[SD]?T|Eastern|Central|Mountain|Pacific)(?:\(space)+[Tt]ime)?"
+    }
+    private static let statedZone =
+        "(?:(?:[Yy]our\(space)+time\(space)+)?\\((?:\(zone("p")))\\)|(?:\(zone(""))))"
 
     private static let pattern = try? NSRegularExpression(
         pattern: "(?<!\(wordOrColon))(?:(?:\(date("pre")))(?:,?\(space)+at\(space)+|,\(space)+|\(space)+))?"
-            + "\(clock(1))(?:\(space)*(?:[-–—]|to)\(space)*\(clock(2)))?\(space)+\(zone)"
-            + "(?:\(space)+(?:on\(space)+)?(?:\(date("post"))))?(?!\(wordOrColon))"
+            + "\(clock(1))(?:\(space)*(?:[-–—]|to)\(space)*\(clock(2)))?\(space)+\(statedZone)"
+            + "(?:\(space)+(?:on\(space)+)?(?:\(date("post"))))?(?!\(word)|:\(digit))"
     )
 
     static let groupNames = [
-        "h1", "m1", "ap1", "h2", "m2", "ap2", "zone", "abbr",
-    ] + ["pre", "post"].flatMap { p in ["Day", "Mon", "Dom", "Year", "Iso", "Wd"].map { p + $0 } }
+        "h1", "m1", "s1", "ap1", "h2", "m2", "s2", "ap2",
+        "iana", "zone", "abbr", "piana", "pzone", "pabbr",
+    ] + ["pre", "post"].flatMap { p in ["Day", "Mon", "Dom", "Year", "Iso", "Next", "Wd"].map { p + $0 } }
 
     private struct Groups {
         private var values: [String: String] = [:]
@@ -106,37 +115,44 @@ public enum TimeChipFinder {
     // MARK: Resolution
 
     private static func resolve(_ groups: Groups, sentAt: Date) -> (startsAt: Date, endsAt: Date?)? {
-        guard let zoneID = zones[groups.either("abbr", "zone") ?? ""],
-              let timeZone = TimeZone(identifier: zoneID)
-        else { return nil }
-        let end = readClock(groups["h2"], groups["m2"], groups["ap2"])
+        guard let timeZone = readZone(groups) else { return nil }
+        let end = readClock(groups["h2"], groups["m2"], groups["s2"], groups["ap2"])
         let borrowed = groups["ap1"] == nil ? groups["ap2"] : nil
-        var start = readClock(groups["h1"], groups["m1"], groups["ap1"] ?? borrowed)
-        // Mirrors the App's truthiness checks exactly, midnight (0) included:
-        // a start or end at 12 AM / 00:00 reads as no clock there too.
-        guard let first = start, first != 0, !(groups["h2"] != nil && (end ?? 0) == 0) else { return nil }
-        if let end, end != 0, borrowed != nil, first > end {
-            start = (first + 12 * 60) % (24 * 60)
+        guard var start = readClock(groups["h1"], groups["m1"], groups["s1"], groups["ap1"] ?? borrowed),
+              !(groups["h2"] != nil && end == nil)
+        else { return nil }
+        if let end, borrowed != nil, start > end {
+            start = (start + 12 * 3600) % 86_400
         }
-        let startMinutes = start ?? first
         guard let day = readDay(groups, sentAt: sentAt, timeZone: timeZone) else { return nil }
-        let startsAt = zonedInstant(day, minutes: startMinutes, timeZone: timeZone)
-        guard let end, end != 0 else { return (startsAt, nil) }
-        let endDay = end > startMinutes ? day : addDays(day, 1)
-        return (startsAt, zonedInstant(endDay, minutes: end, timeZone: timeZone))
+        let startsAt = zonedInstant(day, seconds: start, timeZone: timeZone)
+        guard let end else { return (startsAt, nil) }
+        let endDay = end > start ? day : addDays(day, 1)
+        return (startsAt, zonedInstant(endDay, seconds: end, timeZone: timeZone))
     }
 
-    /// Minutes after midnight, or nil when the clock is not a full time.
-    private static func readClock(_ hourText: String?, _ minuteText: String?, _ ap: String?) -> Int? {
+    private static func readZone(_ groups: Groups) -> TimeZone? {
+        if let iana = groups.either("iana", "piana") {
+            // Known by exactly that spelling, as the App's `Intl` check requires.
+            guard let zone = TimeZone(identifier: iana), zone.identifier == iana else { return nil }
+            return zone
+        }
+        let key = groups["abbr"] ?? groups["pabbr"] ?? groups["zone"] ?? groups["pzone"] ?? ""
+        return zones[key].flatMap { TimeZone(identifier: $0) }
+    }
+
+    /// Seconds after midnight, or nil when the clock is not a full time.
+    private static func readClock(_ hourText: String?, _ minuteText: String?, _ secondText: String?, _ ap: String?) -> Int? {
         guard let hourText, let hour = Int(hourText) else { return nil }
         let minute = minuteText.flatMap { Int($0) } ?? 0
-        if minute > 59 { return nil }
+        let second = secondText.flatMap { Int($0) } ?? 0
+        if minute > 59 || second > 59 { return nil }
         guard let ap, !ap.isEmpty else {
-            return minuteText != nil && hour <= 23 ? hour * 60 + minute : nil
+            return minuteText != nil && hour <= 23 ? hour * 3600 + minute * 60 + second : nil
         }
         if hour < 1 || hour > 12 { return nil }
         let pm = ap.first?.lowercased() == "p"
-        return ((hour % 12) + (pm ? 12 : 0)) * 60 + minute
+        return ((hour % 12) + (pm ? 12 : 0)) * 3600 + minute * 60 + second
     }
 
     struct CalendarDay: Equatable {
@@ -173,7 +189,9 @@ public enum TimeChipFinder {
         if let weekdayName = groups.either("preWd", "postWd") {
             let target = weekdays.firstIndex(of: String(weekdayName.prefix(3)).lowercased()) ?? -1
             let current = ((epochDay(sent) % 7) + 11) % 7 // 1970-01-01 was a Thursday.
-            return addDays(sent, (target - current + 7) % 7)
+            // "next" means strictly after the sent day.
+            let strictlyAfter = groups.either("preNext", "postNext") != nil
+            return addDays(sent, strictlyAfter ? (target - current + 6) % 7 + 1 : (target - current + 7) % 7)
         }
         return sent
     }
@@ -200,8 +218,8 @@ public enum TimeChipFinder {
 
     /// The instant a wall-clock time in `timeZone` names (DST-aware), by the
     /// App's two-guess offset walk so gaps and overlaps land where it lands.
-    private static func zonedInstant(_ day: CalendarDay, minutes: Int, timeZone: TimeZone) -> Date {
-        let wall = TimeInterval(epochDay(day) * 86_400 + minutes * 60)
+    private static func zonedInstant(_ day: CalendarDay, seconds: Int, timeZone: TimeZone) -> Date {
+        let wall = TimeInterval(epochDay(day) * 86_400 + seconds)
         let firstOffset = offset(at: wall, timeZone: timeZone)
         let guess = wall - firstOffset
         let secondOffset = offset(at: guess, timeZone: timeZone)
@@ -213,10 +231,10 @@ public enum TimeChipFinder {
     }
 
     /// Days since 1970-01-01 for a proleptic Gregorian date, with the month and
-    /// day allowed to overflow the way `Date.UTC` normalizes them — and, like
-    /// `Date.UTC`, a year 0–99 read as 1900–1999.
+    /// day allowed to overflow the way `setUTCFullYear` normalizes them; a year
+    /// 0–99 stays literal.
     static func epochDay(_ date: CalendarDay) -> Int {
-        var year = (0...99).contains(date.year) ? date.year + 1900 : date.year
+        var year = date.year
         let monthIndex = date.month - 1
         year += Int((Double(monthIndex) / 12).rounded(.down))
         let month = ((monthIndex % 12) + 12) % 12 + 1
@@ -229,7 +247,7 @@ public enum TimeChipFinder {
         return era * 146_097 + doe - 719_468 + date.day - 1
     }
 
-    private static func civil(_ days: Int) -> CalendarDay {
+    static func civil(_ days: Int) -> CalendarDay {
         let z = days + 719_468
         let era = (z >= 0 ? z : z - 146_096) / 146_097
         let doe = z - era * 146_097
