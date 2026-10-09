@@ -78,8 +78,8 @@ const skippedProcedures: ReadonlySet<string> = new Set([
  * read that no event stream recovers. `server.onUpdate` is one such stream —
  * it neither replays nor catches up, so its Server, member, Computer, MCP, and
  * settings reads recover here, as do reads with no stream at all (reminders,
- * triggers, delivery state). Queries outside tRPC (update checks, presence
- * probes) are not Server state a socket gap can stale; their own policies own
+ * triggers, delivery state). Queries outside tRPC (update checks, turn
+ * outlines) are not Server state a socket gap can stale; their own policies own
  * when they refetch.
  */
 export function isReconnectRecoveredQuery(query: Pick<Query, 'queryKey'>): boolean {

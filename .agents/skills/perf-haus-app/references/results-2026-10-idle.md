@@ -24,5 +24,6 @@ plus one read each: `chat.events` (catch-up), `chat.engagements`, `agent.list`,
 `agent.activeActivity`, and the App-wide pass (`server.list`, `server.bySlug`, `computer.list`,
 `member.list`).
 
-Remaining idle traffic: the website build check (`/haus-app-build.json`, 1/min), the Desktop
-release check (`/api/haus-release`, 10 min), and the Computer presence probe on window focus.
+Remaining idle traffic: the website build check (`/haus-app-build.json`, 1/min) and the Desktop
+release check (`/api/haus-release`, 10 min). The Computer presence probe the before runs show
+(`computer.checkPresence`) was removed separately; Server now detects Computer silence.

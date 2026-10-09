@@ -337,8 +337,8 @@ A stream that starts recovering reads on its own restart adds them to
 `streamRecoveredReads`; otherwise both it and the App-wide pass refetch them.
 The App-wide pass runs on reconnect only, never on the first connection. It skips
 settled reads that cannot change (`agent.executionJournal`) and every query outside
-tRPC: the website build check, Desktop release check, and Computer presence probe
-keep their own polling policies. A browser offline → online transition refetches
+tRPC: the website build check and Desktop release check keep their own polling
+policies. A browser offline → online transition refetches
 nothing (`refetchOnReconnect: false`); the socket reconnect that follows owns
 recovery.
 

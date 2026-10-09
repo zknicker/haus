@@ -77,7 +77,7 @@ socket opens and closes, subscription starts, and in-place `session.refresh` cal
 counts per minute over a 180 s window.
 
 The allowlist on an idle channel, Inbox, or profile: the website build check (60 s), the Desktop
-release check (10 min), onboarding and sign-in bounded polls, the Computer presence probe, and one
+release check (10 min), onboarding and sign-in bounded polls, and one
 `session.refresh` per Clerk rotation over the socket (not HTTP). Anything else is a regression;
 the usual causes are a reconnect (token rotation used to force one every 30–60 s) and a recovery
 pass that refetches a read some event stream already recovers. A real socket drop should show one
