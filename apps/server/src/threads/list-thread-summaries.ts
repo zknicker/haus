@@ -5,11 +5,16 @@ import {
     chatMessagesTable,
     chatReadsTable,
     chatsTable,
+    cloudAgentWorkTable,
     threadFollowsTable,
 } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
 
-/** How many replies the anchor's preview block shows before "N replies ›". */
+/**
+ * How many conversational replies the anchor's preview block shows. Cloud Agent
+ * work announcements are left out: the preview states that work once, as its
+ * work summary, so a fan-out never crowds the conversation off the preview.
+ */
 const threadPreviewReplyCount = 3;
 
 export async function listThreadSummaries(
@@ -41,7 +46,7 @@ export async function listThreadSummaries(
         return [];
     }
 
-    const [messages, reads, follows] = await Promise.all([
+    const [messages, reads, follows, workMessages] = await Promise.all([
         db
             .select({
                 authorAgentId: chatMessagesTable.authorAgentId,
@@ -82,7 +87,17 @@ export async function listThreadSummaries(
                     inArray(threadFollowsTable.threadChatId, threadIds)
                 )
             ),
+        db
+            .select({ messageId: cloudAgentWorkTable.messageId })
+            .from(cloudAgentWorkTable)
+            .where(
+                and(
+                    eq(cloudAgentWorkTable.serverId, input.serverId),
+                    inArray(cloudAgentWorkTable.chatId, threadIds)
+                )
+            ),
     ]);
+    const workMessageIds = new Set(workMessages.map((work) => work.messageId));
     const readByThread = new Map(reads.map((read) => [read.chatId, read.sequence]));
     const followByThread = new Map(follows.map((follow) => [follow.threadChatId, follow.followed]));
 
@@ -100,13 +115,16 @@ export async function listThreadSummaries(
             anchorMessageId: thread.anchorMessageId as string,
             followed: followByThread.get(thread.id) ?? false,
             latestReplyAt: latestReply?.toISOString() ?? null,
-            recentReplies: replies.slice(-threadPreviewReplyCount).map((reply) => ({
-                authorAgentId: reply.authorAgentId,
-                authorUserId: reply.authorUserId,
-                content: reply.content,
-                createdAt: reply.createdAt.toISOString(),
-                id: reply.id,
-            })),
+            recentReplies: replies
+                .filter((reply) => !workMessageIds.has(reply.id))
+                .slice(-threadPreviewReplyCount)
+                .map((reply) => ({
+                    authorAgentId: reply.authorAgentId,
+                    authorUserId: reply.authorUserId,
+                    content: reply.content,
+                    createdAt: reply.createdAt.toISOString(),
+                    id: reply.id,
+                })),
             replyCount: replies.length,
             threadChatId: thread.id,
             unreadCount: replies.filter(
