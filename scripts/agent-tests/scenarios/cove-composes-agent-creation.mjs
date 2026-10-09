@@ -188,9 +188,9 @@ export default defineScenario({
                 );
                 // The first hello is one-time turn input, not permanent memory.
                 expect(
-                    memory.content,
+                    memory.content.includes('say hello'),
                     'the seeded memory leaves the first hello to turn input'
-                ).not.toContain('say hello');
+                ).toBe(false);
                 // Nothing DMs the new Agent — a DM is human ↔ Agent.
                 expect(
                     membership.filter(

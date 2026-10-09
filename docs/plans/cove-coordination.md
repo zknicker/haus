@@ -70,7 +70,7 @@ notes, the outgoing local daily-review guidance, the shipped 9.0 ledger-style
 playbook, all five offer states,
 learned memory/objective preservation, and custom or missing factory files.
 The Computer suite includes opt-in native model regressions:
-`HAUS_RUN_COVE_WEEKLY_TEST=1 VARLOCK_ENV=test varlock run -- bun test apps/computer/src/harness/cove-weekly-offer.live.test.mjs`.
+`HAUS_RUN_COVE_WEEKLY_TEST=1 VARLOCK_ENV=test varlock run -- bun test --timeout 900000 ./apps/computer/src/harness/cove-weekly-offer.live.test.mjs`.
 Run `cove-weekly-agreements.live.test.mjs` with the same flag for custom guidance,
 actual no/later responses and preservation of an agreed daily cadence. Without
 the flag both files skip model calls. They exercise controlled turns against
