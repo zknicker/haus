@@ -1731,7 +1731,7 @@
     /*
      * A catalog mark is an app icon: a 40px surface tile with the hairline
      * outline every surface carries, and a 24px illustration inside it.
-     * Full-tile art (favicons, built-in skill art) sizes itself to the tile.
+     * Built-in skill art sizes itself to the tile; connection logos sit inset.
      * The skill dialog's header carries the same tile (`modal__icon--product`)
      * so a skill looks the same opened as listed. Radius follows the
      * identity-mark curve for a 40px box (`identityMarkRadius`).
@@ -1753,6 +1753,14 @@
     .connection-hero-mark svg {
         width: 1.5rem;
         height: 1.5rem;
+    }
+
+    /* Preserve brand silhouettes and leave breathing room inside the tile. */
+    .connection-mark__image {
+        width: 75%;
+        height: 75%;
+        border-radius: inherit;
+        object-fit: contain;
     }
 
     /*

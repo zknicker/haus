@@ -27,13 +27,7 @@ export function ConnectionGlyph({ connection }: { connection: ConnectionMarkSubj
 
     if (icon.kind === 'image') {
         return (
-            <img
-                alt=""
-                className="size-full rounded-[inherit] object-cover"
-                height={32}
-                src={icon.src}
-                width={32}
-            />
+            <img alt="" className="connection-mark__image" height={32} src={icon.src} width={32} />
         );
     }
     // The slot sizes `svg`, not text, so a letter would otherwise land on the
