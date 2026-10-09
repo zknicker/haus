@@ -4,7 +4,7 @@ import {
     isTerminalCloudAgentStatus,
     type ServerDurableEvent,
 } from '@haus/api';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
@@ -97,17 +97,23 @@ export async function applyCloudAgentObservation(
             )
             .orderBy(desc(cloudAgentRunsTable.createdAt))
             .limit(1);
-        if (latestRun?.id === observation.runId) {
-            await tx
-                .update(cloudAgentWorkTable)
-                .set(workObservationUpdate(observation, row.workStartedAt))
-                .where(
-                    and(
-                        eq(cloudAgentWorkTable.serverId, input.serverId),
-                        eq(cloudAgentWorkTable.id, observation.workId)
-                    )
-                );
-        }
+        // An older Run still reports while a follow-up waits behind it. It never
+        // projects lifecycle, but it is news: without this the job reads as quiet.
+        await tx
+            .update(cloudAgentWorkTable)
+            .set(
+                latestRun?.id === observation.runId
+                    ? workObservationUpdate(observation, row.workStartedAt)
+                    : {
+                          updatedAt: sql`greatest(${cloudAgentWorkTable.updatedAt}, ${observation.observedAt}::timestamptz)`,
+                      }
+            )
+            .where(
+                and(
+                    eq(cloudAgentWorkTable.serverId, input.serverId),
+                    eq(cloudAgentWorkTable.id, observation.workId)
+                )
+            );
 
         if (settling) {
             await agentDelivery.enqueue(tx, {

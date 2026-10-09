@@ -7,6 +7,7 @@ export const work = {
     computerId: 'cmp_studio',
     createdAt: '2026-09-04T12:00:00.000Z',
     id: 'caw_1234567890abcdef',
+    job: { followUp: null, startedAt: '2026-09-04T12:00:30.000Z', state: 'working' },
     messageId: 'msg_1234567890abcdef',
     provider: 'cursor',
     providerAgentId: 'bc_abc',
@@ -15,6 +16,7 @@ export const work = {
     runs: [
         {
             branches: [],
+            createdAt: '2026-09-04T12:00:00.000Z',
             errorCode: null,
             model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
             providerRunId: 'run_abc',

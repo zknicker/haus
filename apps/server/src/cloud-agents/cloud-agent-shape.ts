@@ -4,6 +4,7 @@ import {
     cloudAgentRunSchema,
     cloudAgentRunsRetained,
     cloudAgentWorkSchema,
+    deriveCloudAgentJob,
 } from '@haus/api';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -16,6 +17,7 @@ type CloudAgentReader = Pick<HausDatabase, 'select'>;
 export function toCloudAgentRun(row: RunRow): CloudAgentRun {
     return cloudAgentRunSchema.parse({
         branches: row.branches,
+        createdAt: row.createdAt.toISOString(),
         errorCode: row.errorCode,
         model: {
             droppedParams: row.modelDroppedParams,
@@ -36,6 +38,9 @@ export function toCloudAgentRun(row: RunRow): CloudAgentRun {
 
 /** `runs` is newest first and bounded; the work keeps recent Runs, not history. */
 export function toCloudAgentWork(row: WorkRow, runs: RunRow[]): CloudAgentWork {
+    const recent = runs.slice(0, cloudAgentRunsRetained).map(toCloudAgentRun);
+    const startedAt = row.startedAt?.toISOString() ?? null;
+    const terminalAt = row.terminalAt?.toISOString() ?? null;
     return cloudAgentWorkSchema.parse({
         activity:
             row.activitySummary && row.activityAt
@@ -48,16 +53,17 @@ export function toCloudAgentWork(row: WorkRow, runs: RunRow[]): CloudAgentWork {
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
         id: row.id,
+        job: deriveCloudAgentJob({ runs: recent, startedAt, status: row.status, terminalAt }),
         messageId: row.messageId,
         provider: row.provider,
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
         repository: row.repository,
-        runs: runs.slice(0, cloudAgentRunsRetained).map(toCloudAgentRun),
-        startedAt: row.startedAt?.toISOString() ?? null,
+        runs: recent,
+        startedAt,
         startingRef: row.startingRef,
         status: row.status,
-        terminalAt: row.terminalAt?.toISOString() ?? null,
+        terminalAt,
         title: row.title,
         updatedAt: row.updatedAt.toISOString(),
     });

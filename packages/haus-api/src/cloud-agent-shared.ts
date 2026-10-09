@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { cloudAgentJobSchema } from './cloud-agent-job.ts';
 import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
@@ -146,6 +147,8 @@ export const cloudAgentCancelRequestedBySchema = z.discriminatedUnion('kind', [
 export const cloudAgentRunSchema = z
     .object({
         branches: z.array(cloudAgentBranchSchema).max(50),
+        /** When the Run was queued: the job's start, or when a follow-up was sent. */
+        createdAt: cloudAgentTimestampSchema,
         errorCode: z.string().trim().min(1).max(120).nullable(),
         model: cloudAgentRunModelSchema,
         providerRunId: z.string().trim().min(1).max(200).nullable(),
@@ -175,6 +178,8 @@ export const cloudAgentWorkSchema = z
         computerId: cloudAgentIdSchema,
         createdAt: cloudAgentTimestampSchema,
         id: cloudAgentIdSchema,
+        /** The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`). */
+        job: cloudAgentJobSchema,
         messageId: cloudAgentIdSchema,
         provider: cloudAgentProviderSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
