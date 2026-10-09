@@ -138,11 +138,14 @@ Thread would hold nothing but the same card, so the Message's ordinary hover thr
 way in; once replies exist, the ordinary Thread preview below the card is. The preview never
 repeats the work's header or actions. Zero replies never reserves an empty Thread preview.
 
-**Thread preview.** Cloud Agent work inside a Thread gets one informational summary row per
-provider below the anchor's Task header. A lone work names itself: provider, title (or its recorded
-diff once completed), and status. Several works from one provider read as a count and a status
-breakdown, live states first ("Cursor · 9 agents · 7 running · 1 done · 1 failed"). Completed work
-stays counted. The preview's reply rows exclude work announcements, so each work appears once. The
+**Thread preview.** Cloud Agent work inside a Thread gets one informational row per job below the
+anchor's Task header, always named after the job's title (never its diff). Each row carries the
+provider's mark, the title, `#<n>` once the job has a pull request, and the job state in the card's
+vocabulary: `Working · <elapsed>` with the spinner, `Done`, `Failed`, `Cancelled` or `Expired`
+(dimmed), or the warning `No update in <d>` for a live job quiet for ten minutes. It never says
+queued. Problems sort first — failed, then no update — then working, then done, then cancelled or
+expired; ties keep the Server's
+order. Done work stays listed. The preview's reply rows exclude work announcements, so each work appears once. The
 entire preview opens the Thread; summary rows are not click targets.
 Server's conversation-scoped `cloudAgentWork.listForChat` read includes all statuses, grouped by
 Thread anchor. The Inbox's separate active-work read remains active-only.
@@ -152,33 +155,55 @@ in the scrolling conversation. The Message's sequence fixes its position; status
 updates change the same card in place. New delegations get their own Messages and cards. There is
 no pinned Cloud Agents section or carousel. Task metadata remains above the conversation.
 The card is presentation derived from the work record and is never a Chat row, and nothing on it is
-named after any one provider: the provider's own mark, the title with a status chip (`Queued`,
-`Running` with the in-progress disc, `Done` in success, `Failed` and `Expired` in danger, `Cancelled`
-muted, `Cancelling`), the repository, a branch row carrying the branch the run wrote and `PR #<n>`
-when it opened one, a diff row of `<n> files changed` with additions in success and deletions in
-danger whenever the branch carries a pull-request snapshot, and one split-button control band — View
-PR when there is a pull request and Open in `<provider>` until then, with Open in `<provider>`, Copy
-link, and Cancel run for Owners and Admins while the run is live behind the chevron. There is no
-delegation receipt: the Message's author line and timestamp directly above the card already say who
-delegated it and when. While the work is live, an activity row shows the
-provider's latest `activity`; a settled work drops it, since the branch, PR, and diff rows state the
-outcome. The Run report is not on the card: the branch, the pull
-request, and the diff are the evidence, and provider prose only crowded them out. It updates in place
-from the same event.
+named after any one provider. It has four parts and one type size (weight and color carry the
+hierarchy):
+
+1. **Header** — the provider's own mark, the title with a job-state chip, and the repository.
+2. **Pull request row**, once a Run reports one — `PR #<n>`, the pull request's own state
+   (Draft, Open, Merged, Closed) and `<n> files` with additions in success and deletions in danger
+   when the Computer's GitHub reading carries them. The newest Run that reported a pull request
+   supplies it, so a follow-up Run that has not reported yet never hides it.
+3. **Exactly one status line**, always present, one line, truncated. The most urgent fact wins:
+   the failure reason (danger: the failed Run's summary, else its error code); `No update in <d>`
+   (warning) when the newest Run is queued or running and the work's `updatedAt` is older than ten
+   minutes (an observation from any of the work's Runs advances `updatedAt`, so an earlier Run
+   still reporting while a follow-up waits keeps the work fresh); `Stopping · requested <relative>` while a cancel is pending; the follow-up note
+   `<Agent> asked for changes · waiting <d>` or `· running <d>`; otherwise the latest `activity`
+   or `Updated <relative>` while working, `Finished <relative>` when done, and
+   `Cancelled · <relative>` or `Expired · <relative>` when the job was cancelled or expired.
+4. **Actions**, always present — **View PR** first once there is a pull request URL, then a split
+   button whose primary half is **Open in `<provider>`** and whose chevron holds Copy link, plus
+   Cancel run for Owners and Admins while a Run is live. There is no restart action.
+
+**Job state mirrors Cursor.** The chip states the Server-derived `job` (`deriveCloudAgentJob` in
+`packages/haus-api`): the provider's own status for the newest Run the provider has received (the
+Run carries a `providerRunId`), with no Haus logic layered on top. `Working · <elapsed>` with HeroUI's
+spinner for CREATING or RUNNING, `Done · <duration>` in success for FINISHED (pull request merge
+state stays on the pull request row), `Failed` in danger for ERROR, and `Cancelled` or `Expired`
+muted for CANCELLED or EXPIRED. A follow-up still in Haus's local queue is not a provider Run yet:
+it never moves the headline and only shows as the follow-up note, so one cancelled before delivery
+leaves a done job Done, while one cancelled after delivery reads Cancelled. `Queued` is never a
+headline: a first Run not yet received or still queued reads working.
+The Inbox's Happening now list shows only live work, so a job listed there only because a
+follow-up waits behind a settled Run reads `Follow-up waiting · <d>` with the working spinner. Because the status line never appears or disappears, the card
+changes height only when the pull request row first appears. There is no delegation receipt: the
+Message's author line and timestamp directly above the card already say who delegated it and when.
+The Run report is not on the card. It updates in place from the same event.
 Multiple Cloud Agents may run inside one Task or Thread. The presentation imposes no one-to-one
 workflow restriction. Meaningful result announcements may be new conversation Messages; work
 observations update existing records rather than automatically posting channel chatter.
 
-Only status discs and the card's status chip carry lifecycle color. A running work whose `updatedAt`
-is older than ten minutes shows a last-update note rather than gating on Computer connection state.
+Only status glyphs, the card's job-state chip, and the status line's danger and warning tones carry
+lifecycle color. Liveness reads from the work's own `updatedAt`, never from Computer connection
+state.
 iOS renders the same one card (`CloudAgentCard.swift`) in the parent Chat and the Thread, with
 two platform deviations: the card fills the iPhone message column rather than a fixed measure,
 and the split button is a bordered primary action beside a chevron `Menu`. Copy link builds the
 App link from the configured Server origin, which is the App origin in production. Older clients and
 unknown body kinds render the Message `content` and the ordinary Thread preview.
-Compact Thread-preview rows on web and iOS show the work title until completion, then the newest
-Run's primary PR file/addition/deletion counts. Without a recorded PR snapshot, they show only
-Done, never inferred zero changes. Lifecycle status remains visible; full work cards keep their title.
+Web Thread-preview rows always show the job title and never a diff. iOS
+(`ThreadCloudAgentSummary`) still renders the earlier one-row-per-provider summary with Run statuses
+and the newest Run's diff counts until it adopts the per-job rows and the `job` field.
 
 Server has one Message reader that projects authors, attachments, Tasks, and typed bodies for every
 consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
@@ -239,15 +264,30 @@ type CloudAgentWork = {
     cancelRequestedBy: { kind: 'agent' | 'user'; id: string } | null;
     activity: { summary: string; at: string } | null;
     runs: CloudAgentRun[];
+    /** Server-derived from `runs`: how the whole job reads, never `queued`. */
+    job: CloudAgentJob;
     createdAt: string;
     updatedAt: string;
 };
+
+type CloudAgentFollowUp = { state: 'waiting' | 'running'; since: string };
+
+// The state is the provider's status for the newest Run it has received (`providerRunId` set),
+// else the first Run's; a waiting or live newest Run that is not the work's first is the
+// follow-up. `startedAt`/`settledAt` belong to the Run the state comes from.
+type CloudAgentJob =
+    | { state: 'working'; startedAt: string | null; followUp: CloudAgentFollowUp | null }
+    | { state: 'done'; startedAt: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
+    | { state: 'failed'; summary: string | null; errorCode: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
+    | { state: 'cancelled' | 'expired'; settledAt: string | null; followUp: CloudAgentFollowUp | null };
 
 type CloudAgentRun = {
     runId: string;
     providerRunId: string | null;
     status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'expired';
     rawStatus: string | null;
+    createdAt: string; // when the Run was queued
+
     startedAt: string | null;
     terminalAt: string | null;
     summary: string | null;
@@ -286,7 +326,7 @@ events no more than every few seconds. It is the work's current state in a sente
 transcript, and it yields to the latest Run summary once the work settles.
 
 `branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence for the
-in-Thread work card's branch row. They are not a Haus product relation: Haus stores no branch or pull-request
+work card's pull request row. They are not a Haus product relation: Haus stores no branch or pull-request
 entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
 
 `pullRequest` is the Computer's own reading of that URL, and it is evidence on the Run for exactly
@@ -308,8 +348,8 @@ unauthenticated, and an unreadable pull request simply has no snapshot.
 
 The snapshot's consumers today are the delegating Agent's surfaces: the terminal inbox attention
 states the branch's pull-request state and diff counts, and the work Message reads back with
-`pr=#<n>` wherever messages are shown. The in-Thread card shows the branch row and `PR #<n>`
-with files changed, additions, and deletions when GitHub evidence is available. Missing evidence
+`pr=#<n>` wherever messages are shown. The work card's pull request row shows `PR #<n>`, its state,
+and files changed, additions, and deletions when GitHub evidence is available. Missing evidence
 does not become a fabricated zero-line diff.
 
 A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
@@ -562,7 +602,7 @@ administrative integration and is outside this Computer capability.
 - No outputs relation, output table, or produced-by provenance; results are ordinary Messages and
   references.
 - No pull-request facts sourced from Cursor. A Run's own `pullRequest` snapshot is the Computer
-  reading GitHub directly for the branch row's state and diff counts; the pull-request reference's
+  reading GitHub directly for the pull request row's state and diff counts; the pull-request reference's
   title and cached presentation still come only from the Server GitHub connection.
 - No per-launch human approval card. Launch approval, when a Server wants it, is an @mention:
   the Agent @mentions the human with what it will launch and waits for an explicit yes in reply

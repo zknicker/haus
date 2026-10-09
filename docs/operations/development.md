@@ -148,10 +148,11 @@ card, the link, and desktop artifact tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
 anchor messages cover human @mentions in Channels and Threads, all task statuses,
-hidden claims, claims with replies, all cloud-work statuses, cancelling/stale work, ordinary
+hidden claims, claims with replies, all cloud-work statuses, cancelling/stale work, follow-ups
+waiting or running behind a finished Run and waiting behind a failed one, ordinary
 threads, and a task thread containing multiple cloud runs and an inline human @mention. Toggle **Show tasks
-in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic and has no external
-link. The gallery's queued/running work appears in Inbox too.
+in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic; its pull request link points at a nonexistent
+`demo/ui-gallery` repository. The gallery's queued/running work appears in Inbox too.
 
 Gallery runs belong to a dedicated **UI gallery (unattached samples)** Computer whose randomly
 created credential is discarded. The attached development Computer never receives these runs for

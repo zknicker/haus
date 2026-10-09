@@ -94,12 +94,14 @@ and [Agent Inbox](../../specs/inbox.md).
   action inline; there is no detached overflow menu. The card has no Thread button: before any
   reply the Message's ordinary hover thread action opens the Thread, and once replies exist the
   ordinary Thread preview beneath the card is the way in and does not repeat the work's header.
-* **Hoisted work status.** Cloud Agent work inside a Thread gets one compact
-  summary row per provider beneath its anchor's Task header. A lone work shows
-  provider, title, and status; several show a count and a status breakdown,
-  such as "9 agents · 7 running · 1 done · 1 failed". Completed work stays
-  counted. The Server's conversation-scoped work list supplies these rows,
-  grouped by Thread anchor. The preview's reply rows are the newest
+* **Hoisted work status.** Cloud Agent work inside a Thread gets one row per
+  job beneath its anchor's Task header, always named after the job's title,
+  with `#<n>` once it has a pull request and the card's job state (Working ·
+  elapsed with a spinner, Done, Failed, Cancelled or Expired dimmed, or
+  `No update in <d>` as a warning; never queued). Failed and quiet jobs sort
+  first, then working, done, and cancelled or expired. The
+  Server's conversation-scoped work list supplies these rows, grouped by
+  Thread anchor. The preview's reply rows are the newest
   conversational replies and leave out work announcements, so each work
   appears once. The whole preview opens the Thread; summary rows are not click
   targets.
@@ -109,19 +111,25 @@ and [Agent Inbox](../../specs/inbox.md).
   same work through later prompts and status updates; it never moves to the end
   of the conversation. There is no pinned cloud section or carousel. It shows the
   Server-owned record, never a Chat row, and nothing on it is named after any
-  one provider: the provider's own mark, the title with a status chip, the
-  repository, a branch row carrying the branch the run wrote and `PR #<n>` when
-  it opened one, a diff row of `<n> files changed` with additions in success and
-  deletions in danger once the branch carries a pull-request snapshot, and one
-  split button — **View PR** when there is a pull request and **Open in
-  `<provider>`** until then, with Open in `<provider>`, Copy link, and Cancel
-  run for Owners and Admins while the run is live behind the chevron. The
-  Message's author line above the card says who delegated it and when, so the
-  card carries no receipt. While the work runs, an activity row
-  states its current `activity`, plus a `Last update <relative>` note when it
-  has not reported for ten minutes; settled work drops the row. The Run report
-  is not on the card: the branch, the pull request, and the diff are the
-  evidence. Everything
+  one provider. It has one type size and four parts: a header (the provider's
+  own mark, the title with a job-state chip, the repository); a pull request
+  row once one exists (`PR #<n>`, its state, files changed, additions in
+  success and deletions in danger); exactly one status line; and the actions
+  (**View PR** first once there is a pull request, then a split button for
+  **Open in `<provider>`** with Copy link and, for Owners and Admins while a
+  Run is live, Cancel run behind the chevron). The chip mirrors Cursor's own
+  status for the newest Run Cursor has received: `Working · <elapsed>` with a
+  spinner, `Done · <duration>`, `Failed`, `Cancelled`, or `Expired`; it never
+  says Queued. A follow-up still in Haus's queue is not a Cursor Run yet, so it
+  only shows as the follow-up note: the job still reads Done, and stays Done if
+  that follow-up is cancelled before Cursor receives it. The status line is always one line and shows
+  the most urgent fact: the failure reason, `No update in <d>` once a live Run
+  has been quiet for ten minutes, a pending stop, `<Agent> asked for changes ·
+  waiting <d>` (or `· running <d>`), else the latest activity or when the job
+  settled. Because that line never appears or disappears, the card changes
+  height only when its pull request row first appears. The Message's author
+  line above the card says who delegated it and when, so the card carries no
+  receipt. The Run report is not on the card. Everything
   updates in place from `cloud-agent-work.updated`; the work never writes a
   second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
