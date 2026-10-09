@@ -44,6 +44,7 @@ const receipt = {
         computerId: 'cmp_studio',
         createdAt: '2026-09-04T12:00:00.000Z',
         id: workId,
+        job: { followUp: null, startedAt: null, state: 'working' },
         messageId: 'msg_1a2b3c4d5e6f7890',
         provider: 'cursor',
         providerAgentId: null,
@@ -284,8 +285,8 @@ test.each([
 ])('a launch sends the model and params Server resolved onto the Run', async (model, sent) => {
     const provider = install(createFakeCloudAgentProvider());
     const run = { branches: [], errorCode: null, model, providerRunId: null, rawStatus: null };
-    const settled = { startedAt: null, summary: null, terminalAt: null, usage: null };
-    const runs = [{ ...run, ...settled, runId, status: 'queued' }];
+    const settled = { createdAt: receipt.work.createdAt, startedAt: null, terminalAt: null };
+    const runs = [{ ...run, ...settled, runId, status: 'queued', summary: null, usage: null }];
     stubServer({ ...receipt, work: { ...receipt.work, runs } });
     await startCloudAgentWork({
         dataRoot,

@@ -8,6 +8,7 @@ import { sendCloudAgentWork } from './send-work.ts';
 
 const work = {
     id: 'caw_1234567890abcdef',
+    job: { followUp: null, startedAt: null, state: 'working' },
     agentId: 'agt_test',
     computerId: 'cmp_test',
     chatId: 'cht_test',

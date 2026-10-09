@@ -37,7 +37,7 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
     // Inbox rows are pressable cards named by their title, not grid rows.
     const inboxRow = page.getByRole('button', { name: new RegExp(workTitle, 'u') });
     await expect(inboxRow).toBeVisible();
-    await expect(inboxRow).toContainText('Queued');
+    await expect(inboxRow).toContainText('Working');
     await expect(inboxRow).toContainText('#all');
     await expect(inboxRow).toContainText('Orbit');
 
@@ -49,7 +49,8 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
         .locator(`[data-message-id="${seeded.messageId}"]`)
         .getByTestId('cloud-agent-work-card');
     await expect(transcriptCard).toContainText(workTitle);
-    await expect(transcriptCard).toContainText('Queued');
+    await expect(transcriptCard).toContainText('Working');
+    await expect(transcriptCard).not.toContainText('Queued');
     await expect(transcriptCard).toContainText('haus/haus');
     await expect(page.getByRole('button', { name: /— Cloud Agent actions$/u })).toHaveCount(0);
     await expect(page.getByText('0 replies', { exact: true })).toHaveCount(0);
@@ -84,8 +85,8 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
             workId: seeded.workId,
         })
     );
-    await expect(transcriptCard).toContainText('Running');
-    await expect(transcriptCard.getByTestId('cloud-agent-work-activity')).toContainText(
+    await expect(transcriptCard).toContainText('Working');
+    await expect(transcriptCard.getByTestId('cloud-agent-work-status-line')).toContainText(
         'Reading the failing migration.'
     );
 
@@ -103,7 +104,7 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
         .getByTestId('cloud-agent-work-card');
     await expect(thread.getByTestId('thread-cloud-agent-carousel')).toHaveCount(0);
     await expect(thread.getByRole('heading', { name: /Cloud agents/u })).toHaveCount(0);
-    await expect(card).toContainText('Running');
+    await expect(card).toContainText('Working');
     await expect(card).toContainText('haus/haus');
     await expect(
         thread.getByText('Delegating the migration fix to a Cloud Agent.', { exact: true })
@@ -136,16 +137,17 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
         })
     );
     await expect(card).toContainText('Done');
-    await expect(card).toContainText('cursor/fix-migration');
-    await expect(card.getByTestId('cloud-agent-work-pull-request')).toContainText('PR #482');
+    const pullRequest = card.getByTestId('cloud-agent-work-pull-request');
+    await expect(pullRequest).toContainText('PR #482');
+    await expect(pullRequest).toContainText('Open · 3 files');
+    await expect(pullRequest).toContainText('+18');
+    await expect(pullRequest).toContainText('−7');
     await expect(card.getByRole('button', { name: 'View PR' })).toBeVisible();
-    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('3 files changed');
-    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('+18');
-    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('−7');
+    await expect(card.getByRole('button', { name: 'Open in Cursor' })).toBeVisible();
     await expect(card.getByText('Opened a pull request.')).toHaveCount(0);
     await page.reload();
     await expect(card).toContainText('Done');
-    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('3 files changed');
+    await expect(card.getByTestId('cloud-agent-work-pull-request')).toContainText('3 files');
     await page.screenshot({ path: testInfo.outputPath('cloud-agent-completed.png') });
 
     // Settled work leaves "Happening now", which lists only live work.
@@ -177,7 +179,7 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
     await openChannel(page, 'all');
     const rows = page.getByTestId('thread-cloud-agent-rows');
     await expect(rows).toContainText('Backfill the migration test');
-    await expect(rows).toContainText('Running');
+    await expect(rows).toContainText('Working');
     await expect(rows.getByRole('button')).toHaveCount(0);
     // Once replies exist the Thread preview below the card is the way in.
     await page.getByRole('button', { name: /^Open thread, Cloud Agent work/u }).click();
@@ -188,7 +190,7 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(0)).toContainText(workTitle);
     await expect(cards.nth(1)).toContainText('Backfill the migration test');
-    await expect(nestedCard).toContainText('Running');
+    await expect(nestedCard).toContainText('Working');
     await page.setViewportSize({ width: 1280, height: 400 });
     const initialTop = await card.evaluate((element) => element.getBoundingClientRect().top);
     await conversation.evaluate((element) => {
@@ -212,12 +214,13 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
     );
     await expect(rows).toContainText('Done');
     await expect(nestedCard).toContainText('Done');
-    await expect(rows).not.toContainText('Backfill the migration test');
+    // One row per job, always named after its title.
+    await expect(rows).toContainText('Backfill the migration test');
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(0)).toContainText(workTitle);
     await expect(cards.nth(1)).toContainText('Backfill the migration test');
     await page.reload();
-    await expect(rows).not.toContainText('Backfill the migration test');
+    await expect(rows).toContainText('Backfill the migration test');
     await expect(rows).toContainText('Done');
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(0)).toContainText(workTitle);

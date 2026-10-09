@@ -41,6 +41,9 @@ test('follow-ups retain one work and provider identity, replay original Runs, an
     );
     expect(first.work.id).toBe(started.work.id);
     expect(first.work.providerAgentId).toBe('cursor_original');
+    // The work's newest Run is queued, but the job is the Run still going.
+    expect(first.work.status).toBe('queued');
+    expect(first.work.job).toMatchObject({ followUp: { state: 'waiting' }, state: 'working' });
     expect(first.predecessors.map((run) => run.runId)).toEqual([started.runId]);
     expect(second.predecessors.map((run) => run.runId)).toEqual([started.runId, first.runId]);
     const replay = agentCloudAgentSendReceiptSchema.parse(
@@ -80,6 +83,54 @@ test('follow-ups retain one work and provider identity, replay original Runs, an
         first.runId,
         started.runId,
     ]);
+    // A follow-up queued behind a finished Run leaves the job done, not queued.
+    expect(inspected.works[0]?.job).toEqual({
+        followUp: { since: inspected.works[0]?.runs[0]?.createdAt, state: 'waiting' },
+        settledAt: '2026-09-06T12:01:00.000Z',
+        startedAt: '2026-09-06T12:00:00.000Z',
+        state: 'done',
+    });
+    socket.close();
+});
+
+test('an older Run still reporting behind a queued follow-up keeps the work fresh', async () => {
+    const runner = await fixture.mintRunner('run_followup_fresh');
+    const started = agentCloudAgentReceiptSchema.parse(
+        (await fixture.postStart(runner, fixture.startBody({ nonce: 'fresh-start' }))).body
+    );
+    const socket = await fixture.attachComputer();
+    const observeRunning = (observedAt: string, rawStatus: string) =>
+        socket.send(
+            JSON.stringify({
+                type: 'cloud-agent-observation',
+                observation: {
+                    observedAt,
+                    providerAgentId: 'cursor_fresh',
+                    rawStatus,
+                    runId: started.runId,
+                    status: 'running',
+                    workId: started.work.id,
+                },
+            })
+        );
+    observeRunning(new Date().toISOString(), 'RUNNING');
+    await fixture.waitForWorkStatus(started.work.id, 'running');
+    expect((await send(runner.token, started.work.id, 'fresh-followup')).ok).toBe(true);
+    // Later than the follow-up's own send, so only this observation can explain it.
+    const observedAt = new Date(Date.now() + 60_000).toISOString();
+    observeRunning(observedAt, 'STILL_RUNNING');
+    await fixture.waitFor(
+        async () => (await fixture.readRun(started.runId))?.raw_status === 'STILL_RUNNING'
+    );
+    const listed = agentCloudAgentListReceiptSchema.parse(
+        await (
+            await fetch(
+                new URL(`/api/agent/cloud-agents?workId=${started.work.id}`, fixture.harness.url),
+                { headers: { authorization: `Bearer ${runner.token}` } }
+            )
+        ).json()
+    );
+    expect(listed.works[0]).toMatchObject({ status: 'queued', updatedAt: observedAt });
     socket.close();
 });
 

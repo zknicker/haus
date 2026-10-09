@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
 import type { ActiveCloudAgentWork, Agent } from '@haus/api';
+import {
+    cloudAgentRunFixture,
+    cloudAgentWorkFixture,
+} from '../../cloud-agents/cloud-agent-work-fixture.ts';
 import { humanDirectory } from '../human-identity.ts';
 import { toHappeningNowWork } from './happening-now-work.ts';
 
@@ -17,8 +21,8 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
             chatLabel: '#product',
             id: 'message_one',
             provider: 'cursor',
-            status: 'running',
-            statusText: 'Running · 7m',
+            state: 'working',
+            statusText: 'Working · 7m',
             title: 'Fix the failing migration',
         },
     ]);
@@ -48,44 +52,34 @@ test('a retired Agent falls back to the name stored on its own Message', () => {
     expect(row?.agentName).toBe('Blippy (stored)');
 });
 
-test('a cancel recorded against a live Run reads as cancelling in the row', () => {
-    const [row] = toHappeningNowWork(
-        [activeWork({ work: workRecord({ cancelRequestedAt: '2026-09-04T12:06:00.000Z' }) })],
-        humans,
-        agents,
-        now
-    );
+test('a follow-up queued behind a finished Run reads as the waiting follow-up, not done', () => {
+    const followedUp = cloudAgentWorkFixture({
+        runs: [
+            cloudAgentRunFixture({
+                createdAt: '2026-09-04T12:05:00.000Z',
+                runId: 'car_two',
+                status: 'queued',
+            }),
+            cloudAgentRunFixture({ status: 'completed' }),
+        ],
+        status: 'queued',
+    });
+    const [row] = toHappeningNowWork([activeWork({ work: followedUp })], humans, agents, now);
 
-    expect(row?.status).toBe('cancelling');
-    expect(row?.statusText).toBe('Cancelling');
+    expect(row?.state).toBe('working');
+    expect(row?.statusText).toBe('Follow-up waiting · 2m');
 });
 
 function workRecord(
     overrides: Partial<ActiveCloudAgentWork['work']> = {}
 ): ActiveCloudAgentWork['work'] {
-    return {
-        activity: null,
+    return cloudAgentWorkFixture({
         agentId: 'agent_blippy',
-        cancelRequestedAt: null,
-        cancelRequestedBy: null,
         chatId: 'chat_product',
-        computerId: 'cmp_one',
-        createdAt: '2026-09-04T12:00:00.000Z',
-        id: 'caw_one',
         messageId: 'message_one',
-        provider: 'cursor',
-        providerAgentId: null,
-        providerUrl: null,
-        repository: 'haus/haus',
-        runs: [],
-        startedAt: '2026-09-04T12:00:00.000Z',
-        startingRef: null,
-        status: 'running',
-        terminalAt: null,
-        title: 'Fix the failing migration',
         updatedAt: '2026-09-04T12:06:00.000Z',
         ...overrides,
-    };
+    });
 }
 
 function activeWork(overrides: Partial<ActiveCloudAgentWork> = {}): ActiveCloudAgentWork {

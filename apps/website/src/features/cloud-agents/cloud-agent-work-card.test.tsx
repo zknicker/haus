@@ -1,180 +1,97 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentWork } from '@haus/api';
+import type { CloudAgentBranch } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CloudAgentActivityRow } from './cloud-agent-work-card.tsx';
+import { CloudAgentPullRequestRow } from './cloud-agent-work-card.tsx';
+import {
+    cloudAgentRunFixture as run,
+    cloudAgentWorkFixture as work,
+} from './cloud-agent-work-fixture.ts';
 import { ThreadCloudAgentRows } from './thread-cloud-agent-rows.tsx';
 
-test('each hoisted row names its work and status without another click target', () => {
+const pullRequestBranch: CloudAgentBranch = {
+    branch: 'cursor/test',
+    pullRequest: {
+        additions: 10,
+        changedFiles: 1,
+        deletions: 0,
+        number: 1,
+        observedAt: '2026-09-04T12:00:00.000Z',
+        state: 'draft',
+    },
+    pullRequestUrl: 'https://github.com/haus/haus/pull/1',
+    repository: 'haus/haus',
+};
+
+test('each job gets its own row named after its title, with no click target', () => {
     const html = renderToStaticMarkup(
         <ThreadCloudAgentRows
             works={[
+                work({ id: 'caw_a', title: 'First repo', updatedAt: new Date().toISOString() }),
                 work({
-                    startedAt: new Date(Date.now() - 120_000).toISOString(),
-                    status: 'running',
+                    id: 'caw_b',
+                    runs: [run({ branches: [pullRequestBranch], status: 'completed' })],
+                    status: 'completed',
+                    title: 'Second repo',
                 }),
             ]}
         />
     );
 
-    expect(html).toContain('>Running</span>');
-    expect(html).not.toContain('Running ·');
-    expect(html).toContain('>Cursor</span>');
+    expect(html.match(/data-testid="thread-cloud-agent-row"/g)).toHaveLength(2);
+    expect(html).toContain('First repo');
+    expect(html).toContain('Second repo');
+    expect(html).toContain('>#1</span>');
+    expect(html).not.toContain('file changed');
+    expect(html).not.toContain('agents');
+    expect(html).not.toContain('text-xs');
     expect(html).toContain('height:20px;width:20px');
-    expect(html).toContain('Fix the failing migration');
     expect(html).not.toContain('<button');
     expect(html).not.toContain('<a ');
 });
 
-test('a fan-out reads as one provider row with a count and status breakdown', () => {
-    const html = renderToStaticMarkup(
-        <ThreadCloudAgentRows
-            works={[
-                work({ id: 'caw_a', status: 'running', title: 'First repo' }),
-                work({ id: 'caw_b', status: 'running', title: 'Second repo' }),
-                work({ id: 'caw_c', status: 'completed', title: 'Third repo' }),
-            ]}
-        />
-    );
-
-    expect(html.match(/>Cursor<\/span>/g)).toHaveLength(1);
-    expect(html).toContain('3 agents');
-    expect(html).toContain('2 running · 1 done');
-    expect(html).not.toContain('First repo');
-});
-
-test('thread rows show the current outcome, including a pending cancellation', () => {
-    for (const [overrides, label] of [
-        [{ status: 'completed' }, 'Done'],
-        [{ status: 'failed' }, 'Failed'],
-        [{ status: 'running', cancelRequestedAt: new Date().toISOString() }, 'Cancelling'],
-    ] satisfies [Partial<CloudAgentWork>, string][]) {
-        const html = renderToStaticMarkup(<ThreadCloudAgentRows works={[work(overrides)]} />);
-        expect(html).toContain(`>${label}</span>`);
+test('thread rows show the job, never a queued follow-up', () => {
+    const followedUp = work({
+        runs: [run({ runId: 'car_two', status: 'queued' }), run({ status: 'completed' })],
+        status: 'queued',
+        updatedAt: new Date().toISOString(),
+    });
+    for (const [value, label] of [
+        [work({ status: 'completed' }), 'Done'],
+        [work({ status: 'failed' }), 'Failed'],
+        [work({ status: 'cancelled' }), 'Cancelled'],
+        [work({ status: 'expired' }), 'Expired'],
+        [followedUp, 'Done'],
+    ] as const) {
+        const html = renderToStaticMarkup(<ThreadCloudAgentRows works={[value]} />);
+        expect(html).toContain(label);
+        expect(html).not.toContain('Queued');
     }
 });
 
-test('compact completed rows show recorded diff counts, not the task title', () => {
-    const completed = work({
-        status: 'completed',
-        runs: [
-            {
-                runId: 'car_one',
-                status: 'completed',
-                model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
-                providerRunId: null,
-                rawStatus: null,
-                errorCode: null,
-                startedAt: null,
-                terminalAt: null,
-                summary: null,
-                usage: null,
-                branches: [
-                    {
-                        branch: 'cursor/test',
-                        repository: 'haus/haus',
-                        pullRequestUrl: 'https://github.com/haus/haus/pull/1',
-                        pullRequest: {
-                            number: 1,
-                            state: 'draft',
-                            changedFiles: 1,
-                            additions: 10,
-                            deletions: 0,
-                            observedAt: new Date().toISOString(),
-                        },
-                    },
-                ],
-            },
-        ],
-    });
-    const html = renderToStaticMarkup(<ThreadCloudAgentRows works={[completed]} />);
-    expect(html).toContain('1 file changed · +10 −0');
-    expect(html).not.toContain(completed.title);
-    const active = renderToStaticMarkup(
-        <ThreadCloudAgentRows works={[{ ...completed, status: 'running' }]} />
-    );
-    expect(active).toContain(completed.title);
-    expect(active).not.toContain('file changed');
-    const missing = renderToStaticMarkup(
-        <ThreadCloudAgentRows works={[work({ status: 'completed' })]} />
-    );
-    expect(missing).toContain('>Done</span>');
-    expect(missing).not.toContain('changed');
-    // Without a recorded diff a finished work still names itself.
-    expect(missing).toContain('Fix the failing migration');
+test('the pull request row states number, state, and diff size', () => {
+    const html = renderToStaticMarkup(<CloudAgentPullRequestRow branch={pullRequestBranch} />);
+
+    expect(html).toContain('PR #1');
+    expect(html).toContain(' · Draft · 1 file');
+    expect(html).toContain('+10');
+    expect(html).toContain('−0');
 });
 
-test('the activity row carries what a live work is doing', () => {
+test('a pull request without a GitHub reading still states its number', () => {
     const html = renderToStaticMarkup(
-        <CloudAgentActivityRow
-            now={Date.now()}
-            work={work({
-                activity: { at: new Date().toISOString(), summary: 'Running the test suite.' },
-                status: 'running',
-            })}
-        />
+        <CloudAgentPullRequestRow branch={{ ...pullRequestBranch, pullRequest: null }} />
     );
 
-    expect(html).toContain('Running the test suite.');
+    expect(html).toContain('PR #1');
+    expect(html).not.toContain('Draft');
 });
 
-test('a work with nothing to report renders no activity row at all', () => {
-    expect(renderToStaticMarkup(<CloudAgentActivityRow now={Date.now()} work={work({})} />)).toBe(
-        ''
-    );
+test('a branch that opened no pull request renders no row', () => {
+    expect(
+        renderToStaticMarkup(
+            <CloudAgentPullRequestRow
+                branch={{ ...pullRequestBranch, pullRequest: null, pullRequestUrl: null }}
+            />
+        )
+    ).toBe('');
 });
-
-test('settled work drops its last activity; the outcome rows say the rest', () => {
-    const html = renderToStaticMarkup(
-        <CloudAgentActivityRow
-            now={Date.now()}
-            work={work({
-                activity: { at: new Date().toISOString(), summary: 'Running the test suite.' },
-                status: 'completed',
-            })}
-        />
-    );
-
-    expect(html).toBe('');
-});
-
-test('a running work that has gone quiet says when it last reported', () => {
-    const html = renderToStaticMarkup(
-        <CloudAgentActivityRow
-            now={Date.now()}
-            work={work({
-                status: 'running',
-                updatedAt: new Date(Date.now() - 42 * 60_000).toISOString(),
-            })}
-        />
-    );
-
-    expect(html).toContain('Last update 42m ago');
-});
-
-function work(overrides: Partial<CloudAgentWork>): CloudAgentWork {
-    const at = new Date().toISOString();
-
-    return {
-        activity: null,
-        agentId: 'agt_one',
-        cancelRequestedAt: null,
-        cancelRequestedBy: null,
-        chatId: 'cht_one',
-        computerId: 'cmp_one',
-        createdAt: at,
-        id: 'caw_one',
-        messageId: 'msg_one',
-        provider: 'cursor',
-        providerAgentId: null,
-        providerUrl: null,
-        repository: 'haus/haus',
-        runs: [],
-        startedAt: null,
-        startingRef: null,
-        status: 'queued',
-        terminalAt: null,
-        title: 'Fix the failing migration',
-        updatedAt: at,
-        ...overrides,
-    };
-}

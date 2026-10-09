@@ -35,10 +35,10 @@ test('desktop Cloud Agent work opens as a Thread page with working actions', asy
     // With one pane, the Thread page replaces the chat in the same tab.
     const card = page.getByTestId('thread-conversation').getByTestId('cloud-agent-work-card');
     await expect(card).toContainText(title);
-    await expect(card).toContainText('Queued');
+    await expect(card).toContainText('Working');
     await card.getByRole('button', { name: /more Cloud Agent actions/u }).click();
     await expect(page.getByRole('menuitem', { name: 'Copy link' })).toBeEnabled();
     await page.getByRole('menuitem', { name: 'Cancel run' }).click();
-    await expect(card).toContainText('Cancelling');
+    await expect(card.getByTestId('cloud-agent-work-status-line')).toContainText('Stopping');
     await expect(page.getByText('Unexpected Application Error!')).toHaveCount(0);
 });
