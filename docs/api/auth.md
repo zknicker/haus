@@ -4,6 +4,7 @@ read_when:
   - changing Clerk identity, Server authorization, Computer credentials, or Agent runner access
   - changing secret custody or provider-session behavior
   - changing desktop Clerk loading, the sign-in gate, or how a new desktop window starts signed in
+  - changing how the App's WebSocket authenticates, refreshes its Clerk token, or reconnects
 ---
 
 # Auth
@@ -64,3 +65,27 @@ no private data renders without a token the Server accepted. If Clerk loads sign
 different session, or fails, the gate falls back to the normal flow and the per-user Server
 provider remounts. A session revoked elsewhere stays usable until its token expires, exactly as in
 an already-open window.
+
+## Socket sessions
+
+The App's Server WebSocket opens with the current Clerk session token in its connection params.
+The first operation the Server verifies on that socket binds it to that Clerk user (`sub`) and
+Clerk session (`sid`) for the socket's whole life (`apps/server/src/haus-api/socket-session.ts`).
+
+Clerk rotates session tokens about every minute. The App reads Clerk's cached token every 10
+seconds and compares identity, not token text: a rotated token for the same `sub` and `sid` goes to
+`session.refresh` over the same socket, so rotation never reconnects. Sign-in, sign-out, a
+different user or Clerk session, or any refused refresh closes the socket instead, and the
+reconnect reads fresh connection params.
+
+- `session.refresh` is valid only over an App WebSocket. It verifies the new token on its own
+  (issuer, `azp`, expiry) and accepts it only for the bound user and session; another user's or
+  another session's token is refused (`FORBIDDEN`) and never replaces the bound one. A socket
+  with no verified operation yet has nothing to refresh (`CONFLICT`).
+- Every later operation start on the socket — query, mutation, or subscription — is verified
+  against the newest token.
+- Each binding or refresh arms an expiry: once the newest token has been expired for 60 seconds
+  without a refresh, the Server closes the socket (code 4401). Revocation therefore ends a socket
+  within one token lifetime plus that grace, because Clerk stops minting tokens for a revoked
+  session; already-running subscriptions cannot outlive their session. Membership is still
+  rechecked at every delivery.

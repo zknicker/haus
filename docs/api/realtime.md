@@ -216,8 +216,8 @@ page whose read is in flight, first read included, reads again once that read la
 lifecycle event invalidates that Agent's `agent.turns`, newest Activity History pages,
 `agent.serverTurns`, and `stats.agentUsage` once. Neither stream replays, so each
 `agent.onActivity` start refreshes that Server's mounted Activity History, turn, Server turn, and
-usage reads (a window handoff or Server switch hydrates them fresh); a websocket reconnect also
-reconciles through the App-wide reconnect invalidation, and an open turn journal re-reads itself. Activity positions
+usage reads (a window handoff or Server switch hydrates them fresh). That restart is the only
+recovery those reads get on a websocket reconnect, and an open turn journal re-reads itself. Activity positions
 are assigned under the Server row lock and are never derived from producer timestamps.
 A Server `sending_message:completed` activity is committed with the Agent message and presents the
 run as `Finishing up…`. Terminal lifecycle proof owns both current-activity removal and the
@@ -313,19 +313,41 @@ Clients do not rebuild state from missed websocket events. They refetch durable
 resources and let React Query reconcile active views.
 
 The Haus App keeps one tRPC client and React provider mounted for the signed-in
-human. Clerk token rotation reconnects only that client's websocket; the reconnect
-reads fresh connection parameters and resumes its pending subscriptions. Credential
-rotation must not replace the tRPC provider, remount the Server shell, clear composer
-drafts, or discard other local presentation state. A genuine human identity change
-renders through a newly keyed hosted QueryClient/provider, so the next identity never
-observes the previous identity's cache or local presentation state.
+human. Clerk token rotation does not reconnect: the App hands each rotated token
+to the open socket (`session.refresh`, see [Auth](auth.md#socket-sessions)), so
+idle is quiet. Only a real gap or a human identity change reconnects. Credential
+changes must not replace the tRPC provider, remount the Server shell, clear
+composer drafts, or discard other local presentation state. A genuine human
+identity change renders through a newly keyed hosted QueryClient/provider, so the
+next identity never observes the previous identity's cache or local presentation
+state.
+
+Every read has exactly one recovery owner, so a reconnect refetches each read at
+most once (`apps/website/src/lib/query-reconnect-recovery.ts`):
+
+| Owner | Recovers on (re)start |
+| --- | --- |
+| `chat.onEvent` | Walks `chat.events` from its cursor and invalidates only what the missed events touch; without a cursor (or if the walk fails) refetches the Chat snapshot: Chat list, archived list, Chat, messages, search, tasks, task labels, Cloud Agent work, Agent Chats |
+| `chat.onEngagement` | `chat.engagements` |
+| `agent.onLifecycle` | Agent list and Agent details |
+| `agent.onActivity` | Current activity, Activity History, turns, Server turns, usage |
+| App-wide reconnect pass | Every other active Server tRPC read: `server.onUpdate` neither replays nor catches up, so its Server, member, invitation, Computer, MCP, settings, and stats reads recover here, as do reads with no stream (reminders, triggers, delivery state) |
+
+A stream that starts recovering reads on its own restart adds them to
+`streamRecoveredReads`; otherwise both it and the App-wide pass refetch them.
+The App-wide pass runs on reconnect only, never on the first connection. It skips
+settled reads that cannot change (`agent.executionJournal`) and every query outside
+tRPC: the website build check, Desktop release check, and Computer presence probe
+keep their own polling policies. A browser offline → online transition refetches
+nothing (`refetchOnReconnect: false`); the socket reconnect that follows owns
+recovery.
 
 Reconnect flow:
 
 1. Keep rendering cached query data while the socket reconnects.
-2. When the websocket reconnects, invalidate active Server-backed queries.
-3. Refetch Chat history, Agents, activity, Computers, reminders, and other visible resources
-   through their normal API reads.
+2. The socket reopens and resumes every pending subscription.
+3. Each stream's restart recovers its own reads; the App-wide pass refetches
+   active reads no stream covers.
 4. Resume applying live notifications.
 
 Hosted Reminders use the same principle with a narrower lane: keep the last

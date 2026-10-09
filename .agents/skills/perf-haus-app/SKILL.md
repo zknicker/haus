@@ -67,6 +67,23 @@ All times are ms from the real `pointerdown`, read on the rAF after the region m
 | regions | Per-region first-seen time and every later signature change: the pop-in order of a profile. |
 | frames-to-visible | rAFs from pointerdown until paint holds. 1 = the new view landed in the first frame. |
 
+## Idle traffic
+
+An App nobody touches should send nothing but its justified polls. Measure with
+`scripts/perf/idle-network.mjs` (scenarios `channel`, `inbox`, `profile`, `hide-show`, `ws-drop`,
+`offline-online`; `--serve-dist` for the prod bundle, `--electron` for the desktop App on the dev
+bundle, run under `varlock run` so Electron gets its Clerk env). It logs every HTTP tRPC procedure,
+socket opens and closes, subscription starts, and in-place `session.refresh` calls, then prints
+counts per minute over a 180 s window.
+
+The allowlist on an idle channel, Inbox, or profile: the website build check (60 s), the Desktop
+release check (10 min), onboarding and sign-in bounded polls, the Computer presence probe, and one
+`session.refresh` per Clerk rotation over the socket (not HTTP). Anything else is a regression;
+the usual causes are a reconnect (token rotation used to force one every 30–60 s) and a recovery
+pass that refetches a read some event stream already recovers. A real socket drop should show one
+reconnect, one subscription start per stream, and one catch-up per stream — never a second pass
+of the same read ([realtime.md](../../../docs/api/realtime.md#reconnect-recovery)).
+
 Kept-alive chat views stay in the DOM while hidden, so "a fresh node appeared" detection is wrong
 for warm switches; every probe scopes to the displayed target surface. Passes: **cold** = first
 visit this session, **warm** = revisit; profiles add **first** (first profile this session).
@@ -93,7 +110,12 @@ Hidden kept views leave duplicate DOM; e2e locators scope to the visible surface
   SIGKILLed here.
 - Prod bundles are served on the dev origin by route interception: the Server rejects Clerk
   tokens from another origin and dev auto sign-in is compiled out of prod
-  (`scripts/perf/browser-session.mjs`).
+  (`scripts/perf/browser-session.mjs`). Chrome launches with
+  `--disable-features=LocalNetworkAccessChecks`; without it the route-fulfilled page's websocket
+  is blocked (`net::ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`) and prod runs have no realtime.
+- Another agent's perf stack may already own port base 39540 (`ensure-dev-stack.sh` then reports
+  "already up" for the wrong checkout). Check the listener's command line, and pick a free base
+  plus your own `HAUS_DEV_STACK_ID` when it is not yours.
 - Seeded messages must bump `chats.last_message_sequence` (the seed does) or the next real send
   fails with "Message not sent".
 - Fan-out reads wedge the dev Server's Bun SQL pool: every request hangs with all connections
@@ -108,3 +130,6 @@ Hidden kept views leave duplicate DOM; e2e locators scope to the visible surface
 - [references/results-2026-10.md](references/results-2026-10.md) — the October 2026 before/after
   numbers and the known remaining opportunities. Read when choosing what to attack next or
   sanity-checking a new baseline.
+- [references/results-2026-10-idle.md](references/results-2026-10-idle.md) — idle traffic
+  before/after the in-place socket session refresh, and what idle traffic remains. Read before
+  changing reconnect recovery, polling, or socket auth.

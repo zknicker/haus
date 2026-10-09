@@ -148,13 +148,16 @@ The web keeps its column topbar and full-height sidebar.
 ## Session Refresh And Reconnect
 
 The App keeps one tRPC client and React provider mounted for the signed-in human. Clerk token
-rotation reconnects only that client's websocket; the reconnect reads fresh connection parameters
-and resumes pending subscriptions. Credential rotation must not replace the tRPC provider, remount
-the Server shell, clear composer drafts, or discard other local presentation state.
+rotation re-authenticates that client's open websocket in place (`session.refresh`, see
+[Auth](../api/auth.md#socket-sessions)); only an identity change or a refused refresh reconnects,
+and the reconnect reads fresh connection parameters and resumes pending subscriptions. Credential
+rotation must not replace the tRPC provider, remount the Server shell, clear composer drafts, or
+discard other local presentation state.
 
 A genuine human identity change renders through a newly keyed hosted QueryClient and provider so
 the next identity cannot observe the previous identity's cache or local presentation state. After a
-websocket reconnect, active durable queries reconcile from Server state while their cached snapshot
-continues rendering.
+websocket reconnect, each event stream's restart and one App-wide pass reconcile active durable
+queries from Server state, each read exactly once, while their cached snapshot continues rendering
+([Realtime](../api/realtime.md#reconnect-recovery)).
 
 React ownership and event rules live in [React Conventions](react.md).
