@@ -1,0 +1,28 @@
+diff --git a/dist/index.js b/dist/index.js
+index f6a7552d1121b897f0d5caa54e6ecc4428ce1e58..62f373e7cf7caf45776f7190029055e70efc7b32 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -145,7 +145,8 @@ function useImageLoadingStatus(src, {
+     return () => {
+       image.removeEventListener("load", handleLoad);
+       image.removeEventListener("error", handleError);
+-      setLoadingStatus("idle");
++      // Haus patch: keep the status through an effect teardown (an <Activity> hide).
++      // A new src sets its own status on the next run; a removed image remounts the root.
+     };
+   }, [src, crossOrigin, referrerPolicy, setLoadingStatus]);
+   return loadingStatus;
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 0e1a0e09a04870182d1f660a330c1ff06ec1cd28..142ab17433d2b1b376ea5ca462b1bdbe76a1f2bb 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -105,7 +105,8 @@ function useImageLoadingStatus(src, {
+     return () => {
+       image.removeEventListener("load", handleLoad);
+       image.removeEventListener("error", handleError);
+-      setLoadingStatus("idle");
++      // Haus patch: keep the status through an effect teardown (an <Activity> hide).
++      // A new src sets its own status on the next run; a removed image remounts the root.
+     };
+   }, [src, crossOrigin, referrerPolicy, setLoadingStatus]);
+   return loadingStatus;

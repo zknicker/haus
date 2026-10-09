@@ -1,5 +1,5 @@
 import { Avatar } from '@heroui/react';
-import type React from 'react';
+import * as React from 'react';
 
 export type EntityAvatarSize = 'lg' | 'md' | 'sm';
 
@@ -18,9 +18,11 @@ export interface EntityAvatarProps {
  * The one identity mark in the app — agents and people are identical here by
  * design, and every surface from the rail to a profile page renders this so
  * the shape stays consistent. Stock HeroUI `Avatar`: `sm` 32px, `md` 40px,
- * `lg` 48px. Uploaded image when there is one, initials otherwise.
+ * `lg` 48px. Uploaded image when there is one, initials otherwise. Memoized:
+ * its props are primitives, and the marks around it (an Agent's presence dot)
+ * re-render on every availability flip.
  */
-export function EntityAvatar({
+export const EntityAvatar = React.memo(function EntityAvatar({
     className,
     name,
     size = 'md',
@@ -34,6 +36,9 @@ export function EntityAvatar({
     return (
         <Avatar
             className={className}
+            // The image status lives in the root and, patched, survives a hidden
+            // tab's effect teardown, so a new or removed image starts a new root.
+            key={src ?? ''}
             size={preset}
             style={
                 exact
@@ -46,11 +51,11 @@ export function EntityAvatar({
                     : undefined
             }
         >
-            {src ? <Avatar.Image alt={`${name} avatar`} key={src} src={src} /> : null}
+            {src ? <Avatar.Image alt={`${name} avatar`} src={src} /> : null}
             <Avatar.Fallback>{getEntityInitials(name)}</Avatar.Fallback>
         </Avatar>
     );
-}
+});
 
 /**
  * HeroUI pairs each preset's box with its own radius step — `sm` is 32px at
