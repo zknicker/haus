@@ -97,14 +97,16 @@ for (const intent of ['hover', 'focus'] as const) {
     });
 }
 
-test('a channel row opens on press and still drags to reorder', async ({ page }) => {
+test('a channel row opens on press and still drags to reorder', async ({ page }, testInfo) => {
+    // Per repeat, so `--repeat-each` can prove the drag is not timing-sensitive.
+    const run = testInfo.repeatEachIndex;
     const { server, session } = await createTestServer(page, {
         displayName: 'Channel press',
-        slug: 'channel-press',
+        slug: `channel-press-${run}`,
     });
     const allId = server.channels.find((channel) => channel.name === 'all')?.id;
     assertOpaqueId(allId);
-    const productId = 'cht_channel_press_product';
+    const productId = `cht_channel_press_product_${run}`;
     runPsql(
         session.databaseUrl,
         `
@@ -115,7 +117,7 @@ test('a channel row opens on press and still drags to reorder', async ({ page })
         where server_id = '${server.id}' and role = 'owner';
     `
     );
-    await page.goto(`/s/channel-press/chats/${productId}`);
+    await page.goto(`/s/channel-press-${run}/chats/${productId}`);
     const channels = page.getByRole('treegrid', { name: 'Channels' });
     const order = async () => {
         const names = await channels.getByRole('row').allTextContents();
