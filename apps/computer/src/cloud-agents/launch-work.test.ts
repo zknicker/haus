@@ -195,7 +195,7 @@ test('a provider that refuses the launch settles the recorded work as failed', a
         errorCode: 'provider-launch-rejected',
         runId,
         status: 'failed',
-        summary: 'The provider rejected the launch.',
+        summary: 'The provider rejected the launch: Repository access is missing.',
         workId,
     });
 });

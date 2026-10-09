@@ -91,6 +91,27 @@ test('send persists the private prompt before starting its monitor and keeps it 
     ).toMatchObject({ phase: 'pending', instructions: f.input.request.instructions });
 });
 
+test('a send retried after its monitor settled the Run unsent reports why, not success', async () => {
+    const f = await fixture();
+    const ref = {
+        runId: 'car_followup12345678',
+        workId: work.id,
+        providerAgentId: work.providerAgentId,
+        providerRunId: null,
+    };
+    await new CloudLaunchJournal(f.input.dataRoot).claim(f.input.serverId, ref, {
+        phase: 'rejected',
+        workId: work.id,
+        errorCode: 'launch-record-missing',
+        summary: 'This Computer has no record of the prompt for this Run.',
+    });
+    await expect(sendCloudAgentWork(f.input)).rejects.toMatchObject({
+        code: 'CLOUD_AGENT_FOLLOW_UP_SETTLED',
+        message: 'This Computer has no record of the prompt for this Run.',
+    });
+    expect(f.watched).toEqual([]);
+});
+
 test('send retains the Server rejection code and never starts a monitor', async () => {
     const f = await fixture(409);
     await expect(sendCloudAgentWork(f.input)).rejects.toMatchObject({

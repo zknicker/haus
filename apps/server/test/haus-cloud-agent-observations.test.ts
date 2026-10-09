@@ -141,3 +141,43 @@ test('observations apply idempotently and a settled Run creates one inbox attent
     expect(await fixture.readAttentions(runId)).toHaveLength(1);
     socket.close();
 });
+
+test('a Run that never reached the provider settles with the reason its Agent reads', async () => {
+    const runner = await fixture.mintRunner('run_cloud_undelivered');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'cloud-undelivered' })
+    );
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const summary =
+        'The provider did not accept the follow-up within 30 minutes (31 attempts). Last error: Agent already has an active run in progress';
+
+    const socket = await fixture.attachComputer();
+    socket.send(
+        JSON.stringify({
+            observation: {
+                errorCode: 'followup-delivery-timeout',
+                observedAt: '2026-09-04T12:30:00.000Z',
+                runId,
+                status: 'failed',
+                summary,
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await fixture.waitForWorkStatus(work.id, 'failed');
+    // The inbox attention projects these Run columns for the delegating Agent.
+    const [run] = (await fixture.harness.sql`
+        select error_code, provider_run_id, status, summary from cloud_agent_runs where id = ${runId}
+    `) as Record<string, unknown>[];
+    expect(run).toEqual({
+        error_code: 'followup-delivery-timeout',
+        provider_run_id: null,
+        status: 'failed',
+        summary,
+    });
+    expect(await fixture.readAttentions(runId)).toHaveLength(1);
+    socket.close();
+});

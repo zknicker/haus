@@ -178,6 +178,8 @@ test('reconnect recovers a lost launch address from disk before cancelling', asy
 
 test('an unknown launch reports recovery needed and never reads or cancels null addresses', async () => {
     const f = await fixture();
+    // Claimed `launching` without an acknowledgement: the provider may hold the Run.
+    await new CloudLaunchJournal(f.dataRoot).claim('srv_cloud', entry);
     let called = false;
     f.provider.read = () => {
         called = true;

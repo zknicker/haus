@@ -89,6 +89,37 @@ test('a branch whose pull request was read states the diff the Agent can act on'
     );
 });
 
+test('a follow-up that never reached the provider tells its Agent why', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        cloudAgentWork: {
+            branches: [],
+            errorCode: 'followup-delivery-timeout',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            status: 'failed',
+            summary:
+                'The provider did not accept the follow-up within 30 minutes (31 attempts). Last error: Agent already has an active run in progress',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention], 'UTC');
+    expect(drain).toContain('[Haus cloud agent attention status=failed');
+    expect(drain).toContain('errorCode=followup-delivery-timeout');
+    expect(drain).toContain(
+        'summary=The provider did not accept the follow-up within 30 minutes (31 attempts). Last error: Agent already has an active run in progress'
+    );
+});
+
 function item(overrides: Partial<AgentInboxItem> = {}): AgentInboxItem {
     return {
         chatId: 'cht_general',

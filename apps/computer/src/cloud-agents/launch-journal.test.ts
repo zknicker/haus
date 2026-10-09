@@ -51,10 +51,28 @@ test('definite rejection survives a lost failure report', async () => {
     const root = await directory();
     const journal = new CloudLaunchJournal(root);
     await journal.claim('server', ref);
-    await journal.reject('server', ref);
+    const rejection = { errorCode: 'provider-launch-rejected', summary: 'No repository access.' };
+    await journal.reject('server', ref, rejection);
     expect(await new CloudLaunchJournal(root).read('server', ref)).toEqual({
         phase: 'rejected',
         workId: ref.workId,
+        ...rejection,
+    });
+});
+
+test('a rejection recorded before rejections carried a reason reads as a launch rejection', async () => {
+    const root = await directory();
+    const journal = new CloudLaunchJournal(root);
+    await journal.claim('server', ref);
+    await writeFile(
+        await recordPath(root),
+        JSON.stringify({ phase: 'rejected', workId: ref.workId })
+    );
+    expect(await journal.read('server', ref)).toEqual({
+        phase: 'rejected',
+        workId: ref.workId,
+        errorCode: 'provider-launch-rejected',
+        summary: null,
     });
 });
 
