@@ -101,7 +101,9 @@ export function ChatEventStreamProvider({
         }
 
         if (current.cursor === '0') {
-            const head = await utils.chat.eventHead.fetch({ serverId });
+            // Never a cached head or page: a second gap at the same cursor
+            // must read what committed since, not the first gap's answer.
+            const head = await utils.chat.eventHead.fetch({ serverId }, { staleTime: 0 });
             eventStateRef.current.cursor = laterEventCursor(
                 eventStateRef.current.cursor,
                 head.cursor
@@ -113,7 +115,7 @@ export function ChatEventStreamProvider({
         const walkedCursor = await walkEventCatchUp({
             afterCursor: current.cursor,
             fetchPage: async (afterCursor, limit) =>
-                await utils.chat.events.fetch({ afterCursor, limit, serverId }),
+                await utils.chat.events.fetch({ afterCursor, limit, serverId }, { staleTime: 0 }),
             // Replayed, not new: listeners refresh caches but never announce.
             onEvents: (events) => dispatchEvents(events, 'catch-up'),
         });
@@ -145,7 +147,12 @@ export function ChatEventStreamProvider({
                     batchTimerRef.current = setTimeout(flushEventBatch, chatEventBatchWindowMs);
                 }
             },
-            onStarted: () => void catchUp(),
+            // This walk is the only recovery Chat reads get on a reconnect
+            // (query-reconnect-recovery.ts); a walk that fails falls back to
+            // the whole snapshot rather than leaving the gap unrecovered.
+            onStarted: () => {
+                catchUp().catch(() => refetchServerChatSnapshot());
+            },
         }
     );
 

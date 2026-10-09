@@ -49,6 +49,13 @@ describe('query policy contract', () => {
         expect(queryClientDefaultOptions.queries.staleTime).toBeGreaterThanOrEqual(30_000);
     });
 
+    test('browser reconnect leaves Server reads to the socket reconnect', () => {
+        // Each event stream recovers its reads when the socket comes back
+        // (query-reconnect-recovery.ts); an online event refetching them too
+        // ran a second, earlier pass before the socket had even reconnected.
+        expect(queryClientDefaultOptions.queries.refetchOnReconnect).toBe(false);
+    });
+
     test('refetchOnMount: false stays inside query-policy.ts', () => {
         // Server events invalidate inactive queries without refetching them, so
         // a query that unmounts with navigation must keep its stale-gated mount

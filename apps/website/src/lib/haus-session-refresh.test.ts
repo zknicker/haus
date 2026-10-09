@@ -2,27 +2,61 @@ import { describe, expect, test } from 'bun:test';
 import { watchHausSession } from './haus-session-refresh.ts';
 
 /**
- * A tRPC WebSocket keeps the Clerk session it was opened with, so an
- * authenticated subscription would keep presenting an expiring token. The App
- * reconnects when Clerk hands out a new one; the socket then re-reads its
- * connection params.
+ * Clerk rotates the session token about every minute, and every desktop window
+ * refreshes its shared token early. Rotation must re-authenticate the open
+ * socket in place: a reconnect restarts every subscription and refetches
+ * their recovery reads. Only an identity change, or a refused refresh, opens a
+ * new socket.
  */
 describe('watchHausSession', () => {
-    test('reconnects only when the Clerk session token changes', async () => {
-        const watch = startWatch(['token-one', 'token-two', 'token-two', 'token-three']);
+    test('hands each rotated token for the same session to the open socket', async () => {
+        const watch = startWatch([
+            token('ada', 'sess_1', 1),
+            token('ada', 'sess_1', 2),
+            token('ada', 'sess_1', 2),
+            token('ada', 'sess_1', 3),
+        ]);
 
         await watch.ready();
+        await watch.tick();
+        await watch.tick();
+        await watch.tick();
+
+        expect(watch.refreshed).toEqual([token('ada', 'sess_1', 2), token('ada', 'sess_1', 3)]);
         expect(watch.reconnects).toBe(0);
+        watch.stop();
+    });
 
+    test('reconnects when the human signs in as someone else', async () => {
+        const watch = startWatch([token('ada', 'sess_1', 1), token('grace', 'sess_2', 1)]);
+
+        await watch.ready();
         await watch.tick();
+
+        expect(watch.refreshed).toEqual([]);
         expect(watch.reconnects).toBe(1);
+        watch.stop();
+    });
 
+    test('reconnects for a new Clerk session of the same human', async () => {
+        const watch = startWatch([token('ada', 'sess_1', 1), token('ada', 'sess_2', 1)]);
+
+        await watch.ready();
         await watch.tick();
+
         expect(watch.reconnects).toBe(1);
+        watch.stop();
+    });
 
+    test('reconnects when the socket refuses a refresh', async () => {
+        const watch = startWatch([token('ada', 'sess_1', 1), token('ada', 'sess_1', 2)], {
+            refuse: true,
+        });
+
+        await watch.ready();
         await watch.tick();
-        expect(watch.reconnects).toBe(2);
 
+        expect(watch.reconnects).toBe(1);
         watch.stop();
     });
 
@@ -37,31 +71,37 @@ describe('watchHausSession', () => {
     });
 
     test('reconnects when the human signs out', async () => {
-        const watch = startWatch(['token-one', null]);
+        const watch = startWatch([token('ada', 'sess_1', 1), null]);
 
         await watch.ready();
-        expect(watch.reconnects).toBe(0);
-
         await watch.tick();
-        expect(watch.reconnects).toBe(1);
 
+        expect(watch.reconnects).toBe(1);
         watch.stop();
     });
 
     test('reconnects when the human signs in later', async () => {
-        const watch = startWatch([null, 'token-one']);
+        const watch = startWatch([null, token('ada', 'sess_1', 1)]);
 
         await watch.ready();
-        expect(watch.reconnects).toBe(0);
-
         await watch.tick();
-        expect(watch.reconnects).toBe(1);
 
+        expect(watch.reconnects).toBe(1);
+        watch.stop();
+    });
+
+    test('an unreadable token change is treated as an identity change', async () => {
+        const watch = startWatch(['opaque-one', 'opaque-two']);
+
+        await watch.ready();
+        await watch.tick();
+
+        expect(watch.reconnects).toBe(1);
         watch.stop();
     });
 
     test('stops watching when torn down', async () => {
-        const watch = startWatch(['token-one', 'token-two']);
+        const watch = startWatch([token('ada', 'sess_1', 1), token('grace', 'sess_2', 1)]);
 
         await watch.ready();
         watch.stop();
@@ -72,11 +112,19 @@ describe('watchHausSession', () => {
     });
 });
 
-function startWatch(tokens: (string | null)[]) {
+/** An unsigned Clerk-shaped session token; the watch reads claims, never verifies. */
+function token(sub: string, sid: string, iat: number) {
+    const encode = (value: object) =>
+        btoa(JSON.stringify(value)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+    return `${encode({ alg: 'none' })}.${encode({ exp: iat + 60, iat, sid, sub })}.signature`;
+}
+
+function startWatch(tokens: (string | null)[], options: { refuse?: boolean } = {}) {
     const queue = [...tokens];
     let handler: (() => void) | null = null;
     let cleared = false;
     let reconnects = 0;
+    const refreshed: string[] = [];
 
     const stop = watchHausSession({
         clearTimer: () => {
@@ -84,10 +132,14 @@ function startWatch(tokens: (string | null)[]) {
             handler = null;
         },
         intervalMs: 1000,
-        onStaleSession: () => {
+        readSessionToken: () => Promise.resolve(queue.shift() ?? null),
+        reconnect: () => {
             reconnects += 1;
         },
-        readSessionToken: () => Promise.resolve(queue.shift() ?? null),
+        refreshSession: (next) => {
+            refreshed.push(next);
+            return options.refuse ? Promise.reject(new Error('FORBIDDEN')) : Promise.resolve();
+        },
         startTimer: (run) => {
             handler = run;
             return 1;
@@ -100,6 +152,9 @@ function startWatch(tokens: (string | null)[]) {
         },
         get reconnects() {
             return reconnects;
+        },
+        get refreshed() {
+            return refreshed;
         },
         async ready() {
             await Bun.sleep(0);

@@ -1,6 +1,7 @@
 import { appProtocolHeaders, appProtocolVersion } from '@haus/api/app-protocol';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+    createTRPCClient,
     createWSClient,
     httpBatchLink,
     httpLink,
@@ -17,7 +18,11 @@ import { getClerkSessionToken } from './clerk.tsx';
 import { watchHausSession } from './haus-session-refresh.ts';
 import { hydrateClaimedQueryCache, useQueryCacheOffer } from './query-cache-handoff.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
-import { type ConnectionState, createQueryReconnectHandler } from './query-reconnect-recovery.ts';
+import {
+    type ConnectionState,
+    createQueryReconnectHandler,
+    isReconnectRecoveredQuery,
+} from './query-reconnect-recovery.ts';
 
 /** The App's authenticated HTTP and WebSocket connection to Haus Server. */
 export const hausTrpc = createTRPCReact<HausRouter>();
@@ -28,7 +33,9 @@ export type ServerSummary = HausOutputs['server']['list'][number];
 export type ServerDetail = HausOutputs['server']['bySlug'];
 export type HausServerConnectionState = ConnectionState;
 
-const sessionWatchIntervalMs = 30_000;
+// A local read of Clerk's cached token; Clerk rotates about every 50 seconds,
+// so a rotation reaches the socket well before the token it replaces expires.
+const sessionWatchIntervalMs = 10_000;
 // Provenance only; the build injects the App package version (see vite.config).
 const productVersion = import.meta.env.VITE_HAUS_PRODUCT_VERSION ?? '0.0.0-dev';
 const HausServerConnectionContext = React.createContext<HausServerConnectionState>('connecting');
@@ -82,8 +89,13 @@ export function HausServerProvider({ children }: React.PropsWithChildren) {
         React.useState<HausServerConnectionState>('connecting');
     const [handleConnectionState] = React.useState(() =>
         createQueryReconnectHandler({
+            // Each event stream recovers its own reads as it restarts; this pass
+            // covers only the Server reads no stream recovers.
             onReconnect: () => {
-                void queryClient.invalidateQueries({ refetchType: 'active' });
+                void queryClient.invalidateQueries({
+                    predicate: isReconnectRecoveredQuery,
+                    refetchType: 'active',
+                });
             },
             onStateChange: setConnectionState,
         })
@@ -113,8 +125,9 @@ export function HausServerProvider({ children }: React.PropsWithChildren) {
         const stop = watchHausSession({
             clearTimer: (handle) => window.clearInterval(handle),
             intervalMs: sessionWatchIntervalMs,
-            onStaleSession: () => reconnectHausSession(connection.wsClient),
             readSessionToken: getClerkSessionToken,
+            reconnect: () => reconnectHausSession(connection.wsClient),
+            refreshSession: (token) => refreshHausSession(connection, token),
             startTimer: (run, intervalMs) => window.setInterval(run, intervalMs),
         });
 
@@ -169,6 +182,8 @@ function createHausConnection(
         };
     };
     return {
+        // The socket alone, for re-authenticating it in place (`session.refresh`).
+        socketClient: createTRPCClient<HausRouter>({ links: [wsLink({ client: wsClient })] }),
         client: hausTrpc.createClient({
             links: [
                 splitLink({
@@ -191,7 +206,19 @@ function createHausConnection(
 
 interface HausConnection {
     client: ReturnType<typeof hausTrpc.createClient>;
+    socketClient: ReturnType<typeof createTRPCClient<HausRouter>>;
     wsClient: TRPCWebSocketClient;
+}
+
+/**
+ * Hands a rotated token to the open socket. A socket that is not open needs
+ * nothing: the next connection reads the current token from its params.
+ */
+async function refreshHausSession(connection: HausConnection, token: string) {
+    if (connection.wsClient.connection?.state !== 'open') {
+        return;
+    }
+    await connection.socketClient.session.refresh.mutate({ clerkSessionToken: token });
 }
 
 /** Re-authenticate the transport without replacing its tRPC or React providers. */

@@ -46,7 +46,10 @@ export const queryPolicy = {
  */
 export const queryClientDefaultOptions = {
     queries: {
-        refetchOnReconnect: true,
+        // Browser offline → online is not a recovery signal for Server reads:
+        // the socket reconnect that follows owns that (query-reconnect-recovery.ts).
+        // Refetching here too ran every active read before the socket was back.
+        refetchOnReconnect: false,
         refetchOnWindowFocus: false,
         retry: shouldRetryQuery,
         staleTime: THIRTY_SECONDS_MS,

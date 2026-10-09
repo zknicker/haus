@@ -44,6 +44,15 @@ export function sessionTokenExpiresAt(token: string): number | null {
     return claims ? claims.exp * 1000 : null;
 }
 
+/**
+ * Which human and Clerk session a token speaks for (`sub` and `sid`), read
+ * unverified; null when it is not a session token. Rotation keeps this fixed.
+ */
+export function sessionTokenIdentity(token: string): string | null {
+    const claims = decodeClaims(token);
+    return claims ? `${claims.sub} ${claims.sid}` : null;
+}
+
 export function isUsableSeed(seed: ClerkSessionSeed | null, now: number): seed is ClerkSessionSeed {
     return seed !== null && seed.expiresAt - now >= seedExpiryMarginMs;
 }
