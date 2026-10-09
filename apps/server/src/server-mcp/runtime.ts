@@ -11,10 +11,10 @@ import {
 } from '../postgres/schema.ts';
 import { resolveAccountLabel } from './account-label.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
-import { asMcpArguments, McpDeniedError } from './errors.ts';
+import { asMcpArguments, McpDeniedError, McpReconnectRequiredError } from './errors.ts';
 import { createMcpOAuthProvider } from './oauth.ts';
 import { secureMcpFetch } from './secure-fetch.ts';
-import { listAllTools, modelToolName } from './tool-catalog.ts';
+import { callMcpTool, listAllTools, modelToolName } from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
 import { runMcpUpstream } from './upstream-operation.ts';
 
@@ -133,7 +133,7 @@ export class McpRuntime {
                 resolved.connectionId,
                 'invocation',
                 (client, signal) =>
-                    client.callTool({
+                    callMcpTool(client, {
                         arguments: asMcpArguments(input.args),
                         name: resolved.upstreamName,
                         options: { signal, timeout: this.invocationTimeoutMs },
@@ -153,7 +153,7 @@ export class McpRuntime {
         args: Record<string, unknown>
     ): Promise<unknown> {
         return await this.runUpstream(connectionId, 'invocation', (client, signal) =>
-            client.callTool({
+            callMcpTool(client, {
                 name: 'rankwrangler_product',
                 arguments: args,
                 options: { signal, timeout: this.invocationTimeoutMs },
@@ -210,7 +210,7 @@ export class McpRuntime {
                               {
                                   allowAuthorizationServerOrigin: false,
                                   onRedirect() {
-                                      throw new Error('Reconnect this MCP server in Haus.');
+                                      throw new McpReconnectRequiredError();
                                   },
                               }
                           )

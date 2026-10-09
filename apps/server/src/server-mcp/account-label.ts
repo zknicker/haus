@@ -1,5 +1,6 @@
 import type { MCPClient } from '@ai-sdk/mcp';
 import type { McpPreset } from '@haus/api';
+import { callMcpTool } from './tool-catalog.ts';
 
 interface LabelContext {
     preset: McpPreset | null;
@@ -33,7 +34,7 @@ async function readGitHubLogin(client: MCPClient, context: LabelContext) {
     if (!context.tools.includes('get_me')) {
         return null;
     }
-    const result = await client.callTool({
+    const result = await callMcpTool(client, {
         arguments: {},
         name: 'get_me',
         options: { signal: context.signal, timeout: context.timeout },
