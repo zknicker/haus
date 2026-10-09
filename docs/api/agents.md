@@ -383,8 +383,8 @@ is the Server-scoped alias that mentions, targets, and history all key on.
 
 Creation nonces and request hashes live on `agents`; announcements are not retry anchors.
 A request that changes any creation input under an existing nonce is refused before avatar generation.
-Creation emits `server.updated{scope:'agent'}` and channel membership lifecycle events, never
-`message.created`. Historical `agent-created` bodies remain readable; new introductions are ordinary text.
+Creation emits `server.updated{scope:'agent'}`, channel membership lifecycle events, and
+`chat.lifecycle{action:'created'}` for the owner DM it opens, never `message.created`. Historical `agent-created` bodies remain readable; new introductions are ordinary text.
 Creating an Agent does not wake it. Its standing brief is already in the memory the Computer seeds,
 so its first turn is its next ordinary delivery and nothing DMs it.
 

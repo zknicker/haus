@@ -131,18 +131,21 @@ Every Chat lifecycle mutation emits one: `chat.createChannel` emits `created`,
 `chat.updateChannel` emits `updated` when the save changes the name, description,
 appearance, or the Agent participant set, `chat.ensureDm` emits `created` for a DM's first resolution and
 nothing for an idempotent reopen, and archive, unarchive, and delete emit their
-own action. Audience is the Chat's own membership rather than an explicit
-recipient: lifecycle events are announced Server-wide and narrowed by the
-per-delivery Chat access check, which reaches both DM members and no one else.
-Replay applies the same rule — a member walks a lifecycle event while the Chat
-is still visible to them, or once the Chat row is gone because a delete purged
-it.
+own action. Every other path that opens an Agent DM without a first message
+emits `created` too: a human-created Trigger anchoring on the creator's DM, and
+an Agent creating an Agent for its owner. Audience is the Chat's own membership
+rather than an explicit recipient: lifecycle events are announced Server-wide
+and narrowed by the per-delivery Chat access check, which reaches both DM
+members and no one else. `deleted` is the exception: the deleted channel is
+already gone from Chat access, so every Server member hears it live (the event
+carries only ids). Replay applies the same rule — a member walks a lifecycle
+event while the Chat is still visible to them, or once the Chat row is gone
+because a delete purged it.
 
-Creating an Agent from an Agent (ADR 0028) emits no dedicated event. The
-announcement Message's `message.created` refreshes the transcript, and
-`server.updated{scope:'agent'}` refreshes the Agent list, Agent detail, Server
-detail, and Chat list. The `agent-created` body is terminal, so reconnect
-replay of that one `message.created` recovers the whole state.
+Creating an Agent from an Agent (ADR 0028) emits `server.updated{scope:'agent'}`,
+which refreshes the Agent list, Agent detail, Server detail, and Chat list,
+plus `chat.lifecycle` `created` for the owner's DM it opens and `updated` for
+each channel it joins.
 
 `chat.markRead` does not invalidate anything from its mutation result. Viewing
 a Chat zeroes its cached list row before the request leaves only when the
@@ -331,7 +334,8 @@ most once (`apps/website/src/lib/query-reconnect-recovery.ts`):
 | `chat.onEngagement` | `chat.engagements` |
 | `agent.onLifecycle` | Agent list and Agent details |
 | `agent.onActivity` | Current activity, Activity History, turns, Server turns, usage |
-| App-wide reconnect pass | Every other active Server tRPC read: `server.onUpdate` neither replays nor catches up, so its Server, member, invitation, Computer, MCP, settings, and stats reads recover here, as do reads with no stream (reminders, triggers, delivery state) |
+| `server.onUpdate` | Its pushed reads (below): Chat list, member directory, member detail. The stream never replays, so its (re)start invalidates them outright |
+| App-wide reconnect pass | Every other active Server tRPC read: its Server, invitation, Computer, MCP, settings, and stats reads recover here, as do reads with no stream (reminders, triggers, delivery state) |
 
 A stream that starts recovering reads on its own restart adds them to
 `streamRecoveredReads`; otherwise both it and the App-wide pass refetch them.
@@ -341,6 +345,34 @@ tRPC: the website build check and Desktop release check keep their own polling
 policies. A browser offline → online transition refetches
 nothing (`refetchOnReconnect: false`); the socket reconnect that follows owns
 recovery.
+
+### Pushed reads
+
+A read whose every change reaches the App as an event, and whose stream
+re-reads it after a gap, never goes stale on a timer: it uses
+`queryPolicy.pushedSnapshot` (`staleTime: Infinity`), so a revisit renders the
+cache with no request until an event or a recovery invalidates it.
+`apps/website/src/lib/pushed-snapshot-coverage.ts` registers each such read
+with its covering events and recovery stream, and
+`query-policy-contract.test.ts` refuses the preset anywhere else:
+
+| Read | Covering events | Recovery |
+| --- | --- | --- |
+| `chat.list` | `message.created`, `chat.read`, `thread.follow.updated`, `chat.lifecycle`, `server.updated` (`agent`, `server`) | `chat.onEvent`, `server.onUpdate` |
+| `cloudAgentWork.listForChat` | `cloud-agent-work.updated` | `chat.onEvent` |
+| `member.list`, `member.get` | `server.updated` (`server`) | `server.onUpdate` |
+| `taskLabel.list` | `task.label.updated` | `chat.onEvent` |
+
+Everything else stays on the 30 s `syncedSnapshot` because some write reaches
+it without a covering event. Transcripts (`chat.messages`) and `chat.get` embed
+live author profiles, Trigger and Reminder marks (`cause.live`), task liveness,
+and Thread unread counts that no listener refreshes; Agent reads lose pending
+invalidations to lifecycle `setData` and can end a run without `settled`.
+
+A listener whose pushed read is warmed by prefetch cancels in-flight reads of
+it before invalidating, as transcripts do for `message.created`: an older
+response landing after the invalidation would otherwise mark the snapshot fresh
+with no timer left to repair it.
 
 Reconnect flow:
 

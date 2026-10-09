@@ -450,6 +450,17 @@ pass.
   `lib/query-policy.ts` (or an explicit `staleTime` with a stated reason).
   Both tRPC clients share a 30s default `staleTime` floor so an unpoliced
   one-off query cannot refetch on every mount.
+* `queryPolicy.pushedSnapshot` (`staleTime: Infinity`, never `'static'`) is
+  for reads events keep exact: every Server write that changes the read emits
+  an event whose listener invalidates that key, and a stream re-reads it after
+  a gap. Register the read in `lib/pushed-snapshot-coverage.ts` with its
+  covering events and recovery stream first; the contract test refuses the
+  preset elsewhere, requires every reader of a registered read to use it, and
+  checks each named event's listener refreshes it. One uncovered write keeps a
+  read on `syncedSnapshot` (30s). The current set and the gaps holding the rest
+  back are in [Realtime](../api/realtime.md#pushed-reads). Pushed reads keep the
+  30-minute `gcTime`: a Chat unvisited that long reads fresh, and kept Chat
+  views hold their observers anyway.
 * Event listener hooks are the single invalidation owner for their namespace.
   Mutations do not re-invalidate what a durable event already covers; at most
   they keep one narrow un-awaited invalidate as an ack fallback.
