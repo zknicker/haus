@@ -302,7 +302,7 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     expect(afterFirst.runtimeSessionId).toBe('engine_session_1');
     expect(afterFirst.resumeState).toMatchObject({ type: 'resume-session' });
     expect(streamedPrompts[0]).toContain(
-        '[target=dm:@operator msg=test time=2026-07-27 00:00:00 type=human] @operator: Hello Cove'
+        '[target=dm:@operator msg=test time=2026-07-27 00:00:00 UTC type=human] @operator: Hello Cove'
     );
     expect(streamedPrompts).toHaveLength(1);
     expect(sentUserMessages).toEqual([]);
@@ -489,9 +489,9 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     // The wake itself carries the envelope, and it is the same envelope the
     // drain composes for a pulled item. A fire has no Chat message, so `msg=`
     // is `-` and the fire id rides the `fire=`/`--cause` lines instead.
-    expect(streamedPrompts[0]).toContain(composeInboxDrain([fire], 'UTC'));
+    expect(streamedPrompts[0]).toContain(composeInboxDrain([fire]));
     expect(streamedPrompts[0]).toContain(
-        '[target=#general msg=- time=2026-07-27 00:00:00 type=system] @reminder: 🔔 Reminder: Check the deploy'
+        '[target=#general msg=- time=2026-07-27 00:00:00 UTC type=system] @reminder: 🔔 Reminder: Check the deploy'
     );
     expect(streamedPrompts[0]).toContain('reply with: haus message send --cause rmf_9a8b7c6d');
 
@@ -511,7 +511,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     await runHarnessTurn(turnInput({ inbox: [assignment], inboxDelivery: 'concrete' }));
 
     expect(streamedPrompts[0]).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] @haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
 });
 
@@ -1317,7 +1317,7 @@ test('a resumed DM greeting is not followed by its stale notice from prior task 
 
     expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ type: 'resume-session' });
     expect(streamedPrompts.at(-1)).toContain(
-        '[target=dm:@operator msg=dm_greet time=2026-08-03 20:01:00 type=human] @operator: Hey Blippy!'
+        '[target=dm:@operator msg=dm_greet time=2026-08-03 20:01:00 UTC type=human] @operator: Hey Blippy!'
     );
     expect(streamedPrompts.at(-1)).not.toContain('avatar');
     expect(sentUserMessages).toEqual([]);

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AgentInboxItem } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { readAgentSessionGeneration } from '../src/agent-delivery/cursors.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -8,6 +9,7 @@ import {
     agentInboxExactVisibilityTable,
     chatMessagesTable,
     chatsTable,
+    usersTable,
 } from '../src/postgres/schema.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -67,6 +69,29 @@ test('a Thread mention with no visible context carries the parent and the earlie
     });
     // The ordinary reply is not a mention and carries no package of its own.
     expect(start?.inbox.find((entry) => entry.id === reply)?.threadContext).toBeUndefined();
+});
+
+test("a human sender's saved zone rides the envelope and the quoted Thread lines", async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, wake } = offlineDelivery(connection.db, seed);
+    const thread = await addThread(seed, 'Standup moved?');
+    const mention = await deliverHuman(connection.db, delivery, seed, {
+        addressedReason: 'mention',
+        chatId: thread.chatId,
+        content: '@ada move standup to 9?',
+        mentioned: true,
+    });
+    const zoneless = (await wake())?.inbox.find((entry) => entry.id === mention);
+    expect(zoneless?.senderTimezone).toBeUndefined();
+    expect(zoneless?.threadContext?.parentMessage.senderTimezone).toBeUndefined();
+
+    await connection.db
+        .update(usersTable)
+        .set({ timezone: 'America/Chicago' })
+        .where(eq(usersTable.id, seed.userId));
+    const zoned = (await wake())?.inbox.find((entry) => entry.id === mention);
+    expect(zoned?.senderTimezone).toBe('America/Chicago');
+    expect(zoned?.threadContext?.parentMessage.senderTimezone).toBe('America/Chicago');
 });
 
 test('a package keeps the newest ten replies and says it left earlier ones out', async () => {

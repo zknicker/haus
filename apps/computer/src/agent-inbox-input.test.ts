@@ -108,3 +108,22 @@ test('accepts every addressed reason the Server writes and rejects unknown ones'
     }
     expect(parseInbox([item('assigned')])).toBeNull();
 });
+
+test("accepts a human sender's IANA zone and refuses one on any other sender", () => {
+    const item = (senderType: string, senderTimezone: string) => ({
+        chatId: 'cht_1',
+        content: 'Standup at 9?',
+        createdAt: '2026-09-23T00:00:00.000Z',
+        id: 'msg_1',
+        senderHandle: 'ada',
+        senderTimezone,
+        senderType,
+        sequence: 1,
+        target: '#product',
+    });
+    expect(parseInbox([item('human', 'America/Chicago')])?.[0]?.senderTimezone).toBe(
+        'America/Chicago'
+    );
+    expect(parseInbox([item('agent', 'America/Chicago')])).toBeNull();
+    expect(parseInbox([item('human', '+05:00')])).toBeNull();
+});

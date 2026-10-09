@@ -30,7 +30,7 @@ test('projects a settled Cloud Agent Run with the evidence its Agent must inspec
         sequence: 0,
     });
 
-    const drain = composeInboxDrain([attention], 'UTC');
+    const drain = composeInboxDrain([attention]);
 
     expect(drain).toContain(
         '[Haus cloud agent attention status=completed work=caw_1234567890abcdef run=car_1234567890abcdef target=#general]'
@@ -84,7 +84,7 @@ test('a branch whose pull request was read states the diff the Agent can act on'
         sequence: 0,
     });
 
-    expect(composeInboxDrain([attention], 'UTC')).toContain(
+    expect(composeInboxDrain([attention])).toContain(
         'branches=haus/haus:cloud/fix-flake pr=https://github.com/haus/haus/pull/56 state=draft files=1 +34 -0'
     );
 });
@@ -112,7 +112,7 @@ test('a follow-up that never reached the provider tells its Agent why', () => {
         sequence: 0,
     });
 
-    const drain = composeInboxDrain([attention], 'UTC');
+    const drain = composeInboxDrain([attention]);
     expect(drain).toContain('[Haus cloud agent attention status=failed');
     expect(drain).toContain('errorCode=followup-delivery-timeout');
     expect(drain).toContain(

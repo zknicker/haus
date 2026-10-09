@@ -241,7 +241,7 @@ describe('Agent trigger CLI', () => {
         expect(requests[0]?.input.query).toEqual({ fire: undefined, limit: undefined });
         expect(requests[1]?.input.query).toEqual({ fire: 'fir_test', limit: undefined });
         expect(listed.join('')).toMatch(
-            /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} fir_test 17B dedupe=delivery-42\nRead one payload: haus trigger log --id trg_test --fire <fireId>\n$/u
+            /^2026-09-02 08:30:00 UTC fir_test 17B dedupe=delivery-42\nRead one payload: haus trigger log --id trg_test --fire <fireId>\n$/u
         );
         expect(listed.join('')).not.toContain('status');
         expect(detailed.join('')).toMatch(

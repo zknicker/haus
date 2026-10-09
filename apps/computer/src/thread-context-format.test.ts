@@ -21,6 +21,7 @@ const context: AgentThreadContext = {
         id: 'msg_parent01',
         senderDescription: 'Product owner',
         senderHandle: 'zach',
+        senderTimezone: 'America/Chicago',
         senderType: 'human',
         sequence: 41,
     },
@@ -57,7 +58,7 @@ const mention: AgentInboxItem = {
 };
 
 test('renders the thread context block before the mention it introduces', () => {
-    expect(composeInboxDrain([mention], 'UTC')).toBe(
+    expect(composeInboxDrain([mention])).toBe(
         [
             'New message received:',
             '',
@@ -67,12 +68,12 @@ test('renders the thread context block before the mention it introduces', () => 
             'suggested next step: haus message read --target "#product:parent01"',
             '',
             'Parent message:',
-            '- [msg=parent01 seq=41 time=2026-09-20 09:00:00 type=human] @zach — Product owner: Should we cut the release today?',
+            '- [msg=parent01 seq=41 time=2026-09-20 09:00:00 UTC sender_tz=America/Chicago type=human] @zach — Product owner: Should we cut the release today?',
             '',
             'Recent thread context:',
-            '- [msg=reply001 seq=1 time=2026-09-20 09:05:00 type=agent] @kit: The migration is still flaky.',
+            '- [msg=reply001 seq=1 time=2026-09-20 09:05:00 UTC type=agent] @kit: The migration is still flaky.',
             '',
-            '[target=#product:parent01 msg=mention1 time=2026-09-20 09:10:00 type=human mentioned=true] @zach: @ada can you weigh in?',
+            '[target=#product:parent01 msg=mention1 time=2026-09-20 09:10:00 UTC type=human mentioned=true] @zach: @ada can you weigh in?',
             '',
             'Respond as appropriate. Complete all your work before stopping.',
             "Each message's `target` identifies the conversation where it was asked.",
@@ -81,16 +82,14 @@ test('renders the thread context block before the mention it introduces', () => 
 });
 
 test('marks a truncated history and an empty one', () => {
-    const truncated = composeInboxDrain(
-        [{ ...mention, threadContext: { ...context, truncated: true } }],
-        'UTC'
-    );
+    const truncated = composeInboxDrain([
+        { ...mention, threadContext: { ...context, truncated: true } },
+    ]);
     expect(truncated).toContain('Recent thread context (truncated):\n- [msg=reply001');
 
-    const empty = composeInboxDrain(
-        [{ ...mention, threadContext: { ...context, recentMessages: [] } }],
-        'UTC'
-    );
+    const empty = composeInboxDrain([
+        { ...mention, threadContext: { ...context, recentMessages: [] } },
+    ]);
     expect(empty).toContain('Recent thread context:\n- (no earlier thread replies)\n\n[target=');
 });
 
@@ -106,7 +105,7 @@ test('introduces each Thread once per prompt', () => {
             threadTarget: '#ops:root0001',
         },
     };
-    const drain = composeInboxDrain([mention, second, other], 'UTC');
+    const drain = composeInboxDrain([mention, second, other]);
 
     expect(drain.split('[Haus thread context:')).toHaveLength(3);
     expect(drain.indexOf('thread: #product:parent01')).toBeLessThan(drain.indexOf('msg=mention1'));
