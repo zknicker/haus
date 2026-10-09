@@ -74,7 +74,6 @@ export function ServerChatMessageContent({
                 content={content}
                 mentions={mentions}
                 onReferenceActivate={onReferenceActivate}
-                sentAt={message.timestamp}
             />
             {isLocalTimelineMessageMetadata(message.metadata) ? null : (
                 <MessageRoutingDebug messageId={message.id} serverId={serverId} />

@@ -74,7 +74,6 @@ export function ChatTranscriptMessageContent({
                 animatedRanges={animatedRanges}
                 content={content}
                 mentions={mentions}
-                sentAt={message.timestamp}
             />
         </CollapsibleText>
     );
