@@ -44,7 +44,7 @@ struct CloudAgentModelChoiceTests {
 
     @Test("decodes a Run's model and tolerates a Run without one")
     func decodesRunModel() throws {
-        let base = #""runId":"run-1","status":"completed","branches":[],"startedAt":null,"terminalAt":null,"summary":null,"errorCode":null"#
+        let base = #""runId":"run-1","status":"completed","createdAt":"2026-10-02T10:00:00Z","branches":[],"startedAt":null,"terminalAt":null,"summary":null,"errorCode":null"#
         let run = try HausJSON.decoder().decode(CloudAgentRun.self, from: Data(
             #"{\#(base),"model":{"id":"claude-opus-5-5","params":[{"name":"effort","providerParamId":"effort","value":"high"}],"fallbackFrom":null,"droppedParams":["fast"]}}"#.utf8
         ))

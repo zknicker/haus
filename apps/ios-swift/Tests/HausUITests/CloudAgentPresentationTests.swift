@@ -3,63 +3,116 @@ import HausModels
 import Testing
 @testable import HausUI
 
+private typealias Fixture = CloudAgentWorkFixture
+private typealias Job = CloudAgentWorkFixture.Job
+
+/// Ports the App's `cloud-agent-presentation.test.ts`: the headline reads the
+/// Server's `job`, never the newest Run.
 @Suite struct CloudAgentPresentationTests {
-    @Test func decodesExistingWorkAndShowsItsActualDiff() throws {
-        let agent = try presentation()
-        #expect(agent.providerName == "Cursor")
-        #expect(agent.statusLabel == "Done")
-        #expect(agent.durationLabel == "1m")
-        #expect(agent.branches.first?.pullRequest?.changedFiles == 1)
-        #expect(agent.branches.first?.pullRequest?.additions == 10)
-        #expect(agent.branches.first?.pullRequest?.deletions == 0)
-        #expect(agent.compactDescription == "1 file changed · +10 −0")
+    private let now = Fixture.date("2026-09-04T12:04:00.000Z")
+
+    @Test func aJobWhoseFirstRunIsStillQueuedReadsAsWorkingNeverQueued() throws {
+        let agent = try Fixture.work(status: "queued", job: Job.working(startedAt: nil))
+        #expect(agent.jobText(at: now) == "Working")
     }
 
-    @Test func preservesAllTerminalAndPendingStatuses() throws {
-        for (status, label) in [
-            ("queued", "Queued"), ("running", "Running"), ("completed", "Done"),
-            ("failed", "Failed"), ("cancelled", "Cancelled"), ("expired", "Expired")
-        ] {
-            let agent = try presentation(status: status)
-            #expect(agent.statusLabel == label)
-            #expect((agent.durationLabel != nil) == (status == "completed"))
-            if status != "completed" { #expect(agent.compactDescription == agent.work.title) }
+    @Test func aWorkingJobCountsUpFromWhenTheProviderStartedIt() throws {
+        #expect(try Fixture.work().jobText(at: now) == "Working · 4m")
+        let start = Fixture.date(Fixture.start)
+        for (minutes, text) in [(59, "Working · 59m"), (60, "Working · 1h"), (119, "Working · 1h 59m"),
+                                (27 * 60 + 5, "Working · 27h 5m")] {
+            #expect(try Fixture.work().jobText(at: start.addingTimeInterval(Double(minutes * 60))) == text)
         }
     }
 
-    @Test func cancellationDoesNotOverrideTerminalOutcome() throws {
-        #expect(try presentation(status: "running", cancellation: true).statusLabel == "Cancelling")
-        #expect(try presentation(status: "completed", cancellation: true).statusLabel == "Done")
+    @Test func aDoneJobStatesHowLongItTookNotHowLongAgo() throws {
+        let agent = try Fixture.work(
+            status: "completed", job: Job.done(startedAt: Fixture.start, settledAt: "2026-09-04T13:12:00.000Z")
+        )
+        #expect(agent.jobText(at: now) == "Done · 1h 12m")
     }
 
-    @Test func missingDiffIsNotReportedAsZeroChanges() throws {
-        let agent = try presentation(snapshot: "null")
-        #expect(agent.branches.first?.pullRequest == nil)
-        #expect(agent.branches.first?.pullRequestUrl != nil)
-        // Without a recorded diff a finished work still names itself.
-        #expect(agent.compactDescription == agent.work.title)
+    @Test func aFollowUpQueuedBehindAFinishedRunKeepsTheJobDone() throws {
+        let agent = try Fixture.work(
+            status: "queued",
+            job: Job.done(
+                startedAt: Fixture.start, settledAt: "2026-09-04T12:02:00.000Z",
+                followUp: Job.followUp("waiting", since: "2026-09-04T12:03:00.000Z")
+            ),
+            runs: [Fixture.run(runId: "car_two", status: "queued"), Fixture.run(terminalAt: Fixture.start)]
+        )
+        #expect(agent.work.job.state == .done)
+        #expect(agent.jobText(at: now) == "Done · 2m")
     }
 
-    @Test func cardStatesOneBranchWithItsPullRequestNumber() throws {
-        let agent = try presentation()
-        #expect(agent.branchLabel == "cursor/test")
-        #expect(agent.pullRequestNumber == 112)
-        #expect(agent.pullRequestURL?.absoluteString == "https://github.com/zknicker/haus/pull/112")
-        // Before a GitHub snapshot, the number comes from the provider's URL.
-        #expect(try presentation(snapshot: "null").pullRequestNumber == 112)
+    @Test func failedCancelledAndExpiredNameOnlyTheirOutcome() throws {
+        #expect(try Fixture.work(status: "failed", job: Job.failed()).jobText(at: now) == "Failed")
+        #expect(try Fixture.work(status: "expired", job: Job.ended("expired", settledAt: Fixture.start))
+            .jobText(at: now) == "Expired")
+        #expect(try Fixture.work(status: "cancelled", job: Job.ended("cancelled", settledAt: Fixture.start))
+            .jobText(at: now) == "Cancelled")
     }
 
-    @Test func activityAndCancelBelongToLiveWorkOnly() throws {
-        let running = try presentation(status: "running", activity: "Running **tests**")
-        #expect(running.activityLine == "Running tests")
-        #expect(running.canBeCancelled)
-        #expect(try presentation(status: "completed", activity: "Running tests").activityLine == nil)
-        #expect(try !presentation(status: "completed").canBeCancelled)
-        #expect(try !presentation(status: "running", cancellation: true).canBeCancelled)
+    @Test func anyLiveRunThatHasNotReportedForTenMinutesReadsAsQuiet() throws {
+        let quietAt = "2026-09-04T11:50:00.000Z"
+        #expect(try Fixture.work(updatedAt: quietAt).quietFor(at: now) == 14 * 60)
+        // A follow-up waiting in the queue is live too.
+        #expect(try Fixture.work(status: "queued", updatedAt: quietAt).quietFor(at: now) == 14 * 60)
+        #expect(try Fixture.work(updatedAt: "2026-09-04T12:03:00.000Z").quietFor(at: now) == nil)
+        // A settled work is not quiet; it is finished.
+        #expect(try Fixture.work(status: "completed", updatedAt: quietAt).quietFor(at: now) == nil)
+    }
+
+    @Test func onlyALiveUncancelledRunCanBeCancelled() throws {
+        #expect(try Fixture.work().canBeCancelled)
+        #expect(try !Fixture.work(status: "completed").canBeCancelled)
+        #expect(try !Fixture.work(cancelRequestedAt: Fixture.start).canBeCancelled)
+    }
+
+    @Test func durationsReadCoarsely() {
+        #expect(CloudAgentPresentation.duration(seconds: -5) == "0s")
+        #expect(CloudAgentPresentation.duration(seconds: 42) == "42s")
+        #expect(CloudAgentPresentation.duration(seconds: 11 * 60) == "11m")
+        #expect(CloudAgentPresentation.duration(seconds: 60 * 60) == "1h")
+        #expect(CloudAgentPresentation.duration(seconds: 150 * 60) == "2h 30m")
+    }
+
+    @Test func theBranchThatOpenedAPullRequestWins() throws {
+        let agent = try Fixture.work(runs: [Fixture.run(branches: [
+            Fixture.branch(name: "cursor/spike", url: nil), Fixture.branch()
+        ])])
+        #expect(agent.branch?.branch == "cursor/fix-migration")
+        #expect(agent.pullRequestURL?.absoluteString == "https://github.com/haus/haus/pull/482")
+    }
+
+    @Test func aWorkWhoseBranchesOpenedNothingStillNamesTheFirstAndHasNoPullRequest() throws {
+        let agent = try Fixture.work(runs: [Fixture.run(branches: [Fixture.branch(name: "cursor/spike", url: nil)])])
+        #expect(agent.branch?.branch == "cursor/spike")
+        #expect(agent.pullRequestNumber == nil)
+        #expect(try Fixture.work().branch == nil)
+    }
+
+    @Test func aFollowUpRunThatReportedNothingYetKeepsTheEarlierPullRequest() throws {
+        let agent = try Fixture.work(
+            status: "queued",
+            runs: [Fixture.run(runId: "car_two", status: "queued"), Fixture.run(branches: [Fixture.branch()])]
+        )
+        #expect(agent.branch?.branch == "cursor/fix-migration")
+        #expect(agent.pullRequestNumber == 482)
+    }
+
+    @Test func aBranchNamesItsPullRequestFromTheSnapshotThenItsURL() throws {
+        let snapshot = #"{"additions":5743,"changedFiles":47,"deletions":2,"number":481,"observedAt":"\#(Fixture.start)","state":"open"}"#
+        #expect(try Fixture.work(runs: [Fixture.run(branches: [Fixture.branch(snapshot: snapshot)])]).pullRequestNumber == 481)
+        #expect(try Fixture.work(runs: [Fixture.run(branches: [Fixture.branch()])]).pullRequestNumber == 482)
+        let gitlab = Fixture.branch(url: "https://gitlab.com/haus/haus/-/merge_requests/7")
+        let unparsed = try Fixture.work(runs: [Fixture.run(branches: [gitlab])])
+        #expect(unparsed.pullRequestNumber == nil)
+        #expect(unparsed.pullRequestURL != nil)
     }
 
     @Test func threadPreviewNeverRepeatsTheAnchorsOwnWork() throws {
-        let own = try presentation().work
+        let own = try Fixture.work(id: "work-1").work
         let encoded = String(decoding: try HausJSON.encoder().encode(own), as: UTF8.self)
         let inner = encoded.replacingOccurrences(of: #""id":"work-1""#, with: #""id":"work-2""#)
         let rows = try HausJSON.decoder().decode([ThreadCloudAgentWork].self, from: Data("""
@@ -80,7 +133,9 @@ import Testing
     }
 
     @Test func typedBodyCarriesTheCardAndUnknownKindsKeepTheirProse() throws {
-        let work = try presentation().work
+        let work = try Fixture.work(
+            status: "failed", job: Job.failed(errorCode: "build", summary: "Broke", followUp: Job.followUp("running", since: Fixture.start))
+        ).work
         let body = ChatMessageBody.cloudAgentWork(work)
         let encoded = try HausJSON.encoder().encode(body)
         #expect(try HausJSON.decoder().decode(ChatMessageBody.self, from: encoded) == body)
@@ -88,24 +143,21 @@ import Testing
         #expect(try HausJSON.decoder().decode(ChatMessageBody.self, from: unknown) == .unsupported("future-body"))
     }
 
-    @Test func liveDurationAndStalenessComeFromTheWork() throws {
-        let agent = try presentation(status: "running")
-        let now = try #require(HausISO8601.date(from: "2026-09-07T18:12:00Z"))
-        #expect(agent.statusText(at: now) == "Running · 12m")
-        #expect(agent.isStale(at: now))
-        #expect(try !presentation().isStale(at: now))
-    }
-
-    @Test func runningElapsedPastAnHourReadsInHoursAndMinutes() throws {
-        let agent = try presentation(status: "running")
-        let start = try #require(agent.work.startedAt)
-        for (minutes, text) in [
-            (59, "Running · 59m"), (60, "Running · 1h"), (119, "Running · 1h 59m"),
-            (27 * 60 + 5, "Running · 27h 5m")
-        ] {
-            #expect(agent.statusText(at: start.addingTimeInterval(Double(minutes * 60))) == text)
+    @Test func theJobAndRunCreatedAtAreRequiredOnTheWire() throws {
+        let valid = try HausJSON.encoder().encode(try Fixture.work().work)
+        var object = try #require(try JSONSerialization.jsonObject(with: valid) as? [String: Any])
+        #expect(object.removeValue(forKey: "job") != nil)
+        let withoutJob = try JSONSerialization.data(withJSONObject: object)
+        #expect(throws: DecodingError.self) {
+            try HausJSON.decoder().decode(CloudAgentWork.self, from: withoutJob)
         }
-        #expect(CloudAgentPresentation.duration(seconds: -5) == "0s")
+        let runWithoutCreatedAt = Fixture.run()
+            .replacingOccurrences(of: #""createdAt":"\#(Fixture.start)","#, with: "")
+        #expect(throws: DecodingError.self) { try Fixture.work(runs: [runWithoutCreatedAt]) }
+        // A follow-up's state outside the contract is rejected, not guessed.
+        #expect(throws: DecodingError.self) {
+            try Fixture.work(job: Job.working(startedAt: nil, followUp: Job.followUp("queued", since: Fixture.start)))
+        }
     }
 
     @Test func cloudUpdateDecodesAndReplaysWithoutBreakingChatStream() throws {
@@ -125,29 +177,4 @@ import Testing
         #expect(firstDelivery)
         #expect(!repeatedDelivery)
     }
-
-    private func presentation(
-        status: String = "completed", cancellation: Bool = false, activity: String? = nil,
-        snapshot: String = """
-        {"number":112,"state":"draft","changedFiles":1,"additions":10,"deletions":0,
-         "observedAt":"2026-09-07T18:01:00Z"}
-        """
-    ) throws -> CloudAgentPresentation {
-        let json = """
-        {"id":"work-1","agentId":"blippy","chatId":"thread-1","messageId":"delegation-1",
-         "provider":"cursor","providerUrl":"https://cursor.com/agents/test",
-         "repository":"zknicker/haus","startingRef":"main","title":"Add one string-helper unit test",
-         "status":"\(status)","createdAt":"2026-09-07T18:00:00Z",
-         "updatedAt":"2026-09-07T18:01:00Z",
-         "startedAt":"2026-09-07T18:00:00Z","terminalAt":"2026-09-07T18:01:00Z",
-         "cancelRequestedAt":\(cancellation ? "\"2026-09-07T18:00:30Z\"" : "null"),
-         "activity":\(activity.map { #"{"at":"2026-09-07T18:00:30Z","summary":"\#($0)"}"# } ?? "null"),"runs":[{"runId":"run-1","status":"\(status)",
-         "startedAt":"2026-09-07T18:00:00Z","terminalAt":"2026-09-07T18:01:00Z",
-         "summary":null,"errorCode":null,"branches":[{"branch":"cursor/test","repository":"zknicker/haus",
-         "pullRequestUrl":"https://github.com/zknicker/haus/pull/112","pullRequest":\(snapshot)}]}]}
-        """
-        let work = try HausJSON.decoder().decode(CloudAgentWork.self, from: Data(json.utf8))
-        return CloudAgentPresentation(work: work)
-    }
 }
-

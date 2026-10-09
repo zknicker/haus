@@ -15,6 +15,7 @@ private let workJSON = """
 {"activity":{"at":"2026-09-11T09:05:00.000Z","summary":"Reading the diff"},
  "agentId":"agent_1","cancelRequestedAt":null,"chatId":"chat_thread",
  "createdAt":"2026-09-11T09:00:00.000Z","id":"work_1","messageId":"message_work",
+ "job":{"followUp":null,"startedAt":"2026-09-11T09:01:00.000Z","state":"working"},
  "provider":"cursor","providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
  "runs":[],"startedAt":"2026-09-11T09:01:00.000Z","startingRef":"main","status":"running",
  "terminalAt":null,"title":"Ship the iPhone build","updatedAt":"2026-09-11T09:05:00.000Z"}

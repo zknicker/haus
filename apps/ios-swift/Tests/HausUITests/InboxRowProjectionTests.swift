@@ -24,12 +24,25 @@ struct InboxHappeningNowRowsTests {
         ))
 
         #expect(rows.map(\.id) == ["work:message_work", "agent:agent_blippy"])
-        #expect(rows[0].status == "Running · 25m")
+        #expect(rows[0].status == "Working · 25m")
         #expect(rows[0].detail == "#all · Blippy")
         #expect(rows[0].title == "Ship the iPhone build")
         #expect(rows[1].title == "Blippy")
         #expect(rows[1].status == "3m")
         #expect(rows[1].detail == "Editing files…")
+    }
+
+    @Test func aJobListedForItsFollowUpReadsAsTheFollowUp() throws {
+        let since = HausISO8601.string(from: Date(timeIntervalSince1970: 1_799_999_880))
+        let job = #"{"followUp":{"since":"\#(since)","state":"waiting"},"settledAt":null,"startedAt":null,"state":"done"}"#
+        let rows = try #require(InboxHappeningNowRows.rows(
+            work: [InboxFixtures.activeWork(startedAt: now, job: job)],
+            agents: [],
+            now: now,
+            resolveActor: InboxFixtures.directory
+        ))
+
+        #expect(rows[0].status == "Follow-up waiting · 2m")
     }
 
     @Test func untitledWorkAndStepFallBackToPlainLabels() throws {
