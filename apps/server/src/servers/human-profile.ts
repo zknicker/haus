@@ -20,24 +20,28 @@ import { lockServerRow } from './server-lock.ts';
 /**
  * Seeds a human's profile from the Clerk identity and device zone the App
  * reports. It only fills blanks: once a human has chosen a display name or a
- * timezone it is theirs, and a later sign-in must not overwrite it.
+ * timezone it is theirs, and a later sign-in must not overwrite it. Every App
+ * load syncs, so this reports whether it wrote anything: an unchanged identity
+ * must not wake every member's App.
  */
 export async function syncHumanIdentity(
     db: HausDatabase,
     member: HausUser | null,
     input: SyncHumanIdentityInput
-): Promise<void> {
+): Promise<boolean> {
     if (!member) {
         throw new Error('Signing in is required to sync a human profile.');
     }
 
-    await db.transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
         const [existing] = await tx
             .select({
                 displayName: usersTable.displayName,
+                email: usersTable.email,
                 handle: serverMembershipsTable.handle,
+                timezone: usersTable.timezone,
             })
             .from(serverMembershipsTable)
             .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
@@ -51,10 +55,21 @@ export async function syncHumanIdentity(
             .limit(1);
 
         if (!existing) {
-            return;
+            return false;
         }
 
-        const displayName = existing.displayName ?? input.name?.trim() ?? null;
+        const filledName = existing.displayName ?? input.name?.trim() ?? null;
+        const displayName = filledName && filledName.length > 0 ? filledName : null;
+        const email = input.email?.trim() || null;
+        const fillsTimezone = Boolean(input.timezone) && existing.timezone === null;
+        if (
+            displayName === existing.displayName &&
+            email === existing.email &&
+            existing.handle !== null &&
+            !fillsTimezone
+        ) {
+            return false;
+        }
         const handle =
             existing.handle ??
             (await suggestAvailableParticipantHandle(
@@ -67,8 +82,8 @@ export async function syncHumanIdentity(
         await tx
             .update(usersTable)
             .set({
-                displayName: displayName && displayName.length > 0 ? displayName : null,
-                email: input.email?.trim() || null,
+                displayName,
+                email,
                 // Fill only a blank in this statement: a zone the human sets
                 // while this sync runs must survive it.
                 ...(input.timezone
@@ -86,6 +101,7 @@ export async function syncHumanIdentity(
                     isNull(serverMembershipsTable.revokedAt)
                 )
             );
+        return true;
     });
 }
 

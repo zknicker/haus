@@ -32,12 +32,8 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
-import { recordComputerInventory } from './record-inventory.ts';
-import {
-    recordComputerManagementEvents,
-    recordInvalidComputerInventory,
-    reportComputerUpdateProgress,
-} from './service.ts';
+import { recordComputerInventory, recordInvalidComputerInventory } from './record-inventory.ts';
+import { recordComputerManagementEvents, reportComputerUpdateProgress } from './service.ts';
 
 /** Ongoing report of last-reported inventory and per-Agent effective state. */
 const reportSchema = z
@@ -145,35 +141,45 @@ export async function ingestReport(
     await recordComputerReport(db, computerId, serverId, frame);
 }
 
+/**
+ * Records state reports. The Computer re-sends them after every turn and on a
+ * timer, so each announces only when it changed a row a read exposes.
+ */
 async function recordComputerReport(
     db: HausDatabase,
     computerId: string,
     serverId: string,
     frame: unknown
 ) {
+    if (await recordStateReport(db, computerId, serverId, frame)) {
+        emitServerUpdated({ computerId, scope: 'computer', serverId });
+    }
+}
+
+async function recordStateReport(
+    db: HausDatabase,
+    computerId: string,
+    serverId: string,
+    frame: unknown
+): Promise<boolean> {
     const usage = usageReportSchema.safeParse(frame);
     if (usage.success) {
-        await recordComputerUsage(db, {
-            computerId,
-            serverId,
-            usage: usage.data.usage,
-        });
-        emitServerUpdated({ scope: 'computer', serverId });
-        return;
+        return await recordComputerUsage(db, { computerId, serverId, usage: usage.data.usage });
     }
 
     const systemEvents = computerSystemEventReportSchema.safeParse(frame);
     if (systemEvents.success) {
-        await recordComputerManagementEvents(db, computerId, serverId, systemEvents.data.events);
-        emitServerUpdated({ computerId, scope: 'computer', serverId });
-        return;
+        return await recordComputerManagementEvents(
+            db,
+            computerId,
+            serverId,
+            systemEvents.data.events
+        );
     }
 
     const hausAgentReport = hausAgentReportFrameSchema.safeParse(frame);
     if (hausAgentReport.success) {
-        await recordHausAgentState(db, computerId, hausAgentReport.data.agents);
-        emitServerUpdated({ scope: 'computer', serverId });
-        return;
+        return await recordHausAgentState(db, computerId, hausAgentReport.data.agents);
     }
 
     const report = reportSchema.safeParse(frame);
@@ -185,18 +191,18 @@ async function recordComputerReport(
             frame.type === 'report' &&
             'inventory' in frame
         ) {
-            await recordInvalidComputerInventory(db, computerId, serverId);
-            emitServerUpdated({ scope: 'computer', serverId });
+            return await recordInvalidComputerInventory(db, computerId, serverId);
         }
-        return;
+        return false;
     }
-    if (report.data.inventory) {
-        await recordComputerInventory(db, computerId, report.data.inventory);
-    }
-    if (report.data.agents.length > 0) {
-        await recordAgentEffectiveState(db, computerId, report.data.agents);
-    }
-    emitServerUpdated({ scope: 'computer', serverId });
+    const inventoryChanged = report.data.inventory
+        ? await recordComputerInventory(db, computerId, report.data.inventory)
+        : false;
+    const agentsChanged =
+        report.data.agents.length > 0
+            ? await recordAgentEffectiveState(db, computerId, report.data.agents)
+            : false;
+    return inventoryChanged || agentsChanged;
 }
 
 function acceptComputerReply(connections: ComputerConnections, computerId: string, frame: unknown) {

@@ -14,33 +14,51 @@ export async function clearHausAgentState(db: HausDatabase, computerId: string):
         .where(eq(agentsTable.computerId, computerId));
 }
 
-/** Applies one Computer's complete Haus Agent version snapshot to its assigned Agents. */
+/**
+ * Applies one Computer's complete Haus Agent version snapshot to its assigned
+ * Agents: an Agent the snapshot omits reads pending. Only rows whose receipt
+ * differs are written, and the result says whether any Agent's read changed, so
+ * a snapshot re-sent after every turn wakes no App.
+ */
 export async function recordHausAgentState(
     db: HausDatabase,
     computerId: string,
     states: HausAgentAppliedState[]
-): Promise<void> {
-    await db.transaction(async (tx) => {
-        await tx
-            .update(agentsTable)
-            .set({
-                effectiveHausAgentAppliedAt: null,
-                effectiveHausAgentStatus: null,
-                effectiveHausAgentVersion: null,
+): Promise<boolean> {
+    const reported = new Map(states.map((state) => [state.agentId, state]));
+    return await db.transaction(async (tx) => {
+        const assigned = await tx
+            .select({
+                appliedAt: agentsTable.effectiveHausAgentAppliedAt,
+                id: agentsTable.id,
+                status: agentsTable.effectiveHausAgentStatus,
+                version: agentsTable.effectiveHausAgentVersion,
             })
-            .where(eq(agentsTable.computerId, computerId));
-
-        for (const state of states) {
+            .from(agentsTable)
+            .where(eq(agentsTable.computerId, computerId))
+            .for('update');
+        let changed = false;
+        for (const agent of assigned) {
+            const state = reported.get(agent.id);
+            const next = {
+                effectiveHausAgentAppliedAt: state?.appliedAt ? new Date(state.appliedAt) : null,
+                effectiveHausAgentStatus: state?.status ?? null,
+                effectiveHausAgentVersion: state?.version ?? null,
+            };
+            if (
+                (agent.appliedAt?.getTime() ?? null) ===
+                    (next.effectiveHausAgentAppliedAt?.getTime() ?? null) &&
+                agent.status === next.effectiveHausAgentStatus &&
+                agent.version === next.effectiveHausAgentVersion
+            ) {
+                continue;
+            }
             await tx
                 .update(agentsTable)
-                .set({
-                    effectiveHausAgentAppliedAt: state.appliedAt ? new Date(state.appliedAt) : null,
-                    effectiveHausAgentStatus: state.status,
-                    effectiveHausAgentVersion: state.version,
-                })
-                .where(
-                    and(eq(agentsTable.id, state.agentId), eq(agentsTable.computerId, computerId))
-                );
+                .set(next)
+                .where(and(eq(agentsTable.id, agent.id), eq(agentsTable.computerId, computerId)));
+            changed = true;
         }
+        return changed;
     });
 }

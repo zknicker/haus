@@ -4,13 +4,18 @@ import type {
     TokenUsageOverview,
     UsageOverview,
 } from '@haus/api';
-import { and, desc, eq, gte, lt } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, agentTokenUsageDailyTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 
+/**
+ * Stores a Computer's usage snapshot. The Computer re-sends its cached snapshot
+ * on a timer; an identical one writes nothing and resolves false, so only a
+ * changed snapshot moves `usageReportedAt` or announces.
+ */
 export async function recordComputerUsage(
     db: HausDatabase,
     input: {
@@ -18,8 +23,8 @@ export async function recordComputerUsage(
         serverId: string;
         usage: UsageOverview;
     }
-) {
-    await db
+): Promise<boolean> {
+    const updated = await db
         .update(computersTable)
         .set({
             usageReportedAt: new Date(),
@@ -28,9 +33,12 @@ export async function recordComputerUsage(
         .where(
             and(
                 eq(computersTable.id, input.computerId),
-                eq(computersTable.serverId, input.serverId)
+                eq(computersTable.serverId, input.serverId),
+                sql`${computersTable.usageSnapshot} is distinct from ${sql.param(input.usage)}::jsonb`
             )
-        );
+        )
+        .returning({ id: computersTable.id });
+    return updated.length > 0;
 }
 
 export async function readServerUsage(

@@ -152,21 +152,22 @@ export async function reportComputerUpdateProgress(
     return true;
 }
 
+/** Inserts the Computer's management events by stable id; true when any was new. */
 export async function recordComputerManagementEvents(
     db: HausDatabase,
     computerId: string,
     serverId: string,
     events: ComputerManagementEvent[]
-) {
+): Promise<boolean> {
     const latestAcceptedTime = Date.now() + 5 * 60_000;
     const acceptedEvents = events.filter(
         (event) => Date.parse(event.occurredAt) <= latestAcceptedTime
     );
     if (acceptedEvents.length === 0) {
-        return;
+        return false;
     }
-    await db.transaction(async (tx) => {
-        await tx
+    return await db.transaction(async (tx) => {
+        const inserted = await tx
             .insert(computerSystemEventsTable)
             .values(
                 acceptedEvents.map((event) => ({
@@ -178,8 +179,10 @@ export async function recordComputerManagementEvents(
                     type: event.type,
                 }))
             )
-            .onConflictDoNothing({ target: computerSystemEventsTable.id });
+            .onConflictDoNothing({ target: computerSystemEventsTable.id })
+            .returning({ id: computerSystemEventsTable.id });
         await pruneComputerSystemEvents(tx, computerId);
+        return inserted.length > 0;
     });
 }
 
@@ -250,31 +253,6 @@ async function pruneComputerSystemEvents(
               limit 1000
           )
     `);
-}
-
-export async function recordInvalidComputerInventory(
-    db: HausDatabase,
-    computerId: string,
-    serverId: string
-) {
-    await db
-        .update(serverOnboardingTable)
-        .set({
-            computerId,
-            failureCode: 'inventory-invalid',
-            failureDetail: 'The Computer reported invalid inventory. Update it and reconnect.',
-            updatedAt: new Date(),
-        })
-        .where(
-            and(
-                eq(serverOnboardingTable.serverId, serverId),
-                ne(serverOnboardingTable.phase, 'complete'),
-                or(
-                    eq(serverOnboardingTable.phase, 'awaiting-computer'),
-                    eq(serverOnboardingTable.computerId, computerId)
-                )
-            )
-        );
 }
 
 /** Process startup has no live attachment registry, so persisted online state is stale. */
