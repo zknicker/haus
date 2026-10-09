@@ -116,7 +116,7 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).not.toContain('URLs in non-English text');
     expect(prompt).not.toContain('## Capabilities');
     expect(prompt).toContain('Haus renders your message as Markdown, GFM tables included');
-    expect(prompt).toContain("Give every clock time a timezone, in the reader's zone");
+    expect(prompt).toContain("reader's saved zone; look it up rather than assuming your");
     expect(prompt).not.toContain('### Preparing native action cards');
     expect(prompt).not.toContain('## Security');
 
@@ -227,8 +227,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
     // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their
     // runtime's native web tools with no gate and no prompt text, as in Raft.
-    // Raised by exactly 81 (37,035 → 37,116): clock times carry the reader's timezone (time chips).
-    expect(prompt.length).toBeLessThanOrEqual(37_116);
+    // Raised by exactly 110 (37,035 → 37,145): clock times carry the reader's saved zone.
+    expect(prompt.length).toBeLessThanOrEqual(37_145);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

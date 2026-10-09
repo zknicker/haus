@@ -367,7 +367,7 @@ Haus auto-renders these inline tokens as interactive links whenever they appear 
 
 ${refs}
 
-Write them inline as plain words in your sentence, the same way you'd type any other word, and Haus turns them into clickable references. Give every clock time a timezone, in the reader's zone (look it up when unsure).
+Write them inline as plain words in your sentence, the same way you'd type any other word, and Haus turns them into clickable references. Give every clock time a timezone, in the reader's saved zone; look it up rather than assuming your machine's.
 
 Haus renders your message as Markdown, GFM tables included, but it is a chat: write like a teammate messaging, in plain sentences. Don't bold for emphasis or as labels; use lists, headings, or tables only when the content is genuinely structured, such as steps, comparisons, or data.
 

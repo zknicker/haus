@@ -113,7 +113,7 @@ Haus App renders a clock time written with an explicit timezone as a time chip,
 the same way it finds ASINs: by scanning a settled message's prose when it
 renders. Stored text, previews, and push stay exactly as written. Agents write
 normal prose; the prompt asks them to give every clock time a timezone in the
-reader's zone.
+reader's saved zone, looked up rather than assumed from the Agent's machine.
 
 A chip needs a clock and a zone: `3 PM ET`, `3:00 PM EDT`, `15:00 UTC`,
 `9am Pacific`, `Fri, Oct 10 at 3 PM ET`, `tomorrow at 3 PM ET`,
