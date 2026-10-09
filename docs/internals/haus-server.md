@@ -150,10 +150,10 @@ slug is only the human-facing address at `/s/<slug>`; it never moves, and no
 procedure accepts a new one.
 
 Every hosted collaboration row carries `server_id`. Composite foreign keys bind
-Chats, participants, messages, reads, events, and memberships to the same
+Chats, participants, messages, reads, and memberships to the same
 Server. Invariants live in PostgreSQL, not only TypeScript: role, Chat shape,
-positive message sequence, nonce uniqueness, DM pair ordering, and event shape
-all fail closed in the database.
+positive message sequence, nonce uniqueness, and DM pair ordering all fail
+closed in the database. Realtime events are not stored (see Realtime below).
 
 ## Computer attachment
 
@@ -234,8 +234,8 @@ resources. Effective reports (`record-agent-effective-state`) only touch rows
 whose `computer_id` is the reporting Computer, so cross-Computer effective
 claims update nothing. A Computer re-sends its effective snapshot after every
 turn; a row is written (and `effectiveReportedAt` moves) only when the snapshot
-differs, and the report announces `scope:'computer'` only then (see
-[Realtime](../api/realtime.md)). See
+differs, and the report publishes `computer.updated` only then (see
+Realtime below). See
 [Agent desired and effective configuration](../../specs/agent-desired-effective-config.md).
 
 ## Agent skills
@@ -325,7 +325,8 @@ skipped for the rest of that tick, retried later, and does not block other due
 reminders.
 
 A fire transaction writes the fire log, pending Agent attention, the Agent's
-pending work, reminder state, and the `reminder.changed` event atomically. It
+pending work, and reminder state atomically, then publishes `reminder.updated`
+after commit. It
 appends no Chat message (ADR 0026), so the transcript gains a row only if the
 owning Agent answers, as its own message carrying that fire as its cause. The
 Server performs no network, model, process, shell, workspace, or script work in
@@ -352,9 +353,8 @@ two things on two clocks. Reminders go first: every row whose status is `fired`
 or `canceled` and whose `updated_at` — the moment the fire transaction or the
 cancellation settled it — is older than the window. The reminder row is the
 parent of its whole record, so one delete takes `reminder_fires`,
-`reminder_commands`, `reminder_agent_attention`, and the `reminder.changed`
-events with it. A recurring reminder stays `scheduled` between fires and is
-never swept.
+`reminder_commands`, and `reminder_agent_attention` with it. A recurring
+reminder stays `scheduled` between fires and is never swept.
 
 Fires then expire independently, on their own `fired_at`, for any reminder at
 all. History is the log of executions (`reminder.history`), so one fire is one
@@ -402,10 +402,10 @@ an in-flight turn still settles safely.
 `in_review` task whose own row has not changed and whose Thread — the one
 anchored on the task message — has taken no new message inside the window. Each
 close is its own transaction taking the Server row and the task row, re-checking
-staleness under the lock, bumping the version, and emitting `task.updated`, so
-App caches invalidate exactly as they do for an operator's change. Neither
-`message_tasks` nor the task events carry an actor or a reason, so the close
-records no author; reopening is the ordinary update path.
+staleness under the lock, bumping the version, and publishing `task.changed`
+after commit, so App caches invalidate exactly as they do for an operator's
+change. Neither `message_tasks` nor the task event carries an actor or a reason,
+so the close records no author; reopening is the ordinary update path.
 
 ## Attachment storage and recovery
 
@@ -555,20 +555,22 @@ Server query, mutation, and subscription resolves membership through it:
 - `server.list` returns only the Servers the human belongs to.
 - `server.bySlug` resolves the address, then authorizes by Server id.
 - `server.rename` authorizes before writing the display name.
-- `server.onUpdate` checks membership in middleware, so a non-member is refused
-  at subscription registration and never reaches event delivery.
+- Every realtime subscription (`realtimeSubscription`,
+  `apps/server/src/realtime/subscription.ts`) checks membership and its role in
+  middleware, so a non-member is refused at registration with the coded
+  `membership_lost` refusal and never reaches event delivery.
 - `chat.*` resolves current membership and Chat participation before every
   read or write. Thread access resolves through the parent Channel or DM.
-  Durable and composition subscriptions recheck that access for each event delivery.
+  Realtime and composition subscriptions recheck that access for each event delivery.
 - `task.*` resolves current membership and parent-Chat access. Assignment also
   requires Owner/Admin authority and filters targets to active humans with that
   same parent-Chat access and membership stint. Task writes lock the Server
   before authorizing, then serialize versioned changes against the task row.
 - Membership removal releases the departing human's task claims and
-  assignments with durable task events. Reinvitation restores neither those
+  assignments and publishes `task.changed` for each. Reinvitation restores neither those
   links nor private task/Thread access from the former stint.
-- Durable delivery skips inaccessible Chats without ending the Server feed.
-  Revoked Server membership ends delivery.
+- Realtime delivery skips events for inaccessible Chats without ending the
+  stream. Revoked Server membership ends the stream with `membership_lost`.
 
 A human without membership gets `FORBIDDEN`; an address with no Server gets
 `NOT_FOUND`. Haus App checks are presentation only.
@@ -588,7 +590,7 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   Message replies open hidden child Threads in the resizable side pane; Threads
   never enter the hosted sidebar Chat list.
   Task rows open the canonical message's existing child Thread. Task controls
-  call the hosted API directly; durable task events own exact cache invalidation.
+  call the hosted API directly; `task.onChanged` owns exact cache invalidation.
 - `/s/<slug>/members` manages humans and invitations.
 - `/s/<slug>/computers` is the Owner/Admin Computer inventory. It shows
   the reported machine name, attachment health, reported runtimes/models,
@@ -623,14 +625,30 @@ Server independently verifies a current token on every operation, including
 each subscription start, so an expired session is refused rather than
 tolerated.
 
-Live durable notifications and composition are process-local signals. PostgreSQL cursors heal
-durable notification loss on reconnect; composition is intentionally best-effort and disappears
-instead of replaying.
+## Realtime
 
-Thread message and follow notifications retain the existing durable event row
-shape. The public event adds only `parentChatId`, nullable for top-level Chats,
-so Haus App can refetch the child and its exact parent summary without carrying
-anchor or message content in the event.
+Realtime follows [Realtime events](../../specs/realtime-events.md). Each event
+type is one typed in-process topic (`apps/server/src/realtime/topics.ts`) with
+exactly one tRPC subscription procedure, such as `chat.onMessageCreated` or
+`agent.onUpdated`. A write `prepare`s its event from the rows it commits, so a
+malformed event fails the write, and publishes it only after commit. Events
+carry ids and small facts, never rows; the App answers them by refetching
+reads. Nothing is stored or replayed: there is no `chat_events` log, cursor,
+`chat.events`, or `chat.eventHead`, and a lost notification heals through the
+App's read recovery on reconnect. Composition is also process-local and
+best-effort, and disappears instead of replaying.
+
+Every stream checks membership (and its role, for Owner/Admin streams) at start
+and before each delivery. Refusals are coded in the tRPC error `data` under
+`hausRefusal`: `membership_lost` when membership ended or the Server is gone,
+`role_required` when the role no longer allows the stream. `server.onUpdated`
+is the membership sentinel: Server deletion and member departure publish it so
+the departed viewer's sentinel ends with `membership_lost`. Any other failure
+ends only that stream, is logged, and surfaces as `INTERNAL_SERVER_ERROR`.
+
+Chat-scoped events carry `parentChatId`, nullable for top-level Chats, so the
+App can refetch a Thread and its exact parent summary without carrying anchor or
+message content in the event.
 
 ## Production
 

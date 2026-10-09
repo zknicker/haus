@@ -55,8 +55,9 @@ mapping rather than downgrading a typed Message to text.
 `message_reactions` is the durable relation behind a Message's grouped emoji reactions. Each row
 names one Server, Message, emoji, and exactly one actor: an Agent or a Server membership row.
 The Message reader groups rows by emoji and returns stable actor ids plus their observed handles.
-Adding or removing a row appends `message.reaction.updated` to the same per-Server `chat_events`
-cursor, while Chat access and archive checks remain the write boundary. Deleting a Message's Chat
+Adding or removing a row publishes the `message.reaction.updated` realtime topic after commit
+(id-only; see [Realtime events](../../specs/realtime-events.md)), while Chat access and archive
+checks remain the write boundary. Deleting a Message's Chat
 aggregate cascades its reactions.
 
 `chat_messages.mentioned_user_ids` is the set of human user ids a Message's content mentions
@@ -108,8 +109,8 @@ newest applied observation timestamp that makes a stale report a no-op. A branch
 that snapshot's own timestamp, so a read that failed never erases a snapshot the Run already had.
 CHECKs keep each terminal status in agreement with its terminal timestamp, and composite foreign
 keys keep the work, its Message, its Chat, its Agent, its Computer, and its canceller in one Server
-tenant. Lifecycle changes append `cloud-agent-work.updated` to the `chat_events` cursor log through
-the nullable `cloud_agent_work_id` column. Provider prompts, credentials, transcripts, and
+tenant. Lifecycle changes publish the `cloudAgentWork.updated` realtime topic after commit; no event row
+is stored. Provider prompts, credentials, transcripts, and
 workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
 Agent, in the same transaction that settles it. `servers.cloud_agent_model_id` is the Server's
 human-chosen Cloud Agent model (`null` is Auto) and `servers.cloud_agent_model_params` its
