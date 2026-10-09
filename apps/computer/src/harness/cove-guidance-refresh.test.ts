@@ -21,6 +21,8 @@ test('every Cove notice is bounded and preserves quiet reporting and destination
         expect(notice).toContain('Calendar repeats require --timezone');
         expect(notice).toContain('Never wake or schedule to advertise');
         expect(notice).toContain('Reconcile uncertain delivery from canonical history');
+        expect(notice).toContain('rewritten in place; history stays in chats');
+        expect(notice).not.toContain('save the message id');
     }
     expect(coveGuidanceConflictNotice([])).toContain('before claiming a capability is unavailable');
 });

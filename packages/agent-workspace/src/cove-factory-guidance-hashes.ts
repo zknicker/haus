@@ -29,5 +29,6 @@ export const recognizedFactoryGuidanceHashes: Record<
         '4b0ae6d933d6f772313f644f842c10776e957f02890f45f0481b7a598be77356',
         'ecf87bdf577d09e4e56af5308fae95b9b3726618f3ffb7eab21b3f14031f5ef4',
         '61123e7c0e58a333b6f8a5079cc58e9c269d019c38c615668d802a9dfee17b5e',
+        '1a78df111c683bb961e97a21cc56e67c22095031c5aeb260d39808c8c0868e05',
     ],
 };

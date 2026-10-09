@@ -23,6 +23,8 @@ const deployedFaq = await fixture('cove-d031-faq.md');
 const dailyPlaybook = await fixture('cove-local-daily-playbook.md');
 const legacyFaq = await fixture('cove-legacy-faq.md');
 const outgoingWeeklyPlaybook = await fixture('cove-outgoing-weekly-playbook.md');
+// Shipped 9.0–9.4 rendering, whose coordination note kept a run-by-run ledger.
+const ledgerPlaybook = await fixture('cove-9-0-playbook.md');
 const revisions = [
     { name: 'deployed d031', faq: deployedFaq, playbook: deployedPlaybook },
     { name: 'previous local daily', faq: deployedFaq, playbook: dailyPlaybook },
@@ -68,6 +70,31 @@ test('legacy fixtures pin genuine deployed and outgoing daily factory renderings
     expect(dailyPlaybook).toContain('proposal is once daily');
     expect(sha256(outgoingWeeklyPlaybook)).toBe(
         '864698e59425d4f3ba974f4fb27734556afd5cf6e86146a3f60bfb7757643500'
+    );
+});
+
+test('shipped ledger playbook refreshes to current-state coordination guidance', async () => {
+    expect(sha256(ledgerPlaybook)).toBe(
+        '1a78df111c683bb961e97a21cc56e67c22095031c5aeb260d39808c8c0868e05'
+    );
+    expect(ledgerPlaybook).toContain('save its message id');
+    await seedCoveWorkspace(workspaceDir);
+    await write(playbookFile, ledgerPlaybook);
+    await write('notes/coordination.md', coordinationNote('enabled'));
+    const expected: CoveFactoryGuidancePlan = { files: [playbookFile], kind: 'refresh' };
+    expect(await reconcileCoveFactoryGuidance(workspaceDir)).toEqual(expected);
+    expect(await read(playbookFile)).toBe(coveOnboardingPlaybook);
+    expect(await read('notes/coordination.md')).toBe(coordinationNote('enabled'));
+});
+
+test('playbook keeps coordination notes as current state, not a ledger', () => {
+    expect(coveOnboardingPlaybook).toContain(
+        'notes/coordination.md is current state, rewritten in place; history stays in Haus\nchats.'
+    );
+    // Pruning must not forget a declined suggestion, or the next review re-raises it.
+    expect(coveOnboardingPlaybook).toContain('keep owner-declined suggestions so they stay quiet');
+    expect(coveOnboardingPlaybook).not.toMatch(
+        /save its message id|confirmed send id|consent message id, Chats/u
     );
 });
 
