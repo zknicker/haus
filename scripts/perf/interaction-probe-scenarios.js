@@ -42,10 +42,16 @@
             surfaces[0].querySelector('[aria-label^="Message "]')?.getAttribute('aria-label') ?? '';
         return sameChat(label.slice('Message '.length), name) ? surfaces[0] : null;
     };
+    // Rows outside the transcript's render window are empty placeholders; only
+    // rendered rows count as painted.
     const targetRows = (name) => {
         const s = targetSurface(name);
         return s
-            ? Array.from(s.querySelectorAll('[data-slot="message-scroller-item"]')).filter(visible)
+            ? Array.from(
+                  s.querySelectorAll(
+                      '[data-slot="message-scroller-item"]:not([data-transcript-placeholder])'
+                  )
+              ).filter(visible)
             : [];
     };
     const countOrNull = (n) => (n ? String(n) : null);
