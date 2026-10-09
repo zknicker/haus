@@ -2,9 +2,9 @@ import { CodeBlock } from '@heroui-pro/react/code-block';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Button, type Key, Tree, TreeItem, TreeItemContent } from 'react-aria-components';
+import { MicroLabel } from '../../components/micro-label.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { TraceMicroLabel } from './turn-trace-blocks.tsx';
 import {
     buildTraceJsonNodes,
     formatTraceJsonCopy,
@@ -39,7 +39,7 @@ export function TraceJson({ label, value }: { label: string; value: TraceJsonCon
     return (
         <CodeBlock className="code-block--compact min-w-0" data-trace-json>
             <CodeBlock.Header>
-                <TraceMicroLabel>{label}</TraceMicroLabel>
+                <MicroLabel>{label}</MicroLabel>
                 <CodeBlock.CopyButton
                     aria-label={`Copy ${label.toLowerCase()}`}
                     code={formatTraceJsonCopy(value)}

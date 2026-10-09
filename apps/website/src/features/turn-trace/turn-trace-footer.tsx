@@ -1,6 +1,6 @@
 import { Separator } from '@heroui/react';
+import { MicroLabel } from '../../components/micro-label.tsx';
 import { cn } from '../../lib/utils.ts';
-import { TraceMicroLabel } from './turn-trace-blocks.tsx';
 import { formatTraceDuration } from './turn-trace-duration.ts';
 import type { TurnTraceTotals } from './turn-trace-view.ts';
 
@@ -60,7 +60,7 @@ function TraceStat({
             data-trace-stat={label}
         >
             <dt>
-                <TraceMicroLabel>{label}</TraceMicroLabel>
+                <MicroLabel>{label}</MicroLabel>
             </dt>
             <dd
                 className={cn(

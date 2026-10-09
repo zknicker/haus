@@ -1,21 +1,10 @@
 import { Button } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import * as React from 'react';
+import { MicroLabel } from '../../components/micro-label.tsx';
 import { cn } from '../../lib/utils.ts';
 import { formatTraceFold } from './turn-trace-fold.ts';
 import { clampTraceText } from './turn-trace-values.ts';
-
-/**
- * The trace's one section label: muted, `xs`, uppercase, wide tracking, so
- * `COMMAND`, `OUTPUT`, `INPUT`, `RESULT`, `REPORT`, and a fact's `TO` or
- * `FILE` all read as one tier above or beside their content. Labels are the
- * only uppercase text in a body; what they name stays in sentence case.
- */
-export function TraceMicroLabel({ children }: { children: React.ReactNode }) {
-    return (
-        <span className="font-medium text-muted text-xs uppercase tracking-wide">{children}</span>
-    );
-}
 
 /**
  * A body section that is prose rather than code — a report, a message — on
@@ -40,7 +29,7 @@ export function TraceSection({
     return (
         <CodeBlock className="code-block--compact min-w-0" data-trace-section={label}>
             <CodeBlock.Header>
-                <TraceMicroLabel>{label}</TraceMicroLabel>
+                <MicroLabel>{label}</MicroLabel>
                 <CodeBlock.CopyButton aria-label={`Copy ${label.toLowerCase()}`} code={copy} />
             </CodeBlock.Header>
             <div
@@ -114,7 +103,7 @@ export function TurnTraceFact({ label, value }: { label: string; value: string }
     return (
         <>
             <dt>
-                <TraceMicroLabel>{label}</TraceMicroLabel>
+                <MicroLabel>{label}</MicroLabel>
             </dt>
             <dd className="min-w-0 truncate font-mono text-foreground text-xs">{value}</dd>
         </>

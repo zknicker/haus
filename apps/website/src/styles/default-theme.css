@@ -1103,8 +1103,13 @@
      */
     .chat-markdown
         > .markdown__block:not(:last-child)
-        > :is(p, ul, ol, .chat-markdown-table):last-child {
+        > :is(p, ul, ol, .chat-markdown-table, .code-block):last-child {
         margin-bottom: calc(var(--spacing, 0.25rem) * 2);
+    }
+
+    /* Text opens with its own half-leading under the author row; a filled block has none, so it takes it here. */
+    .chat-markdown > .markdown__block:first-child > .code-block:first-child {
+        margin-top: calc(var(--spacing, 0.25rem) * 1.5);
     }
 
     /*
@@ -1189,8 +1194,8 @@
     }
 
     /*
-     * CodeBlock is built for snippet habitats — a fenced block in chat, a
-     * command card in a dialog — so its root is a card: secondary surface,
+     * CodeBlock is built for snippet habitats — a command card in a dialog,
+     * a webhook example — so its root is a card: secondary surface,
      * shell radius, block margin, its own horizontal scroller. Hosted as the
      * fill of a file-viewer pane (`WorkspaceCodeView`), the pane itself is the
      * surface and scroller, IDE-style with soft wrap: the root sheds its card
@@ -1269,12 +1274,12 @@
     }
 
     /*
-     * The trace's compact developer block: evidence in an event log, not a
-     * snippet in prose. Mono `xs` on a tight line, the stock surface at the
-     * fields tier (a smaller box than a chat snippet takes a smaller step),
-     * no block margin (the body's gap spaces it), a slim header that holds
-     * only the micro label and copy, and soft wrap so a narrow log column
-     * never scrolls sideways.
+     * The compact developer block (`CompactCodeBlock`), shared by a turn
+     * trace's evidence and a fenced block in rendered Markdown. Mono `xs` on
+     * a tight line, the stock surface at the fields tier, no block margin
+     * (the host's gap spaces it), a slim header that holds only the micro
+     * label and copy, and soft wrap so a long line never widens a log or
+     * message column or scrolls it sideways.
      */
     .code-block--compact {
         --code-line-gap: calc(var(--spacing) * 2.5);
@@ -1292,6 +1297,12 @@
     .code-block--compact .code-block__code {
         font-size: var(--text-xs);
         line-height: 1.5;
+    }
+
+    /* A fenced block in rendered Markdown reads at its prose's size, so chat code matches chat text. */
+    .chat-markdown .code-block--compact .code-block__code {
+        font-size: inherit;
+        line-height: inherit;
     }
 
     /* Evidence is read for its content, so its gutter recedes a step past a file view's. */

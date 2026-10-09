@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
     codeHighlightLanguage,
+    codeLanguageForFence,
     codeLanguageForPath,
     countCodeLines,
     maxHighlightedCodeLength,
@@ -60,5 +61,17 @@ describe('codeHighlightLanguage', () => {
         expect(codeHighlightLanguage('app.ts', 'x'.repeat(maxHighlightedCodeLength + 1))).toBe(
             'text'
         );
+    });
+});
+
+describe('codeLanguageForFence', () => {
+    it('reads a fence by extension, name, or shiki id, and plain text when it names none', () => {
+        expect(codeLanguageForFence('ts').id).toBe('typescript');
+        expect(codeLanguageForFence('Python').label).toBe('Python');
+        expect(codeLanguageForFence('bash').id).toBe('shellscript');
+        expect(codeLanguageForFence('shellscript').label).toBe('Shell');
+        expect(codeLanguageForFence(undefined)).toEqual({ id: 'text', label: 'Text' });
+        expect(codeLanguageForFence('plaintext')).toEqual({ id: 'text', label: 'Text' });
+        expect(codeLanguageForFence('haskell')).toEqual({ id: 'haskell', label: 'haskell' });
     });
 });

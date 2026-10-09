@@ -20,6 +20,19 @@ export function codeLanguageForPath(path: string): CodeLanguage {
 }
 
 /**
+ * Shiki language for a Markdown fence's info string (`ts`, `python`, `bash`):
+ * by extension, language name, or Shiki id; plain text when it names none. An
+ * unknown name passes through, and CodeBlock paints it unhighlighted.
+ */
+export function codeLanguageForFence(info: string | undefined): CodeLanguage {
+    const name = info?.trim().toLowerCase();
+    if (!name) {
+        return plainText;
+    }
+    return languageByFenceName[name] ?? { id: name, label: name };
+}
+
+/**
  * Largest file a code view tokenizes. Shiki runs on the main thread and emits a
  * span per token, so past this a (server-truncated, up to 512 KB) file renders
  * as plain text instead of stalling the pane.
@@ -128,4 +141,13 @@ const languageByExtension: Record<string, CodeLanguage> = {
     yaml: languages.yaml,
     yml: languages.yaml,
     zsh: languages.shell,
+};
+
+const languageByFenceName: Record<string, CodeLanguage> = {
+    ...Object.fromEntries(Object.values(languages).map((language) => [language.id, language])),
+    ...languages,
+    ...languageByExtension,
+    plaintext: plainText,
+    text: plainText,
+    txt: plainText,
 };

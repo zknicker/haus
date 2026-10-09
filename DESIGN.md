@@ -468,7 +468,11 @@ largest marker (10+ items, or a `start` that reaches 10), so "10." stays inside 
 Remove this theme correction when HeroUI Pro supplies that layout;
 its current Markdown CSS still uses inside markers as of beta.10.
 Inline code uses a 7% foreground tint over its surrounding surface, keeping it distinct
-when a message is hovered in either theme. Fenced code blocks retain their stock background.
+when a message is hovered in either theme. A fenced code block is the trace's compact developer
+block (`CompactCodeBlock`, below): the fence's language as its micro label, copy, line numbers
+on multi-line code, and soft wrap, so a long line wraps inside the message column instead of
+widening the transcript. Its code inherits the surrounding prose's size, so chat code reads at
+chat body size while trace evidence stays at `xs`.
 
 ### Document type roles
 
@@ -913,7 +917,8 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   run on beside them unbroken. A body opens to everything, with no disclosure inside it. Each
   section is named by the one **micro label** tier — `xs`, medium, uppercase, `tracking-wide`,
   muted — and only labels are uppercase; content stays in sentence case. Code, JSON, and prose
-  sections share one compact developer block: the stock CodeBlock with `.code-block--compact`
+  sections share one compact developer block (code through `CompactCodeBlock`, which Markdown
+  fences in chat also use): the stock CodeBlock with `.code-block--compact`
   (`xs` mono on a 1.5 line, `surface-secondary` at the `×1.5` fields radius, a slim header with
   the label and copy), line numbers from the shared `.code-block--numbered` counters (also the
   workspace file view's), a muted `$` prompt for a one-line shell command, and a fold to eight

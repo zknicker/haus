@@ -1,5 +1,6 @@
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
+import { MarkdownCodeBlock } from '../../components/code/markdown-code-block.tsx';
 import { escapeBareOrderedMarkers } from '../chats/bare-ordered-marker.ts';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
@@ -58,6 +59,7 @@ export const ReferenceMarkdown = React.memo(
             () => ({
                 ...proseChipComponents({ sentAt, serverId }),
                 a: ContextLink,
+                pre: MarkdownCodeBlock,
                 table: WideTable,
             }),
             [sentAt, serverId]

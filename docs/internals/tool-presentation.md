@@ -93,7 +93,7 @@ column beside it keeps the turn's gridlines (`TraceLane`), so the 0 edge and the
 from the ruler to the last row with bodies open. A body shows everything on open, with no
 disclosure inside it: a failed command reads `ERROR`, then `COMMAND`, then `OUTPUT`; a sent message
 reads `TO`, `MESSAGE`, `COMMAND`, `OUTPUT`; an MCP or generic call reads `INPUT` and `RESULT`. Every
-section label is one micro label (`TraceMicroLabel`, uppercase), and only labels are uppercase:
+section label is one micro label (`MicroLabel`, uppercase), and only labels are uppercase:
 what they name stays in sentence case (`Command failed · exit code 1`). Short facts (`TO`, `FILE`,
 `PATH`, `TOOL`, `EXIT CODE`) are a `TurnTraceFacts` list with micro-label keys.
 

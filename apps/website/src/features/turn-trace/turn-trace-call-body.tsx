@@ -1,4 +1,5 @@
-import { TraceMicroLabel, TurnTraceNote } from './turn-trace-blocks.tsx';
+import { MicroLabel } from '../../components/micro-label.tsx';
+import { TurnTraceNote } from './turn-trace-blocks.tsx';
 import { TraceValue } from './turn-trace-code.tsx';
 import type { TurnTraceError } from './turn-trace-error.ts';
 import { TurnTraceToolBody } from './turn-trace-tool-bodies.tsx';
@@ -36,7 +37,7 @@ export function TurnTraceCallBody({ tool }: { tool: TurnTraceTool }) {
 export function TraceErrorSection({ failure }: { failure: TurnTraceError }) {
     return (
         <section className="grid min-w-0 gap-1">
-            <TraceMicroLabel>Error</TraceMicroLabel>
+            <MicroLabel>Error</MicroLabel>
             <TraceFailure failure={failure} />
         </section>
     );

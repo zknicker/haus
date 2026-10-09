@@ -21,3 +21,24 @@ test('renders a bare number reply as text, not an empty list item', () => {
     expect(markup).not.toContain('<ol');
     expect(markup).toContain('<p>42.</p>');
 });
+
+// A fence rendered as the stock snippet scrolled a long line past the message
+// column; it is the trace's compact block now, which wraps.
+test('renders a fenced block on the shared compact code block', () => {
+    const markup = renderToStaticMarkup(
+        <ReferenceMarkdown content={'Run:\n\n```ts\nconst a = 1;\nconst b = 2;\n```'} />
+    );
+
+    expect(markup).toContain('code-block--compact');
+    expect(markup).toContain('code-block--numbered');
+    expect(markup).toMatch(/>TypeScript</);
+    expect(markup).toContain('aria-label="Copy code"');
+    expect(markup).not.toContain('<pre><div');
+});
+
+test('keeps inline code inline', () => {
+    const markup = renderToStaticMarkup(<ReferenceMarkdown content="Use `bun test` here." />);
+
+    expect(markup).not.toContain('code-block');
+    expect(markup).toContain('bun test');
+});
