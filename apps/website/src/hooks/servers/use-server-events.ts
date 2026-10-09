@@ -23,11 +23,20 @@ export function useServerEvents(serverId: string | undefined, slug: string | und
         {
             enabled: serverId !== undefined,
             onData: createServerUpdateHandler(utils, serverId, slug),
-            // This stream never replays, so its (re)start re-reads what its
-            // events keep exact (query-reconnect-recovery.ts).
+            // This stream never replays, so every (re)start re-reads what its
+            // events keep exact (query-reconnect-recovery.ts). A restart after
+            // an error reconnects no socket, so it also refreshes every scope
+            // it would have heard about.
             onStarted: () => {
+                const recovered = restart.started();
                 if (serverId) {
                     void recoverServerUpdateReads(utils, serverId);
+                }
+                if (recovered) {
+                    const handleUpdate = createServerUpdateHandler(utils, serverId, slug);
+                    for (const scope of serverUpdateScopes) {
+                        handleUpdate({ scope });
+                    }
                 }
             },
             onError: (error) => {
@@ -46,17 +55,6 @@ export function useServerEvents(serverId: string | undefined, slug: string | und
                 // into the route's unavailable state.
                 for (const cache of cachesClearedOnMembershipLoss(utils)) {
                     void cache.reset();
-                }
-            },
-            // This stream never replays, and its reads recover only in the
-            // App-wide reconnect pass. A restart after an error reconnects no
-            // socket, so it refreshes every scope it would have heard about.
-            onStarted: () => {
-                if (restart.started()) {
-                    const handleUpdate = createServerUpdateHandler(utils, serverId, slug);
-                    for (const scope of serverUpdateScopes) {
-                        handleUpdate({ scope });
-                    }
                 }
             },
         }
