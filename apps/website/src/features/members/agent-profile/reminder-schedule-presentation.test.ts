@@ -107,3 +107,22 @@ test('an unrecognized stored zone is named rather than silently replaced', () =>
     expect(detail.timezone).toBe('Invalid/Zone · Unrecognized timezone');
     expect(detail.nextRun).toBe('Sat, Oct 10, 2026 at 4:00 PM');
 });
+
+test("the saved zone, not the device's, drives the row, the detail and Same as yours", () => {
+    // Kolkata is a half-hour zone no test machine is assumed to run in.
+    const saved = { ...context, viewerZone: 'Asia/Kolkata' };
+    const daily = {
+        fireAt: '2026-10-09T03:30:00.000Z',
+        repeat: 'daily@09:00',
+        timezone: 'Asia/Kolkata',
+    };
+    expect(formatReminderRowSummary(daily, saved)).toBe('Daily at 9:00 AM · Next run tomorrow');
+    expect(formatReminderScheduleDetail(daily, saved)).toEqual({
+        nextRun: 'Fri, Oct 9, 2026 at 9:00 AM',
+        repeats: 'Daily at 9:00 AM',
+        timezone: 'Kolkata time · Same as yours',
+    });
+    expect(formatReminderScheduleDetail(daily, context).timezone).toBe(
+        'Kolkata time · Fri 9:00 AM there'
+    );
+});

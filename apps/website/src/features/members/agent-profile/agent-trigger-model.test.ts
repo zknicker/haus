@@ -78,7 +78,16 @@ test('a fire states only the facts its sender actually supplied', () => {
 
 test('history and detail use the same execution timestamp format', () => {
     const receivedAt = '2026-09-02T11:00:00.000Z';
-    expect(formatTriggerHistoryTime(receivedAt)).toBe(formatTriggerFireTime({ receivedAt }));
+    expect(formatTriggerHistoryTime(receivedAt, 'UTC')).toBe(
+        formatTriggerFireTime({ receivedAt }, 'UTC')
+    );
+});
+
+test("execution timestamps read in the viewer's saved zone, not the device's", () => {
+    const receivedAt = '2026-09-02T23:30:00.000Z';
+    expect(formatTriggerFireTime({ receivedAt }, 'Asia/Kolkata')).toContain('Sep 3, 2026');
+    expect(formatTriggerFireTime({ receivedAt }, 'Asia/Kolkata')).toContain('5:00');
+    expect(formatTriggerHistoryTime(receivedAt, 'America/Los_Angeles')).toContain('4:30');
 });
 
 test('Create waits for a name and a kind, and the instruction stays optional', () => {

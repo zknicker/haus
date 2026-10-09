@@ -32,4 +32,11 @@ final class HumanTimezoneTests: XCTestCase {
         XCTAssertTrue(HumanTimezone.matches("America/New_York", query: ""))
         XCTAssertFalse(HumanTimezone.matches("America/New_York", query: "tokyo"))
     }
+
+    func testViewerReadsInTheSavedZoneAndTheDeviceZoneOnlyFillsABlank() {
+        let device = TimeZone(identifier: "America/Los_Angeles")!
+        XCTAssertEqual(HumanTimezone.viewerZone(saved: "Asia/Kolkata", device: device).identifier, "Asia/Kolkata")
+        XCTAssertEqual(HumanTimezone.viewerZone(saved: nil, device: device), device)
+        XCTAssertEqual(HumanTimezone.viewerZone(saved: "Invalid/Zone", device: device), device)
+    }
 }

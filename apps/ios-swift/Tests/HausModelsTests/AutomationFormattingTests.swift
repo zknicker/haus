@@ -87,4 +87,14 @@ final class AutomationFormattingTests: XCTestCase {
         XCTAssertNil(trigger.lastFiredAt)
         XCTAssertNil(trigger.createdByHandle)
     }
+
+    func testTimestampsReadInTheViewersSavedZone() {
+        let fired = ISO8601DateFormatter().date(from: "2026-09-02T23:30:00Z")!
+        let kolkata = AutomationFormatting.timestamp(fired, zone: TimeZone(identifier: "Asia/Kolkata")!, locale: Locale(identifier: "en_US"))
+        XCTAssertTrue(kolkata.contains("Sep 3, 2026"), kolkata)
+        XCTAssertTrue(kolkata.contains("5:00"), kolkata)
+        let pacific = AutomationFormatting.timestamp(fired, zone: TimeZone(identifier: "America/Los_Angeles")!, locale: Locale(identifier: "en_US"))
+        XCTAssertTrue(pacific.contains("Sep 2, 2026"), pacific)
+        XCTAssertTrue(pacific.contains("4:30"), pacific)
+    }
 }

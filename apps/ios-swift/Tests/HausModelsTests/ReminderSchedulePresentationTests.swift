@@ -94,4 +94,21 @@ final class ReminderSchedulePresentationTests: XCTestCase {
         let distinct = Reminder(anchorChatID: "c", createdAt: now, description: " Ask for blockers. ", fireAt: now, id: "r", ownerAgentID: "a", timezone: "UTC", title: "Standup")
         XCTAssertEqual(distinct.instructions, "Ask for blockers.")
     }
+
+    func testTheSavedZoneNotTheDeviceZoneDrivesRowDetailAndSameAsYours() {
+        // Kolkata is a half-hour zone no test machine is assumed to run in.
+        let fireAt = "2026-10-09T03:30:00.000Z"
+        let summary = ReminderSchedulePresentation.rowSummary(
+            fireAt: iso(fireAt), repeatRule: "daily@09:00", timezone: "Asia/Kolkata", context: context("Asia/Kolkata")
+        )
+        XCTAssertEqual(plain(summary), "Daily at 9:00 AM · Next run tomorrow")
+        XCTAssertEqual(
+            detail(fireAt, repeat: "daily@09:00", zone: "Asia/Kolkata", viewer: "Asia/Kolkata"),
+            ReminderScheduleDetail(nextRun: "Fri, Oct 9, 2026 at 9:00 AM", repeats: "Daily at 9:00 AM", timezone: "Kolkata time · Same as yours")
+        )
+        XCTAssertEqual(
+            detail(fireAt, repeat: "daily@09:00", zone: "Asia/Kolkata").timezone,
+            "Kolkata time · Fri 9:00 AM there"
+        )
+    }
 }
