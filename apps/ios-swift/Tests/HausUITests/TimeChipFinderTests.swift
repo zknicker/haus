@@ -27,6 +27,24 @@ struct TimeChipFinderTests {
         ("Monday at 9am CT", "Monday at 9am CT", "2026-10-12T14:00:00.000Z"),
         ("Friday at 9am CT", "Friday at 9am CT", "2026-10-09T14:00:00.000Z"),
         ("2026-12-01 9:30 AM PT", "2026-12-01 9:30 AM PT", "2026-12-01T17:30:00.000Z"),
+        ("3:00 PM EDT: check bids", "3:00 PM EDT", "2026-10-09T19:00:00.000Z"),
+        ("10:00 AM Pacific: call", "10:00 AM Pacific", "2026-10-09T17:00:00.000Z"),
+        ("(at 3 PM ET); then", "3 PM ET", "2026-10-09T19:00:00.000Z"),
+        ("03:17:42 UTC on October 9", "03:17:42 UTC on October 9", "2026-10-09T03:17:42.000Z"),
+        ("at 10:30:00 UTC", "10:30:00 UTC", "2026-10-09T10:30:00.000Z"),
+        ("3 PM ET next Friday", "3 PM ET next Friday", "2026-10-16T19:00:00.000Z"),
+        ("next Friday at 3 PM ET", "next Friday at 3 PM ET", "2026-10-16T19:00:00.000Z"),
+        ("next Monday at 3 PM ET", "next Monday at 3 PM ET", "2026-10-12T19:00:00.000Z"),
+        ("9:00 AM America/New_York", "9:00 AM America/New_York", "2026-10-09T13:00:00.000Z"),
+        ("9 AM Europe/London.", "9 AM Europe/London", "2026-10-09T08:00:00.000Z"),
+        ("9 AM America/Indiana/Indianapolis", "9 AM America/Indiana/Indianapolis", "2026-10-09T13:00:00.000Z"),
+        ("Lunch 12:00 PM (ET).", "12:00 PM (ET)", "2026-10-09T16:00:00.000Z"),
+        ("12:00 PM your time (ET)", "12:00 PM your time (ET)", "2026-10-09T16:00:00.000Z"),
+        ("12 PM (Eastern Time) tomorrow", "12 PM (Eastern Time) tomorrow", "2026-10-10T16:00:00.000Z"),
+        ("by 12 AM ET", "12 AM ET", "2026-10-09T04:00:00.000Z"),
+        ("by 00:00 UTC", "00:00 UTC", "2026-10-09T00:00:00.000Z"),
+        ("0050-10-10 at 3 PM UTC", "0050-10-10 at 3 PM UTC", "0050-10-10T15:00:00.000Z"),
+        ("Oct 10, 0099 at 15:00 UTC", "Oct 10, 0099 at 15:00 UTC", "0099-10-10T15:00:00.000Z"),
     ])
     func chips(text: String, source: String, startsAt: String) {
         let chips = TimeChipFinder.find(in: text, sentAt: Self.sentAt).map { Self.wire($0, in: text) }
@@ -41,6 +59,9 @@ struct TimeChipFinderTests {
         ("12 to 1 PM ET", "2026-10-09T16:00:00.000Z", "2026-10-09T17:00:00.000Z"),
         ("10 PM–1 AM PT", "2026-10-10T05:00:00.000Z", "2026-10-10T08:00:00.000Z"),
         ("14:00–15:00 UTC", "2026-10-09T14:00:00.000Z", "2026-10-09T15:00:00.000Z"),
+        ("11 PM–12 AM ET", "2026-10-10T03:00:00.000Z", "2026-10-10T04:00:00.000Z"),
+        ("22:00–00:00 UTC", "2026-10-09T22:00:00.000Z", "2026-10-10T00:00:00.000Z"),
+        ("10:00–10:30am ET next Tuesday, Oct 13", "2026-10-13T14:00:00.000Z", "2026-10-13T14:30:00.000Z"),
     ])
     func rangeIsOneChip(text: String, startsAt: String, endsAt: String) {
         let chips = TimeChipFinder.find(in: text, sentAt: Self.sentAt).map { Self.wire($0, in: text) }
@@ -85,7 +106,12 @@ struct TimeChipFinderTests {
         "at 3 ET",
         "at 13 PM ET",
         "at 25:00 UTC",
-        "at 10:30:00 UTC",
+        "at 10:30:60 UTC",
+        "10:00 UTC:11:00",
+        "9 AM America/Fake_Place",
+        "9 AM America/new_york",
+        "12 PM (ET",
+        "12 PM my (ET)",
         "the ETA is 3 PM",
         "at 3 PM ETA",
         "Feb 30 at 3 PM ET",
@@ -135,9 +161,18 @@ struct TimeChipFinderTests {
         text.range(of: source).map { $0.lowerBound.utf16Offset(in: text) } ?? -1
     }
 
-    /// `Date.prototype.toISOString`: milliseconds, always UTC.
+    /// `Date.prototype.toISOString`: milliseconds, always UTC, proleptic
+    /// Gregorian (Foundation's formatter switches to Julian before 1582).
     private static func isoString(_ date: Date) -> String {
-        isoFormatter.string(from: date)
+        let millis = Int((date.timeIntervalSince1970 * 1000).rounded())
+        let days = Int((Double(millis) / 86_400_000).rounded(.down))
+        let rest = millis - days * 86_400_000
+        let day = TimeChipFinder.civil(days)
+        return String(
+            format: "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+            day.year, day.month, day.day,
+            rest / 3_600_000, rest / 60000 % 60, rest / 1000 % 60, rest % 1000
+        )
     }
 
     private static func iso(_ value: String) -> Date {
