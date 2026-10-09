@@ -29,8 +29,8 @@ struct RichMessageBlockView: View {
             )
         case .quote(let blocks):
             RichMessageQuoteView(blocks: blocks, textStyle: textStyle, markRevision: markRevision)
-        case .code(_, let text):
-            RichMessageCodeBlockView(text: text, textStyle: textStyle)
+        case .code(let language, let text):
+            RichMessageCodeBlockView(language: language, text: text, textStyle: textStyle)
         case .rule:
             Divider()
         case .table(let table):

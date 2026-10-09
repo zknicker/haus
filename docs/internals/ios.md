@@ -238,7 +238,9 @@ A fenced code block is a horizontal `ScrollView` whose text is fixed at its idea
 axes (`RichMessageCodeBlockView`). A transcript cell is first laid out at UIKit's placeholder height,
 and an unfixed `Text` truncated to one line there and never re-measured, so a thirty-line block
 drew one line centred in a row sized for all thirty. The plate keeps the column's trailing margin
-and fades its trailing edge while more of the longest line is off to the right.
+and fades its trailing edge while more of the longest line is off to the right. A fixed header
+above the scrolling body carries the fence's language as a micro label (`CodeFenceLanguage`,
+mirroring the App's `codeLanguageForFence`) and a copy button that copies the whole block.
 
 Blocks draw as a `VStack` of `RichMessageBlockView`, and every run of running text — prose, headings,
 list rows, quoted prose — goes through the same TextKit body the chips need, so selection, copy, the

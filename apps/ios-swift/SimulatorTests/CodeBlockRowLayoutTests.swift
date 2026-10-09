@@ -77,10 +77,11 @@ final class CodeBlockRowLayoutTests: XCTestCase {
                 weight: .regular
             ).lineHeight
             let codeHeight = lineHeight * CGFloat(lines)
-            // Header line plus the plate's own padding and the row gap;
-            // anything far past this is the blank band the bug left behind.
+            // Header line, the plate's language/copy row, its own padding,
+            // and the row gap; anything far past this is the blank band the
+            // bug left behind.
             XCTAssertGreaterThan(cell.bounds.height, codeHeight, file: file, line: line)
-            XCTAssertLessThan(cell.bounds.height, codeHeight + 160, file: file, line: line)
+            XCTAssertLessThan(cell.bounds.height, codeHeight + 200, file: file, line: line)
 
             // The plate is a horizontal scroll view whose content is the laid-
             // out text, so a truncated block reads as a short content height
