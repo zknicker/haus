@@ -117,9 +117,10 @@ reader's zone.
 
 A chip needs a clock and a zone: `3 PM ET`, `3:00 PM EDT`, `15:00 UTC`,
 `9am Pacific`, `Fri, Oct 10 at 3 PM ET`, `tomorrow at 3 PM ET`,
-`3 PM ET on Monday`, or a range like `10–11 AM ET` (one chip). Zones are UTC,
-GMT, and the US ET/CT/MT/PT families (`EST`, `EDT`, `Eastern`, `Eastern Time`,
-…); every US abbreviation means that region's wall clock, so `CST` is US Central
+`3 PM ET next Tuesday, Oct 13`, `03:17:42 UTC`, `12 PM (ET)`, or a range like
+`10–11 AM ET` (one chip). Zones are UTC, GMT, the US ET/CT/MT/PT families
+(`EST`, `EDT`, `Eastern`, `Eastern Time`, …), and IANA names such as
+`America/New_York`; every US abbreviation means that region's wall clock, so `CST` is US Central
 and `3 PM PST` in July is 3 PM Pacific daylight time. Relative days and a bare
 clock resolve from the message's sent time in the stated zone. Day-only text
 (`tomorrow`, `Friday ET`), vague times (`tomorrow morning`), durations, clocks

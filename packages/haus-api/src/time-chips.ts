@@ -5,22 +5,26 @@
  * message and shows the instant in the viewer's own zone.
  *
  * The rule (iOS mirrors it exactly):
- * - A clock is `H[:MM] am|pm` (1–12, `a.m.` and no space allowed) or a 24-hour
- *   `HH:MM` (0–23). A bare hour without am/pm never matches.
+ * - A clock is `H[:MM[:SS]] am|pm` (1–12, `a.m.` and no space allowed) or a
+ *   24-hour `HH:MM[:SS]` (0–23). A bare hour without am/pm never matches.
  * - A zone must follow the clock: UTC, GMT, ET/EST/EDT/Eastern, CT/CST/CDT/Central,
- *   MT/MST/MDT/Mountain, PT/PST/PDT/Pacific, optionally followed by "Time". Every
- *   US abbreviation means that region's wall clock (so "CST" is US Central, and
- *   "3 PM PST" in summer is 3 PM Pacific daylight time).
+ *   MT/MST/MDT/Mountain, PT/PST/PDT/Pacific, optionally followed by "Time", or an
+ *   IANA name such as `America/New_York` that the platform knows by exactly that
+ *   spelling. Every US abbreviation means that region's wall clock (so "CST" is
+ *   US Central, and "3 PM PST" in summer is 3 PM Pacific daylight time). The
+ *   zone may sit in parentheses, optionally after "your time": `12 PM (ET)`.
+ *   Punctuation may follow the zone, but not a colon and a digit.
  * - A range `<clock> - <clock> <zone>` (`-`, `–`, `—`, or `to`) is one chip; a
  *   start without am/pm borrows the end's, flipping it when that would put the
  *   start after the end. An end before the start lands on the next day.
  * - The day comes from a date right before the clock (`today`, `tonight`,
- *   `tomorrow`, `yesterday`, a weekday, `Oct 10`, `Oct 10, 2026`, `Fri, Oct 10`,
- *   or `2026-10-10`, joined by a space, a comma, or "at"), else from one right
- *   after the zone (`tomorrow`, `on Friday`, `on Oct 10`), else the message's
- *   sent day. Relative words resolve from the sent time in the stated zone; a
- *   weekday is the next one on or after the sent day; a month-day without a
- *   year takes the sent year unless that is over 182 days before the sent day.
+ *   `tomorrow`, `yesterday`, a weekday, `next Friday`, `Oct 10`, `Oct 10, 2026`,
+ *   `Fri, Oct 10`, or `2026-10-10`, joined by a space, a comma, or "at"), else
+ *   from one right after the zone (`tomorrow`, `on Friday`, `next Tuesday, Oct 13`),
+ *   else the message's sent day. Relative words resolve from the sent time in
+ *   the stated zone; a weekday is the next one on or after the sent day, and
+ *   `next` makes it strictly after; a month-day without a year takes the sent
+ *   year unless that is over 182 days before the sent day.
  * - Renderers skip code spans, code blocks, and blockquotes.
  */
 export interface TimeChipMatch {
@@ -65,17 +69,20 @@ const zones: Record<string, string> = {
 
 const meridiem = String.raw`[AaPp]\.?[Mm]\.?`;
 const clock = (n: number) =>
-    String.raw`(?<h${n}>\d{1,2})(?::(?<m${n}>\d{2}))?\s?(?<ap${n}>${meridiem})?`;
+    String.raw`(?<h${n}>\d{1,2})(?::(?<m${n}>\d{2})(?::(?<s${n}>\d{2}))?)?\s?(?<ap${n}>${meridiem})?`;
 const dayWord = '[Tt]oday|[Tt]onight|[Tt]omorrow|[Yy]esterday';
 const weekday =
     'Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:r(?:s(?:day)?)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?';
 const month =
     'Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?';
 const date = (p: string) =>
-    String.raw`(?<${p}Day>${dayWord})|(?:(?:${weekday})\.?,?\s+)?(?:(?<${p}Mon>${month})\.?\s+(?<${p}Dom>\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(?<${p}Year>\d{4}))?|(?<${p}Iso>\d{4}-\d{2}-\d{2}))|(?<${p}Wd>${weekday})\.?`;
-const zone = String.raw`(?<zone>UTC|GMT|(?<abbr>[ECMP])[SD]?T|Eastern|Central|Mountain|Pacific)(?:\s+[Tt]ime)?`;
+    String.raw`(?<${p}Day>${dayWord})|(?:(?:[Nn]ext\s+)?(?:${weekday})\.?,?\s+)?(?:(?<${p}Mon>${month})\.?\s+(?<${p}Dom>\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(?<${p}Year>\d{4}))?|(?<${p}Iso>\d{4}-\d{2}-\d{2}))|(?:(?<${p}Next>[Nn]ext)\s+)?(?<${p}Wd>${weekday})\.?`;
+const ianaSegment = '[A-Z][A-Za-z_]*(?:-[a-z]+-[A-Z][A-Za-z_]*)?';
+const zone = (p: string) =>
+    String.raw`(?<${p}iana>(?:Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)(?:/${ianaSegment})+)|(?<${p}zone>UTC|GMT|(?<${p}abbr>[ECMP])[SD]?T|Eastern|Central|Mountain|Pacific)(?:\s+[Tt]ime)?`;
+const statedZone = String.raw`(?:(?:[Yy]our\s+time\s+)?\((?:${zone('p')})\)|(?:${zone('')}))`;
 const timeChipPattern = new RegExp(
-    String.raw`(?<![\w:])(?:(?:${date('pre')})(?:,?\s+at\s+|,\s+|\s+))?${clock(1)}(?:\s*(?:[-–—]|to)\s*${clock(2)})?\s+${zone}(?:\s+(?:on\s+)?(?:${date('post')}))?(?![\w:])`,
+    String.raw`(?<![\w:])(?:(?:${date('pre')})(?:,?\s+at\s+|,\s+|\s+))?${clock(1)}(?:\s*(?:[-–—]|to)\s*${clock(2)})?\s+${statedZone}(?:\s+(?:on\s+)?(?:${date('post')}))?(?!\w|:\d)`,
     'gu'
 );
 
@@ -86,49 +93,71 @@ const dayOffsets: Record<string, number> = { today: 0, tonight: 0, tomorrow: 1, 
 type Groups = Partial<Record<string, string>>;
 
 function resolveMatch(groups: Groups, sentAt: Date) {
-    const timeZone = zones[groups.abbr ?? groups.zone ?? ''];
-    const end = readClock(groups.h2, groups.m2, groups.ap2);
+    const timeZone = readZone(groups);
+    const end = readClock(groups.h2, groups.m2, groups.s2, groups.ap2);
     const borrowed = groups.ap1 ? undefined : groups.ap2;
-    let start = readClock(groups.h1, groups.m1, groups.ap1 ?? borrowed);
-    if (!(timeZone && start) || (groups.h2 && !end)) {
+    let start = readClock(groups.h1, groups.m1, groups.s1, groups.ap1 ?? borrowed);
+    if (!timeZone || start === null || (groups.h2 !== undefined && end === null)) {
         return null;
     }
-    if (end && borrowed && start > end) {
-        start = (start + 12 * 60) % (24 * 60);
+    if (end !== null && borrowed && start > end) {
+        start = (start + 12 * 3600) % 86_400;
     }
     const day = readDay(groups, sentAt, timeZone);
     if (!day) {
         return null;
     }
-    const startsAt = zonedInstant(day, start, timeZone);
-    if (!end) {
-        return { startsAt: new Date(startsAt).toISOString() };
+    const startsAt = new Date(zonedInstant(day, start, timeZone)).toISOString();
+    if (end === null) {
+        return { startsAt };
     }
     const endDay = end > start ? day : addDays(day, 1);
-    return {
-        endsAt: new Date(zonedInstant(endDay, end, timeZone)).toISOString(),
-        startsAt: new Date(startsAt).toISOString(),
-    };
+    return { endsAt: new Date(zonedInstant(endDay, end, timeZone)).toISOString(), startsAt };
 }
 
-/** Minutes after midnight, or null when the clock is not a full time. */
-function readClock(hourText?: string, minuteText?: string, ap?: string): number | null {
+function readZone(groups: Groups): string | null {
+    const iana = groups.iana ?? groups.piana;
+    if (iana) {
+        return knownZone(iana) ? iana : null;
+    }
+    return zones[groups.abbr ?? groups.pabbr ?? groups.zone ?? groups.pzone ?? ''] ?? null;
+}
+
+/** Whether the platform knows `name` by exactly that spelling. */
+function knownZone(name: string) {
+    try {
+        return (
+            new Intl.DateTimeFormat('en-US', { timeZone: name }).resolvedOptions().timeZone === name
+        );
+    } catch {
+        return false;
+    }
+}
+
+/** Seconds after midnight, or null when the clock is not a full time. */
+function readClock(
+    hourText?: string,
+    minuteText?: string,
+    secondText?: string,
+    ap?: string
+): number | null {
     if (hourText === undefined) {
         return null;
     }
     const hour = Number(hourText);
     const minute = minuteText === undefined ? 0 : Number(minuteText);
-    if (minute > 59) {
+    const second = secondText === undefined ? 0 : Number(secondText);
+    if (minute > 59 || second > 59) {
         return null;
     }
     if (!ap) {
-        return minuteText !== undefined && hour <= 23 ? hour * 60 + minute : null;
+        return minuteText !== undefined && hour <= 23 ? hour * 3600 + minute * 60 + second : null;
     }
     if (hour < 1 || hour > 12) {
         return null;
     }
     const pm = ap[0]?.toLowerCase() === 'p';
-    return ((hour % 12) + (pm ? 12 : 0)) * 60 + minute;
+    return ((hour % 12) + (pm ? 12 : 0)) * 3600 + minute * 60 + second;
 }
 
 interface CalendarDay {
@@ -163,11 +192,19 @@ function readDay(groups: Groups, sentAt: Date, timeZone: string): CalendarDay | 
     }
     const weekdayName = groups.preWd ?? groups.postWd;
     if (weekdayName) {
-        const target = weekdays.indexOf(weekdayName.slice(0, 3).toLowerCase());
-        const current = new Date(Date.UTC(sent.year, sent.month - 1, sent.day)).getUTCDay();
-        return addDays(sent, (target - current + 7) % 7);
+        return nextWeekday(sent, weekdayName, Boolean(groups.preNext ?? groups.postNext));
     }
     return sent;
+}
+
+/** The named weekday on or after `sent`, or strictly after it for "next". */
+function nextWeekday(sent: CalendarDay, name: string, strictlyAfter: boolean) {
+    const target = weekdays.indexOf(name.slice(0, 3).toLowerCase());
+    const current = new Date(utc(sent)).getUTCDay();
+    return addDays(
+        sent,
+        strictlyAfter ? ((target - current + 6) % 7) + 1 : (target - current + 7) % 7
+    );
 }
 
 function validDay(day: CalendarDay): CalendarDay | null {
@@ -175,14 +212,21 @@ function validDay(day: CalendarDay): CalendarDay | null {
     return normalized.day === day.day && normalized.month === day.month ? day : null;
 }
 
-function addDays({ day, month: monthNumber, year }: CalendarDay, days: number): CalendarDay {
-    const date = new Date(Date.UTC(year, monthNumber - 1, day + days));
+function addDays(day: CalendarDay, days: number): CalendarDay {
+    const date = new Date(utc({ ...day, day: day.day + days }));
     return { day: date.getUTCDate(), month: date.getUTCMonth() + 1, year: date.getUTCFullYear() };
 }
 
 function daysFrom(from: CalendarDay, to: CalendarDay) {
-    const utc = (d: CalendarDay) => Date.UTC(d.year, d.month - 1, d.day);
     return Math.round((utc(to) - utc(from)) / 86_400_000);
+}
+
+/** Epoch milliseconds of a UTC wall time; unlike `Date.UTC`, years 0–99 stay literal. */
+function utc({ day, month: monthNumber, year }: CalendarDay, seconds = 0) {
+    const date = new Date(0);
+    date.setUTCFullYear(year, monthNumber - 1, day);
+    date.setUTCHours(0, 0, seconds, 0);
+    return date.getTime();
 }
 
 function calendarDay(instant: Date, timeZone: string): CalendarDay {
@@ -191,8 +235,8 @@ function calendarDay(instant: Date, timeZone: string): CalendarDay {
 }
 
 /** The instant a wall-clock time in `timeZone` names (DST-aware). */
-function zonedInstant(day: CalendarDay, minutes: number, timeZone: string): number {
-    const wall = Date.UTC(day.year, day.month - 1, day.day, 0, minutes);
+function zonedInstant(day: CalendarDay, seconds: number, timeZone: string): number {
+    const wall = utc(day, seconds);
     const firstOffset = zoneOffset(wall, timeZone);
     const guess = wall - firstOffset;
     const secondOffset = zoneOffset(guess, timeZone);
@@ -201,10 +245,7 @@ function zonedInstant(day: CalendarDay, minutes: number, timeZone: string): numb
 
 function zoneOffset(instant: number, timeZone: string) {
     const p = zoneParts(instant, timeZone);
-    return (
-        Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) -
-        Math.floor(instant / 60_000) * 60_000
-    );
+    return utc(p, p.hour * 3600 + p.minute * 60 + p.second) - Math.floor(instant / 1000) * 1000;
 }
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
@@ -214,23 +255,28 @@ function zoneParts(instant: number, timeZone: string) {
     if (!format) {
         format = new Intl.DateTimeFormat('en-US', {
             day: 'numeric',
+            era: 'short',
             hour: 'numeric',
             hourCycle: 'h23',
             minute: 'numeric',
             month: 'numeric',
+            second: 'numeric',
             timeZone,
             year: 'numeric',
         });
         formatters.set(timeZone, format);
     }
     const parts = Object.fromEntries(
-        format.formatToParts(instant).map((part) => [part.type, Number(part.value)])
+        format.formatToParts(instant).map((part) => [part.type, part.value])
     );
+    const year = Number(parts.year);
     return {
-        day: parts.day ?? 0,
-        hour: parts.hour ?? 0,
-        minute: parts.minute ?? 0,
-        month: parts.month ?? 0,
-        year: parts.year ?? 0,
+        day: Number(parts.day),
+        hour: Number(parts.hour),
+        minute: Number(parts.minute),
+        month: Number(parts.month),
+        second: Number(parts.second),
+        // Year 0000 is 1 BC.
+        year: parts.era?.startsWith('B') ? 1 - year : year,
     };
 }
