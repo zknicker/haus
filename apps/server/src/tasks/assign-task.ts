@@ -1,8 +1,9 @@
-import type { MessageTask, ServerDurableEvent } from '@haus/api';
+import type { MessageTask } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { resolveTaskAssignee } from './resolve-task-assignee.ts';
@@ -14,7 +15,7 @@ import {
 } from './task-actor.ts';
 import { deliverTaskAssignment } from './task-assignment-delivery.ts';
 import { TaskConflictError, TaskNotFoundError } from './task-errors.ts';
-import { insertTaskEvent } from './task-events.ts';
+import { prepareTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
 export class TaskClosedAssignError extends Error {
@@ -33,7 +34,7 @@ export type TaskAssigneeInput = { agentId: string } | null;
  * mutations return, plus the Agents to wake.
  */
 export interface TaskAssignResult {
-    events: ServerDurableEvent[];
+    events: PreparedRealtimeEvent[];
     task: MessageTask;
     wakes: string[];
 }
@@ -125,13 +126,13 @@ export async function assignTask(
                     eq(messageTasksTable.messageId, input.messageId)
                 )
             );
-        const taskEvent = await insertTaskEvent(tx, {
+        const taskEvent = prepareTaskEvent({
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
             type: 'task.updated',
         });
-        const events: ServerDurableEvent[] = taskEvent ? [taskEvent] : [];
+        const events: PreparedRealtimeEvent[] = taskEvent ? [taskEvent] : [];
         const task = await findMessageTask(tx, input.serverId, input.messageId);
         if (!task) {
             throw new TaskNotFoundError();

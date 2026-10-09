@@ -1,9 +1,9 @@
 import { chatSchema, ensureAgentDmInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { AgentDmPeerNotFoundError, ensureAgentDmRecord } from '../../chats/ensure-agent-dm.ts';
-import { insertLifecycleEvent } from '../../chats/lifecycle-events.ts';
+import { prepareLifecycleEvent } from '../../chats/lifecycle-events.ts';
 import { listChats } from '../../chats/list-chats.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const ensureAgentDmProcedure = chatProcedure
@@ -20,11 +20,9 @@ export const ensureAgentDmProcedure = chatProcedure
                     userId: ctx.member!.id,
                 });
                 const event = chat.created
-                    ? await insertLifecycleEvent(
-                          tx,
+                    ? prepareLifecycleEvent(
                           { chatId: chat.id, serverId: input.serverId },
-                          'created',
-                          new Date()
+                          'created'
                       )
                     : null;
                 return { chat, event };
@@ -36,7 +34,7 @@ export const ensureAgentDmProcedure = chatProcedure
                 throw new Error('Failed to open the Agent DM after creating it.');
             }
             if (ensured.event) {
-                emitDurableChatEvent({ audienceUserId: null, event: ensured.event });
+                publishRealtime(ensured.event);
             }
             return visible;
         } catch (cause) {

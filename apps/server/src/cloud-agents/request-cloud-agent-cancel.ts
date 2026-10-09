@@ -3,11 +3,11 @@ import {
     type CloudAgentCancelRequestedBy,
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
-    type ServerDurableEvent,
 } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { emitWorkEvent } from './apply-cloud-agent-observation.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
@@ -17,7 +17,7 @@ export interface CloudAgentCancelRequest {
     /** The frame to push at the assigned Computer once the record commits. */
     command: CloudAgentCancelCommand;
     computerId: string;
-    event: ServerDurableEvent;
+    event: PreparedRealtimeEvent;
     work: CloudAgentWork;
 }
 

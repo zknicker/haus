@@ -1,9 +1,9 @@
 import { cloudAgentCapabilityResultSchema, cloudAgentObservationFrameSchema } from '@haus/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { applyCloudAgentObservation } from '../cloud-agents/apply-cloud-agent-observation.ts';
 import { listComputerCloudAgentWork } from '../cloud-agents/list-computer-cloud-agent-work.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { ComputerConnections } from './connections.ts';
 
@@ -35,7 +35,7 @@ export async function ingestCloudAgentReport(input: {
         input.delivery
     );
     if (applied) {
-        emitDurableChatEvent({ audienceUserId: null, event: applied.event });
+        publishRealtime(applied.event);
         if (applied.wake) {
             await input.postCommitWork.wakeAgents(input.delivery, [applied.wake]);
         }

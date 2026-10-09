@@ -1,6 +1,6 @@
 import { channelLifecycleInputSchema, channelLifecycleReceiptSchema } from '@haus/api';
 import { unarchiveChannel } from '../../chats/channel-lifecycle.ts';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const unarchiveChannelProcedure = chatProcedure
@@ -9,7 +9,7 @@ export const unarchiveChannelProcedure = chatProcedure
     .mutation(async ({ ctx, input }) => {
         const result = await unarchiveChannel(ctx.hausDb, ctx.member, input);
         if (result.event) {
-            emitDurableChatEvent({ audienceUserId: null, event: result.event });
+            publishRealtime(result.event);
         }
         return result.receipt;
     });

@@ -1,10 +1,11 @@
-import type { ServerDurableEvent, TaskLabel } from '@haus/api';
+import type { TaskLabel } from '@haus/api';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable, taskLabelsTable } from '../postgres/schema.ts';
+import { taskLabelsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { taskLabelUpdatedTopic } from '../realtime/topics.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -44,7 +45,7 @@ export async function createTaskLabel(
     db: HausDatabase,
     member: HausUser | null,
     input: { name: string; serverId: string }
-): Promise<{ event: ServerDurableEvent; label: TaskLabel }> {
+): Promise<{ event: PreparedRealtimeEvent; label: TaskLabel }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
@@ -99,7 +100,7 @@ export async function createTaskLabel(
         if (!label) {
             throw new TaskLabelConflictError('Failed to create the task label.');
         }
-        const event = await insertTaskLabelEvent(tx, input.serverId, label.id);
+        const event = prepareTaskLabelEvent(input.serverId, label.id);
         return { event, label };
     });
 }
@@ -113,7 +114,7 @@ export async function updateTaskLabel(
         name?: string;
         serverId: string;
     }
-): Promise<{ event: ServerDurableEvent; label: TaskLabel }> {
+): Promise<{ event: PreparedRealtimeEvent; label: TaskLabel }> {
     try {
         return await db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);
@@ -142,7 +143,7 @@ export async function updateTaskLabel(
             if (!label) {
                 throw new TaskLabelConflictError('No task label exists with that id.');
             }
-            const event = await insertTaskLabelEvent(tx, input.serverId, label.id);
+            const event = prepareTaskLabelEvent(input.serverId, label.id);
             return { event, label };
         });
     } catch (cause) {
@@ -157,7 +158,7 @@ export async function deleteTaskLabel(
     db: HausDatabase,
     member: HausUser | null,
     input: { labelId: string; serverId: string }
-): Promise<{ event: ServerDurableEvent }> {
+): Promise<{ event: PreparedRealtimeEvent }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -177,7 +178,7 @@ export async function deleteTaskLabel(
             throw new TaskLabelConflictError('No task label exists with that id.');
         }
         return {
-            event: await insertTaskLabelEvent(tx, input.serverId, input.labelId),
+            event: prepareTaskLabelEvent(input.serverId, input.labelId),
         };
     });
 }
@@ -200,38 +201,8 @@ export async function requireTaskLabelIds(
     }
 }
 
-async function insertTaskLabelEvent(
-    db: Pick<HausDatabase, 'insert' | 'update'>,
-    serverId: string,
-    labelId: string
-): Promise<ServerDurableEvent> {
-    const cursor = await allocateEventCursor(db, serverId);
-    const [event] = await db
-        .insert(chatEventsTable)
-        .values({
-            chatId: null,
-            cursor,
-            id: createOpaqueId('evt'),
-            labelId,
-            messageId: null,
-            readerUserId: null,
-            sequence: 0,
-            serverId,
-            type: 'task.label.updated',
-        })
-        .returning({ createdAt: chatEventsTable.createdAt, id: chatEventsTable.id });
-
-    return {
-        chatId: null,
-        createdAt: event.createdAt.toISOString(),
-        cursor: cursor.toString(),
-        id: event.id,
-        labelId,
-        parentChatId: null,
-        sequence: 0,
-        serverId,
-        type: 'task.label.updated',
-    };
+function prepareTaskLabelEvent(serverId: string, labelId: string) {
+    return taskLabelUpdatedTopic.prepare({ labelId, serverId });
 }
 
 function colorForLabel(name: string): TaskLabel['color'] {

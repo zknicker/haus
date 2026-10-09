@@ -1,9 +1,7 @@
-import type { ServerDurableEvent } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { cloudAgentWorkUpdatedTopic } from '../realtime/topics.ts';
 
 export interface CloudAgentEventChat {
     kind: 'channel' | 'dm' | 'thread';
@@ -11,66 +9,32 @@ export interface CloudAgentEventChat {
 }
 
 /**
- * The durable notification for one Cloud Agent work lifecycle change. Clients
- * refetch the Message; the event itself carries only identities.
+ * Prepares `cloudAgentWork.updated` for one work lifecycle change about to
+ * commit. Clients refetch the work Message; the event carries only ids.
  */
-export async function insertCloudAgentWorkEvent(
-    db: Pick<HausDatabase, 'insert' | 'update'>,
-    input: {
-        chat: CloudAgentEventChat;
-        chatId: string;
-        cloudAgentWorkId: string;
-        messageId: string;
-        sequence: number;
-        serverId: string;
-    }
-): Promise<ServerDurableEvent> {
-    const cursor = await allocateEventCursor(db, input.serverId);
-    const [event] = await db
-        .insert(chatEventsTable)
-        .values({
-            chatId: input.chatId,
-            cloudAgentWorkId: input.cloudAgentWorkId,
-            cursor,
-            id: createOpaqueId('evt'),
-            messageId: input.messageId,
-            sequence: input.sequence,
-            serverId: input.serverId,
-            type: 'cloud-agent-work.updated',
-        })
-        .returning({
-            createdAt: chatEventsTable.createdAt,
-            cursor: chatEventsTable.cursor,
-            id: chatEventsTable.id,
-        });
-    if (!event) {
-        throw new Error('Failed to record the Cloud Agent work event.');
-    }
-    return {
+export function prepareCloudAgentWorkEvent(input: {
+    chat: CloudAgentEventChat;
+    chatId: string;
+    cloudAgentWorkId: string;
+    messageId: string;
+    serverId: string;
+}) {
+    return cloudAgentWorkUpdatedTopic.prepare({
         chatId: input.chatId,
-        cloudAgentWorkId: input.cloudAgentWorkId,
-        createdAt: event.createdAt.toISOString(),
-        cursor: event.cursor.toString(),
-        id: event.id,
         messageId: input.messageId,
         parentChatId: input.chat.kind === 'thread' ? input.chat.parentChatId : null,
-        sequence: input.sequence,
         serverId: input.serverId,
-        type: 'cloud-agent-work.updated',
-    };
+        workId: input.cloudAgentWorkId,
+    });
 }
 
-/** The Chat placement and Message sequence one lifecycle event needs. */
-export async function readCloudAgentEventAnchor(
+/** The Chat placement one lifecycle event needs. */
+export async function readCloudAgentEventChat(
     db: Pick<HausDatabase, 'select'>,
-    input: { chatId: string; messageId: string; serverId: string }
-): Promise<{ chat: CloudAgentEventChat; sequence: number }> {
+    input: { messageId: string; serverId: string }
+): Promise<CloudAgentEventChat> {
     const [row] = await db
-        .select({
-            kind: chatsTable.kind,
-            parentChatId: chatsTable.parentChatId,
-            sequence: chatMessagesTable.sequence,
-        })
+        .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })
         .from(chatMessagesTable)
         .innerJoin(
             chatsTable,
@@ -89,8 +53,5 @@ export async function readCloudAgentEventAnchor(
     if (!row) {
         throw new Error('The Cloud Agent work Message no longer exists.');
     }
-    return {
-        chat: { kind: row.kind, parentChatId: row.parentChatId },
-        sequence: row.sequence,
-    };
+    return { kind: row.kind, parentChatId: row.parentChatId };
 }

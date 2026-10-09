@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { nextReminderFireAt, parseReminderRepeat, parseReminderSnooze } from './cadence.ts';
 import {
@@ -11,7 +11,7 @@ import {
     ReminderVersionConflictError,
     readExistingCommand,
 } from './mutations.ts';
-import { insertAnchoredReminderChangedEvent } from './reminder-events.ts';
+import { prepareReminderEvent } from './reminder-events.ts';
 import {
     type Reminder,
     type ReminderClock,
@@ -205,10 +205,9 @@ async function applyReschedule(
             resultSnapshot: toReminder(updated, agent.handle),
             serverId: input.serverId,
         });
-        const event = await insertAnchoredReminderChangedEvent(tx, {
+        const event = prepareReminderEvent({
             action: change.action === 'snooze' ? 'snoozed' : 'updated',
-            chatId: updated.anchorChatId,
-            createdAt: change.now,
+            ownerAgentId: updated.ownerAgentId,
             reminderId: updated.id,
             serverId: updated.serverId,
         });
@@ -219,7 +218,7 @@ async function applyReschedule(
         };
     });
     if (result.event) {
-        emitDurableChatEvent({ audienceUserId: null, event: result.event });
+        publishRealtime(result.event);
     }
     return { idempotent: result.idempotent, reminder: result.reminder };
 }

@@ -1,4 +1,4 @@
-import type { ChannelCreateInput, Chat, ServerDurableEvent } from '@haus/api';
+import type { ChannelCreateInput, Chat } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -10,10 +10,11 @@ import {
     channelParticipantsTable,
     chatsTable,
 } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { insertLifecycleEvent } from './lifecycle-events.ts';
+import { prepareLifecycleEvent } from './lifecycle-events.ts';
 import { listChats } from './list-chats.ts';
 
 export class ChannelAgentNotFoundError extends Error {
@@ -30,7 +31,7 @@ export class ChannelNameTakenError extends Error {
 
 export interface CreatedChannel {
     chat: Chat;
-    event: ServerDurableEvent;
+    event: PreparedRealtimeEvent;
 }
 
 export async function createChannel(
@@ -89,12 +90,7 @@ export async function createChannel(
         for (const agentId of agentIds) {
             await openAgentChatRead(tx, { agentId, chatId: id, serverId: input.serverId });
         }
-        const event = await insertLifecycleEvent(
-            tx,
-            { chatId: id, serverId: input.serverId },
-            'created',
-            new Date()
-        );
+        const event = prepareLifecycleEvent({ chatId: id, serverId: input.serverId }, 'created');
         return { chatId: id, event };
     });
 

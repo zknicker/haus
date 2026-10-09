@@ -1,10 +1,10 @@
 import { deleteAgentInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
+import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentDeleteDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { deleteAgent } from '../../server-agents/delete-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const deleteAgentProcedure = memberProcedure
     .input(deleteAgentInputSchema)
@@ -12,15 +12,14 @@ export const deleteAgentProcedure = memberProcedure
         try {
             const result = await deleteAgent(ctx.hausDb, ctx.member, input);
             for (const event of result.taskEvents) {
-                emitDurableChatEvent({ audienceUserId: null, event });
+                publishRealtime(event);
             }
             ctx.agentDelivery.retireAgent({
                 agentId: result.agentId,
                 computerId: result.computerId,
             });
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: result.agentId,
-                scope: 'agent',
                 serverId: input.serverId,
             });
             return { agentId: result.agentId };

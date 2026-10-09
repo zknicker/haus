@@ -1,9 +1,9 @@
 import { agentImportSkillInputSchema, agentImportSkillResultSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { importAgentSkill } from '../../server-agents/import-agent-skill.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const importAgentSkillProcedure = memberProcedure
     .input(agentImportSkillInputSchema)
@@ -19,9 +19,8 @@ export const importAgentSkillProcedure = memberProcedure
             // The Computer has written the skill by the time it answers, and
             // what changed is workspace state the Computer reports — so this is
             // the Computer scope, carrying the one Agent it belongs to.
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: input.agentId,
-                scope: 'computer',
                 serverId: input.serverId,
             });
             return accepted;

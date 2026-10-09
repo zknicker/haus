@@ -1,32 +1,21 @@
-import { TRPCError } from '@trpc/server';
+import { membershipLostError, type RealtimeRefusalError } from '../../realtime/refusal.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../../servers/server-access.ts';
 
 /**
- * Translates a membership recheck that failed during subscription delivery.
+ * Translates a failed membership check on a realtime stream into the coded
+ * `membership_lost` refusal (FORBIDDEN).
  *
- * A subscription generator runs after the procedure's error mapping, so a
- * refusal raised there has to carry its own code. The App treats these codes as
- * proof the human lost access and drops everything it has cached about the
- * Server, which makes the translation deliberately narrow: only the two
- * membership refusals qualify. A database or transport failure returns null so
- * the caller rethrows it as the internal failure it is — misreporting one as a
- * refusal would purge a still-valid member's Chats on a transient hiccup.
+ * The App treats this code as proof the human lost access and drops everything
+ * it has cached about the Server, which makes the translation deliberately
+ * narrow: only the two membership refusals qualify. A deleted Server reads as
+ * not found and is a membership loss too. A database or transport failure
+ * returns null so the caller rethrows it as the internal failure it is —
+ * misreporting one as a refusal would purge a still-valid member's Chats on a
+ * transient hiccup.
  */
-export function toMembershipLossError(cause: unknown): TRPCError | null {
-    if (cause instanceof ServerAccessDeniedError) {
-        return new TRPCError({
-            cause,
-            code: 'FORBIDDEN',
-            message: 'You are no longer a member of this Haus server.',
-        });
-    }
-
-    if (cause instanceof ServerNotFoundError) {
-        return new TRPCError({
-            cause,
-            code: 'NOT_FOUND',
-            message: 'This Haus server is no longer available.',
-        });
+export function toMembershipLossError(cause: unknown): RealtimeRefusalError | null {
+    if (cause instanceof ServerAccessDeniedError || cause instanceof ServerNotFoundError) {
+        return membershipLostError(cause.message);
     }
 
     return null;

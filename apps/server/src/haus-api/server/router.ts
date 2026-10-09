@@ -5,7 +5,7 @@ import { createCoveProcedure } from './create-cove.ts';
 import { deleteServerProcedure, serverDeletionStatusProcedure } from './delete.ts';
 import { developmentBootstrapProcedure } from './development-bootstrap.ts';
 import { listServersProcedure } from './list.ts';
-import { onServerUpdate } from './on-update.ts';
+import { onServerUpdatedProcedure } from './on-updated.ts';
 import { renameServerProcedure } from './rename.ts';
 
 export const serverRouter = createRouter({
@@ -16,6 +16,6 @@ export const serverRouter = createRouter({
     developmentBootstrap: developmentBootstrapProcedure,
     deletionStatus: serverDeletionStatusProcedure,
     list: listServersProcedure,
-    onUpdate: onServerUpdate,
+    onUpdated: onServerUpdatedProcedure,
     rename: renameServerProcedure,
 });

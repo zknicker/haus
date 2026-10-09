@@ -4,7 +4,7 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { insertTaskEvent } from '../tasks/task-events.ts';
+import { prepareTaskEvent } from '../tasks/task-events.ts';
 import {
     type TaskStatus,
     taskStatusChangeError,
@@ -85,7 +85,7 @@ async function mutateAgentTask(
         if (!updated) {
             throw new AgentTaskError('That task changed; refresh it before updating.');
         }
-        const event = await insertTaskEvent(tx, {
+        const event = prepareTaskEvent({
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: runner.serverId,

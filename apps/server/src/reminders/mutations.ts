@@ -1,11 +1,11 @@
 import { reminderSchema } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { insertAnchoredReminderChangedEvent } from './reminder-events.ts';
+import { prepareReminderEvent } from './reminder-events.ts';
 import {
     type Reminder,
     type ReminderClock,
@@ -108,10 +108,9 @@ export async function cancelReminder(
             resultSnapshot: toReminder(updated, agent.handle),
             serverId: input.serverId,
         });
-        const event = await insertAnchoredReminderChangedEvent(tx, {
+        const event = prepareReminderEvent({
             action: 'canceled',
-            chatId: updated.anchorChatId,
-            createdAt: now,
+            ownerAgentId: updated.ownerAgentId,
             reminderId: updated.id,
             serverId: updated.serverId,
         });
@@ -122,7 +121,7 @@ export async function cancelReminder(
         };
     });
     if (result.event) {
-        emitDurableChatEvent({ audienceUserId: null, event: result.event });
+        publishRealtime(result.event);
     }
     return { idempotent: result.idempotent, reminder: result.reminder };
 }

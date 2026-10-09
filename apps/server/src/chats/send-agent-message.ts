@@ -1,9 +1,4 @@
-import type {
-    AgentActivityEvent,
-    AgentSendReceipt,
-    HausAgentMessage,
-    ServerDurableEvent,
-} from '@haus/api';
+import type { AgentActivityEvent, AgentSendReceipt, HausAgentMessage } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -18,13 +13,14 @@ import { type AttributedMessageCause, insertMessageCause } from '../automations/
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { canonicalizeAgentMessageContentForPersistence } from './canonicalize-agent-references.ts';
 import { requireChatWritable } from './chat-access.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
-import { insertMessageCreatedEvent } from './message-created-event.ts';
+import { prepareMessageCreatedEvent } from './message-created-event.ts';
 import { readInlineReplyContext, resolveInlineReplyParent } from './reply-context.ts';
 import {
     readExistingAgentMessage,
@@ -54,7 +50,7 @@ export interface SendAgentMessageInput {
 
 export interface SendAgentMessageResult {
     activities: AgentActivityEvent[];
-    events: ServerDurableEvent[];
+    events: PreparedRealtimeEvent[];
     message: HausAgentMessage;
     receipt: AgentSendReceipt;
     wakes: Array<{ agentId: string; serverId: string }>;
@@ -237,12 +233,11 @@ export async function sendAgentMessage(
         if (!writtenChat) {
             throw new Error('The Agent message Chat disappeared mid-send.');
         }
-        const event = await insertMessageCreatedEvent(tx, {
-            chat: writtenChat,
+        const event = await prepareMessageCreatedEvent(
+            tx,
             message,
-            replyToAuthorUserId: replyParent?.parent.authorUserId ?? null,
-            serverId: input.serverId,
-        });
+            replyParent?.parent.authorUserId ?? null
+        );
 
         const completedActivity = await appendServerAgentActivity(tx, {
             agentId: input.agentId,

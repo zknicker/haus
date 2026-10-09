@@ -1,8 +1,4 @@
-import type {
-    AgentCloudAgentReceipt,
-    AgentCloudAgentStartInput,
-    ServerDurableEvent,
-} from '@haus/api';
+import type { AgentCloudAgentReceipt, AgentCloudAgentStartInput } from '@haus/api';
 import { agentCloudAgentStartInputSchema } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -17,14 +13,15 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { insertCloudAgentWorkEvent } from './cloud-agent-events.ts';
+import { prepareCloudAgentWorkEvent } from './cloud-agent-events.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
 import { findCloudAgentWorkByMessage } from './cloud-agent-shape.ts';
 import { CloudAgentAgentNotFoundError, CloudAgentWorkConflictError } from './errors.ts';
 
 export interface CreateCloudAgentWorkResult {
-    events: ServerDurableEvent[];
+    events: PreparedRealtimeEvent[];
     receipt: AgentCloudAgentReceipt;
     wakes: Array<{ agentId: string; serverId: string }>;
 }
@@ -99,12 +96,11 @@ export async function createCloudAgentWork(
 
         const events = [
             written.event,
-            await insertCloudAgentWorkEvent(tx, {
+            prepareCloudAgentWorkEvent({
                 chat: written.chat,
                 chatId: plan.chatId,
                 cloudAgentWorkId: workId,
                 messageId: written.messageId,
-                sequence: written.sequence,
                 serverId: runner.serverId,
             }),
         ];

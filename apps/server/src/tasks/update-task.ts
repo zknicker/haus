@@ -5,7 +5,7 @@ import { messageTaskLabelsTable, messageTasksTable } from '../postgres/schema.ts
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { TaskConflictError, type TaskMutationResult, TaskNotFoundError } from './task-errors.ts';
-import { insertTaskEvent } from './task-events.ts';
+import { prepareTaskEvent } from './task-events.ts';
 import { requireTaskLabelIds } from './task-labels.ts';
 import { findMessageTask } from './task-shape.ts';
 import { type TaskStatus, taskStatusColumns } from './task-status-transitions.ts';
@@ -92,7 +92,7 @@ export async function updateTask(
                     eq(messageTasksTable.messageId, input.messageId)
                 )
             );
-        const event = await insertTaskEvent(tx, {
+        const event = prepareTaskEvent({
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,

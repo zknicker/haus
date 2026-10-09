@@ -1,6 +1,5 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -9,10 +8,11 @@ import {
     reminderCommandsTable,
     remindersTable,
 } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { parseReminderRepeat } from './cadence.ts';
 import { lockReminderCommand, parseReminderCommandResult } from './mutations.ts';
-import { insertReminderChangedEvent } from './reminder-events.ts';
+import { prepareReminderEvent } from './reminder-events.ts';
 import {
     type Reminder,
     type ReminderClock,
@@ -88,7 +88,7 @@ export async function scheduleReminder(
     const result = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const agent = await requireActiveAgent(tx, input.serverId, agentId);
-        const anchor = await requireAgentAnchor(tx, {
+        await requireAgentAnchor(tx, {
             agentId,
             anchorChatId: input.anchorChatId,
             anchorMessageId: input.anchorMessageId,
@@ -174,7 +174,7 @@ export async function scheduleReminder(
             })
             .returning();
         // Scheduling posts nothing to the transcript. The Automations tab and the
-        // `reminder.changed` event carry the new Reminder; only the Agent's own
+        // `reminder.updated` event carry the new Reminder; only the Agent's own
         // message, sent with `--cause`, ever appears in Chat.
         const [anchorChat] = await tx
             .select({ sequence: chatsTable.lastMessageSequence })
@@ -202,13 +202,10 @@ export async function scheduleReminder(
             serverId: input.serverId,
         });
 
-        const reminderEvent = await insertReminderChangedEvent(tx, {
+        const reminderEvent = prepareReminderEvent({
             action: 'scheduled',
-            chatId: input.anchorChatId,
-            createdAt: now,
-            parentChatId: anchor.parentChatId,
+            ownerAgentId: agentId,
             reminderId,
-            sequence: anchorChat.sequence,
             serverId: input.serverId,
         });
         return {
@@ -219,7 +216,7 @@ export async function scheduleReminder(
     });
 
     for (const event of result.events) {
-        emitDurableChatEvent({ audienceUserId: null, event });
+        publishRealtime(event);
     }
     return { idempotent: result.idempotent, reminder: result.reminder };
 }

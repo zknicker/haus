@@ -1,7 +1,7 @@
 import { z } from 'zod';
+import { serverUpdatedTopic } from '../../realtime/topics.ts';
 import { serverDisplayNameSchema, serverIdSchema } from '../../servers/contracts.ts';
 import { renameServer } from '../../servers/rename-server.ts';
-import { emitServerUpdated } from '../server-events.ts';
 import { memberProcedure } from './procedure.ts';
 
 export const renameServerProcedure = memberProcedure
@@ -9,6 +9,6 @@ export const renameServerProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         const server = await renameServer(ctx.hausDb, ctx.member, input);
 
-        emitServerUpdated({ serverId: server.id });
+        serverUpdatedTopic.announce({ serverId: server.id });
         return server;
     });

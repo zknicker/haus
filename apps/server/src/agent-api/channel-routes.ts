@@ -2,9 +2,9 @@ import { agentAddChannelAgentInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { findLiveChannel } from '../chats/channel-agent-membership.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
+import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { AgentIdentityProtectedError } from '../server-agents/errors.ts';
 import { changeAgentChannelMute } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -119,15 +119,7 @@ async function announceChannelMembership(db: HausDatabase, serverId: string, tar
     if (!channel) {
         return;
     }
-    emitDurableChatEvent({
-        audienceUserId: null,
-        event: await insertLifecycleEvent(
-            db,
-            { chatId: channel.id, serverId },
-            'updated',
-            new Date()
-        ),
-    });
+    publishRealtime(prepareLifecycleEvent({ chatId: channel.id, serverId }, 'updated'));
 }
 
 function invalidChannelRequest(reply: Parameters<typeof sendAgentApiError>[0]): unknown {

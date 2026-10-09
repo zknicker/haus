@@ -1,16 +1,12 @@
-import type {
-    AgentCreated,
-    AvatarMediaType,
-    CreateAgentInput,
-    ServerDurableEvent,
-} from '@haus/api';
+import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { findAllChannel, joinChannelAgents } from '../chats/channel-agent-membership.ts';
-import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
+import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, avatarsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -28,7 +24,7 @@ export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human';
 
 export interface CreatedAgentFromApp extends AgentCreated {
     /** The `#all` membership change, for the App's channel member lists. */
-    event: ServerDurableEvent | null;
+    event: PreparedRealtimeEvent | null;
 }
 
 /** Creates one Agent; its per-human DMs remain implicit until first use. */
@@ -55,11 +51,9 @@ export async function createAgent(
         return {
             agent: created.agent,
             event: created.allChannelId
-                ? await insertLifecycleEvent(
-                      tx,
+                ? prepareLifecycleEvent(
                       { chatId: created.allChannelId, serverId: input.serverId },
-                      'updated',
-                      new Date()
+                      'updated'
                   )
                 : null,
         };

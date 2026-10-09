@@ -1,12 +1,12 @@
 import { cloudAgentWorkCancelInputSchema, hasServerAdminAuthority } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import {
     CloudAgentWorkNotFoundError,
     CloudAgentWorkSettledError,
 } from '../../cloud-agents/errors.ts';
 import { requestCloudAgentCancel } from '../../cloud-agents/request-cloud-agent-cancel.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -35,7 +35,7 @@ export const cancelCloudAgentWorkProcedure = memberProcedure
                 serverId: input.serverId,
                 workId: input.workId,
             });
-            emitDurableChatEvent({ audienceUserId: null, event: requested.event });
+            publishRealtime(requested.event);
             ctx.computerConnections.send(requested.computerId, requested.command);
             return { cancelRequested: true } as const;
         } catch (cause) {

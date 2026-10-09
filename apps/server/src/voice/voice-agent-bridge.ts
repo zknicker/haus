@@ -1,5 +1,5 @@
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { sendChatMessage } from '../chats/send-message.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { VoiceDelegations } from './live-events.ts';
 import type { VoiceCallOptions } from './voice-call.ts';
 import { readVoiceActivity, readVoiceMessages, readVoiceTarget } from './voice-context.ts';
@@ -39,7 +39,7 @@ export async function createVoiceAgentBridge(
             options.delivery
         );
         for (const event of result.events) {
-            emitDurableChatEvent({ audienceUserId: null, event });
+            publishRealtime(event);
         }
         void options.postCommitWork.wakeAgents(options.delivery, result.wakes);
         append(

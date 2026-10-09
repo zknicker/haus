@@ -13,6 +13,7 @@ import {
     mcpPresetAccountCreateSchema,
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { mcpUpdatedTopic } from '../../realtime/topics.ts';
 import { McpDeniedError } from '../../server-mcp/errors.ts';
 import { createMcpPresetAccount, replaceMcpPresetToken } from '../../server-mcp/presets.ts';
 import {
@@ -25,9 +26,9 @@ import {
 } from '../../server-mcp/service.ts';
 import { listMcpConnections, setMcpGrant } from '../../server-mcp/state.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 import { createRouter } from '../trpc.ts';
 import { amazonProduct, amazonProductDetail } from './amazon-products.ts';
+import { onMcpUpdatedProcedure } from './on-updated.ts';
 
 const guarded = memberProcedure.use(async ({ next }) => {
     const result = await next();
@@ -88,6 +89,7 @@ export const mcpRouter = createRouter({
                 disconnectMcpConnection(ctx.hausDb, ctx.mcpRuntime, ctx.member, input)
             )
         ),
+    onUpdated: onMcpUpdatedProcedure,
     list: guarded
         .input(mcpConnectionListInputSchema)
         .output(mcpConnectionListSchema)
@@ -152,6 +154,6 @@ export const mcpRouter = createRouter({
 
 async function withMcpUpdate<Result>(serverId: string, operation: () => Promise<Result>) {
     const result = await operation();
-    emitServerUpdated({ scope: 'mcp', serverId });
+    mcpUpdatedTopic.announce({ serverId });
     return result;
 }

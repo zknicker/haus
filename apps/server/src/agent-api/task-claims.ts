@@ -1,13 +1,14 @@
-import type { ServerDurableEvent, TaskClaimConflict } from '@haus/api';
+import type { TaskClaimConflict } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { buildTaskClaimConflict } from '../tasks/claim-conflict.ts';
-import { insertTaskEvent } from '../tasks/task-events.ts';
+import { prepareTaskEvent } from '../tasks/task-events.ts';
 import { taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { messageSelection } from './message-view.ts';
@@ -48,7 +49,7 @@ export async function claimAgentTasks(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         await requireChatWritable(tx, { chatId, serverId: runner.serverId });
-        const events: ServerDurableEvent[] = [];
+        const events: PreparedRealtimeEvent[] = [];
         const found = await queryAgentTasks(tx, runner, chatId, {
             messageId,
             numbers: input.numbers,
@@ -168,7 +169,7 @@ async function claimTaskRow(tx: HausDatabase, runner: ResolvedRunner, messageId:
             )
         );
     await followClaimedTask(tx, runner, current);
-    const event = await insertTaskEvent(tx, {
+    const event = prepareTaskEvent({
         chatId: current.chatId,
         messageId,
         serverId: runner.serverId,
@@ -224,7 +225,7 @@ async function promoteAgentMessageTask(
         throw new Error('Task conversion did not persist.');
     }
     await followClaimedTask(tx, runner, task);
-    const event = await insertTaskEvent(tx, {
+    const event = prepareTaskEvent({
         chatId,
         messageId,
         serverId: runner.serverId,

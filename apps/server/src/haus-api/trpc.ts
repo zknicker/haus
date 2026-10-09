@@ -4,9 +4,17 @@ import {
     type ClerkSessionIdentity,
     ClerkSessionUnavailableError,
 } from '../identity/clerk-sessions.ts';
+import { realtimeRefusalData } from '../realtime/refusal.ts';
 import type { HausContext } from './context.ts';
 
-const t = initTRPC.context<HausContext>().create();
+const t = initTRPC.context<HausContext>().create({
+    // Realtime refusals carry their class so the App can tell a membership loss
+    // from a role refusal or a transient failure (specs/realtime-events.md).
+    errorFormatter: ({ error, shape }) => ({
+        ...shape,
+        data: { ...shape.data, ...realtimeRefusalData(error) },
+    }),
+});
 
 export const createRouter = t.router;
 const appProcedure = t.procedure.use(({ ctx, next }) => {

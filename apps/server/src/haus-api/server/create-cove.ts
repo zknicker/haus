@@ -7,8 +7,8 @@ import {
     createCove,
     sendPendingCoveApplication,
 } from '../../onboarding/create-cove.ts';
+import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
-import { emitServerUpdated } from '../server-events.ts';
 import { memberProcedure } from './procedure.ts';
 
 const createCoveInputSchema = z
@@ -26,7 +26,7 @@ export const createCoveProcedure = memberProcedure
         try {
             const result = await createCove(ctx.hausDb, ctx.member, input);
             await sendPendingCoveApplication(ctx.hausDb, ctx.computerConnections, input.computerId);
-            emitServerUpdated({ scope: 'agent', serverId: input.serverId });
+            agentUpdatedTopic.announce({ agentId: null, serverId: input.serverId });
             return result;
         } catch (cause) {
             if (cause instanceof CoveSetupConflictError) {

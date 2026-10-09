@@ -9,9 +9,9 @@ import {
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
-import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { computerUpdatedTopic } from '../realtime/topics.ts';
 import { createAgentThoughts } from '../server-agents/agent-thought.ts';
 import type { ThoughtSummarizer } from '../server-agents/agent-thought-summarizer.ts';
 import { clearHausAgentState } from '../server-agents/record-haus-agent-state.ts';
@@ -102,9 +102,8 @@ export function startComputerAttachmentSocket(
             const serverId = attachedServerId;
             markComputerOffline(db, closedComputerId, connectionGeneration, disconnectReason)
                 .then(() => {
-                    emitServerUpdated({
+                    computerUpdatedTopic.announce({
                         computerId: closedComputerId,
-                        scope: 'computer',
                         serverId,
                     });
                 })
@@ -176,9 +175,8 @@ export function startComputerAttachmentSocket(
                     type: 'bootstrap-accepted',
                 })
             );
-            emitServerUpdated({
+            computerUpdatedTopic.announce({
                 computerId: computer.id,
-                scope: 'computer',
                 serverId: computer.serverId,
             });
             if (!ordinary) {

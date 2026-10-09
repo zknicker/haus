@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import { insertMessageReactionEvent } from '../chats/message-reaction-event.ts';
+import { prepareMessageReactionEvent } from '../chats/message-reaction-event.ts';
 import { writeMessageReaction } from '../chats/message-reactions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -46,11 +46,10 @@ export async function changeAgentReaction(
             throw new Error('Failed to resolve the Message reaction Chat.');
         }
         return changed
-            ? await insertMessageReactionEvent(tx, {
+            ? prepareMessageReactionEvent({
                   chatId: visibleMessage.chat_id,
                   messageId: visibleMessage.id,
                   parentChatId: chat.kind === 'thread' ? chat.parentChatId : null,
-                  sequence: visibleMessage.sequence,
                   serverId: runner.serverId,
               })
             : null;

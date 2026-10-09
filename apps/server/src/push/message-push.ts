@@ -1,13 +1,11 @@
-import type { ServerDurableEvent } from '@haus/api';
-import { subscribeToDurableChatEvents } from '../chats/durable-events.ts';
+import type { MessageCreatedEvent } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { messageCreatedTopic } from '../realtime/topics.ts';
 import { deletePushDevice, listPushDevices, recordPushDeviceError } from './push-devices.ts';
 import { buildPushPayload } from './push-payload.ts';
 import { createPushQueue } from './push-queue.ts';
 import { readPushRecipients } from './push-recipients.ts';
 import type { PushSender } from './push-sender.ts';
-
-type MessageCreatedEvent = Extract<ServerDurableEvent, { type: 'message.created' }>;
 
 export interface MessagePush {
     /** Stops listening and waits for pushes already in flight. */
@@ -34,8 +32,8 @@ const pushConcurrency = 4;
 const pushBacklog = 1000;
 
 /**
- * iPhone push for new messages (ADR 0038). It listens to the same post-commit
- * durable events realtime clients do, and for each `message.created` pushes
+ * iPhone push for new messages (ADR 0038). It subscribes to the same post-commit
+ * `message.created` topic realtime clients hear, and for each message pushes
  * every human the shared notification rule names: one alert per device per message,
  * sent off the send path after `pushReadGraceMs`, to humans who have not read it
  * by then. Failures are logged and recorded on the device;
@@ -77,10 +75,8 @@ export function startMessagePush(
 
     const listening = (async () => {
         try {
-            for await (const { event } of subscribeToDurableChatEvents(abort.signal)) {
-                if (event.type === 'message.created') {
-                    track(event);
-                }
+            for await (const { event } of messageCreatedTopic.subscribe(abort.signal)) {
+                track(event);
             }
         } catch (error) {
             if (!abort.signal.aborted) {

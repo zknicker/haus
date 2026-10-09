@@ -3,8 +3,8 @@ import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { assignAgentTask } from './task-assign.ts';
@@ -57,7 +57,7 @@ export function registerAgentTaskRoutes(
             for (const activity of result.activities) {
                 publishCommittedAgentActivity(activity);
             }
-            emitTaskEvents(result.events);
+            publishRealtime(result.events);
             await postCommitWork.wakeAgents(agentDelivery, result.wakes);
             return { tasks: result.tasks };
         } catch (cause) {
@@ -79,7 +79,7 @@ export function registerAgentTaskRoutes(
         }
         try {
             const result = await claimAgentTasks(db, runner, parsed.data);
-            emitTaskEvents(result.events);
+            publishRealtime(result.events);
             return { results: result.results };
         } catch (cause) {
             return sendAgentReadError(reply, cause);
@@ -111,7 +111,7 @@ export function registerAgentTaskRoutes(
                     ...parsed.data,
                     assignee,
                 });
-                emitTaskEvents(result.events);
+                publishRealtime(result.events);
                 await postCommitWork.wakeAgents(
                     agentDelivery,
                     result.wakes.map((agentId) => ({ agentId, serverId: runner.serverId }))
@@ -150,18 +150,12 @@ export function registerAgentTaskRoutes(
                               status: parsed.data.status as z.infer<typeof taskStatusSchema>,
                           });
                 if (result.event) {
-                    emitTaskEvents([result.event]);
+                    publishRealtime(result.event);
                 }
                 return { task: result.task };
             } catch (cause) {
                 return sendAgentReadError(reply, cause);
             }
         });
-    }
-}
-
-function emitTaskEvents(events: Parameters<typeof emitDurableChatEvent>[0]['event'][]) {
-    for (const event of events) {
-        emitDurableChatEvent({ audienceUserId: null, event });
     }
 }

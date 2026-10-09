@@ -1,16 +1,13 @@
-import type { ReminderChangedEvent } from '@haus/api';
-import { and, asc, eq, gt } from 'drizzle-orm';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
+import { and, asc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatEventsTable,
-    chatsTable,
     reminderCommandsTable,
     reminderFiresTable,
     remindersTable,
 } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -19,7 +16,7 @@ import {
     parseReminderCommandResult,
     ReminderVersionConflictError,
 } from './mutations.ts';
-import { insertAnchoredReminderChangedEvent } from './reminder-events.ts';
+import { prepareReminderEvent } from './reminder-events.ts';
 import {
     type Reminder,
     type ReminderClock,
@@ -120,55 +117,6 @@ export async function listOperatorReminderRuns(
     }));
 }
 
-export async function listOperatorReminderChanges(
-    db: HausDatabase,
-    member: HausUser | null,
-    input: { afterCursor: string; limit: number; serverId: string }
-): Promise<ReminderChangedEvent[]> {
-    await requireReminderOperator(db, member, input.serverId);
-    const rows = await db
-        .select({
-            action: chatEventsTable.reminderAction,
-            chatId: chatEventsTable.chatId,
-            createdAt: chatEventsTable.createdAt,
-            cursor: chatEventsTable.cursor,
-            id: chatEventsTable.id,
-            parentChatId: chatsTable.parentChatId,
-            reminderId: chatEventsTable.reminderId,
-            sequence: chatEventsTable.sequence,
-            serverId: chatEventsTable.serverId,
-        })
-        .from(chatEventsTable)
-        .innerJoin(
-            chatsTable,
-            and(
-                eq(chatsTable.serverId, chatEventsTable.serverId),
-                eq(chatsTable.id, chatEventsTable.chatId)
-            )
-        )
-        .where(
-            and(
-                eq(chatEventsTable.serverId, input.serverId),
-                eq(chatEventsTable.type, 'reminder.changed'),
-                gt(chatEventsTable.cursor, BigInt(input.afterCursor))
-            )
-        )
-        .orderBy(chatEventsTable.cursor)
-        .limit(input.limit);
-    return rows.map((row) => ({
-        action: row.action as 'canceled' | 'fired' | 'scheduled' | 'snoozed' | 'updated',
-        chatId: row.chatId as string,
-        createdAt: row.createdAt.toISOString(),
-        cursor: row.cursor.toString(),
-        id: row.id,
-        parentChatId: row.parentChatId,
-        reminderId: row.reminderId as string,
-        sequence: row.sequence,
-        serverId: row.serverId,
-        type: 'reminder.changed',
-    }));
-}
-
 export async function cancelOperatorReminder(
     db: HausDatabase,
     member: HausUser | null,
@@ -263,10 +211,9 @@ export async function cancelOperatorReminder(
             resultSnapshot: shapedReminder,
             serverId: input.serverId,
         });
-        const event = await insertAnchoredReminderChangedEvent(tx, {
+        const event = prepareReminderEvent({
             action: 'canceled',
-            chatId: updated.anchorChatId,
-            createdAt: now,
+            ownerAgentId: updated.ownerAgentId,
             reminderId: updated.id,
             serverId: updated.serverId,
         });
@@ -277,7 +224,7 @@ export async function cancelOperatorReminder(
         };
     });
     if (result.event) {
-        emitDurableChatEvent({ audienceUserId: null, event: result.event });
+        publishRealtime(result.event);
     }
     return { idempotent: result.idempotent, reminder: result.reminder };
 }

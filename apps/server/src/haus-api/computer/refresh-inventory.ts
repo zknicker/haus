@@ -3,9 +3,9 @@ import { and, eq } from 'drizzle-orm';
 import { computerUpdateInputSchema } from '../../computers/contracts.ts';
 import { recordComputerRuntimeInventory } from '../../computers/record-inventory.ts';
 import { computersTable } from '../../postgres/schema.ts';
+import { computerUpdatedTopic } from '../../realtime/topics.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const refreshComputerInventoryProcedure = memberProcedure
     .input(computerUpdateInputSchema.omit({ targetVersion: true }))
@@ -35,6 +35,6 @@ export const refreshComputerInventoryProcedure = memberProcedure
         }
         const runtimes = await ctx.computerConnections.inventoryRefresh.request(computer.id);
         await recordComputerRuntimeInventory(ctx.hausDb, computer.id, runtimes);
-        emitServerUpdated({ computerId: computer.id, scope: 'computer', serverId: input.serverId });
+        computerUpdatedTopic.announce({ computerId: computer.id, serverId: input.serverId });
         return { runtimeCount: runtimes.length };
     });

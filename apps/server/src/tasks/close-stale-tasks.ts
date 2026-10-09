@@ -1,11 +1,12 @@
-import { type ServerDurableEvent, TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
+import { TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { insertTaskEvent } from './task-events.ts';
+import { prepareTaskEvent } from './task-events.ts';
 
 const sweepIntervalMs = 60 * 60 * 1000;
 const staleMs = TASK_IN_REVIEW_STALE_DAYS * 24 * 60 * 60 * 1000;
@@ -26,7 +27,7 @@ const staleMs = TASK_IN_REVIEW_STALE_DAYS * 24 * 60 * 60 * 1000;
 export async function closeStaleInReviewTasks(
     db: HausDatabase,
     now: Date
-): Promise<ServerDurableEvent[]> {
+): Promise<PreparedRealtimeEvent[]> {
     const quietBefore = new Date(now.getTime() - staleMs);
     const candidates = await db
         .select({
@@ -36,7 +37,7 @@ export async function closeStaleInReviewTasks(
         })
         .from(messageTasksTable)
         .where(staleTaskFilter(quietBefore));
-    const events: ServerDurableEvent[] = [];
+    const events: PreparedRealtimeEvent[] = [];
     for (const candidate of candidates) {
         const event = await closeStaleTask(db, candidate, { now, quietBefore });
         if (event) {
@@ -44,7 +45,7 @@ export async function closeStaleInReviewTasks(
         }
     }
     for (const event of events) {
-        emitDurableChatEvent({ audienceUserId: null, event });
+        publishRealtime(event);
     }
     return events;
 }
@@ -67,7 +68,7 @@ async function closeStaleTask(
     db: HausDatabase,
     task: { chatId: string; messageId: string; serverId: string },
     window: { now: Date; quietBefore: Date }
-): Promise<ServerDurableEvent | null> {
+): Promise<PreparedRealtimeEvent | null> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, task.serverId);
         await tx.execute(sql`
@@ -104,7 +105,7 @@ async function closeStaleTask(
                     eq(messageTasksTable.messageId, task.messageId)
                 )
             );
-        return await insertTaskEvent(tx, {
+        return prepareTaskEvent({
             chatId: task.chatId,
             messageId: task.messageId,
             serverId: task.serverId,

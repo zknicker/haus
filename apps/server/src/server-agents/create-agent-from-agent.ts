@@ -4,17 +4,17 @@ import type {
     AgentCreatedAvatarOutcome,
     AgentReasoningEffort,
     AvatarMediaType,
-    ServerDurableEvent,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
 import type { AvatarBytes } from '../avatars/avatar-bytes.ts';
 import { resolveAgentDmOwnerUserId } from '../chats/agent-dm-owner.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
-import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
+import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { suggestAvailableParticipantHandle } from '../servers/participant-handles.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
@@ -52,7 +52,7 @@ export interface AgentCreationConfiguration {
 
 export interface CreateAgentFromAgentResult {
     configure: AgentCreationConfiguration | null;
-    events: ServerDurableEvent[];
+    events: PreparedRealtimeEvent[];
     receipt: AgentCreateAgentReceipt;
 }
 
@@ -119,12 +119,7 @@ export async function createAgentFromAgent(
               })
             : null;
         const dmCreatedEvent = dm?.created
-            ? await insertLifecycleEvent(
-                  tx,
-                  { chatId: dm.id, serverId: runner.serverId },
-                  'created',
-                  new Date()
-              )
+            ? prepareLifecycleEvent({ chatId: dm.id, serverId: runner.serverId }, 'created')
             : null;
 
         // `#all` is joined by the shared creation seam; these are the lanes the
@@ -149,7 +144,7 @@ export async function createAgentFromAgent(
             },
             events: [
                 ...(dmCreatedEvent ? [dmCreatedEvent] : []),
-                ...(await channelMembershipEvents(tx, runner.serverId, joined)),
+                ...channelMembershipEvents(runner.serverId, joined),
             ],
             receipt: {
                 agent: summary,

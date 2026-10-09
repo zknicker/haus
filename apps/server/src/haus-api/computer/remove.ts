@@ -2,9 +2,9 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { removeServerComputer } from '../../computers/remove-computer.ts';
 import { ComputerSetupDeniedError } from '../../computers/service.ts';
+import { computerUpdatedTopic } from '../../realtime/topics.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const removeComputerProcedure = memberProcedure
     .input(
@@ -20,7 +20,10 @@ export const removeComputerProcedure = memberProcedure
         try {
             const removed = await removeServerComputer(ctx.hausDb, ctx.member, input);
             ctx.computerConnections.disconnectComputer(removed.computerId);
-            emitServerUpdated({ scope: 'computer', serverId: input.serverId });
+            computerUpdatedTopic.announce({
+                computerId: input.computerId,
+                serverId: input.serverId,
+            });
             return removed;
         } catch (cause) {
             if (cause instanceof ComputerSetupDeniedError) {

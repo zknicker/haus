@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { serverUpdatedTopic } from '../../realtime/topics.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
 import {
     markServerDeleting,
@@ -6,7 +7,6 @@ import {
     readServerDeletion,
     ServerDeleteDeniedError,
 } from '../../servers/delete-server.ts';
-import { emitServerUpdated } from '../server-events.ts';
 import { memberProcedure } from './procedure.ts';
 
 /**
@@ -20,7 +20,9 @@ export const deleteServerProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         const result = await markServerDeleting(ctx.hausDb, ctx.member, input);
         ctx.computerConnections.cleanupServer(result.serverId);
-        emitServerUpdated({ serverId: result.serverId });
+        // Delivered to nobody: every membership is revoked, so each
+        // `server.onUpdated` recheck ends with `membership_lost`.
+        serverUpdatedTopic.announce({ serverId: result.serverId });
         void ctx.postCommitWork.run('server.delete-purge', () =>
             purgeDeletedServer(ctx.hausDb, ctx.attachmentRoot, result)
         );

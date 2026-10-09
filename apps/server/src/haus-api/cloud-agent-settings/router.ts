@@ -1,5 +1,6 @@
 import { createRouter } from '../trpc.ts';
 import { getCloudAgentSettingsProcedure } from './get.ts';
+import { onCloudAgentSettingsUpdatedProcedure } from './on-updated.ts';
 import { setCloudAgentModelProcedure } from './set-model.ts';
 
 /**
@@ -8,5 +9,6 @@ import { setCloudAgentModelProcedure } from './set-model.ts';
  */
 export const cloudAgentSettingsRouter = createRouter({
     get: getCloudAgentSettingsProcedure,
+    onUpdated: onCloudAgentSettingsUpdatedProcedure,
     setModel: setCloudAgentModelProcedure,
 });

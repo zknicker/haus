@@ -1,9 +1,10 @@
-import type { ServerDurableEvent, Trigger, TriggerKind } from '@haus/api';
+import type { Trigger, TriggerKind } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
-import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
+import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { requireActiveAgent } from '../reminders/reminder-model.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireTriggerOperator } from './operator-triggers.ts';
@@ -35,7 +36,7 @@ export async function createOperatorTrigger(
 ): Promise<{ curl: string; secret: string; trigger: Trigger; url: string }> {
     const operator = await requireTriggerOperator(db, member, input.serverId);
     // Set by the transaction callback; emitted only once the trigger commits.
-    let dmCreatedEvent: ServerDurableEvent | null = null;
+    let dmCreatedEvent: PreparedRealtimeEvent | null = null;
     const created = await createTriggerRow(
         db,
         {
@@ -58,11 +59,9 @@ export async function createOperatorTrigger(
             });
             await requireChatWritable(tx, { chatId: dm.id, serverId: input.serverId });
             if (dm.created) {
-                dmCreatedEvent = await insertLifecycleEvent(
-                    tx,
+                dmCreatedEvent = prepareLifecycleEvent(
                     { chatId: dm.id, serverId: input.serverId },
-                    'created',
-                    clock.now()
+                    'created'
                 );
             }
             return { chatId: dm.id, messageId: null };
@@ -70,7 +69,7 @@ export async function createOperatorTrigger(
         clock
     );
     if (dmCreatedEvent) {
-        emitDurableChatEvent({ audienceUserId: null, event: dmCreatedEvent });
+        publishRealtime(dmCreatedEvent);
     }
 
     return {

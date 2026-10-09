@@ -1,12 +1,12 @@
 import { agentDeliveryControlInputSchema, agentDeliveryStateSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import {
     assertAgentDeliveryAccess,
     readAgentDeliveryState,
 } from '../../server-agents/agent-delivery-control.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const stopAgentProcedure = memberProcedure
     .input(agentDeliveryControlInputSchema)
@@ -15,9 +15,8 @@ export const stopAgentProcedure = memberProcedure
         try {
             await assertAgentDeliveryAccess(ctx.hausDb, ctx.member, input);
             await ctx.agentDelivery.stop(input);
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: input.agentId,
-                scope: 'agent',
                 serverId: input.serverId,
             });
             return await readAgentDeliveryState(ctx.hausDb, ctx.member, input);

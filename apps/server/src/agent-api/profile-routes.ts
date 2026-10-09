@@ -1,8 +1,8 @@
 import { agentSelfProfileUpdateInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-import { emitServerUpdated } from '../haus-api/server-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentUpdatedTopic } from '../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';
 import { AgentDescriptionTooLongError } from '../server-agents/errors.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -48,9 +48,8 @@ export function registerAgentProfileRoutes(app: FastifyInstance, db: HausDatabas
         }
         try {
             const updated = await updateAgentProfile(db, runner, parsed.data);
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: runner.agentId,
-                scope: 'agent',
                 serverId: runner.serverId,
             });
             return updated;

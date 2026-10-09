@@ -1,11 +1,11 @@
 import { agentCreatedSchema, createAgentInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { AvatarRejectedError } from '../../avatars/avatar-errors.ts';
-import { emitDurableChatEvent } from '../../chats/durable-events.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
+import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { createAgent } from '../../server-agents/create-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const createAgentProcedure = memberProcedure
     .input(createAgentInputSchema)
@@ -15,7 +15,7 @@ export const createAgentProcedure = memberProcedure
             const { event, ...created } = await createAgent(ctx.hausDb, ctx.member, input);
             if (event) {
                 // The new Agent is in #all now, so that channel's member list moved.
-                emitDurableChatEvent({ audienceUserId: null, event });
+                publishRealtime(event);
             }
             await ctx.agentDelivery.configureAgent({
                 agentDescription: created.agent.description,
@@ -26,9 +26,8 @@ export const createAgentProcedure = memberProcedure
                 reasoningEffort: created.agent.desiredReasoningEffort,
                 runtimeId: created.agent.desiredRuntimeId,
             });
-            emitServerUpdated({
+            agentUpdatedTopic.announce({
                 agentId: created.agent.id,
-                scope: 'agent',
                 serverId: input.serverId,
             });
             return created;

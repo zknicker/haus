@@ -1,7 +1,5 @@
-import type { ServerDurableEvent } from '@haus/api';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -11,13 +9,12 @@ import {
     reminderFiresTable,
     remindersTable,
 } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { nextReminderFireAt, parseReminderRepeat } from './cadence.ts';
 import { reminderEnvelope } from './reminder-envelope.ts';
-import {
-    insertAnchoredReminderChangedEvent,
-    insertReminderChangedEvent,
-} from './reminder-events.ts';
+import { prepareReminderEvent } from './reminder-events.ts';
 import {
     ReminderAgentInactiveError,
     ReminderAnchorAccessError,
@@ -57,7 +54,7 @@ export async function tickReminders(
             fired += 1;
         }
         for (const event of result.events) {
-            emitDurableChatEvent({ audienceUserId: null, event });
+            publishRealtime(event);
         }
         if (delivery && result.dispatch?.kind === 'agent') {
             await delivery.dispatchAgent(result.dispatch.agentId, result.dispatch.serverId);
@@ -202,13 +199,10 @@ async function fireNextDueReminder(
                         eq(remindersTable.id, reminder.id)
                     )
                 );
-            const reminderEvent = await insertReminderChangedEvent(tx, {
+            const reminderEvent = prepareReminderEvent({
                 action: 'fired',
-                chatId: reminder.anchorChatId,
-                createdAt: now,
-                parentChatId: chat.parentChatId,
+                ownerAgentId: reminder.ownerAgentId,
                 reminderId: reminder.id,
-                sequence: chat.sequence,
                 serverId: reminder.serverId,
             });
             return {
@@ -249,7 +243,7 @@ async function cancelIfUnauthorized(
     db: HausDatabase,
     reminder: typeof remindersTable.$inferSelect,
     now: Date
-): Promise<ServerDurableEvent | null> {
+): Promise<PreparedRealtimeEvent | null> {
     try {
         await requireActiveAgent(db, reminder.serverId, reminder.ownerAgentId);
         await requireAgentAnchor(db, {
@@ -306,7 +300,7 @@ interface ReminderFireAttempt {
               kind: 'script';
           }
         | null;
-    events: ServerDurableEvent[];
+    events: PreparedRealtimeEvent[];
     fired: boolean;
 }
 
@@ -334,10 +328,9 @@ async function cancelUnauthorizedReminder(
             )
         );
     await retireQueuedReminderFires(db, reminder.serverId, reminder.id);
-    return insertAnchoredReminderChangedEvent(db, {
+    return prepareReminderEvent({
         action: 'canceled',
-        chatId: reminder.anchorChatId,
-        createdAt: now,
+        ownerAgentId: reminder.ownerAgentId,
         reminderId: reminder.id,
         serverId: reminder.serverId,
     });

@@ -1,8 +1,8 @@
-import type { ServerDurableEvent } from '@haus/api';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
-import { insertTaskEvent } from './task-events.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { prepareTaskEvent } from './task-events.ts';
 
 type TaskAssignmentWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
@@ -15,7 +15,7 @@ export async function clearTaskAssignments(
     db: TaskAssignmentWriter,
     serverId: string,
     agentId: string
-): Promise<ServerDurableEvent[]> {
+): Promise<PreparedRealtimeEvent[]> {
     const assigneeColumn = messageTasksTable.assigneeAgentId;
     const assigned = await db
         .select({
@@ -25,7 +25,7 @@ export async function clearTaskAssignments(
         .from(messageTasksTable)
         .where(and(eq(messageTasksTable.serverId, serverId), eq(assigneeColumn, agentId)))
         .orderBy(asc(messageTasksTable.messageId));
-    const events: ServerDurableEvent[] = [];
+    const events: PreparedRealtimeEvent[] = [];
 
     for (const task of assigned) {
         await db
@@ -44,7 +44,7 @@ export async function clearTaskAssignments(
                 )
             );
         events.push(
-            await insertTaskEvent(db, {
+            prepareTaskEvent({
                 chatId: task.chatId,
                 messageId: task.messageId,
                 serverId,

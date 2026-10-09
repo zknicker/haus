@@ -2,8 +2,8 @@ import { TRPCError } from '@trpc/server';
 import { computerUpdateInputSchema } from '../../computers/contracts.ts';
 import { ComputerSetupDeniedError } from '../../computers/service.ts';
 import { startComputerUpdate } from '../../computers/update.ts';
+import { computerUpdatedTopic } from '../../realtime/topics.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { emitServerUpdated } from '../server-events.ts';
 
 export const startComputerUpdateProcedure = memberProcedure
     .input(computerUpdateInputSchema)
@@ -16,7 +16,10 @@ export const startComputerUpdateProcedure = memberProcedure
                 manifestUrl: ctx.computerReleaseManifestUrl,
                 member: ctx.member,
             });
-            emitServerUpdated({ scope: 'computer', serverId: input.serverId });
+            computerUpdatedTopic.announce({
+                computerId: input.computerId,
+                serverId: input.serverId,
+            });
             return started;
         } catch (cause) {
             if (cause instanceof ComputerSetupDeniedError) {
