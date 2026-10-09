@@ -36,7 +36,8 @@ import Testing
         let agent = try presentation(snapshot: "null")
         #expect(agent.branches.first?.pullRequest == nil)
         #expect(agent.branches.first?.pullRequestUrl != nil)
-        #expect(agent.compactDescription == nil)
+        // Without a recorded diff a finished work still names itself.
+        #expect(agent.compactDescription == agent.work.title)
     }
 
     @Test func cardStatesOneBranchWithItsPullRequestNumber() throws {

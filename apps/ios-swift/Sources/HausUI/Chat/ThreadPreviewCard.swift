@@ -49,26 +49,32 @@ struct ThreadPreviewCard: View {
                 .animation(rowAnimation, value: task?.number)
 
                 VStack(alignment: .leading, spacing: 5) {
-                    ForEach(cloudAgents) { agent in
+                    ForEach(cloudAgentSummaries) { summary in
                         ZStack(alignment: .leading) {
                             HStack(spacing: 5) {
                                 CloudAgentMark(size: 16, style: .glyph)
                                     .frame(width: 18, height: 18)
-                                Text("\(agent.providerName) · \(agent.statusLabel)")
-                                if let description = agent.compactDescription {
-                                    Text(description).lineLimit(1)
+                                ViewThatFits(in: .horizontal) {
+                                    Text(summary.headline).lineLimit(1)
+                                    if let compact = summary.compactHeadline {
+                                        Text(compact).lineLimit(1)
+                                    }
+                                }
+                                .layoutPriority(1)
+                                if let detail = summary.detail {
+                                    Text(detail).lineLimit(1)
                                 }
                             }
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                            .id([agent.providerName, agent.statusLabel, agent.compactDescription])
+                            .id([summary.headline, summary.detail])
                             .transition(rowTransition)
                         }
                         .transition(rowTransition)
                     }
                 }
                 .clipped()
-                .animation(rowAnimation, value: cloudAgents.map { [$0.id, $0.providerName, $0.statusLabel, $0.compactDescription] })
+                .animation(rowAnimation, value: cloudAgentSummaries.map { [$0.id, $0.headline, $0.detail] })
             }
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .padding(.vertical, 4)
@@ -83,6 +89,11 @@ struct ThreadPreviewCard: View {
     private var replyLabel: String {
         ThreadPreviewProjection.replyLabel(replyCount: thread?.replyCount ?? 0, hasTask: task != nil)
             ?? "Reply in thread"
+    }
+
+    /// One row per provider; a fan-out collapses to a count and a status breakdown.
+    private var cloudAgentSummaries: [ThreadCloudAgentSummary] {
+        ThreadCloudAgentSummary.summarize(cloudAgents)
     }
 
     private var rowAnimation: Animation {
@@ -103,10 +114,7 @@ struct ThreadPreviewCard: View {
             parts.append("\(reply.author.name): \(RichMessageParser.oneLinePreview(reply.content))")
         }
         if let task { parts.append("Task number \(task.number), \(task.status.rawValue)") }
-        parts += cloudAgents.map {
-            [$0.providerName, $0.work.title, $0.statusLabel, $0.compactDescription == $0.work.title ? nil : $0.compactDescription]
-                .compactMap { $0 }.joined(separator: ", ")
-        }
+        parts += cloudAgentSummaries.map(\.accessibilityText)
         return parts.joined(separator: ". ") + ". Open thread"
     }
 }

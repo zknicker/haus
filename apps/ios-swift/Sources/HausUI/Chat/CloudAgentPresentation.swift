@@ -13,17 +13,22 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         self.conversationLink = conversationLink
     }
 
-    public var providerName: String { work.provider == "cursor" ? "Cursor" : work.provider }
-    public var statusLabel: String {
-        if work.status.isActive, work.cancelRequestedAt != nil { return "Cancelling" }
+    public var providerName: String { Self.providerName(work.provider) }
+    public var status: CloudAgentPresentationStatus {
+        if work.status.isActive, work.cancelRequestedAt != nil { return .cancelling }
         switch work.status {
-        case .queued: return "Queued"
-        case .running: return "Running"
-        case .completed: return "Done"
-        case .failed: return "Failed"
-        case .cancelled: return "Cancelled"
-        case .expired: return "Expired"
+        case .queued: return .queued
+        case .running: return .running
+        case .completed: return .completed
+        case .failed: return .failed
+        case .cancelled: return .cancelled
+        case .expired: return .expired
         }
+    }
+    public var statusLabel: String { status.label }
+
+    public static func providerName(_ provider: String) -> String {
+        provider == "cursor" ? "Cursor" : provider
     }
 
     public var durationLabel: String? {
@@ -71,9 +76,9 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
 
     public var canBeCancelled: Bool { work.status.isActive && work.cancelRequestedAt == nil }
 
-    public var compactDescription: String? {
-        guard work.status == .completed else { return work.title }
-        guard let diff = primaryBranch?.pullRequest else { return nil }
+    /// A finished work states its diff when one was recorded, and otherwise its title.
+    public var compactDescription: String {
+        guard work.status == .completed, let diff = primaryBranch?.pullRequest else { return work.title }
         return "\(diff.changedFiles) \(diff.changedFiles == 1 ? "file" : "files") changed · +\(diff.additions) −\(diff.deletions)"
     }
 
@@ -114,5 +119,23 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         guard let value, let url = URL(string: value),
               ["https", "http"].contains(url.scheme?.lowercased()), url.host != nil else { return nil }
         return url
+    }
+}
+
+/// The outcome a Cloud Agent row states. Case order is the Thread preview's
+/// breakdown order: live states first, then settled ones.
+public enum CloudAgentPresentationStatus: CaseIterable, Hashable, Sendable {
+    case running, queued, cancelling, completed, failed, expired, cancelled
+
+    public var label: String {
+        switch self {
+        case .running: "Running"
+        case .queued: "Queued"
+        case .cancelling: "Cancelling"
+        case .completed: "Done"
+        case .failed: "Failed"
+        case .expired: "Expired"
+        case .cancelled: "Cancelled"
+        }
     }
 }
