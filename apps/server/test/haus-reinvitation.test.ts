@@ -271,14 +271,9 @@ test('a revoked Server subscription stops delivering to a removed human', async 
     });
 
     await Bun.sleep(400);
-    // Removal emits a Server update; the removed human's subscription must be
-    // refused at delivery rather than kept alive on the socket it opened.
-    expect(failures.length).toBeGreaterThan(0);
-    // The departure publishes the membership sentinel, which ends with the coded
-    // refusal the App clears its Server caches on.
-    expect(failures[0]).toMatchObject({
-        data: { code: 'FORBIDDEN', hausRefusal: 'membership_lost' },
-    });
+    // The sentinel ends with the coded refusal instead of staying alive on its socket.
+    const refusal = { code: 'FORBIDDEN', hausRefusal: 'membership_lost' };
+    expect(failures[0]).toMatchObject({ data: refusal });
 
     subscription.unsubscribe();
     watcher.close();

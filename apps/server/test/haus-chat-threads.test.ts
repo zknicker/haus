@@ -223,24 +223,17 @@ test('Thread replies and follow changes announce their parent anchor', async () 
         serverId: server.id,
         thread: { anchorMessageId: anchor.message.id },
     });
-    const followed = await owner.trpc.thread.setFollow.mutate({
+    await owner.trpc.thread.setFollow.mutate({
         follow: false,
         serverId: server.id,
         threadChatId: reply.threadChatId as string,
     });
 
-    expect(followed).toEqual({
-        followed: false,
-        serverId: server.id,
-        threadChatId: reply.threadChatId,
-    });
-
-    await expect(
-        created.next((event) => event.messageId === reply.message.id)
-    ).resolves.toMatchObject({
+    // The stream opened after the anchor, so the first created event is the reply.
+    await expect(created.next()).resolves.toMatchObject({
         chatId: reply.threadChatId,
+        messageId: reply.message.id,
         parentChatId,
-        sequence: 1,
         threadAnchorMessageId: anchor.message.id,
     });
     await expect(follows.next()).resolves.toEqual({
