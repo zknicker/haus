@@ -56,8 +56,15 @@ export function defaultBase() {
     return `http://localhost:${websitePort}`;
 }
 
+// Chrome's Local Network Access check blocks a route-fulfilled page's WebSocket to
+// localhost (net::ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS), which left prod-bundle
+// runs with no realtime at all. The served bundle is the dev origin's own code.
 export function launchChrome({ headed = false } = {}) {
-    return chromium.launch({ channel: 'chrome', headless: !headed });
+    return chromium.launch({
+        args: ['--disable-features=LocalNetworkAccessChecks'],
+        channel: 'chrome',
+        headless: !headed,
+    });
 }
 
 export function sidebarRow(name) {
