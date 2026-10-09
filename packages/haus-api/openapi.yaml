@@ -666,8 +666,8 @@ paths:
           schema: { type: string, enum: [unread, mentions], default: unread }
         - name: before
           in: query
-          description: Keyset cursor; the previous page's `nextBefore`.
-          schema: { type: string, pattern: '^[1-9][0-9]*$' }
+          description: Opaque keyset cursor; the previous page's `nextBefore`.
+          schema: { type: string, minLength: 1, maxLength: 200 }
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
@@ -1998,9 +1998,12 @@ components:
         [activityKey, chatId, kind, lastReadSequence, latestAt, latestSenderHandle, mentions, target, unread]
       properties:
         activityKey:
-          type: integer
-          minimum: 1
-          description: Server-wide Chat event cursor of the conversation's newest message.
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: >-
+            Opaque key of the conversation's newest message (created time, then
+            id). Unique per row; pass it back as `before`, never parse it.
         chatId: { type: string, minLength: 1 }
         kind: { type: string, enum: [channel, dm, thread] }
         lastReadSequence: { type: integer, minimum: 0 }
@@ -2020,7 +2023,7 @@ components:
           items:
             $ref: '#/components/schemas/AgentInboxConversation'
         hasMore: { type: boolean }
-        nextBefore: { type: [integer, 'null'], minimum: 1 }
+        nextBefore: { type: [string, 'null'], minLength: 1, maxLength: 200 }
         totals:
           type: object
           additionalProperties: false

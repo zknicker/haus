@@ -25,6 +25,24 @@ export const threadCloudAgentWorkListSchema = z.array(threadCloudAgentWorkSchema
 export type ThreadCloudAgentWork = z.infer<typeof threadCloudAgentWorkSchema>;
 
 /**
+ * `cloudAgentWork.onUpdated`: work was created, observed, or asked to cancel.
+ * Chat access scoped. Carries the work row and its Message as re-projected
+ * after the change (the Message `body` shows the current work and recent
+ * Runs), so the App patches both in place instead of refetching transcripts.
+ */
+export const cloudAgentWorkUpdatedEventSchema = z
+    .object({
+        chatId: idSchema,
+        message: chatMessageSchema,
+        parentChatId: idSchema.nullable(),
+        serverId: idSchema,
+        work: cloudAgentWorkSchema,
+    })
+    .strict();
+
+export type CloudAgentWorkUpdatedEvent = z.infer<typeof cloudAgentWorkUpdatedEventSchema>;
+
+/**
  * `haus cloud-agent start` — the Agent-scoped creation request the Computer
  * forwards after its provider readiness check passes. The instructions the
  * provider runs never appear here: they stay on the Computer.

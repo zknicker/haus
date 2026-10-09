@@ -1373,8 +1373,8 @@ export interface components {
             read_through_seq?: number;
         };
         AgentInboxConversation: {
-            /** @description Server-wide Chat event cursor of the conversation's newest message. */
-            activityKey: number;
+            /** @description Opaque key of the conversation's newest message (created time, then id). Unique per row; pass it back as `before`, never parse it. */
+            activityKey: string;
             chatId: string;
             /** @enum {string} */
             kind: "channel" | "dm" | "thread";
@@ -1391,7 +1391,7 @@ export interface components {
             view: "unread" | "mentions";
             items: components["schemas"]["AgentInboxConversation"][];
             hasMore: boolean;
-            nextBefore: number | null;
+            nextBefore: string | null;
             /** @description Over every unread conversation, whatever the view. */
             totals: {
                 conversations: number;
@@ -3124,7 +3124,7 @@ export interface operations {
         parameters: {
             query?: {
                 view?: "unread" | "mentions";
-                /** @description Keyset cursor; the previous page's `nextBefore`. */
+                /** @description Opaque keyset cursor; the previous page's `nextBefore`. */
                 before?: string;
                 limit?: number;
             };

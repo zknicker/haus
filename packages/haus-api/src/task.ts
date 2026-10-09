@@ -113,13 +113,36 @@ export const taskUpdateInputSchema = taskMutationInputSchema.extend({
 
 export const taskMutationSchema = z
     .object({
-        eventCursor: z
-            .string()
-            .regex(/^[1-9]\d*$/u)
-            .nullable(),
         task: messageTaskSchema,
     })
     .strict();
+
+/**
+ * `task.onChanged`: a task was created on, or changed on, its Message. Chat
+ * access scoped. Carries the task so the App patches `message.task` in cached
+ * transcripts instead of refetching them.
+ */
+export const taskChangedEventSchema = z
+    .object({
+        chatId: idSchema,
+        kind: z.enum(['created', 'updated']),
+        messageId: idSchema,
+        serverId: idSchema,
+        task: messageTaskSchema,
+    })
+    .strict();
+
+export type TaskChangedEvent = z.infer<typeof taskChangedEventSchema>;
+
+/** `taskLabel.onUpdated`: a label was created, renamed, recolored, or deleted. Every member. */
+export const taskLabelUpdatedEventSchema = z
+    .object({
+        labelId: idSchema,
+        serverId: idSchema,
+    })
+    .strict();
+
+export type TaskLabelUpdatedEvent = z.infer<typeof taskLabelUpdatedEventSchema>;
 
 export const taskLabelListInputSchema = z.object({ serverId: idSchema }).strict();
 export const taskLabelListSchema = z.array(taskLabelSchema);
@@ -142,7 +165,6 @@ export const taskLabelDeleteInputSchema = z
     .strict();
 export const taskLabelMutationSchema = z
     .object({
-        eventCursor: z.string().regex(/^[1-9]\d*$/u),
         label: taskLabelSchema.nullable(),
     })
     .strict();

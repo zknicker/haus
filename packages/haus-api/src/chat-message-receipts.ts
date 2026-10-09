@@ -5,7 +5,6 @@ export function createChatMessageReceipts<T extends z.ZodType>(message: T) {
     return {
         message: z
             .object({
-                eventCursor: z.string().regex(/^[1-9]\d*$/u),
                 idempotent: z.boolean(),
                 message,
                 threadChatId: idSchema.nullable(),
@@ -14,10 +13,6 @@ export function createChatMessageReceipts<T extends z.ZodType>(message: T) {
         reaction: z
             .object({
                 changed: z.boolean(),
-                eventCursor: z
-                    .string()
-                    .regex(/^[1-9]\d*$/u)
-                    .nullable(),
                 message,
             })
             .strict(),

@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
+import { idSchema } from './chat-contract-primitives.ts';
 
 export const chatMessageReactionActorSchema = z
     .object({
@@ -28,17 +28,3 @@ export const chatMessageReactionInputSchema = z
     .strict();
 
 export type ChatMessageReactionInput = z.infer<typeof chatMessageReactionInputSchema>;
-
-export const messageReactionUpdatedEventSchema = z
-    .object({
-        chatId: idSchema,
-        createdAt: timestampSchema,
-        cursor: z.string().regex(/^[1-9]\d*$/u),
-        id: idSchema,
-        messageId: idSchema,
-        parentChatId: idSchema.nullable(),
-        sequence: z.number().int().positive(),
-        serverId: idSchema,
-        type: z.literal('message.reaction.updated'),
-    })
-    .strict();

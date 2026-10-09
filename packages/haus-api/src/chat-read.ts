@@ -17,13 +17,11 @@ export const chatMarkReadInputSchema = z
     })
     .strict();
 
+/** `advanced` is false when the marker was already there: no `chat.onRead` event follows. */
 export const chatReadReceiptSchema = z
     .object({
+        advanced: z.boolean(),
         chatId: idSchema,
-        eventCursor: z
-            .string()
-            .regex(/^[1-9]\d*$/u)
-            .nullable(),
         sequence: z.number().int().nonnegative(),
         serverId: idSchema,
     })

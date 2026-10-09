@@ -22,7 +22,6 @@ test('reaction mutations carry only client intent and return a durable receipt s
     expect(
         chatMessageReactionReceiptSchema.parse({
             changed: true,
-            eventCursor: '7',
             message: {
                 attachments: [],
                 author: { kind: 'human', userId: 'usr_human' },
@@ -39,5 +38,5 @@ test('reaction mutations carry only client intent and return a durable receipt s
                 sessionGeneration: null,
             },
         })
-    ).toMatchObject({ changed: true, eventCursor: '7' });
+    ).toMatchObject({ changed: true, message: { id: 'msg_one' } });
 });

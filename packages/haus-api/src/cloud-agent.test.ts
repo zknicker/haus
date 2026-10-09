@@ -9,11 +9,11 @@ import {
     cloudAgentCapabilityStateSchema,
     cloudAgentObservationSchema,
     cloudAgentWorkSchema,
+    cloudAgentWorkUpdatedEventSchema,
     computerInventorySchema,
     computerProtocolVersion,
     formatCloudAgentWorkSuffix,
     messageBodySchema,
-    serverdurableeventSchema,
 } from './index.ts';
 
 test('Cloud Agent work stores bounded, provider-safe execution state', () => {
@@ -40,21 +40,28 @@ test('a Message body projects Cloud Agent work beside text', () => {
     );
 });
 
-test('the durable event union carries the Message and work identities', () => {
-    expect(
-        serverdurableeventSchema.parse({
-            chatId: 'cht_product',
-            cloudAgentWorkId: 'caw_1234567890abcdef',
-            createdAt: '2026-09-04T12:01:00.000Z',
-            cursor: '42',
-            id: 'evt_1',
-            messageId: 'msg_1234567890abcdef',
-            parentChatId: null,
-            sequence: 7,
-            serverId: 'srv_1',
-            type: 'cloud-agent-work.updated',
-        }).type
-    ).toBe('cloud-agent-work.updated');
+test('a work update carries the re-projected Message and work rows', () => {
+    const message = {
+        author: { kind: 'human', userId: 'usr_human' },
+        body: { kind: 'cloud-agent-work', work },
+        chatId: 'cht_product',
+        content: '',
+        createdAt: '2026-09-04T12:01:00.000Z',
+        id: 'msg_1234567890abcdef',
+        nonce: 'send-1',
+        runId: null,
+        sequence: 7,
+        serverId: 'srv_1',
+    };
+    const event = cloudAgentWorkUpdatedEventSchema.parse({
+        chatId: 'cht_product',
+        message,
+        parentChatId: null,
+        serverId: 'srv_1',
+        work,
+    });
+    expect(event.message.body).toMatchObject({ kind: 'cloud-agent-work' });
+    expect(event.work.id).toBe('caw_1234567890abcdef');
 });
 
 test('the Agent start input never carries provider instructions', () => {

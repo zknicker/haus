@@ -9,12 +9,15 @@ export type AgentInboxView = z.infer<typeof agentInboxViewSchema>;
 /**
  * One conversation an Agent belongs to with unread past its read position
  * (`haus inbox check`). Channels, DMs, and followed Threads are separate rows.
- * `activityKey` is the Server-wide Chat event cursor of the conversation's
- * newest message: unique per row and the keyset `before` pages by.
+ * `activityKey` is an opaque key built from the conversation's newest message
+ * (its `created_at`, then id): unique per row, ordered newest first by the
+ * Server, and the keyset `before` pages by. Clients never parse or compare it.
  */
+export const agentInboxActivityKeySchema = z.string().min(1).max(200);
+
 export const agentInboxConversationSchema = z
     .object({
-        activityKey: z.number().int().positive(),
+        activityKey: agentInboxActivityKeySchema,
         chatId: z.string().min(1),
         kind: z.enum(['channel', 'dm', 'thread']),
         lastReadSequence: z.number().int().nonnegative(),
@@ -33,7 +36,7 @@ export const agentInboxConversationsResponseSchema = z
     .object({
         hasMore: z.boolean(),
         items: z.array(agentInboxConversationSchema),
-        nextBefore: z.number().int().positive().nullable(),
+        nextBefore: agentInboxActivityKeySchema.nullable(),
         /** Over every unread conversation, whatever the view. */
         totals: z
             .object({

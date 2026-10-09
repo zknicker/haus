@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { agentIdempotencyKeySchema } from './agent-idempotency.ts';
 import { AUTOMATION_HISTORY_RETENTION_DAYS } from './automation.ts';
-import { idSchema, reminderChangedEventSchema } from './chat.ts';
+import { idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -158,14 +158,19 @@ export const reminderMutationResultSchema = z
     })
     .strict();
 
-export const reminderChangesInputSchema = z
+/**
+ * `reminder.onUpdated`: a reminder was scheduled, updated, snoozed, canceled,
+ * or fired. Owner/Admin only, like the reminder reads; every delivery rechecks
+ * that authority. Names the owning Agent so the App invalidates exactly its
+ * reminder list, runs, and history reads.
+ */
+export const reminderUpdatedEventSchema = z
     .object({
-        afterCursor: z.string().regex(/^\d+$/u).default('0'),
-        limit: z.number().int().min(1).max(500).default(100),
+        action: z.enum(['canceled', 'fired', 'scheduled', 'snoozed', 'updated']),
+        ownerAgentId: idSchema,
+        reminderId: idSchema,
         serverId: idSchema,
     })
     .strict();
 
-export const reminderChangesSchema = z.array(reminderChangedEventSchema);
-
-export const reminderEventSubscriptionInputSchema = z.object({ serverId: idSchema }).strict();
+export type ReminderUpdatedEvent = z.infer<typeof reminderUpdatedEventSchema>;

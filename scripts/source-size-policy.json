@@ -91,7 +91,7 @@
     "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
     "packages/haus-api/src/agent-runner.ts": 473,
     "packages/haus-api/src/agent.ts": 336,
-    "packages/haus-api/src/chat.ts": 507,
+    "packages/haus-api/src/chat.ts": 353,
     "packages/haus-sdk/src/client.ts": 431,
     "scripts/agent-tests/kit.mjs": 309,
     "scripts/agent-tests/kit.test.mjs": 498,
