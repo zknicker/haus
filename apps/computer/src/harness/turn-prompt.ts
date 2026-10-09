@@ -19,6 +19,8 @@ export interface TurnDelivery {
     dataRoot: string;
     /** Inbox identities drainable on any start; the warm set needs a live session. */
     drainItemIds: string[];
+    /** An Agent another Agent created with a standing brief introduces itself once. */
+    greetsOnFirstTurn?: boolean;
     homeTimezone: string;
     inbox: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';
@@ -45,6 +47,13 @@ interface TurnSession {
 
 const resetContextLine =
     'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact; MEMORY.md is your recovery point.';
+
+/**
+ * Raft's new-Agent greeting is a private one-time instruction, so it rides the
+ * first turn's input instead of becoming permanent memory.
+ */
+const firstTurnGreetingLine =
+    'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.';
 
 export interface TurnPrompt {
     /** Exactly the identities whose bodies this prompt puts in front of the model. */
@@ -82,7 +91,7 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
         notice,
         turnContent: [
             session.resumesInterruptedTurn ? interruptedTurnLine : null,
-            openingPrompt(session, body),
+            openingPrompt(session, body, input.greetsOnFirstTurn === true),
             formatUnreadElsewhere(input.unreadElsewhere),
         ]
             .filter(Boolean)
@@ -90,16 +99,22 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
     };
 }
 
-/** `Start.` is reserved for a cold session with nothing pending. */
-function openingPrompt(session: TurnSession, body: string | null): string {
-    const resetContext = session.sessionGeneration === 1 ? null : resetContextLine;
+/**
+ * `Start.` is reserved for a cold session with nothing pending. The first
+ * generation's cold start is the Agent's first turn ever: a later generation
+ * gets the reset line instead, and a cold start that failed never persisted its
+ * session, so the retry is still the first turn.
+ */
+function openingPrompt(session: TurnSession, body: string | null, greets: boolean): string {
     if (!session.isColdStart) {
         return body ?? 'Resume the interrupted turn.';
     }
+    const firstGeneration = session.sessionGeneration === 1;
+    const coldNote = firstGeneration ? (greets ? firstTurnGreetingLine : null) : resetContextLine;
     if (body) {
-        return [resetContext, body].filter(Boolean).join('\n\n');
+        return [coldNote, body].filter(Boolean).join('\n\n');
     }
-    return resetContext ? `Start.\n${resetContext}` : 'Start.';
+    return coldNote ? `Start.\n${coldNote}` : 'Start.';
 }
 
 /**

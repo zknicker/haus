@@ -186,10 +186,11 @@ export default defineScenario({
                 expect(memory.content, 'the seeded memory carries the standing brief').toContain(
                     `## Standing brief from @${cove.handle}`
                 );
+                // The first hello is one-time turn input, not permanent memory.
                 expect(
                     memory.content,
-                    'the seeded memory asks for a first hello in #all'
-                ).toContain('say hello in #all in your own voice');
+                    'the seeded memory leaves the first hello to turn input'
+                ).not.toContain('say hello');
                 // Nothing DMs the new Agent — a DM is human ↔ Agent.
                 expect(
                     membership.filter(

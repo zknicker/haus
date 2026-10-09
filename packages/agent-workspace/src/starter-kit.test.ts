@@ -57,10 +57,8 @@ describe('ordinary Agent workspace seed', () => {
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
         expect(memory).toContain('## Standing brief from @cove');
         expect(memory).toContain('Own competitor intel. Post a digest in #product every Friday.');
-        // The brief is what it owns; this line is what it does about it first.
-        expect(memory).toContain(
-            'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.'
-        );
+        // The one-time greeting rides the first turn's input, never permanent memory.
+        expect(memory).not.toContain('say hello');
         expect(memory.indexOf('## Standing brief from @cove')).toBeLessThan(
             memory.indexOf('## Standing Preferences')
         );

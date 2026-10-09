@@ -62,7 +62,8 @@ ${renderBriefSection(input)}
  * The brief its creator wrote, as a durable memory fact rather than a message.
  * It is seeded once, with the rest of this file, so the Agent owns it from
  * there: later edits are the Agent's own, and an owned workspace is never
- * overwritten.
+ * overwritten. The one-time greeting is not memory: it rides the first turn's
+ * input (`apps/computer/src/harness/turn-prompt.ts`).
  */
 function renderBriefSection(input: SeedAgentWorkspaceInput): string {
     const brief = input.brief?.trim();
@@ -70,9 +71,7 @@ function renderBriefSection(input: SeedAgentWorkspaceInput): string {
     if (!(brief && author)) {
         return '';
     }
-    const firstTurn =
-        'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.';
-    return `\n## Standing brief from @${author}\n\n${brief}\n\n${firstTurn}\n`;
+    return `\n## Standing brief from @${author}\n\n${brief}\n`;
 }
 
 async function pathExists(filePath: string): Promise<boolean> {

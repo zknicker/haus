@@ -142,6 +142,24 @@ test('an empty digest renders nothing', () => {
     expect(prompt.turnContent).toBe('Start.');
 });
 
+test('a created Agent is told to greet only on its first-generation cold start', () => {
+    const greeting = 'On your first turn, say hello in #all in your own voice:';
+    const greets = delivery({ greetsOnFirstTurn: true });
+    const first = composeTurnPrompt(greets, cold).turnContent;
+    expect(first.startsWith(greeting)).toBe(true);
+    expect(first).toContain('Can you look at the deploy?');
+    const idle = delivery({ drainItemIds: [], greetsOnFirstTurn: true, inbox: [] });
+    expect(composeTurnPrompt({ ...idle, totalPending: 0 }, cold).turnContent).toStartWith(
+        `Start.\n${greeting}`
+    );
+    // Resumed turns, later generations, and Agents without a brief never see it.
+    expect(composeTurnPrompt(greets, warm).turnContent).not.toContain(greeting);
+    const reset = composeTurnPrompt(greets, { isColdStart: true, sessionGeneration: 2 });
+    expect(reset.turnContent).not.toContain(greeting);
+    expect(reset.turnContent).toContain('Fresh session:');
+    expect(composeTurnPrompt(delivery(), cold).turnContent).not.toContain(greeting);
+});
+
 test('a composed drain records exact run visibility and consumes its notice rows', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-turn-prompt-'));
     try {
