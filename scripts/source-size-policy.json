@@ -22,8 +22,8 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4294,
-      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, conversation-style, create signature-emoji, and human-timezone contracts."
+      "maxLines": 4295,
+      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, conversation-style, create signature-emoji, human-timezone, and Agent sender-timezone contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
       "maxLines": 2300,
@@ -40,7 +40,7 @@
     "apps/computer/src/index.test.ts": 931,
     "apps/computer/src/index.ts": 1635,
     "apps/computer/src/launch.test.ts": 561,
-    "apps/computer/src/launch.ts": 406,
+    "apps/computer/src/launch.ts": 403,
     "apps/computer/src/login.ts": 409,
     "apps/computer/src/proxy.test.ts": 752,
     "apps/computer/src/proxy.ts": 373,

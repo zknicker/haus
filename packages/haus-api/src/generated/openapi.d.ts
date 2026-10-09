@@ -1216,6 +1216,7 @@ export interface components {
             description: string | null;
             /** @enum {string} */
             type: "human" | "agent" | "system";
+            timezone?: string;
         };
         AgentMessage: components["schemas"]["ChatMessage"] & {
             sender: components["schemas"]["AgentSender"];

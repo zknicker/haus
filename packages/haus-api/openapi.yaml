@@ -1734,6 +1734,9 @@ components:
         handle: { type: [string, 'null'] }
         description: { type: [string, 'null'] }
         type: { type: string, enum: [human, agent, system] }
+        # A human sender's saved IANA zone. Absent for Agents and for humans
+        # without a saved zone; Haus never guesses one.
+        timezone: { type: string, minLength: 1, maxLength: 64 }
     AgentMessage:
       allOf:
         - $ref: '#/components/schemas/ChatMessage'

@@ -7,6 +7,7 @@ import {
     cloudAgentSummaryMaxLength,
     cloudAgentTitleSchema,
 } from './cloud-agent-shared.ts';
+import { humanTimezoneSchema } from './membership.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -63,6 +64,8 @@ export const agentThreadContextMessageSchema = z
         id: idSchema,
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
+        /** The human sender's saved IANA zone; absent for Agents and humans without one. */
+        senderTimezone: humanTimezoneSchema.optional(),
         senderType: z.enum(['agent', 'human']),
         sequence: z.number().int().positive(),
     })
@@ -109,6 +112,8 @@ export const agentInboxItemSchema = z
         reply: chatMessageReplySchema.nullable().optional(),
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
+        /** The human sender's saved IANA zone; absent for Agents and humans without one. */
+        senderTimezone: humanTimezoneSchema.optional(),
         senderType: z.enum(['agent', 'human', 'system', 'trigger']),
         /** Chat sequence, or zero for a typed attention with no Chat cursor. */
         sequence: z.number().int().nonnegative(),
@@ -130,6 +135,10 @@ export const agentInboxItemSchema = z
             message: 'Typed attentions use their own identity and zero Chat sequence.',
             path: ['sequence'],
         }
-    );
+    )
+    .refine((item) => item.senderTimezone === undefined || item.senderType === 'human', {
+        message: 'Only a human sender carries a timezone.',
+        path: ['senderTimezone'],
+    });
 
 export type AgentInboxItem = z.infer<typeof agentInboxItemSchema>;
