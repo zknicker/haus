@@ -50,6 +50,9 @@ for (const telemetry of [false, true]) {
             expect(aborted).toBe(true);
             const finished = exporter.getFinishedSpans();
             expect(finished).toHaveLength(telemetry ? 2 : 0);
+            expect(finished.map((span) => span.attributes['haus.failure.kind'])).toEqual(
+                telemetry ? ['auth', 'timeout'] : []
+            );
             for (const span of finished) {
                 expect(span.name).toBe('haus.mcp.operation');
                 expect(span.status.code).toBe(2);

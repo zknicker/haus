@@ -50,3 +50,22 @@ export function isDefinitelyPreCommitFailure(error: unknown): boolean {
     }
     return false;
 }
+
+/** Count ambiguous sends so a failed turn cannot replay duplicate model output. */
+export function countAmbiguousSend(
+    state: { incrementSendCount(): void },
+    ambiguous: boolean,
+    response: Response
+): Response {
+    if (ambiguous) {
+        state.incrementSendCount();
+    }
+    return response;
+}
+
+export function serverUnavailable(): Response {
+    return Response.json(
+        { code: 'UPSTREAM_UNAVAILABLE', message: 'The Server response was unavailable.' },
+        { status: 502 }
+    );
+}

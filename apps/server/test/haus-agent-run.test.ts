@@ -2574,7 +2574,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
             args: {},
             toolName: modelToolName(authId, 'reauthorize'),
         });
-        expect(authResponse).toMatchObject({ body: { code: 'MCP_AUTH_REQUIRED' }, status: 502 });
+        expect(authResponse).toMatchObject({ body: { code: 'MCP_AUTH_REQUIRED' }, status: 424 });
     } finally {
         await runtime.close();
         timeout.stop(true);

@@ -25,7 +25,9 @@ import { extractServedAutomationIds, extractVisibleMessageIds } from './proxy-re
 import {
     type CommittedSend,
     committedSend,
+    countAmbiguousSend,
     isDefinitelyPreCommitFailure,
+    serverUnavailable,
 } from './proxy-send-outcome.ts';
 import { attestVisibleMessages } from './visibility-receipt.ts';
 
@@ -220,16 +222,14 @@ async function handleAuthorizedProxyRequest(
             signal: mcpRequestSignal(request),
         });
     } catch (error) {
-        // Count ambiguous sends so a failed turn cannot replay duplicate model output.
-        if (isMessageSend && !isDefinitelyPreCommitFailure(error)) {
-            state.incrementSendCount();
-        }
-        return Response.json(
-            { code: 'UPSTREAM_UNAVAILABLE', message: 'The Server response was unavailable.' },
-            { status: 502 }
-        );
+        const ambiguous = isMessageSend && !isDefinitelyPreCommitFailure(error);
+        return countAmbiguousSend(state, ambiguous, serverUnavailable());
     }
     const responseBody = await readProxyResponse(request, upstream);
+    if (responseBody instanceof Response) {
+        // A send the Server accepted but whose receipt was lost is as ambiguous as a lost request.
+        return countAmbiguousSend(state, isMessageSend && upstream.ok, responseBody);
+    }
     const committed = upstream.ok && isMessageSend ? committedSend(body, responseBody) : null;
     if (committed) {
         state.incrementSendCount();

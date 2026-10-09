@@ -28,14 +28,35 @@ export class McpDeniedError extends Error {
     readonly code = 'MCP_DENIED';
 }
 
+/** Operator-facing reconnect requirement raised when a stored OAuth grant needs a new browser flow. */
+export class McpReconnectRequiredError extends Error {
+    constructor() {
+        super('Reconnect this MCP server in Haus.');
+        this.name = 'McpReconnectRequiredError';
+    }
+}
+
+/** Closed, content-free classification recorded as `haus.failure.kind` on MCP spans. */
+export type McpUpstreamFailureKind =
+    | 'auth'
+    | 'http_status'
+    | 'jsonrpc'
+    | 'other'
+    | 'protocol'
+    | 'timeout'
+    | 'transport';
+
 export class McpUpstreamError extends Error {
+    readonly failureKind: McpUpstreamFailureKind;
+
     constructor(
         readonly code: McpUpstreamCode,
         message: string,
-        options?: ErrorOptions
+        options?: ErrorOptions & { failureKind?: McpUpstreamFailureKind }
     ) {
         super(message, options);
         this.name = 'McpUpstreamError';
+        this.failureKind = options?.failureKind ?? defaultFailureKind(code);
     }
 }
 
@@ -70,56 +91,9 @@ export function asMcpArguments(value: unknown): Record<string, unknown> {
     throw new McpDeniedError('MCP tool arguments must be an object.');
 }
 
-export function classifyMcpUpstreamError(
-    cause: unknown,
-    operation: 'discovery' | 'invocation'
-): McpUpstreamError {
-    if (cause instanceof McpUpstreamError) {
-        return cause;
+function defaultFailureKind(code: McpUpstreamCode): McpUpstreamFailureKind {
+    if (code === 'MCP_AUTH_REQUIRED') {
+        return 'auth';
     }
-    const status = readNumericProperty(cause, 'statusCode') ?? readNumericProperty(cause, 'status');
-    if (status === 401 || status === 403) {
-        return new McpUpstreamError(
-            'MCP_AUTH_REQUIRED',
-            'Reconnect this MCP connection before using it.',
-            { cause }
-        );
-    }
-    if (isTimeout(cause)) {
-        return new McpUpstreamError('MCP_TIMEOUT', `The MCP ${operation} timed out.`, {
-            cause,
-        });
-    }
-    return new McpUpstreamError('MCP_UNAVAILABLE', `The MCP ${operation} is unavailable.`, {
-        cause,
-    });
-}
-
-function isTimeout(cause: unknown): boolean {
-    if (!(cause instanceof Error)) {
-        return false;
-    }
-    const code = readStringProperty(cause, 'code');
-    return (
-        cause.name === 'AbortError' ||
-        code === 'ETIMEDOUT' ||
-        code === 'UND_ERR_CONNECT_TIMEOUT' ||
-        /\b(?:abort|timed?\s*out|timeout)\b/iu.test(cause.message)
-    );
-}
-
-function readNumericProperty(value: unknown, key: string): number | undefined {
-    if (typeof value !== 'object' || value === null || !(key in value)) {
-        return undefined;
-    }
-    const property = Reflect.get(value, key);
-    return typeof property === 'number' ? property : undefined;
-}
-
-function readStringProperty(value: unknown, key: string): string | undefined {
-    if (typeof value !== 'object' || value === null || !(key in value)) {
-        return undefined;
-    }
-    const property = Reflect.get(value, key);
-    return typeof property === 'string' ? property : undefined;
+    return code === 'MCP_TIMEOUT' ? 'timeout' : 'other';
 }

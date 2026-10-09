@@ -99,7 +99,7 @@ test('preserves Server MCP error codes inside Executor results', async () => {
     server = Bun.serve({
         hostname: '127.0.0.1',
         port: 0,
-        fetch: () => Response.json({ code, message: 'Fixture failure.' }, { status: 502 }),
+        fetch: () => Response.json({ code, message: 'Fixture failure.' }, { status: 424 }),
     });
     const tools = createServerMcpTools({
         proxyUrl: `http://127.0.0.1:${server.port}`,
@@ -110,6 +110,33 @@ test('preserves Server MCP error codes inside Executor results', async () => {
             await call(tools, 'return await tools.call({name:"fixture",args:{}});')
         ).toMatchObject({ result: { error: { code } } });
     }
+});
+
+test('reports edge-rewritten and malformed Server responses as typed errors with the status', async () => {
+    let reply = () => new Response('<html>Bad gateway</html>', { status: 502 });
+    server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => reply() });
+    const tools = createServerMcpTools({
+        proxyUrl: `http://127.0.0.1:${server.port}`,
+        proxyToken: 'fixture',
+    });
+    const invoke = 'return await tools.call({name:"fixture",args:{}});';
+    expect(await call(tools, invoke)).toMatchObject({
+        result: {
+            error: {
+                code: 'MCP_UNAVAILABLE',
+                message: 'The Server MCP request returned a non-JSON response (HTTP 502).',
+            },
+        },
+    });
+    reply = () => Response.json({ unexpected: true });
+    expect(await call(tools, 'return await tools.search({query:"x"});')).toMatchObject({
+        result: {
+            error: {
+                code: 'MCP_UNAVAILABLE',
+                message: 'The Server MCP response had an unexpected shape.',
+            },
+        },
+    });
 });
 
 test('stopping Executor cancels its exact HTTP invocation before returning', async () => {

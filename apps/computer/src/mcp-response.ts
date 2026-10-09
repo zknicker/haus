@@ -1,3 +1,11 @@
+/** The bounded Server MCP reader stopped at its 1 MiB limit. */
+export class McpResponseTooLargeError extends Error {
+    constructor() {
+        super('Server MCP response exceeded its 1 MiB size limit. Narrow the request.');
+        this.name = 'McpResponseTooLargeError';
+    }
+}
+
 export async function readMcpResponseText(response: Response): Promise<string> {
     if (!response.body) {
         throw new Error('Server MCP returned an empty response.');
@@ -13,7 +21,7 @@ export async function readMcpResponseText(response: Response): Promise<string> {
             }
             bytes += chunk.value.byteLength;
             if (bytes > 1024 * 1024) {
-                throw new Error('Server MCP response exceeded its size limit. Narrow the request.');
+                throw new McpResponseTooLargeError();
             }
             chunks.push(chunk.value);
         }

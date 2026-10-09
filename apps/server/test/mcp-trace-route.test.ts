@@ -264,5 +264,5 @@ test('explicit cancellation aborts only its own active MCP request even after ru
     });
     expect(cancelled.statusCode).toBe(200);
     await aborted.promise;
-    expect((await response).status).toBe(502);
+    expect((await response).status).toBe(424);
 });

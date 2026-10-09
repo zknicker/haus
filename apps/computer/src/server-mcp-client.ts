@@ -5,26 +5,7 @@ import {
     agentMcpSearchSchema,
     agentMcpToolsSchema,
 } from '@haus/api';
-import * as z from 'zod';
-import { readMcpResponseText } from './mcp-response.ts';
-
-const errorSchema = z.object({
-    code: z
-        .enum(['MCP_AUTH_REQUIRED', 'MCP_DENIED', 'MCP_TIMEOUT', 'MCP_UNAVAILABLE'])
-        .catch('MCP_UNAVAILABLE'),
-    message: z.string().catch('Server MCP request failed.'),
-});
-
-export class ServerMcpToolError extends Error {
-    constructor(
-        readonly code: z.infer<typeof errorSchema>['code'],
-        message: string,
-        readonly status: number
-    ) {
-        super(message);
-        this.name = 'ServerMcpToolError';
-    }
-}
+import { parseServerMcpResult, readServerMcpPayload } from './server-mcp-response.ts';
 
 export function createServerMcpClient(input: { proxyToken: string; proxyUrl: string }) {
     const request = async (path: string, signal: AbortSignal, body?: unknown) => {
@@ -60,13 +41,7 @@ export function createServerMcpClient(input: { proxyToken: string; proxyUrl: str
         };
         try {
             signal.throwIfAborted();
-            const response = await send();
-            const payload = JSON.parse(await readMcpResponseText(response)) as unknown;
-            if (!response.ok) {
-                const error = errorSchema.parse(payload);
-                throw new ServerMcpToolError(error.code, error.message, response.status);
-            }
-            return payload;
+            return await readServerMcpPayload(await send(), signal);
         } finally {
             signal.removeEventListener('abort', cancel);
             await cancellation;
@@ -74,15 +49,18 @@ export function createServerMcpClient(input: { proxyToken: string; proxyUrl: str
     };
     return {
         search: async (query: string, signal: AbortSignal) =>
-            agentMcpSearchSchema.parse(
+            parseServerMcpResult(
+                agentMcpSearchSchema,
                 await request(`tools?${new URLSearchParams({ query })}`, signal)
             ),
         describe: async (name: string, signal: AbortSignal) =>
-            agentMcpToolsSchema
-                .parse(await request(`tools?${new URLSearchParams({ name })}`, signal))
-                .tools.find((tool) => tool.name === name),
+            parseServerMcpResult(
+                agentMcpToolsSchema,
+                await request(`tools?${new URLSearchParams({ name })}`, signal)
+            ).tools.find((tool) => tool.name === name),
         invoke: async (args: unknown, toolName: string, signal: AbortSignal) =>
-            agentMcpResultSchema.parse(
+            parseServerMcpResult(
+                agentMcpResultSchema,
                 await request('invoke', signal, agentMcpInvocationSchema.parse({ args, toolName }))
             ).result,
     };

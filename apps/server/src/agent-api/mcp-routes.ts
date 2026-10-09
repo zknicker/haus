@@ -8,6 +8,12 @@ import type { McpRuntime } from '../server-mcp/runtime.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { registerMcpCancellation } from './mcp-cancellation.ts';
 
+/**
+ * Upstream MCP failures answer 424 Failed Dependency, never 5xx: the production edge replaces
+ * origin 5xx bodies with HTML, which would erase the typed `{code, message}` the Agent reads.
+ */
+const MCP_FAILURE_STATUS = 424;
+
 export function registerAgentMcpRoutes(
     app: FastifyInstance,
     options: { db: HausDatabase; runtime: McpRuntime }
@@ -47,9 +53,10 @@ export function registerAgentMcpRoutes(
         } catch (cause) {
             return sendAgentApiError(
                 reply,
-                502,
+                MCP_FAILURE_STATUS,
                 'MCP_UNAVAILABLE',
-                cause instanceof Error ? cause.message : 'MCP tools are unavailable.'
+                cause instanceof Error ? cause.message : 'MCP tools are unavailable.',
+                { retryable: true }
             );
         } finally {
             cancellation.dispose();
@@ -103,17 +110,15 @@ function sendInvocationError(reply: FastifyReply, cause: unknown) {
         return sendAgentApiError(reply, 403, cause.code, cause.message);
     }
     if (cause instanceof McpUpstreamError) {
-        return sendAgentApiError(
-            reply,
-            cause.code === 'MCP_TIMEOUT' ? 504 : 502,
-            cause.code,
-            cause.message
-        );
+        return sendAgentApiError(reply, MCP_FAILURE_STATUS, cause.code, cause.message, {
+            retryable: cause.code !== 'MCP_AUTH_REQUIRED',
+        });
     }
     return sendAgentApiError(
         reply,
-        502,
+        MCP_FAILURE_STATUS,
         'MCP_UNAVAILABLE',
-        cause instanceof Error ? cause.message : 'MCP invocation is unavailable.'
+        cause instanceof Error ? cause.message : 'MCP invocation is unavailable.',
+        { retryable: true }
     );
 }

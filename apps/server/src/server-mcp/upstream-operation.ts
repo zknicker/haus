@@ -2,7 +2,8 @@ import type { MCPClient } from '@ai-sdk/mcp';
 import { type TraceCarrier, withTelemetrySpan, withTraceCarrier } from '@haus/effect';
 import { Data, Effect, Runtime } from 'effect';
 import type { McpClientCache } from './client-cache.ts';
-import { classifyMcpUpstreamError, McpClientAcquireError, McpUpstreamError } from './errors.ts';
+import { McpClientAcquireError, McpUpstreamError } from './errors.ts';
+import { classifyMcpUpstreamError } from './upstream-failure.ts';
 
 class McpForeignOperationError extends Data.TaggedError('McpForeignOperationError')<{
     readonly cause: unknown;
@@ -39,6 +40,10 @@ export async function runMcpUpstream<T>(input: McpUpstreamOperation<T>): Promise
                                 `The MCP ${input.operation} timed out.`
                             ),
                     }),
+                    // Closed enum only: the span never carries upstream text.
+                    Effect.tapError((error) =>
+                        Effect.annotateCurrentSpan('haus.failure.kind', error.failureKind)
+                    ),
                     withTelemetrySpan('haus.mcp.operation', {
                         'haus.operation': `mcp.${input.operation}`,
                     }),

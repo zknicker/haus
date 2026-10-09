@@ -2,7 +2,8 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 import { executeMcpCode } from '@haus/mcp-executor';
 import * as z from 'zod';
 import { computerEntrypoint } from './build-identity.ts';
-import { createServerMcpClient, ServerMcpToolError } from './server-mcp-client.ts';
+import { createServerMcpClient } from './server-mcp-client.ts';
+import { ServerMcpToolError } from './server-mcp-response.ts';
 
 const searchSchema = z.object({ query: z.string().max(200).default('') }).strict();
 const describeSchema = z.object({ name: z.string().min(1).max(256) }).strict();
