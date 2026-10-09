@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { chatEventsTable, messageTasksTable } from '../src/postgres/schema.ts';
+import { messageTasksTable } from '../src/postgres/schema.ts';
 import {
     answerInChat,
     beginRun,
@@ -203,19 +203,9 @@ test('a run a human stops leaves its claim tracked and in progress', async () =>
     });
 });
 
-test('an interrupted run leaves its claim tracked and emits a task update', async () => {
+test('an interrupted run leaves its claim tracked', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const run = await beginRun(connection.db, claim);
-    const before = await connection.db
-        .select({ messageId: chatEventsTable.messageId, type: chatEventsTable.type })
-        .from(chatEventsTable)
-        .where(
-            and(
-                eq(chatEventsTable.serverId, claim.serverId),
-                eq(chatEventsTable.messageId, claim.messageId),
-                eq(chatEventsTable.type, 'task.updated')
-            )
-        );
 
     await run.delivery.onTurnSettled(
         claim.computerId,
@@ -226,17 +216,6 @@ test('an interrupted run leaves its claim tracked and emits a task update', asyn
         status: 'in_progress',
         tier: 'tracked',
     });
-    const events = await connection.db
-        .select({ messageId: chatEventsTable.messageId, type: chatEventsTable.type })
-        .from(chatEventsTable)
-        .where(
-            and(
-                eq(chatEventsTable.serverId, claim.serverId),
-                eq(chatEventsTable.messageId, claim.messageId),
-                eq(chatEventsTable.type, 'task.updated')
-            )
-        );
-    expect(events).toHaveLength(before.length + 1);
 });
 
 test('a claim the Agent closed itself settles without a second write', async () => {

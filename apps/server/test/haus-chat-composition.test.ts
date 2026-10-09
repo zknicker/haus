@@ -46,7 +46,7 @@ afterAll(async () => {
 
 test('composition is best-effort, live-only, and never persisted', async () => {
     const [{ total: beforeTotal }] = (await harness.sql`
-        select count(*)::int as total from chat_events
+        select count(*)::int as total from chat_messages
     `) as { total: number }[];
     await owner.trpc.chat.publishComposition.mutate({
         chatId,
@@ -73,7 +73,7 @@ test('composition is best-effort, live-only, and never persisted', async () => {
     });
 
     const [{ total: afterTotal }] = (await harness.sql`
-        select count(*)::int as total from chat_events
+        select count(*)::int as total from chat_messages
     `) as { total: number }[];
     expect(afterTotal).toBe(beforeTotal);
 });

@@ -129,12 +129,6 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
     );
     const staging = await root.createStagingFile(serverId, 'upl_deletefixture000');
     await staging.close();
-    // A task-label event points at no chat, message, or reminder, so nothing
-    // cascades it away with the Server row — the purge must clear it directly.
-    await harness.sql`
-        insert into chat_events (id, server_id, cursor, sequence, event_type, label_id)
-        values ('cev_deleteorphan0000', ${serverId}, 1, 0, 'task.label.updated', 'tsl_orphan00000000')
-    `;
 
     const deletion = await owner.trpc.server.delete.mutate({ confirmation: slug, serverId });
 
@@ -151,12 +145,10 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
             (select count(*)::int from server_memberships where server_id = ${serverId}) as memberships,
             (select count(*)::int from server_invitations where server_id = ${serverId}) as invitations,
             (select count(*)::int from computers where server_id = ${serverId}) as computers,
-            (select count(*)::int from chats where server_id = ${serverId}) as chats,
-            (select count(*)::int from chat_events where server_id = ${serverId}) as events
+            (select count(*)::int from chats where server_id = ${serverId}) as chats
     `) as {
         chats: number;
         computers: number;
-        events: number;
         invitations: number;
         memberships: number;
         servers: number;
@@ -164,7 +156,6 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
     expect(remaining).toEqual({
         chats: 0,
         computers: 0,
-        events: 0,
         invitations: 0,
         memberships: 0,
         servers: 0,

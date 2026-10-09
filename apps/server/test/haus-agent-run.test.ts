@@ -1425,22 +1425,6 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         created_by_agent_id: agentId,
         created_by_user_id: null,
     });
-    const events = (await harness.sql`
-        select ce.event_type
-        from chat_events ce
-        inner join chat_messages cm
-            on cm.server_id = ce.server_id and cm.id = ce.message_id
-        where ce.server_id = ${serverId}
-          and cm.content = 'Audit the delivery boundary'
-        order by ce.cursor
-    `) as Array<{ event_type: string }>;
-    expect(events.map((event) => event.event_type)).toEqual([
-        'message.created',
-        'task.created',
-        'task.updated',
-        'task.updated',
-        'task.updated',
-    ]);
     const regular = await owner.trpc.chat.send.mutate({
         chatId: 'cht_targetchannel01',
         content: 'Turn this ordinary message into claimed work.',
@@ -1507,16 +1491,6 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         message_id: regular.message.id,
         origin: 'claimed',
     });
-    const convertedEvents = (await harness.sql`
-        select event_type
-        from chat_events
-        where server_id = ${serverId} and message_id = ${regular.message.id}
-        order by cursor
-    `) as Array<{ event_type: string }>;
-    expect(convertedEvents.map((event) => event.event_type)).toEqual([
-        'message.created',
-        'task.created',
-    ]);
 });
 
 test('concurrent Agent claims choose one owner and the losing Agent cannot proceed', async () => {

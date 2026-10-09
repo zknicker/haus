@@ -132,14 +132,6 @@ describe('reminder operator API', () => {
             type: 'reminder.changed',
         });
         await expect(
-            owner.trpc.reminder.changes.query({ afterCursor: '0', serverId })
-        ).resolves.toContainEqual(
-            expect.objectContaining({
-                action: 'canceled',
-                reminderId: reminder.reminder.id,
-            })
-        );
-        await expect(
             member.trpc.reminder.cancel.mutate({
                 commandId: 'member-cancel',
                 expectedVersion: 2,
@@ -225,9 +217,6 @@ describe('reminder operator API', () => {
         await expect(subscription.nextEvent).rejects.toMatchObject({
             data: { code: 'FORBIDDEN' },
         });
-        await expect(
-            admin.trpc.reminder.changes.query({ afterCursor: '0', serverId })
-        ).rejects.toThrow(/member/i);
     });
 
     test('reports live operator role loss as forbidden', async () => {

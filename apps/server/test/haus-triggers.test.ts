@@ -130,8 +130,8 @@ test('writes no receipt and commits the fire row and the envelope the Agent will
     const created = await createTrigger('Sentry alert', { instruction: 'Post the failing job.' });
     const triggerId = created.body.trigger?.id ?? '';
 
-    const eventsBefore = (await harness.sql`
-        select id from chat_events where chat_id = ${channelId}
+    const messagesBefore = (await harness.sql`
+        select id from chat_messages where chat_id = ${channelId}
     `) as { id: string }[];
 
     const fired = await fire(triggerId, {
@@ -198,12 +198,12 @@ test('writes no receipt and commits the fire row and the envelope the Agent will
         ].join('\n')
     );
 
-    // No `message.created`, and no Trigger durable event either: a fire is
+    // No receipt Message: a fire is
     // observed only in the Automations tab's history.
-    const eventsAfter = (await harness.sql`
-        select id from chat_events where chat_id = ${channelId}
+    const messagesAfter = (await harness.sql`
+        select id from chat_messages where chat_id = ${channelId}
     `) as { id: string }[];
-    expect(eventsAfter).toEqual(eventsBefore);
+    expect(messagesAfter).toEqual(messagesBefore);
 
     const [counters] = (await harness.sql`
         select fire_count, last_fired_at, version from triggers where id = ${triggerId}
