@@ -34,6 +34,11 @@ export type ServerSummary = HausOutputs['server']['list'][number];
 export type ServerDetail = HausOutputs['server']['bySlug'];
 export type HausServerConnectionState = ConnectionState;
 
+// Dev builds only: the constant folds to null in prod, so the chunk is never emitted.
+const DevPerfTools = import.meta.env.DEV
+    ? React.lazy(() => import('../features/dev-tools/dev-perf-tools.tsx'))
+    : null;
+
 // A local read of Clerk's cached token; Clerk rotates about every 50 seconds,
 // so a rotation reaches the socket well before the token it replaces expires.
 const sessionWatchIntervalMs = 10_000;
@@ -144,6 +149,11 @@ export function HausServerProvider({ children }: React.PropsWithChildren) {
             <QueryClientProvider client={queryClient}>
                 <hausTrpc.Provider client={connection.client} queryClient={queryClient}>
                     <UpdateRequiredGate queryClient={queryClient}>{children}</UpdateRequiredGate>
+                    {DevPerfTools ? (
+                        <React.Suspense fallback={null}>
+                            <DevPerfTools />
+                        </React.Suspense>
+                    ) : null}
                 </hausTrpc.Provider>
             </QueryClientProvider>
         </HausServerConnectionContext>
