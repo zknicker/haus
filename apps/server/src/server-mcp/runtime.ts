@@ -219,7 +219,7 @@ export class McpRuntime {
                 fetch: secureMcpFetch,
                 headers: mcpRequestHeaders(connection.preset, secret.headers),
                 redirect: 'error',
-                type: 'http',
+                type: connection.preset === 'coingecko' ? 'sse' : 'http',
                 url: connection.url,
             },
         });

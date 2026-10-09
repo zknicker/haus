@@ -1,8 +1,10 @@
 import {
     isMcpBearerTokenPreset,
+    isMcpKeylessPreset,
     type McpBearerTokenPreset,
     type McpBearerTokenUpdate,
     type McpConnection,
+    type McpKeylessPreset,
     type McpOAuthPreset,
     type McpPresetAccountCreate,
     rankWranglerMcpUrl,
@@ -20,7 +22,10 @@ import { createMcpConnection, saveMcpHeaders } from './service.ts';
  * discovery; a bearer-token preset sends the Server Owner's own static token,
  * stored Server-side as an `Authorization` header secret.
  */
-type PresetAuth = { kind: 'bearer-token' } | { kind: 'oauth'; scopes: readonly string[] };
+type PresetAuth =
+    | { kind: 'bearer-token' }
+    | { kind: 'none' }
+    | { kind: 'oauth'; scopes: readonly string[] };
 
 interface PresetDefinition<Auth extends PresetAuth> {
     auth: Auth;
@@ -63,6 +68,14 @@ const bearerTokenPresets: Record<
     x: { auth: { kind: 'bearer-token' }, name: 'X', url: 'https://api.x.com/mcp' },
 };
 
+const keylessPresets: Record<McpKeylessPreset, PresetDefinition<{ kind: 'none' }>> = {
+    coingecko: {
+        auth: { kind: 'none' },
+        name: 'CoinGecko',
+        url: 'https://mcp.api.coingecko.com/sse',
+    },
+};
+
 export async function createMcpPresetAccount(
     db: HausDatabase,
     runtime: McpRuntime,
@@ -71,6 +84,17 @@ export async function createMcpPresetAccount(
     input: McpPresetAccountCreate
 ): Promise<McpConnection> {
     const base = { name: input.name, serverId: input.serverId };
+    if (isMcpKeylessPreset(input.preset)) {
+        const preset = keylessPresets[input.preset];
+        return await createMcpConnection(
+            db,
+            runtime,
+            resolveIcon,
+            member,
+            { ...base, auth: 'none', headers: {}, oauthScopes: [], url: preset.url },
+            input.preset
+        );
+    }
     if ('bearerToken' in input) {
         const preset = bearerTokenPresets[input.preset];
         return await createMcpConnection(

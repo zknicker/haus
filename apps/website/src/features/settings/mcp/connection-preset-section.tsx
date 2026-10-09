@@ -17,6 +17,11 @@ import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
 
 const presets: Array<{ description: string; id: McpPreset; name: string }> = [
     {
+        description: 'Explore crypto prices, DEX pools, and token charts. Free, no API key.',
+        id: 'coingecko',
+        name: 'CoinGecko',
+    },
+    {
         description: 'Look up Amazon products and preview ASINs in messages.',
         id: 'rankwrangler',
         name: 'RankWrangler',

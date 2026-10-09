@@ -10,8 +10,8 @@ const toolNameSchema = z.string().trim().min(1).max(200);
 
 /**
  * A preset's auth kind is fixed by which list it is in. OAuth presets sign in
- * through MCP OAuth discovery; bearer-token presets take a static token the
- * Server Owner pastes, which Server stores as an `Authorization` header secret.
+ * through MCP OAuth discovery; keyless presets connect directly. Bearer-token
+ * presets take a static token stored as an `Authorization` header secret.
  */
 export const mcpOAuthPresetSchema = z.enum([
     'github',
@@ -20,9 +20,11 @@ export const mcpOAuthPresetSchema = z.enum([
     'rankwrangler',
 ]);
 export const mcpBearerTokenPresetSchema = z.enum(['x']);
+export const mcpKeylessPresetSchema = z.enum(['coingecko']);
 export const mcpPresetSchema = z.enum([
     ...mcpOAuthPresetSchema.options,
     ...mcpBearerTokenPresetSchema.options,
+    ...mcpKeylessPresetSchema.options,
 ]);
 
 /** Printable ASCII with no spaces: a header value that cannot smuggle a line break. */
@@ -161,9 +163,10 @@ const presetAccountBaseSchema = z.object({
     serverId: idSchema,
 });
 
-/** An OAuth preset cannot carry a token; a bearer-token preset cannot omit one. */
+/** Only a bearer-token preset accepts credentials, and it cannot omit them. */
 export const mcpPresetAccountCreateSchema = z.discriminatedUnion('preset', [
     presetAccountBaseSchema.extend({ preset: mcpOAuthPresetSchema }).strict(),
+    presetAccountBaseSchema.extend({ preset: mcpKeylessPresetSchema }).strict(),
     presetAccountBaseSchema
         .extend({ bearerToken: mcpBearerTokenSchema, preset: mcpBearerTokenPresetSchema })
         .strict(),
@@ -221,11 +224,16 @@ export type McpOAuthStartResult = z.infer<typeof mcpOAuthStartResultSchema>;
 export type McpBearerTokenPreset = z.infer<typeof mcpBearerTokenPresetSchema>;
 export type McpBearerTokenUpdate = z.infer<typeof mcpBearerTokenUpdateSchema>;
 export type McpOAuthPreset = z.infer<typeof mcpOAuthPresetSchema>;
+export type McpKeylessPreset = z.infer<typeof mcpKeylessPresetSchema>;
 export type McpPreset = z.infer<typeof mcpPresetSchema>;
 export type McpPresetAccountCreate = z.infer<typeof mcpPresetAccountCreateSchema>;
 
 export function isMcpBearerTokenPreset(preset: McpPreset | null): preset is McpBearerTokenPreset {
     return mcpBearerTokenPresetSchema.safeParse(preset).success;
+}
+
+export function isMcpKeylessPreset(preset: McpPreset | null): preset is McpKeylessPreset {
+    return mcpKeylessPresetSchema.safeParse(preset).success;
 }
 
 /** Agent-scoped catalog and invocation contracts; credentials stay on Server. */
