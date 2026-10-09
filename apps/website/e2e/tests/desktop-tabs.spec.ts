@@ -82,7 +82,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(page.locator('html')).toHaveAttribute('data-window-closed', 'true');
 });
 
-test('panes: one pane keeps links in the tab, Move to right pane splits, links then open in the other pane, and an empty pane closes', async ({
+test('panes: a Thread opens in the right pane, Move to right pane splits, and an empty pane closes', async ({
     page,
 }) => {
     await installDesktopBrowserStub(page);
@@ -110,26 +110,11 @@ test('panes: one pane keeps links in the tab, Move to right pane splits, links t
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
     const composer = page.getByRole('textbox', { name: 'Message all' });
 
-    const tabs = tabRow(page, 'Tabs').locator('.workspace-tab');
-
-    // With one pane, a Thread link navigates the current tab; Back returns to the chat.
+    // A Thread opens as a new tab in the right pane, creating it in a one-pane window
+    // (ADR 0039, amended 2026-10-08); the chat stays in the left pane.
     await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
-    await expect(tabs).toHaveCount(1);
-    await expect(tabs).toContainText('Pane thread root');
-    await expect(tabRow(page, 'Right pane tabs')).toHaveCount(0);
-    await desktopEvent(page, 'test:desktop-history');
-    await expect(composer).toBeVisible();
-
-    // Move to right pane on a second tab opens the second pane with it.
-    await page.getByRole('row', { exact: true, name: 'Inbox' }).click({ modifiers: ['Meta'] });
-    await expect(tabs).toHaveCount(2);
-    await moveTabToRightPane(page, 'Inbox');
     await expect(left).toHaveCount(1);
-    await expect(right).toHaveCount(1);
-    await expect(right).toContainText('Inbox');
-
-    // With two panes, a Thread link from the chat opens in the other pane.
-    await paneBody(page, 'primary').getByRole('button', { name: 'Open thread, 1 reply' }).click();
+    await expect(left).toContainText('all');
     await expect(right).toHaveCount(1);
     await expect(right).toContainText('Pane thread root');
     await expect(paneBody(page, 'secondary').getByText('Pane thread reply')).toBeVisible();
