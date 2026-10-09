@@ -119,7 +119,7 @@ windows.
   opener's `HausServerProvider` answers with `packQueryCacheHandoff` (`lib/query-cache-handoff.ts`):
   TanStack `dehydrate` of settled tRPC reads plus the Clerk user id.
 - **What is copied.** `isShareableQuery` is the one rule. It copies successful tRPC queries only.
-  It skips App-local caches such as update checks and presence probes, and it skips reads that opt
+  It skips App-local caches such as update checks, and it skips reads that opt
   out of mount refetch (`queryPolicy.volatileState`), because a live subscription keeps those
   current. It also skips one-time-code and invitation reads, and execution journals. Activity-log execution
 outlines live under App-local keys, so a new window reads its own in one request. A cache over 4 MB (JSON estimate) is

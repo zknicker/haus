@@ -233,7 +233,10 @@ until a reported effective snapshot matches desired, `applied` once it matches
 with nothing missing, and `degraded` when the Computer reports missing local
 resources. Effective reports (`record-agent-effective-state`) only touch rows
 whose `computer_id` is the reporting Computer, so cross-Computer effective
-claims update nothing. See
+claims update nothing. A Computer re-sends its effective snapshot after every
+turn; a row is written (and `effectiveReportedAt` moves) only when the snapshot
+differs, and the report announces `scope:'computer'` only then (see
+[Realtime](../api/realtime.md)). See
 [Agent desired and effective configuration](../../specs/agent-desired-effective-config.md).
 
 ## Agent skills

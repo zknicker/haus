@@ -143,6 +143,33 @@ The Agent profile revealed region by region (identity, cards, lists) as each que
 reveals as one unit after first paint: `hooks/members/use-agent-hub-reveal.ts`. Pop-in is a
 perceived-performance bug even when total time is fine; the harness `regions` timeline shows it.
 
+## Idle must be quiet: Server-originated noise
+
+An idle App should send no tRPC requests and receive no `server.updated` events. Count both:
+log every `/trpc/` request per procedure and every websocket `result.type === 'data'` frame per
+subscription path, for three minutes idle on a channel, Inbox, and an Agent profile, plus window
+focus/blur cycles (dispatch `visibilitychange` on `window`; React Query's focus manager listens
+there) and a second tab watching while the first reloads. Three sources of idle noise were
+Server-shaped, not render-shaped (October 2026):
+
+- **Probes on focus.** `computer.checkPresence` pinged every Computer on every focus and every
+  reconnect. Server-side transport liveness (ping 10 s, reap after 30 s of silence,
+  `computers/socket-liveness.ts`) plus the disconnect event replaced it; the one action that
+  needs certainty (`computer.update`) probes Server-side. Prefer a Server timeout plus an event
+  over a client probe.
+- **Announcing non-changes.** `member.syncIdentity` runs on every App load and announced a
+  profile change to every member each time; Computer reports re-sent after every turn announced
+  `scope:'computer'` (seven reads per viewer) each time. Writes now return whether a row changed
+  (`is distinct from` with `jsonb` params via `sql.param`, never `JSON.stringify`, which Bun SQL
+  encodes as a JSON string) and only a real change announces. Server tests assert both directions:
+  no event when unchanged, one when changed (`haus-quiet-*.test.ts`).
+- **Polling where an event belongs.** The live turn journal polled the Computer every second
+  because reasoning had no event. The Computer now sends a throttled
+  `agent-execution-journal-changed` notice (no evidence) relayed on `agent.onExecutionJournal`.
+
+Token-rotation reconnects (each reconnect refetches every active query) are the remaining idle
+cost and belong to the App's session/reconnect owner, not these Server paths.
+
 ## Realtime cache patching pitfalls (found in adversarial review)
 
 Each of these shipped green in unit tests and failed a realtime scenario:

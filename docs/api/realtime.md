@@ -43,11 +43,29 @@ delete; skill import, Computer update checks, update starts, and removal; and a
 human's profile edit or identity sync, which announces to every Server that
 human belongs to.
 
+The converse also holds: Haus announces only changes that happened. Every App
+load syncs the Clerk identity (`member.syncIdentity`), and it announces only
+when the sync wrote a field. A Computer re-sends its inventory, effective Agent
+state, Haus Agent receipts, and usage snapshot after every turn and on timers;
+each report announces `scope:'computer'` only when it changed a stored row a
+read exposes (compared as `jsonb`, so key order is irrelevant), and a replayed
+system event is a no-op. Attach, disconnect, and update-progress changes always
+announce. An idle App therefore receives no `server.updated` traffic at all.
+
 App websocket events are not the durable event source. Missed App notifications
 recover through focused Haus Server reads.
 
 The event list does not own a second event log. App notifications are derived
 from durable `chat_events`.
+
+An open live turn's execution journal (`agent.executionJournal`, Owner/Admin) changes without
+semantic activity while the model streams reasoning or a sub-agent works. The Computer sends an
+`agent-execution-journal-changed` frame (run id only, never evidence) after each journal write,
+throttled to about once a second per run with a trailing notice for the last change. Server relays
+it, unstored, on `agent.onExecutionJournal({ serverId, agentId, runId })`, authorized like the
+journal read. The open view subscribes only while the turn is live and re-reads the journal per
+notice (deferred while the page is hidden); there is no journal poll. A Computer that predates the
+frame leaves the live view updating on activity events and settlement only.
 
 ## Hosted Server Realtime
 

@@ -15,11 +15,12 @@ state. An offline Computer creates no new update opportunity from its last repor
 which may no longer describe the installed software. An update already in progress may remain
 visible while Haus waits for reconnection.
 
-When the App opens and whenever it regains focus, the updater asks Server to verify which
-Computers answer right now (`computer.checkPresence`) and replaces its Computer list with the
-result. Until the first check of the session settles, the updater shows nothing at all, not even
-App or website updates, so it never flashes a Computer update that the check would retract. If the
-check fails, the updater offers no Computer updates but still shows App and website updates.
+The updater trusts the Server's Computer list: Server reaps a silent Computer within 40 seconds and
+announces it, so no App probes Computers on open or focus. Until the first Computer list of the
+session settles, the updater shows nothing at all, not even App or website updates, so it never
+flashes a Computer update that the list would retract. If the list fails, the updater offers no
+Computer updates but still shows App and website updates. Starting a Computer update probes that
+Computer first and fails fast if it no longer answers.
 
 The anchored update tooltip lists only surfaces that still need attention. A current App or
 Computer stays out of the tooltip. Every Computer row includes its user-facing name, such as
