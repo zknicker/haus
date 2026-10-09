@@ -165,10 +165,31 @@ roots (components re-rendering with unchanged props) name new ones.
   (`patches/@radix-ui%2Freact-avatar@1.2.6.patch`); `EntityAvatar` keys its root by `src`.
 - **Live Agents add noise.** Automations and Agent wakes land mid-run; read medians of `--reps`.
 
-Remaining (render audit, after): the sidebar's chat navigation re-renders whole (~60% of a
-message's renders) on every chat-list update; every live avatar re-renders its presence badge
-on each availability flip; desktop tab reveal re-runs transcript reply-text and composer
-effects; idle renders follow socket session refresh and connection-state flips.
+Second pass (Phase 1b), pinned by `features/shell/sidebar-render-isolation.test.tsx`:
+
+- **Lists render structure; rows read their own entry.** `ChatNavigation` selects only ids and
+  order (`useChatNavigationLayout`); each row selects its display fields
+  (`useChatNavigationEntry`, `useAgentDmEntry`, `useAgentMark`). React Query shares a selected
+  result structurally, so an unchanged entry keeps its object even when the list reorders.
+  Leave out fields a row does not draw (activity, last message): a re-rendered row also makes
+  React Aria rebuild its collection and re-render every item in that Tree.
+- **A hook that returns a derived number must select it.** `useInboxUnreadCount` read the whole
+  list to count it, which re-rendered the sidebar root on every message.
+- **Live state goes in the smallest leaf.** Presence dots read availability in
+  `LiveAgentAvatar`'s badge; the ghost mark reads a primitive work-state context, not the
+  activity snapshot; menus read full records only in their open body.
+- **Router hooks subscribe to location.** Sidebar rows re-rendered on every desktop tab switch
+  through `useNavigate`/`useParams`; they now take a stable navigate from
+  `SidebarNavigateProvider` and a route-free preload.
+- **Inline option objects defeat library memoization.** dnd-kit memoizes `useSensor` on its
+  options object; an inline one re-rendered every sortable row on each list render.
+- **Reveal effects must not set unchanged state.** Desktop tabs hide with `<Activity>`, so a
+  reveal re-runs every effect; `setRanges([])` and a re-read motion preference re-rendered every
+  reply. Guard with a ref and skip the set.
+- **A ref read in an effect misses React Aria items.** RAC attaches a collection item's element
+  after the item component commits, so `ref.current` was null in the effect and the channel
+  drag listener never bound until an unrelated re-render (the flaky drag e2e). Hold the element
+  in state from the ref callback.
 
 ## Prefetch and warming
 

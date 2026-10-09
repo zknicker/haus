@@ -69,6 +69,25 @@ Targets were idle ≤ 50/min, a message in another chat ≤ 500, in the open cha
 Single-run outliers before reached 22–30k per message when an Agent woke mid-window. What
 remains is in learnings.md ("Render storms").
 
+Second pass (sidebar rows, presence dots, tab reveal), same harness on a fresh seeded stack,
+before (902ef1b6e) and after measured back to back. Medians of 5; idle and the Agent turn are
+two 60 s runs.
+
+| scenario | before | after | target |
+| --- | --- | --- | --- |
+| idle 60 s on a channel | 24 / 13,055 | 12 / 6 | ≤ 50 |
+| message in the open chat | 1,353 | 590 | ≤ 1,000 |
+| message in another chat | 1,446 | 540 | ≤ 500 |
+| Agent turn 60 s | 3,123 / 6,375 | 1,508 / 1,517 | – |
+| warm switch (there + back) | 1,855 | 1,397 | – |
+| desktop tab switch (there + back) | 2,940 | 2,267 | – |
+| open Agent profile | 1,652 | 1,384 | – |
+
+A message in another chat is 308–321 when no Agent answers it; the median rep caught an Agent
+waking (its presence dots, typing strip, and activity), which is work the user sees. The idle
+13,055 was a seeded Cloud Agent thread updating mid-run. Switches still pay for React Aria's
+sidebar Trees on selection change and the kept-view topbar and presence swap.
+
 ## Known remaining opportunities
 
 - **Cold-switch TBT is flat at CPU×4** (429 → 469 ms): first render of a chat's transcript is
