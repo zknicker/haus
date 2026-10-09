@@ -68,7 +68,7 @@ facts and compatibility risks, not unresolved product decisions.
 Computer journals launch intent and acknowledged provider IDs in its private data directory,
 without credentials. Pending follow-ups retain their instructions and preceding Run IDs in a
 Computer-local file with mode `0600`, so reconciliation can resume the queue after restart.
-Instructions are removed once launched or cancelled and never reach Server.
+Instructions are removed once launched, cancelled, or refused and never reach Server.
 Reconnect recovers acknowledged IDs even if their Server report
 was lost. An intent without an acknowledgement requires inspecting the provider; it cannot prove
 whether the launch occurred. The daemon owns monitoring, retry delays and cancellation retries.
@@ -314,7 +314,8 @@ same work, reactivates the same surface, and preserves earlier Run outcomes for 
 substantively separate assignment creates a new Message and Cloud Agent work record. Cursor permits
 only one active Run per provider Agent; Computer queues accepted follow-ups until preceding work
 settles. `send --interrupt` stops active work and discards older queued prompts before the follow-up
-runs. `stop` stops active work and discards the pending queue. Revisions reuse
+runs. `stop` stops active work and discards the pending queue. Follow-up delivery never retries
+silently forever; see [Follow-up delivery](#follow-up-delivery). Revisions reuse
 the same Work ID and Thread, including when the work belongs to a Task.
 A cancelled Run cannot resume, so continuing after cancellation creates another Run in the same
 work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and is bounded
@@ -380,6 +381,42 @@ identities. Events notify; refetching the Message recovers. The delegating Agent
 `haus cloud-agent stop`; human Owners and Admins may cancel through
 `cloudAgentWork.cancel`, reached from the work card's control band. Other Chat participants request cancellation in the Thread. Reply and follow-up
 work use the work Thread rather than surface-local conversation controls.
+
+### Follow-up delivery
+
+Computer delivers a queued follow-up only after every preceding Run is terminal. Waiting behind a
+Run Cursor still reports running is unbounded: hosted Runs can be long, and Cursor expires them
+itself. A predecessor that is terminal in any way — completed, failed, cancelled, expired, refused,
+or settled locally before reaching Cursor — unblocks the queue.
+
+Once predecessors are terminal, each send uses the Run id as the provider idempotency key, so a
+retry after a lost response never starts a second provider Run. The Cursor adapter classifies a
+failed send:
+
+- **Definite refusal** — authentication, unknown Agent, invalid input, or any other 4xx except
+  request timeout (408), busy (409), too early (425), and rate limiting (429). The Run settles `failed` at once with
+  `followup-delivery-rejected` and a summary carrying Cursor's message and code. It has no
+  `providerRunId`, because Cursor never received it. A first launch refused the same way settles
+  with `provider-launch-rejected`.
+- **Retryable** — those four statuses, 5xx, network, or SDK unavailable. Computer retries with
+  backoff (5 seconds, doubling, capped at one minute) and journals the attempt count, first
+  attempt, and last error with the pending prompt. Thirty minutes after the first failed attempt,
+  the Run settles `failed` with `followup-delivery-timeout` and a summary carrying the last error.
+  The clock starts at the first attempt, not at queueing: with predecessors terminal, a busy agent
+  frees within seconds, so busy for half an hour means a Run Haus does not track holds the agent,
+  and an outage that long deserves the delegating Agent's judgment rather than silence.
+
+A Run Server recorded but this Computer never journaled — the sender timed out or crashed between
+the two — never reached Cursor. Its monitor settles it `failed` with `launch-record-missing` after a
+two-minute grace window that covers an in-flight sender, or `cancelled` at once when stopped, and
+an interrupting follow-up claims it as cancelled. Each settlement is an exclusive journal claim, so
+a late sender loses and the outcome survives restart. A `launching` record without an
+acknowledgement stays unconfirmed, because the provider may already be running it.
+
+The delegating Agent, not the card, surfaces delivery failures. Every settled Run creates one inbox
+attention carrying its `errorCode` and `summary`; the Agent explains the failure in the work's
+conversation and decides whether to send again or `start` fresh work. The card keeps reading from
+the newest Run Cursor received, so an undelivered follow-up leaves it as the earlier Run reads.
 
 ## Results are ordinary Messages
 
