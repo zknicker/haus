@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { captureAllTopics, settleRealtime } from './realtime-capture.ts';
 
 const fixture = agentCreationFixture();
 
@@ -21,7 +22,7 @@ async function readChannelAgentHandles(chatId: string) {
 
 test('one Agent adds another to a channel, and repeating it changes nothing', async () => {
     const runner = await fixture.mintRunner('run_channel_add');
-    const head = await fixture.owner.trpc.chat.eventHead.query({ serverId: fixture.serverId });
+    const realtime = captureAllTopics();
 
     const added = await addToChannel(runner, { agent: '@peer', target: '#product' });
 
@@ -30,11 +31,9 @@ test('one Agent adds another to a channel, and repeating it changes nothing', as
     expect(await readChannelAgentHandles(fixture.channelId)).toContain('peer');
 
     // Membership is what the App reads off a channel, so the add announces itself.
-    const events = await fixture.owner.trpc.chat.events.query({
-        afterCursor: head.cursor,
-        serverId: fixture.serverId,
-    });
-    expect(events.map((event) => event.type)).toEqual(['chat.lifecycle']);
+    await settleRealtime();
+    expect(realtime.topics()).toEqual(['chat.lifecycle']);
+    realtime.stop();
 
     const again = await addToChannel(runner, { agent: 'peer', target: '#product' });
 

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -29,6 +30,7 @@ test('promotes one canonical Server message into its deterministic Thread work s
         serverId: server.id,
     });
 
+    const realtime = captureAllTopics();
     const promoted = await owner.trpc.task.promote.mutate({
         messageId: sent.message.id,
         serverId: server.id,
@@ -50,13 +52,9 @@ test('promotes one canonical Server message into its deterministic Thread work s
         },
     });
     expect(replayed).toEqual({ ...promoted, idempotent: true });
-    const promotionEvents = await owner.trpc.chat.events.query({
-        afterCursor: sent.eventCursor,
-        serverId: server.id,
-    });
-    expect(promotionEvents.map(({ messageId, type }) => ({ messageId, type }))).toEqual([
-        { messageId: sent.message.id, type: 'task.created' },
-    ]);
+    // The replay announces nothing.
+    expect(await publishedKinds(realtime, sent.message.id)).toEqual(['task.created']);
+    realtime.stop();
     const { tasks } = await owner.trpc.task.list.query({ serverId: server.id });
     expect(tasks).toMatchObject([
         {
@@ -127,6 +125,7 @@ test('creates a task-message atomically and replays the same nonce idempotently'
         serverId: server.id,
     };
 
+    const realtime = captureAllTopics();
     const created = await owner.trpc.task.create.mutate(input);
     const replayed = await owner.trpc.task.create.mutate(input);
 
@@ -137,14 +136,11 @@ test('creates a task-message atomically and replays the same nonce idempotently'
     expect(replayed).toEqual({ ...created, idempotent: true });
     const createdList = await owner.trpc.task.list.query({ serverId: server.id });
     expect(createdList.tasks).toHaveLength(1);
-    const creationEvents = await owner.trpc.chat.events.query({
-        afterCursor: '0',
-        serverId: server.id,
-    });
-    expect(creationEvents.map(({ messageId, type }) => ({ messageId, type }))).toEqual([
-        { messageId: created.task.messageId, type: 'message.created' },
-        { messageId: created.task.messageId, type: 'task.created' },
+    expect(await publishedKinds(realtime, created.task.messageId)).toEqual([
+        'message.created',
+        'task.created',
     ]);
+    realtime.stop();
     const creationMessages = await owner.trpc.chat.messages.query({ chatId, serverId: server.id });
     expect(creationMessages.messages).toHaveLength(1);
     expect(creationMessages.messages[0]?.id).toBe(created.task.messageId);
@@ -587,7 +583,7 @@ test('requires every task event to identify its authorized parent Chat', async (
     await expect(insertInvalidEvent()).rejects.toThrow(/chat_events_shape/i);
 });
 
-test('recovers task state and exact invalidation events after a Server restart', async () => {
+test('recovers task state after a Server restart', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Recovery',
         slug: 'task-recovery',
@@ -596,10 +592,6 @@ test('recovers task state and exact invalidation events after a Server restart',
         chatId: server.channels[0].id,
         content: 'Survive the Server restart',
         nonce: 'task-recovery',
-        serverId: server.id,
-    });
-    const beforeClaim = await owner.trpc.chat.events.query({
-        afterCursor: '0',
         serverId: server.id,
     });
     const claimed = await owner.trpc.task.update.mutate({
@@ -621,18 +613,6 @@ test('recovers task state and exact invalidation events after a Server restart',
                 priority: 'high',
                 version: claimed.task.version,
             },
-        },
-    ]);
-    await expect(
-        owner.trpc.chat.events.query({
-            afterCursor: beforeClaim.at(-1)?.cursor as string,
-            serverId: server.id,
-        })
-    ).resolves.toMatchObject([
-        {
-            chatId: server.channels[0].id,
-            messageId: created.task.messageId,
-            type: 'task.updated',
         },
     ]);
 });

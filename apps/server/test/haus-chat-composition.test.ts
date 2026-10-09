@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -45,9 +46,7 @@ afterAll(async () => {
 });
 
 test('composition is best-effort, live-only, and never persisted', async () => {
-    const [{ total: beforeTotal }] = (await harness.sql`
-        select count(*)::int as total from chat_events
-    `) as { total: number }[];
+    const realtime = captureAllTopics();
     await owner.trpc.chat.publishComposition.mutate({
         chatId,
         compositionId: 'composition-before-subscribe',
@@ -72,10 +71,9 @@ test('composition is best-effort, live-only, and never persisted', async () => {
         text: 'live draft',
     });
 
-    const [{ total: afterTotal }] = (await harness.sql`
-        select count(*)::int as total from chat_events
-    `) as { total: number }[];
-    expect(afterTotal).toBe(beforeTotal);
+    // Composition announces nothing on any realtime topic.
+    expect(await publishedSince(realtime, serverId)).toEqual([]);
+    realtime.stop();
 });
 
 test('composition delivery fails once membership is revoked', async () => {

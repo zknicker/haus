@@ -258,7 +258,7 @@ test('a revoked Server subscription stops delivering to a removed human', async 
     const watcherUserId = await readUserId('user_return_watcher');
 
     const failures: unknown[] = [];
-    const subscription = watcher.trpc.server.onUpdate.subscribe(
+    const subscription = watcher.trpc.server.onUpdated.subscribe(
         { serverId },
         { onError: (error) => failures.push(error) }
     );
@@ -274,6 +274,11 @@ test('a revoked Server subscription stops delivering to a removed human', async 
     // Removal emits a Server update; the removed human's subscription must be
     // refused at delivery rather than kept alive on the socket it opened.
     expect(failures.length).toBeGreaterThan(0);
+    // The departure publishes the membership sentinel, which ends with the coded
+    // refusal the App clears its Server caches on.
+    expect(failures[0]).toMatchObject({
+        data: { code: 'FORBIDDEN', hausRefusal: 'membership_lost' },
+    });
 
     subscription.unsubscribe();
     watcher.close();

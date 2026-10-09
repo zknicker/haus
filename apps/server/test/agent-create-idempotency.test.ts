@@ -5,9 +5,11 @@ import { AgentTaskNonceReusedError } from '../src/agent-api/task-error.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { reminderUpdatedTopic } from '../src/realtime/topics.ts';
 import { ReminderCommandConflictError } from '../src/reminders/reminder-model.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -54,7 +56,7 @@ test('concurrent task creates on one nonce write one batch and replay it without
     // Exactly one of the racing requests did the writing; the other replayed.
     expect(results.map((result) => result.events.length).sort()).toEqual([0, 4]);
     expect(replay).toMatchObject({ activities: [], events: [], wakes: [] });
-    expect(after).toEqual({ inbox: 4, messages: 2, taskEvents: 2, tasks: 2 });
+    expect(after).toEqual({ inbox: 4, messages: 2, tasks: 2 });
     expect(await sideEffects(server.id)).toEqual(after);
 });
 
@@ -95,6 +97,7 @@ test('concurrent reminder schedules on one command id write one reminder and one
         title: 'Check the rollout',
     };
 
+    const announced = captureTopic(reminderUpdatedTopic);
     const results = await Promise.all([
         scheduleAgentReminder(connection.db, ada, input),
         scheduleAgentReminder(connection.db, ada, input),
@@ -107,11 +110,14 @@ test('concurrent reminder schedules on one command id write one reminder and one
     const [counts] = (await harness.sql`
         select
             (select count(*)::int from reminders where server_id = ${server.id}) as reminders,
-            (select count(*)::int from reminder_commands where server_id = ${server.id}) as commands,
-            (select count(*)::int from chat_events
-                where server_id = ${server.id} and event_type = 'reminder.changed') as events
-    `) as Array<{ commands: number; events: number; reminders: number }>;
-    expect(counts).toEqual({ commands: 1, events: 1, reminders: 1 });
+            (select count(*)::int from reminder_commands where server_id = ${server.id}) as commands
+    `) as Array<{ commands: number; reminders: number }>;
+    expect(counts).toEqual({ commands: 1, reminders: 1 });
+    await settleRealtime();
+    expect(announced.events.filter((event) => event.serverId === server.id)).toEqual([
+        expect.objectContaining({ action: 'scheduled' }),
+    ]);
+    announced.stop();
 });
 
 async function sideEffects(serverId: string) {
@@ -120,10 +126,8 @@ async function sideEffects(serverId: string) {
             (select count(*)::int from chat_messages
                 where server_id = ${serverId} and author_agent_id is not null) as messages,
             (select count(*)::int from message_tasks where server_id = ${serverId}) as tasks,
-            (select count(*)::int from chat_events
-                where server_id = ${serverId} and event_type = 'task.created') as "taskEvents",
             (select count(*)::int from agent_inbox where server_id = ${serverId}) as inbox
-    `) as Array<{ inbox: number; messages: number; taskEvents: number; tasks: number }>;
+    `) as Array<{ inbox: number; messages: number; tasks: number }>;
     return row;
 }
 

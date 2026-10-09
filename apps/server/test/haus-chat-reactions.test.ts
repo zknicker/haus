@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { ServerDurableEvent } from '@haus/api';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { settleRealtime } from './realtime-capture.ts';
+import { collectStream } from './realtime-stream.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -59,7 +60,7 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
         nonce: 'reaction-target',
         serverId,
     });
-    const subscription = subscribeToChatEvents(peer, serverId);
+    const subscription = collectStream(peer.trpc.chat.onMessageReactionUpdated, { serverId });
     await subscription.started;
     const added = await owner.trpc.chat.react.mutate({
         emoji: '👍',
@@ -68,7 +69,6 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
     });
     expect(added).toMatchObject({
         changed: true,
-        eventCursor: expect.stringMatching(/^[1-9]\d*$/u),
         message: {
             id: sent.message.id,
             reactions: [
@@ -79,12 +79,11 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
             ],
         },
     });
-    await expect(subscription.nextEvent).resolves.toMatchObject({
+    await expect(subscription.next()).resolves.toEqual({
         chatId,
         messageId: sent.message.id,
         parentChatId: null,
         serverId,
-        type: 'message.reaction.updated',
     });
     const freshClient = await signIn('user_reactions_peer');
     try {
@@ -130,7 +129,7 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
         messageId: sent.message.id,
         serverId,
     });
-    expect(duplicate).toMatchObject({ changed: false, eventCursor: null });
+    expect(duplicate).toMatchObject({ changed: false });
     const ownerRemoved = await owner.trpc.chat.react.mutate({
         emoji: '👍',
         messageId: sent.message.id,
@@ -168,12 +167,12 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
     });
     expect(noOpRemove).toMatchObject({
         changed: false,
-        eventCursor: null,
         message: { reactions: [] },
     });
-    await expect(
-        outsider.trpc.chat.events.query({ afterCursor: sent.eventCursor, serverId })
-    ).resolves.toEqual([]);
+    // Four changes announced; the duplicate add and the no-op remove announce nothing.
+    await settleRealtime();
+    expect(subscription.events).toHaveLength(4);
+    subscription.stop();
 });
 
 test('reaction writes preserve Thread access and archived lifecycle guards', async () => {
@@ -195,7 +194,7 @@ test('reaction writes preserve Thread access and archived lifecycle guards', asy
         throw new Error('Expected the reaction fixture to materialize a Thread.');
     }
 
-    const subscription = subscribeToChatEvents(owner, serverId);
+    const subscription = collectStream(owner.trpc.chat.onMessageReactionUpdated, { serverId });
     await subscription.started;
     const reacted = await peer.trpc.chat.react.mutate({
         emoji: '🎉',
@@ -203,12 +202,13 @@ test('reaction writes preserve Thread access and archived lifecycle guards', asy
         serverId,
     });
     expect(reacted.changed).toBe(true);
-    await expect(subscription.nextEvent).resolves.toMatchObject({
+    await expect(subscription.next()).resolves.toEqual({
         chatId: threadChatId,
         messageId: reply.message.id,
         parentChatId: chatId,
-        type: 'message.reaction.updated',
+        serverId,
     });
+    subscription.stop();
     await expect(
         owner.trpc.chat.messages.query({ chatId: threadChatId, serverId })
     ).resolves.toMatchObject({
@@ -270,31 +270,4 @@ async function readUserId(clerkUserId: string) {
         throw new Error(`Missing test user ${clerkUserId}.`);
     }
     return user.id;
-}
-
-function subscribeToChatEvents(client: HausClient, subscribedServerId: string) {
-    const started = Promise.withResolvers<void>();
-    const nextEvent = Promise.withResolvers<ServerDurableEvent>();
-    const timeout = setTimeout(() => {
-        nextEvent.reject(new Error('Timed out waiting for a durable reaction event.'));
-    }, 5000);
-    const subscription = client.trpc.chat.onEvent.subscribe(
-        { serverId: subscribedServerId },
-        {
-            onData: (event) => {
-                clearTimeout(timeout);
-                subscription.unsubscribe();
-                nextEvent.resolve(event);
-            },
-            onError: (error) => {
-                clearTimeout(timeout);
-                started.reject(error);
-                nextEvent.reject(error);
-            },
-            onStarted: () => started.resolve(),
-        }
-    );
-    started.promise.catch(() => undefined);
-    nextEvent.promise.catch(() => undefined);
-    return { nextEvent: nextEvent.promise, started: started.promise };
 }

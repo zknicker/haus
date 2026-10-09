@@ -1,15 +1,15 @@
 import { expect, test } from 'bun:test';
-import type { ServerUpdatedEvent } from '@haus/api';
-import { subscribeToServerUpdates } from '../src/haus-api/server-events.ts';
+import { agentUpdatedTopic, chatLifecycleTopic } from '../src/realtime/topics.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
 const fixture = agentCreationFixture();
 
 test('creation records the Agent and memberships without messages, threads, or inbox work', async () => {
     const runner = await fixture.mintRunner('run_create_happy');
     const before = await conversationCounts();
-    const head = await fixture.owner.trpc.chat.eventHead.query({ serverId: fixture.serverId });
-    const updates = watchServerUpdates();
+    const lifecycle = captureTopic(chatLifecycleTopic);
+    const updates = captureTopic(agentUpdatedTopic);
     const created = await fixture.postCreate(runner, fixture.createBody({ nonce: 'create-happy' }));
 
     expect(created.status).toBe(200);
@@ -31,19 +31,11 @@ test('creation records the Agent and memberships without messages, threads, or i
         desired_model_id: 'gpt-5.6-sol',
     });
     expect(await conversationCounts()).toEqual(before);
-    const events = await fixture.owner.trpc.chat.events.query({
-        afterCursor: head.cursor,
-        serverId: fixture.serverId,
-    });
+    await settleRealtime();
     // The Server Owner's new DM with the Agent is announced, then the #all join.
-    expect(
-        events.map((event) => (event.type === 'chat.lifecycle' ? event.action : event.type))
-    ).toEqual(['created', 'updated']);
-    expect(await updates.next()).toMatchObject({
-        agentId,
-        scope: 'agent',
-        serverId: fixture.serverId,
-    });
+    expect(lifecycle.events.map((event) => event.action)).toEqual(['created', 'updated']);
+    expect(await updates.next()).toEqual({ agentId, serverId: fixture.serverId });
+    lifecycle.stop();
     updates.stop();
 });
 
@@ -196,27 +188,6 @@ async function countAgentsNamed(displayName: string) {
         where server_id = ${fixture.serverId} and display_name = ${displayName}
     `) as { total: number }[];
     return row.total;
-}
-
-function watchServerUpdates() {
-    const controller = new AbortController();
-    const iterator = subscribeToServerUpdates(controller.signal)[Symbol.asyncIterator]();
-    let outstanding = advance();
-
-    return {
-        next: async () => {
-            const result = await outstanding;
-            outstanding = advance();
-            return result.value;
-        },
-        stop: () => controller.abort(),
-    };
-
-    function advance() {
-        const pending: Promise<IteratorResult<ServerUpdatedEvent>> = iterator.next();
-        pending.catch(() => undefined);
-        return pending;
-    }
 }
 
 async function conversationCounts() {

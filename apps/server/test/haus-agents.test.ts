@@ -545,14 +545,10 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
 
     const update = Promise.withResolvers<void>();
     const started = Promise.withResolvers<void>();
-    const subscription = member.trpc.server.onUpdate.subscribe(
+    const subscription = member.trpc.agent.onUpdated.subscribe(
         { serverId },
         {
-            onData: (event) => {
-                if (event.scope === 'agent') {
-                    update.resolve();
-                }
-            },
+            onData: () => update.resolve(),
             onError: (error) => update.reject(error),
             onStarted: () => started.resolve(),
         }

@@ -5,6 +5,7 @@ import { makeTestRuntime } from '@haus/effect';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -159,7 +160,8 @@ test('limits lifecycle authority and excludes #all', async () => {
     ).rejects.toThrow(/#all/u);
 });
 
-test('deletes the channel aggregate while retaining its lifecycle event', async () => {
+test('deletes the channel aggregate and announces its deletion', async () => {
+    const realtime = captureAllTopics();
     const channel = await createChannel('delete-me');
     const reservation = await owner.trpc.attachment.reserve.mutate({
         chatId: channel.id,
@@ -223,7 +225,8 @@ test('deletes the channel aggregate while retaining its lifecycle event', async 
                 where chat_id = ${channel.id}) as messages
     `) as Array<{ chats: number; messages: number }>;
     expect(remaining).toEqual([{ chats: 0, messages: 0 }]);
-    const events = await owner.trpc.chat.events.query({ afterCursor: '0', serverId });
+    const events = await publishedSince(realtime, serverId);
+    realtime.stop();
     expect(events).toContainEqual(
         expect.objectContaining({ action: 'deleted', chatId: channel.id, type: 'chat.lifecycle' })
     );

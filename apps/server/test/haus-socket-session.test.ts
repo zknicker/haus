@@ -174,7 +174,7 @@ function openSocket(clerkSessionToken: string | null): SocketClient {
 /** Starts and stops one authenticated subscription; the first one binds the socket. */
 function subscribeStarted(client: SocketClient) {
     const started = Promise.withResolvers<void>();
-    const subscription = client.trpc.server.onUpdate.subscribe(
+    const subscription = client.trpc.server.onUpdated.subscribe(
         { serverId },
         {
             onError: (error) => started.reject(error),

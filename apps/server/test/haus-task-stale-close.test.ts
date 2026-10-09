@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { taskChangedTopic } from '../src/realtime/topics.ts';
 import { closeStaleInReviewTasks } from '../src/tasks/close-stale-tasks.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
 /**
  * Review that went quiet for `TASK_IN_REVIEW_STALE_DAYS` is closed by Server
@@ -40,22 +42,19 @@ test('closes an in_review task whose Thread has been quiet for eight days', asyn
     const task = await createTask('Ship the retention sweep', 'stale-quiet', 'in_review');
     await backdate(task.messageId, daysBeforeSweep(8));
 
+    const delivered = captureTopic(taskChangedTopic);
     const events = await closeStaleInReviewTasks(connection.db, sweptAt);
 
-    expect(events.map(({ messageId, type }) => ({ messageId, type }))).toEqual([
-        { messageId: task.messageId, type: 'task.updated' },
+    expect(events.map(({ delivery }) => delivery.event)).toEqual([
+        { chatId, kind: 'updated', messageId: task.messageId, serverId },
     ]);
     const closed = await readTask(task.messageId);
     expect(closed).toMatchObject({ status: 'closed', version: task.version + 1 });
-    const delivered = await owner.trpc.chat.events.query({
-        afterCursor: task.eventCursor,
-        serverId,
-    });
-    expect(delivered).toEqual(
-        expect.arrayContaining([
-            expect.objectContaining({ messageId: task.messageId, type: 'task.updated' }),
-        ])
+    await settleRealtime();
+    expect(delivered.events).toContainEqual(
+        expect.objectContaining({ kind: 'updated', messageId: task.messageId })
     );
+    delivered.stop();
 });
 
 test('keeps an in_review task whose Thread was answered two days ago', async () => {
@@ -127,7 +126,6 @@ async function createTask(content: string, nonce: string, status: 'in_progress' 
         serverId,
     });
     return {
-        eventCursor: updated.eventCursor ?? '0',
         messageId: updated.task.messageId,
         version: updated.task.version,
     };

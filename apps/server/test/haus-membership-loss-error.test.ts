@@ -12,12 +12,12 @@ test('a membership refusal during delivery is reported as losing access', () => 
     const denied = toMembershipLossError(new ServerAccessDeniedError());
 
     expect(denied).toBeInstanceOf(TRPCError);
-    expect(denied?.code).toBe('FORBIDDEN');
+    expect(denied).toMatchObject({ code: 'FORBIDDEN', refusal: 'membership_lost' });
 
+    // A deleted Server is a membership loss too, with the same code.
     const missing = toMembershipLossError(new ServerNotFoundError('srv_gone'));
 
-    expect(missing).toBeInstanceOf(TRPCError);
-    expect(missing?.code).toBe('NOT_FOUND');
+    expect(missing).toMatchObject({ code: 'FORBIDDEN', refusal: 'membership_lost' });
 });
 
 test('an unexpected failure during delivery is never reported as losing access', () => {
@@ -27,8 +27,11 @@ test('an unexpected failure during delivery is never reported as losing access',
     expect(toMembershipLossError(undefined)).toBeNull();
 });
 
-test('the refusal keeps its cause so the original failure stays inspectable', () => {
+// The refusal carries no cause: the Server procedure middleware remaps errors by
+// cause class, which would strip the refusal code. The message stays inspectable.
+test('the refusal keeps the original failure message', () => {
     const cause = new ServerAccessDeniedError();
 
-    expect(toMembershipLossError(cause)?.cause).toBe(cause);
+    expect(toMembershipLossError(cause)?.message).toBe(cause.message);
+    expect(toMembershipLossError(cause)?.cause).toBeUndefined();
 });

@@ -3,6 +3,8 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { captureAllTopics, publishedSince } from './realtime-capture.ts';
+import { collectStream } from './realtime-stream.ts';
 
 let admin: HausClient;
 let agentId: string;
@@ -61,6 +63,7 @@ afterAll(async () => {
 
 describe('reminder operator API', () => {
     test('allows only Owner and Admin to list Server state and fire logs', async () => {
+        const announced = captureAllTopics();
         const reminder = await schedule('operator-visible', 'Operator visible');
         await tickReminders(connection.db, {
             now: () => new Date('2026-07-27T15:00:00.000Z'),
@@ -82,34 +85,25 @@ describe('reminder operator API', () => {
                 scheduledFor: '2026-07-27T14:00:00.000Z',
             }),
         ]);
-        const durableEvents = await owner.trpc.chat.events.query({
-            afterCursor: '0',
-            serverId,
-        });
-        const reminderEvents = durableEvents.filter(
+        const published = await publishedSince(announced, serverId);
+        announced.stop();
+        const reminderEvents = published.filter(
             (event) =>
-                event.type === 'reminder.changed' && event.reminderId === reminder.reminder.id
+                event.type === 'reminder.updated' && event.reminderId === reminder.reminder.id
         );
         expect(reminderEvents.map((event) => event.action)).toEqual(['scheduled', 'fired']);
         // Neither scheduling nor firing writes a Chat message any more, so no
-        // `message.created` rides alongside a `reminder.changed`.
-        const firstReminderIndex = durableEvents.findIndex(
-            (event) => event.id === reminderEvents[0]?.id
-        );
-        expect(
-            durableEvents
-                .slice(firstReminderIndex)
-                .filter((event) => event.type === 'message.created')
-        ).toEqual([]);
+        // `message.created` rides alongside a `reminder.updated`.
+        expect(published.filter((event) => event.type === 'message.created')).toEqual([]);
         await expect(member.trpc.reminder.list.query({ serverId })).rejects.toThrow(
             /Owner or Admin/i
         );
         await expect(outsider.trpc.reminder.list.query({ serverId })).rejects.toThrow(/member/i);
     });
 
-    test('persists cancellation events for live delivery and reconnect catch-up', async () => {
+    test('announces a cancellation live to operators', async () => {
         const reminder = await schedule('operator-cancel', 'Operator cancel');
-        const subscription = subscribeToReminderEvents(admin, serverId);
+        const subscription = collectStream(admin.trpc.reminder.onUpdated, { serverId });
         await subscription.started;
         const canceled = await admin.trpc.reminder.cancel.mutate({
             commandId: 'operator-cancel-command',
@@ -126,19 +120,13 @@ describe('reminder operator API', () => {
 
         expect(canceled.reminder.status).toBe('canceled');
         expect(retried).toEqual({ ...canceled, idempotent: true });
-        await expect(subscription.nextEvent).resolves.toMatchObject({
+        await expect(subscription.next()).resolves.toEqual({
             action: 'canceled',
+            ownerAgentId: agentId,
             reminderId: reminder.reminder.id,
-            type: 'reminder.changed',
+            serverId,
         });
-        await expect(
-            owner.trpc.reminder.changes.query({ afterCursor: '0', serverId })
-        ).resolves.toContainEqual(
-            expect.objectContaining({
-                action: 'canceled',
-                reminderId: reminder.reminder.id,
-            })
-        );
+        subscription.stop();
         await expect(
             member.trpc.reminder.cancel.mutate({
                 commandId: 'member-cancel',
@@ -209,7 +197,7 @@ describe('reminder operator API', () => {
     });
 
     test('rechecks persisted operator authority during live delivery', async () => {
-        const subscription = subscribeToReminderEvents(admin, serverId);
+        const subscription = collectStream(admin.trpc.reminder.onUpdated, { serverId });
         await subscription.started;
         const [adminUser] = (await harness.sql`
             select id from users where clerk_user_id = 'user_reminder_api_admin'
@@ -222,17 +210,14 @@ describe('reminder operator API', () => {
 
         await schedule('operator-revoked', 'Revoked operator event');
 
-        await expect(subscription.nextEvent).rejects.toMatchObject({
-            data: { code: 'FORBIDDEN' },
+        await expect(subscription.ended()).resolves.toMatchObject({
+            data: { code: 'FORBIDDEN', hausRefusal: 'membership_lost' },
         });
-        await expect(
-            admin.trpc.reminder.changes.query({ afterCursor: '0', serverId })
-        ).rejects.toThrow(/member/i);
     });
 
     test('reports live operator role loss as forbidden', async () => {
         const departingAdmin = await addHuman('user_reminder_api_role_loss', 'admin');
-        const subscription = subscribeToReminderEvents(departingAdmin, serverId);
+        const subscription = collectStream(departingAdmin.trpc.reminder.onUpdated, { serverId });
         await subscription.started;
         const [departingUser] = (await harness.sql`
             select id from users where clerk_user_id = 'user_reminder_api_role_loss'
@@ -245,8 +230,8 @@ describe('reminder operator API', () => {
 
         await schedule('operator-role-loss', 'Role loss event');
 
-        await expect(subscription.nextEvent).rejects.toMatchObject({
-            data: { code: 'FORBIDDEN' },
+        await expect(subscription.ended()).resolves.toMatchObject({
+            data: { code: 'FORBIDDEN', hausRefusal: 'role_required' },
         });
         departingAdmin.close();
     });
@@ -305,31 +290,4 @@ async function whileServerRowIsHeld(run: () => Promise<void>) {
         release.resolve();
         await held;
     }
-}
-
-function subscribeToReminderEvents(client: HausClient, subscribedServerId: string) {
-    const started = Promise.withResolvers<void>();
-    const nextEvent = Promise.withResolvers<unknown>();
-    const timeout = setTimeout(() => {
-        nextEvent.reject(new Error('Timed out waiting for a reminder event.'));
-    }, 5000);
-    const subscription = client.trpc.reminder.onEvent.subscribe(
-        { serverId: subscribedServerId },
-        {
-            onData: (event) => {
-                clearTimeout(timeout);
-                subscription.unsubscribe();
-                nextEvent.resolve(event);
-            },
-            onError: (error) => {
-                clearTimeout(timeout);
-                started.reject(error);
-                nextEvent.reject(error);
-            },
-            onStarted: () => started.resolve(),
-        }
-    );
-    started.promise.catch(() => undefined);
-    nextEvent.promise.catch(() => undefined);
-    return { nextEvent: nextEvent.promise, started: started.promise };
 }

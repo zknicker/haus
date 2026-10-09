@@ -1,8 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
-
-const subscriptionTimeoutMs = 5000;
+import { collectStream } from './realtime-stream.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -42,49 +41,22 @@ test('a deleted channel reaches every Server member live, participant or not', a
         values (${doomedChatId}, ${serverId}, 'channel', 'doomed')
     `;
 
-    const subscription = subscribeToChatEvents(peer, serverId);
-    await subscription.started;
+    const lifecycle = collectStream(peer.trpc.chat.onLifecycle, { serverId });
+    await lifecycle.started;
     await owner.trpc.chat.deleteChannel.mutate({
         chatId: doomedChatId,
         confirmation: 'doomed',
         serverId,
     });
 
-    await expect(subscription.nextEvent).resolves.toMatchObject({
+    await expect(lifecycle.next()).resolves.toEqual({
         action: 'deleted',
         chatId: doomedChatId,
         serverId,
-        type: 'chat.lifecycle',
     });
+    lifecycle.stop();
     peer.close();
 });
-
-function subscribeToChatEvents(client: HausClient, subscribedServerId: string) {
-    const started = Promise.withResolvers<void>();
-    const nextEvent = Promise.withResolvers<unknown>();
-    const timeout = setTimeout(() => {
-        nextEvent.reject(new Error('Timed out waiting for a durable Chat event.'));
-    }, subscriptionTimeoutMs);
-    const subscription = client.trpc.chat.onEvent.subscribe(
-        { serverId: subscribedServerId },
-        {
-            onData: (event) => {
-                clearTimeout(timeout);
-                subscription.unsubscribe();
-                nextEvent.resolve(event);
-            },
-            onError: (error) => {
-                clearTimeout(timeout);
-                started.reject(error);
-                nextEvent.reject(error);
-            },
-            onStarted: () => started.resolve(),
-        }
-    );
-    started.promise.catch(() => undefined);
-    nextEvent.promise.catch(() => undefined);
-    return { nextEvent: nextEvent.promise, started: started.promise };
-}
 
 async function signIn(clerkUserId: string) {
     const token = await harness.clerk.mintSessionToken(clerkUserId);

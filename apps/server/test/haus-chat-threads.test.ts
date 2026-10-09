@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { addThreadPeerToChannel } from './haus-chat-thread-peer.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { collectStream } from './realtime-stream.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -200,7 +201,7 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
     peer.client.close();
 });
 
-test('Thread messages and follow changes recover through the durable Server cursor', async () => {
+test('Thread replies and follow changes announce their parent anchor', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Thread Events',
         slug: 'thread-events',
@@ -212,6 +213,9 @@ test('Thread messages and follow changes recover through the durable Server curs
         nonce: 'event-anchor',
         serverId: server.id,
     });
+    const created = collectStream(owner.trpc.chat.onMessageCreated, { serverId: server.id });
+    const follows = collectStream(owner.trpc.thread.onFollowUpdated, { serverId: server.id });
+    await Promise.all([created.started, follows.started]);
     const reply = await owner.trpc.chat.send.mutate({
         chatId: parentChatId,
         content: 'Event reply',
@@ -225,23 +229,29 @@ test('Thread messages and follow changes recover through the durable Server curs
         threadChatId: reply.threadChatId as string,
     });
 
+    expect(followed).toEqual({
+        followed: false,
+        serverId: server.id,
+        threadChatId: reply.threadChatId,
+    });
+
     await expect(
-        owner.trpc.chat.events.query({
-            afterCursor: reply.eventCursor,
-            serverId: server.id,
-        })
-    ).resolves.toEqual([
-        {
-            chatId: reply.threadChatId,
-            createdAt: expect.any(String),
-            cursor: followed.eventCursor,
-            id: expect.any(String),
-            parentChatId,
-            sequence: 1,
-            serverId: server.id,
-            type: 'thread.follow.updated',
-        },
-    ]);
+        created.next((event) => event.messageId === reply.message.id)
+    ).resolves.toMatchObject({
+        chatId: reply.threadChatId,
+        parentChatId,
+        sequence: 1,
+        threadAnchorMessageId: anchor.message.id,
+    });
+    await expect(follows.next()).resolves.toEqual({
+        anchorMessageId: anchor.message.id,
+        followed: false,
+        parentChatId,
+        serverId: server.id,
+        threadChatId: reply.threadChatId,
+    });
+    created.stop();
+    follows.stop();
 });
 
 test('Thread authorization derives only from the parent and nesting is rejected', async () => {
