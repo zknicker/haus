@@ -26,14 +26,14 @@ export const INBOX_SUBCOMMANDS: SubCommand[] = [
         examples: [
             'haus inbox check',
             'haus inbox check --view mentions',
-            'haus inbox check --before 1190',
+            'haus inbox check --before <key>',
         ],
         flags: [
             { name: '--view', valueName: '<view>', description: 'unread (default) or mentions' },
             {
                 name: '--before',
-                valueName: '<seq>',
-                description: 'Next page: the seq printed on the More: line',
+                valueName: '<key>',
+                description: 'Next page: the key printed on the More: line',
             },
         ],
         name: 'check',
@@ -41,7 +41,7 @@ export const INBOX_SUBCOMMANDS: SubCommand[] = [
         run: (args) => runInboxCheck(args, defaultDeps()),
         summary:
             'List your unread conversations, newest activity first, each with the command that opens it (no flags needed).',
-        usage: 'haus inbox check [--view unread|mentions] [--before <seq>]',
+        usage: 'haus inbox check [--view unread|mentions] [--before <key>]',
     },
 ];
 
