@@ -278,7 +278,6 @@ extension MentionPresentationKind {
         case .pullRequest: "Pull request"
         case .skill: "Skill"
         case .thread: "Thread"
-        case .time: "Time"
         case .website: "Website"
         }
     }

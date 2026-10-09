@@ -21,7 +21,6 @@ enum RichMessageTableParser {
     static func table(
         lines: [Substring],
         from index: inout Int,
-        timeChips: TimeChipContext?,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
     ) -> RichMessageTable {
         let headerCells = cells(lines[index])
@@ -34,14 +33,14 @@ enum RichMessageTableParser {
             guard !line.trimmingCharacters(in: .whitespaces).isEmpty, line.contains("|") else { break }
             rows.append(
                 fitted(cells(line), to: headerCells.count).map {
-                    RichMessageParser.parse($0, timeChips: timeChips, resolve: resolve)
+                    RichMessageParser.parse($0, resolve: resolve)
                 }
             )
             index += 1
         }
 
         return RichMessageTable(
-            header: headerCells.map { RichMessageParser.parse($0, timeChips: timeChips, resolve: resolve) },
+            header: headerCells.map { RichMessageParser.parse($0, resolve: resolve) },
             alignments: alignments,
             rows: rows
         )

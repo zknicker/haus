@@ -22,7 +22,6 @@ public enum RichMessageParser {
 
     public static func parse(
         _ content: String,
-        timeChips: TimeChipContext? = nil,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
     ) -> [RichMessageSegment] {
         guard let expression = referenceExpression else { return [.text(content)] }
@@ -38,7 +37,6 @@ public enum RichMessageParser {
                 links: links,
                 protected: protected,
                 in: content,
-                timeChips: timeChips,
                 resolve: resolve,
                 into: &segments
             )
@@ -56,20 +54,13 @@ public enum RichMessageParser {
         links: [MarkdownLink],
         protected: [RichMessageInlineMarkdown.Protected],
         in content: String,
-        timeChips: TimeChipContext?,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?,
         into segments: inout [RichMessageSegment]
     ) {
         var cursor = run.text.startIndex
         for span in protected
         where span.range.lowerBound >= cursor && span.range.upperBound <= run.text.endIndex {
-            appendAutolinked(
-                run.text[cursor..<span.range.lowerBound],
-                style: run.style,
-                timeChips: timeChips,
-                resolve: resolve,
-                into: &segments
-            )
+            appendAutolinked(run.text[cursor..<span.range.lowerBound], style: run.style, into: &segments)
             if let code = span.code {
                 append(text: code, style: run.style.union(.code), into: &segments)
             } else if let link = links.first(where: { $0.range == span.range }) {
@@ -77,13 +68,7 @@ public enum RichMessageParser {
             }
             cursor = span.range.upperBound
         }
-        appendAutolinked(
-            run.text[cursor...],
-            style: run.style,
-            timeChips: timeChips,
-            resolve: resolve,
-            into: &segments
-        )
+        appendAutolinked(run.text[cursor...], style: run.style, into: &segments)
     }
 
     /// A one-line preview of a message, mirroring the App's `messagePreviewLine`
@@ -204,12 +189,10 @@ public enum RichMessageParser {
     }
 
     /// Emits a stretch of prose, chipping the bare URLs in it the way the App's
-    /// Markdown autolinks them, and the clock times between them.
+    /// Markdown autolinks them.
     private static func appendAutolinked(
         _ slice: Substring,
         style: RichInlineStyle,
-        timeChips: TimeChipContext?,
-        resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?,
         into segments: inout [RichMessageSegment]
     ) {
         guard !slice.isEmpty else { return }
@@ -219,13 +202,7 @@ public enum RichMessageParser {
                 target: String(slice[url]),
                 text: String(slice[url])
             ) else { continue }
-            appendTimed(
-                slice[cursor..<url.lowerBound],
-                style: style,
-                timeChips: timeChips,
-                resolve: resolve,
-                into: &segments
-            )
+            append(text: slice[cursor..<url.lowerBound], style: style, into: &segments)
             segments.append(.reference(RichReferencePresentation(
                 id: target.id,
                 kind: target.kind,
@@ -234,19 +211,13 @@ public enum RichMessageParser {
             )))
             cursor = url.upperBound
         }
-        appendTimed(
-                slice[cursor..<slice.endIndex],
-                style: style,
-                timeChips: timeChips,
-                resolve: resolve,
-                into: &segments
-            )
+        append(text: slice[cursor..<slice.endIndex], style: style, into: &segments)
     }
 
     /// Prose reaches the renderer as few runs as possible: an image's Markdown
     /// is still the same sentence as the words around it, so it joins the text
     /// run beside it rather than starting another.
-    static func append(
+    private static func append(
         text: Substring,
         style: RichInlineStyle,
         into segments: inout [RichMessageSegment]
