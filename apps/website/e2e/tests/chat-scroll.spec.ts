@@ -190,6 +190,47 @@ test('human sends jump to latest; agent messages preserve following across backg
     }
 });
 
+test('View in chat holds the oldest loaded message while the older page it reaches loads', async ({
+    page,
+}) => {
+    test.setTimeout(90_000);
+    const { server, session } = await createTestServer(page, {
+        displayName: 'Chat jumps',
+        slug: 'chat-jumps',
+    });
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+    assertOpaqueId(chatId);
+    // Ten minutes apart, so each message is its own transcript row.
+    runPsql(
+        session.databaseUrl,
+        `insert into chat_messages (id, server_id, chat_id, author_user_id, content, created_at, nonce, sequence, body_kind)
+        select 'msg_jump_' || lpad(g::text, 3, '0'), chat.server_id, chat.id, member.user_id,
+            'Jump history ' || g || E'\n\nA paragraph that gives each row some height.',
+            now() - make_interval(mins => (120 - g) * 10), 'jump-' || g, chat.last_message_sequence + g, 'text'
+        from chats chat
+        join server_memberships member on member.server_id = chat.server_id
+        cross join generate_series(1, 120) g
+        where chat.id = '${chatId}';
+        update chats set last_message_sequence = last_message_sequence + 120 where id = '${chatId}'`
+    );
+    // The newest page holds 71–120, so 71 is the oldest loaded message.
+    await page.goto(`/s/chat-jumps/chats/${chatId}?thread=msg_jump_071`);
+    // The chat's own transcript; the Thread pane has a scroller of its own.
+    const transcript = page.getByLabel('Messages', { exact: true });
+    const rows = transcript.locator('[data-slot="message-scroller-item"]');
+    await page.getByRole('button', { name: /thread actions$/u }).click();
+    await page.getByRole('menuitem', { name: 'View in chat' }).click();
+    const target = transcript.getByText('Jump history 71', { exact: true });
+    await expect(target).toBeInViewport();
+    const landedTop = () => target.evaluate((element) => element.getBoundingClientRect().top);
+    const top = await landedTop();
+    // Landing at the top loads the next older page; the message stays put.
+    await expect.poll(() => rows.count()).toBeGreaterThan(60);
+    await page.waitForTimeout(500);
+    await expect(target).toBeInViewport();
+    expect(Math.abs((await landedTop()) - top)).toBeLessThanOrEqual(1);
+});
+
 async function distanceFromEnd(viewport: Locator) {
     return await viewport.evaluate(
         (element) => element.scrollHeight - element.clientHeight - element.scrollTop
