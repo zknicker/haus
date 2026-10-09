@@ -2,17 +2,10 @@ import type { Agent } from '@haus/api';
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { useChatComposerFocusRequest } from '../../../commands/chat-composer-focus.ts';
-import {
-    appendComposerInsert,
-    useChatComposerInsertRequest,
-} from '../../../commands/chat-composer-insert.ts';
-import { useChatComposerMentionRequest } from '../../../commands/chat-composer-mention.ts';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
 import { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
-import { buildAgentMentionOption } from '../../mentions/mention-options.ts';
 import {
     MentionComposerEditor,
     MentionComposerPicker,
@@ -29,6 +22,7 @@ import { ComposerAttachments } from './composer-attachments.tsx';
 import { ComposerDropOverlay } from './composer-drop-overlay.tsx';
 import { useComposerFileDrop } from './composer-file-drop.ts';
 import { submitChatComposer } from './submit-chat-composer.ts';
+import { useChatComposerCommands } from './use-chat-composer-commands.ts';
 import { useChatDraft } from './use-chat-draft.ts';
 import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
 
@@ -125,22 +119,13 @@ export function ServerChatComposer({
     const upload = useUploadServerAttachment();
     const activeInlineReply = thread ? null : inlineReply;
 
-    useChatComposerFocusRequest(!thread, mentionComposer.focusTextEditor);
-    useChatComposerInsertRequest(!thread, (text) => {
-        updateContent((current) => appendComposerInsert(current, text));
-        requestAnimationFrame(mentionComposer.focusTextEditor);
-    });
-    useChatComposerMentionRequest(thread ? null : (chatId ?? null), ({ agentId }) => {
-        const agent = agentList.find((candidate) => candidate.id === agentId);
-        if (!agent) {
-            return;
-        }
-        mentionComposer.handleMentionSelect(
-            buildAgentMentionOption({
-                agentId,
-                agents: [{ id: agent.id, name: agent.displayName }],
-            })
-        );
+    useChatComposerCommands({
+        agents: agentList,
+        chatId,
+        focusTextEditor: mentionComposer.focusTextEditor,
+        insertMention: mentionComposer.handleMentionSelect,
+        thread: Boolean(thread),
+        updateContent,
     });
 
     // Sending is optimistic: the draft leaves the editor immediately and the

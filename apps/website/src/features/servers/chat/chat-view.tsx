@@ -12,7 +12,7 @@ import {
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
-import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
+import { WindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
@@ -32,7 +32,7 @@ import { useChatReferenceActivation } from './use-chat-reference-activation.ts';
 import { useChatThreadPane } from './use-chat-thread-pane.ts';
 import type { ChatInitialTask } from './use-chat-thread-selection.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
-import { useVisibleChatSequence } from './use-visible-chat-sequence.ts';
+import { useVisibleChatSequenceSource } from './use-visible-chat-sequence.ts';
 
 export function ChatView({
     chat,
@@ -85,7 +85,7 @@ export function ChatView({
         transcriptMessages,
     });
     const threadSelection = thread.selection;
-    const visibleRead = useVisibleChatSequence(chat.id);
+    const visibleSequence = useVisibleChatSequenceSource();
     const threadCoversChat = Boolean(
         threadSelection && threadTakeover && activeSidePane === 'thread'
     );
@@ -99,7 +99,6 @@ export function ChatView({
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
               : `DM · ${humans.name(chat.peerUserId)}`;
-    useWindowTitle(chat.kind === 'channel' ? `#${chatName}` : chatName);
     const threadSummary =
         messages.data?.threads.find(
             (summary) => summary.anchorMessageId === threadSelection?.anchor.id
@@ -138,6 +137,7 @@ export function ChatView({
             data-slot="chat-surface"
             {...composerDropSurfaceProps}
         >
+            <WindowTitle title={chat.kind === 'channel' ? `#${chatName}` : chatName} />
             {desktopTabs ? (
                 // Desktop: the tab names the chat and its context menu (and the
                 // sidebar row's) carries the chat's actions, so the page leaves
@@ -192,8 +192,8 @@ export function ChatView({
                         <ChatReadState
                             chatId={messages.data ? chat.id : undefined}
                             enabled={!threadCoversChat}
-                            sequence={messages.data ? visibleRead.sequence : undefined}
                             serverId={messages.data ? chat.serverId : undefined}
+                            visibleSequence={visibleSequence}
                         />
                         <ChatViewFooter
                             chat={chat}
@@ -224,7 +224,7 @@ export function ChatView({
                         onReferenceActivate={handleReferenceActivate}
                         onSelectInlineReply={selectInlineReply}
                         onStartDm={startDm}
-                        onVisibleSequenceChange={visibleRead.onSequenceChange}
+                        onVisibleSequenceChange={visibleSequence.set}
                         pendingMessages={pendingMessages}
                         replyTargetMessageId={inlineReply?.messageId}
                         scrollContentRef={scrollContentRef}

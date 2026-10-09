@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTabPresence } from '../desktop-tabs/tab-presence.ts';
 
 const baseTitle = 'Haus';
 
@@ -18,4 +19,15 @@ export function useWindowTitle(title: string | null | undefined) {
             document.title = baseTitle;
         };
     }, [title]);
+}
+
+/**
+ * Titles the window while its page is shown. For a view kept mounted while
+ * hidden (`KeptChatViews`): only the shown view names the window, and a
+ * revealed view retitles it. A leaf, so a presence flip re-renders only this.
+ */
+export function WindowTitle({ title }: { title: string }) {
+    const shown = useTabPresence().shown;
+    useWindowTitle(shown ? title : null);
+    return null;
 }

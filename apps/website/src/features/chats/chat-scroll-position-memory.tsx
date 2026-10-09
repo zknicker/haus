@@ -3,6 +3,7 @@ import {
     useMessageScroller,
     useMessageScrollerScrollable,
 } from '../../components/chats/message-scroller.tsx';
+import { useViewShown, useViewShownChange } from '../../hooks/desktop-tabs/view-shown.ts';
 
 /** Where a transcript sat: at its end, or a row and that row's offset from the viewport top. */
 export type ChatScrollPosition =
@@ -16,9 +17,11 @@ const rememberedChatScrollPositions = new Map<string, ChatScrollPosition>();
  * The transcript's one scroll restorer. It restores in a layout effect, so the
  * first painted frame already shows the remembered row (or the end). It tracks
  * the position as the transcript scrolls and commits it when the effect cleans
- * up: when the chat view unmounts, when its kept view hides (`<Activity>`), and
- * when its desktop tab hides. A hidden subtree loses its scroll offset, so
- * every reveal restores again.
+ * up (when the chat view unmounts, and when its desktop tab hides inside
+ * `<Activity>`, whose hidden subtree loses its scroll offset, so that reveal
+ * restores again) and when its kept chat view hides (`KeptChatViews`). A
+ * kept view stays laid out at its offset while hidden, so its reveal needs no
+ * restore.
  */
 export function ChatScrollPositionMemory({
     chatId,
@@ -31,6 +34,13 @@ export function ChatScrollPositionMemory({
 }) {
     const scroller = useMessageScroller();
     const scrollable = useMessageScrollerScrollable();
+    const viewShown = useViewShown();
+    const latestRef = React.useRef<ChatScrollPosition | null>(null);
+    useViewShownChange((shown) => {
+        if (!shown && latestRef.current) {
+            rememberedChatScrollPositions.set(chatId, latestRef.current);
+        }
+    });
     const backgroundAtEndRef = React.useRef<boolean | null>(null);
 
     React.useLayoutEffect(() => {
@@ -54,12 +64,12 @@ export function ChatScrollPositionMemory({
         // in the cleanup instead would force a layout in the middle of the
         // commit that hides this view and shows the next.
         const viewport = viewportRef.current;
-        let latest: ChatScrollPosition | null = null;
+        latestRef.current = null;
         let frame: number | null = null;
         const onScroll = () => {
             frame ??= window.requestAnimationFrame(() => {
                 frame = null;
-                latest = readChatScrollPosition(viewport) ?? latest;
+                latestRef.current = readChatScrollPosition(viewport) ?? latestRef.current;
             });
         };
         viewport?.addEventListener('scroll', onScroll, { passive: true });
@@ -68,8 +78,8 @@ export function ChatScrollPositionMemory({
             if (frame !== null) {
                 window.cancelAnimationFrame(frame);
             }
-            if (latest) {
-                rememberedChatScrollPositions.set(chatId, latest);
+            if (latestRef.current) {
+                rememberedChatScrollPositions.set(chatId, latestRef.current);
             }
         };
     }, [chatId, enabled, scroller, viewportRef]);
@@ -80,8 +90,12 @@ export function ChatScrollPositionMemory({
         if (!enabled) {
             return;
         }
+        // A hidden kept view neither records nor follows: forcing its skipped
+        // layout to jump would be wasted work, and its reveal keeps its offset.
         const suspend = () => {
-            backgroundAtEndRef.current ??= !scrollable.end;
+            if (viewShown.isShown()) {
+                backgroundAtEndRef.current ??= !scrollable.end;
+            }
         };
         const resume = () => {
             if (document.visibilityState === 'hidden') {
@@ -89,7 +103,7 @@ export function ChatScrollPositionMemory({
             }
             const atEnd = backgroundAtEndRef.current;
             backgroundAtEndRef.current = null;
-            if (atEnd) {
+            if (atEnd && viewShown.isShown()) {
                 scroller.scrollToEnd({ behavior: 'instant' });
             }
         };
@@ -108,7 +122,7 @@ export function ChatScrollPositionMemory({
             window.removeEventListener('focus', resume);
             document.removeEventListener('visibilitychange', visibilityChanged);
         };
-    }, [enabled, scrollable.end, scroller]);
+    }, [enabled, scrollable.end, scroller, viewShown]);
 
     return null;
 }

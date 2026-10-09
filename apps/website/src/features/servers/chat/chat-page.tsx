@@ -94,7 +94,8 @@ const ChatPageView = React.memo(function ChatPageView({
     }
 
     if (!chat) {
-        return <Navigate replace to={serverRoute(server.slug)} />;
+        // A kept view stays effect-alive while hidden; only the shown chat may leave the route.
+        return active ? <Navigate replace to={serverRoute(server.slug)} /> : null;
     }
 
     return (

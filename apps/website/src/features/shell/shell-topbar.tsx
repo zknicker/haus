@@ -61,10 +61,9 @@ export function ShellTopbar() {
 
 /**
  * Gives one kept page its own region of the band, shown only while `active`. A page kept
- * mounted inside a hidden `<Activity>` still portals its band here, and its nodes stay in
- * the slot (defeating the empty-band collapse) while the hidden tree's own hide lands in
- * deferred offscreen work, frames late. So the hide is decided here, outside that
- * boundary, in the same commit that reveals the next page.
+ * mounted while hidden (`KeptChatViews`) still portals its band here, outside the hidden
+ * view's own box, so its nodes would stay in the slot (defeating the empty-band collapse)
+ * and on screen. So the hide is decided here, in the same commit that reveals the next page.
  */
 export function KeptTopbarScope({
     active,

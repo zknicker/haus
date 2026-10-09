@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useViewShown, useViewShownChange } from '../../hooks/desktop-tabs/view-shown.ts';
 import { cn } from '../../lib/utils.ts';
 import { hasErrorStatus } from '../sessions/tools/tool-ui.ts';
 import { ActivityStep } from './chat-transcript-activity-step.tsx';
@@ -212,13 +213,24 @@ function isThinkingOnly(items: ActivityItem[]) {
 
 function useNow(enabled: boolean, start: string | null) {
     const [now, setNow] = React.useState(() => Date.now());
+    // A hidden kept chat view (`KeptChatViews`) stops ticking until it shows.
+    const viewShown = useViewShown();
+    useViewShownChange((shown) => {
+        if (shown && enabled) {
+            setNow(Date.now());
+        }
+    });
 
     React.useEffect(() => {
         if (!enabled) {
             return;
         }
 
-        const updateNow = () => setNow(Date.now());
+        const updateNow = () => {
+            if (viewShown.isShown()) {
+                setNow(Date.now());
+            }
+        };
         const startMs = start ? Date.parse(start) : Number.NaN;
         const elapsedMs = Number.isNaN(startMs) ? 0 : Math.max(0, Date.now() - startMs);
         const delayMs = Number.isNaN(startMs) ? 1000 : 1000 - (elapsedMs % 1000);
@@ -241,7 +253,7 @@ function useNow(enabled: boolean, start: string | null) {
                 window.clearInterval(interval);
             }
         };
-    }, [enabled, start]);
+    }, [enabled, start, viewShown]);
 
     return now;
 }

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useViewShown } from '../../hooks/desktop-tabs/view-shown.ts';
 
 const defaultCatchUpWindowMs = 650;
 const defaultMaxRevealCharsPerFrame = 12;
@@ -43,6 +44,7 @@ export function useRevealedText(text: string, options: RevealedTextOptions | boo
         revealOptions.enabled && !prefersReducedMotion() ? 0 : text.length
     );
     const visibleLengthRef = React.useRef(visibleLength);
+    const viewShown = useViewShown();
     const targetRef = React.useRef(text);
     const revealKeyRef = React.useRef(revealKey);
 
@@ -105,6 +107,13 @@ export function useRevealedText(text: string, options: RevealedTextOptions | boo
                 return;
             }
 
+            // A hidden kept chat view (`KeptChatViews`) shows the text whole
+            // rather than animating it unseen.
+            if (!viewShown.isShown()) {
+                commitVisibleLength(targetLength);
+                return;
+            }
+
             const nextStep = getRevealStep({
                 carriedChars,
                 catchUpWindowMs,
@@ -135,6 +144,7 @@ export function useRevealedText(text: string, options: RevealedTextOptions | boo
         maxCharsPerSecond,
         shouldReduceMotion,
         text,
+        viewShown,
     ]);
 
     return text.slice(0, Math.min(visibleLength, text.length));

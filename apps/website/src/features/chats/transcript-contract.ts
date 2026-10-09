@@ -1,10 +1,4 @@
-import type {
-    AgentAvailability,
-    ChatMessage,
-    CloudAgentWork,
-    MessageCause,
-    TaskLabel,
-} from '@haus/api';
+import type { ChatMessage, CloudAgentWork, MessageCause, TaskLabel } from '@haus/api';
 import type { MessageTask, TaskOrigin } from '../tasks/task-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
@@ -37,7 +31,8 @@ interface TranscriptActorProfileBase {
 
 export type TranscriptActorProfile =
     | (TranscriptActorProfileBase & {
-          availability: { kind: 'live'; value: AgentAvailability };
+          /** A live Agent: its avatar reads current availability from the Server's Agent list. */
+          availability: { kind: 'live'; serverId: string };
           deleted: false;
           kind: 'agent';
       })

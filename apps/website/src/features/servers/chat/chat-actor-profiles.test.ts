@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { testAgent } from '../../members/agent-fixtures.ts';
 import { liveAgentActorProfile } from './chat-actor-profiles.ts';
 
-test('live Agent profiles preserve canonical availability for transcript avatars', () => {
+test('live Agent profiles point transcript avatars at live availability', () => {
     const agent = testAgent({
         availability: 'offline',
         avatarUrl: '/api/avatars/blippy',
@@ -15,6 +15,6 @@ test('live Agent profiles preserve canonical availability for transcript avatars
         deleted: false,
         id: 'agt_blippy',
         kind: 'agent',
-        availability: { kind: 'live', value: 'offline' },
+        availability: { kind: 'live', serverId: agent.serverId },
     });
 });

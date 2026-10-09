@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useViewShown, useViewShownChange } from '../desktop-tabs/view-shown.ts';
 import type { ChatMessageJumpTarget } from './use-chat-message-navigation.ts';
 
 const pending = new Map<string, ChatMessageJumpTarget>();
@@ -29,8 +30,17 @@ export function usePendingMessageReveal({
         () => pending.get(chatId) ?? null,
         () => null
     );
+    // A chat view kept mounted while hidden (`KeptChatViews`) leaves the
+    // reveal for a shown view of the Chat, or for its own reveal.
+    const viewShown = useViewShown();
+    const [revealCount, setRevealCount] = React.useState(0);
+    useViewShownChange((shown) => {
+        if (shown && pending.has(chatId)) {
+            setRevealCount((count) => count + 1);
+        }
+    });
     React.useEffect(() => {
-        if (!(ready && target)) {
+        if (!(ready && target && viewShown.isShown() && revealCount >= 0)) {
             return;
         }
         // After the transcript's own first-paint scroll, which would otherwise win.
@@ -42,7 +52,7 @@ export function usePendingMessageReveal({
             }
         });
         return () => window.cancelAnimationFrame(frame);
-    }, [chatId, ready, reveal, target]);
+    }, [chatId, ready, reveal, revealCount, target, viewShown]);
 }
 
 /** Removes and returns the Chat's pending reveal; exported for tests. */

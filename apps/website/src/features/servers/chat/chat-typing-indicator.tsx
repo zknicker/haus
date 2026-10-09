@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentActivityListener } from '../../../hooks/agents/use-current-agent-activity.tsx';
+import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatEngagement } from '../../../hooks/servers/use-chat-engagement.ts';
 import { springs } from '../../../lib/springs.ts';
@@ -31,13 +32,16 @@ const noThoughts: ChatTypingThoughts = { latest: null, live: null };
 
 /** Which Agents are answering this Chat right now, above its composer. */
 export function ChatTypingIndicator({
-    chatId,
+    chatId: ownChatId,
     serverId,
 }: {
     /** Undefined while a Thread has no chat yet; the row still holds its height. */
     chatId: string | undefined;
     serverId: string;
 }) {
+    // A chat view kept mounted while hidden (`KeptChatViews`) drops its
+    // engagement and thought streams; a reveal resubscribes and re-reads.
+    const chatId = useTabPresence().shown ? ownChatId : undefined;
     const launcher = useChatTypingLauncher();
     const ends = useChatTypingEnds(serverId, chatId, launcher.launch);
     const engagements = useChatEngagement(serverId, chatId, ends.onEnded);

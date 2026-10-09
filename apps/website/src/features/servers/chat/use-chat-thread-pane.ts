@@ -1,6 +1,7 @@
 import type { ChatMessage, ThreadSummary } from '@haus/api';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useViewShownChange } from '../../../hooks/desktop-tabs/view-shown.ts';
 import { setChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { usePendingMessageReveal } from '../../../hooks/servers/use-pending-message-reveal.ts';
 import { type OpenThread, useOpenThread } from '../../../hooks/threads/use-open-thread.ts';
@@ -36,8 +37,8 @@ export function useChatThreadPane({
     );
     useThreadTabDeepLink(chatId, openThreadTab);
     // A kept chat view (`KeptChatViews`) keeps its selection while hidden. On
-    // reveal its effects reconnect: a route with no `?thread=` or `?task=` shows
-    // no Thread, as a freshly mounted view would.
+    // reveal, a route with no `?thread=` or `?task=` shows no Thread, as a
+    // freshly mounted view would.
     const syncSelectionToRoute = React.useEffectEvent(() => {
         if (openThreadTab || searchParams.has('thread') || searchParams.has('task')) {
             return;
@@ -47,6 +48,11 @@ export function useChatThreadPane({
     React.useEffect(() => {
         syncSelectionToRoute();
     }, []);
+    useViewShownChange((shown) => {
+        if (shown) {
+            syncSelectionToRoute();
+        }
+    });
     usePendingMessageReveal({
         chatId,
         ready: transcriptMessages !== undefined,

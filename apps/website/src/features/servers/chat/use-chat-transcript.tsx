@@ -26,6 +26,7 @@ import {
     renderPendingMessageAttachments,
 } from './pending-messages.tsx';
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
+import { useAgentAppearanceList } from './use-agent-appearance-list.ts';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } as const;
@@ -53,7 +54,9 @@ export function useChatTranscript({
 }: ChatTranscriptInput) {
     const messageList = messages ?? emptyChatMessages;
     const agents = useAgents(serverId);
-    const agentList = agents.data ?? emptyChatAgents;
+    // Availability flips on every Agent turn; rows read it per avatar (`useAgentAvailability`),
+    // so the rows' agent list changes only with the fields they render.
+    const agentList = useAgentAppearanceList(agents.data ?? emptyChatAgents);
     const chats = useChats(serverId);
     const download = useAttachmentDownload();
     const humans = useHumanDirectory(serverId);

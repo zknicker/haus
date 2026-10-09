@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useAgentAvailability } from '../../hooks/members/use-agents.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
@@ -45,21 +46,42 @@ function AgentTurnAvatar({
 }) {
     if (profile?.availability.kind === 'live') {
         return (
-            <AgentAvatar
-                agent={{
-                    availability: profile.availability.value,
-                    avatarUrl: profile.avatarUrl,
-                    displayName: name,
-                    id: profile.id,
-                }}
-                className={transcriptTurnGeometry.avatar}
-                size={32}
+            <LiveAgentTurnAvatar
+                avatarUrl={profile.avatarUrl}
+                id={profile.id}
+                name={name}
+                serverId={profile.availability.serverId}
             />
         );
     }
 
     return <TurnAvatar avatarUrl={profile?.avatarUrl} deleted={profile?.deleted} name={name} />;
 }
+/**
+ * Reads the Agent's availability itself: it flips on every turn, and carrying it
+ * in the row's profile would re-render every row the Agent ever wrote.
+ */
+function LiveAgentTurnAvatar({
+    avatarUrl,
+    id,
+    name,
+    serverId,
+}: {
+    avatarUrl: string | null;
+    id: string;
+    name: string;
+    serverId: string;
+}) {
+    const availability = useAgentAvailability(serverId, id);
+    return (
+        <AgentAvatar
+            agent={{ availability, avatarUrl, displayName: name, id }}
+            className={transcriptTurnGeometry.avatar}
+            size={32}
+        />
+    );
+}
+
 export function AgentTurnProfileAvatar({
     actorId,
     chatId,

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useMessageScrollerVisibility } from '../../../components/chats/message-scroller.tsx';
+import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import {
     getHighestVisibleSequence,
     getTranscriptEntrySequences,
@@ -55,11 +56,22 @@ export function ChatTranscript({
 }
 
 /**
- * Reports the highest visible sequence. Its own component, so the scroller's
- * visibility store (which changes as rows scroll in and out, and resets while
- * a kept chat view is hidden) re-renders only this, never the transcript rows.
+ * Reports the highest visible sequence while the chat is shown. A hidden kept
+ * chat view (`KeptChatViews`) unsubscribes, which disconnects the scroller's
+ * visibility observer, and reports nothing; a reveal subscribes afresh.
  */
-function VisibleSequenceReporter({
+function VisibleSequenceReporter(props: {
+    onChange: (sequence: number | undefined) => void;
+    sequenceByEntryId: ReturnType<typeof getTranscriptEntrySequences>;
+}) {
+    return useTabPresence().shown ? <ShownVisibleSequenceReporter {...props} /> : null;
+}
+
+/**
+ * Its own component, so the scroller's visibility store (which changes as rows
+ * scroll in and out) re-renders only this, never the transcript rows.
+ */
+function ShownVisibleSequenceReporter({
     onChange,
     sequenceByEntryId,
 }: {
@@ -74,5 +86,6 @@ function VisibleSequenceReporter({
     React.useEffect(() => {
         onChange(visibleSequence);
     }, [onChange, visibleSequence]);
+    React.useEffect(() => () => onChange(undefined), [onChange]);
     return null;
 }

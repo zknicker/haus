@@ -70,7 +70,7 @@ export function liveAgentActorProfile(agent: Agent): TranscriptActorProfile {
         isSelf: false,
         kind: 'agent',
         name: agent.displayName,
-        availability: { kind: 'live', value: agent.availability },
+        availability: { kind: 'live', serverId: agent.serverId },
     };
 }
 
