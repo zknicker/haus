@@ -64,8 +64,6 @@ export const agentThreadContextMessageSchema = z
         id: idSchema,
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
-        /** The human sender's saved IANA zone; absent for Agents and humans without one. */
-        senderTimezone: humanTimezoneSchema.optional(),
         senderType: z.enum(['agent', 'human']),
         sequence: z.number().int().positive(),
     })

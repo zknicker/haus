@@ -99,5 +99,7 @@ zone now rides their message header, right after the time:
   a human without a saved zone carries none, and Haus never infers one. The Server maps the
   stored value onto the Agent API sender (`sender.timezone`) and the inbox item
   (`senderTimezone`); the contract accepts it only on a human envelope and only as an IANA name.
+  Quoted Thread-context lines carry none, because an older Computer validates them strictly; the
+  mention envelope that follows them carries the mentioner's zone.
 - The rest stands: reminders still take an explicit `--timezone`, and people lookup stays the
   way to find the zone of someone other than the sender.

@@ -1,10 +1,6 @@
 import type { AgentThreadContext, AgentThreadContextMessage } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
-import {
-    formatInboxTimeFields,
-    indentContinuationLines,
-    shortInboxId,
-} from './inbox-header-format.ts';
+import { formatInboxTime, indentContinuationLines, shortInboxId } from './inbox-header-format.ts';
 
 /**
  * The drained items whose thread context this prompt renders: the first per
@@ -56,5 +52,5 @@ function quote(message: AgentThreadContextMessage): string {
     const sender = message.senderDescription
         ? `@${handle} — ${indentContinuationLines(message.senderDescription)}`
         : `@${handle}`;
-    return `- [msg=${shortInboxId(message.id)} seq=${message.sequence} ${formatInboxTimeFields(message.createdAt, message.senderType === 'human' ? message.senderTimezone : null)} type=${message.senderType}] ${sender}: ${indentContinuationLines(message.content)}`;
+    return `- [msg=${shortInboxId(message.id)} seq=${message.sequence} time=${formatInboxTime(message.createdAt)} type=${message.senderType}] ${sender}: ${indentContinuationLines(message.content)}`;
 }

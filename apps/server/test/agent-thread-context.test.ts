@@ -71,7 +71,7 @@ test('a Thread mention with no visible context carries the parent and the earlie
     expect(start?.inbox.find((entry) => entry.id === reply)?.threadContext).toBeUndefined();
 });
 
-test("a human sender's saved zone rides the envelope and the quoted Thread lines", async () => {
+test("a human sender's saved zone rides the envelope, never the quoted Thread lines", async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
     const thread = await addThread(seed, 'Standup moved?');
@@ -83,7 +83,6 @@ test("a human sender's saved zone rides the envelope and the quoted Thread lines
     });
     const zoneless = (await wake())?.inbox.find((entry) => entry.id === mention);
     expect(zoneless?.senderTimezone).toBeUndefined();
-    expect(zoneless?.threadContext?.parentMessage.senderTimezone).toBeUndefined();
 
     await connection.db
         .update(usersTable)
@@ -91,7 +90,8 @@ test("a human sender's saved zone rides the envelope and the quoted Thread lines
         .where(eq(usersTable.id, seed.userId));
     const zoned = (await wake())?.inbox.find((entry) => entry.id === mention);
     expect(zoned?.senderTimezone).toBe('America/Chicago');
-    expect(zoned?.threadContext?.parentMessage.senderTimezone).toBe('America/Chicago');
+    // Quoted lines stay zoneless: a Computer's strict thread-context schema predates the field.
+    expect(zoned?.threadContext?.parentMessage).not.toHaveProperty('senderTimezone');
 });
 
 test('a package keeps the newest ten replies and says it left earlier ones out', async () => {
