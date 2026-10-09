@@ -91,7 +91,6 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
     const markup = renderTranscript(rows, {
         chatId: 'chat-history',
         composerId: 'chat-history',
-        opensAgentProfiles: true,
         resolveActorProfile: (actor) =>
             actor?.kind === 'agent'
                 ? {
@@ -1581,7 +1580,7 @@ test('ChatTranscript states what woke the Agent on a context line above its mess
 test('ChatTranscript keeps an ordinary Agent header to a name and a time', () => {
     const row = causedRow();
     const plain = { ...row, message: { ...row.message, cause: null } };
-    const context = { ...causedOverrides(), chatId: 'chat-1', opensAgentProfiles: true };
+    const context = { ...causedOverrides(), chatId: 'chat-1' };
     const markup = renderTranscript([plain], context);
 
     assert.doesNotMatch(markup, /Deploy finished|text-trigger-mark|data-turn-context-line=""/);
@@ -1693,6 +1692,7 @@ function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderCo
         hiddenCount: 0,
         onOpenThread: () => undefined,
         onToggleReaction: () => undefined,
+        openAgentProfile: () => undefined,
         onUnfollowThread: () => undefined,
         repliedRunIds: new Set(),
         threadActionsEnabled: false,
