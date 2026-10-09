@@ -13,8 +13,12 @@ import {
     signInAsClerkHuman,
 } from './clerk-session.ts';
 
-export async function createTestServer(page: Page, input: { displayName: string; slug: string }) {
-    await signInAsClerkHuman(page);
+export async function createTestServer(
+    page: Page,
+    input: { displayName: string; slug: string },
+    signIn: Parameters<typeof signInAsClerkHuman>[1] = 'human'
+) {
+    await signInAsClerkHuman(page, signIn);
     const session = readClerkSessionFixture();
     const client = createClient(session.token);
     const created = await client.server.create.mutate(input);

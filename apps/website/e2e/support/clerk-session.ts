@@ -4,6 +4,8 @@ import type { Page } from '@playwright/test';
 
 export const e2eClerkUserId = 'user_e2e_human';
 export const e2ePeerClerkUserId = 'user_e2e_peer';
+/** The Clerk session `sessionToken` and `sessionRotatedToken` share. */
+export const e2eClerkSessionId = 'sess_e2e_human';
 
 /**
  * The identity the e2e humans carry. Production learns the name and address
@@ -25,6 +27,9 @@ export interface ClerkSessionFixture {
     peerEmail: string;
     peerToken: string;
     rotatedToken: string;
+    /** `token` with a Clerk session id; `sessionRotatedToken` is its in-place rotation. */
+    sessionRotatedToken: string;
+    sessionToken: string;
     token: string;
 }
 
@@ -38,9 +43,16 @@ export function readClerkSessionFixture(): ClerkSessionFixture {
  * exactly where the App reads it. `peer` is a second real Clerk identity with
  * its own verified address, which membership flows need.
  */
-export async function signInAsClerkHuman(page: Page, who: 'human' | 'peer' = 'human') {
+export async function signInAsClerkHuman(
+    page: Page,
+    who: 'human' | 'peer' | 'human-session' = 'human'
+) {
     const fixture = readClerkSessionFixture();
-    const sessionToken = who === 'peer' ? fixture.peerToken : fixture.token;
+    const sessionToken = {
+        human: fixture.token,
+        'human-session': fixture.sessionToken,
+        peer: fixture.peerToken,
+    }[who];
 
     await page.addInitScript((value: string) => {
         let currentToken = value;

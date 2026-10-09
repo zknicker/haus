@@ -8,6 +8,7 @@ import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
 import {
     clerkSessionFile,
+    e2eClerkSessionId,
     e2eClerkUserId,
     e2eHumanEmail,
     e2ePeerClerkUserId,
@@ -76,6 +77,12 @@ writeFileSync(
         peerEmail: e2ePeerEmail,
         peerToken: await clerk.mintSessionToken(e2ePeerClerkUserId),
         rotatedToken: await clerk.mintSessionToken(e2eClerkUserId, { rotation: 'second' }),
+        // A real Clerk session id, so the App refreshes the socket in place on rotation.
+        sessionToken: await clerk.mintSessionToken(e2eClerkUserId, { sid: e2eClerkSessionId }),
+        sessionRotatedToken: await clerk.mintSessionToken(e2eClerkUserId, {
+            rotation: 'second',
+            sid: e2eClerkSessionId,
+        }),
         token: await clerk.mintSessionToken(e2eClerkUserId),
     })
 );
