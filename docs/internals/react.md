@@ -535,6 +535,13 @@ holds whole-App renders per interaction to the ratchet in
   list reorders and moves unread counts on every message anywhere). A hook
   returns named result fields, never a spread query result: a spread touches
   every field, so React Query re-renders the reader on each fetch-status flip.
+* A list surface renders its structure and lets each row select its own entry
+  (`useChatNavigationLayout` and `useChatNavigationEntry` in the sidebar), with
+  only the fields the row draws. Live per-record state (an Agent's presence)
+  is read in the smallest leaf that shows it (`LiveAgentAvatar`). Sidebar rows
+  navigate through `useSidebarNavigate`, not router hooks, which re-render on
+  every location change. `features/shell/sidebar-render-isolation.test.tsx`
+  pins this.
 * A context that carries both a high-churn value and a stable function splits
   them (`AgentActivityProvider`'s snapshot and its listener subscription).
 * A render context that reaches rows through React context must hold its
