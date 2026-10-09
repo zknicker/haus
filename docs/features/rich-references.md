@@ -1,8 +1,9 @@
 ---
-summary: User-facing rich reference behavior for mentions, skills, apps, plugins, files, and future product cards.
+summary: User-facing rich reference behavior for mentions, skills, apps, plugins, files, product chips, time chips, and future product cards.
 read_when:
   - changing chat mentions, rich reference rendering, autocomplete references, or explicit typed links in messages
   - adding a new reference type such as agent, skill, app, plugin, file, directory, pull request, product, ASIN, memory, chat, or session
+  - changing time chips, their detection rule, or how they read in the viewer's timezone
 ---
 
 # Rich References
@@ -105,6 +106,33 @@ visible with an unavailable notice.
 The Agent Manual topic `amazon-product-references` explains the syntax and tool
 access. No system-prompt expansion or special Agent tool call is required for
 rendering.
+
+### Time chips
+
+Haus App renders a clock time written with an explicit timezone as a time chip,
+the same way it finds ASINs: by scanning a settled message's prose when it
+renders. Stored text, previews, and push stay exactly as written. Agents write
+normal prose; the prompt asks them to give every clock time a timezone in the
+reader's zone.
+
+A chip needs a clock and a zone: `3 PM ET`, `3:00 PM EDT`, `15:00 UTC`,
+`9am Pacific`, `Fri, Oct 10 at 3 PM ET`, `tomorrow at 3 PM ET`,
+`3 PM ET on Monday`, or a range like `10–11 AM ET` (one chip). Zones are UTC,
+GMT, and the US ET/CT/MT/PT families (`EST`, `EDT`, `Eastern`, `Eastern Time`,
+…); every US abbreviation means that region's wall clock, so `CST` is US Central
+and `3 PM PST` in July is 3 PM Pacific daylight time. Relative days and a bare
+clock resolve from the message's sent time in the stated zone. Day-only text
+(`tomorrow`, `Friday ET`), vague times (`tomorrow morning`), durations, clocks
+without a zone, code spans and blocks, and blockquotes stay plain text. The
+exact grammar lives with `findTimeChips` in `packages/haus-api/src/time-chips.ts`,
+which native clients mirror.
+
+The chip reads the instant in the viewer's saved Profile timezone (this
+device's zone while it is blank) with reminder day words: "Today at 3:00 PM
+EDT", "Tomorrow at …", "Sat, Oct 10 at …", with the year outside this year.
+Its clock mark and dotted underline match the other tertiary reference chips.
+The hover card lists the viewer's zone, then Pacific, Eastern, and UTC, without
+repeating the viewer's own zone.
 
 ### Shared references
 
