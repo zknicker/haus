@@ -23,7 +23,7 @@ test('a populated Computer page never presents its attach flow while inventory l
             url.pathname
                 .slice('/trpc/'.length)
                 .split(',')
-                .some((name) => name === 'computer.list' || name === 'computer.checkPresence'),
+                .some((name) => name === 'computer.list'),
         async (route) => {
             await held;
             await route.continue();

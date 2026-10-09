@@ -2,16 +2,21 @@ import { WebSocket } from 'ws';
 
 export interface ComputerSocketLivenessTiming {
     intervalMs: number;
-    /** How long an on-demand presence probe waits for any frame before reaping. */
+    /** How long an update's on-demand probe waits for any frame before reaping. */
     probeTimeoutMs: number;
     timeoutMs: number;
 }
 
-/** Routine liveness matches Raft: ping every 30s, reap after 60s of silence. */
+/**
+ * Routine transport liveness is the whole offline-detection contract: no App
+ * probes Computers. Server pings every 10s and reaps after 30s of silence, so a
+ * vanished Computer reads offline within 40s of its last frame. The app-level
+ * heartbeat keeps Raft's slower 30s/60s cadence (`socket.ts`).
+ */
 export const defaultComputerSocketLiveness: ComputerSocketLivenessTiming = {
-    intervalMs: 30_000,
+    intervalMs: 10_000,
     probeTimeoutMs: 3000,
-    timeoutMs: 60_000,
+    timeoutMs: 30_000,
 };
 
 export interface ComputerSocketLiveness {

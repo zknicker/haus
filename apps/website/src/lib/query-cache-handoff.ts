@@ -34,7 +34,7 @@ const unsharedProcedures: readonly (readonly string[])[] = [
 
 /**
  * The one rule for what a new window may copy: settled Server reads (tRPC query
- * keys) only. App-local caches (update checks, presence probes) run their own
+ * keys) only. App-local caches (update checks) run their own
  * side effects, and a read that opts out of mount refetch (`queryPolicy.volatileState`)
  * is kept current by this window's live subscription, so a copy would go stale.
  */

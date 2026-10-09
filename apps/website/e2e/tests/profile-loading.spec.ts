@@ -50,7 +50,7 @@ test('Computers reserves its sections until the first roster confirms an empty r
         displayName: 'Computer loading',
         slug: 'computer-loading',
     });
-    const held = await holdQuery(page, 'computer.list', 'computer.checkPresence');
+    const held = await holdQuery(page, 'computer.list');
     try {
         await page.goto(`/s/${server.slug}/settings/computers`);
         await held.requested;

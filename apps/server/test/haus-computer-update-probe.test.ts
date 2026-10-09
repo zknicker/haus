@@ -5,15 +5,11 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { openSilentComputerSocket } from './raw-computer-socket.ts';
 
-const liveComputerId = 'cmp_probelive0000000';
-const silentComputerId = 'cmp_probesilent00000';
 const silentUpdateComputerId = 'cmp_probesilentupd00';
 const credentials: Record<string, string> = {
-    [liveComputerId]: 'probe-live-computer-credential-000000',
-    [silentComputerId]: 'probe-silent-computer-credential-0000',
     [silentUpdateComputerId]: 'probe-silent-update-credential-00000',
 };
-// Routine liveness is far slower than the probe, so only the probe can reap.
+// Routine liveness is far slower than the update's probe, so only the probe can reap.
 const liveness = { intervalMs: 60_000, probeTimeoutMs: 200, timeoutMs: 120_000 };
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -39,42 +35,6 @@ beforeAll(async () => {
 afterAll(async () => {
     owner?.close();
     await harness?.close();
-});
-
-test('a presence check keeps a Computer that answers the probe attached', async () => {
-    const socket = new WebSocket(computerSocketUrl());
-    await opened(socket);
-    const accepted = message(socket);
-    socket.send(bootstrap(liveComputerId));
-    expect(await accepted).toEqual({ mode: 'ordinary', type: 'bootstrap-accepted' });
-
-    const computers = await owner.trpc.computer.checkPresence.mutate({ serverId });
-
-    expect(computers.find((computer) => computer.id === liveComputerId)?.health).toBe('healthy');
-    expect(socket.readyState).toBe(WebSocket.OPEN);
-    socket.close();
-});
-
-test('a presence check reaps a silent attachment and reports it offline', async () => {
-    const silent = await openSilentComputerSocket(computerSocketUrl());
-    silent.send(bootstrap(silentComputerId));
-    await eventually(async () => {
-        expect(await listedHealth(silentComputerId)).toBe('healthy');
-    });
-
-    const startedAt = Date.now();
-    const computers = await owner.trpc.computer.checkPresence.mutate({ serverId });
-
-    expect(Date.now() - startedAt).toBeLessThan(liveness.probeTimeoutMs + 1000);
-    expect(computers.find((computer) => computer.id === silentComputerId)?.health).toBe('offline');
-    await silent.ended;
-    await eventually(async () => {
-        const events = (await harness.sql`
-            select reason from computer_system_events
-            where computer_id = ${silentComputerId} and event_type = 'disconnected'
-        `) as { reason: string }[];
-        expect(events.map((event) => event.reason)).toEqual(['heartbeat-timeout']);
-    });
 });
 
 test('an update for a silent but still attached Computer is rejected as unreachable', async () => {
@@ -127,23 +87,6 @@ function computerSocketUrl() {
     const url = new URL('/computer/attachment', harness.url);
     url.protocol = 'ws:';
     return url;
-}
-
-function opened(socket: WebSocket) {
-    return new Promise<void>((resolve, reject) => {
-        socket.addEventListener('open', () => resolve(), { once: true });
-        socket.addEventListener('error', () => reject(new Error('socket failed')), {
-            once: true,
-        });
-    });
-}
-
-function message(socket: WebSocket) {
-    return new Promise<unknown>((resolve) => {
-        socket.addEventListener('message', (event) => resolve(JSON.parse(String(event.data))), {
-            once: true,
-        });
-    });
 }
 
 async function eventually(assertion: () => Promise<void>) {

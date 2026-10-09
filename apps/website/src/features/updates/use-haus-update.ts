@@ -2,10 +2,8 @@ import { hausReleaseDiscoverySchema } from '@haus/api';
 import { useQuery } from '@tanstack/react-query';
 import * as React from 'react';
 import { useDesktopUpdate } from '../../hooks/desktop/use-desktop-update.ts';
-import { useComputerPresenceCheck } from '../../hooks/servers/use-computer-presence-check.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useWebsiteUpdate } from '../../hooks/updates/use-website-update.ts';
-import { gateComputersByPresence } from './computer-presence-gate.ts';
 import { projectObservedUpdate } from './haus-update-observation.ts';
 import { applyRunFailures } from './haus-update-run-failures.ts';
 import { type HausUpdateObservations, useHausUpdateRun } from './use-haus-update-run.ts';
@@ -42,12 +40,9 @@ export function useHausUpdate() {
 
 function useHausUpdateState(serverId: string, canOperate: boolean) {
     const websiteUpdate = useWebsiteUpdate();
+    // Server reaps silent attachments, so the listed health is already live.
     const computers = useComputers(serverId, { enabled: canOperate });
-    const presence = useComputerPresenceCheck(serverId, { enabled: canOperate });
-    const gatedComputers = canOperate
-        ? gateComputersByPresence(presence, computers.data ?? [])
-        : [];
-    const visibleComputers = gatedComputers ?? [];
+    const visibleComputers = canOperate ? (computers.data ?? []) : [];
     const offlineComputers = useOfflineComputers(visibleComputers);
     const desktop = useDesktopUpdate();
     const release = useQuery({
@@ -90,7 +85,8 @@ function useHausUpdateState(serverId: string, canOperate: boolean) {
         dismissRestartOffer: sequenced.dismissRestartOffer,
         isRestartOffered: sequenced.isRestartOffered && isAppReady,
         isRunning: sequenced.isRunning,
-        isSettled: gatedComputers !== null,
+        // Hidden until the first Computer list settles, so no Computer update flashes in late.
+        isSettled: !(canOperate && computers.isPending),
         offlineComputers,
         releaseError: release.error,
         restartApp: sequenced.restartApp,

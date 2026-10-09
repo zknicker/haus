@@ -31,10 +31,10 @@ import {
     watchComputerSocketLiveness,
 } from './socket-liveness.ts';
 
-// The app-level heartbeat shares the transport's routine timings.
+// The app-level heartbeat keeps Raft's cadence; transport pings detect silence sooner.
 const heartbeatConfiguration = {
-    intervalMs: defaultComputerSocketLiveness.intervalMs,
-    timeoutMs: defaultComputerSocketLiveness.timeoutMs,
+    intervalMs: 30_000,
+    timeoutMs: 60_000,
     type: 'heartbeat-configuration',
 } as const;
 
