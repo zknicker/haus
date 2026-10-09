@@ -1,5 +1,5 @@
 ---
-summary: Normative contract for focused realtime events — one tRPC subscription per event type, id-only notifications, a normalized per-message transcript cache answered by tail reads, entity invalidation, read generations, and bulk list recovery, explicit refusal classes, React Query recovery, and the removal of the chat_events log.
+summary: Normative contract for focused realtime events — one tRPC subscription per event type, id-only notifications, a normalized per-message transcript cache answered by tail reads and entity invalidation, bulk list recovery, explicit refusal classes, React Query recovery, and the removal of the chat_events log.
 read_when:
   - adding, changing, or removing a realtime subscription or event payload
   - changing how the App, iPhone app, or push consumes Server events
@@ -43,13 +43,16 @@ rather than hardening it.
 3. **Events carry ids and small facts, never rows.** The App answers an event by invalidating
    reads. The one exception is new messages: invalidating a loaded transcript list would refetch
    every loaded page, so a new message gets a **tail read** instead. Messages live in a
-   normalized cache (one `chat.message` entry per message), so a changed message is a plain
+   normalized cache (one `chat.message` entry per message), so a changed annotation is a plain
    invalidation of one entry. The read is the truth, so duplicate, late, and reordered events
    converge with no versioning.
-4. **A failure ends one stream, never the others.** Server-side, an unexpected error ends only
+4. **Messages are append-only.** Haus has no message edit or delete. The only mutable parts of
+   an existing message are its annotations: reactions, the Thread summary, the Cloud Agent work
+   card, and the task card. Only whole Chats and Servers are deleted.
+5. **A failure ends one stream, never the others.** Server-side, an unexpected error ends only
    the subscription it happened in, and is logged. App-side, every subscription restarts
    independently with backoff.
-5. **Refusals are explicit.** Only a coded `membership_lost` refusal clears a Server's caches.
+6. **Refusals are explicit.** Only a coded `membership_lost` refusal clears a Server's caches.
 
 ## Subscription table
 
@@ -65,9 +68,9 @@ again before each delivery; the audience column is the additional rule.
 | `chat.onMessageReactionUpdated` | `messageReactionUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId` | Chat access | **Invalidate** the `chat.message` entry, `chat.search`, `cloudAgentWork.listActive`, `task.list` |
 | `chat.onRead` | `chatReadEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId`, `sequence`, `threadAnchorMessageId` (Thread read only, paired with `parentChatId`) | The reader only | **Invalidate** `chat.list`, skipped when the settled list already shows zero unread for the Chat (or a Thread's parent). A Thread read also invalidates the `threadAnchorMessageId` entry (its summary's unread count); no cached Thread context needed |
 | `thread.onFollowUpdated` | `threadFollowUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `threadChatId`, `parentChatId`, `anchorMessageId`, `followed` | The follower only | **Invalidate** the anchor's `chat.message` entry, `chat.list` |
-| `chat.onLifecycle` | `chatLifecycleEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `action` (`created`, `updated`, `archived`, `unarchived`, `deleted`) | Chat access, except `deleted`, which reaches every Server member (7a873a99e) | **Invalidate** `chat.list`, `chat.listArchived`, `chat.get` (chatId), `agent.chats` |
+| `chat.onLifecycle` | `chatLifecycleEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `action` (`created`, `updated`, `archived`, `unarchived`, `deleted`) | Chat access, except `deleted`, which reaches every Server member (7a873a99e) | **Invalidate** `chat.list`, `chat.listArchived`, `chat.get` (chatId), `agent.chats`; `deleted` also runs the Chat-loss purge (Refusal classes) |
 | `task.onChanged` | `taskChangedEventSchema` (`task.ts`) | `serverId`, `chatId`, `messageId`, `kind` (`created`, `updated`) | Chat access of `chatId` | **Invalidate** the `chat.message` entry, `task.list` |
-| `taskLabel.onUpdated` | `taskLabelUpdatedEventSchema` (`task.ts`) | `serverId`, `labelId` | Every member | **Invalidate** `taskLabel.list`, `task.list`, and every cached `chat.message` entry whose `message.task.labels` contains `labelId` (labels are embedded rows) |
+| `taskLabel.onUpdated` | `taskLabelUpdatedEventSchema` (`task.ts`) | `serverId`, `labelId` | Every member | **Cancel and invalidate** the Server's transcript lists; **invalidate** `taskLabel.list`, `task.list`, and every cached `chat.message` entry whose `message.task.labels` contains `labelId` (labels are embedded rows) |
 | `cloudAgentWork.onUpdated` | `cloudAgentWorkUpdatedEventSchema` (`cloud-agent.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId`, `workId` | Chat access | **Invalidate** the work Message's `chat.message` entry, `cloudAgentWork.listForChat` (chat and parent), `cloudAgentWork.listActive` |
 | `reminder.onUpdated` | `reminderUpdatedEventSchema` (`reminders.ts`) | `serverId`, `reminderId`, `ownerAgentId`, `action` (`scheduled`, `updated`, `snoozed`, `canceled`, `fired`) | Owner/Admin (`requireReminderOperator`), rechecked per delivery | **Invalidate** `reminder.list` (agentId), `reminder.runs`, `reminder.history` (agentId) |
 
@@ -76,16 +79,13 @@ reads are only marked stale and refetch when next observed.
 
 **Derived dependencies.** An entity embeds projections of other rows, so a change invalidates
 every cached entry that embeds it. The cache scan runs over cached `chat.message` data of the
-event's Server. Message edit and delete do not exist yet; when added they are id-only events
-bound by these rows.
+event's Server. Because messages are append-only, reply-context quotes never change.
 
-| Change | Also invalidate or prune |
+| Change | Also invalidate |
 | --- | --- |
 | Task label renamed, recolored, or deleted | Entities whose `message.task.labels` contains the label |
-| Thread reply created, edited, or deleted | The anchor entity in the parent Chat (summary count and preview) |
+| Thread reply created | The anchor entity in the parent Chat (summary count and preview) |
 | Thread read or follow | The anchor entity (per-viewer `unreadCount`, `followed`) |
-| Message edited (future) | Its entity; entities whose reply context quotes it; its anchor if it is a Thread reply; `chat.search` |
-| Message deleted (future) | Remove its entity; prune its id from every cached list variant of its Chat (transcript, each `replyRootMessageId` chain, Thread panel); entities quoting it; its anchor if a Thread reply; `chat.list`, `chat.search`. A prune bumps each list's generation (below) |
 
 ### Server-level streams
 
@@ -137,8 +137,8 @@ renders nothing and the next list read drops its id.
 `httpBatchLink` (`lib/haus-server.tsx`) already folds every query issued in one tick into one
 POST, so a burst costs one round trip. A `chat.messagesById` batch would duplicate the entity
 cache's single flight with its own fan-out and key bookkeeping, and the realistic burst is small:
-reactions, tasks, and work touch one message, and only entries observed in the visible band
-refetch. Recovery never fans out per entity: it refetches list pages (below).
+reactions, tasks, and work touch one message, and only entries observed by mounted rows of shown
+views refetch. Recovery never fans out per entity: it refetches list pages (below).
 The Server runs each call as its own indexed lookup. Add a per-request dataloader in the
 procedure only if `perf:web` or Server traces show `chat.message` batches dominating; the wire
 contract would not change.
@@ -255,9 +255,15 @@ receives no realtime traffic.
   | Per mounted Chat view (shown or kept, at most 5 kept) | `chat.onEngagement`, `chat.onThought`, `chat.onComposition` | 3 × mounted Chat views |
   | Per open turn journal | `agent.onExecutionJournal` | 1 each |
 
+  Query observers are not budgeted the same way. Each shown view has one observer per mounted
+  transcript list and one `chat.message` observer per mounted row; mounted rows grow with scroll
+  history (the render window never unmounts a row), so they are not bounded. Hidden kept views
+  hold zero active entity observers (`subscribed: false`, below).
+
   A unit test mounts the shell with three Servers, one shown and one kept Chat view, as a member
-  and as an Admin, and asserts the exact count (6 + 14 + 6 = 26 as a member; 28 as an Admin),
-  and that a reconnect issues no per-stream start reads beyond the reconnect pass.
+  and as an Admin, and asserts the exact stream count (6 + 14 + 6 = 26 as a member; 28 as an
+  Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
+  reconnect issues no per-stream start reads beyond the reconnect pass.
 
 ### Hooks
 
@@ -303,72 +309,61 @@ changing read. An entity refetches only when invalidated while observed, or when
 row finds it missing (never seeded, or garbage-collected while its list stayed cached): the row
 then fetches it with `chat.message` like any query without data.
 
-**Observation follows the visible band.** `transcript-render-window.ts` keeps its contract that
-rendered rows join and never leave (scroll anchoring and measured heights depend on it), and gains
-a second, separate set: the **observed band**, the rows within one viewport of the visible range
-(the same `overscanMargin`), tracked by an `IntersectionObserver` that reports both entering and
-leaving. A rendered row observes its entity (`useQuery` `subscribed: true`) only while in the
-band; outside it the row keeps rendering its last entity snapshot with `subscribed: false`, so it
-is not an active observer and an invalidation only marks the entry stale. Re-entering the band
-subscribes and fetches once if the entry is invalidated or missing. A hidden kept view
-(`kept-chat-views.tsx`, up to 5) calls the window's `disconnect()`, which empties its band, so
-hidden views observe no entities; `connect()` on reveal re-derives the band. Active entity
-observers per window are therefore bounded by the band rows of the shown views, independent of
-scroll distance and kept-view count.
+**Loaded pages stay loaded.** Transcript lists keep every page the viewer loaded: no `maxPages`,
+no page rollover. `transcript-render-window.ts` keeps its contract that rendered rows join and
+never leave (scroll anchoring and measured heights depend on it). Both prior arts (Review log) do
+the same. The tradeoff is stated, not hidden: memory, mounted rows, entity observers, and the
+cost of a list recovery all grow with how far the viewer scrolled in that list. If long
+transcripts become a measured problem, real row virtualization replaces the render window as a
+separate project.
+
+**Observation.** A mounted row observes its entity (`useQuery`). A hidden kept view
+(`kept-chat-views.tsx`, up to 5) passes `subscribed: false` to its rows' entity queries, so it
+holds no active observers and an invalidation only marks its entries stale; on reveal the rows
+subscribe again and fetch only invalidated or missing entries. That is the one retained-view gate.
 
 **Seeding.** Only canonical projections seed: `chat.messages` pages and tail reads (their
 `{message, threads[]}` from `chats/list-messages.ts`) and `chat.message` itself. A list seeds its
 entities in one batch inside its `queryFn` before returning ids: one `queryClient.setQueryData`
 per message inside a single `notifyManager.batch`, with the message and its Thread summary (or
-null). A 50-message page issues zero entity requests. Whether a given entity is seeded is decided
-by read generations.
+null). A 50-message page issues zero entity requests. Every list and tail read consumes its
+`AbortSignal` and checks it before seeding, so a cancelled read never writes entities.
 
-**Read generations.** `apps/website/src/lib/read-generations.ts` replaces timestamp comparison
-(no `Date.now()` ordering; two operations in one millisecond still order). It is one monotonic
-counter plus a dirty mark per key:
-
-| Operation | Effect |
-| --- | --- |
-| `bump(key)` | Sets the key's mark to the next counter value. Keys are list keys, entity keys (including entities with no cache entry yet), and one key per Server. |
-| `begin()` | Returns the current counter as the read's token. Called before every initial, full, next-page, tail, and entity read. |
-| `isDirtySince(key, token)` | True when the key was bumped after the token. |
-| Pruning | A mark older than every in-flight read's token is dropped, so absent-entity marks do not accumulate. |
-
-Who bumps and how each read commits:
-
-| Read | Bumped by | On result, if its key is unchanged | If dirty since its token |
-| --- | --- | --- | --- |
-| Entity (`chat.message`) | Every invalidation of that entity (reaction, task, work, Thread summary, label, edit) | Commit | Discard and re-read once inside the same `queryFn`, then commit |
-| List initial / full / next page | `chat.onMessageCreated` for that list's Chat, a tail append to it, a prune | Commit ids | Commit ids, then schedule exactly one tail read (one full refetch instead if the dirt includes a prune) |
-| List tail | Same as above | Append ids | Append ids, then exactly one follow-up tail read |
-| Any list's per-entity seed | That entity's key | Seed | Skip that entity; if observed, invalidate it so it fetches |
-| Any commit or seed | That Server's key (membership loss) | — | Drop everything (below) |
-
-So a `chat.onMessageCreated` that arrives while a list's initial read is in flight bumps the
-list, and the initial result is followed by a tail read; a reaction on a message not yet cached
-bumps an absent key, and an older list response cannot seed stale reactions over it.
-
-**New messages: tail read.** On `chat.onMessageCreated`, bump each cached transcript list for
-`chatId` (and lists with an in-flight initial read), then for each list with data:
+**New messages: tail read.** On `chat.onMessageCreated`, set one `tailNeeded` bit on each
+transcript list key for `chatId` that is loaded or has a read in flight. List operations
+(initial, full, next page, tail) are serialized per key, so after the current read settles one
+tail read drains the bit. For each list with data:
 
 - If its newest page is not loaded (`nextAfterSequence` is not null): mark it stale when
   inactive, do nothing when active (a list scrolled into history refetches on return).
-- If its `scannedThroughSequence` is at or past the event's `sequence`, do nothing.
+- If its `scannedThroughSequence` is at or past the highest event `sequence` that set the bit, do
+  nothing.
 - Otherwise read `chat.messages({ ...sameFilter, afterSequence: scannedThroughSequence })`, seed
   the entities, append the ids to the newest page deduplicated by id in sequence order, and store
   the result's `scannedThroughSequence`. If it reports more, read again until caught up. A
   filtered list (an inline-reply chain) resumes after what its last scan examined, never after
   its last match, so it does not rescan; it gains only its own messages; a missed event's gap is
-  filled by the same read with no contiguity rule.
-- **Page rollover**: when the newest page reaches the page limit (50 ids), the next append opens
-  a new page whose page param is `{ afterSequence: <previous page's scannedThroughSequence> }`, so
-  a full refetch re-reads every page at page size and no page grows past the limit. Transcript
-  lists set `maxPages: 8`; scrolling past drops the far end, which refetches when scrolled back.
+  filled by the same read with no contiguity rule. A tail read is idempotent, so a duplicate or
+  late event costs at most one empty read.
 
-**Changed messages: invalidate the entity.** Reaction, Thread summary (reply, read, follow), task,
-label, and Cloud Agent work events bump and invalidate the affected `chat.message` entries with
-`refetchType: 'active'`. Rows in the observed band refetch (one batched POST per tick); the rest
-go stale.
+**Changed annotations: cancel, then invalidate the entity.** Reaction, Thread summary (reply,
+read, follow), task, and Cloud Agent work events, for each affected message id:
+
+1. Add the id to that Chat's **dirty set**.
+2. `cancelQueries` on the exact `chat.message` key, so an older in-flight fetch (including an
+   initial fetch with no data, which a plain invalidation would reuse) cannot win.
+3. `invalidateQueries` on the exact key with `refetchType: 'active'`. Mounted rows of shown views
+   refetch (one batched POST per tick); the rest go stale.
+
+A list read that started before the event can still seed an older copy of that entity. So every
+list read settlement for the Chat (after it seeds) invalidates the current dirty ids the same
+way, and the set clears only when that Chat's in-flight list read count reaches zero.
+Overlapping pre-event reads each re-invalidate, and the last one to settle clears it.
+
+**Label updates.** A label event carries no message ids, so the dirty set cannot cover it.
+`taskLabel.onUpdated` cancels and invalidates the Server's transcript lists (no seeding read
+in flight survives with an old label), then predicate-invalidates cached entities carrying the
+label. Labels change rarely, so the list refetch is acceptable.
 
 **Pending rows retire by nonce.** `features/servers/chat/use-pending-messages.ts` retires an
 optimistic row when a seeded entity in that Chat carries its nonce (the tail read seeds the
@@ -379,14 +374,14 @@ settles; there is no entity write and no snapshot rollback, so a realtime refres
 toggle is never overwritten by a stale snapshot.
 
 **Concurrency.** `apps/website/src/lib/targeted-read-coalescer.ts` owns tail reads, list
-recovery, and every realtime invalidation, and consults read generations:
+recovery, the `tailNeeded` bits, the per-Chat dirty sets and in-flight list counts, and every
+realtime invalidation:
 
-- Single flight per list key for tail reads and recovery refetches; a dirty result schedules
-  exactly one follow-up (table above). Appends commit in request order; a full refetch of the
-  list supersedes pending tail reads for it.
-- Entity reads are single flight by React Query; the generation check covers an older HTTP
-  response that lands after a newer invalidation (a cancelled request whose batched response
-  still arrives).
+- List operations are serialized per list key; appends commit in request order. A set
+  `tailNeeded` bit runs one tail read after the current operation settles, however many events
+  set it.
+- Entity reads are single flight by React Query; `cancelQueries` before each annotation
+  invalidation keeps an older response from landing over a newer one.
 - Invalidations are coalesced per key within one animation frame across all hooks, so a
   message + read + follow burst produces one `chat.list` refetch, and several streams restarting
   together refetch each transcript list once.
@@ -402,11 +397,8 @@ The slice moves the transcript from page-held rows to id lists plus entities:
   messages and `threads`. `useThreadMessages` (`hooks/servers/use-thread-messages.ts`) and
   `use-thread-inline-replies.ts` take the same shape.
 - `hooks/servers/use-chat-message.ts` (new): `useChatMessage` reads one entity under the family
-  defaults above and takes the row's band state as `subscribed`; `chat-message-entities.ts` (new)
-  owns the key, `setQueryDefaults` registration, seeding, and the derived-dependency scans;
-  `lib/read-generations.ts` (new) owns generations.
-- `features/chats/transcript-render-window.ts`: gains the observed band (enter and leave) beside
-  the rendered set; `disconnect()` empties the band.
+  defaults above and takes the view's shown state as `subscribed`; `chat-message-entities.ts`
+  (new) owns the key, `setQueryDefaults` registration, seeding, and the derived-dependency scans.
 - `hooks/servers/message-page-sharing.ts`: deleted. Its job (keep unchanged messages
   referentially stable across a sliding page window) disappears once pages hold ids and each
   entity is its own query.
@@ -434,25 +426,32 @@ invalidating one entity re-renders exactly that row.
 
 | Signal | Meaning | App action |
 | --- | --- | --- |
-| `FORBIDDEN` + `hausRefusal: 'membership_lost'` | The viewer is no longer a member, or the Server was deleted | Final for every stream of that Server. Run the membership-loss path once (below): close sibling streams, clear the Server's caches, fall back to unavailable if it was active; invalidate `server.list`. |
+| `FORBIDDEN` + `hausRefusal: 'membership_lost'` | The viewer is no longer a member, or the Server was deleted | Final for every stream of that Server. Run the Server-loss path once (below), fall back to unavailable if it was active, and invalidate `server.list`. |
 | `FORBIDDEN` + `hausRefusal: 'role_required'` | The viewer lacks the stream's role | Stop that one stream. No cache clear. It remounts if a role change makes it authorized. |
 | `UNAUTHORIZED` | The Clerk session token expired or was rejected | Refresh the token and reconnect, then restart with backoff. Final only when Clerk confirms sign-out. |
 | `FORBIDDEN` or `NOT_FOUND` with no `hausRefusal`, or anything else | Not a refusal | Restart with backoff like any error. |
 
-**Membership-loss path**, idempotent per Server, in order:
+**Server-loss path** (`membership_lost`), idempotent per Server, in order:
 
-1. `bump(server key)` in read generations, so every list, tail, and entity read already in flight
-   for that Server drops its commit and seeds when it lands.
-2. Close every sibling stream of that Server client-side (the sentinel topology above).
-3. Remove every query Server-scoped to `serverId`: a validated predicate over the tRPC query key's
-   `input.serverId`, App query keys that embed the Server id, and `server.bySlug`, whose key holds
-   only `{ slug }` (`hooks/servers/use-server.ts`), matched by cached result identity
-   (`data.id === serverId`). An explicit, tested exception list keeps global data
-   (`server.list`, account and settings reads). This replaces the family list in
+1. Close every stream of that Server client-side (the sentinel topology above).
+2. Abort the coalescer's tail reads and recoveries for that Server.
+3. `cancelQueries`, then `removeQueries`, for every query Server-scoped to `serverId`: a validated
+   predicate over the tRPC query key's `input.serverId`, App query keys that embed the Server id,
+   and `server.bySlug`, whose key holds only `{ slug }` (`hooks/servers/use-server.ts`), matched
+   by cached result identity (`data.id === serverId`). An explicit, tested exception list keeps
+   global data (`server.list`, account and settings reads). This replaces the family list in
    `hooks/servers/membership-caches.ts`.
 
+Aborted readers never seed, because every list and tail read checks its `AbortSignal` before
+seeding (Seeding, above). No Server generation is needed.
+
+**Chat-loss purge** (`chat.onLifecycle` `deleted`) runs the same steps scoped to one Chat: close
+that Chat's per-view streams, abort its tails, cancel and remove its transcript lists and
+`chat.message` entities, drop its pending rows, and evict its retained kept view.
+
 Tests: one query per Server-scoped family across two Servers, only the lost Server's removed,
-`server.bySlug` included; a list read in flight across the loss lands and seeds nothing.
+`server.bySlug` included; a list read in flight across the loss lands and seeds nothing; a
+deleted Chat leaves no list, entity, pending row, or kept view behind.
 
 ## Recovery
 
@@ -466,18 +465,24 @@ on a trigger. These are the triggers.
 | Window focus (browser `visibilitychange`/`focus`, and Electron `BrowserWindow` focus through the desktop bridge into `focusManager`) | Refetch active reads whose data is older than the focus stale window, **3 minutes**; `chat.message` never refetches on focus, transcript lists refetch in bulk. A quick alt-tab is silent. |
 | Mount or observe | A read older than `queryPolicy.syncedSnapshot` (30 s) refetches on mount, as React Query normally does. Inactive reads marked stale by an event refetch here. An entity refetches on observe only when invalidated or missing. |
 
-**Bulk list recovery.** Entities are never recovered one by one. Recovery refetches each
-transcript list's loaded pages (at most `maxPages`, each at page size by the rollover rule)
-through the canonical projector; each page reseeds its entities under the generation rules,
-which also refreshes parent Thread anchors after a missed Thread reply or a cross-device read.
-Active lists refetch now; inactive lists are marked stale. Cost is bounded by
-`lists × maxPages` page reads and zero `chat.message` requests.
+**Bulk list recovery.** Entities are never recovered one by one, and entity queries never join
+a bulk pass. Recovery refetches each transcript list's loaded pages through the canonical
+projector; each page reseeds its entities (dirty ids re-invalidated on settle), which also
+refreshes parent Thread anchors after a missed Thread reply or a cross-device read. Active lists
+refetch now; inactive lists are marked stale. Cost is one page read per loaded page and zero
+`chat.message` requests, so it grows with how far the viewer scrolled (Loaded pages stay
+loaded, above).
+
+**Liveness.** The tRPC `wsClient` `keepAlive` ping/pong (15 s interval, 5 s pong timeout) detects
+a stalled socket and reconnects it. Error and normal completion restart only the affected
+subscription with backoff. Haus does **not** adopt Raft's heartbeat carrying the Server's latest
+sequence: it is a global cursor in disguise, cannot say which Chat is stale (so it would trigger
+a noisy global refetch without replay), and conflicts with the no-cursor principle.
 
 **Residual limitation.** A single frame selectively dropped on a live stream that does not error,
 in a window that stays focused and never blurs, stays missing until the next focus after the
 stale window, a reconnect, a stream restart, or a related event on the same Chat (whose tail read
-recovers any gap). There is no per-stream liveness probe; socket PING only detects a dead socket.
-This is accepted.
+recovers any gap). Ping/pong only detects a dead socket. This is accepted.
 
 Forbidden: periodic reconnects, periodic refetch timers for realtime-covered reads, remount
 refetches beyond React Query's normal stale rules, and any client replay.
@@ -510,14 +515,15 @@ Burst cases join both lanes:
   per frame; entity invalidations in one tick produce one batched POST; `task.list` /
   `taskLabel.list` events with no mounted task view produce no request.
 
-Cache budgets (render-budget lane, numbers asserted exactly where the design fixes them):
+Cache budgets (render-budget lane):
 
 | Case | Budget |
 | --- | --- |
-| Long scroll: 2,000-message transcript scrolled end to start and back | Active `chat.message` observers never exceed the observed band's rows; transcript list holds at most 8 pages; a reaction burst on scrolled-past messages issues zero requests |
-| 5 kept views, one shown | Hidden views observe zero entities; an invalidation of a message in a hidden view issues no request until reveal |
-| Focus after the stale window, 5 kept views scrolled deep | Requests are only transcript page reads (at most `views × maxPages`) and the other active reads, each once; zero `chat.message` requests |
-| Heap | After the long scroll and kept-view eviction, advancing past `gcTime` returns the `chat.message` entry count to the shown views' cached ids, and the CDP heap delta stays under the lane's recorded baseline plus margin |
+| 5 kept views, one shown | Hidden views hold zero active entity observers; an invalidation of a message in a hidden view issues no request until reveal |
+| Focus after the stale window, 5 kept views | Requests are only transcript page reads (one per loaded page of active lists) and the other active reads, each once; zero `chat.message` requests |
+
+Memory and observer counts for long scrolls are deliberately not budgeted (Loaded pages stay
+loaded).
 
 ## Removing `chat_events`
 
@@ -575,18 +581,17 @@ it adopts the same model in its own shape:
   summary) and, per open transcript (each stack entry, Thread, or inline-reply chain), an ordered
   id list with its paging and `scannedThroughSequence`. Views observe one entity by id. Only
   canonical `chat.messages` / `chat.message` projections write entities; search results stay
-  separate. Writes follow the App's read-generation rules: a monotonic counter with marks per
-  list, per entity (absent ones included), and per Server; a load commits or writes an entity
-  only when its key is unchanged since the load began, otherwise it runs one follow-up read.
-- **Tail read** on `chat.onMessageCreated`: bump the Chat's lists (including one whose initial
-  load is in flight), then for each open list whose newest page is loaded, read
-  `chat.messages(afterSequence: scannedThroughSequence)` with the list's filter, write entities,
-  and append ids; single flight per list with one dirty follow-up. A Thread reply also refreshes
-  its `threadAnchorMessageId` entity.
+  separate. Loaded pages stay loaded, as on the App.
+- **Tail read** on `chat.onMessageCreated`: set `tailNeeded` on the Chat's lists (including one
+  whose load is in flight); loads are serialized per list, and after the current one settles one
+  tail read `chat.messages(afterSequence: scannedThroughSequence)` with the list's filter writes
+  entities and appends ids. A Thread reply also refreshes its `threadAnchorMessageId` entity.
 - **Per-message refresh** on reaction, Thread summary (reply, read via `threadAnchorMessageId`,
-  follow), task, label (entities whose task carries the label), and Cloud Agent events: bump the
-  entity and, if a view shows it, read `chat.message`; otherwise refresh it when it next
-  appears. Single flight per entity.
+  follow), task, and Cloud Agent events: add the id to the Chat's dirty set, cancel any
+  in-flight `chat.message` load for it, and, if a view shows it, read it again; otherwise refresh
+  it when it next appears. Each list load that settles re-refreshes the dirty ids; the set clears
+  when the Chat has no list load in flight. A label event reloads the Server's open lists and
+  refreshes entities carrying the label.
 - `HausStoreEventStreams.swift`: replace the `chat.onEvent` stream with the focused streams the
   iPhone renders: `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`,
   `thread.onFollowUpdated`, `chat.onLifecycle`, `cloudAgentWork.onUpdated`, `task.onChanged`,
@@ -599,8 +604,8 @@ it adopts the same model in its own shape:
   and `taskLabel.onUpdated` → every loaded task lens (`HausStoreMessageLoading.swift`);
   `cloudAgentWork.onUpdated` → active Cloud Agent work; `chat.onLifecycle` and `chat.onRead` →
   the chat list.
-- Refusals follow the App's classes: `membership_lost` bumps the Server generation, stops that
-  Server's streams, and clears it; `role_required` stops one stream; `UNAUTHORIZED` refreshes the
+- Refusals follow the App's classes: `membership_lost` stops that Server's streams, cancels its
+  loads (a cancelled load writes nothing), and clears it; a deleted Chat is purged the same way; `role_required` stops one stream; `UNAUTHORIZED` refreshes the
   token and retries.
 - Delete `HausStoreChatCatchUp.swift` and the `chat.eventHead` step of
   `HausStoreServerReload.swift`.
@@ -609,9 +614,9 @@ it adopts the same model in its own shape:
   `TaskModels`, and `ChatReadModels` (gain `advanced`). Update `ChatEventReactionTests`,
   `ChatReadModelsTests`, `ThreadFollowModelsTests`, `TRPCClientTests`,
   `TRPCSubscriptionOutageTests`, and add tests that one stream's failure restarts only that
-  stream and reloads only its projections, that a stale list load does not overwrite a newer
-  entity (absent-entity case included), and that a missed Thread reply refreshes the parent
-  anchor after restart.
+  stream and reloads only its projections, that a list load started before a reaction does not
+  leave a stale entity (absent-entity case included), and that a missed Thread reply refreshes
+  the parent anchor after restart.
 
 ## Test plan
 
@@ -641,34 +646,36 @@ covering anything the e2e does not.
   above.
 - Protocol gate (`apps/server/test/haus-app-protocol.test.ts`): a protocol 8 client gets
   `PRECONDITION_FAILED` on HTTP and on socket subscribe, and the App shows update-required.
-- App unit: each stream hook's response; the coalescer (tail single flight, dirty follow-up,
-  ordered appends, frame-coalesced invalidations, one bulk refetch per list when several streams
-  restart); tail-read append per list (an inline-reply chain gains only its chain and resumes
-  from `scannedThroughSequence`; a gap is filled; duplicates dedupe; page rollover at 50; nonce
-  retirement); one-entity invalidation re-renders one row; refusal classes (role refusal clears
-  nothing; membership loss bumps the Server generation, closes siblings, and clears only that
-  Server's keys including `server.bySlug`; `UNAUTHORIZED` retries); restart policy
-  (`subscription-restart.test.ts`) including restart on normal completion; focus refetch
-  honoring the 3-minute window and skipping `chat.message`; the subscription budget.
-- Read generations (`read-generations.test.ts` and the coalescer tests):
-  - **Held initial read**: a list's initial read is held; `chat.onMessageCreated` arrives; the
-    initial result commits and exactly one tail read follows and appends the message.
-  - **Absent entity**: a reaction event bumps a message with no cache entry; an older list read
-    lands and does not seed it; the row fetches it on observe.
-  - **Stale full read after tail append**: a full refetch starts, a tail read appends, the full
-    result lands; the appended ids survive through the one follow-up tail read.
-  - **Equal timestamps**: with `Date.now` frozen, a bump and a read begun in the same
-    millisecond still order by counter.
-  - **Entity re-read**: an entity read lands after a newer bump; it is discarded and re-read once.
-  - **Pruning**: marks older than every in-flight token are dropped.
+- App unit: each stream hook's response; the coalescer (per-key serialization, ordered appends,
+  frame-coalesced invalidations, one bulk refetch per list when several streams restart);
+  tail-read append per list (an inline-reply chain gains only its chain and resumes from
+  `scannedThroughSequence`; a gap is filled; duplicates dedupe; nonce retirement); one-entity
+  invalidation re-renders one row; refusal classes (role refusal clears nothing; membership loss
+  closes siblings, aborts tails, and cancels and removes only that Server's keys including
+  `server.bySlug`; `UNAUTHORIZED` retries); restart policy (`subscription-restart.test.ts`)
+  including restart on normal completion; focus refetch honoring the 3-minute window and
+  skipping `chat.message`; the subscription budget.
+- Race cases (coalescer tests):
+  - **Held initial read**: a list's initial read is held; `chat.onMessageCreated` arrives (twice);
+    the initial result commits and exactly one tail read follows and appends the message.
+  - **Absent entity**: a reaction arrives for a message with no cache entry while a list read is
+    in flight; the list lands and seeds, then the dirty id is invalidated and the row shows the
+    new reaction.
+  - **Overlapping list reads**: two pre-event reads of one Chat settle in either order; the
+    dirty set survives the first and clears only after the second, and the entity ends current.
+  - **Held direct entity fetch**: an initial `chat.message` fetch is held; a reaction event
+    cancels it and the refetch wins.
+  - **Label race**: a list read in flight across a label rename is cancelled and refetched; no
+    entity keeps the old label.
+  - **Aborted seed**: a list read in flight across Server or Chat loss lands and seeds nothing.
 - Projections and dependencies: a search result never seeds (task-anchor and Thread-anchor
   poisoning cases: a later search leaves `task` and `thread` intact); a label update invalidates
   exactly the cached entities carrying it; a Thread read with no cached Thread context refreshes
   the anchor; a missed Thread reply heals the anchor through bulk list recovery; optimistic
   reaction overlay survives a concurrent realtime refresh without rollback.
 - Entity policy: `setQueryDefaults` applies `gcTime`, `staleTime`, and no focus/reconnect refetch
-  to a seeded-only entry; a GC'd entity whose id is still listed fetches on observe; leaving the
-  observed band unsubscribes; a hidden kept view observes nothing.
+  to a seeded-only entry; a GC'd entity whose id is still listed fetches on observe; a hidden
+  kept view holds no active entity observers.
 
 ### App e2e: the incident detector
 
@@ -766,7 +773,7 @@ Docs: `docs/operations/testing.md` names the restart control and the incident de
 | --- | --- |
 | API (done) | `packages/haus-api/src/{realtime-events,chat-events,chat-message-read,chat,chat-read,chat-message-receipts,chat-message-reactions,task,cloud-agent,reminders,agent-inbox-conversations,app-protocol,index}.ts`, `openapi.yaml`, `src/generated/openapi.d.ts` |
 | Server | `apps/server/src/realtime/` (new), every publish call site above, `haus-api/*/on-*.ts` procedures and routers, `chat.message` procedure, `server/membership-loss.ts` + tRPC `errorFormatter`, `chats/` event files, `push/`, `agent-api/inbox-conversations.ts`, send replay, schema + migration, `development/seed-message-events.ts`, `apps/server/test/*` |
-| App | `apps/website/src/hooks/realtime/`, `lib/targeted-read-coalescer.ts`, `lib/read-generations.ts`, `features/chats/transcript-render-window.ts`, `features/servers/chat/kept-chat-views.tsx`, `lib/query-reconnect-recovery.ts`, the transcript reshaping files above, `hooks/servers/chat-events/` (deleted), `use-server-events.ts` (split), `hooks/servers/membership-*`, notifications, `lib/query-*`, `lib/pushed-snapshot*`, server shell, desktop focus bridge |
+| App | `apps/website/src/hooks/realtime/`, `lib/targeted-read-coalescer.ts`, `features/servers/chat/kept-chat-views.tsx`, `lib/query-reconnect-recovery.ts`, the transcript reshaping files above, `hooks/servers/chat-events/` (deleted), `use-server-events.ts` (split), `hooks/servers/membership-*`, notifications, `lib/query-*`, `lib/pushed-snapshot*`, server shell, desktop focus bridge |
 | App e2e | `apps/website/e2e/start-haus-server.ts`, `e2e/support/server.ts`, `e2e/tests/realtime-server-restart.spec.ts`, `e2e/tests/chat-event-recovery.spec.ts` (deleted) |
 | Computer | `apps/computer/src/agent-cli/{agent-inbox-schemas,agent-inbox-format}.ts`, `commands/agent-inbox.ts` and tests |
 | iPhone | `apps/ios-swift` files listed above |
@@ -779,7 +786,7 @@ Codex adversarial review of the first draft (2026-10-09), and dispositions:
 | # | Finding | Disposition |
 | --- | --- | --- |
 | 1 | Role refusals and `UNAUTHORIZED` conflated with membership loss | Adopted: `hausRefusal` classes (`membership_lost`, `role_required`); `UNAUTHORIZED` refreshes and retries; role-gated streams mount only for authorized roles. |
-| 2 | Cross-stream ordering races on patched projections; version mutable projections | Adapted: resolved by the normalized transcript cache. Events carry ids only; each message is its own `chat.message` entry, invalidated on change, so the Server read is the truth and no versioning is needed. List seeding cannot overwrite a newer entity (the `startedAt` guard, replaced by read generations in round 2). |
+| 2 | Cross-stream ordering races on patched projections; version mutable projections | Adapted: resolved by the normalized transcript cache. Events carry ids only; each message is its own `chat.message` entry, invalidated on change, so the Server read is the truth and no versioning is needed. List seeding cannot overwrite a newer entity (the `startedAt` guard, replaced by read generations in round 2, then by cancellation and the dirty set in round 3). |
 | 3 | Thread unread patching not idempotent or gap-safe | Adapted: resolved by the normalized cache. The Thread summary lives on the anchor's entity and is invalidated, then reread with the Server's per-viewer rule. |
 | 4 | Gap rule invalid for filtered transcript queries | Adapted: resolved by the normalized cache. Each list tail-reads with its own filter; a gap is filled by the same read, with no contiguity rule. |
 | 5 | iOS recovery omits owned reads, restarts the whole unit | Adopted: independent per-stream restart, owned-projection reload, `taskLabel.onUpdated` added, entity map plus id lists. |
@@ -794,7 +801,8 @@ Codex adversarial review of the first draft (2026-10-09), and dispositions:
 | 14 | Tests do not isolate guarantees; model-backed realtime kit disproportionate | Adopted: a deterministic e2e with a real Server restart, a forced subscription error, and a refused resubscribe replaces the live realtime kit; it states why it fails on `origin/main`. One factory integration test kept; the live tracer keeps only a restart smoke step. |
 | 15 | Inbox cursor boundary tests; preserve nonce lookup scope | Adopted: boundary tests listed; replay keeps `(serverId, chatId, nonce)`. |
 
-Codex adversarial review, round 2 (2026-10-09), and dispositions:
+Codex adversarial review, round 2 (2026-10-09), and dispositions (read generations, the
+observed band, `maxPages`, and edit/delete rules were superseded in round 3):
 
 | # | Finding | Disposition |
 | --- | --- | --- |
@@ -809,3 +817,26 @@ Codex adversarial review, round 2 (2026-10-09), and dispositions:
 | 9 | Inbox no-duplicate paging impossible under mutation | Adopted: guaranteed for stable data only; reordering under concurrent mutation accepted and tested. |
 | 10 | Protocol 9 split across clients | Adopted: one release gate for protocol 9, the Server cutover, App, and iPhone. |
 | 11 | Budget numbers and deletion wording wrong | Adopted: budget table counted from the stream tables (26 member / 28 Admin in the test fixture); deletion wording matches the sentinel topology. |
+
+Codex adversarial review, round 3 (2026-10-09), of the owner's simplification. New owner facts:
+messages are append-only (no edit or delete); only whole Chats and Servers are deleted; use the
+standard React Query answer with no invented machinery. Dispositions:
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| 1 | Dirty-set lifetime underspecified for overlapping list reads | Adopted: every list settlement invalidates the current dirty ids; the set clears only when the Chat's in-flight list count reaches zero. |
+| 2 | Dirty set misses a direct `chat.message` initial fetch (invalidation reuses the in-flight promise) | Adopted: annotation events `cancelQueries` then `invalidateQueries` on the exact entity. |
+| 3 | Label events carry no message ids | Adopted: cancel and invalidate the Server's transcript lists, then predicate-invalidate carrying entities. No label generations. |
+| 4 | Cache clearing needs cancellation, not a Server generation | Adopted: close streams, abort tails, `cancelQueries`, `removeQueries`; list and tail reads check their `AbortSignal` before seeding; whole-Chat deletion purges lists, entities, pending rows, and the kept view. |
+| 5 | Simplification gives up round 2's bounded memory and observers | Accepted as a product tradeoff: loaded pages stay loaded; the bounds claims, `maxPages`, rollover, observed band, read generations, long-scroll and heap budgets are removed. Real row virtualization is a separate future project if long transcripts become a measured problem. One retained-view gate kept: hidden kept views pass `subscribed: false`. |
+| 6 | Do not adopt Raft's latest-sequence heartbeat | Adopted: ping/pong plus per-stream restart; the heartbeat is a global cursor that cannot name the stale Chat. |
+| 7 | Round-2 dispositions | #1 by tail-after-settle, entity cancellation, and the dirty set; #2 and #3 unchanged; #4 deliberately relaxed (row 5); #5 reduced to real annotations, edit/delete machinery deleted, whole-Chat purge added; #6 by abort/cancel/remove plus the sentinel; #7–#10 unchanged; #11 rewritten for this topology. |
+
+**Prior art.**
+
+- Raft: per-event socket.io listeners, every loaded row stays mounted with no page cap and no
+  virtualization; jump to latest is a fresh tail load.
+- Grok Bot: one SSE stream, reconnect refetches current state with no cursor replay, tail loads
+  with on-demand older pages and no page cap.
+
+Neither tracks an observed band or caps loaded pages.
