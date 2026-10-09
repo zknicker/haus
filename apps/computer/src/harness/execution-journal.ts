@@ -29,6 +29,8 @@ const journalDirectory = 'execution-journal';
 const runIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/u;
 
 export async function createComputerExecutionJournal(input: {
+    /** Told after every write, so an open activity view re-reads instead of polling. */
+    activity?: { journalChanged(): void };
     agentRoot: string;
     now?: () => Date;
     runId: string;
@@ -55,7 +57,7 @@ export async function createComputerExecutionJournal(input: {
         document.error = undefined;
     }
     await startExecutionJournalLog(path, document);
-    return new FileExecutionJournal(path, document, now);
+    return new FileExecutionJournal(path, document, now, () => input.activity?.journalChanged());
 }
 
 /**

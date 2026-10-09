@@ -197,3 +197,28 @@ export type AgentExecutionJournalResult = z.infer<typeof agentExecutionJournalRe
 
 export const agentTurnDetailRequestSchema = agentExecutionJournalRequestSchema;
 export const agentTurnDetailResultSchema = agentExecutionJournalResultSchema;
+
+/**
+ * Computer → Server: a running turn's journal gained evidence (reasoning text, a
+ * tool step, a sub-agent patch). It carries no evidence itself, so the journal
+ * still travels only in response to an explicit request; an open view re-reads.
+ * Computer throttles it to about once a second per run.
+ */
+export const agentExecutionJournalChangedFrameSchema = z
+    .object({
+        agentId: idSchema,
+        runId: idSchema,
+        type: z.literal('agent-execution-journal-changed'),
+    })
+    .strict();
+
+export type AgentExecutionJournalChangedFrame = z.infer<
+    typeof agentExecutionJournalChangedFrameSchema
+>;
+
+/** What `agent.onExecutionJournal` yields to an open turn view: its run changed. */
+export const agentExecutionJournalChangeSchema = z
+    .object({ agentId: idSchema, runId: idSchema })
+    .strict();
+
+export type AgentExecutionJournalChange = z.infer<typeof agentExecutionJournalChangeSchema>;

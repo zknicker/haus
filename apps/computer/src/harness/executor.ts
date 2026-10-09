@@ -104,10 +104,8 @@ export { HarnessTurnFailedError } from './turn-stream.ts';
 
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
     input.turnTimings?.setReasoningEffort(input.reasoningEffort);
-    const journal = await createComputerExecutionJournal({
-        agentRoot: input.agentRoot,
-        runId: input.runId,
-    });
+    // The run's activity relays journal changes to an open view.
+    const journal = await createComputerExecutionJournal(input);
     const operation = Effect.tryPromise({
         catch: (cause) => new HarnessStreamForeignError({ cause }),
         try: async () => {

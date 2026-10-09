@@ -208,6 +208,17 @@
         "timer": 2
       }
     },
+    "apps/computer/src/agent-run-frames.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each run holds at most one unref'd trailing journal-change timer that fires once within a second and sends a dropped-if-disconnected presentation frame.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 2
+      }
+    },
     "apps/computer/src/harness/thought-narrator.ts": {
       "disposition": "finite-cleanup",
       "reason": "Each run holds at most one pending thought timer, which fires once or is cancelled when the run's narrator closes.",

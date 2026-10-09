@@ -25,7 +25,8 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
     constructor(
         readonly path: string,
         private readonly document: ComputerExecutionJournalDocument,
-        private readonly now: () => Date
+        private readonly now: () => Date,
+        private readonly onWritten: () => void = () => undefined
     ) {}
 
     async recordToolCall(input: {
@@ -202,6 +203,8 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
         const records = this.pending;
         this.pending = [];
         await this.enqueueWrite(() => appendExecutionJournalRecords(this.path, records));
+        // Only after the write: a reader the notice wakes must find these records.
+        this.onWritten();
     }
 
     private writeSnapshot(): Promise<void> {

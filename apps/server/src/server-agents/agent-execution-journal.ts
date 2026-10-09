@@ -41,7 +41,7 @@ export async function requestAgentExecutionOutlines(
 }
 
 /** Owners and Admins only; the Agent's assigned Computer holds the evidence. */
-async function requireExecutionEvidenceComputer(
+export async function requireExecutionEvidenceComputer(
     db: HausDatabase,
     member: HausUser | null,
     input: { agentId: string; serverId: string }

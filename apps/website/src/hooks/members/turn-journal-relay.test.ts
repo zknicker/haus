@@ -92,3 +92,30 @@ test('closing or switching turns discards an in-flight response and queued work'
     expect(snapshots).toEqual([]);
     expect(reads).toBe(1);
 });
+
+test('a journal-change notice reads now while visible and once on reveal while hidden', async () => {
+    let visible = true;
+    let reads = 0;
+    const relay = createTurnJournalRelay({
+        isVisible: () => visible,
+        publish: () => undefined,
+        read: () => {
+            reads += 1;
+            return Promise.resolve(available);
+        },
+        runId: 'run_one',
+    });
+    await relay.changed();
+    expect(reads).toBe(1);
+
+    visible = false;
+    await relay.changed();
+    await relay.changed();
+    expect(reads).toBe(1);
+    visible = true;
+    await relay.shown();
+    expect(reads).toBe(2);
+    // Nothing was held, so a later reveal reads nothing.
+    await relay.shown();
+    expect(reads).toBe(2);
+});

@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { seedCoveWorkspace } from '@haus/agent-workspace';
 import type { TraceCarrier } from '@haus/effect';
-import { AgentActivityRun } from './agent-activity-run.ts';
+import type { AgentActivityRun } from './agent-activity-run.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './agent-commands.ts';
 import {
     readAgentSeedConfiguration,
@@ -11,7 +11,7 @@ import {
     seedOrdinaryWorkspace,
 } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
-import { createRunFrames } from './agent-run-frames.ts';
+import { createRunPresentation } from './agent-run-frames.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
 import { computerEntrypoint } from './build-identity.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
@@ -24,10 +24,7 @@ import {
     runHarnessTurn,
 } from './harness/executor.ts';
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
-import {
-    type AgentThoughtNarrator,
-    createAgentThoughtNarrator,
-} from './harness/thought-narrator.ts';
+import type { AgentThoughtNarrator } from './harness/thought-narrator.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
 import {
@@ -158,12 +155,12 @@ async function runLedgeredLaunch(
     const { proxy, proxyToken } = host;
     proxy.setTraceContext(options.turnTraceContext);
     proxy.setOnCommittedSend((send) => options.turnTimings?.recordSend(send));
-    const frames = createRunFrames({ ...command, sendFrame: options.sendFrame });
-    const activity = new AgentActivityRun(options.runtime, frames.activity, {
-        onCounts: (summary) => ledger.record(summary),
-        seed: ledger.seed,
+    const { activity, thoughts } = createRunPresentation({
+        ...command,
+        ledger,
+        runtime: options.runtime,
+        sendFrame: options.sendFrame,
     });
-    const thoughts = createAgentThoughtNarrator({ emit: frames.thought });
     proxy.setActivityRun(activity);
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');

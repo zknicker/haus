@@ -204,6 +204,10 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
                 },
             ],
         };
+        // The Computer announces the journal change; the view no longer polls for it.
+        computer.send(
+            JSON.stringify({ agentId: agent.id, runId, type: 'agent-execution-journal-changed' })
+        );
         await expect(
             page.getByText('The latest reasoning is now visible.', { exact: true })
         ).toBeAttached();

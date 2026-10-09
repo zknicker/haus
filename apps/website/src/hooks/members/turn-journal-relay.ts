@@ -16,15 +16,22 @@ export const emptyTurnJournal: TurnJournalSnapshot = {
     refreshError: null,
 };
 
-/** One scoped relay, one in-flight read, and one trailing refresh for an event burst. */
+/**
+ * One scoped relay, one in-flight read, and one trailing refresh for an event
+ * burst. A journal-change notice that lands while the page is hidden waits for
+ * the page to show again and then reads once.
+ */
 export function createTurnJournalRelay(input: {
+    isVisible?: () => boolean;
     read: () => Promise<AgentExecutionJournalResult>;
     runId: string;
     publish: (snapshot: TurnJournalSnapshot) => void;
 }) {
+    const isVisible = input.isVisible ?? (() => true);
     let disposed = false;
     let pending = false;
     let dirty = false;
+    let changedWhileHidden = false;
     let snapshot = emptyTurnJournal;
 
     async function refresh() {
@@ -66,6 +73,22 @@ export function createTurnJournalRelay(input: {
 
     return {
         refresh,
+        /** The Computer announced a journal change for this run. */
+        changed() {
+            if (isVisible()) {
+                return refresh();
+            }
+            changedWhileHidden = true;
+            return Promise.resolve();
+        },
+        /** The page is visible again; read once if a change was held. */
+        shown() {
+            if (!changedWhileHidden) {
+                return Promise.resolve();
+            }
+            changedWhileHidden = false;
+            return refresh();
+        },
         dispose() {
             disposed = true;
         },

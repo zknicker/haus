@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query';
 import * as React from 'react';
 import {
     shouldRequestExecutionJournal,
@@ -34,6 +35,7 @@ export function useTurnJournal(input: {
             return;
         }
         const current = createTurnJournalRelay({
+            isVisible: () => document.visibilityState === 'visible',
             read: () => utils.client.agent.executionJournal.query({ agentId, runId, serverId }),
             runId,
             publish: (snapshot) => setState({ scope, snapshot }),
@@ -47,22 +49,28 @@ export function useTurnJournal(input: {
     }, [agentId, allowed, runId, scope, serverId, utils]);
 
     React.useEffect(() => {
-        if (!allowed) {
-            return;
-        }
         // Settlement gets a final read even when its activity subscription closes first.
-        if (!live) {
+        if (allowed && !live) {
             void relay.current?.refresh();
-            return;
         }
-        // Reasoning deltas have no semantic Server event. Refresh only an open live view.
-        const timer = window.setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                void relay.current?.refresh();
-            }
-        }, 1000);
-        return () => window.clearInterval(timer);
     }, [allowed, live]);
+
+    // Reasoning and sub-agent steps change the journal without a semantic
+    // activity event; the Computer announces each change instead of a poll.
+    hausTrpc.agent.onExecutionJournal.useSubscription(
+        { agentId: agentId ?? '', runId: runId ?? '', serverId },
+        {
+            enabled: allowed && live && Boolean(agentId && runId),
+            onData: () => void relay.current?.changed(),
+            // A change between the first read and this subscription would otherwise wait.
+            onStarted: () => void relay.current?.refresh(),
+        }
+    );
+    React.useEffect(() => {
+        const onVisibility = () => void relay.current?.shown();
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => document.removeEventListener('visibilitychange', onVisibility);
+    }, []);
 
     useAgentActivityListener((event) => {
         if (allowed && event.agentId === agentId && event.runId === runId) {
@@ -80,6 +88,18 @@ export function useTurnJournal(input: {
             void relay.current?.refresh();
         }
     }, [allowed, connection]);
+    // A network gap can drop notices while the websocket survives it; follow
+    // the same online signal React Query refetches on.
+    React.useEffect(() => {
+        if (!allowed) {
+            return;
+        }
+        return onlineManager.subscribe((online) => {
+            if (online) {
+                void relay.current?.refresh();
+            }
+        });
+    }, [allowed]);
 
     return allowed && state.scope === scope ? state.snapshot : emptyTurnJournal;
 }
