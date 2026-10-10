@@ -1,6 +1,7 @@
 import type { ChatEngagement, ChatEngagementEvent, ChatEngagements } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { useChatLost } from '../realtime/use-chat-lost.ts';
 import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 
 const noEngagements: readonly ChatEngagement[] = [];
@@ -14,9 +15,11 @@ const noEngagements: readonly ChatEngagement[] = [];
  */
 export function useChatEngagement(
     serverId: string,
-    chatId: string | undefined,
+    ownChatId: string | undefined,
     onEnded?: (event: Extract<ChatEngagementEvent, { type: 'chat.engagement.ended' }>) => void
 ): readonly ChatEngagement[] {
+    // A deleted Chat stops its stream and read; it never retries against a missing Chat.
+    const chatId = useChatLost(serverId, ownChatId) ? undefined : ownChatId;
     const utils = hausTrpc.useUtils();
     const enabled = chatId !== undefined;
     const input = { chatId: chatId ?? '', serverId };

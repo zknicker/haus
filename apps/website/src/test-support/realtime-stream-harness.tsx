@@ -118,8 +118,10 @@ export function createRealtimeHarness(answer: (path: string) => unknown = () => 
                                 path: op.path,
                             };
                             streams.push(stream);
+                            // Like tRPC's socket client, an unsubscribe also completes the stream.
                             return () => {
                                 stream.closed = true;
+                                observer.complete();
                             };
                         }
                         reads.push(op.path);

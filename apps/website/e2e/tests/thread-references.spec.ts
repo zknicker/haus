@@ -60,15 +60,15 @@ for (const desktop of [false, true]) {
             });
         }).toPass({ timeout: 10_000 });
         await chip.click();
-        // Desktop with one pane opens the Thread as a page in the same tab (ADR 0039).
+        // Desktop opens the Thread as a new tab in the right pane, creating it (ADR 0039).
         const pane = desktop
-            ? page.locator('.desktop-tab-frame[data-frame-pane="primary"]:visible')
+            ? page.locator('.desktop-tab-frame[data-frame-pane="secondary"]:visible')
             : page.getByRole('complementary', { name: 'Thread' });
         await expect(pane.getByText('Thread destination', { exact: true })).toBeVisible();
         if (desktop) {
-            await expect(page.getByRole('navigation', { name: 'Tabs', exact: true })).toContainText(
-                'Referenced assignment'
-            );
+            await expect(
+                page.getByRole('navigation', { name: 'Right pane tabs', exact: true })
+            ).toContainText('Referenced assignment');
         } else {
             await expect(page).toHaveURL(new RegExp(`thread=${root.message.id}`, 'u'));
         }

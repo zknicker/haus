@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { focusManager, QueryClient, QueryObserver } from '@tanstack/react-query';
 import { installQueryFocusSources } from './query-focus.ts';
 import { focusStaleWindowMs, queryClientDefaultOptions, refetchesOnFocus } from './query-policy.ts';
+import { createStartReconciliation } from './start-reconciliation.ts';
 
 const chatList = [['chat', 'list'], { input: { serverId: 'srv_1' }, type: 'query' }];
 const chatMessage = [
@@ -13,7 +14,17 @@ function fakeSources() {
     const listeners = new Map<string, () => void>();
     let native: ((focused: boolean) => void) | null = null;
     let visibility: DocumentVisibilityState = 'visible';
+    const held = new Set<() => void>();
     return {
+        /** Runs the held focus passes, as if `focusReturnDelayMs` elapsed. */
+        returnNow: () => {
+            const due = [...held];
+            held.clear();
+            for (const run of due) {
+                run();
+            }
+            return due.length;
+        },
         blur: () => listeners.get('blur')?.(),
         focus: () => listeners.get('focus')?.(),
         hide: () => {
@@ -48,6 +59,10 @@ function fakeSources() {
                     listeners.delete(type);
                 },
             } as unknown as Pick<Window, 'addEventListener' | 'removeEventListener'>,
+            schedule: (run: () => void) => {
+                held.add(run);
+                return () => held.delete(run);
+            },
             visibility: () => visibility,
         },
     };
@@ -112,6 +127,7 @@ test('returning to the window refetches old active reads once and skips entities
     // A blurred, visible window stays focused, so its polls keep running.
     expect(focusManager.isFocused()).toBe(true);
     fake.nativeFocus(true);
+    expect(fake.returnNow()).toBe(1);
     await flush();
 
     expect(list.fetches()).toBe(1);
@@ -121,11 +137,39 @@ test('returning to the window refetches old active reads once and skips entities
     // Hidden, then shown again right away: the list just refetched, so it stays quiet.
     fake.hide();
     fake.show();
+    fake.returnNow();
     await flush();
     expect(list.fetches()).toBe(1);
 
     for (const observer of [list, entity, fresh]) {
         observer.stop();
     }
+    queryClient.unmount();
+});
+
+test('a wake that also reconnects the socket reads each stream-owned read once', async () => {
+    const fake = fakeSources();
+    uninstall = installQueryFocusSources(fake.sources);
+    const queryClient = new QueryClient({ defaultOptions: queryClientDefaultOptions });
+    const starts = createStartReconciliation(queryClient);
+    queryClient.mount();
+    const list = observe(queryClient, chatList, Date.now() - focusStaleWindowMs - 1000);
+
+    // Asleep: hidden. The wake shows the window and drops the socket together.
+    fake.hide();
+    fake.show();
+    await flush();
+    // The reconnect's stream starts reconcile their owned reads.
+    starts.run(() => starts.queue({ exact: false, queryKey: chatList }));
+    starts.flush();
+    await flush();
+    expect(list.fetches()).toBe(1);
+
+    // The focus pass then finds the list fresh.
+    fake.returnNow();
+    await flush();
+    expect(list.fetches()).toBe(1);
+
+    list.stop();
     queryClient.unmount();
 });
