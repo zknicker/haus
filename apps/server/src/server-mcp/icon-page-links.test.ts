@@ -105,6 +105,38 @@ describe('parsePageIconLinks', () => {
 });
 
 describe('page link fallback', () => {
+    test('prefers a published versioned page icon for anonymous preset discovery', async () => {
+        const { fetchImpl, urls } = siteFetch({
+            'https://example.com/': html(
+                spaShell('<link rel="icon" sizes="128x128" href="/icon.png?v=new">')
+            ),
+            'https://example.com/icon.png?v=new': png(),
+            'https://example.com/favicon.ico': png(),
+        });
+        const icon = await resolveMcpIcon({
+            connectionUrl: 'https://mcp.example.com/mcp',
+            fetchImpl,
+            preferPageIcon: true,
+            serverInfoIcons: [],
+            timeoutMs: 50,
+        });
+        expect(icon?.light).toBe(pngDataUrl);
+        expect(urls).toEqual(['https://example.com/', 'https://example.com/icon.png?v=new']);
+    });
+
+    test('preferred page discovery still falls back to a valid favicon', async () => {
+        const { fetchImpl, urls } = siteFetch({ 'https://example.com/favicon.ico': png() });
+        const icon = await resolveMcpIcon({
+            connectionUrl: 'https://mcp.example.com/mcp',
+            fetchImpl,
+            preferPageIcon: true,
+            serverInfoIcons: [],
+            timeoutMs: 50,
+        });
+        expect(icon?.light).toBe(pngDataUrl);
+        expect(urls).toEqual(['https://example.com/', 'https://example.com/favicon.ico']);
+    });
+
     test('finds the icon an SPA names when its favicon.ico is the HTML shell', async () => {
         const shell = spaShell(`
             <link rel="icon" type="image/svg+xml" href="/logo.svg">

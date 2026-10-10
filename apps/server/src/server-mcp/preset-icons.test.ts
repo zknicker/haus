@@ -52,6 +52,7 @@ describe('preset icon fallback', () => {
         const catalog = await resolveMcpPresetIcons(async (input) => {
             urls.push(input.connectionUrl);
             expect(input.serverInfoIcons).toEqual([]);
+            expect(input.preferPageIcon).toBe(true);
             return resolvedIcon;
         });
         expect(urls).toEqual(['https://fulfillment.merchbase.co/mcp/printful']);
