@@ -70,7 +70,7 @@ again before each delivery; the audience column is the additional rule.
 | `thread.onFollowUpdated` | `threadFollowUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `threadChatId`, `parentChatId`, `anchorMessageId`, `followed` | The follower only | **Invalidate** the anchor's `chat.message` entry, `chat.list` |
 | `chat.onLifecycle` | `chatLifecycleEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `action` (`created`, `updated`, `archived`, `unarchived`, `deleted`) | Chat access, except `deleted`, which reaches every Server member (7a873a99e) | **Invalidate** `chat.list`, `chat.listArchived`, `chat.get` (chatId), `agent.chats`; `deleted` also runs the Chat-loss purge (Refusal classes) |
 | `task.onChanged` | `taskChangedEventSchema` (`task.ts`) | `serverId`, `chatId`, `messageId`, `kind` (`created`, `updated`) | Chat access of `chatId` | **Invalidate** the `chat.message` entry, `task.list` |
-| `taskLabel.onUpdated` | `taskLabelUpdatedEventSchema` (`task.ts`) | `serverId`, `labelId` | Every member | **Cancel and invalidate** the Server's transcript lists; **invalidate** `taskLabel.list`, `task.list`, and every cached `chat.message` entry whose `message.task.labels` contains `labelId` (labels are embedded rows) |
+| `taskLabel.onUpdated` | `taskLabelUpdatedEventSchema` (`task.ts`) | `serverId`, `labelId` | Every member | **Abort** the Server's tail reads, **cancel and invalidate** its transcript lists; **invalidate** `taskLabel.list`, `task.list`, and every cached `chat.message` entry whose `message.task.labels` contains `labelId` (labels are embedded rows) |
 | `cloudAgentWork.onUpdated` | `cloudAgentWorkUpdatedEventSchema` (`cloud-agent.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId`, `workId` | Chat access | **Invalidate** the work Message's `chat.message` entry, `cloudAgentWork.listForChat` (chat and parent), `cloudAgentWork.listActive` |
 | `reminder.onUpdated` | `reminderUpdatedEventSchema` (`reminders.ts`) | `serverId`, `reminderId`, `ownerAgentId`, `action` (`scheduled`, `updated`, `snoozed`, `canceled`, `fired`) | Owner/Admin (`requireReminderOperator`), rechecked per delivery | **Invalidate** `reminder.list` (agentId), `reminder.runs`, `reminder.history` (agentId) |
 
@@ -264,7 +264,8 @@ receives no realtime traffic.
   A unit test mounts the shell with three Servers, one shown and one kept Chat view, as a member
   and as an Admin, and asserts the exact stream count (6 + 14 + 6 = 26 as a member; 28 as an
   Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
-  reconnect issues no per-stream start reads beyond the reconnect pass.
+  reconnect's starts reconcile owned reads through the coalescer only (no `chat.message`, no
+  direct reads beyond the volatile projections).
 
 ### Hooks
 
@@ -304,7 +305,7 @@ the same single subscriptions: those hooks take an optional `onEvent` callback t
 hook's options: `setQueryData` builds a query from the client defaults, never from a hook) sets
 `staleTime: Infinity`, `gcTime: 30 min`, `refetchOnWindowFocus: false`, and
 `refetchOnReconnect: false`. Entities are kept fresh by targeted invalidation and list reseeding
-only; the reconnect pass (`query-reconnect-recovery.ts`) excludes the family by key predicate, and
+only; no stream start names the family among its owned reads, and
 `query-policy-contract.test.ts` names it as the one `staleTime: Infinity` exception for a
 changing read. An entity refetches only when invalidated while observed, or when an observing
 row finds it missing (never seeded, or garbage-collected while its list stayed cached): the row
@@ -362,9 +363,13 @@ way, and the set clears only when that Chat's in-flight list read count reaches 
 Overlapping pre-event reads each re-invalidate, and the last one to settle clears it.
 
 **Label updates.** A label event carries no message ids, so the dirty set cannot cover it.
-`taskLabel.onUpdated` cancels and invalidates the Server's transcript lists (no seeding read
-in flight survives with an old label), then predicate-invalidates cached entities carrying the
-label. Labels change rarely, so the list refetch is acceptable.
+`taskLabel.onUpdated` first aborts the Server's tail reads (`TranscriptListReads.abort`, the
+Server-scoped read controller; React Query cannot cancel a direct tail request), then cancels
+and invalidates its transcript lists (no seeding read in flight survives with an old label), then
+predicate-invalidates cached entities carrying the label. The bulk refetch re-reads anything an
+aborted tail would have appended. Labels change rarely, so the list refetch is acceptable. Its
+start reconciliation includes the transcript lists, since a missed rename may sit on any loaded
+message.
 
 **Pending rows retire by nonce.** `features/servers/chat/use-pending-messages.ts` retires an
 optimistic row when a seeded entity in that Chat carries its nonce (the tail read seeds the
@@ -461,10 +466,23 @@ on a trigger. These are the triggers.
 
 | Trigger | Action |
 | --- | --- |
-| Stream error or completion | Any end that is not a refusal, including a normal completion, restarts that one stream with capped exponential backoff (1 s → 30 s; `hooks/realtime/subscription-restart.ts`). Siblings are untouched. When the restarted stream starts (`restart.started()` returns true) it recovers only its owned reads through the coalescer: the message, reaction, read, follow, task, and work streams **bulk-refetch the active Server's cached transcript lists** (below) plus their own non-entity reads (`chat.list`, `chat.search`, `task.list`, Cloud Agent lists per their table rows); `taskLabel.onUpdated` refetches `taskLabel.list` and `task.list`; Server-level streams invalidate their table row. |
-| Socket reconnect | The App-wide reconnect pass (`query-reconnect-recovery.ts`) refetches every active Server tRPC read once **except the `chat.message` family**; active transcript lists refetch in bulk. Root streams do not recover again on that start. `streamRecoveredReads` shrinks to the volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`), whose live projections still re-read on every start. |
+| Stream start (first start, resubscribe after a socket reconnect, restart after a failure) | The stream reconciles only its owned reads through the coalescer (`coalescer.reconcileStart`, `lib/start-reconciliation.ts`), refetching those fetched before this start: the message, reaction, read, follow, task, label, and work streams **bulk-refetch the active Server's cached transcript lists** (below) plus their own non-entity reads (`chat.list`, `chat.search`, `task.list`, `taskLabel.list`, Cloud Agent lists per their table rows); Server-level streams invalidate their table row. The volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`) re-read their live projections on every start. |
+| Stream error or completion | Any end that is not a refusal, including a normal completion, restarts that one stream with capped exponential backoff (1 s → 30 s; `hooks/realtime/subscription-restart.ts`). Siblings are untouched. The restart recovers on its start, above. |
+| Socket reconnect | No pass of its own. Every stream resubscribes on the new socket and its start reconciles its reads. A read no stream owns hears no event, so a socket gap cannot stale it beyond its normal staleness. |
 | Window focus (browser `visibilitychange`/`focus`, and Electron `BrowserWindow` focus through the desktop bridge into `focusManager`) | Refetch active reads whose data is older than the focus stale window, **3 minutes**; `chat.message` never refetches on focus, transcript lists refetch in bulk. A quick alt-tab is silent. |
 | Mount or observe | A read older than `queryPolicy.syncedSnapshot` (30 s) refetches on mount, as React Query normally does. Inactive reads marked stale by an event refetch here. An entity refetches on observe only when invalidated or missing. |
+
+**Start-anchored recovery.** Recovery is anchored to subscription start, never socket open. The
+Server registers a stream's topic listener before tRPC answers `started`, so a read the App sends
+after hearing `started` cannot miss an event that stream would deliver, while a read sent before
+it can (it may snapshot before a commit whose event published before the listener existed). Each
+start takes a mark; reads whose data, or whose fetch in flight, began before the mark are
+cancelled if in flight and refetched, and reads fetched after it are skipped, which keeps a first
+launch to at most one extra read per owned read that loaded before its stream started. Fetch
+begins come from the query cache's `fetch` action; a hydrated read, a cancel-and-restart, or a
+read fetched before the marks were installed counts as before. A burst of starts after a
+reconnect shares one 50 ms settle window (capped at 250 ms), judged against the latest start.
+Agent lifecycle streams own activity only: an Agent's missed message recovers like a human's.
 
 **Bulk list recovery.** Entities are never recovered one by one, and entity queries never join
 a bulk pass. Recovery refetches each transcript list's loaded pages through the canonical
@@ -667,7 +685,10 @@ covering anything the e2e does not.
   - **Held direct entity fetch**: an initial `chat.message` fetch is held; a reaction event
     cancels it and the refetch wins.
   - **Label race**: a list read in flight across a label rename is cancelled and refetched; no
-    entity keeps the old label.
+    entity keeps the old label. A tail read held across the rename is aborted and seeds nothing.
+  - **Start reconciliation**: a first start and a resubscribe each refetch reads fetched before
+    them, a read in flight across a start is cancelled and refetched, a read fetched after the
+    start is skipped, and a burst of starts refetches each read once.
   - **Aborted seed**: a list read in flight across Server or Chat loss lands and seeds nothing.
 - Projections and dependencies: a search result never seeds (task-anchor and Thread-anchor
   poisoning cases: a later search leaves `task` and `thread` intact); a label update invalidates
@@ -694,7 +715,7 @@ Clerk, and the browser session survive, as in a deploy.
 tab A shows `#all`, tab B (kept, hidden) shows `#product` with a Thread anchor and a Cloud Agent
 work Message. A fake Agent sender with no model (`createChannelAgent`,
 `createAgentThreadSender`, `e2e/support/agent-cloud-agent.ts`) writes through the Agent API.
-`page.routeWebSocket` (as in `e2e/support/agent-thread-recovery.ts`) proxies the socket, and
+`page.routeWebSocket` (`e2e/support/realtime-proxy.ts`) proxies the socket, and
 `recordAppTraffic` records requests and frames.
 
 The **three changes** are: a reply in `#all`, a reply in `#product`'s Thread (no new
@@ -723,16 +744,24 @@ summary recovered through the bulk list refetch, not a live event.
 
 **B. Socket reconnect** (the deploy shape):
 
-1. `restartHausServer()` mid-session; the fake Agent commits the three changes while the Server
-   is healthy again but before the App's streams have resubscribed (held at the proxy).
+1. `restartHausServer()` mid-session, with every new start held at the proxy. Whatever the App
+   reads on reconnect settles first; only then are the three changes committed, and no read
+   follows them before the release. The App's reads therefore predate the changes, so only start
+   reconciliation can converge them (with it disabled, the spec fails at the first convergence
+   assertion).
 2. The proxy answers the first post-restart `chat.onMessageCreated` start with `UNAUTHORIZED`,
    the second with `FORBIDDEN` and no `hausRefusal`, and lets the third through: two consecutive
    refused attempts.
 
 Assert: the convergence assertions; the session token refreshed once and the App did not sign
 out; the Server's caches were not cleared; every root stream resubscribed exactly once on the new
-socket (siblings are interrupted by the socket, not by the refusal); the reconnect pass issued no
-`chat.message` request.
+socket (siblings are interrupted by the socket, not by the refusal); start reconciliation issued
+no `chat.message` request.
+
+**A2. Agent reply** (as A, with `#product` shown): the message stream is failed and its restart
+held while the Agent posts into `#product` through the Agent API. Assert the lifecycle stream
+delivered `sending` and no transcript was read before the release, recovery read only the
+message stream's owned reads, and the shown kept tab converges with no reveal or reload.
 
 **C. Stale HTTP ordering** (on the B page after recovery): hold the HTTP response of a
 `chat.message` read for message M; react to M from another member, which invalidates M and
@@ -774,7 +803,7 @@ Docs: `docs/operations/testing.md` names the restart control and the incident de
 | --- | --- |
 | API (done) | `packages/haus-api/src/{realtime-events,chat-events,chat-message-read,chat,chat-read,chat-message-receipts,chat-message-reactions,task,cloud-agent,reminders,agent-inbox-conversations,app-protocol,index}.ts`, `openapi.yaml`, `src/generated/openapi.d.ts` |
 | Server | `apps/server/src/realtime/` (new), every publish call site above, `haus-api/*/on-*.ts` procedures and routers, `chat.message` procedure, `server/membership-loss.ts` + tRPC `errorFormatter`, `chats/` event files, `push/`, `agent-api/inbox-conversations.ts`, send replay, schema + migration, `development/seed-message-events.ts`, `apps/server/test/*` |
-| App | `apps/website/src/hooks/realtime/`, `lib/targeted-read-coalescer.ts`, `features/servers/chat/kept-chat-views.tsx`, `lib/query-reconnect-recovery.ts`, the transcript reshaping files above, `hooks/servers/chat-events/` (deleted), `use-server-events.ts` (split), `hooks/servers/membership-*`, notifications, `lib/query-*`, `lib/pushed-snapshot*`, server shell, desktop focus bridge |
+| App | `apps/website/src/hooks/realtime/`, `lib/targeted-read-coalescer.ts`, `features/servers/chat/kept-chat-views.tsx`, `lib/start-reconciliation.ts`, the transcript reshaping files above, `hooks/servers/chat-events/` (deleted), `use-server-events.ts` (split), `hooks/servers/membership-*`, notifications, `lib/query-*`, `lib/pushed-snapshot*`, server shell, desktop focus bridge |
 | App e2e | `apps/website/e2e/start-haus-server.ts`, `e2e/support/server.ts`, `e2e/tests/realtime-server-restart.spec.ts`, `e2e/tests/chat-event-recovery.spec.ts` (deleted) |
 | Computer | `apps/computer/src/agent-cli/{agent-inbox-schemas,agent-inbox-format}.ts`, `commands/agent-inbox.ts` and tests |
 | iPhone | `apps/ios-swift` files listed above |
@@ -832,6 +861,15 @@ standard React Query answer with no invented machinery. Dispositions:
 | 5 | Simplification gives up round 2's bounded memory and observers | Accepted as a product tradeoff: loaded pages stay loaded; the bounds claims, `maxPages`, rollover, observed band, read generations, long-scroll and heap budgets are removed. Real row virtualization is a separate future project if long transcripts become a measured problem. One retained-view gate kept: hidden kept views pass `subscribed: false`. |
 | 6 | Do not adopt Raft's latest-sequence heartbeat | Adopted: ping/pong plus per-stream restart; the heartbeat is a global cursor that cannot name the stale Chat. |
 | 7 | Round-2 dispositions | #1 by tail-after-settle, entity cancellation, and the dirty set; #2 and #3 unchanged; #4 deliberately relaxed (row 5); #5 reduced to real annotations, edit/delete machinery deleted, whole-Chat purge added; #6 by abort/cancel/remove plus the sentinel; #7–#10 unchanged; #11 rewritten for this topology. |
+
+Codex final review (2026-10-09), web App and Server dispositions (iOS rows belong to the iPhone
+slice):
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| 1 | Read-before-subscribe window on first connect and reconnect: recovery began at socket open, and first and ordinary resubscribe starts recovered nothing | Final review: adopted. Recovery is anchored to subscription start (Start-anchored recovery, above): every start reconciles its owned reads fetched before it; the App-wide `onOpen` pass (`query-reconnect-recovery.ts`) is deleted. Variant B now settles reconnect reads before committing while starts are held, and fails with reconciliation disabled. |
+| 2 | Label restart recovery skipped transcript lists; a held tail read could seed a former label | Final review: adopted. Label start recovery includes transcript lists; label handling aborts the Server's tail reads before carrier recovery; held-tail regression test. |
+| 3 | Agent-lifecycle transcript recovery masked a dead message stream and stormed refetches | Final review: adopted. Deleted; lifecycle streams own activity only. Variant A2 proves an Agent reply recovers through the message stream alone. |
 
 **Prior art.**
 

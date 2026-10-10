@@ -457,9 +457,10 @@ pass.
   read opts out of staleness: `syncedSnapshot` (30 s) is the floor for
   event-covered reads, and the `chat.message` entity family is the one
   allowlisted `staleTime: Infinity` exception, kept fresh by targeted
-  invalidation and its lists' bulk refetch. A read recovers on a stream restart
-  (its owner's owned reads), a socket reconnect (one App-wide pass,
-  `lib/query-reconnect-recovery.ts`), a window focus past the 3-minute stale
+  invalidation and its lists' bulk refetch. A read recovers on every start of
+  the stream that owns it (first start, resubscribe after a socket reconnect,
+  restart after a failure; only reads fetched before that start refetch,
+  `lib/start-reconciliation.ts`), a window focus past the 3-minute stale
   window (`refetchesOnFocus` plus `lib/query-focus.ts`, which also feeds the
   desktop window's native focus into `focusManager`), and staleness on mount.
   `volatileState` reads keep their own rules. Never replay or cursor events in

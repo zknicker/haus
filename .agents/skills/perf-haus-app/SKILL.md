@@ -132,7 +132,7 @@ Run these after any change to navigation, kept views, prefetch, or cache patchin
 - App e2e (`apps/website/e2e/tests/`): `chat-navigation`, `route-performance`,
   `agent-profile-performance`, `agent-live-turn`, `chat-typing`, `messaging`, `inbox-unread`.
 - Unit (`apps/website/src/`): `hooks/realtime/*`, `chat-navigation-cache`,
-  `query-policy-contract`, `query-polling-contract`, `query-reconnect-recovery`,
+  `query-policy-contract`, `query-polling-contract`, `start-reconciliation`,
   `agent-history-cache`, `desktop-tabs-store`, `kept-chat-views`, `kept-chat-view-invariants`,
   `transcript-render-isolation`, `use-press-navigation`.
 - App e2e perf guards: `idle-silence` (after polling, socket session, or reconnect changes) and

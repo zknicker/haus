@@ -13,8 +13,9 @@ Events are live notifications; React Query owns recovery.
 
 PostgreSQL is the source of truth. A realtime event says that something changed and names it by
 id; the App answers by reading. Nothing replays: there is no event log, cursor, or catch-up walk.
-A missed event heals because reads refetch on a stream restart, a socket reconnect, a window
-focus after the stale window, and staleness on mount.
+A missed event heals because reads refetch on every stream start (first start, resubscribe after
+a socket reconnect, restart after a failure), a window focus after the stale window, and
+staleness on mount.
 [Focused Realtime Events](../../specs/realtime-events.md) is the normative contract; this page is
 the working summary.
 
@@ -34,7 +35,7 @@ ids and small facts, never rows.
 | `thread.onFollowUpdated` (follower only) | `useThreadFollowStream` | Invalidate the anchor entity and `chat.list` |
 | `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`; `deleted` runs the Chat-loss purge |
 | `task.onChanged` | `useTaskChangeStream` | Invalidate the task Message's entity and `task.list` |
-| `taskLabel.onUpdated` | `useTaskLabelStream` | Refetch the Server's transcript lists and entities carrying the label; invalidate `taskLabel.list`, `task.list` |
+| `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `task.list` |
 | `cloudAgentWork.onUpdated` | `useCloudAgentWorkStream` | Invalidate the work Message's entity, `cloudAgentWork.listForChat` (Chat and parent), `cloudAgentWork.listActive` |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
@@ -94,10 +95,20 @@ other read keyed by the Chat (`hooks/servers/server-loss.ts`).
 
 | Trigger | Action |
 | --- | --- |
-| Stream error or normal completion | That stream alone restarts with capped backoff, 1 s → 30 s (`hooks/realtime/subscription-restart.ts`). When it starts again it recovers only its owned reads: the message, reaction, read, follow, task, and work streams bulk-refetch the Server's cached transcript lists plus their own non-entity reads; the others invalidate their table row |
-| Socket reconnect | One App-wide pass (`lib/query-reconnect-recovery.ts`): transcript lists recover in bulk through the coalescer, every other active Server read refetches once, `chat.message` never. Root streams do not recover again on that start; only the volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`) re-read their projections on every start |
+| Stream start (first start, resubscribe after a socket reconnect, restart after a failure) | That stream reconciles its owned reads through the coalescer (`lib/start-reconciliation.ts`): the message, reaction, read, follow, task, label, and work streams bulk-refetch the Server's cached transcript lists plus their own non-entity reads; the others invalidate their table row. Only reads fetched before the start refetch; `chat.message` never joins. The volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`) re-read their projections on every start |
+| Stream error or normal completion | That stream alone restarts with capped backoff, 1 s → 30 s (`hooks/realtime/subscription-restart.ts`), and recovers on its next start |
+| Socket reconnect | No pass of its own: every stream resubscribes on the new socket, and each start reconciles its reads. A read no stream owns hears no event, so a gap cannot stale it beyond its normal staleness |
 | Window focus | Browser `visibilitychange`/`focus` and the desktop window's native focus feed `focusManager` (`lib/query-focus.ts`); an active read older than 3 minutes refetches (`refetchesOnFocus`, `lib/query-policy.ts`). A quick alt-tab is silent |
 | Mount | A read older than `queryPolicy.syncedSnapshot` (30 s) refetches, as React Query normally does |
+
+**Recovery is anchored to subscription start, not socket open.** The Server registers a stream's
+topic listener before it answers `started`, so a read the App sends after hearing `started` cannot
+miss an event that stream would skip; a read sent earlier can. Each start therefore takes a mark
+and refetches the stream's owned reads whose data, or whose fetch in flight, began before it
+(cancelling such a fetch first), and skips reads fetched after it. Fetch begins come from the
+query cache's `fetch` action; any doubt (a hydrated read, a cancel-and-restart) counts as before.
+Starts arriving in a burst after a reconnect share one 50 ms settle window (capped at 250 ms), so
+each read refetches once against the latest start.
 
 The tRPC `wsClient` keep-alive (15 s ping, 5 s pong timeout) detects a stalled socket. Forbidden:
 periodic reconnects, refetch timers for event-covered reads, and any client replay. A single frame
@@ -110,9 +121,10 @@ newly keyed QueryClient and provider. A browser offline → online transition re
 (`refetchOnReconnect: false`); the socket reconnect owns recovery.
 
 The deterministic incident detector is `apps/website/e2e/tests/realtime-server-restart.spec.ts`
-(App e2e): a stream error injected into one subscription, a real Server restart with refused
-resubscribes, stale HTTP ordering, duplicate and reordered events, a hidden kept tab, and Chat
-deletion.
+(App e2e): a stream error injected into one subscription (a human reply, and an Agent reply with
+no lifecycle fallback), a real Server restart whose reconnect reads settle before the changes
+commit while every start is held, refused resubscribes, stale HTTP ordering, duplicate and
+reordered events, a hidden kept tab, and Chat deletion.
 
 ## Notifications
 
@@ -144,8 +156,9 @@ every start. They restart with the same policy.
   patches it from live events.
 * **Agent lifecycle** (`agent.onLifecycle`): `working`, `reading`, `sending` (after the Agent's
   message commits), `settled` (terminal proof), projected to coarse availability. Settlement
-  invalidates Agent list, delivery state, and activity reads. A `sending` notice also invalidates
-  the Server's transcripts as a fallback for a missed message notice.
+  invalidates Agent list, delivery state, and activity reads. Lifecycle owns activity only: a
+  `sending` notice reads no transcript, and a missed Agent message recovers like any other, on
+  the message stream's next start.
 * **Agent activity** (`agent.onActivity`): semantic activity written before broadcast; the Server
   shell owns the one subscription, patches cached Activity History pages in Server order, and
   every start refreshes the snapshot, history, turns, and usage reads.

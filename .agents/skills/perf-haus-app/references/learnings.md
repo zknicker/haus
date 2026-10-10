@@ -245,7 +245,8 @@ Each of these shipped green in unit tests and failed a realtime scenario:
 - Cancel in-flight list fetches before an optimistic patch, or the stale response overwrites it.
 - One recovery owner per read on reconnect. A global "invalidate everything active" on top of
   each stream's restart catch-up refetched agent, activity, and engagement reads twice per
-  reconnect; the App-wide pass now skips `streamRecoveredReads` (`lib/query-reconnect-recovery.ts`).
+  reconnect. The App-wide pass is gone: each stream's start reconciles its own reads, skipping
+  any fetched after that start (`lib/start-reconciliation.ts`).
 - `utils.x.fetch()` honors the client's default `staleTime` (30 s). A catch-up read keyed by cursor
   must pass `staleTime: 0`, or a second gap at the same cursor gets the first gap's cached answer.
 - Idle reconnects usually mean credentials: Clerk rotation must refresh the socket in place

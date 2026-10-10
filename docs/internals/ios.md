@@ -1092,8 +1092,8 @@ the message arrives. An unknown body kind degrades to `.unsupported` and reads a
 
 The directory refresh is the one place the phone differs from the App. This client subscribes to
 `chat.onEvent`, `agent.onLifecycle`, and `agent.onActivity` only — it has never consumed
-`server.updated`, so the event the App uses to invalidate `agent.list` after a creation does not
-reach it. The body itself is the notice instead: `message.created` refetches the affected loaded
+`agent.onUpdated`, so the stream the App uses to invalidate `agent.list` after a creation does
+not reach it. The body itself is the notice instead: `message.created` refetches the affected loaded
 page, and `applyChatEvents` then scans those pages for an `agent-created` body naming an Agent the
 directory does not hold and refetches the directory once when it finds one
 (`HausStoreMessageLoading.swift`). What keeps that from becoming a standing refetch is that a body
