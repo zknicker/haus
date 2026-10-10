@@ -1,6 +1,7 @@
 import type { AgentThoughtEvent } from '@haus/api';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useChatLost } from '../realtime/use-chat-lost.ts';
 import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 
 /**
@@ -10,9 +11,11 @@ import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts'
  */
 export function useChatThoughtListener(
     serverId: string,
-    chatId: string | undefined,
+    ownChatId: string | undefined,
     listener: (event: AgentThoughtEvent) => void
 ) {
+    // A deleted Chat stops its stream; it never retries against a missing Chat.
+    const chatId = useChatLost(serverId, ownChatId) ? undefined : ownChatId;
     const latest = React.useRef(listener);
     React.useLayoutEffect(() => {
         latest.current = listener;

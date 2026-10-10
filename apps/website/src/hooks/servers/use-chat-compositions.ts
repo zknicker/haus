@@ -1,11 +1,14 @@
 import type { CompositionEvent } from '@haus/api';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useChatLost } from '../realtime/use-chat-lost.ts';
 import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 import { useMembers } from './use-members.ts';
 import { visibleCompositions } from './visible-compositions.ts';
 
-export function useChatCompositions(serverId: string | undefined, chatId: string | undefined) {
+export function useChatCompositions(serverId: string | undefined, ownChatId: string | undefined) {
+    // A deleted Chat stops its stream; it never retries against a missing Chat.
+    const chatId = useChatLost(serverId, ownChatId) ? undefined : ownChatId;
     const scope = `${serverId ?? ''}:${chatId ?? ''}`;
     const [compositionState, setCompositionState] = React.useState<{
         events: CompositionEvent[];

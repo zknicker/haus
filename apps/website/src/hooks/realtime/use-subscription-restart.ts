@@ -31,7 +31,9 @@ export interface StreamRestart {
  * after a socket reconnect, and a restart after a failure. Only reads fetched
  * before the start refetch (`lib/start-reconciliation.ts`); there is no
  * App-wide reconnect pass. `key` names the subscription's input: changing it,
- * or unmounting, drops a pending restart.
+ * or unmounting, drops a pending restart. Call it before the subscription in
+ * the same component: an unsubscribe the App made (unmount, disable, new
+ * input) is then never mistaken for a completion and restarted.
  */
 export function useSubscriptionRestart(
     stream: string,
@@ -65,10 +67,25 @@ export function useSubscriptionRestart(
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the trigger; a new input owns no pending restart.
     React.useEffect(() => restart.dispose, [key, restart]);
+    // tRPC completes a subscription it unsubscribes itself (unmount, a disabled
+    // or changed input) synchronously inside the subscription's effect cleanup.
+    // Declared before the subscription, this cleanup runs first in every commit,
+    // so a completion heard while it is set was ours, never the Server's.
+    const unsubscribing = React.useRef(false);
+    React.useEffect(() => {
+        unsubscribing.current = false;
+        return () => {
+            unsubscribing.current = true;
+        };
+    });
 
     return React.useMemo(
         () => ({
-            completed: (reset) => restart.completed(reset),
+            completed: (reset) => {
+                if (!unsubscribing.current) {
+                    restart.completed(reset);
+                }
+            },
             failed: (error, reset) => restart.failed(error, reset),
             open,
             started: () => {
