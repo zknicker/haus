@@ -7,6 +7,7 @@ import {
 } from '../support/app-traffic.ts';
 import { createChannelAgent } from '../support/channel-agent.ts';
 import { readClerkSessionFixture } from '../support/clerk-session.ts';
+import { expectBurstCoalesced, recordPosts } from '../support/realtime-burst.ts';
 import { createTestServer, openChannel, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -26,6 +27,26 @@ const idleAllowance: Record<string, { perMinute: number; reason: string }> = {
         perMinute: 1,
         reason: 'website build check, every 60 s; deployments have no event',
     },
+};
+
+/**
+ * What showing the window after more than the 3-minute focus stale window may
+ * refetch (specs/realtime-events.md, "Recovery"): each active read once. The
+ * per-Chat reads count once per mounted Chat view (the shown channel and the
+ * one the Server route opened first, kept behind it). `chat.message` entities
+ * never refetch on focus.
+ */
+const focusRefetchAllowance: Record<string, { max: number; reason: string }> = {
+    'trpc agent.activeActivity': { max: 1, reason: 'current Agent activity snapshot' },
+    'trpc agent.list': { max: 1, reason: 'the Agent roster behind the sidebar' },
+    'trpc chat.engagements': { max: 2, reason: 'engaged Agents, one per mounted Chat view' },
+    'trpc chat.get': { max: 2, reason: 'the Chat record, one per mounted Chat view' },
+    'trpc chat.list': { max: 1, reason: 'the sidebar Chat list' },
+    'trpc chat.messages': { max: 2, reason: 'one loaded transcript page per mounted Chat view' },
+    'trpc computer.list': { max: 1, reason: 'Computer status behind the sidebar' },
+    'trpc member.list': { max: 1, reason: 'the member directory' },
+    'trpc server.bySlug': { max: 1, reason: 'the open Server' },
+    'trpc server.list': { max: 1, reason: 'the Server switcher' },
 };
 
 const idleMinutes = 10;
@@ -85,13 +106,46 @@ test.describe('an idle App stays silent', () => {
         await openChannel(page, 'all');
         await expect(composer(page)).toBeVisible();
         await traffic.settled();
+
+        // A quick return, inside the focus stale window, is silent.
+        const quick = traffic.mark();
+        await setVisibility(page, 'hidden');
+        await idleFor(page, 60_000);
+        await setVisibility(page, 'visible');
+        await idleFor(page, 5000);
+        expectWithinAllowance(traffic.since(quick), 2, 1);
+
+        // Past the window, showing refetches each active read at most once.
         const mark = traffic.mark();
         await setVisibility(page, 'hidden');
         await idleFor(page, 5 * 60_000);
         await setVisibility(page, 'visible');
         await idleFor(page, 60_000);
-        // Showing the window rechecks the build once (refetchOnWindowFocus).
-        expectWithinAllowance(traffic.since(mark), 6, 1);
+        const entries = traffic.since(mark);
+        const focusReads = entries.filter((entry) => key(entry) in focusRefetchAllowance);
+        const report = describeTraffic(entries);
+        for (const [name, { max }] of Object.entries(focusRefetchAllowance)) {
+            expect(
+                focusReads.filter((entry) => key(entry) === name).length,
+                `${name} refetched more than once per read on focus:\n${report}`
+            ).toBeLessThanOrEqual(max);
+        }
+        expect(count(entries, 'trpc', 'chat.message'), report).toBe(0);
+        // Showing the window also rechecks the build once (refetchOnWindowFocus).
+        expectWithinAllowance(
+            entries.filter((entry) => !(key(entry) in focusRefetchAllowance)),
+            6,
+            1
+        );
+    });
+
+    test('through a realtime burst', async ({ page }) => {
+        const traffic = await openIdleApp(page, 'idle-burst');
+        await openChannel(page, 'all');
+        await expect(composer(page)).toBeVisible();
+        const posts = recordPosts(page);
+        await traffic.settled();
+        await expectBurstCoalesced(page, traffic, posts, 'idle-burst');
     });
 
     test('through offline and online', async ({ page, context }, testInfo) => {

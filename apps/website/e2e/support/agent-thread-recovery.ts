@@ -11,7 +11,8 @@ export async function verifyAgentThreadRecovery(page: Page) {
     await page.routeWebSocket(/\/trpc/u, (socket) => {
         const server = socket.connectToServer();
         server.onMessage((message) => {
-            if (dropMessageCreated && message.toString().includes('"message.created"')) {
+            // Only a `chat.onMessageCreated` notice carries the Thread anchor's author.
+            if (dropMessageCreated && message.toString().includes('"threadAnchorAuthorUserId"')) {
                 droppedMessages += 1;
                 return;
             }

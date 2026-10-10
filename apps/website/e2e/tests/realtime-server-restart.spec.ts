@@ -1,0 +1,148 @@
+import { type AppTraffic, describeTraffic, recordAppTraffic } from '../support/app-traffic.ts';
+import {
+    expectDeletedChatPurged,
+    expectEventsConverge,
+    expectStaleEntityReadLoses,
+} from '../support/realtime-convergence.ts';
+import { installRealtimeProxy } from '../support/realtime-proxy.ts';
+import { createRealtimeScene, expectConverged, visibleSurface } from '../support/realtime-scene.ts';
+import { restartHausServer } from '../support/server.ts';
+import { expect, test } from '../support/test.ts';
+
+// The incident detector (specs/realtime-events.md, "App e2e: the incident
+// detector"). After the 9.5.0 deploy reconnected every socket, the App's one
+// Chat stream failed on resubscribe and nothing restarted it, so kept desktop
+// tabs stopped hearing Agent replies, Thread summaries, and Cloud Agent rows.
+// A desktop window cannot be refreshed: every change must converge with no reload.
+
+const removedProcedures = ['chat.onEvent', 'chat.events', 'chat.eventHead', 'server.onUpdate'];
+
+/** `chat.onMessageCreated`'s owned reads, plus the read receipt viewing the reply sends. */
+const ownedReads = new Set(['chat.messages', 'chat.list', 'chat.search', 'chat.markRead']);
+
+test('A: one failed stream restarts alone and recovers only its owned reads', async ({ page }) => {
+    test.setTimeout(150_000);
+    const proxy = await installRealtimeProxy(page);
+    const traffic = recordAppTraffic(page);
+    const scene = await createRealtimeScene(page, 'realtime-isolation');
+    await traffic.settled();
+
+    const stream = proxy.latest('chat.onMessageCreated');
+    const work = proxy.latest('cloudAgentWork.onUpdated');
+    const startsBefore = proxy.subscriptions.length;
+    const mark = traffic.mark();
+
+    // The Server ends exactly this subscription; its restart is held at the proxy.
+    proxy.hold(['chat.onMessageCreated']);
+    proxy.inject(stream, 'INTERNAL_SERVER_ERROR');
+    await scene.changes.allReply('A reply while the stream is down', 'iso-all');
+    await scene.changes.threadReply('A Thread reply while the stream is down', 'iso-thread');
+    const computer = await scene.changes.workUpdate('Rebuilding the index while down');
+    // A sibling keeps its id and delivers while the failed stream is down.
+    await expect.poll(() => proxy.deliveredTo(work).length, { timeout: 15_000 }).toBeGreaterThan(0);
+    // The App restarted the failed stream (held at the proxy), and only it.
+    await expect
+        .poll(() => proxy.subscriptions.slice(startsBefore).map((s) => s.path), {
+            timeout: 15_000,
+        })
+        .toEqual(['chat.onMessageCreated']);
+
+    const released = traffic.mark();
+    proxy.release();
+    await expect(visibleSurface(page).getByText('A reply while the stream is down')).toBeVisible({
+        timeout: 15_000,
+    });
+    await traffic.settled();
+    const recovery = traffic.since(released);
+    expect(
+        recovery.filter((entry) => entry.kind === 'trpc' && !ownedReads.has(entry.procedure)),
+        `Recovery read more than its owned reads:\n${describeTraffic(recovery)}`
+    ).toEqual([]);
+    expect(recovery).toContainEqual({ kind: 'trpc', procedure: 'chat.messages' });
+    expect(proxy.subscriptions.slice(startsBefore).map((s) => s.path)).toEqual([
+        'chat.onMessageCreated',
+    ]);
+
+    await expectConverged(page, scene, {
+        activity: 'Rebuilding the index while down',
+        allReply: 'A reply while the stream is down',
+        threadReply: 'A Thread reply while the stream is down',
+    });
+    expect(
+        traffic.since(mark).filter((entry) => entry.kind === 'ws-open'),
+        'The stream recovered by reconnecting the socket, not by restarting itself'
+    ).toEqual([]);
+    expectNoRemovedProcedures(traffic);
+    computer.close();
+});
+
+test('B: a Server restart with refused resubscribes converges, then C and D', async ({ page }) => {
+    test.setTimeout(180_000);
+    const proxy = await installRealtimeProxy(page);
+    const traffic = recordAppTraffic(page);
+    const scene = await createRealtimeScene(page, 'realtime-restart');
+    await traffic.settled();
+    const socketsBefore = proxy.socketCount();
+    const startsBefore = proxy.subscriptions.length;
+
+    // Every start on the new socket waits at the proxy until the changes commit,
+    // and the first two `chat.onMessageCreated` starts are refused.
+    proxy.hold('all');
+    proxy.refuse('chat.onMessageCreated', ['UNAUTHORIZED', 'FORBIDDEN']);
+    const mark = traffic.mark();
+    await restartHausServer();
+    await expect
+        .poll(() => proxy.subscriptions.slice(startsBefore).length, { timeout: 30_000 })
+        .toBeGreaterThan(0);
+    await scene.changes.allReply('A reply after the deploy', 'restart-all');
+    await scene.changes.threadReply('A Thread reply after the deploy', 'restart-thread');
+    const computer = await scene.changes.workUpdate('Rebuilding the index after the deploy');
+    proxy.release();
+
+    await expect(visibleSurface(page).getByText('A reply after the deploy')).toBeVisible({
+        timeout: 30_000,
+    });
+    await traffic.settled();
+    const reconnect = traffic.since(mark);
+    expect(
+        reconnect.filter((entry) => entry.kind === 'trpc' && entry.procedure === 'chat.message'),
+        `The reconnect pass read entities:\n${describeTraffic(reconnect)}`
+    ).toEqual([]);
+    // The session refreshed once in place; the App neither signed out nor cleared the Server.
+    expect(
+        proxy.socketCalls.filter(
+            (call) => call.socket >= socketsBefore && call.path === 'session.refresh'
+        )
+    ).toHaveLength(1);
+    await expect(page.getByRole('row', { exact: true, name: 'all' })).toBeVisible();
+    // Each stream resubscribed once on the new socket; only the refused one retried.
+    const starts = new Map<string, number>();
+    for (const start of proxy.subscriptions.filter((s) => s.socket >= socketsBefore)) {
+        const key = `${start.path} ${start.input}`;
+        starts.set(key, (starts.get(key) ?? 0) + 1);
+    }
+    for (const [key, count] of starts) {
+        expect(count, key).toBe(key.startsWith('chat.onMessageCreated ') ? 3 : 1);
+    }
+
+    await expectConverged(page, scene, {
+        activity: 'Rebuilding the index after the deploy',
+        allReply: 'A reply after the deploy',
+        threadReply: 'A Thread reply after the deploy',
+    });
+    computer.close();
+
+    await expectStaleEntityReadLoses(page, scene);
+    await expectEventsConverge(page, scene, proxy);
+    await expectDeletedChatPurged(page, scene);
+    expectNoRemovedProcedures(traffic);
+});
+
+function expectNoRemovedProcedures(traffic: AppTraffic) {
+    const procedures = traffic
+        .since(0)
+        .flatMap((entry) => ('procedure' in entry ? [entry.procedure] : []));
+    for (const removed of removedProcedures) {
+        expect(procedures).not.toContain(removed);
+    }
+}

@@ -40,6 +40,30 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
         await page.getByRole('menuitem', { exact: true, name: 'View agent profile' }).click();
         await expect(page.getByRole('heading', { exact: true, name: 'Orbit' })).toBeVisible();
     });
+
+    // Bursts (specs/realtime-events.md, "Perf gates"): appended rows render,
+    // existing rows do not; one tail read in flight per list at a time.
+    await openChannel(page, 'all');
+    await expect(composer(page, 'all')).toBeVisible();
+    const tails = trackTailReads(page);
+    await budget.measure('agent-burst-in-open-chat', async () => {
+        for (let index = 0; index < 30; index += 1) {
+            await app.agent.send(`Burst line ${index}`, `render-budget-burst-${index}`);
+        }
+        await expect(visibleSurface(page).getByText('Burst line 29')).toBeVisible();
+    });
+    expect(tails.maxInFlight(), 'tail reads of one list never overlap').toBeLessThanOrEqual(1);
+    await budget.measure('reaction-burst-one-message', async () => {
+        for (const emoji of ['👍', '🎉', '👀', '🙏']) {
+            await app.reactAsPeerDevice('Burst line 29', emoji);
+        }
+        await expect(
+            visibleSurface(page)
+                .locator('[data-message-id]')
+                .filter({ hasText: 'Burst line 29' })
+                .last()
+        ).toContainText('🙏');
+    });
 });
 
 test('desktop: a warm tab switch stays within budget', async ({ page }, testInfo) => {
@@ -67,7 +91,39 @@ test('desktop: a warm tab switch stays within budget', async ({ page }, testInfo
         await app.sendAsPeerDevice('design', 'A note for the background tab');
         await realtimeDelivery(page);
     });
+    // A hidden kept tab's transcript does not re-render per message.
+    await tabs.nth(0).getByRole('button', { exact: true, name: 'design' }).click();
+    await expect(composer(page, 'design')).toBeVisible();
+    await budget.measure('agent-burst-in-background-tab', async () => {
+        for (let index = 0; index < 30; index += 1) {
+            await app.agent.send(`Hidden burst ${index}`, `render-budget-hidden-${index}`);
+        }
+        await realtimeDelivery(page);
+    });
 });
+
+/** The most `chat.messages` tail reads (`afterSequence`) in flight at once. */
+function trackTailReads(page: Page) {
+    let inFlight = 0;
+    let max = 0;
+    const isTail = (request: import('@playwright/test').Request) =>
+        request.url().includes('chat.messages') &&
+        (request.postData() ?? '').includes('afterSequence');
+    page.on('request', (request) => {
+        if (isTail(request)) {
+            inFlight += 1;
+            max = Math.max(max, inFlight);
+        }
+    });
+    for (const event of ['requestfinished', 'requestfailed'] as const) {
+        page.on(event, (request) => {
+            if (isTail(request)) {
+                inFlight -= 1;
+            }
+        });
+    }
+    return { maxInFlight: () => max };
+}
 
 /**
  * A Server with an Agent and three channels holding history, visited in turn
@@ -127,7 +183,18 @@ async function openKeptChannels(page: Page, slug: string, options: { desktop?: b
         await expect(composer(page, channel)).toBeVisible();
         await expect(visibleSurface(page).getByText(`History 11 in ${channel}`)).toBeVisible();
     }
-    return { agent, sendAsPeerDevice };
+    const reactAsPeerDevice = async (content: string, emoji: string) => {
+        const page = await device.chat.messages.query({
+            chatId: agent.chatId,
+            serverId: server.id,
+        });
+        const message = page.messages.find((candidate) => candidate.content === content);
+        if (!message) {
+            throw new Error(`No message "${content}" to react to.`);
+        }
+        await device.chat.react.mutate({ emoji, messageId: message.id, serverId: server.id });
+    };
+    return { agent, reactAsPeerDevice, sendAsPeerDevice };
 }
 
 /** A Server write has reached the App over the socket and its renders have started. */
