@@ -31,6 +31,13 @@ test('a bearer-token preset reads as a token, not generic credentials', () => {
     assert.match(connectionSetupDescription(x), /Add a token/u);
 });
 
+test('Skool requires desktop browser sign-in without exposing tokens', () => {
+    const skool = { auth: 'headers', preset: 'skool' } as const;
+    assert.equal(connectionStatusLabel({ ...skool, connected: false }), 'Sign in required');
+    assert.match(connectionSetupDescription(skool), /desktop app/u);
+    assert.doesNotMatch(connectionSetupDescription(skool), /token/u);
+});
+
 test('splitArgs splits on whitespace and drops empty parts', () => {
     assert.deepEqual(splitArgs('  serve  --port 8080 '), ['serve', '--port', '8080']);
 });
