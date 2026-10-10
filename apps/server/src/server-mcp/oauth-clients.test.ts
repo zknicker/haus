@@ -35,6 +35,24 @@ afterEach(() => {
 });
 
 describe('configured OAuth clients', () => {
+    test('MerchBase Fulfillment uses identity scopes without a configured client', async () => {
+        const runtime = fakeRuntime(
+            'merchbase-fulfillment',
+            'https://fulfillment.merchbase.co/mcp/printful',
+            { ...emptySecret(), oauthScopes: ['openid', 'profile', 'email'] }
+        );
+        const provider = await createMcpOAuthProvider(runtime, 'mcp_fulfillment', redirectUrl, {
+            allowAuthorizationServerOrigin: false,
+            onRedirect() {},
+        });
+        expect(await provider.clientInformation()).toBeUndefined();
+        expect(provider.clientMetadata).toMatchObject({
+            redirect_uris: [redirectUrl],
+            scope: 'openid profile email',
+            token_endpoint_auth_method: 'none',
+        });
+    });
+
     test('GitHub presents the Server client with post auth and its scope', async () => {
         const provider = await createMcpOAuthProvider(
             fakeRuntime('github', githubMcpUrl),

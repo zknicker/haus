@@ -21,6 +21,18 @@ describe('preset account auth', () => {
         ).toBe(false);
     });
 
+    test('MerchBase Fulfillment uses OAuth with a Server-owned endpoint', () => {
+        const input = { ...base, preset: 'merchbase-fulfillment' };
+        expect(mcpPresetAccountCreateSchema.safeParse(input).success).toBe(true);
+        expect(mcpPresetAccountCreateSchema.safeParse({ ...input, bearerToken: 't' }).success).toBe(
+            false
+        );
+        expect(
+            mcpPresetAccountCreateSchema.safeParse({ ...input, url: 'https://other.example/mcp' })
+                .success
+        ).toBe(false);
+    });
+
     test('CoinGecko connects without accepting credentials or endpoint overrides', () => {
         const input = { ...base, preset: 'coingecko' };
         expect(mcpPresetAccountCreateSchema.safeParse(input).success).toBe(true);

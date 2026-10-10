@@ -23,6 +23,7 @@ afterAll(async () => {
 });
 
 test('product previews require membership and a connected RankWrangler account', async () => {
+    await expect(outsider.trpc.mcp.presetIcons.query({ serverId })).rejects.toThrow();
     const input = { serverId, asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const };
     await expect(outsider.trpc.mcp.amazonProduct.query(input)).rejects.toThrow();
     await expect(owner.trpc.mcp.amazonProduct.query(input)).resolves.toBeNull();
@@ -44,9 +45,33 @@ test('GitHub lands as an OAuth preset awaiting sign-in', async () => {
     await owner.trpc.mcp.delete.mutate({ connectionId: github.id, serverId });
 });
 
+test('MerchBase Fulfillment awaits OAuth with identity scopes and no Agent grants', async () => {
+    const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
+        name: 'MerchBase Fulfillment',
+        preset: 'merchbase-fulfillment',
+        serverId,
+    });
+    expect(fulfillment).toMatchObject({
+        auth: 'oauth',
+        connected: false,
+        grants: [],
+        headerNames: [],
+        preset: 'merchbase-fulfillment',
+        tools: [],
+        url: 'https://fulfillment.merchbase.co/mcp/printful',
+    });
+    const [stored] = await harness.sql`
+        select secret from mcp_secrets where connection_id = ${fulfillment.id}
+    `;
+    expect(stored?.secret.oauthScopes).toEqual(['openid', 'profile', 'email']);
+    expect(stored?.secret.headers).toEqual({});
+    await owner.trpc.mcp.delete.mutate({ connectionId: fulfillment.id, serverId });
+});
+
 test.each([
     'github',
     'merchbase',
+    'merchbase-fulfillment',
     'google-calendar',
     'rankwrangler',
 ] as const)('deletes a %s account and its secrets without removing another account', async (preset) => {
