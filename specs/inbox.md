@@ -260,7 +260,7 @@ line naming the `haus message read --target "<t>" --after <lastReadSeq>` command
 that reads from the read position. Rows whose pending work has not yet been handed to
 the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent results
 print as one `Cloud Agent results · N pending · fetch with haus message check` line.
-The output pages with `More: haus inbox check --before <seq>` and ends with exactly
+The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
 a muted channel appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
 teaches a retry, and `haus message check` still drains. Listing advances nothing.

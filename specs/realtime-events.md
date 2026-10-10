@@ -599,12 +599,12 @@ newest message is deleted or a new one arrives between pages, the conversation l
 reorders and may appear again or move above the cursor. That is accepted; one test pins it (a
 deletion between pages reorders the conversation by its next newest message without an error).
 
-Agent-visible text does not change. The Agent prompt (`managed-instructions.ts`), Manual
-(`agent-manual/src/corpus/cli-families-a.ts`), and `haus inbox check` keep `--before <seq>`: the
-`More:` line prints the exact command and the Agent copies it, so the token's shape is invisible.
-The Computer CLI (`apps/computer/src/agent-cli/agent-inbox-schemas.ts`, `commands/agent-inbox.ts`
-`parseBefore`, `agent-inbox-format.ts`) accepts any non-empty token up to 200 characters and its
-tests use string keys. Renaming `<seq>` to `<key>` would be a separate, deliberate prompt change.
+Agent behavior does not change. The Agent prompt (`managed-instructions.ts`), Manual
+(`agent-manual/src/corpus/cli-families-a.ts`), and `haus inbox check` help name the token
+`--before <key>`: the `More:` line prints the exact command and the Agent copies it, so the
+token's shape is invisible. The Computer CLI (`apps/computer/src/agent-cli/agent-inbox-schemas.ts`,
+`commands/agent-inbox.ts` `parseBefore`, `agent-inbox-format.ts`) accepts any non-empty token up
+to 200 characters and its tests use string keys.
 
 ## iPhone impact
 

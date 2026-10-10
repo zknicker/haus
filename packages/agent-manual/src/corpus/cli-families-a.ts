@@ -31,7 +31,7 @@ Your inbox is what needs your attention: unread messages in the channels, DMs, a
 
 **See what is unread.** \`haus inbox check\` lists every channel, DM, and followed thread with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
 
-The output ends with one \`Next:\` line naming the single next step. When there are more conversations than fit on one page, a \`More: haus inbox check --before <seq>\` line comes first; run it as printed for the next page. \`--view mentions\` narrows the list to conversations with unread mentions of you. A muted channel appears only when it mentions you.
+The output ends with one \`Next:\` line naming the single next step. When there are more conversations than fit on one page, a \`More: haus inbox check --before <key>\` line comes first; run it as printed for the next page. \`--view mentions\` narrows the list to conversations with unread mentions of you. A muted channel appears only when it mentions you.
 
 Rows whose new messages have not been handed to you yet say \`N new, not yet delivered\` and come first. Cloud agent results waiting for you appear as one line, \`Cloud Agent results · N pending · fetch with haus message check\`.
 

@@ -202,7 +202,7 @@ must earn its place. Required teachings in v1:
   (`<target> · N unread · mentions you · latest @sender 3m ago`) with an
   `  open: haus message read --target "<target>" --after <lastReadSeq>` line;
   pending rows not yet handed to the Agent (`N new, not yet delivered`) come
-  first; an optional `More: haus inbox check --before <seq>` line; and exactly
+  first; an optional `More: haus inbox check --before <key>` line; and exactly
   one closing `Next:` line. `INBOX_UNAVAILABLE` (503) teaches a retry and that
   `message check` still drains.
 - `message search`: `<result ref="msg:…">` blocks with source/sender/time,
@@ -372,7 +372,7 @@ per family:
 | | `resolve <id>` | WS1 | One canonical message by short or full id |
 | | `check` | WS1 stub → WS4 | Stub: explains cursor semantics arrive with inbox delivery; exits 1, `Code: NOT_YET_AVAILABLE`, Next action: `message read` |
 | | `react` | WS5 (landed) | `--message-id --emoji [--remove]`; etiquette help text rides `--help` |
-| inbox | `check` | Raft 1.21.2 port | Unread-conversation list from the Agent's durable per-chat read positions, newest activity first; `--view unread\|mentions`, `--before <seq>` |
+| inbox | `check` | Raft 1.21.2 port | Unread-conversation list from the Agent's durable per-chat read positions, newest activity first; `--view unread\|mentions`, `--before <key>` |
 | server | `info` | WS1 | §8; `--channels --agents --humans --joined --query --limit --offset` (server-side) |
 | user | `info <name>` | WS4 era | Narrow visible facts |
 | channel | `info <target>` | WS1 | Existence, joined state, description, member count |
