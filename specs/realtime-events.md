@@ -453,7 +453,10 @@ seeding (Seeding, above). No Server generation is needed.
 
 **Chat-loss purge** (`chat.onLifecycle` `deleted`) runs the same steps scoped to one Chat: close
 that Chat's per-view streams, abort its tails, cancel and remove its transcript lists and
-`chat.message` entities, drop its pending rows, and evict its retained kept view.
+`chat.message` entities, drop its pending rows, and evict its retained kept view. A view that
+still shows the deleted Chat (a desktop tab) stops its per-Chat streams (`chat.onEngagement`,
+`chat.onThought`, `chat.onComposition`) through `useChatLost`; they never retry against a Chat the
+Server no longer has.
 
 Tests: one query per Server-scoped family across two Servers, only the lost Server's removed,
 `server.bySlug` included; a list read in flight across the loss lands and seeds nothing; a
@@ -467,9 +470,9 @@ on a trigger. These are the triggers.
 | Trigger | Action |
 | --- | --- |
 | Stream start (first start, resubscribe after a socket reconnect, restart after a failure) | The stream reconciles only its owned reads through the coalescer (`coalescer.reconcileStart`, `lib/start-reconciliation.ts`), refetching those fetched before this start: the message, reaction, read, follow, task, label, and work streams **bulk-refetch the active Server's cached transcript lists** (below) plus their own non-entity reads (`chat.list`, `chat.search`, `task.list`, `taskLabel.list`, Cloud Agent lists per their table rows); Server-level streams invalidate their table row. The volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`) re-read their live projections on every start. |
-| Stream error or completion | Any end that is not a refusal, including a normal completion, restarts that one stream with capped exponential backoff (1 s → 30 s; `hooks/realtime/subscription-restart.ts`). Siblings are untouched. The restart recovers on its start, above. |
+| Stream error or completion | Any end that is not a refusal, including a normal completion, restarts that one stream with capped exponential backoff (1 s → 30 s; `hooks/realtime/subscription-restart.ts`). Siblings are untouched. The restart recovers on its start, above. An unsubscribe the App made (unmount, a disabled or changed input, such as a tab switch hiding a chat view) is not a completion: tRPC reports it as one, and `useSubscriptionRestart` ignores it. |
 | Socket reconnect | No pass of its own. Every stream resubscribes on the new socket and its start reconciles its reads. A read no stream owns hears no event, so a socket gap cannot stale it beyond its normal staleness. |
-| Window focus (browser `visibilitychange`/`focus`, and Electron `BrowserWindow` focus through the desktop bridge into `focusManager`) | Refetch active reads whose data is older than the focus stale window, **3 minutes**; `chat.message` never refetches on focus, transcript lists refetch in bulk. A quick alt-tab is silent. |
+| Window focus (browser `visibilitychange`/`focus`, and Electron `BrowserWindow` focus through the desktop bridge into `focusManager`) | Refetch active reads whose data is older than the focus stale window, **3 minutes**; `chat.message` never refetches on focus, transcript lists refetch in bulk. A quick alt-tab is silent. The pass runs 500 ms after the return (`lib/query-focus.ts`): a wake that also drops the socket reconnects first, and the focus pass then finds the reads its start reconciliation refreshed fresh, or joins their fetch in flight, so one wake reads each read once. |
 | Mount or observe | A read older than `queryPolicy.syncedSnapshot` (30 s) refetches on mount, as React Query normally does. Inactive reads marked stale by an event refetch here. An entity refetches on observe only when invalidated or missing. |
 
 **Start-anchored recovery.** Recovery is anchored to subscription start, never socket open. The
@@ -494,7 +497,13 @@ loaded, above).
 
 **Liveness.** The tRPC `wsClient` `keepAlive` ping/pong (15 s interval, 5 s pong timeout) detects
 a stalled socket and reconnects it. Error and normal completion restart only the affected
-subscription with backoff. Haus does **not** adopt Raft's heartbeat carrying the Server's latest
+subscription with backoff. Every operation on the socket, `session.refresh` included, goes
+through the App's one tRPC client (`lib/haus-connection.ts`): the socket keys requests by the
+client's operation id, so a second client on the same socket reuses ids, and its call silently
+replaces and then deletes a live subscription with the same id. That subscription then drops
+every frame and is never resent on reconnect, with no error to restart it. A tail step (waiting
+for the list's own fetch, then the tail read) that has not settled within 20 s is logged and
+releases its list (`lib/transcript-list-reads.ts`), so one wedged read never blocks later events. Haus does **not** adopt Raft's heartbeat carrying the Server's latest
 sequence: it is a global cursor in disguise, cannot say which Chat is stale (so it would trigger
 a noisy global refetch without replay), and conflicts with the no-cursor principle.
 

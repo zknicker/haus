@@ -96,9 +96,9 @@ other read keyed by the Chat (`hooks/servers/server-loss.ts`).
 | Trigger | Action |
 | --- | --- |
 | Stream start (first start, resubscribe after a socket reconnect, restart after a failure) | That stream reconciles its owned reads through the coalescer (`lib/start-reconciliation.ts`): the message, reaction, read, follow, task, label, and work streams bulk-refetch the Server's cached transcript lists plus their own non-entity reads; the others invalidate their table row. Only reads fetched before the start refetch; `chat.message` never joins. The volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`) re-read their projections on every start |
-| Stream error or normal completion | That stream alone restarts with capped backoff, 1 s → 30 s (`hooks/realtime/subscription-restart.ts`), and recovers on its next start |
+| Stream error or normal completion | That stream alone restarts with capped backoff, 1 s → 30 s (`hooks/realtime/subscription-restart.ts`), and recovers on its next start. An unsubscribe the App made (unmount, a disabled or changed input) is never a completion. A view still showing a deleted Chat stops its per-Chat streams for good (`hooks/realtime/use-chat-lost.ts`) |
 | Socket reconnect | No pass of its own: every stream resubscribes on the new socket, and each start reconciles its reads. A read no stream owns hears no event, so a gap cannot stale it beyond its normal staleness |
-| Window focus | Browser `visibilitychange`/`focus` and the desktop window's native focus feed `focusManager` (`lib/query-focus.ts`); an active read older than 3 minutes refetches (`refetchesOnFocus`, `lib/query-policy.ts`). A quick alt-tab is silent |
+| Window focus | Browser `visibilitychange`/`focus` and the desktop window's native focus feed `focusManager` (`lib/query-focus.ts`); 500 ms after a return, an active read older than 3 minutes refetches (`refetchesOnFocus`, `lib/query-policy.ts`). The delay lets a wake that also drops the socket reconcile first, so the focus pass finds those reads fresh or joins their fetch. A quick alt-tab is silent |
 | Mount | A read older than `queryPolicy.syncedSnapshot` (30 s) refetches, as React Query normally does |
 
 **Recovery is anchored to subscription start, not socket open.** The Server registers a stream's
