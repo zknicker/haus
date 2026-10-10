@@ -498,6 +498,13 @@
       "when": 1791576451013,
       "tag": "0070_coingecko_preset",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1791592698873,
+      "tag": "0071_skool-preset",
+      "breakpoints": true
     }
   ]
 }
