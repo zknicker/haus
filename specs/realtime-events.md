@@ -433,6 +433,7 @@ invalidating one entity re-renders exactly that row.
 | Signal | Meaning | App action |
 | --- | --- | --- |
 | `FORBIDDEN` + `hausRefusal: 'membership_lost'` | The viewer is no longer a member, or the Server was deleted | Final for every stream of that Server. Run the Server-loss path once (below), fall back to unavailable if it was active, and invalidate `server.list`. |
+| `NOT_FOUND` + `hausRefusal: 'chat_missing'` | A per-Chat stream names a Chat this Server does not have (deleted, possibly before the view mounted) | Run the Chat-loss purge (below) for that Chat; its per-Chat streams stop and never retry. Chat queries keep a plain `NOT_FOUND`. |
 | `FORBIDDEN` + `hausRefusal: 'role_required'` | The viewer lacks the stream's role | Stop that one stream. No cache clear. It remounts if a role change makes it authorized. |
 | `UNAUTHORIZED` | The Clerk session token expired or was rejected | Refresh the token and reconnect, then restart with backoff. Final only when Clerk confirms sign-out. |
 | `FORBIDDEN` or `NOT_FOUND` with no `hausRefusal`, or anything else | Not a refusal | Restart with backoff like any error. |
@@ -456,7 +457,9 @@ that Chat's per-view streams, abort its tails, cancel and remove its transcript 
 `chat.message` entities, drop its pending rows, and evict its retained kept view. A view that
 still shows the deleted Chat (a desktop tab) stops its per-Chat streams (`chat.onEngagement`,
 `chat.onThought`, `chat.onComposition`) through `useChatLost`; they never retry against a Chat the
-Server no longer has.
+Server no longer has. A view mounted after the deletion (a restored desktop tab) never hears the
+lifecycle event; its first per-Chat stream start is refused with `chat_missing`, which runs the
+same purge.
 
 Tests: one query per Server-scoped family across two Servers, only the lost Server's removed,
 `server.bySlug` included; a list read in flight across the loss lands and seeds nothing; a
@@ -503,7 +506,10 @@ client's operation id, so a second client on the same socket reuses ids, and its
 replaces and then deletes a live subscription with the same id. That subscription then drops
 every frame and is never resent on reconnect, with no error to restart it. A tail step (waiting
 for the list's own fetch, then the tail read) that has not settled within 20 s is logged and
-releases its list (`lib/transcript-list-reads.ts`), so one wedged read never blocks later events. Haus does **not** adopt Raft's heartbeat carrying the Server's latest
+releases its list (`lib/transcript-list-reads.ts`), so one wedged read never blocks later events.
+The iPhone's HTTP (SSE) streams get Server pings every 15 s (tRPC `sse.ping`, advertised
+`reconnectAfterInactivityMs` 45 s), so its stream session holds a 45 s idle timeout instead of
+300 s, and its queries run on their own URL session apart from held streams. Haus does **not** adopt Raft's heartbeat carrying the Server's latest
 sequence: it is a global cursor in disguise, cannot say which Chat is stale (so it would trigger
 a noisy global refetch without replay), and conflicts with the no-cursor principle.
 
@@ -879,6 +885,16 @@ slice):
 | 1 | Read-before-subscribe window on first connect and reconnect: recovery began at socket open, and first and ordinary resubscribe starts recovered nothing | Final review: adopted. Recovery is anchored to subscription start (Start-anchored recovery, above): every start reconciles its owned reads fetched before it; the App-wide `onOpen` pass (`query-reconnect-recovery.ts`) is deleted. Variant B now settles reconnect reads before committing while starts are held, and fails with reconciliation disabled. |
 | 2 | Label restart recovery skipped transcript lists; a held tail read could seed a former label | Final review: adopted. Label start recovery includes transcript lists; label handling aborts the Server's tail reads before carrier recovery; held-tail regression test. |
 | 3 | Agent-lifecycle transcript recovery masked a dead message stream and stormed refetches | Final review: adopted. Deleted; lifecycle streams own activity only. Variant A2 proves an Agent reply recovers through the message stream alone. |
+
+Confirmation drive (2026-10-10), Electron + Chrome + iPhone against one dev stack:
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| 1 | Live subscriptions on the desktop silently stopped delivering over a long session (the realtime wedge) | Root cause: `session.refresh` ran through a second tRPC client on the shared socket, whose operation ids collided with live subscriptions. Fixed: every socket call goes through the App's one client (`context: { socket: true }`); never create a second client on the socket. |
+| 2 | iPhone queries and sends timed out behind held streams over HTTP/1.1 | Fixed: separate URL sessions for requests and SSE streams (`TRPCSessions`). |
+| 3 | A dead iPhone stream took up to 5 minutes to notice | Fixed: Server SSE ping every 15 s; iPhone stream idle timeout 45 s; the SSE reader drops `ping` frames. |
+| 4 | Per-Chat streams of a restored desktop tab retried forever against a Chat deleted while the App was away | Fixed: coded `chat_missing` refusal on per-Chat streams runs the Chat-loss purge. |
+| 5 | `Encountered two children with the same key` on reaction arrivals and window wake | Root cause: a stamped reaction sticker keyed its burst and glyph siblings by the same stamp token. Fixed with distinct key prefixes (`reaction-sticker.tsx`). Not a transcript list issue. |
 
 **Prior art.**
 

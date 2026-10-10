@@ -82,14 +82,17 @@ through their lists' bulk refetch. See [React](../internals/react.md) and the sp
 | Signal | App action |
 | --- | --- |
 | `FORBIDDEN` with `hausRefusal: 'membership_lost'` | Run the Server-loss path once: close every stream of that Server, purge its transcript cache, cancel and drop every query scoped to it (`server.bySlug` matched by its cached Server), and invalidate `server.list`. A mounted view's reads reset and fail closed into the unavailable state |
+| `NOT_FOUND` with `hausRefusal: 'chat_missing'` (per-Chat streams) | Run the Chat-loss purge for that Chat, which stops its per-Chat streams; never retry |
 | `FORBIDDEN` with `hausRefusal: 'role_required'` | Stop that one stream; clear nothing |
 | `UNAUTHORIZED` | Refresh the session in place (`session.refresh`), then restart with backoff; final only when Clerk has no session |
 | Anything else, `FORBIDDEN` or `NOT_FOUND` without `hausRefusal` included | Restart with backoff |
 
 Only a coded `hausRefusal` (`realtimeRefusalDataKey`) is a refusal; the App never infers one from a
 bare tRPC code (`hooks/realtime/realtime-refusal.ts`). The Chat-loss purge (`chat.onLifecycle`
-`deleted`) does the same for one Chat: its lists, entities, pending rows, kept view, and every
-other read keyed by the Chat (`hooks/servers/server-loss.ts`).
+`deleted`, or a `chat_missing` refusal) does the same for one Chat: its lists, entities, pending
+rows, kept view, and every other read keyed by the Chat (`hooks/servers/server-loss.ts`). The
+refusal covers a view that mounts after the deletion, such as a restored desktop tab, which never
+hears the lifecycle event; Chat queries keep a plain `NOT_FOUND`.
 
 ## Recovery
 
@@ -110,7 +113,19 @@ query cache's `fetch` action; any doubt (a hydrated read, a cancel-and-restart) 
 Starts arriving in a burst after a reconnect share one 50 ms settle window (capped at 250 ms), so
 each read refetches once against the latest start.
 
-The tRPC `wsClient` keep-alive (15 s ping, 5 s pong timeout) detects a stalled socket. Forbidden:
+The tRPC `wsClient` keep-alive (15 s ping, 5 s pong timeout) detects a stalled socket. Every
+socket operation, `session.refresh` included, goes through the App's one tRPC client
+(`lib/haus-connection.ts`, routed by `context: { socket: true }`). Never create a second tRPC
+client on the shared socket: the socket keys requests by each client's operation id, so a second
+client's call silently replaces and then deletes a live subscription with the same id.
+
+The iPhone uses HTTP (SSE) subscriptions instead of the socket. The Server pings every SSE stream
+every 15 s (tRPC `sse.ping`, `apps/server/src/haus-api/trpc.ts`) and advertises a 45 s
+`reconnectAfterInactivityMs`; the iPhone's stream session drops a stream after 45 silent seconds
+and restarts it. Queries and mutations run on a separate URL session so held streams never starve
+them of connections ([iOS](../internals/ios.md)). The socket transport ignores `sse` settings.
+
+Forbidden:
 periodic reconnects, refetch timers for event-covered reads, and any client replay. A single frame
 dropped on a live, error-free stream in a window that never blurs stays missing until the next
 restart, reconnect, focus past the window, or related event; that residual is accepted.
