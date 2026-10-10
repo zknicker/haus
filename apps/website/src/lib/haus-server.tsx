@@ -16,14 +16,18 @@ import * as React from 'react';
 import type { HausRouter } from '../../../server/src/haus-api/router.ts';
 import { UpdateRequiredGate } from '../features/servers/update-required-gate.tsx';
 import { getClerkSessionToken } from './clerk.tsx';
-import { watchHausSession } from './haus-session-refresh.ts';
+import { HausSessionRefreshContext, singleFlightSessionRefresh } from './haus-session-context.ts';
+import { refreshRefusedSession, watchHausSession } from './haus-session-refresh.ts';
 import { hydrateClaimedQueryCache, useQueryCacheOffer } from './query-cache-handoff.ts';
+import { installQueryFocusSources } from './query-focus.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
 import {
     type ConnectionState,
     createQueryReconnectHandler,
-    isReconnectRecoveredQuery,
+    recoverAfterReconnect,
 } from './query-reconnect-recovery.ts';
+// Type-only: the coalescer imports this module.
+import type { TargetedReadCoalescer } from './targeted-read-coalescer.ts';
 
 /** The App's authenticated HTTP and WebSocket connection to Haus Server. */
 export const hausTrpc = createTRPCReact<HausRouter>();
@@ -86,29 +90,60 @@ function parseHttpOrigin(value: string | undefined) {
     return ['http:', 'https:'].includes(url.protocol) ? url : null;
 }
 
-export function HausServerProvider({ children }: React.PropsWithChildren) {
+/** Hands the reconnect pass the coalescer that recovers transcript lists in bulk. */
+export type TranscriptRecovery = (
+    queryClient: QueryClient,
+    client: HausConnection['client']
+) => Pick<TargetedReadCoalescer, 'recoverTranscriptLists'>;
+
+const noTranscriptRecovery: TranscriptRecovery = () => ({ recoverTranscriptLists: () => {} });
+
+export function HausServerProvider({
+    children,
+    transcriptRecovery = noTranscriptRecovery,
+}: React.PropsWithChildren<{ transcriptRecovery?: TranscriptRecovery }>) {
     const [queryClient] = React.useState(() => {
         const client = new QueryClient({ defaultOptions: queryClientDefaultOptions });
         hydrateClaimedQueryCache(client);
         return client;
     });
     useQueryCacheOffer(queryClient);
+    React.useEffect(() => installQueryFocusSources(), []);
     const [connectionState, setConnectionState] =
         React.useState<HausServerConnectionState>('connecting');
+    const connectionRef = React.useRef<HausConnection | null>(null);
+    const recoveryRef = React.useRef(transcriptRecovery);
     const [handleConnectionState] = React.useState(() =>
         createQueryReconnectHandler({
-            // Each event stream recovers its own reads as it restarts; this pass
-            // covers only the Server reads no stream recovers.
+            // One App-wide pass per socket reconnect; root streams do not
+            // recover again on that start (specs/realtime-events.md, "Recovery").
             onReconnect: () => {
-                void queryClient.invalidateQueries({
-                    predicate: isReconnectRecoveredQuery,
-                    refetchType: 'active',
-                });
+                const current = connectionRef.current;
+                if (current) {
+                    void recoverAfterReconnect(
+                        queryClient,
+                        recoveryRef.current(queryClient, current.client)
+                    );
+                }
             },
             onStateChange: setConnectionState,
         })
     );
     const [connection, setConnection] = React.useState<HausConnection | null>(null);
+    connectionRef.current = connection;
+    const refreshSession = React.useMemo(
+        () =>
+            singleFlightSessionRefresh(() =>
+                connection
+                    ? refreshRefusedSession({
+                          readSessionToken: getClerkSessionToken,
+                          reconnect: () => reconnectHausSession(connection.wsClient),
+                          refreshSession: (token) => refreshHausSession(connection, token),
+                      })
+                    : Promise.resolve(true)
+            ),
+        [connection]
+    );
 
     React.useEffect(() => {
         let active = true;
@@ -148,16 +183,20 @@ export function HausServerProvider({ children }: React.PropsWithChildren) {
 
     return (
         <HausServerConnectionContext value={connectionState}>
-            <QueryClientProvider client={queryClient}>
-                <hausTrpc.Provider client={connection.client} queryClient={queryClient}>
-                    <UpdateRequiredGate queryClient={queryClient}>{children}</UpdateRequiredGate>
-                    {DevPerfTools ? (
-                        <React.Suspense fallback={null}>
-                            <DevPerfTools />
-                        </React.Suspense>
-                    ) : null}
-                </hausTrpc.Provider>
-            </QueryClientProvider>
+            <HausSessionRefreshContext value={refreshSession}>
+                <QueryClientProvider client={queryClient}>
+                    <hausTrpc.Provider client={connection.client} queryClient={queryClient}>
+                        <UpdateRequiredGate queryClient={queryClient}>
+                            {children}
+                        </UpdateRequiredGate>
+                        {DevPerfTools ? (
+                            <React.Suspense fallback={null}>
+                                <DevPerfTools />
+                            </React.Suspense>
+                        ) : null}
+                    </hausTrpc.Provider>
+                </QueryClientProvider>
+            </HausSessionRefreshContext>
         </HausServerConnectionContext>
     );
 }

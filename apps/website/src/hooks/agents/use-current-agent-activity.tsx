@@ -62,7 +62,8 @@ export function useCurrentAgentActivity(
     const { reset } = hausTrpc.agent.onActivity.useSubscription(
         { serverId: serverId ?? '' },
         {
-            enabled: serverId !== undefined,
+            enabled: serverId !== undefined && restart.open,
+            onComplete: () => restart.completed(reset),
             onError: (error) => restart.failed(error, reset),
             onData: (event) => {
                 if (event.serverId !== serverId) {

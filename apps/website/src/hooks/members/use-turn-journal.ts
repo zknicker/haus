@@ -6,6 +6,7 @@ import {
 } from '../../features/members/agent-profile/agent-activity-model.ts';
 import { hausTrpc, useHausServerConnectionState } from '../../lib/haus-server.tsx';
 import { useAgentActivityListener } from '../agents/use-current-agent-activity.tsx';
+import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 import {
     createTurnJournalRelay,
     emptyTurnJournal,
@@ -57,13 +58,19 @@ export function useTurnJournal(input: {
 
     // Reasoning and sub-agent steps change the journal without a semantic
     // activity event; the Computer announces each change instead of a poll.
-    hausTrpc.agent.onExecutionJournal.useSubscription(
+    const restart = useSubscriptionRestart('agent.onExecutionJournal', serverId, undefined, scope);
+    const { reset } = hausTrpc.agent.onExecutionJournal.useSubscription(
         { agentId: agentId ?? '', runId: runId ?? '', serverId },
         {
-            enabled: allowed && live && Boolean(agentId && runId),
+            enabled: allowed && live && Boolean(agentId && runId) && restart.open,
+            onComplete: () => restart.completed(reset),
             onData: () => void relay.current?.changed(),
+            onError: (error) => restart.failed(error, reset),
             // A change between the first read and this subscription would otherwise wait.
-            onStarted: () => void relay.current?.refresh(),
+            onStarted: () => {
+                restart.started();
+                void relay.current?.refresh();
+            },
         }
     );
     React.useEffect(() => {

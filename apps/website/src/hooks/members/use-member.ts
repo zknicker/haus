@@ -5,6 +5,6 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 export function useMember(serverId: string, userId: string | undefined) {
     return hausTrpc.member.get.useQuery(
         { serverId, userId: userId ?? '' },
-        { ...queryPolicy.pushedSnapshot, enabled: userId !== undefined }
+        { ...queryPolicy.syncedSnapshot, enabled: userId !== undefined }
     );
 }

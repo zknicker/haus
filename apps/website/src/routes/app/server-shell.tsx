@@ -3,9 +3,9 @@ import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
-import { MessageNotifications } from '../../features/notifications/message-notifications.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { readLastChatId, rememberLastChatId } from '../../features/servers/server-choice.ts';
+import { ServerRealtimeListeners } from '../../features/servers/server-realtime-listeners.tsx';
 import { serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
@@ -16,7 +16,6 @@ import { SidebarSettingsAction } from '../../features/shell/sidebar-settings-act
 import { WindowBand } from '../../features/shell/window-band.tsx';
 import { HausUpdateFooterContainer } from '../../features/updates/haus-update-footer-container.tsx';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
-import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import {
@@ -94,9 +93,7 @@ export function ServerShell({
     );
     return (
         <AppShell className="w-full">
-            <ChatEventListeners serverId={server.id}>
-                <MessageNotifications key={server.id} server={server} />
-            </ChatEventListeners>
+            <ServerRealtimeListeners server={server} />
             <SyncHumanIdentity serverId={server.id} />
             <AppShellDragRegion />
             <CommandMenu server={server} />

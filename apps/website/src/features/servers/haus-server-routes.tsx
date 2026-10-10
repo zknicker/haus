@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
 import { HausServerProvider, hausTrpc } from '../../lib/haus-server.tsx';
+import { targetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { DevAutoSignIn } from '../auth/dev-auto-sign-in.tsx';
 import { SignInGate } from '../auth/sign-in-gate.tsx';
 import { ServerEventListeners } from './server-event-listeners.tsx';
@@ -13,7 +14,7 @@ export function HausServerRoutes() {
         <>
             <DevAutoSignIn />
             <SignInGate>
-                <HausServerProvider>
+                <HausServerProvider transcriptRecovery={targetedReadCoalescer}>
                     <DevelopmentBootstrap />
                     <ServerEventListeners />
                     <Outlet />

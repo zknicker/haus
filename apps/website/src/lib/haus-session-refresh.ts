@@ -66,6 +66,26 @@ export function watchHausSession(watch: HausSessionWatch): () => void {
     };
 }
 
+/**
+ * A stream was refused as `UNAUTHORIZED`: hand the socket the current Clerk
+ * token in place, and reconnect only if the Server refuses it. Resolves false
+ * when Clerk has no session (signed out), which ends the stream for good.
+ */
+export async function refreshRefusedSession(
+    watch: Pick<HausSessionWatch, 'readSessionToken' | 'reconnect' | 'refreshSession'>
+): Promise<boolean> {
+    const token = await watch.readSessionToken();
+    if (!token) {
+        return false;
+    }
+    try {
+        await watch.refreshSession(token);
+    } catch {
+        watch.reconnect();
+    }
+    return true;
+}
+
 /** A token that is not a readable session token only matches itself. */
 function sessionIdentity(token: string) {
     return sessionTokenIdentity(token) ?? token;

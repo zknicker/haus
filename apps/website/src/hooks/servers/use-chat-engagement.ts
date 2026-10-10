@@ -1,6 +1,7 @@
 import type { ChatEngagement, ChatEngagementEvent, ChatEngagements } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
 
 const noEngagements: readonly ChatEngagement[] = [];
 
@@ -24,8 +25,16 @@ export function useChatEngagement(
         enabled,
     });
 
-    hausTrpc.chat.onEngagement.useSubscription(input, {
-        enabled,
+    const restart = useSubscriptionRestart(
+        'chat.onEngagement',
+        serverId,
+        undefined,
+        `${serverId}:${chatId ?? ''}`
+    );
+    const { reset } = hausTrpc.chat.onEngagement.useSubscription(input, {
+        enabled: enabled && restart.open,
+        onComplete: () => restart.completed(reset),
+        onError: (error) => restart.failed(error, reset),
         onData: (event) => {
             const key = { chatId: event.chatId, serverId: event.serverId };
             const current = utils.chat.engagements.getData(key);
@@ -40,6 +49,7 @@ export function useChatEngagement(
         },
         // The stream never replays, so every (re)connect re-reads the durable state.
         onStarted: () => {
+            restart.started();
             if (chatId !== undefined) {
                 void utils.chat.engagements.invalidate({ chatId, serverId });
             }

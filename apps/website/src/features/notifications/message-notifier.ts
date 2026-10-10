@@ -1,17 +1,9 @@
 import {
+    type ChatReadEvent,
+    type MessageCreatedEvent,
     type MessageNotificationReason,
     messageNotificationReason,
-    type ServerDurableEvent,
 } from '@haus/api';
-
-type MessageCreatedEvent = Extract<ServerDurableEvent, { type: 'message.created' }>;
-type ChatReadEvent = Extract<ServerDurableEvent, { type: 'chat.read' }>;
-
-/** The stream's events the notifier reads: new messages, and reads that cover them. */
-export type MessageNotifierEvent = ChatReadEvent | MessageCreatedEvent;
-
-/** `live` from the subscription; `catch-up` replayed from the event log on reconnect. */
-export type MessageNotifierDelivery = 'catch-up' | 'live';
 
 /** The slice of the platform `Notification` constructor the notifier uses. */
 export interface NotificationApi {
@@ -46,23 +38,22 @@ export interface MessageNotifierOptions {
     viewerUserId: () => string | undefined;
 }
 
-/** Enough to absorb a reconnect replaying recent messages. */
+/** Enough to absorb a duplicated or late delivery of recent messages. */
 const rememberedMessages = 500;
 
 /**
- * Turns `message.created` events into platform notifications under the shared
- * notification rule (ADR 0038) — the same `messageNotificationReason` the
- * Server applies to iPhone push.
+ * Turns live `chat.onMessageCreated` events into platform notifications under
+ * the shared notification rule (ADR 0038) — the same
+ * `messageNotificationReason` the Server applies to iPhone push.
  *
- * Only live events notify. A cold stream starts at the event head, and a
- * reconnect's catch-up replay is history — messages that arrived while the
- * reader was away are the Inbox's to show, never a burst of notifications. A
- * message whose Chat has since been read through its sequence never notifies,
- * whether the read arrived earlier, later in the same pass, or while its text
- * was being fetched. Each message notifies at most once, and only while Haus is
- * in the background, so a message is never read (or described) for nothing.
- * The tag is the Chat, so a newer message in the same conversation replaces the
- * older notification.
+ * It hears live events only: streams never replay, and a restart's recovery
+ * reads never reach it, so messages that arrived while the reader was away are
+ * the Inbox's to show, never a burst of notifications. A message whose Chat has
+ * since been read through its sequence (`chat.onRead`) never notifies, whether
+ * the read arrived earlier or while its text was being fetched. Each message
+ * notifies at most once, and only while Haus is in the background, so a
+ * message is never read (or described) for nothing. The tag is the Chat, so a
+ * newer message in the same conversation replaces the older notification.
  */
 export function createMessageNotifier(options: MessageNotifierOptions) {
     const seen = new Set<string>();
@@ -70,41 +61,35 @@ export function createMessageNotifier(options: MessageNotifierOptions) {
     const isRead = (event: MessageCreatedEvent) =>
         (readThrough.get(event.chatId) ?? 0) >= event.sequence;
 
-    // A message's first sighting decides it: a replayed or already-read one is
-    // remembered as seen, so a later live copy cannot notify either.
-    const notifyReason = (event: MessageCreatedEvent, delivery: MessageNotifierDelivery) => {
+    // A message's first sighting decides it: a duplicate cannot notify again.
+    const notifyReason = (event: MessageCreatedEvent) => {
         if (seen.has(event.messageId)) {
             return null;
         }
         remember(seen, event.messageId);
         const viewerUserId = options.viewerUserId();
-        if (delivery !== 'live' || isRead(event) || !viewerUserId || !canNotify(options)) {
+        if (isRead(event) || !viewerUserId || !canNotify(options)) {
             return null;
         }
         return messageNotificationReason(event, viewerUserId);
     };
 
     return {
-        async observe(events: readonly MessageNotifierEvent[], delivery: MessageNotifierDelivery) {
-            for (const event of events) {
-                if (event.type === 'chat.read') {
-                    readThrough.set(
-                        event.chatId,
-                        Math.max(readThrough.get(event.chatId) ?? 0, event.sequence)
-                    );
-                }
+        async messageCreated(event: MessageCreatedEvent) {
+            const reason = notifyReason(event);
+            if (!reason) {
+                return;
             }
-            for (const event of events) {
-                const reason =
-                    event.type === 'message.created' ? notifyReason(event, delivery) : null;
-                if (!(reason && event.type === 'message.created')) {
-                    continue;
-                }
-                const text = await options.describe(event, reason);
-                if (text && !isRead(event)) {
-                    notify(options, event, text);
-                }
+            const text = await options.describe(event, reason);
+            if (text && !isRead(event)) {
+                notify(options, event, text);
             }
+        },
+        chatRead(event: Pick<ChatReadEvent, 'chatId' | 'sequence'>) {
+            readThrough.set(
+                event.chatId,
+                Math.max(readThrough.get(event.chatId) ?? 0, event.sequence)
+            );
         },
     };
 }

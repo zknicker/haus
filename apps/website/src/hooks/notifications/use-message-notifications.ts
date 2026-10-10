@@ -1,4 +1,4 @@
-import type { MessageNotificationReason, ServerDurableEvent } from '@haus/api';
+import type { ChatReadEvent, MessageCreatedEvent, MessageNotificationReason } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -19,12 +19,10 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useOptionalDesktopTabs } from '../desktop-tabs/desktop-tabs-context.ts';
 import { useAgents } from '../members/use-agents.ts';
-import { useChatEvent } from '../servers/chat-events/use-chat-event-stream.tsx';
 import { useChats } from '../servers/use-chats.ts';
 import { useHumanDirectory } from '../servers/use-human-directory.ts';
 import { useMembers } from '../servers/use-members.ts';
 
-type MessageCreatedEvent = Extract<ServerDurableEvent, { type: 'message.created' }>;
 type Utils = ReturnType<typeof hausTrpc.useUtils>;
 
 /**
@@ -34,12 +32,12 @@ type Utils = ReturnType<typeof hausTrpc.useUtils>;
  * the conversation: on desktop it reveals a tab already on it, else the
  * focused pane's current tab navigates there (ADR 0039).
  *
- * It listens to the Chat event stream's `message.created` and `chat.read`, so
- * it must render inside `ChatEventListeners`. Only live passes notify; a
- * reconnect's catch-up replay and any message already read stay silent. The rule is the shared one iPhone push uses;
- * only a message that passes it while Haus is in the background is fetched
- * for its text. Every tab observes, but only the elected tab for this Server
- * raises notifications.
+ * It returns the `onEvent` callbacks the Server's single `chat.onMessageCreated`
+ * and `chat.onRead` streams call with each live event; recovery reads never
+ * reach them, and a message already read stays silent. The rule is the shared
+ * one iPhone push uses; only a message that passes it while Haus is in the
+ * background is fetched for its text. Every tab observes, but only the elected
+ * tab for this Server raises notifications.
  */
 export function useMessageNotifications(server: { id: string; slug: string }) {
     const navigate = useNavigate();
@@ -104,16 +102,26 @@ export function useMessageNotifications(server: { id: string; slug: string }) {
         })
     );
 
-    // Fire and forget: reading a message's text must never hold up the
-    // stream's catch-up walk or the cache listeners dispatched beside this one.
-    useChatEvent(['message.created', 'chat.read'], (events, eventServerId, delivery) => {
-        if (eventServerId !== serverId) {
-            return;
-        }
-        notifier.observe(events, delivery).catch((error: unknown) => {
-            console.warn('[haus] message notification failed', error);
-        });
-    });
+    return React.useMemo(
+        () => ({
+            onChatRead: (event: ChatReadEvent) => {
+                if (event.serverId === serverId) {
+                    notifier.chatRead(event);
+                }
+            },
+            // Fire and forget: reading a message's text must never hold up the
+            // stream's own cache work.
+            onMessageCreated: (event: MessageCreatedEvent) => {
+                if (event.serverId !== serverId) {
+                    return;
+                }
+                notifier.messageCreated(event).catch((error: unknown) => {
+                    console.warn('[haus] message notification failed', error);
+                });
+            },
+        }),
+        [notifier, serverId]
+    );
 }
 
 /** The message's own text and route, read only once it is going to notify. */

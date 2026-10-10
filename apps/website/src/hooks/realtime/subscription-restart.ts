@@ -1,77 +1,116 @@
-import { isMembershipLoss } from '../servers/membership-loss.ts';
+import { classifyStreamError } from './realtime-refusal.ts';
 
 /**
- * Restarts a long-lived subscription the Server ended with an error. tRPC
- * completes a subscription on its first error and never resubscribes, not even
- * when the socket reconnects, so without this a stream that failed once stays
- * dead and its listeners go silent while everything else still looks live.
+ * One long-lived subscription's restart policy (specs/realtime-events.md,
+ * "Recovery"). tRPC ends a subscription on its first error and never
+ * resubscribes, not even when the socket reconnects, so without this a stream
+ * that failed once stays dead while everything else still looks live.
  *
- * Each failure is reported, then the subscription restarts after a capped
- * exponential backoff; a start resets the backoff. The restart's own start runs
- * the stream's usual recovery (catch-up or snapshot refresh), so nothing missed
- * while it was down stays missed. A refusal is final: losing membership or
- * authorization is handled by its owner, and retrying it would only repeat it.
+ * Any end that is not a refusal, a normal completion included, restarts this
+ * one stream after a capped exponential backoff; a start resets the backoff.
+ * `started()` returns true for a start that follows such an end, so the
+ * stream recovers only its owned reads then (a plain socket reconnect is the
+ * App-wide reconnect pass's job). Refusals follow their class: membership
+ * loss runs the Server-loss path, a role refusal stops this stream, and an
+ * expired session refreshes its token before restarting.
  */
 export interface SubscriptionRestart {
+    /** The stream completed normally: restart it like a failure. */
+    completed: (restart: () => void) => void;
     /** Drops any pending restart, for unmount or a changed subscription input. */
     dispose: () => void;
-    /** Reports `error` and schedules `restart` unless the error is a refusal. */
+    /** Reports `error` and answers it by its refusal class. */
     failed: (error: unknown, restart: () => void) => void;
-    /**
-     * The subscription started: cancel any pending restart and reset the
-     * backoff. True when this start recovers from a failure, for a stream whose
-     * reads otherwise recover only on a socket reconnect.
-     */
+    /** The stream started. True when it follows a failure or completion. */
     started: () => boolean;
+}
+
+export interface SubscriptionRestartOptions {
+    cancel: (handle: ReturnType<typeof setTimeout>) => void;
+    /** `membership_lost`: final for every stream of the Server. */
+    onMembershipLost: () => void;
+    /** `UNAUTHORIZED`: refresh the session token; false when Clerk confirms sign-out. */
+    refreshSession: () => Promise<boolean>;
+    report: (message: string, error: unknown) => void;
+    schedule: (run: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
+    stream: string;
 }
 
 export const subscriptionRestartInitialDelayMs = 1000;
 export const subscriptionRestartMaxDelayMs = 30_000;
 
-export function createSubscriptionRestart({
-    cancel,
-    report,
-    schedule,
-    stream,
-}: {
-    cancel: (handle: ReturnType<typeof setTimeout>) => void;
-    report: (message: string, error: unknown) => void;
-    schedule: (run: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
-    stream: string;
-}): SubscriptionRestart {
+export function createSubscriptionRestart(
+    options: SubscriptionRestartOptions
+): SubscriptionRestart {
+    const { cancel, report, schedule, stream } = options;
     let attempt = 0;
-    let failedSinceStart = false;
+    let endedSinceStart = false;
+    let disposed = 0;
     let pending: ReturnType<typeof setTimeout> | null = null;
 
     const dispose = () => {
+        disposed += 1;
         if (pending !== null) {
             cancel(pending);
             pending = null;
         }
     };
+    const scheduleRestart = (restart: () => void) => {
+        const delayMs = subscriptionRestartDelayMs(attempt);
+        attempt += 1;
+        endedSinceStart = true;
+        pending = schedule(() => {
+            pending = null;
+            restart();
+        }, delayMs);
+        return delayMs;
+    };
 
     return {
+        completed(restart) {
+            dispose();
+            const delayMs = scheduleRestart(restart);
+            report(`[haus] ${stream} completed; restarting in ${delayMs} ms`, null);
+        },
         dispose,
         failed(error, restart) {
             dispose();
-            if (isSubscriptionRefusal(error)) {
-                report(`[haus] ${stream} was refused; not restarting`, error);
+            const end = classifyStreamError(error);
+            if (end === 'membership_lost') {
+                report(`[haus] ${stream} lost Server membership; not restarting`, error);
+                options.onMembershipLost();
                 return;
             }
-            const delayMs = subscriptionRestartDelayMs(attempt);
-            attempt += 1;
-            failedSinceStart = true;
+            if (end === 'role_required') {
+                report(`[haus] ${stream} needs a role the viewer lacks; stopping`, error);
+                return;
+            }
+            if (end === 'unauthorized') {
+                report(`[haus] ${stream} was unauthorized; refreshing the session`, error);
+                const generation = disposed;
+                void options.refreshSession().then(
+                    (signedIn) => {
+                        // A newer failure, start, or unmount owns the stream now.
+                        if (signedIn && generation === disposed) {
+                            scheduleRestart(restart);
+                        }
+                    },
+                    () => {
+                        if (generation === disposed) {
+                            scheduleRestart(restart);
+                        }
+                    }
+                );
+                return;
+            }
+            const delayMs = scheduleRestart(restart);
             report(`[haus] ${stream} failed; restarting in ${delayMs} ms`, error);
-            pending = schedule(() => {
-                pending = null;
-                restart();
-            }, delayMs);
         },
         started() {
             dispose();
             attempt = 0;
-            const recovered = failedSinceStart;
-            failedSinceStart = false;
+            const recovered = endedSinceStart;
+            endedSinceStart = false;
             return recovered;
         },
     };
@@ -83,19 +122,4 @@ export function subscriptionRestartDelayMs(attempt: number): number {
         subscriptionRestartInitialDelayMs * 2 ** attempt,
         subscriptionRestartMaxDelayMs
     );
-}
-
-/** A refusal the Server will repeat: lost membership, or no valid session. */
-export function isSubscriptionRefusal(error: unknown): boolean {
-    return isMembershipLoss(error) || readErrorCode(error) === 'UNAUTHORIZED';
-}
-
-function readErrorCode(error: unknown): unknown {
-    if (typeof error !== 'object' || error === null || !('data' in error)) {
-        return undefined;
-    }
-    const { data } = error as { data: unknown };
-    return typeof data === 'object' && data !== null && 'code' in data
-        ? (data as { code: unknown }).code
-        : undefined;
 }

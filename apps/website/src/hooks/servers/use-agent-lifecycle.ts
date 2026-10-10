@@ -22,7 +22,8 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
     const { reset } = hausTrpc.agent.onLifecycle.useSubscription(
         { serverId: serverId ?? '' },
         {
-            enabled: serverId !== undefined,
+            enabled: serverId !== undefined && restart.open,
+            onComplete: () => restart.completed(reset),
             onError: (error) => restart.failed(error, reset),
             onData: (event) => {
                 if (event.serverId !== serverId) {
