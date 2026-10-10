@@ -66,12 +66,15 @@ extension HausStore {
     /// Server, oldest first. `cloudAgentWork.onUpdated` owns the refresh.
     func loadActiveCloudAgentWork() async {
         guard let serverID = activeServer?.id else { return }
+        let readStart = realtimeReconciliation.beginRead()
         do {
             let rows: [ActiveCloudAgentWork] = try await client.query(
                 "cloudAgentWork.listActive",
                 input: ServerScopedInput(serverId: serverID)
             )
-            guard activeServer?.id == serverID else { return }
+            guard activeServer?.id == serverID,
+                  realtimeReconciliation.landed(.activeCloudAgentWork, readStartedAt: readStart)
+            else { return }
             if activeCloudAgentWork != rows { activeCloudAgentWork = rows }
         } catch {
             Self.logger.error("Loading active cloud agent work failed: \(error.localizedDescription, privacy: .public)")

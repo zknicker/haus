@@ -8,11 +8,12 @@ import HausUI
 ///
 /// The live chain is two steps — `server.list`, then the Chat list, Agent
 /// list, and identity-synced member list together, with the pages the first
-/// frame shows. The focused streams start after it; their first connect
-/// reloads nothing these reads just answered, and the message stream's first
-/// connect tail-reads each loaded list to cover the gap before it subscribed.
-/// Computers and the badge load after the shell is up; no Chat surface waits
-/// on them, and the streams' own connects reload activity and presence.
+/// frame shows. The focused streams start after it. Nothing replays, so each
+/// stream's first connect reconciles what it owns against these reads, in one
+/// shared pass: the message stream tail-reads each loaded list, and the
+/// annotation streams reload open transcripts and the Chat list. Computers and
+/// the badge load after the shell is up; no Chat surface waits on them, and
+/// the streams' own connects reload activity and presence.
 extension HausStore {
     func start() async {
         guard case .idle = state else { return }
@@ -98,6 +99,34 @@ extension HausStore {
             for chatID in pages {
                 group.addTask { await self.loadMessages(chatID: chatID) }
             }
+        }
+    }
+
+    /// `server.onUpdated` and its start reconciliation: the Server's name or
+    /// the viewer's Server list changed. A list that no longer leads with the
+    /// active Server means it was lost; that runs the membership-loss purge
+    /// rather than letting another Server's id stand beside this one's state.
+    func reloadServerList(serverID: String) async {
+        guard activeServer?.id == serverID else { return }
+        let readStart = realtimeReconciliation.beginRead()
+        do {
+            let loaded: [ServerSummary] = try await client.query("server.list")
+            guard activeServer?.id == serverID,
+                  realtimeReconciliation.landed(.serverList, readStartedAt: readStart)
+            else { return }
+            guard loaded.first?.id == serverID else {
+                // Unstructured: the purge stops the streams and recovery
+                // pass this read may be running inside.
+                if !loaded.contains(where: { $0.id == serverID }) {
+                    Task { await self.handleMembershipLost(serverID: serverID) }
+                }
+                return
+            }
+            if servers != loaded { servers = loaded }
+        } catch is CancellationError {
+            return
+        } catch {
+            Self.logger.warning("Server list refresh failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

@@ -71,12 +71,20 @@ extension HausStore {
             if readsTasks { group.addTask { await self.loadServerTasks() } }
             if readsWork { group.addTask { await self.loadActiveCloudAgentWork() } }
         }
+        // Mounted search reruns on new messages, after the Chat list it maps
+        // results against is current.
+        if !effects.tailSequenceByChatID.isEmpty, activeServer?.id == serverID {
+            messageSearchRevision += 1
+        }
     }
 
-    /// A label carries no message ids: refresh every cached entity carrying
+    /// A label carries no message ids: retire every tail read in flight (one
+    /// begun before the update could seed a message under the former label
+    /// that no carrier refresh names), refresh every cached entity carrying
     /// it (marked dirty, so a list read in flight re-reads it as it settles),
     /// then reload the Server's open lists in bulk.
     private func reloadForLabelChanges(_ labelIDs: Set<String>) {
+        transcriptReads.invalidateTails()
         for refresh in Set(labelIDs.flatMap(transcripts.refreshes(carryingLabel:))) {
             refreshEntity(refresh)
         }
@@ -104,19 +112,19 @@ extension HausStore {
         await applyChatEvents(batch, serverID: serverID)
     }
 
-    // MARK: - Restart recovery
+    // MARK: - Start reconciliation
 
-    /// A restarted stream reloads the projections it owns. Several streams
-    /// restarting together (a dropped connection) share one pass, so each
-    /// open list reloads once.
+    /// A started stream reconciles the projections it owns, anchored to now.
+    /// Streams starting together (a launch, a foreground, a dropped
+    /// connection) share one pass, so each open list reloads once, and a
+    /// projection a read begun after the start already answered is skipped.
     func requestRecovery(_ projections: Set<RealtimeProjection>, serverID: String) {
-        pendingRecovery.formUnion(projections)
+        realtimeReconciliation.streamStarted(reconciling: projections)
         guard recoveryFlush == nil else { return }
         recoveryFlush = Task { [weak self] in
             try? await Task.sleep(for: HausStore.liveChatEventWindow)
             guard !Task.isCancelled, let self else { return }
-            let projections = pendingRecovery
-            pendingRecovery = []
+            let projections = realtimeReconciliation.take()
             recoveryFlush = nil
             guard activeServer?.id == serverID else { return }
             await recover(projections, serverID: serverID)
@@ -130,6 +138,9 @@ extension HausStore {
             }
             if projections.contains(.chatList) {
                 group.addTask { await self.refreshChatList(serverID: serverID) }
+            }
+            if projections.contains(.serverList) {
+                group.addTask { await self.reloadServerList(serverID: serverID) }
             }
             if projections.contains(.taskLenses), serverTasks != nil {
                 group.addTask { await self.loadServerTasks() }

@@ -20,6 +20,8 @@ public struct TranscriptReads: Equatable, Sendable {
     private var tailNeeded: [TranscriptKey: Int] = [:]
     private var dirtyByChatID: [String: Set<String>] = [:]
     private var listReadsByChatID: [String: Int] = [:]
+    /// Advances when a label update makes every tail read in flight suspect.
+    public private(set) var tailEpoch = 0
 
     public init() {}
 
@@ -43,6 +45,21 @@ public struct TranscriptReads: Equatable, Sendable {
     /// Clears and returns the list's tail bit.
     public mutating func takeTail(_ key: TranscriptKey) -> Int? {
         tailNeeded.removeValue(forKey: key)
+    }
+
+    /// A label update: a tail read in flight may carry messages under the
+    /// former label, and no carrier refresh names a message the cache has not
+    /// seen yet. Every tail begun before now lands nothing.
+    public mutating func invalidateTails() {
+        tailEpoch += 1
+    }
+
+    /// Whether a tail read begun in `epoch` may write. One that may not sets
+    /// the list's tail bit again, so the drain reads it afresh.
+    public mutating func acceptsTail(_ key: TranscriptKey, through sequence: Int, epoch: Int) -> Bool {
+        guard epoch != tailEpoch else { return true }
+        noteTail(key, through: sequence)
+        return false
     }
 
     // MARK: - Dirty sets
@@ -71,6 +88,14 @@ public struct TranscriptReads: Equatable, Sendable {
             dirtyByChatID.removeValue(forKey: chatID)
         }
         return dirty
+    }
+
+    /// A Server change or loss: drops every bit and set, and retires every
+    /// tail read in flight.
+    public mutating func reset() {
+        let epoch = tailEpoch
+        self = TranscriptReads()
+        tailEpoch = epoch + 1
     }
 
     /// A deleted Chat: nothing of it may run again.

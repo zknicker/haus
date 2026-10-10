@@ -165,12 +165,16 @@ extension HausStore {
 
     func reloadChats(serverID: String) async throws {
         async let iconBadge: Void = refreshIconBadge()
+        let readStart = realtimeReconciliation.beginRead()
         let refreshed: [ChatSummary] = try await client.query(
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
         await iconBadge
-        guard activeServer?.id == serverID else { return }
+        // An answer older than one already applied writes nothing.
+        guard activeServer?.id == serverID,
+              realtimeReconciliation.landed(.chatList, readStartedAt: readStart)
+        else { return }
         // Events, sends, and reads all land here, and most of those reads come
         // back byte-identical. A freshly decoded equal value is still a write
         // Observation reports, which is what reshuffled the sidebar mid-gesture;

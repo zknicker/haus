@@ -10,12 +10,11 @@ import OSLog
 /// failures inside a stream and reports each attempt; an error it will not
 /// retry, or a stream the Server completed, ends that stream alone. The Store
 /// then restarts it with capped backoff, or follows its refusal class, and its
-/// siblings never notice. A restarted stream reloads only the projections it
-/// owns.
+/// siblings never notice. Every start of a stream reconciles only the
+/// projections it owns.
 extension HausStore {
     func startEventStreams(serverID: String) {
         stopEventStreams()
-        agentMessageRecovery.beginSession()
         realtimeServerID = serverID
         streamRestarts = RealtimeStreamRestarts()
         for stream in RealtimeStream.allCases {
@@ -29,7 +28,7 @@ extension HausStore {
         streamRestartTasks = [:]
         recoveryFlush?.cancel()
         recoveryFlush = nil
-        pendingRecovery = []
+        realtimeReconciliation.cancelPending()
         realtimeServerID = nil
         eventTasks.cancelAll()
     }
@@ -76,6 +75,11 @@ extension HausStore {
             streamTask(stream, serverID: serverID) { (store, event: AgentActivityEvent) in
                 store.handle(activityEvent: event)
             }
+        case .serverUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: ServerUpdatedEvent) in
+                guard event.serverID == serverID else { return }
+                await store.reloadServerList(serverID: serverID)
+            }
         }
         eventTasks.replace(stream, with: task)
     }
@@ -116,26 +120,17 @@ extension HausStore {
         }
     }
 
-    /// A stream (re)connected. The first connect after a launch or a
-    /// foreground refresh follows reads that are already fresh, so only a
-    /// restart reloads the stream's owned projections. Volatile presence and
-    /// activity re-read on every connect.
+    /// A stream (re)connected. Recovery is anchored to this start: a read that
+    /// finished before it may have missed a commit whose event fired before
+    /// the subscription existed, so every start (first connect, reconnect,
+    /// restart) reconciles what the stream owns. Reads begun after this start
+    /// are skipped, and starts landing together share one pass.
     private func streamConnected(_ stream: RealtimeStream, serverID: String) async {
         guard realtimeServerID == serverID, activeServer?.id == serverID else { return }
         if stream.reportsOutage { markConnected() }
         let isRestart = streamRestarts.connected(stream, at: Date())
-        switch stream {
-        case .agentLifecycle:
-            await reloadAgentAvailability(serverID: serverID)
-        case .agentActivity:
-            await reloadActiveActivity(serverID: serverID)
-        case .messageCreated where !isRestart:
-            // A message committed between the launch reads and this subscribe
-            // has no event; one tail read per loaded list closes that gap.
-            tailLoadedTranscripts()
-        default:
-            if isRestart { requestRecovery(stream.ownedProjections, serverID: serverID) }
-        }
+        if stream.tailsLoadedListsOnStart { tailLoadedTranscripts() }
+        requestRecovery(stream.startReconciliation(isRestart: isRestart), serverID: serverID)
     }
 
     private func streamEnded(_ stream: RealtimeStream, serverID: String, end: RealtimeStreamEnd) {

@@ -185,7 +185,7 @@ struct AuthenticatedHausView: View {
                     searchMessages: { query, chatID in
                         try await store.searchMessagePresentations(query: query, chatID: chatID)
                     },
-                    searchRecoveryRevision: store.agentMessageSearchRevision,
+                    searchRecoveryRevision: store.messageSearchRevision,
                     loadArchivedChannels: {
                         guard let serverID = await store.activeServer?.id else {
                             throw HausStoreError.serverUnavailable
