@@ -20,7 +20,20 @@ function registerBrowserWorkspace({
     browserSession.setPermissionCheckHandler(() => false);
     browserSession.on('will-download', (event) => event.preventDefault());
     const attach = (window) => {
-        const workspace = createBrowserWorkspace(window, { WebContentsView, browserSession, page });
+        const workspace = createBrowserWorkspace(window, {
+            WebContentsView,
+            browserSession,
+            page,
+            skoolSession: (id) => {
+                const isolated = session.fromPartition(`haus-skool-login-${id}`);
+                isolated.setPermissionRequestHandler((_contents, _permission, callback) =>
+                    callback(false)
+                );
+                isolated.setPermissionCheckHandler(() => false);
+                isolated.on('will-download', (event) => event.preventDefault());
+                return isolated;
+            },
+        });
         workspaces.set(window, workspace);
         return workspace;
     };
@@ -41,6 +54,7 @@ function registerBrowserWorkspace({
     );
     ipcMain.handle('desktop:browser:snapshot', (event) => forSender(event).snapshot());
     ipcMain.handle('desktop:browser:capture', (event, id) => forSender(event).capture(id));
+    ipcMain.handle('desktop:skool:login', (event, id) => forSender(event).skoolLogin(id));
     ipcMain.handle('desktop:browser:layout', (event, placements) =>
         forSender(event).setLayout(placements)
     );

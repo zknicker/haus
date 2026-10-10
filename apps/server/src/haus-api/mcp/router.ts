@@ -11,6 +11,7 @@ import {
     mcpOAuthStartResultSchema,
     mcpOAuthStartSchema,
     mcpPresetAccountCreateSchema,
+    skoolConnectSchema,
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { mcpUpdatedTopic } from '../../realtime/topics.ts';
@@ -24,6 +25,7 @@ import {
     replaceMcpHeaders,
     startMcpOAuth,
 } from '../../server-mcp/service.ts';
+import { connectSkool } from '../../server-mcp/skool.ts';
 import { listMcpConnections, setMcpGrant } from '../../server-mcp/state.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { createRouter } from '../trpc.ts';
@@ -43,6 +45,14 @@ const guarded = memberProcedure.use(async ({ next }) => {
 });
 
 export const mcpRouter = createRouter({
+    connectSkool: guarded
+        .input(skoolConnectSchema)
+        .output(mcpConnectionSchema)
+        .mutation(({ ctx, input }) =>
+            withMcpUpdate(input.serverId, () =>
+                connectSkool(ctx.hausDb, ctx.mcpRuntime, ctx.mcpIconResolver, ctx.member, input)
+            )
+        ),
     amazonProduct,
     amazonProductDetail,
     add: guarded

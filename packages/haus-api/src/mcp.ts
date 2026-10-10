@@ -20,11 +20,13 @@ export const mcpOAuthPresetSchema = z.enum([
     'rankwrangler',
 ]);
 export const mcpBearerTokenPresetSchema = z.enum(['x']);
+export const mcpDesktopPresetSchema = z.enum(['skool']);
 export const mcpKeylessPresetSchema = z.enum(['coingecko']);
 export const mcpPresetSchema = z.enum([
     ...mcpOAuthPresetSchema.options,
     ...mcpBearerTokenPresetSchema.options,
     ...mcpKeylessPresetSchema.options,
+    ...mcpDesktopPresetSchema.options,
 ]);
 
 /** Printable ASCII with no spaces: a header value that cannot smuggle a line break. */

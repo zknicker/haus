@@ -125,6 +125,7 @@ export * from './runtime/runtime-aliases.ts';
 export * from './runtime/skill-hub.ts';
 export * from './runtime/skills.ts';
 export * from './runtime/tool-setup.ts';
+export * from './skool.ts';
 export * from './socket-session.ts';
 export * from './stats.ts';
 export * from './task.ts';

@@ -5,6 +5,7 @@ const { isOpenedFromWindow } = require('./window-routing.cjs');
 
 const bridge = {
     loadsApp: true,
+    skoolLogin: (viewId) => ipcRenderer.invoke('desktop:skool:login', viewId),
     openedFromWindow: isOpenedFromWindow(process.argv),
     browserCommand: (command) => ipcRenderer.invoke('desktop:browser:command', command),
     browserSnapshot: () => ipcRenderer.invoke('desktop:browser:snapshot'),

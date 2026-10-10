@@ -10,6 +10,7 @@ import {
     stopStaleDevPostgres,
     waitForDevPostgres,
 } from './dev-postgres.mjs';
+import { createDevServerEnvironment } from './dev-stack-server-environment.mjs';
 import {
     assertDevStackPortsAvailable,
     cleanupStaleProcesses,
@@ -289,13 +290,11 @@ export class DevStackController extends EventEmitter {
             snapshot.processes.postgres.status = 'running';
         });
 
-        const serverEnv = {
-            ...startupUiEnv,
-            HAUS_APP_ORIGIN:
-                startupUiEnv.HAUS_APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
-            HAUS_DATABASE_URL: postgres.databaseUrl,
-            HAUS_SERVER_PORT: String(this.ports.hausPort),
-        };
+        const serverEnv = createDevServerEnvironment(
+            startupUiEnv,
+            this.ports,
+            postgres.databaseUrl
+        );
         if (hasHausSchema(postgres)) {
             const migrated = await this.spawnBackgroundProcess(
                 'haus',

@@ -117,7 +117,9 @@ export async function disconnectMcpConnection(
     const connection = await requireOperableConnection(db, member, input);
     await runtime.closeConnection(input.connectionId);
     const secret = await runtime.readSecret(input.connectionId);
-    const headerNames = isMcpBearerTokenPreset(connection.preset) ? [] : connection.headerNames;
+    const clearsHeaders =
+        isMcpBearerTokenPreset(connection.preset) || connection.preset === 'skool';
+    const headerNames = clearsHeaders ? [] : connection.headerNames;
     await db.transaction(async (tx) => {
         await tx
             .delete(agentMcpConnectionGrantsTable)
@@ -130,7 +132,7 @@ export async function disconnectMcpConnection(
                     approvedAuthorizationServerOrigins: secret.approvedAuthorizationServerOrigins,
                     configuredClientInformation: secret.configuredClientInformation,
                     // A bearer-token preset's token is its account, so it goes too.
-                    headers: isMcpBearerTokenPreset(connection.preset) ? {} : secret.headers,
+                    headers: clearsHeaders ? {} : secret.headers,
                     oauthScopes: secret.oauthScopes,
                 } as unknown as Record<string, unknown>,
                 updatedAt: new Date(),
@@ -193,6 +195,9 @@ export async function replaceMcpHeaders(
     }
     if (isMcpBearerTokenPreset(connection.preset)) {
         throw new McpDeniedError("Replace this connection's token instead of its headers.");
+    }
+    if (connection.preset === 'skool') {
+        throw new McpDeniedError('Reconnect Skool in the Haus desktop app.');
     }
     return await saveMcpHeaders(db, runtime, resolveIcon, connection, input.headers);
 }

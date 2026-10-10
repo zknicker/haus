@@ -1,5 +1,5 @@
 {
-  "id": "f5f15664-b548-4ade-9b1b-1a821c3d511e",
+  "id": "1dae0aac-0c2f-4daa-aa8d-b11bae0743da",
   "prevId": "165a818e-6055-45d3-b2ef-4eb824e6e768",
   "version": "7",
   "dialect": "postgresql",
@@ -3574,6 +3574,243 @@
       },
       "isRLSEnabled": false
     },
+    "public.chat_events": {
+      "name": "chat_events",
+      "schema": "",
+      "columns": {
+        "chat_id": {
+          "name": "chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cloud_agent_work_id": {
+          "name": "cloud_agent_work_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chat_action": {
+          "name": "chat_action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lifecycle_chat_id": {
+          "name": "lifecycle_chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "cursor": {
+          "name": "cursor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label_id": {
+          "name": "label_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reader_user_id": {
+          "name": "reader_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reminder_action": {
+          "name": "reminder_action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reminder_id": {
+          "name": "reminder_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "chat_events_server_cursor_key": {
+          "name": "chat_events_server_cursor_key",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cursor",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "chat_events_message_created_idx": {
+          "name": "chat_events_message_created_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "message_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"chat_events\".\"event_type\" = 'message.created'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "chat_events_chat_fk": {
+          "name": "chat_events_chat_fk",
+          "tableFrom": "chat_events",
+          "tableTo": "chats",
+          "columnsFrom": [
+            "server_id",
+            "chat_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "chat_events_cloud_agent_work_fk": {
+          "name": "chat_events_cloud_agent_work_fk",
+          "tableFrom": "chat_events",
+          "tableTo": "cloud_agent_work",
+          "columnsFrom": [
+            "server_id",
+            "cloud_agent_work_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "chat_events_reminder_fk": {
+          "name": "chat_events_reminder_fk",
+          "tableFrom": "chat_events",
+          "tableTo": "reminders",
+          "columnsFrom": [
+            "server_id",
+            "reminder_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "chat_events_message_fk": {
+          "name": "chat_events_message_fk",
+          "tableFrom": "chat_events",
+          "tableTo": "chat_messages",
+          "columnsFrom": [
+            "server_id",
+            "message_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "chat_events_reader_membership_fk": {
+          "name": "chat_events_reader_membership_fk",
+          "tableFrom": "chat_events",
+          "tableTo": "server_memberships",
+          "columnsFrom": [
+            "server_id",
+            "reader_user_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chat_events_positive_cursor": {
+          "name": "chat_events_positive_cursor",
+          "value": "\"chat_events\".\"cursor\" > 0"
+        },
+        "chat_events_lifecycle_shape": {
+          "name": "chat_events_lifecycle_shape",
+          "value": "(\"chat_events\".\"event_type\" = 'chat.lifecycle') = (\"chat_events\".\"lifecycle_chat_id\" is not null)\n                and (\"chat_events\".\"event_type\" = 'chat.lifecycle') = (\"chat_events\".\"chat_action\" is not null)"
+        },
+        "chat_events_shape": {
+          "name": "chat_events_shape",
+          "value": "(\n                (\"chat_events\".\"event_type\" = 'cloud-agent-work.updated'\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NOT NULL\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'message.created'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'message.reaction.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.lifecycle'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"lifecycle_chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"chat_action\" IN (\n                        'archived', 'created', 'deleted', 'unarchived', 'updated'\n                    )\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n                OR\n                (\"chat_events\".\"event_type\" IN ('task.created', 'task.updated')\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.read'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'thread.follow.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'reminder.changed'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_action\" IN (\n                        'scheduled', 'updated', 'snoozed', 'canceled', 'fired'\n                    )\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'task.label.updated'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NOT NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"cloud_agent_work_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n            )"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.chat_messages": {
       "name": "chat_messages",
       "schema": "",
@@ -6278,7 +6515,7 @@
         },
         "mcp_connections_preset": {
           "name": "mcp_connections_preset",
-          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'rankwrangler', 'x', 'coingecko')"
+          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'rankwrangler', 'x', 'coingecko', 'skool')"
         }
       },
       "isRLSEnabled": false
@@ -8542,6 +8779,13 @@
           "primaryKey": true,
           "notNull": true
         },
+        "last_chat_event_cursor": {
+          "name": "last_chat_event_cursor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
         "slug": {
           "name": "slug",
           "type": "text",
@@ -8571,6 +8815,10 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "servers_nonnegative_chat_event_cursor": {
+          "name": "servers_nonnegative_chat_event_cursor",
+          "value": "\"servers\".\"last_chat_event_cursor\" >= 0"
+        },
         "servers_cloud_agent_model_id_length": {
           "name": "servers_cloud_agent_model_id_length",
           "value": "\"servers\".\"cloud_agent_model_id\" is null or char_length(\"servers\".\"cloud_agent_model_id\") between 1 and 200"

@@ -42,6 +42,9 @@ export interface McpConnectionDraft {
 export function connectionStatusLabel(
     connection: Pick<McpConnection, 'auth' | 'connected'> & { preset?: McpPreset | null }
 ): string {
+    if (connection.preset === 'skool') {
+        return connection.connected ? 'Account connected' : 'Sign in required';
+    }
     if (isMcpBearerTokenPreset(connection.preset ?? null)) {
         return connection.connected ? 'Token saved' : 'Token required';
     }
@@ -57,6 +60,9 @@ export function connectionStatusLabel(
 export function connectionSetupDescription(
     connection: Pick<McpConnection, 'auth'> & { preset?: McpPreset | null }
 ): string {
+    if (connection.preset === 'skool') {
+        return 'Sign in to Skool in the Haus desktop app to connect your account and its communities.';
+    }
     if (isMcpBearerTokenPreset(connection.preset ?? null)) {
         return 'This MCP is added to Haus. Add a token to authorize access and load its tools.';
     }

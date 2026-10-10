@@ -4,6 +4,7 @@ import { createMcpPresetAccount, replaceMcpPresetToken } from '../src/server-mcp
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
 import { disconnectMcpConnection } from '../src/server-mcp/service.ts';
+import { connectSkool } from '../src/server-mcp/skool.ts';
 import { listMcpConnections } from '../src/server-mcp/state.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
@@ -131,4 +132,91 @@ test('the X preset rejects a missing token and arbitrary header edits', async ()
             serverId,
         })
     ).rejects.toThrow('bearer token');
+});
+
+test('Skool uses the configured service endpoint and keeps account tokens Server-only', async () => {
+    const session = {
+        auth_token: 'native-auth',
+        cookie_header: 'auth_token=native-auth; aws-waf-token=native-waf',
+        waf_token: 'native-waf',
+    };
+    let provisioned = false;
+    const request: typeof fetch = Object.assign(
+        async (url: string | URL | Request, init?: RequestInit) => {
+            expect(String(url)).toBe('https://skool.test/accounts');
+            expect(init?.headers).toMatchObject({
+                Authorization: 'Bearer skool-test-control-token',
+            });
+            expect(JSON.parse(String(init?.body)).session).toEqual(session);
+            provisioned = true;
+            return Response.json({ bearerToken: 'skool-fixture-token' });
+        },
+        { preconnect: fetch.preconnect }
+    );
+    await expect(
+        connectSkool(connection.db, runtime, noIcon, null, { serverId, session }, request)
+    ).rejects.toThrow();
+    expect(provisioned).toBe(false);
+    const created = await connectSkool(
+        connection.db,
+        runtime,
+        noIcon,
+        member,
+        { serverId, session },
+        request
+    );
+    expect(created).toMatchObject({
+        auth: 'headers',
+        connected: true,
+        preset: 'skool',
+        url: 'https://skool.test/mcp',
+    });
+    expect(JSON.stringify(await listMcpConnections(connection.db, member, serverId))).not.toContain(
+        'skool-fixture-token'
+    );
+    expect(JSON.stringify(created)).not.toContain('native-auth');
+    await disconnectMcpConnection(connection.db, runtime, member, {
+        connectionId: created.id,
+        serverId,
+    });
+    const [cleared] = (await harness.sql`
+        select secret from mcp_secrets where connection_id = ${created.id}
+    `) as { secret: { headers: Record<string, string> } }[];
+    expect(cleared?.secret.headers).toEqual({});
+});
+
+test('failed Skool provisioning revokes the temporary account and hides response details', async () => {
+    let provisionedKey: string | undefined;
+    let revoked = false;
+    const request: typeof fetch = Object.assign(
+        async (url: string | URL | Request, init?: RequestInit) => {
+            if (init?.method === 'POST') {
+                provisionedKey = JSON.parse(String(init.body)).key;
+                return Response.json({ unexpected: 'private-session-detail' });
+            }
+            expect(String(url)).toBe(`https://skool.test/accounts/${provisionedKey}`);
+            expect(init?.method).toBe('DELETE');
+            revoked = true;
+            return Response.json({ revoked: true });
+        },
+        { preconnect: fetch.preconnect }
+    );
+    await expect(
+        connectSkool(
+            connection.db,
+            runtime,
+            noIcon,
+            member,
+            {
+                serverId,
+                session: {
+                    auth_token: 'native-auth',
+                    cookie_header: 'auth_token=native-auth',
+                    waf_token: 'native-waf',
+                },
+            },
+            request
+        )
+    ).rejects.toThrow('Could not finish connecting Skool. Try again.');
+    expect(revoked).toBe(true);
 });

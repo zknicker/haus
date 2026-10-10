@@ -502,8 +502,15 @@
     {
       "idx": 71,
       "version": "7",
-      "when": 1791586545639,
-      "tag": "0071_drop_chat_events",
+      "when": 1791592698873,
+      "tag": "0071_skool-preset",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1791652207349,
+      "tag": "0072_drop_chat_events",
       "breakpoints": true
     }
   ]
