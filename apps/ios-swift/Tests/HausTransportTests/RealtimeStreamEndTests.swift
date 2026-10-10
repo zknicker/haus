@@ -39,6 +39,21 @@ final class RealtimeStreamEndTests: XCTestCase {
         XCTAssertEqual(RealtimeStreamEnd(error: refusal("membership_lost")).chatStreamDecision, .restart)
     }
 
+    /// A `chat_missing` refusal stands for a lifecycle deletion: the same
+    /// effects purge the Chat and read the Chat list again.
+    func testChatMissingRunsTheLifecycleDeletionEffects() {
+        let missing = ChatRealtimeEffects(
+            [.chatMissing(serverID: "srv_a", chatID: "cht_gone")], serverID: "srv_a"
+        )
+        let deleted = ChatRealtimeEffects(
+            [.lifecycle(ChatLifecycleEvent(serverID: "srv_a", chatID: "cht_gone", action: .deleted))],
+            serverID: "srv_a"
+        )
+        XCTAssertEqual(missing, deleted)
+        XCTAssertEqual(missing.deletedChatIDs, ["cht_gone"])
+        XCTAssertTrue(missing.needsChatListRead { _ in 0 })
+    }
+
     func testForbiddenOrNotFoundWithoutARefusalOnlyRestarts() {
         XCTAssertEqual(RealtimeStreamEnd(error: TRPCError(
             message: "Forbidden", data: .object(["code": .string("FORBIDDEN")])

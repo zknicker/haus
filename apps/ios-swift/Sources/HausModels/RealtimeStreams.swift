@@ -107,6 +107,15 @@ extension RealtimeStreamEnd {
     }
 }
 
+extension ChatRealtimeEvent {
+    /// The `chat.onLifecycle` `deleted` event a `chat_missing` refusal stands
+    /// for: the Store applies it through the same path as a live deletion, so
+    /// the Chat is purged and the Chat list is read again.
+    public static func chatMissing(serverID: String, chatID: String) -> ChatRealtimeEvent {
+        .lifecycle(ChatLifecycleEvent(serverID: serverID, chatID: chatID, action: .deleted))
+    }
+}
+
 /// How one stream ended.
 public enum RealtimeStreamEnd: Sendable, Equatable {
     /// The Server completed the stream normally.

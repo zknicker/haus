@@ -43,7 +43,8 @@ extension HausStore {
     /// not retry, or one the Server ended, restarts here with the same capped
     /// backoff as the Server-wide streams, for as long as the row's Chat is open.
     /// A `chat_missing` refusal (a Chat deleted while the iPhone was away)
-    /// purges the Chat and stops; a purged Chat's sibling stream stops too.
+    /// runs the same path as a `chat.onLifecycle` `deleted` event (purge, then
+    /// a Chat list read) and stops; a purged Chat's sibling stream stops too.
     private func restartingChatStream(
         _ path: String,
         input: ChatEngagementInput,
@@ -61,9 +62,13 @@ extension HausStore {
                 Self.logger.warning("\(path, privacy: .public) stream stopped: \(error.localizedDescription, privacy: .public)")
             }
             if RealtimeStreamEnd(error: failure).chatStreamDecision == .chatMissing {
-                // Both streams are refused; the first to end purges.
+                // Both streams are refused; the first to end runs the deletion
+                // (it marks the Chat deleted before its first suspension).
                 if activeServer?.id == input.serverId, !deletedChatIDs.contains(input.chatId) {
-                    purgeChat(input.chatId)
+                    await applyChatEvents(
+                        [.chatMissing(serverID: input.serverId, chatID: input.chatId)],
+                        serverID: input.serverId
+                    )
                 }
                 return
             }
