@@ -18,6 +18,11 @@ final class RealtimeEventsTests: XCTestCase {
         ))
     }
 
+    func testDecodesServerUpdated() throws {
+        let event = try decode(ServerUpdatedEvent.self, #"{"serverId":"server_1"}"#)
+        XCTAssertEqual(event, ServerUpdatedEvent(serverID: "server_1"))
+    }
+
     func testDecodesReactionUpdated() throws {
         let event = try decode(MessageReactionUpdatedEvent.self, """
         {"chatId":"chat_1","messageId":"m1","parentChatId":null,"serverId":"server_1"}
