@@ -7,12 +7,8 @@ import {
 } from '../hooks/servers/chat-message-entities.ts';
 import { hausTrpc } from './haus-server.tsx';
 import { createStartReconciliation } from './start-reconciliation.ts';
-import {
-    type ChatScope,
-    type HausClient,
-    TranscriptListReads,
-    transcriptListInput,
-} from './transcript-list-reads.ts';
+import { transcriptListInput } from './transcript-list-key.ts';
+import { type ChatScope, type HausClient, TranscriptListReads } from './transcript-list-reads.ts';
 
 export type { ChatScope } from './transcript-list-reads.ts';
 
