@@ -38,20 +38,20 @@ export function ServerEventListeners() {
         <>
             {targets.map((target) => (
                 <React.Fragment key={target.id}>
-                    <ServerUpdateStream target={target} />
-                    <MemberUpdateStream target={target} />
+                    <ServerUpdateStream id={target.id} slug={target.slug} />
+                    <MemberUpdateStream id={target.id} slug={target.slug} />
                 </React.Fragment>
             ))}
         </>
     );
 }
 
-function ServerUpdateStream({ target }: { target: ServerEventTarget }) {
-    useServerUpdateStream(target);
+const ServerUpdateStream = React.memo(function ServerUpdateStream({ id, slug }: ServerEventTarget) {
+    useServerUpdateStream({ id, slug });
     return null;
-}
+});
 
-function MemberUpdateStream({ target }: { target: ServerEventTarget }) {
-    useMemberUpdateStream(target);
+const MemberUpdateStream = React.memo(function MemberUpdateStream({ id, slug }: ServerEventTarget) {
+    useMemberUpdateStream({ id, slug });
     return null;
-}
+});
