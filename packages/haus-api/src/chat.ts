@@ -204,30 +204,6 @@ export const channelUpdateInputSchema = z
 
 export type ChannelUpdateInput = z.infer<typeof channelUpdateInputSchema>;
 
-export const channelLifecycleInputSchema = z
-    .object({ chatId: idSchema, serverId: idSchema })
-    .strict();
-
-export const channelLifecycleReceiptSchema = z
-    .object({
-        archivedAt: timestampSchema.nullable(),
-        chatId: idSchema,
-        serverId: idSchema,
-    })
-    .strict();
-
-export type ChannelLifecycleReceipt = z.infer<typeof channelLifecycleReceiptSchema>;
-
-export const channelDeleteInputSchema = channelLifecycleInputSchema
-    .extend({ confirmation: z.string().trim().min(1).max(32) })
-    .strict();
-
-export const channelDeleteReceiptSchema = z
-    .object({ chatId: idSchema, serverId: idSchema })
-    .strict();
-
-export type ChannelDeleteReceipt = z.infer<typeof channelDeleteReceiptSchema>;
-
 export const ensureDmInputSchema = z
     .object({
         peerUserId: idSchema,
@@ -277,37 +253,9 @@ export const chatMessagePageSchema = z
     })
     .strict();
 
-export const threadFollowInputSchema = z
-    .object({
-        follow: z.boolean(),
-        serverId: idSchema,
-        threadChatId: idSchema,
-    })
-    .strict();
-
-export const threadContextInputSchema = z
-    .object({
-        serverId: idSchema,
-        threadChatId: idSchema,
-    })
-    .strict();
-
-export const threadContextSchema = z
-    .object({
-        anchorMessageId: idSchema,
-        parentChatId: idSchema,
-        serverId: idSchema,
-        threadChatId: idSchema,
-    })
-    .strict();
-
-export const threadFollowReceiptSchema = z
-    .object({
-        followed: z.boolean(),
-        serverId: idSchema,
-        threadChatId: idSchema,
-    })
-    .strict();
+export * from './chat-channel-lifecycle.ts';
+export * from './chat-composition.ts';
+export * from './chat-thread-follow.ts';
 
 export const chatSearchInputSchema = z
     .object({
@@ -329,31 +277,3 @@ export const chatSearchResultSchema = chatMessageSchema.extend({
 export type ChatSearchResult = z.infer<typeof chatSearchResultSchema>;
 
 export const chatSearchResultsSchema = z.array(chatSearchResultSchema);
-
-export const compositionPublishInputSchema = z
-    .object({
-        chatId: idSchema,
-        compositionId: idSchema,
-        serverId: idSchema,
-        text: z.string().max(2000).nullable(),
-    })
-    .strict();
-
-export const compositionSubscriptionInputSchema = z
-    .object({ chatId: idSchema, serverId: idSchema })
-    .strict();
-
-export const compositionEventSchema = z
-    .object({
-        actorUserId: idSchema,
-        chatId: idSchema,
-        compositionId: idSchema,
-        emittedAt: timestampSchema,
-        serverId: idSchema,
-        text: z.string().max(2000).nullable(),
-    })
-    .strict();
-
-export type CompositionEvent = z.infer<typeof compositionEventSchema>;
-
-export const compositionPublishedSchema = z.object({ accepted: z.literal(true) }).strict();
