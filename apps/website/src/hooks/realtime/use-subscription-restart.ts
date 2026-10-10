@@ -1,7 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useHausSessionRefresh } from '../../lib/haus-session-context.ts';
 import { useTargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { useServerLoss, useServerStreamsOpen } from '../servers/server-loss.ts';
+import { applyChatDeletion } from './chat-deletion.ts';
 import { createSubscriptionRestart, type SubscriptionRestart } from './subscription-restart.ts';
 
 export interface StreamRestart {
@@ -34,8 +36,9 @@ export interface StreamRestart {
  * or unmounting, drops a pending restart. Call it before the subscription in
  * the same component: an unsubscribe the App made (unmount, disable, new
  * input) is then never mistaken for a completion and restarted. `chatId`
- * names a per-Chat stream's Chat: a `chat_missing` refusal purges it
- * (the same Chat-loss path as `chat.onLifecycle` `deleted`), which stops
+ * names a per-Chat stream's Chat: a `chat_missing` refusal runs
+ * `applyChatDeletion`, the same path as `chat.onLifecycle` `deleted`: it purges
+ * every read of the Chat, refreshes the Chat lists, and stops
  * every stream `useChatLost` gates on it.
  */
 export function useSubscriptionRestart(
@@ -46,6 +49,7 @@ export function useSubscriptionRestart(
     chatId?: string
 ): StreamRestart {
     const coalescer = useTargetedReadCoalescer();
+    const queryClient = useQueryClient();
     const loseServer = useServerLoss();
     const refreshSession = useHausSessionRefresh();
     const open = useServerStreamsOpen(serverId);
@@ -59,8 +63,10 @@ export function useSubscriptionRestart(
             onChatMissing: () => {
                 const missing = latest.current;
                 if (missing.serverId !== undefined && missing.chatId !== undefined) {
-                    void coalescer.purgeChat({
+                    applyChatDeletion({
                         chatId: missing.chatId,
+                        coalescer,
+                        queryClient,
                         serverId: missing.serverId,
                     });
                 }
