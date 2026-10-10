@@ -94,6 +94,7 @@ export async function resolveMcpPresetIcons(resolveIcon: McpIconResolver) {
                     mcpPresetIcons[presetId] ??
                     (await resolveIcon({
                         connectionUrl: preset.url,
+                        preferPageIcon: true,
                         serverInfoIcons: [],
                         timeoutMs: 5000,
                     })),

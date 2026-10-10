@@ -56,6 +56,7 @@ const serviceHostLabels = new Set(['api', 'connect', 'mcp', 'remote', 'server'])
 export interface McpIconResolverInput {
     connectionUrl: string;
     fetchImpl?: McpIconFetch;
+    preferPageIcon?: boolean;
     serverInfoIcons: unknown;
     timeoutMs: number;
 }
@@ -78,14 +79,20 @@ async function resolveMcpIcon(
         return advertised;
     }
     const faviconUrl = siteFaviconUrl(input.connectionUrl);
+    const pageInput = { faviconUrl, fetchImpl, timeoutMs: input.timeoutMs };
+    if (input.preferPageIcon) {
+        const pageIcon = await resolvePageIcon(runtime, pageInput);
+        if (pageIcon) {
+            return asIcon({ dark: pageIcon, light: pageIcon });
+        }
+    }
     const favicon =
         (await loadRemoteIcon(runtime, {
             encode: encodeFetchedIcon,
             fetchImpl,
             timeoutMs: input.timeoutMs,
             url: faviconUrl,
-        })) ??
-        (await resolvePageIcon(runtime, { faviconUrl, fetchImpl, timeoutMs: input.timeoutMs }));
+        })) ?? (input.preferPageIcon ? null : await resolvePageIcon(runtime, pageInput));
     return favicon ? asIcon({ dark: favicon, light: favicon }) : null;
 }
 
