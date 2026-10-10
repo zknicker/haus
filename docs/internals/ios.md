@@ -37,11 +37,10 @@ presence used by the desktop App; `settled` immediately projects the terminal id
 state. The app separately subscribes to semantic Agent activity and presents current plus recent work
 from the existing `agent.activeActivity`, `agent.onActivity`, and `agent.activityHistory` contracts.
 
-A `sending` lifecycle event also recovers committed messages when the durable message notification
-was missed. Recovery refreshes the visible Chat and any covered parent transcript, the Chat list,
-and active message search. Older reads cannot replace the recovered snapshot. Other lifecycle phases
-only update activity; foreground and reconnect recovery remain independent fallback paths. Message
-rows always come from Server reads, never from lifecycle text.
+Lifecycle owns presence and activity only. A `sending` phase reads no transcript: committed
+messages arrive through `chat.onMessageCreated` and its start reconciliation (see "Realtime
+streams" below), so human and Agent sends recover the same way. Message rows
+always come from Server reads, never from lifecycle text.
 
 The open Chat and the open Thread show who is answering them in their header, the App's ADR
 0035/0036 feature in a phone shape. `HeaderEngagement` hangs a compact row just under the title as
@@ -655,7 +654,7 @@ when nothing left it at all (no Server).
 
 A page of history or replies the reader asked for that fails to load says so in place: the
 transcript's load-older accessory turns into a quiet "Couldn't load earlier messages · Try Again" line
-(`TranscriptLoadOlderButton`). Background work (event catch-up, foreground refresh, stream recovery,
+(`TranscriptLoadOlderButton`). Background work (tail reads, foreground refresh, stream reconciliation,
 history refresh, Cloud Agent refresh) logs instead: the header already speaks for connectivity.
 Lost connectivity is header state, never a banner over the transcript (`ConnectionOutage`): once the
 Server connection has been down for two seconds the Chat header's title, or a Thread's navigation
@@ -1015,19 +1014,15 @@ that arrives while a send is in flight sits above it, and the page that carries 
 the row by sequence. The send receipt's canonical id is adopted first, so that page swaps the row in
 place under the same id. `OptimisticTranscriptTests` pins confirmation, interleaving, rapid sends,
 and failed-then-retried rows. On returning to the foreground, the app keeps cached presentation
-visible, refetches its Server snapshot in one gathered pass — applied as a single repaint, with
-every Chat surface on the stack refetched eagerly: the deepest open Chat first, then the canvas Chat
-underneath it, so popping a Thread reveals a parent that is already fresh instead of one round trip
-stale; the event walk and `openChat` cover the rest — then restarts live Chat and Agent lifecycle
-streams. A return from under 30 seconds in the background with healthy streams skips all of that and
-keeps the streams: a frame sent while suspended is still in the socket, and a dropped socket
-reconnects and walks the event log on its own. A voluntary refresh keeps the connected state;
-offline is what a failed refresh or a broken stream reports. The transport reconnects transport
-failures itself; an error it will not retry (auth, procedure) or a stream the Server ends restarts
-all three streams with capped exponential backoff (1s doubling to 60s) after a forced Clerk token
-refresh, and the chat stream's connect catch-up recovers what was missed. Live SSE Chat events coalesce for a
-short window (`ChatEventCoalescer`) before the existing batch applier runs, so a burst lands as one
-refetch fan-out rather than one per frame. The batch refetches affected loaded pages concurrently,
+visible, restarts its streams, and reads the Server snapshot (Servers, Chat list, Agents, members,
+activity) in one gathered pass applied as a single repaint. It does not read transcripts itself:
+each stream's start reconciles them (below), and reading them here too would load every page twice.
+A return from under three minutes in the background with healthy streams skips all of that and keeps
+the streams: a frame sent while suspended is still in the socket, and a dropped socket reconnects
+and reconciles on its own. A voluntary refresh keeps the connected state; offline is what a failed
+refresh or a broken stream reports. Live SSE Chat events coalesce for a
+short window (`ChatEventCoalescer`) before the batch applier runs, so a burst lands as one
+read fan-out rather than one per frame. The batch tail-reads affected loaded lists concurrently,
 and every event-driven `chat.list` read shares one coalesced refresh with a 150ms gather window, so
 the `chat.read` echo of the acknowledgement a `message.created` batch made does not read the list
 again. Events carry no unread count (it includes followed Thread replies and excludes the reader's
@@ -1042,9 +1037,9 @@ directory excluded from iCloud and Finder backups; Application Support rather th
 pressure cannot purge the paint), off the main actor, at most once per two
 seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Clerk
 user, discarded on a version, user, or decode mismatch, cleared on sign-out, and replaced by the
-live load. The live launch is `server.list`, then `chat.eventHead`, then the Chat list, Agent list,
-and identity-synced member list together, then the mounted pages; Computers and the badge load
-after the shell is up. A painted launch whose live load fails stays on the painted state, reports
+live load. The live launch is `server.list`, then the Chat list, Agent list, and identity-synced
+member list together, then the mounted pages, then the streams, whose first starts reconcile
+against those reads; Computers and the badge load after the shell is up. A painted launch whose live load fails stays on the painted state, reports
 offline, and retries with backoff.
 
 The Chat projections the shell renders every frame — message rows and the destination list — are
@@ -1076,13 +1071,52 @@ Search and reply-reference jumps fetch a page around the target instead of walki
 History requests carry identities so a superseded response cannot overwrite a newer navigation.
 Deploy the Server paging contract before distributing this iOS build: older Servers reject the new
 forward and around-message selectors. Older iOS builds ignore the added response cursor.
-The Swift prototype keeps one in-memory event cursor per active
-Server, walks `chat.events` from that cursor on reconnect, and refetches loaded affected Chat pages.
-The SSE connection is established before recovery, while buffered live events are consumed only after
-the walk completes, so events arriving during recovery are not missed. A cold start seeds the cursor
-from `chat.eventHead` read before its Chat list, directory, and page reads, so the first stream
-connect walks only newer events;
-cursor state is intentionally process-memory only for this prototype.
+
+The 200-message window is a deliberate iOS difference from the App, whose loaded pages stay loaded
+([Realtime](../api/realtime.md#transcript-cache)): a phone bounds memory and cell work, so recovery
+reloads only the window a list holds, and a list scrolled into history skips tail reads and reloads
+its newest page when the reader returns.
+
+**Realtime streams.** Events notify; reads own recovery. There is no replay, event cursor, or catch-up walk
+(`chat.eventHead` and `chat.events` are gone). [Realtime](../api/realtime.md) is the shared
+contract and `specs/realtime-events.md` the normative spec; this is the iPhone's shape of it.
+
+`HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
+`chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`,
+`chat.onLifecycle`, `cloudAgentWork.onUpdated`, `task.onChanged`, `taskLabel.onUpdated`,
+`agent.onLifecycle`, `agent.onActivity`, and `server.onUpdated`, the membership sentinel. Each
+stream ends and restarts alone with capped backoff (1 s doubling to 30 s, reset after 30 s
+connected); a sibling never notices. The connection indicator follows only the message and Agent
+lifecycle streams. Chat events coalesce into targeted reads (`ChatRealtimeEffects`): a tail read per
+loaded list for a new message, a `chat.message` read per changed annotation, one shared Chat list
+read.
+
+Recovery is anchored to the subscription start (`RealtimeReconciliation`). A read that finished
+before a stream subscribed can miss a commit whose event fired before the subscription existed, so
+every successful start, whether a first connect, a transport reconnect, or a restart after failure,
+reconciles the projections that stream owns (`RealtimeStream.ownedProjections`). A projection whose
+latest landed read began after that start is skipped, and starts landing together (a launch, a
+foreground, a dropped socket) share one pass, so each open list reloads once. The message stream
+keeps its cheap path: every start tail-reads each loaded list, and only its restart adds the bulk
+reload, which also repairs a Thread anchor whose reply event it missed. Bulk transcript recovery
+reloads the open lists' loaded pages and marks off-screen lists to reload when shown. The same
+clock makes the newest-started `chat.list` and `server.list` read win, so a slow foreground
+snapshot never overwrites a reconciliation that already landed.
+
+A label carries no message ids, so `taskLabel.onUpdated` owns open transcripts as well as task
+lenses. A label update first retires every tail read in flight (`TranscriptReads.invalidateTails`):
+a tail begun before the rename could seed a message the cache had not seen under the former label,
+which no carrier refresh would name. The retired tail writes nothing and reads again. Then cached
+carriers refresh and open lists reload.
+
+Refusals follow the coded `hausRefusal` only, never a bare tRPC code. `membership_lost` is final
+for the Server: every stream stops, in-flight reads are cancelled (a cancelled read writes nothing),
+the Server's state is purged, and the Server list reloads (`handleMembershipLost`). Departures and
+Server deletion publish `server.updated`, so the `server.onUpdated` sentinel delivers that refusal
+even while no Chat event is flowing; a `server.list` read that no longer holds the active Server runs
+the same purge. `role_required` stops one stream and clears nothing. `UNAUTHORIZED` refreshes the
+Clerk token and restarts with backoff; anything else restarts with backoff. A `chat.onLifecycle`
+`deleted` purges one Chat the same way.
 
 Agent creation stays inside that same canonical message pipeline. `HausModels` decodes the
 `agent-created` body on each message, but the timelines draw nothing for it: the announcement's own
@@ -1090,15 +1124,14 @@ Agent creation stays inside that same canonical message pipeline. `HausModels` d
 trigger. There is no review sheet and no client-side creation: the Agent already exists by the time
 the message arrives. An unknown body kind degrades to `.unsupported` and reads as its plain content.
 
-The directory refresh is the one place the phone differs from the App. This client subscribes to
-`chat.onEvent`, `agent.onLifecycle`, and `agent.onActivity` only — it has never consumed
-`server.updated`, so the event the App uses to invalidate `agent.list` after a creation does not
-reach it. The body itself is the notice instead: `message.created` refetches the affected loaded
-page, and `applyChatEvents` then scans those pages for an `agent-created` body naming an Agent the
-directory does not hold and refetches the directory once when it finds one
-(`HausStoreMessageLoading.swift`). What keeps that from becoming a standing refetch is that a body
-reading retired is skipped: the body is projected from the live `agents` row on every message read,
-and the pages scanned here were refetched moments earlier in the same batch, so a retired Agent's
+The directory refresh is the one place the phone differs from the App. This client does not
+subscribe to `agent.onUpdated`, so the event the App uses to invalidate `agent.list` after a
+creation does not reach it. The body itself is the notice instead: `chat.onMessageCreated`
+tail-reads the affected loaded lists, and each tail page is scanned for an `agent-created` body
+naming an Agent the directory does not hold, refetching the directory once when it finds one
+(`namesUnlistedLiveCreatedAgent`, `HausStoreMessageLoading.swift`). What keeps that from becoming a
+standing refetch is that a body reading retired is skipped: the body is projected from the live
+`agents` row on every message read, and the page scanned was read moments earlier, so a retired Agent's
 body already says retired and is never mistaken for a stale directory. The one case that does repeat
 is an Agent whose Computer was removed — `computers/service.ts` nulls `computerId` without retiring,
 which drops the Agent from `agent.list` while it is still live — and that costs one extra directory
@@ -1309,8 +1342,8 @@ Shared wire contracts and model projections belong in `HausModels`; authenticate
 realtime delivery, and recovery belong in `HausTransport`. `HausUI` receives narrow models and
 closures from `HausApp` rather than owning Server transport or inventing mobile-only records.
 
-The Chat timeline uses cursor-based pages. Reconnect catch-up walks missed Server events before live
-delivery continues, and loaded affected Chat pages are refetched in sequence order. Optimistic sends
+The Chat timeline uses cursor-based pages. Live events trigger targeted reads, and every stream start
+reconciles the projections that stream owns; nothing replays missed events. Optimistic sends
 remain app-local and are keyed by the client nonce. A pending row retires only after the canonical
 Server message arrives; a failed send stays in the transcript as a "Not sent" row for an explicit
 retry.
