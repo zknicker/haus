@@ -10,20 +10,26 @@ import Foundation
 public final class TRPCClient: Sendable {
     let config: AppConfig
     let sessionTokenProvider: any SessionTokenProvider
+    /// Queries and mutations.
     let session: URLSession
+    /// SSE subscriptions, kept apart so a held stream never queues a query
+    /// (`TRPCSessions`).
+    let streamSession: URLSession
     let encoder: JSONEncoder
     let decoder: JSONDecoder
 
     public init(
         config: AppConfig,
         sessionTokenProvider: any SessionTokenProvider,
-        session: URLSession = .shared,
+        session: URLSession = TRPCSessions.requests,
+        streamSession: URLSession = TRPCSessions.streams,
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder()
     ) {
         self.config = config
         self.sessionTokenProvider = sessionTokenProvider
         self.session = session
+        self.streamSession = streamSession
         self.encoder = encoder
         self.decoder = decoder
     }
