@@ -4,7 +4,6 @@ import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { invalidateSettledAgentHistory } from '../agents/agent-history-cache.ts';
 import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';
-import { recoverAgentMessage } from './agent-message-recovery.ts';
 
 export type AgentLifecycles = ReadonlyMap<string, AgentLifecycleEvent>;
 
@@ -37,7 +36,6 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                     events.set(event.agentId, event);
                     return { events, serverId };
                 });
-                void recoverAgentMessage(event, utils, queryClient);
                 utils.agent.list.setData({ serverId: event.serverId }, (agents) =>
                     agents ? projectAgentAvailability(agents, event) : agents
                 );
