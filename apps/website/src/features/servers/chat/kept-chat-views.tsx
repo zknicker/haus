@@ -1,3 +1,4 @@
+import { QueryClientContext } from '@tanstack/react-query';
 import * as React from 'react';
 import { UNSAFE_LocationContext, UNSAFE_RouteContext } from 'react-router-dom';
 import {
@@ -6,8 +7,11 @@ import {
     useTabPresence,
 } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import { createViewShownSource, ViewShownContext } from '../../../hooks/desktop-tabs/view-shown.ts';
+import { ChatMessageSubscriptionContext } from '../../../hooks/servers/use-chat-message.ts';
+import { subscribeChatPurges } from '../../../lib/targeted-read-coalescer.ts';
 import { cn } from '../../../lib/utils.ts';
 import { KeptTopbarScope } from '../../shell/shell-topbar.tsx';
+import { clearPendingChatMessages } from './use-pending-messages.ts';
 
 /**
  * Keeps the few most recent chat views of one chat route mounted and
@@ -118,9 +122,15 @@ function KeptChatPresence({ active, children }: { active: boolean; children: Rea
     React.useEffect(() => {
         viewShown.notify(shown);
     }, [shown, viewShown]);
+    // A hidden view observes no message entity: invalidations only mark its
+    // entries stale, and its rows read what changed on reveal.
     return (
         <TabPresenceContext value={value}>
-            <ViewShownContext value={viewShown}>{children}</ViewShownContext>
+            <ViewShownContext value={viewShown}>
+                <ChatMessageSubscriptionContext value={shown}>
+                    {children}
+                </ChatMessageSubscriptionContext>
+            </ViewShownContext>
         </TabPresenceContext>
     );
 }
@@ -147,6 +157,18 @@ function HeldRoute({ active, children }: { active: boolean; children: React.Reac
     );
 }
 
+/** Drops a purged (deleted) chat's hidden view; the shown chat leaves through routing. */
+export function evictChatView(kept: KeptChatViewsState, chatId: string): KeptChatViewsState {
+    if (kept.recency[0] === chatId || !kept.order.includes(chatId)) {
+        return kept;
+    }
+    return {
+        ...kept,
+        order: kept.order.filter((id) => id !== chatId),
+        recency: kept.recency.filter((id) => id !== chatId),
+    };
+}
+
 function useKeptChatViews(chatId: string, serverId: string) {
     const [kept, setKept] = React.useState<KeptChatViewsState>(() =>
         keepChatView(null, { chatId, serverId })
@@ -156,5 +178,21 @@ function useKeptChatViews(chatId: string, serverId: string) {
         // Adjusting state while rendering: React re-renders before committing.
         setKept(next);
     }
+    const queryClient = React.use(QueryClientContext);
+    // A deleted chat leaves no retained view and no pending rows behind.
+    React.useEffect(
+        () =>
+            queryClient
+                ? subscribeChatPurges(queryClient, (scope) => {
+                      clearPendingChatMessages(scope.chatId);
+                      setKept((current) =>
+                          current.serverId === scope.serverId
+                              ? evictChatView(current, scope.chatId)
+                              : current
+                      );
+                  })
+                : undefined,
+        [queryClient]
+    );
     return next;
 }

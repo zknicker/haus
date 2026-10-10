@@ -26,7 +26,7 @@ export function useResolveActorProfile({
 }: {
     agentsById: ReadonlyMap<string, Agent>;
     humans: HumanDirectory;
-    messages: readonly ChatMessage[];
+    messages: readonly Pick<ChatMessage, 'author'>[];
 }) {
     const historicalProfiles = useHistoricalActorProfiles(messages, humans);
     const historicalRef = React.useRef(historicalProfiles);
@@ -85,7 +85,10 @@ export function liveAgentActorProfile(agent: Agent): TranscriptActorProfile {
  * identical across refetches, so this map changes identity only when the set
  * of remembered authors actually changes — not on every new message.
  */
-function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: HumanDirectory) {
+function useHistoricalActorProfiles(
+    messages: readonly Pick<ChatMessage, 'author'>[],
+    humans: HumanDirectory
+) {
     const cacheRef = React.useRef<{
         humans: HumanDirectory | null;
         profiles: ReadonlyMap<string, TranscriptActorProfile>;

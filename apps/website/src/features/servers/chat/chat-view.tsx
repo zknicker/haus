@@ -5,6 +5,7 @@ import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
+import { toChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import {
     type ScrollToMessage,
     useChatMessageNavigation,
@@ -68,24 +69,27 @@ export function ChatView({
         transcript: transcriptRef,
         fetchOlderHistory: messages.fetchOlderHistory,
         hasOlderHistory: messages.hasOlderHistory,
-        messages: messages.data?.messages,
+        messages: messages.data?.entries,
     });
-    const pendingMessages = usePendingChatMessages(chat.id, messages.data?.messages);
-    const sourceMessages = messages.data?.messages;
+    const pendingMessages = usePendingChatMessages(chat.id, messages.data?.entries);
+    const sourceMessages = messages.data?.entries;
     const anchorMessage = initialTask?.message;
-    // Memoized so the transcript keeps projecting against one array identity:
-    // React Query's structural sharing only pays off downstream if the merge
-    // above it does not hand out a fresh array on every render.
+    // An older task anchor joins the listed ids; its row reads (or fetches) its entity.
+    const anchorLayout = React.useMemo(
+        () => (anchorMessage ? toChatMessageLayout(anchorMessage) : undefined),
+        [anchorMessage]
+    );
+    // Memoized so the transcript keeps projecting against one array identity.
     const transcriptMessages = React.useMemo(
-        () => mergeTaskAnchor(sourceMessages, anchorMessage),
-        [anchorMessage, sourceMessages]
+        () => mergeTaskAnchor(sourceMessages, anchorLayout),
+        [anchorLayout, sourceMessages]
     );
     const thread = useChatThreadPane({
         chatId: chat.id,
         serverId: chat.serverId,
         initialTask,
+        ready: transcriptMessages !== undefined,
         revealMessage,
-        transcriptMessages,
     });
     const threadSelection = thread.selection;
     const visibleSequence = useVisibleChatSequenceSource();
@@ -102,12 +106,7 @@ export function ChatView({
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
               : `DM · ${humans.name(chat.peerUserId)}`;
-    const threadSummary =
-        messages.data?.threads.find(
-            (summary) => summary.anchorMessageId === threadSelection?.anchor.id
-        ) ??
-        threadSelection?.initialSummary ??
-        null;
+    const threadSummary = thread.summary ?? threadSelection?.initialSummary ?? null;
     // Website: the chat-scoped pane and Thread share the side panel. The
     // latest artifact opener wins and reveals the pane.
     const openArtifact = artifactState.open;
@@ -163,7 +162,7 @@ export function ChatView({
                     artifactState={artifactState}
                     chat={chat}
                     filesPane={filesPane}
-                    messages={messages.data?.messages}
+                    messages={messages.data?.entries}
                     takeover={threadTakeover}
                     threadPanel={threadPanel}
                 />
@@ -233,7 +232,6 @@ export function ChatView({
                         replyTargetMessageId={inlineReply?.messageId}
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}
-                        threads={messages.data?.threads}
                         turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
                         viewerUserId={server.viewerUserId}
                     />

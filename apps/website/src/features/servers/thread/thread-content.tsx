@@ -7,21 +7,30 @@ import {
     MessageScrollerProvider,
     MessageScrollerViewport,
 } from '../../../components/chats/message-scroller.tsx';
+import {
+    type ChatMessageLayout,
+    toChatMessageLayout,
+} from '../../../hooks/servers/chat-message-layout.ts';
+import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { useThreadFollow } from '../../../hooks/servers/use-thread-follow.ts';
 import { useThreadInlineReplies } from '../../../hooks/servers/use-thread-inline-replies.ts';
-import { useThreadMessages } from '../../../hooks/servers/use-thread-messages.ts';
 import { AutomationFireContextCard } from '../../chats/automation/automation-fire-context-card.tsx';
 import {
     ChatFooterSurface,
     chatFooterClearanceClassName,
 } from '../../chats/chat-footer-surface.tsx';
 import { getTranscriptEntrySequences } from '../../chats/chat-read-visibility.ts';
+import type {
+    ConversationMessageLayout,
+    TranscriptEntry,
+} from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
+import { useEntityTranscriptEntry } from '../../chats/use-entity-transcript-entry.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ChatSendScroll } from '../chat/chat-send-scroll.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
@@ -33,6 +42,8 @@ import { threadConversationEntries } from './thread-conversation.ts';
 import { ThreadConversationHistory } from './thread-conversation-history.tsx';
 import { ThreadReadTracker } from './thread-read-tracker.tsx';
 import { threadTitles } from './thread-target.ts';
+
+const noReplies: readonly ChatMessageLayout[] = [];
 
 /** Shared Thread surface for channels, Tasks, and Inbox. */
 export function ThreadContent({
@@ -83,11 +94,12 @@ export function ThreadContent({
     const [createdThreadChatId, setCreatedThreadChatId] = React.useState<string | null>(null);
     const threadChatId =
         summary?.threadChatId ?? createdThreadChatId ?? initialThreadChatId ?? undefined;
-    const messages = useThreadMessages(chat.serverId, threadChatId);
+    const messages = useChatMessages(chat.serverId, threadChatId);
     const inline = useThreadInlineReplies(chat.serverId, chat.id, anchor.id);
     const inlineMessages = inline.messages;
-    const replies = messages.messages;
-    const follow = useThreadFollow(chat.id);
+    const replies = messages.data?.entries ?? noReplies;
+    const anchorLayout = React.useMemo(() => toChatMessageLayout(anchor), [anchor]);
+    const follow = useThreadFollow({ chatId: chat.id, messageId: anchor.id });
     const humans = useHumanDirectory(chat.serverId);
     const viewerUserId = useMembers(chat.serverId).data?.viewerUserId;
     const titles = threadTitles(chat, anchor.id, humans);
@@ -101,8 +113,8 @@ export function ThreadContent({
     // The thread renders through the same Server transcript wiring as the
     // main chat, so anchor and replies look and feel like channel rows.
     const threadMessages = React.useMemo(
-        () => [anchor, ...replies, ...(inlineMessages ?? [])],
-        [anchor, inlineMessages, replies]
+        () => [anchorLayout, ...replies, ...(inlineMessages ?? [])],
+        [anchorLayout, inlineMessages, replies]
     );
     const { renderContext, rows } = useChatTranscript({
         // The context card above the anchor already names the automation.
@@ -246,8 +258,7 @@ export function ThreadContent({
                                                         : renderContext
                                                 }
                                             >
-                                                <TranscriptEntryView
-                                                    activeReply={null}
+                                                <EntityTranscriptEntryView
                                                     conversationLayout={
                                                         renderContext.conversationLayout
                                                     }
@@ -265,4 +276,22 @@ export function ThreadContent({
             </ChatFooterSurface>
         </div>
     );
+}
+
+/** One Thread entry rendered from its message entity (`useEntityTranscriptEntry`). */
+function EntityTranscriptEntryView({
+    conversationLayout,
+    entry,
+}: {
+    conversationLayout: ConversationMessageLayout;
+    entry: TranscriptEntry;
+}) {
+    const rendered = useEntityTranscriptEntry(entry);
+    return rendered ? (
+        <TranscriptEntryView
+            activeReply={null}
+            conversationLayout={conversationLayout}
+            entry={rendered}
+        />
+    ) : null;
 }

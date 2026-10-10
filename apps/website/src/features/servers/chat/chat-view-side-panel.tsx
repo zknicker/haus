@@ -43,7 +43,7 @@ export function ChatViewSidePanel({
     artifactState: ChatArtifactPanelState;
     chat: Chat;
     filesPane: { close: () => void; visible: boolean };
-    messages: ChatMessage[] | undefined;
+    messages: readonly Pick<ChatMessage, 'attachments'>[] | undefined;
     takeover: boolean;
     threadPanel: React.ReactNode;
 }) {

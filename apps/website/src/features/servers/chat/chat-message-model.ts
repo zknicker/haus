@@ -1,12 +1,13 @@
 import type { Agent, ChatMessage, ThreadSummary } from '@haus/api';
+import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 
-export function mergeTaskAnchor(
-    messages: ChatMessage[] | undefined,
-    anchor: ChatMessage | undefined
-) {
+export function mergeTaskAnchor<Message extends { id: string; sequence: number }>(
+    messages: readonly Message[] | undefined,
+    anchor: Message | undefined
+): readonly Message[] | undefined {
     if (!(messages && anchor) || messages.some((message) => message.id === anchor.id)) {
         return messages;
     }
@@ -68,10 +69,7 @@ export function projectChatMessage(
             cloudAgentWork: message.body.kind === 'cloud-agent-work' ? message.body.work : null,
             content: message.content,
             id: message.id,
-            sender:
-                message.author.kind === 'agent'
-                    ? (message.author.profile?.displayName ?? message.author.agentId)
-                    : (message.author.profile?.displayName ?? message.author.userId),
+            sender: messageSender(message),
             senderType,
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
@@ -126,7 +124,53 @@ function taskAssignee(
     };
 }
 
-function messageActor(message: ChatMessage): TranscriptActor {
+/**
+ * A transcript list's skeleton row: the layout facts the row model groups by,
+ * with nothing mutable and no prose. The row renders the entity it names
+ * (`useEntityTranscriptEntry`), projected by `projectChatMessage`; both share
+ * the actor, run, session, and send identity, so grouping and keys agree.
+ */
+export function projectChatMessageLayout(
+    layout: ChatMessageLayout,
+    attachedWork: boolean
+): ProjectedChatMessageRow {
+    const actor = messageActor(layout);
+    const agentId = layout.author.kind === 'agent' ? layout.author.agentId : null;
+
+    return {
+        actor,
+        connectsToNext: false,
+        connectsToPrevious: false,
+        entity: { attachedWork, chatId: layout.chatId, serverId: layout.serverId },
+        id: layout.id,
+        isFirstInGroup: true,
+        kind: 'message',
+        message: {
+            actor,
+            content: '',
+            hausAgentId: agentId,
+            id: layout.id,
+            reply: layout.reply,
+            sender: messageSender(layout),
+            senderType: layout.author.kind === 'agent' ? 'agent' : 'user',
+            sendNonce: layout.nonce,
+            sourceSessionId: null,
+            sourceSessionKey: `hosted:${agentId ?? layout.author.kind}`,
+            timestamp: layout.createdAt,
+        },
+        responseId: agentId ? layout.id : undefined,
+        runId: layout.author.kind === 'agent' ? layout.runId : null,
+        thread: null,
+    };
+}
+
+function messageSender(message: Pick<ChatMessage, 'author'>) {
+    return message.author.kind === 'agent'
+        ? (message.author.profile?.displayName ?? message.author.agentId)
+        : (message.author.profile?.displayName ?? message.author.userId);
+}
+
+function messageActor(message: Pick<ChatMessage, 'author'>): TranscriptActor {
     return message.author.kind === 'agent'
         ? { id: message.author.agentId, kind: 'agent' }
         : { id: message.author.userId, kind: 'participant' };

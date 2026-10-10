@@ -2,7 +2,8 @@ import type { AgentLifecycleEvent } from '@haus/api';
 import type { QueryClient } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import type { ChatEventUtils } from './chat-events/chat-event-invalidation.ts';
+
+type ChatEventUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;
 
 /** A sending lifecycle is emitted only after the Agent message commits. */
 export async function recoverAgentMessage(

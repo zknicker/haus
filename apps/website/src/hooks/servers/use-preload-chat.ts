@@ -3,7 +3,7 @@ import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { serverRouteModules } from '../../routes/app/server-route-modules.ts';
-import { chatMessagesQueryOptions } from './use-chat-messages.ts';
+import { chatMessagesQueryKey, chatMessagesQueryOptions } from './use-chat-messages.ts';
 
 type HausUtils = ReturnType<typeof hausTrpc.useUtils>;
 
@@ -61,7 +61,9 @@ export function preloadChatReads({
 }) {
     return Promise.all([
         utils.chat.get.prefetch({ chatId, serverId }, queryPolicy.syncedSnapshot),
-        queryClient.prefetchInfiniteQuery(chatMessagesQueryOptions(utils.client, serverId, chatId)),
+        queryClient.prefetchInfiniteQuery(
+            chatMessagesQueryOptions({ client: utils.client, queryClient }, serverId, chatId)
+        ),
     ]);
 }
 
@@ -74,8 +76,6 @@ export function hasCachedChatReads(
 ) {
     return (
         utils.chat.get.getData({ chatId, serverId }) !== undefined &&
-        queryClient.getQueryData(
-            chatMessagesQueryOptions(utils.client, serverId, chatId).queryKey
-        ) !== undefined
+        queryClient.getQueryData(chatMessagesQueryKey(serverId, chatId)) !== undefined
     );
 }

@@ -1,6 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
+import { readChatMessageEntity } from '../../../hooks/servers/chat-message-entities.ts';
+import { useAttachedWorkIds } from '../../../hooks/servers/use-attached-work-ids.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
 import { useChatMessageReaction } from '../../../hooks/servers/use-chat-message-reaction.ts';
 import { useChatAppearances } from '../../../hooks/servers/use-chats.ts';
@@ -14,9 +17,9 @@ import type {
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import {
-    emptyChatMessages,
-    emptyChatThreads,
-    useStableChatMessageRows,
+    emptyChatMessageLayouts,
+    useChatMessageEntityProjector,
+    useTranscriptSkeletonRows,
 } from './chat-message-projection.ts';
 import type { ChatTranscriptInput } from './chat-transcript-input.ts';
 import { MessageAttachments } from './message-attachments.tsx';
@@ -46,17 +49,17 @@ export function useChatTranscript({
     replyTargetMessageId,
     serverId,
     taskChipHiddenMessageId,
-    threads = emptyChatThreads,
     turnDetailsAccess = 'summary',
     viewerUserId,
 }: ChatTranscriptInput) {
-    const messageList = messages ?? emptyChatMessages;
+    const queryClient = useQueryClient();
+    const messageList = messages ?? emptyChatMessageLayouts;
     // Availability flips on every Agent turn; rows read it per presence dot (`useAgentPresence`),
     // so the rows' agent list changes only with the fields they render.
     const agentList = useAgentAppearances(serverId);
     const download = useAttachmentDownload();
     const humans = useHumanDirectory(serverId);
-    const reaction = useChatMessageReaction(chatId);
+    const reaction = useChatMessageReaction();
     const toggleReaction = React.useCallback(
         (input: { emoji: string; messageId: string; remove: boolean }) => {
             if (viewerUserId) {
@@ -66,11 +69,13 @@ export function useChatTranscript({
         [reaction.mutate, serverId, viewerUserId]
     );
     const onToggleReaction = viewerUserId ? toggleReaction : undefined;
-    const projectedRows = useStableChatMessageRows({
-        agents: agentList,
-        messages: messageList,
-        threads,
+    // The skeleton changes only when ids, layout facts, or attached work do;
+    // each row reads its own entity (`useEntityTranscriptEntry`).
+    const projectedRows = useTranscriptSkeletonRows({
+        attachedWork: useAttachedWorkIds(messageList),
+        entries: messageList,
     });
+    const projectMessageEntity = useChatMessageEntityProjector(agentList);
     const pendingRows = React.useMemo(
         () => (viewerUserId ? projectPendingChatMessageRows(pendingMessages, viewerUserId) : []),
         [pendingMessages, viewerUserId]
@@ -105,7 +110,6 @@ export function useChatTranscript({
             () => new Map(pendingMessages.map((message) => [`pending:${message.nonce}`, message])),
             [pendingMessages]
         ),
-        threads,
     });
     const resolveActorProfile = useResolveActorProfile({
         agentsById,
@@ -142,34 +146,36 @@ export function useChatTranscript({
         },
         [downloadAttachment, downloadPending, lookupRef]
     );
+    // A click reads the clicked message's entity from the cache: the row
+    // rendered from it, so it is there.
+    const readEntity = React.useCallback(
+        (messageId: string) => {
+            const layout = lookupRef.current.messagesById.get(messageId);
+            return layout
+                ? readChatMessageEntity(queryClient, layout.serverId, layout.chatId, layout.id)
+                : undefined;
+        },
+        [lookupRef, queryClient]
+    );
     const handleOpenThread = React.useCallback(
         (row: TranscriptMessageRow) => {
-            const message = lookupRef.current.messagesById.get(row.message.id);
+            const entity = readEntity(row.message.id);
 
-            if (!message) {
-                return;
+            if (entity) {
+                onOpenThread?.(entity.message, entity.thread);
             }
-
-            const summary =
-                lookupRef.current.threads.find(
-                    (candidate) => candidate.anchorMessageId === message.id
-                ) ?? null;
-
-            onOpenThread?.(message, summary);
         },
-        [lookupRef, onOpenThread]
+        [onOpenThread, readEntity]
     );
     const handleSelectInlineReply = React.useCallback(
         (message: TranscriptMessage) => {
-            const sourceMessage = lookupRef.current.messagesById.get(message.id);
+            const entity = readEntity(message.id);
 
-            if (!sourceMessage) {
-                return;
+            if (entity) {
+                onSelectInlineReply?.(entity.message);
             }
-
-            onSelectInlineReply?.(sourceMessage);
         },
-        [lookupRef, onSelectInlineReply]
+        [onSelectInlineReply, readEntity]
     );
     const renderContext = React.useMemo(
         () =>
@@ -200,6 +206,7 @@ export function useChatTranscript({
                 onToggleReaction,
                 onUnfollowThread: () => undefined,
                 openAgentProfile,
+                projectMessageEntity,
                 renderMessageAttachments,
                 renderMessageContent: (message) => (
                     <ServerChatMessageContent
@@ -237,6 +244,7 @@ export function useChatTranscript({
             onSelectInlineReply,
             onToggleReaction,
             openAgentProfile,
+            projectMessageEntity,
             renderMessageAttachments,
             replyTargetMessageId,
             resolveActorProfile,

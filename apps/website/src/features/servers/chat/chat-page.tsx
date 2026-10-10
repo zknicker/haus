@@ -1,4 +1,4 @@
-import { usePrefetchInfiniteQuery } from '@tanstack/react-query';
+import { usePrefetchInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useChat } from '../../../hooks/servers/use-chat.ts';
@@ -61,7 +61,10 @@ const ChatPageView = React.memo(function ChatPageView({
     // The transcript needs only the route's ids, so its first page loads beside the chat
     // record instead of after it.
     const utils = hausTrpc.useUtils();
-    usePrefetchInfiniteQuery(chatMessagesQueryOptions(utils.client, server.id, chatId));
+    const queryClient = useQueryClient();
+    usePrefetchInfiniteQuery(
+        chatMessagesQueryOptions({ client: utils.client, queryClient }, server.id, chatId)
+    );
     const listed = useListedChat(server.id, chatId);
     const chat = resolveChatPageChat({
         detail: chatQuery.data,

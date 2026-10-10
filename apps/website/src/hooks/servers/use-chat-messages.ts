@@ -1,10 +1,23 @@
-import type { ChatMessage, ThreadSummary } from '@haus/api';
-import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query';
+import {
+    infiniteQueryOptions,
+    type QueryClient,
+    useInfiniteQuery,
+    useQueryClient,
+} from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
-import { type HausOutputs, hausTrpc } from '../../lib/haus-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import { shareMessagePages } from './message-page-sharing.ts';
+import { targetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
+import type { HausClient } from '../../lib/transcript-list-reads.ts';
+import { mergeTranscriptPages, type TranscriptPage } from './chat-message-layout.ts';
+
+export {
+    type ChatMessageLayout,
+    mergeTranscriptPages,
+    type TranscriptLayout,
+    type TranscriptPage,
+} from './chat-message-layout.ts';
 
 export interface ChatMessagesOptions {
     /** Limits the read to one inline reply chain, including its root. */
@@ -12,17 +25,19 @@ export interface ChatMessagesOptions {
 }
 
 /**
- * A chat's loaded transcript. Returns only the fields its readers use: React
- * Query re-renders a reader only for the result fields it touched, and
- * spreading the result touches all of them, so every kept chat view would
- * re-render on each background fetch and stale flip.
+ * A transcript list: a chat's loaded message ids and layout facts, oldest
+ * first. Each row reads its own message entity (`useChatMessage`). Returns
+ * only the fields its readers use: React Query re-renders a reader only for
+ * the result fields it touched, and spreading the result touches all of them,
+ * so every kept chat view would re-render on each background fetch.
  */
 export function useChatMessages(
     serverId: string | undefined,
     chatId: string | undefined,
     options?: ChatMessagesOptions
 ) {
-    const utils = hausTrpc.useUtils();
+    const queryClient = useQueryClient();
+    const { client } = hausTrpc.useUtils();
     const {
         data: pagedData,
         error,
@@ -32,11 +47,11 @@ export function useChatMessages(
         isPending,
         refetch,
     } = useInfiniteQuery({
-        ...chatMessagesQueryOptions(utils.client, serverId ?? '', chatId ?? '', options),
+        ...chatMessagesQueryOptions({ client, queryClient }, serverId ?? '', chatId ?? '', options),
         enabled: serverId !== undefined && chatId !== undefined,
     });
     const pages = pagedData?.pages;
-    const data = React.useMemo(() => mergeChatMessagePages(pages), [pages]);
+    const data = React.useMemo(() => mergeTranscriptPages(pages), [pages]);
     const fetchOlderHistory = React.useCallback(() => fetchNextPage(), [fetchNextPage]);
 
     return {
@@ -50,8 +65,13 @@ export function useChatMessages(
     };
 }
 
+/**
+ * Every transcript list (a chat, an inline-reply chain, a Thread) reads its
+ * pages through the coalescer, which seeds each page's `chat.message`
+ * entities before the ids land and honours the read's abort signal.
+ */
 export function chatMessagesQueryOptions(
-    client: ReturnType<typeof hausTrpc.createClient>,
+    { client, queryClient }: { client: HausClient; queryClient: QueryClient },
     serverId: string,
     chatId: string,
     options?: ChatMessagesOptions
@@ -62,25 +82,21 @@ export function chatMessagesQueryOptions(
         ...(options?.replyRootMessageId ? { replyRootMessageId: options.replyRootMessageId } : {}),
         serverId,
     };
-    const queryKey = chatMessagesQueryKey(
-        input.serverId,
-        input.chatId,
-        options?.replyRootMessageId
-    );
+    const { lists } = targetedReadCoalescer(queryClient, client);
     return infiniteQueryOptions({
         ...queryPolicy.syncedSnapshot,
-        getNextPageParam: (lastPage: ChatMessagePage) => lastPage.nextBeforeSequence ?? undefined,
+        getNextPageParam: (lastPage: TranscriptPage) => lastPage.nextBeforeSequence ?? undefined,
         initialPageParam: undefined as number | undefined,
-        queryFn: async ({ pageParam }) =>
-            await client.chat.messages.query(
-                pageParam === undefined ? input : { ...input, beforeSequence: pageParam }
+        queryFn: ({ pageParam, signal }) =>
+            lists.readList({ chatId, serverId }, signal, () =>
+                client.chat.messages.query(
+                    pageParam === undefined ? input : { ...input, beforeSequence: pageParam },
+                    { signal }
+                )
             ),
-        queryKey,
-        structuralSharing: shareMessagePages,
+        queryKey: chatMessagesQueryKey(serverId, chatId, options?.replyRootMessageId),
     });
 }
-
-type ChatMessagePage = HausOutputs['chat']['messages'];
 
 export function chatMessagesQueryKey(
     serverId: string,
@@ -97,38 +113,4 @@ export function chatMessagesQueryKey(
         },
         'infinite'
     );
-}
-
-/** Combines newest-first cursor pages into one stable oldest-first transcript. */
-export function mergeChatMessagePages(
-    pages: readonly ChatMessagePage[] | undefined
-): ChatMessagePage | undefined {
-    if (!pages) {
-        return undefined;
-    }
-
-    const messagesById = new Map<string, ChatMessage>();
-    const threadsByAnchor = new Map<string, ThreadSummary>();
-
-    for (const page of pages) {
-        for (const message of page.messages) {
-            if (!messagesById.has(message.id)) {
-                messagesById.set(message.id, message);
-            }
-        }
-        for (const thread of page.threads) {
-            if (!threadsByAnchor.has(thread.anchorMessageId)) {
-                threadsByAnchor.set(thread.anchorMessageId, thread);
-            }
-        }
-    }
-
-    const oldestPage = pages.at(-1);
-
-    return {
-        messages: [...messagesById.values()].sort((left, right) => left.sequence - right.sequence),
-        nextBeforeSequence: oldestPage?.nextBeforeSequence ?? null,
-        nextAfterSequence: pages[0]?.nextAfterSequence ?? null,
-        threads: [...threadsByAnchor.values()],
-    };
 }

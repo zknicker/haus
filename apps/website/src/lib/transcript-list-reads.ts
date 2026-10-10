@@ -225,16 +225,18 @@ export class TranscriptListReads {
             return Promise.resolve();
         }
         return new Promise<void>((resolve) => {
+            // The Chat's signal lives as long as the Chat, so each wait removes its own listener.
+            const done = () => {
+                unsubscribe();
+                signal.removeEventListener('abort', done);
+                resolve();
+            };
             const unsubscribe = cache.subscribe(() => {
                 if (settled()) {
-                    unsubscribe();
-                    resolve();
+                    done();
                 }
             });
-            signal.addEventListener('abort', () => {
-                unsubscribe();
-                resolve();
-            });
+            signal.addEventListener('abort', done, { once: true });
         });
     }
 

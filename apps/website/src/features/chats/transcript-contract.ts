@@ -145,6 +145,11 @@ export interface TranscriptMessageRow {
     actor: TranscriptActor;
     connectsToNext: boolean;
     connectsToPrevious: boolean;
+    /**
+     * Set on a skeleton row only (specs/realtime-events.md): the `chat.message`
+     * entity it renders, and whether that entity carries a task or a Thread.
+     */
+    entity?: { attachedWork: boolean; chatId: string; serverId: string };
     id: string;
     isFirstInGroup: boolean;
     kind: 'message';

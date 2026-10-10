@@ -1,4 +1,4 @@
-import type { CloudAgentWork } from '@haus/api';
+import type { ChatMessageEntity, CloudAgentWork } from '@haus/api';
 import * as React from 'react';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
@@ -82,6 +82,12 @@ export interface TranscriptRenderContextValue {
      * router read re-renders every avatar on every navigation.
      */
     openAgentProfile?: (agentId: string) => void;
+    /**
+     * Projects a `chat.message` entity into the row a skeleton row renders
+     * (`useEntityTranscriptEntry`). Returns the same row for the same entity
+     * object, so an unchanged message never re-renders its views.
+     */
+    projectMessageEntity?: (entity: ChatMessageEntity) => TranscriptMessageRow;
     renderMessageAttachments?: (message: TranscriptMessage) => React.ReactNode;
     /**
      * A surface-owned block that belongs to one message but is not its body —

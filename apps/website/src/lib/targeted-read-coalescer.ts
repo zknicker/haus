@@ -68,12 +68,13 @@ export interface TargetedReadCoalescer {
 export interface TargetedReadCoalescerOptions {
     client: HausClient;
     queryClient: QueryClient;
-    /** Defaults to the next animation frame (a zero timeout outside a browser). */
+    /** Defaults to the next animation frame (a microtask outside a browser). */
     scheduleFrame?: (flush: () => void) => void;
 }
 
 const coalescers = new WeakMap<QueryClient, TargetedReadCoalescer>();
 const clients = new WeakMap<QueryClient, HausClient>();
+const purgeListeners = new WeakMap<QueryClient, Set<(scope: ChatScope) => void>>();
 
 /** The one coalescer for this QueryClient; `client` is the tRPC client its reads use. */
 export function targetedReadCoalescer(queryClient: QueryClient, client: HausClient) {
@@ -100,15 +101,14 @@ export function createTargetedReadCoalescer({
 }: TargetedReadCoalescerOptions): TargetedReadCoalescer {
     const lists = new TranscriptListReads(queryClient, () => clients.get(queryClient) ?? client);
     const queued = new Map<string, { exact: boolean; queryKey: QueryKey }>();
-    const purgeListeners = new Set<(scope: ChatScope) => void>();
     let scheduled = false;
 
     const flushInvalidations = () => {
         scheduled = false;
         const batch = [...queued.values()];
         queued.clear();
-        for (const filters of batch) {
-            void queryClient.invalidateQueries({ ...filters, refetchType: 'active' });
+        for (const { exact, queryKey } of batch) {
+            void queryClient.invalidateQueries({ exact, queryKey, refetchType: 'active' });
         }
     };
     const invalidate = ({ exact = false, queryKey }: { exact?: boolean; queryKey: QueryKey }) => {
@@ -133,9 +133,10 @@ export function createTargetedReadCoalescer({
     };
     const purge = async (scope: { chatId?: string; serverId: string }) => {
         lists.abort(scope);
+        const purgedLists = new Set(lists.lists(scope));
         const filters = {
             predicate: (query: Query) =>
-                lists.lists(scope).includes(query) || isChatMessageEntityOf(query, scope),
+                purgedLists.has(query) || isChatMessageEntityOf(query, scope),
         };
         await queryClient.cancelQueries(filters);
         queryClient.removeQueries(filters);
@@ -172,13 +173,10 @@ export function createTargetedReadCoalescer({
                 })
             );
         },
-        onChatPurged: (listener) => {
-            purgeListeners.add(listener);
-            return () => purgeListeners.delete(listener);
-        },
+        onChatPurged: (listener) => subscribeChatPurges(queryClient, listener),
         purgeChat: async (scope) => {
             await purge(scope);
-            for (const listener of purgeListeners) {
+            for (const listener of purgeListeners.get(queryClient) ?? []) {
                 listener(scope);
             }
         },
@@ -198,11 +196,30 @@ export function createTargetedReadCoalescer({
     };
 }
 
-/** One flush per frame; outside a browser (tests, workers), the next macrotask. */
+/**
+ * Runs `listener` after each Chat purge on this client, whether or not its
+ * coalescer exists yet: retained views subscribe without a tRPC client.
+ */
+export function subscribeChatPurges(
+    queryClient: QueryClient,
+    listener: (scope: ChatScope) => void
+): () => void {
+    let listeners = purgeListeners.get(queryClient);
+    if (!listeners) {
+        listeners = new Set();
+        purgeListeners.set(queryClient, listeners);
+    }
+    listeners.add(listener);
+    return () => {
+        listeners.delete(listener);
+    };
+}
+
+/** One flush per frame; outside a browser (tests, workers), after the current task. */
 function scheduleNextFrame(flush: () => void) {
     if (typeof requestAnimationFrame === 'function') {
         requestAnimationFrame(() => flush());
     } else {
-        setTimeout(flush, 0);
+        queueMicrotask(flush);
     }
 }

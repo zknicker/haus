@@ -74,7 +74,7 @@ export function FilesPageRoute() {
     return (
         <section aria-label="Files" className="flex min-h-0 flex-1 flex-col bg-background">
             <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
-                <ChatFiles messages={messages.data?.messages} />
+                <ChatFiles messages={messages.data?.entries} />
             </div>
         </section>
     );

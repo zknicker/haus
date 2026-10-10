@@ -17,7 +17,7 @@ export function ChatFilesPanel({
     open,
     takeover,
 }: {
-    messages: ChatMessage[] | undefined;
+    messages: readonly Pick<ChatMessage, 'attachments'>[] | undefined;
     onClose: () => void;
     open: boolean;
     takeover: boolean;
@@ -58,7 +58,11 @@ export function ChatFilesPanel({
 }
 
 /** The chat's Files list: the website's Files pane body and a desktop Files tab's body. */
-export function ChatFiles({ messages }: { messages: ChatMessage[] | undefined }) {
+export function ChatFiles({
+    messages,
+}: {
+    messages: readonly Pick<ChatMessage, 'attachments'>[] | undefined;
+}) {
     const attachments = messages?.flatMap((message) => message.attachments) ?? [];
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-2">

@@ -118,6 +118,13 @@ export function dropPendingChatMessage(chatId: string, nonce: string) {
     );
 }
 
+/** Drops every row of a deleted chat. */
+export function clearPendingChatMessages(chatId: string) {
+    if (pendingByChat.has(chatId)) {
+        writePendingChatMessages(chatId, noPendingMessages);
+    }
+}
+
 /** `deliveredIds` holds both the ids and the nonces the transcript already has. */
 export function visiblePendingChatMessages(
     pending: readonly PendingChatMessage[],

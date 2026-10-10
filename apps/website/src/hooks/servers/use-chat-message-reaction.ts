@@ -1,16 +1,16 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useTargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { freshReactions } from './fresh-reactions.ts';
-import { threadMessagesQueryKey } from './use-thread-messages.ts';
 
-/** Sends the viewer's reaction to the Server and refreshes both transcript lenses. */
-export function useChatMessageReaction(chatId: string) {
-    const queryClient = useQueryClient();
+/** Sends the viewer's reaction to the Server and refreshes the message's entity. */
+export function useChatMessageReaction() {
     const utils = hausTrpc.useUtils();
+    const coalescer = useTargetedReadCoalescer();
 
     return hausTrpc.chat.react.useMutation({
         // An add shows at once as an app-local pending reaction; the rendered
-        // pile drops it when the Server's copy arrives.
+        // pile drops it when the Server's copy arrives. Nothing writes the
+        // entity, so a concurrent realtime refresh is never rolled back.
         onMutate: (input) => {
             if (input.remove) {
                 freshReactions.dropPending(input.messageId, input.emoji);
@@ -21,18 +21,13 @@ export function useChatMessageReaction(chatId: string) {
         onError: (_error, input) => {
             freshReactions.dropPending(input.messageId, input.emoji);
         },
-        // The durable event owns cross-client refresh. This ack fallback also
-        // repairs the initiating App if its stream is reconnecting.
+        // `chat.onMessageReactionUpdated` owns cross-client refresh. This ack
+        // fallback also repairs the initiating App if its stream is restarting.
         onSuccess: (result, input) => {
-            const chatIds = [...new Set([chatId, result.message.chatId])];
-            for (const affectedChatId of chatIds) {
-                void utils.chat.messages.invalidate({
-                    chatId: affectedChatId,
-                    serverId: input.serverId,
-                });
-            }
-            void queryClient.invalidateQueries({
-                queryKey: threadMessagesQueryKey(input.serverId, result.message.chatId),
+            coalescer.noteMessageAnnotated({
+                chatId: result.message.chatId,
+                messageId: result.message.id,
+                serverId: input.serverId,
             });
             void utils.cloudAgentWork.listActive.invalidate({ serverId: input.serverId });
             void utils.chat.search.invalidate({ serverId: input.serverId });

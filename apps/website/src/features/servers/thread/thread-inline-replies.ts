@@ -1,10 +1,8 @@
-import type { ChatMessage } from '@haus/api';
-
 /** The focused conversation already includes its anchor. */
-export function threadInlineReplyMessages(
-    messages: readonly ChatMessage[] | undefined,
+export function threadInlineReplyMessages<Message extends { id: string }>(
+    messages: readonly Message[] | undefined,
     anchorMessageId: string
-) {
+): Message[] {
     return messages?.filter((message) => message.id !== anchorMessageId) ?? [];
 }
 
