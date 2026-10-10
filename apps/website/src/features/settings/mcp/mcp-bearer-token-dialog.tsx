@@ -107,7 +107,11 @@ function BearerTokenForm({
             <Modal.Header>
                 <Modal.Icon className="overflow-hidden bg-default text-foreground">
                     <ConnectionGlyph
-                        connection={{ icon: mcpPresetIcons[preset], id: preset, name: guide.name }}
+                        connection={{
+                            icon: mcpPresetIcons[preset] ?? null,
+                            id: preset,
+                            name: guide.name,
+                        }}
                     />
                 </Modal.Icon>
                 <Modal.Heading>{heading}</Modal.Heading>

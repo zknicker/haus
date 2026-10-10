@@ -7,6 +7,8 @@ import {
     type McpKeylessPreset,
     type McpOAuthPreset,
     type McpPresetAccountCreate,
+    mcpPresetIcons,
+    mcpPresetSchema,
     rankWranglerMcpUrl,
 } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -58,6 +60,11 @@ const oauthPresets: Record<
         name: 'MerchBase',
         url: 'https://app.merchbase.co/mcp',
     },
+    'merchbase-fulfillment': {
+        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        name: 'MerchBase Fulfillment',
+        url: 'https://fulfillment.merchbase.co/mcp/printful',
+    },
 };
 
 /** X's hosted MCP takes no OAuth discovery; an app-only Bearer token reads public posts. */
@@ -75,6 +82,26 @@ const keylessPresets: Record<McpKeylessPreset, PresetDefinition<{ kind: 'none' }
         url: 'https://mcp.api.coingecko.com/sse',
     },
 };
+
+/** Recommended rows resolve service-owned favicons before OAuth sign-in. */
+export async function resolveMcpPresetIcons(resolveIcon: McpIconResolver) {
+    const presets = { ...oauthPresets, ...bearerTokenPresets, ...keylessPresets };
+    return await Promise.all(
+        Object.entries(presets).map(async ([id, preset]) => {
+            const presetId = mcpPresetSchema.parse(id);
+            return {
+                icon:
+                    mcpPresetIcons[presetId] ??
+                    (await resolveIcon({
+                        connectionUrl: preset.url,
+                        serverInfoIcons: [],
+                        timeoutMs: 5000,
+                    })),
+                preset: presetId,
+            };
+        })
+    );
+}
 
 export async function createMcpPresetAccount(
     db: HausDatabase,

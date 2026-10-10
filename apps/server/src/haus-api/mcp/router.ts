@@ -11,12 +11,17 @@ import {
     mcpOAuthStartResultSchema,
     mcpOAuthStartSchema,
     mcpPresetAccountCreateSchema,
+    mcpPresetIconCatalogSchema,
     skoolConnectSchema,
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { mcpUpdatedTopic } from '../../realtime/topics.ts';
 import { McpDeniedError } from '../../server-mcp/errors.ts';
-import { createMcpPresetAccount, replaceMcpPresetToken } from '../../server-mcp/presets.ts';
+import {
+    createMcpPresetAccount,
+    replaceMcpPresetToken,
+    resolveMcpPresetIcons,
+} from '../../server-mcp/presets.ts';
 import {
     createMcpConnection,
     deleteMcpConnection,
@@ -27,6 +32,7 @@ import {
 } from '../../server-mcp/service.ts';
 import { connectSkool } from '../../server-mcp/skool.ts';
 import { listMcpConnections, setMcpGrant } from '../../server-mcp/state.ts';
+import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { createRouter } from '../trpc.ts';
 import { amazonProduct, amazonProductDetail } from './amazon-products.ts';
@@ -104,6 +110,13 @@ export const mcpRouter = createRouter({
         .input(mcpConnectionListInputSchema)
         .output(mcpConnectionListSchema)
         .query(({ ctx, input }) => listMcpConnections(ctx.hausDb, ctx.member, input.serverId)),
+    presetIcons: guarded
+        .input(mcpConnectionListInputSchema)
+        .output(mcpPresetIconCatalogSchema)
+        .query(async ({ ctx, input }) => {
+            await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
+            return await resolveMcpPresetIcons(ctx.mcpIconResolver);
+        }),
     refresh: guarded
         .input(mcpConnectionInputSchema)
         .output(mcpConnectionSchema)

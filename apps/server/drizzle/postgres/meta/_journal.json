@@ -512,6 +512,13 @@
       "when": 1791652207349,
       "tag": "0072_drop_chat_events",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1791658039287,
+      "tag": "0073_merchbase-fulfillment-preset",
+      "breakpoints": true
     }
   ]
 }

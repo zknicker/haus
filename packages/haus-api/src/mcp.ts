@@ -17,6 +17,7 @@ export const mcpOAuthPresetSchema = z.enum([
     'github',
     'google-calendar',
     'merchbase',
+    'merchbase-fulfillment',
     'rankwrangler',
 ]);
 export const mcpBearerTokenPresetSchema = z.enum(['x']);

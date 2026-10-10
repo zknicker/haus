@@ -104,6 +104,7 @@ export * from './haus-release.ts';
 export * from './host-skill-file.ts';
 export * from './manual.ts';
 export * from './mcp.ts';
+export * from './mcp-preset-icon-catalog.ts';
 export * from './membership.ts';
 export * from './mentions.ts';
 export * from './message-notification.ts';

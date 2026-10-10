@@ -126,14 +126,9 @@ function storedIcon(value: unknown): McpIcon | null {
     return parsed.success ? parsed.data : null;
 }
 
-/**
- * A first-party preset always shows its bundled mark: Haus curates it at full
- * resolution, while discovery often resolves only a small favicon. Applied
- * here, at the read boundary, so every client gets it and stored rows stay the
- * discovery result.
- */
+/** Legacy curated marks override discovery; service-owned presets use stored identity. */
 function presetIcon(preset: McpPreset | null): McpIcon | null {
-    return preset ? mcpPresetIcons[preset] : null;
+    return preset ? (mcpPresetIcons[preset] ?? null) : null;
 }
 
 /** Same degrade-the-row rule as the icon: never fail the whole list. */

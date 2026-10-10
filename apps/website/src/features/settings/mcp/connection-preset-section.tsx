@@ -10,6 +10,7 @@ import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
+import { useConnectionPresetIcons } from '../../../hooks/servers/use-connection-preset-icons.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { SettingsCardGrid, SettingsGridItem } from '../layout/settings-card-grid.tsx';
@@ -39,6 +40,11 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'MerchBase',
     },
     {
+        description: 'Review and fulfill Printful orders through your MerchBase account.',
+        id: 'merchbase-fulfillment',
+        name: 'MerchBase Fulfillment',
+    },
+    {
         description: 'Work with repositories, issues, and pull requests.',
         id: 'github',
         name: 'GitHub',
@@ -59,6 +65,7 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
 export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const addPreset = useConnectionPresetAdd(serverId);
     const connections = useConnections(serverId);
+    const presetIcons = useConnectionPresetIcons(serverId);
     // A bearer-token preset takes its token before it is added, not after.
     const [tokenPreset, setTokenPreset] = useState<McpBearerTokenPreset | null>(null);
     const [skoolOpen, setSkoolOpen] = useState(false);
@@ -86,13 +93,15 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
             <SettingsCardGrid count={availablePresets.length} title="Recommended">
                 {availablePresets.map((preset) => (
                     <SettingsGridItem key={preset.id}>
-                        {/* A preset is an MCP server like any Added row, so it
-                        draws its mark the same way — from the bundled art
-                        Server also falls back to. */}
                         <ItemCard.Icon>
                             <ConnectionGlyph
                                 connection={{
-                                    icon: mcpPresetIcons[preset.id],
+                                    icon:
+                                        presetIcons.data?.find(
+                                            (entry) => entry.preset === preset.id
+                                        )?.icon ??
+                                        mcpPresetIcons[preset.id] ??
+                                        null,
                                     id: preset.id,
                                     name: preset.name,
                                 }}
