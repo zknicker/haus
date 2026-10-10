@@ -23,7 +23,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, MerchBase, GitHub, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, MerchBase, MerchBase Fulfillment, GitHub, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is a one-click sign-in like Google Calendar: **Connect**
@@ -48,6 +48,11 @@ and ignores further presses meanwhile, and a failed or untrusted sign-in leaves 
 its page as **Sign in required**. X opens the token form instead. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
 
+MerchBase Fulfillment connects to `https://fulfillment.merchbase.co/mcp/printful` through
+MerchBase/Clerk OAuth. It exposes Printful order review and fulfillment tools. Linking a Printful
+store happens through those tools after sign-in; adding the preset does not link a store or enable
+Agent access.
+
 Separately from the GitHub MCP preset, the GitHub pull-request connection is the one first-party
 connection that is not an MCP server. Owners and Admins connect one
 GitHub account or token per Server, and the Server uses it only to resolve pull-request references
@@ -71,8 +76,8 @@ an Agent writes into its execution runtime's own config are ignored (see
 
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
-page makes no third-party image requests. Presets always show their bundled marks, in Recommended
-and once added, because a server's own icon is often only a small favicon. See [Connections API](../api/connections.md#connection-icons).
+page makes no third-party image requests. Legacy curated presets show bundled marks. MerchBase Fulfillment uses its service-owned
+MCP icon metadata or favicon, including favicon discovery for Recommended before sign-in. See [Connections API](../api/connections.md#connection-icons).
 
 A connection has its own settings page at `settings/connections/<connectionId>`; the Settings rail
 keeps Connections active, and the top bar reads `Haus › Settings › Connections › <name>` with

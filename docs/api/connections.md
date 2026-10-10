@@ -29,6 +29,11 @@ offer no dynamic client registration; without it, `mcp.startOAuth` fails with th
 unavailable. Server reads that client from its environment on every use and never stores it on the
 connection, so a rotated secret reaches existing connections.
 
+`merchbase-fulfillment` creates an OAuth connection to
+`https://fulfillment.merchbase.co/mcp/printful` with `openid profile email` scopes.
+It uses Clerk dynamic client registration, with no configured Server client or static token.
+Printful store linking remains an upstream tool flow after MerchBase authentication.
+
 `mcp.addPresetAccount` is a union keyed by `preset`: OAuth and keyless presets accept no token, and a
 bearer-token preset (`x`) requires `bearerToken`, a single header-safe token. Server stores it as an
 `Authorization: Bearer` secret header and connects immediately; the token is never returned.
@@ -144,11 +149,12 @@ a server advertising only SVG falls through to its favicon.
 One icon serving both themes is stored in `light` alone and the App falls back to it, so a
 connection never carries the same bytes twice on a query that returns every row inline.
 
-A preset connection always reads its bundled mark (`mcpPresetIcons` in `@haus/api`), because
-Haus curates it at full resolution while discovery often finds only a small favicon. Server applies
-that at the read boundary, so the stored row stays the discovery result and every client gets the
-same mark; the App draws the same
-bundled marks on Recommended presets before they exist. A custom connection has no fallback.
+Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
+MerchBase Fulfillment owns its icon upstream: Added connections use standard MCP metadata
+and favicon discovery. `mcp.presetIcons` requires Server membership and resolves unbundled
+preset favicons through the same Server resolver for Recommended rows before sign-in.
+The App caches that catalog for five minutes and makes no upstream image requests.
+Missing artwork falls back to a monogram.
 
 Icons refresh on connect and refresh, exactly like `accountLabel`. A connection created before this
 shipped reads `icon: null` until its next refresh; there is no backfill.
