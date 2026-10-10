@@ -49,8 +49,8 @@ describe('query policy contract', () => {
     });
 
     test('browser reconnect leaves Server reads to the socket reconnect', () => {
-        // Each event stream recovers its reads when the socket comes back
-        // (query-reconnect-recovery.ts); an online event refetching them too
+        // Each event stream reconciles its reads when it starts again on the
+        // new socket (start-reconciliation.ts); an online event refetching them too
         // ran a second, earlier pass before the socket had even reconnected.
         expect(queryClientDefaultOptions.queries.refetchOnReconnect).toBe(false);
     });

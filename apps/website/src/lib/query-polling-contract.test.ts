@@ -65,6 +65,8 @@ const timerFetchAllowlist: Record<string, string> = {
     'hooks/servers/use-chat-message-navigation.ts': 'one-shot jump highlight removal',
     'hooks/servers/use-chat-read.ts': 'one-shot settle after a read receipt lands',
     'hooks/servers/use-idle-chat-warming.ts': 'one idle warm pass, bounded to 2 concurrent reads',
+    'lib/start-reconciliation.ts':
+        'one-shot settle window (50 ms, capped at 250 ms) after a burst of stream starts: each read fetched before the latest start refetches once, reads fetched after are skipped',
 };
 
 /**
@@ -82,9 +84,6 @@ const keylessInvalidationAllowlist: Record<string, string> = {
     'lib/query-cache-handoff.ts':
         "refetchType 'none': marks a handed-off cache stale without fetching anything",
 };
-
-/** The reconnect recovery owners (lib/query-reconnect-recovery.ts). */
-const reconnectRecoveryOwners = ['lib/haus-server.tsx', 'lib/query-reconnect-recovery.ts'];
 
 /** Files that may turn on focus or browser-reconnect refetch. */
 const focusRefetchAllowlist: Record<string, string> = {
@@ -164,13 +163,13 @@ describe('query polling contract', () => {
         );
     });
 
-    test('refetchQueries stays inside reconnect recovery', () => {
-        const offenders = matching(files, /\.refetchQueries\(/).filter(
-            (file) => !reconnectRecoveryOwners.includes(file.path)
-        );
+    test('no App code calls refetchQueries', () => {
+        // Recovery is each stream's start reconciliation (lib/start-reconciliation.ts),
+        // which invalidates only reads fetched before the start; there is no
+        // App-wide reconnect pass left to own a staleness-blind refetch.
         expect(
-            paths(offenders),
-            'refetchQueries refetches regardless of staleness. Invalidate the exact key and let observers refetch, or route recovery through lib/query-reconnect-recovery.ts.'
+            paths(matching(files, /\.refetchQueries\(/)),
+            'refetchQueries refetches regardless of staleness. Invalidate the exact key and let observers refetch, or recover through a stream start (lib/start-reconciliation.ts).'
         ).toEqual([]);
     });
 

@@ -20,7 +20,10 @@ const serverId = 'srv_1';
 const server = { id: serverId, slug: 'team-room' };
 const read = (path: string, input?: Record<string, unknown>) => ({ input, path });
 
-/** Event ops, then the ops of a restart after a failure (owned reads only). */
+/**
+ * Event ops, then the ops of a restart after a completion (owned reads only).
+ * The first start and a plain resubscribe reconcile the same owned reads.
+ */
 async function drive(path: string, useStream: () => void, event: unknown) {
     const harness = createRealtimeHarness();
     function Stream() {
@@ -29,14 +32,18 @@ async function drive(path: string, useStream: () => void, event: unknown) {
     }
     const mounted = await harness.mount(<Stream />);
     harness.start(path);
-    expect(harness.ops).toEqual([]);
+    const onFirstStart = invalidated(harness.ops.splice(0));
     harness.emit(path, event);
     const onEvent = invalidated(harness.ops.splice(0));
     harness.complete(path);
     expect(runRestarts()).toBe(1);
     harness.start(path);
     const onRecovery = invalidated(harness.ops.splice(0));
+    harness.start(path);
+    const onResubscribe = invalidated(harness.ops.splice(0));
     await mounted.unmount();
+    expect(onFirstStart).toEqual(onRecovery);
+    expect(onResubscribe).toEqual(onRecovery);
     return { onEvent, onRecovery };
 }
 

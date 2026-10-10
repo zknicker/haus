@@ -21,7 +21,8 @@ const serverId = 'srv_1';
 /**
  * Mounts one stream hook, starts it, delivers `event`, and returns the cache
  * ops the event caused; then fails the stream, restarts it, and returns the
- * ops its recovery caused.
+ * ops its recovery caused. The first start reconciles the same owned reads a
+ * restart does (start-anchored recovery), and so does a plain resubscribe.
  */
 async function drive(path: string, useStream: (serverId: string) => void, event: unknown) {
     const harness = createRealtimeHarness();
@@ -31,15 +32,20 @@ async function drive(path: string, useStream: (serverId: string) => void, event:
     }
     const mounted = await harness.mount(<Stream />);
     harness.start(path);
-    // A first start recovers nothing: the App-wide passes own that.
-    expect(harness.ops).toEqual([]);
+    const onFirstStart = harness.ops.splice(0);
     harness.emit(path, event);
     const onEvent = harness.ops.splice(0);
     harness.fail(path, 'INTERNAL_SERVER_ERROR');
     expect(runRestarts()).toBe(1);
     harness.start(path);
     const onRecovery = harness.ops.splice(0);
+    // A resubscribe on a reconnected socket starts without a failure first.
+    harness.start(path);
+    const onResubscribe = harness.ops.splice(0);
     await mounted.unmount();
+    expect(onFirstStart).toEqual(onRecovery);
+    expect(onResubscribe).toEqual(onRecovery);
+    expect(onRecovery.length).toBeGreaterThan(0);
     return { onEvent, onRecovery };
 }
 
@@ -177,7 +183,8 @@ describe('Chat stream hooks', () => {
         expect<unknown>(onEvent[0]).toEqual({ event, op: 'noteTaskLabelUpdated' });
         const reads = [listKey('taskLabel.list', { serverId }), listKey('task.list', { serverId })];
         expect(invalidated(onEvent)).toEqual(reads);
-        expect(onRecovery).toEqual(onRecovery.filter((entry) => entry.op === 'invalidate'));
+        // A missed rename may sit on any loaded message: lists recover too.
+        expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual(reads);
     });
 

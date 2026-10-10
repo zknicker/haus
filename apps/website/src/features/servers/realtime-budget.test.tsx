@@ -10,6 +10,7 @@ import { useChatThoughtListener } from '../../hooks/servers/use-chat-thought-lis
 import {
     createRealtimeHarness,
     installRealtimeTestDom,
+    invalidated,
 } from '../../test-support/realtime-stream-harness.tsx';
 import { AgentLifecycleProvider } from './agent-lifecycle.tsx';
 import { KeptChatViews } from './chat/kept-chat-views.tsx';
@@ -147,15 +148,20 @@ describe('realtime subscription budget', () => {
             expect(entity('cht_shown')?.getObserversCount()).toBe(1);
             expect(entity('cht_kept')?.getObserversCount() ?? 0).toBe(0);
 
-            // A socket reconnect restarts every stream; no root stream recovers
-            // on that start (the App-wide reconnect pass owns it).
+            // A socket reconnect restarts every stream; each root stream's start
+            // reconciles its owned reads through the coalescer (recorded ops,
+            // filtered to reads fetched before the start); there is no App-wide
+            // reconnect pass, and no start invalidates a `chat.message` entity.
             harness.ops.length = 0;
             const reads = harness.reads.length;
             for (const stream of harness.streams.filter((candidate) => !candidate.closed)) {
                 await harness.act(() => stream.observer.next({ result: { type: 'started' } }));
             }
             await flush();
-            expect(harness.ops).toEqual([]);
+            expect(harness.ops.length).toBeGreaterThan(0);
+            expect(
+                invalidated(harness.ops).filter((entry) => entry.path === 'chat.message')
+            ).toEqual([]);
             const startReads = harness.reads.slice(reads);
             // Only the volatile streams re-read their live projections on every start.
             expect(

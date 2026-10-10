@@ -7,7 +7,6 @@ import { observable } from '@trpc/server/observable';
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import { createQueryReconnectHandler } from '../../lib/query-reconnect-recovery.ts';
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import {
     agentActivityHistoryInput,
@@ -29,28 +28,6 @@ const emptyPage: AgentActivityHistoryPage = { events: [], nextBefore: null, runT
 test('a profile mounted on a fresh cache reads and subscribes to nothing', async () => {
     const harness = await mount();
     expect(harness.paths()).toEqual([]);
-    await harness.unmount();
-});
-
-test('only a reconnect after a gap refetches the mounted history reads', async () => {
-    const harness = await mount();
-    const handle = createQueryReconnectHandler({
-        onReconnect: () => void harness.queryClient.invalidateQueries({ refetchType: 'active' }),
-        onStateChange: () => undefined,
-    });
-
-    handle('connected');
-    await harness.settle();
-    expect(harness.paths()).toEqual([]);
-
-    handle('reconnecting');
-    handle('connected');
-    await harness.settle();
-    expect([...harness.paths()].sort()).toEqual([
-        'agent.activityHistory',
-        'agent.activityHistory',
-        'agent.turns',
-    ]);
     await harness.unmount();
 });
 

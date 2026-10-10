@@ -76,7 +76,7 @@ describe('subscription restart', () => {
         ]);
     });
 
-    test('a normal completion restarts like a failure and recovers on the next start', () => {
+    test('a normal completion restarts like a failure', () => {
         const { delays, fire, restart } = harness();
         let restarts = 0;
 
@@ -84,19 +84,16 @@ describe('subscription restart', () => {
         expect(delays()).toEqual([1000]);
         fire();
         expect(restarts).toBe(1);
-        expect(restart.started()).toBe(true);
     });
 
-    test('a start resets the backoff and says whether it recovered an end', () => {
+    test('a start resets the backoff', () => {
         const { delays, fire, restart } = harness();
 
-        expect(restart.started()).toBe(false);
         restart.failed(transient, () => undefined);
         fire();
         restart.failed(transient, () => undefined);
         fire();
-        expect(restart.started()).toBe(true);
-        expect(restart.started()).toBe(false);
+        restart.started();
 
         restart.failed(transient, () => undefined);
         expect(delays()).toEqual([1000]);
