@@ -13,6 +13,10 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     case taskLabelUpdated = "taskLabel.onUpdated"
     case agentLifecycle = "agent.onLifecycle"
     case agentActivity = "agent.onActivity"
+    /// Attachment, inventory, or update progress. A Computer attaching is
+    /// what turns its Agents' presence back on after a Server restart, and no
+    /// lifecycle event says so.
+    case computerUpdated = "computer.onUpdated"
     /// The membership sentinel: departures and Server deletion publish
     /// `server.updated`, so this stream ends with `membership_lost` for
     /// whoever just lost access.
@@ -43,9 +47,13 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
             // Labels are embedded in transcript entities as well as lenses.
             [.openTranscripts, .taskLenses]
         case .agentLifecycle:
-            [.agentAvailability]
+            // A settled turn moves the usage the Inbox strip ranks.
+            [.agentAvailability, .serverUsage]
         case .agentActivity:
             [.agentActivity]
+        case .computerUpdated:
+            // A Computer attaching or detaching moves every Agent it runs.
+            [.agentAvailability, .agentActivity, .serverUsage, .computers]
         case .serverUpdated:
             [.serverList]
         }
@@ -79,6 +87,10 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case activeCloudAgentWork
     case agentAvailability
     case agentActivity
+    /// `stats.live`: the Inbox strip's token usage, once loaded.
+    case serverUsage
+    /// `computer.list`.
+    case computers
 }
 
 /// Why the Server refused or ended a stream (`hausRefusal` in the tRPC error data).

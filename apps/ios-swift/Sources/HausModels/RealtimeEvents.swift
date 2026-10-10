@@ -242,6 +242,23 @@ public struct ServerUpdatedEvent: Decodable, Sendable, Equatable {
     }
 }
 
+/// `computer.onUpdated`: a Computer attached, detached, reported, or moved
+/// its update. Nil `computerID` means a change broader than one Computer.
+public struct ComputerUpdatedEvent: Decodable, Sendable, Equatable {
+    public let computerID: String?
+    public let serverID: String
+
+    public init(computerID: String?, serverID: String) {
+        self.computerID = computerID
+        self.serverID = serverID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case computerID = "computerId"
+        case serverID = "serverId"
+    }
+}
+
 /// One live Chat-family notification, as the Store buffers it.
 public enum ChatRealtimeEvent: Sendable, Equatable {
     case messageCreated(MessageCreatedEvent)

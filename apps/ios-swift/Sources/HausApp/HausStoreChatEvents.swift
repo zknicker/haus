@@ -156,8 +156,16 @@ extension HausStore {
             if projections.contains(.agentAvailability) {
                 group.addTask { await self.reloadAgentAvailability(serverID: serverID) }
             }
-            if projections.contains(.agentActivity) {
+            // An availability reload re-reads activity after the Agent list
+            // it is derived from, so a second read would only race it.
+            if projections.contains(.agentActivity), !projections.contains(.agentAvailability) {
                 group.addTask { await self.reloadActiveActivity(serverID: serverID) }
+            }
+            if projections.contains(.serverUsage), serverUsage != nil {
+                group.addTask { await self.loadServerUsage() }
+            }
+            if projections.contains(.computers) {
+                group.addTask { await self.loadComputers(serverID: serverID) }
             }
         }
     }

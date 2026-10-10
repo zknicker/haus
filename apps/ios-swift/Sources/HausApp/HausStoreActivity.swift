@@ -32,6 +32,10 @@ extension HausStore {
             if currentActivityPositionByRunID[event.runID] != nil {
                 currentActivityPositionByRunID.removeValue(forKey: event.runID)
             }
+            // The turn's tokens now count toward the Inbox strip's week.
+            if serverUsage != nil {
+                requestRecovery([.serverUsage], serverID: event.serverID)
+            }
         }
     }
 

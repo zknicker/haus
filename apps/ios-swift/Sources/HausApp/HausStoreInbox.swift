@@ -97,12 +97,15 @@ extension HausStore {
     /// Agent at once, so a per-Agent read was never the right shape for it.
     func loadServerUsage() async {
         guard let serverID = activeServer?.id else { return }
+        let readStart = realtimeReconciliation.beginRead()
         do {
             let snapshot: ServerUsageSnapshot = try await client.query(
                 "stats.live",
                 input: ServerScopedInput(serverId: serverID)
             )
-            guard activeServer?.id == serverID else { return }
+            guard activeServer?.id == serverID,
+                  realtimeReconciliation.landed(.serverUsage, readStartedAt: readStart)
+            else { return }
             if serverUsage != snapshot { serverUsage = snapshot }
         } catch {
             Self.logger.error("Loading server usage failed: \(error.localizedDescription, privacy: .public)")

@@ -23,6 +23,13 @@ final class RealtimeEventsTests: XCTestCase {
         XCTAssertEqual(event, ServerUpdatedEvent(serverID: "server_1"))
     }
 
+    func testDecodesComputerUpdated() throws {
+        let named = try decode(ComputerUpdatedEvent.self, #"{"computerId":"cmp_1","serverId":"server_1"}"#)
+        XCTAssertEqual(named, ComputerUpdatedEvent(computerID: "cmp_1", serverID: "server_1"))
+        let broad = try decode(ComputerUpdatedEvent.self, #"{"computerId":null,"serverId":"server_1"}"#)
+        XCTAssertEqual(broad, ComputerUpdatedEvent(computerID: nil, serverID: "server_1"))
+    }
+
     func testDecodesReactionUpdated() throws {
         let event = try decode(MessageReactionUpdatedEvent.self, """
         {"chatId":"chat_1","messageId":"m1","parentChatId":null,"serverId":"server_1"}

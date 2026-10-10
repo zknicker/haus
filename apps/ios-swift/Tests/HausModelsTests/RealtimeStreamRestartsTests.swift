@@ -12,7 +12,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
             "thread.onFollowUpdated", "chat.onLifecycle", "cloudAgentWork.onUpdated",
             "task.onChanged", "taskLabel.onUpdated", "agent.onLifecycle", "agent.onActivity",
-            "server.onUpdated",
+            "computer.onUpdated", "server.onUpdated",
         ])
     }
 
@@ -155,8 +155,39 @@ final class RealtimeStreamRestartsTests: XCTestCase {
             [.openTranscripts, .chatList, .activeCloudAgentWork]
         )
         XCTAssertEqual(RealtimeStream.chatLifecycle.ownedProjections, [.chatList])
-        XCTAssertEqual(RealtimeStream.agentLifecycle.ownedProjections, [.agentAvailability])
+        XCTAssertEqual(RealtimeStream.agentLifecycle.ownedProjections, [.agentAvailability, .serverUsage])
         XCTAssertEqual(RealtimeStream.agentActivity.ownedProjections, [.agentActivity])
+        XCTAssertEqual(
+            RealtimeStream.computerUpdated.ownedProjections,
+            [.agentAvailability, .agentActivity, .serverUsage, .computers]
+        )
+    }
+
+    /// After a Server restart the streams resubscribe before the Computer
+    /// reattaches, so the Agent list they reconcile reads offline. No
+    /// lifecycle event follows the reattach; `computer.onUpdated` does, and
+    /// its start and its events both reload presence.
+    func testAComputerUpdateOwnsAgentPresence() {
+        for isRestart in [false, true] {
+            let reconciled = RealtimeStream.computerUpdated.startReconciliation(isRestart: isRestart)
+            XCTAssertTrue(reconciled.isSuperset(of: [.agentAvailability, .agentActivity]))
+        }
+        XCTAssertTrue(RealtimeStream.agentLifecycle.startReconciliation(isRestart: true).contains(.agentAvailability))
+        XCTAssertFalse(RealtimeStream.computerUpdated.reportsOutage)
+    }
+
+    /// The Inbox's Unread section is the Chat list; the message and read
+    /// streams own it, so a start of either reconciles it and their events
+    /// read it again. Its usage strip is owned by lifecycle and Computer
+    /// updates.
+    func testTheInboxProjectionsHaveStreamOwners() {
+        for stream: RealtimeStream in [.messageCreated, .chatRead] {
+            for isRestart in [false, true] {
+                XCTAssertTrue(stream.startReconciliation(isRestart: isRestart).contains(.chatList), stream.path)
+            }
+        }
+        let usageOwners = Set(RealtimeStream.allCases.filter { $0.ownedProjections.contains(.serverUsage) })
+        XCTAssertEqual(usageOwners, [.agentLifecycle, .computerUpdated])
     }
 
     func testOnlyMessagesAndPresenceReportAnOutage() {

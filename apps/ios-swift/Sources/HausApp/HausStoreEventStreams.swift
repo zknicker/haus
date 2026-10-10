@@ -75,6 +75,14 @@ extension HausStore {
             streamTask(stream, serverID: serverID) { (store, event: AgentActivityEvent) in
                 store.handle(activityEvent: event)
             }
+        case .computerUpdated:
+            // The event names no Agent, so it refreshes what the stream owns
+            // through the same coalesced pass its start uses: a burst of
+            // inventory or update reports costs one round of reads.
+            streamTask(stream, serverID: serverID) { (store, event: ComputerUpdatedEvent) in
+                guard event.serverID == serverID else { return }
+                store.requestRecovery(stream.ownedProjections, serverID: serverID)
+            }
         case .serverUpdated:
             streamTask(stream, serverID: serverID) { (store, event: ServerUpdatedEvent) in
                 guard event.serverID == serverID else { return }
