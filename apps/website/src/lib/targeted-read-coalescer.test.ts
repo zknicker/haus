@@ -191,6 +191,43 @@ test('a tail read held across a label rename never seeds the old label', async (
     list.close();
 });
 
+test('a message created while an aborted tail read is still held gets its own tail', async () => {
+    const tail = Promise.withResolvers<unknown>();
+    let renamed = false;
+    const cache = createTranscriptCache((request) => {
+        if (request.input.afterSequence === 1) {
+            return tail.promise;
+        }
+        if (request.input.afterSequence === 2) {
+            return Promise.resolve(page([message(chatId, 3)]));
+        }
+        return Promise.resolve(
+            page(renamed ? [message(chatId, 1), message(chatId, 2)] : [message(chatId, 1)])
+        );
+    });
+    const list = cache.observeList(chatId);
+    await settle(() => cache.listIds(chatId)?.length === 1);
+    cache.coalescer.noteMessageCreated(createdAt(2));
+    await settle(() => cache.reads('chat.messages').length === 2);
+    // The rename aborts the held tail; its drain stays open until the read settles.
+    renamed = true;
+    await cache.coalescer.noteTaskLabelUpdated({ labelId: 'lbl_one', serverId });
+    cache.coalescer.flushInvalidations();
+    await settle(() => cache.listIds(chatId)?.length === 2);
+    cache.coalescer.noteMessageCreated(createdAt(3));
+    tail.resolve(page([message(chatId, 2)]));
+    await settle(() => cache.listIds(chatId)?.length === 3);
+
+    expect(cache.reads('chat.messages').map((read) => read.input.afterSequence)).toEqual([
+        undefined,
+        1,
+        undefined,
+        2,
+    ]);
+    expect(cache.listIds(chatId)).toEqual([1, 2, 3].map((sequence) => `msg_${chatId}_${sequence}`));
+    list.close();
+});
+
 test('a list read in flight across a Server loss lands and seeds nothing', async () => {
     const listRead = Promise.withResolvers<unknown>();
     const cache = createTranscriptCache(() => listRead.promise);
@@ -258,6 +295,10 @@ test('invalidations of one key coalesce into one refetch per frame', async () =>
     expect(cache.reads('chat.messages').length).toBe(2);
     list.close();
 });
+
+function createdAt(sequence: number) {
+    return { chatId, parentChatId: null, sequence, serverId, threadAnchorMessageId: null };
+}
 
 function secondLabel(cache: ReturnType<typeof createTranscriptCache>) {
     return cache.entity(chatId, `msg_${chatId}_2`)?.data?.message.task?.labels[0]?.name;

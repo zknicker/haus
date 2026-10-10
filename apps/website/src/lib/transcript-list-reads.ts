@@ -165,6 +165,11 @@ export class TranscriptListReads {
             }
         } finally {
             this.#draining.delete(hash);
+            // An abort ends this drain, but a tail requested before it settled
+            // found the hash still draining and returned: drain it now.
+            if (this.#tailNeeded.has(hash)) {
+                void this.#drain(queryKey, hash, scope);
+            }
         }
     }
 
