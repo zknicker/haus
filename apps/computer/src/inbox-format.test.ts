@@ -164,6 +164,36 @@ test('projects task and mention intent into both drain and busy-notice metadata'
     expect(composeInboxNotice([task])).toContain('· task #7 · you were mentioned');
 });
 
+test('names the claim for an open task before the delivery trailer, and only for todo tasks', () => {
+    const open = item({
+        task: {
+            assigneeAgentId: null,
+            messageId: 'msg_first',
+            number: 7,
+            priority: 'none',
+            status: 'todo',
+        },
+    });
+    expect(composeInboxDrain([open])).toContain(
+        [
+            '',
+            'Task #7 is open: if it is yours to take, claim it with `haus task claim --target "#general" --number 7` before you reply or start work.',
+            'Respond as appropriate. Complete all your work before stopping.',
+        ].join('\n')
+    );
+
+    const started = item({
+        task: {
+            assigneeAgentId: 'agent_1',
+            messageId: 'msg_first',
+            number: 7,
+            priority: 'none',
+            status: 'in_progress',
+        },
+    });
+    expect(composeInboxDrain([started])).not.toContain('haus task claim');
+});
+
 test('leaves an ordinary text message envelope free of work markers', () => {
     expect(composeInboxDrain([item()])).toBe(
         [

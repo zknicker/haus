@@ -42,8 +42,23 @@ export function composeInboxDrain(items: AgentInboxItem[]): string {
             return context ? `${formatThreadContext(context)}\n\n${envelope}` : envelope;
         }),
         '',
+        ...openTaskClaimLines(items),
         deliveryTrailer,
     ].join('\n');
+}
+
+/**
+ * Haus-only: names the claim for each open task the drain carries, so claim-before-reply rides
+ * the event that needs it instead of the standing prompt's general claim rule.
+ */
+function openTaskClaimLines(items: AgentInboxItem[]): string[] {
+    return items.flatMap((item) =>
+        item.task?.status === 'todo'
+            ? [
+                  `Task #${item.task.number} is open: if it is yours to take, claim it with \`haus task claim --target "${item.target}" --number ${item.task.number}\` before you reply or start work.`,
+              ]
+            : []
+    );
 }
 
 /**
