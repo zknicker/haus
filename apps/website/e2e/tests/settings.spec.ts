@@ -231,8 +231,11 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await expect(connection).toBeVisible();
     await expect(merchbase).toHaveCount(0);
     // Drain whatever one-press presets remain so adding a new one never breaks
-    // this test. X takes a token first, so it stays until one is saved.
-    const addPreset = page.locator('.item-card').getByRole('button', { name: /^Add (?!X$)/u });
+    // this test. X takes a token first, and Skool opens a desktop sign-in
+    // dialog, so neither is a one-press preset.
+    const addPreset = page
+        .locator('.item-card')
+        .getByRole('button', { name: /^Add (?!(?:X|Skool)$)/u });
     for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
         await addPreset.first().click();
         await expect(addPreset).toHaveCount(remaining - 1);
