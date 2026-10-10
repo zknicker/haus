@@ -12,6 +12,7 @@ import {
     settle,
 } from '../test-support/transcript-cache-harness.ts';
 import { hausTrpc } from './haus-server.tsx';
+import { TranscriptListReads } from './transcript-list-reads.ts';
 
 const chatId = 'cht_tail';
 
@@ -240,6 +241,40 @@ test('a tail-read row retires the pending send that carries its nonce', async ()
     const delivered = new Set(entries?.flatMap((entry) => [entry.id, entry.nonce]));
 
     expect(visiblePendingChatMessages(pending, delivered)).toEqual([]);
+    list.close();
+});
+
+test('a tail read that never settles releases its list within the bound', async () => {
+    let tails = 0;
+    const cache = createTranscriptCache((request) => {
+        if (request.input.afterSequence === undefined) {
+            return Promise.resolve(page([message(chatId, 1)]));
+        }
+        tails += 1;
+        // The first tail read wedges forever; later ones answer.
+        return tails === 1 ? new Promise(() => undefined) : Promise.resolve(page([]));
+    });
+    const reads = new TranscriptListReads(cache.queryClient, () => cache.client, {
+        tailSettleMaxMs: 20,
+    });
+    const list = cache.observeList(chatId);
+    await settle(() => cache.listIds(chatId)?.length === 1);
+    const errors: unknown[] = [];
+    const realError = console.error;
+    console.error = (...args: unknown[]) => errors.push(args[0]);
+    try {
+        reads.requestTail({ chatId, serverId }, 2);
+        await settle(() => tails === 1);
+        await settle(() => errors.length === 1);
+        reads.requestTail({ chatId, serverId }, 3);
+        await settle(() => tails === 2);
+    } finally {
+        console.error = realError;
+    }
+
+    expect(errors).toEqual([
+        '[haus] A transcript tail read did not settle within 20 ms; releasing the list',
+    ]);
     list.close();
 });
 

@@ -10,6 +10,7 @@ import {
     toTranscriptPage,
 } from '../hooks/servers/chat-message-layout.ts';
 import type { hausTrpc } from './haus-server.tsx';
+import { settleWithin, UnsettledError } from './settle-within.ts';
 import { isTranscriptListOf, transcriptListInput } from './transcript-list-key.ts';
 
 export type HausClient = ReturnType<typeof hausTrpc.createClient>;
@@ -31,7 +32,7 @@ interface ChatReadState {
  * its entities, the per-Chat dirty sets and in-flight counts, and the
  * `tailNeeded` bits drained one tail read at a time per list
  * (specs/realtime-events.md, "Normalized transcript cache"). Owned by
- * `targeted-read-coalescer.ts`; nothing else constructs it.
+ * `targeted-read-coalescer.ts`; nothing else in the App constructs it.
  */
 export class TranscriptListReads {
     readonly #chats = new Map<string, ChatReadState>();
@@ -39,10 +40,16 @@ export class TranscriptListReads {
     readonly #queryClient: QueryClient;
     readonly #readClient: () => HausClient;
     readonly #tailNeeded = new Map<string, number>();
+    readonly #tailSettleMaxMs: number;
 
-    constructor(queryClient: QueryClient, readClient: () => HausClient) {
+    constructor(
+        queryClient: QueryClient,
+        readClient: () => HausClient,
+        { tailSettleMaxMs = defaultTailSettleMaxMs }: { tailSettleMaxMs?: number } = {}
+    ) {
         this.#queryClient = queryClient;
         this.#readClient = readClient;
+        this.#tailSettleMaxMs = tailSettleMaxMs;
     }
 
     /**
@@ -135,20 +142,43 @@ export class TranscriptListReads {
         const { signal } = this.#chat(scope).controller;
         try {
             while (this.#tailNeeded.has(hash) && !signal.aborted) {
-                await this.#untilIdle(hash, signal);
-                const sequence = this.#tailNeeded.get(hash);
-                this.#tailNeeded.delete(hash);
-                if (sequence === undefined || signal.aborted) {
+                // Each step settles within a bound: a wedged read must not hold the list forever.
+                const step = await settleWithin(
+                    tailStep,
+                    signal,
+                    this.#tailSettleMaxMs,
+                    async (bounded) => {
+                        await this.#untilIdle(hash, bounded);
+                        const sequence = bounded.aborted ? undefined : this.#tailNeeded.get(hash);
+                        if (sequence === undefined) {
+                            return null;
+                        }
+                        this.#tailNeeded.delete(hash);
+                        return {
+                            raced: await this.#tail(queryKey, hash, sequence, scope, bounded),
+                            sequence,
+                        };
+                    }
+                );
+                if (step === null) {
                     break;
                 }
-                if (await this.#tail(queryKey, hash, sequence, scope, signal)) {
+                if (step.raced) {
                     // A list fetch ran across the append and may land over it: tail again after.
                     const needed = this.#tailNeeded.get(hash) ?? 0;
-                    this.#tailNeeded.set(hash, Math.max(needed, sequence));
+                    this.#tailNeeded.set(hash, Math.max(needed, step.sequence));
                 }
             }
         } catch (error) {
-            if (!isAbort(error)) {
+            if (error instanceof UnsettledError) {
+                console.error(`[haus] ${error.message}; releasing the list`, queryKey);
+                // The list may have missed rows: refetch it now if shown, else on its next observe.
+                void this.#queryClient.invalidateQueries({
+                    exact: true,
+                    queryKey,
+                    refetchType: 'active',
+                });
+            } else if (!isAbort(error)) {
                 // A failed tail read leaves the list behind: mark it stale so its next observe reads it.
                 void this.#queryClient.invalidateQueries({
                     exact: true,
@@ -247,6 +277,10 @@ export class TranscriptListReads {
         return state;
     }
 }
+
+/** A tail step (wait for the list's own fetch, then the tail read) that runs longer is wedged. */
+export const defaultTailSettleMaxMs = 20_000;
+const tailStep = 'A transcript tail read';
 
 function chatKey(scope: ChatScope) {
     return `${scope.serverId}\u0000${scope.chatId}`;
