@@ -29,6 +29,14 @@ The app is split into four focused layers:
 - `HausApp` composes authentication, Server state, event streams, cache-like snapshots, navigation,
   and presentation adapters.
 
+`TRPCClient` runs queries and mutations on one URL session and SSE subscriptions on another
+(`TRPCSessions`). Over HTTP/1.1, the local dev Server, each held stream occupies a connection, and
+a shared stock pool (six per host) once gave every connection to streams so queries and sends
+timed out. The stream session's per-host limit derives from the stream inventory with headroom, and
+its 300-second idle timeout replaces the 60-second default that recycled every quiet stream once a
+minute. A loopback-socket test (`TRPCSessionsTests`) pins that a query completes while more
+streams than the stock pool are held.
+
 The transport intentionally calls the existing tRPC procedures directly rather than introducing an
 OpenAPI mirror or community Swift tRPC dependency. The app uses the official Clerk iOS SDK and
 the production-authorized `haus://sso-callback` OAuth return. Chat history remains canonical Server

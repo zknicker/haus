@@ -52,7 +52,8 @@ final class TRPCClientTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: nil),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
 
         do {
@@ -76,7 +77,8 @@ final class TRPCClientTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
 
         let _: QueryOutput = try await client.mutation(
@@ -101,7 +103,8 @@ final class TRPCClientTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
 
         let _: TRPCNoContent = try await client.mutation(
@@ -146,7 +149,8 @@ final class TRPCClientTests: XCTestCase {
                 productVersion: "1.2.3"
             ),
             sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
         let result = try await client.uploadAttachment(
             serverID: "srv_123",
@@ -185,7 +189,8 @@ final class TRPCClientTests: XCTestCase {
                 productVersion: "1.2.3"
             ),
             sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
         let downloadedURL = try await client.downloadAttachment(
             serverID: "srv_123",
@@ -218,7 +223,8 @@ final class TRPCClientTests: XCTestCase {
                 productVersion: "test"
             ),
             sessionTokenProvider: StaticSessionTokenProvider(token: nil),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
 
         let result = try await client.createDevClerkSignInTicket()
@@ -256,7 +262,8 @@ final class TRPCClientTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
 
         var values: [SubscriptionOutput] = []
@@ -291,7 +298,8 @@ final class TRPCClientTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
 
         var values: [SubscriptionOutput] = []
@@ -329,7 +337,8 @@ final class TRPCClientTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
 
         let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(

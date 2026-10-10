@@ -129,6 +129,9 @@ extension TRPCClient {
         let url = try subscriptionURL(path: path, input: input)
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        // Explicit, so the request's own 60-second default cannot undercut
+        // the stream session's idle window.
+        request.timeoutInterval = TRPCSessions.streamIdleTimeout
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         let token = try await sessionTokenProvider.readSessionToken()
@@ -136,7 +139,7 @@ extension TRPCClient {
             request.setValue(value, forHTTPHeaderField: header)
         }
 
-        let (bytes, response) = try await session.bytes(for: request)
+        let (bytes, response) = try await streamSession.bytes(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TRPCClientError.transport("The server returned a non-HTTP response.")
         }

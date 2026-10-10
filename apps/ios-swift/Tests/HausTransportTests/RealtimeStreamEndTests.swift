@@ -52,7 +52,8 @@ final class RealtimeStreamEndTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
         let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
             "server.onUpdated",
@@ -81,7 +82,8 @@ final class RealtimeStreamEndTests: XCTestCase {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession()
+            session: makeStubSession(),
+            streamSession: makeStubSession()
         )
         let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
             "chat.onMessageCreated",
