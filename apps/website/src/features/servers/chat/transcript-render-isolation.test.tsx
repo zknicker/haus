@@ -1,4 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import type { QueryClient } from '@tanstack/react-query';
+import { isChatMessageEntityOf } from '../../../hooks/servers/chat-message-entities.ts';
+import { ChatMessageSubscriptionContext } from '../../../hooks/servers/use-chat-message.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { installKeptChatViewTestDom } from '../../../test-support/kept-chat-views-harness.tsx';
 import {
@@ -33,16 +36,16 @@ function TranscriptView({ chatId }: { chatId: string }) {
     return (
         <ChatTranscript
             chatId={chatId}
-            messages={messages.data?.messages}
+            messages={messages.data?.entries}
             onOpenArtifact={noArtifact}
             serverId={serverId}
-            threads={messages.data?.threads}
             viewerUserId={viewerUserId}
         />
     );
 }
 
-async function mountTwoChats() {
+/** Mounts cht_a and cht_b; `hidden` renders cht_a the way a hidden kept view does. */
+async function mountTwoChats({ hidden = false }: { hidden?: boolean } = {}) {
     const harness = createTranscriptHarness();
     harness.setChats([chat('cht_a'), chat('cht_b')]);
     for (const chatId of ['cht_a', 'cht_b']) {
@@ -51,12 +54,74 @@ async function mountTwoChats() {
     }
     const view = await harness.mount(
         <>
-            <TranscriptView chatId="cht_a" key="cht_a" />
+            <ChatMessageSubscriptionContext value={!hidden}>
+                <TranscriptView chatId="cht_a" key="cht_a" />
+            </ChatMessageSubscriptionContext>
             <TranscriptView chatId="cht_b" key="cht_b" />
         </>
     );
     return { ...harness, ...view };
 }
+
+function entityQueries(harness: { queryClient: QueryClient }, chatId: string) {
+    return harness.queryClient
+        .getQueryCache()
+        .findAll({ predicate: (query) => isChatMessageEntityOf(query, { chatId, serverId }) });
+}
+
+test('a reaction on one message re-renders that row and nothing else', async () => {
+    const harness = await mountTwoChats();
+    // Rows render their entity's prose; the list holds only ids and layout facts.
+    expect(harness.container.textContent).toContain('Message 3 in cht_a');
+    const reacted = message('cht_a', 3, 'agt_blippy');
+    const census = await harness.change(() =>
+        harness.setEntity({
+            ...reacted,
+            reactions: [
+                { actors: [{ handle: null, id: viewerUserId, kind: 'human' }], emoji: '👍' },
+            ],
+        })
+    );
+
+    expect(census.count('ChatTranscript')).toBe(0);
+    expect(census.count('TranscriptRowSlot')).toBe(0);
+    expect(census.count('TranscriptRenderRowView')).toBe(1);
+    expect(census.renders().filter((entry) => entry.includes('cht_b'))).toEqual([]);
+
+    await harness.unmount();
+});
+
+test('an unchanged entity refetch renders nothing', async () => {
+    const harness = await mountTwoChats();
+    const census = await harness.change(() => harness.setEntity(message('cht_a', 3, 'agt_blippy')));
+
+    expect(census.count('TranscriptRenderRowView')).toBe(0);
+    expect(census.count('TranscriptRenderRowItem')).toBe(0);
+
+    await harness.unmount();
+});
+
+test('a hidden kept view observes no entity and an invalidation fetches nothing', async () => {
+    const harness = await mountTwoChats({ hidden: true });
+    const hidden = entityQueries(harness, 'cht_a');
+    const shown = entityQueries(harness, 'cht_b');
+
+    expect(hidden.length).toBe(6);
+    expect(hidden.every((query) => query.getObserversCount() === 0)).toBe(true);
+    expect(shown.some((query) => query.getObserversCount() > 0)).toBe(true);
+
+    const census = await harness.change(() =>
+        harness.queryClient.invalidateQueries({
+            predicate: (query) => hidden.includes(query),
+            refetchType: 'active',
+        })
+    );
+    expect(hidden.every((query) => query.state.fetchStatus === 'idle')).toBe(true);
+    expect(hidden.every((query) => query.state.isInvalidated)).toBe(true);
+    expect(census.count('TranscriptRenderRowView')).toBe(0);
+
+    await harness.unmount();
+});
 
 test('a new message in a full newest page renders its own row and no other row', async () => {
     const harness = await mountTwoChats();

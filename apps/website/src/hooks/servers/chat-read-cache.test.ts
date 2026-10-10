@@ -1,13 +1,13 @@
 import { expect, test } from 'bun:test';
-import type { Chat } from '@haus/api';
+import type { Chat, ChatMessage } from '@haus/api';
 import { QueryClient } from '@tanstack/react-query';
 import { httpLink } from '@trpc/client';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryClientDefaultOptions } from '../../lib/query-policy.ts';
-import { readEvent } from './chat-events/chat-event-fixtures.ts';
-import { invalidateChatRead } from './chat-events/use-chat-read-events.ts';
-import { patchLocalChatRead, settleLocalChatRead } from './chat-read-cache.ts';
+import { chatMessageQueryKey, seedChatMessageEntities } from './chat-message-entities.ts';
+import { toTranscriptPage } from './chat-message-layout.ts';
+import { chatReadChangesList, patchLocalChatRead, settleLocalChatRead } from './chat-read-cache.ts';
 import { chatMessagesQueryKey } from './use-chat-messages.ts';
 
 const serverId = 'server_one';
@@ -58,41 +58,34 @@ test('a Chat that may hold unread Thread replies keeps its count until the Serve
     }
 });
 
-test('the read event refetches a row this client zeroed, and skips one the Server zeroed', async () => {
-    const { queryClient, refetches, utils } = cache([row('chat_one', 3, 7), row('chat_two', 0, 4)]);
+test('a read this client zeroed changes the list, and one the Server zeroed does not', () => {
+    const { queryClient, utils } = cache([row('chat_one', 3, 7), row('chat_two', 0, 4)]);
     transcript(queryClient, 'chat_one');
     patchLocalChatRead({ chatId: 'chat_one', queryClient, sequence: 7, serverId, utils });
 
     // The Server's own zero: a read can only lower counts, so nothing changes.
-    await invalidateChatRead({
-        events: [readEvent('5', 'chat_two', 4)],
-        queryClient,
-        serverId,
-        utils,
-    });
-    expect(refetches()).toBe(0);
-
+    expect(chatReadChangesList({ queryClient, rowIds: ['chat_two'], serverId, utils })).toBe(false);
     // The local zero is a guess (followed Thread replies roll into the count), so it confirms.
-    await invalidateChatRead({
-        events: [readEvent('6', 'chat_one', 7)],
-        queryClient,
-        serverId,
-        utils,
-    });
-    expect(refetches()).toBe(1);
+    expect(chatReadChangesList({ queryClient, rowIds: ['chat_one'], serverId, utils })).toBe(true);
 });
 
-test('a Thread read answers for its parent row, and an unread parent refetches', async () => {
-    const { queryClient, refetches, utils } = cache([row('chat_one', 2, 7)]);
+test('a Thread read answers for its unread parent row', () => {
+    const { queryClient, utils } = cache([row('chat_one', 2, 7)]);
 
-    await invalidateChatRead({
-        events: [{ ...readEvent('7', 'thread_one', 3), parentChatId: 'chat_one' }],
-        queryClient,
-        serverId,
-        utils,
+    expect(chatReadChangesList({ queryClient, rowIds: ['chat_one'], serverId, utils })).toBe(true);
+});
+
+test('an anchor entity behind the Server keeps the count until the Server answers', () => {
+    const { queryClient, utils } = cache([row('chat_one', 3, 7)]);
+    transcript(queryClient, 'chat_one');
+    void queryClient.invalidateQueries({
+        queryKey: chatMessageQueryKey(serverId, 'chat_one', 'msg_anchor'),
+        refetchType: 'none',
     });
 
-    expect(refetches()).toBe(1);
+    expect(
+        patchLocalChatRead({ chatId: 'chat_one', queryClient, sequence: 7, serverId, utils })
+    ).toBe(false);
 });
 
 test('a list read in flight cannot land the old count over a local read', async () => {
@@ -151,25 +144,43 @@ function transcript(
     chatId: string,
     { olderHistory = false, threadUnread = 0 } = {}
 ) {
-    queryClient.setQueryData(chatMessagesQueryKey(serverId, chatId), {
-        pageParams: [undefined],
-        pages: [
+    const anchor: ChatMessage = {
+        attachments: [],
+        author: { kind: 'human', userId: 'usr_reader' },
+        body: { kind: 'text' },
+        chatId,
+        content: 'Anchor',
+        createdAt: '2026-01-01T00:00:00Z',
+        id: 'msg_anchor',
+        nonce: 'nonce_anchor',
+        reactions: [],
+        reply: null,
+        runId: null,
+        sequence: 7,
+        serverId,
+        sessionGeneration: null,
+    };
+    const page = {
+        messages: [anchor],
+        nextAfterSequence: null,
+        nextBeforeSequence: olderHistory ? 3 : null,
+        scannedThroughSequence: 7,
+        threads: [
             {
-                messages: [],
-                nextBeforeSequence: olderHistory ? 3 : null,
-                threads: [
-                    {
-                        anchorMessageId: 'msg_anchor',
-                        followed: true,
-                        latestReplyAt: null,
-                        recentReplies: [],
-                        replyCount: 2,
-                        threadChatId: 'thread_one',
-                        unreadCount: threadUnread,
-                    },
-                ],
+                anchorMessageId: 'msg_anchor',
+                followed: true,
+                latestReplyAt: null,
+                recentReplies: [],
+                replyCount: 2,
+                threadChatId: 'thread_one',
+                unreadCount: threadUnread,
             },
         ],
+    };
+    seedChatMessageEntities(queryClient, page);
+    queryClient.setQueryData(chatMessagesQueryKey(serverId, chatId), {
+        pageParams: [undefined],
+        pages: [toTranscriptPage(page)],
     });
 }
 
