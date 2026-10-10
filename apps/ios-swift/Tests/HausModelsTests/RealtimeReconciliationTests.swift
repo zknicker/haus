@@ -77,6 +77,30 @@ final class RealtimeReconciliationTests: XCTestCase {
         XCTAssertTrue(reconciliation.landed(.serverList, readStartedAt: snapshot), "projections are independent")
     }
 
+    /// The foreground snapshot gathers every shell projection while the
+    /// Agent streams' start reconciliation, begun later, lands first: the
+    /// snapshot applies only the projections no newer read answered.
+    func testAGatheredSnapshotOverlappedByANewerAgentReadAppliesOnlyWhatIsCurrent() {
+        var reconciliation = RealtimeReconciliation()
+        let snapshot = reconciliation.beginRead()
+        reconciliation.streamStarted(reconciling: [.agentAvailability, .agentActivity])
+        XCTAssertEqual(reconciliation.take(), [.agentAvailability, .agentActivity])
+        let agents = reconciliation.beginRead()
+        let activity = reconciliation.beginRead()
+        XCTAssertTrue(reconciliation.landed(.agentAvailability, readStartedAt: agents))
+        XCTAssertTrue(reconciliation.landed(.agentActivity, readStartedAt: activity))
+
+        let current = reconciliation.landed(
+            [.serverList, .chatList, .agentAvailability, .agentActivity],
+            readStartedAt: snapshot
+        )
+
+        XCTAssertEqual(current, [.serverList, .chatList])
+        // The older snapshot never displaces the newer reads' place either.
+        XCTAssertFalse(reconciliation.landed(.agentAvailability, readStartedAt: snapshot))
+        XCTAssertTrue(reconciliation.landed(.agentAvailability, readStartedAt: agents))
+    }
+
     func testStoppingTheStreamsDropsPendingWork() {
         var reconciliation = RealtimeReconciliation()
         reconciliation.streamStarted(reconciling: [.chatList])

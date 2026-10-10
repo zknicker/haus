@@ -33,6 +33,16 @@ public struct RealtimeReconciliation: Sendable, Equatable {
         return true
     }
 
+    /// Records one gathered read of several projections, landing together.
+    /// Returns the projections whose answer is current: the caller applies
+    /// those and drops the rest.
+    public mutating func landed(
+        _ projections: Set<RealtimeProjection>,
+        readStartedAt start: Int
+    ) -> Set<RealtimeProjection> {
+        projections.filter { landed($0, readStartedAt: start) }
+    }
+
     /// A stream subscription started: its projections need reconciling against
     /// every read that began before now.
     public mutating func streamStarted(reconciling projections: Set<RealtimeProjection>) {

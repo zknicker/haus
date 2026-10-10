@@ -19,7 +19,7 @@ struct ServerSnapshot: Sendable {
     /// authoritative for the working dot, so a transient failure keeps the
     /// activity the shell already has rather than clearing it.
     let activity: AgentActiveActivitySnapshot?
-    /// When the reads began, so a Server or Chat list older than one a start
+    /// When the reads began, so a projection older than one a start
     /// reconciliation already applied writes nothing.
     let readStart: Int
 }
@@ -145,25 +145,32 @@ extension HausStore {
     /// projections that field feeds, so a snapshot that changed nothing
     /// repaints nothing. `servers` is plain storage and guards its own write.
     private func apply(_ snapshot: ServerSnapshot, lifecycleRevisionAtStart: Int) {
-        if servers.first?.id != snapshot.servers.first?.id {
-            resetInlineReplyCache()
+        // A projection a newer read (a start reconciliation) already answered
+        // keeps that answer; this older snapshot writes only the rest.
+        var gathered: Set<RealtimeProjection> = [.serverList, .chatList, .agentAvailability]
+        if snapshot.activity != nil { gathered.insert(.agentActivity) }
+        let current = realtimeReconciliation.landed(gathered, readStartedAt: snapshot.readStart)
+        if current.contains(.serverList) {
+            if servers.first?.id != snapshot.servers.first?.id {
+                resetInlineReplyCache()
+            }
+            if servers != snapshot.servers { servers = snapshot.servers }
         }
-        if realtimeReconciliation.landed(.serverList, readStartedAt: snapshot.readStart),
-           servers != snapshot.servers {
-            servers = snapshot.servers
-        }
-        if realtimeReconciliation.landed(.chatList, readStartedAt: snapshot.readStart) {
+        if current.contains(.chatList) {
             chats = snapshot.chats
         }
-        agents = snapshot.agents
+        if current.contains(.agentAvailability) {
+            agents = snapshot.agents
+            // The live overlay outranks `agent.list` only when a lifecycle
+            // event landed while the snapshot was in flight. Clearing it
+            // unconditionally traded live presence for a list read that may
+            // already be older.
+            clearLifecycleAvailability(ifRevisionIs: lifecycleRevisionAtStart)
+        }
         members = snapshot.members
-        // The live overlay outranks `agent.list` only when a lifecycle event
-        // landed while the snapshot was in flight. Clearing it unconditionally
-        // traded live presence for a list read that may already be older.
-        clearLifecycleAvailability(ifRevisionIs: lifecycleRevisionAtStart)
         // Activity is derived from the Agent list and its availability, so it
         // applies after both.
-        if let activity = snapshot.activity {
+        if let activity = snapshot.activity, current.contains(.agentActivity) {
             replaceActiveActivitySnapshot(activity)
         }
     }
