@@ -6,6 +6,7 @@ import {
     isChatMessageEntityOf,
 } from '../hooks/servers/chat-message-entities.ts';
 import { hausTrpc } from './haus-server.tsx';
+import { createStartReconciliation } from './start-reconciliation.ts';
 import {
     type ChatScope,
     type HausClient,
@@ -28,9 +29,13 @@ export interface MessageTarget extends ChatScope {
  * one animation frame across all callers.
  */
 export interface TargetedReadCoalescer {
-    /** Applies every invalidation queued for the next frame now. */
+    /** Applies every invalidation queued for the next frame or a start's settle window now. */
     flushInvalidations(): void;
-    /** A coalesced `refetchType: 'active'` invalidation of one key (exact) or a key prefix. */
+    /**
+     * A coalesced `refetchType: 'active'` invalidation of one key (exact) or a
+     * key prefix. Inside `reconcileStart` it refreshes only reads fetched
+     * before that start.
+     */
     invalidate(filters: { exact?: boolean; queryKey: QueryKey }): void;
     /** The list-read owner `chatMessagesQueryOptions` reads pages through. */
     readonly lists: TranscriptListReads;
@@ -51,7 +56,10 @@ export interface TargetedReadCoalescer {
             'chatId' | 'parentChatId' | 'sequence' | 'serverId' | 'threadAnchorMessageId'
         >
     ): void;
-    /** A label has no message ids: cancel and refetch the Server's lists, then its carriers. */
+    /**
+     * A label has no message ids: abort the Server's tail reads, cancel and
+     * refetch its lists, then its carriers.
+     */
     noteTaskLabelUpdated(event: { labelId: string; serverId: string }): Promise<void>;
     /** Runs `listener(scope)` after each Chat purge (kept views and pending rows drop theirs). */
     onChatPurged(listener: (scope: ChatScope) => void): () => void;
@@ -59,7 +67,14 @@ export interface TargetedReadCoalescer {
     purgeChat(scope: ChatScope): Promise<void>;
     /** Membership loss: abort tails, cancel and remove the Server's lists and entities. */
     purgeServer(scope: { serverId: string }): Promise<void>;
-    /** Stream restart or reconnect: refetch the loaded pages of the Server's (or these Chats') lists. */
+    /**
+     * A focused subscription started (first start, resubscribe after a socket
+     * reconnect, or restart after a failure): run `recover`, the stream's
+     * owned-read recovery, refreshing only reads that began before this start
+     * (`start-reconciliation.ts`).
+     */
+    reconcileStart(recover: () => void): void;
+    /** Stream start: refetch the loaded pages of the Server's (or these Chats') lists. */
     recoverTranscriptLists(scope: { chatIds?: readonly string[]; serverId: string }): void;
     /** A send receipt or other ack: the same tail read, without the anchor refresh. */
     requestTail(scope: ChatScope & { sequence: number }): void;
@@ -100,6 +115,7 @@ export function createTargetedReadCoalescer({
     scheduleFrame = scheduleNextFrame,
 }: TargetedReadCoalescerOptions): TargetedReadCoalescer {
     const lists = new TranscriptListReads(queryClient, () => clients.get(queryClient) ?? client);
+    const starts = createStartReconciliation(queryClient);
     const queued = new Map<string, { exact: boolean; queryKey: QueryKey }>();
     let scheduled = false;
 
@@ -110,8 +126,12 @@ export function createTargetedReadCoalescer({
         for (const { exact, queryKey } of batch) {
             void queryClient.invalidateQueries({ exact, queryKey, refetchType: 'active' });
         }
+        starts.flush();
     };
     const invalidate = ({ exact = false, queryKey }: { exact?: boolean; queryKey: QueryKey }) => {
+        if (starts.queue({ exact, queryKey })) {
+            return;
+        }
         queued.set(`${exact ? '=' : '^'}${JSON.stringify(queryKey)}`, { exact, queryKey });
         if (!scheduled) {
             scheduled = true;
@@ -159,7 +179,10 @@ export function createTargetedReadCoalescer({
         },
         noteTaskLabelUpdated: async ({ labelId, serverId }) => {
             const serverLists = lists.lists({ serverId });
-            // No list read in flight may land and seed the old label.
+            // No list or tail read in flight may land and seed the old label:
+            // abort the Server's tails (React Query cannot cancel them), then
+            // cancel its list fetches. The bulk refetch below re-reads any tail.
+            lists.abort({ serverId });
             await queryClient.cancelQueries({ predicate: (query) => serverLists.includes(query) });
             invalidateEach(serverLists);
             const fetching = (query: Query) =>
@@ -181,6 +204,7 @@ export function createTargetedReadCoalescer({
             }
         },
         purgeServer: (scope) => purge(scope),
+        reconcileStart: (recover) => starts.run(recover),
         recoverTranscriptLists: ({ chatIds, serverId }) => {
             invalidateEach(
                 lists

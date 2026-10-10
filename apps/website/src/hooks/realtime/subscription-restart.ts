@@ -8,11 +8,10 @@ import { classifyStreamError } from './realtime-refusal.ts';
  *
  * Any end that is not a refusal, a normal completion included, restarts this
  * one stream after a capped exponential backoff; a start resets the backoff.
- * `started()` returns true for a start that follows such an end, so the
- * stream recovers only its owned reads then (a plain socket reconnect is the
- * App-wide reconnect pass's job). Refusals follow their class: membership
- * loss runs the Server-loss path, a role refusal stops this stream, and an
- * expired session refreshes its token before restarting.
+ * Refusals follow their class: membership loss runs the Server-loss path, a
+ * role refusal stops this stream, and an expired session refreshes its token
+ * before restarting. Owned-read recovery runs on every start, not here
+ * (`useSubscriptionRestart`).
  */
 export interface SubscriptionRestart {
     /** The stream completed normally: restart it like a failure. */
@@ -21,8 +20,8 @@ export interface SubscriptionRestart {
     dispose: () => void;
     /** Reports `error` and answers it by its refusal class. */
     failed: (error: unknown, restart: () => void) => void;
-    /** The stream started. True when it follows a failure or completion. */
-    started: () => boolean;
+    /** The stream started: drop any pending restart and reset the backoff. */
+    started: () => void;
 }
 
 export interface SubscriptionRestartOptions {
@@ -44,7 +43,6 @@ export function createSubscriptionRestart(
 ): SubscriptionRestart {
     const { cancel, report, schedule, stream } = options;
     let attempt = 0;
-    let endedSinceStart = false;
     let disposed = 0;
     let pending: ReturnType<typeof setTimeout> | null = null;
 
@@ -58,7 +56,6 @@ export function createSubscriptionRestart(
     const scheduleRestart = (restart: () => void) => {
         const delayMs = subscriptionRestartDelayMs(attempt);
         attempt += 1;
-        endedSinceStart = true;
         pending = schedule(() => {
             pending = null;
             restart();
@@ -109,9 +106,6 @@ export function createSubscriptionRestart(
         started() {
             dispose();
             attempt = 0;
-            const recovered = endedSinceStart;
-            endedSinceStart = false;
-            return recovered;
         },
     };
 }

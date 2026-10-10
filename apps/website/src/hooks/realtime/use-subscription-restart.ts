@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useHausSessionRefresh } from '../../lib/haus-session-context.ts';
+import { useTargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { useServerLoss, useServerStreamsOpen } from '../servers/server-loss.ts';
 import { createSubscriptionRestart, type SubscriptionRestart } from './subscription-restart.ts';
 
@@ -10,7 +11,7 @@ export interface StreamRestart {
     failed: (error: unknown, reset: () => void) => void;
     /** False once the Server was lost: AND it into the subscription's `enabled`. */
     open: boolean;
-    /** Wire to `onStarted`. Runs `recover` when this start follows a failure or completion. */
+    /** Wire to `onStarted`. Reconciles the stream's owned reads on every start. */
     started: () => void;
 }
 
@@ -25,10 +26,12 @@ export interface StreamRestart {
  *         onStarted: stream.started,
  *     });
  *
- * `recover` refetches only the reads this stream owns; it runs on a restart
- * after a failure, never on the first start or a plain socket reconnect (the
- * App-wide reconnect pass owns those). `key` names the subscription's input:
- * changing it, or unmounting, drops a pending restart.
+ * `recover` names the reads this stream owns. It runs through the coalescer's
+ * start reconciliation after every successful start: the first, a resubscribe
+ * after a socket reconnect, and a restart after a failure. Only reads fetched
+ * before the start refetch (`lib/start-reconciliation.ts`); there is no
+ * App-wide reconnect pass. `key` names the subscription's input: changing it,
+ * or unmounting, drops a pending restart.
  */
 export function useSubscriptionRestart(
     stream: string,
@@ -36,6 +39,7 @@ export function useSubscriptionRestart(
     recover?: () => void,
     key: string | undefined = serverId
 ): StreamRestart {
+    const coalescer = useTargetedReadCoalescer();
     const loseServer = useServerLoss();
     const refreshSession = useHausSessionRefresh();
     const open = useServerStreamsOpen(serverId);
@@ -68,11 +72,13 @@ export function useSubscriptionRestart(
             failed: (error, reset) => restart.failed(error, reset),
             open,
             started: () => {
-                if (restart.started()) {
-                    latest.current.recover?.();
+                restart.started();
+                const { recover } = latest.current;
+                if (recover) {
+                    coalescer.reconcileStart(recover);
                 }
             },
         }),
-        [open, restart]
+        [coalescer, open, restart]
     );
 }

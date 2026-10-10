@@ -21,13 +21,7 @@ import { refreshRefusedSession, watchHausSession } from './haus-session-refresh.
 import { hydrateClaimedQueryCache, useQueryCacheOffer } from './query-cache-handoff.ts';
 import { installQueryFocusSources } from './query-focus.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
-import {
-    type ConnectionState,
-    createQueryReconnectHandler,
-    recoverAfterReconnect,
-} from './query-reconnect-recovery.ts';
-// Type-only: the coalescer imports this module.
-import type { TargetedReadCoalescer } from './targeted-read-coalescer.ts';
+import { readStartMarks } from './start-reconciliation.ts';
 
 /** The App's authenticated HTTP and WebSocket connection to Haus Server. */
 export const hausTrpc = createTRPCReact<HausRouter>();
@@ -36,7 +30,7 @@ export type HausOutputs = inferRouterOutputs<HausRouter>;
 export type HausInputs = inferRouterInputs<HausRouter>;
 export type ServerSummary = HausOutputs['server']['list'][number];
 export type ServerDetail = HausOutputs['server']['bySlug'];
-export type HausServerConnectionState = ConnectionState;
+export type HausServerConnectionState = 'connected' | 'connecting' | 'reconnecting';
 
 // Dev builds only: the constant folds to null in prod, so the chunk is never emitted.
 const DevPerfTools = import.meta.env.DEV
@@ -90,47 +84,21 @@ function parseHttpOrigin(value: string | undefined) {
     return ['http:', 'https:'].includes(url.protocol) ? url : null;
 }
 
-/** Hands the reconnect pass the coalescer that recovers transcript lists in bulk. */
-export type TranscriptRecovery = (
-    queryClient: QueryClient,
-    client: HausConnection['client']
-) => Pick<TargetedReadCoalescer, 'recoverTranscriptLists'>;
-
-const noTranscriptRecovery: TranscriptRecovery = () => ({ recoverTranscriptLists: () => {} });
-
-export function HausServerProvider({
-    children,
-    transcriptRecovery = noTranscriptRecovery,
-}: React.PropsWithChildren<{ transcriptRecovery?: TranscriptRecovery }>) {
+export function HausServerProvider({ children }: React.PropsWithChildren) {
     const [queryClient] = React.useState(() => {
         const client = new QueryClient({ defaultOptions: queryClientDefaultOptions });
+        // Before any read, so a stream start can tell reads fetched after it apart.
+        readStartMarks(client);
         hydrateClaimedQueryCache(client);
         return client;
     });
     useQueryCacheOffer(queryClient);
     React.useEffect(() => installQueryFocusSources(), []);
+    // Presentation only: a reconnect recovers through each stream's start
+    // reconciliation (specs/realtime-events.md, "Recovery"), not here.
     const [connectionState, setConnectionState] =
         React.useState<HausServerConnectionState>('connecting');
-    const connectionRef = React.useRef<HausConnection | null>(null);
-    const recoveryRef = React.useRef(transcriptRecovery);
-    const [handleConnectionState] = React.useState(() =>
-        createQueryReconnectHandler({
-            // One App-wide pass per socket reconnect; root streams do not
-            // recover again on that start (specs/realtime-events.md, "Recovery").
-            onReconnect: () => {
-                const current = connectionRef.current;
-                if (current) {
-                    void recoverAfterReconnect(
-                        queryClient,
-                        recoveryRef.current(queryClient, current.client)
-                    );
-                }
-            },
-            onStateChange: setConnectionState,
-        })
-    );
     const [connection, setConnection] = React.useState<HausConnection | null>(null);
-    connectionRef.current = connection;
     const refreshSession = React.useMemo(
         () =>
             singleFlightSessionRefresh(() =>
@@ -149,7 +117,7 @@ export function HausServerProvider({
         let active = true;
         const nextConnection = createHausConnection((state) => {
             if (active) {
-                handleConnectionState(state);
+                setConnectionState(state);
             }
         });
         setConnection(nextConnection);
@@ -158,7 +126,7 @@ export function HausServerProvider({
             active = false;
             void nextConnection.wsClient.close();
         };
-    }, [handleConnectionState]);
+    }, []);
 
     React.useEffect(() => {
         if (!connection) {

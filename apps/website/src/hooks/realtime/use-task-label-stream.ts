@@ -10,11 +10,14 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 /**
  * `taskLabel.onUpdated`: the label catalog and the task list (task rows embed
  * their labels), plus every cached transcript and entity carrying the label.
+ * A start reconciles the catalog, the task list, and the transcript lists.
  */
 export function useTaskLabelStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
+    // A missed label event may have renamed a label any loaded message carries.
     const stream = useSubscriptionRestart('taskLabel.onUpdated', serverId, () => {
         if (serverId) {
+            coalescer.recoverTranscriptLists({ serverId });
             invalidateLabelReads(coalescer, serverId);
         }
     });

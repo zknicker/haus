@@ -59,7 +59,8 @@ export const queryPolicy = {
 export const queryClientDefaultOptions = {
     queries: {
         // Browser offline → online is not a recovery signal for Server reads:
-        // the socket reconnect that follows owns that (query-reconnect-recovery.ts).
+        // each stream's start reconciliation after the socket reconnects owns
+        // that (start-reconciliation.ts).
         // Refetching here too ran every active read before the socket was back.
         refetchOnReconnect: false,
         refetchOnWindowFocus: refetchesOnFocus,
