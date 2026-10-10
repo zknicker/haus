@@ -6,10 +6,14 @@ function harness({ signedIn = true }: { signedIn?: boolean } = {}) {
     const timers = new Map<number, { delayMs: number; run: () => void }>();
     const reports: string[] = [];
     let lost = 0;
+    let missing = 0;
     let refreshes = 0;
     let nextHandle = 1;
     const restart = createSubscriptionRestart({
         cancel: (handle) => timers.delete(handle as unknown as number),
+        onChatMissing: () => {
+            missing += 1;
+        },
         onMembershipLost: () => {
             lost += 1;
         },
@@ -38,6 +42,7 @@ function harness({ signedIn = true }: { signedIn?: boolean } = {}) {
         delays,
         fire,
         lost: () => lost,
+        missing: () => missing,
         refreshes: () => refreshes,
         reports,
         restart,
@@ -128,6 +133,16 @@ describe('subscription restart', () => {
         expect(timers.size).toBe(0);
     });
 
+    test('chat_missing runs the Chat loss once and never restarts', () => {
+        const { lost, missing, restart, timers } = harness();
+
+        restart.failed(trpcError('NOT_FOUND', 'chat_missing'), () => undefined);
+
+        expect(missing()).toBe(1);
+        expect(lost()).toBe(0);
+        expect(timers.size).toBe(0);
+    });
+
     test('UNAUTHORIZED refreshes the session, then restarts with backoff', async () => {
         const { delays, lost, refreshes, restart } = harness();
 
@@ -169,6 +184,7 @@ describe('stream error classes', () => {
             'membership_lost'
         );
         expect(classifyStreamError(trpcError('FORBIDDEN', 'role_required'))).toBe('role_required');
+        expect(classifyStreamError(trpcError('NOT_FOUND', 'chat_missing'))).toBe('chat_missing');
         expect(classifyStreamError(trpcError('UNAUTHORIZED'))).toBe('unauthorized');
         expect(classifyStreamError(trpcError('FORBIDDEN'))).toBe('transient');
         expect(classifyStreamError(trpcError('NOT_FOUND'))).toBe('transient');

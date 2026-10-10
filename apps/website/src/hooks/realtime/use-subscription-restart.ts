@@ -33,25 +33,38 @@ export interface StreamRestart {
  * App-wide reconnect pass. `key` names the subscription's input: changing it,
  * or unmounting, drops a pending restart. Call it before the subscription in
  * the same component: an unsubscribe the App made (unmount, disable, new
- * input) is then never mistaken for a completion and restarted.
+ * input) is then never mistaken for a completion and restarted. `chatId`
+ * names a per-Chat stream's Chat: a `chat_missing` refusal purges it
+ * (the same Chat-loss path as `chat.onLifecycle` `deleted`), which stops
+ * every stream `useChatLost` gates on it.
  */
 export function useSubscriptionRestart(
     stream: string,
     serverId: string | undefined,
     recover?: () => void,
-    key: string | undefined = serverId
+    key: string | undefined = serverId,
+    chatId?: string
 ): StreamRestart {
     const coalescer = useTargetedReadCoalescer();
     const loseServer = useServerLoss();
     const refreshSession = useHausSessionRefresh();
     const open = useServerStreamsOpen(serverId);
-    const latest = React.useRef({ loseServer, recover, refreshSession, serverId });
+    const latest = React.useRef({ chatId, loseServer, recover, refreshSession, serverId });
     React.useLayoutEffect(() => {
-        latest.current = { loseServer, recover, refreshSession, serverId };
+        latest.current = { chatId, loseServer, recover, refreshSession, serverId };
     });
     const [restart] = React.useState<SubscriptionRestart>(() =>
         createSubscriptionRestart({
             cancel: (handle) => clearTimeout(handle),
+            onChatMissing: () => {
+                const missing = latest.current;
+                if (missing.serverId !== undefined && missing.chatId !== undefined) {
+                    void coalescer.purgeChat({
+                        chatId: missing.chatId,
+                        serverId: missing.serverId,
+                    });
+                }
+            },
             onMembershipLost: () => {
                 const lost = latest.current.serverId;
                 if (lost !== undefined) {

@@ -71,4 +71,36 @@ describe('per-Chat stream lifecycle', () => {
         expect(harness.openPaths()).toEqual([]);
         await mounted.unmount();
     });
+
+    test('a restored view onto an already-deleted Chat stops on chat_missing', async () => {
+        // No lifecycle event reaches a view mounted after the deletion: the
+        // Server's coded refusal on one stream is what tells the App.
+        const { harness, mounted } = await mountChat('cht_gone');
+        expect(harness.openPaths()).toEqual(chatStreams);
+
+        await harness.fail('chat.onThought', 'NOT_FOUND', 'chat_missing');
+        expect(harness.ops).toContainEqual({
+            op: 'purgeChat',
+            scope: { chatId: 'cht_gone', serverId },
+        });
+        expect(runRestarts()).toBe(0);
+
+        // The harness records the purge; run the real one to prove it stops the rest.
+        const coalescer = createTargetedReadCoalescer({
+            client: harness.client,
+            queryClient: harness.queryClient,
+        });
+        await harness.act(() => coalescer.purgeChat({ chatId: 'cht_gone', serverId }));
+        expect(harness.openPaths()).toEqual([]);
+        expect(runRestarts()).toBe(0);
+        await mounted.unmount();
+    });
+
+    test('an uncoded NOT_FOUND still restarts the stream', async () => {
+        const { harness, mounted } = await mountChat('cht_1');
+        harness.fail('chat.onThought', 'NOT_FOUND');
+        expect(runRestarts()).toBe(1);
+        expect(harness.openPaths()).toEqual(chatStreams);
+        await mounted.unmount();
+    });
 });

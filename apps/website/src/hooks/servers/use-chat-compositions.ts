@@ -23,7 +23,13 @@ export function useChatCompositions(serverId: string | undefined, ownChatId: str
         directory.data?.members.map((member) => member.userId)
     );
 
-    const restart = useSubscriptionRestart('chat.onComposition', serverId, undefined, scope);
+    const restart = useSubscriptionRestart(
+        'chat.onComposition',
+        serverId,
+        undefined,
+        scope,
+        chatId
+    );
     const { reset } = hausTrpc.chat.onComposition.useSubscription(
         { chatId: chatId ?? '', serverId: serverId ?? '' },
         {

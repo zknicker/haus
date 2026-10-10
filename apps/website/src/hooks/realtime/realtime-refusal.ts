@@ -5,6 +5,7 @@ import { type RealtimeRefusal, realtimeRefusalDataKey, realtimeRefusalSchema } f
  * (specs/realtime-events.md, "Refusal classes"):
  *
  * - `membership_lost`: final for every stream of that Server; run the Server-loss path.
+ * - `chat_missing`: the stream's Chat no longer exists; run the Chat-loss purge and stop.
  * - `role_required`: stop this one stream; clear nothing.
  * - `unauthorized`: the Clerk session token expired or was rejected; refresh it, then restart.
  * - `transient`: anything else, including `FORBIDDEN` or `NOT_FOUND` with no `hausRefusal`;

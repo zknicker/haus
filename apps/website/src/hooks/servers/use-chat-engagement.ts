@@ -32,7 +32,8 @@ export function useChatEngagement(
         'chat.onEngagement',
         serverId,
         undefined,
-        `${serverId}:${chatId ?? ''}`
+        `${serverId}:${chatId ?? ''}`,
+        chatId
     );
     const { reset } = hausTrpc.chat.onEngagement.useSubscription(input, {
         enabled: enabled && restart.open,

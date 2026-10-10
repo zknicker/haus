@@ -74,6 +74,25 @@ test('role-gated streams refuse a member with role_required at start', async () 
     }
 });
 
+test('a per-Chat stream on a missing Chat is refused with chat_missing', async () => {
+    const chatId = 'cht_refusals_missing';
+    for (const stream of [
+        collectStream(owner.trpc.chat.onThought, { chatId, serverId }),
+        collectStream(owner.trpc.chat.onEngagement, { chatId, serverId }),
+    ]) {
+        await expect(stream.ended()).resolves.toMatchObject({
+            data: { code: 'NOT_FOUND', hausRefusal: 'chat_missing' },
+        });
+    }
+
+    const read = await owner.trpc.chat.engagements.query({ chatId, serverId }).then(
+        () => null,
+        (error: { data?: Record<string, unknown> }) => error
+    );
+    expect(read?.data?.code).toBe('NOT_FOUND');
+    expect(read?.data?.hausRefusal).toBeUndefined();
+});
+
 test('a non-stream access failure carries no refusal class', async () => {
     const failure = await stranger.trpc.chat.list.query({ serverId }).then(
         () => null,

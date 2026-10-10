@@ -18,10 +18,12 @@ export type ServerStreamInput = z.infer<typeof serverStreamInputSchema>;
 /**
  * Why the Server refused or ended a realtime stream, carried in the tRPC error
  * `data` under `realtimeRefusalDataKey`. Only `membership_lost` lets the App
- * clear a Server's caches; `role_required` stops that one stream. Any other
- * error (including `UNAUTHORIZED`, which means re-authenticate) is transient.
+ * clear a Server's caches; `chat_missing` (the named Chat does not exist)
+ * runs the Chat-loss purge for that Chat; `role_required` stops that one
+ * stream. Any other error (including `UNAUTHORIZED`, which means
+ * re-authenticate) is transient.
  */
-export const realtimeRefusalSchema = z.enum(['membership_lost', 'role_required']);
+export const realtimeRefusalSchema = z.enum(['chat_missing', 'membership_lost', 'role_required']);
 
 export type RealtimeRefusal = z.infer<typeof realtimeRefusalSchema>;
 

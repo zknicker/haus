@@ -15,10 +15,11 @@ import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.t
 import { InvalidInlineReplyError } from '../../chats/reply-context.ts';
 import { ChatMessageNotFoundError } from '../../chats/select-message-page.ts';
 import { ChatNonceConflictError, DirectThreadSendError } from '../../chats/send-message.ts';
+import { chatMissingError } from '../../realtime/refusal.ts';
 import { InvalidThreadAnchorError, NestedThreadError } from '../../threads/ensure-thread.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-export const chatProcedure = memberProcedure.use(async ({ next }) => {
+export const chatProcedure = memberProcedure.use(async ({ next, type }) => {
     const result = await next();
 
     if (result.ok) {
@@ -32,6 +33,11 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
     }
 
     if (cause instanceof ChatNotFoundError) {
+        // A stream is coded, so one for a Chat deleted while the App was away
+        // (a restored desktop tab) runs the Chat-loss purge instead of retrying.
+        if (type === 'subscription') {
+            throw chatMissingError(cause.message, cause);
+        }
         throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
     }
 

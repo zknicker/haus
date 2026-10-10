@@ -9,9 +9,9 @@ import { classifyStreamError } from './realtime-refusal.ts';
  * Any end that is not a refusal, a normal completion included, restarts this
  * one stream after a capped exponential backoff; a start resets the backoff.
  * Refusals follow their class: membership loss runs the Server-loss path, a
- * role refusal stops this stream, and an expired session refreshes its token
- * before restarting. Owned-read recovery runs on every start, not here
- * (`useSubscriptionRestart`).
+ * missing Chat runs the Chat-loss purge and stops, a role refusal stops this
+ * stream, and an expired session refreshes its token before restarting.
+ * Owned-read recovery runs on every start, not here (`useSubscriptionRestart`).
  */
 export interface SubscriptionRestart {
     /** The stream completed normally: restart it like a failure. */
@@ -26,6 +26,8 @@ export interface SubscriptionRestart {
 
 export interface SubscriptionRestartOptions {
     cancel: (handle: ReturnType<typeof setTimeout>) => void;
+    /** `chat_missing`: the stream's Chat no longer exists; final for this Chat. */
+    onChatMissing: () => void;
     /** `membership_lost`: final for every stream of the Server. */
     onMembershipLost: () => void;
     /** `UNAUTHORIZED`: refresh the session token; false when Clerk confirms sign-out. */
@@ -76,6 +78,11 @@ export function createSubscriptionRestart(
             if (end === 'membership_lost') {
                 report(`[haus] ${stream} lost Server membership; not restarting`, error);
                 options.onMembershipLost();
+                return;
+            }
+            if (end === 'chat_missing') {
+                report(`[haus] ${stream} names a Chat the Server no longer has; stopping`, error);
+                options.onChatMissing();
                 return;
             }
             if (end === 'role_required') {

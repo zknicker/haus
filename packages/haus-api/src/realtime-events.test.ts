@@ -7,9 +7,14 @@ import {
 } from './realtime-events.ts';
 import { taskChangedEventSchema } from './task.ts';
 
-test('only two refusal classes exist, and membership loss is its own', () => {
-    expect(realtimeRefusalSchema.options).toEqual(['membership_lost', 'role_required']);
+test('only three refusal classes exist, each coded rather than a bare tRPC code', () => {
+    expect(realtimeRefusalSchema.options).toEqual([
+        'chat_missing',
+        'membership_lost',
+        'role_required',
+    ]);
     expect(realtimeRefusalSchema.safeParse('FORBIDDEN').success).toBe(false);
+    expect(realtimeRefusalSchema.safeParse('NOT_FOUND').success).toBe(false);
 });
 
 test('a member notice always names the member', () => {
