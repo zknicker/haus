@@ -1400,6 +1400,19 @@ every link reads as its link text as written (`#product`, `@Blippy`, `$agent-bro
 bullet, emphasis, and code markers drop away. Human references remain visual and do not create
 attention or notification behavior.
 
+The composer shows a picked reference as that same chip, not as its Markdown. Its field is an editable
+`UITextView` (`ComposerTextView`) over the transcript's TextKit 1 stack and `RichReferenceLayoutManager`,
+while the draft binding stays Markdown: `ComposerDraftText` turns the draft into shown text — each
+`agent://`, `user://`, `chat://`, or `skill://` link the picker writes becomes a chip run carrying its
+Markdown, and every other character stays exactly as typed — and reads the shown text back into the
+same Markdown, so a send is byte-identical to what the picker inserted. A chip edits as one piece: a
+delete or replacement that reaches into it takes the whole run, and a caret never rests inside it.
+Typing outruns SwiftUI's updates, so a binding update can still carry the draft from a keystroke ago;
+`ComposerDraftEchoes` ignores those late echoes and rebuilds the field only for a draft written from
+outside it (a picked mention, the clear on send, a restored draft) — rebuilding from an echo dropped
+typed characters. Focus stays the caller's `.focused(_:)`, which drives the hosted view's first
+responder status the way it drove the `TextField` it replaced; a second, hand-rolled bridge fought it.
+
 The phone chips every kind the App chips, not just the three the picker offers. `RichReferenceWireForm`
 reads a link target in the App's own precedence — `agent://`, `user://`, `chat://`, `plugin://`,
 `app://computer-use/`, `skill://`, then a leading-`/` path split into a file or a directory by its final

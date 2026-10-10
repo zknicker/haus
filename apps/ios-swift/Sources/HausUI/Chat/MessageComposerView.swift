@@ -218,10 +218,8 @@ public struct MessageComposerView: View {
                     .allowsHitTesting(false)
             }
 
-            TextField("", text: $text, axis: .vertical)
-                .foregroundStyle(.primary)
+            ComposerMessageInput(text: $text, options: mentionOptions, label: placeholder)
                 .focused($isTextFocused)
-                .lineLimit(1...6)
         }
         .clipped()
     }
