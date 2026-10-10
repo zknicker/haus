@@ -2,8 +2,9 @@ import Foundation
 import HausModels
 
 extension TRPCError {
-    /// The coded refusal the Server attached (`data.hausRefusal`). Only these
-    /// two checks carry one; an uncoded `FORBIDDEN` is not a refusal.
+    /// The coded refusal the Server attached (`data.hausRefusal`). Only
+    /// membership, role, and Chat-existence checks carry one; an uncoded
+    /// `FORBIDDEN` or `NOT_FOUND` is not a refusal.
     public var realtimeRefusal: RealtimeRefusal? {
         guard case let .object(data) = data else { return nil }
         return data[RealtimeRefusal.dataKey]?.stringValue.flatMap(RealtimeRefusal.init(rawValue:))

@@ -640,7 +640,9 @@ it adopts the same model in its own shape:
   the chat list.
 - Refusals follow the App's classes: `membership_lost` stops that Server's streams, cancels its
   loads (a cancelled load writes nothing), and clears it; a deleted Chat is purged the same way; `role_required` stops one stream; `UNAUTHORIZED` refreshes the
-  token and retries.
+  token and retries. A `chat_missing` refusal on a per-Chat stream (`chat.onEngagement`,
+  `chat.onThought`) runs the same Chat purge and stops both of that Chat's streams
+  (`HausStoreEngagement.swift`).
 - Delete `HausStoreChatCatchUp.swift` and the `chat.eventHead` step of
   `HausStoreServerReload.swift`.
 - `HausModels`: replace `EventModels.swift`'s union with one `Decodable` per payload (ids only);

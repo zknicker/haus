@@ -20,6 +20,25 @@ final class RealtimeStreamEndTests: XCTestCase {
         XCTAssertEqual(RealtimeStreamEnd(error: refusal("role_required")), .refused(.roleRequired))
     }
 
+    /// A per-Chat stream for a Chat deleted while the iPhone was away is
+    /// refused `NOT_FOUND` + `chat_missing`: it purges the Chat and stops,
+    /// where an uncoded `NOT_FOUND` still restarts.
+    func testChatMissingStopsAPerChatStream() {
+        let missing = RealtimeStreamEnd(error: TRPCError(
+            message: "Chat not found",
+            data: .object(["code": .string("NOT_FOUND"), "hausRefusal": .string("chat_missing")])
+        ))
+        XCTAssertEqual(missing, .refused(.chatMissing))
+        XCTAssertEqual(missing.chatStreamDecision, .chatMissing)
+
+        let uncoded = RealtimeStreamEnd(error: TRPCError(
+            message: "Not found", data: .object(["code": .string("NOT_FOUND")])
+        ))
+        XCTAssertEqual(uncoded.chatStreamDecision, .restart)
+        XCTAssertEqual(RealtimeStreamEnd(error: nil).chatStreamDecision, .restart)
+        XCTAssertEqual(RealtimeStreamEnd(error: refusal("membership_lost")).chatStreamDecision, .restart)
+    }
+
     func testForbiddenOrNotFoundWithoutARefusalOnlyRestarts() {
         XCTAssertEqual(RealtimeStreamEnd(error: TRPCError(
             message: "Forbidden", data: .object(["code": .string("FORBIDDEN")])

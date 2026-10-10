@@ -85,8 +85,26 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
 public enum RealtimeRefusal: String, Sendable, Equatable {
     case membershipLost = "membership_lost"
     case roleRequired = "role_required"
+    /// `NOT_FOUND`: a per-Chat stream named a Chat the Server no longer has.
+    case chatMissing = "chat_missing"
 
     public static let dataKey = "hausRefusal"
+}
+
+/// What a per-Chat stream (`chat.onEngagement`, `chat.onThought`) does after
+/// it ends.
+public enum ChatStreamDecision: Sendable, Equatable {
+    /// Restart this stream with backoff while its Chat stays open.
+    case restart
+    /// `chat_missing`: the Chat is gone. Purge it, as `chat.onLifecycle`
+    /// `deleted` does, and stop every stream of that Chat.
+    case chatMissing
+}
+
+extension RealtimeStreamEnd {
+    public var chatStreamDecision: ChatStreamDecision {
+        self == .refused(.chatMissing) ? .chatMissing : .restart
+    }
 }
 
 /// How one stream ended.
@@ -144,7 +162,8 @@ public struct RealtimeStreamRestarts: Sendable, Equatable {
             return .membershipLost
         case .refused(.roleRequired):
             return .stop
-        case .completed, .failed, .unauthorized:
+        // Only per-Chat streams raise `chat_missing`; on a Server-wide one it is transient.
+        case .completed, .failed, .unauthorized, .refused(.chatMissing):
             if let since = connectedAt.removeValue(forKey: stream),
                now.timeIntervalSince(since) >= Self.stableInterval {
                 attempts[stream] = 0

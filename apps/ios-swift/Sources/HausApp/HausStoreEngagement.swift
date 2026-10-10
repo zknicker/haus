@@ -42,19 +42,30 @@ extension HausStore {
     /// The transport reconnects transport failures itself; a stream it will
     /// not retry, or one the Server ended, restarts here with the same capped
     /// backoff as the Server-wide streams, for as long as the row's Chat is open.
+    /// A `chat_missing` refusal (a Chat deleted while the iPhone was away)
+    /// purges the Chat and stops; a purged Chat's sibling stream stops too.
     private func restartingChatStream(
         _ path: String,
         input: ChatEngagementInput,
         run: @MainActor (HausStore) async throws -> Void
     ) async {
         var attempt = 0
-        while !Task.isCancelled, activeServer?.id == input.serverId {
+        while !Task.isCancelled, activeServer?.id == input.serverId, !deletedChatIDs.contains(input.chatId) {
             let startedAt = Date()
+            var failure: Error?
             do {
                 try await run(self)
             } catch {
                 guard !Task.isCancelled else { return }
+                failure = error
                 Self.logger.warning("\(path, privacy: .public) stream stopped: \(error.localizedDescription, privacy: .public)")
+            }
+            if RealtimeStreamEnd(error: failure).chatStreamDecision == .chatMissing {
+                // Both streams are refused; the first to end purges.
+                if activeServer?.id == input.serverId, !deletedChatIDs.contains(input.chatId) {
+                    purgeChat(input.chatId)
+                }
+                return
             }
             if Date().timeIntervalSince(startedAt) >= RealtimeStreamRestarts.stableInterval { attempt = 0 }
             try? await Task.sleep(for: RetryBackoff.delay(attempt: attempt))
