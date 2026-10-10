@@ -12,6 +12,7 @@ The App uses the Haus Server `mcp` tRPC router:
 - `mcp.add`
 - `mcp.addPresetAccount`
 - `mcp.list`
+- `mcp.presetIcons`
 - `mcp.startOAuth`
 - `mcp.refresh`
 - `mcp.replaceHeaders`
@@ -152,7 +153,9 @@ connection never carries the same bytes twice on a query that returns every row 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
 MerchBase Fulfillment owns its icon upstream: Added connections use standard MCP metadata
 and favicon discovery. `mcp.presetIcons` requires Server membership and resolves unbundled
-preset favicons through the same Server resolver for Recommended rows before sign-in.
+preset icons through the same Server resolver for Recommended rows before sign-in.
+These anonymous rows prefer the homepage’s advertised icon links over `/favicon.ico`,
+so publisher-owned versioned assets replace cached legacy favicons.
 The App caches that catalog for five minutes and makes no upstream image requests.
 Missing artwork falls back to a monogram.
 
