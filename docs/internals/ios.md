@@ -992,8 +992,8 @@ drives the sidebar's Inbox dot. The app icon badge is not that count: it is the 
 reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
 client already holds, the way the App's invalidation only refetches a live query:
 `message.created` and `chat.read` reload the Chat list, `task.created` and `task.updated` reload the
-Server Task lens beside the affected Chat page, and `cloud-agent-work.updated` reloads the active
-work list beside its own.
+Server Task lens beside the affected Chat page, `cloud-agent-work.updated` reloads the active
+work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
 
@@ -1093,7 +1093,12 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`,
 `chat.onLifecycle`, `cloudAgentWork.onUpdated`, `task.onChanged`, `taskLabel.onUpdated`,
-`agent.onLifecycle`, `agent.onActivity`, and `server.onUpdated`, the membership sentinel. Each
+`agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
+membership sentinel. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
+Server restart the streams resubscribe before the Computer reattaches, so their start reads an
+offline Agent list, and only the attach's `computer.updated` says presence came back. Its events
+run the same coalesced owned-projection pass a start does (Agent list and activity, Computers, and
+the Inbox usage once loaded). Each
 stream ends and restarts alone with capped backoff (1 s doubling to 30 s, reset after 30 s
 connected); a sibling never notices. The connection indicator follows only the message and Agent
 lifecycle streams. Chat events coalesce into targeted reads (`ChatRealtimeEffects`): a tail read per
