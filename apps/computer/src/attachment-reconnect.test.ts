@@ -64,7 +64,12 @@ test('the attachment daemon itself reconnects with backoff across Server restart
         })
     );
     const child = Bun.spawn(['bun', entrypoint, '__attachment-daemon', serverId], {
-        env: { ...process.env, HAUS_COMPUTER_DATA_ROOT: dataRoot },
+        env: {
+            ...process.env,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            NODE_ENV: 'test',
+        },
         stderr: 'pipe',
         stdout: 'pipe',
     });

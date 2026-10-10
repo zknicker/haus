@@ -34,9 +34,9 @@ test('dev stack shutdown signals all managed processes before waiting in order',
         ports: { hausPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
-    const desktop = createManagedChildProcessStub(12_341, { autoExit: false });
-    const website = createManagedChildProcessStub(12_342);
-    const computer = createManagedChildProcessStub(12_343);
+    const desktop = createManagedChildProcessStub(2_147_483_641, { autoExit: false });
+    const website = createManagedChildProcessStub(2_147_483_642);
+    const computer = createManagedChildProcessStub(2_147_483_643);
 
     controller.processes.set('desktop', desktop);
     controller.processes.set('website', website);
@@ -60,8 +60,8 @@ test('dev stack shutdown forwards the operator signal to managed processes', asy
         ports: { hausPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
-    const website = createManagedChildProcessStub(12_342);
-    const computer = createManagedChildProcessStub(12_343);
+    const website = createManagedChildProcessStub(2_147_483_642);
+    const computer = createManagedChildProcessStub(2_147_483_643);
 
     controller.processes.set('website', website);
     controller.processes.set('computer', computer);
@@ -127,12 +127,12 @@ test('signalChildProcessGroup can signal surviving groups after the shell exits'
     });
 
     assert.equal(signaled, true);
-    assert.deepEqual(signals, [{ pid: -12_345, signal: 'SIGKILL' }]);
+    assert.deepEqual(signals, [{ pid: -2_147_483_645, signal: 'SIGKILL' }]);
 });
 
 test('managed processes launch directly without an intermediate shell', () => {
     const spawnCalls = [];
-    const child = createManagedChildProcessStub(12_346, { autoExit: false });
+    const child = createManagedChildProcessStub(2_147_483_646, { autoExit: false });
     const controller = new DevStackController({
         mode: 'web',
         ports: { hausPort: 31_003, websitePort: 31_000 },
@@ -170,7 +170,7 @@ function createChildProcessStub() {
         throw new Error('child.kill should not be called');
     };
     child.off = child.removeListener.bind(child);
-    child.pid = 12_345;
+    child.pid = 2_147_483_645;
     child.signalCode = null;
     return child;
 }

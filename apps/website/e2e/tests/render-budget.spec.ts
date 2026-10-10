@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { createChannelAgent } from '../support/channel-agent.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop-browser-stub.ts';
 import { installRenderBudget } from '../support/render-budget.ts';
+import { readRenders } from '../support/render-counter.ts';
 import { createClient, createTestServer, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -35,6 +36,9 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
         await openChannel(page, 'ops');
         await expect(composer(page, 'ops')).toBeVisible();
     });
+    const switchRenders = await readRenders(page);
+    expect(switchRenders.byName.ServerUpdateStream ?? 0).toBe(0);
+    expect(switchRenders.byName.MemberUpdateStream ?? 0).toBe(0);
     await budget.measure('open-agent-profile', async () => {
         await sidebarRow(page, 'Orbit').click({ button: 'right' });
         await page.getByRole('menuitem', { exact: true, name: 'View agent profile' }).click();

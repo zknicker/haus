@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import type { Locator } from '@playwright/test';
 import { verifyAgentThreadRecovery } from '../support/agent-thread-recovery.ts';
 import {
     clerkSessionFile,
@@ -15,6 +14,7 @@ import {
     runPsql,
 } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
+import { openMessageThread } from '../support/thread-actions.ts';
 
 test.beforeAll(async () => {
     const { databaseUrl, peerToken, token } = JSON.parse(
@@ -258,6 +258,9 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await threadMenu.click();
     await expect(page.getByRole('menuitem', { name: 'Follow thread' })).toBeVisible();
     await page.keyboard.press('Escape');
+    await expect(
+        page.getByRole('menuitem', { includeHidden: true, name: 'Follow thread' })
+    ).toHaveCount(0);
 
     const { peerToken, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
         peerToken: string;
@@ -527,9 +530,3 @@ test('Haus App never requests a retired local product endpoint', async ({ page }
     await expect(page.getByText('First durable human message')).toBeVisible();
     expect(localRequests).toEqual([]);
 });
-
-async function openMessageThread(message: Locator) {
-    const messageRow = message.locator('xpath=ancestor::*[@data-slot="chat-message-assistant"][1]');
-    await messageRow.hover();
-    await messageRow.locator('button[aria-label="Reply in thread"]').click();
-}
