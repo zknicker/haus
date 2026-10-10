@@ -1,7 +1,6 @@
 import type { ChatMessage, ThreadSummary } from '@haus/api';
 import { useChat } from '../servers/use-chat.ts';
-import { useChatMessages } from '../servers/use-chat-messages.ts';
-import { useThreadAnchorMessage } from './use-thread-anchor-message.ts';
+import { useChatMessage } from '../servers/use-chat-message.ts';
 
 export interface ThreadAnchor {
     anchor: ChatMessage | undefined;
@@ -13,9 +12,9 @@ export interface ThreadAnchor {
 
 /**
  * A Thread addressed by ids alone (a Thread tab, a deep link): its parent
- * chat, anchor message, and summary. The anchor is read live from the parent
- * chat's loaded transcript, so it follows realtime changes; an anchor older
- * than the loaded pages is fetched around its id instead.
+ * chat, anchor message, and summary. The anchor is its `chat.message`
+ * entity, seeded by any loaded parent transcript and fetched by id otherwise,
+ * so it follows realtime changes wherever the anchor sits in history.
  */
 export function useThreadAnchor(
     serverId: string,
@@ -23,18 +22,12 @@ export function useThreadAnchor(
     anchorMessageId: string
 ): ThreadAnchor {
     const chat = useChat(serverId, chatId);
-    const parent = useChatMessages(serverId, chatId);
-    const loaded = parent.data?.messages.find((message) => message.id === anchorMessageId);
-    const around = useThreadAnchorMessage(
-        serverId,
-        chatId,
-        parent.data !== undefined && !loaded ? anchorMessageId : null
-    );
-    const summary =
-        [...(parent.data?.threads ?? []), ...(around.data?.threads ?? [])].find(
-            (thread) => thread.anchorMessageId === anchorMessageId
-        ) ?? null;
-    const missing =
-        chat.error?.data?.code === 'NOT_FOUND' || around.error?.data?.code === 'NOT_FOUND';
-    return { anchor: loaded ?? around.anchor, chat: chat.data, missing, summary };
+    const entity = useChatMessage(serverId, chatId, anchorMessageId);
+    const missing = chat.error?.data?.code === 'NOT_FOUND' || entity === null;
+    return {
+        anchor: entity?.message,
+        chat: chat.data,
+        missing,
+        summary: entity?.thread ?? null,
+    };
 }

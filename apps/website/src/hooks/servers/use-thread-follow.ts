@@ -1,17 +1,19 @@
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useTargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 
-export function useThreadFollow(parentChatId: string) {
+/**
+ * Follows or unfollows a Thread. `thread.onFollowUpdated` owns the refresh;
+ * this ack fallback refreshes the same reads: the chat list and the anchor's
+ * entity, whose summary carries the viewer's `followed`.
+ */
+export function useThreadFollow(anchor: { chatId: string; messageId: string }) {
     const utils = hausTrpc.useUtils();
+    const coalescer = useTargetedReadCoalescer();
 
     return hausTrpc.thread.setFollow.useMutation({
-        onSuccess: async (_, input) => {
-            await Promise.all([
-                utils.chat.list.invalidate({ serverId: input.serverId }),
-                utils.chat.messages.invalidate({
-                    chatId: parentChatId,
-                    serverId: input.serverId,
-                }),
-            ]);
+        onSuccess: (_, input) => {
+            void utils.chat.list.invalidate({ serverId: input.serverId });
+            coalescer.noteMessageAnnotated({ ...anchor, serverId: input.serverId });
         },
     });
 }

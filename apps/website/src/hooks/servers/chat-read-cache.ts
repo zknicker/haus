@@ -1,10 +1,11 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
-import { type HausOutputs, hausTrpc } from '../../lib/haus-server.tsx';
-import type { ChatEventUtils } from './chat-events/chat-event-invalidation.ts';
+import { hausTrpc } from '../../lib/haus-server.tsx';
+import { type ChatMessageEntry, chatMessageQueryKey } from './chat-message-entities.ts';
+import type { TranscriptPage } from './chat-message-layout.ts';
 import { chatMessagesQueryKey } from './use-chat-messages.ts';
 
-type ListUtils = Pick<ChatEventUtils, 'chat'>;
+type ListUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;
 
 /**
  * How long a local read waits for its own `chat.read` event before refetching
@@ -107,13 +108,16 @@ export function chatReadChangesList({
     return rowIds.some((rowId) => (chats.find((chat) => chat.id === rowId)?.unreadCount ?? 1) > 0);
 }
 
-/** Whether the cached transcript proves no Thread reply in this Chat is unread. */
+/**
+ * Whether the cached transcript proves no Thread reply in this Chat is unread:
+ * every listed message's entity is settled and its summary shows none.
+ */
 function threadRepliesAllRead(queryClient: QueryClient, serverId: string, chatId: string) {
-    const state = queryClient.getQueryState<InfiniteData<HausOutputs['chat']['messages']>>(
+    const state = queryClient.getQueryState<InfiniteData<TranscriptPage>>(
         chatMessagesQueryKey(serverId, chatId)
     );
     // A pending refetch or an event's invalidation means the summaries may be behind.
-    if (!state?.data || state.isInvalidated || state.fetchStatus !== 'idle') {
+    if (!isSettled(state)) {
         return false;
     }
     const { pages } = state.data;
@@ -121,7 +125,26 @@ function threadRepliesAllRead(queryClient: QueryClient, serverId: string, chatId
     if (pages.at(-1)?.nextBeforeSequence !== null) {
         return false;
     }
-    return pages.every((page) => page.threads.every((thread) => thread.unreadCount === 0));
+    return pages.every((page) =>
+        page.entries.every((entry) => {
+            const entity = queryClient.getQueryState<ChatMessageEntry>(
+                chatMessageQueryKey(serverId, chatId, entry.id)
+            );
+            return isSettled(entity) && (entity.data?.thread?.unreadCount ?? 0) === 0;
+        })
+    );
+}
+
+function isSettled<Data>(
+    state:
+        | {
+              data: Data | undefined;
+              fetchStatus: string;
+              isInvalidated: boolean;
+          }
+        | undefined
+): state is { data: Data; fetchStatus: string; isInvalidated: boolean } {
+    return state?.data !== undefined && !state.isInvalidated && state.fetchStatus === 'idle';
 }
 
 function chatListQueryKey(serverId: string) {

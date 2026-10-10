@@ -225,15 +225,11 @@ function canAppendUserMessage(entry: TranscriptTurnEntry, item: TranscriptItem) 
 }
 
 function hasAttachedWork(item: TranscriptItem) {
-    if (
-        item.kind === 'activeReply' ||
-        item.kind === 'activeStatus' ||
-        item.row.kind !== 'message'
-    ) {
-        return false;
-    }
-
-    return Boolean(item.row.message.task || item.row.thread || item.row.message.reply);
+    const row = item.kind === 'row' && item.row.kind === 'message' ? item.row : null;
+    // A skeleton row (`entity`) carries no task or Thread; its flag says whether the entity does.
+    return Boolean(
+        row?.entity?.attachedWork || row?.message.task || row?.thread || row?.message.reply
+    );
 }
 
 export function getItemRunId(item: TranscriptItem) {

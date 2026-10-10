@@ -56,10 +56,9 @@ function TranscriptView({ chatId }: { chatId: string }) {
     return (
         <ChatTranscript
             chatId={chatId}
-            messages={messages.data?.messages}
+            messages={messages.data?.entries}
             onOpenArtifact={() => undefined}
             serverId={serverId}
-            threads={messages.data?.threads}
             viewerUserId={viewerUserId}
         />
     );

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import {
     MessageScroller,
@@ -8,6 +7,7 @@ import {
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
 import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
+import { renderWithTrpc } from '../../test-support/trpc-test-provider.tsx';
 import { setShowTasksInChat } from '../tasks/show-tasks-in-chat.ts';
 import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import type { TranscriptRow } from './chat-transcript-model.ts';
@@ -165,7 +165,7 @@ function renderTranscript(
         ...overrides,
     };
 
-    return renderToStaticMarkup(
+    return renderWithTrpc(
         <MemoryRouter>
             <DevModeProvider>
                 <MessageScrollerProvider>

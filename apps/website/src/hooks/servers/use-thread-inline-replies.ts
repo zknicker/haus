@@ -39,7 +39,7 @@ export function useThreadInlineReplies(
         ]
     );
     const messages = anchorMessageId
-        ? threadInlineReplyMessages(query.data?.messages, anchorMessageId)
+        ? threadInlineReplyMessages(query.data?.entries, anchorMessageId)
         : undefined;
 
     return { history, messages };

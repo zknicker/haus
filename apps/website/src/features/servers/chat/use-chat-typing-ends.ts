@@ -1,5 +1,5 @@
-import type { ChatMessage } from '@haus/api';
 import * as React from 'react';
+import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import {
     type ChatEngagementEnd,
@@ -9,7 +9,7 @@ import {
 } from './chat-typing-hold.ts';
 import { type ChatTypingFace, chatTypingSentFace } from './chat-typing-launch.ts';
 
-const noMessages: readonly ChatMessage[] = [];
+const noMessages: readonly ChatMessageLayout[] = [];
 
 /**
  * Presents each ended engagement: its face, and for a `--done` reply, the
@@ -22,7 +22,7 @@ export function useChatTypingEnds(
     chatId: string | undefined,
     launch: (face: ChatTypingFace) => void
 ) {
-    const messages = useChatMessages(serverId, chatId).data?.messages ?? noMessages;
+    const messages = useChatMessages(serverId, chatId).data?.entries ?? noMessages;
     const [holds, setHolds] = React.useState<readonly ChatTypingHold[]>([]);
     const latestMessages = React.useRef(messages);
     React.useEffect(() => {
@@ -51,7 +51,7 @@ export function useChatTypingEnds(
         if (holds.length === 0) {
             return;
         }
-        const release = (transcript: readonly ChatMessage[]) => {
+        const release = (transcript: readonly ChatMessageLayout[]) => {
             const { kept, released } = releaseChatTypingHolds(chatHolds, transcript, Date.now());
             for (const _ of released) {
                 launch(chatTypingSentFace);

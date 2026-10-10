@@ -1,4 +1,4 @@
-import type { Agent, Chat, ChatMessage } from '@haus/api';
+import type { Agent, Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import { type InfiniteData, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
@@ -12,8 +12,13 @@ import {
 import { DevModeProvider } from '../components/dev-mode-provider.tsx';
 import { testChat } from '../features/chats/chat-fixtures.ts';
 import { testAgent } from '../features/members/agent-fixtures.ts';
+import {
+    chatMessageQueryKey,
+    seedChatMessageEntities,
+} from '../hooks/servers/chat-message-entities.ts';
+import { type TranscriptPage, toTranscriptPage } from '../hooks/servers/chat-message-layout.ts';
 import { chatMessagesQueryKey } from '../hooks/servers/use-chat-messages.ts';
-import { type HausOutputs, hausTrpc } from '../lib/haus-server.tsx';
+import { hausTrpc } from '../lib/haus-server.tsx';
 import { createRenderCensus } from './render-census.tsx';
 
 /**
@@ -172,20 +177,26 @@ export function createTranscriptHarness() {
         mount,
         queryClient,
         setChats: (chats: Chat[]) => utils.chat.list.setData({ serverId }, chats),
-        setMessages: (chatId: string, messages: ChatMessage[]) =>
-            queryClient.setQueryData<InfiniteData<HausOutputs['chat']['messages']>>(
+        /** What a list read lands: its entities seeded, then its one page of ids. */
+        setMessages: (chatId: string, messages: ChatMessage[], threads: ThreadSummary[] = []) => {
+            const page = {
+                messages,
+                nextAfterSequence: null,
+                nextBeforeSequence: null,
+                scannedThroughSequence: messages.at(-1)?.sequence ?? 0,
+                threads,
+            };
+            seedChatMessageEntities(queryClient, page);
+            queryClient.setQueryData<InfiniteData<TranscriptPage>>(
                 chatMessagesQueryKey(serverId, chatId),
-                {
-                    pageParams: [undefined],
-                    pages: [
-                        {
-                            messages,
-                            nextAfterSequence: null,
-                            nextBeforeSequence: null,
-                            threads: [],
-                        },
-                    ],
-                }
+                { pageParams: [undefined], pages: [toTranscriptPage(page)] }
+            );
+        },
+        /** What one entity refetch lands, e.g. after a reaction event. */
+        setEntity: (message: ChatMessage, thread: ThreadSummary | null = null) =>
+            queryClient.setQueryData(
+                chatMessageQueryKey(message.serverId, message.chatId, message.id),
+                { message, thread }
             ),
         setCloudAgentWork: (chatId: string) =>
             utils.cloudAgentWork.listForChat.setData({ chatId, serverId }, []),

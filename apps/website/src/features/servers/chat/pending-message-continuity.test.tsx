@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import type { ChatMessage } from '@haus/api';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import {
     MessageScroller,
@@ -8,6 +7,7 @@ import {
     MessageScrollerViewport,
 } from '../../../components/chats/message-scroller.tsx';
 import { DevModeProvider } from '../../../components/dev-mode-provider.tsx';
+import { renderWithTrpc } from '../../../test-support/trpc-test-provider.tsx';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import { getTranscriptItemKey } from '../../chats/chat-transcript-item-utils.ts';
 import { buildTranscriptEntries, type TranscriptRow } from '../../chats/chat-transcript-model.ts';
@@ -150,7 +150,7 @@ function renderTranscript(rows: TranscriptRow[]) {
         viewerUserId: 'usr_zach',
     };
 
-    return renderToStaticMarkup(
+    return renderWithTrpc(
         <MemoryRouter>
             <DevModeProvider>
                 <MessageScrollerProvider>

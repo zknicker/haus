@@ -1,90 +1,81 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { ChatMessage, ThreadSummary } from '@haus/api';
+import type { ChatMessage } from '@haus/api';
 import {
-    type ChatMessageProjectionInput,
-    emptyChatAgents,
-    emptyChatMessageProjection,
-    emptyChatThreads,
-    projectStableChatMessages,
+    type ChatMessageLayout,
+    toChatMessageLayout,
+} from '../../../hooks/servers/chat-message-layout.ts';
+import {
+    emptyTranscriptSkeleton,
+    projectTranscriptSkeleton,
+    type TranscriptSkeletonInput,
 } from './chat-message-projection.ts';
 
-test('projecting the same snapshot twice reuses every row', () => {
-    const messages = [message('msg_1', 'first'), message('msg_2', 'second')];
-    const first = projectStableChatMessages(input(messages), emptyChatMessageProjection);
-    const second = projectStableChatMessages(input(messages), first);
+test('projecting the same list twice reuses the skeleton', () => {
+    const same = input([layout('msg_1'), layout('msg_2')]);
+    const first = projectTranscriptSkeleton(same, emptyTranscriptSkeleton);
+    const second = projectTranscriptSkeleton({ ...same }, first);
 
     assert.equal(second, first);
+});
+
+test('a refetch that hands back new layout objects keeps every row and the array', () => {
+    // A list refetch shares index-wise, so a shifted page yields fresh objects
+    // for unchanged messages; rows compare their layout facts instead.
+    const first = projectTranscriptSkeleton(
+        input([layout('msg_1'), layout('msg_2')]),
+        emptyTranscriptSkeleton
+    );
+    const second = projectTranscriptSkeleton(input([layout('msg_1'), layout('msg_2')]), first);
+
     assert.equal(second.rows, first.rows);
 });
 
-test('a refetch that changed nothing keeps the rows array identity', () => {
-    // React Query hands back the same message objects for everything it did
-    // not change, so only the array wrapper is new.
-    const messages = [message('msg_1', 'first'), message('msg_2', 'second')];
-    const first = projectStableChatMessages(input(messages), emptyChatMessageProjection);
-    const second = projectStableChatMessages(input([...messages]), first);
-
-    assert.equal(second.rows, first.rows);
-});
-
-test('only the changed message loses its row identity', () => {
-    const unchanged = message('msg_1', 'first');
-    const messages = [unchanged, message('msg_2', 'second')];
-    const first = projectStableChatMessages(input(messages), emptyChatMessageProjection);
-    const second = projectStableChatMessages(
-        input([unchanged, message('msg_2', 'second edited')]),
-        first
-    );
-
-    assert.notEqual(second.rows, first.rows);
-    assert.equal(second.rows[0], first.rows[0]);
-    assert.notEqual(second.rows[1], first.rows[1]);
-    assert.equal(
-        second.rows[1]?.kind === 'message' && second.rows[1].message.content,
-        'second edited'
-    );
-});
-
-test('an appended message leaves the existing rows alone', () => {
-    const messages = [message('msg_1', 'first')];
-    const first = projectStableChatMessages(input(messages), emptyChatMessageProjection);
-    const second = projectStableChatMessages(
-        input([...messages, message('msg_2', 'second')]),
-        first
-    );
+test('an appended id leaves the existing rows alone', () => {
+    const first = projectTranscriptSkeleton(input([layout('msg_1')]), emptyTranscriptSkeleton);
+    const second = projectTranscriptSkeleton(input([layout('msg_1'), layout('msg_2')]), first);
 
     assert.equal(second.rows.length, 2);
     assert.equal(second.rows[0], first.rows[0]);
 });
 
-test('a new thread summary reprojects only its anchor row', () => {
-    const messages = [message('msg_1', 'first'), message('msg_2', 'second')];
-    const first = projectStableChatMessages(input(messages), emptyChatMessageProjection);
-    const second = projectStableChatMessages(input(messages, [thread('msg_2')]), first);
+test('a skeleton row carries layout facts and nothing mutable', () => {
+    const [row] = projectTranscriptSkeleton(input([layout('msg_1')]), emptyTranscriptSkeleton).rows;
+
+    assert.equal(row?.kind, 'message');
+    assert.deepEqual(row?.entity, { attachedWork: false, chatId: 'cht_1', serverId: 'srv_1' });
+    assert.equal(row?.message.content, '');
+    assert.equal(row?.message.task, undefined);
+    assert.equal(row?.message.reactions, undefined);
+    assert.equal(row?.message.cloudAgentWork, undefined);
+    assert.equal(row?.thread, null);
+    assert.equal(row?.message.sendNonce, 'nonce_msg_1');
+});
+
+test('only a message gaining a task or Thread gets a new row', () => {
+    const entries = [layout('msg_1'), layout('msg_2')];
+    const first = projectTranscriptSkeleton(input(entries), emptyTranscriptSkeleton);
+    const second = projectTranscriptSkeleton(input(entries, ['msg_2']), first);
 
     assert.equal(second.rows[0], first.rows[0]);
     assert.notEqual(second.rows[1], first.rows[1]);
-    assert.equal(
-        second.rows[1]?.kind === 'message' && second.rows[1].thread?.anchorMessageId,
-        'msg_2'
-    );
+    assert.equal(second.rows[1]?.entity?.attachedWork, true);
 });
 
 function input(
-    messages: readonly ChatMessage[],
-    threads: readonly ThreadSummary[] = emptyChatThreads
-): ChatMessageProjectionInput {
-    return { agents: emptyChatAgents, messages, threads };
+    entries: readonly ChatMessageLayout[],
+    attachedWork: readonly string[] = []
+): TranscriptSkeletonInput {
+    return { attachedWork: new Set(attachedWork), entries };
 }
 
-function message(id: string, content: string): ChatMessage {
-    return {
+function layout(id: string): ChatMessageLayout {
+    const message: ChatMessage = {
         attachments: [],
         author: { kind: 'human', userId: 'usr_1' },
         body: { kind: 'text' },
         chatId: 'cht_1',
-        content,
+        content: id,
         createdAt: '2026-08-11T00:00:00.000Z',
         id,
         nonce: `nonce_${id}`,
@@ -96,16 +87,5 @@ function message(id: string, content: string): ChatMessage {
         sessionGeneration: null,
         task: null,
     };
-}
-
-function thread(anchorMessageId: string): ThreadSummary {
-    return {
-        anchorMessageId,
-        followed: true,
-        latestReplyAt: '2026-08-11T00:01:00.000Z',
-        recentReplies: [],
-        replyCount: 1,
-        threadChatId: 'cht_thread_1',
-        unreadCount: 0,
-    };
+    return toChatMessageLayout(message);
 }

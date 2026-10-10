@@ -22,7 +22,6 @@ beforeAll(() => {
 afterAll(() => restoreDom());
 
 const anchor = { id: 'msg_anchor', sequence: 4 } as ChatMessage;
-const transcript = [anchor];
 const selected: Record<string, string | null> = {};
 const openers: Record<string, () => void> = {};
 let navigate: NavigateFunction = () => {};
@@ -33,7 +32,7 @@ function ProbeChatView({ chatId }: { chatId: string }) {
         initialTask: undefined,
         revealMessage: () => {},
         serverId: 'server_one',
-        transcriptMessages: transcript,
+        ready: true,
     });
     selected[chatId] = pane.selection?.anchor.id ?? null;
     openers[chatId] = () => pane.open(anchor, null);

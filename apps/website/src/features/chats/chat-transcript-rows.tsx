@@ -9,6 +9,7 @@ import {
 import { TranscriptEntryView } from './chat-transcript-turn.tsx';
 import type { TranscriptActiveReply } from './transcript-contract.ts';
 import { areTranscriptRenderRowsEqual } from './transcript-render-row-equality.ts';
+import { useEntityTranscriptEntry } from './use-entity-transcript-entry.ts';
 
 interface TranscriptRenderRowProps {
     activeReplies?: readonly TranscriptActiveReply[];
@@ -20,11 +21,24 @@ interface TranscriptRenderRowViewProps {
     row: TranscriptRenderRow;
 }
 
+/**
+ * A skeleton render row becomes a rendered one here: the entry reads its own
+ * message entities (`useEntityTranscriptEntry`), so an entity change
+ * re-renders this row and no other.
+ */
 export function TranscriptRenderRowItem({ activeReplies = [], row }: TranscriptRenderRowProps) {
+    const entry = useEntityTranscriptEntry(row.kind === 'entry' ? row.entry : null);
+    const rendered = React.useMemo(
+        () => (row.kind !== 'entry' || entry === row.entry || !entry ? row : { ...row, entry }),
+        [entry, row]
+    );
+    if (row.kind === 'entry' && !entry) {
+        return null;
+    }
     return (
         <TranscriptRenderRowView
             activeReply={findTranscriptRenderRowActiveReply(row, activeReplies)}
-            row={row}
+            row={rendered}
         />
     );
 }

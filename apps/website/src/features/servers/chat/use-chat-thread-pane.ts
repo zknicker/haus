@@ -3,9 +3,9 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useViewShownChange } from '../../../hooks/desktop-tabs/view-shown.ts';
 import { setChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
+import { useChatMessage } from '../../../hooks/servers/use-chat-message.ts';
 import { usePendingMessageReveal } from '../../../hooks/servers/use-pending-message-reveal.ts';
 import { type OpenThread, useOpenThread } from '../../../hooks/threads/use-open-thread.ts';
-import { useThreadAnchorMessage } from '../../../hooks/threads/use-thread-anchor-message.ts';
 import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-selection.ts';
 
 /**
@@ -20,14 +20,15 @@ export function useChatThreadPane({
     chatId,
     serverId,
     initialTask,
+    ready,
     revealMessage,
-    transcriptMessages,
 }: {
     chatId: string;
     serverId: string;
     initialTask: ChatInitialTask | undefined;
+    /** The chat's transcript list has loaded. */
+    ready: boolean;
     revealMessage: (target: { id: string; sequence: number }) => void;
-    transcriptMessages: ChatMessage[] | undefined;
 }) {
     const openThreadTab = useOpenThread();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -53,34 +54,21 @@ export function useChatThreadPane({
             syncSelectionToRoute();
         }
     });
-    usePendingMessageReveal({
-        chatId,
-        ready: transcriptMessages !== undefined,
-        reveal: revealMessage,
+    usePendingMessageReveal({ chatId, ready, reveal: revealMessage });
+    // The selection carries identity; the record itself is read live from its
+    // entity, so a Thread left open follows its anchor's own changes — a Task
+    // claimed, a Cloud Agent work that finished, a new reply in its summary.
+    // The captured message is the fallback until the entity loads.
+    const selected = useChatMessage(serverId, chatId, selection?.anchor.id ?? '', {
+        enabled: selection !== null,
     });
-    // The selection carries identity; the record itself is read live from the
-    // transcript, so a Thread left open follows its anchor's own changes — a
-    // Task claimed, a Cloud Agent work that finished. The captured message is
-    // the fallback for an anchor this transcript has not loaded.
-    const anchor = React.useMemo(
-        () =>
-            selection
-                ? (transcriptMessages?.find((message) => message.id === selection.anchor.id) ??
-                  selection.anchor)
-                : null,
-        [selection, transcriptMessages]
-    );
+    const anchor = selection ? (selected?.message ?? selection.anchor) : null;
     const threadAnchorId = openThreadTab ? null : searchParams.get('thread');
-    const loadedAnchor = transcriptMessages?.find((message) => message.id === threadAnchorId);
-    const linkedAnchor = useThreadAnchorMessage(
-        serverId,
-        chatId,
-        transcriptMessages && !loadedAnchor ? threadAnchorId : null
-    );
-    const restoredAnchor = loadedAnchor ?? linkedAnchor.anchor;
-    const linkedSummary =
-        linkedAnchor.data?.threads.find((summary) => summary.anchorMessageId === threadAnchorId) ??
-        null;
+    const linked = useChatMessage(serverId, chatId, threadAnchorId ?? '', {
+        enabled: ready && threadAnchorId !== null,
+    });
+    const restoredAnchor = linked?.message;
+    const linkedSummary = linked?.thread ?? null;
     const closeRequestedRef = React.useRef(false);
     const restoredAnchorRef = React.useRef<string | null>(null);
     React.useEffect(() => {
@@ -88,7 +76,7 @@ export function useChatThreadPane({
             restoredAnchorRef.current = null;
             return;
         }
-        if (!transcriptMessages || restoredAnchorRef.current === threadAnchorId) {
+        if (!ready || restoredAnchorRef.current === threadAnchorId) {
             return;
         }
         const restored = restoredAnchor;
@@ -106,9 +94,9 @@ export function useChatThreadPane({
         linkedSummary,
         restoredAnchor,
         selection?.anchor.id,
+        ready,
         setSelection,
         threadAnchorId,
-        transcriptMessages,
     ]);
     const close = React.useCallback(() => {
         closeRequestedRef.current = true;
@@ -157,7 +145,16 @@ export function useChatThreadPane({
             setSelection(null);
         }
     };
-    return { anchor, close, onExitComplete, open, selection, viewInChannel };
+    return {
+        anchor,
+        close,
+        onExitComplete,
+        open,
+        selection,
+        /** The open Thread's live summary, once its anchor entity has loaded. */
+        summary: selected?.thread,
+        viewInChannel,
+    };
 }
 
 /** Desktop: a `?thread=` or `?task=` link opens that Thread's page, then leaves the URL. */

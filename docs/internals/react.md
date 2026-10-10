@@ -251,7 +251,9 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   window listeners and animation loops check `isShown()` when they fire, and reveal-time work
   (composer focus, Thread pane sync to the route, pending message reveal) runs from
   `useViewShownChange`. A hidden view's queries stay observed, so it re-renders on its own chat's
-  events and reads fresh at reveal. `kept-chat-view-invariants.test.tsx` pins each gate.
+  events and reads fresh at reveal, except message entities: `KeptChatPresence` provides
+  `ChatMessageSubscriptionContext` false, so its rows hold no `chat.message` observers and
+  fetch invalidated entities on reveal. `kept-chat-view-invariants.test.tsx` pins each gate.
 * The chat transcript renders a window of its rows (`features/chats/transcript-render-window.ts`,
   `chat-transcript-row-slot.tsx`), so a chat switch costs the rows on screen, not the transcript's
   length. Every row keeps its `@shadcn/react` scroller item in the DOM; a row outside the window
@@ -533,13 +535,20 @@ pins that one message renders one row, and App e2e `render-budget.spec.ts`
 holds whole-App renders per interaction to the ratchet in
 `apps/website/e2e/render-budgets.json`.
 
-* Paged transcripts share by message id (`hooks/servers/message-page-sharing.ts`):
-  the newest page is a sliding window, and React Query's default index-wise
-  sharing gave every loaded message a new object on every new message.
+* Transcripts are normalized ([Realtime Events](../../specs/realtime-events.md),
+  "Normalized transcript cache"): a transcript list holds message ids and
+  immutable layout facts, and each message is its own `chat.message` entity
+  that rows read through `useEntityTranscriptEntry` / `useChatMessage`. The
+  root builds a row skeleton from layout facts
+  (`features/servers/chat/chat-message-projection.ts`), so a reaction, task,
+  Cloud Agent work, or Thread summary change re-renders only the row whose
+  entity changed. Hidden kept views read entities with `subscribed: false`.
+  `lib/targeted-read-coalescer.ts` owns tail reads, entity invalidation, and
+  transcript recovery; nothing else patches lists or entities.
 * View-model projections over synced lists reuse their previous output objects
   for unchanged source records, and return the previous array when nothing
-  moved. See `features/servers/chat/chat-message-projection.ts`. Render rows
-  compare structurally and keep their object, so memoized row slots skip.
+  moved. Render rows compare structurally and keep their object, so memoized
+  row slots skip.
 * A reader of a high-churn shared query takes only what it renders through
   `select`: `useAgentAppearances` (Agents without availability, which flips every
   turn), `useChatAppearances`, `useListedChat`, `useChatListSelection` (the chat
