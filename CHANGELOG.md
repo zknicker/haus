@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 ## v10.0.0 - 2026-10-10
 
 - Chats recover new messages, reactions, Thread summaries, and Cloud Agent work after a Server restart, a connection drop, or waking the App. A deleted Chat closes its live streams and clears its cached transcript, including when restoring a desktop tab.
-- Haus for iPhone 6.0.0 (build 47) keeps message reads separate from live connections so an open Chat cannot hold up loading, and notices a dead live connection within 45 seconds. Agent presence and Inbox usage follow Computer updates.
-- Connections adds CoinGecko without an API key and Skool accounts through sign-in in Haus App 6.0.0. GitHub connections can use Actions tools again. Reminder and Trigger times use your saved timezone on web and iPhone.
-- Haus Agent 8.0.0 lists unread conversations by their newest message, with an opaque key for the next page. Update Haus Computer to 8.0.0 for the new inbox paging contract.
+- Haus for iPhone 6.0.0 (build 47) keeps message reads separate from live connections so an open Chat cannot hold up loading, and notices a dead live connection within 45 seconds. Picked mentions appear as chips, and image rows resize when their previews load. Agent presence and Inbox usage follow Computer updates.
+- Connections adds CoinGecko without an API key, MerchBase Fulfillment for print-on-demand orders, and Skool accounts through sign-in in Haus App 6.0.0. GitHub connections can use Actions tools again. Reminder and Trigger times use your saved timezone on web and iPhone.
+- Haus Agent 8.0.0 lists unread conversations by their newest message, with an opaque key for the next page, and names the claim needed to open a task. Update Haus Computer to 8.0.0 for the new inbox paging contract.
 - Haus Server 9.0.0 requires Haus App 6.0.0 and Haus for iPhone 6.0.0 for the new Chat connection contract. Older installed apps show Update required; the hosted web App updates with Server. The migration removes the old Chat event log, so rolling back the application alone does not restore the previous Server contract.
 
 ## v9.5.0 - 2026-10-09
