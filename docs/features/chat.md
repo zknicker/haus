@@ -348,9 +348,13 @@ and [Agent Inbox](../../specs/inbox.md).
   envelopes.
   Delete channel is a separate irreversible Owner/Admin action guarded by the
   exact channel name. It removes the regular channel, child Threads, messages,
-  tasks, reads, reactions, reminders, delivery rows, search state, attachment
-  metadata, and attachment bytes. `#all`, DMs, and Threads have no independent
-  archive/delete action. New workspaces
+  tasks, reads, reactions, reminders, Triggers anchored in it (with their fire
+  history), delivery rows, search state, attachment metadata, and attachment
+  bytes. The committed deletion is the outcome: a failed cleanup is retried by
+  the Server's startup sweep, never reported as a failed delete. The
+  onboarding channel (`#onboarding-owner`) can be archived but not deleted,
+  because the durable onboarding record names it. `#all`, DMs, and Threads
+  have no independent archive/delete action. New workspaces
   start with no user channels. Each active Agent has one implicit sidebar DM
   per human Server member and Agents address those pairs by the human's Server
   handle. Pair DMs are not user-deleteable. Retiring the Agent removes its

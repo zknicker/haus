@@ -70,6 +70,9 @@ norm. Opening a Trigger shows its detail, headed by its title and kind
   already sent stay in their conversation and keep their lightning mark — the
   Trigger's title and kind are snapshotted onto the message — but their hover
   card and context card lose everything that was read live.
+- **Deleting the anchor channel** removes every Trigger anchored in it,
+  including removed-Trigger tombstones, and their fire history at once; there
+  is no 30-day retention once the conversation itself is gone.
 
 The detail's **Created by** row names who created it — a person's handle, or
 the owning Agent.
