@@ -33,8 +33,9 @@ The app is split into four focused layers:
 (`TRPCSessions`). Over HTTP/1.1, the local dev Server, each held stream occupies a connection, and
 a shared stock pool (six per host) once gave every connection to streams so queries and sends
 timed out. The stream session's per-host limit derives from the stream inventory with headroom, and
-its 300-second idle timeout replaces the 60-second default that recycled every quiet stream once a
-minute. A loopback-socket test (`TRPCSessionsTests`) pins that a query completes while more
+its 45-second idle timeout rides the Server's 15-second SSE ping (`sse.ping` in
+`apps/server/src/haus-api/trpc.ts`), so a healthy quiet stream never trips it and a dead socket is
+noticed within one window. The SSE reader drops `ping` frames. A loopback-socket test (`TRPCSessionsTests`) pins that a query completes while more
 streams than the stock pool are held.
 
 The transport intentionally calls the existing tRPC procedures directly rather than introducing an

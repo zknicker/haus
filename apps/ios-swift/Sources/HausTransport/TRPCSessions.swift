@@ -25,12 +25,16 @@ public enum TRPCSessions {
     public static let streamConnectionsPerHost =
         RealtimeStream.allCases.count + streamsPerOpenChat * openChatAllowance + streamHeadroom
 
+    /// How often the Server pings every SSE stream (`sse.ping` in
+    /// `apps/server/src/haus-api/trpc.ts`).
+    public static let serverPingInterval: TimeInterval = 15
+
     /// The longest a stream may sit without a byte before the transport drops
-    /// and reconnects it. The Server sends no SSE pings, so this bounds how long
-    /// a silently dead socket goes unnoticed; a quiet healthy stream that hits
-    /// it reconnects and reconciles like any other restart. The 60-second
-    /// default recycled every idle stream once a minute.
-    public static let streamIdleTimeout: TimeInterval = 300
+    /// and reconnects it. Server pings keep a healthy stream from ever going
+    /// this long silent, so a dead socket is noticed within one window. Keep it
+    /// at least three ping intervals, matching the Server's advertised
+    /// `reconnectAfterInactivityMs`.
+    public static let streamIdleTimeout: TimeInterval = 45
 
     /// Queries and mutations: stock limits and timeouts.
     public static let requests = URLSession(configuration: makeRequestConfiguration())

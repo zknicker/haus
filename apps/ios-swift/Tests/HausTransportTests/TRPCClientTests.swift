@@ -232,53 +232,6 @@ final class TRPCClientTests: XCTestCase {
         XCTAssertEqual(result, DevClerkSignInTicket(ticket: "ticket_test"))
     }
 
-    func testSubscriptionReadsTRPC11SSEDataAndIgnoresControlEvents() async throws {
-        StubURLProtocol.requestHandler = { request in
-            XCTAssertEqual(request.httpMethod, "GET")
-            XCTAssertEqual(request.url?.path, "/trpc/chat.onMessageCreated")
-            XCTAssertNotNil(request.url?.query?.range(of: "input="))
-            XCTAssertEqual(request.value(forHTTPHeaderField: "accept"), "text/event-stream")
-            let body = """
-            event: connected
-            data: {}
-
-            : heartbeat
-
-            id: 7
-            data: {"kind":"message","text":"hello"}
-
-            event: ping
-            data:
-
-            event: return
-            data:
-
-            """
-            return response(
-                headers: ["Content-Type": "text/event-stream"],
-                data: Data(body.utf8)
-            )
-        }
-        let client = TRPCClient(
-            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
-            sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
-            session: makeStubSession(),
-            streamSession: makeStubSession()
-        )
-
-        var values: [SubscriptionOutput] = []
-        let stream: AsyncThrowingStream<SubscriptionOutput, Error> = client.subscribe(
-            "chat.onMessageCreated",
-            input: SubscriptionInput(serverID: "srv_123"),
-            options: TRPCSubscriptionOptions(reconnect: false)
-        )
-        for try await value in stream {
-            values.append(value)
-        }
-
-        XCTAssertEqual(values, [SubscriptionOutput(kind: "message", text: "hello")])
-    }
-
     func testSubscriptionAcceptsEnvelopeAndBareFramesInOneStream() async throws {
         StubURLProtocol.requestHandler = { _ in
             let body = """

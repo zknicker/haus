@@ -21,14 +21,19 @@ final class TRPCSessionsTests: XCTestCase {
         XCTAssertFalse(TRPCSessions.requests === TRPCSessions.streams)
     }
 
-    func testStreamSessionHoldsEveryStreamWithHeadroomAndNoMinuteTimeout() {
+    func testStreamSessionHoldsEveryStreamWithHeadroomAndOutlastsServerPings() {
         let streams = TRPCSessions.streams.configuration
         let requests = TRPCSessions.requests.configuration
         let stock = URLSessionConfiguration.default
 
         XCTAssertGreaterThan(streams.httpMaximumConnectionsPerHost, heldStreamCount)
         XCTAssertEqual(streams.httpMaximumConnectionsPerHost, TRPCSessions.streamConnectionsPerHost)
-        XCTAssertGreaterThan(streams.timeoutIntervalForRequest, 60)
+        XCTAssertEqual(streams.timeoutIntervalForRequest, TRPCSessions.streamIdleTimeout)
+        // A healthy stream hears a Server ping well inside its idle window.
+        XCTAssertGreaterThanOrEqual(
+            TRPCSessions.streamIdleTimeout,
+            3 * TRPCSessions.serverPingInterval
+        )
         XCTAssertEqual(requests.httpMaximumConnectionsPerHost, stock.httpMaximumConnectionsPerHost)
         XCTAssertEqual(requests.timeoutIntervalForRequest, stock.timeoutIntervalForRequest)
     }

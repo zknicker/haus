@@ -7,7 +7,19 @@ import {
 import { realtimeRefusalData } from '../realtime/refusal.ts';
 import type { HausContext } from './context.ts';
 
+/**
+ * Keepalive for HTTP (SSE) subscriptions, which the iOS App uses. Pings let the
+ * client hold a short idle timeout and notice a dead socket within one window
+ * (`TRPCSessions.streamIdleTimeout`). The WebSocket transport ignores this; it
+ * has its own liveness.
+ */
+export const sseKeepalive = {
+    client: { reconnectAfterInactivityMs: 45_000 },
+    ping: { enabled: true, intervalMs: 15_000 },
+} as const;
+
 const t = initTRPC.context<HausContext>().create({
+    sse: sseKeepalive,
     // Realtime refusals carry their class so the App can tell a membership loss
     // from a role refusal or a transient failure (specs/realtime-events.md).
     errorFormatter: ({ error, shape }) => ({
