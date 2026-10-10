@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from 'bun:test';
-import { messageEvent, readEvent } from '../../hooks/servers/chat-events/chat-event-fixtures.ts';
+import type { MessageCreatedEvent } from '@haus/api';
 import { createMessageNotifier, type NotificationApi } from './message-notifier.ts';
 
 interface Shown {
@@ -40,6 +40,38 @@ beforeEach(() => {
     enabled = true;
 });
 
+function messageEvent(
+    sequence: number,
+    chatId: string,
+    parentChatId: string | null = null,
+    facts: Partial<
+        Pick<
+            MessageCreatedEvent,
+            | 'authorUserId'
+            | 'conversationKind'
+            | 'mentionedUserIds'
+            | 'replyToAuthorUserId'
+            | 'threadAnchorAuthorUserId'
+        >
+    > = {}
+): MessageCreatedEvent {
+    return {
+        authorUserId: facts.authorUserId ?? null,
+        chatId,
+        conversationKind: facts.conversationKind ?? 'channel',
+        mentionedUserIds: facts.mentionedUserIds ?? [],
+        messageId: `message_${sequence}`,
+        parentChatId,
+        replyToAuthorUserId: facts.replyToAuthorUserId ?? null,
+        sequence,
+        serverId: 'server_one',
+        threadAnchorAuthorUserId: facts.threadAnchorAuthorUserId ?? null,
+        threadAnchorMessageId: parentChatId ? 'message_anchor' : null,
+    };
+}
+
+const dm = (sequence: number) => messageEvent(sequence, 'cht_dm', null, { conversationKind: 'dm' });
+
 function notifier() {
     return createMessageNotifier({
         describe: async (event, reason) => {
@@ -56,13 +88,8 @@ function notifier() {
 
 test('every DM message notifies, tagged by its Chat so newer ones replace older', async () => {
     const subject = notifier();
-    await subject.observe(
-        [
-            messageEvent('1', 'cht_dm', null, { conversationKind: 'dm' }),
-            messageEvent('2', 'cht_dm', null, { conversationKind: 'dm' }),
-        ],
-        'live'
-    );
+    await subject.messageCreated(dm(1));
+    await subject.messageCreated(dm(2));
     expect(shown.map((item) => [item.title, item.options])).toEqual([
         ['Orbit', { body: 'body message_1', tag: 'cht_dm' }],
         ['Orbit', { body: 'body message_2', tag: 'cht_dm' }],
@@ -73,81 +100,62 @@ test('every DM message notifies, tagged by its Chat so newer ones replace older'
 
 test('a Channel message notifies only for a mention, a reply, or a Thread on my message', async () => {
     const subject = notifier();
-    await subject.observe(
-        [
-            messageEvent('1', 'cht_product'),
-            messageEvent('2', 'cht_product', null, { mentionedUserIds: ['usr_bo'] }),
-            messageEvent('3', 'cht_product', null, { mentionedUserIds: ['usr_ada'] }),
-            messageEvent('4', 'cht_product', null, { replyToAuthorUserId: 'usr_ada' }),
-            messageEvent('5', 'cht_thread', 'cht_product', { threadAnchorAuthorUserId: 'usr_ada' }),
-        ],
-        'live'
-    );
+    for (const event of [
+        messageEvent(1, 'cht_product'),
+        messageEvent(2, 'cht_product', null, { mentionedUserIds: ['usr_bo'] }),
+        messageEvent(3, 'cht_product', null, { mentionedUserIds: ['usr_ada'] }),
+        messageEvent(4, 'cht_product', null, { replyToAuthorUserId: 'usr_ada' }),
+        messageEvent(5, 'cht_thread', 'cht_product', { threadAnchorAuthorUserId: 'usr_ada' }),
+    ]) {
+        await subject.messageCreated(event);
+    }
     expect(described).toEqual(['message_3', 'message_4', 'message_5']);
 });
 
 test('my own messages never notify', async () => {
-    await notifier().observe(
-        [
-            messageEvent('1', 'cht_dm', null, { authorUserId: 'usr_ada', conversationKind: 'dm' }),
-            messageEvent('2', 'cht_product', null, {
-                authorUserId: 'usr_ada',
-                mentionedUserIds: ['usr_ada'],
-            }),
-        ],
-        'live'
+    const subject = notifier();
+    await subject.messageCreated(
+        messageEvent(1, 'cht_dm', null, { authorUserId: 'usr_ada', conversationKind: 'dm' })
+    );
+    await subject.messageCreated(
+        messageEvent(2, 'cht_product', null, {
+            authorUserId: 'usr_ada',
+            mentionedUserIds: ['usr_ada'],
+        })
     );
     expect(shown).toEqual([]);
 });
 
 test('nothing is read or shown while Haus is in view, off, or not permitted', async () => {
     const subject = notifier();
-    const dm = (cursor: string) => messageEvent(cursor, 'cht_dm', null, { conversationKind: 'dm' });
     background = false;
-    await subject.observe([dm('1')], 'live');
+    await subject.messageCreated(dm(1));
     background = true;
     enabled = false;
-    await subject.observe([dm('2')], 'live');
+    await subject.messageCreated(dm(2));
     enabled = true;
     permission = 'denied';
-    await subject.observe([dm('3')], 'live');
+    await subject.messageCreated(dm(3));
     expect(described).toEqual([]);
     expect(shown).toEqual([]);
 });
 
-test('a replayed message notifies once', async () => {
+test('a duplicated live event notifies once', async () => {
     const subject = notifier();
-    const dm = messageEvent('1', 'cht_dm', null, { conversationKind: 'dm' });
-    await subject.observe([dm], 'live');
-    await subject.observe([dm], 'live');
+    await subject.messageCreated(dm(1));
+    await subject.messageCreated(dm(1));
     expect(shown).toHaveLength(1);
-});
-
-test('a reconnect catch-up replay never notifies, and its messages stay silent if replayed live', async () => {
-    const subject = notifier();
-    const dm = messageEvent('1', 'cht_dm', null, { conversationKind: 'dm' });
-    await subject.observe(
-        [dm, messageEvent('2', 'cht_product', null, { mentionedUserIds: ['usr_ada'] })],
-        'catch-up'
-    );
-    await subject.observe([dm], 'live');
-    expect(described).toEqual([]);
-    expect(shown).toEqual([]);
 });
 
 test('a message its Chat has been read through never notifies', async () => {
     const subject = notifier();
-    const dm = (cursor: string) => messageEvent(cursor, 'cht_dm', null, { conversationKind: 'dm' });
-    // A read seen earlier, even in a catch-up pass, covers later-arriving older messages.
-    await subject.observe([readEvent('10', 'cht_dm', 5)], 'catch-up');
-    await subject.observe([dm('4'), dm('5')], 'live');
-    // A read later in the same pass covers the message before it.
-    await subject.observe([dm('6'), readEvent('11', 'cht_dm', 6)], 'live');
-    // A read of another Chat, or through an older sequence, does not.
-    await subject.observe(
-        [dm('7'), readEvent('12', 'cht_other', 9), readEvent('13', 'cht_dm', 6)],
-        'live'
-    );
+    subject.chatRead({ chatId: 'cht_dm', sequence: 5 });
+    await subject.messageCreated(dm(4));
+    await subject.messageCreated(dm(5));
+    // A read of another Chat, or through an older sequence, does not cover a newer message.
+    subject.chatRead({ chatId: 'cht_other', sequence: 9 });
+    subject.chatRead({ chatId: 'cht_dm', sequence: 3 });
+    await subject.messageCreated(dm(7));
     expect(described).toEqual(['message_7']);
     expect(shown).toHaveLength(1);
 });
@@ -168,11 +176,8 @@ test('a read arriving while the message text is fetched cancels its notification
         onOpen: () => {},
         viewerUserId: () => 'usr_ada',
     });
-    const pending = subject.observe(
-        [messageEvent('3', 'cht_dm', null, { conversationKind: 'dm' })],
-        'live'
-    );
-    await subject.observe([readEvent('4', 'cht_dm', 3)], 'live');
+    const pending = subject.messageCreated(dm(3));
+    subject.chatRead({ chatId: 'cht_dm', sequence: 3 });
     release();
     await pending;
     expect(shown).toEqual([]);

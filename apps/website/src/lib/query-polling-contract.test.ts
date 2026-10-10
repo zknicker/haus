@@ -62,10 +62,18 @@ const timerFetchAllowlist: Record<string, string> = {
         'one-shot 150 ms debounce of the composition draft publish',
     'features/updates/use-haus-update-run.ts':
         'deadlines and step waits inside a human-pressed update run',
-    'hooks/servers/chat-events/use-chat-event-stream.tsx': 'one-shot chat event batch window',
     'hooks/servers/use-chat-message-navigation.ts': 'one-shot jump highlight removal',
     'hooks/servers/use-chat-read.ts': 'one-shot settle after a read receipt lands',
     'hooks/servers/use-idle-chat-warming.ts': 'one idle warm pass, bounded to 2 concurrent reads',
+};
+
+/**
+ * Files that schedule work on an animation frame and also fetch or
+ * invalidate. Each frame is a one-shot coalescing window, never a loop.
+ */
+const frameFetchAllowlist: Record<string, string> = {
+    'lib/targeted-read-coalescer.ts':
+        'one-shot per-frame coalescing of realtime invalidations: a burst of events refetches each key once',
 };
 
 /** Calls that may invalidate or reset every query (no `queryKey` or `predicate`). */
@@ -130,6 +138,18 @@ describe('query polling contract', () => {
         );
     });
 
+    test('animation frames beside fetches are allowlisted coalescing windows', () => {
+        expectOnlyAllowlisted(
+            files.filter(
+                (file) =>
+                    /\brequestAnimationFrame\(/.test(file.content) &&
+                    fetchPattern.test(file.content)
+            ),
+            frameFetchAllowlist,
+            'schedules an animation frame in a file that fetches or invalidates'
+        );
+    });
+
     test('invalidation and reset always name what they touch', () => {
         const offenders = files.filter((file) =>
             callArguments(file.content, /\.(invalidateQueries|resetQueries)\(/g).some(
@@ -170,6 +190,7 @@ describe('query polling contract', () => {
             [refetchIntervalAllowlist, /\brefetchInterval\s*:/],
             [intervalAllowlist, /\bsetInterval\(/],
             [timerFetchAllowlist, /\bsetTimeout\(/],
+            [frameFetchAllowlist, /\brequestAnimationFrame\(/],
             [focusRefetchAllowlist, /\brefetchOn(WindowFocus|Reconnect)\s*:(?!\s*false\b)/],
             [
                 keylessInvalidationAllowlist,

@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test';
+import { QueryClient } from '@tanstack/react-query';
 import {
     createQueryReconnectHandler,
     isReconnectRecoveredQuery,
+    recoverAfterReconnect,
     streamRecoveredReads,
 } from './query-reconnect-recovery.ts';
 
@@ -75,5 +77,51 @@ describe('reconnect recovery scope', () => {
         expect(isReconnectRecoveredQuery({ queryKey: ['haus-website-build'] })).toBe(false);
         expect(isReconnectRecoveredQuery({ queryKey: ['haus-release', 'latest'] })).toBe(false);
         expect(isReconnectRecoveredQuery(trpcQuery('agent.executionJournal'))).toBe(false);
+    });
+
+    test('root stream reads recover in the App-wide pass, not on their stream start', () => {
+        for (const read of ['chat.list', 'chat.search', 'task.list', 'member.list']) {
+            expect(isReconnectRecoveredQuery(trpcQuery(read))).toBe(true);
+        }
+    });
+});
+
+describe('reconnect pass', () => {
+    const listKey = (serverId: string, chatId: string) => [
+        ['chat', 'messages'],
+        { input: { chatId, limit: 50, serverId }, type: 'infinite' },
+    ];
+    const entityKey = [
+        ['chat', 'message'],
+        { input: { chatId: 'cht_a', messageId: 'msg_1', serverId: 'srv_1' }, type: 'query' },
+    ];
+    const chatListKey = [['chat', 'list'], { input: { serverId: 'srv_1' }, type: 'query' }];
+
+    test('recovers lists in bulk per Server, refetches Server reads once, and never entities', async () => {
+        const queryClient = new QueryClient();
+        for (const key of [
+            listKey('srv_1', 'cht_a'),
+            listKey('srv_1', 'cht_b'),
+            listKey('srv_2', 'cht_c'),
+        ]) {
+            queryClient.setQueryData(key, { pageParams: [], pages: [] });
+        }
+        queryClient.setQueryData(entityKey, { message: null, thread: null });
+        queryClient.setQueryData(chatListKey, []);
+        const recovered: string[] = [];
+
+        await recoverAfterReconnect(queryClient, {
+            recoverTranscriptLists: ({ serverId }) => {
+                recovered.push(serverId);
+            },
+        });
+
+        expect(recovered.sort()).toEqual(['srv_1', 'srv_2']);
+        const invalidated = (key: unknown[]) =>
+            queryClient.getQueryCache().find({ exact: true, queryKey: key })?.state.isInvalidated;
+        expect(invalidated(chatListKey)).toBe(true);
+        expect(invalidated(entityKey)).toBe(false);
+        // Lists are the coalescer's to recover, never the generic pass's.
+        expect(invalidated(listKey('srv_1', 'cht_a'))).toBe(false);
     });
 });
