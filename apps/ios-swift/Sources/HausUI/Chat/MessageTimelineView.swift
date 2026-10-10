@@ -217,13 +217,15 @@ public struct MessageTimelineView: View {
     }
 
     /// Everything a row draws from beyond its entry. Read here, in the
-    /// screen's own body, so a visual's height report, a pending own
-    /// reaction, or a press re-renders the screen and the table re-hosts its
+    /// screen's own body, so a visual's height report, an image tile's settled
+    /// box, a pending own reaction, or a press re-renders the screen and the
+    /// table re-hosts its
     /// visible rows: the rows read these inside the table's row closure, which
     /// SwiftUI does not track as this body's dependency.
     private var rowRevision: Int {
         var hasher = Hasher()
         hasher.combine(visualHeights.revision)
+        hasher.combine(attachmentTiles.revision)
         hasher.combine(reactionBoard?.revision)
         hasher.combine(heldMessageID)
         hasher.combine(actionMessage?.id)

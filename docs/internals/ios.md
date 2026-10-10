@@ -311,7 +311,11 @@ bitmap: every decode here is downsampled to a display budget, so `DecodedAttachm
 source's pixel size beside the decode, and a 4032-pixel photograph is not mistaken for a 480-pixel
 one. A Server attachment record carries no pixel size, so a downloaded image's box is only knowable
 with its bitmap: the tile reserves the largest box until then, and an image smaller than it settles to
-its own box once, on its first decode. A staged local file has no such gap — it is decoded before its
+its own box once, on its first decode. That settle, and an image that fails and falls back to its file
+row, happen after the transcript cell measured the row, and a `UIHostingConfiguration` cell keeps the
+height it first measured, so the tile reports it through `AttachmentImageTileRegistry.revision`, which
+the screen folds into `rowRevision` exactly as it does a visual's height; without it the shrunken tile
+drew over the text above it. A staged local file has no such gap — it is decoded before its
 row lays out — so pending uploads render through the same tile and strip from `LocalAttachmentImageCache`,
 which also serves the composer strip and the attachment morph, and the retired pending row's
 replacement adopts the identical bitmap by filename and byte size, so a send never reflows.

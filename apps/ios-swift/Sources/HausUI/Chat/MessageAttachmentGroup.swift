@@ -53,7 +53,7 @@ struct MessageAttachmentGroup: View {
                     // until it lands, so the strip stops taking taps with it.
                     isDisabled: loadingAttachmentID != nil,
                     onOpen: onOpen,
-                    onFailure: { imageTileFailedIDs.insert($0.id) },
+                    onFailure: { fallBackToFileRow($0.id) },
                     onTap: { open($0) },
                     tiles: isPending ? nil : tiles
                 )
@@ -89,10 +89,18 @@ struct MessageAttachmentGroup: View {
         AttachmentImageTile(
             attachment: attachment,
             onOpen: onOpen,
-            onFailure: { imageTileFailedIDs.insert(attachment.id) },
+            onFailure: { fallBackToFileRow(attachment.id) },
+            onResize: { tiles?.noteTileResized() },
             box: box,
             tiles: isPending ? nil : tiles
         )
+    }
+
+    /// A picture that cannot be drawn keeps the file row instead, which changes
+    /// the row's height after it was measured; the registry tells the screen.
+    private func fallBackToFileRow(_ attachmentID: String) {
+        imageTileFailedIDs.insert(attachmentID)
+        tiles?.noteTileResized()
     }
 
     /// The file card's 42pt thumbnail sits 8pt inside the card, concentric with it.

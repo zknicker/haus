@@ -30,6 +30,8 @@ struct AttachmentImageTile: View {
     let attachment: MessageAttachmentPresentation
     let onOpen: (MessageAttachmentPresentation) async throws -> URL
     let onFailure: () -> Void
+    /// The decode landed and changed the tile's box; see `land(_:)`.
+    var onResize: () -> Void = {}
     var box: AttachmentImageTileBox = .hero
     /// Where this tile publishes its UIView so the screen's image viewer can
     /// grow out of it and fall back into it. Nil for a pending upload, which
@@ -150,7 +152,7 @@ struct AttachmentImageTile: View {
                 onFailure()
                 return
             }
-            loaded = LoadedAttachmentThumbnail(attachmentID: attachment.id, thumbnail: thumbnail)
+            land(thumbnail)
             return
         }
         let loadGeneration = AttachmentImageCache.shared.generation
@@ -189,12 +191,22 @@ struct AttachmentImageTile: View {
                 decodedPixelCost: bitmap.pixelCost,
                 loadedIn: loadGeneration
             )
-            loaded = LoadedAttachmentThumbnail(attachmentID: attachment.id, thumbnail: thumbnail)
+            land(thumbnail)
         } catch is CancellationError {
             // The tile disappeared or the transfer was superseded; no error UI needed.
         } catch {
             onFailure()
         }
+    }
+
+    /// A first decode replaces the placeholder box, and the hero box then
+    /// settles to the picture's own size. The cell hosting this row keeps the
+    /// height it measured around the placeholder, so a changed box is reported
+    /// for the screen to re-measure the row.
+    @MainActor
+    private func land(_ thumbnail: AttachmentThumbnail) {
+        loaded = LoadedAttachmentThumbnail(attachmentID: attachment.id, thumbnail: thumbnail)
+        if box.size(for: thumbnail) != box.size(for: nil) { onResize() }
     }
 }
 

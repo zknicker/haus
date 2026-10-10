@@ -15,12 +15,39 @@ import UIKit
 /// transition falls back to a plain fade.
 ///
 /// The screen owns one of these and hands it down beside the preview binding.
+///
+/// It also carries the one fact about a tile the table has to hear: that a
+/// row's attachments changed size after the row was measured. A hero tile
+/// reserves the largest box until its decode lands and then settles to the
+/// picture's own size, and an image that fails to decode falls back to a file
+/// row. Both happen inside a `UIHostingConfiguration` cell, which keeps the
+/// height it first measured, so the hosted content shrank inside a cell that
+/// did not, and the tile drew over the text above it. The screen folds
+/// `revision` into the list's `rowRevision`, exactly as it does
+/// `VisualHeightRegistry`'s, so the table re-hosts and re-measures the row.
 @MainActor
+@Observable
 final class AttachmentImageTileRegistry {
+    /// Bumped once per main-actor turn in which any tile changed size.
+    private(set) var revision = 0
+    @ObservationIgnored private var hasPendingBump = false
+
     init() {}
 
+    /// Coalesced to one bump per turn, so a screen of tiles landing together
+    /// reconfigures the visible table once.
+    func noteTileResized() {
+        guard !hasPendingBump else { return }
+        hasPendingBump = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            hasPendingBump = false
+            revision += 1
+        }
+    }
+
     #if os(iOS)
-    private var views: [String: WeakView] = [:]
+    @ObservationIgnored private var views: [String: WeakView] = [:]
 
     func view(for attachmentID: String) -> UIView? {
         guard let view = views[attachmentID]?.view else {

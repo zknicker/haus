@@ -83,11 +83,13 @@ extension ThreadDetailView {
 
     /// Everything a row draws from beyond its item, read in the screen's own
     /// body so a change re-hosts the visible rows: a visual's height report,
-    /// a pending own reaction, the press tint, and the parent chain's and
+    /// an image tile's settled box, a pending own reaction, the press tint,
+    /// and the parent chain's and
     /// history's load state that the region and accessory rows show.
     var rowRevision: Int {
         var hasher = Hasher()
         hasher.combine(visualHeights.revision)
+        hasher.combine(attachmentTiles.revision)
         hasher.combine(reactionBoard?.revision)
         hasher.combine(heldMessageID)
         hasher.combine(actionMessage?.id)
