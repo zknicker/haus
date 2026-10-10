@@ -77,3 +77,48 @@ test('migration 0072 drops the chat_events log and the Server cursor, keeping me
         await rm(folder, { recursive: true, force: true });
     }
 }, 60_000);
+
+test('migration 0072 succeeds on a database that already dropped the log', async () => {
+    // Dev databases that ran this drop as 0071, before the Skool preset took that number.
+    const folder = await mkdtemp(join(tmpdir(), 'haus-redrop-chat-events-'));
+    const database = new SQL(cluster.databaseUrl);
+    const url = new URL(cluster.databaseUrl);
+    url.pathname = '/haus_redrop_chat_events_test';
+    let upgraded: SQL | undefined;
+    try {
+        await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
+        const journalPath = join(folder, 'meta/_journal.json');
+        const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+        const throughMigration = (idx: number) =>
+            writeFile(
+                journalPath,
+                JSON.stringify({
+                    ...journal,
+                    entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
+                })
+            );
+        await throughMigration(70);
+        await database.unsafe('CREATE DATABASE haus_redrop_chat_events_test');
+        await migrateHausDatabase(url.toString(), 'haus', 'haus', folder);
+        upgraded = new SQL({ max: 1, url: url.toString() });
+        await upgraded.unsafe(`
+            DROP TABLE chat_events CASCADE;
+            ALTER TABLE servers DROP CONSTRAINT servers_nonnegative_chat_event_cursor;
+            ALTER TABLE servers DROP COLUMN last_chat_event_cursor;
+        `);
+
+        await throughMigration(72);
+        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus', folder)).toEqual([
+            '0071_skool-preset',
+            '0072_drop_chat_events',
+        ]);
+        expect(await upgraded`SELECT to_regclass('public.chat_events') AS events`).toEqual([
+            { events: null },
+        ]);
+    } finally {
+        await upgraded?.close();
+        await database.unsafe('DROP DATABASE IF EXISTS haus_redrop_chat_events_test');
+        await database.close();
+        await rm(folder, { recursive: true, force: true });
+    }
+}, 60_000);
