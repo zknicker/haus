@@ -142,6 +142,9 @@ function AddAccountRow({ isPending, onPress }: { isPending: boolean; onPress: ()
 }
 
 function reauthorizeLabel(connection: McpConnection, usesToken: boolean) {
+    if (connection.preset === 'skool') {
+        return 'Reconnect Skool';
+    }
     if (connection.auth === 'oauth') {
         return 'Sign in again';
     }

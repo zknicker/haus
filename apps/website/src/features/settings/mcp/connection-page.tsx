@@ -6,6 +6,7 @@ import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { useConnectionDelete } from '../../../hooks/servers/use-connection-delete.ts';
 import { useConnectionDisconnect } from '../../../hooks/servers/use-connection-disconnect.ts';
 import { useConnectionRefresh } from '../../../hooks/servers/use-connection-refresh.ts';
+import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { settingsConnectionRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
@@ -21,6 +22,8 @@ import { McpAgentAccessSection } from './mcp-connection-agents.tsx';
 import { McpConnectionFacts } from './mcp-connection-facts.tsx';
 import { McpToolsSection } from './mcp-connection-tools.tsx';
 import { McpHeaderCredentialsDialog } from './mcp-header-credentials-dialog.tsx';
+import { SkoolConnectDialog } from './skool-connect-dialog.tsx';
+import type { CredentialsEditor } from './use-connection-credentials.ts';
 import { useConnectionCredentials } from './use-connection-credentials.ts';
 import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 
@@ -48,6 +51,7 @@ export function ConnectionPage({
     const deleteConnection = useConnectionDelete(serverId);
     const disconnect = useConnectionDisconnect(serverId);
     const refresh = useConnectionRefresh(serverId);
+    const skool = useSkoolConnect(serverId);
     const navigate = useNavigate();
     const { slug } = useServerContext().server;
     const [destructiveAction, setDestructiveAction] = useState<McpDestructiveAction | null>(null);
@@ -66,7 +70,8 @@ export function ConnectionPage({
 
     const connection = view;
     const { tokenPreset } = credentials;
-    const saving = credentials.saving || signIn.starting;
+    const saving = credentials.saving || signIn.starting || skool.connecting;
+    const skoolEditor = resolveSkoolEditor(credentials.editor);
 
     return (
         <PageColumn>
@@ -137,7 +142,23 @@ export function ConnectionPage({
                 open={credentials.editor === 'headers'}
                 saving={saving}
             />
-            {tokenPreset ? (
+            {skoolEditor ? (
+                <SkoolConnectDialog
+                    affectedAgentCount={
+                        skoolEditor === 'skool' ? connection.affectedAgents.length : 0
+                    }
+                    onClose={credentials.closeEditor}
+                    onConnect={() => {
+                        const target = skoolEditor === 'account-skool' ? undefined : connectionId;
+                        credentials.closeEditor();
+                        void skool.connect(target).then((created) => {
+                            if (created) {
+                                navigate(settingsConnectionRoute(slug, created.id));
+                            }
+                        });
+                    }}
+                />
+            ) : tokenPreset ? (
                 <McpBearerTokenDialog
                     heading={
                         credentials.editor === 'account-token'
@@ -157,4 +178,8 @@ export function ConnectionPage({
             />
         </PageColumn>
     );
+}
+
+function resolveSkoolEditor(editor: CredentialsEditor | null) {
+    return editor === 'account-skool' || editor === 'skool' ? editor : null;
 }

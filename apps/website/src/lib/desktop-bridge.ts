@@ -107,6 +107,7 @@ export interface HausDesktopBridge {
     /** Show a count on the macOS Dock icon; 0 clears it. */
     setDockBadge?: (count: number) => Promise<void>;
     setTheme: (theme: 'dark' | 'light' | null) => Promise<void>;
+    skoolLogin?: (viewId: string) => Promise<unknown>;
     startWindowDrag: () => Promise<void>;
     /**
      * Tab drag between windows (ADR 0039, `lib/desktop-tab-drag.ts`). A torn-off window claims

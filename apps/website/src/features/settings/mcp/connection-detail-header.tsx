@@ -118,7 +118,11 @@ function SetupAction({
     if (connection.auth === 'headers') {
         return (
             <Button isDisabled={saving} onPress={onAddCredentials} size="sm">
-                {usesToken ? 'Add token' : 'Add credentials'}
+                {connection.preset === 'skool'
+                    ? 'Sign in'
+                    : usesToken
+                      ? 'Add token'
+                      : 'Add credentials'}
             </Button>
         );
     }

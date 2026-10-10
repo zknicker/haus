@@ -8,7 +8,7 @@ import type { McpConnection } from './mcp-server-shared.ts';
 import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 
 /** Which credentials form is open over the connection page. */
-export type CredentialsEditor = 'account-token' | 'headers' | 'token';
+export type CredentialsEditor = 'account-token' | 'headers' | 'token' | 'skool' | 'account-skool';
 
 /** Credentials held back until the Agents losing access are confirmed. */
 type PendingCredentials =
@@ -72,7 +72,9 @@ export function useConnectionCredentials({
                 return;
             }
             const name = `${connection.name} account`;
-            if (isMcpBearerTokenPreset(preset)) {
+            if (preset === 'skool') {
+                setEditor('account-skool');
+            } else if (isMcpBearerTokenPreset(preset)) {
                 setEditor('account-token');
             } else if (connection.auth === 'oauth') {
                 signIn.beginCreated(
@@ -93,7 +95,8 @@ export function useConnectionCredentials({
         },
         editor,
         /** Opens the form that adds or replaces this connection's credentials. */
-        editCredentials: () => setEditor(tokenPreset ? 'token' : 'headers'),
+        editCredentials: () =>
+            setEditor(preset === 'skool' ? 'skool' : tokenPreset ? 'token' : 'headers'),
         saveHeaders: (headers: Record<string, string>) => replace({ headers, kind: 'headers' }),
         saveToken: async (bearerToken: string) => {
             if (editor === 'account-token' && connection && tokenPreset) {

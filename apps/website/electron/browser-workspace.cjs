@@ -10,6 +10,7 @@ const {
     parseBrowserPlacements,
 } = require('./browser-workspace-layout.cjs');
 const { createBrowserView } = require('./browser-workspace-view.cjs');
+const { waitForSkoolSession } = require('./skool-login.cjs');
 
 const maxViews = 20;
 
@@ -24,7 +25,7 @@ const maxViews = 20;
  * the context menu, `openExternal` for mail links, and `inspect` (development
  * builds only) for Inspect Element.
  */
-function createBrowserWorkspace(window, { WebContentsView, browserSession, page }) {
+function createBrowserWorkspace(window, { WebContentsView, browserSession, page, skoolSession }) {
     const views = new Map();
     let placements = [];
     /**
@@ -62,7 +63,7 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         runShortcut: (action) => runBrowserWindowAction(window, scopedTo(viewId), action),
         onFocus: () => send('desktop:browser:focus', viewId),
     });
-    const open = (url, viewId) => {
+    const open = (url, viewId, selectedSession = browserSession) => {
         if (views.has(viewId)) {
             return;
         }
@@ -71,7 +72,7 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         }
         const entry = createBrowserView(hostFor(viewId), url, {
             WebContentsView,
-            browserSession,
+            browserSession: selectedSession,
             page,
         });
         views.set(viewId, entry);
@@ -198,6 +199,14 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page 
         }
     });
     return {
+        skoolLogin: (id) => {
+            assertViewId(id);
+            if (!mounted || views.has(id)) {
+                throw new Error('Open a new Skool sign-in tab.');
+            }
+            open('https://www.skool.com/login', id, skoolSession(id));
+            return waitForSkoolSession(viewEntry(id).view.webContents);
+        },
         /** Only a placed page is captured: a hidden one may show stale or no pixels. */
         capture: (id) => captureBrowserPage(views.get(id), () => isPlaced(id)),
         command,

@@ -23,7 +23,11 @@ export function McpConnectionFacts({
                     </span>
                 </Fact>
                 <Fact label="Sign-in">
-                    {usesToken ? 'Bearer token' : signInLabels[connection.auth]}
+                    {connection.preset === 'skool'
+                        ? 'Desktop browser sign-in'
+                        : usesToken
+                          ? 'Bearer token'
+                          : signInLabels[connection.auth]}
                 </Fact>
                 <Fact label="Type">{connection.builtIn ? 'Built in' : 'Custom'}</Fact>
             </dl>

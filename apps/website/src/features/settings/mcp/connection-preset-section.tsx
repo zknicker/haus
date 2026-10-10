@@ -11,9 +11,11 @@ import { useState } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
+import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { SettingsCardGrid, SettingsGridItem } from '../layout/settings-card-grid.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
+import { SkoolConnectDialog } from './skool-connect-dialog.tsx';
 
 const presets: Array<{ description: string; id: McpPreset; name: string }> = [
     {
@@ -46,6 +48,11 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         id: 'x',
         name: 'X',
     },
+    {
+        description: 'Read your Skool communities, posts, and classroom courses.',
+        id: 'skool',
+        name: 'Skool',
+    },
 ];
 
 /** Presets not yet added, each one press away from being an Added MCP. */
@@ -54,6 +61,8 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const connections = useConnections(serverId);
     // A bearer-token preset takes its token before it is added, not after.
     const [tokenPreset, setTokenPreset] = useState<McpBearerTokenPreset | null>(null);
+    const [skoolOpen, setSkoolOpen] = useState(false);
+    const skool = useSkoolConnect(serverId);
     const availablePresets = presets.filter(
         (preset) => !connections.data?.some((connection) => connection.preset === preset.id)
     );
@@ -63,7 +72,9 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     }
 
     const add = (preset: McpPreset, name: string) => {
-        if (isMcpBearerTokenPreset(preset)) {
+        if (preset === 'skool') {
+            setSkoolOpen(true);
+        } else if (isMcpBearerTokenPreset(preset)) {
             setTokenPreset(preset);
         } else {
             addPreset.mutate({ name, preset, serverId });
@@ -100,7 +111,7 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                             <Tooltip delay={0}>
                                 <Button
                                     aria-label={`Add ${preset.name}`}
-                                    isDisabled={addPreset.isPending}
+                                    isDisabled={addPreset.isPending || skool.connecting}
                                     isIconOnly
                                     isPending={
                                         addPreset.isPending &&
@@ -133,6 +144,15 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                     }}
                     open
                     preset={tokenPreset}
+                />
+            ) : null}
+            {skoolOpen ? (
+                <SkoolConnectDialog
+                    onClose={() => setSkoolOpen(false)}
+                    onConnect={() => {
+                        setSkoolOpen(false);
+                        void skool.connect();
+                    }}
                 />
             ) : null}
         </>
