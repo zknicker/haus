@@ -158,6 +158,6 @@ A genuine human identity change renders through a newly keyed hosted QueryClient
 the next identity cannot observe the previous identity's cache or local presentation state. After a
 websocket reconnect, each event stream's restart and one App-wide pass reconcile active durable
 queries from Server state, each read exactly once, while their cached snapshot continues rendering
-([Realtime](../api/realtime.md#reconnect-recovery)).
+([Realtime](../api/realtime.md#recovery)).
 
 React ownership and event rules live in [React Conventions](react.md).

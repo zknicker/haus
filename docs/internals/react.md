@@ -414,9 +414,10 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
 * For chat and other streaming surfaces, patch exact volatile state from live
   events. Do not refetch durable list or log queries for every progress token.
 * Effects are for external synchronization, not derived state.
-* Chat hooks keep messages, lists, reads, and search in React Query.
-  Durable reconnect events trigger cursor catch-up plus exact invalidation;
-  composition events stay component-local and are discarded on unmount.
+* Chat hooks keep messages, lists, reads, and search in React Query. Realtime
+  events are live notifications that invalidate or tail-read; recovery is
+  refetching reads, never replaying events. Composition events stay
+  component-local and are discarded on unmount.
   Selected attachment `File` objects stay composer-local; durable messages
   retain only attachment metadata, and authenticated byte transfer stays in
   focused attachment hooks.
@@ -452,37 +453,40 @@ pass.
   `lib/query-policy.ts` (or an explicit `staleTime` with a stated reason).
   Both tRPC clients share a 30s default `staleTime` floor so an unpoliced
   one-off query cannot refetch on every mount.
-* `queryPolicy.pushedSnapshot` (`staleTime: Infinity`, never `'static'`) is
-  for reads events keep exact: every Server write that changes the read emits
-  an event whose listener invalidates that key, and a stream re-reads it after
-  a gap. Register the read in `lib/pushed-snapshot-coverage.ts` with its
-  covering events and recovery stream first; the contract test refuses the
-  preset elsewhere, requires every reader of a registered read to use it, and
-  checks each named event's listener refreshes it. One uncovered write keeps a
-  read on `syncedSnapshot` (30s). The current set and the gaps holding the rest
-  back are in [Realtime](../api/realtime.md#pushed-reads). Pushed reads keep the
-  30-minute `gcTime`: a Chat unvisited that long reads fresh, and kept Chat
-  views hold their observers anyway.
-* Event listener hooks are the single invalidation owner for their namespace.
-  Mutations do not re-invalidate what a durable event already covers; at most
-  they keep one narrow un-awaited invalidate as an ack fallback.
-* Listeners branch per event type and invalidate only the queries whose
-  rendered payload the event changes. Ground new branches in what the list
-  procedure actually returns, not in what sounds related.
-* One listener hook per event type owns that event's invalidation, and those
-  hooks mount together behind their stream's transport. The transport owns the
-  subscription, the cursor, the burst window, and reconnect catch-up, and hands
-  each listener its own events; it maps nothing to a query itself. Adding an
-  event type means adding its listener hook, not another branch in a shared
-  switch. See `hooks/servers/chat-events/`.
-* Open a second wire stream only when the audience or authority differs, never
-  to separate concerns.
-* When an event names the record it changed, invalidate that record's detail
-  read exactly and keep the broad invalidation as the no-id fallback. A
-  `server.updated` event carrying `agentId` refreshes that Agent's detail and
-  delivery state; one carrying `memberId` refreshes that human's directory
-  record. A listener also refreshes only the Server detail it subscribes to,
-  never every cached slug. See [Realtime](../api/realtime.md).
+* Events are live notifications; React Query owns recovery. No changing Server
+  read opts out of staleness: `syncedSnapshot` (30 s) is the floor for
+  event-covered reads, and the `chat.message` entity family is the one
+  allowlisted `staleTime: Infinity` exception, kept fresh by targeted
+  invalidation and its lists' bulk refetch. A read recovers on a stream restart
+  (its owner's owned reads), a socket reconnect (one App-wide pass,
+  `lib/query-reconnect-recovery.ts`), a window focus past the 3-minute stale
+  window (`refetchesOnFocus` plus `lib/query-focus.ts`, which also feeds the
+  desktop window's native focus into `focusManager`), and staleness on mount.
+  `volatileState` reads keep their own rules. Never replay or cursor events in
+  the client.
+* Realtime conventions ([Realtime](../api/realtime.md)): one focused
+  subscription per event type, each with one hook under `hooks/realtime/` that
+  owns its subscription and its exact cache response; no union stream,
+  registry, or `switch`. Each hook wires `useSubscriptionRestart`, which
+  restarts on error and on normal completion with backoff, recovers only the
+  stream's owned reads after a failure, and answers refusal classes
+  (`membership_lost` runs the Server-loss path in `hooks/servers/server-loss.ts`,
+  `role_required` stops the stream, `UNAUTHORIZED` refreshes the session).
+  Invalidate through the coalescer (`useTargetedReadCoalescer`) so a burst
+  refetches each key once per frame with `refetchType: 'active'`; prefer
+  invalidation, and for transcripts use its tail reads and per-entity
+  invalidation. Root streams mount in `ServerRealtimeListeners` (one tiny
+  component per hook) and `ServerEventListeners` (every accessible Server).
+* Stream hooks are the single invalidation owner for their namespace.
+  Mutations do not re-invalidate what an event already covers; at most they
+  keep one narrow un-awaited invalidate as an ack fallback.
+* A hook invalidates only the queries whose rendered payload its event changes.
+  Ground it in what the read procedure actually returns, not in what sounds
+  related. When an event names the record it changed, invalidate that record
+  exactly and keep the broad invalidation for the null-id notice.
+* Open a new stream per event type, not a shared bucket; a listener that also
+  announces something (message notifications) takes the stream hook's
+  `onEvent` callback instead of a second subscription.
 * Never set `refetchOnMount: false` on a query that unmounts with navigation.
   Invalidation marks inactive queries stale without refetching them, so the
   stale-gated mount refetch (the React Query default) is what delivers those

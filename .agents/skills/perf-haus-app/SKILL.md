@@ -118,8 +118,8 @@ release check (10 min), onboarding and sign-in bounded polls, and one
 `session.refresh` per Clerk rotation over the socket (not HTTP). Anything else is a regression;
 the usual causes are a reconnect (token rotation used to force one every 30–60 s) and a recovery
 pass that refetches a read some event stream already recovers. A real socket drop should show one
-reconnect, one subscription start per stream, and one catch-up per stream — never a second pass
-of the same read ([realtime.md](../../../docs/api/realtime.md#reconnect-recovery)).
+reconnect, one subscription start per stream, and one App-wide reconnect pass — never a second pass
+of the same read ([realtime.md](../../../docs/api/realtime.md#recovery)).
 
 Kept-alive chat views stay in the DOM while hidden, so "a fresh node appeared" detection is wrong
 for warm switches; every probe scopes to the displayed target surface. Passes: **cold** = first
@@ -131,7 +131,7 @@ Run these after any change to navigation, kept views, prefetch, or cache patchin
 
 - App e2e (`apps/website/e2e/tests/`): `chat-navigation`, `route-performance`,
   `agent-profile-performance`, `agent-live-turn`, `chat-typing`, `messaging`, `inbox-unread`.
-- Unit (`apps/website/src/`): `hooks/servers/chat-events/*`, `chat-navigation-cache`,
+- Unit (`apps/website/src/`): `hooks/realtime/*`, `chat-navigation-cache`,
   `query-policy-contract`, `query-polling-contract`, `query-reconnect-recovery`,
   `agent-history-cache`, `desktop-tabs-store`, `kept-chat-views`, `kept-chat-view-invariants`,
   `transcript-render-isolation`, `use-press-navigation`.

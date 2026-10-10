@@ -74,13 +74,13 @@ so `docs:list` routes future agents correctly.
   procedures.
 - Keep API procedures thin: validate input, call product logic, and return a narrow result.
 - Put business logic under product nouns. Keep external-system code behind adapters.
-- Define server-to-client event contracts in `packages/haus-api`: durable event types in
-  `src/chat.ts` (`ServerDurableEvent`) and Server-scoped update events in `src/server-events.ts`
-  (`serverUpdatedEventSchema`).
-- Prefer named domain subscriptions such as `chat.onEvent` or `agent.onActivity` over generic
-  event buckets.
-- App event hooks should own their tRPC subscription and the exact React Query invalidation or cache
-  update.
+- Define server-to-client event contracts in `packages/haus-api`, one payload schema per event
+  type: Chat and Thread events in `src/chat-events.ts`, Server-level notices in
+  `src/realtime-events.ts` (see `specs/realtime-events.md`).
+- One focused subscription per event type, such as `chat.onMessageCreated` or `agent.onActivity`;
+  never a union stream or generic event bucket.
+- Events are live notifications; React Query owns recovery. Each App stream hook owns its tRPC
+  subscription and the exact React Query invalidation or cache update.
 
 ## Haus App UI
 
