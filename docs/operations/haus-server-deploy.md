@@ -230,6 +230,12 @@ rollback does not reverse database changes. Destructive cleanup lands only in a
 later release after every deployed Server version has stopped using the old
 shape.
 
+Haus 10.0.0 is an operator-approved exception: migration 0072 removes `chat_events` and
+`servers.last_chat_event_cursor` with the protocol 9 cutover. Server 8.4.0 cannot run against
+that migrated schema. Recovery after the drop requires a forward fix on the new schema;
+automatic activation rollback restores only the binary and does not restore the old contract.
+The migration keeps Chat messages and read markers. No database backup is created by this release.
+
 Migration 0064 keeps the physical `agents.personality` column for rollback to Server 7.1.0.
 The current Server maps its conversation-style field onto that same column, so both versions
 read and write the same value. The product API uses conversation style.

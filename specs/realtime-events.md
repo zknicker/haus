@@ -14,10 +14,11 @@ read_when:
 Status: normative. Contracts landed in `packages/haus-api`; Server, App, Computer, and iPhone
 slices implement against this document. **One release gate**: protocol 9
 (`packages/haus-api/src/app-protocol.ts`), the Server cutover (topics, procedures, `chat_events`
-migration), the web/desktop App, and the iPhone app ship in the same release. Until then the
-split (`@haus/api` at 9, `apps/ios-swift/Sources/HausTransport/AppConfig.swift` at 8) is a
-branch state that must not ship. Older clients get `PRECONDITION_FAILED` and the
-update-required screen; there is no compatibility path.
+migration), the web/desktop App, and the iPhone app ship in the same release. App and iPhone
+protocol versions must both be 9. Older clients get `PRECONDITION_FAILED` and the
+update-required screen; there is no compatibility path. Haus 10.0.0 intentionally removes the
+old event schema in this cutover with operator approval. Server 8.4.0 cannot be restored by
+application rollback after migration 0072; recovery uses a forward fix on the new schema.
 
 ## Why
 
