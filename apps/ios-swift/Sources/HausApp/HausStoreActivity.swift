@@ -15,12 +15,9 @@ extension HausStore {
             if let current = currentActivityByAgentID[event.agentID], current.runID != event.runID {
                 currentActivityByAgentID.removeValue(forKey: event.agentID)
             }
+            // Lifecycle owns presence alone: the message stream and its
+            // start reconciliation own transcripts, `sending` included.
             setLifecycleAvailability(.working, for: event.agentID)
-            if event.phase == .sending {
-                Task { [weak self] in
-                    await self?.recoverCommittedAgentMessage(event)
-                }
-            }
         case .settled:
             let settled: AgentAvailability = switch event.outcome {
             case .completed: .idle
@@ -44,12 +41,14 @@ extension HausStore {
     func reloadAgentAvailability(serverID: String) async {
         guard activeServer?.id == serverID else { return }
         let revisionAtStart = lifecycleRevision
+        let readStart = realtimeReconciliation.beginRead()
         do {
             let refreshed: [AgentSummary] = try await client.query(
                 "agent.list",
                 input: ServerScopedInput(serverId: serverID)
             )
             guard activeServer?.id == serverID else { return }
+            realtimeReconciliation.landed(.agentAvailability, readStartedAt: readStart)
             agents = refreshed
             clearLifecycleAvailability(ifRevisionIs: revisionAtStart)
             await reloadActiveActivity(serverID: serverID)
@@ -87,12 +86,14 @@ extension HausStore {
     /// can apply it in the same pass as the Agent list it is derived from.
     func fetchActiveActivity(serverID: String) async -> AgentActiveActivitySnapshot? {
         guard activeServer?.id == serverID else { return nil }
+        let readStart = realtimeReconciliation.beginRead()
         do {
             let snapshot: AgentActiveActivitySnapshot = try await client.query(
                 "agent.activeActivity",
                 input: ServerScopedInput(serverId: serverID)
             )
             guard activeServer?.id == serverID else { return nil }
+            realtimeReconciliation.landed(.agentActivity, readStartedAt: readStart)
             return snapshot
         } catch {
             // Lifecycle availability remains authoritative for the dot. A
@@ -150,37 +151,6 @@ extension HausStore {
             currentActivityByAgentID[event.agentID] = event
         } else if current?.runID == event.runID {
             currentActivityByAgentID[event.agentID] = event.projectedAsWorking()
-        }
-    }
-
-    /// Recovery for the Server lifecycle signal that follows a committed Agent
-    /// message. The lifecycle event has the child Chat id but no parent Chat id,
-    /// so mounted pages come from the same focused/canvas ownership used by
-    /// foreground recovery.
-    func recoverCommittedAgentMessage(_ event: AgentLifecycleEvent) async {
-        guard let serverID = activeServer?.id else { return }
-        let mountedChatIDs = OpenChatPages.toRefresh(
-            focusedChatID: openChatID,
-            canvasChatID: canvasChatID
-        )
-        guard let plan = agentMessageRecovery.beginRecovery(
-            event: event,
-            activeServerID: serverID,
-            mountedChatIDs: mountedChatIDs
-        ) else { return }
-
-        // Keep the Chat list and mounted transcripts on the same recovery
-        // signal. Pages are refreshed in focused-then-canvas order so a pop
-        // reveals a parent summary that already includes a first Thread reply.
-        // Shared with the `message.created` batch that usually follows.
-        await refreshChatList(serverID: plan.serverID)
-        guard activeServer?.id == plan.serverID else { return }
-        // Search is view-owned, but its result presentation uses the Chat list
-        // projections. Publish the revision only after that list is current so
-        // the rerun cannot map against the pre-commit summaries.
-        agentMessageSearchRevision = plan.searchRevision
-        for chatID in plan.chatIDs {
-            await loadMessages(chatID: chatID)
         }
     }
 }

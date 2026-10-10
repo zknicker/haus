@@ -109,7 +109,7 @@ final class HausStore {
     @ObservationIgnored var realtimeServerID: String?
     @ObservationIgnored var streamRestarts = RealtimeStreamRestarts()
     @ObservationIgnored var streamRestartTasks: [RealtimeStream: Task<Void, Never>] = [:]
-    @ObservationIgnored var pendingRecovery: Set<RealtimeProjection> = []
+    @ObservationIgnored var realtimeReconciliation = RealtimeReconciliation()
     @ObservationIgnored var recoveryFlush: Task<Void, Never>?
     @ObservationIgnored var membershipLossInFlight = false
     var streamsHealthy: Bool { realtimeServerID != nil && streamRestarts.allRunning }
@@ -149,10 +149,8 @@ final class HausStore {
     /// short window, so a burst costs one read fan-out.
     @ObservationIgnored var liveChatEvents = ChatEventCoalescer<ChatRealtimeEvent>()
     @ObservationIgnored var liveChatEventFlush: Task<Void, Never>?
-    /// Recovery state invalidates mounted Chat reads when an Agent message has
-    /// committed and supplies the revision that mounted Server search observes.
-    @ObservationIgnored var agentMessageRecovery = AgentMessageRecoveryState()
-    var agentMessageSearchRevision = 0
+    /// Advances when a new message lands, so mounted Server search reruns.
+    var messageSearchRevision = 0
     // Internal so the foreground refresh can live with the rest of the
     // realtime plumbing it drives.
     var foregroundRefreshInFlight = false

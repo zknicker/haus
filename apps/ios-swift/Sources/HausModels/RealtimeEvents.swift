@@ -228,6 +228,20 @@ public struct CloudAgentWorkUpdatedEvent: Decodable, Sendable, Equatable {
     }
 }
 
+/// `server.onUpdated`: the Server's name or membership changed. The stream is
+/// also the membership sentinel; its refusal, not this payload, reports loss.
+public struct ServerUpdatedEvent: Decodable, Sendable, Equatable {
+    public let serverID: String
+
+    public init(serverID: String) {
+        self.serverID = serverID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case serverID = "serverId"
+    }
+}
+
 /// One live Chat-family notification, as the Store buffers it.
 public enum ChatRealtimeEvent: Sendable, Equatable {
     case messageCreated(MessageCreatedEvent)

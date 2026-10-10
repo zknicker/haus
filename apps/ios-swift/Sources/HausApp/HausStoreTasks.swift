@@ -58,9 +58,12 @@ extension HausStore {
     /// Refreshes the Server-wide default Task lens the Task list stands on.
     func loadServerTasks() async {
         guard let serverID = activeServer?.id else { return }
+        let readStart = realtimeReconciliation.beginRead()
         do {
             let tasks = try await loadTasks()
-            guard activeServer?.id == serverID else { return }
+            guard activeServer?.id == serverID,
+                  realtimeReconciliation.landed(.taskLenses, readStartedAt: readStart)
+            else { return }
             if serverTasks != tasks { serverTasks = tasks }
         } catch {
             Self.logger.error("Loading server tasks failed: \(error.localizedDescription, privacy: .public)")

@@ -13,6 +13,10 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     case taskLabelUpdated = "taskLabel.onUpdated"
     case agentLifecycle = "agent.onLifecycle"
     case agentActivity = "agent.onActivity"
+    /// The membership sentinel: departures and Server deletion publish
+    /// `server.updated`, so this stream ends with `membership_lost` for
+    /// whoever just lost access.
+    case serverUpdated = "server.onUpdated"
 
     public var path: String { rawValue }
 
@@ -23,8 +27,8 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         self == .messageCreated || self == .agentLifecycle
     }
 
-    /// What this stream's (re)start reloads: only the projections it keeps
-    /// fresh, and only those the iPhone has loaded.
+    /// The projections this stream keeps fresh, and so the ones its starts
+    /// reconcile (only those the iPhone has loaded).
     public var ownedProjections: Set<RealtimeProjection> {
         switch self {
         case .messageCreated, .messageReactionUpdated, .chatRead, .threadFollowUpdated:
@@ -36,26 +40,40 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .chatLifecycle:
             [.chatList]
         case .taskLabelUpdated:
-            [.taskLenses]
+            // Labels are embedded in transcript entities as well as lenses.
+            [.openTranscripts, .taskLenses]
         case .agentLifecycle:
             [.agentAvailability]
         case .agentActivity:
             [.agentActivity]
+        case .serverUpdated:
+            [.serverList]
         }
     }
 
-    /// Volatile live projections re-read on every connect, the first included;
-    /// the others reload only on a restart, after the launch already read them.
-    public var recoversOnFirstConnect: Bool {
-        self == .agentLifecycle || self == .agentActivity
+    /// Whether every start tail-reads each loaded list: the message stream's
+    /// own cheap path for a message committed before it subscribed.
+    public var tailsLoadedListsOnStart: Bool { self == .messageCreated }
+
+    /// What one successful start reconciles. Recovery is anchored to the
+    /// subscription start, so every start reconciles, the first included. The
+    /// message stream's first start leaves the bulk transcript reload to its
+    /// tail reads and to the annotation streams starting beside it; a restart
+    /// of it alone reloads in bulk, which also repairs a Thread anchor whose
+    /// reply event it missed.
+    public func startReconciliation(isRestart: Bool) -> Set<RealtimeProjection> {
+        guard self == .messageCreated, !isRestart else { return ownedProjections }
+        return ownedProjections.subtracting([.openTranscripts])
     }
 }
 
-/// A Store projection a stream restart reloads.
+/// A Store projection a stream start reconciles.
 public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     /// Every open transcript list's loaded pages, in bulk (never per entity).
     case openTranscripts
     case chatList
+    /// `server.list`: the active Server's name and the viewer's Servers.
+    case serverList
     /// Every loaded task lens.
     case taskLenses
     case activeCloudAgentWork
@@ -110,8 +128,8 @@ public struct RealtimeStreamRestarts: Sendable, Equatable {
     /// Whether every stream is running (none waiting to restart or stopped).
     public var allRunning: Bool { ended.isEmpty }
 
-    /// Records a connect. Returns whether this is a restart, the trigger for
-    /// reloading the stream's owned projections.
+    /// Records a connect. Returns whether this is a restart (any connect after
+    /// the stream's first), which widens what the message stream reconciles.
     public mutating func connected(_ stream: RealtimeStream, at now: Date) -> Bool {
         connectedAt[stream] = now
         ended.remove(stream)

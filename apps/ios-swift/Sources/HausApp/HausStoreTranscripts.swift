@@ -66,8 +66,8 @@ extension HausStore {
         }
     }
 
-    /// The first connect of the message stream: any message committed since
-    /// the loaded pages were read has no event, so each list reads its tail.
+    /// Every start of the message stream: any message committed before it
+    /// subscribed has no event, so each loaded list reads its tail.
     func tailLoadedTranscripts() {
         for chatID in Set(transcripts.lists.keys.map(\.chatID)) {
             requestTail(chatID: chatID, through: .max)
@@ -103,6 +103,7 @@ extension HausStore {
         while !Task.isCancelled {
             beginListRead(chatID: key.chatID)
             defer { settleListRead(chatID: key.chatID) }
+            let epoch = transcriptReads.tailEpoch
             let page: ChatMessagePage
             do {
                 page = try await client.query("chat.messages", input: ChatMessagesInput(
@@ -117,7 +118,9 @@ extension HausStore {
             }
             // A navigation that replaced the list meanwhile owns it now.
             guard !Task.isCancelled, activeServer?.id == serverID,
-                  transcripts.lists[key]?.scannedThroughSequence == after
+                  transcripts.lists[key]?.scannedThroughSequence == after,
+                  // A label update since this read began: drop it, read again.
+                  transcriptReads.acceptsTail(key, through: sequence, epoch: epoch)
             else { return }
             writeTranscript(page, to: key, as: .tail)
             if case let .chat(chatID) = key {
@@ -203,6 +206,8 @@ extension HausStore {
     /// which rewrites their entities and parent Thread anchors, then reads
     /// each tail. Lists off screen are marked to reload when shown.
     func recoverOpenTranscripts() async {
+        let readStart = realtimeReconciliation.beginRead()
+        defer { realtimeReconciliation.landed(.openTranscripts, readStartedAt: readStart) }
         let open = OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID)
         let openSet = Set(open)
         staleTranscriptChatIDs.formUnion(transcripts.lists.keys.map(\.chatID).filter { !openSet.contains($0) })
@@ -276,7 +281,7 @@ extension HausStore {
     func cancelTranscriptReads() {
         entityLoads.values.forEach { $0.task.cancel() }
         entityLoads = [:]
-        transcriptReads = TranscriptReads()
+        transcriptReads.reset()
     }
 
     /// A Server change or loss: nothing of the old Server's transcripts stays.

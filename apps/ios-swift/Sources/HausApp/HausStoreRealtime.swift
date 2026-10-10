@@ -19,6 +19,9 @@ struct ServerSnapshot: Sendable {
     /// authoritative for the working dot, so a transient failure keeps the
     /// activity the shell already has rather than clearing it.
     let activity: AgentActiveActivitySnapshot?
+    /// When the reads began, so a Server or Chat list older than one a start
+    /// reconciliation already applied writes nothing.
+    let readStart: Int
 }
 
 extension HausStore {
@@ -36,6 +39,7 @@ extension HausStore {
     /// role-denied fallback: no Chat surface observes that field, so its write
     /// neither joins the batched apply nor holds it up.
     func fetchServerSnapshot(serverID: String) async throws -> ServerSnapshot {
+        let readStart = realtimeReconciliation.beginRead()
         async let loadedServers: [ServerSummary] = client.query("server.list")
         async let loadedChats: [ChatSummary] = client.query(
             "chat.list",
@@ -60,7 +64,8 @@ extension HausStore {
             chats: loadedChats,
             agents: loadedAgents,
             members: loadedMembers,
-            activity: loadedActivity
+            activity: loadedActivity,
+            readStart: readStart
         )
     }
 
@@ -101,10 +106,10 @@ extension HausStore {
 
         foregroundRefreshInFlight = true
         defer { foregroundRefreshInFlight = false }
-        // Suspension most likely killed the sockets. Fresh streams subscribe
-        // first and the snapshot reads after, so nothing committed in between
-        // is missed; a fresh stream's first connect reloads nothing the
-        // snapshot is about to read.
+        // Suspension most likely killed the sockets. The snapshot below may
+        // finish before a fresh stream subscribes, so each stream's start
+        // reconciles what it owns (open transcripts included) once it is up;
+        // the snapshot covers what no iPhone stream owns.
         startEventStreams(serverID: serverID)
 
         do {
@@ -126,14 +131,10 @@ extension HausStore {
         apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
         await iconBadge
 
-        // Every Chat surface on the user's stack reloads its loaded pages in
-        // bulk, not just the deepest one: a pushed Thread covers its parent
-        // Chat, and popping back to a page that is one round trip stale
-        // flashes pre-background content through the pop animation. Every
-        // other cached list reloads when `openChat` shows it again.
-        await recoverOpenTranscripts()
-        // Reads belong to the deepest surface alone. A covered canvas Chat was
-        // refreshed above but is not what the user is looking at.
+        // Open transcripts are not read here: every stream start reconciles
+        // them in one shared pass (`recoverOpenTranscripts`), and reading
+        // them now as well would load each page twice. Reads belong to the
+        // deepest surface alone.
         if let openChatID {
             await markChatReadIfNeeded(chatID: openChatID)
         }
@@ -147,8 +148,13 @@ extension HausStore {
         if servers.first?.id != snapshot.servers.first?.id {
             resetInlineReplyCache()
         }
-        if servers != snapshot.servers { servers = snapshot.servers }
-        chats = snapshot.chats
+        if realtimeReconciliation.landed(.serverList, readStartedAt: snapshot.readStart),
+           servers != snapshot.servers {
+            servers = snapshot.servers
+        }
+        if realtimeReconciliation.landed(.chatList, readStartedAt: snapshot.readStart) {
+            chats = snapshot.chats
+        }
         agents = snapshot.agents
         members = snapshot.members
         // The live overlay outranks `agent.list` only when a lifecycle event
