@@ -212,6 +212,26 @@ test('B: a Server restart with refused resubscribes converges, then C and D', as
     for (const [key, count] of starts) {
         expect(count, key).toBe(key.startsWith('chat.onMessageCreated ') ? 3 : 1);
     }
+    // The Server-level streams resubscribed too, so a rename after the deploy propagates.
+    for (const path of ['server.onUpdated', 'member.onUpdated']) {
+        expect(
+            [...starts.keys()].some((key) => key.startsWith(`${path} `)),
+            path
+        ).toBe(true);
+    }
+    const renamed = traffic.mark();
+    await scene.client.server.rename.mutate({
+        displayName: 'Realtime restart renamed',
+        serverId: scene.server.id,
+    });
+    await expect
+        .poll(() => proxy.deliveredTo(proxy.latest('server.onUpdated')).length, {
+            timeout: 15_000,
+        })
+        .toBeGreaterThan(0);
+    await expect
+        .poll(() => traffic.since(renamed), { timeout: 15_000 })
+        .toContainEqual({ kind: 'trpc', procedure: 'server.bySlug' });
 
     await expectConverged(page, scene, {
         activity: 'Rebuilding the index after the deploy',

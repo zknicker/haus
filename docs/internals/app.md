@@ -150,7 +150,10 @@ The web keeps its column topbar and full-height sidebar.
 The App keeps one tRPC client and React provider mounted for the signed-in human. Clerk token
 rotation re-authenticates that client's open websocket in place (`session.refresh`, see
 [Auth](../api/auth.md#socket-sessions)); only an identity change or a refused refresh reconnects,
-and the reconnect reads fresh connection parameters and resumes pending subscriptions. Credential
+and the reconnect reads fresh connection parameters and resumes pending subscriptions. The refresh
+goes through that same client (`lib/haus-connection.ts`, `context: { socket: true }`), never a
+second client on the socket: the socket keys requests by the client's operation id, so a second
+client's call would replace and then delete a live subscription with the same id. Credential
 rotation must not replace the tRPC provider, remount the Server shell, clear composer drafts, or
 discard other local presentation state.
 
