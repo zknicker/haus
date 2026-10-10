@@ -1,7 +1,13 @@
 import { and, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { attachmentsTable, chatsTable, remindersTable } from '../postgres/schema.ts';
+import {
+    attachmentsTable,
+    chatsTable,
+    remindersTable,
+    serverOnboardingTable,
+    triggersTable,
+} from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 
 interface DeletedChannelTarget {
@@ -30,6 +36,16 @@ export async function purgeDeletedChannel(
     root: AttachmentRoot,
     input: DeletedChannelTarget
 ) {
+    if (await isOnboardingChannel(db, input)) {
+        // Deletion now refuses this channel; a tombstone from before that
+        // refusal is restored instead of purged, before any bytes are discarded.
+        await db
+            .update(chatsTable)
+            .set({ deletedAt: null, deletedByUserId: null })
+            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
+        return;
+    }
+
     const chats = await db
         .select({ id: chatsTable.id })
         .from(chatsTable)
@@ -86,6 +102,16 @@ export async function purgeDeletedChannel(
                     inArray(remindersTable.anchorChatId, chatIds)
                 )
             );
+        // Triggers anchored in the aggregate, tombstones included, go with it;
+        // their fires cascade and message causes keep their own snapshots.
+        await tx
+            .delete(triggersTable)
+            .where(
+                and(
+                    eq(triggersTable.serverId, input.serverId),
+                    inArray(triggersTable.anchorChatId, chatIds)
+                )
+            );
         const childIds = chatIds.filter((id) => id !== input.chatId);
         if (childIds.length > 0) {
             await tx.delete(chatsTable).where(inArray(chatsTable.id, childIds));
@@ -94,4 +120,18 @@ export async function purgeDeletedChannel(
             .delete(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
     });
+}
+
+/** The durable onboarding record names this channel forever, so it is never purged. */
+export async function isOnboardingChannel(db: HausDatabase, input: DeletedChannelTarget) {
+    const [row] = await db
+        .select({ channelId: serverOnboardingTable.channelId })
+        .from(serverOnboardingTable)
+        .where(
+            and(
+                eq(serverOnboardingTable.serverId, input.serverId),
+                eq(serverOnboardingTable.channelId, input.chatId)
+            )
+        );
+    return row !== undefined;
 }

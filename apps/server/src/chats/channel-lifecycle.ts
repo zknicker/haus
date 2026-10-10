@@ -7,7 +7,7 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { purgeDeletedChannel } from './channel-deletion.ts';
+import { isOnboardingChannel, purgeDeletedChannel } from './channel-deletion.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 
 export { purgeDeletedChannels } from './channel-deletion.ts';
@@ -110,6 +110,11 @@ export async function deleteChannel(
         if (input.confirmation !== channel.name) {
             throw new ChannelLifecycleDeniedError('Type the channel name exactly to delete it.');
         }
+        if (await isOnboardingChannel(tx, input)) {
+            throw new ChannelLifecycleConflictError(
+                'The onboarding channel cannot be deleted. Archive it instead.'
+            );
+        }
         if (channel.deletedAt) {
             return null;
         }
@@ -123,7 +128,17 @@ export async function deleteChannel(
         return prepareLifecycleEvent(input, 'deleted');
     });
 
-    await purgeDeletedChannel(db, attachmentRoot, input);
+    // The committed tombstone is the deletion. A failed purge must not report
+    // failure for it; the boot sweep retries every tombstoned channel.
+    try {
+        await purgeDeletedChannel(db, attachmentRoot, input);
+    } catch (error) {
+        console.error('[haus] channel purge failed; boot sweep will retry', {
+            chatId: input.chatId,
+            error: error instanceof Error ? error.message : String(error),
+            serverId: input.serverId,
+        });
+    }
     return { event, receipt: { chatId: input.chatId, serverId: input.serverId } };
 }
 
