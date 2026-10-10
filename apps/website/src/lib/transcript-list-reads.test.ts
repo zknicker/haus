@@ -101,6 +101,43 @@ test('events during a held initial read drain into exactly one tail read', async
     list.close();
 });
 
+test('a message created while an aborted tail read is still held gets its own tail', async () => {
+    const tail = Promise.withResolvers<unknown>();
+    let renamed = false;
+    const cache = createTranscriptCache((request) => {
+        if (request.input.afterSequence === 1) {
+            return tail.promise;
+        }
+        if (request.input.afterSequence === 2) {
+            return Promise.resolve(page([message(chatId, 3)]));
+        }
+        return Promise.resolve(
+            page(renamed ? [message(chatId, 1), message(chatId, 2)] : [message(chatId, 1)])
+        );
+    });
+    const list = cache.observeList(chatId);
+    await settle(() => cache.listIds(chatId)?.length === 1);
+    cache.coalescer.noteMessageCreated(created(2));
+    await settle(() => cache.reads('chat.messages').length === 2);
+    // A label rename aborts the held tail; its drain stays open until the read settles.
+    renamed = true;
+    await cache.coalescer.noteTaskLabelUpdated({ labelId: 'lbl_one', serverId });
+    cache.coalescer.flushInvalidations();
+    await settle(() => cache.listIds(chatId)?.length === 2);
+    cache.coalescer.noteMessageCreated(created(3));
+    tail.resolve(page([message(chatId, 2)]));
+    await settle(() => cache.listIds(chatId)?.length === 3);
+
+    expect(cache.reads('chat.messages').map((read) => read.input.afterSequence)).toEqual([
+        undefined,
+        1,
+        undefined,
+        2,
+    ]);
+    expect(cache.listIds(chatId)).toEqual([1, 2, 3].map((sequence) => `msg_${chatId}_${sequence}`));
+    list.close();
+});
+
 test('a tail read fills a gap and reads again until caught up', async () => {
     const cache = createTranscriptCache(async (request) => {
         if (request.input.afterSequence === undefined) {

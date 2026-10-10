@@ -47,8 +47,10 @@ extension HausStore {
                 "agent.list",
                 input: ServerScopedInput(serverId: serverID)
             )
-            guard activeServer?.id == serverID else { return }
-            realtimeReconciliation.landed(.agentAvailability, readStartedAt: readStart)
+            // An answer older than one already applied writes nothing.
+            guard activeServer?.id == serverID,
+                  realtimeReconciliation.landed(.agentAvailability, readStartedAt: readStart)
+            else { return }
             agents = refreshed
             clearLifecycleAvailability(ifRevisionIs: revisionAtStart)
             await reloadActiveActivity(serverID: serverID)
@@ -84,16 +86,15 @@ extension HausStore {
 
     /// Reads the projection without applying it, so a batched Server snapshot
     /// can apply it in the same pass as the Agent list it is derived from.
+    /// The caller begins the read and lands it when it applies.
     func fetchActiveActivity(serverID: String) async -> AgentActiveActivitySnapshot? {
         guard activeServer?.id == serverID else { return nil }
-        let readStart = realtimeReconciliation.beginRead()
         do {
             let snapshot: AgentActiveActivitySnapshot = try await client.query(
                 "agent.activeActivity",
                 input: ServerScopedInput(serverId: serverID)
             )
             guard activeServer?.id == serverID else { return nil }
-            realtimeReconciliation.landed(.agentActivity, readStartedAt: readStart)
             return snapshot
         } catch {
             // Lifecycle availability remains authoritative for the dot. A
@@ -103,7 +104,10 @@ extension HausStore {
     }
 
     func reloadActiveActivity(serverID: String) async {
-        guard let snapshot = await fetchActiveActivity(serverID: serverID) else { return }
+        let readStart = realtimeReconciliation.beginRead()
+        guard let snapshot = await fetchActiveActivity(serverID: serverID),
+              realtimeReconciliation.landed(.agentActivity, readStartedAt: readStart)
+        else { return }
         replaceActiveActivitySnapshot(snapshot)
     }
 

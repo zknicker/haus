@@ -16,10 +16,12 @@ extension HausStore {
     /// Refetches the Agent directory. Presence is an overlay on top of it, so a
     /// fresh directory drops the stale overlay rather than merging into it.
     func reloadAgents(serverID: String) async throws {
+        let readStart = realtimeReconciliation.beginRead()
         let refreshed: [AgentSummary] = try await client.query(
             "agent.list",
             input: ServerScopedInput(serverId: serverID)
         )
+        guard realtimeReconciliation.landed(.agentAvailability, readStartedAt: readStart) else { return }
         agents = refreshed
         lifecycleAvailability.removeAll()
     }
@@ -199,11 +201,14 @@ extension HausStore {
         // leaves the Agent list stale until the next sync, so it must not read
         // as a failed save: log it and hand back the saved avatar URL directly.
         do {
+            let readStart = realtimeReconciliation.beginRead()
             let refreshed: [AgentSummary] = try await client.query(
                 "agent.list",
                 input: ServerScopedInput(serverId: serverID)
             )
-            agents = refreshed
+            if realtimeReconciliation.landed(.agentAvailability, readStartedAt: readStart) {
+                agents = refreshed
+            }
         } catch {
             Self.logger.error(
                 "Agent list refresh after avatar save failed: \(error.localizedDescription, privacy: .public)"
