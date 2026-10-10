@@ -90,7 +90,8 @@ through their lists' bulk refetch. See [React](../internals/react.md) and the sp
 Only a coded `hausRefusal` (`realtimeRefusalDataKey`) is a refusal; the App never infers one from a
 bare tRPC code (`hooks/realtime/realtime-refusal.ts`). The Chat-loss purge (`chat.onLifecycle`
 `deleted`, or a `chat_missing` refusal) does the same for one Chat: its lists, entities, pending
-rows, kept view, and every other read keyed by the Chat (`hooks/servers/server-loss.ts`). The
+rows, kept view, and every other read keyed by the Chat, then invalidates the Chat lists and
+Agent Chat rows; both triggers share `applyChatDeletion` (`hooks/realtime/chat-deletion.ts`). The
 refusal covers a view that mounts after the deletion, such as a restored desktop tab, which never
 hears the lifecycle event; Chat queries keep a plain `NOT_FOUND`.
 

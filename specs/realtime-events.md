@@ -459,7 +459,9 @@ still shows the deleted Chat (a desktop tab) stops its per-Chat streams (`chat.o
 `chat.onThought`, `chat.onComposition`) through `useChatLost`; they never retry against a Chat the
 Server no longer has. A view mounted after the deletion (a restored desktop tab) never hears the
 lifecycle event; its first per-Chat stream start is refused with `chat_missing`, which runs the
-same purge.
+whole lifecycle `deleted` path through one shared function: the purge plus the Chat list,
+archived list, `chat.get`, and Agent Chat invalidations (`hooks/realtime/chat-deletion.ts`; on
+iPhone, `ChatRealtimeEvent.chatMissing` through `applyChatEvents`).
 
 Tests: one query per Server-scoped family across two Servers, only the lost Server's removed,
 `server.bySlug` included; a list read in flight across the loss lands and seeds nothing; a
@@ -641,8 +643,8 @@ it adopts the same model in its own shape:
 - Refusals follow the App's classes: `membership_lost` stops that Server's streams, cancels its
   loads (a cancelled load writes nothing), and clears it; a deleted Chat is purged the same way; `role_required` stops one stream; `UNAUTHORIZED` refreshes the
   token and retries. A `chat_missing` refusal on a per-Chat stream (`chat.onEngagement`,
-  `chat.onThought`) runs the same Chat purge and stops both of that Chat's streams
-  (`HausStoreEngagement.swift`).
+  `chat.onThought`) applies a lifecycle `deleted` event through `applyChatEvents` (purge, then a
+  Chat list read) and stops both of that Chat's streams (`HausStoreEngagement.swift`).
 - Delete `HausStoreChatCatchUp.swift` and the `chat.eventHead` step of
   `HausStoreServerReload.swift`.
 - `HausModels`: replace `EventModels.swift`'s union with one `Decodable` per payload (ids only);
