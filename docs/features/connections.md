@@ -23,7 +23,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, MerchBase, GitHub, X, and CoinGecko are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, MerchBase, GitHub, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is a one-click sign-in like Google Calendar: **Connect**
@@ -33,7 +33,13 @@ runs and job logs and run a workflow.
 A GitHub organization with OAuth app access restrictions hides its private data until an
 organization owner approves the Haus app. X takes a token instead of a sign-in: pressing **+** asks
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
-public posts on that app's credits. Its page offers **Add token** while disconnected and **Replace
+public posts on that app's credits. Skool opens an isolated browser tab in the Haus desktop app.
+Sign in directly to Skool; Haus captures the resulting session and provisions the hosted connection
+without showing internal tokens. Web users receive a desktop-required notice. After setup the
+connection works from web and mobile while the desktop app is closed. Reconnect and additional
+Skool accounts use the same desktop flow. A community is content within an account, not a preset.
+Skool sessions can expire; reconnect in desktop when reads require sign-in again. This is browser
+session authentication, not Skool OAuth. Token presets offer **Add token** while disconnected and **Replace
 token** on the account menu instead of a header editor. Once added, a preset disappears from Recommended, even while disconnected. Another
 account can be added deliberately from the connection's page with **Add another account**. For a
 sign-in preset (GitHub, MerchBase) one press opens the provider's sign-in tab, adds the account,
