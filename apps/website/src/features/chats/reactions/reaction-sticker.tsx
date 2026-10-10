@@ -48,10 +48,18 @@ export function ReactionSticker({
                     } as React.CSSProperties
                 }
             >
+                {/* Siblings: each stamp token keys both, so they need distinct prefixes. */}
                 {stamp ? (
-                    <StickerBurst key={stamp.token} seed={stickerSeed(messageId, sticker)} />
+                    <StickerBurst
+                        key={`burst-${stamp.token}`}
+                        seed={stickerSeed(messageId, sticker)}
+                    />
                 ) : null}
-                <span aria-hidden="true" className="reaction-sticker__glyph" key={stamp?.token}>
+                <span
+                    aria-hidden="true"
+                    className="reaction-sticker__glyph"
+                    key={`glyph-${stamp?.token ?? 'rest'}`}
+                >
                     <span className="reaction-sticker__emoji">{sticker.emoji}</span>
                 </span>
             </Button>
