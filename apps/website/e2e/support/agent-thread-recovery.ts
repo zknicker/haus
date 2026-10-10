@@ -6,19 +6,6 @@ import { openChannel } from './server.ts';
 import { expect } from './test.ts';
 
 export async function verifyAgentThreadRecovery(page: Page) {
-    let dropMessageCreated = false;
-    let droppedMessages = 0;
-    await page.routeWebSocket(/\/trpc/u, (socket) => {
-        const server = socket.connectToServer();
-        server.onMessage((message) => {
-            // Only a `chat.onMessageCreated` notice carries the Thread anchor's author.
-            if (dropMessageCreated && message.toString().includes('"threadAnchorAuthorUserId"')) {
-                droppedMessages += 1;
-                return;
-            }
-            socket.send(message);
-        });
-    });
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
@@ -49,17 +36,15 @@ export async function verifyAgentThreadRecovery(page: Page) {
     };
     const agent = await createAgentThreadSender({ anchorText, databaseUrl, token });
 
-    // The confirmed-send lifecycle must recover the durable row even when its
-    // ordinary message notification is lost. A transient preview cannot pass.
-    dropMessageCreated = true;
+    // The durable row arrives live through `chat.onMessageCreated`. A dead
+    // message stream recovers on its own restart (realtime-server-restart A2);
+    // Agent lifecycle notices own activity only. A transient preview cannot pass.
     await agent.send('Agent thread clarification', 'e2e-agent-thread-live');
     const clarification = panel
         .getByText('Agent thread clarification', { exact: true })
         .locator('xpath=ancestor::div[@data-message-id][1]');
     await expect(clarification).toHaveCount(1);
     await expect(clarification).toBeVisible();
-    expect(droppedMessages).toBeGreaterThan(0);
-    dropMessageCreated = false;
 
     // A reply that lands while the Thread is closed must appear on reopen.
     await panel.getByRole('button', { name: 'Close thread' }).click();

@@ -169,8 +169,10 @@ test.describe('an idle App stays silent', () => {
             expectWithinAllowance(entries, 1);
             return;
         }
-        // The socket dropped: one reconnect, one start per stream, one read per
-        // recovery owner (query-reconnect-recovery.ts), never a second pass.
+        // The socket dropped: one reconnect, one start per stream, and each
+        // read refetched at most once: the burst of starts shares one settle
+        // window, and reads fetched after a start are skipped
+        // (start-reconciliation.ts).
         const report = describeTraffic(entries);
         expect(count(entries, 'ws-open'), report).toBe(1);
         expect(duplicates(entries, 'ws-subscribe'), report).toEqual([]);

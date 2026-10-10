@@ -66,11 +66,14 @@ export async function createRealtimeScene(page: Page, slug: string) {
     await expect(tabs(page)).toHaveCount(2);
     await showTab(page, 'all');
 
-    // The messages come from the human's other device, not the Agent API: an
-    // Agent send also announces a `sending` lifecycle whose recovery refetches
-    // every shown transcript, which would mask a dead message stream.
+    // Changes 1 and 2 come from the human's other device; `agentReply` is a
+    // real Agent send. An Agent send also announces a `sending` lifecycle, which
+    // owns activity only: nothing but the message stream's own start recovers
+    // a missed message, whoever wrote it.
     const device = createClient(session.token);
     const changes = {
+        /** An Agent reply in `#product` (the kept tab) through the Agent API. */
+        agentReply: (content: string, nonce: string) => orbit.send(content, nonce, '#product'),
         /** Change 1: a reply in `#all`. */
         allReply: (content: string, nonce: string) =>
             device.chat.send.mutate({ chatId: orbit.chatId, content, nonce, serverId: server.id }),

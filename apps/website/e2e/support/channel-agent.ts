@@ -57,16 +57,27 @@ export async function createChannelAgent(input: {
         agentId: created.agent.id,
         chatId,
         ownerUserId,
-        send: async (content: string, nonce: string) => {
-            const response = await fetch(`${hausOrigin()}/api/agent/messages/send`, {
-                body: JSON.stringify({ content, nonce, target: `#${input.channelName}` }),
-                headers: {
-                    authorization: `Bearer ${runnerToken}`,
-                    'content-type': 'application/json',
-                },
-                method: 'POST',
-            });
-            const payload = (await response.json()) as { state?: string };
+        /**
+         * Posts as the Agent; `target` defaults to its own Channel. A send held
+         * for unseen messages has now shown them, so it is sent once more, as a
+         * real Agent would after reading.
+         */
+        send: async (content: string, nonce: string, target = `#${input.channelName}`) => {
+            const post = async () => {
+                const response = await fetch(`${hausOrigin()}/api/agent/messages/send`, {
+                    body: JSON.stringify({ content, nonce, target }),
+                    headers: {
+                        authorization: `Bearer ${runnerToken}`,
+                        'content-type': 'application/json',
+                    },
+                    method: 'POST',
+                });
+                return { payload: (await response.json()) as { state?: string }, response };
+            };
+            let { payload, response } = await post();
+            if (response.status === 200 && payload.state === 'held') {
+                ({ payload, response } = await post());
+            }
             if (response.status !== 200 || payload.state !== 'sent') {
                 throw new Error(
                     `The mention fixture could not post as its Agent: ${response.status} ${JSON.stringify(payload)}`
