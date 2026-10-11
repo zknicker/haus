@@ -26,7 +26,7 @@ import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/recor
 import { lockServerRow } from '../servers/server-lock.ts';
 import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
-import { admitAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
+import { admitQueuedAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
 import {
     configureFrame,
@@ -959,9 +959,8 @@ export class AgentDelivery {
             return null;
         }
         const chainTurns = await restartIdleAgentChain(tx, agentId, state.agentChainTurns);
-        const admitted = admitAgentDrain(candidates, preferred, chainTurns, (lead) =>
-            boundedCompatibleRows(candidates, lead.source)
-        );
+        const drain = { agentId, candidates, chainTurns, lead: preferred };
+        const admitted = await admitQueuedAgentDrain(tx, drain, boundedCompatibleRows);
         if (!admitted) {
             return null;
         }

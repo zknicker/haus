@@ -1,6 +1,8 @@
-import { and, eq, gt, lt } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lt, notInArray, notLike, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentDeliveryTable } from '../postgres/schema.ts';
+import { agentDeliveryTable, agentInboxTable } from '../postgres/schema.ts';
+import { concreteInboxSources } from './inbox-lanes.ts';
+import { type InboxItemRow, inboxItemColumns, inboxOrder, queuedFor } from './store.ts';
 
 // The automation chain budget (specs/github-triggers.md#automation-chain-budget).
 // A drain made only of automation-authored work (Agent messages, Trigger fires,
@@ -60,6 +62,31 @@ export function admitAgentDrain<Row extends AuthoredWork>(
     return canBeginAgentDrain(instead, currentTurns)
         ? { lead: resetting, selected: instead }
         : null;
+}
+
+/**
+ * {@link admitAgentDrain} over the drain candidate windows, widened at the
+ * ceiling: reset work can queue behind more automation than the windows hold,
+ * so the oldest of it anywhere in the queue may still lead.
+ */
+export async function admitQueuedAgentDrain(
+    tx: HausDatabase,
+    drain: { agentId: string; candidates: InboxItemRow[]; chainTurns: number; lead: InboxItemRow },
+    select: (rows: InboxItemRow[], source: string) => InboxItemRow[]
+): Promise<{ lead: InboxItemRow; selected: InboxItemRow[] } | null> {
+    const { agentId, candidates, chainTurns } = drain;
+    const admitted = admitAgentDrain(candidates, drain.lead, chainTurns, (lead) =>
+        select(candidates, lead.source)
+    );
+    if (admitted || chainTurns < maxAgentChainTurns) {
+        return admitted;
+    }
+    const resetting = await findOldestQueuedChainResetItem(tx, agentId);
+    if (!resetting || candidates.some((row) => row.id === resetting.id)) {
+        return null;
+    }
+    const widened = [resetting, ...candidates];
+    return admitAgentDrain(widened, resetting, chainTurns, (lead) => select(widened, lead.source));
 }
 
 /**
@@ -129,4 +156,31 @@ export async function settleAgentChain(
 
 function isPureAutomationDrain(rows: AuthoredWork[]): boolean {
     return rows.length > 0 && rows.every(isAutomationAuthored);
+}
+
+/**
+ * The oldest drainable work that resets the chain, matching the drain
+ * candidate windows: concrete work, or notice-lane work not yet offered.
+ */
+async function findOldestQueuedChainResetItem(
+    tx: HausDatabase,
+    agentId: string
+): Promise<InboxItemRow | undefined> {
+    const [row] = await tx
+        .select(inboxItemColumns)
+        .from(agentInboxTable)
+        .where(
+            and(
+                queuedFor(agentId),
+                notLike(agentInboxTable.source, 'agent:%'),
+                notInArray(agentInboxTable.source, ['trigger', 'trigger_problem']),
+                or(
+                    inArray(agentInboxTable.source, [...concreteInboxSources]),
+                    isNull(agentInboxTable.noticeRunId)
+                )
+            )
+        )
+        .orderBy(...inboxOrder())
+        .limit(1);
+    return row;
 }

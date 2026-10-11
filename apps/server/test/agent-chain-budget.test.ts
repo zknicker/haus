@@ -109,6 +109,28 @@ for (const source of ['reminder', 'task_assignment'] as const) {
     });
 }
 
+test('a Reminder behind more held fires than the drain windows hold still resets the chain', async () => {
+    const seed = await seedAgent({ advancedAt: new Date(), turns: 16 });
+    const wire = new Wire();
+    const delivery = new AgentDelivery(connection.db, wire);
+    for (let index = 0; index < 51; index += 1) {
+        await fire(delivery, seed, `trf_backlog_${index}`);
+    }
+    expect(wire.starts).toHaveLength(0);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'reminder work',
+        dedupeKey: 'reminder-beyond-window',
+        serverId: seed.serverId,
+        source: 'reminder',
+    });
+    expect(wire.starts).toHaveLength(1);
+    await settle(delivery, seed, wire.starts[0]?.runId ?? '');
+    expect(await chainOf(seed.agentId)).toEqual({ agentChainAdvancedAt: null, agentChainTurns: 0 });
+});
+
 test('a chain idle for half an hour restarts below the ceiling; a recent one does not', async () => {
     const idle = await seedAgent({ advancedAt: new Date(Date.now() - 31 * 60 * 1000), turns: 9 });
     const wire = new Wire();

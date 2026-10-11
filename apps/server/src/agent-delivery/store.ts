@@ -46,7 +46,7 @@ export interface InboxItemRow {
 const maxUnreadElsewhereChats = 50;
 
 /** The one projection every queue read returns, so a new column lands once. */
-const inboxItemColumns = {
+export const inboxItemColumns = {
     addressedReason: agentInboxTable.addressedReason,
     chatId: agentInboxTable.chatId,
     content: agentInboxTable.content,
@@ -730,7 +730,7 @@ export async function listDispatchCandidates(
  * tie-breaker so a task arrives before its assignment handoff in the Agent
  * prompt and message-check drain; typed work with no Chat message sorts last.
  */
-function inboxOrder() {
+export function inboxOrder() {
     return [
         agentInboxTable.createdAt,
         sql`coalesce((
@@ -744,7 +744,7 @@ function inboxOrder() {
 }
 
 /** The live queue predicate: the only rows a dispatch may still deliver. */
-function queuedFor(agentId: string) {
+export function queuedFor(agentId: string) {
     return and(
         eq(agentInboxTable.agentId, agentId),
         eq(agentInboxTable.state, 'queued'),
