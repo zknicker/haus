@@ -12,6 +12,9 @@ import {
     cloudAgentUsageSchema,
     cloudAgentWorkSchema,
 } from './cloud-agent-shared.ts';
+import type { components } from './generated/openapi.d.ts';
+
+type HausAgentMessage = components['schemas']['AgentMessage'];
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -61,8 +64,10 @@ export const agentCloudAgentStartInputSchema = z
 
 export type AgentCloudAgentStartInput = z.infer<typeof agentCloudAgentStartInputSchema>;
 
+/** The launch committed: its Message, work, and first Run exist. */
 export const agentCloudAgentReceiptSchema = z
     .object({
+        state: z.literal('started'),
         chatId: idSchema,
         idempotent: z.boolean(),
         messageId: idSchema,
@@ -75,6 +80,36 @@ export const agentCloudAgentReceiptSchema = z
     .strict();
 
 export type AgentCloudAgentReceipt = z.infer<typeof agentCloudAgentReceiptSchema>;
+
+/**
+ * The launch was held by the same freshness check `haus message send` runs:
+ * the target Chat has newer human or Agent messages the Agent has not seen.
+ * Nothing was created and no provider was asked; the Agent re-runs the
+ * command if the launch is still right. `shownMessages` carries Agent
+ * message views; the Agent CLI validates each one before rendering.
+ */
+export const agentCloudAgentHeldSchema = z
+    .object({
+        state: z.literal('held'),
+        formalMentionCount: z.number().int().nonnegative(),
+        newMessageCount: z.number().int().positive(),
+        omittedMessageCount: z.number().int().nonnegative(),
+        shownMessages: z
+            .array(
+                z.custom<HausAgentMessage>((value) => typeof value === 'object' && value !== null)
+            )
+            .max(12),
+    })
+    .strict();
+
+export type AgentCloudAgentHeld = z.infer<typeof agentCloudAgentHeldSchema>;
+
+export const agentCloudAgentStartResponseSchema = z.discriminatedUnion('state', [
+    agentCloudAgentReceiptSchema,
+    agentCloudAgentHeldSchema,
+]);
+
+export type AgentCloudAgentStartResponse = z.infer<typeof agentCloudAgentStartResponseSchema>;
 
 /** `haus cloud-agent cancel` — the delegating Agent's cancellation request. */
 export const agentCloudAgentCancelInputSchema = z.object({ workId: idSchema }).strict();

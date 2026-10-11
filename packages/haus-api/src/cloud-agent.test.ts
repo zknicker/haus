@@ -152,7 +152,7 @@ test('Computer inventory reports Cloud Agent provider readiness on the current p
             runtimes: [],
         }).cloudAgentProviders
     ).toHaveLength(1);
-    expect(computerProtocolVersion).toBe(28);
+    expect(computerProtocolVersion).toBe(29);
 });
 
 test('a Cloud Agent capability state names exactly one of ready or a reason', () => {
