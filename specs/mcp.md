@@ -62,10 +62,11 @@ connection state before reading the account-scoped cache.
   until Server can rediscover the connection.
 - Server discovers granted connections concurrently with a five-second deadline per connection.
   One slow or unavailable connection cannot hide healthy connections or hold Agent startup open.
-- Server authorizes an invocation from the connection grant alone, then resolves the tool name
-  against the connection's live tool list and calls it under one 30-second deadline. A name missing
-  from the client's last listing triggers one fresh listing, so a new upstream tool is callable
-  without Refresh; a name that listing lacks is denied as not offered.
+- Server authorizes an invocation from the connection grant, resolves the tool name against the
+  connection's live tool list, checks the grant once more, and calls the tool under one 30-second
+  deadline. A name missing from the client's last listing triggers one fresh listing, so a new
+  upstream tool is callable without Refresh. A name that listing lacks is denied as not offered.
+  A grant removed before the call is denied and the tool is not called.
 - Runner errors preserve whether the connection grant is absent (naming the connection and that a
   Server Owner or Admin grants it), the tool is not offered, the upstream account needs
   reauthorization, the upstream timed out, or the upstream is unavailable.
