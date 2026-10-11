@@ -93,8 +93,8 @@ export function registerAgentCloudAgentRoutes(
         }
         try {
             const sent = await sendCloudAgentWork(dependencies.db, runner, parsed.data);
-            if (sent.event) {
-                publishRealtime(sent.event);
+            for (const event of sent.events) {
+                publishRealtime(event);
             }
             return sent.receipt;
         } catch (cause) {
@@ -169,7 +169,9 @@ export function registerAgentCloudAgentRoutes(
                 serverId: runner.serverId,
                 workId: parsed.data.workId,
             });
-            publishRealtime(requested.event);
+            for (const event of requested.events) {
+                publishRealtime(event);
+            }
             dependencies.computers.send(requested.computerId, requested.command);
             return { work: requested.work };
         } catch (cause) {

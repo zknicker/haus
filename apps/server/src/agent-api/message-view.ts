@@ -2,7 +2,7 @@ import type { HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readInlineReplyContexts } from '../chats/reply-context.ts';
-import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
+import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -55,7 +55,7 @@ export async function toAgentMessages(
     // overlapping reads on that one connection deadlocked Agent delivery
     // against the Server row lock its own transaction already held.
     const tasksByMessage = await listMessageTaskMap(db, serverId, messageIds);
-    const cloudAgentWorkByMessage = await readCloudAgentWorkForMessages(db, serverId, messageIds);
+    const cloudAgentWorkByMessage = await readLinkedCloudAgentWork(db, serverId, messageIds);
     const createdAgentByMessage = await readCreatedAgentsForMessages(db, serverId, messageIds);
     const agentIds = [
         ...new Set(
@@ -109,7 +109,7 @@ export async function toAgentMessages(
         const handle = agent?.handle ?? human?.handle ?? null;
         const label = agent?.displayName ?? human?.displayName ?? 'Human';
         const task = tasksByMessage.get(row.id);
-        const cloudAgentWork = cloudAgentWorkByMessage.get(row.id);
+        const cloudAgentWork = cloudAgentWorkByMessage.get(row.id) ?? [];
         const createdAgent = createdAgentByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId
             ? agentById.get(task.assigneeAgentId)
@@ -213,7 +213,7 @@ export async function targetForChat(
     return `${parent}:${shortMessageId(chat.anchorMessageId ?? '')}`;
 }
 
-export function visibleChatSql(runner: ResolvedRunner) {
+export function visibleChatSql(runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>) {
     return sql`(
         (${chatsTable.kind} = 'dm' and ${chatsTable.dmAgentId} = ${runner.agentId})
         or (

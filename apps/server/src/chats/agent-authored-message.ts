@@ -93,7 +93,14 @@ export async function writeAgentAuthoredMessage(
     db: HausDatabase,
     runner: ResolvedRunner,
     plan: AgentAuthoredMessagePlan,
-    input: { bodyKind: MessageBodyKind; content: string; nonce: string; replyToMessageId?: string },
+    input: {
+        bodyKind: MessageBodyKind;
+        content: string;
+        /** What recipients' inboxes carry when it must differ from `content`. */
+        deliveryContent?: string;
+        nonce: string;
+        replyToMessageId?: string;
+    },
     agentDelivery: AgentDelivery
 ): Promise<AgentAuthoredMessage> {
     const reply = input.replyToMessageId
@@ -172,7 +179,7 @@ export async function writeAgentAuthoredMessage(
             addressedReason: recipient.addressedReason,
             agentId: recipient.agentId,
             chatId: plan.chatId,
-            content: input.content,
+            content: input.deliveryContent ?? input.content,
             dedupeKey: message.id,
             mentioned: recipient.mentioned,
             sequence: message.sequence,

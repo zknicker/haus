@@ -5,9 +5,14 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
+import {
+    recordCloudAgentWorkLinks,
+    resolveCloudAgentWorkLinks,
+} from '../chats/cloud-agent-work-links.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
+import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -90,15 +95,20 @@ export async function createAgentTasks(
             if (!numberedChat) {
                 throw new AgentTaskError('That task target no longer exists.');
             }
+            const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+                author: { agentId: runner.agentId, kind: 'agent' },
+                content: title.trim(),
+                serverId: runner.serverId,
+            });
             const messageId = createOpaqueId('msg');
             const [message] = await tx
                 .insert(chatMessagesTable)
                 .values({
                     authorAgentId: runner.agentId,
                     chatId,
-                    content: title.trim(),
+                    content,
                     id: messageId,
-                    mentionedUserIds: mentionedUserIds(title),
+                    mentionedUserIds: mentionedUserIds(content),
                     nonce: taskNonce(input.nonce, index),
                     replyRootMessageId: messageId,
                     runId: runner.runId,
@@ -107,6 +117,12 @@ export async function createAgentTasks(
                     sessionGeneration,
                 })
                 .returning(messageSelection);
+            await recordCloudAgentWorkLinks(tx, {
+                chatId,
+                links,
+                messageId,
+                serverId: runner.serverId,
+            });
             // Own messages count as read; unseen messages from others below stay unread.
             await advanceAgentChatReadsSeen(tx, {
                 agentId: runner.agentId,
@@ -150,13 +166,13 @@ export async function createAgentTasks(
                           assignedByHandle: await agentHandle(tx, runner),
                           number: numberedChat.taskNumber,
                           target: await targetForChat(tx, runner.serverId, chatId),
-                          title: title.trim(),
+                          title: content,
                       })
                     : null;
             const recipients = await planAgentMessageRecipients(tx, {
                 authorAgentId: runner.agentId,
                 chatId,
-                content: title.trim(),
+                content,
                 messageId: message.id,
                 serverId: runner.serverId,
             });
@@ -175,7 +191,7 @@ export async function createAgentTasks(
                     addressedReason: recipient.addressedReason,
                     agentId: recipient.agentId,
                     chatId,
-                    content: title.trim(),
+                    content,
                     dedupeKey: message.id,
                     mentioned: recipient.mentioned,
                     sequence: message.sequence,
@@ -212,7 +228,11 @@ export async function createAgentTasks(
                     messageId: message.id,
                     serverId: runner.serverId,
                     type: 'task.created',
-                })
+                }),
+                ...(await prepareLinkedWorkEvents(tx, {
+                    serverId: runner.serverId,
+                    workIds: links.map((link) => link.workId),
+                }))
             );
             const [task] = await tx
                 .select()

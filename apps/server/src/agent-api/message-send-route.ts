@@ -10,11 +10,11 @@ import { inferMessageCause } from '../automations/infer-message-cause.ts';
 import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { InvalidInlineReplyError } from '../chats/reply-context.ts';
+import { sendAgentMessage } from '../chats/send-agent-message.ts';
 import {
     AgentMessageContentTooLongError,
     AgentSendConflictError,
-    sendAgentMessage,
-} from '../chats/send-agent-message.ts';
+} from '../chats/send-agent-message-errors.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';

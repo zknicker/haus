@@ -23,7 +23,7 @@ const channelName = 'repo-health';
  * One Blippy message in #repo-health whose Thread holds a fan-out of Cloud
  * Agent work, one per repository, like an Agent starting a cloud run per repo.
  * It exercises the inline Thread preview under a channel message with many
- * `cloud-agent-work` replies.
+ * replies that each link Cloud Agent work.
  *
  * The work reuses the UI gallery's offline, unattached Computer, whose credential
  * is discarded, so no Computer ever receives these Runs in a reconcile list

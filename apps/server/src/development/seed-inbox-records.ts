@@ -1,5 +1,7 @@
+import { formatCloudAgentWorkLink } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
+import { recordCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -67,8 +69,8 @@ interface SeedCloudAgentWork {
 /**
  * The settled Cloud Agent work Blippy delegated from #product, with its branch
  * and pull request retained. It is written the way `createCloudAgentWork`
- * writes one — the Agent-authored Message carrying the `cloud-agent-work` body,
- * its child Thread, the work record, and its provider Run.
+ * writes one — the Agent-authored text Message that links the work (ADR 0044),
+ * its child Thread, the work record, its provider Run, and the link.
  */
 export async function seedCloudAgentWork(
     tx: HausDatabase,
@@ -76,13 +78,13 @@ export async function seedCloudAgentWork(
     work: SeedCloudAgentWork
 ): Promise<void> {
     const messageId = createOpaqueId('msg');
+    const workId = createOpaqueId('caw');
     await appendSeedMessages(tx, {
         chatId: context.productChatId,
         messages: [
             {
                 authorAgentId: context.blippyId,
-                bodyKind: 'cloud-agent-work',
-                content: work.content,
+                content: `${work.content}\n\n${formatCloudAgentWorkLink(work.title, workId)}`,
                 createdAt: work.createdAt,
                 id: messageId,
                 nonce: work.nonce,
@@ -100,16 +102,21 @@ export async function seedCloudAgentWork(
         serverId: context.serverId,
         threadChatId: threadChatIdForAnchor(messageId),
     });
-    await insertCloudAgentWork(tx, context, work, messageId);
+    await insertCloudAgentWork(tx, context, work, { messageId, workId });
+    await recordCloudAgentWorkLinks(tx, {
+        chatId: context.productChatId,
+        links: [{ ordinal: 0, workId }],
+        messageId,
+        serverId: context.serverId,
+    });
 }
 
 async function insertCloudAgentWork(
     tx: HausDatabase,
     context: InboxSeedContext,
     work: SeedCloudAgentWork,
-    messageId: string
+    { messageId, workId }: { messageId: string; workId: string }
 ): Promise<void> {
-    const workId = createOpaqueId('caw');
     await tx.insert(cloudAgentWorkTable).values({
         activityAt: work.activityAt,
         activitySummary: work.activitySummary,
@@ -118,7 +125,7 @@ async function insertCloudAgentWork(
         computerId: context.computerId,
         createdAt: work.createdAt,
         id: workId,
-        messageId,
+        launchMessageId: messageId,
         provider: 'cursor',
         providerAgentId: work.providerAgentId,
         providerUrl: `https://cursor.com/agents/${work.providerAgentId}`,

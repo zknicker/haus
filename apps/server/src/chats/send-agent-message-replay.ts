@@ -3,9 +3,10 @@ import { and, eq } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
+import { replayCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 import { readInlineReplyContext } from './reply-context.ts';
 import type { SendAgentMessageInput, SendAgentMessageResult } from './send-agent-message.ts';
-import { AgentSendConflictError } from './send-agent-message.ts';
+import { AgentSendConflictError } from './send-agent-message-errors.ts';
 
 export async function readExistingAgentMessage(
     db: Pick<HausDatabase, 'select'>,
@@ -43,9 +44,14 @@ export async function replayAgentMessage(
     input: SendAgentMessageInput,
     agent: { description: string | null; displayName: string; handle: string },
     existing: ExistingAgentMessage,
-    content: string,
+    canonical: string,
     replyParentId: string | null
 ): Promise<SendAgentMessageResult> {
+    const content = await replayCloudAgentWorkLinks(db, {
+        content: canonical,
+        messageId: existing.id,
+        serverId: input.serverId,
+    });
     const existingAttachments =
         (await readMessageAttachments(db, input.serverId, [existing.id])).get(existing.id) ?? [];
     if (

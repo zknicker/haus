@@ -3,19 +3,21 @@ import {
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
 } from '@haus/api';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import { chatsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { prepareCloudAgentWorkEvent, readCloudAgentEventChat } from './cloud-agent-events.ts';
+import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
+import { linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 
 export interface AppliedCloudAgentObservation {
-    event: PreparedRealtimeEvent;
-    /** The delegating Agent to wake, set only when a Run just settled. */
+    /** One `cloudAgentWork.updated` per linking Message in a live Chat. */
+    events: PreparedRealtimeEvent[];
+    /** The delegating Agent to wake, set only when a settled Run notified it. */
     wake: { agentId: string; serverId: string } | null;
     work: CloudAgentWork;
 }
@@ -25,7 +27,8 @@ export interface AppliedCloudAgentObservation {
  * out-of-order, or post-terminal observation is a no-op: the first terminal
  * result a Run reports is the one that stands. Only the newest Run projects
  * work lifecycle. Every settling Run creates one durable inbox attention for the
- * delegating Agent, in the same transaction.
+ * delegating Agent in the requesting Chat, in the same transaction, unless
+ * that Chat has since been deleted.
  */
 export async function applyCloudAgentObservation(
     db: HausDatabase,
@@ -41,7 +44,6 @@ export async function applyCloudAgentObservation(
                 branches: cloudAgentRunsTable.branches,
                 chatId: cloudAgentWorkTable.chatId,
                 computerId: cloudAgentWorkTable.computerId,
-                messageId: cloudAgentWorkTable.messageId,
                 observedAt: cloudAgentRunsTable.observedAt,
                 runStartedAt: cloudAgentRunsTable.startedAt,
                 terminalAt: cloudAgentRunsTable.terminalAt,
@@ -111,7 +113,11 @@ export async function applyCloudAgentObservation(
                 )
             );
 
-        if (settling) {
+        // The notice goes to the Chat that asked for the work, never to a later
+        // link (ADR 0044). If that Chat is gone, the work settles silently.
+        const notifying =
+            settling && (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }));
+        if (notifying) {
             await agentDelivery.enqueue(tx, {
                 agentId: row.agentId,
                 chatId: row.chatId,
@@ -127,29 +133,41 @@ export async function applyCloudAgentObservation(
             throw new Error('The Cloud Agent work could not be projected after an observation.');
         }
         return {
-            event: await emitWorkEvent(tx, {
-                chatId: row.chatId,
-                messageId: row.messageId,
+            events: await prepareCloudAgentWorkEvents(tx, {
                 serverId: input.serverId,
                 workId: observation.workId,
             }),
-            wake: settling ? { agentId: row.agentId, serverId: input.serverId } : null,
+            wake: notifying ? { agentId: row.agentId, serverId: input.serverId } : null,
             work,
         };
     });
 }
 
-export async function emitWorkEvent(
-    db: HausDatabase,
-    input: { chatId: string; messageId: string; serverId: string; workId: string }
-): Promise<PreparedRealtimeEvent> {
-    return prepareCloudAgentWorkEvent({
-        chat: await readCloudAgentEventChat(db, input),
-        chatId: input.chatId,
-        cloudAgentWorkId: input.workId,
-        messageId: input.messageId,
-        serverId: input.serverId,
-    });
+/** A Chat that still exists and is not tombstoned, nor is its parent. */
+async function isLiveChat(db: HausDatabase, input: { chatId: string; serverId: string }) {
+    const [chat] = await db
+        .select({ id: chatsTable.id })
+        .from(chatsTable)
+        .leftJoin(
+            linkParentChatsTable,
+            and(
+                eq(linkParentChatsTable.serverId, chatsTable.serverId),
+                eq(linkParentChatsTable.id, chatsTable.parentChatId)
+            )
+        )
+        .where(
+            and(
+                eq(chatsTable.serverId, input.serverId),
+                eq(chatsTable.id, input.chatId),
+                isNull(chatsTable.deletedAt),
+                or(
+                    isNull(chatsTable.parentChatId),
+                    and(isNotNull(linkParentChatsTable.id), isNull(linkParentChatsTable.deletedAt))
+                )
+            )
+        )
+        .limit(1);
+    return chat !== undefined;
 }
 
 function runObservationUpdate(

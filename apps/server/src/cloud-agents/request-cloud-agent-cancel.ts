@@ -9,7 +9,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { emitWorkEvent } from './apply-cloud-agent-observation.ts';
+import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { CloudAgentWorkNotFoundError, CloudAgentWorkSettledError } from './errors.ts';
 
@@ -17,7 +17,7 @@ export interface CloudAgentCancelRequest {
     /** The frame to push at the assigned Computer once the record commits. */
     command: CloudAgentCancelCommand;
     computerId: string;
-    event: PreparedRealtimeEvent;
+    events: PreparedRealtimeEvent[];
     work: CloudAgentWork;
 }
 
@@ -40,10 +40,8 @@ export async function requestCloudAgentCancel(
         await lockServerRow(tx, input.serverId);
         const [row] = await tx
             .select({
-                chatId: cloudAgentWorkTable.chatId,
                 computerId: cloudAgentWorkTable.computerId,
                 cancelRequestedAt: cloudAgentWorkTable.cancelRequestedAt,
-                messageId: cloudAgentWorkTable.messageId,
                 provider: cloudAgentWorkTable.provider,
                 providerAgentId: cloudAgentWorkTable.providerAgentId,
                 status: cloudAgentWorkTable.status,
@@ -113,9 +111,7 @@ export async function requestCloudAgentCancel(
                 workId: input.workId,
             },
             computerId: row.computerId,
-            event: await emitWorkEvent(tx, {
-                chatId: row.chatId,
-                messageId: row.messageId,
+            events: await prepareCloudAgentWorkEvents(tx, {
                 serverId: input.serverId,
                 workId: input.workId,
             }),

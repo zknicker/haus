@@ -19,6 +19,7 @@ export * from './schema/channel-agent-participants.ts';
 export * from './schema/chat-messages.ts';
 export * from './schema/chat-reads.ts';
 export * from './schema/chats.ts';
+export * from './schema/cloud-agent-work-links.ts';
 export * from './schema/cloud-agents.ts';
 export * from './schema/computer-login.ts';
 export * from './schema/computer-system-events.ts';
