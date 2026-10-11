@@ -56,9 +56,8 @@ messages, and followed Threads surface as their own items.
 - Live updates reuse existing events: `chat.onMessageCreated` with a non-null `parentChatId`
   (a Thread reply), `chat.onRead` with a non-null `parentChatId` (a Thread read, reader only),
   `thread.onFollowUpdated`, and `chat.onLifecycle` (a parent archived, deleted, or hidden).
-- The iPhone app builds its Inbox from `chat.list` alone until it reads `thread.listUnread`; its
-  icon badge already counts Threads through `chat.unreadChatCount`, so until then the badge can
-  exceed the visible Unread rows.
+- The iPhone app reads `thread.listUnread` beside `chat.list` and lists the same Thread rows, so
+  its Inbox dot and icon badge agree with what it shows.
 
 ## Considered and rejected
 
