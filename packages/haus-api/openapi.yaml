@@ -3192,9 +3192,15 @@ components:
             - $ref: '#/components/schemas/MessageTask'
             - type: 'null'
         cloud_agent_work:
+          description: The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`.
           oneOf:
             - $ref: '#/components/schemas/MessageCloudAgentWork'
             - type: 'null'
+        cloud_agent_works:
+          description: Every Cloud Agent work this Message links, in link order.
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageCloudAgentWork'
         agent_created:
           oneOf:
             - $ref: '#/components/schemas/MessageAgentCreated'

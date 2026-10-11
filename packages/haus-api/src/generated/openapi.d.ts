@@ -1994,7 +1994,10 @@ export interface components {
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
             task?: components["schemas"]["MessageTask"] | null;
+            /** @description The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`. */
             cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
+            /** @description Every Cloud Agent work this Message links, in link order. */
+            cloud_agent_works?: components["schemas"]["MessageCloudAgentWork"][];
             agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             reply?: components["schemas"]["ChatMessageReply"] | null;
