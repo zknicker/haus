@@ -81,8 +81,10 @@ an Agent writes into its execution runtime's own config are ignored (see
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
 page makes no third-party image requests. Legacy curated presets show bundled marks. MerchBase Atlas and Fulfillment use their service-owned
-MCP icon metadata or favicon. Recommended resolves homepage icon links before legacy
-favicons, allowing service-owned versioned artwork to refresh before sign-in. See [Connections API](../api/connections.md#connection-icons).
+MCP icon metadata or favicon. Presets share one branding lookup across Recommended and Added,
+preferring homepage icon links before legacy favicons. Adding, signing in, or disconnecting an
+account does not discard its service branding. Existing presets with missing artwork recover it
+when the connection list is read. See [Connections API](../api/connections.md#connection-icons).
 
 A connection has its own settings page at `settings/connections/<connectionId>`; the Settings rail
 keeps Connections active, and the top bar reads `Haus › Settings › Connections › <name>` with

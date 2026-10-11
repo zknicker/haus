@@ -129,10 +129,10 @@ discovery.
 ## Connection Icons
 
 `icon` on a connection is `{ light, dark }`, each an inline `data:` image URI or `null`, or the
-whole field is `null`. It is identity-derived state: Haus Server resolves it during discovery
-beside `accountLabel`, and clears it wherever identity is cleared.
+whole field is `null`. It is service branding, independent of the signed-in account.
+Disconnecting or starting a new sign-in clears account identity and grants while retaining the icon.
 
-Resolution order is the MCP server's advertised `serverInfo.icons` (SEP-973), then `/favicon.ico`
+Custom resolution order is the MCP server's advertised `serverInfo.icons` (SEP-973), then `/favicon.ico`
 on the site behind its host, then the icon `<link>`s (`icon`, `shortcut icon`, `apple-touch-icon`)
 in that site's home page `<head>` — the step that covers SPAs whose `/favicon.ico` is the HTML
 shell. Page links are ranked like advertised icons (smallest declared size of at least 64px first;
@@ -155,20 +155,23 @@ One icon serving both themes is stored in `light` alone and the App falls back t
 connection never carries the same bytes twice on a query that returns every row inline.
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
-MerchBase Atlas and Fulfillment own their icons upstream: Added connections use standard MCP metadata
-and favicon discovery. `mcp.presetIcons` requires Server membership and resolves unbundled
-preset icons through the same Server resolver for Recommended rows before sign-in.
-These anonymous rows prefer the homepage’s advertised icon links over `/favicon.ico`,
-so publisher-owned versioned assets replace cached legacy favicons.
-The App caches that catalog for five minutes and makes no upstream image requests.
-Missing artwork falls back to a monogram.
+MerchBase Atlas and Fulfillment own their icons upstream. Recommended, preset creation, legacy
+connection reads, and authenticated discovery share the Server's connection-branding resolver.
+Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
+regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.
+Authenticated discovery first uses standard MCP icon metadata. Failed resolution retains the last
+valid stored icon. `mcp.presetIcons` requires Server membership. Server shares anonymous lookups
+in a bounded five-minute cache, including unavailable artwork; authenticated icon metadata bypasses
+that cache. The App also caches the catalog for five minutes and makes no upstream image requests.
+Missing artwork falls back to a monogram when no valid image has been resolved.
 
-Icons refresh on connect and refresh, exactly like `accountLabel`. A connection created before this
-shipped reads `icon: null` until its next refresh; there is no backfill.
+Preset creation stores branding before sign-in. Icons refresh on connect and tool refresh.
+Existing preset connections with missing or malformed icons resolve branding on authorized reads,
+without requiring another sign-in. Those read-time fallbacks do not rewrite PostgreSQL records.
 
 ## Connection Summary
 
-`summary` is the server's own one-line description, or `null`. Like `icon` it is identity-derived:
+`summary` is the server's own one-line description, or `null`. It is account-derived:
 Server takes it during discovery from the `instructions` the server returns at initialize, and
 clears it wherever identity is cleared.
 
