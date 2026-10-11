@@ -5,6 +5,7 @@ read_when:
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
   - changing the Cloud Agent model setting, the Cursor model catalog, or the model a Run requests
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
+  - changing the freshness hold on `haus cloud-agent start` or the start response union
   - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
 ---
 
@@ -373,6 +374,18 @@ reconnect or restart, and nothing further once the Run is terminal.
 The physical relationship is one-to-one: the work's `message_id` is unique and references the
 Message. Creation is one Server transaction. `chat_messages.body_kind` and the related record must
 agree; a missing or duplicate record is a mapping failure, never an empty card.
+
+A launch posts a Message, so it passes the same freshness hold as `haus message send`, inside the
+creation transaction. When the target Chat (a channel or Thread) has newer human or other-Agent
+messages this run has neither seen nor been served, `POST /api/agent/cloud-agents` returns
+`{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount, shownMessages }`
+instead of the `{ state: 'started', … }` receipt. A held launch creates no Message, work, Run, or
+Thread, and the Computer never asks the provider. The CLI prints the shown messages the way a held
+send does and says the launch did not start; the Agent re-runs the command when the launch still
+belongs there. There is no launch draft and no `--anyway`: the hold marks the shown messages served
+to the run (and the Computer proxy attests them like any held send), so the re-run, with any
+nonce, is not held for them again. A nonce that already committed replays its receipt before the
+check, and a held attempt writes nothing under its nonce, so a retry is never poisoned.
 
 The Server record stores provider-safe identifiers and bounded state only. Provider prompts,
 credentials, raw transcripts, tool traces, and hosted workspace files remain on Computer or with

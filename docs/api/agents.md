@@ -420,7 +420,12 @@ This command runs on the Computer rather than upstream. The Computer checks
 local: they reach the provider and never Server.
 
 `POST /api/agent/cloud-agents` takes `{ content, nonce, provider, repository, startingRef, target,
-title }` and returns `{ chatId, idempotent, messageId, runId, sequence, target, work }`. `content`
+title }` and returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
+work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount,
+shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the
+target Chat. A held launch creates nothing and launches nothing; the Agent reviews the shown
+messages and re-runs the command if it still applies (no draft; see
+[Cloud Agents](../../specs/cloud-agents.md#durable-cloud-agent-work)). `content`
 is the Agent's own words and becomes the Message content; `title` is at most 120 characters and
 `repository` reads as `owner/name`. One transaction writes the Message with
 `body_kind = 'cloud-agent-work'`, the `cloud_agent_work` row, its first `cloud_agent_runs` row in
