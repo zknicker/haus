@@ -253,12 +253,13 @@ test('the badge counts unread Chats across every Server, as chat.list reports th
     );
 });
 
-/** What the badge means: Chats in `chat.list` with anything unread, summed over Servers. */
+/** What the badge means: unread `chat.list` Chats plus `thread.listUnread` Threads, summed over Servers. */
 async function unreadChatCount(client: HausClient, serverIds: readonly string[]) {
     let count = 0;
     for (const serverId of serverIds) {
         const chats = await client.trpc.chat.list.query({ serverId });
         count += chats.filter((chat) => chat.unreadCount > 0).length;
+        count += (await client.trpc.thread.listUnread.query({ serverId })).threads.length;
     }
     return count;
 }

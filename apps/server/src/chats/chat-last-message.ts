@@ -1,5 +1,5 @@
 import type { ChatLastMessage } from '@haus/api';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatMessagesTable, chatsTable, usersTable } from '../postgres/schema.ts';
@@ -22,9 +22,10 @@ export interface StoredChatLastMessage {
  * The newest top-level Message in each Chat, as one correlated lateral read
  * against `chat_messages (server_id, chat_id, sequence)`. Thread replies are
  * stored in the Thread's own Chat row, so scoping by `chat_id` already keeps
- * them out of the parent Chat's line — no extra predicate needed.
+ * them out of the parent Chat's line — no extra predicate needed. `scope`
+ * narrows which Messages qualify, as a predicate on `chat_messages`.
  */
-export function chatLastMessageLateral(db: HausDatabase) {
+export function chatLastMessageLateral(db: HausDatabase, scope?: SQL) {
     return db
         .select({
             // Both author tables carry `display_name`, so the lateral names each
@@ -62,7 +63,8 @@ export function chatLastMessageLateral(db: HausDatabase) {
         .where(
             and(
                 eq(chatMessagesTable.serverId, chatsTable.serverId),
-                eq(chatMessagesTable.chatId, chatsTable.id)
+                eq(chatMessagesTable.chatId, chatsTable.id),
+                scope
             )
         )
         .orderBy(desc(chatMessagesTable.sequence))

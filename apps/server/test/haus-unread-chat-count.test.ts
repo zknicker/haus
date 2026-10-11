@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { countUnreadChats } from '../src/chats/unread-chat-count.ts';
+import { countUnreadInboxRows } from '../src/chats/unread-chat-count.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 
 let fixture: NotificationFixture;
@@ -13,13 +13,14 @@ afterAll(async () => {
 });
 
 /**
- * The unread-Chat count is its own query, but it must mean exactly what
- * `chat.list` means: the number of listed Chats with `unreadCount > 0`, summed
- * over the human's Servers. Every step below moves the count and re-proves the
- * equality — DM and Channel unread, Thread attention alone (mention and
- * follow), reads, archiving, a second Server, and leaving it.
+ * The badge count is its own query, but it must mean exactly what the Inbox
+ * means: listed Chats with `unreadCount > 0` plus `thread.listUnread` rows,
+ * summed over the human's Servers. Every step below moves the count and
+ * re-proves the equality — DM and Channel unread, Thread attention alone
+ * (mention and follow) as its own row, reads, archiving, a second Server, and
+ * leaving it.
  */
-test('the unread-Chat count equals chat.list rows with anything unread, across Servers', async () => {
+test('the badge count equals unread chat.list rows plus unread Threads, across Servers', async () => {
     const { createChannel, owner, ownerUserId, peer, serverId } = fixture;
     const servers = [serverId];
     let count = await expectCountMatchesList(servers);
@@ -37,7 +38,8 @@ test('the unread-Chat count equals chat.list rows with anything unread, across S
     });
     count = await expectStep(servers, count, 1);
 
-    // A read Channel whose only unread is a Thread reply mentioning the reader.
+    // A read Channel with a Thread reply mentioning the reader: the Thread is
+    // the unread row, and the Channel stays read.
     const mentionChannelId = await createChannel('count-mention');
     const anchor = await peer.trpc.chat.send.mutate({
         chatId: mentionChannelId,
@@ -54,7 +56,7 @@ test('the unread-Chat count equals chat.list rows with anything unread, across S
         serverId,
         thread: { anchorMessageId: anchor.message.id },
     });
-    expect(await unreadOf(mentionChannelId)).toBe(1);
+    expect(await unreadOf(mentionChannelId)).toBe(0);
     count = await expectStep(servers, count, 1);
 
     // An unfollowed Thread reply that names nobody stays out until followed.
@@ -81,10 +83,22 @@ test('the unread-Chat count equals chat.list rows with anything unread, across S
     });
     count = await expectStep(servers, count, 1);
 
+    // The Thread row's Mark read is chat.markRead on the Thread itself.
+    await owner.trpc.chat.markRead.mutate({
+        chatId: reply.message.chatId,
+        sequence: reply.message.sequence,
+        serverId,
+    });
+    count = await expectStep(servers, count, -1);
+
     await markAllRead(dmId);
     count = await expectStep(servers, count, -1);
 
     await owner.trpc.chat.archiveChannel.mutate({ chatId: channelId, serverId });
+    count = await expectStep(servers, count, -1);
+
+    // A Thread under an archived Channel leaves with its parent.
+    await owner.trpc.chat.archiveChannel.mutate({ chatId: mentionChannelId, serverId });
     count = await expectStep(servers, count, -1);
 
     const sideSlug = 'count-side';
@@ -122,16 +136,17 @@ async function expectStep(serverIds: readonly string[], before: number, delta: n
     return after;
 }
 
-/** Proves the count equals `chat.list`'s unread rows, through the API and directly. */
+/** Proves the count equals the Inbox's unread rows, through the API and directly. */
 async function expectCountMatchesList(serverIds: readonly string[]) {
     let listed = 0;
     for (const serverId of serverIds) {
         const chats = await fixture.owner.trpc.chat.list.query({ serverId });
         listed += chats.filter((chat) => chat.unreadCount > 0).length;
+        listed += (await fixture.owner.trpc.thread.listUnread.query({ serverId })).threads.length;
     }
     const { count } = await fixture.owner.trpc.chat.unreadChatCount.query();
     expect(count).toBe(listed);
-    expect(await countUnreadChats(fixture.database.db, fixture.ownerUserId)).toBe(listed);
+    expect(await countUnreadInboxRows(fixture.database.db, fixture.ownerUserId)).toBe(listed);
     return count;
 }
 

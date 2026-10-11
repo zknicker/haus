@@ -19,8 +19,9 @@ export interface MarkChatReadResult {
 /**
  * Moves the member's read marker in a Chat forward to `sequence` (clamped to
  * its newest message). With `includeThreads`, every Thread under the Chat is
- * read through its newest message too, so a Channel or DM row whose unread
- * count rolls up Thread replies clears in one step — the Inbox's Mark read.
+ * read through its newest message too, so Mark read on a Channel or DM's Inbox
+ * row also clears that Chat's Thread rows. A Thread's own Inbox row marks the
+ * Thread's `chatId` without `includeThreads`.
  */
 export async function markChatRead(
     db: HausDatabase,

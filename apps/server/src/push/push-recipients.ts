@@ -6,14 +6,14 @@ import {
 } from '@haus/api';
 import { and, eq, gte } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
-import { countUnreadChats } from '../chats/unread-chat-count.ts';
+import { countUnreadInboxRows } from '../chats/unread-chat-count.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatReadsTable, chatsTable } from '../postgres/schema.ts';
 import { readPushableMembers } from './push-devices.ts';
 import { type PushMessage, readPushMessage } from './push-message.ts';
 
 export interface PushRecipient {
-    /** The human's unread Chats across every Server they belong to. */
+    /** The human's unread Inbox rows (Chats and Threads) across every Server they belong to. */
     badge: number;
     reason: MessageNotificationReason;
     userId: string;
@@ -48,7 +48,7 @@ export async function readPushRecipients(
             (await canSeeChat(db, userId, event)) &&
             !(await hasReadMessage(db, userId, event))
         ) {
-            recipients.push({ badge: await countUnreadChats(db, userId), reason, userId });
+            recipients.push({ badge: await countUnreadInboxRows(db, userId), reason, userId });
         }
     }
     return { message, recipients };
