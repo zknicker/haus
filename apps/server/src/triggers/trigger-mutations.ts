@@ -1,4 +1,4 @@
-import type { Trigger, TriggerKind, TriggerStatus } from '@haus/api';
+import type { Trigger, TriggerStatus, WebhookTrigger } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
@@ -21,7 +21,7 @@ export interface CreateTriggerInput {
     anchorChatId: string;
     anchorMessageId: string;
     instruction: string | null;
-    kind: TriggerKind;
+    kind: 'webhook';
     origin: string;
     serverId: string;
     title: string;
@@ -37,7 +37,7 @@ export async function createTrigger(
     agentId: string,
     input: CreateTriggerInput,
     clock: TriggerClock
-): Promise<{ secret: string; trigger: Trigger }> {
+): Promise<{ secret: string; trigger: WebhookTrigger }> {
     return await createTriggerRow(
         db,
         {
@@ -83,7 +83,7 @@ export async function rotateTriggerSecret(
     agentId: string,
     input: { origin: string; serverId: string; triggerId: string },
     clock: TriggerClock
-): Promise<{ secret: string; trigger: Trigger }> {
+): Promise<{ secret: string; trigger: WebhookTrigger }> {
     return await rotateTriggerSecretRow(db, input, ownedBy(agentId, input), clock);
 }
 

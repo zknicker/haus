@@ -1,10 +1,20 @@
-import type { Trigger, TriggerFire, TriggerStatus } from '@haus/api';
+import type {
+    GithubTriggerConfigInput,
+    Trigger,
+    TriggerFire,
+    TriggerStatus,
+    WebhookTrigger,
+} from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { TriggerAccessDeniedError, type TriggerClock } from './trigger-model.ts';
+import {
+    refuseGithubTriggers,
+    TriggerAccessDeniedError,
+    type TriggerClock,
+} from './trigger-model.ts';
 import { listTriggerFires, readTrigger, triggerRows, viewTrigger } from './trigger-queries.ts';
 import {
     deleteTriggerRow,
@@ -102,13 +112,24 @@ export async function setOperatorTriggerStatus(
     };
 }
 
-/** Edits the title and standing instruction. The anchor and kind never move. */
+/**
+ * Edits the title and standing instruction, and for a `github` Trigger its
+ * configuration. The anchor and kind never move.
+ */
 export async function updateOperatorTrigger(
     db: HausDatabase,
     member: HausUser | null,
-    input: OperatorTriggerInput & { instruction?: string | null; title?: string },
+    input: OperatorTriggerInput & {
+        github?: GithubTriggerConfigInput;
+        instruction?: string | null;
+        title?: string;
+    },
     clock: TriggerClock
 ): Promise<{ trigger: Trigger }> {
+    if (input.github !== undefined) {
+        await requireTriggerOperator(db, member, input.serverId);
+        return refuseGithubTriggers();
+    }
     return { trigger: await updateTriggerRow(db, input, operatorCheck(member, input), clock) };
 }
 
@@ -118,7 +139,7 @@ export async function rotateOperatorTriggerSecret(
     member: HausUser | null,
     input: OperatorTriggerInput,
     clock: TriggerClock
-): Promise<{ secret: string; trigger: Trigger }> {
+): Promise<{ secret: string; trigger: WebhookTrigger }> {
     return await rotateTriggerSecretRow(db, input, operatorCheck(member, input), clock);
 }
 

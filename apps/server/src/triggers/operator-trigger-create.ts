@@ -1,4 +1,4 @@
-import type { Trigger, TriggerKind } from '@haus/api';
+import type { TriggerCreateInput, TriggerCreateResult } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
@@ -8,18 +8,11 @@ import { publishRealtime } from '../realtime/topic.ts';
 import { requireActiveAgent } from '../reminders/reminder-model.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireTriggerOperator } from './operator-triggers.ts';
-import type { TriggerClock } from './trigger-model.ts';
+import { refuseGithubTriggers, type TriggerClock } from './trigger-model.ts';
 import { triggerCurlCommand } from './trigger-url.ts';
 import { createTriggerRow } from './trigger-writes.ts';
 
-export interface CreateOperatorTriggerInput {
-    agentId: string;
-    instruction?: string;
-    kind: TriggerKind;
-    origin: string;
-    serverId: string;
-    title: string;
-}
+export type CreateOperatorTriggerInput = TriggerCreateInput & { origin: string };
 
 /**
  * Creates one trigger on behalf of a Server Owner or Admin. A human has no
@@ -33,8 +26,11 @@ export async function createOperatorTrigger(
     member: HausUser | null,
     input: CreateOperatorTriggerInput,
     clock: TriggerClock
-): Promise<{ curl: string; secret: string; trigger: Trigger; url: string }> {
+): Promise<TriggerCreateResult> {
     const operator = await requireTriggerOperator(db, member, input.serverId);
+    if (input.kind === 'github') {
+        return refuseGithubTriggers();
+    }
     // Set by the transaction callback; emitted only once the trigger commits.
     let dmCreatedEvent: PreparedRealtimeEvent | null = null;
     const created = await createTriggerRow(

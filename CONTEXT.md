@@ -144,6 +144,19 @@ retains PKCE and routing state, validates the hosted callback, exchanges the one
 stores and refreshes tokens. Computer does not participate.
 _Avoid_: Computer callback relay, Agent-visible token, durable authorization code
 
+**Built-in connection**:
+An MCP connection where Haus owns the relationship with the service and integrates beyond MCP
+tools. GitHub is the only one: its sign-in uses the Haus GitHub App, it binds GitHub
+installations, and its deliveries fire `github` Triggers. Custom MCP connections stay tools-only.
+_Avoid_: provider, integration framework, plugin
+
+**GitHub installation**:
+One Haus GitHub App installation (an org or user account and its repository selection) bound to
+one Haus Server through one GitHub connection. Binding needs a Server Owner or Admin and the
+signed-in GitHub user's ownership of the account. A removed installation is kept as a tombstone.
+Agents reach it only through the connection grant.
+_Avoid_: GitHub org connection, repository connection, seeing an installation as authority
+
 **Computer bootstrap protocol**:
 The minimal stable handshake through which a Computer authenticates and reports its binary and
 protocol versions before entering the versioned Computer protocol. An incompatible Computer may

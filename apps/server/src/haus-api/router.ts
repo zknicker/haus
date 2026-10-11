@@ -9,6 +9,7 @@ import { cloudAgentSettingsRouter } from './cloud-agent-settings/router.ts';
 import { cloudAgentWorkRouter } from './cloud-agent-work/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
+import { githubRouter } from './github/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
@@ -38,6 +39,7 @@ export const hausRouter = createRouter({
     cloudAgentWork: cloudAgentWorkRouter,
     computer: computerRouter,
     dev: devRouter,
+    github: githubRouter,
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,

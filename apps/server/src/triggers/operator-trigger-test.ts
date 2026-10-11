@@ -9,7 +9,12 @@ import {
     requireTriggerOperator,
 } from './operator-triggers.ts';
 import { fireTrigger } from './trigger-fire.ts';
-import { type TriggerClock, TriggerNotFoundError, TriggerRefusedError } from './trigger-model.ts';
+import {
+    refuseGithubTriggers,
+    type TriggerClock,
+    TriggerNotFoundError,
+    TriggerRefusedError,
+} from './trigger-model.ts';
 import { readTrigger } from './trigger-queries.ts';
 import type { TriggerRateLimiter } from './trigger-rate-limit.ts';
 
@@ -36,6 +41,10 @@ export async function testOperatorTrigger(
 ): Promise<{ fireId: string }> {
     const operator = await requireTriggerOperator(db, member, input.serverId);
     const trigger = await readTrigger(db, input);
+    if (trigger.kind === 'github') {
+        // A GitHub test fire carries a sample projection, which lands with deliveries.
+        return refuseGithubTriggers();
+    }
     if (trigger.status === 'disabled') {
         throw new TriggerRefusedError(
             'trigger_disabled',

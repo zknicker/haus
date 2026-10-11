@@ -19,7 +19,8 @@ export function TriggerManageGroup({
     canTest: boolean;
     isRotating: boolean;
     isTesting: boolean;
-    onRotate: () => void;
+    /** Null for a Trigger with no secret to rotate. */
+    onRotate: (() => void) | null;
     onTest: () => void;
 }) {
     return (
@@ -47,28 +48,32 @@ export function TriggerManageGroup({
                         </Button>
                     </ItemCard.Action>
                 </ItemCard>
-                <Separator />
-                <ItemCard>
-                    <ItemCard.Content>
-                        <ItemCard.Title>Rotate secret</ItemCard.Title>
-                        {/* A destructive row earns one clause: what stops
-                            working the moment it is pressed. */}
-                        <ItemCard.Description className="whitespace-normal">
-                            The current secret stops working immediately.
-                        </ItemCard.Description>
-                    </ItemCard.Content>
-                    <ItemCard.Action>
-                        <Button
-                            isDisabled={isRotating}
-                            onPress={onRotate}
-                            size="sm"
-                            type="button"
-                            variant="danger-soft"
-                        >
-                            Rotate
-                        </Button>
-                    </ItemCard.Action>
-                </ItemCard>
+                {onRotate ? (
+                    <>
+                        <Separator />
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <ItemCard.Title>Rotate secret</ItemCard.Title>
+                                {/* A destructive row earns one clause: what stops
+                                    working the moment it is pressed. */}
+                                <ItemCard.Description className="whitespace-normal">
+                                    The current secret stops working immediately.
+                                </ItemCard.Description>
+                            </ItemCard.Content>
+                            <ItemCard.Action>
+                                <Button
+                                    isDisabled={isRotating}
+                                    onPress={onRotate}
+                                    size="sm"
+                                    type="button"
+                                    variant="danger-soft"
+                                >
+                                    Rotate
+                                </Button>
+                            </ItemCard.Action>
+                        </ItemCard>
+                    </>
+                ) : null}
             </ItemCardGroup>
         </ItemCardGroup>
     );

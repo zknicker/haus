@@ -1,7 +1,8 @@
-import type { AgentTrigger, Trigger, TriggerKind, TriggerStatus } from '@haus/api';
+import type { AgentTrigger, AgentTriggerCreateInput, Trigger, TriggerStatus } from '@haus/api';
 import type { FastifyRequest } from 'fastify';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { refuseGithubTriggers } from '../triggers/trigger-model.ts';
 import {
     createTrigger,
     deleteTrigger,
@@ -24,8 +25,11 @@ export async function createAgentTrigger(
     db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
-    input: { instruction?: string; kind: TriggerKind; messageId: string; title: string }
+    input: AgentTriggerCreateInput
 ) {
+    if (input.kind === 'github') {
+        return refuseGithubTriggers();
+    }
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
     const created = await createTrigger(
         db,
@@ -175,11 +179,12 @@ export async function readAgentTriggerLog(
     };
 }
 
-async function toAgentTrigger(
+/** Adds where the trigger is anchored; the kind, and so the variant, is kept. */
+async function toAgentTrigger<T extends Trigger>(
     db: HausDatabase,
     serverId: string,
-    trigger: Trigger
-): Promise<AgentTrigger> {
+    trigger: T
+): Promise<T & Pick<AgentTrigger, 'anchorTarget'>> {
     return {
         ...trigger,
         anchorTarget: await targetForChat(db, serverId, trigger.anchorChatId),

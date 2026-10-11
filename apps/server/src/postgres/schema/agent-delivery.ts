@@ -22,6 +22,8 @@ export const agentDeliveryTable = pgTable(
         activeRunModelId: text('active_run_model_id'),
         activeRunReasoningEffort: text('active_run_reasoning_effort').$type<AgentReasoningEffort>(),
         activeRunRuntimeId: text('active_run_runtime_id'),
+        /** When `agent_chain_turns` last advanced; a long quiet gap restarts the chain. */
+        agentChainAdvancedAt: timestamp('agent_chain_advanced_at', { withTimezone: true }),
         agentChainTurns: integer('agent_chain_turns').notNull().default(0),
         agentId: text('agent_id').primaryKey(),
         consecutiveFailures: integer('consecutive_failures').notNull().default(0),

@@ -11,7 +11,7 @@ import {
     ReminderAgentInactiveError,
     ReminderAnchorAccessError,
 } from '../reminders/reminder-model.ts';
-import { TriggerNotFoundError } from '../triggers/trigger-model.ts';
+import { TriggerNotFoundError, TriggerRequestRefusedError } from '../triggers/trigger-model.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { AgentTargetError } from './resolve-target.ts';
 import {
@@ -141,6 +141,9 @@ async function runAction(reply: FastifyReply, action: () => Promise<unknown>) {
     } catch (cause) {
         if (cause instanceof TriggerNotFoundError || cause instanceof AgentTargetError) {
             return sendAgentApiError(reply, 404, 'INVALID_TARGET', cause.message);
+        }
+        if (cause instanceof TriggerRequestRefusedError) {
+            return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
         }
         if (cause instanceof ChatArchivedError) {
             return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);

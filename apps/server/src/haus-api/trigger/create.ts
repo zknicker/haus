@@ -1,11 +1,14 @@
-import { triggerCreateInputSchema, triggerSecretResultSchema } from '@haus/api';
+import { triggerCreateInputSchema, triggerCreateResultSchema } from '@haus/api';
 import { createOperatorTrigger } from '../../triggers/operator-trigger-create.ts';
 import { triggerClock, triggerProcedure } from './procedure.ts';
 
-/** The only operator response besides `rotate` that carries a readable secret. */
+/**
+ * A webhook create is the only operator response besides `rotate` that carries
+ * a readable secret; a `github` create answers with the Trigger alone.
+ */
 export const createTriggerProcedure = triggerProcedure
     .input(triggerCreateInputSchema)
-    .output(triggerSecretResultSchema)
+    .output(triggerCreateResultSchema)
     .mutation(async ({ ctx, input }) =>
         createOperatorTrigger(
             ctx.hausDb,

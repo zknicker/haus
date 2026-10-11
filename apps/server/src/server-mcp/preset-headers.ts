@@ -8,8 +8,7 @@ import type { McpPreset } from '@haus/api';
  */
 const presetHeaders: Partial<Record<McpPreset, Readonly<Record<string, string>>>> = {
     github: {
-        'X-MCP-Toolsets':
-            'default,actions,notifications,code_security,dependabot',
+        'X-MCP-Toolsets': 'default,actions,notifications,code_security,dependabot',
     },
 };
 

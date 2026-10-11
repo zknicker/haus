@@ -5,6 +5,7 @@ import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
+import { registerGithubRoutes } from './github/routes.ts';
 import type { createHausContextFactory, HausContextDependencies } from './haus-api/context.ts';
 import { hausRouter } from './haus-api/router.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
@@ -45,6 +46,7 @@ export async function registerHausServerRoutes(
         postCommitWork: dependencies.postCommitWork,
     });
     registerMcpOAuthCallback(app, dependencies.mcpOAuthRelay);
+    registerGithubRoutes(app);
     await registerTriggerRoutes(app, {
         db,
         delivery: dependencies.agentDelivery,

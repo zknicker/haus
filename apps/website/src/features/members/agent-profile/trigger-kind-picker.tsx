@@ -1,6 +1,5 @@
-import type { TriggerKind } from '@haus/api';
 import { Description, Label, ListBox, Select } from '@heroui/react';
-import type { TriggerKindOption } from './agent-trigger-model.ts';
+import type { CreatableTriggerKind, TriggerKindOption } from './agent-trigger-model.ts';
 
 /**
  * A Trigger has exactly one kind, so the choice is a single-value Select and
@@ -18,8 +17,8 @@ export function TriggerKindPicker({
 }: {
     isDisabled: boolean;
     kinds: readonly TriggerKindOption[];
-    onChange: (kind: TriggerKind) => void;
-    value: TriggerKind | null;
+    onChange: (kind: CreatableTriggerKind) => void;
+    value: CreatableTriggerKind | null;
 }) {
     return (
         <Select

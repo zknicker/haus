@@ -53,7 +53,8 @@ the access boundary.
 | `Clerk - Haus` | `Development`, `Production` | Haus's own Clerk tenancy — backend key, publishable key, issuer |
 | `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
-| `GitHub MCP OAuth - Haus` | `Development`, `Production` | GitHub OAuth App for the GitHub MCP connection: `username` is the client id, `credential` the secret; optional |
+| `GitHub MCP OAuth - Haus` | `Development`, `Production` | GitHub OAuth App for the GitHub MCP connection: `username` is the client id, `credential` the secret; optional; deleted once the GitHub App replaces it |
+| `GitHub App - Haus` | `Development`, `Production` | The Haus GitHub App (**Haus Dev** in Development): `app_id`, `slug`, `client_id`, `client_secret`, `private_key` (PEM), `webhook_secret`; optional |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
 | `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts and action descriptions; one per lifecycle |
 | `Apple Push - Haus` | `Development`, `Production` | Server-owned APNs token-signing key for iPhone push: `key_id` and `private_key` (the `.p8` PEM); optional |
@@ -115,6 +116,16 @@ without the item still loads. Production's item is the one Haus-owned GitHub OAu
 callback is `https://haus.chat/mcp/oauth/callback`; it has expiring user tokens enabled, so the
 Server needs the secret to refresh. Without a client the GitHub connection reports its OAuth client
 unavailable, exactly as Google Calendar does. Test resolves fake literals; release resolves none.
+
+The Haus GitHub App ([GitHub App connection](../../specs/github-app-connection.md#environment))
+uses `HAUS_GITHUB_APP_ID` and `HAUS_GITHUB_APP_SLUG` (public), and `HAUS_GITHUB_APP_CLIENT_ID`,
+`HAUS_GITHUB_APP_CLIENT_SECRET`, `HAUS_GITHUB_APP_PRIVATE_KEY`, and
+`HAUS_GITHUB_APP_WEBHOOK_SECRET` (sensitive), resolved per lifecycle from `GitHub App - Haus`
+with `allowMissing=true`. All six are delivered only to the Server. The private key is the PEM
+GitHub generates, delivered like `HAUS_APNS_PRIVATE_KEY`; it signs App JWTs in Server memory and
+never leaves it. The App is configured only when all six are present: otherwise the GitHub
+connection reports unavailable and the app webhook answers `503`. Test resolves fake literals and
+no private key, because tests inject generated keys; release resolves none.
 
 iPhone push uses `HAUS_APNS_KEY_ID` and `HAUS_APNS_PRIVATE_KEY`, resolved per lifecycle from
 `Apple Push - Haus` with `allowMissing=true`, so a lifecycle without the item still loads. The Server

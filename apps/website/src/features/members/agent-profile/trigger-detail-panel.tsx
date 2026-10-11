@@ -129,12 +129,19 @@ export function TriggerDetailPanel({
                         serverId={serverId}
                         trigger={trigger}
                     />
-                    <TriggerWhenToRun kind={triggerKindOption(trigger.kind)} url={trigger.url} />
+                    {/* A GitHub Trigger has no URL and no secret: it shows read-only
+                        until its configuration panel lands. */}
+                    {trigger.kind === 'webhook' ? (
+                        <TriggerWhenToRun
+                            kind={triggerKindOption(trigger.kind)}
+                            url={trigger.url}
+                        />
+                    ) : null}
                     <TriggerManageGroup
                         canTest={canTestTrigger(trigger)}
                         isRotating={rotate.isPending}
                         isTesting={testFire.isPending}
-                        onRotate={() => setConfirm('rotate')}
+                        onRotate={trigger.kind === 'webhook' ? () => setConfirm('rotate') : null}
                         onTest={() => void testFire.testFire()}
                     />
                     <TriggerFireHistory

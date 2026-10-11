@@ -1,4 +1,4 @@
-import type { Trigger, TriggerKind, TriggerStatus } from '@haus/api';
+import type { Trigger, TriggerStatus, WebhookTrigger } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -9,6 +9,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import {
     hashTriggerSecret,
     mintTriggerSecret,
+    requireWebhookTrigger,
     type TriggerClock,
     TriggerNotFoundError,
 } from './trigger-model.ts';
@@ -38,7 +39,8 @@ export interface CreateTriggerRowInput {
     /** The human who created it, or null when the owning Agent created it itself. */
     createdByUserId: string | null;
     instruction: string | null;
-    kind: TriggerKind;
+    /** Only webhooks are created here; `github` creation arrives with GitHub deliveries. */
+    kind: 'webhook';
     origin: string;
     ownerAgentId: string;
     serverId: string;
@@ -59,7 +61,7 @@ export async function createTriggerRow(
 ): Promise<{
     event: PreparedRealtimeEvent | null;
     secret: string;
-    trigger: Trigger;
+    trigger: WebhookTrigger;
 }> {
     const now = clock.now();
     const secret = mintTriggerSecret();
@@ -85,11 +87,13 @@ export async function createTriggerRow(
         return {
             event: anchor.event ?? null,
             secret,
-            trigger: await readTrigger(tx, {
-                origin: input.origin,
-                serverId: input.serverId,
-                triggerId,
-            }),
+            trigger: requireWebhookTrigger(
+                await readTrigger(tx, {
+                    origin: input.origin,
+                    serverId: input.serverId,
+                    triggerId,
+                })
+            ),
         };
     });
 }
@@ -152,16 +156,19 @@ export async function rotateTriggerSecretRow(
     input: { origin: string; serverId: string; triggerId: string },
     authorize: TriggerAuthorization,
     clock: TriggerClock
-): Promise<{ secret: string; trigger: Trigger }> {
+): Promise<{ secret: string; trigger: WebhookTrigger }> {
     const secret = mintTriggerSecret();
     const trigger = await writeTrigger(
         db,
         input,
         authorize,
-        () => ({ secretHash: hashTriggerSecret(secret) }),
+        (current) => {
+            requireWebhookTrigger(current);
+            return { secretHash: hashTriggerSecret(secret) };
+        },
         clock
     );
-    return { secret, trigger };
+    return { secret, trigger: requireWebhookTrigger(trigger) };
 }
 
 /**

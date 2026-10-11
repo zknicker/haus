@@ -1,3 +1,4 @@
+import type { TriggerKind } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -17,10 +18,12 @@ import { serversTable } from './servers.ts';
 import { usersTable } from './users.ts';
 
 /**
- * One Agent-owned inbound webhook. A trigger has no schedule and no recurrence:
- * it wakes its owner only when an outside system POSTs to its private URL. The
- * bearer secret is stored as a sha256 hash and is readable exactly once, at
- * create and rotate.
+ * One Agent-owned inbound stimulus. A trigger has no schedule and no
+ * recurrence: a `webhook` wakes its owner when an outside system POSTs to its
+ * private URL, and a `github` Trigger when a matching GitHub App delivery
+ * arrives (its configuration is `github_trigger_configs`). A webhook's bearer
+ * secret is stored as a sha256 hash and is readable exactly once, at create
+ * and rotate.
  *
  * The anchor says where fires land, and who created it decides that anchor: an
  * Agent anchors on the message where a person asked for the trigger, and a
@@ -42,10 +45,11 @@ export const triggersTable = pgTable(
         fireCount: integer('fire_count').notNull().default(0),
         id: text('id').primaryKey(),
         instruction: text('instruction'),
-        kind: text('kind').notNull().$type<'webhook'>(),
+        kind: text('kind').notNull().$type<TriggerKind>(),
         lastFiredAt: timestamp('last_fired_at', { withTimezone: true }),
         ownerAgentId: text('owner_agent_id').notNull(),
-        secretHash: text('secret_hash').notNull(),
+        /** Only a webhook has a secret; a `github` Trigger is fed by the App webhook. */
+        secretHash: text('secret_hash'),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -77,7 +81,11 @@ export const triggersTable = pgTable(
             ],
             name: 'triggers_anchor_message_fk',
         }),
-        check('triggers_kind', sql`${table.kind} in ('webhook')`),
+        check('triggers_kind', sql`${table.kind} in ('webhook', 'github')`),
+        check(
+            'triggers_secret_kind',
+            sql`(${table.kind} = 'webhook') = (${table.secretHash} is not null)`
+        ),
         check('triggers_status', sql`${table.status} in ('armed', 'disabled')`),
         check(
             'triggers_deleted_status',

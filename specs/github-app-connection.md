@@ -82,7 +82,7 @@ Server through one GitHub connection. Agents reach it only through the connectio
 
 `github_installations`: `id` (`ghi_` + 16), `server_id`, unique `(server_id, id)`, `connection_id`
 nullable with composite FK `(server_id, connection_id)` → `mcp_connections(server_id, id)` (no
-action; cleared before the connection is deleted), `installation_id` bigint unique among rows whose
+action, deferred for the Server purge; cleared before the connection is deleted), `installation_id` bigint unique among rows whose
 status is not `removed`, `account_id` bigint, `account_login`, `account_type` (`User` |
 `Organization`), `repository_selection` (`all` | `selected`), `permissions` jsonb, `events` text[],
 `status` (`active` | `suspended` | `removed`), `accessible_repository_ids` bigint[],
@@ -247,6 +247,16 @@ an empty `github` tRPC router, and signature stubs `reconcileGithubInstallation`
 `trigger.create` refuses `github` with `BAD_REQUEST github_triggers_unavailable`. Must not touch
 `server-mcp/`, `agent-delivery/` logic, or ingest. Proof: API gate plus Server, website, and
 Computer typechecks; server gate on a fresh schema; `env:check`, `env:contract`; JWT unit tests.
+
+As built, the Seam keeps `@haus/api` files under 300 lines by adding
+`github-trigger-events.ts` (event allowlist, filters, permissions, problems, repository scope,
+`githubTriggerConfigInputSchema`, `githubTriggerViewSchema`) and `agent-triggers.ts` (Agent CLI
+Trigger contracts) beside `triggers.ts` and `github.ts`. On every wire contract `installationId`
+names the Haus row (`ghi_…`) and `githubInstallationId` names GitHub's number. Refusals share
+`triggerRequestRefusalSchema`; the message leads with the code (`github_triggers_unavailable: …`).
+The stubs live in `github/installation-reconcile.ts` and `github/trigger-problems.ts` (Slice B
+fills them), and `github/routes.ts` answers `501 not_implemented` on `/api/github/webhook`,
+`/api/github/sink`, and `/github/setup` until B and C replace each edge.
 
 **Slice B: connection, installations, lifecycle.** Owns `server-mcp/{oauth-clients,preset-headers,
 presets,service}.ts` and tests (App client, OAuth App deletion, GitHub-aware delete),

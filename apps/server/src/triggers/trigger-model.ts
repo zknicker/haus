@@ -1,7 +1,14 @@
 import { randomBytes } from 'node:crypto';
-import type { Trigger, TriggerFireErrorCode, TriggerKind, TriggerStatus } from '@haus/api';
+import type {
+    Trigger,
+    TriggerFireErrorCode,
+    TriggerRequestRefusal,
+    TriggerStatus,
+    WebhookTrigger,
+} from '@haus/api';
 import { triggerSecretPrefix } from '@haus/api';
 import { hashComputerSecret } from '../computers/service.ts';
+import { type GithubTriggerRow, toGithubTriggerView } from '../github/github-trigger-view.ts';
 import type { triggersTable } from '../postgres/schema.ts';
 import { triggerUrl } from './trigger-url.ts';
 
@@ -64,14 +71,44 @@ export function readBearerSecret(header: string | string[] | undefined): string 
 }
 
 /**
- * The wire view of one stored trigger. `url` is derived per request rather than
- * stored, so every reader passes the origin the caller actually reached.
+ * A well-formed Trigger request the Server will not do, such as rotating a
+ * Trigger that has no secret. The message leads with the stable code.
+ */
+export class TriggerRequestRefusedError extends Error {
+    constructor(
+        readonly code: TriggerRequestRefusal,
+        message: string
+    ) {
+        super(`${code}: ${message}`);
+        this.name = 'TriggerRequestRefusedError';
+    }
+}
+
+/** `github` Triggers are refused until GitHub deliveries can fire them. */
+export function refuseGithubTriggers(): never {
+    throw new TriggerRequestRefusedError(
+        'github_triggers_unavailable',
+        'GitHub Triggers are not available on this Server yet.'
+    );
+}
+
+export interface TriggerViewContext {
+    createdByHandle: string | null;
+    /** The `github` configuration; required exactly when the Trigger is `github`. */
+    github: GithubTriggerRow | null;
+    origin: string;
+    ownerHandle: string;
+}
+
+/**
+ * The wire view of one stored trigger. A webhook's `url` is derived per request
+ * rather than stored, so every reader passes the origin the caller reached.
  */
 export function toTrigger(
     trigger: typeof triggersTable.$inferSelect,
-    context: { createdByHandle: string | null; origin: string; ownerHandle: string }
+    context: TriggerViewContext
 ): Trigger {
-    return {
+    const base = {
         anchorChatId: trigger.anchorChatId,
         anchorMessageId: trigger.anchorMessageId,
         createdAt: trigger.createdAt.toISOString(),
@@ -81,14 +118,30 @@ export function toTrigger(
         fireCount: trigger.fireCount,
         id: trigger.id,
         instruction: trigger.instruction,
-        kind: trigger.kind as TriggerKind,
         lastFiredAt: trigger.lastFiredAt?.toISOString() ?? null,
         ownerAgentId: trigger.ownerAgentId,
         ownerHandle: context.ownerHandle,
         status: trigger.status as TriggerStatus,
         title: trigger.title,
         updatedAt: trigger.updatedAt.toISOString(),
-        url: triggerUrl(context.origin, trigger.id),
         version: trigger.version,
     };
+    if (trigger.kind === 'webhook') {
+        return { ...base, kind: 'webhook', url: triggerUrl(context.origin, trigger.id) };
+    }
+    if (!context.github) {
+        throw new Error(`GitHub Trigger ${trigger.id} has no stored configuration.`);
+    }
+    return { ...base, github: toGithubTriggerView(context.github), kind: 'github' };
+}
+
+/** Narrows to a webhook, the only kind with a URL and a secret. */
+export function requireWebhookTrigger(trigger: Trigger): WebhookTrigger {
+    if (trigger.kind !== 'webhook') {
+        throw new TriggerRequestRefusedError(
+            'trigger_has_no_secret',
+            'A GitHub Trigger has no URL and no secret to rotate.'
+        );
+    }
+    return trigger;
 }

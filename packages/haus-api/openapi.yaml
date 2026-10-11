@@ -1258,11 +1258,13 @@ paths:
               $ref: '#/components/schemas/AgentTriggerCreateRequest'
       responses:
         '200':
-          description: The created trigger and its one readable secret.
+          description: The created trigger, with its one readable secret when it is a webhook.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTriggerSecretResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/AgentTriggerSecretResponse'
+                  - $ref: '#/components/schemas/AgentTriggerSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
   /api/agent/triggers/{id}:
@@ -2373,8 +2375,17 @@ components:
         target: { type: string, minLength: 1 }
     TriggerKind:
       type: string
-      enum: [webhook]
+      enum: [webhook, github]
     Trigger:
+      discriminator:
+        propertyName: kind
+        mapping:
+          webhook: '#/components/schemas/WebhookTrigger'
+          github: '#/components/schemas/GithubTrigger'
+      oneOf:
+        - $ref: '#/components/schemas/WebhookTrigger'
+        - $ref: '#/components/schemas/GithubTrigger'
+    WebhookTrigger:
       type: object
       additionalProperties: false
       required: [anchorChatId, anchorMessageId, createdAt, createdByHandle, createdByUserId, disabledAt, fireCount, id, instruction, kind, lastFiredAt, ownerAgentId, ownerHandle, status, title, updatedAt, url, version]
@@ -2388,8 +2399,7 @@ components:
         fireCount: { type: integer, minimum: 0 }
         id: { type: string }
         instruction: { type: [string, 'null'] }
-        kind:
-          $ref: '#/components/schemas/TriggerKind'
+        kind: { type: string, enum: [webhook] }
         lastFiredAt: { type: [string, 'null'], format: date-time }
         ownerAgentId: { type: string }
         ownerHandle: { type: string }
@@ -2398,6 +2408,89 @@ components:
         updatedAt: { type: string, format: date-time }
         url: { type: string }
         version: { type: integer, minimum: 1 }
+    GithubTrigger:
+      type: object
+      additionalProperties: false
+      required: [anchorChatId, anchorMessageId, createdAt, createdByHandle, createdByUserId, disabledAt, fireCount, github, id, instruction, kind, lastFiredAt, ownerAgentId, ownerHandle, status, title, updatedAt, version]
+      properties:
+        anchorChatId: { type: string }
+        anchorMessageId: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        createdByHandle: { type: [string, 'null'] }
+        createdByUserId: { type: [string, 'null'] }
+        disabledAt: { type: [string, 'null'], format: date-time }
+        fireCount: { type: integer, minimum: 0 }
+        github:
+          $ref: '#/components/schemas/GithubTriggerView'
+        id: { type: string }
+        instruction: { type: [string, 'null'] }
+        kind: { type: string, enum: [github] }
+        lastFiredAt: { type: [string, 'null'], format: date-time }
+        ownerAgentId: { type: string }
+        ownerHandle: { type: string }
+        status: { type: string, enum: [armed, disabled] }
+        title: { type: string, maxLength: 200 }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    GithubTriggerEvent:
+      type: object
+      description: One event entry. Each event takes its own actions and filters; see specs/github-triggers.md#events.
+      required: [event]
+      properties:
+        event:
+          type: string
+          enum: [workflow_run, workflow_job, check_suite, check_run, deployment_status, pull_request, pull_request_review, push, issues, release]
+    GithubTriggerRepositories:
+      discriminator:
+        propertyName: scope
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [scope]
+          properties:
+            scope: { type: string, enum: [installation] }
+        - type: object
+          additionalProperties: false
+          required: [names, scope]
+          properties:
+            names:
+              type: array
+              minItems: 1
+              maxItems: 50
+              items: { type: string, description: 'owner/name' }
+            scope: { type: string, enum: [repositories] }
+    GithubTriggerConfigInput:
+      type: object
+      additionalProperties: false
+      required: [events, installationId, repositories]
+      properties:
+        events:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/GithubTriggerEvent'
+        installationId: { type: string, description: The Haus installation id (ghi_…). }
+        repositories:
+          $ref: '#/components/schemas/GithubTriggerRepositories'
+    GithubTriggerView:
+      type: object
+      additionalProperties: false
+      required: [events, installationId, installationLogin, problem, problemSince, repositories, suppressedCount]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/GithubTriggerEvent'
+        installationId: { type: string }
+        installationLogin: { type: string }
+        problem:
+          type: [string, 'null']
+          enum: [installation_removed, installation_suspended, repositories_unavailable, permissions_missing, agent_access_revoked, sign_in_required, null]
+        problemSince: { type: [string, 'null'], format: date-time }
+        repositories:
+          $ref: '#/components/schemas/GithubTriggerRepositories'
+        suppressedCount: { type: integer, minimum: 0 }
     AgentTrigger:
       allOf:
         - $ref: '#/components/schemas/Trigger'
@@ -2452,6 +2545,9 @@ components:
           description: Standing instruction, at most 4096 UTF-8 bytes.
         kind:
           $ref: '#/components/schemas/TriggerKind'
+        github:
+          $ref: '#/components/schemas/GithubTriggerConfigInput'
+          description: Required exactly when kind is github.
         messageId: { type: string, minLength: 1 }
         title: { type: string, minLength: 1, maxLength: 200 }
     AgentTriggerSingleResponse:

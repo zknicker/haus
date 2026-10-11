@@ -1582,8 +1582,9 @@ export interface components {
             target: string;
         };
         /** @enum {string} */
-        TriggerKind: "webhook";
-        Trigger: {
+        TriggerKind: "webhook" | "github";
+        Trigger: components["schemas"]["WebhookTrigger"] | components["schemas"]["GithubTrigger"];
+        WebhookTrigger: {
             anchorChatId: string;
             anchorMessageId: string | null;
             /** Format: date-time */
@@ -1595,7 +1596,11 @@ export interface components {
             fireCount: number;
             id: string;
             instruction: string | null;
-            kind: components["schemas"]["TriggerKind"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "webhook";
             /** Format: date-time */
             lastFiredAt: string | null;
             ownerAgentId: string;
@@ -1608,9 +1613,70 @@ export interface components {
             url: string;
             version: number;
         };
-        AgentTrigger: components["schemas"]["Trigger"] & {
-            anchorTarget: string;
+        GithubTrigger: {
+            anchorChatId: string;
+            anchorMessageId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdByHandle: string | null;
+            createdByUserId: string | null;
+            /** Format: date-time */
+            disabledAt: string | null;
+            fireCount: number;
+            github: components["schemas"]["GithubTriggerView"];
+            id: string;
+            instruction: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "github";
+            /** Format: date-time */
+            lastFiredAt: string | null;
+            ownerAgentId: string;
+            ownerHandle: string;
+            /** @enum {string} */
+            status: "armed" | "disabled";
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: number;
         };
+        /** @description One event entry. Each event takes its own actions and filters; see specs/github-triggers.md#events. */
+        GithubTriggerEvent: {
+            /** @enum {string} */
+            event: "workflow_run" | "workflow_job" | "check_suite" | "check_run" | "deployment_status" | "pull_request" | "pull_request_review" | "push" | "issues" | "release";
+        };
+        GithubTriggerRepositories: {
+            /** @enum {string} */
+            scope: "installation";
+        } | {
+            names: string[];
+            /** @enum {string} */
+            scope: "repositories";
+        };
+        GithubTriggerConfigInput: {
+            events: components["schemas"]["GithubTriggerEvent"][];
+            /** @description The Haus installation id (ghi_…). */
+            installationId: string;
+            repositories: components["schemas"]["GithubTriggerRepositories"];
+        };
+        GithubTriggerView: {
+            events: components["schemas"]["GithubTriggerEvent"][];
+            installationId: string;
+            installationLogin: string;
+            /** @enum {string|null} */
+            problem: "installation_removed" | "installation_suspended" | "repositories_unavailable" | "permissions_missing" | "agent_access_revoked" | "sign_in_required" | null;
+            /** Format: date-time */
+            problemSince: string | null;
+            repositories: components["schemas"]["GithubTriggerRepositories"];
+            suppressedCount: number;
+        };
+        AgentTrigger: {
+            kind: "AgentTrigger";
+        } & (Omit<components["schemas"]["Trigger"], "kind"> & {
+            anchorTarget: string;
+        });
         TriggerFire: {
             contentType: string | null;
             dedupeKey: string | null;
@@ -1639,6 +1705,8 @@ export interface components {
             /** @description Standing instruction, at most 4096 UTF-8 bytes. */
             instruction?: string;
             kind?: components["schemas"]["TriggerKind"];
+            /** @description Required exactly when kind is github. */
+            github?: components["schemas"]["GithubTriggerConfigInput"];
             messageId: string;
             title: string;
         };
@@ -3816,13 +3884,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created trigger and its one readable secret. */
+            /** @description The created trigger, with its one readable secret when it is a webhook. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTriggerSecretResponse"];
+                    "application/json": components["schemas"]["AgentTriggerSecretResponse"] | components["schemas"]["AgentTriggerSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

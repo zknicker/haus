@@ -1,4 +1,4 @@
-import type { TriggerKind } from '@haus/api';
+import type { TriggerSecretResult } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
@@ -13,7 +13,17 @@ export function useTriggerCreate(serverId: string, agentId: string) {
 
     return {
         ...mutation,
-        create: (input: { instruction?: string; kind: TriggerKind; title: string }) =>
-            mutation.mutateAsync({ ...input, agentId, serverId }),
+        /** Creates a webhook, whose answer always carries its one readable secret. */
+        create: async (input: {
+            instruction?: string;
+            kind: 'webhook';
+            title: string;
+        }): Promise<TriggerSecretResult> => {
+            const result = await mutation.mutateAsync({ ...input, agentId, serverId });
+            if (!('secret' in result)) {
+                throw new Error('A webhook create answered without its secret.');
+            }
+            return result;
+        },
     };
 }

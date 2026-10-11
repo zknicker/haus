@@ -21,8 +21,9 @@ unchanged except for the [chain budget](#automation-chain-budget).
   `(kind = 'webhook') = (secret_hash is not null)`.
 - `github_trigger_configs`: `trigger_id`, `server_id`, composite FK `(server_id, trigger_id)` →
   `triggers` (cascade), `installation_row_id` not null with composite FK
-  `(server_id, installation_row_id)` → `github_installations(server_id, id)` (restrict; installations
-  are tombstoned, never deleted under a Trigger), `repository_scope` (`installation` |
+  `(server_id, installation_row_id)` → `github_installations(server_id, id)` (no action, deferred
+  like every link inside the Server purge cascade; installations are tombstoned, never deleted
+  under a Trigger), `repository_scope` (`installation` |
   `repositories`), `repository_ids` bigint[] and `repository_names` text[] (non-empty exactly when
   scope is `repositories`, at most 50), `events` jsonb (validated by `githubTriggerEventsSchema`),
   `problem` (null or a [failure mode](#failure-modes)), `problem_since`, `suppressed_count`,

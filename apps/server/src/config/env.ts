@@ -72,7 +72,15 @@ const envSchema = z
         HAUS_TYPESAFE_API_KEY: z.string().min(1).optional(),
         HAUS_OPENAI_API_KEY: z.string().min(1).optional(),
         HAUS_GEMINI_API_KEY: z.string().min(1).optional(),
-        // Read by the GitHub MCP preset; declared so the deploy delivers it.
+        // The Haus GitHub App (specs/github-app-connection.md#environment). Each
+        // is optional; `readGithubAppConfig` treats a partial set as unconfigured.
+        HAUS_GITHUB_APP_CLIENT_ID: z.string().min(1).optional(),
+        HAUS_GITHUB_APP_CLIENT_SECRET: z.string().min(1).optional(),
+        HAUS_GITHUB_APP_ID: z.string().regex(/^\d+$/u).optional(),
+        HAUS_GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(),
+        HAUS_GITHUB_APP_SLUG: z.string().min(1).optional(),
+        HAUS_GITHUB_APP_WEBHOOK_SECRET: z.string().min(32).optional(),
+        // Read by the GitHub MCP preset until the App client replaces it (Slice B).
         HAUS_GITHUB_OAUTH_CLIENT_ID: z.string().min(1).optional(),
         HAUS_GITHUB_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
         HAUS_SKOOL_MCP_URL: z.string().url().optional(),

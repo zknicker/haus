@@ -2,9 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
+import { agentTriggerCreateInputSchema, agentTriggerSchema } from './agent-triggers.ts';
 import {
-    agentTriggerCreateInputSchema,
-    agentTriggerSchema,
     triggerCreateInputSchema,
     triggerInstructionMaxBytes,
     triggerKindSchema,
@@ -53,7 +52,7 @@ describe('trigger contracts', () => {
         });
         expect(() => triggerSchema.parse({ ...trigger, secret: 'grtt_leak' })).toThrow();
         expect(() => triggerSchema.parse({ ...trigger, kind: 'schedule' })).toThrow();
-        expect(triggerKindSchema.options).toEqual(['webhook']);
+        expect(triggerKindSchema.options).toEqual(['webhook', 'github']);
     });
 
     test('an Agent-created trigger has no creator, and the Agent view inherits the URL', () => {
@@ -218,8 +217,11 @@ describe('trigger contracts', () => {
         };
         const schemas = document.components.schemas;
 
-        expect(schemas.TriggerKind).toEqual({ enum: ['webhook'], type: 'string' });
-        expect(schemas.Trigger.required).toEqual(Object.keys(trigger).sort());
+        expect(schemas.TriggerKind).toEqual({ enum: ['webhook', 'github'], type: 'string' });
+        expect(schemas.WebhookTrigger.required).toEqual(Object.keys(trigger).sort());
+        expect(schemas.GithubTrigger.required).toEqual(
+            [...Object.keys(trigger).filter((key) => key !== 'url'), 'github'].sort()
+        );
         expect(schemas.AgentTriggerCreateRequest.properties).toHaveProperty('kind');
     });
 });

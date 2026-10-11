@@ -8,6 +8,24 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
+const migrationsSinceReminderDescriptions = [
+    '0060_reminder_descriptions',
+    '0061_agent_wake_pause',
+    '0062_agent_chat_reads',
+    '0063_manual_read_receipts',
+    '0064_agent_conversation_style',
+    '0065_delegating_activity',
+    '0066_agent_run_triggers',
+    '0067_server_turns_index',
+    '0068_channel_descriptions',
+    '0069_user_timezone',
+    '0070_coingecko_preset',
+    '0071_skool-preset',
+    '0072_drop_chat_events',
+    '0073_merchbase-fulfillment-preset',
+    '0074_merchbase-atlas-preset',
+    '0075_github_app',
+];
 test('upgrades the preceding production schema without replaying migrations', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'haus-upgrade-'));
     const database = new SQL(cluster.databaseUrl);
@@ -57,21 +75,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0057_cloud_agent_model',
             '0058_agent_personality',
             '0059_agent_creation_request',
-            '0060_reminder_descriptions',
-            '0061_agent_wake_pause',
-            '0062_agent_chat_reads',
-            '0063_manual_read_receipts',
-            '0064_agent_conversation_style',
-            '0065_delegating_activity',
-            '0066_agent_run_triggers',
-            '0067_server_turns_index',
-            '0068_channel_descriptions',
-            '0069_user_timezone',
-            '0070_coingecko_preset',
-            '0071_skool-preset',
-            '0072_drop_chat_events',
-            '0073_merchbase-fulfillment-preset',
-            '0074_merchbase-atlas-preset',
+            ...migrationsSinceReminderDescriptions,
         ]);
         const [presetConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'mcp_connections_preset'`;
@@ -201,23 +205,9 @@ test('copies each existing reminder title into its new description', async () =>
                 VALUES ('rem_upgrade', 'srv_upgrade', 'agt_upgrade', 'cht_upgrade', 'msg_upgrade',
                     now(), now(), 'scheduled', 'UTC', ${title}, now())`;
         });
-        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
-            '0060_reminder_descriptions',
-            '0061_agent_wake_pause',
-            '0062_agent_chat_reads',
-            '0063_manual_read_receipts',
-            '0064_agent_conversation_style',
-            '0065_delegating_activity',
-            '0066_agent_run_triggers',
-            '0067_server_turns_index',
-            '0068_channel_descriptions',
-            '0069_user_timezone',
-            '0070_coingecko_preset',
-            '0071_skool-preset',
-            '0072_drop_chat_events',
-            '0073_merchbase-fulfillment-preset',
-            '0074_merchbase-atlas-preset',
-        ]);
+        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual(
+            migrationsSinceReminderDescriptions
+        );
         expect(
             await upgraded`SELECT topic_id,resolved_topic_id FROM manual_lookup_audit ORDER BY id`
         ).toEqual([

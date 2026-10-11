@@ -56,6 +56,8 @@ test('every offered kind carries the label and description the picker shows', ()
     ]);
     expect(triggerKindOption('webhook').label).toBe('Webhook');
     expect(triggerKindLabel('webhook')).toBe('Webhook');
+    // GitHub Triggers are shown with their label but not yet offered in the picker.
+    expect(triggerKindLabel('github')).toBe('GitHub');
 });
 
 test('a human-created Trigger credits the handle, an Agent-created one the Agent', () => {
@@ -149,8 +151,9 @@ test('an emptied name is not a save; the Server requires a title', () => {
 });
 
 test('only an armed Trigger can be test-fired', () => {
-    expect(canTestTrigger({ status: 'armed' })).toBe(true);
-    expect(canTestTrigger({ status: 'disabled' })).toBe(false);
+    expect(canTestTrigger({ kind: 'webhook', status: 'armed' })).toBe(true);
+    expect(canTestTrigger({ kind: 'webhook', status: 'disabled' })).toBe(false);
+    expect(canTestTrigger({ kind: 'github', status: 'armed' })).toBe(false);
 });
 
 const row: Trigger = {

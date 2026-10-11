@@ -23,6 +23,7 @@ export * from './schema/cloud-agents.ts';
 export * from './schema/computer-login.ts';
 export * from './schema/computer-system-events.ts';
 export * from './schema/computers.ts';
+export * from './schema/github.ts';
 export * from './schema/mcp.ts';
 export * from './schema/message-causes.ts';
 export * from './schema/message-reactions.ts';

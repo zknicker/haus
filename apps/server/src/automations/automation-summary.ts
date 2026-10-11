@@ -1,3 +1,4 @@
+import type { TriggerKind } from '@haus/api';
 import { parseReminderRepeat } from '../reminders/cadence.ts';
 
 const weekdayNames = [
@@ -34,8 +35,8 @@ export function reminderCadenceSummary(repeat: string | null): string {
 }
 
 /** The kind label a Trigger provenance mark shows. */
-export function triggerKindSummary(kind: 'webhook'): string {
-    return kind === 'webhook' ? 'Webhook' : kind;
+export function triggerKindSummary(kind: TriggerKind): string {
+    return kind === 'webhook' ? 'Webhook' : 'GitHub';
 }
 
 function clock(hour: number, minute: number): string {

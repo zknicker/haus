@@ -3,6 +3,8 @@ import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
+    githubInstallationsTable,
+    githubTriggerConfigsTable,
     serverMembershipsTable,
     triggerFiresTable,
     triggersTable,
@@ -135,6 +137,8 @@ function toTriggerFire(fire: typeof triggerFiresTable.$inferSelect): TriggerFire
 
 export interface TriggerRow {
     creatorHandle: string | null;
+    githubConfig: typeof githubTriggerConfigsTable.$inferSelect | null;
+    githubInstallationLogin: string | null;
     ownerHandle: string;
     trigger: typeof triggersTable.$inferSelect;
 }
@@ -142,21 +146,29 @@ export interface TriggerRow {
 export function viewTrigger(row: TriggerRow, origin: string): Trigger {
     return toTrigger(row.trigger, {
         createdByHandle: row.creatorHandle,
+        github:
+            row.githubConfig && row.githubInstallationLogin
+                ? { config: row.githubConfig, installationLogin: row.githubInstallationLogin }
+                : null,
         origin,
         ownerHandle: row.ownerHandle,
     });
 }
 
 /**
- * One trigger with the two handles a reader needs: the Agent that owns it, and
- * the Server handle of the human who created it. The creator join is a left
- * join because an Agent-created trigger has no creator, and a human keeps the
- * trigger even after their handle or membership is gone.
+ * One trigger with what a reader needs beside the row: the Agent that owns it,
+ * the Server handle of the human who created it, and, for a `github` Trigger,
+ * its configuration and installation. The creator join is a left join because
+ * an Agent-created trigger has no creator, and a human keeps the trigger even
+ * after their handle or membership is gone. The GitHub joins are left joins
+ * because a webhook has neither.
  */
 export function triggerRows(db: TriggerReader) {
     return db
         .select({
             creatorHandle: serverMembershipsTable.handle,
+            githubConfig: githubTriggerConfigsTable,
+            githubInstallationLogin: githubInstallationsTable.accountLogin,
             ownerHandle: agentsTable.handle,
             trigger: triggersTable,
         })
@@ -174,6 +186,20 @@ export function triggerRows(db: TriggerReader) {
                 eq(serverMembershipsTable.serverId, triggersTable.serverId),
                 eq(serverMembershipsTable.userId, triggersTable.createdByUserId),
                 isNull(serverMembershipsTable.revokedAt)
+            )
+        )
+        .leftJoin(
+            githubTriggerConfigsTable,
+            and(
+                eq(githubTriggerConfigsTable.serverId, triggersTable.serverId),
+                eq(githubTriggerConfigsTable.triggerId, triggersTable.id)
+            )
+        )
+        .leftJoin(
+            githubInstallationsTable,
+            and(
+                eq(githubInstallationsTable.serverId, githubTriggerConfigsTable.serverId),
+                eq(githubInstallationsTable.id, githubTriggerConfigsTable.installationRowId)
             )
         )
         .$dynamic();

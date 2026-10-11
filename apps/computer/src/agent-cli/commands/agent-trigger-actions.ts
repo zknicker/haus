@@ -7,7 +7,6 @@ import {
     agentTriggerSecretResultSchema,
     type TriggerFire,
     type TriggerFireDetail,
-    type TriggerKind,
     triggerInstructionMaxBytes,
     triggerKindSchema,
     triggerLogLimitMax,
@@ -162,7 +161,10 @@ function describeTrigger(trigger: AgentTrigger): string {
     const fired = trigger.lastFiredAt
         ? `${trigger.fireCount} fires, last ${formatUtcTime(trigger.lastFiredAt)}`
         : 'never fired';
-    return `${trigger.id} [${trigger.kind} · ${trigger.status}] "${trigger.title}" — ${fired}, anchored in ${trigger.anchorTarget} — ${trigger.url}`;
+    // A webhook is reached at its URL; a GitHub Trigger has none, only its installation.
+    const reachedBy =
+        trigger.kind === 'webhook' ? trigger.url : `GitHub ${trigger.github.installationLogin}`;
+    return `${trigger.id} [${trigger.kind} · ${trigger.status}] "${trigger.title}" — ${fired}, anchored in ${trigger.anchorTarget} — ${reachedBy}`;
 }
 
 function describeFire(fire: TriggerFire): string {
@@ -195,8 +197,11 @@ function requireTitle(args: ParsedArgs): string {
     return title;
 }
 
-/** `--kind` names the outside stimulus. Webhook is the only kind today. */
-function readKind(args: ParsedArgs): TriggerKind {
+/**
+ * `--kind` names the outside stimulus. The CLI creates webhooks only; GitHub
+ * Triggers need their own flags and are not offered here yet.
+ */
+function readKind(args: ParsedArgs): 'webhook' {
     const raw = args.values['--kind']?.trim();
     if (!raw) {
         return 'webhook';
@@ -204,7 +209,12 @@ function readKind(args: ParsedArgs): TriggerKind {
     const parsed = triggerKindSchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `--kind ${raw} is not a trigger kind.`, {
-            nextAction: `Supported kinds: ${triggerKindSchema.options.join(', ')}.`,
+            nextAction: 'Supported kinds: webhook.',
+        });
+    }
+    if (parsed.data !== 'webhook') {
+        throw new AgentCliError('INVALID_ARG', `--kind ${raw} is not available yet.`, {
+            nextAction: 'Use --kind webhook.',
         });
     }
     return parsed.data;

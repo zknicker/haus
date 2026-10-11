@@ -17,9 +17,12 @@ export function triggerRowStatus(status: TriggerStatus): string | null {
     return status === 'armed' ? null : 'Disabled';
 }
 
+/** The kinds the App can author today. GitHub Triggers are shown, not created, until their form lands. */
+export type CreatableTriggerKind = Extract<TriggerKind, 'webhook'>;
+
 export interface TriggerKindOption {
     description: string;
-    kind: TriggerKind;
+    kind: CreatableTriggerKind;
     label: string;
 }
 
@@ -35,9 +38,9 @@ export const triggerKindOptions: readonly TriggerKindOption[] = [
     },
 ];
 
-export function triggerKindOption(kind: TriggerKind): TriggerKindOption {
-    // The wire enum and this list are the same closed set, so a miss is a
-    // programming error rather than a rendering case.
+export function triggerKindOption(kind: CreatableTriggerKind): TriggerKindOption {
+    // The creatable kinds and this list are the same closed set, so a miss is
+    // a programming error rather than a rendering case.
     const option = triggerKindOptions.find((candidate) => candidate.kind === kind);
     if (!option) {
         throw new Error(`Unknown trigger kind: ${kind}`);
@@ -45,8 +48,13 @@ export function triggerKindOption(kind: TriggerKind): TriggerKindOption {
     return option;
 }
 
+const triggerKindLabels: Record<TriggerKind, string> = {
+    github: 'GitHub',
+    webhook: 'Webhook',
+};
+
 export function triggerKindLabel(kind: TriggerKind) {
-    return triggerKindOption(kind).label;
+    return triggerKindLabels[kind];
 }
 
 /**
@@ -109,7 +117,7 @@ export function formatTriggerFireDetail(
 
 export interface TriggerDraft {
     instruction: string;
-    kind: TriggerKind | null;
+    kind: CreatableTriggerKind | null;
     title: string;
 }
 
@@ -185,8 +193,9 @@ export function canSaveTriggerEdit(
 }
 
 /** A disabled Trigger ignores its public URL, so a test fire has nothing to do. */
-export function canTestTrigger(trigger: Pick<Trigger, 'status'>) {
-    return trigger.status === 'armed';
+export function canTestTrigger(trigger: Pick<Trigger, 'kind' | 'status'>) {
+    // A GitHub test fire needs a sample delivery, which the Server does not offer yet.
+    return trigger.status === 'armed' && trigger.kind === 'webhook';
 }
 
 /** Which Trigger drawer the section has open, as the section stores it. */
