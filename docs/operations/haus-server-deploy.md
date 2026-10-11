@@ -301,7 +301,8 @@ the helper leaves `current` intact on failure because it cannot claim ownership
 of stopping that label. Later activations retain the exact previous-release
 rollback.
 
-The Server returns only `{"status":"ok"}` or the redacted
+Server `/healthz` reports reminder and hosted MCP health. Connector recovery returns
+`degraded`; unavailable PostgreSQL returns HTTP 503 with the redacted
 `postgres_unavailable` code.
 
 ## Off-machine backup

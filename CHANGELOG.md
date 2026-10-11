@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v10.1.1 - 2026-10-11
+
+- Skool sign-in connects through a service managed by Haus Server, with automatic startup and recovery. Connector availability appears in Server health checks.
+- Connections keep their service names and icons when accounts reconnect or disconnect, including MerchBase Atlas and Fulfillment.
+
 ## v10.1.0 - 2026-10-10
 
 - Connections adds MerchBase Atlas for artwork search, asset management, and design exports. Sign in with your MerchBase account, then choose which Agents can use it.
