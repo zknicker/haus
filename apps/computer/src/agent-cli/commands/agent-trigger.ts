@@ -1,3 +1,4 @@
+import type { CliFlag } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import {
     defaultTriggerDeps,
@@ -12,9 +13,9 @@ import {
 
 export * from './agent-trigger-actions.ts';
 
-// Family 9 — Triggers (ADR 0027). Agent-owned inbound webhooks anchored to a
-// message: an outside system POSTs to a private URL and the Agent wakes. Never
-// scheduled — time-based follow-up work stays with reminders.
+// Family 9 — Triggers (ADR 0027, ADR 0042). Agent-owned wakes anchored to a
+// message: an outside system POSTs to a private URL (webhook) or a GitHub App
+// delivery matches (github). Never scheduled — time-based work stays with reminders.
 
 const idFlag = {
     description: 'Trigger id from haus trigger list',
@@ -22,11 +23,59 @@ const idFlag = {
     valueName: '<id>',
 };
 
+const GITHUB_CREATE_FLAGS: CliFlag[] = [
+    {
+        description: 'github: a repository to watch (repeatable)',
+        name: '--repo',
+        valueName: '<owner/name>',
+    },
+    {
+        description: 'github: every repository you can reach in this account',
+        name: '--org',
+        valueName: '<login>',
+    },
+    {
+        description: 'github: event to listen to (repeatable)',
+        name: '--event',
+        valueName: '<name>',
+    },
+    { description: 'github: event action filter', name: '--action', valueName: '<action>' },
+    {
+        description: 'github: check or workflow conclusion, e.g. failure',
+        name: '--conclusion',
+        valueName: '<value>',
+    },
+    { description: 'github: branch filter', name: '--branch', valueName: '<branch>' },
+    { description: 'github: label filter', name: '--label', valueName: '<label>' },
+    { description: 'github: deployment or review state', name: '--state', valueName: '<state>' },
+    { description: 'github: deployment environment', name: '--environment', valueName: '<name>' },
+    { description: 'github: workflow file path', name: '--workflow', valueName: '<path>' },
+    { description: 'github: check run name', name: '--check-name', valueName: '<name>' },
+    {
+        description: 'github: collaborators (default) or anyone',
+        name: '--authors',
+        valueName: '<who>',
+    },
+];
+
 export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus trigger create --title "deploy finished" --message-id 1a2b3c4d',
             'haus trigger create --title "sentry alert" --message-id 1a2b3c4d --instruction "Summarize the error in this thread and open a task when it is new."',
+            'haus trigger create --kind github --title "CI failed on main" --message-id 1a2b3c4d --repo acme/api --event workflow_run --conclusion failure --branch main',
+            'haus trigger create --kind github --title "new PRs" --message-id 1a2b3c4d --org acme --event pull_request --action opened --action ready_for_review',
+        ],
+        notes: [
+            'A webhook prints its URL and secret once. Never post the secret in any chat.',
+            'A github Trigger has no URL or secret. Run haus github installations first; comment events are not available.',
+            'Filter flags apply to every listed event that takes them and repeat or take commas:',
+            '  --action: every event but push and deployment_status (default per event, e.g. completed, opened)',
+            '  --conclusion: workflow_run, workflow_job, check_suite, check_run',
+            '  --branch: those four, push, and pull_request (its base branch)',
+            '  --state: deployment_status, pull_request_review   --environment: deployment_status',
+            '  --label: pull_request, issues   --workflow: workflow_run (file path)   --check-name: check_run',
+            '  --authors: pull_request, pull_request_review, issues (default collaborators)',
         ],
         flags: [
             {
@@ -45,16 +94,17 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<text>',
             },
             {
-                description: 'What kind of outside stimulus wakes you (default webhook)',
+                description: 'webhook (default) or github',
                 name: '--kind',
                 valueName: '<kind>',
             },
+            ...GITHUB_CREATE_FLAGS,
         ],
         name: 'create',
         positionals: [],
         run: (args) => runTriggerCreate(args, defaultTriggerDeps()),
-        summary: 'Create an inbound webhook that wakes you when an outside system posts to it',
-        usage: 'haus trigger create --title <text> --message-id <id> [--instruction <text>] [--kind <kind>]',
+        summary: 'Create a webhook or GitHub Trigger that wakes you when an outside event happens',
+        usage: 'haus trigger create --title <text> --message-id <id> [--instruction <text>] [--kind github (--repo <owner/name>... | --org <login>) --event <name>... [filters]]',
     },
     {
         examples: ['haus trigger list'],
@@ -62,7 +112,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         name: 'list',
         positionals: [],
         run: (args) => runTriggerList(args, defaultTriggerDeps()),
-        summary: 'List your triggers, their kinds, and their public URLs',
+        summary: 'List your triggers with their URLs or GitHub scope, events, and problems',
         usage: 'haus trigger list',
     },
     {
@@ -98,7 +148,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         name: 'rotate',
         positionals: [],
         run: (args) => runTriggerRotate(args, defaultTriggerDeps()),
-        summary: 'Mint a new secret and invalidate the old one immediately',
+        summary: 'Mint a new webhook secret and invalidate the old one (github Triggers have none)',
         usage: 'haus trigger rotate --id <id>',
     },
     {

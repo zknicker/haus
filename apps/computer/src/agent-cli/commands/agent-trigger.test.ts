@@ -133,7 +133,7 @@ describe('Agent trigger CLI', () => {
         expect(refused).toBeInstanceOf(AgentCliError);
         expect((refused as AgentCliError).code).toBe('INVALID_ARG');
         expect((refused as AgentCliError).message).toBe('--kind schedule is not a trigger kind.');
-        expect((refused as AgentCliError).options.nextAction).toBe('Supported kinds: webhook.');
+        expect((refused as AgentCliError).options.nextAction).toContain('webhook, github.');
     });
 
     test('never prints a secret in list or show', async () => {

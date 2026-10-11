@@ -7,6 +7,7 @@ import {
     agentTriggerSecretResultSchema,
     type TriggerFire,
     type TriggerFireDetail,
+    type TriggerKind,
     triggerInstructionMaxBytes,
     triggerKindSchema,
     triggerLogLimitMax,
@@ -16,6 +17,8 @@ import { type AgentApiRequester, createAgentApiClient } from '../agent-api-clien
 import { AgentCliError } from '../agent-error.ts';
 import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
+import { githubOnlyFlags, readGithubTriggerConfig } from './agent-trigger-github.ts';
+import { describeTrigger, problemFix } from './agent-trigger-view.ts';
 
 // Request and render logic behind `haus trigger`. Trigger mutations are
 // deliberately not idempotent (no command ledger on the Server), so no request
@@ -36,13 +39,27 @@ export async function runTriggerCreate(args: ParsedArgs, deps: TriggerDeps): Pro
     }
     const instruction = readInstruction(args);
     const kind = readKind(args);
+    const base = { messageId, title, ...(instruction ? { instruction } : {}) };
+    if (kind === 'github') {
+        const github = await readGithubTriggerConfig(args, deps.client);
+        const response = await deps.client.request(
+            '/api/agent/triggers',
+            agentTriggerResultSchema,
+            { body: { ...base, github, kind }, method: 'POST' }
+        );
+        deps.write(
+            `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: GitHub deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
+        );
+        return 0;
+    }
+    const githubFlag = githubOnlyFlags.find((flag) => args.values[flag] !== undefined);
+    if (githubFlag) {
+        throw new AgentCliError('INVALID_ARG', `${githubFlag} needs --kind github.`);
+    }
     const response = await deps.client.request(
         '/api/agent/triggers',
         agentTriggerSecretResultSchema,
-        {
-            body: { kind, messageId, title, ...(instruction ? { instruction } : {}) },
-            method: 'POST',
-        }
+        { body: { ...base, kind }, method: 'POST' }
     );
     deps.write(renderSecret(response));
     return 0;
@@ -69,10 +86,15 @@ export async function runTriggerShow(args: ParsedArgs, deps: TriggerDeps): Promi
         agentTriggerResultSchema,
         { method: 'GET' }
     );
-    const instruction = response.trigger.instruction;
-    deps.write(
-        `${describeTrigger(response.trigger)}${instruction ? `\nInstruction: ${instruction}` : ''}\n`
-    );
+    const { trigger } = response;
+    const lines = [describeTrigger(trigger)];
+    if (trigger.instruction) {
+        lines.push(`Instruction: ${trigger.instruction}`);
+    }
+    if (trigger.kind === 'github' && trigger.github.problem) {
+        lines.push(`Not firing. ${problemFix(trigger.github.problem)}`);
+    }
+    deps.write(`${lines.join('\n')}\n`);
     return 0;
 }
 
@@ -151,20 +173,11 @@ function renderSecret(result: {
     return [
         describeTrigger(result.trigger),
         `Secret: ${result.secret}`,
-        `Shown once and never again — haus trigger rotate --id ${result.trigger.id} replaces it. Hand it to the requester now.`,
-        `Test it: ${result.curl}`,
+        `Shown once and never again — haus trigger rotate --id ${result.trigger.id} replaces it.`,
+        'Never post the secret in any chat, DM included. Install it at the destination with a tool, or share only the URL and have the requester reveal a fresh secret in the App (Agent profile → Automations → Rotate).',
+        `Test it from your own run only: ${result.curl}`,
         '',
     ].join('\n');
-}
-
-function describeTrigger(trigger: AgentTrigger): string {
-    const fired = trigger.lastFiredAt
-        ? `${trigger.fireCount} fires, last ${formatUtcTime(trigger.lastFiredAt)}`
-        : 'never fired';
-    // A webhook is reached at its URL; a GitHub Trigger has none, only its installation.
-    const reachedBy =
-        trigger.kind === 'webhook' ? trigger.url : `GitHub ${trigger.github.installationLogin}`;
-    return `${trigger.id} [${trigger.kind} · ${trigger.status}] "${trigger.title}" — ${fired}, anchored in ${trigger.anchorTarget} — ${reachedBy}`;
 }
 
 function describeFire(fire: TriggerFire): string {
@@ -197,11 +210,8 @@ function requireTitle(args: ParsedArgs): string {
     return title;
 }
 
-/**
- * `--kind` names the outside stimulus. The CLI creates webhooks only; GitHub
- * Triggers need their own flags and are not offered here yet.
- */
-function readKind(args: ParsedArgs): 'webhook' {
+/** `--kind` names the outside stimulus; absent means webhook. */
+function readKind(args: ParsedArgs): TriggerKind {
     const raw = args.values['--kind']?.trim();
     if (!raw) {
         return 'webhook';
@@ -209,12 +219,7 @@ function readKind(args: ParsedArgs): 'webhook' {
     const parsed = triggerKindSchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `--kind ${raw} is not a trigger kind.`, {
-            nextAction: 'Supported kinds: webhook.',
-        });
-    }
-    if (parsed.data !== 'webhook') {
-        throw new AgentCliError('INVALID_ARG', `--kind ${raw} is not available yet.`, {
-            nextAction: 'Use --kind webhook.',
+            nextAction: `Supported kinds: ${triggerKindSchema.options.join(', ')}.`,
         });
     }
     return parsed.data;

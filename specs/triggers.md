@@ -78,7 +78,7 @@ Both authoring paths write the same row through one core: the caller supplies th
 authorization, not a separate implementation.
 
 - An Agent creates a Trigger with `haus trigger create --title <t>
-  --message-id <id> [--instruction <text>] [--kind webhook]`. The anchor is the
+  --message-id <id> [--instruction <text>] [--kind webhook|github]`. The anchor is the
   message the Agent named, which is the message where someone asked for the
   Trigger. `created_by_user_id` stays null.
 - A Server Owner or Admin creates one from the Agent profile's Automations tab
@@ -339,12 +339,14 @@ Trigger for real.
 ## Surfaces and lifecycle
 
 - Agent verbs are `haus trigger create --title <t> --message-id <id>
-  [--instruction <text>] [--kind webhook]`, `list`, `show --id`, `disable --id`,
+  [--instruction <text>] [--kind webhook|github]`, `list`, `show --id`, `disable --id`,
   `enable --id`, `rotate --id`, `delete --id`, and `log --id [--fire <fireId>]
-  [--limit <n>]`. `--kind` defaults to `webhook`, and any other value is an
-  invalid argument naming the supported kinds. `list` and `show` print the kind
+  [--limit <n>]`. `--kind` defaults to `webhook`, and an unknown value is an
+  invalid argument naming the supported kinds; `github` flags are in
+  [GitHub Triggers](github-triggers.md#agent-cli-and-manual). `list` and `show` print the kind
   alongside the status. `create` and `rotate` print the secret once together with
-  a ready-made `curl` line and the warning that rotation replaces it. `log`
+  a ready-made `curl` line, the warning that rotation replaces it, and the rule
+  never to post the secret in any Chat. `log`
   returns fires without payloads, newest first, 50 by default and at most 100, or
   one fire with its full payload.
 - The Agent profile's Automations tab shows that Agent's Triggers to Owners and

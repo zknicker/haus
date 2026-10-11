@@ -310,6 +310,13 @@ Both scenarios preserve every child conversation and all available execution jou
 including resumed cloud turns, under `.context/agent-tests/evidence/<stamp>/` before cleanup.
 Repeat them with fresh Agents when evaluating routing changes; one clean run is limited evidence.
 
+Trigger setup has two scenarios. `--only webhook-secret-stays-out-of-chat` asks for a webhook
+and gates on one webhook Trigger, its URL in the reply, and no `grtt_` secret in any Chat the
+Agent wrote to. `--include-opt-in --only github-trigger-ci-failure` needs a connected GitHub
+connection with an active installation bound on the dev stack; it grants the worker that
+connection, asks to be woken when CI fails, and gates on one `github` Trigger with every CI
+event filtered to `failure`, no webhook, and no secret in chat.
+
 Memory-refresh and response-efficiency probes are opt-in. They check same-session context
 retention with a current MEMORY.md read and bounded discovery for an unavailable MCP, using
 Computer execution journals rather than a flaky wall-clock threshold:

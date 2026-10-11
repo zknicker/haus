@@ -42,12 +42,16 @@ const recipeIds = [
     'recipes/technique/task-claim-lock',
     'recipes/technique/trigger-webhook',
     'recipes/technique/video-review',
+    'recipes/technique/trigger-github',
 ] as const;
 
 // Cards written for Haus itself, with no captured source card behind them.
 // The fidelity test below asserts each really has no source file, so this list
 // cannot quietly become an escape hatch for a drifted adapted card.
-const hausNativeIds = new Set<string>(['recipes/technique/trigger-webhook']);
+const hausNativeIds = new Set<string>([
+    'recipes/technique/trigger-webhook',
+    'recipes/technique/trigger-github',
+]);
 
 // Cards Haus rewrote on purpose. The captured source card stays the record of
 // what was adapted; each rewrite owns a row in specs/raft-alignment/prompt-divergences.md.
@@ -76,11 +80,11 @@ test('publishes the complete adapted corpus with source metadata', () => {
     const published = recipes();
 
     expect(published.map((topic) => topic.id)).toEqual([...recipeIds]);
-    expect(new Set(published.map((topic) => topic.id)).size).toBe(33);
+    expect(new Set(published.map((topic) => topic.id)).size).toBe(34);
     expect(published.filter((topic) => topic.tier === 'seeded').map((topic) => topic.id)).toEqual([
         ...seededIds,
     ]);
-    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(21);
+    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(22);
     expect(published.filter((topic) => topic.class === 'archetype')).toHaveLength(7);
     expect(
         published
@@ -237,6 +241,7 @@ test('publishes the trigger technique card with its CLI verbs and untrusted-payl
         'recipes/technique/reminder-cron',
         'recipes/pattern/recurring-recovery',
         'recipes/archetype/patrol',
+        'recipes/technique/trigger-github',
     ]);
     expect(getManualTopic('recipes/technique/reminder-cron')?.related).toContain(
         'recipes/technique/trigger-webhook'
