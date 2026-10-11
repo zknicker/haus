@@ -21,8 +21,11 @@ describe('preset account auth', () => {
         ).toBe(false);
     });
 
-    test('MerchBase Fulfillment uses OAuth with a Server-owned endpoint', () => {
-        const input = { ...base, preset: 'merchbase-fulfillment' };
+    test.each([
+        'merchbase-atlas',
+        'merchbase-fulfillment',
+    ])('%s uses OAuth with a Server-owned endpoint', (preset) => {
+        const input = { ...base, preset };
         expect(mcpPresetAccountCreateSchema.safeParse(input).success).toBe(true);
         expect(mcpPresetAccountCreateSchema.safeParse({ ...input, bearerToken: 't' }).success).toBe(
             false

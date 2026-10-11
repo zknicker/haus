@@ -35,12 +35,14 @@ afterEach(() => {
 });
 
 describe('configured OAuth clients', () => {
-    test('MerchBase Fulfillment uses identity scopes without a configured client', async () => {
-        const runtime = fakeRuntime(
-            'merchbase-fulfillment',
-            'https://fulfillment.merchbase.co/mcp/printful',
-            { ...emptySecret(), oauthScopes: ['openid', 'profile', 'email'] }
-        );
+    test.each([
+        ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
+        ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
+    ] as const)('%s uses identity scopes without a configured client', async (preset, url) => {
+        const runtime = fakeRuntime(preset, url, {
+            ...emptySecret(),
+            oauthScopes: ['openid', 'profile', 'email'],
+        });
         const provider = await createMcpOAuthProvider(runtime, 'mcp_fulfillment', redirectUrl, {
             allowAuthorizationServerOrigin: false,
             onRedirect() {},

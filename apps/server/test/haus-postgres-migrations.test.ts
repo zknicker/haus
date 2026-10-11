@@ -8,7 +8,6 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
-
 test('upgrades the preceding production schema without replaying migrations', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'haus-upgrade-'));
     const database = new SQL(cluster.databaseUrl);
@@ -72,11 +71,13 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0071_skool-preset',
             '0072_drop_chat_events',
             '0073_merchbase-fulfillment-preset',
+            '0074_merchbase-atlas-preset',
         ]);
         const [presetConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'mcp_connections_preset'`;
         expect(presetConstraint.definition).toContain("'skool'");
         expect(presetConstraint.definition).toContain("'merchbase-fulfillment'");
+        expect(presetConstraint.definition).toContain("'merchbase-atlas'");
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
         ]);
@@ -215,6 +216,7 @@ test('copies each existing reminder title into its new description', async () =>
             '0071_skool-preset',
             '0072_drop_chat_events',
             '0073_merchbase-fulfillment-preset',
+            '0074_merchbase-atlas-preset',
         ]);
         expect(
             await upgraded`SELECT topic_id,resolved_topic_id FROM manual_lookup_audit ORDER BY id`
@@ -285,7 +287,6 @@ test('reports each migration applied to a fresh database exactly once', async ()
         } finally {
             await migratedDatabase.close();
         }
-
         expect(applied.length).toBeGreaterThan(0);
         expect(new Set(applied).size).toBe(applied.length);
         expect(migrationRows).toEqual([{ total: applied.length }]);

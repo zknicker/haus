@@ -45,10 +45,13 @@ test('GitHub lands as an OAuth preset awaiting sign-in', async () => {
     await owner.trpc.mcp.delete.mutate({ connectionId: github.id, serverId });
 });
 
-test('MerchBase Fulfillment awaits OAuth with identity scopes and no Agent grants', async () => {
+test.each([
+    ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
+    ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
+] as const)('%s awaits OAuth with identity scopes and no Agent grants', async (preset, url) => {
     const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
-        name: 'MerchBase Fulfillment',
-        preset: 'merchbase-fulfillment',
+        name: preset,
+        preset,
         serverId,
     });
     expect(fulfillment).toMatchObject({
@@ -56,9 +59,9 @@ test('MerchBase Fulfillment awaits OAuth with identity scopes and no Agent grant
         connected: false,
         grants: [],
         headerNames: [],
-        preset: 'merchbase-fulfillment',
+        preset,
         tools: [],
-        url: 'https://fulfillment.merchbase.co/mcp/printful',
+        url,
     });
     const [stored] = await harness.sql`
         select secret from mcp_secrets where connection_id = ${fulfillment.id}
@@ -71,6 +74,7 @@ test('MerchBase Fulfillment awaits OAuth with identity scopes and no Agent grant
 test.each([
     'github',
     'merchbase',
+    'merchbase-atlas',
     'merchbase-fulfillment',
     'google-calendar',
     'rankwrangler',
