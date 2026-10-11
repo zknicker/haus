@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v10.1.0 - 2026-10-10
+
+- Connections adds MerchBase Atlas for artwork search, asset management, and design exports. Sign in with your MerchBase account, then choose which Agents can use it.
+
 ## v10.0.0 - 2026-10-10
 
 - Chats recover new messages, reactions, Thread summaries, and Cloud Agent work after a Server restart, a connection drop, or waking the App. A deleted Chat closes its live streams and clears its cached transcript, including when restoring a desktop tab.
