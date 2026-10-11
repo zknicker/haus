@@ -72,6 +72,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0072_drop_chat_events',
             '0073_merchbase-fulfillment-preset',
             '0074_merchbase-atlas-preset',
+            '0075_cloud_agent_work_links',
         ]);
         const [presetConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'mcp_connections_preset'`;
@@ -217,6 +218,7 @@ test('copies each existing reminder title into its new description', async () =>
             '0072_drop_chat_events',
             '0073_merchbase-fulfillment-preset',
             '0074_merchbase-atlas-preset',
+            '0075_cloud_agent_work_links',
         ]);
         expect(
             await upgraded`SELECT topic_id,resolved_topic_id FROM manual_lookup_audit ORDER BY id`
