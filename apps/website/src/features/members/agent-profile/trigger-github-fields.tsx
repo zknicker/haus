@@ -1,8 +1,8 @@
-import type { GithubInstallation } from '@haus/api';
 import {
     Autocomplete,
     Description,
     EmptyState,
+    FieldError,
     type Key,
     Label,
     ListBox,
@@ -17,37 +17,57 @@ import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { githubRepositoryScopeLabel } from '../../settings/mcp/github-installation-model.ts';
 import { refusalText } from './agent-trigger-model.ts';
 import { TriggerGithubEvents } from './trigger-github-events.tsx';
-import type { GithubTriggerDraft } from './trigger-github-model.ts';
+import {
+    type GithubInstallationOption,
+    type GithubTriggerDraft,
+    githubInstallationRemedy,
+} from './trigger-github-model.ts';
 
 /**
  * The GitHub half of the create form, in the order it narrows: which
  * installation, which of its repositories, then which events.
  */
 export function TriggerGithubFields({
+    agentName,
     draft,
-    installations,
     isDisabled,
+    loadError,
     onChange,
+    options,
     serverId,
 }: {
+    agentName: string;
     draft: GithubTriggerDraft;
-    installations: readonly GithubInstallation[];
     isDisabled: boolean;
+    /** Why some or all installations could not be listed. */
+    loadError: string | null;
     onChange: (draft: GithubTriggerDraft) => void;
+    options: readonly GithubInstallationOption[];
     serverId: string;
 }) {
     return (
         <>
             <Select
+                // Listed rather than hidden, so each one says what unlocks it.
+                disabledKeys={options
+                    .filter((option) => option.blocker !== null)
+                    .map((option) => option.installation.id)}
                 fullWidth
                 isDisabled={isDisabled}
+                isInvalid={loadError !== null}
                 isRequired
                 onChange={(selected) => {
-                    const installation = installations.find(
-                        (candidate) => candidate.id === String(selected)
+                    const option = options.find(
+                        (candidate) =>
+                            candidate.installation.id === String(selected) &&
+                            candidate.blocker === null
                     );
-                    if (installation && installation.id !== draft.installationId) {
-                        onChange({ ...draft, installationId: installation.id, repositories: [] });
+                    if (option && option.installation.id !== draft.installationId) {
+                        onChange({
+                            ...draft,
+                            installationId: option.installation.id,
+                            repositories: [],
+                        });
                     }
                 }}
                 placeholder="Choose an installation"
@@ -61,7 +81,7 @@ export function TriggerGithubFields({
                 </Select.Trigger>
                 <Select.Popover>
                     <ListBox>
-                        {installations.map((installation) => (
+                        {options.map(({ blocker, installation }) => (
                             <ListBox.Item
                                 id={installation.id}
                                 key={installation.id}
@@ -69,13 +89,16 @@ export function TriggerGithubFields({
                             >
                                 <Label>{installation.account.login}</Label>
                                 <Description>
-                                    {githubRepositoryScopeLabel(installation)}
+                                    {blocker
+                                        ? githubInstallationRemedy(blocker, agentName)
+                                        : githubRepositoryScopeLabel(installation)}
                                 </Description>
                                 <ListBox.ItemIndicator />
                             </ListBox.Item>
                         ))}
                     </ListBox>
                 </Select.Popover>
+                {loadError ? <FieldError>{loadError}</FieldError> : null}
             </Select>
             <Select
                 fullWidth

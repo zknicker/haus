@@ -105,17 +105,21 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                     ))
                 )}
             </ProfileListSection>
-            <TriggerSheet
-                agent={agent}
-                mode={mode}
-                onCreated={(created) => setSheet({ kind: 'detail', triggerId: created.id })}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setSheet(null);
-                    }
-                }}
-                serverId={server.id}
-            />
+            {/* Authoring and its GitHub reads (installations, repositories) are
+                Owner/Admin only, so a member never mounts the drawer. */}
+            {canManage ? (
+                <TriggerSheet
+                    agent={agent}
+                    mode={mode}
+                    onCreated={(created) => setSheet({ kind: 'detail', triggerId: created.id })}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setSheet(null);
+                        }
+                    }}
+                    serverId={server.id}
+                />
+            ) : null}
             {canManage ? (
                 <TriggerHistoryDrawer
                     agentId={agent.id}

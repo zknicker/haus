@@ -5,8 +5,9 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 /**
  * "Install on GitHub": opens GitHub's install page in a new tab with
  * Server-held state. GitHub's setup redirect lands that tab back on the
- * connection page with the outcome; this tab refreshes its installations when
- * the window regains focus, since nothing else tells it the install finished.
+ * connection page with the outcome; this tab refreshes its installations the
+ * first time the window regains focus after the install starts, since nothing
+ * else tells it the install finished.
  */
 export function useGithubStartInstall(serverId: string, connectionId: string) {
     const utils = hausTrpc.useUtils();
@@ -17,7 +18,10 @@ export function useGithubStartInstall(serverId: string, connectionId: string) {
         if (!awaitingReturn) {
             return;
         }
+        // Once per started install: candidates read GitHub, so refreshing on
+        // every later focus would spend a GitHub call each time.
         const refresh = () => {
+            setAwaitingReturn(false);
             void utils.github.installations.invalidate({ connectionId, serverId });
             void utils.github.installCandidates.invalidate({ connectionId, serverId });
         };

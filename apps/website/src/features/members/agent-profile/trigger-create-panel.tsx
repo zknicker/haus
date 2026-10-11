@@ -2,6 +2,7 @@ import { type Agent, type Trigger, triggerTitleMaxLength } from '@haus/api';
 import { Alert, Button, FieldError, Form, Input, Label, TextArea, TextField } from '@heroui/react';
 import { Sheet } from '@heroui-pro/react';
 import * as React from 'react';
+import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useServerGithubInstallations } from '../../../hooks/github/use-server-github-installations.ts';
 import { useTriggerCreate } from '../../../hooks/members/use-trigger-create.ts';
 import {
@@ -16,8 +17,8 @@ import { TriggerGithubFields } from './trigger-github-fields.tsx';
 import {
     createGithubTriggerDraft,
     type GithubTriggerDraft,
-    githubAuthorableInstallations,
     githubConfigFromDraft,
+    githubInstallationOptions,
 } from './trigger-github-model.ts';
 import { TriggerKindPicker } from './trigger-kind-picker.tsx';
 import type { TriggerMintedSecret } from './trigger-webhook-card.tsx';
@@ -43,7 +44,11 @@ export function TriggerCreatePanel({
 }) {
     const create = useTriggerCreate(serverId, agent.id);
     const installations = useServerGithubInstallations(serverId);
-    const authorable = githubAuthorableInstallations(installations.data ?? []);
+    // The access cache ages out over hours; a minute's resolution is plenty.
+    const now = useRelativeNow(60_000);
+    const options = installations.data
+        ? githubInstallationOptions(installations.data, { agentId: agent.id, now })
+        : [];
     const [draft, setDraft] = React.useState<TriggerDraft>({
         instruction: '',
         kind: null,
@@ -53,7 +58,14 @@ export function TriggerCreatePanel({
 
     const titleIssue = triggerTitleIssue(draft.title);
     const instructionIssue = triggerInstructionIssue(draft.instruction);
-    const githubConfig = github ? githubConfigFromDraft(github) : null;
+    // An installation that lost its sign-in or grant after it was picked stops the submit.
+    const githubConfig =
+        github &&
+        options.some(
+            (option) => option.installation.id === github.installationId && option.blocker === null
+        )
+            ? githubConfigFromDraft(github)
+            : null;
     const canSubmit =
         canCreateTrigger(draft) &&
         (draft.kind !== 'github' || githubConfig !== null) &&
@@ -137,7 +149,7 @@ export function TriggerCreatePanel({
                     </TextField>
                     <TriggerKindPicker
                         disabledReasons={
-                            installations.data && authorable.length === 0
+                            installations.data && !installations.error && options.length === 0
                                 ? { github: 'Connect GitHub first' }
                                 : {}
                         }
@@ -146,17 +158,23 @@ export function TriggerCreatePanel({
                         onChange={(kind) => {
                             setDraft((current) => ({ ...current, kind }));
                             if (kind === 'github' && !github) {
-                                setGithub(createGithubTriggerDraft(authorable));
+                                setGithub(createGithubTriggerDraft(options));
                             }
                         }}
                         value={draft.kind}
                     />
                     {draft.kind === 'github' && github ? (
                         <TriggerGithubFields
+                            agentName={agent.displayName}
                             draft={github}
-                            installations={authorable}
                             isDisabled={create.isPending}
+                            loadError={
+                                installations.error
+                                    ? `Some GitHub installations could not be loaded. ${refusalText(installations.error.message)}`
+                                    : null
+                            }
                             onChange={setGithub}
+                            options={options}
                             serverId={serverId}
                         />
                     ) : null}

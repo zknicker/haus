@@ -5,6 +5,7 @@ import {
     type GithubTriggerView,
     githubTriggerEventsMax,
     githubTriggerRepositoriesMax,
+    type McpConnection,
 } from '@haus/api';
 import { type GithubEventDraft, githubEventFromDraft } from './trigger-github-events-model.ts';
 
@@ -16,22 +17,79 @@ export interface GithubTriggerDraft {
     scope: 'installation' | 'repositories';
 }
 
+/** Why an active installation cannot take a Trigger for this Agent yet. */
+export type GithubInstallationBlocker =
+    | 'agent_access_required'
+    | 'connect_github'
+    | 'sign_in_required';
+
+/** The part of a GitHub connection that decides whether an Agent may author on it. */
+type GithubConnectionAccess = Pick<McpConnection, 'connected' | 'id'> & {
+    grants: readonly Pick<McpConnection['grants'][number], 'agentId'>[];
+};
+
+/** One active installation the form lists, with what stops this Agent using it. */
+export interface GithubInstallationOption {
+    blocker: GithubInstallationBlocker | null;
+    installation: GithubInstallation;
+}
+
+/**
+ * Mirrors the Server's access-cache freshness window
+ * (`githubAccessCacheMaxAgeMs` in apps/server/src/github/delivery-routing.ts).
+ * The Server's refusal stays authoritative; this only keeps the form honest.
+ */
+const githubAccessFreshForMs = 24 * 60 * 60 * 1000;
+
+/**
+ * The active installations, each checked the way the Server checks authoring:
+ * its GitHub connection is signed in, its access cache is fresh, and the
+ * Agent holds a grant on that connection. Suspended and removed installations
+ * are not offered at all.
+ */
+export function githubInstallationOptions(
+    data: {
+        connections: readonly GithubConnectionAccess[];
+        installations: readonly GithubInstallation[];
+    },
+    context: { agentId: string; now: number }
+): GithubInstallationOption[] {
+    return data.installations
+        .filter((installation) => installation.status === 'active')
+        .map((installation) => ({
+            blocker: installationBlocker(installation, data.connections, context),
+            installation,
+        }));
+}
+
 export function createGithubTriggerDraft(
-    installations: readonly GithubInstallation[]
+    options: readonly GithubInstallationOption[]
 ): GithubTriggerDraft {
-    const usable = githubAuthorableInstallations(installations);
+    const usable = options.filter((option) => option.blocker === null);
     return {
         events: [],
         // One installation is the common case; picking it for the reader saves a step.
-        installationId: usable.length === 1 ? (usable[0]?.id ?? null) : null,
+        installationId: usable.length === 1 ? (usable[0]?.installation.id ?? null) : null,
         repositories: [],
         scope: 'installation',
     };
 }
 
-/** Only an active installation accepts a new Trigger. */
-export function githubAuthorableInstallations(installations: readonly GithubInstallation[]) {
-    return installations.filter((installation) => installation.status === 'active');
+/** What a person does so this Agent can use the installation. */
+export function githubInstallationRemedy(
+    blocker: GithubInstallationBlocker,
+    agentName: string
+): string {
+    switch (blocker) {
+        case 'connect_github':
+            return 'Connect GitHub in Settings → Connections';
+        case 'sign_in_required':
+            return 'Sign in to GitHub again in Settings → Connections';
+        case 'agent_access_required':
+            return `Grant ${agentName} access under the GitHub connection’s Agent Access`;
+        default:
+            return blocker satisfies never;
+    }
 }
 
 /**
@@ -108,4 +166,22 @@ export function githubProblemFix(
         default:
             return problem satisfies never;
     }
+}
+
+function installationBlocker(
+    installation: GithubInstallation,
+    connections: readonly GithubConnectionAccess[],
+    context: { agentId: string; now: number }
+): GithubInstallationBlocker | null {
+    const connection = connections.find((candidate) => candidate.id === installation.connectionId);
+    if (!connection?.connected) {
+        return 'connect_github';
+    }
+    const synced = installation.accessSyncedAt ? Date.parse(installation.accessSyncedAt) : null;
+    if (synced === null || context.now - synced > githubAccessFreshForMs) {
+        return 'sign_in_required';
+    }
+    return connection.grants.some((grant) => grant.agentId === context.agentId)
+        ? null
+        : 'agent_access_required';
 }

@@ -8,6 +8,8 @@ import {
 import {
     createGithubTriggerDraft,
     githubConfigFromDraft,
+    githubInstallationOptions,
+    githubInstallationRemedy,
     githubProblemFix,
     githubProblemTitle,
     githubScopeSummary,
@@ -33,14 +35,47 @@ function installation(
     };
 }
 
-test('a lone active installation is preselected; suspended ones are not offered', () => {
-    expect(createGithubTriggerDraft([installation('ghi_a')]).installationId).toBe('ghi_a');
+const now = Date.parse('2026-10-11T06:00:00.000Z');
+const signedIn = { connected: true, grants: [{ agentId: 'agt_1' }], id: 'mcp_1' };
+
+function options(
+    installations: GithubInstallation[],
+    connections: Parameters<typeof githubInstallationOptions>[0]['connections'] = [signedIn]
+) {
+    return githubInstallationOptions({ connections, installations }, { agentId: 'agt_1', now });
+}
+
+test('a lone usable installation is preselected; suspended ones are not offered', () => {
+    expect(createGithubTriggerDraft(options([installation('ghi_a')])).installationId).toBe('ghi_a');
     expect(
-        createGithubTriggerDraft([installation('ghi_a'), installation('ghi_b')]).installationId
+        createGithubTriggerDraft(options([installation('ghi_a'), installation('ghi_b')]))
+            .installationId
     ).toBeNull();
+    expect(options([installation('ghi_a', 'suspended')])).toEqual([]);
+});
+
+test('an installation the Agent cannot author on is listed with what blocks it', () => {
+    const blocker = (
+        connections: Parameters<typeof options>[1],
+        overrides: Partial<GithubInstallation> = {}
+    ) => options([{ ...installation('ghi_a'), ...overrides }], connections)[0]?.blocker;
+
+    expect(blocker([signedIn])).toBeNull();
+    expect(blocker([{ ...signedIn, connected: false }])).toBe('connect_github');
+    expect(blocker([])).toBe('connect_github');
+    expect(blocker([signedIn], { accessSyncedAt: null })).toBe('sign_in_required');
+    expect(blocker([signedIn], { accessSyncedAt: '2026-10-10T05:00:00.000Z' })).toBe(
+        'sign_in_required'
+    );
+    expect(blocker([{ ...signedIn, grants: [{ agentId: 'agt_other' }] }])).toBe(
+        'agent_access_required'
+    );
+    // A blocked installation is never the preselected one.
     expect(
-        createGithubTriggerDraft([installation('ghi_a', 'suspended')]).installationId
+        createGithubTriggerDraft(options([installation('ghi_a')], [{ ...signedIn, grants: [] }]))
+            .installationId
     ).toBeNull();
+    expect(githubInstallationRemedy('agent_access_required', 'Blippy')).toContain('Blippy');
 });
 
 test('a new event entry starts on its default actions', () => {
