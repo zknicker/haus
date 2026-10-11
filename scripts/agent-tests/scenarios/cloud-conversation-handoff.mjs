@@ -114,6 +114,36 @@ export default defineScenario({
                 kit.authoredBy(await kit.readMessages(channel.id), worker.id, channelHead),
                 'thread follow-up adds nothing to the channel'
             ).toHaveLength(0);
+
+            // (d) Asked from a second channel, the Agent links the same work there (ADR 0044):
+            // its Message carries the printed link, gets the live card, and the launch stays put.
+            const second = await kit.createChannel({ agentIds: [worker.id] });
+            await kit.harness.send(
+                second.id,
+                `@${worker.handle} Can you link the cloud agent work you ran on the zknicker/haus README here, so this team can follow it?`
+            );
+            const linkTurn = await settleTurn(worker.id, { startWithin: 90_000 });
+            expect(linkTurn.status, 'link turn completed').toBe('completed');
+            const linking = (await kit.readMessages(second.id)).filter(
+                (message) =>
+                    message.author.agentId === worker.id &&
+                    message.content.includes(`cloud-agent://${work.id}`)
+            );
+            expect(linking.length > 0, 'second channel message links the work').toBe(true);
+            expect(
+                linking.some((message) =>
+                    (message.cloudAgentWork ?? []).some((linked) => linked.id === work.id)
+                ),
+                'linked work renders its card in the second channel'
+            ).toBe(true);
+            expect(
+                (await readCloudWork(kit, second.id)).map(({ id }) => id),
+                'second channel lists the linked work'
+            ).toContain(work.id);
+            expect(
+                (await readCloudWork(kit, channel.id))[0]?.anchorMessageId,
+                'launch message stays the work anchor'
+            ).toBe(work.anchorMessageId);
         } finally {
             // The thread follow-up may have sent the work back out; cancel from a fresh read.
             if (work) {
