@@ -11,6 +11,7 @@ import {
     createHausServerApplication,
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
+import type { HostedMcpAccess } from '../src/hosted-mcp/supervisor.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -94,6 +95,40 @@ test('classifies a hung PostgreSQL probe without hanging the health route', asyn
             status: 'unhealthy',
         });
         expect(aborted).toBe(true);
+    } finally {
+        await app.close();
+        await runtime.dispose();
+    }
+});
+
+test('reports hosted connector degradation and recovery without exposing credentials', async () => {
+    const app = Fastify();
+    const runtime = makeTestRuntime();
+    let connectors: ReturnType<HostedMcpAccess['health']> = [
+        { id: 'skool', status: 'ready', restarts: 0 },
+    ];
+    registerHausHealth(
+        app,
+        runtime,
+        async () => true,
+        5000,
+        undefined,
+        () => connectors
+    );
+    try {
+        expect((await app.inject('/healthz')).json()).toEqual({
+            status: 'ok',
+            hostedMcps: connectors,
+        });
+        connectors = [{ id: 'skool', status: 'starting', restarts: 1 }];
+        const degraded = await app.inject('/healthz');
+        expect(degraded.statusCode).toBe(200);
+        expect(degraded.json()).toEqual({ status: 'degraded', hostedMcps: connectors });
+        connectors = [{ id: 'skool', status: 'ready', restarts: 1 }];
+        expect((await app.inject('/healthz')).json()).toEqual({
+            status: 'ok',
+            hostedMcps: connectors,
+        });
     } finally {
         await app.close();
         await runtime.dispose();
