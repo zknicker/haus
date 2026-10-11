@@ -11,6 +11,7 @@ test('an inline cloud card retains its channel and has its own detail thread', a
         serverId: fixture.serverId,
     });
     const runner = await fixture.mintRunner('run_cloud_inline');
+    await fixture.readTarget(runner, '#product');
     const body = fixture.startBody({
         nonce: 'inline-cloud-start',
         replyToMessageId: parent.message.id,

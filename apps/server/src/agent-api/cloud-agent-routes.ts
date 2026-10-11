@@ -6,6 +6,7 @@ import {
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
+import { announceRunEngagements } from '../agent-delivery/chat-engagement-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
@@ -126,6 +127,13 @@ export function registerAgentCloudAgentRoutes(
                 parsed.data,
                 dependencies.agentDelivery
             );
+            if (created.kind === 'held') {
+                // The hold showed the run news it has now read and not answered.
+                void dependencies.postCommitWork.run('chat.engagement.announce', () =>
+                    announceRunEngagements(dependencies.db, runner)
+                );
+                return created.held;
+            }
             for (const event of created.events) {
                 publishRealtime(event);
             }

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { CloudAgentBranch, CloudAgentWork } from '@haus/api';
+import { readTargetAsAgent } from './agent-read-target.ts';
 import { cloudAgentComputerFixture } from './cloud-agent-computer-fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
@@ -122,6 +123,8 @@ export function cloudAgentFixture() {
         },
         startBody,
         postStart,
+        readTarget: (runner: { runId: string; token: string }, target: string) =>
+            readTargetAsAgent(harness, { agentId: orbitAgentId, serverId }, runner, target),
         postCancel,
         mintRunner,
         readWork,

@@ -168,6 +168,8 @@ test('a Task Thread lists every delegation under its anchor without leaking othe
 
 test('reconnect hands the Computer every non-terminal work it still owns', async () => {
     const runner = await fixture.mintRunner('run_cloud_reconcile');
+    // The Task created above posted in #product; a launch there must have read it.
+    await fixture.readTarget(runner, '#product');
     const created = await fixture.postStart(
         runner,
         fixture.startBody({ nonce: 'cloud-reconcile' })

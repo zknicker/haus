@@ -1,6 +1,11 @@
-import type { AgentCloudAgentReceipt, AgentCloudAgentStartInput } from '@haus/api';
+import type {
+    AgentCloudAgentHeld,
+    AgentCloudAgentReceipt,
+    AgentCloudAgentStartInput,
+} from '@haus/api';
 import { agentCloudAgentStartInputSchema } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
+import { readFreshnessHold } from '../agent-api/send-hold.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
     findAgentMessageByNonce,
@@ -20,11 +25,14 @@ import { resolveRunModel } from './cloud-agent-model.ts';
 import { findCloudAgentWorkByMessage } from './cloud-agent-shape.ts';
 import { CloudAgentAgentNotFoundError, CloudAgentWorkConflictError } from './errors.ts';
 
-export interface CreateCloudAgentWorkResult {
-    events: PreparedRealtimeEvent[];
-    receipt: AgentCloudAgentReceipt;
-    wakes: Array<{ agentId: string; serverId: string }>;
-}
+export type CreateCloudAgentWorkResult =
+    | {
+          events: PreparedRealtimeEvent[];
+          kind: 'started';
+          receipt: AgentCloudAgentReceipt;
+          wakes: Array<{ agentId: string; serverId: string }>;
+      }
+    | { held: AgentCloudAgentHeld; kind: 'held' };
 
 /**
  * Writes one Cloud Agent work: the Agent-authored Message whose content is the
@@ -33,6 +41,11 @@ export interface CreateCloudAgentWorkResult {
  * planning, and the durable events — all in one transaction, idempotent by the
  * message nonce. The Computer launches the provider only after this commits, so
  * a later provider failure settles this same work rather than erasing it.
+ *
+ * A new launch first runs the `haus message send` freshness check against the
+ * target Chat. When it holds, nothing is written beyond the served-visibility
+ * marks the check itself records, so a re-run (any nonce) is not held again
+ * for the same messages. A committed nonce replays before the check.
  */
 export async function createCloudAgentWork(
     db: HausDatabase,
@@ -46,7 +59,7 @@ export async function createCloudAgentWork(
 
         const existing = await readWorkByNonce(tx, runner, plan.chatId, input);
         if (existing) {
-            return { events: [], receipt: existing, wakes: [] };
+            return { events: [], kind: 'started', receipt: existing, wakes: [] };
         }
 
         const computerId = await requireAssignedComputer(tx, runner);
@@ -56,6 +69,10 @@ export async function createCloudAgentWork(
                 serverId: runner.serverId,
             })
         );
+        const hold = await readFreshnessHold(tx, runner, plan.chatId);
+        if (hold) {
+            return { held: { ...hold, state: 'held' }, kind: 'held' };
+        }
         const written = await writeAgentAuthoredMessage(
             tx,
             runner,
@@ -111,7 +128,9 @@ export async function createCloudAgentWork(
 
         return {
             events,
+            kind: 'started',
             receipt: {
+                state: 'started',
                 chatId: plan.chatId,
                 idempotent: false,
                 messageId: written.messageId,
@@ -179,6 +198,7 @@ async function readWorkByNonce(
         throw new CloudAgentWorkConflictError('That Cloud Agent work has no Run to launch.');
     }
     return {
+        state: 'started',
         chatId,
         idempotent: true,
         messageId: message.id,
