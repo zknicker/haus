@@ -42,7 +42,11 @@ export async function verifyHostedMcp(packageRoot: string) {
             },
         });
         const tools = await client.tools();
-        if (Object.keys(tools).length !== 9 || !('skool_list_communities' in tools)) {
+        if (
+            Object.keys(tools).length !== 10 ||
+            !('skool_list_communities' in tools) ||
+            !('skool_get_lesson' in tools)
+        ) {
             throw new Error('Packaged Skool catalog is incomplete.');
         }
         const invalid = await hosted.request('skool', '/accounts', { method: 'POST', body: '{}' });
