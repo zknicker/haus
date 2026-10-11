@@ -78,7 +78,12 @@ test('listActive shows queued and running work to members with Chat access only'
         chatName: 'product',
         chatPeerUserId: null,
         conversationChatId: fixture.channelId,
-        message: { author: { kind: 'agent' }, body: { kind: 'cloud-agent-work' } },
+        location: {
+            anchorMessageId: created.body.messageId,
+            kind: 'work-thread',
+            threadChatId: `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`,
+        },
+        message: { author: { kind: 'agent' }, body: { kind: 'text' }, id: created.body.messageId },
         threadAnchorMessage: null,
         threadChatId: `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`,
         work: { status: 'queued' },
