@@ -109,7 +109,9 @@ export const mcpRouter = createRouter({
     list: guarded
         .input(mcpConnectionListInputSchema)
         .output(mcpConnectionListSchema)
-        .query(({ ctx, input }) => listMcpConnections(ctx.hausDb, ctx.member, input.serverId)),
+        .query(({ ctx, input }) =>
+            listMcpConnections(ctx.hausDb, ctx.mcpIconResolver, ctx.member, input.serverId)
+        ),
     presetIcons: guarded
         .input(mcpConnectionListInputSchema)
         .output(mcpPresetIconCatalogSchema)

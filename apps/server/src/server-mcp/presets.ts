@@ -7,13 +7,13 @@ import {
     type McpKeylessPreset,
     type McpOAuthPreset,
     type McpPresetAccountCreate,
-    mcpPresetIcons,
     mcpPresetSchema,
     rankWranglerMcpUrl,
 } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireOperableConnection } from './connection-access.ts';
+import { resolveMcpConnectionIcon } from './connection-branding.ts';
 import { McpDeniedError } from './errors.ts';
 import type { McpIconResolver } from './icons.ts';
 import type { McpRuntime } from './runtime.ts';
@@ -95,14 +95,11 @@ export async function resolveMcpPresetIcons(resolveIcon: McpIconResolver) {
         Object.entries(presets).map(async ([id, preset]) => {
             const presetId = mcpPresetSchema.parse(id);
             return {
-                icon:
-                    mcpPresetIcons[presetId] ??
-                    (await resolveIcon({
-                        connectionUrl: preset.url,
-                        preferPageIcon: true,
-                        serverInfoIcons: [],
-                        timeoutMs: 5000,
-                    })),
+                icon: await resolveMcpConnectionIcon(resolveIcon, {
+                    icon: null,
+                    preset: presetId,
+                    url: preset.url,
+                }),
                 preset: presetId,
             };
         })
