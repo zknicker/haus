@@ -1,4 +1,5 @@
 import {
+    type GithubTriggerView,
     type Trigger,
     type TriggerFire,
     type TriggerKind,
@@ -7,18 +8,31 @@ import {
     triggerTitleMaxLength,
 } from '@haus/api';
 import { formatByteSize, formatRelativeTime } from '../../../lib/format.ts';
+import { githubProblemTitle } from './trigger-github-model.ts';
 
 /**
  * A row speaks up about its state only when the Trigger is not doing its job:
  * armed is the norm, so it carries no chip, and disabled is a resting state
- * someone chose rather than a failure, so it stays neutral.
+ * someone chose rather than a failure, so it stays neutral. An armed GitHub
+ * Trigger with a problem names it, because it is armed and still not firing.
  */
-export function triggerRowStatus(status: TriggerStatus): string | null {
-    return status === 'armed' ? null : 'Disabled';
+export function triggerRowStatus(
+    trigger: { status: TriggerStatus } & (
+        | { kind: 'webhook' }
+        | { github: Pick<GithubTriggerView, 'problem'>; kind: 'github' }
+    )
+): string | null {
+    if (trigger.status === 'disabled') {
+        return 'Disabled';
+    }
+    if (trigger.kind === 'github' && trigger.github.problem) {
+        return githubProblemTitle(trigger.github.problem);
+    }
+    return null;
 }
 
-/** The kinds the App can author today. GitHub Triggers are shown, not created, until their form lands. */
-export type CreatableTriggerKind = Extract<TriggerKind, 'webhook'>;
+/** Every Trigger kind a human can author in the App. */
+export type CreatableTriggerKind = TriggerKind;
 
 export interface TriggerKindOption {
     description: string;
@@ -27,14 +41,19 @@ export interface TriggerKindOption {
 }
 
 /**
- * Every kind a human can pick, in picker order. A second kind is a new entry
- * here and a new row in the picker — never a branch in the authoring flow.
+ * Every kind a human can pick, in picker order. A new kind is a new entry
+ * here and a new row in the picker.
  */
 export const triggerKindOptions: readonly TriggerKindOption[] = [
     {
         description: 'An outside system POSTs to a private URL',
         kind: 'webhook',
         label: 'Webhook',
+    },
+    {
+        description: 'Events in repositories the GitHub connection reaches',
+        kind: 'github',
+        label: 'GitHub',
     },
 ];
 
@@ -192,10 +211,21 @@ export function canSaveTriggerEdit(
     );
 }
 
-/** A disabled Trigger ignores its public URL, so a test fire has nothing to do. */
-export function canTestTrigger(trigger: Pick<Trigger, 'kind' | 'status'>) {
-    // A GitHub test fire needs a sample delivery, which the Server does not offer yet.
-    return trigger.status === 'armed' && trigger.kind === 'webhook';
+/**
+ * A disabled Trigger ignores its stimulus, so a test fire has nothing to do. A
+ * GitHub test fire rehearses the Agent side with a sample delivery, so it runs
+ * even while the Trigger has a problem.
+ */
+export function canTestTrigger(trigger: Pick<Trigger, 'status'>) {
+    return trigger.status === 'armed';
+}
+
+/**
+ * Server refusals lead with a stable code (`github_access_required: …`) for
+ * Agents and tests; a person reads only the sentence after it.
+ */
+export function refusalText(message: string) {
+    return message.replace(/^[a-z_]+: /u, '');
 }
 
 /** Which Trigger drawer the section has open, as the section stores it. */

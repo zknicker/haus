@@ -93,7 +93,7 @@ struct AgentAutomationsView: View {
                             summary: AutomationFormatting.triggerActivity(
                                 fireCount: trigger.fireCount, lastFiredAt: trigger.lastFiredAt, now: now
                             ),
-                            badge: AutomationFormatting.triggerRowStatus(trigger.status),
+                            badge: AutomationFormatting.triggerRowStatus(trigger),
                             showsDivider: trigger.id != triggers.last?.id
                         ) { selection = .trigger(trigger.id) }
                     }

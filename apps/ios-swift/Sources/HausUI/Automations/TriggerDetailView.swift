@@ -1,9 +1,10 @@
 import HausModels
 import SwiftUI
 
-/// One Trigger, read-only: its state, what it asks the Agent to do, where it
-/// came from, and what has reached it. Editing, the secret, test fires, and
-/// deletion stay in the desktop and web App, which the footer says by name.
+/// One Trigger, read-only: its state (with a GitHub Trigger's problem, when it
+/// has one), what it asks the Agent to do, where it came from, and what has
+/// reached it. Editing, a webhook's secret, test fires, and deletion stay in
+/// the desktop and web App, which the footer says by name.
 struct TriggerDetailView: View {
     let model: AgentAutomationsModel
     let triggerID: String
@@ -31,13 +32,22 @@ struct TriggerDetailView: View {
         TimelineView(.everyMinute) { timeline in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    AutomationDetailHeader(title: trigger.title, kindLabel: kindLabel(trigger))
-                    SettingsSection(
-                        "Trigger",
-                        footer: "Edit, test, rotate the secret of, or delete this trigger in Haus on your computer."
-                    ) {
+                    AutomationDetailHeader(
+                        title: trigger.title,
+                        kindLabel: AutomationFormatting.triggerKindLabel(trigger.kind)
+                    )
+                    SettingsSection("Trigger", footer: AutomationFormatting.triggerFooter(trigger.kind)) {
                         SettingsListGroup {
                             AutomationFactRow(title: "Status", value: trigger.status == .armed ? "Active" : "Disabled")
+                            if let problem = trigger.github?.problem {
+                                AutomationFactRow(
+                                    title: "Problem",
+                                    value: AutomationFormatting.githubProblemTitle(problem)
+                                )
+                            }
+                            if let github = trigger.github {
+                                AutomationFactRow(title: "Installation", value: github.installationLogin)
+                            }
                             AutomationFactRow(
                                 title: "Created by",
                                 value: AutomationFormatting.triggerCreator(
@@ -84,10 +94,6 @@ struct TriggerDetailView: View {
             .scrollIndicators(.hidden)
         }
         .task(id: trigger.fireCount) { await loadFires(trigger) }
-    }
-
-    private func kindLabel(_ trigger: Trigger) -> String {
-        trigger.kind == "webhook" ? "Webhook trigger" : "Trigger"
     }
 
     private func loadFires(_ trigger: Trigger) async {

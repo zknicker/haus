@@ -12,6 +12,7 @@ import { settingsConnectionRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { ConnectionDetailHeader } from './connection-detail-header.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
+import { GithubInstallationsSection } from './github-installations-section.tsx';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
 import { McpAccountSection } from './mcp-connection-account.tsx';
 import {
@@ -108,6 +109,7 @@ export function ConnectionPage({
                     saving={saving}
                     usesToken={tokenPreset !== null}
                 />
+                <GithubInstallationsSection connection={connection} serverId={serverId} />
                 <McpAgentAccessSection connection={connection} serverId={serverId} />
                 <McpToolsSection
                     connection={connection}

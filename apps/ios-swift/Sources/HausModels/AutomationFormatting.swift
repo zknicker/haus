@@ -17,10 +17,40 @@ public enum AutomationFormatting {
         return "Last fired \(relativeTime(lastFiredAt, now: now)) · \(fires)"
     }
 
-    /// Armed is the norm and carries no badge; disabled is the one state a row
-    /// speaks up about.
-    public static func triggerRowStatus(_ status: Trigger.Status) -> String? {
-        status == .armed ? nil : "Disabled"
+    /// Armed is the norm and carries no badge; disabled is a state a row speaks
+    /// up about, and so is an armed GitHub Trigger whose problem stops it firing.
+    public static func triggerRowStatus(_ trigger: Trigger) -> String? {
+        if trigger.status == .disabled { return "Disabled" }
+        return trigger.github?.problem.map(githubProblemTitle)
+    }
+
+    /// The detail header's kind line.
+    public static func triggerKindLabel(_ kind: String) -> String {
+        switch kind {
+        case "webhook": "Webhook trigger"
+        case "github": "GitHub trigger"
+        default: "Trigger"
+        }
+    }
+
+    /// Only a webhook has a secret, so only its footer offers to rotate one.
+    public static func triggerFooter(_ kind: String) -> String {
+        kind == "webhook"
+            ? "Edit, test, rotate the secret of, or delete this trigger in Haus on your computer."
+            : "Edit, test, or delete this trigger in Haus on your computer."
+    }
+
+    /// Why an armed GitHub Trigger is not firing, as the App names it.
+    public static func githubProblemTitle(_ problem: String) -> String {
+        switch problem {
+        case "installation_removed": "Installation removed"
+        case "installation_suspended": "Installation suspended"
+        case "repositories_unavailable": "Repositories unavailable"
+        case "permissions_missing": "Permissions missing"
+        case "agent_access_revoked": "Agent access revoked"
+        case "sign_in_required": "Sign in required"
+        default: "Not firing"
+        }
     }
 
     /// A human author is named by handle; an Agent-created Trigger credits the

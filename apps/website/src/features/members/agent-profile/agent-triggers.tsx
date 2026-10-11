@@ -1,6 +1,11 @@
 import type { Agent } from '@haus/api';
 import { Button, Separator, Tooltip } from '@heroui/react';
-import { Add01Icon, HistoryIcon, WebhookIcon } from '@hugeicons-pro/core-stroke-rounded';
+import {
+    Add01Icon,
+    GithubIcon,
+    HistoryIcon,
+    WebhookIcon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -18,7 +23,7 @@ import { ProfileListSection } from './profile-list-section.tsx';
 import { TriggerHistoryDrawer } from './trigger-history-drawer.tsx';
 import { TriggerSheet } from './trigger-sheet.tsx';
 
-/** The Agent's inbound webhook wakes, authored here or from the `haus` CLI. */
+/** The Agent's inbound webhook and GitHub wakes, authored here or from the `haus` CLI. */
 export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const canManage = server.role !== 'member';
     const triggers = useAgentTriggers(server.id, agent.id, canManage);
@@ -85,14 +90,14 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                             {/* Every action on a Trigger lives in the sheet its row
                                 opens, so there is one place a Trigger is operated. */}
                             <AutomationRow
-                                icon={WebhookIcon}
+                                icon={trigger.kind === 'github' ? GithubIcon : WebhookIcon}
                                 kind="trigger"
                                 onPress={
                                     canManage
                                         ? () => setSheet({ kind: 'detail', triggerId: trigger.id })
                                         : undefined
                                 }
-                                status={triggerRowStatus(trigger.status)}
+                                status={triggerRowStatus(trigger)}
                                 summary={formatTriggerActivity(trigger, now)}
                                 title={trigger.title}
                             />

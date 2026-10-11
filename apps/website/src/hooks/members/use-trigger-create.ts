@@ -1,4 +1,4 @@
-import type { TriggerSecretResult } from '@haus/api';
+import type { GithubTriggerConfigInput, Trigger, TriggerSecretResult } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
@@ -24,6 +24,20 @@ export function useTriggerCreate(serverId: string, agentId: string) {
                 throw new Error('A webhook create answered without its secret.');
             }
             return result;
+        },
+        /** Creates a GitHub Trigger, which has no URL and no secret. */
+        createGithub: async (input: {
+            github: GithubTriggerConfigInput;
+            instruction?: string;
+            title: string;
+        }): Promise<Trigger> => {
+            const result = await mutation.mutateAsync({
+                ...input,
+                agentId,
+                kind: 'github',
+                serverId,
+            });
+            return result.trigger;
         },
     };
 }

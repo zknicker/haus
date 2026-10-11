@@ -17,9 +17,56 @@ final class AutomationFormattingTests: XCTestCase {
         )
     }
 
-    func testOnlyADisabledTriggerCarriesABadge() {
-        XCTAssertNil(AutomationFormatting.triggerRowStatus(.armed))
-        XCTAssertEqual(AutomationFormatting.triggerRowStatus(.disabled), "Disabled")
+    func testOnlyADisabledOrDegradedTriggerCarriesABadge() {
+        XCTAssertNil(AutomationFormatting.triggerRowStatus(trigger(status: .armed)))
+        XCTAssertEqual(AutomationFormatting.triggerRowStatus(trigger(status: .disabled)), "Disabled")
+        let healthy = trigger(github: .init(installationLogin: "acme"), kind: "github")
+        XCTAssertNil(AutomationFormatting.triggerRowStatus(healthy))
+        let degraded = trigger(github: .init(installationLogin: "acme", problem: "sign_in_required"), kind: "github")
+        XCTAssertEqual(AutomationFormatting.triggerRowStatus(degraded), "Sign in required")
+        let disabled = trigger(
+            github: .init(installationLogin: "acme", problem: "installation_removed"),
+            kind: "github",
+            status: .disabled
+        )
+        XCTAssertEqual(AutomationFormatting.triggerRowStatus(disabled), "Disabled")
+    }
+
+    func testGitHubTriggersReadAsGitHubAndNeverOfferARotate() {
+        XCTAssertEqual(AutomationFormatting.triggerKindLabel("github"), "GitHub trigger")
+        XCTAssertEqual(AutomationFormatting.triggerKindLabel("webhook"), "Webhook trigger")
+        XCTAssertFalse(AutomationFormatting.triggerFooter("github").contains("secret"))
+        XCTAssertTrue(AutomationFormatting.triggerFooter("webhook").contains("rotate the secret"))
+        XCTAssertEqual(AutomationFormatting.githubProblemTitle("something_new"), "Not firing")
+    }
+
+    func testAGitHubTriggerDecodesItsLoginAndProblem() throws {
+        let json = """
+        {"anchorChatId":"chat_1","anchorMessageId":null,"createdAt":"2026-10-08T16:00:00.000Z",
+         "createdByHandle":null,"createdByUserId":null,"disabledAt":null,"fireCount":0,"id":"trg_1",
+         "instruction":null,"kind":"github","lastFiredAt":null,"ownerAgentId":"agent_1",
+         "ownerHandle":"blippy","status":"armed","title":"CI failed","updatedAt":"2026-10-08T16:00:00.000Z",
+         "version":1,"github":{"events":[{"event":"push"}],"installationId":"ghi_1",
+         "installationLogin":"acme","problem":"permissions_missing","problemSince":null,
+         "repositories":{"scope":"installation"},"suppressedCount":0}}
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            try iso(decoder.singleValueContainer().decode(String.self))
+        }
+        let decoded = try decoder.decode(Trigger.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.github, .init(installationLogin: "acme", problem: "permissions_missing"))
+    }
+
+    private func trigger(
+        github: Trigger.GitHub? = nil,
+        kind: String = "webhook",
+        status: Trigger.Status = .armed
+    ) -> Trigger {
+        Trigger(
+            anchorChatID: "chat_1", createdAt: now, github: github, id: "trg_1",
+            kind: kind, status: status, title: "CI failed"
+        )
     }
 
     func testRelativeTimeMatchesTheAppBuckets() {

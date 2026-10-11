@@ -8,6 +8,7 @@ import {
     formatTriggerFireDetail,
     formatTriggerFireTime,
     formatTriggerHistoryTime,
+    refusalText,
     resolveTriggerSheetMode,
     triggerCreatorName,
     triggerEditPatch,
@@ -22,8 +23,28 @@ import {
 const now = new Date('2026-09-02T12:00:00.000Z').getTime();
 
 test('an armed row stays quiet; only a disabled one carries a status', () => {
-    expect(triggerRowStatus('armed')).toBeNull();
-    expect(triggerRowStatus('disabled')).toBe('Disabled');
+    expect(triggerRowStatus({ kind: 'webhook', status: 'armed' })).toBeNull();
+    expect(triggerRowStatus({ kind: 'webhook', status: 'disabled' })).toBe('Disabled');
+});
+
+test('an armed GitHub Trigger with a problem names it; disabled outranks it', () => {
+    expect(
+        triggerRowStatus({ github: { problem: null }, kind: 'github', status: 'armed' })
+    ).toBeNull();
+    expect(
+        triggerRowStatus({
+            github: { problem: 'sign_in_required' },
+            kind: 'github',
+            status: 'armed',
+        })
+    ).toBe('Sign in required');
+    expect(
+        triggerRowStatus({
+            github: { problem: 'installation_removed' },
+            kind: 'github',
+            status: 'disabled',
+        })
+    ).toBe('Disabled');
 });
 
 test('an unfired Trigger states that once instead of also saying "0 fires"', () => {
@@ -47,16 +68,10 @@ test('a single fire is not pluralised', () => {
 });
 
 test('every offered kind carries the label and description the picker shows', () => {
-    expect(triggerKindOptions).toEqual([
-        {
-            description: 'An outside system POSTs to a private URL',
-            kind: 'webhook',
-            label: 'Webhook',
-        },
-    ]);
+    expect(triggerKindOptions.map((option) => option.kind)).toEqual(['webhook', 'github']);
     expect(triggerKindOption('webhook').label).toBe('Webhook');
+    expect(triggerKindOption('github').label).toBe('GitHub');
     expect(triggerKindLabel('webhook')).toBe('Webhook');
-    // GitHub Triggers are shown with their label but not yet offered in the picker.
     expect(triggerKindLabel('github')).toBe('GitHub');
 });
 
@@ -150,10 +165,16 @@ test('an emptied name is not a save; the Server requires a title', () => {
     expect(canSaveTriggerEdit({ instruction: saved.instruction, title: '  ' }, saved)).toBe(false);
 });
 
-test('only an armed Trigger can be test-fired', () => {
-    expect(canTestTrigger({ kind: 'webhook', status: 'armed' })).toBe(true);
-    expect(canTestTrigger({ kind: 'webhook', status: 'disabled' })).toBe(false);
-    expect(canTestTrigger({ kind: 'github', status: 'armed' })).toBe(false);
+test('only an armed Trigger can be test-fired, whatever its kind', () => {
+    expect(canTestTrigger({ status: 'armed' })).toBe(true);
+    expect(canTestTrigger({ status: 'disabled' })).toBe(false);
+});
+
+test('a refusal reads without its leading code', () => {
+    expect(refusalText('github_access_required: Grant the Agent access.')).toBe(
+        'Grant the Agent access.'
+    );
+    expect(refusalText('Something broke.')).toBe('Something broke.');
 });
 
 const row: Trigger = {

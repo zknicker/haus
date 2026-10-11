@@ -3,18 +3,18 @@ import type { CreatableTriggerKind, TriggerKindOption } from './agent-trigger-mo
 
 /**
  * A Trigger has exactly one kind, so the choice is a single-value Select and
- * never an "add" affordance — there is no second kind to add and nothing to
- * remove. It starts unchosen so the step stays a visible part of the walkthrough.
- *
- * The kinds arrive as a list rather than as branches, so a second kind is a new
- * option and nothing else here changes.
+ * never an "add" affordance. It starts unchosen so the step stays a visible
+ * part of the walkthrough. A kind that cannot be authored yet stays listed,
+ * disabled, with the reason in place of its description.
  */
 export function TriggerKindPicker({
+    disabledReasons,
     isDisabled,
     kinds,
     onChange,
     value,
 }: {
+    disabledReasons: Partial<Record<CreatableTriggerKind, string>>;
     isDisabled: boolean;
     kinds: readonly TriggerKindOption[];
     onChange: (kind: CreatableTriggerKind) => void;
@@ -22,6 +22,9 @@ export function TriggerKindPicker({
 }) {
     return (
         <Select
+            disabledKeys={kinds
+                .filter((option) => disabledReasons[option.kind])
+                .map((option) => option.kind)}
             fullWidth
             isDisabled={isDisabled}
             isRequired
@@ -47,7 +50,9 @@ export function TriggerKindPicker({
                     {kinds.map((option) => (
                         <ListBox.Item id={option.kind} key={option.kind} textValue={option.label}>
                             <Label>{option.label}</Label>
-                            <Description>{option.description}</Description>
+                            <Description>
+                                {disabledReasons[option.kind] ?? option.description}
+                            </Description>
                             <ListBox.ItemIndicator />
                         </ListBox.Item>
                     ))}

@@ -8,9 +8,9 @@ import type { TriggerMintedSecret } from './trigger-webhook-card.tsx';
 
 /**
  * One drawer operates every Trigger. Authoring one does not close it: creating
- * mints a secret readable exactly once, so the drawer becomes the detail for
- * the record it just made with that secret still on screen, rather than
- * dismissing and stranding it.
+ * a webhook mints a secret readable exactly once, so the drawer becomes the
+ * detail for the record it just made with that secret still on screen, rather
+ * than dismissing and stranding it. A GitHub Trigger lands on its detail too.
  */
 export function TriggerSheet({
     agent,

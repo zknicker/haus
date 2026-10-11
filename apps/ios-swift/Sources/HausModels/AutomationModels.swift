@@ -88,17 +88,32 @@ public struct ReminderMutationResult: Decodable, Sendable {
     public let reminder: Reminder
 }
 
-/// One Agent-owned webhook Trigger as `trigger.list` returns it.
+/// One Agent-owned Trigger as `trigger.list` returns it: a `webhook` or a
+/// `github` Trigger. The phone shows both read-only, so it keeps only the
+/// facts it renders.
 public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
     public enum Status: String, Codable, Sendable {
         case armed
         case disabled
     }
 
+    /// What a `github` Trigger's `github` block carries that the phone shows.
+    /// `problem` is an open string so a Server that adds a problem still decodes.
+    public struct GitHub: Codable, Sendable, Equatable, Hashable {
+        public let installationLogin: String
+        public let problem: String?
+
+        public init(installationLogin: String, problem: String? = nil) {
+            self.installationLogin = installationLogin
+            self.problem = problem
+        }
+    }
+
     public let anchorChatID: String
     public let createdAt: Date
     public let createdByHandle: String?
     public let fireCount: Int
+    public let github: GitHub?
     public let id: String
     public let instruction: String?
     public let kind: String
@@ -111,6 +126,7 @@ public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
         createdAt: Date,
         createdByHandle: String? = nil,
         fireCount: Int = 0,
+        github: GitHub? = nil,
         id: String,
         instruction: String? = nil,
         kind: String = "webhook",
@@ -122,6 +138,7 @@ public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
         self.createdAt = createdAt
         self.createdByHandle = createdByHandle
         self.fireCount = fireCount
+        self.github = github
         self.id = id
         self.instruction = instruction
         self.kind = kind
@@ -135,6 +152,7 @@ public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
         case createdAt
         case createdByHandle
         case fireCount
+        case github
         case id
         case instruction
         case kind

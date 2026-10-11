@@ -11,6 +11,7 @@ import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import {
     canSaveTriggerEdit,
     canTestTrigger,
+    refusalText,
     triggerEditPatch,
     triggerInstructionIssue,
     triggerKindLabel,
@@ -19,6 +20,7 @@ import {
 } from './agent-trigger-model.ts';
 import { AutomationConfirmDialog } from './automation-confirm-dialog.tsx';
 import { TriggerFireHistory } from './trigger-fire-history.tsx';
+import { TriggerGithubConfigGroup } from './trigger-github-config-group.tsx';
 import { TriggerManageGroup } from './trigger-manage-group.tsx';
 import { TriggerSummaryGroup } from './trigger-summary-group.tsx';
 import { type TriggerMintedSecret, TriggerWebhookCard } from './trigger-webhook-card.tsx';
@@ -63,7 +65,8 @@ export function TriggerDetailPanel({
     const titleIssue = triggerTitleIssue(draft.title);
     const instructionIssue = triggerInstructionIssue(draft.instruction);
     const canSave = canSaveTriggerEdit(draft, trigger) && !update.isPending;
-    const error = update.error?.message ?? rotate.error?.message ?? remove.error?.message ?? null;
+    const failure = update.error ?? rotate.error ?? remove.error;
+    const error = failure ? refusalText(failure.message) : null;
 
     return (
         <>
@@ -129,14 +132,16 @@ export function TriggerDetailPanel({
                         serverId={serverId}
                         trigger={trigger}
                     />
-                    {/* A GitHub Trigger has no URL and no secret: it shows read-only
-                        until its configuration panel lands. */}
+                    {/* A GitHub Trigger has no URL and no secret; it shows what
+                        it listens to instead. */}
                     {trigger.kind === 'webhook' ? (
                         <TriggerWhenToRun
                             kind={triggerKindOption(trigger.kind)}
                             url={trigger.url}
                         />
-                    ) : null}
+                    ) : (
+                        <TriggerGithubConfigGroup agentName={agent.displayName} trigger={trigger} />
+                    )}
                     <TriggerManageGroup
                         canTest={canTestTrigger(trigger)}
                         isRotating={rotate.isPending}

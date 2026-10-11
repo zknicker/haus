@@ -56,7 +56,11 @@ export function McpAccountSection({
                 {connection.preset ? (
                     <>
                         <Separator />
-                        <AddAccountRow isPending={saving} onPress={onAddAccount} />
+                        <ConnectionAddRow
+                            isPending={saving}
+                            onPress={onAddAccount}
+                            title="Add another account"
+                        />
                     </>
                 ) : null}
             </ItemCardGroup>
@@ -117,12 +121,23 @@ function AccountRow({
 }
 
 /**
- * The whole row is the control, on the Settings pressable-row anatomy. Its
- * mark is the account row's avatar box (stock `Avatar` at `sm`, so box and
- * radius stay paired) holding a plus, so both titles start on one line. While
- * an add is in flight the plus turns to a spinner and presses are ignored.
+ * An "add" row at the foot of a connection's card. The whole row is the
+ * control, on the Settings pressable-row anatomy. Its mark is the row avatar
+ * box (stock `Avatar` at `sm`, so box and radius stay paired) holding a plus,
+ * so every title in the card starts on one line. While an add is in flight the
+ * plus turns to a spinner and presses are ignored.
  */
-function AddAccountRow({ isPending, onPress }: { isPending: boolean; onPress: () => void }) {
+export function ConnectionAddRow({
+    description,
+    isPending,
+    onPress,
+    title,
+}: {
+    description?: string;
+    isPending: boolean;
+    onPress: () => void;
+    title: string;
+}) {
     return (
         <SettingsGridCard onPress={isPending ? () => undefined : onPress}>
             <Avatar aria-hidden="true" size="sm">
@@ -135,7 +150,8 @@ function AddAccountRow({ isPending, onPress }: { isPending: boolean; onPress: ()
                 </Avatar.Fallback>
             </Avatar>
             <ItemCard.Content>
-                <ItemCard.Title>Add another account</ItemCard.Title>
+                <ItemCard.Title>{title}</ItemCard.Title>
+                {description ? <ItemCard.Description>{description}</ItemCard.Description> : null}
             </ItemCard.Content>
         </SettingsGridCard>
     );
