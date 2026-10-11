@@ -65,9 +65,9 @@ test('X stores its token as a Server-only Authorization header', async () => {
     expect(secret?.secret.headers).toEqual({ Authorization: `Bearer ${token}` });
     const listed = await owner.trpc.mcp.list.query({ serverId });
     expect(JSON.stringify(listed)).not.toContain(token);
-    expect(JSON.stringify(await listMcpConnections(connection.db, member, serverId))).not.toContain(
-        token
-    );
+    expect(
+        JSON.stringify(await listMcpConnections(connection.db, noIcon, member, serverId))
+    ).not.toContain(token);
 
     await replaceMcpPresetToken(connection.db, runtime, noIcon, member, {
         bearerToken: 'replacement-token',
@@ -171,9 +171,9 @@ test('Skool uses the configured service endpoint and keeps account tokens Server
         preset: 'skool',
         url: 'https://skool.test/mcp',
     });
-    expect(JSON.stringify(await listMcpConnections(connection.db, member, serverId))).not.toContain(
-        'skool-fixture-token'
-    );
+    expect(
+        JSON.stringify(await listMcpConnections(connection.db, noIcon, member, serverId))
+    ).not.toContain('skool-fixture-token');
     expect(JSON.stringify(created)).not.toContain('native-auth');
     await disconnectMcpConnection(connection.db, runtime, member, {
         connectionId: created.id,
