@@ -1,3 +1,4 @@
+import { requiredPrefixes } from './release-impact-paths.mjs';
 import {
     assertReleaseLedger,
     releasePublishesTarget,
@@ -6,55 +7,6 @@ import {
 import { runGit } from './release-utils.mjs';
 
 export const releaseImpactTargets = ['server', 'app', 'ios', 'computer', 'agent'];
-
-const requiredPrefixes = {
-    server: [
-        'apps/server/src/',
-        'apps/server/drizzle/',
-        'apps/server/operations/',
-        'apps/server/host-services/',
-        'apps/server/launchd/',
-        'apps/website/src/',
-        'apps/website/public/',
-        'packages/agent-manual/src/',
-    ],
-    app: ['apps/website/electron/', 'assets/mac-icon.icon/'],
-    ios: [
-        'apps/ios-swift/Sources/',
-        'apps/ios-swift/Config/',
-        'apps/ios-swift/Package.swift',
-        'assets/mac-icon.icon/',
-    ],
-    computer: [
-        'apps/computer/src/',
-        'apps/computer/package.json',
-        'packages/agent-manual/src/',
-        'packages/agent-manual/package.json',
-        'packages/agent-workspace/src/',
-        'packages/agent-workspace/package.json',
-        'packages/claude-usage/src/',
-        'packages/claude-usage/package.json',
-        'packages/codex-usage/src/',
-        'packages/codex-usage/package.json',
-    ],
-    agent: [
-        'apps/computer/src/agent-cli.ts',
-        'apps/computer/src/agent-cli/',
-        'apps/computer/src/harness/',
-        'apps/computer/src/inbox-format.ts',
-        'apps/server/src/agent-api/',
-        'packages/agent-manual/src/',
-        'packages/agent-workspace/src/',
-        'packages/haus-api/haus-agent.json',
-        'packages/haus-api/src/agent-activity.ts',
-        'packages/haus-api/src/agent-execution.ts',
-        'packages/haus-api/src/agent-creation.ts',
-        'packages/haus-api/src/agent-runner.ts',
-        'packages/haus-api/src/agent.ts',
-        'packages/haus-api/src/haus-agent-version.ts',
-        'packages/haus-api/src/manual.ts',
-    ],
-};
 
 const reviewPrefixes = {
     server: [
