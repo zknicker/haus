@@ -126,6 +126,8 @@ For revisions, corrections, or another step in the same assignment, send instruc
 
 \`haus cloud-agent inspect\` lists work you delegated. Add \`--work <workId>\` to read that work's status and recorded results. Completion reaches your inbox automatically and wakes you, or arrives in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes; inspect when you need evidence.
 
+**Linking work elsewhere.** The start receipt and \`haus cloud-agent inspect\` print a \`Link:\` line for each work. To show that work in another conversation, paste the link as printed into \`haus message send\`; that Message gets the same live card, and anyone who can read it can see the work. Never write a work link by hand. Linking moves nothing: the work thread, the Work ID, and where completion arrives stay the same.
+
 \`haus cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
 
 **Provider and model.** Cursor is the Cloud Agent provider. A human picks the Cloud Agent model once per Server in Haus App; the default is Auto, Cursor's per-run router. You cannot choose or override it: no command flag or start input carries a model.

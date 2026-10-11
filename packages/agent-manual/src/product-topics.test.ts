@@ -61,6 +61,23 @@ test('cloud work keeps implementation details and requester outcomes in their co
     expect(body).toContain('only real state changes, one line each');
 });
 
+test('cloud work is shown elsewhere by pasting its printed link, which moves nothing', () => {
+    const body = getManualTopic('cloud-agents')?.body;
+    // ADR 0044: Agents link work they can see; they never invent the syntax.
+    expect(body).toContain('**Linking work elsewhere.**');
+    expect(body).toContain('paste the link as printed into `haus message send`');
+    expect(body).toContain('Never write a work link by hand.');
+    expect(body).toContain(
+        'the work thread, the Work ID, and where completion arrives stay the same'
+    );
+    expect(
+        searchManualTopics('show cloud agent work in another channel', {
+            limit: 5,
+            scope: 'all',
+        }).map(({ id }) => id)
+    ).toContain('cloud-agents');
+});
+
 test('publishes the Agent reference topic as the Agent-creation contract', () => {
     const agent = getManualTopic('agent');
 
