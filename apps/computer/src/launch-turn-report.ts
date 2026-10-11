@@ -2,6 +2,7 @@ import type { AgentTurnActivitySummary } from '@haus/api';
 import type { AgentTurnFrame } from './agent-commands.ts';
 import type { RunAgentLaunchOptions } from './launch.ts';
 import type { RuntimeFailureFields } from './runtime-failure.ts';
+import type { RuntimeTurnOutcome } from './turn-failure-report.ts';
 
 /** Composes and sends the compact turn summary for one settled launch. */
 export function reportTurn(
@@ -37,4 +38,17 @@ export function reportTurn(
     };
     options.sendFrame(frame);
     return frame;
+}
+
+/** The settled turn's one-line summary. */
+export function turnSummaryText(result: RuntimeTurnOutcome, sendCount: number): string {
+    if (result.status === 'completed') {
+        return `Sent ${sendCount} message(s).`;
+    }
+    if (result.status === 'interrupted') {
+        return 'The Agent turn was interrupted.';
+    }
+    return (
+        result.summary ?? `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`
+    );
 }
