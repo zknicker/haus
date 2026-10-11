@@ -65,15 +65,51 @@ extension AuthenticatedHausView {
                 }
                 pushConversationThread(selection)
             }
-        case .cloudAgentWork(let messageID):
-            guard let work = store.activeCloudAgentWork?
-                .first(where: { $0.work.messageId == messageID }),
-                let selection = store.threadSelection(
-                    conversationChatID: work.conversationChatID,
-                    threadChatID: work.threadChatID,
-                    anchor: work.threadAnchor
-                )
-            else { return }
+        case .cloudAgentWork(let workID):
+            guard let work = store.activeCloudAgentWork?.first(where: { $0.work.id == workID }) else { return }
+            openCloudAgentWork(work)
+        }
+    }
+
+    /// Opens one "Happening now" work where its `location` says (ADR 0044,
+    /// Q4): the launch work Thread, or the newest visible linking Message —
+    /// its existing Thread when it has one, else its Chat. Opening never
+    /// creates or follows a Thread.
+    private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
+        switch work.location {
+        case .workThread(let threadChatID, let anchorMessageID):
+            if let anchor = work.carriedThreadAnchor,
+               let selection = store.threadSelection(
+                   conversationChatID: work.conversationChatID,
+                   threadChatID: threadChatID,
+                   anchor: anchor
+               ) {
+                pushConversationThread(selection)
+                return
+            }
+            openWorkThread(conversationChatID: work.conversationChatID, threadChatID: threadChatID, anchorMessageID: anchorMessageID)
+        case .message(let chatID, let messageID, let threadChatID):
+            if chatID != work.conversationChatID {
+                // The linking Message is a reply inside a Thread: open that Thread.
+                Task {
+                    guard let selection = await store.inboxThreadSelection(threadChatID: chatID) else { return }
+                    pushConversationThread(selection)
+                }
+            } else if let threadChatID {
+                openWorkThread(conversationChatID: chatID, threadChatID: threadChatID, anchorMessageID: messageID)
+            } else {
+                openCanvasChat(.chat(chatID))
+            }
+        }
+    }
+
+    private func openWorkThread(conversationChatID: String, threadChatID: String, anchorMessageID: String) {
+        Task {
+            guard let selection = await store.threadSelection(
+                conversationChatID: conversationChatID,
+                threadChatID: threadChatID,
+                anchorMessageID: anchorMessageID
+            ) else { return }
             pushConversationThread(selection)
         }
     }

@@ -196,8 +196,9 @@ public struct TaskLabelUpdatedEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// `cloudAgentWork.onUpdated`: one Cloud Agent work row changed. `messageID`
-/// is the work Message whose card shows it.
+/// `cloudAgentWork.onUpdated`: one Cloud Agent work changed. The Server sends
+/// one event per linking Message in a live Chat; `chatID`/`messageID` name
+/// that linking Message (ADR 0044).
 public struct CloudAgentWorkUpdatedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String

@@ -40,9 +40,10 @@ public struct ThreadReferenceTarget: Hashable, Sendable {
     }
 
     /// What a resolved Thread chip says: its anchor's first non-blank line as
-    /// a preview, cut at 64 characters — the App's `threadReferenceTitle`.
-    public static func title(anchorContent: String) -> String {
-        let firstLine = anchorContent
+    /// a preview, cut at 64 characters — the App's `threadReferenceTitle`. An
+    /// anchor that links Cloud Agent work is named by its first work's title.
+    public static func title(anchorContent: String, workTitle: String? = nil) -> String {
+        let firstLine = (workTitle ?? anchorContent)
             .split(whereSeparator: \.isNewline)
             .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
             .map(String.init) ?? ""
