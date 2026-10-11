@@ -33,17 +33,11 @@ Haus App bundle at build time.
 
 ## Where values live
 
-`HAUS_SKOOL_MCP_URL` is a public, optional endpoint for the built-in Skool preset.
-The dev stack supplies the worktree's second port. Test uses `https://skool.test/mcp`.
-Production leaves it unset until a hosted HTTPS endpoint exists. User account tokens
-remain connection secrets rather than deployment environment variables.
-
-`HAUS_SKOOL_CONTROL_TOKEN` is the sensitive Server-only provisioning credential.
-For the local prototype, the service generates a mode-0600 `control-token` under
-`~/.local/share/haus-hosted-mcp`; the dev stack reads it when starting Server.
-Start the service before the dev stack. Production must provision this credential
-through the lifecycle vault and deliver the same value to the service and Server.
-It is never sent to App, Computer, or Agents.
+Server-owned hosted MCPs need no external endpoint or deployment control secret.
+Server generates a per-process provisioning credential and sends it through a private
+stdin pipe. The logical connection URL selects private transport; account sessions
+persist under `HAUS_ATTACHMENT_ROOT/.hosted-mcp`. See [Hosted MCPs](hosted-mcp.md).
+The former `HAUS_SKOOL_MCP_URL` and `HAUS_SKOOL_CONTROL_TOKEN` variables are retired.
 
 1Password account `knickerbockerventures.1password.com`. Lifecycle vaults are
 the access boundary.

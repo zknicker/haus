@@ -9,6 +9,7 @@ read_when:
 
 The App uses the Haus Server `mcp` tRPC router:
 
+- `mcp.connectSkool`
 - `mcp.add`
 - `mcp.addPresetAccount`
 - `mcp.list`
@@ -50,6 +51,13 @@ callback as `http://127.0.0.1:<port>/mcp/oauth/callback`, never `localhost`, bec
 as GitHub accept an arbitrary port only for the IP literal (RFC 8252 §7.3). The hosted callback validates state;
 Server exchanges the code, persists tokens and client registration, and performs refresh. Computer
 does not participate.
+
+`mcp.connectSkool` accepts the isolated desktop session and checks Server Owner/Admin
+access. It provisions a verified account through the Server-owned Skool process and
+stores an ordinary header-auth connection. Its stable logical URL is
+`https://hosted-mcp.haus.invalid/skool/mcp`; only the Skool preset maps that identifier
+to private transport. The connector endpoint and control credential never enter the
+public API. No network route serves that logical URL.
 
 `mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
 on the connection available to that Agent.

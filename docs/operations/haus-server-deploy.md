@@ -108,6 +108,13 @@ Mach-O executable, including a host-native Linux binary from an Ubuntu release r
 A manual `activate` never downloads, rebuilds, or reinterprets an artifact.
 Urgent production changes require a patch release.
 
+The Server artifact also includes its hosted MCP packages and frozen native language
+runtimes. Publication uses Apple Silicon macOS; packaging verifies the relocated
+Skool runtime through private MCP discovery and provisioning validation. Server owns
+connector startup and shutdown, and connector degradation changes `/healthz` to
+`degraded`, causing release health verification to fail. No separate connector
+service or public ingress is installed. See [Hosted MCPs](hosted-mcp.md).
+
 ## Where the contract comes from
 
 The environment contract travels with the repository, not with the artifact.

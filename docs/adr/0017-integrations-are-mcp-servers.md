@@ -39,7 +39,7 @@ trust. A cross-origin authorization server requires explicit operator confirmati
 Credential-bearing endpoints require HTTPS.
 
 GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, RankWrangler, X, CoinGecko, and Skool are connection presets. Server owns their immutable endpoints
-and auth defaults; they use the same generic path as custom connections.
+and auth defaults. Hosted presets use Server-owned private transport per [ADR 0042](0042-server-owns-hosted-mcp-processes.md); remote presets use the custom-connection transport.
 
 ## Other capability kinds
 

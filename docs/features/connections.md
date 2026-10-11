@@ -35,7 +35,7 @@ organization owner approves the Haus app. X takes a token instead of a sign-in: 
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
 public posts on that app's credits. Skool opens an isolated browser tab in the Haus desktop app.
 Sign in directly to Skool; Haus captures the resulting session and provisions the hosted connection
-without showing internal tokens. Web users receive a desktop-required notice. After setup the
+without showing internal tokens. Haus Server starts and supervises the bundled Skool connector; no separate service setup is required. Web users receive a desktop-required notice. After setup the
 connection works from web and mobile while the desktop app is closed. Reconnect and additional
 Skool accounts use the same desktop flow. A community is content within an account, not a preset.
 Skool sessions can expire; reconnect in desktop when reads require sign-in again. This is browser
