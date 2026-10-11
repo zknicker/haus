@@ -59,7 +59,7 @@ connector, with delay growing from one to thirty seconds. `/healthz` exposes
 Startup logs identify ready connectors; Server telemetry carries lifecycle and
 request outcomes without credentials or bodies.
 
-Skool lists nine read-only tools without starting an account worker. Its pool starts
+Skool lists ten read-only tools without starting an account worker. Its pool starts
 workers on demand, holds at most two, serializes calls per account, and evicts idle
 workers after sixty seconds. Busy capacity returns a retryable error rather than
 queuing. Calls have a 25-second deadline, requests a 64-KiB limit, and results a
@@ -74,10 +74,27 @@ node scripts/package-hosted-mcp.mjs .context/hosted-mcp/skool
 bun test apps/server/src/hosted-mcp/supervisor.test.ts
 ```
 
-Packaging verifies imports, readiness, all nine tool schemas through the actual MCP
+Packaging verifies imports, readiness, all ten tool schemas through the actual MCP
 client, and authenticated provisioning validation without contacting Skool. The
 supervisor suite checks crash recovery, partial-startup cleanup, and shutdown.
 A real desktop sign-in and authorized private read remain the live-account proof.
+
+## Classroom lessons
+
+Use `skool_get_classroom` to discover a course, `skool_get_course` for its tree,
+then `skool_get_lesson` with the course id and a module's lesson id. A classroom
+folder is a `set`, not a course id. The lesson reader rechecks community, course,
+lesson, and parent-folder access. It returns lesson text, resource file/link
+metadata, and available native-video captions with timestamped cues. Resource
+file ids are metadata, not download URLs; the reader does not download files.
+
+Course trees omit playback details. The reader fetches the selected lesson page
+for a fresh signed Mux playback token, then reads the subtitle playlist and WebVTT
+segments using Skool's Referer. Playback tokens and raw page/account records never
+enter results. `transcript_status` is `available`, `no_captions`, `external_video`,
+or `no_video`. Missing/mismatched playback details and failed caption reads remain
+errors; they do not mean captions are absent. External video transcription is
+unsupported. `skool_get_video_transcript` remains the community-post reader.
 
 The standalone `hosted-mcp login`, `serve`, `smoke`, and `revoke` commands remain
 operator tools for isolated connector trials. Their loopback ports and private token
