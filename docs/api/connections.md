@@ -1,8 +1,9 @@
 ---
-summary: Server tRPC and runner contracts for remote MCP connections and connection-level Agent access.
+summary: Server tRPC and runner contracts for remote MCP connections, GitHub installations and the setup route, and connection-level Agent access.
 read_when:
   - changing MCP Server tRPC procedures
   - changing connection, secret, discovery, runner, or grant schemas
+  - changing the `github` tRPC router, `/github/setup`, or `GET /api/agent/github/installations`
 ---
 
 # Connections API
@@ -25,10 +26,17 @@ The App uses the Haus Server `mcp` tRPC router:
 configuration. Public connection reads expose header names and discovered tool names, never secret
 values. Preset creation resolves immutable Server-owned coordinates; each preset fixes its authentication kind. CoinGecko creates a keyless `none`
 connection to `https://mcp.api.coingecko.com/sse` and discovers tools immediately. `google-calendar` and `github` present a configured Server OAuth client
-(`HAUS_GOOGLE_OAUTH_CLIENT_*`, `HAUS_GITHUB_OAUTH_CLIENT_*`) because their authorization servers
-offer no dynamic client registration; without it, `mcp.startOAuth` fails with the client reported
-unavailable. Server reads that client from its environment on every use and never stores it on the
-connection, so a rotated secret reaches existing connections.
+(`HAUS_GOOGLE_OAUTH_CLIENT_*`, and the Haus GitHub App's `HAUS_GITHUB_APP_CLIENT_*`) because their
+authorization servers offer no dynamic client registration; without it, `mcp.startOAuth` fails
+with the client reported unavailable. Server reads that client from its environment on every use
+and never stores it on the connection, so a rotated secret reaches existing connections. The
+GitHub App client sends no `scope` (a GitHub App has permissions, not scopes), and its preset
+header asks the hosted MCP for `X-MCP-Toolsets: default,actions,code_security,dependabot`.
+
+`mcp.delete` on a GitHub connection is GitHub-aware: in one transaction it marks every armed
+`github` Trigger on the connection's installations `installation_removed` (one `trigger_problem`
+notice each), tombstones the installations, and only then deletes the connection. The notified
+Agents are woken after commit.
 
 `merchbase-atlas` creates an OAuth connection to `https://atlas.merchbase.co/mcp`
 with `openid profile email` scopes and Clerk dynamic client registration. It needs no
@@ -49,7 +57,8 @@ bearer-token presets.
 callback as `http://127.0.0.1:<port>/mcp/oauth/callback`, never `localhost`, because providers such
 as GitHub accept an arbitrary port only for the IP literal (RFC 8252 §7.3). The hosted callback validates state;
 Server exchanges the code, persists tokens and client registration, and performs refresh. Computer
-does not participate.
+does not participate. The OAuth provider reads stored tokens on every request, so a refresh another
+Server path performs (the GitHub user token, below) reaches live MCP clients at once.
 
 `mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
 on the connection available to that Agent.
@@ -125,6 +134,42 @@ failures do not disconnect the account or erase its connection-level Agent grant
 over its own authenticated MCP client: the GitHub preset calls the server's `get_me` tool and uses
 the returned `login`. Any failure there falls back to `serverInfo.name`; a label never fails
 discovery.
+
+## GitHub Installations
+
+The built-in GitHub connection ([GitHub App connection](../../specs/github-app-connection.md)) adds
+the `github` tRPC router. Schemas live in `@haus/api` `github.ts`; `installationId` is always the
+Haus row (`ghi_…`) and `githubInstallationId` GitHub's number. Every procedure needs a configured
+App (else `BAD_REQUEST github_app_unconfigured`) except `installations`, and refusal messages lead
+with a stable reason (`github_owner_required: …`).
+
+| Procedure | Who | Does |
+| --- | --- | --- |
+| `github.installations` | member | the connection's bound installations |
+| `github.startInstall` | Owner or Admin | stores single-use state (32 bytes, 15 minutes, bound to Server, connection, and user) and returns `https://github.com/apps/<slug>/installations/new?state=…` |
+| `github.installCandidates` | Owner or Admin | unbound installations from `GET /user/installations` that pass the owner check |
+| `github.bindInstallation` | Owner or Admin | reruns the owner check and binds; `CONFLICT github_installation_already_bound` when another Server or connection holds it |
+| `github.unbindInstallation` | Owner or Admin | degrades dependent Triggers and tombstones the installation |
+| `github.repositories` | member | the picker: the connection user's accessible repositories, read live, refreshing the cache |
+
+Owner authority is GitHub's: `GET /user/memberships/orgs/{org}` must answer `state: active`,
+`role: admin`, or a user account's id must equal `GET /user`'s. Installation facts come only from
+`GET /app/installations/{id}` with the App JWT. A GitHub outage is `BAD_GATEWAY github_unavailable`;
+a missing or rejected user token is `BAD_REQUEST github_sign_in_required`.
+
+`GET /github/setup` is GitHub's setup URL. It consumes the install state once, binds, and
+redirects to `<app origin>/s/<slug>/settings/connections/<connectionId>?github_setup=<outcome>`,
+where the outcome is `bound`, `requested` (a member asked an owner; nothing bound), or a refusal
+reason. Missing, expired, or replayed state answers a `400` page and binds nothing. An update
+redirect (`setup_action=update`, no state) only prompts reconciliation of a bound installation.
+Install state is Server memory, like MCP OAuth state; a restart forgets it, and
+`github.installCandidates` recovers.
+
+Server-side GitHub reads use the connection's user token (`mcp_secrets`) and refresh it once on a
+401 (`apps/server/src/github/user-token.ts`); a rejected refresh is `github_sign_in_required`.
+Agents list usable installations with `GET /api/agent/github/installations[?repos=true]`: live
+installations on connected GitHub connections the Agent holds the grant on, with accessible
+repositories on request (`502 GITHUB_UNAVAILABLE` when GitHub cannot list them).
 
 ## Connection Icons
 

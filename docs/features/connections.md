@@ -1,9 +1,10 @@
 ---
-summary: Server settings for remote MCP accounts and connection-level Agent access.
+summary: Server settings for remote MCP accounts, the built-in GitHub connection and its installations, and connection-level Agent access.
 read_when:
   - changing Settings -> Connections
   - adding an MCP preset
   - changing connect, reconnect, disconnect, or Agent access behavior
+  - changing GitHub sign-in, installations, or what removing a GitHub connection does
 ---
 
 # Connections
@@ -26,14 +27,20 @@ discovered tools. There is no Computer picker and no local or stdio transport.
 RankWrangler, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, GitHub, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
-an explicit grant. GitHub is a one-click sign-in like Google Calendar: **Connect**
-opens GitHub's authorization page for Haus's own OAuth App, and Server keeps the token refreshed.
-Server asks GitHub's hosted MCP for its default toolsets plus Actions, notifications, code scanning,
-and Dependabot, so Agents can read workflow runs and job logs, run a workflow, triage notifications,
-and read security alerts. Code scanning and Dependabot alerts need the `security_events` scope, so a
-GitHub account connected before it was added must reconnect.
-A GitHub organization with OAuth app access restrictions hides its private data until an
-organization owner approves the Haus app. X takes a token instead of a sign-in: pressing **+** asks
+an explicit grant. GitHub is the one built-in connection
+([ADR 0042](../adr/0042-github-is-a-built-in-connection.md)): **Connect** signs in through the Haus
+GitHub App, and Server keeps the expiring user token refreshed. Server asks GitHub's hosted MCP for
+its default toolsets plus Actions, code scanning, and Dependabot, so Agents can read workflow runs
+and job logs, run, rerun, or cancel a workflow, and read security alerts. Notifications are not
+offered: GitHub's notifications API refuses GitHub App tokens, and GitHub Triggers cover that need.
+The hosted MCP sees what both the App's permissions and the signed-in user allow. Beyond sign-in, a
+GitHub connection binds **installations** of the App: an org or account and its chosen
+repositories, attached to this Server. **Install on GitHub** sends an Owner or Admin to GitHub and
+binds the installation on return; **Add existing installation** binds one that is already
+installed. Either way the signed-in GitHub user must own the account (an organization admin, or
+the user account itself), and an installation belongs to one Haus Server only. Installations feed
+`github` Triggers ([GitHub Triggers](../../specs/github-triggers.md)); removing one from Haus pauses
+its Triggers and tells their Agents, and it stays installed on GitHub. X takes a token instead of a sign-in: pressing **+** asks
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
 public posts on that app's credits. Skool opens an isolated browser tab in the Haus desktop app.
 Sign in directly to Skool; Haus captures the resulting session and provisions the hosted connection
@@ -59,16 +66,11 @@ MerchBase/Clerk OAuth. It exposes Printful order review and fulfillment tools. L
 store happens through those tools after sign-in; adding the preset does not link a store or enable
 Agent access.
 
-Separately from the GitHub MCP preset, the GitHub pull-request connection is the one first-party
-connection that is not an MCP server. Owners and Admins connect one
-GitHub account or token per Server, and the Server uses it only to resolve pull-request references
-into their cached snapshot (title, state, additions, deletions, files changed) for
-[rich references](rich-references.md). It exposes no tools and has no per-Agent access switch;
-Agents reach GitHub through their own Computer tooling or the GitHub MCP preset.
-
 **Disconnect account** warns which Agents lose access, then clears active credentials, discovered
-tools, and grants while keeping the MCP entry. **Remove from Haus** deletes that entry and its
-saved credentials, including for preset accounts. Signing in again uses the same connection and
+tools, and grants while keeping the MCP entry; a GitHub connection keeps its installations, and
+its Triggers pause until an Agent is granted again. **Remove from Haus** deletes that entry and its
+saved credentials, including for preset accounts; for GitHub it first removes every installation
+from Haus, pausing their Triggers with one notice to each owning Agent. Signing in again uses the same connection and
 can reuse its configured OAuth client and previously approved authorization-server origins.
 
 Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
@@ -97,7 +99,8 @@ Remove from Haus), and, while the connection still needs credentials, one primar
 **Add credentials** button; the server's own description follows when it offers one. Below come
 ruled sections, actionable first: **Connected Account** (a card with the account label and its own
 `···` menu for Sign in again or Replace credentials and Disconnect account, plus **Add another
-account** for a built-in service; hidden for servers that take no credentials), **Agent Access**
+account** for a built-in service; hidden for servers that take no credentials), for GitHub
+**Installations** (see [GitHub App connection](../../specs/github-app-connection.md#app-ui)), **Agent Access**
 (one switch per Agent; a new grant waits for sign-in), then the reference material: **Tools** (name
 chips with a count, collapsed to the first few behind **Show all N**, expanding inline) and
 **Information** (Server address, sign-in kind, built in or custom). The credentials form, the

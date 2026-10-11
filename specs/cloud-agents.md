@@ -434,11 +434,10 @@ result Message.
 
 A pull request is a rich reference (see [Rich References](../docs/features/rich-references.md) and
 [Rich References](mentions.md)). Anyone can paste one and any Agent can post one, so it stands on
-its own outside Cloud Agent work. A Server-owned GitHub connection in Settings → Connections
-resolves each pull-request reference into a cached snapshot — title, state, additions, deletions,
-and files changed — that the compact and card-like renderings show. Without a connection the
-reference renders from its URL alone. Cursor never supplies these facts; the public Cloud Agents
-API reports no diff statistics.
+its own outside Cloud Agent work. The reference renders from its URL alone; a Server-side
+pull-request snapshot is not built, and when it is it reads through the built-in GitHub
+connection ([GitHub App connection](github-app-connection.md#not-built)). Cursor never supplies
+these facts; the public Cloud Agents API reports no diff statistics.
 
 The Thread preview under the work Message shows the latest replies, so a lone pull-request reference
 reply surfaces the pull request in the parent Chat without new storage. V1 hoists no pull-request
@@ -645,8 +644,8 @@ administrative integration and is outside this Computer capability.
 - No outputs relation, output table, or produced-by provenance; results are ordinary Messages and
   references.
 - No pull-request facts sourced from Cursor. A Run's own `pullRequest` snapshot is the Computer
-  reading GitHub directly for the pull request row's state and diff counts; the pull-request reference's
-  title and cached presentation still come only from the Server GitHub connection.
+  reading GitHub directly for the pull request row's state and diff counts; the pull-request
+  reference itself renders from its URL.
 - No per-launch human approval card. Launch approval, when a Server wants it, is an @mention:
   the Agent @mentions the human with what it will launch and waits for an explicit yes in reply
   before launching ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)).

@@ -2,6 +2,7 @@
 summary: The public inbound Trigger route, managed Agent Trigger routes, the operator Trigger tRPC procedures, and the automation provenance carried on an Agent's message.
 read_when:
   - changing the inbound Trigger route, its status codes, headers, or limits
+  - changing the GitHub App webhook endpoint, the sink, or `github` Trigger create and update
   - changing managed Agent Trigger routes, secrets, or fire log reads
   - changing operator Trigger creation, editing, status, rotation, test fires, or deletion
   - changing Agent-wide Trigger history or fire retention
@@ -17,7 +18,12 @@ Automations tab, and the provenance surface that carries a fire onto the Agent's
 own message (ADR 0026), which reminders share. The two authoring surfaces share
 one core and manage the same rows. Wire schemas live in
 `packages/haus-api/src/triggers.ts`, where `triggerKindSchema` is
-`z.enum(['webhook'])`.
+`z.enum(['webhook', 'github'])` and the wire `Trigger` is a union on `kind`: a
+`webhook` carries `url`, a `github` Trigger carries `github` (installation,
+repository scope, events, `problem`, `suppressedCount`) and has no URL or
+secret. The `github` event vocabulary is `packages/haus-api/src/github-trigger-events.ts`.
+A `github` Trigger fires from the GitHub App webhook, not the public route below
+([GitHub App webhook](#github-app-webhook)).
 
 ## Public inbound route
 
@@ -68,6 +74,40 @@ fire without consuming rate-limit budget; then the rate limit; then
 limiter costs nothing, and everything reaching the limiter is metered — a
 disabled Trigger cannot be hammered for free.
 
+## GitHub App webhook
+
+```http
+POST /api/github/webhook
+X-GitHub-Event: <event>
+X-GitHub-Delivery: <guid, ≤ 64 chars>
+X-Hub-Signature-256: sha256=<hex HMAC of the raw body>
+```
+
+One endpoint serves every installation of the Haus GitHub App. It runs before
+tRPC without Clerk, reads the raw body (10 MiB limit) so the HMAC covers the
+exact bytes, compares in constant time, and only then parses JSON.
+
+| Status | Body | When |
+| --- | --- | --- |
+| `503` | `{ code: 'github_app_unconfigured' }` | The App's credentials are not configured |
+| `400` | `{ code: 'invalid_github_headers' }` | A required header is missing, or the guid is over 64 characters |
+| `413` | `{ code: 'payload_too_large' }` | Body over 10 MiB |
+| `401` | `{ code: 'invalid_signature' }` | The signature does not match |
+| `415` | `{ code: 'unsupported_media_type' }` | The body is not a JSON object |
+| `200` | `{ duplicate: true }` | This guid was already ingested |
+| `202` | `{ routed: <n> }` | Accepted; `n` Triggers fired. Unknown installations, foreign repositories, filter misses, and a guid another attempt is ingesting all answer `202` too |
+
+Every delivery is claimed by guid in `github_webhook_deliveries` before routing,
+so a redelivery or a recovered copy dedupes. Lifecycle events (`installation`,
+`installation_repositories`, `installation_target`) reconcile the installation
+and fire nothing. Each fire's `dedupe_key` is `gh:<guid>`, its `content_type`
+is `application/json`, and its payload is the event projection. Recovery reads
+`GET /app/hook/deliveries` with the App JWT and ingests every guid not done
+locally; it skips the HMAC because the authenticated API vouches for it.
+`POST /api/github/sink` answers `204` to anything; the development App posts
+there so its deliveries exist in GitHub's log for development stacks to pull.
+[GitHub Triggers](../../specs/github-triggers.md) is the normative contract.
+
 ## Managed Agent routes
 
 Managed Agents reach these through Computer's loopback proxy with the scoped
@@ -79,6 +119,8 @@ message, matching the reminder precedent.
 ```http
 POST   /api/agent/triggers            { title, messageId, kind?, instruction? }
                                       → { trigger, secret, url, curl }
+POST   /api/agent/triggers            { kind: 'github', title, messageId, instruction?, github }
+                                      → { trigger }
 GET    /api/agent/triggers            list
 GET    /api/agent/triggers/{id}       show
 POST   /api/agent/triggers/{id}/disable
@@ -92,8 +134,13 @@ After deletion, the Trigger leaves `list`, `show`, and `log` immediately. Its
 recent fire rows remain available through the operator's Agent-wide
 `trigger.history` procedure until the retention sweep removes them.
 
-`kind` defaults to `webhook` and `webhook` is the only accepted value; anything
-else is `400 INVALID_ARG` naming the supported kinds. `messageId` is the asking
+`kind` defaults to `webhook`. A `github` create takes
+`github: { installationId, repositories, events }` and answers the Trigger
+alone; `rotate` on a `github` Trigger is `400 INVALID_ARG`
+(`trigger_has_no_secret: …`). A GitHub authoring refusal is `400 INVALID_ARG`
+whose message leads with its code (`github_installation_unavailable`,
+`github_access_required`, `github_permissions_missing`,
+`github_repositories_unavailable`, `github_trigger_limit`). `messageId` is the asking
 message the Trigger anchors to, which is what distinguishes Agent authoring from
 the operator path.
 
@@ -135,7 +182,8 @@ tab. Only Server Owners and Admins may call it.
 - `trigger.runs({ serverId, triggerId })` → up to 100 fires, newest first, no payloads
 - `trigger.history({ serverId, agentId, limit? })` → retained fires across the Agent's Triggers, newest first
 - `trigger.create({ serverId, agentId, kind: 'webhook', title, instruction? })` → `{ trigger, secret, url, curl }`
-- `trigger.update({ serverId, triggerId, title?, instruction? })` → `{ trigger }`
+- `trigger.create({ serverId, agentId, kind: 'github', title, instruction?, github })` → `{ trigger }`
+- `trigger.update({ serverId, triggerId, title?, instruction?, github? })` → `{ trigger }`
 - `trigger.setStatus({ serverId, triggerId, status: 'armed' | 'disabled' })` → `{ trigger }`
 - `trigger.rotate({ serverId, triggerId })` → `{ trigger, secret, url, curl }`
 - `trigger.delete({ serverId, triggerId })` → `{ deleted: true, id }`
@@ -152,9 +200,15 @@ alongside it.
 `trigger.setStatus` arms and disables in one procedure. It replaces
 `trigger.disable`, which no longer exists.
 
-`trigger.update` needs at least one of `title` and `instruction` and touches
-nothing else; an `instruction` of null or an empty string clears it, and omitting
-it leaves it alone. Every mutation bumps `version`,
+`trigger.update` needs at least one of `title`, `instruction`, and `github` and
+touches nothing else; an `instruction` of null or an empty string clears it, and
+omitting it leaves it alone. `github` replaces a `github` Trigger's
+configuration after the authoring checks and clears its problem; on a webhook
+it is `BAD_REQUEST` `trigger_kind_mismatch`. A `github` create or update
+refuses with `BAD_REQUEST` and a leading code: `github_installation_unavailable`,
+`github_access_required`, `github_permissions_missing`,
+`github_repositories_unavailable`, or `github_trigger_limit` (25 undeleted
+`github` Triggers per installation). Every mutation bumps `version`,
 which is a change counter rather than an expected-version token — these
 procedures carry no idempotency key and no concurrency check, so a repeated call
 applies again.
@@ -178,12 +232,14 @@ path, so deleting a Trigger never makes its recent fires unreachable.
 transaction, same envelope, and the same per-Trigger rate limiter, so a test
 spends real fire budget. It sends
 `{"test":true,"sentBy":"<member handle>","sentAt":"<ISO 8601>"}` as
-`application/json` with no dedupe key and returns the new `fireId`. It carries no
+`application/json` with no dedupe key and returns the new `fireId`; a `github`
+Trigger's test fire sends a sample projection of its first event marked
+`"test": true` under the envelope's `GitHub:` line. It carries no
 bearer secret deliberately: an operator who can call `trigger.rotate` can already
 fire the Trigger.
 
 `create` and `rotate` are the only procedures that return a secret, and each
-returns it once. Every Trigger the router returns carries `url`, so the App can
+returns it once (a `github` create returns none). Every webhook the router returns carries `url`, so the App can
 show the address without ever holding the secret; the URL is derived from the
 request, so it is the Server as the App reached it.
 
@@ -243,7 +299,8 @@ answers from the snapshot instead: `cause.live`, `fireOrdinal`, `fireTotal`, and
 every kind-specific field read null, and `anchorChatId` and `firedAt` still
 stand. The operator-only `trigger.runs` is unchanged.
 
-Product logic lives in `apps/server/src/triggers/`. The public route is
+Product logic lives in `apps/server/src/triggers/`, and GitHub delivery ingest,
+routing, matching, projection, and recovery in `apps/server/src/github/`. The public route is
 `trigger-route.ts` there, the Agent routes are
 `apps/server/src/agent-api/trigger-routes.ts`, and the tRPC features are
 `apps/server/src/haus-api/trigger/` and

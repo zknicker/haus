@@ -5,7 +5,7 @@ read_when:
   - changing Server-to-Computer Agent delivery or busy notices
   - changing accepted, served, or seen semantics, or the retained delivery ledger
   - changing which visibility writes or lifecycle facts start and end chat engagement
-  - changing Agent-authored chain limits or turn failure retry policy
+  - changing automation chain limits (Agent and Trigger wakes) or turn failure retry policy
   - changing how runtime provider or authentication failures are detected
 ---
 
@@ -20,7 +20,7 @@ the Server and Computer implementation.
 ## Ownership
 
 - Server owns canonical Chats, messages, pending work, exact model visibility,
-  verified contiguous seen boundaries, and the 16-turn Agent chain budget.
+  verified contiguous seen boundaries, and the 16-turn automation chain budget.
 - Computer owns one isolated execution host per assigned Agent: workspace,
   HOME, skills, durable inbox acceptance, AI SDK Harness session state, and a
   resident loopback proxy.
@@ -291,9 +291,17 @@ answer stays in the automation's fire history and nowhere else.
 ## Bounds And Failures
 
 One Agent admits one turn at a time; different Agents run concurrently.
-Sixteen consecutive drains containing only Agent-authored messages are
-allowed. The seventeenth remains queued until human input arrives; any drain
-containing human input resets the counter.
+Sixteen consecutive drains containing only automation-authored work (Agent
+messages, Trigger fires, and Trigger problem notices: sources `agent:*`,
+`trigger`, and `trigger_problem`) are allowed. The seventeenth remains queued
+until human input arrives; human input resets the counter on arrival, and any
+drain containing other work (a human message, a reminder, a task assignment)
+resets it at settlement. `agent_chain_advanced_at` records when the counter
+last advanced: below the ceiling, a drain that starts more than 30 minutes
+later starts from zero, so spaced, legitimate fires never accumulate. An
+exhausted chain never times out. Loops that wake themselves through GitHub or a
+webhook are tight, so they reach the ceiling
+(specs/github-triggers.md#automation-chain-budget).
 
 Every failed or interrupted turn except a rate limit counts toward the
 Agent's failure streak, including a turn that produced output; that turn still
@@ -408,7 +416,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Exact exposure cannot consume without settled `seen` | `apps/server/test/agent-delivery.test.ts` |
 | Settled and verified-boundary-subsumed rows are retained as `seen` ledger evidence | `apps/server/test/agent-delivery.test.ts` |
 | `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/haus-agent-observability.test.ts` |
-| Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
+| Chain ceiling preserves rows and human input releases it; Trigger wakes spend it; an idle chain restarts below the ceiling | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts`, `apps/server/test/agent-chain-budget.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Backoff schedule and rate-limit exemption | `apps/server/src/agent-delivery/retry-policy.test.ts`, `apps/server/test/agent-delivery-backoff.test.ts` |
 | Wake pause opens on a repeated or persistent failure, probes 1h → 4h → 24h, clears on success, and lifts only for human intent | `apps/server/src/agent-delivery/wake-pause.test.ts`, `apps/server/test/agent-wake-pause.test.ts`, `apps/server/test/haus-agent-wake-pause.test.ts` |

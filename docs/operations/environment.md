@@ -110,13 +110,6 @@ value, and without a key the Server condenses thought excerpts with a local heur
 no bubble for an action. Test and
 release lifecycles resolve no credential.
 
-The GitHub MCP preset uses `HAUS_GITHUB_OAUTH_CLIENT_ID` and `HAUS_GITHUB_OAUTH_CLIENT_SECRET`,
-resolved per lifecycle from `GitHub MCP OAuth - Haus` with `allowMissing=true`, so a lifecycle
-without the item still loads. Production's item is the one Haus-owned GitHub OAuth App whose
-callback is `https://haus.chat/mcp/oauth/callback`; it has expiring user tokens enabled, so the
-Server needs the secret to refresh. Without a client the GitHub connection reports its OAuth client
-unavailable, exactly as Google Calendar does. Test resolves fake literals; release resolves none.
-
 The Haus GitHub App ([GitHub App connection](../../specs/github-app-connection.md#environment))
 uses `HAUS_GITHUB_APP_ID` and `HAUS_GITHUB_APP_SLUG` (public), and `HAUS_GITHUB_APP_CLIENT_ID`,
 `HAUS_GITHUB_APP_CLIENT_SECRET`, `HAUS_GITHUB_APP_PRIVATE_KEY`, and
@@ -124,8 +117,12 @@ uses `HAUS_GITHUB_APP_ID` and `HAUS_GITHUB_APP_SLUG` (public), and `HAUS_GITHUB_
 with `allowMissing=true`. All six are delivered only to the Server. The private key is the PEM
 GitHub generates, delivered like `HAUS_APNS_PRIVATE_KEY`; it signs App JWTs in Server memory and
 never leaves it. The App is configured only when all six are present: otherwise the GitHub
-connection reports unavailable and the app webhook answers `503`. Test resolves fake literals and
-no private key, because tests inject generated keys; release resolves none.
+connection reports unavailable and the app webhook answers `503`. The GitHub connection's sign-in
+uses the App's client id and secret as its configured OAuth client (the callback is
+`https://haus.chat/mcp/oauth/callback`, loopback in development); user tokens expire, so the Server
+needs the secret to refresh them. Test resolves fake literals and no private key, because tests
+inject generated keys; release resolves none. The GitHub OAuth App and its
+`GitHub MCP OAuth - Haus` items are retired.
 
 iPhone push uses `HAUS_APNS_KEY_ID` and `HAUS_APNS_PRIVATE_KEY`, resolved per lifecycle from
 `Apple Push - Haus` with `allowMissing=true`, so a lifecycle without the item still loads. The Server

@@ -1,7 +1,8 @@
 ---
-summary: Agent-owned webhook Triggers — secret-authenticated inbound wakes anchored to a Chat, created from the Agent profile's Automations tab or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
+summary: Agent-owned Triggers — secret-authenticated webhook wakes and GitHub App event wakes anchored to a Chat, created from the Agent profile's Automations tab or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
 read_when:
   - changing Trigger creation, secrets, firing, payload bounds, or fire history
+  - changing what a GitHub Trigger listens to, its cap, or how its fires read
   - changing the Automations tab's Trigger walkthrough, detail view, or controls
   - changing how a Trigger fire appears in a conversation
   - deciding whether new work is a Reminder (time) or a Trigger (outside event)
@@ -144,9 +145,51 @@ the owning Agent.
 - **Agents** create and manage only their own Triggers, whoever created them, and
   are the ones woken when one fires.
 
-Webhook is the only kind Haus ships. Provider-specific verification, payload
-filtering, and Computer-executed scripts are not part of it.
+## GitHub Triggers
+
+A **GitHub** Trigger wakes its Agent when something happens in GitHub — a CI
+run fails, a pull request opens, a release ships — through the Haus GitHub App
+the Server's GitHub connection installs ([Connections](connections.md)). It has
+no URL and no secret: one App webhook serves every installation, and the
+Server routes each delivery to the Server that bound the installation.
+
+- **What it listens to.** A GitHub Trigger names an installation, all of its
+  repositories the connection's GitHub user can reach or a selected few, and one
+  to ten events: workflow runs and jobs, check suites and runs, deployment
+  statuses, pull requests and reviews, pushes, issues, and releases. Each event
+  takes its own filters (conclusion, branch, workflow file, label, state,
+  environment, author), and the default action is the useful one, such as a
+  completed workflow run. Pull request, review, and issue events default to
+  collaborators' activity only. Comment events are not offered: an Agent's own
+  replies would wake it.
+- **What the Agent sees.** The same `type=trigger` envelope as a webhook, plus a
+  Server-built `GitHub:` line such as
+  `workflow_run completed · failure · main · acme/api #1423`. The payload is a
+  trimmed, per-event projection of the delivery, never the raw body, and titles
+  and bodies appear only in the indented untrusted excerpt.
+- **Twenty-five per installation.** An installation holds at most 25 GitHub
+  Triggers, so every delivery reaches all of its matches. A noisy Trigger over
+  its rate limit is skipped and its suppressed count rises instead of a refusal;
+  narrow it with filters.
+- **Creation names the fix.** Creating or editing one refuses with a reason when
+  the installation is not bound or is suspended, the Agent has no access to the
+  GitHub connection, GitHub needs a fresh sign-in, the installation has not
+  granted a permission an event needs, or a selected repository is out of reach.
+- **Problems, not silence.** A GitHub Trigger whose installation, access, or
+  permissions break stays armed, stops firing, and tells its Agent once why
+  ([GitHub Triggers](../../specs/github-triggers.md#failure-modes)).
+- **Nothing lost.** GitHub does not retry a failed delivery, so the Server also
+  reads the App's delivery log every 10 minutes and ingests anything it missed;
+  development stacks read the same log every 10 seconds instead of receiving
+  webhooks.
+- **Loops stop.** Trigger wakes count toward the Agent's automation chain: 16
+  back-to-back automation-only turns hold further wakes until a person speaks,
+  and a chain quiet for half an hour starts over.
+
+Webhook and GitHub are the kinds Haus ships. Other provider verifiers, payload
+filtering for webhooks, and Computer-executed scripts are not part of it.
 
 See `specs/triggers.md` for the normative persistence, route, firing, and secret
-contract, `specs/automation-provenance.md` for how a fire reaches the transcript,
+contract, `specs/github-triggers.md` for the `github` kind,
+`specs/automation-provenance.md` for how a fire reaches the transcript,
 and [Triggers API](../api/triggers.md) for the wire surface.

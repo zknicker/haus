@@ -216,10 +216,10 @@ rendering.
   as `[#482](pr://github/<owner>/<repo>/482)`. They render compact inline — the
   pull-request glyph, `#<n>`, and `owner/repo` — and card-like when the
   reference is the entire message. Owner, repository, and number come from the
-  URL. A Server-owned GitHub connection in Settings → Connections resolves the
-  reference into a cached snapshot — title, open, draft, merged, or closed
-  state, additions, deletions, and files changed — that both renderings show;
-  without a connection the reference renders from the URL alone.
+  URL, and the reference renders from the URL alone. A Server-side snapshot
+  (title, state, diff counts) is not built; when it is, it reads through the
+  built-in GitHub connection and adds no connection kind
+  ([GitHub App connection](../../specs/github-app-connection.md#not-built)).
 - Ordinary web links use the same chip shell with the site's favicon and a
   globe fallback. Activating one opens the original URL. Agent and chat chips
   are interactive: they open the referenced Agent's profile or channel.

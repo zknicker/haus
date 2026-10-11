@@ -64,13 +64,18 @@ preset sends none. The hosted MCP accepts GitHub App user tokens and permission-
 the API ([host integration](https://github.com/github/github-mcp-server/blob/main/docs/host-integration.md),
 [scope filtering](https://github.com/github/github-mcp-server/blob/main/docs/scope-filtering.md)).
 
-As shipped by Slice 0, the preset header is
-`X-MCP-Toolsets: default,actions,notifications,code_security,dependabot`, the OAuth App scope
-includes `security_events`, and live listing rewrites the stored tool snapshot on drift.
-`secret_protection` is deliberately excluded because its alerts carry secret values. When the App
-replaces the OAuth App, `notifications` is dropped: GitHub's notifications API accepts only classic
-tokens ([notifications](https://docs.github.com/en/rest/activity/notifications)). GitHub Triggers
-cover that need.
+The preset header is `X-MCP-Toolsets: default,actions,code_security,dependabot`, and live listing
+rewrites the stored tool snapshot on drift. `secret_protection` is deliberately excluded because
+its alerts carry secret values, and `notifications` because GitHub's notifications API accepts only
+classic tokens ([notifications](https://docs.github.com/en/rest/activity/notifications)); GitHub
+Triggers cover that need. The MCP client would forward the resource's advertised classic scopes,
+so the OAuth provider strips `scope` from the authorization URL for a configured client without
+one.
+
+Server-side GitHub reads (owner checks, repository access, pickers) use the stored user token and
+refresh it once when GitHub answers 401 (`github/user-token.ts`); a rejected refresh is
+`github_sign_in_required`. GitHub rotates the refresh token on every use, so the MCP OAuth provider
+re-reads stored tokens per request and a refresh on either path reaches the other.
 
 Starting sign-in already clears the connection's identity and Agent grants (`clearMcpIdentity`),
 and disconnect deletes grants. Both stay as they are.
@@ -106,16 +111,20 @@ warns that `installation_id` can be spoofed).
 
 1. **Install on GitHub.** `github.startInstall` (Owner or Admin) stores single-use state (32 random
    bytes, 15 minutes, bound to Server, connection, and Haus user) and returns
-   `https://github.com/apps/<slug>/installations/new?state=<state>`. `GET /github/setup` consumes
-   the state atomically, runs the owner check, binds, and redirects to the connection page.
-   Missing, expired, or used state binds nothing. `setup_action=request` (a member asked an owner)
-   binds nothing and says so.
+   `https://github.com/apps/<slug>/installations/new?state=<state>`. Like MCP OAuth state, it is
+   Server memory; a restart forgets pending installs and path 2 recovers them. `GET /github/setup`
+   consumes the state atomically, rechecks the user's Owner or Admin role, runs the owner check,
+   binds, and redirects to the connection page with `?github_setup=<outcome>` (`bound`,
+   `requested`, or the refusal reason). Missing, expired, or used state binds nothing.
+   `setup_action=request` (a member asked an owner) binds nothing and says so. An update redirect
+   carries no state and only prompts reconciliation.
 2. **Bind an existing installation.** `github.installCandidates` lists unbound installations from
    `GET /user/installations` that pass the owner check; `github.bindInstallation` (Owner or Admin)
    reruns the check and binds. This is the development path and the recovery path after a lost
    state.
 
-An installation already bound to another Haus Server answers `CONFLICT` without naming that Server.
+An installation already bound to another Haus Server, or to another GitHub connection on this
+one, answers `CONFLICT github_installation_already_bound` without naming that Server.
 
 ### Repository access
 
@@ -271,6 +280,18 @@ account owner match, state single-use and expiry, cross-Server `CONFLICT`, recon
 classification (404, suspended, 429, 5xx), deletion degrading Triggers with one notice each,
 access cache refresh and staleness; live: Haus Dev sign-in, bind, one MCP call per toolset.
 
+As built, Slice B derives every Trigger problem in one place (`github/trigger-problem-sync.ts`,
+most fundamental cause first: removed, suspended, sign-in required, Agent access revoked,
+permissions missing, repositories unavailable) and runs it wherever installation state changes:
+bind, reconcile, repository-access refresh, sign-in completion, and the hourly sweep, which
+re-derives from stored state when GitHub cannot answer so a stale cache still degrades. A Trigger
+scoped to repositories is `repositories_unavailable` while any selected repository is outside the
+cache. Deletion lives in `server-mcp/delete-connection.ts` and `github/installation-removal.ts`;
+the user token in `github/user-token.ts`; Haus-side checks and reads in
+`github/installation-access.ts`; App-JWT and user installation reads in
+`github/installation-facts.ts`. The Agent route is `GET /api/agent/github/installations`
+(`agentGithubInstallationsSchema`).
+
 **Slice C: deliveries and the `github` kind.** Owns `github/{webhook-route,webhook-signature,sink-route,
 delivery-ingest,delivery-recovery,delivery-cursor,trigger-matching,trigger-envelope}.ts`,
 `github/event-projection/*`, `apps/server/src/triggers/*` (create and update for `github`, the
@@ -282,6 +303,16 @@ functions; must not edit them or `server-mcp/`. Removes the `github_triggers_una
 last and merges after B. Proof: server gate; tests in
 [GitHub Triggers](github-triggers.md#verification); live: Haus Dev events fire a Trigger through
 the dev pull.
+
+As built, Slice C also added the shared App wiring B builds on: `github/github-app.ts` (`GithubApp`:
+config, JWT signer, REST transport; `null` when unconfigured) carried as `githubApp` on the
+application options, tRPC context, and Agent API routes; `githubRecoveryIntervalMs` on the
+application options (10 seconds under `HAUS_DEV_STACK=1`, 10 minutes otherwise, `null` in the
+test harness); `github/deliveries.ts` binding ingest to the running Server; and
+`github/routes.ts` registering the webhook and sink. It also touched `agent-api/triggers.ts`
+(the Agent `github` create), `agent-delivery/store.ts` (the chain stamp), and
+`triggers/retention-sweep.ts` (seven-day delivery expiry). New authoring refusal codes live in
+`triggerRequestRefusalSchema`; `github_triggers_unavailable` is gone.
 
 **Slice D: App UI.** Owns `apps/website/src/features/settings/mcp/*` (installations section),
 `apps/website/src/hooks/github/*`, `features/members/agent-profile/trigger-*` and

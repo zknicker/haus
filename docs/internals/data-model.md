@@ -15,7 +15,7 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
 | Computer data root | Haus Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Haus App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
@@ -126,7 +126,7 @@ only for existing production announcements and rollback; new creations leave it 
 Deleting a historical announcement clears that link without deleting the Agent.
 `agents` carries no `role`; Server authority is a human membership property.
 
-`triggers` is the Agent-owned inbound wake: owner Agent, `kind` (checked against `webhook`),
+`triggers` is the Agent-owned inbound wake: owner Agent, `kind` (`webhook` or `github`),
 anchor Chat and nullable anchor message, `created_by_user_id` for a Trigger a human created from
 the App and null for one an Agent created (it clears if that human is removed), a nullable
 `deleted_at` removal tombstone, title, optional instruction, the SHA-256 hash of its bearer secret,
@@ -143,6 +143,37 @@ deletion cascades to any remaining fires. Server bounds and relays those payload
 interprets them.
 A fire wakes the owning Agent through the ordinary `agent_inbox` ledger; no
 Trigger-specific attention table exists.
+
+`github_installations` binds one GitHub App installation to one Server through one GitHub
+connection ([GitHub App connection](../../specs/github-app-connection.md#installations)): GitHub's
+`installation_id` (unique among rows not `removed`), the account id, login, and type, repository
+selection, permissions and events from the App-JWT read, `active`/`suspended`/`removed` status,
+the accessible repository cache (`accessible_repository_ids`, `access_synced_at`) for the
+connection user, and `bound_by_user_id`. A removed row is a tombstone with no connection that keeps
+dependent `github` Triggers explainable; it is never revived. Its connection foreign key has no
+delete action: deleting a GitHub connection tombstones its installations first, in the same
+transaction. A `github` Trigger's problem (`github_trigger_configs.problem`) reaches its owner as
+one `agent_inbox` row with source `trigger_problem`, keyed
+`problem:<triggerId>:<problem>:<problem_since>`. Install state for `/github/setup` is Server
+memory, not a table.
+
+A `github` Trigger has no secret (`secret_hash` is present exactly for `webhook`) and keeps its
+configuration in `github_trigger_configs`: the installation row, `installation` or `repositories`
+scope with GitHub's repository ids and names, the validated event entries, the problem and since
+when, and the rate-limit `suppressed_count` with `last_suppressed_at`. An installation holds at
+most 25 undeleted `github` Triggers, enforced at authoring under the Server lock. Its fires are
+ordinary `trigger_fires` rows whose payload is the per-event projection and whose `dedupe_key` is
+`gh:<delivery guid>`. `github_webhook_deliveries` records every GitHub delivery this Server has
+claimed, before routing and so without `server_id`: the guid (primary key), event, action, GitHub
+installation id, `webhook` or `recovery` source, `processing` or `done` state, the routed count,
+and why it was ignored. It holds no payload, dedupes redelivery and recovery, and expires after
+seven days in the hourly Trigger retention sweep. `github_delivery_cursor` is one row per App id:
+the recovery watermark, the last sweep time, and the most recent gap past GitHub's three-day
+delivery retention ([GitHub Triggers](../../specs/github-triggers.md)).
+
+`agent_delivery.agent_chain_turns` counts consecutive automation-only drains (Agent messages,
+Trigger fires, Trigger problem notices) toward the 16-turn ceiling, and `agent_chain_advanced_at`
+records when it last advanced, so a chain idle for 30 minutes below the ceiling restarts.
 
 A fire writes no Chat message (ADR 0026). `message_causes` is the provenance record instead: one
 row per message an Agent sent because a fire woke it, naming the kind (`trigger_fire` or
