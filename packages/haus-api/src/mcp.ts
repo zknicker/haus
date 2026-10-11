@@ -14,12 +14,14 @@ const toolNameSchema = z.string().trim().min(1).max(200);
  * presets take a static token stored as an `Authorization` header secret.
  */
 export const mcpOAuthPresetSchema = z.enum([
+    'cloudflare',
     'github',
     'google-calendar',
     'merchbase',
     'merchbase-atlas',
     'merchbase-fulfillment',
     'rankwrangler',
+    'vercel',
 ]);
 export const mcpBearerTokenPresetSchema = z.enum(['x']);
 export const mcpDesktopPresetSchema = z.enum(['skool']);
