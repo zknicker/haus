@@ -126,7 +126,8 @@ export const agentActivitySchema = z.array(agentActivityEntrySchema);
 
 const agentLifecycleBaseSchema = z.object({
     agentId: idSchema,
-    chatId: idSchema,
+    /** The run's Chat; null only for a dream run, which has none. */
+    chatId: idSchema.nullable(),
     emittedAt: timestampSchema,
     runId: idSchema,
     serverId: idSchema,
@@ -274,39 +275,6 @@ export const agentSessionRotationSchema = z
     .strict();
 
 export type AgentSessionRotation = z.infer<typeof agentSessionRotationSchema>;
-
-/**
- * One durable delivery of one unit of work to one Agent. `seen` rows are
- * retained after settlement with the `turnId` that consumed them, so an
- * observer can tell "the Agent never received it" from "the Agent received it
- * and said nothing".
- */
-export const agentDeliveryRecordSchema = z
-    .object({
-        acceptedAt: timestampSchema.nullable(),
-        agentId: idSchema,
-        chatId: idSchema,
-        createdAt: timestampSchema,
-        /** Null for typed work that carries no Chat message. */
-        messageId: z.string().trim().min(1).max(128).nullable(),
-        source: z.string().trim().min(1).max(64),
-        seenAt: timestampSchema.nullable(),
-        servedAt: timestampSchema.nullable(),
-        state: z.enum(['queued', 'accepted', 'served', 'seen']),
-        turnId: z.string().trim().min(1).max(128).nullable(),
-        workId: idSchema,
-    })
-    .strict();
-
-export type AgentDeliveryRecord = z.infer<typeof agentDeliveryRecordSchema>;
-
-export const agentDeliveriesInputSchema = agentDetailInputSchema.extend({
-    limit: z.number().int().min(1).max(100).default(50),
-});
-
-export type AgentDeliveriesInput = z.infer<typeof agentDeliveriesInputSchema>;
-
-export const agentDeliveriesSchema = z.array(agentDeliveryRecordSchema);
 
 /**
  * One Agent's Computer-reported effective state. A null execution field means
