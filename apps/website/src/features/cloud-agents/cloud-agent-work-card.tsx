@@ -14,10 +14,11 @@ import { CloudAgentProviderMark } from './cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from './cloud-agent-status-disc.tsx';
 import { cloudAgentStatusLine } from './cloud-agent-status-line.ts';
 import { CloudAgentWorkActions } from './cloud-agent-work-actions.tsx';
+import { useCloudAgentWorkAgentName } from './use-cloud-agent-work-agent-name.ts';
 
 /**
- * The Cloud Agent work under the Message that delegated it — the same card in
- * the Chat transcript and inside its Thread. It presents the Server-owned work
+ * The Cloud Agent work under each Message that links it — the same card in
+ * the Chat transcript and inside a Thread. It presents the Server-owned work
  * record, not a separate Chat row.
  *
  * Four parts, top to bottom: the header (provider mark, title, the job's
@@ -27,17 +28,14 @@ import { CloudAgentWorkActions } from './cloud-agent-work-actions.tsx';
  * expired — so a follow-up still in Haus's queue never turns a finished job
  * back into "queued". The status line is always there and always
  * one line, so the card changes height only when its pull request first
- * appears. Who delegated it and when is the Message's own author line directly
- * above, so the card does not repeat it.
+ * appears.
+ *
+ * Every Message that links the work renders this same card with the same
+ * actions (ADR 0044); none is primary. The delegating Agent, who sends any
+ * follow-up, resolves from the work itself, never the linking Message's author.
  */
-export function CloudAgentWorkCard({
-    agentName,
-    work,
-}: {
-    /** The delegating Agent, who sends any follow-up. */
-    agentName: string;
-    work: CloudAgentWork;
-}) {
+export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
+    const agentName = useCloudAgentWorkAgentName(work);
     const now = useRelativeNow(work.job.state === 'working' || work.job.followUp ? 5000 : 60_000);
     const branch = cloudAgentWorkBranch(work);
     const line = cloudAgentStatusLine(work, { agentName, now });
