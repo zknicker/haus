@@ -1,5 +1,5 @@
-import type { AgentCloudAgentReceipt } from '@haus/api';
-import { agentCloudAgentReceiptSchema, isTerminalCloudAgentStatus } from '@haus/api';
+import type { AgentCloudAgentReceipt, AgentCloudAgentStartResponse } from '@haus/api';
+import { agentCloudAgentStartResponseSchema, isTerminalCloudAgentStatus } from '@haus/api';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import {
     type CloudAgentLaunch,
@@ -51,6 +51,7 @@ export class CloudAgentLaunchUnconfirmedError extends Error {
  * asked for anything, so an unavailable capability creates no Message. Once
  * Server has accepted the launch the work exists: a provider refusal is
  * reported as a failed observation against that same work rather than erased.
+ * A Server freshness hold returns as-is: nothing was recorded or launched.
  */
 export async function startCloudAgentWork(input: {
     request: CloudAgentStartRequest;
@@ -59,7 +60,7 @@ export async function startCloudAgentWork(input: {
     runnerToken: string;
     serverId: string;
     serverOrigin: string;
-}): Promise<AgentCloudAgentReceipt> {
+}): Promise<AgentCloudAgentStartResponse> {
     const provider = cloudAgentProvider();
     const readiness = await provider.readiness();
     if (!readiness.ready) {
@@ -80,8 +81,9 @@ export async function startCloudAgentWork(input: {
     if (!response.ok) {
         throw new CloudAgentServerError(payload);
     }
-    const receipt = agentCloudAgentReceiptSchema.parse(payload);
-    if (isTerminalCloudAgentStatus(receipt.work.status)) {
+    const receipt = agentCloudAgentStartResponseSchema.parse(payload);
+    // A freshness hold created nothing, so there is no Run to launch.
+    if (receipt.state === 'held' || isTerminalCloudAgentStatus(receipt.work.status)) {
         return receipt;
     }
     const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);

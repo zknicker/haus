@@ -1,5 +1,7 @@
 import {
     agentAutomationEventSchema,
+    agentCloudAgentHeldSchema,
+    agentCloudAgentReceiptSchema,
     chatMessageReplySchema,
     type HausAgentMessage,
     type HausAgentSendResponse,
@@ -138,6 +140,12 @@ export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discr
         }),
     ]
 );
+
+/** `haus cloud-agent start`: the started receipt, or a freshness hold with checked messages. */
+export const agentCloudAgentStartResponseSchema = z.discriminatedUnion('state', [
+    agentCloudAgentReceiptSchema,
+    agentCloudAgentHeldSchema.extend({ shownMessages: z.array(agentMessageSchema).max(12) }),
+]);
 
 export const agentMessageCheckResponseSchema = z.object({
     /**

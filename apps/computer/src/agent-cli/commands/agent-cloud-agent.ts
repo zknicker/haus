@@ -2,15 +2,14 @@ import { randomUUID } from 'node:crypto';
 import {
     agentCloudAgentCancelReceiptSchema,
     agentCloudAgentListReceiptSchema,
-    agentCloudAgentReceiptSchema,
     agentCloudAgentSendReceiptSchema,
     cloudAgentRepositorySchema,
     cloudAgentTitleSchema,
 } from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
+import { agentCloudAgentStartResponseSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { shortMessageId } from '../agent-format.ts';
-import { isThreadTarget } from '../agent-render.ts';
+import { renderCloudAgentStart } from '../cloud-agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
@@ -181,9 +180,9 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
         );
     }
 
-    const receipt = await deps.client.request(
+    const response = await deps.client.request(
         '/api/agent/cloud-agents',
-        agentCloudAgentReceiptSchema,
+        agentCloudAgentStartResponseSchema,
         {
             body: {
                 content: content.trim(),
@@ -200,17 +199,7 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
         }
     );
 
-    const lines = [
-        `Cloud agent started for ${repository}${startingRef ? `@${startingRef}` : ''}. Work ID: ${receipt.work.id}`,
-        `Posted to ${receipt.target}. Message ID: ${receipt.messageId}`,
-    ];
-    lines.push(
-        isThreadTarget(receipt.target)
-            ? `Work thread: "${receipt.target}".`
-            : `Work thread: "${receipt.target}:${shortMessageId(receipt.messageId)}".`
-    );
-    lines.push('The result reaches your inbox when the run settles; post what you learn yourself.');
-    deps.write(`${lines.join('\n')}\n`);
+    deps.write(renderCloudAgentStart(response, { repository, startingRef, target }));
     return 0;
 }
 
