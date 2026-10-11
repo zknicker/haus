@@ -214,6 +214,16 @@ Effect concurrency and cleanup without exporting helper-function spans.
 Use `tracePromise` only at an actual Promise boundary; composing a span inside
 an existing program avoids launching a second runtime execution just to trace it.
 
+## Hosted MCP processes
+
+`haus.hosted-mcp.lifecycle` measures connector startup/readiness and
+`haus.hosted-mcp.request` measures private transport, provisioning, and revocation.
+Both carry `haus.mcp.connector` and use the Server release and environment resource.
+Existing `haus.mcp.operation` spans retain discovery/invocation outcomes. Local logs
+report readiness and restart counts. Arbitrary child output is discarded; worker pid
+events are cleanup input only. Server `/healthz` exposes connector readiness and restart
+counts, including degraded recovery. See [Hosted MCPs](../operations/hosted-mcp.md).
+
 ## Failure contract
 
 Telemetry must not change product behavior. Promise operations cross through

@@ -3,7 +3,7 @@ import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, serverMembershipsTable } from '../postgres/schema.ts';
-import { ensureThreadRecord } from '../threads/ensure-thread.ts';
+import { ensureThreadWithAnchorFollow } from '../threads/ensure-thread.ts';
 import { AgentTargetError, escapeLike, resolveAgentTarget } from './resolve-target.ts';
 
 /**
@@ -71,7 +71,7 @@ export async function resolveAgentSendTarget(
         throw new AgentTargetError();
     }
     return (
-        await ensureThreadRecord(db, {
+        await ensureThreadWithAnchorFollow(db, {
             anchorMessageId: anchors[0].id,
             parentChatId: parsed.parentChatId,
             serverId: runner.serverId,

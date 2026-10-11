@@ -227,9 +227,10 @@ identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
 **Unread**:
-The Inbox section listing every Channel and DM with something one human has not read — its own
-messages or the Thread replies it rolls up — newest activity first. Viewing a Chat while Haus is
-in view clears it; **Mark read** clears it without opening it. There is no attention tier above
+The Inbox section listing every Channel, DM, and Thread with something one human has not read,
+newest activity first. A Channel or DM counts only its own messages; a Thread counts its replies
+the human follows or is mentioned in, on its own row (ADR 0043). Viewing a Chat while Haus is in
+view clears it; **Mark read** clears it without opening it. There is no attention tier above
 unread (ADR 0038).
 _Avoid_: Needs you, attention, Done, notification center
 

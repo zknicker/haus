@@ -6,6 +6,7 @@ import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { packageHostedMcp } from './package-hosted-mcp.mjs';
 import { assertReleasePublishableKey } from './release/app-release-environment.mjs';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -105,6 +106,11 @@ await fs.cp(
 for (const operation of ['install-colima-boot', 'rollback-colima-boot', 'run-server']) {
     await fs.chmod(path.join(stageRoot, 'operations', operation), 0o755);
 }
+
+if (process.platform !== 'darwin' || process.arch !== 'arm64') {
+    throw new Error('Server hosted MCP packaging requires an Apple Silicon macOS builder.');
+}
+await packageHostedMcp(path.join(stageRoot, 'share/haus-server/hosted-mcp/skool'));
 
 const contentDigest = await writeReleaseChecksums(stageRoot);
 await fs.writeFile(

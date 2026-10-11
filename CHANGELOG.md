@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v10.2.0 - 2026-10-11
+
+- Skool Agents can read classroom lesson transcripts with timestamps, lesson text, and attached resource metadata. Native lesson videos use Skool's existing captions; external video transcription is unsupported.
+- Unread Threads appear as separate Inbox rows on the web and Haus for iPhone 6.1.0 (build 48). Opening a row lands on its first unread reply, and each Thread can be marked read on its own. App badges include unread Threads.
+- Haus Agent 8.0.1 keeps the original message's author following Threads an Agent starts in response, so that person receives the replies. Haus Computer 8.0.1 carries the matching Agent release.
+
+## v10.1.1 - 2026-10-11
+
+- Skool sign-in connects through a service managed by Haus Server, with automatic startup and recovery. Connector availability appears in Server health checks.
+- Connections keep their service names and icons when accounts reconnect or disconnect, including MerchBase Atlas and Fulfillment.
+
 ## v10.1.0 - 2026-10-10
 
 - Connections adds MerchBase Atlas for artwork search, asset management, and design exports. Sign in with your MerchBase account, then choose which Agents can use it.

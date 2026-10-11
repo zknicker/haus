@@ -1,6 +1,7 @@
 import { type McpIcon, mcpIconSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
+import { cacheAnonymousMcpIcons } from './icon-cache.ts';
 import { encodeFetchedIcon, iconMediaTypes, readDataUrl } from './icon-encoding.ts';
 import { loadRemoteIcon, type McpIconFetch } from './icon-loader.ts';
 import {
@@ -64,9 +65,7 @@ export interface McpIconResolverInput {
 export type McpIconResolver = (input: McpIconResolverInput) => Promise<McpIcon | null>;
 
 export function makeMcpIconResolver(runtime: EffectRuntime<never>): McpIconResolver {
-    return async (input) => {
-        return await resolveMcpIcon(runtime, input);
-    };
+    return cacheAnonymousMcpIcons((input) => resolveMcpIcon(runtime, input));
 }
 
 async function resolveMcpIcon(

@@ -985,11 +985,12 @@ on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App'
 `agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-reads the Chat list's unread Chats, the Cloud Agent work running right now
+reads the Chat list's unread Chats, the unread Threads (`thread.listUnread`), the Cloud Agent work running right now
 (`cloudAgentWork.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
 nil until its first load. That nil is load-bearing: `unreadChatCount` is nil until the Chat list
 has landed, so "nothing unread" is never confused with "not yet known". The count is the number of
-Chats with an `unreadCount` above zero on the active Server, the same Chats the App lists, and it
+Unread rows on the active Server — Chats with an `unreadCount` above zero plus listed unread
+Threads, the same rows the App lists — and it
 drives the sidebar's Inbox dot. The app icon badge is not that count: it is the Server's cross-Server
 `chat.unreadChatCount`, the number push puts on `aps.badge`. `HausStoreIconBadge` reads it into
 `iconBadgeCount` wherever the Chat list reloads (Server load, snapshot refresh on foreground or
@@ -1002,9 +1003,22 @@ A failed Inbox read keeps the previous snapshot and is logged — a stale row is
 Chat-level send alert raised by a background read is not.
 
 An Unread row ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) is one Chat from the
-Chat list with an `unreadCount` above zero. Opening it reads it the way any open transcript does;
-**Mark read** sends `chat.markRead` with the Chat's `lastMessageSequence` and `includeThreads: true`,
-so the Thread replies its count rolls up clear with it, and newer activity brings the row back.
+Chat list with an `unreadCount` above zero, or one unread Thread
+([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Chat's count is its own messages,
+and each Thread with unread replies the viewer follows or is mentioned in is its own row from
+`thread.listUnread` (`HausStoreUnreadThreads`), merged by activity. A Thread row wears its parent's
+mark, is titled `#channel` or `DM`, and quotes `<Author> replied in thread: <reply>`; one whose
+parent the Chat list does not hold is hidden. Opening a Chat row reads it the way any open
+transcript does; opening a Thread row pushes the Thread, which lands on its first unread reply —
+staying put when that reply already reads from the newest edge, otherwise bringing its top under
+the navigation bar (`TranscriptLanding`) — decided once per open, so reading never moves it.
+**Mark read** sends `chat.markRead` with the row's `lastMessageSequence`: a Chat row adds
+`includeThreads: true`, which reads every Thread under it, so its Thread rows leave with it; a
+Thread row marks the Thread's own Chat. Newer activity brings the row back. The unread Threads are
+read beside every Chat-list read (so `message.created`, `thread.onFollowUpdated`, and
+`chat.onLifecycle` refresh them), and a `chat.onRead` for a Thread re-reads them and the badge
+alone, never the parent's Chat-list row. The sidebar's Inbox dot counts Chat and Thread rows
+alike, matching the icon badge (`chat.unreadChatCount`).
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
 presentation of a question ([Inbox](../features/inbox.md#notifications)).
 

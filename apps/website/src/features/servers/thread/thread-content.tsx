@@ -92,6 +92,7 @@ export function ThreadContent({
     width: number | null;
 }) {
     const [createdThreadChatId, setCreatedThreadChatId] = React.useState<string | null>(null);
+    const viewportRef = React.useRef<HTMLDivElement>(null);
     const threadChatId =
         summary?.threadChatId ?? createdThreadChatId ?? initialThreadChatId ?? undefined;
     const messages = useChatMessages(chat.serverId, threadChatId);
@@ -214,12 +215,6 @@ export function ThreadContent({
             >
                 <TranscriptRenderProvider value={renderContext}>
                     <MessageScrollerProvider autoScroll={false} defaultScrollPosition="start">
-                        <ThreadReadTracker
-                            active={active}
-                            chatId={messages.data ? threadChatId : undefined}
-                            sequenceByEntryId={replySequenceByEntryId}
-                            serverId={messages.data ? chat.serverId : undefined}
-                        />
                         <MessageScroller>
                             {/* px-5 matches the main chat viewport gutter so the
                             rows' full-width hover bleed stays contained. */}
@@ -227,6 +222,7 @@ export function ThreadContent({
                                 aria-label="Thread messages"
                                 className={`px-5 pt-4 ${chatFooterClearanceClassName}`}
                                 data-testid="thread-conversation"
+                                ref={viewportRef}
                             >
                                 <MessageScrollerContent className="w-full gap-0">
                                     {/*
@@ -270,6 +266,13 @@ export function ThreadContent({
                                 </MessageScrollerContent>
                             </MessageScrollerViewport>
                         </MessageScroller>
+                        <ThreadReadTracker
+                            active={active}
+                            chatId={messages.data ? threadChatId : undefined}
+                            sequenceByEntryId={replySequenceByEntryId}
+                            serverId={messages.data ? chat.serverId : undefined}
+                            viewportRef={viewportRef}
+                        />
                         <ChatSendScroll messages={pendingReplies} />
                     </MessageScrollerProvider>
                 </TranscriptRenderProvider>

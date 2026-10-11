@@ -16,6 +16,7 @@ import {
 } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireAdmin, requireConnection, requireOperableConnection } from './connection-access.ts';
+import { resolveMcpConnectionIcon } from './connection-branding.ts';
 import { McpDeniedError } from './errors.ts';
 import type { McpIconResolver } from './icons.ts';
 import { summarizeInstructions } from './instructions-summary.ts';
@@ -32,6 +33,11 @@ export async function createMcpConnection(
     preset: McpPreset | null = null
 ): Promise<McpConnection> {
     await requireAdmin(db, member, input.serverId, 'add a connection');
+    const icon = await resolveMcpConnectionIcon(resolveIcon, {
+        icon: null,
+        preset,
+        url: input.url,
+    });
     const id = createOpaqueId('mcp');
     const shouldConnect =
         input.auth === 'none' ||
@@ -44,6 +50,7 @@ export async function createMcpConnection(
                 auth: input.auth,
                 connected: false,
                 headerNames: Object.keys(input.headers).sort(),
+                icon,
                 id,
                 name: input.name,
                 preset,
@@ -144,7 +151,6 @@ export async function disconnectMcpConnection(
                 accountLabel: null,
                 connected: false,
                 headerNames,
-                icon: null,
                 summary: null,
                 tools: [],
             })
@@ -248,7 +254,7 @@ export async function clearMcpIdentity(
             .where(eq(agentMcpConnectionGrantsTable.connectionId, connectionId));
         await tx
             .update(mcpConnectionsTable)
-            .set({ accountLabel: null, connected: false, icon: null, summary: null, tools: [] })
+            .set({ accountLabel: null, connected: false, summary: null, tools: [] })
             .where(
                 and(
                     eq(mcpConnectionsTable.serverId, serverId),
@@ -257,7 +263,6 @@ export async function clearMcpIdentity(
             );
     });
 }
-const iconTimeoutMs = 4000;
 async function refreshInventory(
     db: HausDatabase,
     runtime: McpRuntime,
@@ -266,11 +271,11 @@ async function refreshInventory(
 ) {
     await runtime.closeConnection(connection.id);
     const discovery = await runtime.discover(connection.id, connection.preset);
-    const icon = await resolveIcon({
-        connectionUrl: connection.url,
-        serverInfoIcons: discovery.serverInfoIcons,
-        timeoutMs: iconTimeoutMs,
-    }).catch(() => null);
+    const icon = await resolveMcpConnectionIcon(
+        resolveIcon,
+        connection,
+        discovery.serverInfoIcons ?? []
+    );
     const [updated] = await db
         .update(mcpConnectionsTable)
         .set({

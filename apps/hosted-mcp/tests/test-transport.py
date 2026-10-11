@@ -97,7 +97,7 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         response = await self.rpc("tools/list")
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(response.json()["result"]["tools"]), 9)
+        self.assertEqual(len(response.json()["result"]["tools"]), 10)
         self.assertEqual(self.pool.stats()["starts"], 0)
 
     async def test_invalid_tool_arguments_do_not_spawn_workers(self):

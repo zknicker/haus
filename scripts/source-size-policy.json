@@ -93,7 +93,6 @@
     "scripts/dev-stack-controller.mjs": 576,
     "scripts/dev-stack-shared.mjs": 348,
     "scripts/env-contract-check.ts": 327,
-    "scripts/eval-harness.mjs": 482,
-    "scripts/release/release-impact.mjs": 301
+    "scripts/eval-harness.mjs": 482
   }
 }

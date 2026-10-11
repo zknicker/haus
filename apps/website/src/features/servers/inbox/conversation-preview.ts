@@ -44,6 +44,24 @@ export function conversationPreviewLine(
     return prefix ? `${prefix}: ${line}` : line;
 }
 
+/**
+ * An unread Thread's newest reply as its row's one line: `Forge replied in
+ * thread: …`. The row's title names the parent, so the line says where the
+ * reply sits and who wrote it; the viewer's own reply reads `You replied`.
+ * Null — a reply whose author no longer resolves — states the fact alone.
+ */
+export function threadReplyPreviewLine(
+    latestReply: ChatLastMessage | null,
+    viewerDisplayName: null | string
+): string {
+    if (!latestReply) {
+        return 'New replies in thread';
+    }
+    const author = authorPrefix(latestReply.authorDisplayName, { viewerDisplayName }) ?? 'Someone';
+    const line = messagePreviewLine(latestReply.content);
+    return line === '' ? `${author} replied in thread` : `${author} replied in thread: ${line}`;
+}
+
 function authorPrefix(author: string, speakers: ConversationSpeakers): null | string {
     if (speakers.viewerDisplayName && author === speakers.viewerDisplayName) {
         return 'You';

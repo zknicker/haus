@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { skoolHostedUrl } from '../src/hosted-mcp/catalog.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createMcpPresetAccount, replaceMcpPresetToken } from '../src/server-mcp/presets.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
@@ -20,6 +21,7 @@ let owner: HausClient;
 let runtime: McpRuntime;
 let member: { clerkUserId: string; id: string };
 let serverId: string;
+let skoolRequest: typeof fetch;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
@@ -33,6 +35,10 @@ beforeAll(async () => {
     // Discovery never leaves the process: the fixture client stands in for api.x.com.
     runtime = new McpRuntime(connection.db, serverEffectRuntime, {
         clientFactory: () => Promise.resolve(makeClient('xmcp').client),
+        hostedMcps: {
+            health: () => [{ id: 'skool', status: 'ready', restarts: 0 }],
+            request: (_id, path, init) => skoolRequest(new URL(path, 'https://skool.test'), init),
+        },
     });
 });
 
@@ -65,9 +71,9 @@ test('X stores its token as a Server-only Authorization header', async () => {
     expect(secret?.secret.headers).toEqual({ Authorization: `Bearer ${token}` });
     const listed = await owner.trpc.mcp.list.query({ serverId });
     expect(JSON.stringify(listed)).not.toContain(token);
-    expect(JSON.stringify(await listMcpConnections(connection.db, member, serverId))).not.toContain(
-        token
-    );
+    expect(
+        JSON.stringify(await listMcpConnections(connection.db, noIcon, member, serverId))
+    ).not.toContain(token);
 
     await replaceMcpPresetToken(connection.db, runtime, noIcon, member, {
         bearerToken: 'replacement-token',
@@ -144,36 +150,31 @@ test('Skool uses the configured service endpoint and keeps account tokens Server
     const request: typeof fetch = Object.assign(
         async (url: string | URL | Request, init?: RequestInit) => {
             expect(String(url)).toBe('https://skool.test/accounts');
-            expect(init?.headers).toMatchObject({
-                Authorization: 'Bearer skool-test-control-token',
-            });
+            expect(init?.headers).not.toHaveProperty('Authorization');
             expect(JSON.parse(String(init?.body)).session).toEqual(session);
             provisioned = true;
             return Response.json({ bearerToken: 'skool-fixture-token' });
         },
         { preconnect: fetch.preconnect }
     );
+    skoolRequest = request;
     await expect(
-        connectSkool(connection.db, runtime, noIcon, null, { serverId, session }, request)
+        connectSkool(connection.db, runtime, noIcon, null, { serverId, session })
     ).rejects.toThrow();
     expect(provisioned).toBe(false);
-    const created = await connectSkool(
-        connection.db,
-        runtime,
-        noIcon,
-        member,
-        { serverId, session },
-        request
-    );
+    const created = await connectSkool(connection.db, runtime, noIcon, member, {
+        serverId,
+        session,
+    });
     expect(created).toMatchObject({
         auth: 'headers',
         connected: true,
         preset: 'skool',
-        url: 'https://skool.test/mcp',
+        url: skoolHostedUrl,
     });
-    expect(JSON.stringify(await listMcpConnections(connection.db, member, serverId))).not.toContain(
-        'skool-fixture-token'
-    );
+    expect(
+        JSON.stringify(await listMcpConnections(connection.db, noIcon, member, serverId))
+    ).not.toContain('skool-fixture-token');
     expect(JSON.stringify(created)).not.toContain('native-auth');
     await disconnectMcpConnection(connection.db, runtime, member, {
         connectionId: created.id,
@@ -201,22 +202,16 @@ test('failed Skool provisioning revokes the temporary account and hides response
         },
         { preconnect: fetch.preconnect }
     );
+    skoolRequest = request;
     await expect(
-        connectSkool(
-            connection.db,
-            runtime,
-            noIcon,
-            member,
-            {
-                serverId,
-                session: {
-                    auth_token: 'native-auth',
-                    cookie_header: 'auth_token=native-auth',
-                    waf_token: 'native-waf',
-                },
+        connectSkool(connection.db, runtime, noIcon, member, {
+            serverId,
+            session: {
+                auth_token: 'native-auth',
+                cookie_header: 'auth_token=native-auth',
+                waf_token: 'native-waf',
             },
-            request
-        )
+        })
     ).rejects.toThrow('Could not finish connecting Skool. Try again.');
     expect(revoked).toBe(true);
 });

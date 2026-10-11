@@ -60,6 +60,7 @@ class Pool:
                 worker = Worker(account, process)
                 self.workers[account.key] = worker
                 self.starts += 1
+                print(json.dumps({"event": "worker_started", "pid": process.pid}), flush=True)
             worker.busy = True
             self.calls += 1
         try:
@@ -109,5 +110,6 @@ class Pool:
         except ProcessLookupError:
             pass
         await worker.process.wait()
+        print(json.dumps({"event": "worker_stopped", "pid": worker.process.pid}), flush=True)
         if self.workers.get(worker.account.key) is worker:
             del self.workers[worker.account.key]

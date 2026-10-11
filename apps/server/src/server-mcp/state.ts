@@ -1,12 +1,4 @@
-import {
-    type McpConnection,
-    type McpGrant,
-    type McpIcon,
-    type McpPreset,
-    mcpIconSchema,
-    mcpPresetIcons,
-    mcpSummarySchema,
-} from '@haus/api';
+import { type McpConnection, type McpGrant, mcpSummarySchema } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -16,10 +8,13 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { readMcpConnectionIcon, resolveMcpConnectionIcon } from './connection-branding.ts';
 import { McpDeniedError } from './errors.ts';
+import type { McpIconResolver } from './icons.ts';
 
 export async function listMcpConnections(
     db: HausDatabase,
+    resolveIcon: McpIconResolver,
     member: HausUser | null,
     serverId: string
 ): Promise<McpConnection[]> {
@@ -36,10 +31,12 @@ export async function listMcpConnections(
         })
         .from(agentMcpConnectionGrantsTable)
         .where(eq(agentMcpConnectionGrantsTable.serverId, serverId));
-    return rows.map((row) =>
-        shapeMcpConnection(
-            row,
-            grants.filter((grant) => grant.connectionId === row.id)
+    return await Promise.all(
+        rows.map(async (row) =>
+            shapeMcpConnection(
+                { ...row, icon: await resolveMcpConnectionIcon(resolveIcon, row) },
+                grants.filter((grant) => grant.connectionId === row.id)
+            )
         )
     );
 }
@@ -102,7 +99,7 @@ export function shapeMcpConnection(
         connected: row.connected,
         grants,
         headerNames: row.headerNames,
-        icon: presetIcon(row.preset) ?? storedIcon(row.icon),
+        icon: readMcpConnectionIcon(row),
         id: row.id,
         name: row.name,
         preset: row.preset,
@@ -112,23 +109,6 @@ export function shapeMcpConnection(
         tools: row.tools,
         url: row.url,
     };
-}
-
-/**
- * `mcp.list` validates its whole output, so one malformed stored icon would
- * blank every connection rather than one row. Degrade the row instead.
- */
-function storedIcon(value: unknown): McpIcon | null {
-    if (value === null || value === undefined) {
-        return null;
-    }
-    const parsed = mcpIconSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
-}
-
-/** Legacy curated marks override discovery; service-owned presets use stored identity. */
-function presetIcon(preset: McpPreset | null): McpIcon | null {
-    return preset ? (mcpPresetIcons[preset] ?? null) : null;
 }
 
 /** Same degrade-the-row rule as the icon: never fail the whole list. */

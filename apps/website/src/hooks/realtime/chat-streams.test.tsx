@@ -78,7 +78,37 @@ describe('Chat stream hooks', () => {
             listKey('chat.search', { serverId }),
         ]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        expect(invalidated(onRecovery)).toEqual(invalidated(onEvent));
+        // A missed Thread reply may have made a Thread unread (ADR 0043).
+        expect(invalidated(onRecovery)).toEqual([
+            ...invalidated(onEvent),
+            listKey('thread.listUnread', { serverId }),
+        ]);
+    });
+
+    test('chat.onMessageCreated of a Thread reply also invalidates the unread Threads', async () => {
+        const event = {
+            authorUserId: null,
+            chatId: 'cht_thread',
+            conversationKind: 'channel',
+            mentionedUserIds: [],
+            messageId: 'msg_reply',
+            parentChatId: 'cht_a',
+            replyToAuthorUserId: null,
+            sequence: 2,
+            serverId,
+            threadAnchorAuthorUserId: null,
+            threadAnchorMessageId: 'msg_anchor',
+        };
+        const { onEvent } = await drive(
+            'chat.onMessageCreated',
+            (id) => useMessageCreatedStream(id),
+            event
+        );
+        expect(invalidated(onEvent)).toEqual([
+            listKey('chat.list', { serverId }),
+            listKey('chat.search', { serverId }),
+            listKey('thread.listUnread', { serverId }),
+        ]);
     });
 
     test('chat.onMessageReactionUpdated invalidates the entity, search, active work, and tasks', async () => {
@@ -99,7 +129,7 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual(reads);
     });
 
-    test('chat.onRead of a Thread invalidates the Chat list and the anchor summary', async () => {
+    test('chat.onRead of a Thread invalidates the unread Threads and the anchor summary', async () => {
         const event = {
             chatId: 'cht_thread',
             parentChatId: 'cht_a',
@@ -112,16 +142,20 @@ describe('Chat stream hooks', () => {
             (id) => useChatReadStream(id),
             event
         );
-        expect(invalidated(onEvent)).toEqual([listKey('chat.list', { serverId })]);
+        // A Thread is unread on its own: its read leaves the parent's row alone (ADR 0043).
+        expect(invalidated(onEvent)).toEqual([listKey('thread.listUnread', { serverId })]);
         expect<unknown>(onEvent.at(-1)).toEqual({
             op: 'noteMessageAnnotated',
             target: { chatId: 'cht_a', messageId: 'msg_anchor', serverId },
         });
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        expect(invalidated(onRecovery)).toEqual([listKey('chat.list', { serverId })]);
+        expect(invalidated(onRecovery)).toEqual([
+            listKey('chat.list', { serverId }),
+            listKey('thread.listUnread', { serverId }),
+        ]);
     });
 
-    test('thread.onFollowUpdated invalidates the anchor entity and the Chat list', async () => {
+    test('thread.onFollowUpdated invalidates the anchor entity and the unread Threads', async () => {
         const event = {
             anchorMessageId: 'msg_anchor',
             followed: true,
@@ -138,8 +172,9 @@ describe('Chat stream hooks', () => {
             op: 'noteMessageAnnotated',
             target: { chatId: 'cht_a', messageId: 'msg_anchor', serverId },
         });
-        expect(invalidated(onEvent)).toEqual([listKey('chat.list', { serverId })]);
+        expect(invalidated(onEvent)).toEqual([listKey('thread.listUnread', { serverId })]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
+        expect(invalidated(onRecovery)).toEqual([listKey('thread.listUnread', { serverId })]);
     });
 
     test('chat.onLifecycle deleted purges the Chat and invalidates the Chat reads', async () => {
@@ -158,6 +193,7 @@ describe('Chat stream hooks', () => {
             listKey('chat.listArchived', { serverId }),
             listKey('chat.get', { chatId: 'cht_a', serverId }),
             listKey('agent.chats', { serverId }),
+            listKey('thread.listUnread', { serverId }),
         ]);
         // Lifecycle owns no transcript lists: its recovery is its own table row.
         expect(onRecovery.some((entry) => entry.op === 'recoverTranscriptLists')).toBe(false);

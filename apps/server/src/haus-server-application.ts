@@ -1,6 +1,6 @@
 import cors from '@fastify/cors';
 import { settle, tracePromise } from '@haus/effect';
-import { Exit, Scope } from 'effect';
+import { Effect, Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
@@ -22,6 +22,7 @@ import {
     makeHausServerShutdown,
 } from './haus-server-shutdown.ts';
 import { registerHausStaticApp } from './haus-static-app.ts';
+import { startHostedMcps } from './hosted-mcp/supervisor.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
@@ -60,6 +61,7 @@ export async function createHausServerApplication(
     let app: FastifyInstance | null = null;
     let recurringWork: ServerRecurringWork | null = null;
     let postCommitWork: ServerPostCommitWork | null = null;
+    const hostedScope = await settle(runtime, Scope.make());
     let mcpRuntime: McpRuntime | null = null;
     let computerSocket: ReturnType<typeof startComputerAttachmentSocket> | null = null;
     let webSocketServer: ReturnType<typeof startHausWebSocketServer> | null = null;
@@ -75,7 +77,12 @@ export async function createHausServerApplication(
         },
         closeHttpConnections: () => app?.server.closeAllConnections(),
         closeMcpRuntime: async () => {
-            await mcpRuntime?.close();
+            await settle(
+                runtime,
+                Effect.promise(async () => {
+                    await mcpRuntime?.close();
+                }).pipe(Effect.ensuring(Scope.close(hostedScope, Exit.succeed(undefined))))
+            );
         },
         closePostCommitWork: async () => {
             await postCommitWork?.close();
@@ -108,7 +115,10 @@ export async function createHausServerApplication(
                 new OpenAiAvatarImageProvider({ apiKey: options.openAiApiKey }),
             options.avatarGenerationLogger
         );
-        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime);
+        const hostedMcps = options.hostedMcps
+            ? await startHostedMcps({ ...options.hostedMcps, runtime, scope: hostedScope })
+            : undefined;
+        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, { hostedMcps });
         mcpRuntime = startedMcpRuntime;
         const mcpIconResolver = makeMcpIconResolver(runtime);
         const mcpOAuthRelay = new McpOAuthRelay(connectedHaus.db, startedMcpRuntime);
@@ -197,15 +207,22 @@ export async function createHausServerApplication(
             reminderTick: () => tickReminders(connectedHaus.db, reminderClock, agentDelivery),
             runtime,
         });
-        registerHausHealth(startedApp, runtime, connectedHaus.health, 5000, () => {
-            return (
-                recurringWork?.reminderHealth() ?? {
-                    consecutiveFailures: 1,
-                    lastSuccessfulTickAt: null,
-                    status: 'degraded' as const,
-                }
-            );
-        });
+        registerHausHealth(
+            startedApp,
+            runtime,
+            connectedHaus.health,
+            5000,
+            () => {
+                return (
+                    recurringWork?.reminderHealth() ?? {
+                        consecutiveFailures: 1,
+                        lastSuccessfulTickAt: null,
+                        status: 'degraded' as const,
+                    }
+                );
+            },
+            hostedMcps?.health
+        );
 
         if (options.staticAppRoot) {
             await registerHausStaticApp(startedApp, options.staticAppRoot);

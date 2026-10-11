@@ -35,7 +35,7 @@ organization owner approves the Haus app. X takes a token instead of a sign-in: 
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
 public posts on that app's credits. Skool opens an isolated browser tab in the Haus desktop app.
 Sign in directly to Skool; Haus captures the resulting session and provisions the hosted connection
-without showing internal tokens. Web users receive a desktop-required notice. After setup the
+without showing internal tokens. Haus Server starts and supervises the bundled Skool connector; no separate service setup is required. Web users receive a desktop-required notice. After setup the
 connection works from web and mobile while the desktop app is closed. Reconnect and additional
 Skool accounts use the same desktop flow. A community is content within an account, not a preset.
 Skool sessions can expire; reconnect in desktop when reads require sign-in again. This is browser
@@ -81,8 +81,10 @@ an Agent writes into its execution runtime's own config are ignored (see
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
 page makes no third-party image requests. Legacy curated presets show bundled marks. MerchBase Atlas and Fulfillment use their service-owned
-MCP icon metadata or favicon. Recommended resolves homepage icon links before legacy
-favicons, allowing service-owned versioned artwork to refresh before sign-in. See [Connections API](../api/connections.md#connection-icons).
+MCP icon metadata or favicon. Presets share one branding lookup across Recommended and Added,
+preferring homepage icon links before legacy favicons. Adding, signing in, or disconnecting an
+account does not discard its service branding. Existing presets with missing artwork recover it
+when the connection list is read. See [Connections API](../api/connections.md#connection-icons).
 
 A connection has its own settings page at `settings/connections/<connectionId>`; the Settings rail
 keeps Connections active, and the top bar reads `Haus › Settings › Connections › <name>` with

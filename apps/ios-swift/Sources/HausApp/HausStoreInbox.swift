@@ -3,8 +3,9 @@ import HausModels
 import OSLog
 
 /// The Server-wide reads the Inbox and its sidebar dot stand on: the Chat
-/// list's unread Chats, the Cloud Agent work running right now, and the
-/// Server's token-usage snapshot.
+/// list's unread Chats, the unread Threads (`HausStoreUnreadThreads.swift`),
+/// the Cloud Agent work running right now, and the Server's token-usage
+/// snapshot.
 ///
 /// Each snapshot lives on the Store rather than on a screen because the dot
 /// outlives the Inbox: a durable event refreshes what this client already
@@ -21,18 +22,35 @@ extension HausStore {
         _ = await (chats, work, usage)
     }
 
-    /// Mark read on one Inbox row: it leaves at once, the Server advances the
+    /// Mark read on one Unread row, a Chat's or a Thread's.
+    func markInboxRowRead(id: String) async {
+        if unreadThreads?.contains(where: { $0.threadChatID == id }) == true {
+            await markThreadRead(threadChatID: id)
+        } else {
+            await markChatRead(chatID: id)
+        }
+    }
+
+    /// Mark read on one Chat row: it leaves at once, the Server advances the
     /// read marker through the Chat's newest message with the same
     /// `chat.markRead` an open transcript sends, and a Chat-list refetch
-    /// reconciles before the row is allowed back. A failed Mark read puts the
-    /// row back, because nothing was recorded.
+    /// reconciles before the row is allowed back. `includeThreads` also reads
+    /// every Thread under it, so the Chat's Thread rows leave with it. A
+    /// failed Mark read puts the rows back, because nothing was recorded.
     func markChatRead(chatID: String) async {
         guard let serverID = activeServer?.id,
               let chat = chats.first(where: { $0.id == chatID })
         else { return }
         let sequence = chat.lastMessageSequence
+        let childThreads = (unreadThreads ?? []).filter { $0.parentChatID == chatID }
         markedReadThrough[chatID] = sequence
-        defer { markedReadThrough[chatID] = nil }
+        for thread in childThreads {
+            markedReadThrough[thread.threadChatID] = thread.lastMessageSequence
+        }
+        defer {
+            markedReadThrough[chatID] = nil
+            for thread in childThreads { markedReadThrough[thread.threadChatID] = nil }
+        }
         do {
             let _: ChatReadReceipt = try await client.mutation(
                 "chat.markRead",
@@ -57,10 +75,14 @@ extension HausStore {
         return UnreadChats.visible(chats, markedReadThrough: markedReadThrough)
     }
 
-    /// How many Chats are unread, for surfaces that mark the Inbox instead of
-    /// opening it — the same Chats the section lists. Nil until the Chat list
-    /// has landed, so "nothing unread" is never confused with "not yet known".
-    var unreadChatCount: Int? { unreadChats?.count }
+    /// How many Unread rows there are, for surfaces that mark the Inbox
+    /// instead of opening it — the same Chats and Threads the section lists.
+    /// Nil until the Chat list has landed, so "nothing unread" is never
+    /// confused with "not yet known".
+    var unreadChatCount: Int? {
+        guard let unreadChats else { return nil }
+        return unreadChats.count + visibleUnreadThreads.count
+    }
 
     /// Every queued or running Cloud Agent work the viewer can see on this
     /// Server, oldest first. `cloudAgentWork.onUpdated` owns the refresh.

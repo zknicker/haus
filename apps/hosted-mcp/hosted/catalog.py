@@ -29,8 +29,14 @@ TOOLS = [
     tool("skool_get_comments", "Read comments on a post by its URL slug.",
          {"post_name": POST}, ["post_name"]),
     tool("skool_get_classroom", "List courses and access in an accessible Skool community.", {}),
-    tool("skool_get_course", "Read an accessible course listed by skool_get_classroom.",
+    tool("skool_get_course", "Read an accessible course listed by skool_get_classroom. "
+         "Use module ids as lesson_id with skool_get_lesson for lesson captions and resources.",
          {"course_id": POST}, ["course_id"]),
+    tool("skool_get_lesson", "Read one accessible classroom lesson's text, resources, and native "
+         "video captions. Use course_id from skool_get_classroom and a module's lesson_id from "
+         "skool_get_course. transcript_status distinguishes available, no_captions, external_video, "
+         "and no_video. External video transcription is unsupported.",
+         {"course_id": POST, "lesson_id": POST}, ["course_id", "lesson_id"]),
     tool("skool_get_calendar", "Read an accessible Skool community calendar.", {}),
     tool("skool_get_video_transcript", "Read available captions on a native Skool video post. "
          "External YouTube embeds and videos without captions may be unavailable.",

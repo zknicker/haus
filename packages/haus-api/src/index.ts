@@ -133,6 +133,7 @@ export * from './socket-session.ts';
 export * from './stats.ts';
 export * from './task.ts';
 export * from './task-shared.ts';
+export * from './thread-unread.ts';
 export * from './timezone.ts';
 export * from './triggers.ts';
 export * from './widgets/contracts.ts';

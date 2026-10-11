@@ -46,9 +46,8 @@ restores ordinary delivery because the newer address supersedes the earlier unfo
   unfollow, a direct mention restores the follow.
 - Unfollow stops attention only — reading and replying stay possible (membership is the
   parent's). Humans toggle follow in the thread pane header; agents get `thread unfollow` (WS1).
-- Followed-thread unreads roll into the parent chat's `unread_count` (rail badge). A restored
-  follow makes the unread Thread backlog visible again. No separate thread list surface
-  in v1.
+- Follows decide which Thread replies count as unread for a human (see Read/unread). A restored
+  follow makes the unread Thread backlog visible again.
 
 ## Immutability (T2)
 
@@ -60,9 +59,25 @@ per-message redaction.
 ## Read/unread
 
 Thread chats reuse `chat_reads` unchanged: a foregrounded thread pane marks visible replies read;
-the parent anchor is not part of the child Thread sequence. The anchor's preview block shows an
-inline unread qualifier ("3 replies · 2 new") computed from the viewer's thread read receipt. The
-parent chat's `unread_count` includes followed-thread unreads for the reader.
+the parent anchor is not part of the child Thread sequence.
+
+A Thread is unread on its own, never through its parent
+([ADR 0043](../docs/adr/0043-threads-are-unread-on-their-own.md)). A reply counts for a human when
+someone else wrote it, it is past their Thread read marker, and they follow the Thread or the reply
+@mentions them (`chat_messages.mentioned_user_ids`). The rule lives in
+`apps/server/src/threads/thread-unread.ts` and every surface applies it:
+
+- The parent Channel or DM's `chat.list` `unreadCount` counts only its own messages.
+- `thread.listUnread({ serverId })` (`packages/haus-api/src/thread-unread.ts`) lists each Thread
+  with a counted reply, under a Channel or DM `chat.list` lists, newest activity first; deleted
+  Threads never appear. These are the Inbox's Thread rows.
+- `chat.unreadChatCount` (the app icon and APNs badge) adds those Threads to the unread Chats.
+- The anchor's preview block shows an inline unread qualifier ("3 replies · 2 new") from
+  `ThreadSummary.unreadCount`, the same rule, so an unfollowed Thread shows only replies that
+  mention the viewer.
+
+Mark read on a Thread row is `chat.markRead` on the Thread's id. `chat.markRead` with
+`includeThreads` on the parent also reads every Thread under it.
 
 ## Surfaces (T3/U5)
 
@@ -79,12 +94,16 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
   one-line content, and relative time. `ThreadSummary.recentReplies` carries those rows and
   excludes Cloud Agent work announcements, which the preview states once as their own per-job rows
   above the replies;
-  `replyCount` and `unreadCount` still count every reply. An anchor whose
+  `replyCount` and `unreadCount` still count those work replies. An anchor whose
   Thread has no replies shows nothing, since "Reply in thread" already lives in the hover
   actions. A message carrying a task or a Thread never merges into a neighbouring row, so its
   block stays attached to its own prose.
 - "View in channel" closes the pane, scrolls the parent transcript to the anchor, and flashes a
   brief highlight.
+- A Thread with unread replies for the viewer opens at the first one (`thread.listUnread`'s
+  `firstUnreadMessageId`), decided once when its replies load; one with none, or whose first
+  unread is its first reply, opens at the top with the anchor in view
+  (`features/servers/thread/thread-unread-landing.tsx`).
 - Message hover cluster: Reply, Reply in thread, Add Reaction, Save Message (placeholder). Right-click
   menu: Open Thread, Copy Markdown, Unfollow Thread (when followed), and quick reactions.
 - At narrow widths the pane collapses to a full-pane takeover with a back-chevron (Raft's
@@ -101,7 +120,7 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
   prompt identifies the thread (parent + anchor excerpt) instead of the retired `Reply context:`
   section. Agent replies land in the thread like any chat.
 - A `message.created` in a thread invalidates the thread's log, the parent's log (pill counts),
-  and the chat list (unread rollup).
+  and `thread.listUnread`.
 - Reactions are durable rows on the reacted Message, grouped by emoji and attributed to their
   human or Agent actor. A reaction uses the Message's parent-derived Chat access and archive gate,
   and appends `message.reaction.updated` without changing read state or unread counts.

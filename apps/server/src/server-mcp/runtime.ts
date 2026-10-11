@@ -1,8 +1,9 @@
-import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import type { MCPClient } from '@ai-sdk/mcp';
 import type { McpPreset } from '@haus/api';
 import type { EffectRuntime, TraceCarrier } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
+import type { HostedMcpAccess } from '../hosted-mcp/supervisor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
@@ -11,10 +12,8 @@ import {
 } from '../postgres/schema.ts';
 import { resolveAccountLabel } from './account-label.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
-import { asMcpArguments, McpDeniedError, McpReconnectRequiredError } from './errors.ts';
-import { createMcpOAuthProvider } from './oauth.ts';
-import { mcpRequestHeaders } from './preset-headers.ts';
-import { secureMcpFetch } from './secure-fetch.ts';
+import { createConnectionClient } from './connection-client.ts';
+import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { callMcpTool, listAllTools, modelToolName } from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
 import { runMcpUpstream } from './upstream-operation.ts';
@@ -45,9 +44,11 @@ interface McpRuntimeOptions {
     clientFactory?: ClientFactory;
     closeTimeoutMs?: number;
     discoveryTimeoutMs?: number;
+    hostedMcps?: HostedMcpAccess;
     invocationTimeoutMs?: number;
 }
 export class McpRuntime {
+    readonly hostedMcps: HostedMcpAccess | undefined;
     private readonly clients: McpClientCache;
     private readonly closeTimeoutMs: number;
     private readonly discoveryTimeoutMs: number;
@@ -57,6 +58,7 @@ export class McpRuntime {
         runtime: EffectRuntime<never>,
         options: McpRuntimeOptions = {}
     ) {
+        this.hostedMcps = options.hostedMcps;
         this.closeTimeoutMs = options.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
         this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
         this.invocationTimeoutMs = options.invocationTimeoutMs ?? DEFAULT_INVOCATION_TIMEOUT_MS;
@@ -195,34 +197,8 @@ export class McpRuntime {
                 target: mcpSecretsTable.connectionId,
             });
     }
-    private async createClient(connectionId: string, signal: AbortSignal): Promise<MCPClient> {
-        const connection = await this.readConnection(connectionId);
-        const secret = await this.readSecret(connectionId);
-        return await createMCPClient({
-            clientName: 'Haus Server',
-            initializationOptions: { signal },
-            transport: {
-                authProvider:
-                    connection.auth === 'oauth'
-                        ? await createMcpOAuthProvider(
-                              this,
-                              connectionId,
-                              secret.redirectUrl ?? 'http://127.0.0.1/mcp/oauth/callback',
-                              {
-                                  allowAuthorizationServerOrigin: false,
-                                  onRedirect() {
-                                      throw new McpReconnectRequiredError();
-                                  },
-                              }
-                          )
-                        : undefined,
-                fetch: secureMcpFetch,
-                headers: mcpRequestHeaders(connection.preset, secret.headers),
-                redirect: 'error',
-                type: connection.preset === 'coingecko' ? 'sse' : 'http',
-                url: connection.url,
-            },
-        });
+    private createClient(connectionId: string, signal: AbortSignal): Promise<MCPClient> {
+        return createConnectionClient(this, connectionId, signal);
     }
     private async grantedConnections(serverId: string, agentId: string) {
         return await this.db

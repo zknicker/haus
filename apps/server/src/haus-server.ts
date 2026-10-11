@@ -1,3 +1,5 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DeterministicAvatarImageProvider } from './avatar-generation/deterministic-provider.ts';
 import { env } from './config/env.ts';
 import { readHausReleaseIdentity } from './haus-release-identity.ts';
@@ -5,6 +7,7 @@ import {
     createHausServerApplication,
     type HausServerApplication,
 } from './haus-server-application.ts';
+import { skoolHostedDefinition } from './hosted-mcp/catalog.ts';
 import { createJevRouter } from './message-routing/jev-client.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
 import { createPushSender } from './push/push-configuration.ts';
@@ -37,6 +40,21 @@ async function start() {
         clerkSecretKey: env.HAUS_CLERK_SECRET_KEY,
         computerReleaseManifestUrl: env.HAUS_COMPUTER_RELEASE_MANIFEST_URL,
         databaseUrl: env.HAUS_DATABASE_URL,
+        hostedMcps: {
+            definitions: [
+                skoolHostedDefinition(
+                    release
+                        ? join(
+                              dirname(env.HAUS_RELEASE_MANIFEST ?? ''),
+                              'share/haus-server/hosted-mcp/skool'
+                          )
+                        : fileURLToPath(
+                              new URL('../../../.context/hosted-mcp/skool/', import.meta.url)
+                          )
+                ),
+            ],
+            storageRoot: join(env.HAUS_ATTACHMENT_ROOT, '.hosted-mcp'),
+        },
         avatarImageProvider: createAvatarImageProvider(),
         openAiApiKey: env.HAUS_OPENAI_API_KEY,
         messageRouter: env.HAUS_TYPESAFE_API_KEY
@@ -63,6 +81,7 @@ async function start() {
     }
     logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.HAUS_DATABASE_URL));
     logStartupDetail('📎', 'Attachments', env.HAUS_ATTACHMENT_ROOT);
+    logStartupDetail('🔗', 'Hosted MCPs', 'Skool ready · private transport · supervised by Server');
     logStartupDetail('🔑', 'Clerk', env.HAUS_CLERK_ISSUER_URL);
     logStartupDetail(
         '✉️',

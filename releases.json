@@ -1313,5 +1313,27 @@
       "computer": null,
       "agent": null
     }
+  },
+  {
+    "version": "10.1.1",
+    "date": "2026-10-11",
+    "targets": {
+      "server": "9.1.1",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "10.2.0",
+    "date": "2026-10-11",
+    "targets": {
+      "server": "9.2.0",
+      "app": null,
+      "ios": { "version": "6.1.0", "buildNumber": 48 },
+      "computer": "8.0.1",
+      "agent": "8.0.1"
+    }
   }
 ]

@@ -38,6 +38,17 @@ export async function ensureThread(
         chatId: input.parentChatId,
         serverId: input.serverId,
     });
+    return await ensureThreadWithAnchorFollow(db, input);
+}
+
+/**
+ * Creates the Thread after the caller has proved parent authority, then follows
+ * the anchor author per the Thread follow rules. Human and Agent sends share it.
+ */
+export async function ensureThreadWithAnchorFollow(
+    db: ThreadWriter,
+    input: { anchorMessageId: string; parentChatId: string; serverId: string }
+) {
     const { created, ...thread } = await ensureThreadRecord(db, input);
 
     const [anchor] = await db

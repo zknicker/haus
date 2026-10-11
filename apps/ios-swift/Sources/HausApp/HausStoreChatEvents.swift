@@ -66,8 +66,11 @@ extension HausStore {
         // an event must not start a Server-wide read nobody has opened.
         let readsTasks = effects.reloadsServerTasks && serverTasks != nil
         let readsWork = effects.reloadsActiveCloudAgentWork && activeCloudAgentWork != nil
+        // A Chat list read already reads the unread Threads and the badge.
+        let readsThreads = effects.reloadsUnreadThreads && !readsChatList
         await withTaskGroup(of: Void.self) { group in
             if readsChatList { group.addTask { await self.refreshChatList(serverID: serverID) } }
+            if readsThreads { group.addTask { await self.refreshUnreadThreadsAndBadge() } }
             if readsTasks { group.addTask { await self.loadServerTasks() } }
             if readsWork { group.addTask { await self.loadActiveCloudAgentWork() } }
         }

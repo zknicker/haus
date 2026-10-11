@@ -78,11 +78,12 @@ The remaining two sections share one grammar: the label above, and below it one 
 holding that section's rows with a separator between each pair. A quiet section says so in one muted
 row inside that same box, so it keeps the section's shape rather than changing it to say so.
 
-**Unread** — every Channel and DM with something the viewer has not read, newest activity first,
-one row per Chat. It is `chat.list`'s own `unreadCount` above zero: messages from others above the
-viewer's read marker, plus the replies in Threads the viewer follows or is mentioned in, which a
-Chat rolls up ([`unread-chats.ts`](../../apps/website/src/features/servers/inbox/unread-chats.ts)).
-There is no attention tier above it — no "unanswered" state and no Done marker
+**Unread** — every Channel, DM, and Thread with something the viewer has not read, newest
+activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
+own messages from others above the viewer's read marker. A Thread is unread on its own, never
+through its parent ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Thread row is a
+`thread.listUnread` row, a Thread with replies from others above the viewer's Thread marker that
+the viewer follows or that mention them. There is no attention tier above it — no "unanswered" state and no Done marker
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). An Agent asks a person by @mention,
 inline reply, a Thread on their message, or their DM
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); that question is unread here like
@@ -101,8 +102,9 @@ is by display name; it is a presentation choice inside one row and never identit
 collision does is drop or add a prefix.
 
 A row **clears** when the viewer reads the Chat — opening it while Haus is visible and focused —
-or presses **Mark read**. Mark read reads the Chat through its newest message and every Thread
-under it, so the Thread replies it rolls up clear too; newer activity brings the row back.
+or presses **Mark read**. Mark read on a Channel or DM row reads the Chat through its newest
+message and every Thread under it, so that Chat's Thread rows clear too; Mark read on a Thread row
+reads that Thread. Newer activity brings a row back.
 
 Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to the
 Tasks page, in its **Stopped before finishing** group after **Needs your review**
@@ -157,16 +159,29 @@ beside the press target rather than inside it, so no interactive element nests i
 
 ## Current stub
 
-The page is live at `/s/:slug/inbox`. An Unread row opens its Chat at
-`/s/<slug>/chats/<chatId>`. A Cloud Agent work row peeks its conversation at `?work=<messageId>` —
+The page is live at `/s/:slug/inbox`. An Unread Chat row opens its Chat at
+`/s/<slug>/chats/<chatId>`. An Unread Thread row is titled by its parent (`#channel`, or
+`DM`), quotes the newest counted reply (never the viewer's own) as
+`<author> replied in thread: …`, and opens the Thread itself — its page on desktop, its Chat
+with `?thread=<anchorMessageId>` on the web — landing on the first unread reply, as every Thread
+open does while the Thread is unread. A reply already in view from the Thread's start stays put
+with the anchor; one below the fold scrolls up to sit clear of the top fade, with the reply
+before it in view. A Cloud Agent work row peeks its conversation at `?work=<messageId>` —
 the same Thread timeline the Chat opens, work card and all; an Agent row in **Happening now** opens
 that Agent's page.
 
-The rows come from `chat.list({ serverId })`. Mark read is
-`chat.markRead({ serverId, chatId, sequence: lastMessageSequence, includeThreads: true })`
-(`packages/haus-api/src/chat-read.ts`), the same procedure an open transcript sends without
-`includeThreads`. It zeroes the row's count in the cached list at once and reconciles on the
-refetch ([`use-mark-chat-read.ts`](../../apps/website/src/hooks/servers/use-mark-chat-read.ts)).
+Chat rows come from `chat.list({ serverId })` and Thread rows from
+`thread.listUnread({ serverId })` (`packages/haus-api/src/thread-unread.ts`). Mark read on a Chat
+row is `chat.markRead({ serverId, chatId, sequence: lastMessageSequence, includeThreads: true })`
+(`packages/haus-api/src/chat-read.ts`); on a Thread row it is the same procedure with the Thread's
+`threadChatId` and `lastMessageSequence`, without `includeThreads` — what an open transcript or
+Thread sends. It zeroes the Chat's count in the cached `chat.list` and drops the Thread rows it
+reads from the cached `thread.listUnread` at once, and reconciles on the refetch
+([`use-mark-chat-read.ts`](../../apps/website/src/hooks/servers/use-mark-chat-read.ts)). Viewing
+a Chat or Thread through its newest message clears its row the same way
+([`chat-read-cache.ts`](../../apps/website/src/hooks/servers/chat-read-cache.ts)). The sidebar's
+Inbox badge counts the same rows
+([`unread-rows.ts`](../../apps/website/src/features/servers/inbox/unread-rows.ts)).
 
 ## Notifications
 
@@ -200,8 +215,8 @@ stops the next notification; only a message already read is not notified.
   push waits about 4 seconds and is skipped if the human has read the message by then anywhere —
   typically a focused App window that has the Chat (or the Thread) open. The
   title is the author, plus ` in #channel` outside a DM; the body is a plain-text preview cut to
-  180 characters; the badge is the human's unread Chats across every Server — the same count the
-  sidebar badge shows per Server, summed. The app sets its icon from the same Server count
+  180 characters; the badge is the human's unread Chats plus unread Threads across every Server —
+  the same count the sidebar badge shows per Server, summed. The app sets its icon from the same Server count
   (`chat.unreadChatCount`), so a badge never shrinks when the app opens. Pushes group by conversation and collapse by message id, and a
   tap opens the conversation (or Thread). The human's own messages, Chats they cannot see, and
   archived Chats never push. The Server sends only when an APNs key is configured; see

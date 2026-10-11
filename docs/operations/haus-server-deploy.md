@@ -108,6 +108,13 @@ Mach-O executable, including a host-native Linux binary from an Ubuntu release r
 A manual `activate` never downloads, rebuilds, or reinterprets an artifact.
 Urgent production changes require a patch release.
 
+The Server artifact also includes its hosted MCP packages and frozen native language
+runtimes. Publication uses Apple Silicon macOS; packaging verifies the relocated
+Skool runtime through private MCP discovery and provisioning validation. Server owns
+connector startup and shutdown, and connector degradation changes `/healthz` to
+`degraded`, causing release health verification to fail. No separate connector
+service or public ingress is installed. See [Hosted MCPs](hosted-mcp.md).
+
 ## Where the contract comes from
 
 The environment contract travels with the repository, not with the artifact.
@@ -302,7 +309,8 @@ the helper leaves `current` intact on failure because it cannot claim ownership
 of stopping that label. Later activations retain the exact previous-release
 rollback.
 
-The Server returns only `{"status":"ok"}` or the redacted
+Server `/healthz` reports reminder and hosted MCP health. Connector recovery returns
+`degraded`; unavailable PostgreSQL returns HTTP 503 with the redacted
 `postgres_unavailable` code.
 
 ## Off-machine backup

@@ -13,12 +13,14 @@ export function useChats(serverId: string | undefined) {
 /**
  * One chat's entry in the Server's chat list. The list changes on every
  * message anywhere (unread counts, activity order); a reader of one entry
- * re-renders only when that entry does.
+ * re-renders only when that entry does. A reader that needs the entry only
+ * for a while (a fallback until a detail read lands) passes `needed: false`
+ * after, and stops re-rendering for it — its unread count included.
  */
-export function useListedChat(serverId: string, chatId: string): Chat | undefined {
+export function useListedChat(serverId: string, chatId: string, needed = true): Chat | undefined {
     const select = React.useCallback(
-        (chats: Chat[]) => chats.find((chat) => chat.id === chatId),
-        [chatId]
+        (chats: Chat[]) => (needed ? chats.find((chat) => chat.id === chatId) : undefined),
+        [chatId, needed]
     );
     return hausTrpc.chat.list.useQuery({ serverId }, { ...queryPolicy.syncedSnapshot, select })
         .data;

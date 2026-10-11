@@ -55,6 +55,7 @@ export async function listThreadSummaries(
                 content: chatMessagesTable.content,
                 createdAt: chatMessagesTable.createdAt,
                 id: chatMessagesTable.id,
+                mentionedUserIds: chatMessagesTable.mentionedUserIds,
                 sequence: chatMessagesTable.sequence,
             })
             .from(chatMessagesTable)
@@ -106,6 +107,7 @@ export async function listThreadSummaries(
             .filter((message) => message.chatId === thread.id)
             .sort((left, right) => left.sequence - right.sequence);
         const readSequence = readByThread.get(thread.id) ?? 0;
+        const followed = followByThread.get(thread.id) ?? false;
         const latestReply = replies.reduce<Date | null>(
             (latest, reply) => (!latest || reply.createdAt > latest ? reply.createdAt : latest),
             null
@@ -113,7 +115,7 @@ export async function listThreadSummaries(
 
         return {
             anchorMessageId: thread.anchorMessageId as string,
-            followed: followByThread.get(thread.id) ?? false,
+            followed,
             latestReplyAt: latestReply?.toISOString() ?? null,
             recentReplies: replies
                 .filter((reply) => !workMessageIds.has(reply.id))
@@ -127,8 +129,12 @@ export async function listThreadSummaries(
                 })),
             replyCount: replies.length,
             threadChatId: thread.id,
+            // The Inbox's rule (`thread-unread.ts`), so "N new" matches the Thread row.
             unreadCount: replies.filter(
-                (reply) => reply.authorUserId !== member.id && reply.sequence > readSequence
+                (reply) =>
+                    reply.authorUserId !== member.id &&
+                    reply.sequence > readSequence &&
+                    (followed || reply.mentionedUserIds.includes(member.id))
             ).length,
         };
     });

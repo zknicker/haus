@@ -6,6 +6,7 @@ export const telemetryAttributeKeys = [
     'haus.message.count',
     'haus.model.id',
     'haus.operation',
+    'haus.mcp.connector',
     'haus.outcome',
     'haus.output.produced',
     'haus.request.id',

@@ -25,6 +25,11 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     /// Chats whose read moved; the Chat list read is skipped when it already
     /// shows each of them with nothing unread.
     public private(set) var readChatIDs: Set<String> = []
+    /// A Thread's read moved. It never changes its parent's count (ADR 0043),
+    /// so it reads the unread Threads alone. Every other Thread signal —
+    /// a reply, a follow, a parent's lifecycle — already reads the Chat list,
+    /// which reads the unread Threads beside it.
+    public private(set) var reloadsUnreadThreads = false
     public private(set) var reloadsServerTasks = false
     public private(set) var reloadsActiveCloudAgentWork = false
     public private(set) var cloudAgentWorkChatIDs: Set<String> = []
@@ -73,11 +78,15 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         liveReactionMessageIDs.insert(event.messageID)
     }
 
-    /// A read moves unread counts: the Chat list's, and for a Thread the
-    /// anchor summary's.
+    /// A Chat read moves the Chat list's count. A Thread read moves the
+    /// Thread's own row and its anchor summary's "N new", never the parent.
     mutating func absorb(read event: ChatReadEvent) {
-        readChatIDs.insert(event.parentChatID ?? event.chatID)
-        if let parentChatID = event.parentChatID, let anchorID = event.threadAnchorMessageID {
+        guard let parentChatID = event.parentChatID else {
+            readChatIDs.insert(event.chatID)
+            return
+        }
+        reloadsUnreadThreads = true
+        if let anchorID = event.threadAnchorMessageID {
             entityRefreshes.insert(EntityRefresh(chatID: parentChatID, messageID: anchorID))
         }
     }

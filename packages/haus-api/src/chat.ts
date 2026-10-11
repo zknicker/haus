@@ -75,6 +75,7 @@ export const threadSummarySchema = z
         recentReplies: z.array(threadReplyPreviewSchema),
         replyCount: z.number().int().nonnegative(),
         threadChatId: idSchema,
+        // Unread replies the viewer attends to: any, when following; else only those mentioning them.
         unreadCount: z.number().int().nonnegative(),
     })
     .strict();
@@ -145,6 +146,7 @@ export const chatSchema = z
         peerAgentRetired: z.boolean(),
         peerUserId: idSchema.nullable(),
         serverId: idSchema,
+        // The Chat's own unread messages from others; Thread replies count on the Thread (ADR 0043).
         unreadCount: z.number().int().nonnegative(),
     })
     .strict();

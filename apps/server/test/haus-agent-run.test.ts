@@ -2297,7 +2297,7 @@ test('keeps MCP credentials on Server and grants one whole connection', async ()
     `) as { agent_id: string; connection_id: string }[];
     expect(grants).toEqual([{ agent_id: agentId, connection_id: created.id }]);
 
-    const listed = await listMcpConnections(connection.db, member, serverId);
+    const listed = await listMcpConnections(connection.db, mcpIconResolver, member, serverId);
     expect(listed.find((item) => item.id === created.id)).toMatchObject({
         grants: [{ agentId, connectionId: created.id }],
         status: 'online',

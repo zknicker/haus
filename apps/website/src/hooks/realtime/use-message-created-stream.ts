@@ -11,7 +11,7 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 /**
  * `chat.onMessageCreated` for the active Server: tail-read every cached
  * transcript list of the Chat (a Thread reply also refreshes its parent
- * anchor), and invalidate Chat ordering and search. `onEvent` hears each live
+ * anchor and the unread Threads), and invalidate Chat ordering and search. `onEvent` hears each live
  * event (message notifications); a start's recovery reads never reach it.
  */
 export function useMessageCreatedStream(
@@ -47,16 +47,26 @@ export function useMessageCreatedStream(
 export function applyMessageCreated(coalescer: TargetedReadCoalescer, event: MessageCreatedEvent) {
     coalescer.noteMessageCreated(event);
     invalidateChatListAndSearch(coalescer, event.serverId);
+    // A Thread reply can make its Thread unread (ADR 0043).
+    if (event.parentChatId) {
+        invalidateUnreadThreads(coalescer, event.serverId);
+    }
 }
 
 /**
- * Owned reads on every start: every cached transcript list, Chat ordering, and
- * search. A list, not a tail read: a missed Thread reply changes its parent
- * anchor's summary, which only the parent list's reread reseeds.
+ * Owned reads on every start: every cached transcript list, Chat ordering,
+ * search, and unread Threads. A list, not a tail read: a missed Thread reply
+ * changes its parent anchor's summary, which only the parent list's reread
+ * reseeds.
  */
 export function recoverMessageCreatedReads(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.recoverTranscriptLists({ serverId });
     invalidateChatListAndSearch(coalescer, serverId);
+    invalidateUnreadThreads(coalescer, serverId);
+}
+
+function invalidateUnreadThreads(coalescer: TargetedReadCoalescer, serverId: string) {
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
 }
 
 function invalidateChatListAndSearch(coalescer: TargetedReadCoalescer, serverId: string) {

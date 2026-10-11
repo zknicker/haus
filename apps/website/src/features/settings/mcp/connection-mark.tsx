@@ -10,12 +10,9 @@ import type { McpConnection } from './mcp-server-shared.ts';
  * still an MCP server, and drawing it bare made the Recommended list read as a
  * different kind of thing from the Added one.
  *
- * A first-party preset carries bundled art (`mcpPresetIcons` in `@haus/api`),
- * so a Recommended preset shows its real mark before it is added. Once added,
- * Haus Server reports whatever discovery resolved and falls back to that same
- * bundled art when discovery finds nothing, so the mark never regresses to a
- * monogram. Custom connections get no bundled art: theirs comes only from the
- * server's own resolution.
+ * Haus Server owns service branding before and after an account is added.
+ * Recommended uses its preset catalog, with bundled art as a local fallback;
+ * saved connections receive the same branding policy in their Server snapshot.
  */
 
 /**
