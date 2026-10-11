@@ -10,6 +10,9 @@ public enum InboxOpenRequest: Hashable, Sendable {
     /// The Agent's own Chat — its DM, which is where a person talks to it.
     case agent(String)
     case chat(String)
+    /// An unread Thread, named by its own Chat, which is what
+    /// `thread.listUnread` keys its row by.
+    case thread(threadChatID: String)
     case cloudAgentWork(messageID: String)
 }
 
@@ -27,30 +30,34 @@ public enum InboxMark: Hashable, Sendable {
 /// A week card's mark. Rows draw the same mark at `InboxMetrics.markSize`.
 public let inboxMarkSize: CGFloat = 32
 
-/// One unread Chat: its mark and title, the line that is waiting, and when.
-/// Every row in the section is unread, so the row carries no unread flag and
-/// never a count — the count stays behind in the Chat record.
+/// One unread Chat or Thread: its mark and title, the line that is waiting,
+/// and when. Every row in the section is unread, so the row carries no unread
+/// flag and never a count — the count stays behind in the record.
 public struct InboxUnreadRow: Identifiable, Hashable, Sendable {
-    /// The Chat, which is also what Mark read names.
+    /// The Chat — a Thread row's own Chat — which is also what Mark read names.
     public let id: String
     public let mark: InboxMark
-    /// `#product` for a Channel, the peer's name for a DM.
+    /// `#product` for a Channel, the peer's name for a DM; a Thread row names
+    /// its parent, `#product` or `DM`.
     public let title: String
     public let preview: String
     public let lastActivityAt: Date?
+    public let open: InboxOpenRequest
 
     public init(
         id: String,
         mark: InboxMark,
         title: String,
         preview: String,
-        lastActivityAt: Date?
+        lastActivityAt: Date?,
+        open: InboxOpenRequest
     ) {
         self.id = id
         self.mark = mark
         self.title = title
         self.preview = preview
         self.lastActivityAt = lastActivityAt
+        self.open = open
     }
 }
 

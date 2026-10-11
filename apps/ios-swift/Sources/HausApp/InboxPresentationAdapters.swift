@@ -38,13 +38,28 @@ extension HausStore {
         )
     }
 
-    /// Every unread Chat, newest first, less any Mark read still settling.
-    /// Nil until the Chat list has landed.
+    /// Every unread Chat and Thread, newest first, less any Mark read still
+    /// settling. Nil until the Chat list has landed.
     var inboxUnreadRows: [InboxUnreadRow]? {
         guard let unreadChats else { return nil }
         return InboxUnreadRows.rows(
             unreadChats.map(inboxUnreadChat),
+            threads: visibleUnreadThreads.compactMap(inboxUnreadThread),
             viewerDisplayName: inboxGreetingName
+        )
+    }
+
+    /// A Thread row names and wears its parent; `visibleUnreadThreads` only
+    /// holds Threads whose parent is listed.
+    private func inboxUnreadThread(_ thread: UnreadThread) -> InboxUnreadThread? {
+        guard let parent = chatsByID[thread.parentChatID] else { return nil }
+        let parentRow = inboxUnreadChat(parent)
+        return InboxUnreadThread(
+            id: thread.threadChatID,
+            channelName: parentRow.isChannel ? parentRow.name : nil,
+            mark: parentRow.mark,
+            lastActivityAt: thread.lastActivityAt,
+            latestReply: thread.latestReply
         )
     }
 

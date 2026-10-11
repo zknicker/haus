@@ -39,24 +39,20 @@ public struct InboxUnreadChat: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Every unread Chat, newest activity first, one row per Chat, each quoting the
-/// line that is waiting.
+/// Every unread Chat and Thread, newest activity first, one row each, each
+/// quoting the line that is waiting. A Thread is its own row, never folded
+/// into its parent (ADR 0043).
 public enum InboxUnreadRows {
     /// What a Chat holding no message yet says instead of a quote.
     public static let noActivityPreview = "no activity yet"
 
     public static func rows(
         _ chats: [InboxUnreadChat],
+        threads: [InboxUnreadThread] = [],
         viewerDisplayName: String?
     ) -> [InboxUnreadRow] {
-        chats
+        let chatRows = chats
             .filter { $0.unreadCount > 0 }
-            .sorted { left, right in
-                let leftAt = left.lastActivityAt ?? .distantPast
-                let rightAt = right.lastActivityAt ?? .distantPast
-                if leftAt != rightAt { return leftAt > rightAt }
-                return left.id < right.id
-            }
             .map { chat in
                 InboxUnreadRow(
                     id: chat.id,
@@ -67,9 +63,17 @@ public enum InboxUnreadRows {
                         peerDisplayName: chat.isChannel ? nil : chat.peerDisplayName,
                         viewerDisplayName: viewerDisplayName
                     ) ?? noActivityPreview,
-                    lastActivityAt: chat.lastActivityAt
+                    lastActivityAt: chat.lastActivityAt,
+                    open: .chat(chat.id)
                 )
             }
+        let threadRows = threads.map { $0.row(viewerDisplayName: viewerDisplayName) }
+        return (chatRows + threadRows).sorted { left, right in
+            let leftAt = left.lastActivityAt ?? .distantPast
+            let rightAt = right.lastActivityAt ?? .distantPast
+            if leftAt != rightAt { return leftAt > rightAt }
+            return left.id < right.id
+        }
     }
 
     /// A Chat's newest message as the one line a row quotes: who spoke, then

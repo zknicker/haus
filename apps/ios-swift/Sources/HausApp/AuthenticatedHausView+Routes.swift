@@ -29,8 +29,8 @@ extension AuthenticatedHausView {
                 store.actorPresentation(agentID: agentID, userID: userID)
             },
             onOpen: openInboxRequest,
-            onMarkRead: { chatID in
-                Task { await store.markChatRead(chatID: chatID) }
+            onMarkRead: { rowID in
+                Task { await store.markInboxRowRead(id: rowID) }
             },
             onRefresh: { await store.loadInbox() },
             onOpenSidebar: onOpenSidebar,
@@ -48,15 +48,23 @@ extension AuthenticatedHausView {
 
     /// A row states a record and opens it where that record is fully readable.
     ///
-    /// An Unread row opens its DM or Channel. A Cloud Agent work opens the
-    /// Thread it hangs off, which is the same pair a Thread composer sends to:
-    /// the conversation's Chat and the anchor Message.
+    /// An Unread row opens its DM or Channel, or its Thread, which lands on
+    /// the first unread reply (`unreadThreadLanding`). A Cloud Agent work
+    /// opens the Thread it hangs off, which is the same pair a Thread composer
+    /// sends to: the conversation's Chat and the anchor Message.
     func openInboxRequest(_ request: InboxOpenRequest) {
         switch request {
         case .agent(let agentID):
             openAgentDM(agentID)
         case .chat(let chatID):
             openCanvasChat(.chat(chatID))
+        case .thread(let threadChatID):
+            Task {
+                guard let selection = await store.inboxThreadSelection(threadChatID: threadChatID) else {
+                    return
+                }
+                pushConversationThread(selection)
+            }
         case .cloudAgentWork(let messageID):
             guard let work = store.activeCloudAgentWork?
                 .first(where: { $0.work.messageId == messageID }),

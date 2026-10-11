@@ -172,7 +172,9 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         XCTAssertTrue(effects.needsChatListRead { _ in nil })
     }
 
-    func testAThreadReadRefreshesTheAnchorWithoutAnyThreadContext() {
+    /// A Thread is unread on its own (ADR 0043): its read reloads the unread
+    /// Threads and the anchor summary, never the parent's Chat list row.
+    func testAThreadReadReloadsUnreadThreadsNotTheParent() {
         let effects = ChatRealtimeEffects([
             .read(.init(
                 serverID: "s", chatID: "thread_1", parentChatID: "chat_1",
@@ -180,8 +182,19 @@ final class ChatRealtimeEffectsTests: XCTestCase {
             )),
         ], serverID: "s")
 
-        XCTAssertEqual(effects.readChatIDs, ["chat_1"])
+        XCTAssertTrue(effects.readChatIDs.isEmpty)
+        XCTAssertTrue(effects.reloadsUnreadThreads)
+        XCTAssertFalse(effects.needsChatListRead { _ in 2 })
         XCTAssertEqual(effects.entityRefreshes, [EntityRefresh(chatID: "chat_1", messageID: "anchor_1")])
+    }
+
+    func testAChatReadLeavesTheUnreadThreadsAlone() {
+        let effects = ChatRealtimeEffects([
+            .read(.init(serverID: "s", chatID: "chat_1", sequence: 4)),
+        ], serverID: "s")
+
+        XCTAssertEqual(effects.readChatIDs, ["chat_1"])
+        XCTAssertFalse(effects.reloadsUnreadThreads)
     }
 
     func testDeletionPurgesAndLabelsCarryNoMessageIDs() {

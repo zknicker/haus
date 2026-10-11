@@ -164,13 +164,16 @@ extension HausStore {
     }
 
     func reloadChats(serverID: String) async throws {
+        // The unread Threads ride every Chat list read: a Thread's parent
+        // listing, a reply, a follow, and a lifecycle change all move both.
         async let iconBadge: Void = refreshIconBadge()
+        async let threads: Void = loadUnreadThreads()
         let readStart = realtimeReconciliation.beginRead()
         let refreshed: [ChatSummary] = try await client.query(
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
-        await iconBadge
+        _ = await (iconBadge, threads)
         // An answer older than one already applied writes nothing.
         guard activeServer?.id == serverID,
               realtimeReconciliation.landed(.chatList, readStartedAt: readStart)

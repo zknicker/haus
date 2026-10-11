@@ -19,5 +19,16 @@ struct TranscriptReveal: Equatable {
     let token: UUID
     let id: String
     let animated: Bool
+    var placement: TranscriptRevealPlacement = .center
+}
+
+enum TranscriptRevealPlacement: Equatable {
+    /// Centers the item, or rests on the newest edge for the newest item.
+    case center
+    /// Opening a Thread at its first unread reply (ADR 0043): stays put when
+    /// the item's top already reads from the opening position, otherwise
+    /// brings its top just under the top clearance with the item before it
+    /// peeking.
+    case landing
 }
 

@@ -3,7 +3,8 @@ import HausModels
 import OSLog
 
 /// The app icon badge is the Server's number, not this client's: push sets
-/// `aps.badge` to the reader's unread Chats across every Server, so the app
+/// `aps.badge` to the reader's unread Chats and Threads across every Server
+/// (ADR 0043), so the app
 /// reads that same count (`chat.unreadChatCount`) rather than counting only
 /// the active Server's Chat list. The sidebar's Inbox dot stays per Server.
 ///
