@@ -4,7 +4,7 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
- * How many rows the Inbox lists as Unread — Chats plus Threads (ADR 0042) —
+ * How many rows the Inbox lists as Unread — Chats plus Threads (ADR 0043) —
  * for surfaces that badge the Inbox instead of opening it. It counts the same
  * `chat.list` and `thread.listUnread` the section renders, with the section's
  * own rule (`countUnreadRows`), so the badge and the section never disagree,

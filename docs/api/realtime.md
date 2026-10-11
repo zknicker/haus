@@ -156,7 +156,7 @@ restart's recovery reads never do, and a message whose Chat is read through it s
 [iPhone push](../operations/ios-push.md).
 
 The [Inbox](../features/inbox.md) adds no event: its Unread section and badge are `chat.list` plus
-`thread.listUnread` ([ADR 0042](../adr/0042-threads-are-unread-on-their-own.md)). Every change to
+`thread.listUnread` ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)). Every change to
 an unread Thread already has an event: `chat.onMessageCreated` and `chat.onRead` with a non-null
 `parentChatId` (a Thread reply, a Thread read), `thread.onFollowUpdated`, and `chat.onLifecycle`
 (a parent archived, deleted, or hidden).

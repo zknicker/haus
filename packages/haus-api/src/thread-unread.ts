@@ -5,7 +5,7 @@ import { chatLastMessageSchema } from './chat-last-message.ts';
 /**
  * `thread.listUnread`: the caller's unread Threads on one Server, the Inbox's
  * Thread rows. A Thread is unread on its own, never through its parent Chat
- * (ADR 0042).
+ * (ADR 0043).
  */
 export const threadUnreadListInputSchema = z
     .object({

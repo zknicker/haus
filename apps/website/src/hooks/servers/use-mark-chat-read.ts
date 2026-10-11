@@ -4,7 +4,7 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 /**
  * The Inbox's Mark read: reads one Chat or Thread through its newest message
  * (`chat.markRead`), on purpose rather than by viewing it. A Chat row passes
- * `includeThreads`, which reads every Thread under it too (ADR 0042).
+ * `includeThreads`, which reads every Thread under it too (ADR 0043).
  *
  * The rows leave at once — the Chat's unread count drops to zero in the
  * cached `chat.list`, and its Thread rows (or the one Thread) drop out of the

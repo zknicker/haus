@@ -47,7 +47,7 @@ export function useMessageCreatedStream(
 export function applyMessageCreated(coalescer: TargetedReadCoalescer, event: MessageCreatedEvent) {
     coalescer.noteMessageCreated(event);
     invalidateChatListAndSearch(coalescer, event.serverId);
-    // A Thread reply can make its Thread unread (ADR 0042).
+    // A Thread reply can make its Thread unread (ADR 0043).
     if (event.parentChatId) {
         invalidateUnreadThreads(coalescer, event.serverId);
     }

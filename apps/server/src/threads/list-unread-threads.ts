@@ -15,7 +15,7 @@ import {
 
 /**
  * The member's unread Threads on one Server, newest activity first: the
- * Inbox's Thread rows (ADR 0042). `unreadThreads` decides the set, the same
+ * Inbox's Thread rows (ADR 0043). `unreadThreads` decides the set, the same
  * predicate the badge counts with.
  */
 export async function listUnreadThreads(

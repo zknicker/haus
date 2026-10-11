@@ -78,7 +78,7 @@ describe('Chat stream hooks', () => {
             listKey('chat.search', { serverId }),
         ]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        // A missed Thread reply may have made a Thread unread (ADR 0042).
+        // A missed Thread reply may have made a Thread unread (ADR 0043).
         expect(invalidated(onRecovery)).toEqual([
             ...invalidated(onEvent),
             listKey('thread.listUnread', { serverId }),
@@ -142,7 +142,7 @@ describe('Chat stream hooks', () => {
             (id) => useChatReadStream(id),
             event
         );
-        // A Thread is unread on its own: its read leaves the parent's row alone (ADR 0042).
+        // A Thread is unread on its own: its read leaves the parent's row alone (ADR 0043).
         expect(invalidated(onEvent)).toEqual([listKey('thread.listUnread', { serverId })]);
         expect<unknown>(onEvent.at(-1)).toEqual({
             op: 'noteMessageAnnotated',

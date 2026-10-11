@@ -15,7 +15,7 @@ type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat' | 'thread'>;
 /**
  * `chat.onRead` (the viewer's own reads). A Chat read refreshes `chat.list`;
  * a Thread read refreshes `thread.listUnread` and its anchor's summary
- * (per-viewer unread count) — a Thread is unread on its own (ADR 0042). Each
+ * (per-viewer unread count) — a Thread is unread on its own (ADR 0043). Each
  * skips the list when its settled row already shows the read. `onEvent` hears
  * each live read (message notifications).
  */

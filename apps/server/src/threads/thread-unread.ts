@@ -4,7 +4,7 @@ import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 
 /**
  * Thread unread state, as SQL correlated against a Thread's `chats` row.
- * A Thread is unread on its own, never through its parent (ADR 0042): a reply
+ * A Thread is unread on its own, never through its parent (ADR 0043): a reply
  * counts for `userId` when someone else wrote it, it sits past their Thread
  * read marker, and they follow the Thread or the reply @mentions them.
  * Mentions read `chat_messages.mentioned_user_ids`, filled on every send path.

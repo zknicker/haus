@@ -6,7 +6,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 /**
  * The viewer's unread Threads on one Server (`thread.listUnread`), newest
  * activity first: the Inbox's Thread rows. A Thread is unread on its own,
- * never through its parent Chat (ADR 0042). Thread replies, Thread reads,
+ * never through its parent Chat (ADR 0043). Thread replies, Thread reads,
  * follows, and parent lifecycle changes invalidate it from their own streams.
  */
 export function useUnreadThreads(serverId: string | undefined) {

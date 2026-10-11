@@ -28,7 +28,7 @@ const ownedReads = new Set([
     'chat.list',
     'chat.search',
     'chat.markRead',
-    // A missed Thread reply may have made a Thread unread (ADR 0042).
+    // A missed Thread reply may have made a Thread unread (ADR 0043).
     'thread.listUnread',
 ]);
 

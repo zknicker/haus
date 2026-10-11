@@ -81,7 +81,7 @@ row inside that same box, so it keeps the section's shape rather than changing i
 **Unread** — every Channel, DM, and Thread with something the viewer has not read, newest
 activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
 own messages from others above the viewer's read marker. A Thread is unread on its own, never
-through its parent ([ADR 0042](../adr/0042-threads-are-unread-on-their-own.md)): a Thread row is a
+through its parent ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Thread row is a
 `thread.listUnread` row, a Thread with replies from others above the viewer's Thread marker that
 the viewer follows or that mention them. There is no attention tier above it — no "unanswered" state and no Done marker
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). An Agent asks a person by @mention,

@@ -1,5 +1,5 @@
 ---
-summary: The human Inbox is an unread list (Unread + Happening now; Threads are their own Unread rows per ADR 0042) cleared by viewing in focus or Mark read; Needs you, its Done marker, and `inbox.needsYou`/`inbox.markDone` are deleted; notifications follow one shared rule (every DM message, and Channel/Thread mentions, replies, and Threads on your message) owned by `@haus/api` and applied by iPhone push and desktop/web alike.
+summary: The human Inbox is an unread list (Unread + Happening now; Threads are their own Unread rows per ADR 0043) cleared by viewing in focus or Mark read; Needs you, its Done marker, and `inbox.needsYou`/`inbox.markDone` are deleted; notifications follow one shared rule (every DM message, and Channel/Thread mentions, replies, and Threads on your message) owned by `@haus/api` and applied by iPhone push and desktop/web alike.
 read_when:
   - changing the Inbox's sections, what counts as unread, or Mark read
   - changing who a new message notifies on iPhone, desktop, or web, or the APNs badge
@@ -16,7 +16,7 @@ Accepted 2026-10-01. Supersedes the **Needs you** and **Done** parts of
 core stands: a human is addressed by @mention, inline reply, a Thread on their message, or their
 DM; Asks stay deleted; tasks stay Agent-only.
 
-Amended 2026-10-11 by [ADR 0042](0042-threads-are-unread-on-their-own.md): Thread replies no longer
+Amended 2026-10-11 by [ADR 0043](0043-threads-are-unread-on-their-own.md): Thread replies no longer
 roll up into the parent Chat's `unreadCount`; unread Threads are their own Unread rows and count
 toward the badge.
 
@@ -40,7 +40,7 @@ when they are already looking at that conversation.
 **The Inbox is unread.** Its sections are **Unread** and **Happening now** under the existing
 header and **Active this week** strip. Unread is every Channel and DM whose `chat.list`
 `unreadCount` — its own messages from others above the viewer's read marker — is above zero, plus
-every unread Thread from `thread.listUnread` ([ADR 0042](0042-threads-are-unread-on-their-own.md)),
+every unread Thread from `thread.listUnread` ([ADR 0043](0043-threads-are-unread-on-their-own.md)),
 newest activity first, one row each. There is no attention tier, Done marker, or "unanswered"
 logic.
 

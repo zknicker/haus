@@ -20,7 +20,7 @@ const pendingReads = new WeakMap<QueryClient, Set<string>>();
  * Viewing a Chat or Thread through its newest message clears its unread row
  * at once: a Chat's sidebar chip and Inbox row (`chat.list`), or a Thread's
  * Inbox row (`thread.listUnread`). Each counts only its own messages
- * (ADR 0042), so a read through the newest message is the Server's answer. A
+ * (ADR 0043), so a read through the newest message is the Server's answer. A
  * read short of it leaves the row to the `chat.read` event's refetch. Runs
  * before the request leaves, so that event finds the row pending and still
  * confirms it.

@@ -146,7 +146,7 @@ export const chatSchema = z
         peerAgentRetired: z.boolean(),
         peerUserId: idSchema.nullable(),
         serverId: idSchema,
-        // The Chat's own unread messages from others; Thread replies count on the Thread (ADR 0042).
+        // The Chat's own unread messages from others; Thread replies count on the Thread (ADR 0043).
         unreadCount: z.number().int().nonnegative(),
     })
     .strict();

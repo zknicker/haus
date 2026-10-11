@@ -229,7 +229,7 @@ _Avoid_: card record, Chat entry, Widget, artifact
 **Unread**:
 The Inbox section listing every Channel, DM, and Thread with something one human has not read,
 newest activity first. A Channel or DM counts only its own messages; a Thread counts its replies
-the human follows or is mentioned in, on its own row (ADR 0042). Viewing a Chat while Haus is in
+the human follows or is mentioned in, on its own row (ADR 0043). Viewing a Chat while Haus is in
 view clears it; **Mark read** clears it without opening it. There is no attention tier above
 unread (ADR 0038).
 _Avoid_: Needs you, attention, Done, notification center

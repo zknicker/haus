@@ -1005,7 +1005,7 @@ An Unread row ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) is one 
 Chat list with an `unreadCount` above zero. Opening it reads it the way any open transcript does;
 **Mark read** sends `chat.markRead` with the Chat's `lastMessageSequence` and `includeThreads: true`;
 the Chat's count no longer includes Thread replies
-([ADR 0042](../adr/0042-threads-are-unread-on-their-own.md)), and `includeThreads` clears that
+([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)), and `includeThreads` clears that
 Chat's separate Thread rows with it. Newer activity brings the row back. iOS does not read
 `thread.listUnread` yet, so its Inbox shows no Thread rows while the icon badge
 (`chat.unreadChatCount`) still counts unread Threads.

@@ -10,7 +10,7 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 /**
  * `thread.onFollowUpdated` (the viewer's own follows): the anchor's summary
  * carries `followed`, and follow state decides which Threads
- * `thread.listUnread` lists (ADR 0042).
+ * `thread.listUnread` lists (ADR 0043).
  */
 export function useThreadFollowStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();

@@ -12,7 +12,7 @@ afterAll(async () => {
 });
 
 /**
- * A Thread is unread on its own (ADR 0042). A reply counts for the reader when
+ * A Thread is unread on its own (ADR 0043). A reply counts for the reader when
  * someone else wrote it past their Thread read marker and they follow the
  * Thread or the reply mentions them. `thread.listUnread`, the anchor preview's
  * "N new", and the badge all apply that one rule; the parent Channel never

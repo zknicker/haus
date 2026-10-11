@@ -21,7 +21,7 @@ import { selectUnreadRows } from './unread-rows.ts';
 
 /**
  * Every Chat and Thread with something unread, newest first, each row quoting
- * the line that is waiting (ADR 0038, ADR 0042). Opening a Chat or Thread
+ * the line that is waiting (ADR 0038, ADR 0043). Opening a Chat or Thread
  * while Haus is in view reads it — a Thread opens at its first unread reply —
  * and Mark read reads it without opening it. The unread state is the
  * existing read state, which this page only reads.

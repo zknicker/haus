@@ -9,7 +9,7 @@ export type UnreadRow =
  * The Inbox's Unread section and its sidebar badge: every Channel and DM with
  * its own messages unread (`chat.list`'s `unreadCount`) and every unread
  * Thread (`thread.listUnread`), most recently active first, one row each. A
- * Thread is unread on its own, never through its parent (ADR 0042). A Thread
+ * Thread is unread on its own, never through its parent (ADR 0043). A Thread
  * whose parent the list does not hold yet waits for it, so a row always has
  * its parent to name and the badge never counts a row the section hides.
  *

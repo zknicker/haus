@@ -7,7 +7,7 @@ read_when:
   - changing the Thread preview's "N new" count (`ThreadSummary.unreadCount`)
 ---
 
-# ADR 0042: Threads Are Unread on Their Own
+# ADR 0043: Threads Are Unread on Their Own
 
 ## Status
 

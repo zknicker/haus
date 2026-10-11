@@ -14,7 +14,7 @@ const landingContextPx = 48;
 const readableReplyPx = 48;
 
 /**
- * Opens a Thread at its first unread reply rather than its top (ADR 0042), so
+ * Opens a Thread at its first unread reply rather than its top (ADR 0043), so
  * the reply the viewer came for is in view, wherever the Thread was opened
  * from. The landing is `thread.listUnread`'s first counted reply, decided
  * once per Thread from a settled list: reading moves the row, and the view

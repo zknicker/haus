@@ -25,7 +25,7 @@ test('a local read through the newest message clears the row at once', () => {
 });
 
 test('a Chat read clears the Chat while its Threads stay unread on their own', () => {
-    // ADR 0042: the row counts only the Chat's own messages, so no Thread state holds it back.
+    // ADR 0043: the row counts only the Chat's own messages, so no Thread state holds it back.
     const { queryClient, utils } = cache(
         [row('chat_one', 3, 7)],
         [thread('thread_one', 'chat_one', 4)]

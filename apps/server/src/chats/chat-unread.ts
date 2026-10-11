@@ -42,7 +42,7 @@ export function listedChats(userId: string, archive: ChatListArchive): SQL {
 /**
  * A listed Chat's `unreadCount` for `userId`: its own messages past the
  * reader's marker that someone else wrote. Thread replies live in the Thread's
- * own Chat row and count there (`threads/thread-unread.ts`, ADR 0042), never
+ * own Chat row and count there (`threads/thread-unread.ts`, ADR 0043), never
  * on the parent.
  */
 export function chatUnreadCount(userId: string): SQL<number> {

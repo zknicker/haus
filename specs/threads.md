@@ -62,7 +62,7 @@ Thread chats reuse `chat_reads` unchanged: a foregrounded thread pane marks visi
 the parent anchor is not part of the child Thread sequence.
 
 A Thread is unread on its own, never through its parent
-([ADR 0042](../docs/adr/0042-threads-are-unread-on-their-own.md)). A reply counts for a human when
+([ADR 0043](../docs/adr/0043-threads-are-unread-on-their-own.md)). A reply counts for a human when
 someone else wrote it, it is past their Thread read marker, and they follow the Thread or the reply
 @mentions them (`chat_messages.mentioned_user_ids`). The rule lives in
 `apps/server/src/threads/thread-unread.ts` and every surface applies it:
