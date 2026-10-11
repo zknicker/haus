@@ -9,6 +9,7 @@ import {
     chatMessagesTable,
     reminderAgentAttentionTable,
 } from '../postgres/schema.ts';
+import { chatOf } from './inbox-lanes.ts';
 
 export async function readAgentSessionGeneration(db: HausDatabase, agentId: string) {
     const [agent] = await db
@@ -162,7 +163,7 @@ export async function advanceSeenForRun(
     const backedIds = new Set(backingMessages.map((message) => message.id));
     const rows = served
         .filter((row) => backedIds.has(row.dedupeKey))
-        .map((row) => ({ chatId: row.chatId, messageId: row.dedupeKey }));
+        .map((row) => ({ chatId: chatOf(row), messageId: row.dedupeKey }));
     // A Reminder fire writes no receipt, so its pending row is keyed by the fire
     // id. Serving that row is what acknowledges the attention.
     const fireIds = served

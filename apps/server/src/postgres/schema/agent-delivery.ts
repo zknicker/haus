@@ -16,6 +16,7 @@ export const agentDeliveryTable = pgTable(
     'agent_delivery',
     {
         acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+        /** The active run's Chat; a dream run has none. */
         activeRunChatId: text('active_run_chat_id'),
         activeRunComputerId: text('active_run_computer_id'),
         activeRunId: text('active_run_id'),
@@ -77,7 +78,6 @@ export const agentDeliveryTable = pgTable(
                 and ${table.dispatchedAt} is null
             ) or (
                 ${table.activeRunId} is not null
-                and ${table.activeRunChatId} is not null
                 and ${table.activeRunComputerId} is not null
                 and ${table.activeRunRuntimeId} is not null
                 and ${table.activeRunModelId} is not null

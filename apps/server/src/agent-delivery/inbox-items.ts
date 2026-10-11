@@ -14,12 +14,14 @@ import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-w
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
+import { chatOf } from './inbox-lanes.ts';
 import { inboxSender } from './inbox-sender.ts';
 import type * as store from './store.ts';
 import { readThreadContexts, withoutVisibleThreads } from './thread-context.ts';
 
 /**
- * Renders queued rows as the canonical envelopes the Computer projects. Bodies
+ * Renders queued Chat-backed rows (never a chatless dream, whose run frames it
+ * separately) as the canonical envelopes the Computer projects. Bodies
  * always ride the frame; which of them reach the model is the lane decision.
  * A frame that may drain these rows names its Agent, so a Thread mention it has
  * no visible context for carries that Thread's context package.
@@ -73,7 +75,7 @@ export async function buildInboxItems(
           })
         : new Map<string, AgentThreadContext>();
     const targetByChatId = new Map<string, string>();
-    for (const chatId of new Set(rows.map((row) => row.chatId))) {
+    for (const chatId of new Set(rows.map(chatOf))) {
         targetByChatId.set(
             chatId,
             serverId ? await targetForAgentChat(db, serverId, chatId) : '#unknown'
@@ -87,7 +89,7 @@ export async function buildInboxItems(
                     ? requireAttention(row, cloudAgentWorkByRun)
                     : undefined,
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
-            target: targetByChatId.get(row.chatId) ?? '#unknown',
+            target: targetByChatId.get(chatOf(row)) ?? '#unknown',
             task: taskByMessage.get(row.dedupeKey),
             threadContext: threadContexts.get(row.id),
         })
@@ -120,7 +122,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...(facets.threadContext ? { threadContext: facets.threadContext } : {}),
         ...sender,
         ...(senderTimezone ? { senderTimezone } : {}),
-        chatId: row.chatId,
+        chatId: chatOf(row),
         content: attention ? '' : row.content,
         createdAt: row.createdAt.toISOString(),
         id: row.dedupeKey,

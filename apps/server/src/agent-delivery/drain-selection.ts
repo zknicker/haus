@@ -1,8 +1,12 @@
 import type { AgentCommand } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
+import { dreamStartFrame } from './dream-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
-import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
+import {
+    isConcreteInboxSource as isConcreteSource,
+    isNoticelessInboxSource,
+} from './inbox-lanes.ts';
 import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
 import { readThreadContexts, threadContextChars } from './thread-context.ts';
@@ -36,6 +40,10 @@ export async function startFrame(
               runId: state.activeRunId,
           })
         : [];
+    const dreamRow = runRows.find((row) => row.source === 'dream');
+    if (dreamRow) {
+        return dreamStartFrame(state, config, dreamRow);
+    }
     const noticeRows =
         runRows.length === 0 && state.activeRunId
             ? (
@@ -43,7 +51,7 @@ export async function startFrame(
                       agentId: state.agentId,
                       runId: state.activeRunId,
                   })
-              ).filter((row) => row.source !== 'onboarding')
+              ).filter((row) => !isNoticelessInboxSource(row.source))
             : [];
     const humanDrain = await humanDrainSets(db, noticeRows);
     return {
@@ -130,7 +138,7 @@ export function isAddressedHumanRow(row: store.InboxItemRow): boolean {
 }
 
 export function chatIdsOf(rows: store.InboxItemRow[]): string[] {
-    return [...new Set(rows.map((row) => row.chatId))];
+    return [...new Set(rows.flatMap((row) => (row.chatId ? [row.chatId] : [])))];
 }
 
 export function noticeWindow(
