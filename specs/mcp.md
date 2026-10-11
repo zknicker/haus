@@ -15,7 +15,7 @@ read_when:
 - Connections support no auth, secret headers, or MCP OAuth. Remote endpoints require HTTPS;
   loopback HTTP exists only for development.
 - Haus does not support local or stdio MCP connections.
-- GitHub, Google Calendar, MerchBase, MerchBase Fulfillment, RankWrangler, X, and CoinGecko presets populate immutable URL and auth
+- GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, RankWrangler, X, and CoinGecko presets populate immutable URL and auth
   defaults, then use the same storage, discovery, OAuth, grant, and invocation path as custom
   connections.
 - CoinGecko uses `https://mcp.api.coingecko.com/sse` with no authentication. Adding it
@@ -69,7 +69,8 @@ connection state before reading the account-scoped cache.
 - Google Calendar and GitHub use configured Server environment credentials because neither offers
   DCR. GitHub's client is one Haus-owned OAuth App with the haus.chat callback, requests a fixed
   scope set rather than every scope the resource advertises, and issues expiring access tokens
-  that Server refreshes with the client secret. MerchBase and MerchBase Fulfillment use Clerk DCR.
+  that Server refreshes with the client secret. MerchBase, MerchBase Atlas, and MerchBase Fulfillment use Clerk DCR.
+  Atlas uses `https://atlas.merchbase.co/mcp` with `openid profile email` scopes.
   Fulfillment uses `https://fulfillment.merchbase.co/mcp/printful` with the identity scopes
   `openid profile email`; Printful store linking is a separate upstream tool flow.
 - X's hosted MCP (`https://api.x.com/mcp`) offers no OAuth discovery. Its preset uses an app-only

@@ -23,7 +23,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, MerchBase, MerchBase Fulfillment, GitHub, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, GitHub, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is a one-click sign-in like Google Calendar: **Connect**
@@ -47,6 +47,10 @@ and moves to its page, which shows it connecting until the sign-in finishes; the
 and ignores further presses meanwhile, and a failed or untrusted sign-in leaves the new account on
 its page as **Sign in required**. X opens the token form instead. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
+
+MerchBase Atlas connects to `https://atlas.merchbase.co/mcp` through MerchBase/Clerk
+OAuth. It exposes artwork search, asset management, and design exports. Adding it requires
+sign-in and does not grant Agent access.
 
 MerchBase Fulfillment connects to `https://fulfillment.merchbase.co/mcp/printful` through
 MerchBase/Clerk OAuth. It exposes Printful order review and fulfillment tools. Linking a Printful
@@ -76,7 +80,7 @@ an Agent writes into its execution runtime's own config are ignored (see
 
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
-page makes no third-party image requests. Legacy curated presets show bundled marks. MerchBase Fulfillment uses its service-owned
+page makes no third-party image requests. Legacy curated presets show bundled marks. MerchBase Atlas and Fulfillment use their service-owned
 MCP icon metadata or favicon. Recommended resolves homepage icon links before legacy
 favicons, allowing service-owned versioned artwork to refresh before sign-in. See [Connections API](../api/connections.md#connection-icons).
 
