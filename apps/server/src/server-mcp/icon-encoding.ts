@@ -2,8 +2,8 @@ import { mcpIconMaxBytes } from '@haus/api';
 
 /**
  * Turning fetched or advertised icon bytes into a contract-ready data URL.
- * The declared media type has to match the bytes' own signature, or the icon
- * is discarded — a server cannot label HTML or SVG as a PNG and get it inlined.
+ * The signature must identify a supported raster. PNG favicons served with an
+ * ICO content type are accepted; HTML or SVG cannot pass as a raster image.
  */
 
 /**
@@ -42,13 +42,14 @@ function encodeIcon(bytes: Uint8Array, mediaType: null | string): string | null 
         return null;
     }
     const resolved = rasterMediaType(bytes);
-    if (!resolved || resolved !== mediaType) {
+    const pngFavicon = mediaType === 'image/x-icon' && resolved === 'image/png';
+    if (!resolved || (resolved !== mediaType && !pngFavicon)) {
         return null;
     }
     return `data:${resolved};base64,${Buffer.from(bytes).toString('base64')}`;
 }
 
-/** The declared type has to match the bytes, or the icon is discarded. */
+/** Recognize raster bytes independently of the filename or declared type. */
 function rasterMediaType(bytes: Uint8Array): null | string {
     if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
         return 'image/png';

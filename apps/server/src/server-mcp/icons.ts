@@ -3,6 +3,7 @@ import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
 import { cacheAnonymousMcpIcons } from './icon-cache.ts';
 import { encodeFetchedIcon, iconMediaTypes, readDataUrl } from './icon-encoding.ts';
+import { iconRequestInit } from './icon-fetch.ts';
 import { loadRemoteIcon, type McpIconFetch } from './icon-loader.ts';
 import {
     decodePage,
@@ -12,6 +13,7 @@ import {
     siteHomeUrl,
 } from './icon-page-links.ts';
 
+export { iconRequestInit } from './icon-fetch.ts';
 export type { McpIconFetch } from './icon-loader.ts';
 
 /**
@@ -103,17 +105,20 @@ async function resolvePageIcon(
     if (!pageUrl) {
         return null;
     }
-    const html = await loadRemoteIcon(runtime, {
-        encode: decodePage,
+    const page = await loadRemoteIcon(runtime, {
+        encode: (bytes, mediaType, url) => {
+            const html = decodePage(bytes, mediaType);
+            return html ? { html, url } : null;
+        },
         fetchImpl: input.fetchImpl,
         limit: { maxBytes: iconPageMaxBytes, overflow: 'truncate' },
         timeoutMs: input.timeoutMs,
         url: pageUrl,
     });
-    if (!html) {
+    if (!page) {
         return null;
     }
-    const candidates = rankIcons(parsePageIconLinks(html, pageUrl))
+    const candidates = rankIcons(parsePageIconLinks(page.html, page.url))
         .filter((link) => link.src !== input.faviconUrl)
         .slice(0, iconPageMaxCandidates);
     for (const candidate of candidates) {
@@ -278,13 +283,6 @@ function asIcon(candidate: { dark: null | string; light: null | string }): McpIc
     const parsed = mcpIconSchema.safeParse(deduped);
     return parsed.success ? parsed.data : null;
 }
-
-/**
- * Redirects are refused rather than followed: a same-origin icon URL that
- * bounces elsewhere would defeat the origin check that keeps this fetch from
- * becoming an SSRF probe. Exported so a test can pin it.
- */
-export const iconRequestInit = { redirect: 'error' } as const satisfies RequestInit;
 
 async function defaultIconFetch(url: string, signal: AbortSignal): Promise<Response> {
     return await globalThis.fetch(url, { ...iconRequestInit, signal });
