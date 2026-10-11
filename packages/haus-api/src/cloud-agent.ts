@@ -28,8 +28,10 @@ export const threadCloudAgentWorkListSchema = z.array(threadCloudAgentWorkSchema
 export type ThreadCloudAgentWork = z.infer<typeof threadCloudAgentWorkSchema>;
 
 /**
- * `cloudAgentWork.onUpdated`: work was created, observed, or asked to cancel.
- * Chat access scoped. Ids only: the App invalidates the work's Message
+ * `cloudAgentWork.onUpdated`: work was created, observed, asked to cancel, or
+ * newly linked. The Server publishes one event for each linking Message in a
+ * live Chat (ADR 0044), Chat access scoped: `chatId`/`messageId` name that
+ * linking Message. Ids only: the App invalidates that Message
  * (`chat.message`) and the work lists.
  */
 export const cloudAgentWorkUpdatedEventSchema = z
@@ -186,6 +188,32 @@ export const cloudAgentWorkCancelInputSchema = z
     .strict();
 
 /**
+ * Where "Happening now" opens one work (ADR 0044, Q4). `work-thread`: the
+ * launch work Thread, when the viewer can read it. `message`: otherwise the
+ * newest visible linking Message, revealed in its Chat (its existing Thread
+ * when it has one; opening never creates or follows a Thread).
+ */
+export const activeCloudAgentWorkLocationSchema = z.discriminatedUnion('kind', [
+    z
+        .object({
+            anchorMessageId: idSchema,
+            kind: z.literal('work-thread'),
+            threadChatId: idSchema,
+        })
+        .strict(),
+    z
+        .object({
+            chatId: idSchema,
+            kind: z.literal('message'),
+            messageId: idSchema,
+            threadChatId: idSchema.nullable(),
+        })
+        .strict(),
+]);
+
+export type ActiveCloudAgentWorkLocation = z.infer<typeof activeCloudAgentWorkLocationSchema>;
+
+/**
  * One queued or running work visible to the viewer, with everything the Inbox
  * "Happening now" section needs to name it and open its conversation. The
  * Chat facts always name the Channel or DM, never a Thread.
@@ -196,6 +224,12 @@ export const activeCloudAgentWorkSchema = z
         chatName: z.string().nullable(),
         chatPeerUserId: idSchema.nullable(),
         conversationChatId: idSchema,
+        /**
+         * Where opening this row goes. Optional until the Server fills it;
+         * `message`, `threadAnchorMessage`, and `threadChatId` stay for
+         * released Apps until the contraction slice removes them.
+         */
+        location: activeCloudAgentWorkLocationSchema.optional(),
         message: chatMessageSchema,
         threadAnchorMessage: chatMessageSchema.nullable(),
         threadChatId: idSchema,

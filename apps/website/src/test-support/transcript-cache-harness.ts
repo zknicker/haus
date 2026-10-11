@@ -141,6 +141,7 @@ export function message(
         author: { kind: 'human', userId: 'usr_cache' },
         body: { kind: 'text' },
         chatId,
+        cloudAgentWork: [],
         content: `Message ${sequence}`,
         createdAt: new Date(Date.UTC(2026, 9, 9, 12, sequence)).toISOString(),
         id: `msg_${chatId}_${sequence}`,
