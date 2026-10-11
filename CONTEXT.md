@@ -470,9 +470,9 @@ without exposing credentials to Agents or Computers.
 _Avoid_: Hosted MCP connection, local process, stdio transport, Tool, Channel, Plugin
 
 **MCP tool grant**:
-An Agent-level policy that enables one whole MCP connection during Agent turns. Every current tool
-on that connection becomes available, and Server rechecks the connection grant immediately before
-forwarding every call.
+An Agent-level policy that enables one whole MCP connection during Agent turns. Every tool that
+connection exposes is available, including tools added later. Server checks the grant when it
+admits the call and again before it forwards the call.
 _Avoid_: Per-tool switch, per-chat MCP setting, global grant
 
 **Sandbox mode**:

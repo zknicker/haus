@@ -23,6 +23,7 @@ import { summarizeInstructions } from './instructions-summary.ts';
 import type { McpOAuthRelay } from './oauth-relay.ts';
 import { emptySecret, type McpRuntime } from './runtime.ts';
 import { shapeMcpConnection } from './state.ts';
+import { toolSnapshot } from './tool-snapshot.ts';
 
 export async function createMcpConnection(
     db: HausDatabase,
@@ -283,7 +284,7 @@ async function refreshInventory(
             connected: true,
             icon,
             summary: summarizeInstructions(discovery.instructions),
-            tools: [...new Set(discovery.tools)].sort(),
+            tools: toolSnapshot(discovery.tools),
         })
         .where(eq(mcpConnectionsTable.id, connection.id))
         .returning();

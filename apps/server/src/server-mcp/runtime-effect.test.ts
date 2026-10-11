@@ -7,7 +7,14 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpDeniedError, McpUpstreamError } from './errors.ts';
 import { McpRuntime } from './runtime.ts';
-import { fakeQuery, grantDb, invoke, makeClient, tick } from './runtime-test-fixtures.ts';
+import {
+    fakeQuery,
+    fakeUpdate,
+    grantDb,
+    invoke,
+    makeClient,
+    tick,
+} from './runtime-test-fixtures.ts';
 import { modelToolName } from './tool-catalog.ts';
 
 const effectRuntime = makeServerRuntime();
@@ -25,7 +32,7 @@ test('reuses one client and forwards signals through paginated discovery and inv
         }),
     });
     let starts = 0;
-    const runtime = new McpRuntime(grantDb('connection-one', 'echo'), effectRuntime, {
+    const runtime = new McpRuntime(grantDb('connection-one'), effectRuntime, {
         clientFactory: async () => {
             starts += 1;
             return await acquisition.promise;
@@ -58,7 +65,7 @@ test('invocation hands the Agent the structured form without its duplicate text 
             structuredContent,
         }),
     });
-    const runtime = new McpRuntime(grantDb('connection-structured', 'echo'), effectRuntime, {
+    const runtime = new McpRuntime(grantDb('connection-structured'), effectRuntime, {
         clientFactory: async () => client,
     });
     expect(await invoke(runtime, 'connection-structured')).toEqual({
@@ -90,6 +97,7 @@ test('isolates failed discovery while preserving healthy tool order', async () =
                     { id: 'slow', name: 'Slow', tools: ['echo'] },
                     { id: 'last', name: 'Last', tools: ['echo'] },
                 ]),
+            update: fakeUpdate([]),
         } as unknown as HausDatabase,
         effectRuntime,
         {
@@ -110,22 +118,23 @@ test('isolates failed discovery while preserving healthy tool order', async () =
 });
 
 test('preserves denial, invalid arguments, auth, and unavailable errors', async () => {
-    const denied = new McpRuntime(grantDb('denied', 'echo', false), effectRuntime, {
+    const denied = new McpRuntime(grantDb('denied', false), effectRuntime, {
         clientFactory: async () => makeClient('Denied').client,
     });
     const denial = await invoke(denied, 'denied').catch((cause) => cause);
     expect(denial).toBeInstanceOf(McpDeniedError);
     expect(denial).toMatchObject({
         code: 'MCP_DENIED',
-        message: 'Access to this MCP connection was revoked.',
+        message:
+            'This Agent has no access to the Fixture connection. Ask a Server Owner or Admin to grant this Agent access to Fixture.',
     });
 
-    const invalid = new McpRuntime(grantDb('invalid', 'echo'), effectRuntime, {
+    const invalid = new McpRuntime(grantDb('invalid'), effectRuntime, {
         clientFactory: async () => makeClient('Invalid').client,
     });
     await expect(invoke(invalid, 'invalid', [])).rejects.toMatchObject({
-        code: 'MCP_UNAVAILABLE',
-        message: 'The MCP invocation is unavailable.',
+        code: 'MCP_DENIED',
+        message: 'MCP tool arguments must be an object.',
     });
 
     const auth = makeClient('Auth required', { list: async () => Promise.reject({ status: 401 }) });

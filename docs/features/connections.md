@@ -70,9 +70,10 @@ saved credentials, including for preset accounts. Signing in again uses the same
 can reuse its configured OAuth client and previously approved authorization-server origins.
 
 Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
-tools exposed by the connection. The tool names are read-only context, not individual permission
-controls. Access changes take effect on the Agent's next MCP discovery or call without resetting
-its conversation.
+tools exposed by the connection. Tools the server adds later are covered by the same switch. The
+Tools list gains those names the next time an Agent searches, and Refresh tools replaces the list.
+The tool names are read-only context, not individual permission controls. Access changes take
+effect on the Agent's next MCP discovery or call without resetting its conversation.
 
 These grants are an Agent's only MCP access. Agents cannot add MCP servers themselves: MCP servers
 an Agent writes into its execution runtime's own config are ignored (see

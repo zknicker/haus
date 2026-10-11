@@ -15,19 +15,29 @@ interface ClientPlan {
 
 export function fakeQuery(rows: unknown[]) {
     const query = Promise.resolve(rows) as unknown as Record<string, () => unknown>;
-    query.from = query.innerJoin = query.where = () => query;
+    query.from = query.innerJoin = query.leftJoin = query.where = () => query;
     query.limit = () => Promise.resolve(rows);
     return query;
 }
 
+/** Records `.set(values)` payloads; `.where().returning()` resolves to `returned`. */
+export function fakeUpdate(updates: unknown[], returned: unknown[] = []) {
+    return () => ({
+        set: (values: unknown) => {
+            updates.push(values);
+            return { where: () => ({ returning: async () => returned }) };
+        },
+    });
+}
+
 export function makeClient(name: string, plan: ClientPlan = {}) {
     const state = {
-        callRequests: [] as { options?: RequestOptions }[],
+        callRequests: [] as { name?: string; options?: RequestOptions }[],
         closeCount: 0,
         listRequests: [] as ListRequest[],
     };
     const client = {
-        callTool(request: { options?: RequestOptions }) {
+        callTool(request: { name?: string; options?: RequestOptions }) {
             state.callRequests.push(request);
             return (
                 plan.call?.(request) ?? Promise.resolve({ content: [{ text: 'ok', type: 'text' }] })
@@ -49,15 +59,19 @@ export function makeClient(name: string, plan: ClientPlan = {}) {
     return { client, state };
 }
 
-export function grantDb(connectionId: string, toolName: string, grant = true): HausDatabase {
-    let selection = 0;
+/** One granted (or ungranted) connected connection named Fixture. Invoke selects once. */
+export function grantDb(connectionId: string, grant = true, updates: unknown[] = []): HausDatabase {
     return {
-        select() {
-            if (selection++ === 0) {
-                return fakeQuery([{ id: connectionId, name: 'Fixture', tools: [toolName] }]);
-            }
-            return fakeQuery(grant ? [{ connectionId }] : []);
-        },
+        select: () =>
+            fakeQuery([
+                {
+                    connected: true,
+                    grantedAgentId: grant ? 'agent-one' : null,
+                    id: connectionId,
+                    name: 'Fixture',
+                },
+            ]),
+        update: fakeUpdate(updates),
     } as unknown as HausDatabase;
 }
 

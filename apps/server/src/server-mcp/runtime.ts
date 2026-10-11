@@ -1,21 +1,25 @@
 import type { MCPClient } from '@ai-sdk/mcp';
 import type { McpPreset } from '@haus/api';
 import type { EffectRuntime, TraceCarrier } from '@haus/effect';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
 import type { HostedMcpAccess } from '../hosted-mcp/supervisor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentMcpConnectionGrantsTable,
-    mcpConnectionsTable,
-    mcpSecretsTable,
-} from '../postgres/schema.ts';
+import { mcpConnectionsTable, mcpSecretsTable } from '../postgres/schema.ts';
 import { resolveAccountLabel } from './account-label.ts';
+import {
+    authorizeToolConnection,
+    hasConnectionGrant,
+    missingGrantMessage,
+    readGrantedConnections,
+    toolNotOffered,
+} from './agent-access.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { createConnectionClient } from './connection-client.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
-import { callMcpTool, listAllTools, modelToolName } from './tool-catalog.ts';
+import { callMcpTool, callModelTool, listAllTools, modelToolName } from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
+import { recordToolSnapshot, toolSnapshot } from './tool-snapshot.ts';
 import { runMcpUpstream } from './upstream-operation.ts';
 
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 5000;
@@ -72,7 +76,7 @@ export class McpRuntime {
         return await this.runUpstream(connectionId, 'discovery', async (client, signal) => {
             const timeout = this.discoveryTimeoutMs;
             const definitions = await listAllTools(client, { signal, timeout });
-            const tools = definitions.map((tool) => tool.name);
+            const tools = toolSnapshot(definitions.map((tool) => tool.name));
             return {
                 accountLabel: await resolveAccountLabel(client, { preset, signal, timeout, tools }),
                 instructions: client.instructions,
@@ -87,7 +91,8 @@ export class McpRuntime {
         traceContext?: TraceCarrier,
         signal?: AbortSignal
     ): Promise<McpToolDefinition[]> {
-        const connections = await this.grantedConnections(serverId, agentId);
+        const scope = { agentId, serverId };
+        const connections = await readGrantedConnections(this.db, scope);
         const definitions = await Promise.all(
             connections.map(async (connection) => {
                 try {
@@ -102,13 +107,26 @@ export class McpRuntime {
                         traceContext,
                         signal
                     );
-                    await this.requireGrant(serverId, agentId, connection.id);
-                    return tools.map((tool) => ({
+                    if (!(await hasConnectionGrant(this.db, scope, connection.id))) {
+                        return [];
+                    }
+                    const listed = tools.map((tool) => ({
                         description: `${connection.name}: ${tool.description ?? `Run ${tool.name}.`}`,
                         inputSchema: tool.inputSchema as Record<string, unknown>,
                         name: modelToolName(connection.id, tool.name),
                         title: tool.annotations?.title ?? null,
                     }));
+                    try {
+                        await recordToolSnapshot(
+                            this.db,
+                            scope,
+                            connection.id,
+                            tools.map((tool) => tool.name)
+                        );
+                    } catch {
+                        return listed;
+                    }
+                    return listed;
                 } catch {
                     signal?.throwIfAborted();
                     return [];
@@ -125,26 +143,30 @@ export class McpRuntime {
         traceContext?: TraceCarrier;
         signal?: AbortSignal;
     }): Promise<unknown> {
-        const resolved = await this.resolveGrantedTool(
-            input.serverId,
-            input.agentId,
-            input.toolName
+        const args = asMcpArguments(input.args);
+        const scope = { agentId: input.agentId, serverId: input.serverId };
+        const connection = await authorizeToolConnection(this.db, scope, input.toolName);
+        const outcome = await this.runUpstream(
+            connection.id,
+            'invocation',
+            (client, signal) =>
+                callModelTool(client, {
+                    arguments: args,
+                    connectionId: connection.id,
+                    options: { signal, timeout: this.invocationTimeoutMs },
+                    stillGranted: () => hasConnectionGrant(this.db, scope, connection.id),
+                    visibleName: input.toolName,
+                }),
+            input.traceContext,
+            input.signal
         );
-        await this.requireGrant(input.serverId, input.agentId, resolved.connectionId);
-        return narrowMcpToolResult(
-            await this.runUpstream(
-                resolved.connectionId,
-                'invocation',
-                (client, signal) =>
-                    callMcpTool(client, {
-                        arguments: asMcpArguments(input.args),
-                        name: resolved.upstreamName,
-                        options: { signal, timeout: this.invocationTimeoutMs },
-                    }),
-                input.traceContext,
-                input.signal
-            )
-        );
+        if (outcome.kind === 'absent') {
+            throw toolNotOffered(connection, input.toolName);
+        }
+        if (outcome.kind === 'revoked') {
+            throw new McpDeniedError(missingGrantMessage(connection.name));
+        }
+        return narrowMcpToolResult(outcome.result);
     }
     async closeConnection(connectionId: string): Promise<void> {
         clearAmazonProductCache(this);
@@ -199,57 +221,6 @@ export class McpRuntime {
     }
     private createClient(connectionId: string, signal: AbortSignal): Promise<MCPClient> {
         return createConnectionClient(this, connectionId, signal);
-    }
-    private async grantedConnections(serverId: string, agentId: string) {
-        return await this.db
-            .select({
-                id: mcpConnectionsTable.id,
-                name: mcpConnectionsTable.name,
-                tools: mcpConnectionsTable.tools,
-            })
-            .from(agentMcpConnectionGrantsTable)
-            .innerJoin(
-                mcpConnectionsTable,
-                and(
-                    eq(mcpConnectionsTable.serverId, agentMcpConnectionGrantsTable.serverId),
-                    eq(mcpConnectionsTable.id, agentMcpConnectionGrantsTable.connectionId)
-                )
-            )
-            .where(
-                and(
-                    eq(agentMcpConnectionGrantsTable.serverId, serverId),
-                    eq(agentMcpConnectionGrantsTable.agentId, agentId),
-                    eq(mcpConnectionsTable.connected, true)
-                )
-            );
-    }
-    private async requireGrant(serverId: string, agentId: string, connectionId: string) {
-        const [grant] = await this.db
-            .select({ connectionId: agentMcpConnectionGrantsTable.connectionId })
-            .from(agentMcpConnectionGrantsTable)
-            .where(
-                and(
-                    eq(agentMcpConnectionGrantsTable.serverId, serverId),
-                    eq(agentMcpConnectionGrantsTable.agentId, agentId),
-                    eq(agentMcpConnectionGrantsTable.connectionId, connectionId)
-                )
-            )
-            .limit(1);
-        if (!grant) {
-            throw new McpDeniedError('Access to this MCP connection was revoked.');
-        }
-    }
-    private async resolveGrantedTool(serverId: string, agentId: string, visibleName: string) {
-        const connections = await this.grantedConnections(serverId, agentId);
-        for (const connection of connections) {
-            const upstreamName = connection.tools.find(
-                (toolName) => modelToolName(connection.id, toolName) === visibleName
-            );
-            if (upstreamName) {
-                return { connectionId: connection.id, upstreamName };
-            }
-        }
-        throw new McpDeniedError(`MCP tool ${visibleName} is not granted.`);
     }
     private async runUpstream<T>(
         connectionId: string,

@@ -6,6 +6,7 @@ import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { mcpUpdatedTopic } from '../realtime/topics.ts';
 import { completeMcpAuthorization, startMcpAuthorization } from './oauth.ts';
 import type { McpRuntime } from './runtime.ts';
+import { toolSnapshot } from './tool-snapshot.ts';
 
 interface OAuthAttempt {
     connectionId: string;
@@ -78,7 +79,7 @@ export class McpOAuthRelay {
                 .set({
                     accountLabel: discovery.accountLabel,
                     connected: true,
-                    tools: [...new Set(discovery.tools)].sort(),
+                    tools: toolSnapshot(discovery.tools),
                 })
                 .where(eq(mcpConnectionsTable.id, attempt.connectionId))
                 .returning({ serverId: mcpConnectionsTable.serverId });

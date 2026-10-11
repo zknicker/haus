@@ -46,10 +46,15 @@ endpoint. It does not expose generic MCP invocation to humans or grant an Agent
 access. A connected account gates previews; each request rechecks membership and
 connection state before reading the account-scoped cache.
 
-- A grant is `(server_id, agent_id, connection_id)` and enables every tool currently exposed by
-  that connection.
-- Tool discovery changes the read-only tool list; it does not create a second grant layer.
-- Server rechecks the connection grant before every upstream call.
+- A grant is `(server_id, agent_id, connection_id)` and enables every tool that connection exposes,
+  including tools the upstream adds after the grant. It is the only MCP authority: Haus has no
+  per-tool grant, tool allowlist, or review state.
+- A connection's stored tool list is a display snapshot. It never authorizes or denies an Agent
+  call. RankWrangler product previews still select a connection by a stored tool name, so Agent
+  search only adds names from a successful non-empty listing and does not remove names. Refresh
+  and sign-in replace the snapshot. A failed or empty listing leaves it unchanged.
+- Server checks the connection grant when it admits each search and invocation, and again after
+  each search listing.
 - Computer receives only safe names, descriptions, and input schemas for granted tools.
 - Computer sends invocation through its scoped per-run Server credential. MCP credentials and
   upstream sessions never enter Computer, Agent prompts, or tool arguments.
@@ -57,9 +62,12 @@ connection state before reading the account-scoped cache.
   until Server can rediscover the connection.
 - Server discovers granted connections concurrently with a five-second deadline per connection.
   One slow or unavailable connection cannot hide healthy connections or hold Agent startup open.
-- Server resolves invocation authority from the current grant and cached inventory before making
-  one upstream call with a 30-second deadline.
-- Runner errors preserve whether access was denied or revoked, the upstream account needs
+- Server authorizes an invocation from the connection grant alone, then resolves the tool name
+  against the connection's live tool list and calls it under one 30-second deadline. A name missing
+  from the client's last listing triggers one fresh listing, so a new upstream tool is callable
+  without Refresh; a name that listing lacks is denied as not offered.
+- Runner errors preserve whether the connection grant is absent (naming the connection and that a
+  Server Owner or Admin grants it), the tool is not offered, the upstream account needs
   reauthorization, the upstream timed out, or the upstream is unavailable.
 
 ## OAuth and secrets

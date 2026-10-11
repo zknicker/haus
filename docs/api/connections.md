@@ -23,8 +23,9 @@ The App uses the Haus Server `mcp` tRPC router:
 - `mcp.setGrant`
 
 `mcp.add` accepts one HTTPS remote endpoint plus no auth, secret headers, or MCP OAuth
-configuration. Public connection reads expose header names and discovered tool names, never secret
-values. Preset creation resolves immutable Server-owned coordinates; each preset fixes its authentication kind. CoinGecko creates a keyless `none`
+configuration. Public connection reads expose header names and discovered tool names, never
+secret values. Those tool names are a display snapshot. Refresh and sign-in replace it. Agent
+search adds names and does not remove them. Preset creation resolves immutable Server-owned coordinates; each preset fixes its authentication kind. CoinGecko creates a keyless `none`
 connection to `https://mcp.api.coingecko.com/sse` and discovers tools immediately. `google-calendar` and `github` present a configured Server OAuth client
 (`HAUS_GOOGLE_OAUTH_CLIENT_*`, `HAUS_GITHUB_OAUTH_CLIENT_*`) because their authorization servers
 offer no dynamic client registration; without it, `mcp.startOAuth` fails with the client reported
@@ -59,8 +60,8 @@ stores an ordinary header-auth connection. Its stable logical URL is
 to private transport. The connector endpoint and control credential never enter the
 public API. No network route serves that logical URL.
 
-`mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
-on the connection available to that Agent.
+`mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every tool the
+connection exposes, now or later, available to that Agent.
 
 Computer exposes a fixed `execute` tool. Its search, schema lookup, and invocation call scoped
 Server endpoints through the current per-run loopback proxy:
@@ -81,15 +82,17 @@ is best effort across network loss, and upstream deadlines still apply.
 Discovery with `?query=keywords` returns up to 50 matching tool summaries and the total match count,
 without input schemas. Search includes the connection name. `?name=exact-tool-name` returns only
 that tool's full schema; an unfiltered request returns the full granted catalog.
-Invocation resolves the tool, rechecks the grant, and invokes the upstream MCP from
-Server. Computer never receives MCP secrets, OAuth tokens, or upstream session state.
+Invocation checks the connection grant, resolves the tool name against the connection's live tool
+list, and invokes the upstream MCP from Server. Computer never receives MCP secrets, OAuth tokens,
+or upstream session state.
 
 MCP `2026-07-28` servers (GitHub's among them) can mark tool arguments with `x-mcp-header`, and
 reject a `tools/call` that lacks the matching `Mcp-Param-*` header with JSON-RPC `-32020`.
 `@ai-sdk/mcp` derives those headers only from a `tools/list` on the same client, so Server lists a
 client's tools once before its first call (`callMcpTool` in
 `apps/server/src/server-mcp/tool-catalog.ts`). Discovery on that client counts; a rebuilt client
-lists again.
+lists again. That listing also resolves visible tool names. A name it lacks triggers one fresh
+listing before Server answers not offered.
 
 Invocation returns the upstream tool result. When that result carries `structuredContent`, Server
 drops the text block holding the same JSON, because a server that returns structured output also
@@ -111,7 +114,11 @@ finish. Disconnecting the connection or stopping Server still aborts every in-fl
 
 Runner failures are JSON `{code, message, retryable?}` with stable codes:
 
-- `MCP_DENIED` (403) — the connection grant or requested tool is absent or revoked
+- `MCP_DENIED` (403) — one of:
+  - `This Agent has no access to the {name} connection. Ask a Server Owner or Admin to grant this Agent access to {name}.`
+  - `The {name} connection is disconnected. Ask a Server Owner or Admin to reconnect {name} and grant this Agent access to it.`
+  - `No connection on this Haus Server offers {visibleName}. Run tools.search to find the tools this Agent can use.`
+  - `The {name} connection does not offer {visibleName}. Run tools.search to find its current tools.`
 - `MCP_AUTH_REQUIRED` (424) — the upstream account must be reconnected, including a 401/403,
   an OAuth refresh failure, or a grant that needs a new browser flow
 - `MCP_TIMEOUT` (424) — the bounded upstream operation expired
