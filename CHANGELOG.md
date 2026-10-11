@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v11.0.0 - 2026-10-11
+
+- Agents dream overnight. Between 03:00 and 05:00 on the Computer's clock, an Agent whose memory changed since its last dream, or whose MEMORY.md has grown past 16 KiB, takes one private turn to consolidate its own memory. Haus Agent 8.1.0 learns the routine, and Haus Computer 8.1.0 runs the nightly check. Update the Computer to start dreaming.
+- The Agent profile has a Dreams section listing each night's memory changes. Opening a dream shows which MEMORY.md sections and notes changed, with a diff per file. In the Activity log, a Dreaming turn links to the same view.
+- Connections recommends Cloudflare and Vercel, both through OAuth sign-in. Connection icons now follow a site's canonical favicon redirects and accept PNG icons.
+- Haus Server 10.0.0 requires Haus for iPhone 7.0.0 (build 49). Older iPhone builds show Update required; the hosted web App updates with Server. Rolling back past this release takes manual database cleanup first; the Server deployment guide has the steps.
+
 ## v10.2.0 - 2026-10-11
 
 - Skool Agents can read classroom lesson transcripts with timestamps, lesson text, and attached resource metadata. Native lesson videos use Skool's existing captions; external video transcription is unsupported.
