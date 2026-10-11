@@ -40,6 +40,11 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'MerchBase',
     },
     {
+        description: 'Search your artwork library, manage assets, and export designs.',
+        id: 'merchbase-atlas',
+        name: 'MerchBase Atlas',
+    },
+    {
         description: 'Review and fulfill Printful orders through your MerchBase account.',
         id: 'merchbase-fulfillment',
         name: 'MerchBase Fulfillment',

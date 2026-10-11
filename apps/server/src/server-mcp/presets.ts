@@ -60,6 +60,11 @@ const oauthPresets: Record<
         name: 'MerchBase',
         url: 'https://app.merchbase.co/mcp',
     },
+    'merchbase-atlas': {
+        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        name: 'MerchBase Atlas',
+        url: 'https://atlas.merchbase.co/mcp',
+    },
     'merchbase-fulfillment': {
         auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
         name: 'MerchBase Fulfillment',
