@@ -526,6 +526,13 @@
       "when": 1791678057739,
       "tag": "0074_merchbase-atlas-preset",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1791754155225,
+      "tag": "0075_cloudflare-vercel-presets",
+      "breakpoints": true
     }
   ]
 }
