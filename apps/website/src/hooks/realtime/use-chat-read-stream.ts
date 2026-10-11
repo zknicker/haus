@@ -7,16 +7,17 @@ import {
     type TargetedReadCoalescer,
     useTargetedReadCoalescer,
 } from '../../lib/targeted-read-coalescer.ts';
-import { chatReadChangesList } from '../servers/chat-read-cache.ts';
+import { readChangesUnreadList } from '../servers/chat-read-cache.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
-type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;
+type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat' | 'thread'>;
 
 /**
- * `chat.onRead` (the viewer's own reads): unread counts render from
- * `chat.list`, skipped when the settled list already shows zero for the row.
- * A Thread read also refreshes its anchor's summary (per-viewer unread count).
- * `onEvent` hears each live read (message notifications).
+ * `chat.onRead` (the viewer's own reads). A Chat read refreshes `chat.list`;
+ * a Thread read refreshes `thread.listUnread` and its anchor's summary
+ * (per-viewer unread count) — a Thread is unread on its own (ADR 0042). Each
+ * skips the list when its settled row already shows the read. `onEvent` hears
+ * each live read (message notifications).
  */
 export function useChatReadStream(
     serverId: string | undefined,
@@ -33,6 +34,9 @@ export function useChatReadStream(
         if (serverId) {
             coalescer.recoverTranscriptLists({ serverId });
             coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.list, { serverId }) });
+            coalescer.invalidate({
+                queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }),
+            });
         }
     });
 
@@ -62,11 +66,15 @@ export function applyChatRead({
     queryClient: QueryClient;
     utils: ReadUtils;
 }) {
-    const { serverId } = event;
-    // A Thread's unread replies roll up into its parent Chat's list row.
-    const rowIds = [event.parentChatId ?? event.chatId];
-    if (chatReadChangesList({ queryClient, rowIds, serverId, utils })) {
-        coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.list, { serverId }) });
+    const { chatId, serverId } = event;
+    const list = event.parentChatId ? 'threads' : 'chats';
+    if (readChangesUnreadList({ chatId, list, queryClient, serverId, utils })) {
+        coalescer.invalidate({
+            queryKey:
+                list === 'chats'
+                    ? getQueryKey(hausTrpc.chat.list, { serverId })
+                    : getQueryKey(hausTrpc.thread.listUnread, { serverId }),
+        });
     }
     if (event.parentChatId && event.threadAnchorMessageId) {
         coalescer.noteMessageAnnotated({

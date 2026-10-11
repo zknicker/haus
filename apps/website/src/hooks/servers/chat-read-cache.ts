@@ -1,11 +1,11 @@
-import type { InfiniteData, QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import { type ChatMessageEntry, chatMessageQueryKey } from './chat-message-entities.ts';
-import type { TranscriptPage } from './chat-message-layout.ts';
-import { chatMessagesQueryKey } from './use-chat-messages.ts';
 
-type ListUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;
+type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat' | 'thread'>;
+
+/** Which unread list a read lowers: a Chat's `chat.list` row, or a Thread's `thread.listUnread` row. */
+type UnreadList = 'chats' | 'threads';
 
 /**
  * How long a local read waits for its own `chat.read` event before refetching
@@ -13,18 +13,17 @@ type ListUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;
  */
 export const localReadSettleMs = 1000;
 
-// Rows this client zeroed ahead of the Server, per cache, until a refetch confirms them.
+// Rows this client cleared ahead of the Server, per cache, until a refetch confirms them.
 const pendingReads = new WeakMap<QueryClient, Set<string>>();
 
 /**
- * Viewing a Chat through its newest message clears its sidebar unread chip at
- * once — but only when that is provably the Server's answer. `unreadCount`
- * also rolls up followed or mentioning Thread replies, which a Chat read does
- * not clear, and the list row carries no split; so the chip clears early only
- * when the settled transcript cache holds the whole Chat and none of its
- * Threads has an unread reply. Otherwise the `chat.read` event's refetch moves
- * it. Runs before the request leaves, so that event finds the row pending and
- * still confirms the count.
+ * Viewing a Chat or Thread through its newest message clears its unread row
+ * at once: a Chat's sidebar chip and Inbox row (`chat.list`), or a Thread's
+ * Inbox row (`thread.listUnread`). Each counts only its own messages
+ * (ADR 0042), so a read through the newest message is the Server's answer. A
+ * read short of it leaves the row to the `chat.read` event's refetch. Runs
+ * before the request leaves, so that event finds the row pending and still
+ * confirms it.
  */
 export function patchLocalChatRead({
     chatId,
@@ -37,28 +36,34 @@ export function patchLocalChatRead({
     queryClient: QueryClient;
     sequence: number;
     serverId: string;
-    utils: ListUtils;
+    utils: ReadUtils;
 }): boolean {
-    const chats = utils.chat.list.getData({ serverId });
-    const row = chats?.find((chat) => chat.id === chatId);
-    if (
-        !(chats && row) ||
-        row.unreadCount === 0 ||
-        sequence < row.lastMessageSequence ||
-        !threadRepliesAllRead(queryClient, serverId, chatId)
-    ) {
-        return false;
+    const key = { serverId };
+    const chats = utils.chat.list.getData(key);
+    const chat = chats?.find((entry) => entry.id === chatId);
+    if (chats && chat && chat.unreadCount > 0 && sequence >= chat.lastMessageSequence) {
+        // A list read already in flight predates this read and would land the old
+        // count back. Cancelling reverts it synchronously; the pending mark below
+        // forces the follow-up refetch that replaces it.
+        void queryClient.cancelQueries({ queryKey: listQueryKey('chats', serverId) });
+        utils.chat.list.setData(
+            key,
+            chats.map((entry) => (entry.id === chatId ? { ...entry, unreadCount: 0 } : entry))
+        );
+        pending(queryClient).add(readKey('chats', serverId, chatId));
+        return true;
     }
-    // A list read already in flight predates this read and would land the old
-    // count back. Cancelling reverts it synchronously; the pending mark below
-    // forces the follow-up refetch that replaces it.
-    void queryClient.cancelQueries({ queryKey: chatListQueryKey(serverId) });
-    utils.chat.list.setData(
-        { serverId },
-        chats.map((chat) => (chat.id === chatId ? { ...chat, unreadCount: 0 } : chat))
-    );
-    pending(queryClient).add(readKey(serverId, chatId));
-    return true;
+    const list = utils.thread.listUnread.getData(key);
+    const thread = list?.threads.find((entry) => entry.threadChatId === chatId);
+    if (list && thread && sequence >= thread.lastMessageSequence) {
+        void queryClient.cancelQueries({ queryKey: listQueryKey('threads', serverId) });
+        utils.thread.listUnread.setData(key, {
+            threads: list.threads.filter((entry) => entry.threadChatId !== chatId),
+        });
+        pending(queryClient).add(readKey('threads', serverId, chatId));
+        return true;
+    }
+    return false;
 }
 
 /** The backstop for a local read whose event never came: refetch if still unconfirmed. */
@@ -71,84 +76,55 @@ export function settleLocalChatRead({
     chatId: string;
     queryClient: QueryClient;
     serverId: string;
-    utils: ListUtils;
+    utils: ReadUtils;
 }) {
-    if (pending(queryClient).delete(readKey(serverId, chatId))) {
+    const marks = pending(queryClient);
+    if (marks.delete(readKey('chats', serverId, chatId))) {
         void utils.chat.list.invalidate({ serverId });
+    }
+    if (marks.delete(readKey('threads', serverId, chatId))) {
+        void utils.thread.listUnread.invalidate({ serverId });
     }
 }
 
 /**
- * Whether reads of these list rows can change `chat.list`. A read only lowers
- * unread counts, so a settled list already showing zero for every row — and
- * not zeroed ahead of the Server by this client — needs no refetch. Anything
- * unknown (no list, a row missing, a fetch in flight) refetches. Clears the
- * pending marks it answers for.
+ * Whether a read of this Chat (`chats`) or Thread (`threads`) can change its
+ * unread list. A read only lowers unread state, so a settled list that already
+ * shows the row read — and not cleared ahead of the Server by this client —
+ * needs no refetch. Anything unknown (no list, a fetch in flight) refetches.
+ * Clears the pending mark it answers for.
  */
-export function chatReadChangesList({
+export function readChangesUnreadList({
+    chatId,
+    list,
     queryClient,
-    rowIds,
     serverId,
     utils,
 }: {
+    chatId: string;
+    list: UnreadList;
     queryClient: QueryClient;
-    rowIds: readonly string[];
     serverId: string;
-    utils: ListUtils;
+    utils: ReadUtils;
 }): boolean {
-    const marks = pending(queryClient);
-    const wasPending = rowIds.map((rowId) => marks.delete(readKey(serverId, rowId)));
-    if (wasPending.some(Boolean)) {
+    if (pending(queryClient).delete(readKey(list, serverId, chatId))) {
         return true;
     }
-    const chats = utils.chat.list.getData({ serverId });
-    if (!chats || queryClient.isFetching({ queryKey: chatListQueryKey(serverId) }) > 0) {
+    if (queryClient.isFetching({ queryKey: listQueryKey(list, serverId) }) > 0) {
         return true;
     }
-    return rowIds.some((rowId) => (chats.find((chat) => chat.id === rowId)?.unreadCount ?? 1) > 0);
-}
-
-/**
- * Whether the cached transcript proves no Thread reply in this Chat is unread:
- * every listed message's entity is settled and its summary shows none.
- */
-function threadRepliesAllRead(queryClient: QueryClient, serverId: string, chatId: string) {
-    const state = queryClient.getQueryState<InfiniteData<TranscriptPage>>(
-        chatMessagesQueryKey(serverId, chatId)
-    );
-    // A pending refetch or an event's invalidation means the summaries may be behind.
-    if (!isSettled(state)) {
-        return false;
+    if (list === 'chats') {
+        const chats = utils.chat.list.getData({ serverId });
+        return !chats || (chats.find((chat) => chat.id === chatId)?.unreadCount ?? 1) > 0;
     }
-    const { pages } = state.data;
-    // Unloaded older history can anchor Threads this cache has never seen.
-    if (pages.at(-1)?.nextBeforeSequence !== null) {
-        return false;
-    }
-    return pages.every((page) =>
-        page.entries.every((entry) => {
-            const entity = queryClient.getQueryState<ChatMessageEntry>(
-                chatMessageQueryKey(serverId, chatId, entry.id)
-            );
-            return isSettled(entity) && (entity.data?.thread?.unreadCount ?? 0) === 0;
-        })
-    );
+    const threads = utils.thread.listUnread.getData({ serverId })?.threads;
+    return !threads || threads.some((thread) => thread.threadChatId === chatId);
 }
 
-function isSettled<Data>(
-    state:
-        | {
-              data: Data | undefined;
-              fetchStatus: string;
-              isInvalidated: boolean;
-          }
-        | undefined
-): state is { data: Data; fetchStatus: string; isInvalidated: boolean } {
-    return state?.data !== undefined && !state.isInvalidated && state.fetchStatus === 'idle';
-}
-
-function chatListQueryKey(serverId: string) {
-    return getQueryKey(hausTrpc.chat.list, { serverId }, 'query');
+function listQueryKey(list: UnreadList, serverId: string) {
+    return list === 'chats'
+        ? getQueryKey(hausTrpc.chat.list, { serverId }, 'query')
+        : getQueryKey(hausTrpc.thread.listUnread, { serverId }, 'query');
 }
 
 function pending(queryClient: QueryClient): Set<string> {
@@ -160,6 +136,6 @@ function pending(queryClient: QueryClient): Set<string> {
     return marks;
 }
 
-function readKey(serverId: string, chatId: string) {
-    return `${serverId}:${chatId}`;
+function readKey(list: UnreadList, serverId: string, chatId: string) {
+    return `${list}:${serverId}:${chatId}`;
 }

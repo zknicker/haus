@@ -65,7 +65,9 @@ const ChatPageView = React.memo(function ChatPageView({
     usePrefetchInfiniteQuery(
         chatMessagesQueryOptions({ client: utils.client, queryClient }, server.id, chatId)
     );
-    const listed = useListedChat(server.id, chatId);
+    // The listed row is only the pending fallback: past it, its unread count
+    // and activity would re-render the whole Chat on every read and message.
+    const listed = useListedChat(server.id, chatId, chatQuery.data === undefined);
     const chat = resolveChatPageChat({
         detail: chatQuery.data,
         isPending: chatQuery.isPending,

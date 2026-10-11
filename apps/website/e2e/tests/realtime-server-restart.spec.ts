@@ -23,7 +23,14 @@ import { expect, test } from '../support/test.ts';
 const removedProcedures = ['chat.onEvent', 'chat.events', 'chat.eventHead', 'server.onUpdate'];
 
 /** `chat.onMessageCreated`'s owned reads, plus the read receipt viewing the reply sends. */
-const ownedReads = new Set(['chat.messages', 'chat.list', 'chat.search', 'chat.markRead']);
+const ownedReads = new Set([
+    'chat.messages',
+    'chat.list',
+    'chat.search',
+    'chat.markRead',
+    // A missed Thread reply may have made a Thread unread (ADR 0042).
+    'thread.listUnread',
+]);
 
 test('A: one failed stream restarts alone and recovers only its owned reads', async ({ page }) => {
     test.setTimeout(150_000);

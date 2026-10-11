@@ -9,15 +9,15 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
  * `thread.onFollowUpdated` (the viewer's own follows): the anchor's summary
- * carries `followed`, and follow state feeds parent unread counts in
- * `chat.list`.
+ * carries `followed`, and follow state decides which Threads
+ * `thread.listUnread` lists (ADR 0042).
  */
 export function useThreadFollowStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
     const stream = useSubscriptionRestart('thread.onFollowUpdated', serverId, () => {
         if (serverId) {
             coalescer.recoverTranscriptLists({ serverId });
-            coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.list, { serverId }) });
+            invalidateUnreadThreads(coalescer, serverId);
         }
     });
 
@@ -42,7 +42,9 @@ export function applyThreadFollow(
         messageId: event.anchorMessageId,
         serverId: event.serverId,
     });
-    coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.chat.list, { serverId: event.serverId }),
-    });
+    invalidateUnreadThreads(coalescer, event.serverId);
+}
+
+function invalidateUnreadThreads(coalescer: TargetedReadCoalescer, serverId: string) {
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
 }
