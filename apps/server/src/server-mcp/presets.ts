@@ -39,7 +39,8 @@ const oauthPresets: Record<
     McpOAuthPreset,
     PresetDefinition<Extract<PresetAuth, { kind: 'oauth' }>>
 > = {
-    // GitHub's scopes come from its Server-configured client (oauth-clients.ts).
+    // Signs in through the Haus GitHub App's client (oauth-clients.ts); a GitHub
+    // App has permissions, not scopes. Installations are github/ state.
     github: {
         auth: { kind: 'oauth', scopes: [] },
         name: 'GitHub',

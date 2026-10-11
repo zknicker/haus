@@ -1366,6 +1366,25 @@ paths:
                 $ref: '#/components/schemas/AgentTriggerLogResponse'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/agent/github/installations:
+    get:
+      operationId: listAgentGithubInstallations
+      tags: [Agent CLI]
+      summary: List GitHub installations on connections the calling agent is granted.
+      parameters:
+        - name: repos
+          in: query
+          description: Also list each active installation's accessible repositories.
+          schema: { type: string, enum: ['true', 'false'] }
+      responses:
+        '200':
+          description: Usable GitHub installations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentGithubInstallationsResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/attachments/upload:
     post:
       operationId: uploadAgentAttachment
@@ -2557,6 +2576,43 @@ components:
       properties:
         trigger:
           $ref: '#/components/schemas/AgentTrigger'
+    AgentGithubInstallation:
+      type: object
+      additionalProperties: false
+      required: [accessibleRepositoryCount, account, githubInstallationId, id, repositorySelection, status]
+      properties:
+        accessibleRepositoryCount: { type: integer, minimum: 0 }
+        account:
+          type: object
+          additionalProperties: false
+          required: [id, login, type]
+          properties:
+            id: { type: integer }
+            login: { type: string }
+            type: { type: string, enum: [User, Organization] }
+        githubInstallationId: { type: integer }
+        id: { type: string, description: The Haus installation row id (`ghi_…`). }
+        repositories:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [fullName, id, private]
+            properties:
+              fullName: { type: string }
+              id: { type: integer }
+              private: { type: boolean }
+        repositorySelection: { type: string, enum: [all, selected] }
+        status: { type: string, enum: [active, suspended, removed] }
+    AgentGithubInstallationsResponse:
+      type: object
+      additionalProperties: false
+      required: [installations]
+      properties:
+        installations:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentGithubInstallation'
     AgentTriggerListResponse:
       type: object
       additionalProperties: false

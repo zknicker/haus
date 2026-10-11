@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { McpOAuthStartResult } from '@haus/api';
+import type { McpOAuthStartResult, McpPreset } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
@@ -18,6 +18,13 @@ export type McpOAuthCallbackResult =
     | { status: 'expired' }
     | { status: 'failed' };
 
+/** Work a completed sign-in starts, such as GitHub's repository access refresh. */
+export type McpSignedInHook = (connection: {
+    id: string;
+    preset: McpPreset | null;
+    serverId: string;
+}) => Promise<void>;
+
 /** Server-local OAuth state. Callback codes and credentials never leave Server custody. */
 export class McpOAuthRelay {
     private readonly attempts = new Map<string, OAuthAttempt>();
@@ -26,7 +33,8 @@ export class McpOAuthRelay {
         private readonly db: HausDatabase,
         private readonly runtime: McpRuntime,
         private readonly now: () => number = Date.now,
-        private readonly ttlMs = 5 * 60_000
+        private readonly ttlMs = 5 * 60_000,
+        private readonly afterSignIn: McpSignedInHook | null = null
     ) {}
 
     async start(input: {
@@ -84,6 +92,18 @@ export class McpOAuthRelay {
                 .returning({ serverId: mcpConnectionsTable.serverId });
             if (updated) {
                 mcpUpdatedTopic.announce({ serverId: updated.serverId });
+                // Best effort: the connection is signed in either way, and the
+                // hook's own sweep retries what fails here.
+                await this.afterSignIn?.({
+                    id: attempt.connectionId,
+                    preset,
+                    serverId: updated.serverId,
+                }).catch((error: unknown) => {
+                    console.error(
+                        `[haus] post-sign-in work failed for connection ${attempt.connectionId}`,
+                        error instanceof Error ? error.name : 'unknown error'
+                    );
+                });
             }
             return { status: 'complete' };
         } catch (error) {

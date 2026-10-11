@@ -165,18 +165,6 @@ export async function disconnectMcpConnection(
     });
 }
 
-export async function deleteMcpConnection(
-    db: HausDatabase,
-    runtime: McpRuntime,
-    member: HausUser | null,
-    input: { connectionId: string; serverId: string }
-): Promise<McpConnection> {
-    const connection = await requireOperableConnection(db, member, input);
-    await runtime.closeConnection(input.connectionId);
-    await db.delete(mcpConnectionsTable).where(eq(mcpConnectionsTable.id, input.connectionId));
-    return shapeMcpConnection(connection);
-}
-
 export async function refreshMcpConnection(
     db: HausDatabase,
     runtime: McpRuntime,

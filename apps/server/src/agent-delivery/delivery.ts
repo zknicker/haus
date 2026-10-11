@@ -26,7 +26,7 @@ import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/recor
 import { lockServerRow } from '../servers/server-lock.ts';
 import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
-import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
+import { canBeginAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
 import {
     configureFrame,
@@ -128,8 +128,8 @@ export class AgentDelivery {
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
         await store.enqueueInboxItem(tx, { ...input, source });
         // Only human intent lifts a wake pause, releases a failure hold, or
-        // releases the Agent-authored chain ceiling, even when older Agent rows
-        // precede it. Agent and automation work queues behind any hold.
+        // releases the automation chain ceiling, even when older Agent or
+        // Trigger rows precede it. Agent and automation work queues behind any hold.
         if (source === 'human') {
             await failureHold.releaseHoldsForHuman(tx, input, this.wakePauseLifts);
         }
@@ -595,10 +595,7 @@ export class AgentDelivery {
                     serverId,
                 });
                 await failureHold.clearDeliveryFailures(tx, summary.agentId);
-                await store.setAgentChainTurns(tx, {
-                    agentId: summary.agentId,
-                    turns: nextAgentChainTurns(budgetRows, state.agentChainTurns),
-                });
+                await settleAgentChain(tx, summary.agentId, budgetRows, state.agentChainTurns);
                 const activity = await appendServerAgentActivity(tx, {
                     agentId: summary.agentId,
                     category: 'working',
@@ -966,7 +963,8 @@ export class AgentDelivery {
         if (!first) {
             return null;
         }
-        if (!canBeginAgentDrain(candidates, state.agentChainTurns)) {
+        const chainTurns = await restartIdleAgentChain(tx, agentId, state.agentChainTurns);
+        if (!canBeginAgentDrain(candidates, chainTurns)) {
             return null;
         }
         const runId = createOpaqueId('run');

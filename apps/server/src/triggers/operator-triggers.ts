@@ -6,15 +6,13 @@ import type {
     WebhookTrigger,
 } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
+import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import {
-    refuseGithubTriggers,
-    TriggerAccessDeniedError,
-    type TriggerClock,
-} from './trigger-model.ts';
+import { updateGithubTriggerRow } from './github-trigger-writes.ts';
+import { TriggerAccessDeniedError, type TriggerClock } from './trigger-model.ts';
 import { listTriggerFires, readTrigger, triggerRows, viewTrigger } from './trigger-queries.ts';
 import {
     deleteTriggerRow,
@@ -124,11 +122,19 @@ export async function updateOperatorTrigger(
         instruction?: string | null;
         title?: string;
     },
-    clock: TriggerClock
+    clock: TriggerClock,
+    githubTransport: GithubApiTransport = {}
 ): Promise<{ trigger: Trigger }> {
     if (input.github !== undefined) {
         await requireTriggerOperator(db, member, input.serverId);
-        return refuseGithubTriggers();
+        return {
+            trigger: await updateGithubTriggerRow(
+                { db, transport: githubTransport },
+                { ...input, github: input.github },
+                operatorCheck(member, input),
+                clock
+            ),
+        };
     }
     return { trigger: await updateTriggerRow(db, input, operatorCheck(member, input), clock) };
 }

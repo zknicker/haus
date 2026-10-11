@@ -1,25 +1,31 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
+import type { GithubDelivery, GithubIngestOutcome } from './delivery-ingest.ts';
+import type { GithubApp } from './github-app.ts';
+import { registerGithubSinkRoute } from './sink-route.ts';
+import { registerGithubWebhookRoute } from './webhook-route.ts';
 
-/** The public GitHub App edges. Each answers 501 until its slice replaces it. */
+/**
+ * The public GitHub App delivery edges. The installation setup redirect is
+ * `github/setup-route.ts`.
+ */
 export const githubRoutePaths = {
-    /** Installation setup redirect (Slice B: `github/setup-route.ts`). */
-    setup: '/github/setup',
-    /** The development App's delivery sink (Slice C: `github/sink-route.ts`). */
+    /** The development App's delivery sink. */
     sink: '/api/github/sink',
-    /** Every installation's app webhook (Slice C: `github/webhook-route.ts`). */
+    /** Every installation's app webhook. */
     webhook: '/api/github/webhook',
 } as const;
 
-/**
- * Registers the GitHub App's HTTP edges ahead of tRPC, without Clerk. Stubs
- * answer `501 not_implemented` so nothing upstream mistakes them for success.
- */
-export function registerGithubRoutes(app: FastifyInstance) {
-    app.get(githubRoutePaths.setup, (_request, reply) => notImplemented(reply));
-    app.post(githubRoutePaths.sink, (_request, reply) => notImplemented(reply));
-    app.post(githubRoutePaths.webhook, (_request, reply) => notImplemented(reply));
+export interface GithubRouteOptions {
+    githubApp: GithubApp | null;
+    ingest(delivery: GithubDelivery): Promise<GithubIngestOutcome>;
 }
 
-function notImplemented(reply: FastifyReply) {
-    return reply.code(501).send({ code: 'not_implemented' });
+/** Registers the GitHub App's delivery edges ahead of tRPC, without Clerk. */
+export async function registerGithubRoutes(app: FastifyInstance, options: GithubRouteOptions) {
+    await registerGithubSinkRoute(app, githubRoutePaths.sink);
+    await registerGithubWebhookRoute(app, {
+        ingest: options.ingest,
+        path: githubRoutePaths.webhook,
+        webhookSecret: options.githubApp?.config.webhookSecret ?? null,
+    });
 }

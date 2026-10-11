@@ -1,5 +1,9 @@
+import type { GithubTrigger } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { projectGithubDelivery } from '../github/event-projection/project.ts';
+import { sampleGithubPayload } from '../github/event-projection/sample.ts';
+import { githubEnvelopeLines } from '../github/trigger-envelope.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -9,12 +13,7 @@ import {
     requireTriggerOperator,
 } from './operator-triggers.ts';
 import { fireTrigger } from './trigger-fire.ts';
-import {
-    refuseGithubTriggers,
-    type TriggerClock,
-    TriggerNotFoundError,
-    TriggerRefusedError,
-} from './trigger-model.ts';
+import { type TriggerClock, TriggerNotFoundError, TriggerRefusedError } from './trigger-model.ts';
 import { readTrigger } from './trigger-queries.ts';
 import type { TriggerRateLimiter } from './trigger-rate-limit.ts';
 
@@ -41,10 +40,6 @@ export async function testOperatorTrigger(
 ): Promise<{ fireId: string }> {
     const operator = await requireTriggerOperator(db, member, input.serverId);
     const trigger = await readTrigger(db, input);
-    if (trigger.kind === 'github') {
-        // A GitHub test fire carries a sample projection, which lands with deliveries.
-        return refuseGithubTriggers();
-    }
     if (trigger.status === 'disabled') {
         throw new TriggerRefusedError(
             'trigger_disabled',
@@ -69,11 +64,15 @@ export async function testOperatorTrigger(
         {
             contentType: 'application/json',
             dedupeKey: null,
-            payload: JSON.stringify({
-                test: true,
-                sentBy: handle ?? operator.id,
-                sentAt: clock.now().toISOString(),
-            }),
+            ...(trigger.kind === 'github'
+                ? githubTestFire(trigger)
+                : {
+                      payload: JSON.stringify({
+                          test: true,
+                          sentBy: handle ?? operator.id,
+                          sentAt: clock.now().toISOString(),
+                      }),
+                  }),
             trigger: {
                 id: trigger.id,
                 serverId: input.serverId,
@@ -94,4 +93,30 @@ export async function testOperatorTrigger(
         );
     }
     return { fireId: outcome.fireId };
+}
+
+/**
+ * A `github` test fire carries a sample projection of the Trigger's first
+ * event, marked `test: true`, under the same envelope lines a real delivery
+ * gets, so the Agent rehearses exactly what a real event will look like.
+ */
+function githubTestFire(trigger: GithubTrigger) {
+    const [entry] = trigger.github.events;
+    const repository =
+        trigger.github.repositories.scope === 'repositories'
+            ? (trigger.github.repositories.names[0] ?? `${trigger.github.installationLogin}/sample`)
+            : `${trigger.github.installationLogin}/sample`;
+    if (!entry) {
+        throw new Error(`GitHub Trigger ${trigger.id} has no events.`);
+    }
+    const payload = sampleGithubPayload(entry, repository);
+    return {
+        github: githubEnvelopeLines({ deliveryGuid: 'test', event: entry.event, payload }),
+        payload: projectGithubDelivery({
+            event: entry.event,
+            installationAccount: trigger.github.installationLogin,
+            payload,
+            test: true,
+        }).serialized,
+    };
 }

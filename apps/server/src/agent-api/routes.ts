@@ -12,6 +12,7 @@ import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './a
 import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
+import { registerAgentGithubRoutes } from './github-routes.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
@@ -76,6 +77,7 @@ export function registerAgentApiRoutes(
         attachmentRoot: AttachmentRoot;
         computers: import('../computers/connections.ts').ComputerConnections;
         db: HausDatabase;
+        githubApp: import('../github/github-app.ts').GithubApp | null;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         postCommitWork: ServerPostCommitWork;
     }
@@ -94,6 +96,7 @@ export function registerAgentApiRoutes(
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
+    registerAgentGithubRoutes(app, { db: options.db, githubApp: options.githubApp });
     registerAgentInboxRoutes(app, options);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
@@ -104,7 +107,7 @@ export function registerAgentApiRoutes(
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
-    registerAgentTriggerRoutes(app, options.db);
+    registerAgentTriggerRoutes(app, options.db, options.githubApp?.transport);
 
     registerAgentProfileRoutes(app, options.db);
 

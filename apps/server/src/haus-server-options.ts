@@ -2,6 +2,7 @@ import type { WebSocket } from 'ws';
 import type { AvatarGenerationLogger, AvatarImageProvider } from './avatar-generation/index.ts';
 import type { SweepTimers } from './boot-sweep.ts';
 import type { ComputerSocketLivenessTiming } from './computers/socket-liveness.ts';
+import type { GithubApp } from './github/github-app.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
 import type { MessageRouter } from './message-routing/jev.ts';
@@ -34,6 +35,14 @@ export interface HausServerApplicationOptions {
     connectLive?: () => WebSocket;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
+    /** The Haus GitHub App; absent or null when its credentials are not configured. */
+    githubApp?: GithubApp | null;
+    /**
+     * How often the GitHub delivery recovery sweep runs. Production sweeps every
+     * ten minutes, the development pull every ten seconds; tests pass `null` to
+     * skip the background sweep and drive it directly.
+     */
+    githubRecoveryIntervalMs?: number | null;
     messageRouter?: MessageRouter;
     /** Server-owned OpenAI key for avatar generation and GPT-Live calls. */
     openAiApiKey?: string;

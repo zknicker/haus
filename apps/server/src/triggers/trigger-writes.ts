@@ -39,7 +39,7 @@ export interface CreateTriggerRowInput {
     /** The human who created it, or null when the owning Agent created it itself. */
     createdByUserId: string | null;
     instruction: string | null;
-    /** Only webhooks are created here; `github` creation arrives with GitHub deliveries. */
+    /** Only webhooks are created here; `github-trigger-writes.ts` creates `github` Triggers. */
     kind: 'webhook';
     origin: string;
     ownerAgentId: string;

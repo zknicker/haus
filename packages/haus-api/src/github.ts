@@ -110,3 +110,26 @@ export const githubRepositoriesInputSchema = z
     })
     .strict();
 export const githubRepositoriesSchema = z.array(githubRepositorySchema);
+
+/**
+ * One installation an Agent can use (`haus github installations`): a live
+ * installation on a GitHub connection the Agent holds the grant on.
+ * `repositories` is present only when the Agent asked for them.
+ */
+export const agentGithubInstallationSchema = z
+    .object({
+        accessibleRepositoryCount: z.number().int().nonnegative(),
+        account: githubAccountSchema,
+        githubInstallationId: githubIdSchema,
+        id: idSchema,
+        repositories: z.array(githubRepositorySchema).optional(),
+        repositorySelection: githubRepositorySelectionSchema,
+        status: githubInstallationStatusSchema,
+    })
+    .strict();
+export type AgentGithubInstallation = z.infer<typeof agentGithubInstallationSchema>;
+
+export const agentGithubInstallationsSchema = z
+    .object({ installations: z.array(agentGithubInstallationSchema) })
+    .strict();
+export type AgentGithubInstallations = z.infer<typeof agentGithubInstallationsSchema>;

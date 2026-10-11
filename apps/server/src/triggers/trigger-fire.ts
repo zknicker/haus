@@ -4,6 +4,7 @@ import { tracePromise } from '@haus/effect';
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { ChatArchivedError, ChatNotFoundError, requireChatWritable } from '../chats/chat-access.ts';
+import type { GithubEnvelopeLines } from '../github/trigger-envelope.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
@@ -29,6 +30,8 @@ export interface TriggerFireRequest {
     contentType: string | null;
     /** The caller's `Idempotency-Key`, or null when it sent none. */
     dedupeKey: string | null;
+    /** A `github` fire's summary line and provenance segments. */
+    github?: GithubEnvelopeLines;
     payload: string;
     trigger: AuthenticatedTrigger;
 }
@@ -38,7 +41,7 @@ export type TriggerFireOutcome =
     | { fireId: string; status: 'duplicate'; triggerId: string }
     | { code: TriggerFireErrorCode; status: 'refused' };
 
-interface TriggerFireCommit {
+export interface TriggerFireCommit {
     dispatch?: { agentId: string; serverId: string };
     outcome: TriggerFireOutcome;
 }
@@ -108,100 +111,111 @@ async function fireTriggerTransaction(
     request: TriggerFireRequest,
     clock: TriggerClock
 ): Promise<TriggerFireOutcome> {
-    const now = clock.now();
-    const fireId = createOpaqueId('trf');
     const committed = await db.transaction(async (tx): Promise<TriggerFireCommit> => {
         await lockServerRow(tx, request.trigger.serverId);
-        const [locked] = await tx
-            .select()
-            .from(triggersTable)
-            .where(
-                and(
-                    eq(triggersTable.serverId, request.trigger.serverId),
-                    eq(triggersTable.id, request.trigger.id),
-                    isNull(triggersTable.deletedAt)
-                )
-            )
-            .for('update');
-        if (!locked) {
-            // The trigger was deleted between authentication and the lock. An
-            // unknown trigger and a wrong secret are the same answer: the route
-            // must never confirm that a trigger exists.
-            return { outcome: { code: 'unauthorized', status: 'refused' } as const };
-        }
-        if (locked.status === 'disabled') {
-            return { outcome: { code: 'trigger_disabled', status: 'refused' } as const };
-        }
-        // The route already answered a replay it could see; this catches the
-        // two concurrent deliveries that carry the same key.
-        const duplicate = await findTriggerFireByDedupeKey(tx, {
-            dedupeKey: request.dedupeKey,
-            serverId: locked.serverId,
-            triggerId: locked.id,
-        });
-        if (duplicate) {
-            return {
-                outcome: {
-                    fireId: duplicate,
-                    status: 'duplicate',
-                    triggerId: locked.id,
-                } as const,
-            };
-        }
-        if (!(await anchorIsLive(tx, locked))) {
-            await disableTrigger(tx, locked, now);
-            return { outcome: { code: 'trigger_unavailable', status: 'refused' } as const };
-        }
-
-        const payloadBytes = Buffer.byteLength(request.payload);
-        await tx.insert(triggerFiresTable).values({
-            contentType: request.contentType,
-            dedupeKey: request.dedupeKey,
-            id: fireId,
-            payload: request.payload,
-            payloadBytes,
-            receivedAt: now,
-            serverId: locked.serverId,
-            triggerId: locked.id,
-        });
-        await dependencies.delivery.enqueue(tx, {
-            agentId: locked.ownerAgentId,
-            chatId: locked.anchorChatId,
-            content: triggerEnvelope({
-                contentType: request.contentType,
-                fireId,
-                instruction: locked.instruction,
-                payload: request.payload,
-                payloadBytes,
-                title: locked.title,
-                triggerId: locked.id,
-            }),
-            createdAt: now,
-            dedupeKey: fireId,
-            serverId: locked.serverId,
-            source: 'trigger',
-        });
-        await tx
-            .update(triggersTable)
-            .set({
-                fireCount: sql`${triggersTable.fireCount} + 1`,
-                lastFiredAt: now,
-                updatedAt: now,
-                version: locked.version + 1,
-            })
-            .where(
-                and(eq(triggersTable.serverId, locked.serverId), eq(triggersTable.id, locked.id))
-            );
-        return {
-            dispatch: { agentId: locked.ownerAgentId, serverId: locked.serverId },
-            outcome: { fireId, status: 'accepted', triggerId: locked.id } as const,
-        };
+        return await recordTriggerFire(tx, dependencies.delivery, request, clock.now());
     });
 
     if (committed.dispatch) {
         void dependencies.postCommitWork.wakeAgents(dependencies.delivery, [committed.dispatch]);
     }
     return committed.outcome;
+}
+
+/**
+ * Records one fire inside the caller's transaction, which already holds the
+ * Server row lock: the fire row, the owner's queued wake, and the trigger
+ * counters. The caller dispatches `dispatch` after it commits. A GitHub
+ * delivery records every matching Trigger this way in one transaction.
+ */
+export async function recordTriggerFire(
+    tx: HausDatabase,
+    delivery: Pick<AgentDelivery, 'enqueue'>,
+    request: Omit<TriggerFireRequest, 'trigger'> & {
+        trigger: Pick<AuthenticatedTrigger, 'id' | 'serverId'>;
+    },
+    now: Date
+): Promise<TriggerFireCommit> {
+    const fireId = createOpaqueId('trf');
+    const [locked] = await tx
+        .select()
+        .from(triggersTable)
+        .where(
+            and(
+                eq(triggersTable.serverId, request.trigger.serverId),
+                eq(triggersTable.id, request.trigger.id),
+                isNull(triggersTable.deletedAt)
+            )
+        )
+        .for('update');
+    if (!locked) {
+        // The trigger was deleted between authentication and the lock. An
+        // unknown trigger and a wrong secret are the same answer: the route
+        // must never confirm that a trigger exists.
+        return { outcome: { code: 'unauthorized', status: 'refused' } as const };
+    }
+    if (locked.status === 'disabled') {
+        return { outcome: { code: 'trigger_disabled', status: 'refused' } as const };
+    }
+    // The route already answered a replay it could see; this catches the
+    // two concurrent deliveries that carry the same key.
+    const duplicate = await findTriggerFireByDedupeKey(tx, {
+        dedupeKey: request.dedupeKey,
+        serverId: locked.serverId,
+        triggerId: locked.id,
+    });
+    if (duplicate) {
+        return {
+            outcome: { fireId: duplicate, status: 'duplicate', triggerId: locked.id } as const,
+        };
+    }
+    if (!(await anchorIsLive(tx, locked))) {
+        await disableTrigger(tx, locked, now);
+        return { outcome: { code: 'trigger_unavailable', status: 'refused' } as const };
+    }
+
+    const payloadBytes = Buffer.byteLength(request.payload);
+    await tx.insert(triggerFiresTable).values({
+        contentType: request.contentType,
+        dedupeKey: request.dedupeKey,
+        id: fireId,
+        payload: request.payload,
+        payloadBytes,
+        receivedAt: now,
+        serverId: locked.serverId,
+        triggerId: locked.id,
+    });
+    await delivery.enqueue(tx, {
+        agentId: locked.ownerAgentId,
+        chatId: locked.anchorChatId,
+        content: triggerEnvelope({
+            contentType: request.contentType,
+            fireId,
+            github: request.github,
+            instruction: locked.instruction,
+            payload: request.payload,
+            payloadBytes,
+            title: locked.title,
+            triggerId: locked.id,
+        }),
+        createdAt: now,
+        dedupeKey: fireId,
+        serverId: locked.serverId,
+        source: 'trigger',
+    });
+    await tx
+        .update(triggersTable)
+        .set({
+            fireCount: sql`${triggersTable.fireCount} + 1`,
+            lastFiredAt: now,
+            updatedAt: now,
+            version: locked.version + 1,
+        })
+        .where(and(eq(triggersTable.serverId, locked.serverId), eq(triggersTable.id, locked.id)));
+    return {
+        dispatch: { agentId: locked.ownerAgentId, serverId: locked.serverId },
+        outcome: { fireId, status: 'accepted', triggerId: locked.id } as const,
+    };
 }
 
 /**

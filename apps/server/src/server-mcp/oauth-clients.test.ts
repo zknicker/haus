@@ -5,10 +5,9 @@ import { emptySecret, type McpRuntime, type McpSecret } from './runtime.ts';
 
 const redirectUrl = 'https://haus.chat/mcp/oauth/callback';
 const githubMcpUrl = 'https://api.githubcopilot.com/mcp/';
-const githubScope = 'repo read:org read:user user:email notifications gist project security_events';
 const clientVariables = [
-    'HAUS_GITHUB_OAUTH_CLIENT_ID',
-    'HAUS_GITHUB_OAUTH_CLIENT_SECRET',
+    'HAUS_GITHUB_APP_CLIENT_ID',
+    'HAUS_GITHUB_APP_CLIENT_SECRET',
     'HAUS_GOOGLE_OAUTH_CLIENT_ID',
     'HAUS_GOOGLE_OAUTH_CLIENT_SECRET',
 ] as const;
@@ -17,8 +16,8 @@ const savedEnvironment = new Map(clientVariables.map((name) => [name, process.en
 const originalFetch = globalThis.fetch;
 
 beforeEach(() => {
-    process.env.HAUS_GITHUB_OAUTH_CLIENT_ID = 'github-client';
-    process.env.HAUS_GITHUB_OAUTH_CLIENT_SECRET = 'github-secret';
+    process.env.HAUS_GITHUB_APP_CLIENT_ID = 'github-client';
+    process.env.HAUS_GITHUB_APP_CLIENT_SECRET = 'github-secret';
     process.env.HAUS_GOOGLE_OAUTH_CLIENT_ID = 'google-client';
     process.env.HAUS_GOOGLE_OAUTH_CLIENT_SECRET = 'google-secret';
 });
@@ -55,7 +54,7 @@ describe('configured OAuth clients', () => {
         });
     });
 
-    test('GitHub presents the Server client with post auth and its scope', async () => {
+    test('GitHub presents the App client with post auth and no scope', async () => {
         const provider = await createMcpOAuthProvider(
             fakeRuntime('github', githubMcpUrl),
             'mcp_github',
@@ -67,9 +66,9 @@ describe('configured OAuth clients', () => {
             client_secret: 'github-secret',
         });
         expect(provider.clientMetadata).toMatchObject({
-            scope: githubScope,
             token_endpoint_auth_method: 'client_secret_post',
         });
+        expect(provider.clientMetadata.scope).toBeUndefined();
         await expect(
             provider.validateAuthorizationServerURL?.(
                 githubMcpUrl,
@@ -102,7 +101,7 @@ describe('configured OAuth clients', () => {
     });
 
     test('a missing GitHub client reports the connection unavailable', async () => {
-        process.env.HAUS_GITHUB_OAUTH_CLIENT_SECRET = '';
+        process.env.HAUS_GITHUB_APP_CLIENT_SECRET = '';
         const provider = await createMcpOAuthProvider(
             fakeRuntime('github', githubMcpUrl),
             'mcp_github',
@@ -128,7 +127,7 @@ describe('configured OAuth clients', () => {
             client_secret: 'github-secret',
         });
 
-        process.env.HAUS_GITHUB_OAUTH_CLIENT_SECRET = 'rotated-secret';
+        process.env.HAUS_GITHUB_APP_CLIENT_SECRET = 'rotated-secret';
         const after = await createMcpOAuthProvider(runtime, 'mcp_github', redirectUrl, options);
         expect(await after.clientInformation()).toEqual({
             client_id: 'github-client',
@@ -137,6 +136,26 @@ describe('configured OAuth clients', () => {
         await after.saveTokens({ access_token: 'gho_new', token_type: 'bearer' });
         expect(JSON.stringify(runtime.storedSecret())).not.toContain('rotated-secret');
         expect(runtime.storedSecret().configuredClientInformation).toBeUndefined();
+    });
+
+    test('a live client sends the user token another writer refreshed', async () => {
+        const runtime = fakeRuntime('github', githubMcpUrl, {
+            ...emptySecret(),
+            tokens: { access_token: 'ghu_old', refresh_token: 'ghr_old', token_type: 'bearer' },
+        });
+        const provider = await createMcpOAuthProvider(runtime, 'mcp_github', redirectUrl, {
+            allowAuthorizationServerOrigin: false,
+            onRedirect() {},
+        });
+        expect((await provider.tokens())?.access_token).toBe('ghu_old');
+        await runtime.writeSecret('mcp_github', {
+            ...runtime.storedSecret(),
+            tokens: { access_token: 'ghu_new', refresh_token: 'ghr_new', token_type: 'bearer' },
+        });
+        expect(await provider.tokens()).toMatchObject({
+            access_token: 'ghu_new',
+            refresh_token: 'ghr_new',
+        });
     });
 
     test('a fresh sign-in leaves the Server client off the stored secret', async () => {
@@ -152,7 +171,7 @@ describe('configured OAuth clients', () => {
         expect(JSON.stringify(runtime.storedSecret())).not.toContain('github-secret');
     });
 
-    test('GitHub sign-in requests the Haus scope instead of every advertised scope', async () => {
+    test('GitHub sign-in sends the App client through PKCE to the Haus callback', async () => {
         globalThis.fetch = githubDiscoveryFetch();
         const result = await startMcpAuthorization(fakeRuntime('github', githubMcpUrl), {
             allowAuthorizationServerOrigin: false,
@@ -166,7 +185,8 @@ describe('configured OAuth clients', () => {
         const url = new URL(result.authorizationUrl);
         expect(url.origin + url.pathname).toBe('https://github.com/login/oauth/authorize');
         expect(url.searchParams.get('client_id')).toBe('github-client');
-        expect(url.searchParams.get('scope')).toBe(githubScope);
+        // GitHub Apps have permissions, not scopes: the advertised classic scopes stay off.
+        expect(url.searchParams.has('scope')).toBe(false);
         expect(url.searchParams.get('code_challenge_method')).toBe('S256');
         expect(url.searchParams.get('redirect_uri')).toBe(redirectUrl);
     });

@@ -180,6 +180,11 @@ export async function createMcpOAuthProvider(
         },
         async redirectToAuthorization(url) {
             await trustOrigin(url);
+            // A configured client without a scope (the GitHub App) sends none,
+            // not the resource's advertised classic scopes.
+            if (configured && configured.scope === undefined) {
+                url.searchParams.delete('scope');
+            }
             options.onRedirect(url);
         },
         async saveAuthorizationServerInformation(value) {
@@ -207,6 +212,10 @@ export async function createMcpOAuthProvider(
             return secret.oauthState;
         },
         async tokens() {
+            // Re-read per request: the GitHub connection refreshes its user
+            // token outside this client (github/user-token.ts), and GitHub
+            // rotates the refresh token on every use.
+            secret = await runtime.readSecret(connectionId);
             return secret.tokens as OAuthTokens | undefined;
         },
         async validateAuthorizationServerURL(_serverUrl, authorizationServerUrl) {

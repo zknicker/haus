@@ -6,6 +6,7 @@ import {
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as z from 'zod';
 import { ChatArchivedError, ChatNotFoundError } from '../chats/chat-access.ts';
+import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     ReminderAgentInactiveError,
@@ -35,7 +36,11 @@ const logQuerySchema = z.object({
  * Every route is bound to the credential's Agent and Server: an Agent can only
  * ever see and change triggers it owns.
  */
-export function registerAgentTriggerRoutes(app: FastifyInstance, db: HausDatabase) {
+export function registerAgentTriggerRoutes(
+    app: FastifyInstance,
+    db: HausDatabase,
+    githubTransport: GithubApiTransport = {}
+) {
     app.post('/api/agent/triggers', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         if (!runner) {
@@ -45,7 +50,9 @@ export function registerAgentTriggerRoutes(app: FastifyInstance, db: HausDatabas
         if (!parsed.success) {
             return invalid(reply);
         }
-        return await runAction(reply, () => createAgentTrigger(db, runner, request, parsed.data));
+        return await runAction(reply, () =>
+            createAgentTrigger(db, runner, request, parsed.data, githubTransport)
+        );
     });
 
     app.get('/api/agent/triggers', async (request, reply) => {

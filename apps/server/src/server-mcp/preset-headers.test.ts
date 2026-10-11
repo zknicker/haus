@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'bun:test';
 import { mcpRequestHeaders } from './preset-headers.ts';
 
-const githubToolsets = 'default,actions,notifications,code_security,dependabot';
+const githubToolsets = 'default,actions,code_security,dependabot';
 
 describe('mcpRequestHeaders', () => {
-    it('asks GitHub for Actions, notifications, and security toolsets alongside its defaults', () => {
+    it('asks GitHub for Actions and security toolsets alongside its defaults', () => {
         expect(mcpRequestHeaders('github', {})).toEqual({ 'X-MCP-Toolsets': githubToolsets });
+    });
+
+    it('never asks for toolsets a GitHub App user token cannot use or that expose secrets', () => {
+        const toolsets = mcpRequestHeaders('github', {})['X-MCP-Toolsets']?.split(',');
+        expect(toolsets).not.toContain('notifications');
+        expect(toolsets).not.toContain('secret_protection');
     });
 
     it('keeps stored headers and leaves other connections untouched', () => {

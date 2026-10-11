@@ -16,6 +16,7 @@ import {
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { mcpUpdatedTopic } from '../../realtime/topics.ts';
+import { deleteMcpConnection } from '../../server-mcp/delete-connection.ts';
 import { McpDeniedError } from '../../server-mcp/errors.ts';
 import {
     createMcpPresetAccount,
@@ -24,7 +25,6 @@ import {
 } from '../../server-mcp/presets.ts';
 import {
     createMcpConnection,
-    deleteMcpConnection,
     disconnectMcpConnection,
     refreshMcpConnection,
     replaceMcpHeaders,
@@ -94,7 +94,9 @@ export const mcpRouter = createRouter({
         .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                deleteMcpConnection(ctx.hausDb, ctx.mcpRuntime, ctx.member, input)
+                deleteMcpConnection(ctx.hausDb, ctx.mcpRuntime, ctx.member, input, (wakes) => {
+                    void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, wakes);
+                })
             )
         ),
     disconnect: guarded

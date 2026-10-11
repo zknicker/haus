@@ -1,6 +1,6 @@
 import cors from '@fastify/cors';
 import { settle, tracePromise } from '@haus/effect';
-import { Exit, Scope } from 'effect';
+import { Effect, Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
@@ -11,6 +11,9 @@ import { ComputerConnections } from './computers/connections.ts';
 import { markAllComputersOffline } from './computers/service.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { productionComputerManifestUrl } from './computers/update.ts';
+import { githubDeliveryIngest } from './github/deliveries.ts';
+import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
+import { githubSignedInHook } from './github/installation-sweep.ts';
 import { createHausContextFactory, type HausContextDependencies } from './haus-api/context.ts';
 import { startHausWebSocketServer } from './haus-api/ws.ts';
 import { hausFastifyOptions } from './haus-fastify-options.ts';
@@ -111,7 +114,14 @@ export async function createHausServerApplication(
         const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime);
         mcpRuntime = startedMcpRuntime;
         const mcpIconResolver = makeMcpIconResolver(runtime);
-        const mcpOAuthRelay = new McpOAuthRelay(connectedHaus.db, startedMcpRuntime);
+        const signedIn = githubSignedInHook(options.githubApp ?? null, connectedHaus.db);
+        const mcpOAuthRelay = new McpOAuthRelay(
+            connectedHaus.db,
+            startedMcpRuntime,
+            undefined,
+            undefined,
+            signedIn
+        );
         // One inbound budget per trigger, shared by the public route and the
         // operator's test fire: a test costs exactly what a real delivery does.
         const triggerRateLimiter = new TriggerRateLimiter();
@@ -131,6 +141,7 @@ export async function createHausServerApplication(
             computerConnections,
             computerReleaseManifestUrl:
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
+            githubApp: options.githubApp ?? null,
             hausDb: connectedHaus.db,
             mcpIconResolver,
             mcpOAuthRelay,
@@ -140,6 +151,14 @@ export async function createHausServerApplication(
             triggerRateLimiter,
         } satisfies HausContextDependencies;
         const createContext = createHausContextFactory(contextDependencies);
+        const githubIngest = githubDeliveryIngest({
+            db: connectedHaus.db,
+            delivery: agentDelivery,
+            githubApp: contextDependencies.githubApp,
+            limiter: triggerRateLimiter,
+            postCommitWork: startedPostCommitWork,
+            runtime,
+        });
         const isAllowedOrigin = (origin: string | undefined) =>
             isAllowedAppOrigin(origin, options.appOrigin);
 
@@ -157,6 +176,7 @@ export async function createHausServerApplication(
         await registerHausServerRoutes(startedApp, {
             ...contextDependencies,
             createContext,
+            githubIngest,
             releaseIdentity: options.releaseIdentity,
         });
 
@@ -187,10 +207,40 @@ export async function createHausServerApplication(
             appOrigin: options.appOrigin,
             clock: reminderClock,
             db: connectedHaus.db,
+            githubApp: options.githubApp ?? null,
             pushReadGraceMs: options.pushReadGraceMs,
             pushSender: options.pushSender ?? null,
             timers: options.sweepTimers,
         });
+        const { githubApp } = contextDependencies;
+        const githubRecoveryIntervalMs =
+            options.githubRecoveryIntervalMs === undefined
+                ? 10 * 60_000
+                : options.githubRecoveryIntervalMs;
+        if (githubApp && githubRecoveryIntervalMs !== null) {
+            const recoveryDependencies = {
+                app: githubApp,
+                clock: { now: () => new Date() },
+                db: connectedHaus.db,
+                ingest: githubIngest,
+                runtime,
+            };
+            await settle(
+                runtime,
+                Scope.extend(
+                    Effect.acquireRelease(
+                        Effect.sync(() =>
+                            startGithubDeliveryRecovery(recoveryDependencies, {
+                                intervalMs: githubRecoveryIntervalMs,
+                                timers: options.sweepTimers,
+                            })
+                        ),
+                        (started) => Effect.promise(() => started.close())
+                    ),
+                    scope
+                )
+            );
+        }
         recurringWork = await startServerRecurringWork({
             delivery: agentDelivery,
             reminderClock,

@@ -80,9 +80,6 @@ const envSchema = z
         HAUS_GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(),
         HAUS_GITHUB_APP_SLUG: z.string().min(1).optional(),
         HAUS_GITHUB_APP_WEBHOOK_SECRET: z.string().min(32).optional(),
-        // Read by the GitHub MCP preset until the App client replaces it (Slice B).
-        HAUS_GITHUB_OAUTH_CLIENT_ID: z.string().min(1).optional(),
-        HAUS_GITHUB_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
         HAUS_SKOOL_MCP_URL: z.string().url().optional(),
         HAUS_SKOOL_CONTROL_TOKEN: z.string().min(1).optional(),
         HAUS_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),

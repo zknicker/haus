@@ -9,6 +9,7 @@ import type {
     AvatarImageProvider,
 } from '../src/avatar-generation/service.ts';
 import type { ComputerSocketLivenessTiming } from '../src/computers/socket-liveness.ts';
+import type { GithubApp } from '../src/github/github-app.ts';
 import {
     createHausServerApplication,
     type HausServerApplication,
@@ -70,6 +71,8 @@ export async function startHausServerHarness(
         openAiApiKey?: string;
         connectLive?: () => WebSocket;
         computerSocketLiveness?: ComputerSocketLivenessTiming;
+        /** The Haus GitHub App, usually over a faked GitHub transport. */
+        githubApp?: GithubApp | null;
         socketSessionGraceMs?: number;
     } = {}
 ): Promise<HausServerHarness> {
@@ -125,6 +128,9 @@ export async function startHausServerHarness(
                 openAiApiKey: options.openAiApiKey,
                 connectLive: options.connectLive,
                 computerSocketLiveness: options.computerSocketLiveness,
+                githubApp: options.githubApp,
+                // Tests drive GitHub delivery recovery directly, never on a timer.
+                githubRecoveryIntervalMs: null,
                 socketSessionGraceMs: options.socketSessionGraceMs,
             });
             await next.app.listen({ host: '127.0.0.1', port: 0 });

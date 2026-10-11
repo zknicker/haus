@@ -84,14 +84,6 @@ export class TriggerRequestRefusedError extends Error {
     }
 }
 
-/** `github` Triggers are refused until GitHub deliveries can fire them. */
-export function refuseGithubTriggers(): never {
-    throw new TriggerRequestRefusedError(
-        'github_triggers_unavailable',
-        'GitHub Triggers are not available on this Server yet.'
-    );
-}
-
 export interface TriggerViewContext {
     createdByHandle: string | null;
     /** The `github` configuration; required exactly when the Trigger is `github`. */

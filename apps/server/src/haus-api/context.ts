@@ -4,6 +4,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
+import type { GithubApp } from '../github/github-app.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
@@ -41,6 +42,8 @@ export interface HausContext {
     /** Live attachment sockets for MCP configuration delivery. */
     computerConnections: ComputerConnections;
     computerReleaseManifestUrl: string;
+    /** The Haus GitHub App, or null when its credentials are not configured. */
+    githubApp: GithubApp | null;
     hausDb: HausDatabase;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
@@ -76,6 +79,7 @@ export interface HausContextDependencies {
     clerkUsers: ClerkUsers;
     computerConnections: ComputerConnections;
     computerReleaseManifestUrl: string;
+    githubApp: GithubApp | null;
     hausDb: HausDatabase;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;

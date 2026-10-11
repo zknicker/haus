@@ -1,9 +1,10 @@
 import type { AgentTrigger, AgentTriggerCreateInput, Trigger, TriggerStatus } from '@haus/api';
 import type { FastifyRequest } from 'fastify';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
+import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { refuseGithubTriggers } from '../triggers/trigger-model.ts';
 import {
+    createAgentGithubTrigger,
     createTrigger,
     deleteTrigger,
     rotateTriggerSecret,
@@ -25,12 +26,27 @@ export async function createAgentTrigger(
     db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
-    input: AgentTriggerCreateInput
+    input: AgentTriggerCreateInput,
+    githubTransport: GithubApiTransport = {}
 ) {
-    if (input.kind === 'github') {
-        return refuseGithubTriggers();
-    }
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
+    if (input.kind === 'github') {
+        const created = await createAgentGithubTrigger(
+            { db, transport: githubTransport },
+            runner.agentId,
+            {
+                anchorChatId: anchor.chat_id,
+                anchorMessageId: anchor.id,
+                github: input.github,
+                instruction: input.instruction ?? null,
+                origin: publicOrigin(request),
+                serverId: runner.serverId,
+                title: input.title,
+            },
+            clock
+        );
+        return { trigger: await toAgentTrigger(db, runner.serverId, created) };
+    }
     const created = await createTrigger(
         db,
         runner.agentId,

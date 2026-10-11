@@ -1,6 +1,8 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect, Scope } from 'effect';
 import type { SweepTimers } from './boot-sweep.ts';
+import type { GithubApp } from './github/github-app.ts';
+import { startGithubInstallationSweep } from './github/installation-sweep.ts';
 import type { HausDatabase } from './postgres/connection.ts';
 import { startMessagePush } from './push/message-push.ts';
 import type { PushSender } from './push/push-sender.ts';
@@ -22,6 +24,8 @@ export async function startServerSweeps(
         appOrigin: string;
         clock: ReminderClock;
         db: HausDatabase;
+        /** The Haus GitHub App; its hourly installation sweep runs only when configured. */
+        githubApp: GithubApp | null;
         /** iPhone push; absent when no APNs key is configured. */
         pushSender: PushSender | null;
         /** How long a push waits for its human to read the message elsewhere; tests shorten it. */
@@ -29,8 +33,17 @@ export async function startServerSweeps(
         timers?: SweepTimers;
     }
 ) {
-    const { pushSender } = input;
+    const { githubApp, pushSender } = input;
     for (const start of [
+        ...(githubApp
+            ? [
+                  () =>
+                      startGithubInstallationSweep(
+                          { app: githubApp, clock: input.clock, db: input.db },
+                          input.timers
+                      ),
+              ]
+            : []),
         () => startReminderRetentionSweep(input.db, input.clock, input.timers),
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
         () => startStaleTaskSweep(input.db, input.clock, input.timers),

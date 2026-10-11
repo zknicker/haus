@@ -10,6 +10,7 @@ export const updateTriggerProcedure = triggerProcedure
             ctx.hausDb,
             ctx.member,
             { ...input, origin: ctx.requestOrigin },
-            triggerClock
+            triggerClock,
+            ctx.githubApp?.transport
         )
     );

@@ -12,7 +12,8 @@ export interface ConfiguredOAuthClient {
     clientIdVariable: string;
     clientSecretVariable: string;
     label: string;
-    scope: string;
+    /** Undefined for a GitHub App, which ignores OAuth scopes. */
+    scope: string | undefined;
     /**
      * Send `scope` even when the resource advertises `scopes_supported`; the
      * MCP client otherwise requests every advertised scope.
@@ -23,18 +24,18 @@ export interface ConfiguredOAuthClient {
 }
 
 const configuredOAuthClients: Partial<Record<McpPreset, ConfiguredOAuthClient>> = {
+    // The Haus GitHub App's user sign-in (specs/github-app-connection.md#sign-in).
     // GitHub's metadata lists no token endpoint auth methods, so the MCP client
     // posts the secret in the form body, which GitHub's token endpoint expects.
-    // Scopes cover the GitHub MCP toolsets (repos, issues, PRs, Actions,
-    // notifications, gists, projects, org and user context) without packages.
-    // Code scanning and Dependabot alerts need security_events; repo alone is not enough.
+    // A GitHub App's user token is the App's permissions intersected with the
+    // user's access; GitHub ignores any `scope` the MCP client forwards.
     github: {
         authorizationServerOrigins: ['https://github.com'],
-        clientIdVariable: 'HAUS_GITHUB_OAUTH_CLIENT_ID',
-        clientSecretVariable: 'HAUS_GITHUB_OAUTH_CLIENT_SECRET',
+        clientIdVariable: 'HAUS_GITHUB_APP_CLIENT_ID',
+        clientSecretVariable: 'HAUS_GITHUB_APP_CLIENT_SECRET',
         label: 'GitHub',
-        scope: 'repo read:org read:user user:email notifications gist project security_events',
-        scopeOverridesResource: true,
+        scope: undefined,
+        scopeOverridesResource: false,
         tokenEndpointAuthMethod: 'client_secret_post',
     },
     'google-calendar': {

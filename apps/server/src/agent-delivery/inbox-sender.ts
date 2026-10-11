@@ -1,5 +1,8 @@
 import type { AgentInboxItem, HausAgentMessage } from '@haus/api';
 
+/** Server-authored inbox sources that speak as the Haus system sender. */
+const systemSources = new Set(['task_assignment', 'trigger_problem']);
+
 export function inboxSender(input: {
     attention: boolean;
     message?: HausAgentMessage;
@@ -19,8 +22,7 @@ export function inboxSender(input: {
     const agentHandle = input.source.startsWith('agent:')
         ? input.source.slice('agent:'.length)
         : null;
-    const senderHandle =
-        agentHandle ?? (input.source === 'task_assignment' ? 'haus' : input.source);
+    const senderHandle = agentHandle ?? (systemSources.has(input.source) ? 'haus' : input.source);
     if (!senderHandle) {
         throw new Error('A human delivery sender does not have an active Server handle.');
     }

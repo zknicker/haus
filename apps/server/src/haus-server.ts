@@ -1,5 +1,6 @@
 import { DeterministicAvatarImageProvider } from './avatar-generation/deterministic-provider.ts';
 import { env } from './config/env.ts';
+import { githubAppFromEnvironment } from './github/github-app.ts';
 import { readHausReleaseIdentity } from './haus-release-identity.ts';
 import {
     createHausServerApplication,
@@ -29,6 +30,7 @@ async function start() {
         privateKey: env.HAUS_APNS_PRIVATE_KEY,
         teamId: env.APPLE_TEAM_ID,
     });
+    const githubApp = await githubAppFromEnvironment(env);
     const application = await createHausServerApplication({
         appOrigin: env.HAUS_APP_ORIGIN,
         attachmentRoot: env.HAUS_ATTACHMENT_ROOT,
@@ -38,6 +40,8 @@ async function start() {
         computerReleaseManifestUrl: env.HAUS_COMPUTER_RELEASE_MANIFEST_URL,
         databaseUrl: env.HAUS_DATABASE_URL,
         avatarImageProvider: createAvatarImageProvider(),
+        githubApp,
+        githubRecoveryIntervalMs: githubRecoveryInterval(),
         openAiApiKey: env.HAUS_OPENAI_API_KEY,
         messageRouter: env.HAUS_TYPESAFE_API_KEY
             ? createJevRouter(env.HAUS_TYPESAFE_API_KEY)
@@ -79,10 +83,26 @@ async function start() {
             : 'local condensation — set HAUS_GEMINI_API_KEY for Gemini summaries'
     );
     logStartupEvent('📱', push.status, push.sender ? 'success' : 'warning');
+    logStartupDetail(
+        '🐙',
+        'GitHub App',
+        githubApp
+            ? `${githubApp.config.slug} — delivery recovery every ${githubRecoveryInterval() / 1000}s`
+            : 'disabled — set the HAUS_GITHUB_APP_* values to enable GitHub'
+    );
     logStartupDetail('🌐', 'Haus App origin', env.HAUS_APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.HAUS_SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.HAUS_SERVER_PORT}/trpc`);
     logStartupComplete('Haus Server is ready');
+}
+
+/**
+ * A development stack has no public webhook URL: the dev App posts to the
+ * Haus sink, and every stack pulls the App's delivery log instead
+ * (specs/github-triggers.md#recovery-and-the-development-pull).
+ */
+function githubRecoveryInterval() {
+    return process.env.HAUS_DEV_STACK === '1' ? 10_000 : 10 * 60_000;
 }
 
 function createAvatarImageProvider() {

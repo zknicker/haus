@@ -57,8 +57,18 @@ export type TriggerKind = z.infer<typeof triggerKindSchema>;
  * `INVALID_ARG` on the Agent API). The message leads with the code.
  */
 export const triggerRequestRefusalSchema = z.enum([
-    'github_triggers_unavailable',
+    /** The installation holds its cap of undeleted `github` Triggers. */
     'github_trigger_limit',
+    /** The installation is not bound to this Server, suspended, or removed. */
+    'github_installation_unavailable',
+    /** The owning Agent lacks the connection grant, or GitHub needs a fresh sign-in. */
+    'github_access_required',
+    /** An event needs an App permission the installation has not accepted. */
+    'github_permissions_missing',
+    /** A selected repository is outside what the connection's GitHub user can reach. */
+    'github_repositories_unavailable',
+    /** The request names a field the Trigger's kind does not have. */
+    'trigger_kind_mismatch',
     'trigger_has_no_secret',
 ]);
 export type TriggerRequestRefusal = z.infer<typeof triggerRequestRefusalSchema>;

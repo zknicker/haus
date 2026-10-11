@@ -1,7 +1,15 @@
-import type { Trigger, TriggerStatus, WebhookTrigger } from '@haus/api';
+import type {
+    GithubTrigger,
+    GithubTriggerConfigInput,
+    Trigger,
+    TriggerStatus,
+    WebhookTrigger,
+} from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
+import type { GithubAuthoringDependencies } from './github-trigger-config.ts';
+import { createGithubTriggerRow } from './github-trigger-writes.ts';
 import type { TriggerClock } from './trigger-model.ts';
 import { readOwnedTrigger } from './trigger-queries.ts';
 import {
@@ -9,6 +17,7 @@ import {
     deleteTriggerRow,
     rotateTriggerSecretRow,
     setTriggerStatusRow,
+    type TriggerAnchor,
 } from './trigger-writes.ts';
 
 /**
@@ -49,22 +58,53 @@ export async function createTrigger(
             serverId: input.serverId,
             title: input.title,
         },
-        async (tx) => {
-            await requireActiveAgent(tx, input.serverId, agentId);
-            await requireAgentAnchor(tx, {
-                agentId,
-                anchorChatId: input.anchorChatId,
-                anchorMessageId: input.anchorMessageId,
-                serverId: input.serverId,
-            });
-            await requireChatWritable(tx, {
-                chatId: input.anchorChatId,
-                serverId: input.serverId,
-            });
-            return { chatId: input.anchorChatId, messageId: input.anchorMessageId };
-        },
+        (tx) => anchorOnAskingMessage(tx, agentId, input),
         clock
     );
+}
+
+/**
+ * Creates one armed `github` Trigger for the calling Agent, anchored like a
+ * webhook on the message where a person asked for it. It has no secret.
+ */
+export async function createAgentGithubTrigger(
+    dependencies: GithubAuthoringDependencies,
+    agentId: string,
+    input: Omit<CreateTriggerInput, 'kind'> & { github: GithubTriggerConfigInput },
+    clock: TriggerClock
+): Promise<GithubTrigger> {
+    const created = await createGithubTriggerRow(
+        dependencies,
+        {
+            createdByUserId: null,
+            github: input.github,
+            instruction: input.instruction,
+            origin: input.origin,
+            ownerAgentId: agentId,
+            serverId: input.serverId,
+            title: input.title,
+        },
+        (tx) => anchorOnAskingMessage(tx, agentId, input),
+        clock
+    );
+    return created.trigger;
+}
+
+/** The Agent is active and can still reach and write the message it anchors on. */
+async function anchorOnAskingMessage(
+    tx: HausDatabase,
+    agentId: string,
+    input: { anchorChatId: string; anchorMessageId: string; serverId: string }
+): Promise<TriggerAnchor> {
+    await requireActiveAgent(tx, input.serverId, agentId);
+    await requireAgentAnchor(tx, {
+        agentId,
+        anchorChatId: input.anchorChatId,
+        anchorMessageId: input.anchorMessageId,
+        serverId: input.serverId,
+    });
+    await requireChatWritable(tx, { chatId: input.anchorChatId, serverId: input.serverId });
+    return { chatId: input.anchorChatId, messageId: input.anchorMessageId };
 }
 
 /** Arms or disables one of the calling Agent's own triggers. */
