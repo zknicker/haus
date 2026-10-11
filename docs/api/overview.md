@@ -60,6 +60,14 @@ observes itself. The App pages through the retained history with the focused
 grows without bound. Keeping the report separate lets older peers ignore the capability without
 rejecting the ordinary inventory report.
 
+During its quiet window Computer may send `agent-dream-request` (`{ agentId, localDate }`) for
+an Agent whose memory changed ([workspace](../../specs/workspace.md#dreaming)). Server answers
+only by dispatch: for an idle, running Agent with no work waiting it starts the one chatless run,
+a `start` frame with `chatId: null`, a `dream` attention (`{ id, createdAt }`), and no inbox
+items; the runner mint for that run carries `chatId: null` too. Only a Computer that sends the
+request can receive a dream start, so the frame needs no protocol bump: an older Server ignores
+the request and an older Computer never asks.
+
 Cross-boundary types use Haus product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.
 
@@ -85,3 +93,5 @@ Computer artifact must publish before the Server is promoted
 ([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you
 and Done, and the shared notification facts. Haus App 5.0.0 and iPhone 5.0.0 send that version.
 Older installed clients require an update, and an already-open hosted App requires a reload.
+App protocol 10 adds the chatless dream run: `agent.onLifecycle` may carry `chatId: null` and a
+turn trigger may be `{ kind: 'dream' }`. A protocol-9 client gets the update-required response.

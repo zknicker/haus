@@ -171,7 +171,8 @@ every start. They restart with the same policy.
   `--done` send or terminal turn proof. The App invalidates `chat.engagements` on every start and
   patches it from live events.
 * **Agent lifecycle** (`agent.onLifecycle`): `working`, `reading`, `sending` (after the Agent's
-  message commits), `settled` (terminal proof), projected to coarse availability. Settlement
+  message commits), `settled` (terminal proof), projected to coarse availability. Every run
+  publishes it; `chatId` is null only for a dream run, which has no Chat. Settlement
   invalidates Agent list, delivery state, and activity reads. Lifecycle owns activity only: a
   `sending` notice reads no transcript, and a missed Agent message recovers like any other, on
   the message stream's next start.

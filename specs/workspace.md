@@ -63,17 +63,54 @@ communication style, standing preferences and directives, and Active Context, wh
 rather than appended), then a Key Knowledge index whose lines are a `notes/` path plus a one-line
 hook. `notes/` holds deeper knowledge not in use right now, as topic files that each hold the
 current truth on one subject. History stays in Haus chats and tasks, referenced by handle. The
-Manual topic `recipes/technique/memory-hygiene` carries the full guidance. When `MEMORY.md` exceeds
-a fixed 16 KiB (16,384 bytes, Raft v1.21's 4,000-token target), Computer appends a one-line private
-notice to that Agent's next turn input: the size, the limit, "keep hot memory short and move deeper
-knowledge into notes/", and the runnable
-`haus manual get recipes/technique/memory-hygiene` command. The notice is Computer-composed turn
-input, not an inbox item: it wakes no turn, reaches no Chat or human surface, and never enters
-delivery or cause inference. Computer stamps it locally under `runtime/` and repeats it at most once
-per 24 hours, and only while the file is still over. There is no setting and no adjustable threshold.
+Manual topic `recipes/technique/memory-hygiene` carries the full guidance, including dreaming:
+the Agent's own short, silent consolidation pass that folds recent lessons into MEMORY.md, rewrites
+Active Context, moves detail into notes, and touches only what changed since the last pass.
+
+### Dreaming
+
+Dreaming runs overnight as its own private turn, never at the end of a conversation turn. Every ten
+minutes inside a fixed quiet window, 03:00 to 05:00 in the Computer machine's local time, Computer
+checks each Agent configured on it. An Agent is due when its memory (`MEMORY.md` plus every file
+under `notes/`) changed since its last dream, or `MEMORY.md` exceeds a fixed 16 KiB (16,384 bytes,
+Raft v1.21's 4,000-token target), and it has not dreamed in the last 20 hours. Change is a
+fingerprint of path, size, and mtime, with no content reads; the first look only records a
+baseline. Computer keeps the fingerprint and last dream time in `runtime/memory-dream.json`.
+
+A due Agent with no live run here gets one `agent-dream-request` frame. Server decides: it queues a
+`dream` inbox item (identity `dream:<agentId>:<Computer-local date>`, so one per night) only for a
+configured, running Agent on that Computer with no active run, no work waiting to wake it (rows a
+settled run already offered do not count), and no wake pause or backoff, then wakes it through the
+normal dispatch path. A stopped Agent is never started to dream, and a declined or busy Agent is
+retried on the next tick.
+
+From there a dream is an ordinary concrete inbox item: busy notices reach its run, and settlement,
+failure, backoff, Stop, and requeue treat it like any other. Two rules are its own: the night's
+identity means it cannot queue twice, and a dream still queued four hours after it was requested
+has missed its night, so it is retired as `seen` instead of leading a run.
+
+The dream run is the one chatless run ([sessions.md](sessions.md)). Its whole input is an
+instruction Computer composes: Haus started the turn for the nightly dreaming pass per the Manual
+topic, the Agent posts nothing in chat about the dream itself, and messages that arrive meanwhile
+are handled normally. When the dream turn completes, Computer re-records the fingerprint, so the
+Agent's own dreaming edits never make the next dream due. Check and baseline failures are logged
+and never stop the loop or fail a turn. There is no setting and no adjustable threshold.
+
+Each dream leaves a record members can read on the Agent's profile. When a dream run launches,
+Computer snapshots the text of `MEMORY.md` and every file under `notes/` (symlinks skipped; a
+file over 1 MiB, or one that is not UTF-8 text, is compared only by size and mtime or by digest).
+When the run settles, whatever its outcome, Computer diffs the two snapshots into per-file line
+counts and one unified patch whose hunk headers name the enclosing `## ` section, and sends it as
+an `agent-dream-record` frame just before the turn summary. A file's text leaves the patch past
+64 KiB, and the patch stops growing at 256 KiB; such files, and binary ones, keep a marker and no
+text. A dream that changed nothing still records, with no files. Server stores one row per dream
+run in `agent_dreams`, keeps the newest 60 per Agent, and serves them through `agent.dreams` and
+`agent.dream` ([Agents API](../docs/api/agents.md)). A record failure is logged and never fails
+the turn. A dream relaunched after a Computer restart records only what changed after the relaunch.
 
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
-automatic extraction or dreaming pipeline, or separate Wiki primitive.
+automatic extraction pipeline, Computer-run memory rewrite, or separate Wiki primitive; dreaming is
+the Agent's own pass.
 The Server-owned description is the Agent's role line. How it talks comes from
 the house `## Personality` every Agent shares, plus an optional Server-owned
 conversation style rendered right after it as `## Conversation style`. Owners,

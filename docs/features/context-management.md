@@ -4,6 +4,7 @@ read_when:
   - changing generated Agent instructions
   - changing session resume, reset, model switching, or recovery
   - changing runtime launch config, Agent HOME setup, or what a runtime loads from disk (AGENTS.md, CLAUDE.md, settings)
+  - changing nightly dreaming, its quiet window, the dream request, or the dream turn's input
 ---
 
 # Context Management
@@ -28,9 +29,13 @@ model session. Per-turn message delivery is an inbox concern; see
   notes needed for the task.
   Context compression also requires a recovery read. These are Agent instructions, not automatic
   file injection or a Computer-enforced freshness guarantee; the same global session still resumes.
-- A MEMORY.md over 16 KiB earns a one-line private notice appended to the next turn input, at most
-  once per 24 hours per Agent and only while still over. It names the `memory-hygiene` Manual
-  topic. It is Computer-composed turn input, never an inbox item or standing-prompt text ([Agent Workspace](../../specs/workspace.md#durable-knowledge)).
+- Dreaming is the Agent's own memory consolidation, run overnight as its own private turn. When
+  memory (MEMORY.md plus notes/) changed since the last dream, or MEMORY.md is over 16 KiB,
+  Computer asks the Server for a dream during its 03:00–05:00 local quiet window, at most once
+  per 20 hours per Agent. The Server starts it only for an idle, running Agent with no work
+  waiting, then runs it as an ordinary turn: messages that arrive meanwhile reach it as usual. The
+  dream turn has no Chat; its input is only the dreaming instruction, which names the
+  `memory-hygiene` Manual topic, never standing-prompt text ([Agent Workspace](../../specs/workspace.md#dreaming)).
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
   Server tools. MCP grants and discovery results never change the harness tool catalog.
   Missing tools call for the specific connection or grant to be repaired; local configuration
