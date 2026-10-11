@@ -15,11 +15,16 @@ name each Trigger's `kind`, and amended by ADR 0026, which removes the fire
 receipt and, on 2026-09-04, the creation receipt as well, and on 2026-09-09 to
 retain bounded fire history across Trigger removal. Complements ADR 0016,
 which keeps reminders the scheduling primitive, and ADR 0017, which keeps MCP
-connections the outbound integration axis. Neither is superseded.
+connections the outbound integration axis. Neither is superseded. Amended by
+[ADR 0042](0042-github-is-a-built-in-connection.md) (2026-10-11): a second kind, `github`, is fed
+by the GitHub App's webhook; for that kind only, the Server matches deliveries against a typed
+event allowlist and stores a trimmed projection, and the owning Agent must hold the GitHub
+connection grant. The `webhook` kind and the rest of this decision are unchanged.
 
 ## Decision
 
-A Trigger is an Agent-owned, anchored, secret-authenticated inbound HTTP wake. An outside system POSTs to `/api/triggers/:triggerId` with the Trigger's
+A Trigger is an Agent-owned, anchored, authenticated inbound wake. For the
+`webhook` kind, an outside system POSTs to `/api/triggers/:triggerId` with the Trigger's
 bearer secret; the hosted Server records the fire and wakes the owning Agent with
 the payload. The fire writes nothing to the anchored Chat (ADR 0026); if the
 Agent has something to say it sends an ordinary message carrying that fire as its
@@ -29,15 +34,17 @@ A Trigger has no schedule and no recurrence, ever. Time-based work is a reminder
 outside-event work is a Trigger. The two vocabularies stay separate: reminder
 semantics, tables, verbs, and prompt text are unchanged by this decision.
 
-A Trigger names its `kind`, and webhook is the only kind. The kind is a stored
-column, a wire enum, a CLI flag, and a picker in the App, so a second stimulus is
-a new row in a list rather than a new shape. Provider flavors such as GitHub,
-Sentry, or Linear are later signature verifiers, event allowlists, and title
-templates over this same webhook path, not a provider abstraction underneath
-it.
+A Trigger names its `kind`: `webhook`, or `github` (ADR 0042). The kind is a
+stored column, a wire enum, a CLI flag, and a picker in the App, so a second
+stimulus is a new row in a list rather than a new shape. A `github` Trigger has
+no URL and no secret; GitHub's app webhook feeds it, and it is owned by the
+GitHub built-in connection rather than a provider abstraction.
 
-The Server bounds, stores, and relays the payload; it never interprets it. There
-is no JSONPath, templating, predicate, or filtering on Server. A fire stores the
+For the `webhook` kind, the Server bounds, stores, and relays the payload; it
+never interprets it. There is no JSONPath, templating, predicate, or filtering on
+Server. The `github` kind is the one exception: the Server matches a delivery
+against a closed, typed event allowlist and stores a trimmed projection. For the
+`webhook` kind, a fire stores the
 body verbatim up to 65,536 bytes and hands the Agent an indented excerpt under a
 provenance line marking it as untrusted data, in its own `type=trigger` envelope.
 The payload never enters the Chat transcript. People reach it through the Thread
@@ -74,8 +81,10 @@ deletion of the tombstone then cascades any remaining fires. This keeps recent
 history reachable without treating execution history as a Chat mark.
 
 Triggers are not MCP connections. ADR 0017 governs outbound tool calls the Agent
-makes; a Trigger is an inbound stimulus an outside system makes. They share no
-credential, registry, or grant model.
+makes; a Trigger is an inbound stimulus an outside system makes. A `webhook`
+Trigger shares no credential, registry, or grant model with connections. A
+`github` Trigger depends on an installation bound through the GitHub connection,
+and its owning Agent must hold that connection's grant.
 
 ## Consequences
 
@@ -92,10 +101,13 @@ credential, registry, or grant model.
   never changes an active Trigger's status.
 - Status is one operator procedure, `trigger.setStatus`, which arms and disables.
   The one-way `trigger.disable` it replaces no longer exists.
-- Haus deliberately does not build: a provider registry or provider flavors; a
-  payload predicate or filter engine; script payloads and therefore any
+- Trigger wakes count toward the Agent chain budget, so an Agent whose own
+  actions cause its Trigger to fire cannot loop unbounded (ADR 0042).
+- Haus deliberately does not build: a provider registry or general provider
+  flavors (`github` is a built-in connection's kind, not a registry entry); a
+  general payload predicate or filter engine; script payloads and therefore any
   Trigger-specific attention table; more than one stimulus per Trigger, so a
-  Trigger has exactly one endpoint and one secret; a durable `trigger.changed`
+  `webhook` Trigger has exactly one endpoint and one secret; a durable `trigger.changed`
   event; and a Trigger command idempotency ledger, so mutations are not
   idempotent. These are future extensions to be designed when a product need
   arrives, not extension points left open in the code.

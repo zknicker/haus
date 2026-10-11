@@ -10,7 +10,10 @@ read_when:
 
 ## Status
 
-Accepted 2026-07-24. Amended 2026-07-28 for Server ownership. Supersedes ADR 0004.
+Accepted 2026-07-24. Amended 2026-07-28 for Server ownership. Supersedes ADR 0004. Amended by
+[ADR 0042](0042-github-is-a-built-in-connection.md) (2026-10-11): GitHub becomes a built-in
+connection backed by a Haus GitHub App, with installations and an app webhook; its OAuth App
+client is deleted. Other presets and custom connections are unchanged.
 
 ## Decision
 
@@ -39,7 +42,9 @@ trust. A cross-origin authorization server requires explicit operator confirmati
 Credential-bearing endpoints require HTTPS.
 
 GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, RankWrangler, X, CoinGecko, and Skool are connection presets. Server owns their immutable endpoints
-and auth defaults; they use the same generic path as custom connections.
+and auth defaults; they use the same generic path as custom connections. GitHub is also a
+built-in connection (ADR 0042): its tools still take this path, and Server additionally owns its
+GitHub App installations and app webhook.
 
 ## Other capability kinds
 
@@ -49,10 +54,12 @@ and auth defaults; they use the same generic path as custom connections.
 
 ## Consequences
 
-- External service logic and schemas live with the MCP server.
+- External service logic and schemas live with the MCP server. A built-in connection's
+  non-tool integration (GitHub installations and events) lives in Server under the service's name.
 - Haus can connect to compatible remote HTTP MCP servers without service-specific product code.
 - UI access is one Raft-style switch per Agent and connection; the discovered tool list is
   read-only.
 - An unavailable MCP connection does not prevent an Agent from starting.
 - OAuth interoperability depends on upstream standards support. Google and GitHub need configured
-  Server client credentials; DCR-capable servers need no packaged client.
+  Server client credentials (GitHub's are its GitHub App's); DCR-capable servers need no packaged
+  client.
