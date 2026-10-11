@@ -28,8 +28,10 @@ They remain ordinary MCP connections. CoinGecko connects to its free remote endp
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is a one-click sign-in like Google Calendar: **Connect**
 opens GitHub's authorization page for Haus's own OAuth App, and Server keeps the token refreshed.
-Server asks GitHub's hosted MCP for its default toolsets plus Actions, so Agents can read workflow
-runs and job logs and run a workflow.
+Server asks GitHub's hosted MCP for its default toolsets plus Actions, notifications, code scanning,
+and Dependabot, so Agents can read workflow runs and job logs, run a workflow, triage notifications,
+and read security alerts. Code scanning and Dependabot alerts need the `security_events` scope, so a
+GitHub account connected before it was added must reconnect.
 A GitHub organization with OAuth app access restrictions hides its private data until an
 organization owner approves the Haus app. X takes a token instead of a sign-in: pressing **+** asks
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read

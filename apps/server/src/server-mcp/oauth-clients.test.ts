@@ -5,7 +5,7 @@ import { emptySecret, type McpRuntime, type McpSecret } from './runtime.ts';
 
 const redirectUrl = 'https://haus.chat/mcp/oauth/callback';
 const githubMcpUrl = 'https://api.githubcopilot.com/mcp/';
-const githubScope = 'repo read:org read:user user:email notifications gist project';
+const githubScope = 'repo read:org read:user user:email notifications gist project security_events';
 const clientVariables = [
     'HAUS_GITHUB_OAUTH_CLIENT_ID',
     'HAUS_GITHUB_OAUTH_CLIENT_SECRET',

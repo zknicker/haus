@@ -10,6 +10,7 @@ import {
     mcpSecretsTable,
 } from '../postgres/schema.ts';
 import { resolveAccountLabel } from './account-label.ts';
+import { agentToolDefinitions } from './agent-tool-listing.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { asMcpArguments, McpDeniedError, McpReconnectRequiredError } from './errors.ts';
 import { createMcpOAuthProvider } from './oauth.ts';
@@ -88,8 +89,9 @@ export class McpRuntime {
         const connections = await this.grantedConnections(serverId, agentId);
         const definitions = await Promise.all(
             connections.map(async (connection) => {
+                let tools: Awaited<ReturnType<typeof listAllTools>>;
                 try {
-                    const tools = await this.runUpstream(
+                    tools = await this.runUpstream(
                         connection.id,
                         'discovery',
                         (client, signal) =>
@@ -101,16 +103,12 @@ export class McpRuntime {
                         signal
                     );
                     await this.requireGrant(serverId, agentId, connection.id);
-                    return tools.map((tool) => ({
-                        description: `${connection.name}: ${tool.description ?? `Run ${tool.name}.`}`,
-                        inputSchema: tool.inputSchema as Record<string, unknown>,
-                        name: modelToolName(connection.id, tool.name),
-                        title: tool.annotations?.title ?? null,
-                    }));
                 } catch {
                     signal?.throwIfAborted();
                     return [];
                 }
+                // Outside the upstream isolation: a failed snapshot write is a Server fault.
+                return await agentToolDefinitions(this.db, connection, tools);
             })
         );
         return definitions.flat();

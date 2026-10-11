@@ -27,12 +27,13 @@ const configuredOAuthClients: Partial<Record<McpPreset, ConfiguredOAuthClient>> 
     // posts the secret in the form body, which GitHub's token endpoint expects.
     // Scopes cover the GitHub MCP toolsets (repos, issues, PRs, Actions,
     // notifications, gists, projects, org and user context) without packages.
+    // Code scanning and Dependabot alerts need security_events; repo alone is not enough.
     github: {
         authorizationServerOrigins: ['https://github.com'],
         clientIdVariable: 'HAUS_GITHUB_OAUTH_CLIENT_ID',
         clientSecretVariable: 'HAUS_GITHUB_OAUTH_CLIENT_SECRET',
         label: 'GitHub',
-        scope: 'repo read:org read:user user:email notifications gist project',
+        scope: 'repo read:org read:user user:email notifications gist project security_events',
         scopeOverridesResource: true,
         tokenEndpointAuthMethod: 'client_secret_post',
     },
