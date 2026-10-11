@@ -120,9 +120,9 @@ private typealias Job = CloudAgentWorkFixture.Job
          {"anchorMessageId":"delegation-1","work":\(inner)},
          {"anchorMessageId":"other-anchor","work":\(inner)}]
         """.utf8))
-        let listed = CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkID: own.id)
+        let listed = CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkIDs: [own.id])
         #expect(listed.map(\.id) == ["work-2"])
-        #expect(CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkID: nil).count == 2)
+        #expect(CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkIDs: []).count == 2)
     }
 
     @Test func onlyWebDestinationsCanBeOpened() {

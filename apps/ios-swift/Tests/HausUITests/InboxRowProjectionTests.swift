@@ -23,7 +23,7 @@ struct InboxHappeningNowRowsTests {
             resolveActor: InboxFixtures.directory
         ))
 
-        #expect(rows.map(\.id) == ["work:message_work", "agent:agent_blippy"])
+        #expect(rows.map(\.id) == ["work:work_1", "agent:agent_blippy"])
         #expect(rows[0].status == "Working · 25m")
         #expect(rows[0].detail == "#all · Blippy")
         #expect(rows[0].title == "Ship the iPhone build")
@@ -67,7 +67,7 @@ struct InboxHappeningNowRowsTests {
         #expect(rows[1].detail == "Working…")
     }
 
-    @Test func opensWorkAtItsMessageAndAnAgentAtItsChat() throws {
+    @Test func opensWorkByItsIdAndAnAgentAtItsChat() throws {
         let rows = try #require(InboxHappeningNowRows.rows(
             work: [InboxFixtures.activeWork(startedAt: now)],
             agents: [
@@ -84,7 +84,7 @@ struct InboxHappeningNowRowsTests {
             resolveActor: InboxFixtures.directory
         ))
 
-        #expect(rows[0].open == .cloudAgentWork(messageID: "message_work"))
+        #expect(rows[0].open == .cloudAgentWork(workID: "work_1"))
         #expect(rows[1].open == .agent("agent_blippy"))
     }
 

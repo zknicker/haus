@@ -68,10 +68,7 @@ final class InboxReadModelsTests: XCTestCase {
           "threadAnchorMessage":null,"threadChatId":"chat_thread","work":\(workJSON)}]
         """
 
-        let rows = try HausJSON.decoder().decode(
-            [ActiveCloudAgentWork].self,
-            from: Data(json.utf8)
-        )
+        let rows = try HausJSON.decoder().decode([ActiveCloudAgentWork].self, from: Data(json.utf8))
         let row = try XCTUnwrap(rows.first)
 
         XCTAssertEqual(row.id, "work_1")
@@ -79,11 +76,12 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertTrue(row.work.status.isActive)
         XCTAssertEqual(row.work.activity?.summary, "Reading the diff")
         XCTAssertEqual(row.conversationChatID, "chat_1")
-        XCTAssertEqual(row.threadChatID, "chat_thread")
-        XCTAssertEqual(row.threadAnchor.id, "message_work")
+        // A Server without `location` implies the launch work Thread.
+        XCTAssertEqual(row.location, .workThread(threadChatID: "chat_thread", anchorMessageID: "message_work"))
+        XCTAssertEqual(row.carriedThreadAnchor?.id, "message_work")
     }
 
-    func testActiveCloudAgentWorkPrefersTheThreadAnchorMessage() throws {
+    func testLegacyRowPrefersTheThreadAnchorMessage() throws {
         let json = """
         {"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
          "conversationChatId":"chat_1",
@@ -92,13 +90,57 @@ final class InboxReadModelsTests: XCTestCase {
          "threadChatId":"chat_thread","work":\(workJSON)}
         """
 
-        let row = try HausJSON.decoder().decode(
-            ActiveCloudAgentWork.self,
-            from: Data(json.utf8)
-        )
+        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
 
-        XCTAssertEqual(row.threadAnchor.id, "message_anchor")
+        XCTAssertEqual(row.location, .workThread(threadChatID: "chat_thread", anchorMessageID: "message_anchor"))
+        XCTAssertEqual(row.carriedThreadAnchor?.id, "message_anchor")
         XCTAssertEqual(row.chatKind, .dm)
         XCTAssertEqual(row.chatPeerUserID, "user_2")
     }
+
+    /// `activeWorkLocations.workThread` in `cloud-agent-work-fixture.ts`.
+    func testWorkThreadLocationWinsOverTheLegacyFields() throws {
+        let json = """
+        {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
+         "conversationChatId":"chat_1",
+         "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"cht_work_thread"},
+         "message":\(messageJSON(id: "message_work", sequence: 12)),
+         "threadAnchorMessage":null,"threadChatId":"chat_thread","work":\(workJSON)}
+        """
+
+        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
+
+        XCTAssertEqual(row.location, .workThread(threadChatID: "cht_work_thread", anchorMessageID: "message_work"))
+    }
+
+    /// `activeWorkLocations.message`: the newest visible link, after the launch
+    /// Chat is gone. The contraction slice drops the legacy fields, so the row
+    /// must decode without them.
+    func testMessageLocationDecodesWithoutTheLegacyFields() throws {
+        let json = """
+        {"chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+         "conversationChatId":"cht_tech_ops",
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
+         "work":\(workJSON)}
+        """
+
+        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
+
+        XCTAssertEqual(
+            row.location,
+            .message(chatID: "cht_tech_ops", messageID: "msg_linking_elsewhere", threadChatID: nil)
+        )
+        XCTAssertNil(row.message)
+        XCTAssertNil(row.carriedThreadAnchor)
+    }
+
+    func testRejectsAnUnknownLocationKind() {
+        let json = """
+        {"chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
+         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+        """
+
+        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
+    }
 }
+
