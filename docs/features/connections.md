@@ -23,7 +23,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, GitHub, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, GitHub, Cloudflare, Vercel, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is a one-click sign-in like Google Calendar: **Connect**
@@ -57,6 +57,13 @@ MerchBase/Clerk OAuth. It exposes Printful order review and fulfillment tools. L
 store happens through those tools after sign-in; adding the preset does not link a store or enable
 Agent access.
 
+Cloudflare connects to its [official MCP](https://github.com/cloudflare/mcp) at
+`https://mcp.cloudflare.com/mcp` through OAuth, with permissions selected during authorization.
+It exposes Cloudflare API and documentation tools, including DNS and Workers operations.
+Vercel connects to its [official MCP](https://vercel.com/docs/agent-resources/vercel-mcp) at
+`https://mcp.vercel.com` through OAuth for projects, deployments, and deployment logs.
+Both require sign-in and an explicit Agent access grant.
+
 Separately from the GitHub MCP preset, the GitHub pull-request connection is the one first-party
 connection that is not an MCP server. Owners and Admins connect one
 GitHub account or token per Server, and the Server uses it only to resolve pull-request references
@@ -80,7 +87,7 @@ an Agent writes into its execution runtime's own config are ignored (see
 
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
-page makes no third-party image requests. Legacy curated presets show bundled marks. MerchBase Atlas and Fulfillment use their service-owned
+page makes no third-party image requests. Legacy curated presets show bundled marks. Cloudflare, Vercel, MerchBase Atlas, and Fulfillment use their service-owned
 MCP icon metadata or favicon. Presets share one branding lookup across Recommended and Added,
 preferring homepage icon links before legacy favicons. Adding, signing in, or disconnecting an
 account does not discard its service branding. Existing presets with missing artwork recover it
