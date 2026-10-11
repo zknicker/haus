@@ -124,22 +124,25 @@ function taskSuffix(message: AgentCliMessage): string {
 }
 
 /**
- * A Cloud Agent work Message states what was delegated, where it stands, and
- * the pull request it opened once the Run reports one, so history answers
- * "which PR was that?" without a second command.
+ * Each Cloud Agent work a Message links states what was delegated, where it
+ * stands, and the pull request it opened once the Run reports one, so history
+ * answers "which PR was that?" without a second command. A Server that predates
+ * links sends only the single `cloud_agent_work`.
  */
 function cloudAgentWorkSuffix(message: AgentCliMessage): string {
-    const work = message.cloud_agent_work;
-    if (!work) {
-        return '';
-    }
-    const url = work.latest_run?.branches.find(
-        (branch) => branch.pull_request_url !== null
-    )?.pull_request_url;
-    return formatCloudAgentWorkSuffix({
-        ...work,
-        pullRequestNumber: url ? cloudAgentPullRequestNumber(url) : null,
-    });
+    const works =
+        message.cloud_agent_works ?? (message.cloud_agent_work ? [message.cloud_agent_work] : []);
+    return works
+        .map((work) => {
+            const url = work.latest_run?.branches.find(
+                (branch) => branch.pull_request_url !== null
+            )?.pull_request_url;
+            return formatCloudAgentWorkSuffix({
+                ...work,
+                pullRequestNumber: url ? cloudAgentPullRequestNumber(url) : null,
+            });
+        })
+        .join('');
 }
 
 /**

@@ -83,6 +83,8 @@ const messageAgentCreatedSchema = z.object({
 export const agentMessageSchema = z.object({
     agent_created: messageAgentCreatedSchema.nullable().optional(),
     cloud_agent_work: messageCloudAgentWorkSchema.nullable().optional(),
+    /** Every work the Message links, in link order (ADR 0044); `cloud_agent_work` is the first. */
+    cloud_agent_works: z.array(messageCloudAgentWorkSchema).optional(),
     attachments: z.array(jsonObjectSchema),
     author: z.object({
         id: z.string().min(1),
@@ -117,7 +119,10 @@ export const agentMessageSchema = z.object({
     threadId: z.string().min(1).optional(),
 }) satisfies z.ZodType<HausAgentMessage>;
 
-export type AgentCliMessage = HausAgentMessage;
+/** `cloud_agent_works` rides ahead of the published contract until the Server serves it. */
+export type AgentCliMessage = HausAgentMessage & {
+    cloud_agent_works?: z.infer<typeof messageCloudAgentWorkSchema>[];
+};
 
 export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discriminatedUnion(
     'state',
