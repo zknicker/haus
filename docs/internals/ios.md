@@ -1003,8 +1003,12 @@ Chat-level send alert raised by a background read is not.
 
 An Unread row ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) is one Chat from the
 Chat list with an `unreadCount` above zero. Opening it reads it the way any open transcript does;
-**Mark read** sends `chat.markRead` with the Chat's `lastMessageSequence` and `includeThreads: true`,
-so the Thread replies its count rolls up clear with it, and newer activity brings the row back.
+**Mark read** sends `chat.markRead` with the Chat's `lastMessageSequence` and `includeThreads: true`;
+the Chat's count no longer includes Thread replies
+([ADR 0042](../adr/0042-threads-are-unread-on-their-own.md)), and `includeThreads` clears that
+Chat's separate Thread rows with it. Newer activity brings the row back. iOS does not read
+`thread.listUnread` yet, so its Inbox shows no Thread rows while the icon badge
+(`chat.unreadChatCount`) still counts unread Threads.
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
 presentation of a question ([Inbox](../features/inbox.md#notifications)).
 

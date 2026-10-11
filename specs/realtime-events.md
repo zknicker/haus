@@ -419,8 +419,7 @@ The slice moves the transcript from page-held rows to id lists plus entities:
   `chat-transcript-message-block.tsx`, and `chat-transcript-row-slot.tsx`: a message row takes a
   message id and reads its entity; `transcript-render-row-equality.ts` compares ids and layout
   facts only.
-- Every former page patcher reads entities instead: `hooks/servers/chat-read-cache.ts`,
-  `use-chat-message-reaction.ts` (keeps its local overlay; reads the entity underneath),
+- Every former page patcher reads entities instead: `use-chat-message-reaction.ts` (keeps its local overlay; reads the entity underneath),
   `hooks/threads/use-thread-anchor.ts`, `features/servers/chat/use-chat-typing-ends.ts`,
   `features/servers/chat/chat-view.tsx`, `features/servers/thread/thread-content.tsx`,
   `routes/app/desktop-tab-pages.tsx`, and `test-support/transcript-render-harness.tsx`.

@@ -1,7 +1,7 @@
 ---
 summary: Decision to model threads as child conversation containers with per-participant follows; ADR 0029 restores distinct inline replies.
 read_when:
-  - changing thread storage, creation, follows, or unread rollup
+  - changing thread storage, creation, or follows (Thread unread is ADR 0042)
   - changing reply affordances or per-message reply context
   - adding surfaces anchored on a message (tasks, reminders, file comments)
 ---
@@ -16,6 +16,9 @@ decisions T1/T2/T3/U5). Normative contract: `specs/threads.md`.
 Amended by [ADR 0029](0029-inline-replies-preserve-conversation.md): inline replies are restored
 as same-chat message relationships. The child-thread model below remains; its retirement of inline
 replies records the original decision rather than the current contract.
+
+Amended by [ADR 0042](0042-threads-are-unread-on-their-own.md): Thread unreads no longer fold into
+the parent chat's count; each unread Thread is its own Inbox row.
 
 ## Context
 
@@ -41,8 +44,8 @@ pointers, and per-participant follow records derived from parent membership.
   and the `Reply context:` prompt section are deleted, not deprecated.
 - Full message immutability posture: no edit/delete paths, no tombstones.
   The caller-less `deleteMessage` primitive and its route were removed.
-- Followed-thread unreads fold into the parent chat's `unread_count`;
-  threads never appear in the sidebar chat list.
+- Threads never appear in the sidebar chat list. (Originally, followed-thread unreads folded into
+  the parent chat's `unread_count`; ADR 0042 replaced that with per-Thread unread.)
 
 ## Consequences
 

@@ -31,7 +31,7 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   off, and clears delivered notifications and the badge, so the next account opts in itself.
 - Payload: `aps.alert.title` (author, plus ` in #channel` outside a DM), `aps.alert.body` (plain
   preview, mentions as display names, at most 180 characters), `aps.sound: "default"`,
-  `aps.thread-id` = conversation Chat id, `aps.badge` = unread Chats across every Server, and the
+  `aps.thread-id` = conversation Chat id, `aps.badge` = unread Chats plus unread Threads across every Server, and the
   tap-routing keys `serverId`, `chatId`, `conversationChatId`, `threadAnchorMessageId` (null outside
   a Thread), `messageId`. For Communication Notifications (sender avatar banners) it also carries
   `aps.mutable-content: 1`, `sender` (`id`, `kind` `agent` | `human`, `name` cut to 80 characters,
@@ -62,9 +62,10 @@ Inbox's Mark read advances; reading the Channel alone does not. The wait sits in
 queue and holds no send slot. Like the rest of the queue it is lost on restart, and shutdown waits
 it out before sending. Sends run off the send path and never fail it, at most four messages at a
 time (a backlog past 1,000, counting messages still waiting, drops new pushes). The badge is the human's
-unread Chats across every Server they belong to — each Server's `chat.list` Chats with an
-`unreadCount` above zero, counted in one query (`countUnreadChats`) built from the same
-`listedChats` scope and `chatUnreadCount` expression as `chat.list` (`apps/server/src/chats/chat-unread.ts`).
+unread Inbox rows across every Server they belong to — each Server's `chat.list` Chats with an
+`unreadCount` above zero plus its `thread.listUnread` Threads, counted by `countUnreadInboxRows`
+(`apps/server/src/chats/unread-chat-count.ts`) from the same `listedChats`, `chatUnreadCount`, and
+`unreadThreads` predicates those lists use.
 The iPhone app badges its icon from the same count through `chat.unreadChatCount`.
 
 APNs uses token auth: an ES256 JWT (`kid` = key id, `iss` = team id, `iat`) reused for 40 minutes
