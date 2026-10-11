@@ -1,10 +1,16 @@
 import type {
     ActiveCloudAgentWork,
+    ActiveCloudAgentWorkLocation,
     Agent,
     CloudAgentJobState,
     CloudAgentProvider,
 } from '@haus/api';
-import { cloudAgentJobText, elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
+import { activeCloudAgentWorkLocation } from '../../cloud-agents/active-cloud-agent-work-location.ts';
+import {
+    cloudAgentJobText,
+    cloudAgentWorkAgentFallbackName,
+    elapsedSince,
+} from '../../cloud-agents/cloud-agent-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
@@ -12,8 +18,10 @@ import type { HumanDirectory } from '../human-identity.ts';
 export interface HappeningNowWork {
     agentName: string;
     chatLabel: string;
-    /** The work Message id, which is also the `?work=` deep link. */
+    /** The work id, which is also the `?work=` deep link. */
     id: string;
+    /** Where opening the row goes: the work Thread, or a linking Message. */
+    location: ActiveCloudAgentWorkLocation;
     provider: CloudAgentProvider;
     state: CloudAgentJobState;
     statusText: string;
@@ -37,7 +45,8 @@ export function toHappeningNowWork(
     return items.map((item) => ({
         agentName: workAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
-        id: item.work.messageId,
+        id: item.work.id,
+        location: activeCloudAgentWorkLocation(item),
         provider: item.work.provider,
         ...liveStatus(item.work.job, now),
         title: item.work.title,
@@ -65,9 +74,10 @@ function workAgentName(item: ActiveCloudAgentWork, agentsById: ReadonlyMap<strin
     if (agent) {
         return agent.displayName;
     }
+    // Any Message may link the work; only the delegator's own stored profile names it.
     const author = item.message.author;
-    if (author.kind === 'agent' && author.profile) {
+    if (author.kind === 'agent' && author.agentId === item.work.agentId && author.profile) {
         return author.profile.displayName;
     }
-    return `Agent ${item.work.agentId.slice(-6)}`;
+    return cloudAgentWorkAgentFallbackName(item.work.agentId);
 }
