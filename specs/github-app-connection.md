@@ -75,7 +75,10 @@ one.
 Server-side GitHub reads (owner checks, repository access, pickers) use the stored user token and
 refresh it once when GitHub answers 401 (`github/user-token.ts`); a rejected refresh is
 `github_sign_in_required`. GitHub rotates the refresh token on every use, so the MCP OAuth provider
-re-reads stored tokens per request and a refresh on either path reaches the other.
+re-reads stored tokens per request and a refresh on either path reaches the other. Concurrent
+refreshes of one connection in a Server process share one exchange, and the new pair is stored
+under the secret-row lock only while the stored refresh token is still the one exchanged;
+otherwise the pair another path stored first wins.
 
 Starting sign-in already clears the connection's identity and Agent grants (`clearMcpIdentity`),
 and disconnect deletes grants. Both stay as they are.
@@ -117,7 +120,8 @@ warns that `installation_id` can be spoofed).
    binds, and redirects to the connection page with `?github_setup=<outcome>` (`bound`,
    `requested`, or the refusal reason). Missing, expired, or used state binds nothing.
    `setup_action=request` (a member asked an owner) binds nothing and says so. An update redirect
-   carries no state and only prompts reconciliation.
+   carries no state and only prompts reconciliation; because it is unauthenticated, it reconciles
+   one installation at most once a minute and never concurrently.
 2. **Bind an existing installation.** `github.installCandidates` lists unbound installations from
    `GET /user/installations` that pass the owner check; `github.bindInstallation` (Owner or Admin)
    reruns the check and binds. This is the development path and the recovery path after a lost
@@ -133,7 +137,9 @@ installation. `accessible_repository_ids` caches the full paginated
 `GET /user/installations/{id}/repositories` for the connection's user token. It is refreshed at
 bind, at sign-in, on `installation_repositories` deliveries, and hourly. A transient failure keeps
 the cache; a cache older than 24 hours, or a connection that is not connected, puts dependent
-Triggers into `sign_in_required`. Trigger creation and every delivery check the cache
+Triggers into `sign_in_required`. A sign-in GitHub refuses (no token, or a rejected refresh)
+invalidates the cache (`access_synced_at = null`) and enters `sign_in_required` in one transaction,
+so deliveries stop routing on access the user may have lost; the notices wake their owners. Trigger creation and every delivery check the cache
 ([matching](github-triggers.md#events)). Repository pickers read the same endpoint.
 
 ### Lifecycle reconciliation

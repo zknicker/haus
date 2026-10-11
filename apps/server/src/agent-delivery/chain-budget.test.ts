@@ -1,5 +1,10 @@
 import { expect, test } from 'bun:test';
-import { canBeginAgentDrain, maxAgentChainTurns, nextAgentChain } from './chain-budget.ts';
+import {
+    admitAgentDrain,
+    canBeginAgentDrain,
+    maxAgentChainTurns,
+    nextAgentChain,
+} from './chain-budget.ts';
 
 const now = new Date('2026-10-11T12:00:00.000Z');
 
@@ -19,6 +24,22 @@ test('human, reminder, and task work resets the chain and stays dispatchable at 
             agentChainTurns: 0,
         });
     }
+});
+
+test('admission judges the drain that will run, and at the ceiling reset work leads', () => {
+    const trigger = { id: 'a', source: 'trigger' };
+    const reminder = { id: 'b', source: 'reminder' };
+    const select = (lead: { source: string }) =>
+        [trigger, reminder].filter((row) => row.source === lead.source);
+    expect(admitAgentDrain([trigger, reminder], trigger, maxAgentChainTurns - 1, select)).toEqual({
+        lead: trigger,
+        selected: [trigger],
+    });
+    expect(admitAgentDrain([trigger, reminder], trigger, maxAgentChainTurns, select)).toEqual({
+        lead: reminder,
+        selected: [reminder],
+    });
+    expect(admitAgentDrain([trigger], trigger, maxAgentChainTurns, select)).toBeNull();
 });
 
 test('completed automation drains spend one chain turn and stamp when', () => {

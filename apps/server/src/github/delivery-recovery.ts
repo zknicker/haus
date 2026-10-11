@@ -1,5 +1,5 @@
 import { type EffectRuntime, settle } from '@haus/effect';
-import { and, eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -10,7 +10,12 @@ import {
     recordGithubDeliveryGap,
 } from './delivery-cursor.ts';
 import type { GithubDelivery, GithubIngestOutcome } from './delivery-ingest.ts';
-import { field, type Payload, text } from './event-projection/payload.ts';
+import {
+    fetchGithubLoggedDelivery,
+    type GithubDeliveryLogEntry as LogEntry,
+    readGithubDeliveryLogEntry,
+    unfinishedGithubDeliveries,
+} from './delivery-log.ts';
 import { githubNextPage, githubRequest } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 
@@ -25,9 +30,13 @@ const hourMs = 60 * 60 * 1000;
 const retentionMs = 3 * 24 * hourMs;
 /** Each sweep re-reads an hour before its watermark, so clock skew loses nothing. */
 const overlapMs = hourMs;
+/** A delivery whose fetch or ingest fails this many sweeps running is recorded and dropped. */
+export const maxRecoveryAttempts = 5;
 
 export interface GithubRecoveryDependencies {
     app: GithubApp;
+    /** Failed attempts per guid across sweeps; process memory, like install state. */
+    attempts?: Map<string, number>;
     clock: { now(): Date };
     db: HausDatabase;
     ingest(delivery: GithubDelivery): Promise<GithubIngestOutcome>;
@@ -35,7 +44,9 @@ export interface GithubRecoveryDependencies {
 }
 
 export interface GithubRecoverySweep {
-    /** Ingest attempts that threw; any failure keeps the watermark in place. */
+    /** Deliveries that failed `maxRecoveryAttempts` sweeps and were recorded done. */
+    abandoned: number;
+    /** Attempts that threw; the watermark stays at or before each one. */
     failed: number;
     gap: { from: Date; to: Date } | null;
     /** Deliveries fetched and ingested because they were not done locally. */
@@ -55,32 +66,15 @@ export async function sweepGithubDeliveries(
     const { app, db } = dependencies;
     const startedAt = dependencies.clock.now();
     const appId = Number(app.config.appId);
-    const cursor = await readGithubDeliveryCursor(db, { appId, now: startedAt });
-    const retentionEdge = new Date(startedAt.getTime() - (retentionMs - hourMs));
-    let gap: GithubRecoverySweep['gap'] = null;
-    let cutoff = new Date(cursor.watermark.getTime() - overlapMs);
-    if (cursor.watermark < retentionEdge) {
-        gap = { from: cursor.watermark, to: retentionEdge };
-        cutoff = retentionEdge;
-        await recordGithubDeliveryGap(db, { appId, ...gap });
-        await settle(
-            dependencies.runtime,
-            Effect.logError('github.delivery_gap').pipe(
-                Effect.annotateLogs({
-                    appId,
-                    gapFrom: gap.from.toISOString(),
-                    gapTo: gap.to.toISOString(),
-                    operation: 'github.delivery_gap',
-                })
-            )
-        );
-    }
-
-    const seen = new Set<string>();
+    const { cutoff, gap } = await sweepStart(dependencies, appId, startedAt);
+    const sweep: SweepState = {
+        attempts: dependencies.attempts ?? new Map<string, number>(),
+        counts: { abandoned: 0, failed: 0, in_progress: 0, ingested: 0 },
+        oldestUnresolved: startedAt,
+        seen: new Set<string>(),
+    };
     let next: string | null = '/app/hook/deliveries';
     let pages = 0;
-    let ingested = 0;
-    let failed = 0;
     while (next) {
         const response = await githubRequest(
             {
@@ -91,34 +85,120 @@ export async function sweepGithubDeliveries(
             app.transport
         );
         pages += 1;
-        const entries = (Array.isArray(response.body) ? response.body : []).map(readEntry);
+        const entries = (Array.isArray(response.body) ? response.body : []).map(
+            readGithubDeliveryLogEntry
+        );
         const recent = entries.filter(
             (entry): entry is LogEntry => entry !== null && entry.deliveredAt >= cutoff
         );
-        const pending = await notDone(
-            db,
-            recent.map((entry) => entry.guid).filter((guid) => !seen.has(guid))
-        );
-        for (const entry of recent) {
-            if (seen.has(entry.guid) || !pending.has(entry.guid)) {
-                seen.add(entry.guid);
-                continue;
-            }
-            seen.add(entry.guid);
-            try {
-                await dependencies.ingest(await fetchDelivery(app, entry));
-                ingested += 1;
-            } catch {
-                failed += 1;
-            }
-        }
+        await recoverPage(dependencies, sweep, { appId, now: startedAt, recent });
         const exhausted = entries.length > 0 && recent.length === 0;
         next = exhausted ? null : githubNextPage(response.headers);
     }
-    if (failed === 0) {
-        await advanceGithubDeliveryCursor(db, { appId, sweptAt: startedAt, watermark: startedAt });
+    // The watermark never passes an unresolved entry, and an entry that keeps
+    // failing is abandoned rather than holding the watermark until a false gap.
+    await advanceGithubDeliveryCursor(db, {
+        appId,
+        sweptAt: startedAt,
+        watermark: sweep.oldestUnresolved,
+    });
+    const { abandoned, failed, ingested } = sweep.counts;
+    return { abandoned, failed, gap, ingested, pages };
+}
+
+type EntryResult = 'abandoned' | 'failed' | 'in_progress' | 'ingested';
+
+interface SweepState {
+    attempts: Map<string, number>;
+    counts: Record<EntryResult, number>;
+    /** The oldest kept entry still unresolved (failed, or another attempt holds it). */
+    oldestUnresolved: Date;
+    /** Redeliveries share a guid; each is ingested once per sweep. */
+    seen: Set<string>;
+}
+
+/** Reads the cursor and, past GitHub's retention, records and logs the gap. */
+async function sweepStart(
+    dependencies: GithubRecoveryDependencies,
+    appId: number,
+    startedAt: Date
+): Promise<{ cutoff: Date; gap: GithubRecoverySweep['gap'] }> {
+    const cursor = await readGithubDeliveryCursor(dependencies.db, { appId, now: startedAt });
+    const retentionEdge = new Date(startedAt.getTime() - (retentionMs - hourMs));
+    if (cursor.watermark >= retentionEdge) {
+        return { cutoff: new Date(cursor.watermark.getTime() - overlapMs), gap: null };
     }
-    return { failed, gap, ingested, pages };
+    const gap = { from: cursor.watermark, to: retentionEdge };
+    await recordGithubDeliveryGap(dependencies.db, { appId, ...gap });
+    await settle(
+        dependencies.runtime,
+        Effect.logError('github.delivery_gap').pipe(
+            Effect.annotateLogs({
+                appId,
+                gapFrom: gap.from.toISOString(),
+                gapTo: gap.to.toISOString(),
+                operation: 'github.delivery_gap',
+            })
+        )
+    );
+    return { cutoff: retentionEdge, gap };
+}
+
+/** Recovers every kept entry on one page that this Server has not finished. */
+async function recoverPage(
+    dependencies: GithubRecoveryDependencies,
+    sweep: SweepState,
+    input: { appId: number; now: Date; recent: LogEntry[] }
+): Promise<void> {
+    const pending = await unfinishedGithubDeliveries(
+        dependencies.db,
+        input.recent.map((entry) => entry.guid).filter((guid) => !sweep.seen.has(guid))
+    );
+    for (const entry of input.recent) {
+        const fresh = !sweep.seen.has(entry.guid) && pending.has(entry.guid);
+        sweep.seen.add(entry.guid);
+        if (!fresh) {
+            continue;
+        }
+        const result = await recoverEntry(
+            { ...dependencies, attempts: sweep.attempts },
+            { appId: input.appId, entry, now: input.now }
+        );
+        sweep.counts[result] += 1;
+        const unresolved = result === 'failed' || result === 'in_progress';
+        if (unresolved && entry.deliveredAt < sweep.oldestUnresolved) {
+            sweep.oldestUnresolved = entry.deliveredAt;
+        }
+    }
+}
+
+/**
+ * Fetches and ingests one log entry. `in_progress` is another attempt's fresh
+ * claim: if its holder crashed the claim goes stale, so a later sweep must
+ * still reach the entry. A fetch or ingest that throws `maxRecoveryAttempts`
+ * sweeps running is abandoned.
+ */
+async function recoverEntry(
+    dependencies: GithubRecoveryDependencies & { attempts: Map<string, number> },
+    input: { appId: number; entry: LogEntry; now: Date }
+): Promise<EntryResult> {
+    const { attempts } = dependencies;
+    const { entry } = input;
+    try {
+        const delivery = await fetchGithubLoggedDelivery(dependencies.app, entry);
+        const outcome = await dependencies.ingest(delivery);
+        attempts.delete(entry.guid);
+        return outcome.kind === 'in_progress' ? 'in_progress' : 'ingested';
+    } catch {
+        const tries = (attempts.get(entry.guid) ?? 0) + 1;
+        if (tries < maxRecoveryAttempts) {
+            attempts.set(entry.guid, tries);
+            return 'failed';
+        }
+        attempts.delete(entry.guid);
+        await abandonDelivery(dependencies, input.appId, entry, input.now);
+        return 'abandoned';
+    }
 }
 
 /**
@@ -129,65 +209,51 @@ export function startGithubDeliveryRecovery(
     dependencies: GithubRecoveryDependencies,
     options: { intervalMs: number; timers?: SweepTimers }
 ): BootSweep {
+    const attempts = dependencies.attempts ?? new Map<string, number>();
     return startBootSweep({
         intervalMs: options.intervalMs,
         name: 'GitHub delivery recovery sweep',
-        run: () => sweepGithubDeliveries(dependencies),
+        run: () => sweepGithubDeliveries({ ...dependencies, attempts }),
         timers: options.timers,
     });
 }
 
-interface LogEntry {
-    deliveredAt: Date;
-    guid: string;
-    id: number;
-}
-
-function readEntry(entry: Payload): LogEntry | null {
-    const id = field(entry, 'id');
-    const guid = text(entry, 'guid');
-    const deliveredAt = new Date(text(entry, 'delivered_at') ?? Number.NaN);
-    if (
-        typeof id !== 'number' ||
-        !guid ||
-        guid.length > 64 ||
-        Number.isNaN(deliveredAt.getTime())
-    ) {
-        return null;
-    }
-    return { deliveredAt, guid, id };
-}
-
-async function fetchDelivery(app: GithubApp, entry: LogEntry): Promise<GithubDelivery> {
-    const response = await githubRequest(
-        {
-            credential: { jwt: await app.signer.jwt(), kind: 'app' },
-            path: `/app/hook/deliveries/${entry.id}`,
-        },
-        app.transport
+/**
+ * Records a delivery that kept failing as done with `recovery_abandoned`, so
+ * it stops holding the watermark, and logs it for the operator. A `done` row
+ * is never touched.
+ */
+async function abandonDelivery(
+    dependencies: GithubRecoveryDependencies,
+    appId: number,
+    entry: LogEntry,
+    now: Date
+): Promise<void> {
+    await dependencies.db
+        .insert(githubWebhookDeliveriesTable)
+        .values({
+            deliveryGuid: entry.guid,
+            event: entry.event ?? 'unknown',
+            ignoredReason: 'recovery_abandoned',
+            receivedAt: now,
+            source: 'recovery',
+            state: 'done',
+        })
+        .onConflictDoUpdate({
+            set: { ignoredReason: 'recovery_abandoned', state: 'done' },
+            setWhere: eq(githubWebhookDeliveriesTable.state, 'processing'),
+            target: githubWebhookDeliveriesTable.deliveryGuid,
+        });
+    await settle(
+        dependencies.runtime,
+        Effect.logError('github.delivery_abandoned').pipe(
+            Effect.annotateLogs({
+                appId,
+                attempts: maxRecoveryAttempts,
+                deliveredAt: entry.deliveredAt.toISOString(),
+                deliveryId: entry.id,
+                operation: 'github.delivery_abandoned',
+            })
+        )
     );
-    const event = text(response.body, 'event');
-    const payload = field(field(response.body, 'request'), 'payload');
-    if (!event || payload === null || typeof payload !== 'object') {
-        throw new Error(`GitHub delivery ${entry.id} carried no event or payload.`);
-    }
-    return { event, guid: entry.guid, payload, source: 'recovery' };
-}
-
-/** The guids among `guids` that this Server has not finished ingesting. */
-async function notDone(db: HausDatabase, guids: string[]): Promise<Set<string>> {
-    if (guids.length === 0) {
-        return new Set();
-    }
-    const done = await db
-        .select({ guid: githubWebhookDeliveriesTable.deliveryGuid })
-        .from(githubWebhookDeliveriesTable)
-        .where(
-            and(
-                inArray(githubWebhookDeliveriesTable.deliveryGuid, guids),
-                eq(githubWebhookDeliveriesTable.state, 'done')
-            )
-        );
-    const finished = new Set(done.map((row) => row.guid));
-    return new Set(guids.filter((guid) => !finished.has(guid)));
 }

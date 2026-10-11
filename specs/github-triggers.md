@@ -73,17 +73,21 @@ expects a response within 10 seconds and does not retry failures
 3. Route by `payload.installation.id` to an `active` `github_installations` row. None: record
    `ignored_reason` and finish. Reasons are `unsupported_event`, `no_installation`,
    `unknown_installation`, `installation_suspended`, `no_repository`, and
-   `repository_inaccessible`.
-4. Match armed, undeleted, problem-free `github` Triggers on that installation
-   ([matching](#events)). When the connection is not connected or the access cache is older than
-   24 hours, every match enters `sign_in_required` instead of firing; a match whose owner lost the
-   connection grant enters `agent_access_revoked`. Both are marked inside the step 5 transaction
-   with `markGithubTriggersProblem`. Then drop matches over their rate limit (counted in
-   `suppressed_count`).
-5. In **one transaction**: lock the Server row, record a fire and enqueue its wake for every
-   remaining match (`recordTriggerFire`, split out of today's `fireTrigger`), bump suppressed
-   counts, and mark the delivery `done` with `routed_count`. Wakes dispatch after commit. A failure
-   rolls back everything and leaves the delivery for recovery.
+   `repository_inaccessible`; recovery adds `recovery_abandoned`. This first look takes no lock,
+   so an unbound installation never touches a Server row.
+4. In **one transaction**, lock the Server row, then repeat the routing and match armed,
+   undeleted, problem-free `github` Triggers on that installation ([matching](#events)). Every
+   eligibility fact (installation status, access cache, connection, grant, Trigger problem) is read
+   behind the lock, and grant changes, disconnect, sign-in start, and installation changes take the
+   same lock, so none commits between the match and the fire. When the connection is not connected
+   or the access cache is older than 24 hours, every match enters `sign_in_required` instead of
+   firing; a match whose owner lost the connection grant enters `agent_access_revoked`
+   (`markGithubTriggersProblem`). Matches over their rate limit are dropped and counted in
+   `suppressed_count`.
+5. In the same transaction, record a fire and enqueue its wake for every remaining match
+   (`recordTriggerFire`), bump suppressed counts, and mark the delivery `done` with `routed_count`.
+   Wakes dispatch after commit. A failure rolls back everything and leaves the delivery for
+   recovery.
 
 There is no actor-based self-event filter. The hosted MCP writes as the human user, so no payload
 field reliably marks an Agent's own action; the [chain budget](#automation-chain-budget) bounds
@@ -108,9 +112,14 @@ A sweep:
    `delivered_at`. Every kept entry whose guid is not `done` locally is fetched and ingested once
    per sweep (redeliveries share a guid), whatever its GitHub `status`. `status=failure` covers
    only HTTP 400–599 and misses timeouts and connection errors, so it is not used.
-3. When every fetch and ingest succeeded, sets `watermark` to the sweep's start time. A failed
-   entry is counted, the rest still run, and the watermark stays, so the next sweep re-reads it. A
-   failed list request fails the whole sweep, which also leaves the watermark.
+3. Sets `watermark` to the sweep's start time, or to the `delivered_at` of the oldest unresolved
+   kept entry when that is earlier. An entry is unresolved when its fetch or ingest threw, or when
+   ingest answered `in_progress` (another attempt's fresh claim, which may yet crash). A failed
+   entry is counted and the rest still run. An entry that fails five sweeps running (counted in
+   Server memory) is recorded `done` with `ignored_reason = 'recovery_abandoned'` and logged as
+   `github.delivery_abandoned` at error level, so one poisoned delivery cannot freeze the watermark
+   into a false `github.delivery_gap`. A failed list request fails the whole sweep and leaves the
+   watermark.
 
 **Production** sweeps every 10 minutes. **Development** (`HAUS_DEV_STACK=1` with App
 credentials) sweeps every 10 seconds. Either starts its watermark 10 minutes before the first
@@ -171,8 +180,11 @@ events listed.
   problem, because it rehearses the Agent side only.
 - The wire `Trigger` is a union on `kind`: `webhook` carries `url`; `github` carries `github`
   (installation login, repository scope and names, events, `problem`, `suppressedCount`).
-- `github.repositories({ serverId, installationId, query? })` feeds the picker from the access
-  cache.
+- `github.repositories({ serverId, installationId, query? })` feeds the picker and refreshes the
+  access cache on the way. It names private repositories, so it is Owner or Admin only
+  (`FORBIDDEN github_admin_required`), like Trigger authoring; `github.installations` stays
+  member-readable because it carries counts, not names. Agents list repositories through their own
+  granted route.
 
 ## Projection
 
@@ -242,8 +254,11 @@ Agent that writes to GitHub can wake itself forever. The budget changes for ever
   The reset is written when the drain is planned; settlement then advances from 0 and stamps
   `agent_chain_advanced_at`, and a settled drain with other work clears it. A stamp left beside
   a zero count (a human's arrival resets only the count) is inert.
-- A concrete Trigger row leads its own run, so when a person releases a held chain the queued fire
-  drains first (counting 1) and the person's message drains next (resetting to 0).
+- Admission judges the drain that will actually run, never the whole queue. A concrete Trigger row
+  leads its own run, so when a person releases a held chain (their arrival resets the count) the
+  queued fire drains first (counting 1) and the person's message drains next (resetting to 0). A
+  Reminder or task assignment does not reset on arrival: at the ceiling it leads instead of the
+  held fire, resets the chain on settlement, and the fire drains after it from 0.
 
 Loops are tight (seconds to minutes per cycle), so they hit the ceiling; a CI fix loop with
 ten-minute runs stops after 16 attempts until a person speaks.
@@ -265,8 +280,11 @@ notifies nobody.
 | `agent_access_revoked` | the owning Agent lost the grant on the installation's connection (checked at match) |
 | `sign_in_required` | the connection is not connected, or the access cache is older than 24 hours |
 
-Reconciliation clears a problem once its cause is gone. The existing lazy auto-disable for an
-inactive owner or unwritable anchor still applies.
+Reconciliation clears a problem once its cause is gone. Problems follow only armed Triggers, so
+arming a `github` Trigger re-derives its problem from current state in the same transaction (with
+a notice when it enters one); a Trigger disabled while its installation was removed comes back
+`installation_removed`, never silently clean. The existing lazy auto-disable for an inactive owner
+or unwritable anchor still applies.
 
 ## App UI
 

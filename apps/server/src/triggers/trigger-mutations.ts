@@ -107,14 +107,18 @@ async function anchorOnAskingMessage(
     return { chatId: input.anchorChatId, messageId: input.anchorMessageId };
 }
 
-/** Arms or disables one of the calling Agent's own triggers. */
+/**
+ * Arms or disables one of the calling Agent's own triggers. A problem found on
+ * arming is on the returned Trigger, and its notice waits in the Agent's own
+ * inbox, so the running Agent needs no separate wake.
+ */
 export async function setTriggerStatus(
     db: HausDatabase,
     agentId: string,
     input: { origin: string; serverId: string; status: TriggerStatus; triggerId: string },
     clock: TriggerClock
 ): Promise<Trigger> {
-    return await setTriggerStatusRow(db, input, ownedBy(agentId, input), clock);
+    return (await setTriggerStatusRow(db, input, ownedBy(agentId, input), clock)).trigger;
 }
 
 /** Replaces the bearer secret. The previous secret stops working immediately. */

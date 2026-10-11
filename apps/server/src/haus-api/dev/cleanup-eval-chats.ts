@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { chatsTable, remindersTable } from '../../postgres/schema.ts';
+import { chatsTable, remindersTable, triggersTable } from '../../postgres/schema.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -34,6 +34,15 @@ export function createCleanupEvalChatsProcedure(
                     and(
                         eq(remindersTable.serverId, input.serverId),
                         inArray(remindersTable.anchorChatId, chatIds)
+                    )
+                );
+            // Like channel deletion: anchored Triggers, tombstones included, go with the Chats.
+            await tx
+                .delete(triggersTable)
+                .where(
+                    and(
+                        eq(triggersTable.serverId, input.serverId),
+                        inArray(triggersTable.anchorChatId, chatIds)
                     )
                 );
             return await tx

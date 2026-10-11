@@ -26,7 +26,7 @@ import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/recor
 import { lockServerRow } from '../servers/server-lock.ts';
 import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
-import { canBeginAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
+import { admitAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
 import {
     configureFrame,
@@ -49,6 +49,7 @@ import {
     humanDrainSets,
     maxDrainRows,
     noticeWindow,
+    preferredDrainLead,
     startFrame,
 } from './drain-selection.ts';
 import * as failureHold from './failure-hold.ts';
@@ -953,23 +954,20 @@ export class AgentDelivery {
         const candidates = [
             ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
         ];
-        // Concrete work leads its own run: its envelope exists nowhere but the
-        // inbox, so it enters the first prompt instead of waiting behind a
-        // notice the Agent may never pull.
-        const first =
-            candidates.find((row) => row.source === 'onboarding') ??
-            candidates.find((row) => isConcreteSource(row.source)) ??
-            candidates[0];
-        if (!first) {
+        const preferred = preferredDrainLead(candidates);
+        if (!preferred) {
             return null;
         }
         const chainTurns = await restartIdleAgentChain(tx, agentId, state.agentChainTurns);
-        if (!canBeginAgentDrain(candidates, chainTurns)) {
+        const admitted = admitAgentDrain(candidates, preferred, chainTurns, (lead) =>
+            boundedCompatibleRows(candidates, lead.source)
+        );
+        if (!admitted) {
             return null;
         }
+        const { lead: first, selected } = admitted;
         const runId = createOpaqueId('run');
         const concrete = isConcreteSource(first.source);
-        const selected = boundedCompatibleRows(candidates, first.source);
         let noticeRows: store.InboxItemRow[] = [];
         // The Server decides what may be drained; the Computer decides the lane,
         // because only it knows whether the harness session is still alive.

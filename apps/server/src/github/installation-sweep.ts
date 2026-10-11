@@ -7,7 +7,7 @@ import type { GithubApp } from './github-app.ts';
 import { reconcileGithubInstallation } from './installation-reconcile.ts';
 import { refreshGithubRepositoryAccess } from './repository-access.ts';
 import { syncGithubTriggerProblems } from './trigger-problem-sync.ts';
-import type { GithubTriggerProblemEntered } from './trigger-problems.ts';
+import { type GithubTriggerProblemEntered, problemWakes } from './trigger-problems.ts';
 
 const sweepIntervalMs = 60 * 60_000;
 
@@ -15,6 +15,8 @@ export interface GithubInstallationSweepDependencies {
     app: GithubApp;
     clock: { now(): Date };
     db: HausDatabase;
+    /** Wakes owners whose Triggers entered a problem, after each commit. */
+    wake?(wakes: { agentId: string; serverId: string }[]): void;
 }
 
 /**
@@ -41,11 +43,16 @@ export async function sweepGithubInstallations(
             { app: app.signer, clock: dependencies.clock, db, transport: app.transport },
             { githubInstallationId: installation.installationId }
         );
+        let found: GithubTriggerProblemEntered[] = [];
         if (outcome.kind === 'reconciled') {
-            entered.push(...outcome.entered);
+            found = outcome.entered;
         } else if (outcome.kind === 'retry') {
-            entered.push(...(await resyncFromStoredState(dependencies, installation)));
+            found = await resyncFromStoredState(dependencies, installation);
         }
+        if (found.length > 0) {
+            dependencies.wake?.(problemWakes(installation.serverId, found));
+        }
+        entered.push(...found);
     }
     return entered;
 }
@@ -70,7 +77,8 @@ export function startGithubInstallationSweep(
  */
 export function githubSignedInHook(
     app: GithubApp | null,
-    db: HausDatabase
+    db: HausDatabase,
+    wake?: GithubInstallationSweepDependencies['wake']
 ): ((connection: { id: string; preset: string | null; serverId: string }) => Promise<void>) | null {
     if (!app) {
         return null;
@@ -94,7 +102,7 @@ export function githubSignedInHook(
                 )
             );
         for (const installation of live) {
-            await refreshGithubRepositoryAccess(
+            const access = await refreshGithubRepositoryAccess(
                 {
                     clock: dependencies.clock,
                     db: dependencies.db,
@@ -102,6 +110,9 @@ export function githubSignedInHook(
                 },
                 installation
             );
+            if (access.kind !== 'retry' && access.entered.length > 0) {
+                wake?.(problemWakes(installation.serverId, access.entered));
+            }
         }
     };
 }

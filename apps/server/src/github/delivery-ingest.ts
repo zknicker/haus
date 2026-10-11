@@ -106,44 +106,55 @@ async function ingest(
     if (!event) {
         return await finish(db, delivery.guid, { ignored: 'unsupported_event', routed: 0 });
     }
-    const route = await routeGithubDelivery(db, delivery.payload);
-    if (route.kind === 'ignored') {
-        return await finish(db, delivery.guid, { ignored: route.ignored, routed: 0 });
+    // An unlocked look first, so an unbound installation never takes a Server lock.
+    const preview = await routeGithubDelivery(db, delivery.payload);
+    if (preview.kind === 'ignored') {
+        return await finish(db, delivery.guid, { ignored: preview.ignored, routed: 0 });
     }
-    const { installation } = route;
-    const matched = await matchGithubTriggers(db, {
-        event,
-        installation,
-        now,
-        payload: delivery.payload,
-        repositoryId: route.repositoryId,
-    });
-    const admitted: GithubTriggerMatch[] = [];
-    const suppressed: string[] = [];
-    for (const match of matched.fire) {
-        if (dependencies.limiter.admit(match.triggerId, now.getTime())) {
-            suppressed.push(match.triggerId);
-        } else {
-            admitted.push(match);
-        }
-    }
-    const projection =
-        admitted.length > 0
-            ? projectGithubDelivery({
-                  event,
-                  installationAccount: installation.accountLogin,
-                  payload: delivery.payload,
-              })
-            : null;
+    const serverId = preview.installation.serverId;
     const github = githubEnvelopeLines({
         deliveryGuid: delivery.guid,
         event,
         payload: delivery.payload,
     });
-    const serverId = installation.serverId;
 
     const committed = await db.transaction(async (tx) => {
         await lockServerRow(tx, serverId);
+        // Every eligibility fact (installation status, access cache, connection,
+        // grant, Trigger problem) is re-read behind the lock that grant,
+        // disconnect, and installation changes also take, so none can commit
+        // between this match and the fires below.
+        const route = await routeGithubDelivery(tx, delivery.payload);
+        if (route.kind === 'ignored' || route.installation.serverId !== serverId) {
+            const ignored = route.kind === 'ignored' ? route.ignored : 'unknown_installation';
+            await finish(tx, delivery.guid, { ignored, routed: 0 });
+            return { routed: 0, wakes: [] };
+        }
+        const { installation } = route;
+        const matched = await matchGithubTriggers(tx, {
+            event,
+            installation,
+            now,
+            payload: delivery.payload,
+            repositoryId: route.repositoryId,
+        });
+        const admitted: GithubTriggerMatch[] = [];
+        const suppressed: string[] = [];
+        for (const match of matched.fire) {
+            if (dependencies.limiter.admit(match.triggerId, now.getTime())) {
+                suppressed.push(match.triggerId);
+            } else {
+                admitted.push(match);
+            }
+        }
+        const projection =
+            admitted.length > 0
+                ? projectGithubDelivery({
+                      event,
+                      installationAccount: installation.accountLogin,
+                      payload: delivery.payload,
+                  })
+                : null;
         const problems = [
             ...(await markProblem(
                 tx,

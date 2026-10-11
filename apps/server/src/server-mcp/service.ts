@@ -14,6 +14,7 @@ import {
     mcpConnectionsTable,
     mcpSecretsTable,
 } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireAdmin, requireConnection, requireOperableConnection } from './connection-access.ts';
 import { resolveMcpConnectionIcon } from './connection-branding.ts';
@@ -128,6 +129,8 @@ export async function disconnectMcpConnection(
         isMcpBearerTokenPreset(connection.preset) || connection.preset === 'skool';
     const headerNames = clearsHeaders ? [] : connection.headerNames;
     await db.transaction(async (tx) => {
+        // Grants and `connected` gate GitHub Trigger fires, which commit behind this lock.
+        await lockServerRow(tx, input.serverId);
         await tx
             .delete(agentMcpConnectionGrantsTable)
             .where(eq(agentMcpConnectionGrantsTable.connectionId, input.connectionId));
@@ -237,6 +240,7 @@ export async function clearMcpIdentity(
 ) {
     await runtime.closeConnection(connectionId);
     await db.transaction(async (tx) => {
+        await lockServerRow(tx, serverId);
         await tx
             .delete(agentMcpConnectionGrantsTable)
             .where(eq(agentMcpConnectionGrantsTable.connectionId, connectionId));

@@ -75,10 +75,11 @@ export async function reconcileGithubInstallation(
     if (status !== 'active') {
         return applied;
     }
+    // A refused sign-in also enters problems, so its notices ride the outcome too.
     const access = await refreshGithubRepositoryAccess(dependencies, live);
-    return access.kind === 'refreshed'
-        ? { ...applied, entered: [...applied.entered, ...access.entered] }
-        : applied;
+    return access.kind === 'retry'
+        ? applied
+        : { ...applied, entered: [...applied.entered, ...access.entered] };
 }
 
 type InstallationRow = typeof githubInstallationsTable.$inferSelect;

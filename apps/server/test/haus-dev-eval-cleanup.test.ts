@@ -112,6 +112,17 @@ describe('dev.cleanupEvalChats', () => {
                 'Temporary eval reminder', now() + interval '1 hour', 'UTC', 'scheduled', now(), now()
             )
         `;
+        // A live Trigger and a tombstone both anchor in the parent; neither may block the delete.
+        await harness.sql`
+            insert into triggers
+                (id, server_id, owner_agent_id, anchor_chat_id, anchor_message_id, kind,
+                 secret_hash, status, title, created_at, updated_at, deleted_at)
+            values
+                ('trg_eval_cleanup_live', ${server.id}, ${agentId}, ${parentChatId},
+                 ${anchor.message.id}, 'webhook', 'hash-live', 'armed', 'Live', now(), now(), null),
+                ('trg_eval_cleanup_gone', ${server.id}, ${agentId}, ${threadChatId},
+                 null, 'webhook', 'hash-gone', 'disabled', 'Gone', now(), now(), now())
+        `;
 
         await expect(
             owner.trpc.dev.cleanupEvalChats.mutate({
@@ -137,6 +148,11 @@ describe('dev.cleanupEvalChats', () => {
             select id from reminders
             where server_id = ${server.id} and id = ${reminderId}
         `;
+        const deletedTriggers = await harness.sql`
+            select id from triggers
+            where server_id = ${server.id}
+              and id in ('trg_eval_cleanup_live', 'trg_eval_cleanup_gone')
+        `;
         const [preservedOtherChat] = await harness.sql`
             select id from chats
             where server_id = ${otherServer.id} and id = ${otherChatId}
@@ -145,6 +161,7 @@ describe('dev.cleanupEvalChats', () => {
         expect(deletedChats).toHaveLength(0);
         expect(deletedMessages).toHaveLength(0);
         expect(deletedReminders).toHaveLength(0);
+        expect(deletedTriggers).toHaveLength(0);
         expect(preservedOtherChat?.id).toBe(otherChatId);
     });
 });

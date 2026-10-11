@@ -117,6 +117,67 @@ test('twenty-five matching Triggers all fire from one delivery', async () => {
     await deleteTriggers(triggers);
 });
 
+test('a grant revoked while a delivery waits for the Server lock stops it firing', async () => {
+    const triggerId = await insertGithubTrigger(harness, world, { events: failureEvents });
+    const { promise: released, resolve: release } = Promise.withResolvers<void>();
+    // A grant mutation holds the Server lock, as `mcp.setGrant` now does.
+    const revoking = harness.sql.begin(async (tx) => {
+        await tx`select id from servers where id = ${world.serverId} for update`;
+        await released;
+        await tx`delete from agent_mcp_connection_grants where agent_id = ${world.agentId}`;
+    });
+    const guid = randomUUID();
+    const ingesting = ingestGithubDelivery(
+        dependencies(new AgentDelivery(connection.db, offline)),
+        { event: 'workflow_run', guid, payload: workflowRunPayload(), source: 'webhook' }
+    );
+    await waitForLockWaiter();
+    release();
+    await revoking;
+    expect(await ingesting).toEqual({ kind: 'accepted', routed: 0 });
+    expect(await firesFor(guid)).toBe(0);
+    expect(await problemOf(triggerId)).toBe('agent_access_revoked');
+
+    await harness.sql`
+        insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
+        values (${world.serverId}, ${world.agentId}, ${world.connectionId})
+    `;
+    await deleteTriggers([triggerId]);
+});
+
+test('revoking Agent access commits only after the Server lock frees', async () => {
+    const { promise: released, resolve: release } = Promise.withResolvers<void>();
+    const holding = harness.sql.begin(async (tx) => {
+        await tx`select id from servers where id = ${world.serverId} for update`;
+        await released;
+    });
+    const granting = world.owner.trpc.mcp.setGrant.mutate({
+        agentId: world.agentId,
+        connectionId: world.connectionId,
+        enabled: false,
+        serverId: world.serverId,
+    });
+    await waitForLockWaiter();
+    const grantsWhileLocked = await harness.sql`
+        select agent_id from agent_mcp_connection_grants where agent_id = ${world.agentId}
+    `;
+    release();
+    await holding;
+    await granting;
+    expect(grantsWhileLocked).toHaveLength(1);
+    expect(
+        await harness.sql`
+            select agent_id from agent_mcp_connection_grants where agent_id = ${world.agentId}
+        `
+    ).toHaveLength(0);
+    await world.owner.trpc.mcp.setGrant.mutate({
+        agentId: world.agentId,
+        connectionId: world.connectionId,
+        enabled: true,
+        serverId: world.serverId,
+    });
+});
+
 test('a lost grant or a stale access cache puts matches into a problem instead of firing', async () => {
     const triggerId = await insertGithubTrigger(harness, world, { events: failureEvents });
     const delivery = new AgentDelivery(connection.db, offline);
@@ -137,7 +198,8 @@ test('a lost grant or a stale access cache puts matches into a problem instead o
     expect(await problemOf(triggerId)).toBe('sign_in_required');
     expect(await firesFor(stale)).toBe(0);
     const notices = await harness.sql`
-        select source from agent_inbox where source = 'trigger_problem' and agent_id = ${world.agentId}
+        select source from agent_inbox
+        where source = 'trigger_problem' and dedupe_key like ${`problem:${triggerId}:%`}
     `;
     expect(notices).toHaveLength(1);
 
@@ -180,6 +242,21 @@ async function problemOf(triggerId: string) {
         select problem from github_trigger_configs where trigger_id = ${triggerId}
     `) as { problem: string | null }[];
     return row?.problem ?? null;
+}
+
+/** Resolves once some backend is blocked on a row lock (the held Server row). */
+async function waitForLockWaiter() {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+        const [row] = (await harness.sql`
+            select count(*)::int as waiting from pg_stat_activity
+            where wait_event_type = 'Lock' and datname = current_database()
+        `) as { waiting: number }[];
+        if ((row?.waiting ?? 0) > 0) {
+            return;
+        }
+        await Bun.sleep(10);
+    }
+    throw new Error('Nothing waited for the Server lock.');
 }
 
 async function deleteTriggers(ids: string[]) {

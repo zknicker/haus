@@ -33,7 +33,7 @@ export type GithubAccessRefresh =
           repositories: GithubRepository[];
       }
     | { kind: 'retry' }
-    | { kind: 'sign_in_required' };
+    | { entered: GithubTriggerProblemEntered[]; kind: 'sign_in_required' };
 
 const repositorySchema = z.object({
     full_name: z.string().min(1),
@@ -81,7 +81,9 @@ export async function fetchGithubInstallationRepositories(
 /**
  * Re-reads the installation's accessible repositories with the connection's
  * user token, stores them, and re-derives dependent Trigger problems in one
- * transaction. Notices the caller should wake for come back as `entered`.
+ * transaction. A sign-in GitHub refuses invalidates the cache in the same way,
+ * so no delivery keeps routing on access the user may have lost. Notices the
+ * caller should wake for come back as `entered`.
  */
 export async function refreshGithubRepositoryAccess(
     dependencies: GithubAccessDependencies,
@@ -89,7 +91,7 @@ export async function refreshGithubRepositoryAccess(
 ): Promise<GithubAccessRefresh> {
     const row = await readInstallation(dependencies.db, installation);
     if (!(row?.connectionId && row.status !== 'removed')) {
-        return { kind: 'sign_in_required' };
+        return { entered: [], kind: 'sign_in_required' };
     }
     let repositories: GithubRepository[];
     try {
@@ -105,23 +107,38 @@ export async function refreshGithubRepositoryAccess(
         );
     } catch (cause) {
         if (cause instanceof GithubSignInRequiredError) {
-            return { kind: 'sign_in_required' };
+            return {
+                entered: await storeAccess(dependencies, row, { accessSyncedAt: null }),
+                kind: 'sign_in_required',
+            };
         }
         if (cause instanceof GithubApiError) {
             return { kind: 'retry' };
         }
         throw cause;
     }
+    const entered = await storeAccess(dependencies, row, {
+        accessibleRepositoryIds: repositories.map((repository) => repository.id),
+        accessSyncedAt: dependencies.clock.now(),
+    });
+    return { entered, kind: 'refreshed', repositories };
+}
+
+/**
+ * Writes the access cache (or its invalidation, `accessSyncedAt: null`) and
+ * re-derives dependent Trigger problems in one transaction.
+ */
+async function storeAccess(
+    dependencies: GithubAccessDependencies,
+    row: { id: string; serverId: string },
+    access: { accessibleRepositoryIds?: number[]; accessSyncedAt: Date | null }
+): Promise<GithubTriggerProblemEntered[]> {
     const now = dependencies.clock.now();
-    const entered = await dependencies.db.transaction(async (tx) => {
+    return await dependencies.db.transaction(async (tx) => {
         await lockServerRow(tx, row.serverId);
         const [updated] = await tx
             .update(githubInstallationsTable)
-            .set({
-                accessibleRepositoryIds: repositories.map((repository) => repository.id),
-                accessSyncedAt: now,
-                updatedAt: now,
-            })
+            .set({ ...access, updatedAt: now })
             .where(
                 and(
                     eq(githubInstallationsTable.serverId, row.serverId),
@@ -133,7 +150,6 @@ export async function refreshGithubRepositoryAccess(
             ? await syncGithubTriggerProblems(tx, { installation: updated, now })
             : [];
     });
-    return { entered, kind: 'refreshed', repositories };
 }
 
 /**

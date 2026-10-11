@@ -46,6 +46,7 @@ export function registerGithubSetupRoute(
 ) {
     const states = dependencies.states ?? githubInstallStates;
     const clock = dependencies.clock ?? { now: () => new Date() };
+    const updates = createUpdateThrottle(clock);
     app.get(githubSetupPath, async (request, reply) => {
         const { githubApp } = dependencies;
         if (!githubApp) {
@@ -55,22 +56,33 @@ export function registerGithubSetupRoute(
         const query = parsed.success ? parsed.data : {};
         const attempt = query.state ? states.consume(query.state) : null;
         if (!attempt) {
-            if (query.setup_action === 'update' && query.installation_id) {
-                await reconcileGithubInstallation(
-                    {
-                        app: githubApp.signer,
-                        clock,
-                        db: dependencies.db,
-                        transport: githubApp.transport,
-                    },
-                    { githubInstallationId: query.installation_id }
-                ).catch((error: unknown) => {
-                    // The hourly sweep reconciles again; the browser only needs a page.
-                    console.error(
-                        '[haus] GitHub setup update reconcile failed',
-                        error instanceof Error ? error.name : 'unknown error'
-                    );
-                });
+            const githubInstallationId = query.installation_id;
+            if (query.setup_action === 'update' && githubInstallationId) {
+                // Unauthenticated, so one reconcile per installation per window.
+                await updates.run(githubInstallationId, () =>
+                    reconcileGithubInstallation(
+                        {
+                            app: githubApp.signer,
+                            clock,
+                            db: dependencies.db,
+                            transport: githubApp.transport,
+                        },
+                        { githubInstallationId }
+                    ).then(
+                        (outcome) => {
+                            if (outcome.kind === 'reconciled' && outcome.entered.length > 0) {
+                                dependencies.wake(problemWakes(outcome.serverId, outcome.entered));
+                            }
+                        },
+                        (error: unknown) => {
+                            // The hourly sweep reconciles again; the browser only needs a page.
+                            console.error(
+                                '[haus] GitHub setup update reconcile failed',
+                                error instanceof Error ? error.name : 'unknown error'
+                            );
+                        }
+                    )
+                );
                 return page(reply, 200, 'GitHub updated', 'You can return to Haus.');
             }
             return page(
@@ -129,6 +141,40 @@ async function connectionPage(
         .limit(1);
     const origin = dependencies.appOrigin.replace(/\/$/u, '');
     return `${origin}/s/${encodeURIComponent(server?.slug ?? '')}/settings/connections/${encodeURIComponent(attempt.connectionId)}`;
+}
+
+/** An update redirect reconciles one installation at most once per this window. */
+export const githubSetupUpdateWindowMs = 60_000;
+const throttleCapacity = 256;
+
+/**
+ * Singleflight plus a quiet window per GitHub installation id: a request that
+ * finds a reconcile running or recently started skips it.
+ */
+function createUpdateThrottle(clock: { now(): Date }) {
+    const started = new Map<number, number>();
+    return {
+        async run(installationId: number, reconcile: () => Promise<void>): Promise<void> {
+            const now = clock.now().getTime();
+            const last = started.get(installationId);
+            if (last !== undefined && now - last < githubSetupUpdateWindowMs) {
+                return;
+            }
+            if (started.size >= throttleCapacity) {
+                for (const [id, at] of started) {
+                    if (now - at >= githubSetupUpdateWindowMs) {
+                        started.delete(id);
+                    }
+                }
+                if (started.size >= throttleCapacity) {
+                    // A flood of distinct ids; the hourly sweep still reconciles.
+                    return;
+                }
+            }
+            started.set(installationId, now);
+            await reconcile();
+        },
+    };
 }
 
 function page(reply: FastifyReply, status: number, title: string, message: string) {

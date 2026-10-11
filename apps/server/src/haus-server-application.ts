@@ -1,6 +1,6 @@
 import cors from '@fastify/cors';
 import { settle, tracePromise } from '@haus/effect';
-import { Effect, Exit, Scope } from 'effect';
+import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
@@ -12,7 +12,6 @@ import { markAllComputersOffline } from './computers/service.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { productionComputerManifestUrl } from './computers/update.ts';
 import { githubDeliveryIngest } from './github/deliveries.ts';
-import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
 import { githubSignedInHook } from './github/installation-sweep.ts';
 import { createHausContextFactory, type HausContextDependencies } from './haus-api/context.ts';
 import { startHausWebSocketServer } from './haus-api/ws.ts';
@@ -114,7 +113,14 @@ export async function createHausServerApplication(
         const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime);
         mcpRuntime = startedMcpRuntime;
         const mcpIconResolver = makeMcpIconResolver(runtime);
-        const signedIn = githubSignedInHook(options.githubApp ?? null, connectedHaus.db);
+        const wakeAgents = (wakes: { agentId: string; serverId: string }[]) => {
+            void startedPostCommitWork.wakeAgents(agentDelivery, wakes);
+        };
+        const signedIn = githubSignedInHook(
+            options.githubApp ?? null,
+            connectedHaus.db,
+            wakeAgents
+        );
         const mcpOAuthRelay = new McpOAuthRelay(
             connectedHaus.db,
             startedMcpRuntime,
@@ -208,39 +214,13 @@ export async function createHausServerApplication(
             clock: reminderClock,
             db: connectedHaus.db,
             githubApp: options.githubApp ?? null,
+            githubIngest,
+            githubRecoveryIntervalMs: options.githubRecoveryIntervalMs,
             pushReadGraceMs: options.pushReadGraceMs,
             pushSender: options.pushSender ?? null,
             timers: options.sweepTimers,
+            wakeAgents,
         });
-        const { githubApp } = contextDependencies;
-        const githubRecoveryIntervalMs =
-            options.githubRecoveryIntervalMs === undefined
-                ? 10 * 60_000
-                : options.githubRecoveryIntervalMs;
-        if (githubApp && githubRecoveryIntervalMs !== null) {
-            const recoveryDependencies = {
-                app: githubApp,
-                clock: { now: () => new Date() },
-                db: connectedHaus.db,
-                ingest: githubIngest,
-                runtime,
-            };
-            await settle(
-                runtime,
-                Scope.extend(
-                    Effect.acquireRelease(
-                        Effect.sync(() =>
-                            startGithubDeliveryRecovery(recoveryDependencies, {
-                                intervalMs: githubRecoveryIntervalMs,
-                                timers: options.sweepTimers,
-                            })
-                        ),
-                        (started) => Effect.promise(() => started.close())
-                    ),
-                    scope
-                )
-            );
-        }
         recurringWork = await startServerRecurringWork({
             delivery: agentDelivery,
             reminderClock,

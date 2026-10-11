@@ -1,6 +1,8 @@
 import type { Trigger, TriggerStatus, WebhookTrigger } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
+import { syncArmedGithubTrigger } from '../github/trigger-problem-sync.ts';
+import type { GithubTriggerProblemEntered } from '../github/trigger-problems.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
@@ -100,15 +102,18 @@ export async function createTriggerRow(
 
 /**
  * Arms or disables one trigger. Setting the status it already has changes
- * nothing, so a kill switch pressed twice does not churn the version.
+ * nothing, so a kill switch pressed twice does not churn the version. Arming
+ * a `github` Trigger re-derives its problem, because problems only follow
+ * armed Triggers; `entered` names any notice the caller should wake for.
  */
 export async function setTriggerStatusRow(
     db: HausDatabase,
     input: { origin: string; serverId: string; status: TriggerStatus; triggerId: string },
     authorize: TriggerAuthorization,
     clock: TriggerClock
-): Promise<Trigger> {
-    return await writeTrigger(
+): Promise<{ entered: GithubTriggerProblemEntered[]; trigger: Trigger }> {
+    let entered: GithubTriggerProblemEntered[] = [];
+    const trigger = await writeTrigger(
         db,
         input,
         authorize,
@@ -119,8 +124,18 @@ export async function setTriggerStatusRow(
                       disabledAt: input.status === 'disabled' ? now : null,
                       status: input.status,
                   },
-        clock
+        clock,
+        async (tx, current, now) => {
+            if (current.kind === 'github' && input.status === 'armed') {
+                entered = await syncArmedGithubTrigger(tx, {
+                    now,
+                    serverId: input.serverId,
+                    triggerId: input.triggerId,
+                });
+            }
+        }
     );
+    return { entered, trigger };
 }
 
 /** Edits the human-authored fields. `instruction: null` clears the instruction. */
@@ -247,7 +262,8 @@ async function writeTrigger(
     input: { origin: string; serverId: string; triggerId: string },
     authorize: TriggerAuthorization,
     patch: (current: Trigger, now: Date) => Partial<typeof triggersTable.$inferInsert> | null,
-    clock: TriggerClock
+    clock: TriggerClock,
+    afterWrite?: (tx: Transaction, current: Trigger, now: Date) => Promise<void>
 ): Promise<Trigger> {
     const now = clock.now();
     return await db.transaction(async (tx) => {
@@ -267,6 +283,7 @@ async function writeTrigger(
                     eq(triggersTable.id, input.triggerId)
                 )
             );
+        await afterWrite?.(tx, current, now);
         return await readTrigger(tx, input);
     });
 }

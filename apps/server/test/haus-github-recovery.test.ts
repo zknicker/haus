@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from 'bun:test';
 import { makeTestRuntime } from '@haus/effect';
-import type { GithubDelivery } from '../src/github/delivery-ingest.ts';
-import { sweepGithubDeliveries } from '../src/github/delivery-recovery.ts';
+import { eq } from 'drizzle-orm';
+import type { GithubDelivery, GithubIngestOutcome } from '../src/github/delivery-ingest.ts';
+import { maxRecoveryAttempts, sweepGithubDeliveries } from '../src/github/delivery-recovery.ts';
 import type { GithubApp } from '../src/github/github-app.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -101,14 +102,21 @@ const app: GithubApp = {
     },
 };
 
-function sweep(ingested: GithubDelivery[]) {
+function sweep(
+    ingested: GithubDelivery[],
+    options: {
+        attempts?: Map<string, number>;
+        outcome?: (delivery: GithubDelivery) => GithubIngestOutcome;
+    } = {}
+) {
     return sweepGithubDeliveries({
         app,
+        attempts: options.attempts,
         clock: { now: () => now },
         db: connection.db,
         ingest: (delivery) => {
             ingested.push(delivery);
-            return Promise.resolve({ kind: 'accepted', routed: 0 });
+            return Promise.resolve(options.outcome?.(delivery) ?? { kind: 'accepted', routed: 0 });
         },
         runtime,
     });
@@ -153,13 +161,13 @@ test('pages until a page is wholly older than the cutoff and ingests every unfin
     ]);
     expect(ingested.every((delivery) => delivery.source === 'recovery')).toBe(true);
     expect(ingested[0]?.event).toBe('workflow_run');
-    expect(result).toEqual({ failed: 0, gap: null, ingested: 4, pages: 3 });
+    expect(result).toEqual({ abandoned: 0, failed: 0, gap: null, ingested: 4, pages: 3 });
     expect(requests).not.toContain('/app/hook/deliveries/2');
     expect(requests.some((request) => request.includes('cursor=p4'))).toBe(false);
     expect(await cursor()).toMatchObject({ lastSweptAt: now, watermark: now });
 });
 
-test('a failed fetch keeps the watermark so the next sweep retries', async () => {
+test('a failed fetch holds the watermark at that delivery so the next sweep retries', async () => {
     const watermark = new Date(now.getTime() - 30 * 60 * 1000);
     await connection.db.insert(githubDeliveryCursorTable).values({ appId, watermark });
     pages = { first: [entry(10, 1000), entry(11, 2000)], p2: [entry(12, 3 * hour)] };
@@ -168,7 +176,39 @@ test('a failed fetch keeps the watermark so the next sweep retries', async () =>
     const result = await sweep(ingested);
     expect(result).toMatchObject({ failed: 1, ingested: 1 });
     expect(ingested.map((delivery) => delivery.guid)).toEqual(['guid-11']);
-    expect((await cursor())?.watermark).toEqual(watermark);
+    expect((await cursor())?.watermark).toEqual(new Date(now.getTime() - 1000));
+});
+
+test('a delivery another attempt holds keeps the watermark from passing it', async () => {
+    const watermark = new Date(now.getTime() - 30 * 60 * 1000);
+    await connection.db.insert(githubDeliveryCursorTable).values({ appId, watermark });
+    pages = { first: [entry(13, 1000), entry(14, 20 * 60 * 1000)], p2: [entry(15, 3 * hour)] };
+    const result = await sweep([], {
+        outcome: (delivery) =>
+            delivery.guid === 'guid-14' ? { kind: 'in_progress' } : { kind: 'accepted', routed: 0 },
+    });
+    expect(result).toMatchObject({ failed: 0, ingested: 1 });
+    expect((await cursor())?.watermark).toEqual(new Date(now.getTime() - 20 * 60 * 1000));
+});
+
+test('a delivery that keeps failing is abandoned and stops holding the watermark', async () => {
+    const watermark = new Date(now.getTime() - 30 * 60 * 1000);
+    await connection.db.insert(githubDeliveryCursorTable).values({ appId, watermark });
+    pages = { first: [entry(16, 1000), entry(17, 2000)], p2: [entry(18, 3 * hour)] };
+    failingDetail.add(17);
+    const attempts = new Map<string, number>();
+    for (let attempt = 1; attempt < maxRecoveryAttempts; attempt += 1) {
+        expect(await sweep([], { attempts })).toMatchObject({ abandoned: 0, failed: 1 });
+        expect((await cursor())?.watermark).toEqual(new Date(now.getTime() - 2000));
+    }
+    expect(await sweep([], { attempts })).toMatchObject({ abandoned: 1, failed: 0 });
+    expect((await cursor())?.watermark).toEqual(now);
+    const [row] = await connection.db
+        .select()
+        .from(githubWebhookDeliveriesTable)
+        .where(eq(githubWebhookDeliveriesTable.deliveryGuid, 'guid-17'));
+    expect(row).toMatchObject({ ignoredReason: 'recovery_abandoned', state: 'done' });
+    expect(attempts.size).toBe(0);
 });
 
 test('a watermark past retention records the gap and resumes from the retention edge', async () => {

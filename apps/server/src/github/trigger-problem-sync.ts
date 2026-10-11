@@ -3,11 +3,11 @@ import {
     type GithubTriggerProblem,
     githubTriggerEventPermission,
 } from '@haus/api';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
-    type githubInstallationsTable,
+    githubInstallationsTable,
     githubTriggerConfigsTable,
     mcpConnectionsTable,
     triggersTable,
@@ -30,9 +30,12 @@ type InstallationRow = typeof githubInstallationsTable.$inferSelect;
  */
 export async function syncGithubTriggerProblems(
     tx: HausDatabase,
-    input: { installation: InstallationRow; now: Date }
+    input: { installation: InstallationRow; now: Date; triggerIds?: readonly string[] }
 ): Promise<GithubTriggerProblemEntered[]> {
     const { installation, now } = input;
+    if (input.triggerIds?.length === 0) {
+        return [];
+    }
     const triggers = await tx
         .select({
             events: githubTriggerConfigsTable.events,
@@ -53,6 +56,9 @@ export async function syncGithubTriggerProblems(
             and(
                 eq(githubTriggerConfigsTable.serverId, installation.serverId),
                 eq(githubTriggerConfigsTable.installationRowId, installation.id),
+                input.triggerIds
+                    ? inArray(githubTriggerConfigsTable.triggerId, [...input.triggerIds])
+                    : undefined,
                 eq(triggersTable.status, 'armed'),
                 isNull(triggersTable.deletedAt)
             )
@@ -89,6 +95,43 @@ export async function syncGithubTriggerProblems(
         entered.push(...marked.entered);
     }
     return entered;
+}
+
+/**
+ * Re-derives one `github` Trigger's problem when it is armed again. Problems
+ * only track armed Triggers, so a Trigger disabled while its installation was
+ * removed, suspended, or signed out would otherwise come back clean and
+ * silently never fire.
+ */
+export async function syncArmedGithubTrigger(
+    tx: HausDatabase,
+    input: { now: Date; serverId: string; triggerId: string }
+): Promise<GithubTriggerProblemEntered[]> {
+    const [row] = await tx
+        .select({ installation: githubInstallationsTable })
+        .from(githubTriggerConfigsTable)
+        .innerJoin(
+            githubInstallationsTable,
+            and(
+                eq(githubInstallationsTable.serverId, githubTriggerConfigsTable.serverId),
+                eq(githubInstallationsTable.id, githubTriggerConfigsTable.installationRowId)
+            )
+        )
+        .where(
+            and(
+                eq(githubTriggerConfigsTable.serverId, input.serverId),
+                eq(githubTriggerConfigsTable.triggerId, input.triggerId)
+            )
+        )
+        .limit(1);
+    if (!row) {
+        return [];
+    }
+    return await syncGithubTriggerProblems(tx, {
+        installation: row.installation,
+        now: input.now,
+        triggerIds: [input.triggerId],
+    });
 }
 
 interface ConnectionFacts {

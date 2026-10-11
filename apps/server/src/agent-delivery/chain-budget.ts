@@ -36,6 +36,33 @@ export function canBeginAgentDrain(rows: AuthoredWork[], currentTurns: number): 
 }
 
 /**
+ * Chooses the drain before admitting it: admission judges the rows that will
+ * actually run, never the whole queue. At the ceiling an automation-only drain
+ * holds, and the oldest work that resets the chain (a Reminder, a task
+ * assignment, a human message) leads instead, so the held automation drains
+ * after it from zero. Null holds the Agent.
+ */
+export function admitAgentDrain<Row extends AuthoredWork>(
+    candidates: readonly Row[],
+    lead: Row,
+    currentTurns: number,
+    select: (lead: Row) => Row[]
+): { lead: Row; selected: Row[] } | null {
+    const selected = select(lead);
+    if (canBeginAgentDrain(selected, currentTurns)) {
+        return { lead, selected };
+    }
+    const resetting = candidates.find((row) => !isAutomationAuthored(row));
+    if (!resetting) {
+        return null;
+    }
+    const instead = select(resetting);
+    return canBeginAgentDrain(instead, currentTurns)
+        ? { lead: resetting, selected: instead }
+        : null;
+}
+
+/**
  * The chain after a completed drain. A turn that settled only notices leaves
  * it untouched (null); an automation-only drain advances it and stamps when;
  * anything else resets it.

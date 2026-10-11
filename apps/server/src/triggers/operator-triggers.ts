@@ -7,6 +7,7 @@ import type {
 } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { GithubApiTransport } from '../github/github-api.ts';
+import type { GithubTriggerProblemEntered } from '../github/trigger-problems.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -98,16 +99,17 @@ export async function listOperatorTriggerRuns(
     });
 }
 
-/** The App's arm/disable switch. Setting the status it already has is a no-op. */
+/**
+ * The App's arm/disable switch. Setting the status it already has is a no-op.
+ * `entered` names problem notices that arming queued, for the caller to wake.
+ */
 export async function setOperatorTriggerStatus(
     db: HausDatabase,
     member: HausUser | null,
     input: OperatorTriggerInput & { status: TriggerStatus },
     clock: TriggerClock
-): Promise<{ trigger: Trigger }> {
-    return {
-        trigger: await setTriggerStatusRow(db, input, operatorCheck(member, input), clock),
-    };
+): Promise<{ entered: GithubTriggerProblemEntered[]; trigger: Trigger }> {
+    return await setTriggerStatusRow(db, input, operatorCheck(member, input), clock);
 }
 
 /**

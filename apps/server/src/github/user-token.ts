@@ -49,13 +49,34 @@ export async function withGithubUserToken<T>(
     return await use(await refreshGithubUserToken(dependencies, connection, token));
 }
 
+/** One refresh in flight per connection in this process; concurrent callers share it. */
+const refreshesInFlight = new Map<string, Promise<string>>();
+
 /**
  * Exchanges the stored refresh token for a new pair and stores it, keeping the
- * authorization-server facts the MCP client recorded on the token. When GitHub
- * rejects the refresh because a concurrent caller already rotated it, the
- * stored newer token wins.
+ * authorization-server facts the MCP client recorded on the token. GitHub
+ * refresh tokens are single use, so concurrent callers in this process share
+ * one exchange, and the write only lands while the stored pair is still the one
+ * that was refreshed. When another path (the MCP OAuth provider) rotated the
+ * pair first, its stored newer token wins.
  */
 export async function refreshGithubUserToken(
+    dependencies: GithubUserTokenDependencies,
+    connection: { connectionId: string; serverId: string },
+    staleAccessToken: string
+): Promise<string> {
+    const running = refreshesInFlight.get(connection.connectionId);
+    if (running) {
+        return await running;
+    }
+    const refresh = exchangeRefreshToken(dependencies, connection, staleAccessToken).finally(() => {
+        refreshesInFlight.delete(connection.connectionId);
+    });
+    refreshesInFlight.set(connection.connectionId, refresh);
+    return await refresh;
+}
+
+async function exchangeRefreshToken(
     dependencies: GithubUserTokenDependencies,
     connection: { connectionId: string; serverId: string },
     staleAccessToken: string
@@ -75,8 +96,11 @@ export async function refreshGithubUserToken(
         }
         throw new GithubSignInRequiredError();
     }
-    await writeTokens(dependencies.db, connection.connectionId, { ...stored, ...answer });
-    return answer.access_token;
+    return await writeTokensIfUnchanged(dependencies.db, connection.connectionId, {
+        accessToken: answer.access_token,
+        next: { ...stored, ...answer },
+        refreshed: stored.refresh_token,
+    });
 }
 
 async function requestRefresh(
@@ -160,8 +184,17 @@ async function readStoredTokens(
     return tokens && typeof tokens === 'object' ? (tokens as StoredTokens) : {};
 }
 
-async function writeTokens(db: HausDatabase, connectionId: string, tokens: StoredTokens) {
-    await db.transaction(async (tx) => {
+/**
+ * Stores `next` under the secret-row lock only while the stored refresh token
+ * is still `refreshed`; otherwise another path rotated first and its stored
+ * access token is answered instead. Returns the access token now current.
+ */
+async function writeTokensIfUnchanged(
+    db: HausDatabase,
+    connectionId: string,
+    input: { accessToken: string; next: StoredTokens; refreshed: string }
+): Promise<string> {
+    return await db.transaction(async (tx) => {
         const [row] = await tx
             .select({ secret: mcpSecretsTable.secret })
             .from(mcpSecretsTable)
@@ -170,10 +203,18 @@ async function writeTokens(db: HausDatabase, connectionId: string, tokens: Store
         if (!row) {
             throw new GithubSignInRequiredError();
         }
+        const current = (row.secret as { tokens?: StoredTokens }).tokens;
+        if (current?.refresh_token !== input.refreshed) {
+            if (typeof current?.access_token !== 'string') {
+                throw new GithubSignInRequiredError();
+            }
+            return current.access_token;
+        }
         await tx
             .update(mcpSecretsTable)
-            .set({ secret: { ...row.secret, tokens }, updatedAt: new Date() })
+            .set({ secret: { ...row.secret, tokens: input.next }, updatedAt: new Date() })
             .where(eq(mcpSecretsTable.connectionId, connectionId));
+        return input.accessToken;
     });
 }
 

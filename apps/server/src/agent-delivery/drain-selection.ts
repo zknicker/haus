@@ -72,6 +72,19 @@ export async function startFrame(
 }
 
 /**
+ * The row a drain prefers to lead with. Concrete work leads its own run: its
+ * envelope exists nowhere but the inbox, so it enters the first prompt instead
+ * of waiting behind a notice the Agent may never pull.
+ */
+export function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | undefined {
+    return (
+        rows.find((row) => row.source === 'onboarding') ??
+        rows.find((row) => isConcreteSource(row.source)) ??
+        rows[0]
+    );
+}
+
+/**
  * One drain never mixes the lanes, and a concrete drain never mixes kinds: a
  * fire, a task assignment, a Cloud Agent result, and Cove's bootstrap each earn
  * their own dedicated wake, which is also what keeps the sole-fire cause

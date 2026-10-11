@@ -79,6 +79,36 @@ test('Trigger drains spend the chain and hold at the ceiling until a human speak
     expect(await chainOf(seed.agentId)).toEqual({ agentChainAdvancedAt: null, agentChainTurns: 0 });
 });
 
+for (const source of ['reminder', 'task_assignment'] as const) {
+    test(`a ${source} at the ceiling leads ahead of the held Trigger and resets the chain`, async () => {
+        const seed = await seedAgent({ advancedAt: new Date(), turns: 16 });
+        const wire = new Wire();
+        const delivery = new AgentDelivery(connection.db, wire);
+        await fire(delivery, seed, `trf_held_${source}`);
+        expect(wire.starts).toHaveLength(0);
+
+        await delivery.deliver({
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            content: `${source} work`,
+            dedupeKey: `${source}-one`,
+            serverId: seed.serverId,
+            source,
+        });
+        // The reset-capable work drains first, so the held fire never rides
+        // along to a seventeenth automation turn.
+        expect(wire.starts).toHaveLength(1);
+        await settle(delivery, seed, wire.starts[0]?.runId ?? '');
+        expect(await chainOf(seed.agentId)).toEqual({
+            agentChainAdvancedAt: null,
+            agentChainTurns: 0,
+        });
+        expect(wire.starts).toHaveLength(2);
+        await settle(delivery, seed, wire.starts[1]?.runId ?? '');
+        expect((await chainOf(seed.agentId))?.agentChainTurns).toBe(1);
+    });
+}
+
 test('a chain idle for half an hour restarts below the ceiling; a recent one does not', async () => {
     const idle = await seedAgent({ advancedAt: new Date(Date.now() - 31 * 60 * 1000), turns: 9 });
     const wire = new Wire();

@@ -150,7 +150,7 @@ with a stable reason (`github_owner_required: …`).
 | `github.installCandidates` | Owner or Admin | unbound installations from `GET /user/installations` that pass the owner check |
 | `github.bindInstallation` | Owner or Admin | reruns the owner check and binds; `CONFLICT github_installation_already_bound` when another Server or connection holds it |
 | `github.unbindInstallation` | Owner or Admin | degrades dependent Triggers and tombstones the installation |
-| `github.repositories` | member | the picker: the connection user's accessible repositories, read live, refreshing the cache |
+| `github.repositories` | Owner or Admin | the picker: the connection user's accessible repositories (private names included), read live, refreshing the cache |
 
 Owner authority is GitHub's: `GET /user/memberships/orgs/{org}` must answer `state: active`,
 `role: admin`, or a user account's id must equal `GET /user`'s. Installation facts come only from

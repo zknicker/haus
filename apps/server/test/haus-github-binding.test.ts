@@ -163,6 +163,35 @@ test('setup binds once from Server-held state, and a replay or spoof binds nothi
     ).toEqual([{ installation_id: '4001' }]);
 });
 
+test('a Server member who is not an Owner or Admin cannot list repository names', async () => {
+    const [installation] = await member.trpc.github.installations.query({
+        connectionId: fixture.connectionId,
+        serverId: fixture.serverId,
+    });
+    expect(installation?.githubInstallationId).toBe(4001);
+    const query = { installationId: installation?.id ?? '', serverId: fixture.serverId };
+    await expect(member.trpc.github.repositories.query(query)).rejects.toMatchObject({
+        data: { code: 'FORBIDDEN' },
+        message: expect.stringMatching(/^github_admin_required: /u),
+    });
+    const names = await fixture.owner.trpc.github.repositories.query(query);
+    expect(names.map((repository) => repository.fullName)).toEqual(['acme/api', 'acme/web']);
+});
+
+test('an unauthenticated update redirect reconciles an installation once per window', async () => {
+    const reconciles = () =>
+        fixture.fake.requests.filter((request) => request === 'GET /app/installations/4001').length;
+    const before = reconciles();
+    const update = () =>
+        fetch(
+            new URL('/github/setup?setup_action=update&installation_id=4001', fixture.harness.url)
+        );
+    const answers = await Promise.all([update(), update(), update()]);
+    expect(answers.map((answer) => answer.status)).toEqual([200, 200, 200]);
+    expect((await update()).status).toBe(200);
+    expect(reconciles() - before).toBe(1);
+});
+
 test('an installation bound to another Server answers CONFLICT without naming it', async () => {
     const refused = outsider.trpc.github.bindInstallation.mutate({
         connectionId: outsiderConnectionId,

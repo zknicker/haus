@@ -21,6 +21,8 @@ export type GithubIgnoredReason =
     | 'installation_suspended'
     | 'no_installation'
     | 'no_repository'
+    /** Recovery failed `maxRecoveryAttempts` sweeps running and dropped it. */
+    | 'recovery_abandoned'
     | 'repository_inaccessible'
     | 'unknown_installation'
     | 'unsupported_event';

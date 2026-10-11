@@ -296,7 +296,10 @@ messages, Trigger fires, and Trigger problem notices: sources `agent:*`,
 `trigger`, and `trigger_problem`) are allowed. The seventeenth remains queued
 until human input arrives; human input resets the counter on arrival, and any
 drain containing other work (a human message, a reminder, a task assignment)
-resets it at settlement. `agent_chain_advanced_at` records when the counter
+resets it at settlement. Admission judges the drain that will actually run: at
+the ceiling a queued reminder or task assignment leads ahead of held
+automation work, resets the chain, and the held work drains after it.
+`agent_chain_advanced_at` records when the counter
 last advanced: below the ceiling, a drain that starts more than 30 minutes
 later starts from zero, so spaced, legitimate fires never accumulate. An
 exhausted chain never times out. Loops that wake themselves through GitHub or a
