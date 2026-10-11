@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import sourceManifest from '../../../specs/raft-alignment/manual-source.json';
+import sourceManifest from '../../../specs/raft-alignment/manual-source.json' with { type: 'json' };
 import {
     getManualTopic,
     type ManualDeliveryTier,
@@ -76,6 +76,7 @@ test('pinned source inventory accounts for every card, omission and Haus additio
         if (topic.id === 'recipes/technique/memory-hygiene') {
             expect(topic.triggers).toEqual([
                 'my MEMORY.md is bloating or over its size limit',
+                'a nightly dreaming turn asks me to consolidate my memory',
                 'where should this preference or fact live in memory',
                 'someone gave me feedback to remember as a standing preference',
                 'Active Context reads like a diary',
