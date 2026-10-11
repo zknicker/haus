@@ -31,6 +31,10 @@ offer no dynamic client registration; without it, `mcp.startOAuth` fails with th
 unavailable. Server reads that client from its environment on every use and never stores it on the
 connection, so a rotated secret reaches existing connections.
 
+`cloudflare` and `vercel` create OAuth connections to `https://mcp.cloudflare.com/mcp`
+and `https://mcp.vercel.com`, respectively. They use MCP OAuth discovery with no preset
+scope overrides or static credentials. Creating either account grants no Agent access.
+
 `merchbase-atlas` creates an OAuth connection to `https://atlas.merchbase.co/mcp`
 with `openid profile email` scopes and Clerk dynamic client registration. It needs no
 configured Server client or static token.
@@ -149,11 +153,15 @@ tried. The page itself must be `text/html` and is read up to 256 KiB. Server fet
 remote URL — an `img` pointed at a connection's own host would report the viewer's IP and page
 views back to that operator on every render.
 
-Constraints the Server enforces before storing: HTTPS only, no redirects, PNG/JPEG/WebP/ICO only,
+Constraints the Server enforces before storing: HTTPS only, PNG/JPEG/WebP/ICO only,
 at most 64 KiB per variant enforced against the response stream, declared media type must match the
-bytes, an advertised icon URL must share the connection URL's origin, and a page-linked icon must
-share the site's origin. That last rule is what
-keeps a remote server from steering Server-side fetches at arbitrary hosts.
+bytes except for PNG favicons served as ICO, which are stored as PNG. An advertised icon URL must
+share the connection URL's origin, and a page-linked icon must
+share the final homepage's origin. Requests follow at most three redirects, each restricted to
+the initial hostname or its exact `www.` counterpart, with the same HTTPS port and no URL
+credentials. Relative icon links resolve against the final homepage URL. Other hosts, plaintext
+redirects, and longer chains fall back to the monogram, keeping remote servers from steering
+Server-side fetches at arbitrary hosts.
 
 SVG is refused outright. It is the one image format that can carry script or pull subresources, and
 screening it safely needs a parser rather than a token blocklist; at icon scale it buys nothing, so
@@ -163,7 +171,7 @@ One icon serving both themes is stored in `light` alone and the App falls back t
 connection never carries the same bytes twice on a query that returns every row inline.
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
-MerchBase Atlas and Fulfillment own their icons upstream. Recommended, preset creation, legacy
+Cloudflare, Vercel, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation, legacy
 connection reads, and authenticated discovery share the Server's connection-branding resolver.
 Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.

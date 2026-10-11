@@ -1,5 +1,5 @@
 {
-  "id": "426aac98-0fc9-4f85-95c3-b7427311c888",
+  "id": "916aa5b5-15d8-44dd-b832-d795823e85b7",
   "prevId": "4e253c11-2f19-4b84-a239-c34a85b02eab",
   "version": "7",
   "dialect": "postgresql",
@@ -829,7 +829,7 @@
         },
         "agent_delivery_active_run": {
           "name": "agent_delivery_active_run",
-          "value": "(\n                \"agent_delivery\".\"active_run_id\" is null\n                and \"agent_delivery\".\"active_run_chat_id\" is null\n                and \"agent_delivery\".\"active_run_computer_id\" is null\n                and \"agent_delivery\".\"active_run_runtime_id\" is null\n                and \"agent_delivery\".\"active_run_model_id\" is null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is null\n                and \"agent_delivery\".\"accepted_at\" is null\n                and \"agent_delivery\".\"dispatched_at\" is null\n            ) or (\n                \"agent_delivery\".\"active_run_id\" is not null\n                and \"agent_delivery\".\"active_run_computer_id\" is not null\n                and \"agent_delivery\".\"active_run_runtime_id\" is not null\n                and \"agent_delivery\".\"active_run_model_id\" is not null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is not null\n            )"
+          "value": "(\n                \"agent_delivery\".\"active_run_id\" is null\n                and \"agent_delivery\".\"active_run_chat_id\" is null\n                and \"agent_delivery\".\"active_run_computer_id\" is null\n                and \"agent_delivery\".\"active_run_runtime_id\" is null\n                and \"agent_delivery\".\"active_run_model_id\" is null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is null\n                and \"agent_delivery\".\"accepted_at\" is null\n                and \"agent_delivery\".\"dispatched_at\" is null\n            ) or (\n                \"agent_delivery\".\"active_run_id\" is not null\n                and \"agent_delivery\".\"active_run_chat_id\" is not null\n                and \"agent_delivery\".\"active_run_computer_id\" is not null\n                and \"agent_delivery\".\"active_run_runtime_id\" is not null\n                and \"agent_delivery\".\"active_run_model_id\" is not null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is not null\n            )"
         },
         "agent_delivery_active_run_reasoning_effort": {
           "name": "agent_delivery_active_run_reasoning_effort",
@@ -1119,7 +1119,7 @@
           "name": "chat_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "content": {
           "name": "content",
@@ -1419,10 +1419,6 @@
         "agent_inbox_addressed_reason": {
           "name": "agent_inbox_addressed_reason",
           "value": "\"agent_inbox\".\"addressed_reason\" is null\n                or \"agent_inbox\".\"addressed_reason\" in ('dm', 'mention', 'routing', 'sole')"
-        },
-        "agent_inbox_chat": {
-          "name": "agent_inbox_chat",
-          "value": "(\"agent_inbox\".\"chat_id\" is null) = (\"agent_inbox\".\"source\" = 'dream')"
         },
         "agent_inbox_id_shape": {
           "name": "agent_inbox_id_shape",
@@ -1903,7 +1899,7 @@
           "name": "chat_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -1995,12 +1991,7 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "agent_run_triggers_chat": {
-          "name": "agent_run_triggers_chat",
-          "value": "(\"agent_run_triggers\".\"chat_id\" is null) = (\"agent_run_triggers\".\"source\" = 'dream')"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.agent_runner_credentials": {
@@ -2017,7 +2008,7 @@
           "name": "chat_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "capabilities": {
           "name": "capabilities",
@@ -6287,7 +6278,7 @@
         },
         "mcp_connections_preset": {
           "name": "mcp_connections_preset",
-          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool')"
+          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool', 'cloudflare', 'vercel')"
         }
       },
       "isRLSEnabled": false

@@ -55,6 +55,16 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'GitHub',
     },
     {
+        description: 'Manage DNS, Workers, and other Cloudflare services.',
+        id: 'cloudflare',
+        name: 'Cloudflare',
+    },
+    {
+        description: 'Manage projects and deployments, and inspect deployment logs.',
+        id: 'vercel',
+        name: 'Vercel',
+    },
+    {
         description: 'Search and read public posts on X.',
         id: 'x',
         name: 'X',

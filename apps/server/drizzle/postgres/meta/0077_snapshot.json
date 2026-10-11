@@ -1,6 +1,6 @@
 {
-  "id": "9da1c780-bdce-4a81-a74f-e8b615e21116",
-  "prevId": "ecb645ba-4ee9-42fc-939e-ee681ec3baad",
+  "id": "ecb645ba-4ee9-42fc-939e-ee681ec3baad",
+  "prevId": "426aac98-0fc9-4f85-95c3-b7427311c888",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -890,13 +890,6 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
-        },
-        "truncated": {
-          "name": "truncated",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {
@@ -6424,7 +6417,7 @@
         },
         "mcp_connections_preset": {
           "name": "mcp_connections_preset",
-          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool')"
+          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool', 'cloudflare', 'vercel')"
         }
       },
       "isRLSEnabled": false

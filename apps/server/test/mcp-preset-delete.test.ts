@@ -46,6 +46,32 @@ test('GitHub lands as an OAuth preset awaiting sign-in', async () => {
 });
 
 test.each([
+    ['cloudflare', 'https://mcp.cloudflare.com/mcp'],
+    ['vercel', 'https://mcp.vercel.com'],
+] as const)('%s awaits OAuth without credentials or Agent grants', async (preset, url) => {
+    const created = await owner.trpc.mcp.addPresetAccount.mutate({
+        name: preset,
+        preset,
+        serverId,
+    });
+    expect(created).toMatchObject({
+        auth: 'oauth',
+        connected: false,
+        grants: [],
+        headerNames: [],
+        preset,
+        tools: [],
+        url,
+    });
+    const [stored] = await harness.sql`
+        select secret from mcp_secrets where connection_id = ${created.id}
+    `;
+    expect(stored?.secret.oauthScopes).toEqual([]);
+    expect(stored?.secret.headers).toEqual({});
+    await owner.trpc.mcp.delete.mutate({ connectionId: created.id, serverId });
+});
+
+test.each([
     ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
     ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
 ] as const)('%s awaits OAuth with identity scopes and no Agent grants', async (preset, url) => {
@@ -78,6 +104,8 @@ test.each([
     'merchbase-fulfillment',
     'google-calendar',
     'rankwrangler',
+    'cloudflare',
+    'vercel',
 ] as const)('deletes a %s account and its secrets without removing another account', async (preset) => {
     const first = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
     const second = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });

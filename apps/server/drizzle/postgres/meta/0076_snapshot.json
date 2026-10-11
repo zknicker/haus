@@ -1,6 +1,6 @@
 {
-  "id": "ecb645ba-4ee9-42fc-939e-ee681ec3baad",
-  "prevId": "426aac98-0fc9-4f85-95c3-b7427311c888",
+  "id": "426aac98-0fc9-4f85-95c3-b7427311c888",
+  "prevId": "916aa5b5-15d8-44dd-b832-d795823e85b7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -834,136 +834,6 @@
         "agent_delivery_active_run_reasoning_effort": {
           "name": "agent_delivery_active_run_reasoning_effort",
           "value": "\"agent_delivery\".\"active_run_reasoning_effort\" is null or \"agent_delivery\".\"active_run_reasoning_effort\" in ('default', 'low', 'medium', 'high', 'xhigh', 'max')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.agent_dreams": {
-      "name": "agent_dreams",
-      "schema": "",
-      "columns": {
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "files": {
-          "name": "files",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "finished_at": {
-          "name": "finished_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "patch": {
-          "name": "patch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "agent_dreams_agent_started_idx": {
-          "name": "agent_dreams_agent_started_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "started_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "run_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "agent_dreams_server_id_servers_id_fk": {
-          "name": "agent_dreams_server_id_servers_id_fk",
-          "tableFrom": "agent_dreams",
-          "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_dreams_agent_fk": {
-          "name": "agent_dreams_agent_fk",
-          "tableFrom": "agent_dreams",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "agent_dreams_span": {
-          "name": "agent_dreams_span",
-          "value": "\"agent_dreams\".\"finished_at\" >= \"agent_dreams\".\"started_at\""
         }
       },
       "isRLSEnabled": false
@@ -6417,7 +6287,7 @@
         },
         "mcp_connections_preset": {
           "name": "mcp_connections_preset",
-          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool')"
+          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool', 'cloudflare', 'vercel')"
         }
       },
       "isRLSEnabled": false

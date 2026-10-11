@@ -30,7 +30,11 @@ function row(
 describe('bundled preset icons', () => {
     test.each(
         mcpPresetSchema.options.filter(
-            (preset) => preset !== 'merchbase-fulfillment' && preset !== 'merchbase-atlas'
+            (preset) =>
+                preset !== 'merchbase-fulfillment' &&
+                preset !== 'merchbase-atlas' &&
+                preset !== 'cloudflare' &&
+                preset !== 'vercel'
         )
     )('%s ships a contract-valid PNG', (preset) => {
         const icon = mcpPresetIcons[preset];
@@ -42,6 +46,8 @@ describe('bundled preset icons', () => {
 
 describe('preset icon fallback', () => {
     test.each([
+        'cloudflare',
+        'vercel',
         'merchbase-atlas',
         'merchbase-fulfillment',
     ] as const)('%s uses discovered identity without a bundled override', (preset) => {
@@ -59,6 +65,8 @@ describe('preset icon fallback', () => {
             return resolvedIcon;
         });
         expect(urls).toEqual([
+            'https://mcp.cloudflare.com/mcp',
+            'https://mcp.vercel.com',
             'https://atlas.merchbase.co/mcp',
             'https://fulfillment.merchbase.co/mcp/printful',
         ]);
@@ -69,6 +77,10 @@ describe('preset icon fallback', () => {
             resolvedIcon
         );
         const unavailable = await resolveMcpPresetIcons(async () => null);
+        for (const preset of ['cloudflare', 'vercel'] as const) {
+            expect(catalog.find((entry) => entry.preset === preset)?.icon).toEqual(resolvedIcon);
+            expect(unavailable.find((entry) => entry.preset === preset)?.icon).toBeNull();
+        }
         expect(unavailable.find((entry) => entry.preset === 'merchbase-atlas')?.icon).toBeNull();
         expect(
             unavailable.find((entry) => entry.preset === 'merchbase-fulfillment')?.icon
