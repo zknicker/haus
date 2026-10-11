@@ -73,7 +73,9 @@ true:
 4. The Thread-summary filter that leaves launch Messages out of Thread previews keys on the work's
    `message_id` today. It keys on `launch_message_id` instead.
 5. The completion notice `target=` stays the conversation that asked for the work. Inline
-   `--reply-to`, in-Thread launches, and Task-Thread launches behave exactly as now.
+   `--reply-to`, in-Thread launches, and Task-Thread launches behave exactly as now. If that
+   conversation has since been deleted, the work settles without a notice; it is never
+   retargeted to another link.
 
 ## Considered and rejected
 
@@ -88,8 +90,9 @@ true:
 
 ## Consequences
 
-- Cloud Agent work no longer disappears with a single Message. Losing one Message loses one link,
-  not the tracking.
+- Cloud Agent work no longer disappears with a single Message. Losing one Message, or the whole
+  Chat that requested the work, loses its links, not the tracking. The work's requesting Chat and
+  launch Message ids stay as historical pointers with no cascade.
 - Realtime events change source: `cloudAgentWork.updated` fans out once per linking Message
   instead of naming one owning Message.
 - These docs move to the new model with the implementation, not before:
