@@ -243,8 +243,8 @@ that migrated schema. Recovery after the drop requires a forward fix on the new 
 automatic activation rollback restores only the binary and does not restore the old contract.
 The migration keeps Chat messages and read markers. No database backup is created by this release.
 
-The nightly-dreaming release (migrations 0075–0077, App protocol 10) is an operator-approved
-forward-only release. Migration 0075 lets a dream run have no Chat: `chat_id` may be null on
+The nightly-dreaming release (migrations 0076–0078, App protocol 10) is an operator-approved
+forward-only release. Migration 0076 lets a dream run have no Chat: `chat_id` may be null on
 `agent_inbox`, `agent_run_triggers`, and `agent_runner_credentials`, and
 `agent_delivery.active_run_chat_id` may be null. The previous Server assumes every one is set, so
 rolling back past this release first requires resetting any Agent with an active chatless dream

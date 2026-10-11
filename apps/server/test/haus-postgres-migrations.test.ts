@@ -72,9 +72,10 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0072_drop_chat_events',
             '0073_merchbase-fulfillment-preset',
             '0074_merchbase-atlas-preset',
-            '0075_chatless-dream',
-            '0076_agent-dreams',
-            '0077_agent-dreams-truncated',
+            '0075_cloudflare-vercel-presets',
+            '0076_chatless-dream',
+            '0077_agent-dreams',
+            '0078_agent-dreams-truncated',
         ]);
         const [presetConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'mcp_connections_preset'`;
