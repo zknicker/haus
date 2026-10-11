@@ -42,6 +42,7 @@ async function createFixture() {
     await Promise.all(
         [
             'release-impact.mjs',
+            'release-impact-paths.mjs',
             'release-ledger.mjs',
             'release-utils.mjs',
             'release-version-metadata.mjs',
