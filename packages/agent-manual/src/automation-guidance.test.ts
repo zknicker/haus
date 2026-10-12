@@ -29,6 +29,9 @@ test('trigger manual retains setup, recovery, and payload boundaries', () => {
         'top-level message in the anchor chat',
         '--cause <fireId>',
         'delivered on reconnect',
+        'Python-urllib/3.12',
+        'error code: 1010',
+        'Haus-Webhook/1',
     ]) {
         expect(body).toContain(detail);
     }
