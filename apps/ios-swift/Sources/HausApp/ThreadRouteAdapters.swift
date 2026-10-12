@@ -26,7 +26,7 @@ extension HausStore {
                 createdAt: anchor.createdAt,
                 attachments: [],
                 sequence: anchor.sequence,
-                cloudAgents: anchor.linkedCloudAgentWork.map {
+                cloudAgents: anchor.cloudAgentWork.map {
                     cloudAgentPresentation($0, presentingChatID: conversationChatID)
                 },
                 visualBody: fenced

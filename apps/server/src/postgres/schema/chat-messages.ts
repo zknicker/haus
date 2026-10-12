@@ -91,10 +91,7 @@ export const chatMessagesTable = pgTable(
             name: 'chat_messages_reply_root_fk',
         }).onDelete('cascade'),
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
-        check(
-            'chat_messages_body_kind',
-            sql`${table.bodyKind} in ('text', 'cloud-agent-work', 'agent-created')`
-        ),
+        check('chat_messages_body_kind', sql`${table.bodyKind} in ('text', 'agent-created')`),
         // Every durable Chat message is human-readable, so every row has a
         // human or an Agent author. Agent-only deliveries ride the agent inbox.
         check(

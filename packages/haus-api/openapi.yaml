@@ -3168,7 +3168,7 @@ components:
           type: string
         body_kind:
           type: string
-          enum: [text, cloud-agent-work, agent-created]
+          enum: [text, agent-created]
         attachments:
           type: array
           items:

@@ -110,7 +110,7 @@ public struct TranscriptStore: Equatable, Sendable {
     public func refreshes(carryingCloudAgentWork workIDs: Set<String>) -> [EntityRefresh] {
         guard !workIDs.isEmpty else { return [] }
         return entities.values.compactMap { entity in
-            guard entity.message.linkedCloudAgentWork.contains(where: { workIDs.contains($0.id) }) else { return nil }
+            guard entity.message.cloudAgentWork.contains(where: { workIDs.contains($0.id) }) else { return nil }
             return EntityRefresh(chatID: entity.message.chatID, messageID: entity.message.id)
         }
     }
@@ -119,7 +119,7 @@ public struct TranscriptStore: Equatable, Sendable {
     public func cloudAgentWorkIDs(linkedIn chatID: String) -> Set<String> {
         Set(entities.values.lazy
             .filter { $0.message.chatID == chatID }
-            .flatMap { $0.message.linkedCloudAgentWork.map(\.id) })
+            .flatMap { $0.message.cloudAgentWork.map(\.id) })
     }
 
     /// Lands a page read on its list and seeds the entities it carries.

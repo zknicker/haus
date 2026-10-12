@@ -30,11 +30,8 @@ test('Cloud Agent work stores bounded, provider-safe execution state', () => {
     expect(cloudAgentWorkSchema.safeParse({ ...work, instructions: 'do it' }).success).toBe(false);
 });
 
-test('a Message body projects Cloud Agent work beside text', () => {
-    expect(messageBodySchema.parse({ kind: 'cloud-agent-work', work })).toMatchObject({
-        kind: 'cloud-agent-work',
-        work: { id: 'caw_1234567890abcdef' },
-    });
+test('Cloud Agent work is linked from text, never a Message body', () => {
+    expect(messageBodySchema.safeParse({ kind: 'cloud-agent-work', work }).success).toBe(false);
     expect(formatCloudAgentWorkSuffix(cloudAgentWorkSchema.parse(work))).toBe(
         ' [cloud-agent-work status=running title=Fix the flaky delivery test]'
     );

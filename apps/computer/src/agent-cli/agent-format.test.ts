@@ -78,7 +78,7 @@ const cloudAgentWork: CloudAgentWorkBody = {
 };
 
 test('a Cloud Agent work Message names the pull request it opened', () => {
-    const work = message({ body_kind: 'cloud-agent-work', cloud_agent_work: cloudAgentWork });
+    const work = message({ cloud_agent_works: [cloudAgentWork] });
 
     expect(formatHistoryLine(work)).toEndWith(
         '[cloud-agent-work status=completed title=Fix the flaky delivery test pr=#56]'
@@ -92,20 +92,20 @@ test('work with no pull request yet reads exactly as it always did', () => {
     expect(
         formatHistoryLine(
             message({
-                body_kind: 'cloud-agent-work',
-                cloud_agent_work: {
-                    ...cloudAgentWork,
-                    latest_run: { ...latestRun, branches: [] },
-                    status: 'running',
-                },
+                cloud_agent_works: [
+                    {
+                        ...cloudAgentWork,
+                        latest_run: { ...latestRun, branches: [] },
+                        status: 'running',
+                    },
+                ],
             })
         )
     ).toEndWith('[cloud-agent-work status=running title=Fix the flaky delivery test]');
     expect(
         formatHistoryLine(
             message({
-                body_kind: 'cloud-agent-work',
-                cloud_agent_work: { ...cloudAgentWork, latest_run: null, status: 'queued' },
+                cloud_agent_works: [{ ...cloudAgentWork, latest_run: null, status: 'queued' }],
             })
         )
     ).toEndWith('[cloud-agent-work status=queued title=Fix the flaky delivery test]');
@@ -129,14 +129,12 @@ test('a text Message names every work it links, in link order', () => {
     );
 });
 
-test('the old cloud-agent-work body still parses until a protocol-bumped cutover', () => {
-    const legacy = agentMessageSchema.parse(
-        message({ body_kind: 'cloud-agent-work', cloud_agent_work: cloudAgentWork })
-    );
-    expect(legacy.cloud_agent_works).toBeUndefined();
-    expect(formatHistoryLine(legacy)).toEndWith(
-        '[cloud-agent-work status=completed title=Fix the flaky delivery test pr=#56]'
-    );
+test('the retired cloud-agent-work body no longer parses (Computer protocol 29)', () => {
+    expect(
+        agentMessageSchema.safeParse(
+            message({ body_kind: 'cloud-agent-work' as never, cloud_agent_work: cloudAgentWork })
+        ).success
+    ).toBe(false);
 });
 
 test('a creating Message names the Agent it created, and says when that Agent is gone', () => {

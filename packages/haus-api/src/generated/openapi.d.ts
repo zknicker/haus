@@ -1986,7 +1986,7 @@ export interface components {
             role: "user" | "assistant" | "system";
             content: string;
             /** @enum {string} */
-            body_kind: "text" | "cloud-agent-work" | "agent-created";
+            body_kind: "text" | "agent-created";
             attachments: components["schemas"]["JsonObject"][];
             nonce: string | null;
             delivery_id: components["schemas"]["DeliveryId"] | null;

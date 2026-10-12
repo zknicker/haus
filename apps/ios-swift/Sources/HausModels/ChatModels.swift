@@ -99,7 +99,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     public let chatID: String
     /// The Cloud Agent work this Message links, in link order, each visible to
     /// the viewer (ADR 0044). Servers that predate links omit it, so it
-    /// decodes as empty; read `linkedCloudAgentWork` for every card to draw.
+    /// decodes as empty. Each one draws a card below the Message.
     public var cloudAgentWork: [CloudAgentWork] = []
     public let content: String
     public let createdAt: Date

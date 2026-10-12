@@ -18,13 +18,6 @@ test('a Message shows every work it links, in link order', () => {
     expect(messageCloudAgentWork({ ...linkedMessage, cloudAgentWork: [] })).toEqual([]);
 });
 
-test('a retired cloud-agent-work body still shows its work, once', () => {
-    const body = { kind: 'cloud-agent-work' as const, work: linkedWork };
-    expect(messageCloudAgentWork({ body, cloudAgentWork: [] })).toEqual([linkedWork]);
-    expect(messageCloudAgentWork({ body, cloudAgentWork: [linkedWork] })).toEqual([linkedWork]);
-    expect(messageCloudAgentWork({ body, cloudAgentWork: [other] })).toEqual([linkedWork, other]);
-});
-
 test('a closing paragraph of backed links is left out; the words before it stay', () => {
     expect(cloudAgentWorkDisplayContent(linkedMessage.content, [linkedWork])).toBe(
         'On it, sending this to a Cloud Agent.'

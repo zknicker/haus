@@ -95,7 +95,7 @@ extension HausStore {
             // segments always describe each other.
             let parsed = parsedBody(id: message.id, content: message.displayContent, chatID: message.chatID)
             // Every linked work draws the same card, wherever the link sits.
-            let linkedWork = message.linkedCloudAgentWork
+            let linkedWork = message.cloudAgentWork
             return MessagePresentation(
                 id: message.id,
                 author: author,

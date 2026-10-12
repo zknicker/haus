@@ -7,19 +7,12 @@ import {
 
 /**
  * The Cloud Agent work a Message links, in link order (ADR 0044): the Server's
- * `cloudAgentWork` annotation. A Message still carrying the retired
- * `cloud-agent-work` body shows that work too, first, until the contraction
- * slice rewrites every such Message to a link.
+ * `cloudAgentWork` annotation.
  */
 export function messageCloudAgentWork(
-    message: Pick<ChatMessage, 'body' | 'cloudAgentWork'>
+    message: Pick<ChatMessage, 'cloudAgentWork'>
 ): readonly CloudAgentWork[] {
-    const linked = message.cloudAgentWork ?? noWork;
-    if (message.body.kind !== 'cloud-agent-work') {
-        return linked;
-    }
-    const embedded = message.body.work;
-    return linked.some((work) => work.id === embedded.id) ? linked : [embedded, ...linked];
+    return message.cloudAgentWork ?? noWork;
 }
 
 /**

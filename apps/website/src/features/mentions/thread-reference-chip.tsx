@@ -48,9 +48,7 @@ export function ThreadReferenceChip({
 }
 
 /** A Thread on a Message that links Cloud Agent work is named after the first work it links. */
-export function threadReferenceTitle(
-    anchor: Pick<ChatMessage, 'body' | 'cloudAgentWork' | 'content'>
-) {
+export function threadReferenceTitle(anchor: Pick<ChatMessage, 'cloudAgentWork' | 'content'>) {
     const content = messageCloudAgentWork(anchor)[0]?.title ?? anchor.content;
     const line = messagePreviewLine(content.split('\n').find((part) => part.trim()) ?? '');
     return line.length > 64 ? `${line.slice(0, 63).trimEnd()}…` : line || 'Thread';

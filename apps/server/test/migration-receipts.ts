@@ -20,4 +20,5 @@ export const migrationsSince0060 = [
     '0077_agent-dreams',
     '0078_agent-dreams-truncated',
     '0079_cloud_agent_work_links',
+    '0080_message-body-drop-cloud-agent-work',
 ];

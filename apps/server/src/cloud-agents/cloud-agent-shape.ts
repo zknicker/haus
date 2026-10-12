@@ -108,33 +108,6 @@ export async function findCloudAgentWorkByLaunchMessage(
     return toCloudAgentWork(row, runs.get(row.id) ?? []);
 }
 
-export async function readCloudAgentWorkForLaunchMessages(
-    db: CloudAgentReader,
-    serverId: string,
-    messageIds: string[]
-): Promise<Map<string, CloudAgentWork>> {
-    if (messageIds.length === 0) {
-        return new Map();
-    }
-    const rows = await db
-        .select()
-        .from(cloudAgentWorkTable)
-        .where(
-            and(
-                eq(cloudAgentWorkTable.serverId, serverId),
-                inArray(cloudAgentWorkTable.launchMessageId, messageIds)
-            )
-        );
-    const runs = await readRuns(
-        db,
-        serverId,
-        rows.map((row) => row.id)
-    );
-    return new Map(
-        rows.map((row) => [row.launchMessageId, toCloudAgentWork(row, runs.get(row.id) ?? [])])
-    );
-}
-
 export async function readRuns(
     db: CloudAgentReader,
     serverId: string,

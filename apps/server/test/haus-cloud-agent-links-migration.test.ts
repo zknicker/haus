@@ -108,6 +108,25 @@ test('migration 0079 turns every launch Message into text that links its work', 
                 WHERE chat_id = 'cht_launch' AND launch_message_id LIKE 'msg_launch_%'
             `
         ).toEqual([{ works: cases.length }]);
+
+        // 0080 narrows the body kinds once no launch Message keeps the old one.
+        await throughMigration(80);
+        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus', folder)).toEqual([
+            '0080_message-body-drop-cloud-agent-work',
+        ]);
+        // Foreign keys stay waived so only the check constraint can reject the row.
+        await upgraded.unsafe('SET session_replication_role = replica');
+        // A Bun SQL query runs only when its `then` is called, so settle it explicitly.
+        const refused = await upgraded`
+            INSERT INTO chat_messages
+                (id, server_id, chat_id, author_agent_id, body_kind, content, nonce, sequence)
+            VALUES ('msg_after', 'srv_one', 'cht_after', 'agt_forge', 'cloud-agent-work',
+                'stale', 'nonce_after', 1)
+        `.then(
+            () => null,
+            (error: unknown) => error
+        );
+        expect(String(refused)).toContain('chat_messages_body_kind');
     } finally {
         await upgraded?.close();
         await database.unsafe('DROP DATABASE IF EXISTS haus_cloud_agent_links_test');

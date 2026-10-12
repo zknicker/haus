@@ -99,7 +99,6 @@ struct ChatMessageCloudAgentWorkTests {
             annotation: [CloudAgentWorkFixture.work("caw_2"), CloudAgentWorkFixture.work("caw_1")]
         )
         #expect(message.cloudAgentWork.map(\.id) == ["caw_2", "caw_1"])
-        #expect(message.linkedCloudAgentWork.map(\.id) == ["caw_2", "caw_1"])
         #expect(message.displayContent == "On it.")
         #expect(message.linkedCloudAgentWorkTitle == "Work caw_2")
     }
@@ -111,20 +110,15 @@ struct ChatMessageCloudAgentWorkTests {
         #expect(message.linkedCloudAgentWorkTitle == nil)
     }
 
-    @Test func aPreLinkWorkBodyStillDrawsItsCardOnce() throws {
-        let legacy = try CloudAgentWorkFixture.message(
+    @Test func aRetiredWorkBodyIsUnsupportedAndDrawsNoCard() throws {
+        let stale = try CloudAgentWorkFixture.message(
             content: "On it.",
             annotation: nil,
             legacyBody: CloudAgentWorkFixture.work("caw_1")
         )
-        #expect(legacy.linkedCloudAgentWork.map(\.id) == ["caw_1"])
-
-        let both = try CloudAgentWorkFixture.message(
-            content: "On it.",
-            annotation: [CloudAgentWorkFixture.work("caw_1")],
-            legacyBody: CloudAgentWorkFixture.work("caw_1")
-        )
-        #expect(both.linkedCloudAgentWork.map(\.id) == ["caw_1"])
+        #expect(stale.body == .unsupported("cloud-agent-work"))
+        #expect(stale.cloudAgentWork.isEmpty)
+        #expect(stale.displayContent == "On it.")
     }
 
     @Test func everyLoadedCopyOfAWorkIsFoundAcrossChats() throws {

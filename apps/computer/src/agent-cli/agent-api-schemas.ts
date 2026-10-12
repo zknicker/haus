@@ -92,7 +92,7 @@ export const agentMessageSchema = z.object({
         label: z.string().nullable(),
         metadata: jsonObjectSchema,
     }),
-    body_kind: z.enum(['text', 'cloud-agent-work', 'agent-created']),
+    body_kind: z.enum(['text', 'agent-created']),
     chat_id: z.string().min(1),
     content: z.string(),
     created_at: z.string().min(1),
