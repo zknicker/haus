@@ -59,6 +59,10 @@ test('cloud work keeps implementation details and requester outcomes in their co
         'keep review rounds, revision requests, and step-by-step progress in the work thread'
     );
     expect(body).toContain('only real state changes, one line each');
+    expect(body).toContain('newest first');
+    expect(body).toContain('providerRunId');
+    expect(body).toContain('followup-delivery-timeout');
+    expect(body).toContain('Background work the provider agent left running');
 });
 
 test('cloud work is shown elsewhere by pasting its printed link, which moves nothing', () => {
