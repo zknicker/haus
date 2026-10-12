@@ -393,7 +393,7 @@ and [Agent Inbox](../../specs/inbox.md).
   clearing another pane's state. Desktop renders no chat side pane: every
   Thread opener (reply counts, Thread cards, Reply in thread, Inbox and
   notification links, `?thread=` and `?task=` links) opens the Thread page as
-  a link, in split mode in the other pane — see
+  a new tab in the right pane — see
   [Desktop tabs](browser-tabs.md#where-things-open). Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
   resets stay agent-wide in Agent settings (specs/sessions.md) and draw nothing

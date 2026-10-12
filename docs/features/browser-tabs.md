@@ -1,8 +1,9 @@
 ---
-summary: Desktop tabs as equal pages (chats, sections, Agents, Threads, Files, artifacts, web pages, the new tab page) with per-tab history, one or two panes, where links and the sidebar open things (Agent profiles and Settings in new tabs, Threads in the right pane), shortcuts, per-window persistence, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
+summary: Desktop tabs as equal pages (chats, sections, Agents, Threads, Files, artifacts, web pages, the new tab page) with per-tab history, one or two panes, where clicks land (the sidebar and command menu navigate the left pane in place, anything inside a page opens a new tab on the right, modifiers open a tab beside the source, Settings is a singleton), shortcuts, per-window persistence, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
 read_when:
   - changing desktop tabs, panes, tab multi-select, tab drag, tear-off, cross-window drag, or where new tabs land
   - changing what the sidebar, command menu, a chip, an in-app link, Command-, Shift-, or middle-click (background versus selected new tabs), a notification, or a web link does on desktop
+  - changing how desktop Settings, Inbox, Search, or Activity rows open
   - changing desktop Thread, Files, artifact, or Agent pages, or the chat side panel versus desktop pages
   - changing desktop browser tabs, the new tab page, external-link opening, or browser session storage
   - changing tab identity, favicons, or tab row overflow
@@ -41,9 +42,9 @@ Agent profile hub, Thread, Files, or artifact page shows no band. An Agent profi
 its trail and actions in the band, except Workspace: its bar (breadcrumb, file controls, and "…"
 menu) sits over the content column in band chrome so the file rail reaches the top of the pane,
 and the band collapses. A Chat's actions live in its tab's
-context menu and in its sidebar row's context menu. A sidebar chat or DM row's menu offers Open in
-new tab right after Open: the same background tab as Command-clicking the row, as Chrome's link
-and bookmark menus open one.
+context menu and in its sidebar row's context menu. A sidebar chat or DM row's menu offers Open,
+Open in new tab (the same background tab as Command-clicking the row, as Chrome's link and bookmark
+menus open one), and Open on the right (see [Where things open](#where-things-open)).
 
 ## Tab menu
 
@@ -73,7 +74,7 @@ survives a reload; the band's lead then keeps just the traffic lights' room.
 ## One pane or two
 
 A window shows one pane (a new window's start) or two side by side, each with its own row. The
-second pane appears when a Thread opens (see [Where things open](#where-things-open)) or a tab
+second pane appears when a page opens to the right (see [Where things open](#where-things-open)) or a tab
 moves there: right-click a tab and choose Move to right pane
 (offered on every tab of a one-pane window that has another tab to leave behind), or drag a tab
 into the other row once two exist. It closes with its last tab, leaving one full-width pane. A
@@ -82,7 +83,7 @@ is no layout toggle: to see every tab in one row, move them into one pane.
 
 Pressing or
 focusing inside a pane or its row, or a web page taking key focus, makes it the **focused pane**,
-which the sidebar and tab shortcuts act on.
+which tab shortcuts act on. The sidebar and command menu always act on the left pane.
 
 Tabs multi-select like Chrome's, within one pane's row (ADR 0039 has the exact rules).
 Command-click adds or removes a tab, Shift-click selects the range from the anchor (the last
@@ -122,49 +123,44 @@ window.
 
 ## Where things open
 
-One rule covers every in-app destination (a channel, DM, Inbox, Tasks, Search, Settings, an Agent
-profile, a Thread, an artifact, a chat's Files, a task), whether it opens from the sidebar, the
-command menu, a chip, a link in a message or page, a notification, a deep link, or the native
-menu's Settings (Command-comma) and Find (Command-F).
+Where a click lands depends on the surface you click, not on the destination
+([ADR 0046](../adr/0046-the-sidebar-goes-pages-open-to-the-right.md)). There are two verbs.
 
-- **Modified clicks follow Chrome's link dispositions** (see the table below): Command-click or
-  middle-click opens a new tab in the background, and adding Shift opens it selected. Shift-click
-  alone is a selected new tab, not Chrome's new window. The sidebar and command menu follow the
-  same dispositions, after the focused pane's current tab.
-- **Web links** always open a new web tab: in the other pane with two panes, beside the current
-  tab with one.
-- **Several opens from one tab keep their order**, as in Chrome: three Command-clicks give the
-  current tab, then A, B, C. Selecting another tab starts over right after the current tab.
-- **A plain click** selects a tab already showing that page anywhere in the window (its pane
-  becomes focused; a deeper address on that page, such as a task, opens in it). Otherwise an Agent
-  profile or Settings opens as a new selected tab after the current tab, and a Thread opens as a
-  new selected tab in the right pane, which opens if the window has one pane and becomes focused.
-  This holds from either pane, the sidebar, the command menu, Command-comma, and notifications.
-  Otherwise the current tab navigates when it shows an app page or the new tab page, and Back returns. When the
-  current tab shows a web page, the destination opens as a new selected tab right after it, and the
-  web page stays as it was.
-- **The current tab** is the focused pane's for the sidebar, command menu, notifications, and deep
-  links, and the link's own tab for a link inside a page with one pane. With two panes a link
-  inside a page acts on the **other** pane instead (an open tab there is selected); Agent
-  profiles, Settings, and Threads keep their own placement above. A page's own drill-down (a Settings section, an Agent profile section, a search
-  filter) stays in its tab.
+- **Go: the sidebar and the command menu.** A sidebar row or a command menu result navigates the
+  **left pane's** selected tab in place and focuses the left pane, whichever pane you were in and
+  whatever that tab shows (a web page or the new tab page included). Back returns. Go never opens
+  a new tab and never jumps to a tab already showing that page.
+- **Open: anything inside a page.** A Thread, an Agent avatar, name, or chip, a chat or Thread
+  chip, a `haus://` link, an artifact card, Files, a web link, an Inbox row or card, a Search
+  result, an Activity row, a sidebar row's View profile, Files, or Tasks, a chat tab's menu
+  actions, a notification, a deep link, and Command-F (Search) all open a new selected tab in the
+  **right pane**, which appears if the window has one pane and becomes focused. Opens from inside
+  the right pane stack there too. If a right-pane tab already shows that page, it is selected
+  instead (a deeper address, such as a task, opens in it); tabs in the left pane are never reused.
+  Inbox, Search, and Activity therefore work as a list on the left with details on the right.
+- **Stays in its tab.** A page's own drill-down (a Settings section, an Agent profile section, a
+  search filter, a task inside Tasks, an Inbox filter) navigates its tab. A plain link inside a
+  web page navigates that page.
+- **Several opens from one tab keep their order**, as in Chrome: three opens give the source tab,
+  then A, B, C. Selecting another tab starts over right after the selected tab.
+- **Settings** is one tab per window. Command-comma and the sidebar's Settings button select it
+  wherever it is; with none, Settings opens as a new selected tab in the left pane after its
+  selected tab. Desktop Settings has no back button; the tab and Command-[ cover it.
 
-| Gesture | App link or chip in a page | Sidebar row or command menu result | Web link (App page, chip, or web page) |
-| --- | --- | --- | --- |
-| Click (or Return) | The place rule above | The place rule above | New selected tab (web page: `target=_blank` or a popup; else it navigates in the tab) |
-| Command-click or middle-click | New background tab after its tab | New background tab after the focused pane's current tab | New background tab |
-| Command-Shift-click or Shift-click | New selected tab after its tab | New selected tab after the focused pane's current tab | New selected tab |
-| Context menu: Open in new tab / Open Link in New Tab | — | New background tab (sidebar row) | New background tab |
+Modifiers work the same on every link, chip, row, avatar, card, button, and menu item:
 
-New tabs land by the opener rule; a web link with two panes lands in the other pane, and a plain
-Thread open lands in the right pane (Command-, Shift-, and middle-click instead open a new tab beside the source, like any page). Command
-means Control off macOS. A sidebar row takes the same modifiers from the keyboard (Command-Return
-is a background tab). Command menu results take them from the mouse only; Return runs the plain
-open. Middle-click on a link or chip never autoscrolls.
+| Gesture | Result |
+| --- | --- |
+| Click (or Return) | Go from the sidebar or command menu; Open from inside a page |
+| Command-click or middle-click | New background tab right after the tab you clicked from, in its pane |
+| Shift-click or Command-Shift-click | The same new tab, selected |
+| Command-Return on a sidebar row or command menu result | Same as Command-click |
+| Sidebar row menu: Open / Open in new tab / Open on the right | Go / background tab after the left pane's selected tab / Open |
+| Web page menu: Open Link in New Tab | New background tab |
 
-Web pages are things you are reading, and a sidebar click should not throw one away. Linear's
-sidebar can navigate in place because Linear has no web tabs; Haus keeps that behavior for app
-pages only.
+For the sidebar and command menu, the tab you clicked from is the left pane's selected tab. A
+modified click never reuses an existing tab, and puts a Thread beside its source like any page.
+Command means Control off macOS. Middle-click on a link or chip never autoscrolls.
 
 A **Thread** page shows the same Thread surface the web's side panel hosts, full width like a chat;
 View in chat opens the chat scrolled to the anchor, flashing it. A `?thread=` or `?task=`
@@ -231,7 +227,7 @@ eight recently visited sites (one tile per site, reopening its latest page) sit 
 down. Enter commits the field by the address rules below; Escape clears it; leaving it rests it.
 Choosing an address or a site turns that same tab into the web page, so Back (Command-[ or the
 toolbar arrow) returns to the start page. The page shows nothing chat-related: the sidebar and
-Command-K cover chats, and navigate a new tab page in place like any other tab. It persists,
+Command-K cover chats, and navigate a new tab page in the left pane in place like any other tab. It persists,
 closes, and reopens like any tab.
 
 ## Web pages

@@ -17,10 +17,11 @@ drills into its section with a breadcrumb back to the hub
 
 ## Hosting
 
-- **Desktop**: an Agent profile is the same route in a tab (ADR 0039): a
-  link opens it in the other pane in split mode, selecting a tab already on
-  that Agent, or in the current tab in expanded mode. Drill-down stays inside
-  the tab as its section.
+- **Desktop**: an Agent profile is the same route in a tab (ADR 0039). A
+  sidebar row or command menu result navigates the left pane's tab to it; an
+  avatar, name, or chip inside a page opens it as a new tab in the right pane,
+  selecting a right-pane tab already on that Agent (ADR 0046). Drill-down
+  stays inside the tab as its section.
 - **Web**: the profile is a routed page at
   `/s/:serverSlug/agents/:agentId/:section` (`agents/:agentId` redirects to
   `home`). Old `members/agents/:agentId` links redirect here.
