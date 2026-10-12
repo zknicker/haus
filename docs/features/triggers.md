@@ -193,3 +193,5 @@ See `specs/triggers.md` for the normative persistence, route, firing, and secret
 contract, `specs/github-triggers.md` for the `github` kind,
 `specs/automation-provenance.md` for how a fire reaches the transcript,
 and [Triggers API](../api/triggers.md) for the wire surface.
+
+GitHub filters support include/exclude patterns for repositories, branches, workflows, check names, environments, and GitHub senders. Add alternative event groups for different policies; any matching group wakes the Agent once. The detail panel's **Edit filters** action preserves the trigger's identity and history. Agents have the same filtering through `haus trigger create` and `update`, plus `preview` for checking a webhook sample without firing.

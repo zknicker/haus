@@ -306,3 +306,11 @@ routing, matching, projection, and recovery in `apps/server/src/github/`. The pu
 `apps/server/src/haus-api/trigger/` and
 `apps/server/src/haus-api/automation/`; the CLI verbs live in
 `apps/computer/src/agent-cli/commands/`.
+
+## Agent edits and selection preview
+
+`PATCH /api/agent/triggers/:id` accepts `{ title?, instruction?, github? }`, at least one field. Ownership and anchor access are required. An empty or null instruction clears it. GitHub config replacement uses the same grant, installation, repository, and capacity checks as operator edits; identity and history stay intact.
+
+`POST /api/agent/triggers/:id/preview` accepts `{ event, payload }`, a raw GitHub webhook JSON object, with a 65,536-byte request limit. It returns `{ groups: [{ index, matches }], matches, repositoryInScope }`. Group indexes are zero-based. `matches` combines any group match with the currently cached authorized repository scope. It does not check runtime readiness or fire. The operator equivalent is `trigger.preview({ serverId, triggerId, event, payload })`.
+
+Name patterns, per-group exclusions, repeated-event OR groups, and `@default` branch selection are defined in `specs/github-triggers.md`.

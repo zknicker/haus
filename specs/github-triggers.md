@@ -129,8 +129,8 @@ Cursor cloud agent pulls the same log and routes only installations bound in its
 
 ## Events
 
-Each Trigger has 1 to 10 event entries, at most one per event name. Lists are OR within, AND
-across; an absent list matches anything. Branches and names match exactly; labels ignore case;
+Each Trigger has 1 to 10 event match groups; event names may repeat. Lists are OR within, AND
+across; an absent list matches anything. Branch and name filters support case-sensitive patterns: `*` stays within a path segment, `**` crosses `/`, and `?` matches one character; all other characters are literal. Labels ignore case;
 each list holds at most 20 values. `authors` defaults to `collaborators` (`author_association` in
 OWNER, MEMBER, COLLABORATOR).
 
@@ -156,6 +156,16 @@ A delivery matches a Trigger only when `payload.repository.id` is in the install
 for scope `repositories`, in `repository_ids`. "All repositories" means that accessible set.
 `installation` and `installation_repositories` arrive by default; the App subscribes to the other
 events listed.
+
+## Precise match groups
+
+Event names may repeat in the one-to-ten OR groups. Each group's filters are ANDed; values within a list are ORed. Exclusions override includes only in their own group. An event matching multiple groups still creates one fire.
+
+Every group accepts `repositories`, `repositoriesIgnore` matching full `owner/name`, and `actors`, `actorsIgnore` matching `sender.login`. Repository patterns only narrow installation/repository scope and the connection access cache. They never grant access. Actor filters describe GitHub accounts, not Haus Agents or causal identity.
+
+Branch-capable events accept `branchesIgnore`; pull requests use `baseBranchesIgnore`. Branch selector `@default` matches `repository.default_branch`, failing closed when absent. Workflow runs accept `workflowsIgnore` and exact initiating `workflowEvents`. Check runs accept `checkNamesIgnore`; deployment statuses accept `environmentsIgnore`. Missing values fail include filters and do not match exclusions.
+
+Agent `update` replaces the whole GitHub configuration, preserving ownership, anchor, and history. Both agent and operator preview endpoints use the delivery matcher plus cached repository scope without firing. Preview does not validate connection readiness, trigger status, rate limits, or chain budget.
 
 ## Authoring
 
@@ -301,6 +311,9 @@ rotate, or curl. iOS shows `github` Triggers read-only with the GitHub label and
   [--environment] [--workflow] [--authors collaborators|anyone] [--instruction <text>]`. Filter
   flags apply to every listed event that supports them; a flag no listed event supports is an
   invalid argument. `rotate` on a `github` Trigger is an invalid argument.
+- `haus trigger update --id <id> [--title <text>] [--instruction <text>]` edits metadata. With GitHub flags, supply the complete desired scope and groups; the configuration is replaced.
+- `--match-repo`, `--exclude-repo`, `--actor`, `--exclude-actor`, and event-specific `--exclude-branch`, `--exclude-workflow`, `--exclude-check-name`, `--exclude-environment`, and `--workflow-event` narrow each group. `--events-json` supplies the complete typed OR-group array instead of event/filter flags.
+- `haus trigger preview --id <id> --event <name> --payload-file <path>` checks selection with the Server matcher and cached repository scope without firing. Raw webhook JSON under 60,000 bytes; status/readiness are separate.
 - `haus github installations [--repos]` lists installations and accessible repositories the Agent
   can use.
 - `list` and `show` print `[github · armed · degraded: repositories unavailable]`, scope, events,
