@@ -190,8 +190,10 @@ export const cloudAgentWorkCancelInputSchema = z
 /**
  * Where "Happening now" opens one work (ADR 0044, Q4). `work-thread`: the
  * launch work Thread, when the viewer can read it. `message`: otherwise the
- * newest visible linking Message, revealed in its Chat (its existing Thread
- * when it has one; opening never creates or follows a Thread).
+ * newest visible linking Message. Its `chatId` is always the Channel or DM;
+ * `threadChatId` is the Thread the Message sits in or anchors, which is what
+ * opens when set. Otherwise the Message is revealed in `chatId`. Opening
+ * never creates or follows a Thread.
  */
 export const activeCloudAgentWorkLocationSchema = z.discriminatedUnion('kind', [
     z
