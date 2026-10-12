@@ -12,7 +12,7 @@ import { stopSandboxProcesses } from './sandbox-process-owner.ts';
 
 const liveTest = process.env.HAUS_RUN_LIVE_CLAUDE_MODELS_TEST === '1' ? test : test.skip;
 
-for (const modelId of ['claude-opus-5-5', 'claude-sonnet-5-5']) {
+for (const modelId of ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']) {
     liveTest(
         `${modelId} answers and preserves context across turns through the Computer bridge`,
         async () => {
