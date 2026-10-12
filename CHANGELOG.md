@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.1.1 - 2026-10-12
+
+- A queued dream takes its turn like a reminder or any other inbox work, instead of waiting until nothing else is queued.
+
 ## v12.1.0 - 2026-10-12
 
 - A busy Agent still dreams that night. Its dream waits until its current and queued work finish, instead of being skipped while it works.
