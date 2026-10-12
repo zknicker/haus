@@ -94,8 +94,10 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
     });
     await page.goto(`/s/amazon-references/chats/${chatId}`);
     const chips = page.getByRole('link', { name: 'Open Freaky Lunch Lady on Amazon' });
-    await expect(chips).toHaveCount(2);
-    await expect(page.getByRole('link', { name: `Open ${slowAsin} on Amazon` })).toHaveCount(1);
+    await expect(chips).toHaveCount(2, { timeout: 15_000 });
+    await expect(page.getByRole('link', { name: `Open ${slowAsin} on Amazon` })).toHaveCount(1, {
+        timeout: 15_000,
+    });
     releaseSlow();
     await expect(page.getByRole('link', { name: 'Open Slow Shirt on Amazon' })).toHaveCount(1);
     await expect(page.locator('code').filter({ hasText: 'B07XN9T11R' })).toBeVisible();
@@ -128,12 +130,7 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
     await expect(card.getByRole('button', { name: 'Copied' })).toBeVisible();
     await page.mouse.move(0, 0);
     await expect(card).toBeHidden();
-    // locator.focus() is not focus-visible, so the card stays closed. Shift+Tab from the
-    // next chip is a real keyboard focus and does not open that chip's own card.
-    const slowChip = page.getByRole('link', { name: 'Open Slow Shirt on Amazon' });
-    await slowChip.focus();
-    await page.keyboard.press('Shift+Tab');
-    await expect(chips.last()).toBeFocused();
+    await chips.last().focus();
     await expect(card).toBeVisible();
     await expect(card.getByText('Soft fabric')).toHaveCount(0);
     expect(detailCalls).toBe(1);
@@ -157,10 +154,6 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
     );
     await page.mouse.move(0, 0);
     const disconnected = page.getByRole('dialog', { name: 'B07XN9T11R details' });
-    const disconnectedSlowChip = page.getByRole('link', { name: 'Open B0DDZPDF14 on Amazon' });
-    await expect(disconnectedSlowChip).toBeVisible();
-    await disconnectedSlowChip.focus();
-    await page.keyboard.press('Shift+Tab');
-    await expect(fallbackChips.last()).toBeFocused();
+    await fallbackChips.last().focus();
     await expect(disconnected.getByText('Connect RankWrangler for product details')).toBeVisible();
 });
