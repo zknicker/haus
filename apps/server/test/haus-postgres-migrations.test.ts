@@ -65,6 +65,7 @@ test('upgrades the preceding production schema without replaying migrations', as
         expect(presetConstraint.definition).toContain("'skool'");
         expect(presetConstraint.definition).toContain("'merchbase-fulfillment'");
         expect(presetConstraint.definition).toContain("'merchbase-atlas'");
+        expect(presetConstraint.definition).toContain("'handmade'");
         const [dreamConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'agent_inbox_chat'`;
         expect(dreamConstraint.definition).toContain("'dream'");
