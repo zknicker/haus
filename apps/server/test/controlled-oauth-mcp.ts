@@ -25,6 +25,7 @@ export async function startControlledOAuthMcpProvider() {
         ) {
             return Response.json({
                 authorization_endpoint: `${origin}/authorize`,
+                authorization_response_iss_parameter_supported: true,
                 code_challenge_methods_supported: ['S256'],
                 grant_types_supported: ['authorization_code', 'refresh_token'],
                 issuer: origin,
@@ -57,6 +58,7 @@ export async function startControlledOAuthMcpProvider() {
             const callback = new URL(String(form.get('redirect_uri')));
             callback.searchParams.set('code', code);
             callback.searchParams.set('state', state);
+            callback.searchParams.set('iss', origin);
             return Response.redirect(callback.toString());
         }
         if (url.pathname === '/token' && request.method === 'POST') {
