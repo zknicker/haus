@@ -64,8 +64,8 @@ preset sends none. The hosted MCP accepts GitHub App user tokens and permission-
 the API ([host integration](https://github.com/github/github-mcp-server/blob/main/docs/host-integration.md),
 [scope filtering](https://github.com/github/github-mcp-server/blob/main/docs/scope-filtering.md)).
 
-The preset header is `X-MCP-Toolsets: default,actions,code_security,dependabot`, and live listing
-rewrites the stored tool snapshot on drift. `secret_protection` is deliberately excluded because
+The preset header is `X-MCP-Toolsets: default,actions,code_security,dependabot`; the Server's MCP
+inventory sweep keeps the stored tool list current. `secret_protection` is deliberately excluded because
 its alerts carry secret values, and `notifications` because GitHub's notifications API accepts only
 classic tokens ([notifications](https://docs.github.com/en/rest/activity/notifications)); GitHub
 Triggers cover that need. The MCP client would forward the resource's advertised classic scopes,
