@@ -1,4 +1,6 @@
 import {
+    ArrowLeft01Icon,
+    ArrowRight01Icon,
     Cancel01Icon,
     Download01Icon,
     MinusSignIcon,
@@ -16,6 +18,8 @@ interface ImageLightboxProps {
         | { disabled: boolean; kind: 'action'; onDownload: () => void };
     filename: string;
     height?: number | null;
+    /** Steps through the other images of the same message; a missing side has nothing there. */
+    navigation?: { onNext?: () => void; onPrevious?: () => void };
     onOpenChange: (open: boolean) => void;
     open: boolean;
     width?: number | null;
@@ -32,6 +36,7 @@ export function ImageLightbox({
     download,
     filename,
     height,
+    navigation,
     onOpenChange,
     open,
     width,
@@ -48,11 +53,15 @@ export function ImageLightbox({
     const scaledHeight = renderHeight ? Math.round(renderHeight * zoom) : undefined;
     const scaledWidth = renderWidth ? Math.round(renderWidth * zoom) : undefined;
 
+    // Each image opens at fit, including one reached by stepping.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: dataUrl names the image shown.
     React.useEffect(() => {
         if (open) {
             setZoom(1);
         }
-    }, [open]);
+    }, [dataUrl, open]);
+
+    useArrowKeySteps(open ? navigation : undefined);
 
     React.useEffect(() => {
         const image = new Image();
@@ -115,6 +124,7 @@ export function ImageLightbox({
                             />
                         </div>
                     </div>
+                    {navigation ? <ImageLightboxSteps navigation={navigation} /> : null}
                     <ImageZoomControls
                         onZoomIn={() => setZoom((value) => Math.min(4, value + 0.25))}
                         onZoomOut={() => setZoom((value) => Math.max(1, value - 0.25))}
@@ -161,8 +171,70 @@ function ImageLightboxDownload({
     );
 }
 
+/** Left and Right step while the viewer is open; react-aria's Dialog takes no key handler. */
+function useArrowKeySteps(navigation: ImageLightboxProps['navigation']) {
+    const onPrevious = navigation?.onPrevious;
+    const onNext = navigation?.onNext;
+    React.useEffect(() => {
+        if (!(onPrevious || onNext)) {
+            return;
+        }
+        const onKeyDown = (event: KeyboardEvent) => {
+            const step =
+                event.key === 'ArrowLeft'
+                    ? onPrevious
+                    : event.key === 'ArrowRight'
+                      ? onNext
+                      : undefined;
+            if (step && !event.defaultPrevented) {
+                event.preventDefault();
+                step();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [onNext, onPrevious]);
+}
+
+function ImageLightboxSteps({
+    navigation,
+}: {
+    navigation: NonNullable<ImageLightboxProps['navigation']>;
+}) {
+    // aria-disabled, not disabled: stepping onto the last image must not drop
+    // focus from the button the user just pressed, or Escape stops reaching the dialog.
+    return (
+        <>
+            <button
+                aria-disabled={!navigation.onPrevious || undefined}
+                aria-label="Previous image"
+                className={cn(
+                    imageViewerActionButtonClassName,
+                    'absolute top-1/2 left-4 z-20 -translate-y-1/2'
+                )}
+                onClick={navigation.onPrevious}
+                type="button"
+            >
+                <Icon icon={ArrowLeft01Icon} size={24} strokeWidth={2} />
+            </button>
+            <button
+                aria-disabled={!navigation.onNext || undefined}
+                aria-label="Next image"
+                className={cn(
+                    imageViewerActionButtonClassName,
+                    'absolute top-1/2 right-4 z-20 -translate-y-1/2'
+                )}
+                onClick={navigation.onNext}
+                type="button"
+            >
+                <Icon icon={ArrowRight01Icon} size={24} strokeWidth={2} />
+            </button>
+        </>
+    );
+}
+
 const imageViewerActionButtonClassName =
-    'pointer-events-auto inline-flex size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-default disabled:opacity-40';
+    'pointer-events-auto inline-flex size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-default disabled:opacity-40 aria-disabled:cursor-default aria-disabled:opacity-40';
 
 function ImageZoomControls({
     onZoomIn,

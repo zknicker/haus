@@ -1,8 +1,5 @@
 import * as React from 'react';
-import {
-    ChatTranscriptMessageContent,
-    renderTranscriptMessageAttachments,
-} from './chat-transcript-message.tsx';
+import { ChatTranscriptMessageContent } from './chat-transcript-message.tsx';
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import type { TranscriptItem } from './chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
@@ -46,9 +43,8 @@ function UserTurnItemView({ from, item }: UserTurnItemProps) {
     }
 
     const message = item.row.message;
-    const attachments = context?.renderMessageAttachments
-        ? context.renderMessageAttachments(message)
-        : renderTranscriptMessageAttachments(message.attachments);
+    // The surface owns attachments: only it knows the Server their bytes live on.
+    const attachments = context?.renderMessageAttachments?.(message);
     const body = context?.renderMessageContent ? (
         context.renderMessageContent(message)
     ) : (

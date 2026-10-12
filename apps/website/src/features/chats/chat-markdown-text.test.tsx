@@ -260,7 +260,6 @@ test('ChatMarkdownText keeps heading markers literal inside fenced text', () => 
 
 test('ChatTranscriptMessageContent forwards animated ranges to transcript text', () => {
     const message = {
-        attachments: [],
         content: 'Hello world',
         id: 'message-1',
         sender: 'Agent',

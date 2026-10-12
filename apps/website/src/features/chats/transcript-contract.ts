@@ -42,25 +42,6 @@ export type TranscriptActorProfile =
           kind: 'agent' | 'participant' | 'profile';
       });
 
-export type TranscriptAttachment =
-    | {
-          dataBase64: string;
-          filename: string;
-          height?: number | null;
-          mediaType: string;
-          sizeBytes: number;
-          type: 'inline';
-          width?: number | null;
-      }
-    | {
-          filename: string;
-          mediaType?: string | null;
-          path: string;
-          sizeBytes?: number | null;
-          type: 'file';
-          uri?: string | null;
-      };
-
 export interface TranscriptMessageMetadata extends Record<string, unknown> {
     agentModel?: string;
     model?: string;
@@ -85,7 +66,6 @@ export interface TranscriptMessageReaction {
 
 export interface TranscriptMessage {
     actor?: TranscriptActor | null;
-    attachments?: TranscriptAttachment[];
     /**
      * The automation fire this message answers. A fire writes no transcript
      * row of its own, so this is what the cause line renders from.

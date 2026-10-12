@@ -33,6 +33,8 @@ const defaultFloorAllowlist: Record<string, string> = {
 const infiniteStaleTimeAllowlist: Record<string, string> = {
     'features/activation-preview/activation-preview-server.tsx':
         'isolated preview client answering from fixtures; no Server behind it',
+    'hooks/servers/attachment-image.ts':
+        'attachment bytes never change under an id, and a local preview decodes the composer File it is keyed to',
     'hooks/servers/chat-message-entities.ts':
         'chat.message entities: the one changing family, kept fresh only by targeted invalidation and transcript list reseeding (bulk list recovery), never by staleness',
     'hooks/servers/use-message-routing.ts':

@@ -1,11 +1,13 @@
 import type { AttachmentUploadResult } from '@haus/api';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getClerkSessionToken } from '../../lib/clerk.tsx';
 import { getHausServerOrigin, hausTrpc } from '../../lib/haus-server.tsx';
+import { seedHostedAttachmentImage } from './attachment-image.ts';
 
 export const attachmentMaxSizeBytes = 52_428_800;
 
 export function useUploadServerAttachment() {
+    const queryClient = useQueryClient();
     const reserve = hausTrpc.attachment.reserve.useMutation();
 
     return useMutation({
@@ -54,7 +56,16 @@ export function useUploadServerAttachment() {
             if (!response.ok) {
                 throw new Error(readError(body, `Could not upload ${file.name}.`));
             }
-            return readUploadResult(body).attachment;
+            const { attachment } = readUploadResult(body);
+            if (attachment.mediaType.startsWith('image/')) {
+                await seedHostedAttachmentImage(queryClient, {
+                    attachmentId: attachment.id,
+                    file,
+                    nonce,
+                    serverId,
+                });
+            }
+            return attachment;
         },
     });
 }

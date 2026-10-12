@@ -212,45 +212,6 @@ test('ChatTranscript renders chat markdown headings and inline markup in message
     assert.doesNotMatch(markup, /href="javascript:/);
 });
 
-test('ChatTranscript renders image attachments in a fluid media frame', () => {
-    const markup = renderTranscript([
-        {
-            actor: { id: 'profile-1', kind: 'participant' },
-            connectsToNext: false,
-            connectsToPrevious: false,
-            id: 'message-image',
-            isFirstInGroup: true,
-            kind: 'message',
-            message: {
-                hausAgentId: null,
-                attachments: [
-                    {
-                        dataBase64: 'iVBORw0KGgo=',
-                        filename: 'screenshot.png',
-                        height: 768,
-                        mediaType: 'image/png',
-                        sizeBytes: 12_345,
-                        type: 'inline',
-                        width: 1024,
-                    },
-                ],
-                content: 'Can you inspect this?',
-                id: 'message-image',
-                sender: 'You',
-                senderType: 'user',
-                sourceSessionId: null,
-                sourceSessionKey: 'agent:tiny:session-1',
-                timestamp: '2026-03-31T15:00:00.000Z',
-            },
-        },
-    ]);
-
-    assert.match(markup, /aria-label="Open screenshot\.png"/);
-    assert.match(markup, /size-16/);
-    assert.doesNotMatch(markup, /bg-surface-2/);
-    assert.doesNotMatch(markup, /File reference/);
-});
-
 test('ChatTranscript renders loaded multiline assistant replies as one message block', () => {
     const markup = renderTranscript([
         {
@@ -496,12 +457,11 @@ test('ChatTranscript renders artifact widgets as compact open-in-pane cards', ()
         },
     ]);
 
-    // The card never renders the page inline: no iframe, no workspace read —
-    // just the title, kind line, and the open affordance.
-    assert.match(markup, /Fleet status/);
-    assert.match(markup, /Page · workbench\/pages\/fleet\.html/);
-    assert.match(markup, /Open/);
-    assert.doesNotMatch(markup, /<iframe/);
+    // A message-object ItemCard with title and kind line, never the page inline;
+    // inert (no open button) outside an Artifact Panel context.
+    assert.match(markup, /item-card--message-object[^>]*>[\s\S]*Fleet status/);
+    assert.match(markup, /HTML · fleet\.html/);
+    assert.doesNotMatch(markup, /workbench\/pages|data-testid="artifact-card"|<iframe/);
     assert.doesNotMatch(markup, /Widget unavailable/);
 });
 

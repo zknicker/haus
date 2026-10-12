@@ -6,7 +6,6 @@ import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
 import {
     ChatTranscriptMessageContent,
     getTranscriptMessageContent,
-    renderTranscriptMessageAttachments,
     type TranscriptMessage,
 } from './chat-transcript-message.tsx';
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
@@ -27,11 +26,7 @@ export function AssistantReplyBody(props: {
     const segments = splitVisualFences(content);
     const hasVisuals = segments.some((segment) => segment.kind === 'visual');
     const phase = message ? getAssistantMessagePhase(message) : null;
-    const attachments = message
-        ? context?.renderMessageAttachments
-            ? context.renderMessageAttachments(message)
-            : renderTranscriptMessageAttachments(message.attachments)
-        : null;
+    const attachments = message ? context?.renderMessageAttachments?.(message) : null;
     const slot =
         props.slotKey ??
         props.revealKey ??

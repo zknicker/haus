@@ -1,14 +1,7 @@
-import type { AttachmentMetadata } from '@haus/api';
-import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import {
-    Attachment,
-    AttachmentContent,
-    AttachmentMedia,
-    AttachmentTitle,
-} from '../../../components/chats/attachment.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
 import { withLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
+import { localAttachmentItems } from './attachment-view.ts';
 import type { ProjectedChatMessageRow } from './chat-message-model.ts';
+import { MessageAttachments, type MessageSharedArtifacts } from './message-attachments.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 /**
@@ -40,7 +33,6 @@ export function projectPendingChatMessageRows(
             kind: 'message',
             message: {
                 actor,
-                attachments: [],
                 content: message.content,
                 id,
                 metadata: withLocalTimelineMessageMetadata(),
@@ -61,39 +53,21 @@ export function projectPendingChatMessageRows(
 }
 
 /**
- * Null, never an empty group: a media slot with nothing in it is 11px of
- * height the durable row does not have, so the row would shrink the moment the
- * Server confirmed it.
+ * Null, never an empty strip: a media slot with nothing in it is height the
+ * durable row does not have, so the row would shrink the moment the Server
+ * confirmed it. Staged files render through the same strip as durable ones,
+ * drawn from the File itself, with no download action: the bytes are still on
+ * their way up. Linked library artifacts ride along exactly as they will once
+ * the send is confirmed.
  */
-export function renderPendingMessageAttachments(message: PendingChatMessage) {
-    return message.attachments.length === 0 ? null : (
-        <PendingMessageAttachments attachments={message.attachments} />
-    );
-}
-
-// Named, not downloadable: the bytes are still on their way up, so the pending
-// row carries no download action for the durable row's to collide with.
-export function PendingMessageAttachments({
-    attachments,
-}: {
-    attachments: readonly AttachmentMetadata[];
-}) {
-    if (attachments.length === 0) {
-        return null;
-    }
-
-    return (
-        <>
-            {attachments.map((attachment) => (
-                <Attachment key={attachment.id} size="sm">
-                    <AttachmentMedia>
-                        <Icon icon={Attachment01Icon} />
-                    </AttachmentMedia>
-                    <AttachmentContent>
-                        <AttachmentTitle>{attachment.filename}</AttachmentTitle>
-                    </AttachmentContent>
-                </Attachment>
-            ))}
-        </>
+export function renderPendingMessageAttachments(
+    message: PendingChatMessage,
+    sharedArtifacts: MessageSharedArtifacts | null = null
+) {
+    return message.attachments.length === 0 && !sharedArtifacts ? null : (
+        <MessageAttachments
+            attachments={localAttachmentItems(message.attachments)}
+            sharedArtifacts={sharedArtifacts}
+        />
     );
 }

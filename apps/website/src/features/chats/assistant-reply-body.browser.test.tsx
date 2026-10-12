@@ -1,9 +1,14 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { type Browser, chromium } from '@playwright/test';
+import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AssistantReplyBody } from './assistant-reply-body.tsx';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
+import {
+    type TranscriptRenderContextValue,
+    TranscriptRenderProvider,
+} from './chat-transcript-render-context.tsx';
 
 const proCss = readFileSync(
     new URL('../../../node_modules/@heroui-pro/react/dist/css/index.css', import.meta.url),
@@ -105,13 +110,7 @@ for (const content of [
     '```visual First\n<p>One</p>\n```\n\n```visual Second\n<p>Two</p>\n```',
 ]) {
     test(`attachments render once after all prose and visuals: ${content.slice(0, 25)}`, async () => {
-        const page = await renderReply(content, [
-            {
-                type: 'file',
-                filename: 'report.txt',
-                path: '/workbench/report.txt',
-            },
-        ]);
+        const page = await renderReply(content, <span>report.txt</span>);
         expect(await page.locator('.chat-message__media').count()).toBe(1);
         expect(await page.locator('.chat-message__media').textContent()).toContain('report.txt');
         expect(
@@ -178,9 +177,8 @@ test('an empty failed message retains its error presentation', () => {
     expect(markup).toContain('Error - session ended unexpectedly');
 });
 
-async function renderReply(content: string, attachments: TranscriptMessage['attachments'] = []) {
+async function renderReply(content: string, attachments?: ReactNode) {
     const message: TranscriptMessage = {
-        attachments,
         content,
         id: 'message-spacing',
         hausAgentId: 'juniper',
@@ -190,7 +188,15 @@ async function renderReply(content: string, attachments: TranscriptMessage['atta
         sourceSessionKey: 'agent:juniper',
         timestamp: '2026-09-14T18:05:00Z',
     };
-    const markup = renderToStaticMarkup(<AssistantReplyBody message={message} />);
+    // The surface owns attachments; a minimal context stands in for it.
+    const context = {
+        renderMessageAttachments: () => attachments ?? null,
+    } as unknown as TranscriptRenderContextValue;
+    const markup = renderToStaticMarkup(
+        <TranscriptRenderProvider value={context}>
+            <AssistantReplyBody message={message} />
+        </TranscriptRenderProvider>
+    );
     const page = await browser.newPage();
     await page.setContent(`<style>
         @layer theme, base, components, utilities;

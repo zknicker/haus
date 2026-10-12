@@ -54,13 +54,8 @@ test('projects Server messages into the preserved transcript contract', () => {
         id: 'user_one',
         kind: 'participant',
     });
-    expect(humanRow?.kind === 'message' ? humanRow.message.attachments?.[0] : null).toEqual({
-        filename: 'map.txt',
-        mediaType: 'text/plain',
-        path: 'hosted:attachment_one',
-        sizeBytes: 42,
-        type: 'file',
-    });
+    // Attachments render from the Server record at the surface, never as a projected file reference.
+    expect(humanRow?.kind === 'message' ? 'attachments' in humanRow.message : null).toBe(false);
     expect(humanRow?.kind === 'message' ? humanRow.thread?.threadChatId : null).toBe('thread_one');
     expect(humanRow?.kind === 'message' ? humanRow.message.reactions : null).toEqual([
         {

@@ -2,7 +2,8 @@ import type { Mention } from '../../mentions/mention-types.ts';
 import {
     type ComposerAttachment,
     createComposerAttachment,
-    revokeComposerAttachment,
+    needsComposerAttachmentSniff,
+    sniffComposerAttachmentType,
 } from './chat-draft-attachments.ts';
 
 export interface ChatDraftContents {
@@ -81,24 +82,42 @@ export function addChatDraftAttachments(key: string, files: readonly File[]) {
     }
 
     const current = readChatDraftState(key);
+    const added = files.map(createComposerAttachment);
+    writeChatDraftState(key, {
+        ...current,
+        draft: { ...current.draft, attachments: [...current.draft.attachments, ...added] },
+    });
+    for (const attachment of added.filter(needsComposerAttachmentSniff)) {
+        void sniffComposerAttachmentType(attachment.file).then(
+            (mediaType) => setChatDraftAttachmentMediaType(key, attachment.nonce, mediaType),
+            () => undefined
+        );
+    }
+}
+
+/** Records the type a staged file's bytes resolved to, if it is still in the draft. */
+function setChatDraftAttachmentMediaType(key: string, nonce: string, mediaType: string) {
+    const current = readChatDraftState(key);
+    if (!current.draft.attachments.some((attachment) => attachment.nonce === nonce)) {
+        return;
+    }
     writeChatDraftState(key, {
         ...current,
         draft: {
             ...current.draft,
-            attachments: [...current.draft.attachments, ...files.map(createComposerAttachment)],
+            attachments: current.draft.attachments.map((attachment) =>
+                attachment.nonce === nonce ? { ...attachment, mediaType } : attachment
+            ),
         },
     });
 }
 
 export function removeChatDraftAttachment(key: string, nonce: string) {
     const current = readChatDraftState(key);
-    const removed = current.draft.attachments.find((attachment) => attachment.nonce === nonce);
-
-    if (!removed) {
+    if (!current.draft.attachments.some((attachment) => attachment.nonce === nonce)) {
         return;
     }
 
-    revokeComposerAttachment(removed);
     writeChatDraftState(key, {
         ...current,
         draft: {
@@ -158,33 +177,17 @@ export function restoreFailedChatDraft(key: string, failedId: string) {
 
 export function discardFailedChatDraft(key: string, failedId: string) {
     const current = readChatDraftState(key);
-    const failed = current.failed.find((draft) => draft.id === failedId);
-
-    if (!failed) {
+    if (!current.failed.some((draft) => draft.id === failedId)) {
         return;
     }
 
-    disposeChatDraftContents(failed);
     writeChatDraftState(key, {
         ...current,
         failed: current.failed.filter((draft) => draft.id !== failedId),
     });
 }
 
-export function disposeChatDraftContents(draft: ChatDraftContents) {
-    for (const attachment of draft.attachments) {
-        revokeComposerAttachment(attachment);
-    }
-}
-
 export function resetChatDraftsForTest() {
-    for (const state of drafts.values()) {
-        disposeChatDraftContents(state.draft);
-        for (const failed of state.failed) {
-            disposeChatDraftContents(failed);
-        }
-    }
-
     const keys = [...drafts.keys()];
     drafts.clear();
     for (const key of keys) {

@@ -59,13 +59,6 @@ export function projectChatMessage(
         kind: 'message',
         message: {
             actor,
-            attachments: message.attachments.map((attachment) => ({
-                filename: attachment.filename,
-                mediaType: attachment.mediaType,
-                path: `hosted:${attachment.id}`,
-                sizeBytes: attachment.sizeBytes,
-                type: 'file' as const,
-            })),
             ...(message.cause ? { cause: message.cause } : {}),
             cloudAgentWork: messageCloudAgentWork(message),
             content: message.content,

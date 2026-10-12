@@ -4,7 +4,7 @@ import {
     addChatDraftAttachments,
     agentDmDraftKey,
     chatDraftKey,
-    disposeChatDraftContents,
+    readChatDraft,
     readChatDraftState,
     recoverFailedChatDraft,
     resetChatDraftsForTest,
@@ -93,31 +93,34 @@ test('restoring a failed draft swaps, rather than discards, current work', () =>
     expect(state.failed.map((draft) => draft.content)).toEqual(['new work to preserve']);
 });
 
-test('disposing a draft attachment revokes its object URL', () => {
-    const originalRevoke = URL.revokeObjectURL;
-    const revoked: string[] = [];
-    URL.revokeObjectURL = ((url: string) => {
-        revoked.push(url);
-    }) as typeof URL.revokeObjectURL;
+test('a pasted file with no browser type takes the type its bytes resolve to', async () => {
+    const key = 'server:s:chat:sniff';
+    const png = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13);
+    addChatDraftAttachments(key, [
+        new File([png], 'clipboard', { type: '' }),
+        new File(['a,b'], 'table.csv', { type: '' }),
+        new File(['x'], 'notes.txt', { type: 'text/plain' }),
+    ]);
 
-    try {
-        disposeChatDraftContents({
-            attachments: [
-                {
-                    file: new File(['image'], 'preview.png', { type: 'image/png' }),
-                    nonce: 'attachment_1',
-                    previewUrl: 'blob:test-preview',
-                },
-            ],
-            content: '',
-            mentions: [],
-        });
-    } finally {
-        URL.revokeObjectURL = originalRevoke;
-    }
-
-    expect(revoked).toEqual(['blob:test-preview']);
+    // The extension answers synchronously; the bytes answer a moment later.
+    expect(readChatDraft(key).attachments.map((attachment) => attachment.mediaType)).toEqual([
+        '',
+        'text/csv',
+        'text/plain',
+    ]);
+    await waitFor(() => readChatDraft(key).attachments[0]?.mediaType === 'image/png');
+    expect(readChatDraft(key).attachments.map((attachment) => attachment.mediaType)).toEqual([
+        'image/png',
+        'text/csv',
+        'text/plain',
+    ]);
 });
+
+async function waitFor(condition: () => boolean) {
+    for (let attempt = 0; attempt < 50 && !condition(); attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+}
 
 function takeAfterWriting(key: string, content: string) {
     updateChatDraftContent(key, content);

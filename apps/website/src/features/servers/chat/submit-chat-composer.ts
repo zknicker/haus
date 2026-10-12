@@ -3,16 +3,12 @@ import type { useChatMessageSend } from '../../../hooks/servers/use-chat-message
 import type { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
 import { buildChatComposerSubmission } from '../../chats/chat-composer-submission.ts';
 import type { ComposerAttachment } from './chat-draft-attachments.ts';
-import {
-    disposeChatDraftContents,
-    readChatDraft,
-    recoverFailedChatDraft,
-    takeChatDraftForSend,
-} from './chat-draft-store.ts';
+import { readChatDraft, recoverFailedChatDraft, takeChatDraftForSend } from './chat-draft-store.ts';
 import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 import {
     addPendingChatMessage,
     dropPendingChatMessage,
+    type PendingChatAttachment,
     settlePendingChatMessage,
 } from './use-pending-messages.ts';
 
@@ -118,7 +114,6 @@ export async function submitChatComposer({
                       thread,
                   }
         );
-        disposeChatDraftContents(submitted);
         onMaterialized?.(receipt.message.chatId);
         if (pendingChatId) {
             settlePendingChatMessage({
@@ -143,11 +138,12 @@ export async function submitChatComposer({
     }
 }
 
-function pendingAttachment(attachment: ComposerAttachment) {
+function pendingAttachment(attachment: ComposerAttachment): PendingChatAttachment {
     return {
+        file: attachment.file,
         filename: attachment.file.name,
         id: attachment.nonce,
-        mediaType: attachment.file.type || 'application/octet-stream',
+        mediaType: attachment.mediaType || 'application/octet-stream',
         sizeBytes: attachment.file.size,
     };
 }

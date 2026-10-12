@@ -7,7 +7,6 @@ import { ReferenceChip } from '../mentions/reference-chip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import {
     ChatTranscriptMessageContent,
-    renderTranscriptMessageAttachments,
     type TranscriptMessage,
 } from './chat-transcript-message.tsx';
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
@@ -99,12 +98,7 @@ test('active and durable assistant reply wrappers keep the same text geometry', 
         </TranscriptMessageBlock>
     );
     const durableMarkup = renderChatMarkup(
-        <TranscriptMessageBlock
-            attachments={renderTranscriptMessageAttachments(
-                assistantMessage(appointmentText).attachments
-            )}
-            from="assistant"
-        >
+        <TranscriptMessageBlock from="assistant">
             <ChatTranscriptMessageContent message={assistantMessage(appointmentText)} />
         </TranscriptMessageBlock>
     );
@@ -735,7 +729,6 @@ const referenceChipCss = `
 
 function assistantMessage(content: string): TranscriptMessage {
     return {
-        attachments: [],
         content,
         id: 'msg_assistant_geometry',
         metadata: { runtime: { runId: 'run_geometry' } },

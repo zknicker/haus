@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { attachmentImageKeys } from '../../../hooks/servers/attachment-image.ts';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { isLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
 import type { ProjectedChatMessageRow } from './chat-message-model.ts';
 import {
-    PendingMessageAttachments,
     projectPendingChatMessageRows,
     renderPendingMessageAttachments,
 } from './pending-messages.tsx';
@@ -67,22 +68,32 @@ test('every rapid pending send joins the current human turn', () => {
     expect(entries[0]?.kind === 'turn' ? entries[0].items : []).toHaveLength(2);
 });
 
-test('an attaching send names its files while the bytes upload', () => {
+test('an attaching image send renders the image itself, never a file card', () => {
+    const client = new QueryClient();
+    client.setQueryData(attachmentImageKeys.local('nonce_att_1'), {
+        height: 300,
+        url: 'blob:composer-preview',
+        width: 400,
+    });
     const markup = renderToStaticMarkup(
-        <PendingMessageAttachments
-            attachments={[
-                {
-                    filename: 'notes.pdf',
-                    id: 'nonce_att_1',
-                    mediaType: 'application/pdf',
-                    sizeBytes: 2048,
-                },
-            ]}
-        />
+        <QueryClientProvider client={client}>
+            {renderPendingMessageAttachments({
+                ...pending,
+                attachments: [
+                    {
+                        file: new File(['png'], 'shot.png', { type: 'image/png' }),
+                        filename: 'shot.png',
+                        id: 'nonce_att_1',
+                        mediaType: 'image/png',
+                        sizeBytes: 2048,
+                    },
+                ],
+            })}
+        </QueryClientProvider>
     );
 
-    expect(markup).toContain('notes.pdf');
-    expect(markup).not.toContain('data-slot="attachment-group"');
+    expect(markup).toContain('src="blob:composer-preview"');
+    expect(markup).not.toContain('data-variant="file"');
 });
 
 test('a settled send never sorts ahead of a later one still in flight', () => {
@@ -130,7 +141,6 @@ function userRow(input: {
         kind: 'message',
         message: {
             actor,
-            attachments: [],
             content: input.content,
             id: input.id,
             sender: 'Zach',

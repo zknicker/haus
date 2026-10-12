@@ -22,12 +22,9 @@ import {
     useTranscriptSkeletonRows,
 } from './chat-message-projection.ts';
 import type { ChatTranscriptInput } from './chat-transcript-input.ts';
-import { MessageAttachments } from './message-attachments.tsx';
-import {
-    projectPendingChatMessageRows,
-    renderPendingMessageAttachments,
-} from './pending-messages.tsx';
+import { projectPendingChatMessageRows } from './pending-messages.tsx';
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
+import { useRenderMessageMedia } from './use-message-media.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } as const;
@@ -117,35 +114,7 @@ export function useChatTranscript({
         messages: messageList,
     });
     const openAgentProfile = useOpenAgentProfile();
-    const downloadAttachment = download.mutate;
-    const downloadPending = download.isPending;
-    const renderMessageAttachments = React.useCallback(
-        (message: TranscriptMessage) => {
-            const sourceMessage = lookupRef.current.messagesById.get(message.id);
-
-            const pendingMessage = lookupRef.current.pendingById.get(message.id);
-
-            if (pendingMessage) {
-                return renderPendingMessageAttachments(pendingMessage);
-            }
-
-            return sourceMessage?.attachments.length ? (
-                <MessageAttachments
-                    attachments={sourceMessage.attachments}
-                    disabled={downloadPending}
-                    onDownload={(attachment) =>
-                        downloadAttachment({
-                            attachmentId: attachment.id,
-                            filename: attachment.filename,
-                            serverId: sourceMessage.serverId,
-                        })
-                    }
-                    serverId={sourceMessage.serverId}
-                />
-            ) : null;
-        },
-        [downloadAttachment, downloadPending, lookupRef]
-    );
+    const renderMessageAttachments = useRenderMessageMedia({ download, lookupRef, serverId });
     // A click reads the clicked message's entity from the cache: the row
     // rendered from it, so it is there.
     const readEntity = React.useCallback(

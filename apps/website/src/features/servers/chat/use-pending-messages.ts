@@ -2,6 +2,14 @@ import type { AttachmentMetadata, ChatMessageReply } from '@haus/api';
 import * as React from 'react';
 
 /**
+ * A staged file riding a pending send. Its id is the composer attachment nonce,
+ * which keys the decoded preview the composer already showed.
+ */
+export interface PendingChatAttachment extends AttachmentMetadata {
+    file: File;
+}
+
+/**
  * One send the composer has already let go of. The draft leaves the editor the
  * moment the user hits send, so the transcript shows this stand-in until the
  * durable message lands. App-local by design: durable chat history is never
@@ -9,7 +17,7 @@ import * as React from 'react';
  */
 export interface PendingChatMessage {
     /** Composer-local metadata; the bytes are still uploading behind this row. */
-    attachments: readonly AttachmentMetadata[];
+    attachments: readonly PendingChatAttachment[];
     content: string;
     /** The Server's creation time from the send receipt; null until it lands. */
     createdAt: string | null;

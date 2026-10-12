@@ -20,6 +20,7 @@ import { ChatInlineReplyReference, type ChatInlineReplyTarget } from './chat-inl
 import { ComposerAttachments } from './composer-attachments.tsx';
 import { ComposerDropOverlay } from './composer-drop-overlay.tsx';
 import { useComposerFileDrop } from './composer-file-drop.ts';
+import { pastedFiles } from './composer-paste.ts';
 import { submitChatComposer } from './submit-chat-composer.ts';
 import { useChatComposerCommands } from './use-chat-composer-commands.ts';
 import { useChatDraft } from './use-chat-draft.ts';
@@ -208,6 +209,15 @@ export function ServerChatComposer({
                             slot so compact and expanded layouts stay stock. */}
                         <div
                             className="chat-composer-editor prompt-input__textarea"
+                            // Capture, so a pasted image attaches before the editor inserts anything.
+                            onPasteCapture={(event) => {
+                                const files =
+                                    target.kind === 'chat' ? pastedFiles(event.clipboardData) : [];
+                                if (files.length > 0) {
+                                    event.preventDefault();
+                                    addAttachments(files);
+                                }
+                            }}
                             ref={editorSlotRef}
                         >
                             <MentionComposerEditor

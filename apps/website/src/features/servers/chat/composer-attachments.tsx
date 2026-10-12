@@ -1,14 +1,10 @@
-import {
-    ChatAttachment,
-    ChatAttachmentGroup,
-    formatChatAttachmentSize,
-    PromptInput,
-} from '@heroui-pro/react';
+import { ChatAttachment, ChatAttachmentGroup, PromptInput } from '@heroui-pro/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useAttachmentImage } from '../../../hooks/servers/use-attachment-image.ts';
 import { springs } from '../../../lib/springs.ts';
+import { ArtifactFileIcon } from '../../artifacts/icons/artifact-file-icon.tsx';
+import { describeAttachment, localAttachmentItems } from './attachment-view.ts';
 import type { ComposerAttachment } from './chat-draft-attachments.ts';
-
-const extensionPattern = /\.([a-z0-9]{1,5})$/iu;
 
 export function ComposerAttachments({
     attachments,
@@ -44,24 +40,10 @@ export function ComposerAttachments({
                             transition={springs.moderate}
                             {...presence}
                         >
-                            <ChatAttachment
-                                mimeType={attachment.file.type}
-                                name={attachment.file.name}
-                                size={attachment.file.size}
-                                src={attachment.previewUrl}
-                            >
-                                <ChatAttachment.Preview />
-                                <ChatAttachment.Info>
-                                    <ChatAttachment.Name />
-                                    <ChatAttachment.Size>
-                                        {describeFile(attachment.file)}
-                                    </ChatAttachment.Size>
-                                </ChatAttachment.Info>
-                                <ChatAttachment.Remove
-                                    aria-label={`Remove ${attachment.file.name}`}
-                                    onPress={() => onRemove(attachment.nonce)}
-                                />
-                            </ChatAttachment>
+                            <ComposerAttachmentTile
+                                attachment={attachment}
+                                onRemove={() => onRemove(attachment.nonce)}
+                            />
                         </motion.div>
                     ))}
                 </AnimatePresence>
@@ -70,9 +52,58 @@ export function ComposerAttachments({
     );
 }
 
-/** "PDF · 243 KB": the kind a reader scans for, then the size. */
-function describeFile(file: File) {
-    const extension = file.name.match(extensionPattern)?.[1]?.toUpperCase();
-    const size = formatChatAttachmentSize(file.size);
-    return extension ? `${extension} · ${size}` : size;
+/**
+ * A staged file in the composer's visual language: an image as a stock square
+ * thumbnail decoded through the attachment image cache (the pending and
+ * confirmed rows reuse that very decode), anything else as a file card with
+ * the Artifacts file icon and "PDF · 243 KB".
+ */
+function ComposerAttachmentTile({
+    attachment,
+    onRemove,
+}: {
+    attachment: ComposerAttachment;
+    onRemove: () => void;
+}) {
+    const [item] = localAttachmentItems([
+        {
+            file: attachment.file,
+            filename: attachment.file.name,
+            id: attachment.nonce,
+            mediaType: attachment.mediaType || 'application/octet-stream',
+            sizeBytes: attachment.file.size,
+        },
+    ]);
+    const isImage = item?.kind === 'image';
+    const preview = useAttachmentImage(
+        { file: attachment.file, kind: 'local', nonce: attachment.nonce },
+        { enabled: isImage }
+    );
+    const showImage = isImage && !preview.failed;
+
+    return (
+        <ChatAttachment
+            mediaType={showImage ? 'image' : 'document'}
+            mimeType={attachment.mediaType}
+            name={attachment.file.name}
+            size={attachment.file.size}
+            src={showImage ? preview.image?.url : undefined}
+        >
+            {showImage ? (
+                <ChatAttachment.Preview />
+            ) : (
+                <ChatAttachment.Preview>
+                    <ArtifactFileIcon kind={item?.kind ?? 'other'} size={32} />
+                </ChatAttachment.Preview>
+            )}
+            <ChatAttachment.Info>
+                <ChatAttachment.Name />
+                <ChatAttachment.Size>{item ? describeAttachment(item) : null}</ChatAttachment.Size>
+            </ChatAttachment.Info>
+            <ChatAttachment.Remove
+                aria-label={`Remove ${attachment.file.name}`}
+                onPress={onRemove}
+            />
+        </ChatAttachment>
+    );
 }

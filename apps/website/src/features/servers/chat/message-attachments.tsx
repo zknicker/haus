@@ -1,177 +1,81 @@
-import type { AttachmentMetadata } from '@haus/api';
-import { Label } from '@heroui/react';
-import { ChatAttachment, ContextMenu } from '@heroui-pro/react';
-import { Attachment01Icon, Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import {
-    Attachment,
-    AttachmentAction,
-    AttachmentActions,
-    AttachmentContent,
-    AttachmentDescription,
-    AttachmentMedia,
-    AttachmentTitle,
-} from '../../../components/chats/attachment.tsx';
-import { ImageLightbox } from '../../../components/chats/image-lightbox.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { useAttachmentPreview } from '../../../hooks/servers/use-attachment-preview.ts';
+import { MessageMediaStrip } from '../../chats/message-media-strip.tsx';
+import type { SharedArtifactLinkTarget } from '../../chats/shared-artifact-link.ts';
+import { sharedArtifactKey } from '../../chats/shared-artifact-link.ts';
+import type { SharedArtifactScope } from '../../chats/shared-artifact-scope.tsx';
+import { SharedArtifactTile } from '../../chats/shared-artifact-tile.tsx';
+import { AttachmentFileTile } from './attachment-file-tile.tsx';
+import { AttachmentImageTile } from './attachment-image-tile.tsx';
+import { AttachmentLightbox } from './attachment-lightbox.tsx';
+import type { MessageAttachmentItem } from './attachment-view.ts';
 
-const emptyImagePreview = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-
-export function MessageAttachments({
-    attachments,
-    disabled,
-    onDownload,
-    serverId,
-}: {
-    attachments: AttachmentMetadata[];
-    disabled: boolean;
-    onDownload: (attachment: AttachmentMetadata) => void;
-    serverId: string;
-}) {
-    return attachments.map((attachment) =>
-        isPreviewableImage(attachment) ? (
-            <HostedImageAttachment
-                attachment={attachment}
-                disabled={disabled}
-                key={attachment.id}
-                onDownload={onDownload}
-                serverId={serverId}
-            />
-        ) : (
-            <HostedFileAttachment
-                attachment={attachment}
-                disabled={disabled}
-                key={attachment.id}
-                onDownload={onDownload}
-            />
-        )
-    );
+/** The library artifacts a message links to, with the scope that resolved them. */
+export interface MessageSharedArtifacts {
+    scope: SharedArtifactScope;
+    targets: readonly SharedArtifactLinkTarget[];
 }
 
-function HostedImageAttachment({
-    attachment,
-    disabled,
+/**
+ * Everything a message carries, below its text, as one media strip: its
+ * images, then its other files, then the library artifacts it links to, each
+ * group in message order. Durable and pending rows both render this, so a
+ * send keeps its shape when the Server confirms it. Without `onDownload` (a
+ * pending send) nothing offers to save bytes still uploading.
+ */
+export function MessageAttachments({
+    attachments,
+    downloadDisabled = false,
     onDownload,
-    serverId,
+    sharedArtifacts,
 }: {
-    attachment: AttachmentMetadata;
-    disabled: boolean;
-    onDownload: (attachment: AttachmentMetadata) => void;
-    serverId: string;
+    attachments: readonly MessageAttachmentItem[];
+    downloadDisabled?: boolean;
+    onDownload?: (attachment: MessageAttachmentItem) => void;
+    sharedArtifacts?: MessageSharedArtifacts | null;
 }) {
-    const [lightboxOpen, setLightboxOpen] = React.useState(false);
-    const preview = useAttachmentPreview({ attachmentId: attachment.id, serverId });
-
-    if (preview.failed) {
-        return (
-            <HostedFileAttachment
-                attachment={attachment}
-                disabled={disabled}
-                onDownload={onDownload}
-            />
-        );
-    }
-
-    const previewUrl = preview.url;
+    const [viewing, setViewing] = React.useState<number | null>(null);
+    const images = attachments.filter((attachment) => attachment.kind === 'image');
+    const files = attachments.filter((attachment) => attachment.kind !== 'image');
+    const [firstImage, ...restImages] = images;
 
     return (
         <>
-            <ContextMenu isDisabled={!previewUrl}>
-                <ContextMenu.Trigger className="flex-none snap-start">
-                    <button
-                        aria-label={`Open ${attachment.filename}`}
-                        className="chat-attachment-trigger block cursor-zoom-in rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default"
-                        disabled={!previewUrl}
-                        onClick={() => setLightboxOpen(true)}
-                        type="button"
-                    >
-                        <ChatAttachment
-                            className="chat-attachment--transcript-image"
-                            mediaType="image"
-                            mimeType={attachment.mediaType}
-                            name={attachment.filename}
-                            size={attachment.sizeBytes}
-                            src={previewUrl ?? emptyImagePreview}
-                        >
-                            <ChatAttachment.Preview />
-                            <ChatAttachment.Name />
-                        </ChatAttachment>
-                    </button>
-                </ContextMenu.Trigger>
-                <ContextMenu.Popover>
-                    <ContextMenu.Menu onAction={() => onDownload(attachment)}>
-                        <ContextMenu.Item
-                            id="save-image-as"
-                            isDisabled={disabled}
-                            textValue="Save Image As"
-                        >
-                            <Icon className="size-4 text-muted" icon={Download04Icon} />
-                            <Label>Save Image As…</Label>
-                        </ContextMenu.Item>
-                    </ContextMenu.Menu>
-                </ContextMenu.Popover>
-            </ContextMenu>
-            {previewUrl ? (
-                <ImageLightbox
-                    dataUrl={previewUrl}
-                    download={{
-                        disabled,
-                        kind: 'action',
-                        onDownload: () => onDownload(attachment),
-                    }}
-                    filename={attachment.filename}
-                    onOpenChange={setLightboxOpen}
-                    open={lightboxOpen}
+            <MessageMediaStrip>
+                {images.map((attachment, index) => (
+                    <AttachmentImageTile
+                        attachment={attachment}
+                        downloadDisabled={downloadDisabled}
+                        key={attachment.id}
+                        onDownload={onDownload ? () => onDownload(attachment) : undefined}
+                        onOpen={() => setViewing(index)}
+                    />
+                ))}
+                {files.map((attachment) => (
+                    <AttachmentFileTile
+                        attachment={attachment}
+                        downloadDisabled={downloadDisabled}
+                        key={attachment.id}
+                        onDownload={onDownload ? () => onDownload(attachment) : undefined}
+                    />
+                ))}
+                {sharedArtifacts?.targets.map((target) => (
+                    <SharedArtifactTile
+                        key={sharedArtifactKey(target)}
+                        scope={sharedArtifacts.scope}
+                        target={target}
+                    />
+                ))}
+            </MessageMediaStrip>
+            {firstImage && viewing !== null ? (
+                <AttachmentLightbox
+                    downloadDisabled={downloadDisabled}
+                    images={[firstImage, ...restImages]}
+                    index={viewing}
+                    onClose={() => setViewing(null)}
+                    onDownload={onDownload}
+                    onIndexChange={setViewing}
                 />
             ) : null}
         </>
     );
-}
-
-function HostedFileAttachment({
-    attachment,
-    disabled,
-    onDownload,
-}: {
-    attachment: AttachmentMetadata;
-    disabled: boolean;
-    onDownload: (attachment: AttachmentMetadata) => void;
-}) {
-    return (
-        <Attachment size="sm">
-            <AttachmentMedia>
-                <Icon icon={Attachment01Icon} />
-            </AttachmentMedia>
-            <AttachmentContent>
-                <AttachmentTitle>{attachment.filename}</AttachmentTitle>
-                <AttachmentDescription>
-                    {attachment.mediaType} · {formatBytes(attachment.sizeBytes)}
-                </AttachmentDescription>
-            </AttachmentContent>
-            <AttachmentActions>
-                <AttachmentAction
-                    aria-label={`Download ${attachment.filename}`}
-                    isDisabled={disabled}
-                    onPress={() => onDownload(attachment)}
-                >
-                    <Icon className="size-3.5" icon={Download04Icon} />
-                </AttachmentAction>
-            </AttachmentActions>
-        </Attachment>
-    );
-}
-
-export function isPreviewableImage(attachment: AttachmentMetadata) {
-    return attachment.mediaType.startsWith('image/');
-}
-
-function formatBytes(sizeBytes: number) {
-    if (sizeBytes < 1024) {
-        return `${sizeBytes} B`;
-    }
-    if (sizeBytes < 1024 * 1024) {
-        return `${(sizeBytes / 1024).toFixed(1)} KB`;
-    }
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
