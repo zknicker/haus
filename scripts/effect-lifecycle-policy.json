@@ -768,6 +768,39 @@
         "manualPromise": 0,
         "timer": 2
       }
+    },
+    "apps/server/src/hosted-mcp/process.ts": {
+      "disposition": "external-adapter",
+      "reason": "Foreign subprocess and Unix HTTP adapter; the Server Effect scope owns admission, retries and release. The bounded stop deadline reaps the connector and reported account worker groups.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 3,
+        "finallyBlock": 1,
+        "manualPromise": 2,
+        "timer": 2
+      }
+    },
+    "apps/server/src/hosted-mcp/test-fixture.ts": {
+      "disposition": "test-support",
+      "reason": "Private socket and detached account worker fixture for Server supervision and process-tree cleanup tests.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
+      }
+    },
+    "apps/server/src/hosted-mcp/verify-package.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Finite packaging verification closes its MCP client, owned Effect scope, runtime and temporary fixture storage before returning.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 4,
+        "manualPromise": 0,
+        "timer": 0
+      }
     }
   },
   "staticRuntimeCeilings": {}

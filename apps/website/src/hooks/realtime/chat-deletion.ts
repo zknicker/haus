@@ -25,6 +25,23 @@ export function applyChatDeletion({
 }) {
     void runChatLoss({ chatId, coalescer, queryClient, serverId });
     invalidateChatLifecycleReads(coalescer, serverId, chatId);
+    invalidateLinkedCloudAgentWork(coalescer, serverId);
+}
+
+/**
+ * Cloud Agent work is visible through the Messages that link it (ADR 0044), so
+ * a lost Chat can take work out of the active list, move its Happening now
+ * location, or leave a parent's work list (a deleted Thread's links listed
+ * there). Which lists named the Chat is unknown here, so every work list of
+ * the Server refreshes; only mounted ones refetch.
+ */
+function invalidateLinkedCloudAgentWork(coalescer: ChatReadsCoalescer, serverId: string) {
+    coalescer.invalidate({
+        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listActive, { serverId }),
+    });
+    coalescer.invalidate({
+        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listForChat, { serverId }),
+    });
 }
 
 /** Without a Chat id (recovery), every cached `chat.get` of the Server refreshes. */
@@ -39,4 +56,6 @@ export function invalidateChatLifecycleReads(
         queryKey: getQueryKey(hausTrpc.chat.get, chatId ? { chatId, serverId } : { serverId }),
     });
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.agent.chats, { serverId }) });
+    // A Thread row needs a listed parent: archiving, deleting, or hiding one drops its Threads.
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
 }

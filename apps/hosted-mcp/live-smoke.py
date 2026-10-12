@@ -20,7 +20,7 @@ async def main(path: Path, community: str | None) -> None:
             async with ClientSession(*streams) as client:
                 await client.initialize()
                 tools = await client.list_tools()
-                assert len(tools.tools) == 9
+                assert len(tools.tools) == 10
                 after_discovery = (await http.get(status_url)).json()
                 assert before["starts"] == after_discovery["starts"]
 
@@ -44,12 +44,29 @@ async def main(path: Path, community: str | None) -> None:
                 classroom = await call("skool_get_classroom", scope)
                 course = next(c for c in classroom["courses"] if c["has_access"])
                 tree = await call("skool_get_course", {**scope, "course_id": course["id"]})
+                module = first_module(tree)
+                lesson = None
+                if module:
+                    lesson = await call("skool_get_lesson", {
+                        **scope, "course_id": course["id"], "lesson_id": module["id"]})
+                    assert lesson["id"] == module["id"]
                 calendar = await call("skool_get_calendar", scope)
                 print(json.dumps({"tools": len(tools.tools), "communities": len(communities), "posts": len(posts),
                                   "comments": len(comments), "search_type": type(search).__name__,
                                   "courses": len(classroom["courses"]),
+                                  "lesson_transcript_status": lesson["transcript_status"] if lesson else None,
                                   "course_type": type(tree).__name__, "calendar_type": type(calendar).__name__,
                                   "pool": (await http.get(status_url)).json()}))
+
+
+def first_module(tree: dict) -> dict | None:
+    if tree.get("type") == "module":
+        return tree
+    for child in tree.get("children", []):
+        module = first_module(child)
+        if module:
+            return module
+    return None
 
 
 if __name__ == "__main__":

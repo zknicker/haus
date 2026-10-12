@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { conversationPreviewLine } from './conversation-preview.ts';
+import { conversationPreviewLine, threadReplyPreviewLine } from './conversation-preview.ts';
 
 const createdAt = '2025-05-08T15:00:00.000Z';
 
@@ -83,5 +83,26 @@ describe('conversationPreviewLine', () => {
                 { peerDisplayName: 'Tiny' }
             )
         ).toBe('Tiny');
+    });
+});
+
+describe('threadReplyPreviewLine', () => {
+    test('says who replied in the thread, then quotes the reply', () => {
+        expect(
+            threadReplyPreviewLine(
+                { authorDisplayName: 'Forge', content: 'Fixed the **flake**.', createdAt },
+                'Zach'
+            )
+        ).toBe('Forge replied in thread: Fixed the flake.');
+    });
+
+    test("the viewer's own reply reads as theirs, and an empty one names only who", () => {
+        expect(
+            threadReplyPreviewLine({ authorDisplayName: 'Zach', content: '', createdAt }, 'Zach')
+        ).toBe('You replied in thread');
+    });
+
+    test('a reply that no longer resolves still says the Thread has news', () => {
+        expect(threadReplyPreviewLine(null, 'Zach')).toBe('New replies in thread');
     });
 });

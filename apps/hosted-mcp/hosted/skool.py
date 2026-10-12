@@ -3,6 +3,8 @@
 import catknows.mcp_server as upstream
 from catknows import Session, SkoolClient
 
+from hosted.lessons import read_lesson
+
 
 class Skool:
     def __init__(self, record: dict):
@@ -24,11 +26,13 @@ class Skool:
             return upstream.get_classroom(slug)
         if name == "skool_get_calendar":
             return upstream.get_calendar(slug)
-        if name == "skool_get_course":
+        if name in ("skool_get_course", "skool_get_lesson"):
             courses = upstream.get_classroom(slug)["courses"]
             allowed = {course["id"] for course in courses if course["has_access"]}
             if arguments["course_id"] not in allowed:
                 raise ValueError("Course is outside selected community access")
+            if name == "skool_get_lesson":
+                return read_lesson(upstream._client, slug, arguments["course_id"], arguments["lesson_id"])
             return upstream.get_course_tree(arguments["course_id"], community_slug=slug)
         post_name = arguments["post_name"]
         post = upstream.get_post(slug, post_name)

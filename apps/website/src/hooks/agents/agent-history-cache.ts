@@ -70,6 +70,10 @@ export function invalidateServerAgentHistory(queryClient: QueryClient, serverId:
             predicate: onServer,
             queryKey: getQueryKey(hausTrpc.stats.agentUsage, undefined, 'query'),
         }),
+        queryClient.invalidateQueries({
+            predicate: onServer,
+            queryKey: getQueryKey(hausTrpc.agent.dreams, undefined, 'query'),
+        }),
     ]);
 }
 
@@ -103,6 +107,10 @@ export function invalidateSettledAgentHistory(
         }),
         queryClient.invalidateQueries({
             queryKey: getQueryKey(hausTrpc.stats.agentUsage, scope, 'query'),
+        }),
+        // A dream run reports its memory record just before it settles.
+        queryClient.invalidateQueries({
+            queryKey: getQueryKey(hausTrpc.agent.dreams, scope, 'query'),
         }),
     ]);
 }

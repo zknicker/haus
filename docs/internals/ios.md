@@ -870,7 +870,9 @@ Cloud agents use the same Server records as the web App. Settings → Cloud agen
 Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
 sign-in browser on that Computer, not on the phone; iOS never receives the credential.
 
-Each delegation's typed Message body supplies its inline cloud-agent card in a Chat or Thread.
+Each Message's `cloudAgentWork` annotation supplies one inline cloud-agent card per linked work in
+a Chat or Thread (`ChatMessageCloudAgentWork.swift`); the card names the Agent from the work's
+`agentId`, and `RichMessageParser` reads `cloud-agent://` links as reference chips.
 The parent Chat's preview carries the Thread's cloud agents from `cloudAgentWork.listForChat` as
 cards beside the ingress button, never inside it (`ThreadCloudAgentStackView`). One job is just its
 card. Two or more collapse like an iOS notification group: `N cloud agents` with a counts line
@@ -890,8 +892,9 @@ card, or beside the bottom Show less when expanded. Cards follow the
 (never "Queued"), an optional PR row, exactly one single-line status line
 (`CloudAgentStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
 Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
-`cloud-agent-work.updated` refreshes the loaded Thread and parent Chat through the normal durable
-event/reconnect path. Cards scroll with their Messages and follow-ups update the same card.
+`cloudAgentWork.updated`, sent once per linking Message, refreshes that Message's loaded Chat and
+parent through the normal durable event/reconnect path; a deleted Chat reloads the active work
+list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
 
 An anchor message owns one unboxed Thread ingress, joined to its avatar rail by a rounded connector.
 The reply count and chevron lead, followed by the latest Server-projected reply's avatar, author,
@@ -953,9 +956,10 @@ and the edge pan are the same ones. `showsInbox` is App-owned state (`Authentica
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
 always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. A Cloud Agent work row
-pushes the Thread it hangs off, carrying the conversation's Chat id and the anchor Message — the
-same pair a Thread composer sends to — and leaving the canvas selection alone for the same reason a
-Task does; an Unread row opens its DM or Channel.
+opens the row's `location`: the launch work Thread when the viewer can read it, else the Thread of
+the newest visible linking Message (by `threadChatId`), carrying the conversation's Chat id and the
+anchor Message — the same pair a Thread composer sends to — and leaving the canvas selection alone
+for the same reason a Task does. A location the phone cannot open is skipped; an Unread row opens its DM or Channel.
 Unread and **Happening now** rows share one Messages-style two-line row (`InboxRowView`): a 44pt
 mark, the title with its perishable fact trailing, and the context below in secondary. Each line is
 capped at one, so every row in both sections is the same height at a given text size. At
@@ -985,26 +989,40 @@ on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App'
 `agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-reads the Chat list's unread Chats, the Cloud Agent work running right now
+reads the Chat list's unread Chats, the unread Threads (`thread.listUnread`), the Cloud Agent work running right now
 (`cloudAgentWork.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
 nil until its first load. That nil is load-bearing: `unreadChatCount` is nil until the Chat list
 has landed, so "nothing unread" is never confused with "not yet known". The count is the number of
-Chats with an `unreadCount` above zero on the active Server, the same Chats the App lists, and it
+Unread rows on the active Server — Chats with an `unreadCount` above zero plus listed unread
+Threads, the same rows the App lists — and it
 drives the sidebar's Inbox dot. The app icon badge is not that count: it is the Server's cross-Server
 `chat.unreadChatCount`, the number push puts on `aps.badge`. `HausStoreIconBadge` reads it into
 `iconBadgeCount` wherever the Chat list reloads (Server load, snapshot refresh on foreground or
 reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
 client already holds, the way the App's invalidation only refetches a live query:
 `message.created` and `chat.read` reload the Chat list, `task.created` and `task.updated` reload the
-Server Task lens beside the affected Chat page, `cloud-agent-work.updated` reloads the active
+Server Task lens beside the affected Chat page, `cloudAgentWork.updated` reloads the active
 work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
 
 An Unread row ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) is one Chat from the
-Chat list with an `unreadCount` above zero. Opening it reads it the way any open transcript does;
-**Mark read** sends `chat.markRead` with the Chat's `lastMessageSequence` and `includeThreads: true`,
-so the Thread replies its count rolls up clear with it, and newer activity brings the row back.
+Chat list with an `unreadCount` above zero, or one unread Thread
+([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Chat's count is its own messages,
+and each Thread with unread replies the viewer follows or is mentioned in is its own row from
+`thread.listUnread` (`HausStoreUnreadThreads`), merged by activity. A Thread row wears its parent's
+mark, is titled `#channel` or `DM`, and quotes `<Author> replied in thread: <reply>`; one whose
+parent the Chat list does not hold is hidden. Opening a Chat row reads it the way any open
+transcript does; opening a Thread row pushes the Thread, which lands on its first unread reply —
+staying put when that reply already reads from the newest edge, otherwise bringing its top under
+the navigation bar (`TranscriptLanding`) — decided once per open, so reading never moves it.
+**Mark read** sends `chat.markRead` with the row's `lastMessageSequence`: a Chat row adds
+`includeThreads: true`, which reads every Thread under it, so its Thread rows leave with it; a
+Thread row marks the Thread's own Chat. Newer activity brings the row back. The unread Threads are
+read beside every Chat-list read (so `message.created`, `thread.onFollowUpdated`, and
+`chat.onLifecycle` refresh them), and a `chat.onRead` for a Thread re-reads them and the badge
+alone, never the parent's Chat-list row. The sidebar's Inbox dot counts Chat and Thread rows
+alike, matching the icon badge (`chat.unreadChatCount`).
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
 presentation of a question ([Inbox](../features/inbox.md#notifications)).
 

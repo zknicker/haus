@@ -57,6 +57,7 @@ function requester(seen: AgentApiRequest[], route: string[] = []): AgentApiReque
             route.push(path);
             seen.push(input ?? {});
             const receipt = {
+                state: 'started',
                 chatId: 'cht_product',
                 idempotent: false,
                 messageId: work.messageId,
@@ -121,6 +122,52 @@ test('starts a cloud card as an inline reply without changing its channel', asyn
         replyToMessageId: '1a2b3c4d',
         target: '#product',
     });
+});
+
+test('a held start shows the newer messages and says nothing was launched', async () => {
+    const output: string[] = [];
+    const newer = {
+        attachments: [],
+        author: { id: 'usr_zach', kind: 'user', label: 'Zach', metadata: {} },
+        body_kind: 'text',
+        chat_id: 'cht_product',
+        content: 'own it in tech ops though not here',
+        created_at: '2026-09-04T12:00:07.000Z',
+        deleted_at: null,
+        delivery_id: null,
+        id: 'msg_newer1234567890',
+        metadata: {},
+        nonce: null,
+        role: 'user',
+        sender: { description: null, handle: 'zach', type: 'human' },
+        sequence: 107,
+    };
+    const exitCode = await runCloudAgentStart(args(), {
+        client: {
+            request: (_path, schema) =>
+                Promise.resolve(
+                    schema.parse({
+                        formalMentionCount: 0,
+                        newMessageCount: 1,
+                        omittedMessageCount: 0,
+                        shownMessages: [newer],
+                        state: 'held',
+                    })
+                ),
+        },
+        mintNonce: () => 'cloud-agent-nonce',
+        readStdin: () => Promise.resolve('Do the work.'),
+        stdinIsTty: false,
+        write: (text) => output.push(text),
+    });
+
+    expect(exitCode).toBe(0);
+    const printed = output.join('');
+    expect(printed).toContain('Freshness hold: showing latest 1 of 1 newer messages.');
+    expect(printed).toContain('The cloud agent was not started');
+    expect(printed).toContain('own it in tech ops though not here');
+    expect(printed).toContain('run the same haus cloud-agent start command again');
+    expect(printed).not.toContain('Work ID');
 });
 
 test('a start with no instructions, a bad repository, or no ref fails or omits truthfully', async () => {

@@ -47,6 +47,7 @@ function taskItem(): TaskListItem {
             author: { kind: 'human', userId: 'user_one' },
             body: { kind: 'text' },
             chatId: 'chat_one',
+            cloudAgentWork: [],
             content: 'Task',
             createdAt: '2026-07-26T12:00:00.000Z',
             id: 'message_one',

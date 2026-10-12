@@ -160,7 +160,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     ]) {
         assert.match(workflow, new RegExp(`name: ${jobName}`));
     }
-    assert.equal((workflow.match(/runs-on: macos-15$/gm) ?? []).length, 1);
+    assert.equal((workflow.match(/runs-on: macos-15$/gm) ?? []).length, 2);
     assert.equal((workflow.match(/runs-on: macos-26$/gm) ?? []).length, 1);
     assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 1);
     assert.match(workflow, /name: Publish Computer[\s\S]*?GH_TOKEN: \$\{\{ github\.token \}\}/);

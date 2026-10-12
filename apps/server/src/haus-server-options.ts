@@ -4,6 +4,7 @@ import type { SweepTimers } from './boot-sweep.ts';
 import type { ComputerSocketLivenessTiming } from './computers/socket-liveness.ts';
 import type { GithubApp } from './github/github-app.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
+import type { HostedMcpDefinition } from './hosted-mcp/catalog.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
 import type { MessageRouter } from './message-routing/jev.ts';
 import type { PushSender } from './push/push-sender.ts';
@@ -43,6 +44,7 @@ export interface HausServerApplicationOptions {
      * skip the background sweep and drive it directly.
      */
     githubRecoveryIntervalMs?: number | null;
+    hostedMcps?: { definitions: readonly HostedMcpDefinition[]; storageRoot: string };
     messageRouter?: MessageRouter;
     /** Server-owned OpenAI key for avatar generation and GPT-Live calls. */
     openAiApiKey?: string;

@@ -64,6 +64,10 @@ extension TranscriptListCoordinator {
         handledRevealToken = reveal.token
         followedTopItemID = nil
         heldAnchor = nil
+        if reveal.placement == .landing {
+            land(onRow: items.count - 1 - index, table: table)
+            return
+        }
         // The newest item's home is the resting edge, not the viewport center.
         guard index < items.count - 1 else {
             if reveal.animated {
@@ -80,6 +84,25 @@ extension TranscriptListCoordinator {
             at: .middle,
             animated: reveal.animated
         )
+    }
+
+    /// Opens on a first unread reply without moving when it already reads
+    /// from where the transcript opened (`TranscriptLanding`).
+    private func land(onRow row: Int, table: UITableView) {
+        let rect = table.rectForRow(at: IndexPath(row: row, section: 0))
+        let landing = TranscriptLanding(
+            rowMinY: rect.minY,
+            rowMaxY: rect.maxY,
+            contentOffsetY: table.contentOffset.y,
+            boundsHeight: table.bounds.height,
+            bottomClearance: appliedInsets?.top ?? table.contentInset.top,
+            topClearance: table.contentInset.bottom,
+            minOffsetY: restingOffset(table),
+            maxOffsetY: table.contentSize.height - table.bounds.height + table.contentInset.bottom
+        )
+        guard let target = landing.targetOffsetY else { return }
+        endSettling()
+        table.contentOffset = CGPoint(x: 0, y: target)
     }
 
     /// The offset that puts the newest row's top just below the header

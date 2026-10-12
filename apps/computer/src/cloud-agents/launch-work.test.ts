@@ -16,7 +16,6 @@ const serverId = 'srv_cloud';
 const serverOrigin = 'https://haus.test';
 const workId = 'caw_1234567890abcdef';
 const runId = 'car_1234567890abcdef';
-
 const request = {
     content: 'Handing this to a cloud agent.',
     instructions: 'Reproduce the flake and open a pull request.',
@@ -29,6 +28,7 @@ const request = {
 };
 
 const receipt = {
+    state: 'started' as const,
     chatId: 'cht_product',
     idempotent: false,
     messageId: 'msg_1a2b3c4d5e6f7890',
@@ -143,7 +143,7 @@ test('a launch records the work, keeps instructions local, and reports the provi
         serverOrigin,
     });
 
-    expect(result.work.id).toBe(workId);
+    expect(result).toMatchObject({ state: 'started', work: { id: workId } });
     expect(calls[0]?.url).toBe('https://haus.test/api/agent/cloud-agents');
     expect(calls[0]?.body).toEqual({
         content: request.content,

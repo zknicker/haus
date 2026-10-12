@@ -235,10 +235,8 @@ describe('fetch policy', () => {
         expect(icon).toBeNull();
     });
 
-    test('refuses to follow redirects', () => {
-        // The origin check is worthless if a same-origin URL can bounce
-        // elsewhere, so this pins the option rather than trusting a reader.
-        expect(iconRequestInit.redirect).toBe('error');
+    test('inspects redirects before following their destinations', () => {
+        expect(iconRequestInit.redirect).toBe('manual');
     });
 
     test('discards a redirect response rather than chasing its target', async () => {

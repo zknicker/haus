@@ -3,6 +3,7 @@ summary: Server Agent contracts, Computer execution reports, turn and delivery o
 read_when:
   - changing Agent CRUD, execution configuration, Computer reports, or managed Agent routes
   - reading Agent turn records or the delivery ledger
+  - changing the dream record (`agent.dreams`, `agent.dream`, `agent-dream-record`)
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
 ---
@@ -98,7 +99,9 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`. `preview`
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or
+`{ kind: 'dream' }`: the Agent's private nightly memory pass, the only trigger with no Chat,
+which needs no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming)). `preview`
 quotes the waking message so a turn row is titled from the same read:
 `{ content, attachmentCount }`, where `content` is the head of the message's raw
 Markdown (at most 1,000 UTF-16 units; the reader collapses it to one line), or `null`
@@ -132,12 +135,30 @@ run after the Computer restarts, the relaunch resumes a Computer-local turn ledg
 (`runtime/turns/<runId>.json`) holding that first start and every operation total the
 lost launch settled, so the summary spans the whole run rather than its tail.
 
+`agent.dreams` (`{ serverId, agentId, cursor?, limit? }`) lists what each nightly dream
+changed in the Agent's memory, newest first by `startedAt` (ties broken by `runId`).
+`limit` is 1–60 (default 20); the Server keeps only the newest 60 dreams per Agent. It
+returns `{ dreams, nextCursor }`: each dream carries `runId` (the dream turn's run),
+`startedAt`, `finishedAt`, `files` (`[{ path, change: 'added' | 'modified' | 'deleted',
+added, removed, omitted? }]`, where `omitted` is `binary` or `too-large` for a file whose text
+is not in the patch), and the `added` and `removed` line totals. A dream that changed nothing
+is still listed, with no files. `agent.dream` (`{ serverId, agentId, runId }`) returns one dream
+with its `patch`, or null when the Server has no record for that run. The patch is one unified
+diff, a `diff --git a/<path> b/<path>` block per file, whose hunk headers name the enclosing
+`## ` section as git's function context does; a file's text is dropped past 64 KiB and the
+whole patch stays under 256 KiB. Both reads use the `agent.turns` gate: any member who may
+view the Agent, with denied and unknown Agents as `NOT_FOUND`. The Computer sends the record
+as an `agent-dream-record` frame just before the dream turn's summary; the Server stores it in
+`agent_dreams` only for the assigned Computer and a run it started as a dream. There is no
+dream event: a settled run already invalidates the App's dream reads.
+
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries
 `chatId`, `source`, `workId`, `messageId`, `state` (`queued`,
 `accepted`, `served`, `seen`), `turnId`, and the per-state timestamps `createdAt`,
 `acceptedAt`, `servedAt`, and `seenAt`. `workId` is the durable identity for
-every kind of work; `messageId` is null for non-Chat work. Rows are retained after
+every kind of work; `messageId` is null for non-Chat work, and `chatId` is null only for a
+`dream`. Rows are retained after
 settlement rather than deleted, so
 "never delivered" and "delivered and answered with silence" read differently.
 `turnId` is the run that consumed the row; it stays null when the seen cursor
@@ -399,7 +420,9 @@ reply wakes it through ordinary delivery
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). The mention writes the Message's
 `mentioned_user_ids` (an inline reply its `reply_to_message_id`); either notifies that human
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). Every Agent-facing Message states its `body_kind`
-(`text | cloud-agent-work | agent-created`).
+(`text | agent-created`). A Message that links Cloud Agent work also carries `cloud_agent_works`,
+every linked work the reading Agent can see in link order; the older single `cloud_agent_work`
+field still names the first for released CLIs.
 
 ### Cloud Agent work
 
@@ -420,12 +443,23 @@ This command runs on the Computer rather than upstream. The Computer checks
 local: they reach the provider and never Server.
 
 `POST /api/agent/cloud-agents` takes `{ content, nonce, provider, repository, startingRef, target,
-title }` and returns `{ chatId, idempotent, messageId, runId, sequence, target, work }`. `content`
-is the Agent's own words and becomes the Message content; `title` is at most 120 characters and
-`repository` reads as `owner/name`. One transaction writes the Message with
-`body_kind = 'cloud-agent-work'`, the `cloud_agent_work` row, its first `cloud_agent_runs` row in
-`queued`, the deterministic child Thread when the work is top-level, ordinary delivery planning,
-and both the `message.created` and `cloud-agent-work.updated` events. It is idempotent by
+title }` and returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
+work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount,
+shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the
+target Chat. A held launch creates nothing and launches nothing; the Agent reviews the shown
+messages and re-runs the command if it still applies (no draft; see
+[Cloud Agents](../../specs/cloud-agents.md#durable-cloud-agent-work)). `content`
+is the Agent's own words; `title` is at most 120 characters and `repository` reads as
+`owner/name`. One transaction writes a `text` Message whose content is `content`, a blank line, and
+a Server-written `[<title>](cloud-agent://<workId>)` link, the `cloud_agent_work` row, its
+`cloud_agent_work_links` rows (any work `content` links that the Agent can see, then the new work
+last), its first `cloud_agent_runs` row in `queued`, the deterministic child Thread and the
+Agent's follow when the work is top-level, ordinary delivery planning, and both the
+`message.created` and `cloudAgentWork.updated` events. The work keeps the Chat and Message as
+historical pointers with no foreign key, so it outlives both
+([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)). The CLI receipt prints
+the Work ID, the Message, a `Work thread:` target, and a `Link:` line with that Markdown link,
+which the Agent pastes into `haus message send` to show the work in another conversation. It is idempotent by
 `(Chat, nonce)`; the same nonce with different values returns
 `CLOUD_AGENT_IDEMPOTENCY_CONFLICT`. The Computer then calls `provider.start()`; a provider that
 refuses settles that same recorded work as `failed` with an error code and returns
@@ -437,19 +471,22 @@ the instructions locally, and forwards `{ workId, nonce }` to Server. Server ret
 `{ work, runId, idempotent, predecessors }` for a Run on the existing work. Computer sends it to the
 same hosted agent after preceding work settles, or stops active work and discards older queued
 prompts when `interrupt` is true. Pending instructions stay in a private Computer-local journal
-until launched or cancelled. Revisions reuse the Work ID, work Message, and Thread. Each settled
+until launched or cancelled. Revisions reuse the Work ID, launch Message, and Thread. Each settled
 Run gets its own inbox attention; callers do not need to manage provider Run IDs.
 
 `haus cloud-agent inspect` uses `GET /api/agent/cloud-agents` to read `{ works }` for the caller's
 delegated work. An optional `workId` query selects one work with its recorded results. These are
-Server records, not a live provider transcript.
+Server records, not a live provider transcript. The CLI prints a `Link:` line for each work.
+`inspect` and `send` stay delegator-only; another Agent sees linked work only through the
+`cloud_agent_works` field of the Messages it reads.
 
 `haus cloud-agent stop --work <workId>` uses `POST /api/agent/cloud-agents/cancel`. The published
 `cancel` CLI spelling remains a compatibility alias. The endpoint takes `{ workId }` and is
 authorized to the delegating Agent alone; `cloudAgentWork.cancel({ serverId, workId })` is the
-Owner/Admin equivalent. Both record
+Owner/Admin equivalent. Seeing the work through a link grants neither. Both record
 `cancelRequestedAt` and `cancelRequestedBy` and send a `cloud-agent-cancel` frame to the assigned
-Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`.
+Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`; cancelling or following up
+work whose Computer was removed returns `CLOUD_AGENT_COMPUTER_REMOVED`.
 
 Computer reports lifecycle over the attachment socket as a `cloud-agent-observation` frame carrying
 `{ workId, runId, status, observedAt }` plus optional provider ids and URL, raw status, bounded
@@ -459,8 +496,18 @@ exactly one `agent_inbox` attention for the delegating Agent, keyed by the Run i
 owns the work's displayed status, so an earlier Run settling cannot finish a queued follow-up.
 On reconnect Server pushes `cloud-agent-reconcile` frames of at most 200 entries covering every
 non-terminal Run that Computer still owns, with any cancel recorded while it was offline; Computer reads each
-Run from the provider and reports what it finds. `cloudAgentWork.listActive({ serverId })` is the
-human read behind the Inbox.
+Run from the provider and reports what it finds. A settled Run's inbox attention targets the
+requesting Chat only while that Chat is live; after it is deleted the Run settles without one, and
+the notice never moves to another link.
+
+`cloudAgentWork.listActive({ serverId })` is the human read behind the Inbox's Happening now. It
+lists live work the viewer can see through any linking Message. Each row's `location` says where
+opening it goes: `{ kind: 'work-thread', threadChatId, anchorMessageId }` when the viewer can read
+the launch work Thread, otherwise `{ kind: 'message', chatId, messageId, threadChatId }` for the
+newest visible linking Message, where `chatId` is the Channel or DM and a non-null `threadChatId`
+is the Thread that Message sits in or anchors. Opening a location never creates or follows a
+Thread. `cloudAgentWork.listForChat({ serverId, chatId })` lists work linked in a Chat and its
+Threads, keyed by the Thread anchor for an in-Thread link and by the linking Message otherwise.
 
 #### Cloud Agent provider access
 

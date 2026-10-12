@@ -39,6 +39,44 @@ public struct ThreadFollowReceipt: Codable, Sendable, Equatable {
     }
 }
 
+/// The `thread.get` input: one Thread named by its own Chat id.
+public struct ThreadContextInput: Encodable, Sendable, Equatable {
+    public let serverID: String
+    public let threadChatID: String
+
+    public init(serverID: String, threadChatID: String) {
+        self.serverID = serverID
+        self.threadChatID = threadChatID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case serverID = "serverId"
+        case threadChatID = "threadChatId"
+    }
+}
+
+/// Where a Thread hangs: its parent Chat and the anchor Message in it.
+public struct ThreadContext: Decodable, Sendable, Equatable {
+    public let anchorMessageID: String
+    public let parentChatID: String
+    public let serverID: String
+    public let threadChatID: String
+
+    public init(anchorMessageID: String, parentChatID: String, serverID: String, threadChatID: String) {
+        self.anchorMessageID = anchorMessageID
+        self.parentChatID = parentChatID
+        self.serverID = serverID
+        self.threadChatID = threadChatID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case anchorMessageID = "anchorMessageId"
+        case parentChatID = "parentChatId"
+        case serverID = "serverId"
+        case threadChatID = "threadChatId"
+    }
+}
+
 /// Reading one Thread's follow state from its parent Chat page.
 ///
 /// A Thread summary lives on its anchor message's entity, which the parent

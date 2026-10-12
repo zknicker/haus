@@ -2,6 +2,7 @@ import { cloudAgentWorkCancelInputSchema, hasServerAdminAuthority } from '@haus/
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import {
+    CloudAgentComputerRemovedError,
     CloudAgentWorkNotFoundError,
     CloudAgentWorkSettledError,
 } from '../../cloud-agents/errors.ts';
@@ -35,12 +36,17 @@ export const cancelCloudAgentWorkProcedure = memberProcedure
                 serverId: input.serverId,
                 workId: input.workId,
             });
-            publishRealtime(requested.event);
+            for (const event of requested.events) {
+                publishRealtime(event);
+            }
             ctx.computerConnections.send(requested.computerId, requested.command);
             return { cancelRequested: true } as const;
         } catch (cause) {
             if (cause instanceof CloudAgentWorkNotFoundError) {
                 throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
+            }
+            if (cause instanceof CloudAgentComputerRemovedError) {
+                throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
             }
             if (cause instanceof CloudAgentWorkSettledError) {
                 throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });

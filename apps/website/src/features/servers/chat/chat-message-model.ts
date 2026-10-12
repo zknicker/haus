@@ -3,6 +3,7 @@ import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layo
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
+import { messageCloudAgentWork } from '../../cloud-agents/message-cloud-agent-work.ts';
 
 export function mergeTaskAnchor<Message extends { id: string; sequence: number }>(
     messages: readonly Message[] | undefined,
@@ -66,7 +67,7 @@ export function projectChatMessage(
                 type: 'file' as const,
             })),
             ...(message.cause ? { cause: message.cause } : {}),
-            cloudAgentWork: message.body.kind === 'cloud-agent-work' ? message.body.work : null,
+            cloudAgentWork: messageCloudAgentWork(message),
             content: message.content,
             id: message.id,
             sender: messageSender(message),

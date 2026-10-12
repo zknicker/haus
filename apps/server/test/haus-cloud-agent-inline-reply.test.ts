@@ -11,6 +11,7 @@ test('an inline cloud card retains its channel and has its own detail thread', a
         serverId: fixture.serverId,
     });
     const runner = await fixture.mintRunner('run_cloud_inline');
+    await fixture.readTarget(runner, '#product');
     const body = fixture.startBody({
         nonce: 'inline-cloud-start',
         replyToMessageId: parent.message.id,
@@ -27,7 +28,8 @@ test('an inline cloud card retains its channel and has its own detail thread', a
         parentMessageId: parent.message.id,
         rootMessageId: parent.message.id,
     });
-    expect(card?.body.kind).toBe('cloud-agent-work');
+    expect(card?.body.kind).toBe('text');
+    expect(card?.cloudAgentWork.map(({ id }) => id)).toEqual([created.body.work?.id]);
     const threads = await fixture.harness.sql`
         select anchor_message_id from chats
         where server_id = ${fixture.serverId} and parent_chat_id = ${fixture.channelId} and kind = 'thread'

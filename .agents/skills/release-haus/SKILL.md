@@ -117,13 +117,14 @@ writing it, read
 compare the draft with recent entries to avoid repeating an already shipped outcome, then run the
 guide's deslop pass over only the new entry. Keep operational evidence in the PR and final handoff.
 Run `release:check`; it rejects a required target recorded as unchanged or version metadata that
-does not match the ledger. Then run the relevant local gates, `git diff --check`, and the
-documentation check before opening the PR.
+does not match the ledger. Run `git diff --check` and the documentation check before opening the PR.
 
-A focused rerun after a failed full gate is diagnostic only. Require a clean full `bun run check`
-before opening or merging; preserve the original failure in PR evidence and classify it as a
-product regression, environment/transient failure, or baseline/unrelated failure alongside any
-focused result. A passing focused rerun does not erase or relabel the original full-gate failure.
+For release-only requests, prepare the version bump PR, merge after required GitHub checks pass,
+and monitor publication and deployment. Reuse the implementation's verification evidence; do not
+rerun product tests, typechecks, or builds locally merely to prepare a release. Agents changing
+product code own that verification. If release work changes product code or investigates a failure,
+use the testing change routing for the affected behavior. Preserve any observed failure and its
+classification in the PR evidence; a focused rerun does not erase an earlier failure.
 
 Completion criterion: one new valid record describes every target and version/build input without
 changing historical entries, and its changelog entry describes shipped outcomes without internal

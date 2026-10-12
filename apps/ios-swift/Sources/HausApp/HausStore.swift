@@ -73,9 +73,16 @@ final class HausStore {
     /// Whether the Chat list has landed once, so the unread count stays silent
     /// until it can answer honestly.
     private(set) var hasLoadedChats = false
-    /// The app icon badge: unread Chats across every Server, as the Server
-    /// counts them for push. Nil until first read (`HausStoreIconBadge.swift`).
+    /// The app icon badge: unread Chats and Threads across every Server, as
+    /// the Server counts them for push. Nil until first read
+    /// (`HausStoreIconBadge.swift`).
     var iconBadgeCount: Int?
+    /// The active Server's unread Threads (`thread.listUnread`), read beside
+    /// every Chat list read. Nil until first read (`HausStoreUnreadThreads.swift`).
+    var unreadThreads: [UnreadThread]?
+    /// The newest `thread.listUnread` read started, so an older answer that
+    /// lands late writes nothing.
+    var unreadThreadsReadToken = 0
     /// The Server-wide default Task lens (`task.list`), which the Task list
     /// reads and durable task events refresh.
     var serverTasks: [TaskListItem]?

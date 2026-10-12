@@ -1,11 +1,13 @@
 import {
     type CloudAgentStatus,
+    formatCloudAgentWorkLink,
     formatUserReferenceTarget,
     isTerminalCloudAgentStatus,
     type MessageTask,
     type TaskOrigin,
 } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
+import { recordCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -26,12 +28,7 @@ export interface GalleryContext {
     userId: string;
 }
 
-export async function galleryMessage(
-    db: HausDatabase,
-    context: GalleryContext,
-    content: string,
-    bodyKind: 'text' | 'cloud-agent-work' = 'text'
-) {
+export async function galleryMessage(db: HausDatabase, context: GalleryContext, content: string) {
     const id = createOpaqueId('msg');
     await appendSeedMessages(db, {
         serverId: context.serverId,
@@ -42,7 +39,6 @@ export async function galleryMessage(
                 nonce: `dev-ui-${id}`,
                 authorAgentId: context.agentId,
                 content,
-                bodyKind,
                 createdAt: context.now,
             },
         ],
@@ -147,8 +143,13 @@ export async function galleryWork(
         withBranch?: boolean;
     }
 ) {
-    const messageId = await galleryMessage(db, context, input.title, 'cloud-agent-work');
+    // Written the way a launch writes it (ADR 0044): text plus a link to the work.
     const workId = createOpaqueId('caw');
+    const messageId = await galleryMessage(
+        db,
+        context,
+        `${input.title}\n\n${formatCloudAgentWorkLink(input.title, workId)}`
+    );
     const terminalAt = isTerminalCloudAgentStatus(input.status) ? context.now : null;
     const observedAt = new Date(context.now.getTime() - (input.stale ? 25 * 60_000 : 0));
     const followUpAt = new Date(context.now.getTime() + 1000);
@@ -156,7 +157,7 @@ export async function galleryWork(
         id: workId,
         serverId: context.serverId,
         chatId: context.chatId,
-        messageId,
+        launchMessageId: messageId,
         agentId: context.agentId,
         computerId: context.computerId,
         provider: 'cursor',
@@ -200,6 +201,12 @@ export async function galleryWork(
                   },
               ]
             : [],
+    });
+    await recordCloudAgentWorkLinks(db, {
+        chatId: context.chatId,
+        links: [{ ordinal: 0, workId }],
+        messageId,
+        serverId: context.serverId,
     });
     if (input.followUp) {
         await galleryFollowUpRun(db, context, { at: followUpAt, followUp: input.followUp, workId });

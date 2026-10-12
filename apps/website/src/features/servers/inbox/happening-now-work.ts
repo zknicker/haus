@@ -1,5 +1,6 @@
 import type {
     ActiveCloudAgentWork,
+    ActiveCloudAgentWorkLocation,
     Agent,
     CloudAgentJobState,
     CloudAgentProvider,
@@ -12,8 +13,10 @@ import type { HumanDirectory } from '../human-identity.ts';
 export interface HappeningNowWork {
     agentName: string;
     chatLabel: string;
-    /** The work Message id, which is also the `?work=` deep link. */
+    /** The work id, which is also the `?work=` deep link. */
     id: string;
+    /** Where opening the row goes: the work Thread, or a linking Message. */
+    location: ActiveCloudAgentWorkLocation;
     provider: CloudAgentProvider;
     state: CloudAgentJobState;
     statusText: string;
@@ -23,8 +26,8 @@ export interface HappeningNowWork {
 /**
  * The Server already returns only work the viewer can see, oldest first, so
  * nothing is filtered here. Names resolve the way every Inbox row does: the
- * live Agent list and the shared human directory, with the Message's
- * stored author profile standing in for a retired Agent.
+ * live Agent list and the shared human directory, with the Server's stored
+ * Agent name standing in for a retired Agent.
  */
 export function toHappeningNowWork(
     items: readonly ActiveCloudAgentWork[],
@@ -37,7 +40,8 @@ export function toHappeningNowWork(
     return items.map((item) => ({
         agentName: workAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
-        id: item.work.messageId,
+        id: item.work.id,
+        location: item.location,
         provider: item.work.provider,
         ...liveStatus(item.work.job, now),
         title: item.work.title,
@@ -61,13 +65,5 @@ function liveStatus(
 }
 
 function workAgentName(item: ActiveCloudAgentWork, agentsById: ReadonlyMap<string, Agent>): string {
-    const agent = agentsById.get(item.work.agentId);
-    if (agent) {
-        return agent.displayName;
-    }
-    const author = item.message.author;
-    if (author.kind === 'agent' && author.profile) {
-        return author.profile.displayName;
-    }
-    return `Agent ${item.work.agentId.slice(-6)}`;
+    return agentsById.get(item.work.agentId)?.displayName ?? item.agentName;
 }

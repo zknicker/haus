@@ -16,6 +16,10 @@ Amended 2026-09-29 by [ADR 0037](0037-humans-are-addressed-by-mention.md): the `
 retired. A human decision request is an ordinary `text` Message that @mentions the human; the
 Consequences line naming `ask` is historical.
 
+Amended 2026-10-11 by [ADR 0044](0044-cloud-agent-work-is-referenced-not-embedded.md): the
+`cloud-agent-work` body kind retires. Cloud Agent work is its own record that ordinary `text`
+Messages link to through a rich reference; text below naming it as a body kind is historical.
+
 Every Chat transcript item remains one authored Message with stable identity, placement, sequence,
 and meaningful immutable content. A Server-validated body kind may project one lifecycle-rich
 record such as a created Agent or Cloud Agent work, while a card remains presentation

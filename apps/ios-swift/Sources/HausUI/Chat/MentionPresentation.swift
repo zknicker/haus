@@ -11,6 +11,9 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     case agent
     case app
     case channel
+    /// Cloud Agent work, by its id (`cloud-agent://<workId>`); see
+    /// `CloudAgentWorkLink`. A quiet chip: the live card sits below the Message.
+    case cloudAgentWork
     case directory
     case file
     case human
@@ -177,6 +180,7 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .agent, .human: .avatar(avatarURL)
         case .channel: .channel(channelAppearance ?? .default)
         case .app, .plugin: overrideMark ?? .glyph(.capability)
+        case .cloudAgentWork: .glyph(.cloud)
         case .directory: .glyph(.folder)
         case .file: .glyph(.document)
         case .pullRequest: .glyph(.pullRequest)

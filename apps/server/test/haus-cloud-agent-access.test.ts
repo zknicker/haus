@@ -74,15 +74,27 @@ test('listActive shows queued and running work to members with Chat access only'
         await fixture.owner.trpc.cloudAgentWork.listActive.query({ serverId: fixture.serverId })
     ).find((row) => row.work.id === work.id);
     expect(forOwner).toMatchObject({
+        agentName: 'Orbit',
         chatKind: 'channel',
         chatName: 'product',
         chatPeerUserId: null,
         conversationChatId: fixture.channelId,
-        message: { author: { kind: 'agent' }, body: { kind: 'cloud-agent-work' } },
-        threadAnchorMessage: null,
-        threadChatId: `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`,
+        location: {
+            anchorMessageId: created.body.messageId,
+            kind: 'work-thread',
+            threadChatId: `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`,
+        },
         work: { status: 'queued' },
     });
+    expect(Object.keys(forOwner ?? {}).sort()).toEqual([
+        'agentName',
+        'chatKind',
+        'chatName',
+        'chatPeerUserId',
+        'conversationChatId',
+        'location',
+        'work',
+    ]);
     await expect(
         fixture.outsider.trpc.cloudAgentWork.listActive.query({ serverId: fixture.serverId })
     ).resolves.toEqual([]);
@@ -168,6 +180,8 @@ test('a Task Thread lists every delegation under its anchor without leaking othe
 
 test('reconnect hands the Computer every non-terminal work it still owns', async () => {
     const runner = await fixture.mintRunner('run_cloud_reconcile');
+    // The Task created above posted in #product; a launch there must have read it.
+    await fixture.readTarget(runner, '#product');
     const created = await fixture.postStart(
         runner,
         fixture.startBody({ nonce: 'cloud-reconcile' })

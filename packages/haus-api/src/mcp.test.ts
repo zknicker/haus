@@ -22,6 +22,8 @@ describe('preset account auth', () => {
     });
 
     test.each([
+        'cloudflare',
+        'vercel',
         'merchbase-atlas',
         'merchbase-fulfillment',
     ])('%s uses OAuth with a Server-owned endpoint', (preset) => {

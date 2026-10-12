@@ -10,6 +10,7 @@ read_when:
 
 The App uses the Haus Server `mcp` tRPC router:
 
+- `mcp.connectSkool`
 - `mcp.add`
 - `mcp.addPresetAccount`
 - `mcp.list`
@@ -38,6 +39,10 @@ header asks the hosted MCP for `X-MCP-Toolsets: default,actions,code_security,de
 notice each), tombstones the installations, and only then deletes the connection. The notified
 Agents are woken after commit.
 
+`cloudflare` and `vercel` create OAuth connections to `https://mcp.cloudflare.com/mcp`
+and `https://mcp.vercel.com`, respectively. They use MCP OAuth discovery with no preset
+scope overrides or static credentials. Creating either account grants no Agent access.
+
 `merchbase-atlas` creates an OAuth connection to `https://atlas.merchbase.co/mcp`
 with `openid profile email` scopes and Clerk dynamic client registration. It needs no
 configured Server client or static token.
@@ -59,6 +64,13 @@ as GitHub accept an arbitrary port only for the IP literal (RFC 8252 §7.3). The
 Server exchanges the code, persists tokens and client registration, and performs refresh. Computer
 does not participate. The OAuth provider reads stored tokens on every request, so a refresh another
 Server path performs (the GitHub user token, below) reaches live MCP clients at once.
+
+`mcp.connectSkool` accepts the isolated desktop session and checks Server Owner/Admin
+access. It provisions a verified account through the Server-owned Skool process and
+stores an ordinary header-auth connection. Its stable logical URL is
+`https://hosted-mcp.haus.invalid/skool/mcp`; only the Skool preset maps that identifier
+to private transport. The connector endpoint and control credential never enter the
+public API. No network route serves that logical URL.
 
 `mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
 on the connection available to that Agent.
@@ -186,11 +198,15 @@ tried. The page itself must be `text/html` and is read up to 256 KiB. Server fet
 remote URL — an `img` pointed at a connection's own host would report the viewer's IP and page
 views back to that operator on every render.
 
-Constraints the Server enforces before storing: HTTPS only, no redirects, PNG/JPEG/WebP/ICO only,
+Constraints the Server enforces before storing: HTTPS only, PNG/JPEG/WebP/ICO only,
 at most 64 KiB per variant enforced against the response stream, declared media type must match the
-bytes, an advertised icon URL must share the connection URL's origin, and a page-linked icon must
-share the site's origin. That last rule is what
-keeps a remote server from steering Server-side fetches at arbitrary hosts.
+bytes except for PNG favicons served as ICO, which are stored as PNG. An advertised icon URL must
+share the connection URL's origin, and a page-linked icon must
+share the final homepage's origin. Requests follow at most three redirects, each restricted to
+the initial hostname or its exact `www.` counterpart, with the same HTTPS port and no URL
+credentials. Relative icon links resolve against the final homepage URL. Other hosts, plaintext
+redirects, and longer chains fall back to the monogram, keeping remote servers from steering
+Server-side fetches at arbitrary hosts.
 
 SVG is refused outright. It is the one image format that can carry script or pull subresources, and
 screening it safely needs a parser rather than a token blocklist; at icon scale it buys nothing, so
@@ -200,7 +216,7 @@ One icon serving both themes is stored in `light` alone and the App falls back t
 connection never carries the same bytes twice on a query that returns every row inline.
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
-MerchBase Atlas and Fulfillment own their icons upstream. Recommended, preset creation, legacy
+Cloudflare, Vercel, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation, legacy
 connection reads, and authenticated discovery share the Server's connection-branding resolver.
 Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.

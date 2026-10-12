@@ -53,6 +53,12 @@ test('a message that is gone leaves the title absent', () => {
 test('private and unrecorded triggers show nothing; typed work names itself', () => {
     expect(resolveTurnRowTitle({ kind: 'private' }, chats)).toEqual({ kind: 'none' });
     expect(resolveTurnRowTitle(null, chats)).toEqual({ kind: 'none' });
+    // The nightly dream has no Chat, so it names itself without a place.
+    expect(resolveTurnRowTitle({ kind: 'dream' }, chats)).toEqual({
+        kind: 'text',
+        place: null,
+        text: 'Dreaming',
+    });
     expect(resolveTurnRowTitle({ chatId: 'cht_product', kind: 'reminder' }, chats)).toEqual({
         kind: 'text',
         place: '#product',

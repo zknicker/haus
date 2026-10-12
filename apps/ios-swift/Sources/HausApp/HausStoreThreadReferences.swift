@@ -14,7 +14,10 @@ extension HausStore {
         return RichReferencePresentation(
             id: wireTarget,
             kind: .thread,
-            label: ThreadReferenceTarget.title(anchorContent: anchor.content),
+            label: ThreadReferenceTarget.title(
+                anchorContent: anchor.content,
+                workTitle: anchor.linkedCloudAgentWorkTitle
+            ),
             avatarURL: nil
         )
     }

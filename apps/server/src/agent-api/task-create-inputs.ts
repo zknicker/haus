@@ -1,6 +1,7 @@
 import { AGENT_TASK_CREATE_MAX_TITLES } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { AgentMessageRecipientPlan } from '../agent-delivery/message-recipients.ts';
+import { replayCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -89,22 +90,30 @@ export async function replayAgentTasks(
         throw new AgentTaskNonceReusedError();
     }
     const byNonce = new Map(existing.map((message) => [message.nonce, message]));
-    return await Promise.all(
-        titles.map(async (title, index) => {
-            const message = byNonce.get(taskNonce(nonce, index));
-            if (message?.authorAgentId !== runner.agentId || message.content !== title.trim()) {
-                throw new AgentTaskNonceReusedError();
-            }
-            const [task] = await queryAgentTasks(db, runner, chatId, { messageId: message.id });
-            if (!task) {
-                throw new AgentTaskError('That task creation nonce has no canonical task.');
-            }
-            if (task.assigneeAgentId !== assigneeAgentId) {
-                throw new AgentTaskNonceReusedError();
-            }
-            return await taskRow(db, runner, message, task);
-        })
-    );
+    // One title at a time: `db` is the caller's transaction connection.
+    const rows: Awaited<ReturnType<typeof taskRow>>[] = [];
+    for (const [index, title] of titles.entries()) {
+        const message = byNonce.get(taskNonce(nonce, index));
+        const replayed = message
+            ? await replayCloudAgentWorkLinks(db, {
+                  content: title.trim(),
+                  messageId: message.id,
+                  serverId: runner.serverId,
+              })
+            : null;
+        if (message?.authorAgentId !== runner.agentId || message.content !== replayed) {
+            throw new AgentTaskNonceReusedError();
+        }
+        const [task] = await queryAgentTasks(db, runner, chatId, { messageId: message.id });
+        if (!task) {
+            throw new AgentTaskError('That task creation nonce has no canonical task.');
+        }
+        if (task.assigneeAgentId !== assigneeAgentId) {
+            throw new AgentTaskNonceReusedError();
+        }
+        rows.push(await taskRow(db, runner, message, task));
+    }
+    return rows;
 }
 
 /** The message nonce for one title of a batch. */

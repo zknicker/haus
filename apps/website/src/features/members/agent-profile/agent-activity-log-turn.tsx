@@ -16,6 +16,7 @@ import { TurnTraceScroll } from '../../turn-trace/turn-trace-scroll.tsx';
 import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from '../../turn-trace/turn-trace-view.ts';
 import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
+import { LogDreamButton } from './agent-activity-log-dream.tsx';
 import { type ActivityLogEntry, readStepMarks } from './agent-activity-log-entries.ts';
 import { useLogTurnJournal } from './agent-activity-log-journal.ts';
 import { useActivityLogStores, useIsLinkedFromOverview } from './agent-activity-log-stores.ts';
@@ -81,6 +82,7 @@ export function ActivityLogTurn({
     const isLinked = useIsLinkedFromOverview(turn.runId);
     const status = getTurnRowStatus(row);
     const chatTarget = readChatTarget(title, turn.trigger);
+    const isSettledDream = turn.trigger?.kind === 'dream' && turn.kind === 'settled';
 
     return (
         <div
@@ -132,7 +134,7 @@ export function ActivityLogTurn({
                                         title={title}
                                         turn={turn}
                                     />
-                                    {chatTarget ? <ChatButtonRoom /> : null}
+                                    {chatTarget || isSettledDream ? <ChatButtonRoom /> : null}
                                 </span>
                                 {/* The track column stays empty: the Chat button shows here on hover. */}
                                 <span
@@ -153,6 +155,13 @@ export function ActivityLogTurn({
                                 agentName={agent.displayName}
                                 serverSlug={serverSlug}
                                 target={chatTarget}
+                            />
+                        ) : null}
+                        {isSettledDream ? (
+                            <LogDreamButton
+                                agentId={agent.id}
+                                runId={turn.runId}
+                                serverId={serverId}
                             />
                         ) : null}
                     </div>

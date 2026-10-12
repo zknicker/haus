@@ -6,8 +6,8 @@ import HausModels
 /// `job`, never the newest Run's status.
 public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     public let work: CloudAgentWork
-    /// The App link to the conversation holding the work, for Copy link. Nil
-    /// when the Server or conversation is not known, which hides the action.
+    /// The App link to the conversation presenting this card, for Copy link.
+    /// Nil when the Server or conversation is not known, which hides the action.
     public let conversationLink: URL?
     /// The delegating Agent, who sends any follow-up. The App resolves it from
     /// its Agent list; a retired Agent reads as `Agent <id suffix>`, like the App.
@@ -103,13 +103,13 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         duration(seconds: Int(end.timeIntervalSince(start).rounded(.down)))
     }
 
-    /// The work a Message's Thread preview lists: everything delegated inside
-    /// its Thread, never the Message's own work, whose card sits above the
-    /// preview. The conversation read keys parent-Chat work by its own Message.
+    /// The work a Message's Thread preview lists: everything linked inside
+    /// its Thread, never work the Message links itself, whose cards sit above
+    /// the preview. The conversation read keys parent-Chat work by its own Message.
     public static func threadPreviewWork(
-        _ rows: [ThreadCloudAgentWork], anchorMessageID: String, ownWorkID: String?
+        _ rows: [ThreadCloudAgentWork], anchorMessageID: String, ownWorkIDs: Set<String>
     ) -> [CloudAgentWork] {
-        rows.filter { $0.anchorMessageId == anchorMessageID && $0.work.id != ownWorkID }.map(\.work)
+        rows.filter { $0.anchorMessageId == anchorMessageID && !ownWorkIDs.contains($0.work.id) }.map(\.work)
     }
 
     public static func externalURL(_ value: String?) -> URL? {

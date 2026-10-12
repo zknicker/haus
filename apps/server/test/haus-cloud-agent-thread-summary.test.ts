@@ -24,6 +24,7 @@ test('a Thread summary previews conversational replies and leaves out work annou
 
     await reply('first');
     await reply('second');
+    await fixture.readTarget(runner, `#product:${anchor.message.id}`);
     for (const repo of ['one', 'two', 'three']) {
         const started = await fixture.postStart(
             runner,

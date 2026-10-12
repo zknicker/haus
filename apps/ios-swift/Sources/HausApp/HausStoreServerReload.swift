@@ -131,7 +131,7 @@ extension HausStore {
     }
 
     private func loadDeferredServerState(serverID: String) async {
-        async let badge: Void = refreshIconBadge()
+        async let badge: Void = refreshUnreadThreadsAndBadge()
         await loadComputers(serverID: serverID)
         await badge
     }
@@ -193,5 +193,6 @@ extension HausStore {
         cloudAgentWorkByChatID = [:]
         serverTasks = nil
         activeCloudAgentWork = nil
+        unreadThreads = nil
     }
 }

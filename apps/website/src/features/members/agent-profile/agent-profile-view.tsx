@@ -37,6 +37,7 @@ const sectionLabels: Record<Exclude<AgentSection, 'home'>, string> = {
     activity: 'Activity',
     automations: 'Automations',
     connections: 'Connections',
+    dreams: 'Dreams',
     profile: 'Profile',
     runtime: 'Runs on',
     skills: 'Skills',

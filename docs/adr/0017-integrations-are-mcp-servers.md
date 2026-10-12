@@ -42,9 +42,10 @@ trust. A cross-origin authorization server requires explicit operator confirmati
 Credential-bearing endpoints require HTTPS.
 
 GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, RankWrangler, X, CoinGecko, and Skool are connection presets. Server owns their immutable endpoints
-and auth defaults; they use the same generic path as custom connections. GitHub is also a
-built-in connection (ADR 0042): its tools still take this path, and Server additionally owns its
-GitHub App installations and app webhook.
+and auth defaults. Hosted presets use Server-owned private transport per [ADR 0042](0042-server-owns-hosted-mcp-processes.md); remote presets use the custom-connection transport.
+GitHub is also a built-in connection ([ADR 0042](0042-github-is-a-built-in-connection.md)): its
+tools still take the remote preset path, and Server additionally owns its GitHub App installations
+and app webhook.
 
 ## Other capability kinds
 

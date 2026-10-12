@@ -29,14 +29,14 @@ ids and small facts, never rows.
 
 | Procedure | App hook | App response |
 | --- | --- | --- |
-| `chat.onMessageCreated` | `useMessageCreatedStream` | Tail read every cached transcript list of the Chat (a Thread reply also refreshes its parent anchor's entity); invalidate `chat.list`, `chat.search` |
+| `chat.onMessageCreated` | `useMessageCreatedStream` | Tail read every cached transcript list of the Chat (a Thread reply also refreshes its parent anchor's entity); invalidate `chat.list`, `chat.search`; a Thread reply also invalidates `thread.listUnread` |
 | `chat.onMessageReactionUpdated` | `useMessageReactionStream` | Invalidate the `chat.message` entity, `chat.search`, `cloudAgentWork.listActive`, `task.list` |
-| `chat.onRead` (reader only) | `useChatReadStream` | Invalidate `chat.list` unless the settled list already shows zero; a Thread read refreshes its anchor entity |
-| `thread.onFollowUpdated` (follower only) | `useThreadFollowStream` | Invalidate the anchor entity and `chat.list` |
-| `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`; `deleted` runs the Chat-loss purge |
+| `chat.onRead` (reader only) | `useChatReadStream` | Invalidate `chat.list` unless the settled list already shows zero; a Thread read refreshes its anchor entity and invalidates `thread.listUnread` |
+| `thread.onFollowUpdated` (follower only) | `useThreadFollowStream` | Invalidate the anchor entity and `thread.listUnread` |
+| `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `thread.listUnread`; `deleted` runs the Chat-loss purge and invalidates `cloudAgentWork.listActive` and every `cloudAgentWork.listForChat`, since linked work outlives the Chat |
 | `task.onChanged` | `useTaskChangeStream` | Invalidate the task Message's entity and `task.list` |
 | `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `task.list` |
-| `cloudAgentWork.onUpdated` | `useCloudAgentWorkStream` | Invalidate the work Message's entity, `cloudAgentWork.listForChat` (Chat and parent), `cloudAgentWork.listActive` |
+| `cloudAgentWork.onUpdated` | `useCloudAgentWorkStream` | One event per linking Message in a live Chat. Invalidate that Message's entity, `cloudAgentWork.listForChat` (Chat and parent), `cloudAgentWork.listActive` |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
 | `computer.onUpdated` | `useComputerUpdateStream` | The Server detail, Computer list and log, Agent activity and delivery, `agent.list`, `stats.live`, `cloudAgentSettings.get` |
@@ -155,7 +155,11 @@ restart's recovery reads never do, and a message whose Chat is read through it s
 (`apps/server/src/push/`), with the same rule. Delivery is best-effort; see
 [iPhone push](../operations/ios-push.md).
 
-The [Inbox](../features/inbox.md) adds no event: its Unread section and badge are `chat.list`.
+The [Inbox](../features/inbox.md) adds no event: its Unread section and badge are `chat.list` plus
+`thread.listUnread` ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)). Every change to
+an unread Thread already has an event: `chat.onMessageCreated` and `chat.onRead` with a non-null
+`parentChatId` (a Thread reply, a Thread read), `thread.onFollowUpdated`, and `chat.onLifecycle`
+(a parent archived, deleted, or hidden).
 `chat.markRead` returns `advanced`; false means the marker was already there and no `chat.onRead`
 follows, so a locally zeroed row refetches the list itself a second later.
 
@@ -171,7 +175,8 @@ every start. They restart with the same policy.
   `--done` send or terminal turn proof. The App invalidates `chat.engagements` on every start and
   patches it from live events.
 * **Agent lifecycle** (`agent.onLifecycle`): `working`, `reading`, `sending` (after the Agent's
-  message commits), `settled` (terminal proof), projected to coarse availability. Settlement
+  message commits), `settled` (terminal proof), projected to coarse availability. Every run
+  publishes it; `chatId` is null only for a dream run, which has no Chat. Settlement
   invalidates Agent list, delivery state, and activity reads. Lifecycle owns activity only: a
   `sending` notice reads no transcript, and a missed Agent message recovers like any other, on
   the message stream's next start.

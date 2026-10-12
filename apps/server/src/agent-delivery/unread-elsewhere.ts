@@ -1,7 +1,12 @@
 import type { UnreadElsewhere } from '@haus/api';
+import { and, isNotNull, notInArray, sql } from 'drizzle-orm';
 import { targetForChat as targetForAgentChat } from '../agent-api/message-view.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import * as store from './store.ts';
+import { agentInboxTable } from '../postgres/schema.ts';
+import { noticeable, queuedFor } from './store.ts';
+
+/** The digest is a hint, not an index: a long tail of chats stays bounded. */
+const maxUnreadElsewhereChats = 50;
 
 /**
  * Raft's per-wake digest of queued work this frame does not carry. The two
@@ -19,7 +24,7 @@ export async function readUnreadElsewhere(
         serverId: string;
     }
 ): Promise<UnreadElsewhere[]> {
-    const counts = await store.countQueuedItemsByChat(db, {
+    const counts = await countQueuedItemsByChat(db, {
         agentId: input.agentId,
         excludeChatIds: input.representedChatIds,
         excludeItemIds: input.drainedItemIds,
@@ -34,4 +39,31 @@ export async function readUnreadElsewhere(
         });
     }
     return entries.sort((left, right) => left.target.localeCompare(right.target));
+}
+
+/** Per-chat queued counts behind the digest; chatless attentions are never counted. */
+async function countQueuedItemsByChat(
+    db: HausDatabase,
+    input: { agentId: string; excludeChatIds: string[]; excludeItemIds: string[] }
+): Promise<Array<{ chatId: string; count: number }>> {
+    const rows = await db
+        .select({ chatId: agentInboxTable.chatId, total: sql<number>`count(*)::int` })
+        .from(agentInboxTable)
+        .where(
+            and(
+                queuedFor(input.agentId),
+                noticeable(),
+                isNotNull(agentInboxTable.chatId),
+                input.excludeChatIds.length > 0
+                    ? notInArray(agentInboxTable.chatId, input.excludeChatIds)
+                    : undefined,
+                input.excludeItemIds.length > 0
+                    ? notInArray(agentInboxTable.id, input.excludeItemIds)
+                    : undefined
+            )
+        )
+        .groupBy(agentInboxTable.chatId)
+        .orderBy(agentInboxTable.chatId)
+        .limit(maxUnreadElsewhereChats);
+    return rows.flatMap((row) => (row.chatId ? [{ chatId: row.chatId, count: row.total }] : []));
 }

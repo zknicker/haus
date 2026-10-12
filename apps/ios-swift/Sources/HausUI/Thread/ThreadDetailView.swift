@@ -119,12 +119,18 @@ public struct ThreadDetailView: View {
         contextLabel: String? = nil,
         engagementChatID: String? = nil,
         engagementStyle: HeaderEngagementStyle = .roster,
+        landingMessageID: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = replies
         self.contextLabel = contextLabel
         _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
+        // Decided once, on the first init: reading moves the unread row, and
+        // the view must not chase it.
+        _reveal = State(initialValue: landingMessageID.map {
+            TranscriptReveal(token: UUID(), id: $0, animated: false, placement: .landing)
+        })
         self.isConnected = isConnected
         self.isReadOnly = isReadOnly
         self.onSend = onSend
@@ -202,6 +208,12 @@ public struct ThreadDetailView: View {
         )
         .onChange(of: projection.messageIDs) { _, ids in
             visualHeights.retain(messageIDs: Set(ids))
+            // A landing the first reply page does not hold is dropped, so an
+            // older page loaded later never jumps the reader to it.
+            if let landing = reveal, landing.placement == .landing, !replies.isEmpty,
+               !ids.contains(landing.id) {
+                reveal = nil
+            }
         }
         .threadNavigationTitle(
             ThreadOpening.title(anchor: anchor),

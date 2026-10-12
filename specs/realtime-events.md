@@ -49,7 +49,7 @@ rather than hardening it.
    converge with no versioning.
 4. **Messages are append-only.** Haus has no message edit or delete. The only mutable parts of
    an existing message are its annotations: reactions, the Thread summary, the Cloud Agent work
-   card, and the task card. Only whole Chats and Servers are deleted.
+   it links (`message.cloudAgentWork`, projected per linking message), and the task card. Only whole Chats and Servers are deleted.
 5. **A failure ends one stream, never the others.** Server-side, an unexpected error ends only
    the subscription it happened in, and is logged. App-side, every subscription restarts
    independently with backoff.
@@ -72,7 +72,7 @@ again before each delivery; the audience column is the additional rule.
 | `chat.onLifecycle` | `chatLifecycleEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `action` (`created`, `updated`, `archived`, `unarchived`, `deleted`) | Chat access, except `deleted`, which reaches every Server member (7a873a99e) | **Invalidate** `chat.list`, `chat.listArchived`, `chat.get` (chatId), `agent.chats`; `deleted` also runs the Chat-loss purge (Refusal classes) |
 | `task.onChanged` | `taskChangedEventSchema` (`task.ts`) | `serverId`, `chatId`, `messageId`, `kind` (`created`, `updated`) | Chat access of `chatId` | **Invalidate** the `chat.message` entry, `task.list` |
 | `taskLabel.onUpdated` | `taskLabelUpdatedEventSchema` (`task.ts`) | `serverId`, `labelId` | Every member | **Abort** the Server's tail reads, **cancel and invalidate** its transcript lists; **invalidate** `taskLabel.list`, `task.list`, and every cached `chat.message` entry whose `message.task.labels` contains `labelId` (labels are embedded rows) |
-| `cloudAgentWork.onUpdated` | `cloudAgentWorkUpdatedEventSchema` (`cloud-agent.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId`, `workId` | Chat access | **Invalidate** the work Message's `chat.message` entry, `cloudAgentWork.listForChat` (chat and parent), `cloudAgentWork.listActive` |
+| `cloudAgentWork.onUpdated` | `cloudAgentWorkUpdatedEventSchema` (`cloud-agent.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId`, `workId`; one event per linking message in a live Chat, naming that message | Chat access | **Invalidate** the linking message's `chat.message` entry, `cloudAgentWork.listForChat` (chat and parent), `cloudAgentWork.listActive` |
 | `reminder.onUpdated` | `reminderUpdatedEventSchema` (`reminders.ts`) | `serverId`, `reminderId`, `ownerAgentId`, `action` (`scheduled`, `updated`, `snoozed`, `canceled`, `fired`) | Owner/Admin (`requireReminderOperator`), rechecked per delivery | **Invalidate** `reminder.list` (agentId), `reminder.runs`, `reminder.history` (agentId) |
 
 Every invalidation in this document uses `refetchType: 'active'`: active reads refetch, inactive
@@ -128,7 +128,7 @@ gain the App restart policy below where they lack it.
 
 `chatMessageInputSchema` / `chatMessageReadSchema` (`chat-message-read.ts`):
 `{ serverId, chatId, messageId }` returns `{ message, thread } | null`. `message` is projected
-exactly as `chat.messages` projects it (reactions, task, Cloud Agent work body, reply context);
+exactly as `chat.messages` projects it (reactions, task, linked Cloud Agent work, reply context);
 `thread` is the viewer's Thread summary when the message anchors one, computed by the same Server
 code as `chat.messages` (per-viewer `followed` and `unreadCount`). Same authorization as
 `chat.messages` for `chatId`. Null when the id no longer resolves in `chatId`; the row then
@@ -419,8 +419,7 @@ The slice moves the transcript from page-held rows to id lists plus entities:
   `chat-transcript-message-block.tsx`, and `chat-transcript-row-slot.tsx`: a message row takes a
   message id and reads its entity; `transcript-render-row-equality.ts` compares ids and layout
   facts only.
-- Every former page patcher reads entities instead: `hooks/servers/chat-read-cache.ts`,
-  `use-chat-message-reaction.ts` (keeps its local overlay; reads the entity underneath),
+- Every former page patcher reads entities instead: `use-chat-message-reaction.ts` (keeps its local overlay; reads the entity underneath),
   `hooks/threads/use-thread-anchor.ts`, `features/servers/chat/use-chat-typing-ends.ts`,
   `features/servers/chat/chat-view.tsx`, `features/servers/thread/thread-content.tsx`,
   `routes/app/desktop-tab-pages.tsx`, and `test-support/transcript-render-harness.tsx`.
@@ -463,6 +462,14 @@ lifecycle event; its first per-Chat stream start is refused with `chat_missing`,
 whole lifecycle `deleted` path through one shared function: the purge plus the Chat list,
 archived list, `chat.get`, and Agent Chat invalidations (`hooks/realtime/chat-deletion.ts`; on
 iPhone, `ChatRealtimeEvent.chatMissing` through `applyChatEvents`).
+
+Cloud Agent work outlives a deleted Chat that linked it (ADR 0044), so Chat loss also refreshes
+work reads. The deletion path invalidates the Server's `cloudAgentWork.listActive` and every
+`cloudAgentWork.listForChat`, because a card or Happening now row may move to a surviving link or
+leave the viewer's lists. iPhone reloads active work alongside its Chat-loss purge (`ChatRealtimeEffects.swift`). On
+the Server side, Channel deletion prepares `cloudAgentWork.updated` for every surviving link of
+any work the deleted Channel linked, inside the deletion transaction, so other Chats showing that
+work refresh too.
 
 Tests: one query per Server-scoped family across two Servers, only the lost Server's removed,
 `server.bySlug` included; a list read in flight across the loss lands and seeds nothing; a

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { cn } from '../../lib/utils.ts';
-import { buildDiffHunks, type DiffLine } from './diff-hunks.ts';
+import { buildDiffHunks, type DiffHunk, type DiffLine } from './diff-hunks.ts';
 
 // The one diff renderer: unified view, line numbers, token colors. Used by
 // the changed-files drawer and Wiki page history so every diff reads the same.
@@ -24,6 +24,17 @@ export function DiffView({
         return <p className="text-muted text-sm">{emptyLabel}</p>;
     }
 
+    return <DiffHunks className={className} hunks={hunks} />;
+}
+
+/** Hunks already computed elsewhere, such as a stored unified patch, in the same renderer. */
+export function DiffHunks({
+    className,
+    hunks,
+}: {
+    className?: string;
+    hunks: readonly DiffHunk[];
+}) {
     return (
         <div
             className={cn(

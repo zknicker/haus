@@ -73,6 +73,7 @@ extension AuthenticatedHausView {
             contextLabel: threadContextLabel(for: thread),
             engagementChatID: resolvedThreadChatID(for: thread),
             engagementStyle: threadEngagementStyle(for: thread),
+            landingMessageID: store.unreadThreadLanding(threadChatID: resolvedThreadChatID(for: thread)),
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {

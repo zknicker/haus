@@ -10,7 +10,11 @@ import {
     stopStaleDevPostgres,
     waitForDevPostgres,
 } from './dev-postgres.mjs';
-import { createDevServerEnvironment } from './dev-stack-server-environment.mjs';
+import {
+    createDesktopDevEnvironment,
+    createDevServerEnvironment,
+    prepareHostedMcps,
+} from './dev-stack-server-environment.mjs';
 import {
     assertDevStackPortsAvailable,
     cleanupStaleProcesses,
@@ -329,6 +333,7 @@ export class DevStackController extends EventEmitter {
             }
         }
 
+        await prepareHostedMcps(this.spawnBackgroundProcess.bind(this), serverEnv);
         this.spawnProcess('haus', 'bun', ['--watch', 'src/haus-server.ts'], {
             cwd: serverDirectory,
             env: serverEnv,
@@ -467,12 +472,7 @@ export class DevStackController extends EventEmitter {
     }
 }
 
-export function createDesktopDevEnvironment({ devStackEnvironment, ports }) {
-    return {
-        ...devStackEnvironment,
-        HAUS_WEBSITE_PORT: String(ports.websitePort),
-    };
-}
+export { createDesktopDevEnvironment } from './dev-stack-server-environment.mjs';
 
 export function signalChildProcessGroup(child, signal, killProcessGroup = process.kill) {
     if (!child.pid) {

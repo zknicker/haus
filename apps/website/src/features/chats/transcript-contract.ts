@@ -91,8 +91,11 @@ export interface TranscriptMessage {
      * row of its own, so this is what the cause line renders from.
      */
     cause?: MessageCause | null;
-    /** The Cloud Agent work this Message anchors, projected from its typed body. */
-    cloudAgentWork?: CloudAgentWork | null;
+    /**
+     * The Cloud Agent work this Message links, in link order (ADR 0044). Each
+     * renders the same card below the Message.
+     */
+    cloudAgentWork?: readonly CloudAgentWork[];
     content: string;
     hausAgentId?: string | null;
     id: string;

@@ -8,6 +8,7 @@ import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useIdleChatWarming } from '../../hooks/servers/use-idle-chat-warming.ts';
+import { useInboxUnreadCount } from '../../hooks/servers/use-inbox-unread-count.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useShellVariantSync } from '../../hooks/shell/use-shell-variant.ts';
 import { useUnfocusableAppMain } from '../../hooks/shell/use-unfocusable-app-main.ts';
@@ -113,11 +114,12 @@ function WebServerLayout({
 
 /**
  * The layout's chat-list work in a leaf: the list changes on every message
- * anywhere, and a read in the layout itself re-rendered the whole shell.
+ * anywhere, and a read in the layout itself re-rendered the whole shell. The
+ * Dock badge is the Inbox badge: unread Chats plus unread Threads.
  */
 function ChatListEffects({ serverId }: { serverId: string }) {
     const chats = useChats(serverId);
-    useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
+    useDesktopDockBadge(useInboxUnreadCount(serverId).count);
     useIdleChatWarming(serverId, chats.data);
     return null;
 }

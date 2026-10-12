@@ -17,7 +17,7 @@ public enum AgentLifecycleOutcome: String, Codable, Sendable {
 /// `outcome` are present only for their corresponding phases on the wire.
 public struct AgentLifecycleEvent: Codable, Identifiable, Sendable, Equatable {
     public let agentID: String
-    public let chatID: String
+    public let chatID: String?
     public let emittedAt: Date
     public let runID: String
     public let serverID: String
@@ -42,7 +42,7 @@ public struct AgentLifecycleEvent: Codable, Identifiable, Sendable, Equatable {
 
     public init(
         agentID: String,
-        chatID: String,
+        chatID: String?,
         emittedAt: Date,
         runID: String,
         serverID: String,

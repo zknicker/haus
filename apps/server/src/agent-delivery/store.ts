@@ -9,7 +9,11 @@ import {
     chatMessagesTable,
     messageTasksTable,
 } from '../postgres/schema.ts';
-import { bodilessInboxSources, concreteInboxSources } from './inbox-lanes.ts';
+import {
+    bodilessInboxSources,
+    concreteInboxSources,
+    noticelessInboxSources,
+} from './inbox-lanes.ts';
 import { retireRemovedTriggerItemsForRun } from './retire-removed-trigger-items.ts';
 import type { WakeState } from './wake-pause.ts';
 
@@ -30,7 +34,7 @@ export interface AgentDeliveryRow extends WakeState {
 export interface InboxItemRow {
     /** Why this item names the Agent personally; null is an ambient delivery. */
     addressedReason: AddressedReason | null;
-    chatId: string;
+    chatId: string | null;
     content: string;
     createdAt: Date;
     dedupeKey: string;
@@ -41,9 +45,6 @@ export interface InboxItemRow {
     source: string;
     threadFollowReactivated: boolean;
 }
-
-/** The digest is a hint, not an index: a long tail of chats stays bounded. */
-const maxUnreadElsewhereChats = 50;
 
 /** The one projection every queue read returns, so a new column lands once. */
 export const inboxItemColumns = {
@@ -113,7 +114,7 @@ export async function enqueueInboxItem(
     input: {
         addressedReason?: AddressedReason | null;
         agentId: string;
-        chatId: string;
+        chatId: string | null;
         content: string;
         createdAt?: Date;
         dedupeKey: string;
@@ -148,39 +149,18 @@ export async function countQueuedMessageItems(db: HausDatabase, agentId: string)
     return row?.total ?? 0;
 }
 
-/** Counts work represented by a notice; concrete onboarding work is not notice-only. */
+/** Counts work represented by a notice; noticeless attentions lead their own runs. */
 export async function countQueuedNoticeItems(db: HausDatabase, agentId: string): Promise<number> {
     const [row] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(agentInboxTable)
-        .where(and(queuedFor(agentId), ne(agentInboxTable.source, 'onboarding')));
+        .where(and(queuedFor(agentId), noticeable()));
     return row?.total ?? 0;
 }
 
-/** Per-chat queued counts behind the unread-elsewhere digest. */
-export async function countQueuedItemsByChat(
-    db: HausDatabase,
-    input: { agentId: string; excludeChatIds: string[]; excludeItemIds: string[] }
-): Promise<Array<{ chatId: string; count: number }>> {
-    const rows = await db
-        .select({ chatId: agentInboxTable.chatId, total: sql<number>`count(*)::int` })
-        .from(agentInboxTable)
-        .where(
-            and(
-                queuedFor(input.agentId),
-                ne(agentInboxTable.source, 'onboarding'),
-                input.excludeChatIds.length > 0
-                    ? notInArray(agentInboxTable.chatId, input.excludeChatIds)
-                    : undefined,
-                input.excludeItemIds.length > 0
-                    ? notInArray(agentInboxTable.id, input.excludeItemIds)
-                    : undefined
-            )
-        )
-        .groupBy(agentInboxTable.chatId)
-        .orderBy(agentInboxTable.chatId)
-        .limit(maxUnreadElsewhereChats);
-    return rows.map((row) => ({ chatId: row.chatId, count: row.total }));
+/** Excludes the attentions no notice or digest represents (`noticelessInboxSources`). */
+export function noticeable() {
+    return notInArray(agentInboxTable.source, [...noticelessInboxSources]);
 }
 
 /**
@@ -537,7 +517,7 @@ export async function beginActiveRun(
     db: HausDatabase,
     input: {
         agentId: string;
-        chatId: string;
+        chatId: string | null;
         computerId: string;
         modelId: string;
         reasoningEffort: AgentReasoningEffort;

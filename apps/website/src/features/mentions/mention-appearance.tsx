@@ -2,6 +2,7 @@ import { parseChatThreadReferenceTarget } from '@haus/api';
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     ChromeIcon,
+    CloudIcon,
     CubeIcon,
     File01Icon,
     Folder01Icon,
@@ -22,12 +23,18 @@ import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { AiSparklesIcon } from './ai-sparkles-icon.ts';
+import {
+    capabilityAppearanceOverrides,
+    type MentionAppearanceOverride,
+    skillAppearanceOverrides,
+} from './mention-appearance-overrides.ts';
 import type { ReferenceKind } from './mention-types.ts';
 
 const mentionIconKeys = [
     'agent',
     'chat',
     'chrome',
+    'cloud-agent',
     'file',
     'folder',
     'github',
@@ -59,12 +66,11 @@ interface MentionAppearanceInput {
     metadata?: Record<string, unknown>;
 }
 
-type MentionAppearanceOverride = Partial<MentionAppearance>;
-
 const defaultMentionAppearance = {
     agent: { icon: 'agent' },
     app: { icon: 'plugin' },
     chat: { channelAppearance: { color: null, icon: null }, icon: 'chat' },
+    'cloud-agent-work': { icon: 'cloud-agent' },
     directory: { icon: 'folder' },
     file: { icon: 'file' },
     image: { icon: 'image' },
@@ -76,40 +82,11 @@ const defaultMentionAppearance = {
     website: { icon: 'website' },
 } satisfies Record<ReferenceKind, MentionAppearance>;
 
-const skillAppearanceOverrides = {
-    'gh-issues': {
-        icon: 'github',
-        label: 'GitHub Issues',
-    },
-    github: { icon: 'github', label: 'GitHub' },
-} satisfies Record<string, MentionAppearanceOverride>;
-
-const capabilityAppearanceOverrides = {
-    'computer-use@openai-bundled': {
-        icon: 'plugin',
-        label: 'Computer Use',
-    },
-    'computer-use/google-chrome': {
-        brandColor: 'var(--success)',
-        icon: 'chrome',
-        label: 'Chrome',
-    },
-    'chrome@openai-bundled': {
-        brandColor: 'var(--success)',
-        icon: 'chrome',
-        label: 'Chrome',
-    },
-    chrome: {
-        brandColor: 'var(--success)',
-        icon: 'chrome',
-        label: 'Chrome',
-    },
-} satisfies Record<string, MentionAppearanceOverride>;
-
 const mentionIconMap = {
     agent: CubeIcon,
     chat: HashtagIcon,
     chrome: ChromeIcon,
+    'cloud-agent': CloudIcon,
     file: File01Icon,
     folder: Folder01Icon,
     github: Github01Icon,

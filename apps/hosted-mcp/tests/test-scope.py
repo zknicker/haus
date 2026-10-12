@@ -16,7 +16,7 @@ class ScopeTests(unittest.TestCase):
         self.addCleanup(membership.stop)
 
     def test_catalog_excludes_mutations_and_raw_requests(self):
-        self.assertEqual(len(BY_NAME), 9)
+        self.assertEqual(len(BY_NAME), 10)
         for name in BY_NAME:
             with self.assertRaises(ValidationError):
                 validate(name, {"community_slug": "other", "raw": True})

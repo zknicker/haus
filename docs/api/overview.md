@@ -60,6 +60,15 @@ observes itself. The App pages through the retained history with the focused
 grows without bound. Keeping the report separate lets older peers ignore the capability without
 rejecting the ordinary inventory report.
 
+At its one check per night Computer may send `agent-dream-request` (`{ agentId, localDate }`)
+for an Agent whose memory changed ([workspace](../../specs/workspace.md#dreaming)). Server answers
+only by dispatch: it queues the dream for any running Agent, busy or not, and when the dream's
+turn comes it starts the one chatless run,
+a `start` frame with `chatId: null`, a `dream` attention (`{ id, createdAt }`), and no inbox
+items; the runner mint for that run carries `chatId: null` too. Only a Computer that sends the
+request can receive a dream start, so the frame needs no protocol bump: an older Server ignores
+the request and an older Computer never asks.
+
 Cross-boundary types use Haus product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.
 
@@ -77,11 +86,24 @@ protocol 28 adds per-model `features` to inventory (the inventory schema is stri
 protocol-27 Server would reject a report that carries them), the `delegating`, `generating_image`,
 and `generating_video` turn operation categories, the served journal's `failure` and
 `failedToolCount` fields, and the batched `agent-execution-outlines-request` and `-result` frames
-behind `agent.executionOutlines`. Server and Computer therefore ship each in the same release, and
+behind `agent.executionOutlines`. Computer protocol 29 adds the `state` discriminator to the
+`haus cloud-agent start` response (`started` receipt or freshness `held`), which a protocol-28
+Computer's strict receipt schema would reject after the Server had already recorded the work.
+Protocol 29 also removes the retired `cloud-agent-work` body kind from the Agent CLI's message
+schemas: launch Messages are `text`, and linked work arrives under `cloud_agent_works`
+([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)).
+Server and Computer therefore ship each in the same release, and
 the release requires an exact match: Server accepts ordinary work only from a Computer that reports
-protocol 28. A protocol-27 or older Computer
+protocol 29. A protocol-28 or older Computer
 connects in bootstrap mode, which keeps update control but cannot execute ordinary work, so the
 Computer artifact must publish before the Server is promoted
 ([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you
 and Done, and the shared notification facts. Haus App 5.0.0 and iPhone 5.0.0 send that version.
 Older installed clients require an update, and an already-open hosted App requires a reload.
+App protocol 10 adds the chatless dream run: `agent.onLifecycle` may carry `chatId: null` and a
+turn trigger may be `{ kind: 'dream' }`.
+App protocol 11 links Cloud Agent work instead of embedding it
+([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)): Messages no longer
+carry a `cloud-agent-work` body, and each `cloudAgentWork.listActive` row drops its launch
+Message and Thread fields for a `location` plus the delegating Agent's stored `agentName`. A
+protocol-10 client gets the update-required response.

@@ -1,4 +1,5 @@
 import Foundation
+import HausModels
 
 /// One reference read out of its Markdown target: what it points at, the
 /// identity it points at it by, and — for the two kinds whose label the target
@@ -7,8 +8,9 @@ public struct RichReferenceTarget: Hashable, Sendable {
     public let kind: MentionPresentationKind
     public let id: String
     /// The label the target itself fixes, ignoring the link text: a pull
-    /// request reads as `#<n>` and a bare URL as its host. Nil everywhere else,
-    /// where the link text is the label.
+    /// request reads as `#<n>`, a bare URL as its host, and Cloud Agent work
+    /// as its unescaped title (no sigil is ever stripped from a title). Nil
+    /// everywhere else, where the link text is the label.
     public let label: String?
 }
 
@@ -36,6 +38,10 @@ public enum RichReferenceWireForm {
         }
         if !target.contains("?"), let id = schemeID(target, scheme: "chat") {
             return RichReferenceTarget(kind: .channel, id: id, label: nil)
+        }
+        if let id = CloudAgentWorkLink.workID(target: target) {
+            // The link text is the escaped work title; read it back unescaped.
+            return RichReferenceTarget(kind: .cloudAgentWork, id: id, label: CloudAgentWorkLink.unescapedLabel(text))
         }
         // The App accepts a bare `plugin://` where every other scheme needs an
         // identity after it, so the prefix alone is the whole test.

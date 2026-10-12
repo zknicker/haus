@@ -69,13 +69,10 @@ export async function prepareAgentSend(
             409
         );
     }
-    const hold = input.continueAnyway
-        ? null
-        : await resolveHold(db, runner, chatId, cursor.generation, cursor.seen);
+    const hold = input.continueAnyway ? null : await readFreshnessHold(db, runner, chatId, cursor);
     if (!hold) {
         return { kind: 'send' as const, outgoing };
     }
-    const handle = await readAgentHandle(db, runner);
     const reholdCount = outgoing.reholdCount + 1;
     await saveDraft(db, runner, chatId, cursor.generation, {
         ...outgoing,
@@ -84,14 +81,37 @@ export async function prepareAgentSend(
     return {
         kind: 'held' as const,
         response: {
+            ...hold,
             continueAnywaySuggested: reholdCount >= 2,
-            formalMentionCount: countMentions(hold.messages, handle),
-            newMessageCount: hold.total,
-            omittedMessageCount: Math.max(0, hold.total - hold.messages.length),
             reholdCount,
-            shownMessages: hold.messages,
             state: 'held' as const,
         },
+    };
+}
+
+/**
+ * The freshness check every Agent-authored post into a Chat runs: newer human
+ * or other-Agent messages this run has neither seen nor been served. A hold
+ * marks the shown messages served to this run, so the same run re-posting is
+ * not held for them again; a clean check advances the seen cursor to the head.
+ */
+export async function readFreshnessHold(
+    db: HausDatabase,
+    runner: ResolvedRunner,
+    chatId: string,
+    knownCursor?: { generation: number; seen: number }
+) {
+    const cursor = knownCursor ?? (await readAgentInboxCursor(db, { ...runner, chatId }));
+    const hold = await resolveHold(db, runner, chatId, cursor.generation, cursor.seen);
+    if (!hold) {
+        return null;
+    }
+    const handle = await readAgentHandle(db, runner);
+    return {
+        formalMentionCount: countMentions(hold.messages, handle),
+        newMessageCount: hold.total,
+        omittedMessageCount: Math.max(0, hold.total - hold.messages.length),
+        shownMessages: hold.messages,
     };
 }
 

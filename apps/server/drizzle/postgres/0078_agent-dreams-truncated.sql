@@ -1,0 +1,1 @@
+ALTER TABLE "agent_dreams" ADD COLUMN "truncated" boolean DEFAULT false NOT NULL;

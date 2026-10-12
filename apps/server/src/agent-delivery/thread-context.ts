@@ -8,6 +8,7 @@ import {
     chatsTable,
 } from '../postgres/schema.ts';
 import { readAgentInboxCursor } from './cursors.ts';
+import { chatOf } from './inbox-lanes.ts';
 import type { InboxItemRow } from './store.ts';
 
 /** The replies a package quotes at most, newest kept first. */
@@ -47,7 +48,7 @@ export async function readThreadContexts(
             and(
                 eq(chatsTable.serverId, serverId),
                 eq(chatsTable.kind, 'thread'),
-                inArray(chatsTable.id, [...new Set(mentions.map((row) => row.chatId))])
+                inArray(chatsTable.id, [...new Set(mentions.map(chatOf))])
             )
         );
     const contexts = new Map<string, AgentThreadContext>();
@@ -99,7 +100,7 @@ export async function withoutVisibleThreads(
             context &&
             (await hasVisibleThread(db, {
                 agentId: input.agentId,
-                chatId: row.chatId,
+                chatId: chatOf(row),
                 serverId: row.serverId,
             }));
         if (context && !visible) {

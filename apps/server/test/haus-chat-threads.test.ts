@@ -121,9 +121,11 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
             'A peer replied in this thread', 'peer-thread-attention', 2, now()
         )
     `;
+    // Thread replies count on the Thread, never on the parent Channel.
     await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
-        { id: parentChatId, unreadCount: 2 },
+        { id: parentChatId, unreadCount: 0 },
     ]);
+    expect(await unreadThreads(server.id)).toEqual([{ threadChatId, unreadCount: 2 }]);
     await expect(
         owner.trpc.chat.messages.query({ chatId: parentChatId, serverId: server.id })
     ).resolves.toMatchObject({
@@ -142,9 +144,12 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
         serverId: server.id,
         thread: { anchorMessageId: anchor.message.id },
     });
-    await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
-        { id: parentChatId, unreadCount: 0 },
-    ]);
+    expect(await unreadThreads(server.id)).toEqual([]);
+    await expect(
+        owner.trpc.chat.messages.query({ chatId: parentChatId, serverId: server.id })
+    ).resolves.toMatchObject({
+        threads: [{ followed: false, replyCount: 3, unreadCount: 0 }],
+    });
 
     await peer.client.trpc.chat.send.mutate({
         chatId: parentChatId,
@@ -153,9 +158,7 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
         serverId: server.id,
         thread: { anchorMessageId: anchor.message.id },
     });
-    await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
-        { id: parentChatId, unreadCount: 4 },
-    ]);
+    expect(await unreadThreads(server.id)).toEqual([{ threadChatId, unreadCount: 4 }]);
     await expect(
         owner.trpc.chat.messages.query({ chatId: parentChatId, serverId: server.id })
     ).resolves.toMatchObject({
@@ -167,9 +170,7 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
         sequence: 4,
         serverId: server.id,
     });
-    await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
-        { id: parentChatId, unreadCount: 0 },
-    ]);
+    expect(await unreadThreads(server.id)).toEqual([]);
 
     await peer.client.trpc.chat.send.mutate({
         chatId: parentChatId,
@@ -178,9 +179,7 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
         serverId: server.id,
         thread: { anchorMessageId: anchor.message.id },
     });
-    await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
-        { id: parentChatId, unreadCount: 1 },
-    ]);
+    expect(await unreadThreads(server.id)).toEqual([{ threadChatId, unreadCount: 1 }]);
 
     await owner.trpc.thread.setFollow.mutate({
         follow: false,
@@ -194,9 +193,7 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
         serverId: server.id,
         thread: { anchorMessageId: anchor.message.id },
     });
-    await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
-        { id: parentChatId, unreadCount: 0 },
-    ]);
+    expect(await unreadThreads(server.id)).toEqual([]);
 
     peer.client.close();
 });
@@ -246,3 +243,9 @@ test('Thread replies and follow changes announce their parent anchor', async () 
     created.stop();
     follows.stop();
 });
+
+/** The owner's Inbox Thread rows, narrowed to identity and count. */
+async function unreadThreads(serverId: string) {
+    const { threads } = await owner.trpc.thread.listUnread.query({ serverId });
+    return threads.map(({ threadChatId, unreadCount }) => ({ threadChatId, unreadCount }));
+}

@@ -25,6 +25,10 @@ export function resolveTurnRowTitle(
     if (!trigger || trigger.kind === 'private') {
         return { kind: 'none' };
     }
+    // The nightly dream is the one turn with no Chat, so it has no place.
+    if (trigger.kind === 'dream') {
+        return { kind: 'text', place: null, text: 'Dreaming' };
+    }
     const chat = chats.get(trigger.chatId);
     const place = chat ? chatPlace(chat) : null;
     if (trigger.kind === 'message' || trigger.kind === 'task') {

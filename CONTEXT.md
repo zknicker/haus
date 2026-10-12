@@ -229,20 +229,21 @@ meaningful immutable content, and one typed body; Tasks and attachments remain o
 _Avoid_: chat entry, timeline item, post, card
 
 **Message body**:
-The typed Haus product act carried by a Message, such as text, a created Agent, or
-Cloud Agent work. It may project a separately mutable Server record but never replaces the
-Message's readable content.
+The typed Haus product act carried by a Message: text or a created Agent. It may project a
+separately mutable Server record but never replaces the Message's readable content. Cloud Agent
+work is not a body; a text Message links it.
 _Avoid_: generic action, card payload, arbitrary content block, provider event
 
 **Card**:
-The Haus App presentation of a Message body or recognized reference. A card has no durable
+The Haus App presentation of a Message body, linked Cloud Agent work, or recognized reference. A card has no durable
 identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
 **Unread**:
-The Inbox section listing every Channel and DM with something one human has not read — its own
-messages or the Thread replies it rolls up — newest activity first. Viewing a Chat while Haus is
-in view clears it; **Mark read** clears it without opening it. There is no attention tier above
+The Inbox section listing every Channel, DM, and Thread with something one human has not read,
+newest activity first. A Channel or DM counts only its own messages; a Thread counts its replies
+the human follows or is mentioned in, on its own row (ADR 0043). Viewing a Chat while Haus is in
+view clears it; **Mark read** clears it without opening it. There is no attention tier above
 unread (ADR 0038).
 _Avoid_: Needs you, attention, Done, notification center
 
@@ -280,11 +281,19 @@ until they save it, and an Agent reaches it only through `haus agent create --av
 _Avoid_: avatar repository, automatic profile update, transient avatar file
 
 **Cloud Agent work**:
-Durable provider-hosted work delegated by a Haus Agent and carried by one Agent-authored Message.
-The work owns one or more provider Runs and its mutable lifecycle; results reach the Thread as
-ordinary Messages, references, attachments, and artifacts composed by the delegating Agent, which
-owns follow-up after terminal completion reaches its inbox.
+Durable provider-hosted work delegated by a Haus Agent. It is a standalone Agent-owned record that
+belongs to no Message or Chat (ADR 0044): it owns its delegating Agent, one or more provider Runs,
+and its mutable lifecycle, and it survives deletion of the Chat that asked for it. Results reach
+the work Thread as ordinary Messages, references, attachments, and artifacts composed by the
+delegating Agent, which owns follow-up after terminal completion reaches its inbox.
 _Avoid_: Harness subagent, Haus Task, named teammate, Cursor Message
+
+**Cloud Agent work link**:
+A `cloud-agent://<workId>` rich reference in a Message's content, recorded by the Server when the
+Message is written. Every link shows the same live card; none is primary and none is a copy. The
+launch Message is simply the first link. Anyone who can read a live linking Message can see the
+work, and an author may link only work they can already see.
+_Avoid_: work copy, embedded work, origin card, primary card
 
 **Agent execution configuration**:
 The Haus server's immutable Computer assignment plus desired executor, model reference, execution
@@ -602,24 +611,12 @@ An agent-owned startup briefing file in the Agent workspace, such as `MEMORY.md`
 loaded into that agent's prompt and refreshed from Memory by background workers.
 _Avoid_: root-level briefing files, Vault page
 
-**Agent briefing layer**:
-The Layer 1 Memory layer made from an Agent workspace's `USER.md` and `MEMORY.md` files.
-_Avoid_: Wiki root, shared Wiki page, episodic Memory
-
-**Episodic Memory**:
-The per-agent Layer 2 Memory layer of background-extracted observations from chats, turns, and
-external events before they are promoted into stable knowledge.
-_Avoid_: Chat transcript, assistant briefing, Wiki page
-
-**Memory dreaming**:
-The background Memory maintenance pass that reviews Episodic Memory, promotes stable knowledge to
-the Wiki, and refreshes Agent briefing files.
-_Avoid_: Extraction, summarization, compaction
-
-**Wiki surface**:
-The Haus Computer-owned access surface for the Wiki root: path resolution, safe reads, writes,
-moves, deletes, backlinks, freshness, and status.
-_Avoid_: Vault API, Memory browser, ingestion system, maintenance job
+**Dreaming**:
+An Agent's own periodic memory consolidation pass over `MEMORY.md` and recently changed `notes/`,
+run overnight as its own private, chatless dream turn that Computer requests when memory changed
+and Server starts only for an idle, running Agent (Manual topic
+`recipes/technique/memory-hygiene`). The Agent does the work; nothing rewrites memory for it.
+_Avoid_: Tidy pass, nightly memory review, background extraction, compaction
 
 **Charts**:
 The Widget family for agent-authored chart displays.

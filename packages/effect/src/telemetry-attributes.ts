@@ -2,10 +2,15 @@ export const telemetryAttributeKeys = [
     'haus.agent.id',
     'haus.chat.id',
     'haus.delivery.kind',
+    'haus.dream.local_date',
+    'haus.dream.outcome',
+    'haus.dream.skip_reason',
     'haus.failure.kind',
+    'haus.memory.bytes',
     'haus.message.count',
     'haus.model.id',
     'haus.operation',
+    'haus.mcp.connector',
     'haus.outcome',
     'haus.output.produced',
     'haus.request.id',
@@ -29,6 +34,13 @@ export const telemetryAttributeKeys = [
     'haus.tokens.cache_read',
     'haus.tokens.cache_write',
 ] as const;
+
+/** `haus.dream.outcome` of one Agent's nightly dream check on a Computer. */
+export const dreamCheckOutcomes = ['baselined', 'requested', 'not-due', 'skipped'] as const;
+export type DreamCheckOutcome = (typeof dreamCheckOutcomes)[number];
+/** `haus.dream.skip_reason`, present only on a `skipped` check. */
+export const dreamSkipReasons = ['not-configured', 'resetting', 'retired'] as const;
+export type DreamSkipReason = (typeof dreamSkipReasons)[number];
 
 export type TelemetryAttributeKey = (typeof telemetryAttributeKeys)[number];
 export type TelemetryAttributeValue = boolean | number | string;

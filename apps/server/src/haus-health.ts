@@ -1,6 +1,7 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
 import type { FastifyInstance } from 'fastify';
+import type { HostedMcpAccess } from './hosted-mcp/supervisor.ts';
 import type { ReminderSchedulerHealth } from './reminders/reminder-scheduler.ts';
 
 export function registerHausHealth(
@@ -8,7 +9,8 @@ export function registerHausHealth(
     runtime: EffectRuntime<never>,
     postgresIsAvailable: (signal?: AbortSignal) => Promise<boolean>,
     postgresTimeoutMs = 5000,
-    reminderHealth?: () => ReminderSchedulerHealth
+    reminderHealth?: () => ReminderSchedulerHealth,
+    hostedHealth?: HostedMcpAccess['health']
 ) {
     app.get('/healthz', async (_request, reply) => {
         const available = await settle(
@@ -26,10 +28,17 @@ export function registerHausHealth(
         );
         if (available) {
             const reminders = reminderHealth?.();
-            if (reminders) {
+            const hostedMcps = hostedHealth?.();
+            const hostedReady =
+                hostedMcps?.every((connector) => connector.status === 'ready') ?? true;
+            if (reminders || hostedMcps) {
                 return {
                     reminders,
-                    status: reminders.status === 'healthy' ? 'ok' : 'degraded',
+                    ...(hostedMcps ? { hostedMcps } : {}),
+                    status:
+                        hostedReady && (!reminders || reminders.status === 'healthy')
+                            ? 'ok'
+                            : 'degraded',
                 };
             }
             return { status: 'ok' };

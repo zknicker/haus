@@ -64,6 +64,8 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./share/haus-server/app/haus-app-icon.png');
     expect(paths).toContain('./share/haus-server/app/index.html');
     expect(paths).toContain('./share/haus-server/app/privacy.html');
+    expect(paths).toContain('./share/haus-server/hosted-mcp/skool/python/bin/python3.12');
+    expect(paths).toContain('./share/haus-server/hosted-mcp/skool/hosted/managed.py');
     expect(paths).toContain('./share/haus-server/migrations/0000_baseline.sql');
     expect(paths).toContain('./share/haus-server/migrations/0001_chat-anchor-fk.sql');
     expect(paths).toContain(

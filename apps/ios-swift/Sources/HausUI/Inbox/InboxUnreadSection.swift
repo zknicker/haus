@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Every unread Chat, newest activity first, as Messages-style two-line rows:
+/// Every unread Chat and Thread, newest activity first, as Messages-style two-line rows:
 /// name and age, then the waiting line. Opening the row reads it; **Mark read**
 /// is a trailing (swipe-left) action revealing an icon-only circle, with a
 /// full swipe committing it, and it also rides the row's long-press menu. It is
@@ -33,7 +33,7 @@ struct InboxUnreadSection: View {
                             },
                             detail: row.preview
                         ) {
-                            onOpen(.chat(row.id))
+                            onOpen(row.open)
                         }
                         .contextMenu {
                             Button { onMarkRead(row.id) } label: {

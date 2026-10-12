@@ -1,0 +1,2 @@
+ALTER TABLE "chat_messages" DROP CONSTRAINT "chat_messages_body_kind";--> statement-breakpoint
+ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_body_kind" CHECK ("chat_messages"."body_kind" in ('text', 'agent-created'));

@@ -12,9 +12,12 @@ export interface AgentStartCommand {
     agentName?: string;
     /** Pickup reaction; null or absent means the prompt's default. */
     agentSignatureEmoji?: string | null;
-    chatId: string;
+    /** The run's Chat; null only for a dream run, which has none. */
+    chatId: string | null;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
+    /** The nightly dreaming attention; present only on a chatless run with no inbox. */
+    dream?: { createdAt: string; id: string };
     homeTimezone?: string;
     inbox?: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';

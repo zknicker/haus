@@ -11,10 +11,12 @@ extension HausStore {
         )
     }
 
-    func cloudAgentPresentation(_ work: CloudAgentWork) -> CloudAgentPresentation {
+    /// One card for `work` as `presentingChatID` shows it. The Agent is the
+    /// work's delegating Agent, never the Message that links it.
+    func cloudAgentPresentation(_ work: CloudAgentWork, presentingChatID: String) -> CloudAgentPresentation {
         CloudAgentPresentation(
             work: work,
-            conversationLink: cloudAgentConversationLink(work),
+            conversationLink: cloudAgentConversationLink(presentingChatID: presentingChatID),
             agentName: agentsByID[work.agentId]?.displayName
         )
     }
@@ -33,13 +35,13 @@ extension HausStore {
     }
 
     /// The App link Copy link shares, matching the web card: the
-    /// conversation holding the work, which for work delegated inside a Thread
-    /// is the Thread's parent Chat. The production Server origin is the App
+    /// conversation presenting the card, which for a card inside a Thread is
+    /// the Thread's parent Chat. The production Server origin is the App
     /// origin; a Debug build points at the local Server instead.
-    private func cloudAgentConversationLink(_ work: CloudAgentWork) -> URL? {
+    private func cloudAgentConversationLink(presentingChatID chatID: String) -> URL? {
         guard let slug = activeServer?.slug else { return nil }
-        let conversationChatID = chatsByID[work.chatId] != nil ? work.chatId
-            : messagesByChatID.first { $0.value.threads.contains { $0.threadChatID == work.chatId } }?.key
+        let conversationChatID = chatsByID[chatID] != nil ? chatID
+            : messagesByChatID.first { $0.value.threads.contains { $0.threadChatID == chatID } }?.key
         guard let conversationChatID else { return nil }
         var components = URLComponents(url: HausRuntimeConfiguration.serverOrigin, resolvingAgainstBaseURL: false)
         components?.path = "/s/\(slug)/chats/\(conversationChatID)"

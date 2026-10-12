@@ -1,19 +1,24 @@
 import type { CloudAgentWork, CreatedAgentSummary, HausAgentMessage } from '@haus/api';
 
-type AgentMessageBodies = Pick<HausAgentMessage, 'agent_created' | 'cloud_agent_work'>;
+type AgentMessageBodies = Pick<
+    HausAgentMessage,
+    'agent_created' | 'cloud_agent_work' | 'cloud_agent_works'
+>;
+type MessageCloudAgentWork = NonNullable<HausAgentMessage['cloud_agent_work']>;
 
 /**
- * The typed Message bodies in the Agent API's own snake_case wire shape.
+ * The typed Message bodies and Cloud Agent work links in the Agent API's own
+ * snake_case wire shape. `cloud_agent_work` repeats the first link for
+ * released CLIs; `cloud_agent_works` carries every link in order (ADR 0044).
  */
 export function agentMessageBodies(input: {
-    cloudAgentWork: CloudAgentWork | undefined;
+    cloudAgentWork: CloudAgentWork[];
     createdAgent: CreatedAgentSummary | undefined;
 }): Partial<AgentMessageBodies> {
+    const works = input.cloudAgentWork.map(cloudAgentWorkBody);
     return {
         ...(input.createdAgent ? { agent_created: createdAgentBody(input.createdAgent) } : {}),
-        ...(input.cloudAgentWork
-            ? { cloud_agent_work: cloudAgentWorkBody(input.cloudAgentWork) }
-            : {}),
+        ...(works[0] ? { cloud_agent_work: works[0], cloud_agent_works: works } : {}),
     };
 }
 
@@ -27,7 +32,7 @@ function createdAgentBody(agent: CreatedAgentSummary): AgentMessageBodies['agent
     };
 }
 
-function cloudAgentWorkBody(work: CloudAgentWork): AgentMessageBodies['cloud_agent_work'] {
+function cloudAgentWorkBody(work: CloudAgentWork): MessageCloudAgentWork {
     const latest = work.runs[0];
     return {
         activity: work.activity?.summary ?? null,
