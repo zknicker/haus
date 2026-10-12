@@ -41,7 +41,7 @@ test('layers a set conversation style directly after the house personality, and 
 
 test('teaches that profile update also tunes the conversation style and signature emoji', () => {
     expect(render({})).toContain(
-        '7. **Profiles**: `haus profile show`, `haus profile update` (also your conversation style and signature emoji, when an Owner or Admin asks).'
+        '8. **Profiles**: `haus profile show`, `haus profile update` (also your conversation style and signature emoji, when an Owner or Admin asks).'
     );
 });
 
