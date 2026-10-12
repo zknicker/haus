@@ -119,10 +119,7 @@ export const agentMessageSchema = z.object({
     threadId: z.string().min(1).optional(),
 }) satisfies z.ZodType<HausAgentMessage>;
 
-/** `cloud_agent_works` rides ahead of the published contract until the Server serves it. */
-export type AgentCliMessage = HausAgentMessage & {
-    cloud_agent_works?: z.infer<typeof messageCloudAgentWorkSchema>[];
-};
+export type AgentCliMessage = HausAgentMessage;
 
 export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discriminatedUnion(
     'state',
