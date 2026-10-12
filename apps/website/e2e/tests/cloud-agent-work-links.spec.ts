@@ -44,13 +44,13 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
 
     // A human moves the conversation and links the running work there; a
     // made-up link to work nobody recorded stays words, with no card.
-    await client.chat.send.mutate({
+    const moved = await client.chat.send.mutate({
         chatId: techOps.id,
         content: `Tracking the move here.\n\n${formatCloudAgentWorkLink(launchTitle, started.work.id)}`,
         nonce: 'link-move',
         serverId: server.id,
     });
-    await client.chat.send.mutate({
+    const forgedLink = await client.chat.send.mutate({
         chatId: techOps.id,
         content: `Not real.\n\n${formatCloudAgentWorkLink('Forged job', 'caw_forged')}`,
         nonce: 'link-forged',
@@ -59,7 +59,9 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
 
     await page.goto(`/s/${slug}`);
     await openChannel(page, 'tech-ops');
-    const linking = page.locator('[data-message-id]', { hasText: 'Tracking the move here.' });
+    // Locate rows by id: back-to-back Messages share a grouping wrapper that
+    // also carries data-message-id and contains both texts.
+    const linking = page.locator(`[data-message-id="${moved.message.id}"]`);
     const card = linking.getByTestId('cloud-agent-work-card');
     await expect(card).toContainText(launchTitle);
     await expect(card).toContainText('Working');
@@ -67,7 +69,7 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
     await expect(linking.getByText(launchTitle, { exact: true })).toHaveCount(1);
     // Every link carries the same actions as the launch Message's card.
     await expect(card.getByRole('button', { name: 'Open in Cursor' })).toBeVisible();
-    const forged = page.locator('[data-message-id]', { hasText: 'Not real.' });
+    const forged = page.locator(`[data-message-id="${forgedLink.message.id}"]`);
     await expect(forged).toContainText('Forged job');
     await expect(forged.getByTestId('cloud-agent-work-card')).toHaveCount(0);
 
