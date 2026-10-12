@@ -6,6 +6,8 @@ import Foundation
 /// never a Thread. Server membership and Chat access gate the read, so work the
 /// viewer cannot see never arrives and no client-side filtering is needed.
 public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable {
+    /// The delegating Agent's stored display name; a retired Agent keeps it.
+    public let agentName: String
     public let chatKind: ChatKind
     public let chatName: String?
     public let chatPeerUserID: String?
@@ -17,6 +19,7 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
     public var id: String { work.id }
 
     enum CodingKeys: String, CodingKey {
+        case agentName
         case chatKind
         case chatName
         case chatPeerUserID = "chatPeerUserId"

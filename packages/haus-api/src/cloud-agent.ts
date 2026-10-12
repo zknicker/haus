@@ -222,6 +222,8 @@ export type ActiveCloudAgentWorkLocation = z.infer<typeof activeCloudAgentWorkLo
  */
 export const activeCloudAgentWorkSchema = z
     .object({
+        /** The delegating Agent's stored display name; a retired Agent keeps it. */
+        agentName: z.string(),
         chatKind: z.enum(['channel', 'dm']),
         chatName: z.string().nullable(),
         chatPeerUserId: idSchema.nullable(),

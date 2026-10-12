@@ -58,8 +58,7 @@ public enum InboxHappeningNowRows {
         now: Date,
         resolveActor: InboxActorResolver
     ) -> InboxHappeningNowRow {
-        let name = resolveActor(item.work.agentId, nil)?.name
-            ?? InboxActorName.stored(.agent(agentID: item.work.agentId, profile: nil))
+        let name = resolveActor(item.work.agentId, nil)?.name ?? item.agentName
         let chatLabel = InboxConversationLabel.text(kind: item.chatKind, name: item.chatName)
         return InboxHappeningNowRow(
             id: "work:\(item.work.id)",

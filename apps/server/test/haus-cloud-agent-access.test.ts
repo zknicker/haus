@@ -74,6 +74,7 @@ test('listActive shows queued and running work to members with Chat access only'
         await fixture.owner.trpc.cloudAgentWork.listActive.query({ serverId: fixture.serverId })
     ).find((row) => row.work.id === work.id);
     expect(forOwner).toMatchObject({
+        agentName: 'Orbit',
         chatKind: 'channel',
         chatName: 'product',
         chatPeerUserId: null,
@@ -86,6 +87,7 @@ test('listActive shows queued and running work to members with Chat access only'
         work: { status: 'queued' },
     });
     expect(Object.keys(forOwner ?? {}).sort()).toEqual([
+        'agentName',
         'chatKind',
         'chatName',
         'chatPeerUserId',

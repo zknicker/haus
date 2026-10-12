@@ -88,6 +88,17 @@ struct InboxHappeningNowRowsTests {
         #expect(rows[1].open == .agent("agent_blippy"))
     }
 
+    @Test func aRetiredAgentReadsByTheNameTheServerStored() throws {
+        let rows = try #require(InboxHappeningNowRows.rows(
+            work: [InboxFixtures.activeWork(startedAt: now, agentName: "Old Forge", agentID: "agent_forge")],
+            agents: [],
+            now: now,
+            resolveActor: InboxFixtures.directory
+        ))
+
+        #expect(rows[0].detail == "#all · Old Forge")
+    }
+
     @Test func staysNeutralUntilTheWorkReadHasLanded() {
         #expect(
             InboxHappeningNowRows.rows(

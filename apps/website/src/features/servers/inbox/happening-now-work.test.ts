@@ -52,10 +52,10 @@ test('a DM work names the human peer, and an Agent DM names neither', () => {
     expect(withoutPeer?.chatLabel).toBe('DM');
 });
 
-test('a retired Agent falls back to a name from its id', () => {
-    const [row] = toHappeningNowWork([activeWork()], humans, [], now);
+test('a retired Agent reads by the name the Server stored for it', () => {
+    const [row] = toHappeningNowWork([activeWork({ agentName: 'Old Blippy' })], humans, [], now);
 
-    expect(row?.agentName).toBe('Agent blippy');
+    expect(row?.agentName).toBe('Old Blippy');
 });
 
 test('the Server location is where the row opens', () => {
@@ -97,6 +97,7 @@ function workRecord(
 
 function activeWork(overrides: Partial<ActiveCloudAgentWork> = {}): ActiveCloudAgentWork {
     return {
+        agentName: 'Blippy',
         chatKind: 'channel',
         chatName: 'product',
         chatPeerUserId: null,

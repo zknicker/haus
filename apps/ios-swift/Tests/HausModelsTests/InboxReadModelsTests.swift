@@ -54,7 +54,7 @@ final class InboxReadModelsTests: XCTestCase {
     /// `activeWorkLocations.workThread` in `cloud-agent-work-fixture.ts`.
     func testDecodesServerWideActiveCloudAgentWork() throws {
         let json = """
-        [{"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
+        [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
           "conversationChatId":"chat_1",
           "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"cht_work_thread"},
           "work":\(workJSON)}]
@@ -76,7 +76,7 @@ final class InboxReadModelsTests: XCTestCase {
     /// `location` is the only way a row says where it opens.
     func testRejectsARowWithoutALocation() {
         let json = """
-        {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
+        {"agentName":"Blippy","chatKind":"channel","chatName":"product","chatPeerUserId":null,
          "conversationChatId":"chat_1","threadChatId":"chat_thread","work":\(workJSON)}
         """
 
@@ -87,7 +87,7 @@ final class InboxReadModelsTests: XCTestCase {
     /// Chat is gone.
     func testDecodesAMessageLocation() throws {
         let json = """
-        {"chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
          "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
          "work":\(workJSON)}
@@ -103,7 +103,7 @@ final class InboxReadModelsTests: XCTestCase {
 
     func testRejectsAnUnknownLocationKind() {
         let json = """
-        {"chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
          "location":{"kind":"elsewhere"},"work":\(workJSON)}
         """
 
@@ -116,7 +116,7 @@ final class InboxReadModelsTests: XCTestCase {
     /// `threadChatId`; the row decodes both as sent.
     func testMessageLocationInAThreadKeepsTheChannelAndThread() throws {
         let json = """
-        {"chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
          "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_reply","threadChatId":"cht_reply_thread"},
          "work":\(workJSON)}
@@ -133,11 +133,11 @@ final class InboxReadModelsTests: XCTestCase {
     /// A newer location kind skips only its own row; "Happening now" keeps the rest.
     func testListSkipsARowWithAnUnknownLocationKind() throws {
         let unknown = """
-        {"chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
          "location":{"kind":"elsewhere"},"work":\(workJSON)}
         """
         let known = """
-        {"chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
          "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
          "work":\(workJSON)}
@@ -153,7 +153,7 @@ final class InboxReadModelsTests: XCTestCase {
 
     func testListStillFailsOnAMalformedRow() {
         let malformed = """
-        {"chatKind":"channel","chatName":null,"chatPeerUserId":null,"work":\(workJSON)}
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"work":\(workJSON)}
         """
 
         XCTAssertThrowsError(

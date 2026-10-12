@@ -1,7 +1,7 @@
 import type { ActiveCloudAgentWork } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { cloudAgentWorkTable } from '../postgres/schema.ts';
+import { agentsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
@@ -28,9 +28,17 @@ export async function listActiveCloudAgentWork(
     if (!member) {
         return [];
     }
-    const works = await db
-        .select()
+    // A retired Agent keeps its row, so its stored name still names its work.
+    const rows = await db
+        .select({ agentName: agentsTable.displayName, work: cloudAgentWorkTable })
         .from(cloudAgentWorkTable)
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, cloudAgentWorkTable.serverId),
+                eq(agentsTable.id, cloudAgentWorkTable.agentId)
+            )
+        )
         .where(
             and(
                 eq(cloudAgentWorkTable.serverId, input.serverId),
@@ -39,7 +47,7 @@ export async function listActiveCloudAgentWork(
             )
         )
         .orderBy(asc(cloudAgentWorkTable.createdAt), asc(cloudAgentWorkTable.id));
-    const workIds = works.map((work) => work.id);
+    const workIds = rows.map((row) => row.work.id);
     const links = await readVisibleWorkLinks(db, {
         serverId: input.serverId,
         userId: member.id,
@@ -49,17 +57,18 @@ export async function listActiveCloudAgentWork(
         messageIds: [...new Set(links.map((link) => link.messageId))],
         serverId: input.serverId,
     });
-    const chosen = works.flatMap((work) => {
+    const chosen = rows.flatMap(({ agentName, work }) => {
         const location = chooseWorkLocation(
             work.launchMessageId,
             links.filter((link) => link.workId === work.id),
             childThreads
         );
-        return location ? [{ chosen: location, work }] : [];
+        return location ? [{ agentName, chosen: location, work }] : [];
     });
     const runs = await readRuns(db, input.serverId, workIds);
-    return chosen.map(({ chosen: { link, location }, work: row }) => ({
+    return chosen.map(({ agentName, chosen: { link, location }, work: row }) => ({
         ...conversationFacts(link, member.id),
+        agentName,
         location,
         work: toCloudAgentWork(row, runs.get(row.id) ?? []),
     }));

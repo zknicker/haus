@@ -113,6 +113,7 @@ describe('Happening now location', () => {
 
     it('is the only way a row says where it opens', () => {
         const row = {
+            agentName: 'Forge',
             chatKind: 'channel',
             chatName: 'product',
             chatPeerUserId: null,

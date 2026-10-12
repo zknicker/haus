@@ -5,11 +5,7 @@ import type {
     CloudAgentJobState,
     CloudAgentProvider,
 } from '@haus/api';
-import {
-    cloudAgentJobText,
-    cloudAgentWorkAgentFallbackName,
-    elapsedSince,
-} from '../../cloud-agents/cloud-agent-presentation.ts';
+import { cloudAgentJobText, elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
@@ -30,8 +26,8 @@ export interface HappeningNowWork {
 /**
  * The Server already returns only work the viewer can see, oldest first, so
  * nothing is filtered here. Names resolve the way every Inbox row does: the
- * live Agent list and the shared human directory, with the Message's
- * stored author profile standing in for a retired Agent.
+ * live Agent list and the shared human directory, with the Server's stored
+ * Agent name standing in for a retired Agent.
  */
 export function toHappeningNowWork(
     items: readonly ActiveCloudAgentWork[],
@@ -69,9 +65,5 @@ function liveStatus(
 }
 
 function workAgentName(item: ActiveCloudAgentWork, agentsById: ReadonlyMap<string, Agent>): string {
-    const agent = agentsById.get(item.work.agentId);
-    if (agent) {
-        return agent.displayName;
-    }
-    return cloudAgentWorkAgentFallbackName(item.work.agentId);
+    return agentsById.get(item.work.agentId)?.displayName ?? item.agentName;
 }
