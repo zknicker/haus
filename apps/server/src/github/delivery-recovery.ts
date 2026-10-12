@@ -12,6 +12,7 @@ import {
 import type { GithubDelivery, GithubIngestOutcome } from './delivery-ingest.ts';
 import {
     fetchGithubLoggedDelivery,
+    githubDeliveryLogReviver,
     type GithubDeliveryLogEntry as LogEntry,
     readGithubDeliveryLogEntry,
     unfinishedGithubDeliveries,
@@ -81,6 +82,7 @@ export async function sweepGithubDeliveries(
                 credential: { jwt: await app.signer.jwt(), kind: 'app' },
                 path: next,
                 query: pages === 0 ? { per_page: 100 } : undefined,
+                reviver: githubDeliveryLogReviver,
             },
             app.transport
         );
@@ -189,8 +191,21 @@ async function recoverEntry(
         const outcome = await dependencies.ingest(delivery);
         attempts.delete(entry.guid);
         return outcome.kind === 'in_progress' ? 'in_progress' : 'ingested';
-    } catch {
+    } catch (cause) {
         const tries = (attempts.get(entry.guid) ?? 0) + 1;
+        await settle(
+            dependencies.runtime,
+            Effect.logWarning('github.delivery_recovery_failed').pipe(
+                Effect.annotateLogs({
+                    appId: input.appId,
+                    attempt: tries,
+                    deliveryGuid: entry.guid,
+                    deliveryId: entry.id,
+                    error: cause instanceof Error ? cause.message : String(cause),
+                    operation: 'github.delivery_recovery_failed',
+                })
+            )
+        );
         if (tries < maxRecoveryAttempts) {
             attempts.set(entry.guid, tries);
             return 'failed';

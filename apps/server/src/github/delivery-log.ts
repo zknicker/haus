@@ -3,7 +3,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { githubWebhookDeliveriesTable } from '../postgres/schema.ts';
 import type { GithubDelivery } from './delivery-ingest.ts';
 import { field, type Payload, text } from './event-projection/payload.ts';
-import { githubRequest } from './github-api.ts';
+import { type GithubJsonReviver, githubRequest } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 
 // The App's own delivery log as recovery reads it (GET /app/hook/deliveries
@@ -14,15 +14,24 @@ export interface GithubDeliveryLogEntry {
     deliveredAt: Date;
     event: string | null;
     guid: string;
-    id: number;
+    /** Decimal digits exactly as GitHub sent them; real ids exceed 2^53. */
+    id: string;
 }
+
+/**
+ * Parses log `id`s from their source text: GitHub sends them as bare integers
+ * past 2^53, which a plain `JSON.parse` rounds into another delivery's id.
+ */
+export const githubDeliveryLogReviver: GithubJsonReviver = (key, value, context) =>
+    key === 'id' && typeof value === 'number' && context?.source ? context.source : value;
 
 export function readGithubDeliveryLogEntry(entry: Payload): GithubDeliveryLogEntry | null {
     const id = field(entry, 'id');
     const guid = text(entry, 'guid');
     const deliveredAt = new Date(text(entry, 'delivered_at') ?? Number.NaN);
     if (
-        typeof id !== 'number' ||
+        typeof id !== 'string' ||
+        !/^\d+$/u.test(id) ||
         !guid ||
         guid.length > 64 ||
         Number.isNaN(deliveredAt.getTime())

@@ -23,12 +23,13 @@ let cluster: PostgresCluster;
 let connection: HausConnection;
 let pages: Record<string, LogEntry[]>;
 let requests: string[];
-let failingDetail: Set<number>;
+let failingDetail: Set<string>;
 
 interface LogEntry {
     delivered_at: string;
     guid: string;
-    id: number;
+    /** Digits, written into the JSON as a bare integer like GitHub's (often > 2^53). */
+    id: string;
     status: string;
 }
 
@@ -51,8 +52,19 @@ beforeEach(async () => {
     failingDetail = new Set();
 });
 
-function entry(id: number, ageMs: number, status = 'OK', guid = `guid-${id}`): LogEntry {
-    return { delivered_at: new Date(now.getTime() - ageMs).toISOString(), guid, id, status };
+function entry(id: number | string, ageMs: number, status = 'OK', guid = `guid-${id}`): LogEntry {
+    return {
+        delivered_at: new Date(now.getTime() - ageMs).toISOString(),
+        guid,
+        id: String(id),
+        status,
+    };
+}
+
+/** GitHub's JSON with each `id` as a bare integer literal, exactly as sent. */
+function githubJson(value: unknown, headers: Record<string, string> = {}): Response {
+    const text = JSON.stringify(value).replace(/"id":"(\d+)"/gu, '"id":$1');
+    return new Response(text, { headers: { ...headers, 'content-type': 'application/json' } });
 }
 
 const app: GithubApp = {
@@ -71,17 +83,20 @@ const app: GithubApp = {
             requests.push(`${url.pathname}${url.search}`);
             const detail = /^\/app\/hook\/deliveries\/(\d+)$/u.exec(url.pathname);
             if (detail) {
-                const id = Number(detail[1]);
+                const id = detail[1] ?? '';
                 if (failingDetail.has(id)) {
                     return Promise.resolve(new Response(null, { status: 502 }));
                 }
                 const found = Object.values(pages)
                     .flat()
                     .find((candidate) => candidate.id === id);
+                if (!found) {
+                    return Promise.resolve(new Response(null, { status: 404 }));
+                }
                 return Promise.resolve(
-                    Response.json({
+                    githubJson({
                         event: 'workflow_run',
-                        guid: found?.guid,
+                        guid: found.guid,
                         id,
                         request: { headers: {}, payload: workflowRunPayload() },
                     })
@@ -90,13 +105,14 @@ const app: GithubApp = {
             const cursor = url.searchParams.get('cursor') ?? 'first';
             const next = { first: 'p2', p2: 'p3', p3: 'p4' }[cursor];
             return Promise.resolve(
-                Response.json(pages[cursor] ?? [], {
-                    headers: next
+                githubJson(
+                    pages[cursor] ?? [],
+                    next
                         ? {
                               link: `<https://api.github.com/app/hook/deliveries?per_page=100&cursor=${next}>; rel="next"`,
                           }
-                        : {},
-                })
+                        : {}
+                )
             );
         }) as typeof fetch,
     },
@@ -171,12 +187,23 @@ test('a failed fetch holds the watermark at that delivery so the next sweep retr
     const watermark = new Date(now.getTime() - 30 * 60 * 1000);
     await connection.db.insert(githubDeliveryCursorTable).values({ appId, watermark });
     pages = { first: [entry(10, 1000), entry(11, 2000)], p2: [entry(12, 3 * hour)] };
-    failingDetail.add(10);
+    failingDetail.add('10');
     const ingested: GithubDelivery[] = [];
     const result = await sweep(ingested);
     expect(result).toMatchObject({ failed: 1, ingested: 1 });
     expect(ingested.map((delivery) => delivery.guid)).toEqual(['guid-11']);
     expect((await cursor())?.watermark).toEqual(new Date(now.getTime() - 1000));
+});
+
+test('fetches a delivery by its exact id when the id exceeds 2^53', async () => {
+    const id = '3847904423659454321';
+    expect(Number.isSafeInteger(Number(id))).toBe(false);
+    pages = { first: [entry(id, 1000, 'OK', 'guid-large')] };
+    const ingested: GithubDelivery[] = [];
+    const result = await sweep(ingested);
+    expect(requests).toContain(`/app/hook/deliveries/${id}`);
+    expect(result).toMatchObject({ failed: 0, ingested: 1 });
+    expect(ingested.map((delivery) => delivery.guid)).toEqual(['guid-large']);
 });
 
 test('a delivery another attempt holds keeps the watermark from passing it', async () => {
@@ -195,7 +222,7 @@ test('a delivery that keeps failing is abandoned and stops holding the watermark
     const watermark = new Date(now.getTime() - 30 * 60 * 1000);
     await connection.db.insert(githubDeliveryCursorTable).values({ appId, watermark });
     pages = { first: [entry(16, 1000), entry(17, 2000)], p2: [entry(18, 3 * hour)] };
-    failingDetail.add(17);
+    failingDetail.add('17');
     const attempts = new Map<string, number>();
     for (let attempt = 1; attempt < maxRecoveryAttempts; attempt += 1) {
         expect(await sweep([], { attempts })).toMatchObject({ abandoned: 0, failed: 1 });

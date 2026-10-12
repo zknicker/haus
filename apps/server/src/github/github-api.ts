@@ -14,7 +14,16 @@ export interface GithubRequest {
     /** Path under the API root, such as `/app/installations/42`, or a full `Link` URL. */
     path: string;
     query?: Record<string, number | string | undefined>;
+    /** A `JSON.parse` reviver for bodies whose ids can exceed 2^53. */
+    reviver?: GithubJsonReviver;
 }
+
+/** Bun passes the value's source text, so a reviver can keep large integers exact. */
+export type GithubJsonReviver = (
+    key: string,
+    value: unknown,
+    context?: { source?: string }
+) => unknown;
 
 export interface GithubResponse {
     body: unknown;
@@ -77,7 +86,7 @@ export async function githubRequest(
     }
     const text = await response.text();
     return {
-        body: text ? (JSON.parse(text) as unknown) : null,
+        body: text ? (JSON.parse(text, request.reviver) as unknown) : null,
         headers: response.headers,
         status: response.status,
     };
