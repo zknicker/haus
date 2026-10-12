@@ -42,6 +42,11 @@ test('R2 adapter streams exact binary bytes, hashes them, and issues only signed
         const signed = new URL(storage.downloadUrl('binary'));
         expect(signed.searchParams.get('X-Amz-Expires')).toBe('300');
         expect(signed.searchParams.has('X-Amz-Signature')).toBe(true);
+        expect(signed.searchParams.has('response-content-disposition')).toBe(false);
+        const saved = new URL(storage.downloadUrl('binary', 'Q3 report.pdf'));
+        expect(saved.searchParams.get('response-content-disposition')).toBe(
+            `attachment; filename="Q3 report.pdf"; filename*=UTF-8''Q3%20report.pdf`
+        );
     } finally {
         await server.stop(true);
     }

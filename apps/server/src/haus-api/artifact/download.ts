@@ -1,9 +1,9 @@
-import { artifactDownloadResultSchema, artifactTargetInputSchema } from '@haus/api';
+import { artifactDownloadInputSchema, artifactDownloadResultSchema } from '@haus/api';
 import { downloadArtifact } from '../../artifacts/read.ts';
 import { artifactProcedure } from './procedure.ts';
 
 export const downloadArtifactProcedure = artifactProcedure
-    .input(artifactTargetInputSchema)
+    .input(artifactDownloadInputSchema)
     .output(artifactDownloadResultSchema)
     .query(async ({ ctx, input }) => {
         const actor = { kind: 'human', member: ctx.member, serverId: input.serverId } as const;
@@ -13,6 +13,7 @@ export const downloadArtifactProcedure = artifactProcedure
             ctx.appOrigin,
             ctx.artifactStorage,
             input.artifact_id,
-            input.revision_id
+            input.revision_id,
+            { save: input.save }
         );
     });

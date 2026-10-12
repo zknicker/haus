@@ -83,5 +83,7 @@ function metadata(revision: string, bytes: string): ArtifactMetadata {
         stable_url: '/sample',
         version_url: '/sample?revision=1',
         created_at: new Date().toISOString(),
+        creator: { type: 'agent', agent_id: 'agent' },
+        updated_at: new Date().toISOString(),
     };
 }

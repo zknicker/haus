@@ -1,4 +1,4 @@
-import type { ArtifactMetadata } from '@haus/api';
+import type { ArtifactCreator, ArtifactListInput, ArtifactMetadata } from '@haus/api';
 import { and, desc, eq, ilike, isNull, not, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -50,7 +50,7 @@ export async function listArtifacts(
     origin: string,
     offset: number,
     artifactId?: string,
-    filters?: { query: string; kind: 'all' | 'images' | 'documents' | 'media' | 'other' }
+    filters?: Pick<ArtifactListInput, 'creator' | 'kind' | 'query'>
 ) {
     const access = await artifactAccess(db, actor);
     const rows = await db
@@ -72,7 +72,7 @@ export async function listArtifacts(
             )
         )
         .orderBy(
-            desc(artifactId ? revisions.revisionNumber : artifacts.createdAt),
+            desc(artifactId ? revisions.revisionNumber : revisions.createdAt),
             desc(artifacts.id)
         )
         .limit(50)
@@ -111,6 +111,7 @@ function artifactFilters(filters: Parameters<typeof listArtifacts>[5]) {
     const pattern = `%${filters.query.replace(/[\\%_]/gu, '\\$&')}%`;
     return and(
         kind,
+        artifactCreatorFilter(filters.creator),
         filters.query
             ? or(
                   ilike(revisions.title, pattern),
@@ -127,12 +128,16 @@ export async function downloadArtifact(
     origin: string,
     storage: ArtifactStorage | null,
     artifactId: string,
-    revisionId?: string
+    revisionId?: string,
+    options: { save?: boolean } = {}
 ) {
     const result = await getArtifact(db, actor, origin, artifactId, revisionId);
     return {
         artifact: result.metadata,
-        download_url: requireArtifactStorage(storage).downloadUrl(result.objectKey),
+        download_url: requireArtifactStorage(storage).downloadUrl(
+            result.objectKey,
+            options.save ? result.metadata.filename : undefined
+        ),
         expires_at: new Date(Date.now() + 300_000).toISOString(),
     };
 }
@@ -150,7 +155,8 @@ export function artifactMetadata(
     return {
         artifact_id: row.artifact.id,
         content_type: row.revision.contentType,
-        created_at: row.revision.createdAt.toISOString(),
+        created_at: row.artifact.createdAt.toISOString(),
+        creator: artifactCreator(row.artifact),
         filename: row.revision.filename,
         name: row.artifact.name,
         revision_id: row.revision.id,
@@ -159,6 +165,29 @@ export function artifactMetadata(
         size_bytes: row.revision.byteSize,
         stable_url: stableUrl,
         title: row.revision.title,
+        updated_at: row.revision.createdAt.toISOString(),
         version_url: `${stableUrl}?revision=${row.revision.id}`,
     };
+}
+
+export function artifactCreatorFilter(creator: ArtifactCreator | undefined) {
+    if (!creator) {
+        return undefined;
+    }
+    return creator.type === 'agent'
+        ? eq(artifacts.creatorAgentId, creator.agent_id)
+        : eq(artifacts.creatorUserId, creator.user_id);
+}
+
+/** `artifacts_creator_shape` guarantees exactly one creator column; any other shape is corrupt. */
+export function artifactCreator(
+    artifact: Pick<typeof artifacts.$inferSelect, 'creatorAgentId' | 'creatorUserId'>
+): ArtifactCreator {
+    if (artifact.creatorAgentId && !artifact.creatorUserId) {
+        return { type: 'agent', agent_id: artifact.creatorAgentId };
+    }
+    if (artifact.creatorUserId && !artifact.creatorAgentId) {
+        return { type: 'user', user_id: artifact.creatorUserId };
+    }
+    throw new Error('Artifact has no single creator.');
 }

@@ -34,7 +34,8 @@ const storage: ArtifactStorage = {
         objects.delete(key);
         return Promise.resolve();
     },
-    downloadUrl: (key) => `https://private-r2.test/${key}?signature=temporary`,
+    downloadUrl: (key, saveAs) =>
+        `https://private-r2.test/${key}?signature=temporary${saveAs ? `&save-as=${saveAs}` : ''}`,
     upload: async (key, stream) => {
         if (failUpload) {
             throw new Error('R2 upload unavailable');
@@ -111,6 +112,9 @@ test('members read the library, outsiders fail, and current revisions cannot be 
     });
     const download = await owner.trpc.artifact.download.query(input);
     expect(download.download_url).toContain('private-r2.test');
+    expect(download.download_url).not.toContain('save-as');
+    const saved = await owner.trpc.artifact.download.query({ ...input, save: true });
+    expect(saved.download_url).toContain('save-as=report.txt');
     await expect(
         owner.trpc.artifact.deleteVersion.mutate({
             ...input,

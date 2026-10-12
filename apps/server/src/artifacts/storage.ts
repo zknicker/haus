@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import { S3Client } from 'bun';
+import { attachmentDisposition } from '../utils/content-disposition.ts';
 
 export interface ArtifactStorage {
     delete(key: string): Promise<void>;
-    downloadUrl(key: string): string;
+    /** With `saveAs`, the link downloads as that filename instead of rendering inline. */
+    downloadUrl(key: string, saveAs?: string): string;
     upload(
         key: string,
         stream: AsyncIterable<Uint8Array>,
@@ -36,7 +38,13 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
         delete: async (key) => {
             await client.delete(key);
         },
-        downloadUrl: (key) => client.file(key).presign({ expiresIn: 300, method: 'GET' }),
+        downloadUrl: (key, saveAs) =>
+            client.file(key).presign({
+                // Signed as response-content-disposition, so R2 answers with the override.
+                ...(saveAs ? { contentDisposition: attachmentDisposition(saveAs) } : {}),
+                expiresIn: 300,
+                method: 'GET',
+            }),
         upload: async (key, stream, contentType) => {
             const hash = createHash('sha256');
             let size = 0;
