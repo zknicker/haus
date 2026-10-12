@@ -15,29 +15,63 @@ interface DreamLocation {
     workspaceDir: string;
 }
 
+export type DreamVerdict = 'already-checked' | 'baselined' | 'due' | 'not-due';
+
+export interface DreamCheck {
+    /** MEMORY.md's size in bytes; null when it does not exist. */
+    memoryBytes: number | null;
+    verdict: DreamVerdict;
+}
+
 /**
- * Whether this Agent should dream tonight: its memory (MEMORY.md plus every file
- * under notes/) changed since its last dream, or MEMORY.md outgrew its index, and it
- * has not dreamed within the cooldown. The first look only records a baseline, so an
- * Agent's existing memory never earns a dream by itself.
+ * Tonight's one check for this Agent. It is due when its memory (MEMORY.md plus
+ * every file under notes/) changed since its last dream, or MEMORY.md outgrew its
+ * index, and it has not dreamed within the cooldown. The first look only records a
+ * baseline, so an Agent's existing memory never earns a dream by itself. A
+ * baselined or not-due verdict records `localDate` as checked; a due one is
+ * recorded by `markDreamChecked` once the request is sent, so an unsent request is
+ * retried. Any later check on a recorded date is `already-checked`.
  */
-export async function isDreamDue(input: DreamLocation & { now: number }): Promise<boolean> {
+export async function checkDream(
+    input: DreamLocation & { localDate: string; now: number }
+): Promise<DreamCheck> {
     const stampPath = dreamStampPath(input.agentRoot);
-    const [bytes, stamp] = await Promise.all([
+    const [memoryBytes, stamp] = await Promise.all([
         fileBytes(join(input.workspaceDir, 'MEMORY.md')),
         readStamp(stampPath),
     ]);
-    const overSize = bytes !== null && bytes > memorySizeLimitBytes;
-    const dreamedAt = stamp?.dreamedAt ?? null;
-    if (dreamedAt !== null && input.now - dreamedAt < dreamCooldownMs) {
-        return false;
+    if (stamp?.checkedOn === input.localDate) {
+        return { memoryBytes, verdict: 'already-checked' };
+    }
+    const overSize = memoryBytes !== null && memoryBytes > memorySizeLimitBytes;
+    const checked = { checkedOn: input.localDate };
+    if (stamp && stamp.dreamedAt !== null && input.now - stamp.dreamedAt < dreamCooldownMs) {
+        await writeStamp(stampPath, { ...stamp, ...checked });
+        return { memoryBytes, verdict: 'not-due' };
     }
     const fingerprint = await memoryFingerprint(input.workspaceDir);
     if (stamp === null) {
-        await writeStamp(stampPath, { dreamedAt: null, fingerprint });
-        return overSize;
+        await writeStamp(stampPath, {
+            checkedOn: overSize ? null : input.localDate,
+            dreamedAt: null,
+            fingerprint,
+        });
+        return { memoryBytes, verdict: overSize ? 'due' : 'baselined' };
     }
-    return overSize || stamp.fingerprint !== fingerprint;
+    if (overSize || stamp.fingerprint !== fingerprint) {
+        return { memoryBytes, verdict: 'due' };
+    }
+    await writeStamp(stampPath, { ...stamp, ...checked });
+    return { memoryBytes, verdict: 'not-due' };
+}
+
+/** Records tonight's due check once its dream request was sent. */
+export async function markDreamChecked(agentRoot: string, localDate: string): Promise<void> {
+    const stampPath = dreamStampPath(agentRoot);
+    const stamp = await readStamp(stampPath);
+    if (stamp) {
+        await writeStamp(stampPath, { ...stamp, checkedOn: localDate });
+    }
 }
 
 /**
@@ -52,7 +86,9 @@ export async function settleDreamBaseline(
         return;
     }
     try {
-        await writeStamp(dreamStampPath(input.agentRoot), {
+        const stampPath = dreamStampPath(input.agentRoot);
+        await writeStamp(stampPath, {
+            checkedOn: (await readStamp(stampPath))?.checkedOn ?? null,
             dreamedAt: input.now ?? Date.now(),
             fingerprint: await memoryFingerprint(input.workspaceDir),
         });
@@ -69,6 +105,8 @@ export async function settleDreamBaseline(
 }
 
 interface DreamStamp {
+    /** The last Computer-local date whose nightly check is done. */
+    checkedOn: string | null;
     dreamedAt: number | null;
     fingerprint: string;
 }
@@ -141,7 +179,11 @@ async function readStamp(path: string): Promise<DreamStamp | null> {
             return null;
         }
         const at = typeof parsed.dreamedAt === 'string' ? Date.parse(parsed.dreamedAt) : Number.NaN;
-        return { dreamedAt: Number.isFinite(at) ? at : null, fingerprint: parsed.fingerprint };
+        return {
+            checkedOn: typeof parsed.checkedOn === 'string' ? parsed.checkedOn : null,
+            dreamedAt: Number.isFinite(at) ? at : null,
+            fingerprint: parsed.fingerprint,
+        };
     } catch {
         // A torn or foreign stamp only costs a fresh baseline.
         return null;
@@ -154,7 +196,7 @@ async function writeStamp(path: string, stamp: DreamStamp): Promise<void> {
     const dreamedAt = stamp.dreamedAt === null ? null : new Date(stamp.dreamedAt).toISOString();
     await writeFile(
         temporary,
-        `${JSON.stringify({ dreamedAt, fingerprint: stamp.fingerprint })}\n`,
+        `${JSON.stringify({ checkedOn: stamp.checkedOn, dreamedAt, fingerprint: stamp.fingerprint })}\n`,
         { mode: 0o600 }
     );
     await rename(temporary, path);

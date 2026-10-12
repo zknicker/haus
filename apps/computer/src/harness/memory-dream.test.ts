@@ -4,8 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import {
+    checkDream,
     dreamCooldownMs,
-    isDreamDue,
+    markDreamChecked,
     memorySizeLimitBytes,
     settleDreamBaseline,
 } from './memory-dream.ts';
@@ -30,7 +31,10 @@ afterAll(async () => {
     await runtime.dispose();
 });
 
-const due = (now: number) => isDreamDue({ agentRoot, now, workspaceDir });
+/** Each look is its own night here, so no check is `already-checked`. */
+const due = async (now: number) =>
+    (await checkDream({ agentRoot, localDate: `night-${now}`, now, workspaceDir })).verdict ===
+    'due';
 const settle = (now: number, withDream: unknown = dream) =>
     settleDreamBaseline({ agentRoot, dream: withDream, now, runtime, workspaceDir });
 
@@ -97,4 +101,23 @@ test('a failing baseline write logs instead of failing the completed turn', asyn
     // The runtime directory is a file, so the stamp cannot be written.
     await writeFile(join(agentRoot, 'runtime'), 'not a directory');
     expect(await settle(start)).toBeUndefined();
+});
+
+test('a recorded night is already checked; a due night is recorded only once sent', async () => {
+    const look = (localDate: string) =>
+        checkDream({ agentRoot, localDate, now: start, workspaceDir });
+    await writeMemory(1024);
+    expect(await look('2026-10-11')).toEqual({ memoryBytes: 1024, verdict: 'baselined' });
+    expect((await look('2026-10-11')).verdict).toBe('already-checked');
+
+    await writeMemory(2048);
+    expect((await look('2026-10-12')).verdict).toBe('due');
+    // Unsent: the same night stays due.
+    expect((await look('2026-10-12')).verdict).toBe('due');
+    await markDreamChecked(agentRoot, '2026-10-12');
+    expect((await look('2026-10-12')).verdict).toBe('already-checked');
+
+    // A completed dream keeps the night it was checked on.
+    await settle(start + 1);
+    expect((await look('2026-10-12')).verdict).toBe('already-checked');
 });
