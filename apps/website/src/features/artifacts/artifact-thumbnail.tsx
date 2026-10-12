@@ -1,57 +1,74 @@
 import type { ArtifactMetadata } from '@haus/api';
-import { File, FileText, Image, Music, Video } from 'lucide-react';
-import { useState } from 'react';
-import { useArtifactDownload } from '../../hooks/artifacts/use-artifacts.ts';
-import { fileKind, hasLibraryPreview } from './artifact-format.ts';
+import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
+import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
+import { hasLibraryPreview } from './artifact-format.ts';
+import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
+import { artifactFileKind } from './icons/artifact-file-kind.ts';
+import { useDecodedImage } from './use-decoded-image.ts';
 
+type ThumbnailArtifact = Pick<
+    ArtifactMetadata,
+    'artifact_id' | 'content_type' | 'filename' | 'revision_id' | 'size_bytes'
+>;
+
+/**
+ * A file at a fixed size: a rounded photo for small raster images once its
+ * pixels decode, else (and until then) its kind's sheet. The photo's corner
+ * follows its box (`identityMarkRadius`).
+ */
 export function ArtifactThumbnail({
     artifact,
     serverId,
+    size = 40,
 }: {
-    artifact: ArtifactMetadata;
+    artifact: ThumbnailArtifact;
     serverId: string;
+    size?: number;
 }) {
-    return hasLibraryPreview(artifact) ? (
-        <ImageThumbnail artifact={artifact} key={artifact.revision_id} serverId={serverId} />
-    ) : (
-        <ArtifactFileIcon type={artifact.content_type} />
-    );
-}
-function ImageThumbnail({ artifact, serverId }: { artifact: ArtifactMetadata; serverId: string }) {
-    const query = useArtifactDownload(serverId, artifact.artifact_id, artifact.revision_id);
-    const [failed, setFailed] = useState(false);
-    if (!query.data || failed) {
-        return <ArtifactFileIcon type={artifact.content_type} />;
+    const src = useArtifactPhoto(artifact, serverId);
+    if (!src) {
+        return <ArtifactFileIcon kind={artifactFileKind(artifact)} size={size} />;
     }
     return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures are not user interaction.
-        <img
-            alt=""
-            className="h-full w-full object-contain"
-            height={240}
-            loading="lazy"
-            onError={() => setFailed(true)}
-            src={query.data.download_url}
-            width={320}
-        />
+        <span
+            className="artifact-thumbnail shrink-0"
+            style={{ borderRadius: identityMarkRadius(size), height: size, width: size }}
+        >
+            <img alt="" height={size} src={src} width={size} />
+        </span>
     );
 }
-export function ArtifactFileIcon({ type }: { type: string }) {
-    const kind = fileKind(type);
-    const Glyph =
-        kind === 'Image'
-            ? Image
-            : kind === 'Video'
-              ? Video
-              : kind === 'Audio'
-                ? Music
-                : kind === 'Document' || kind === 'PDF'
-                  ? FileText
-                  : File;
-    return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-muted">
-            <Glyph aria-hidden="true" size={32} />
-            <span className="text-xs">{kind}</span>
-        </div>
-    );
+
+/**
+ * A file filling a grid tile's well: the photo cropped to the well for small
+ * raster images once it decodes, else (and until then) its kind's sheet
+ * centered at `iconSize`.
+ */
+export function ArtifactCover({
+    artifact,
+    iconSize = 56,
+    serverId,
+}: {
+    artifact: ThumbnailArtifact;
+    iconSize?: number;
+    serverId: string;
+}) {
+    const src = useArtifactPhoto(artifact, serverId);
+    if (!src) {
+        return <ArtifactFileIcon kind={artifactFileKind(artifact)} size={iconSize} />;
+    }
+    return <img alt="" className="artifact-cover" height={240} src={src} width={320} />;
+}
+
+/**
+ * The photo's signed link once decoded; null for files without a photo, while
+ * loading, and when the link is refused (storage off, revision gone) or broken.
+ */
+function useArtifactPhoto(artifact: ThumbnailArtifact, serverId: string) {
+    const previewable = hasLibraryPreview(artifact);
+    const download = useArtifactDownload(serverId, artifact.artifact_id, artifact.revision_id, {
+        enabled: previewable,
+    });
+    const src = useDecodedImage(previewable ? download.data?.download_url : undefined);
+    return previewable ? src : null;
 }

@@ -35,7 +35,7 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 }
 
 export const serverRouteModules = {
-    artifacts: cachedRouteModule(() => import('../../features/artifacts/artifacts-content.tsx')),
+    artifacts: cachedRouteModule(() => import('../../features/artifacts/artifact-library.tsx')),
     activity: cachedRouteModule(() => import('./activity-page-content.tsx')),
     agent: cachedRouteModule(loadAgentProfileContent),
     chat: cachedRouteModule(() => import('./chat-page-content.tsx')),

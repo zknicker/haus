@@ -1,6 +1,7 @@
 import type { Agent, Chat } from '@haus/api';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
+import { parseArtifactPageKey } from '../../routes/app/desktop-page-paths.ts';
 import { type AppSection, resolveActiveSection } from '../../routes/app/server-route-state.ts';
 
 /**
@@ -26,7 +27,12 @@ export type TabMark =
 /** What a location shows, before any record is looked up. */
 export type TabPage =
     | { kind: 'agent'; agentId: string }
-    | { kind: 'artifact'; title: string | null }
+    | {
+          kind: 'artifact';
+          /** A shared library file (`artifacts/<id>`); null for a workspace target key. */
+          shared: { artifactId: string; revisionId: string | null } | null;
+          title: string | null;
+      }
     | { kind: 'browser'; title: string; url: string; viewId: string }
     | { kind: 'chat'; chatId: string }
     | { kind: 'dm'; agentId: string }
@@ -38,7 +44,8 @@ export type TabPage =
 /**
  * Parses a tab location. App paths are `/s/<slug>/<section>/<id>…`; desktop
  * Thread, Files, and artifact pages are `threads/<chatId>/<anchorId>`,
- * `files/<chatId>`, and `artifacts/<key>?title=…`.
+ * `files/<chatId>`, and `artifacts/<key>?title=…`; a shared library file is
+ * `artifacts/<artifactId>`, titled from its record.
  */
 export function parseTabPage(location: TabLocation): TabPage {
     if (location.kind === 'browser') {
@@ -71,7 +78,7 @@ export function parseTabPage(location: TabLocation): TabPage {
             return first ? { kind: 'files', chatId: first } : sectionPage(pathname, slug);
         case 'artifacts':
             return first
-                ? { kind: 'artifact', title: new URLSearchParams(search).get('title') }
+                ? artifactPage(first, new URLSearchParams(search))
                 : sectionPage(pathname, slug);
         default:
             return sectionPage(pathname, slug);
@@ -81,6 +88,8 @@ export function parseTabPage(location: TabLocation): TabPage {
 /** The records a page's identity reads; each is null until it loads. */
 export interface TabIdentityRecords {
     agents: readonly Pick<Agent, 'avatarUrl' | 'displayName' | 'id'>[] | null;
+    /** A shared artifact page's title, once its record loads. */
+    artifactTitle: string | null;
     /** The live web view's state, when Electron has reported it. */
     browserTab: Pick<BrowserTab, 'faviconUrl' | 'loading' | 'title' | 'url'> | null;
     chats: readonly TabChat[] | null;
@@ -125,7 +134,8 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
             return chatChildIdentity(page, records);
         case 'artifact':
             return {
-                label: page.title ?? 'Artifact',
+                // A shared file names itself once its record loads; until then the slot stays empty.
+                label: page.title ?? records.artifactTitle ?? (page.shared ? '' : 'Artifact'),
                 mark: { kind: 'glyph', glyph: 'artifact' },
                 place: null,
             };
@@ -196,6 +206,16 @@ function findAgent(records: TabIdentityRecords, agentId: string) {
 
 function avatar(agent: Pick<Agent, 'avatarUrl' | 'displayName'>): TabMark {
     return { kind: 'avatar', name: agent.displayName, src: agent.avatarUrl };
+}
+
+function artifactPage(key: string, search: URLSearchParams): TabPage {
+    return {
+        kind: 'artifact',
+        shared: parseArtifactPageKey(key)
+            ? null
+            : { artifactId: key, revisionId: search.get('revision') },
+        title: search.get('title'),
+    };
 }
 
 function sectionPage(pathname: string, slug: string): TabPage {

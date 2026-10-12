@@ -13,24 +13,23 @@ test('a Server member opens the shared library and reloads its stable address', 
 
     await openSection(page, 'Artifacts');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
-    await expect(page.getByRole('heading', { name: 'No artifacts here' })).toBeVisible();
-    await expect(page.getByText('Files agents publish to this Server appear here.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeDisabled();
+    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
+    await expect(page.getByRole('listbox', { name: 'Folders' })).toHaveCount(0);
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({ artifacts: [] });
+    expect(await client.artifact.creators.query({ serverId: server.id })).toEqual({
+        creators: [],
+    });
 
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'No artifacts here' })).toBeVisible();
-    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'No artifacts here' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
 
     await openSection(page, 'Inbox');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/inbox$`, 'u'));
     await openSection(page, 'Artifacts');
-    await expect(page.getByRole('heading', { name: 'No artifacts here' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
 });
 
-test('members browse mixed files, search, switch revisions and expand an image', async ({
+test('members browse folders and kinds, search, switch revisions and expand an image', async ({
     page,
 }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -41,41 +40,74 @@ test('members browse mixed files, search, switch revisions and expand an image',
     });
     const { conceptId } = await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await openSection(page, 'Artifacts');
-    await expect(page.getByRole('link', { name: 'Concept render', exact: true })).toBeVisible();
-    await expect(page.getByText('5 files on this page')).toBeVisible();
-    await page.getByRole('radio', { name: 'Images', exact: true }).click();
-    await expect(page.getByText('2 files on this page')).toBeVisible();
+
+    const today = page.getByRole('grid', { name: 'Today' });
+    await expect(today.getByRole('row')).toHaveCount(5);
+    await expect(today.getByRole('row', { name: 'Concept render' })).toContainText(
+        'Image · You · just now'
+    );
+
+    const folders = page.getByRole('listbox', { name: 'Folders' });
+    await expect(folders.getByRole('option')).toHaveText([
+        /All files\s*5 files/u,
+        /Yours\s*5 files/u,
+    ]);
+    await folders.getByRole('option', { name: 'Yours' }).click();
+    await expect(page).toHaveURL(/creator=user%3A/u);
+    await expect(folders.getByRole('option', { name: 'Yours' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+    );
+
+    // The band names the open folder, and its Artifacts crumb leads back to All.
+    const band = page.locator('header').filter({ hasText: 'Yours' });
+    await expect(band.getByRole('link', { name: 'Artifacts', exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'File type: All types', exact: true }).click();
+    await page.getByRole('menuitemradio', { name: 'Images', exact: true }).click();
+    await expect(today.getByRole('row')).toHaveCount(2);
+    await expect(page).toHaveURL(/kind=images/u);
     await page.getByRole('searchbox').fill('Concept');
-    await expect(page.getByText('1 file on this page')).toBeVisible();
-    await page.getByRole('radio', { name: 'List', exact: true }).click();
-    await expect(page.getByText('Concept render', { exact: true })).toBeVisible();
-    await page.getByText('Concept render', { exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'All artifacts' }).click();
-    await expect(page.getByRole('radio', { name: 'All files', exact: true })).toBeChecked();
-    await expect(page.getByText('5 files on this page')).toBeVisible();
+    await expect(today.getByRole('row')).toHaveCount(1);
+
+    await page.getByRole('radio', { name: 'Grid', exact: true }).click();
+    const tile = today.getByRole('row', { name: 'Concept render' });
+    await expect(tile.locator('img.artifact-cover')).toBeVisible();
+    await page.getByRole('searchbox').fill('');
     await page.screenshot({ path: '/tmp/haus-artifacts-library.png', animations: 'disabled' });
-    await page.getByRole('link', { name: 'Concept render', exact: true }).click();
+
+    await tile.click();
+    await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
     await expect(page.getByRole('img', { name: 'Concept render', exact: true })).toBeVisible();
-    await expect(page.getByRole('complementary', { name: 'Artifact details' })).toBeVisible();
-    await page.getByRole('link', { name: 'Revision 1', exact: true }).click();
+    const details = page.getByRole('complementary', { name: 'Artifact details' });
+    await expect(details).toContainText('Created by');
+    await details.getByRole('button', { name: 'View revision 1', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${conceptId}\\?revision=.*_r1$`, 'u'));
-    await expect(page.getByText('Revision 1 · Fixed revision')).toBeVisible();
+    await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
     await page.reload();
-    await expect(page.getByText('Revision 1 · Fixed revision')).toBeVisible();
+    await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
     await page.getByRole('link', { name: 'Open latest', exact: true }).click();
-    await expect(page.getByText('Revision 2 · Latest')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`${conceptId}$`, 'u'));
+    await expect(details.getByText('Viewing')).toBeVisible();
     await page.screenshot({ path: '/tmp/haus-artifacts-viewer.png' });
-    await page.getByRole('button', { name: 'Expand', exact: true }).click();
+
+    await page.getByRole('button', { name: 'Expand Concept render', exact: true }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Zoom out', exact: true })).toBeEnabled();
-    await page.getByRole('button', { name: 'Fit', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Zoom out', exact: true })).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.setViewportSize({ width: 768, height: 1000 });
-    await expect(page.getByRole('complementary', { name: 'Artifact details' })).toBeVisible();
+
+    await page.setViewportSize({ width: 420, height: 900 });
+    await expect(details).toBeVisible();
+    // Latest ← fixed revision ← viewer ← the filtered library the file was opened from.
+    await page.goBack();
+    await page.goBack();
+    await page.goBack();
+    await expect(page).toHaveURL(/creator=user%3A.*kind=images/u);
+    await expect(
+        page.getByRole('button', { name: 'File type: Images', exact: true })
+    ).toBeVisible();
 });
 
 test('an unavailable fixed revision reports an error within the persistent Server shell', async ({
@@ -90,5 +122,5 @@ test('an unavailable fixed revision reports an error within the persistent Serve
     await page.reload();
     await expect(page.getByRole('alert')).toContainText('Artifact or revision was not found.');
     await openSection(page, 'Artifacts');
-    await expect(page.getByRole('heading', { name: 'No artifacts here' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
 });

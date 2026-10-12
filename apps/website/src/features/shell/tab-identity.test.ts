@@ -4,6 +4,7 @@ import { parseTabPage, resolveTabIdentity, type TabIdentityRecords } from './tab
 const app = (path: string) => ({ kind: 'app', path }) as const;
 
 const records: TabIdentityRecords = {
+    artifactTitle: null,
     agents: [{ avatarUrl: 'https://a/blippy.png', displayName: 'Blippy', id: 'ag1' }],
     browserTab: null,
     chats: [
@@ -42,10 +43,9 @@ test('app paths parse to the page they show', () => {
         kind: 'thread',
     });
     expect(parseTabPage(app('/s/acme/files/c1'))).toEqual({ chatId: 'c1', kind: 'files' });
-    expect(parseTabPage(app('/s/acme/artifacts/k1?title=Plan'))).toEqual({
-        kind: 'artifact',
-        title: 'Plan',
-    });
+    expect(parseTabPage(app('/s/acme/artifacts/workspaceFile%3Aag1%3Aplan.md?title=Plan'))).toEqual(
+        { kind: 'artifact', shared: null, title: 'Plan' }
+    );
     expect(parseTabPage(app('/s/acme/settings/members'))).toEqual({
         kind: 'section',
         section: 'settings',
@@ -57,6 +57,7 @@ test('app paths parse to the page they show', () => {
     });
     expect(parseTabPage(app('/s/acme/artifacts/art_123?revision=rev_456'))).toEqual({
         kind: 'artifact',
+        shared: { artifactId: 'art_123', revisionId: 'rev_456' },
         title: null,
     });
     expect(parseTabPage(app('/s/acme/chats/%E0'))).toEqual({ chatId: '%E0', kind: 'chat' });
@@ -95,6 +96,25 @@ test('Thread and Files pages wear their chat mark and name it as context', () =>
     expect(resolveTabIdentity(parseTabPage(app('/s/acme/files/d1')), records).place).toBe(
         'DM › files'
     );
+});
+
+test('a shared artifact tab shows its file title once the record loads', () => {
+    const page = parseTabPage(app('/s/acme/artifacts/art_123'));
+    expect(page).toEqual({
+        kind: 'artifact',
+        shared: { artifactId: 'art_123', revisionId: null },
+        title: null,
+    });
+    expect(resolveTabIdentity(page, records)).toEqual({
+        label: '',
+        mark: { glyph: 'artifact', kind: 'glyph' },
+        place: null,
+    });
+    expect(resolveTabIdentity(page, { ...records, artifactTitle: 'Launch plan' }).label).toBe(
+        'Launch plan'
+    );
+    const workspace = parseTabPage(app('/s/acme/artifacts/workspaceFile%3Aag1%3Aplan.md'));
+    expect(resolveTabIdentity(workspace, records).label).toBe('Artifact');
 });
 
 test('sections wear their glyph; web pages prefer the live title and favicon', () => {
