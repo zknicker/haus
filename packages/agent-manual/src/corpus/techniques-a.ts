@@ -166,7 +166,7 @@ Any discussion about something visual or structural that text keeps failing to p
 A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.
 
 ### In Haus
-Post the artifact as an \`artifact\` fence naming a \`workbench/*.html\` file: it renders a card in the message that opens the page in the artifact pane, and the visuals skill carries the fence contract.`,
+Post the artifact as an \`artifact\` fence naming a \`workbench/*.html\` file: it renders a card in the message that opens the page in the artifact pane, and the visuals skill carries the fence contract. When the rounds are a file others need to keep (a spec, a design export), publish the first round with \`haus artifact publish\` and each later round as a new revision with \`--artifact-id <id>\`: every version is retained and the stable link always opens the latest.`,
         class: 'technique',
         industries: [
             'universal (anything with a visual/structural shape — UI, docs layout, posters, slides, flows)',
