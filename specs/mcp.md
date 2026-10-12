@@ -73,7 +73,7 @@ connection state before reading the account-scoped cache.
   tokens, and persists authorization-server trust.
 - A different authorization-server origin requires explicit operator confirmation.
 - Google Calendar and GitHub use configured Server environment credentials because neither offers
-  DCR. GitHub's client is the Haus GitHub App's ([ADR 0042](../docs/adr/0042-github-is-a-built-in-connection.md))
+  DCR. GitHub's client is the Haus GitHub App's ([ADR 0045](../docs/adr/0045-github-is-a-built-in-connection.md))
   with the haus.chat callback. It sends no scope, because a GitHub App has permissions instead,
   and issues expiring user tokens that Server refreshes with the client secret. GitHub is the one
   built-in connection: beyond this MCP path it binds App installations and feeds `github`

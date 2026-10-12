@@ -13,7 +13,7 @@ import {
 
 export * from './agent-trigger-actions.ts';
 
-// Family 9 — Triggers (ADR 0027, ADR 0042). Agent-owned wakes anchored to a
+// Family 9 — Triggers (ADR 0027, ADR 0045). Agent-owned wakes anchored to a
 // message: an outside system POSTs to a private URL (webhook) or a GitHub App
 // delivery matches (github). Never scheduled — time-based work stays with reminders.
 

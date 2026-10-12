@@ -3,7 +3,7 @@ import { type AgentApiRequester, createAgentApiClient } from '../agent-api-clien
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 
-// Family — GitHub (ADR 0042). Read-only: which Haus GitHub App installations
+// Family — GitHub (ADR 0045). Read-only: which Haus GitHub App installations
 // the Agent can watch with `haus trigger create --kind github`.
 
 export interface GithubDeps {

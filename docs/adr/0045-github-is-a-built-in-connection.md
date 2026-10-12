@@ -7,7 +7,7 @@ read_when:
   - changing which side owns payload interpretation for a Trigger kind
 ---
 
-# ADR 0042: GitHub Is a Built-in Connection
+# ADR 0045: GitHub Is a Built-in Connection
 
 ## Status
 

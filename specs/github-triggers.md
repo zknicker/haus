@@ -10,7 +10,7 @@ read_when:
 # GitHub Triggers
 
 A `github` Trigger is a Trigger ([Triggers](triggers.md)) whose stimulus is a GitHub App webhook
-delivery instead of a POST to a private URL ([ADR 0042](../docs/adr/0042-github-is-a-built-in-connection.md)).
+delivery instead of a POST to a private URL ([ADR 0045](../docs/adr/0045-github-is-a-built-in-connection.md)).
 It reuses the Trigger row, anchor, authoring paths, fire records, per-Trigger rate limiter, inbox
 delivery, provenance, and fire history. It has no URL and no secret. The `webhook` kind is
 unchanged except for the [chain budget](#automation-chain-budget).

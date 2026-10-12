@@ -11,7 +11,7 @@ read_when:
 ## Status
 
 Accepted 2026-07-24. Amended 2026-07-28 for Server ownership. Supersedes ADR 0004. Amended by
-[ADR 0042](0042-github-is-a-built-in-connection.md) (2026-10-11): GitHub becomes a built-in
+[ADR 0045](0045-github-is-a-built-in-connection.md) (2026-10-11): GitHub becomes a built-in
 connection backed by a Haus GitHub App, with installations and an app webhook; its OAuth App
 client is deleted. Other presets and custom connections are unchanged.
 
@@ -43,7 +43,7 @@ Credential-bearing endpoints require HTTPS.
 
 GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, RankWrangler, X, CoinGecko, and Skool are connection presets. Server owns their immutable endpoints
 and auth defaults. Hosted presets use Server-owned private transport per [ADR 0042](0042-server-owns-hosted-mcp-processes.md); remote presets use the custom-connection transport.
-GitHub is also a built-in connection ([ADR 0042](0042-github-is-a-built-in-connection.md)): its
+GitHub is also a built-in connection ([ADR 0045](0045-github-is-a-built-in-connection.md)): its
 tools still take the remote preset path, and Server additionally owns its GitHub App installations
 and app webhook.
 

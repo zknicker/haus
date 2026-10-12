@@ -8,7 +8,7 @@ read_when:
 
 # GitHub App connection
 
-GitHub is the first built-in connection ([ADR 0042](../docs/adr/0042-github-is-a-built-in-connection.md)).
+GitHub is the first built-in connection ([ADR 0045](../docs/adr/0045-github-is-a-built-in-connection.md)).
 It keeps the MCP connection model from [MCP connections](mcp.md) for GitHub's hosted MCP and adds
 installations and the `github` Trigger kind ([GitHub Triggers](github-triggers.md)). The GitHub
 OAuth App and every `HAUS_GITHUB_OAUTH_CLIENT_*` path are deleted. v1 adds no Haus-owned tools.
