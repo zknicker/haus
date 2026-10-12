@@ -30,10 +30,6 @@ export const agentRuntimeRoutes = {
     updateStatus: '/update/status',
     macApps: '/mac-apps',
     mcpAgentGrants: (agentId: string) => `/mcp/agents/${encodeURIComponent(agentId)}/grants`,
-    mcpAgentToolGrant: (agentId: string, connectionId: string, toolName: string) =>
-        `/mcp/agents/${encodeURIComponent(agentId)}/connections/${encodeURIComponent(
-            connectionId
-        )}/tools/${encodeURIComponent(toolName)}/grant`,
     mcpConnection: (id: string) => `/mcp/connections/${encodeURIComponent(id)}`,
     mcpConnectionDisconnect: (id: string) =>
         `/mcp/connections/${encodeURIComponent(id)}/disconnect`,

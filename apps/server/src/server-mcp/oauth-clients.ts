@@ -1,5 +1,5 @@
-import type { OAuthClientInformation } from '@ai-sdk/mcp';
 import type { McpPreset } from '@haus/api';
+import type { OAuthClientInformation } from '@modelcontextprotocol/client';
 
 /**
  * A Server-owned OAuth client for a preset whose authorization server offers no

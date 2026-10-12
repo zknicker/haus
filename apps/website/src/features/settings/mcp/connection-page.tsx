@@ -5,7 +5,6 @@ import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { useConnectionDelete } from '../../../hooks/servers/use-connection-delete.ts';
 import { useConnectionDisconnect } from '../../../hooks/servers/use-connection-disconnect.ts';
-import { useConnectionRefresh } from '../../../hooks/servers/use-connection-refresh.ts';
 import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { settingsConnectionRoute } from '../../servers/server-routes.ts';
@@ -50,7 +49,6 @@ export function ConnectionPage({
     const agents = useAgents(serverId);
     const deleteConnection = useConnectionDelete(serverId);
     const disconnect = useConnectionDisconnect(serverId);
-    const refresh = useConnectionRefresh(serverId);
     const skool = useSkoolConnect(serverId);
     const navigate = useNavigate();
     const { slug } = useServerContext().server;
@@ -81,7 +79,6 @@ export function ConnectionPage({
                 <ConnectionDetailHeader
                     connection={connection}
                     onAddCredentials={credentials.editCredentials}
-                    onRefresh={() => refresh.mutate({ connectionId, serverId })}
                     onRemove={() => setDestructiveAction('delete')}
                     onSignIn={() => signIn.begin(connection)}
                     saving={saving}
@@ -111,7 +108,7 @@ export function ConnectionPage({
                 <McpAgentAccessSection connection={connection} serverId={serverId} />
                 <McpToolsSection
                     connection={connection}
-                    pending={signIn.connecting || refresh.isPending}
+                    pending={signIn.connecting}
                     tools={record.tools}
                 />
                 <McpConnectionFacts connection={connection} usesToken={tokenPreset !== null} />

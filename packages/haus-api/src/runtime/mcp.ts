@@ -131,20 +131,6 @@ export const agentRuntimeMcpOAuthCompleteSchema = z.object({
     state: z.string().optional(),
 });
 
-export const agentRuntimeMcpAgentToolGrantSchema = z.object({
-    agentId: z.string().trim().min(1),
-    connectionId: agentRuntimeMcpConnectionIdSchema,
-    toolName: z.string().trim().min(1),
-});
-
-export const agentRuntimeMcpAgentToolGrantListSchema = z.object({
-    grants: z.array(agentRuntimeMcpAgentToolGrantSchema),
-});
-
-export const agentRuntimeMcpAgentToolGrantUpdateSchema = z.object({
-    enabled: z.boolean(),
-});
-
 export const agentRuntimeMcpDisconnectResultSchema = z.object({
     affectedAgents: z.array(
         z.object({
@@ -155,13 +141,6 @@ export const agentRuntimeMcpDisconnectResultSchema = z.object({
     ok: z.boolean(),
 });
 
-export type AgentRuntimeMcpAgentToolGrant = z.infer<typeof agentRuntimeMcpAgentToolGrantSchema>;
-export type AgentRuntimeMcpAgentToolGrantList = z.infer<
-    typeof agentRuntimeMcpAgentToolGrantListSchema
->;
-export type AgentRuntimeMcpAgentToolGrantUpdate = z.infer<
-    typeof agentRuntimeMcpAgentToolGrantUpdateSchema
->;
 export type AgentRuntimeMcpAuth = z.infer<typeof agentRuntimeMcpAuthSchema>;
 export type AgentRuntimeMcpConnection = z.infer<typeof agentRuntimeMcpConnectionSchema>;
 export type AgentRuntimeMcpConnectionCreate = z.infer<typeof agentRuntimeMcpConnectionCreateSchema>;

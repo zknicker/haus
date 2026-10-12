@@ -120,6 +120,7 @@ export async function createHausServerApplication(
             : undefined;
         const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, { hostedMcps });
         mcpRuntime = startedMcpRuntime;
+        void startedMcpRuntime.start();
         const mcpIconResolver = makeMcpIconResolver(runtime);
         const mcpOAuthRelay = new McpOAuthRelay(connectedHaus.db, startedMcpRuntime);
         // One inbound budget per trigger, shared by the public route and the

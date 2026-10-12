@@ -1,21 +1,27 @@
-import type { MCPClient } from '@ai-sdk/mcp';
 import type { McpPreset } from '@haus/api';
 import type { EffectRuntime, TraceCarrier } from '@haus/effect';
-import { and, eq } from 'drizzle-orm';
+import type { Client as MCPClient } from '@modelcontextprotocol/client';
+import { eq } from 'drizzle-orm';
+import { Effect, type Scope } from 'effect';
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
 import type { HostedMcpAccess } from '../hosted-mcp/supervisor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentMcpConnectionGrantsTable,
-    mcpConnectionsTable,
-    mcpSecretsTable,
-} from '../postgres/schema.ts';
+import { mcpConnectionsTable, mcpSecretsTable } from '../postgres/schema.ts';
 import { resolveAccountLabel } from './account-label.ts';
+import {
+    authorizeToolConnection,
+    hasConnectionGrant,
+    missingGrantMessage,
+    readGrantedConnections,
+    toolNotOffered,
+} from './agent-access.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { createConnectionClient } from './connection-client.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
+import { McpInventory } from './inventory.ts';
 import { callMcpTool, listAllTools, modelToolName } from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
+import { classifyMcpUpstreamError } from './upstream-failure.ts';
 import { runMcpUpstream } from './upstream-operation.ts';
 
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 5000;
@@ -24,9 +30,10 @@ const DEFAULT_CLOSE_TIMEOUT_MS = 5000;
 
 export interface McpSecret {
     approvedAuthorizationServerOrigins: string[];
-    authorizationServerInformation?: Record<string, unknown>;
     clientInformation?: Record<string, unknown>;
+    clientInformationIssuer?: string;
     configuredClientInformation?: Record<string, unknown>;
+    discoveryState?: Record<string, unknown>;
     headers: Record<string, string>;
     oauthScopes: string[];
     oauthState?: string;
@@ -45,9 +52,11 @@ interface McpRuntimeOptions {
     closeTimeoutMs?: number;
     discoveryTimeoutMs?: number;
     hostedMcps?: HostedMcpAccess;
+    inventoryIntervalMs?: number;
     invocationTimeoutMs?: number;
 }
 export class McpRuntime {
+    readonly inventory: McpInventory;
     readonly hostedMcps: HostedMcpAccess | undefined;
     private readonly clients: McpClientCache;
     private readonly closeTimeoutMs: number;
@@ -55,17 +64,31 @@ export class McpRuntime {
     private readonly invocationTimeoutMs: number;
     constructor(
         private readonly db: HausDatabase,
-        runtime: EffectRuntime<never>,
+        private readonly runtime: EffectRuntime<never>,
         options: McpRuntimeOptions = {}
     ) {
         this.hostedMcps = options.hostedMcps;
         this.closeTimeoutMs = options.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
         this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
         this.invocationTimeoutMs = options.invocationTimeoutMs ?? DEFAULT_INVOCATION_TIMEOUT_MS;
+        this.inventory = new McpInventory(
+            db,
+            (id) =>
+                this.runUpstream(id, 'discovery', (client, signal) =>
+                    listAllTools(client, {
+                        signal,
+                        timeout: this.discoveryTimeoutMs,
+                        cacheMode: 'refresh',
+                    })
+                ),
+            (id, cause) => this.inventoryFailed(id, cause),
+            runtime,
+            options.inventoryIntervalMs
+        );
         this.clients = new McpClientCache(
             runtime,
             options.clientFactory ??
-                ((connectionId, signal) => this.createClient(connectionId, signal))
+                ((connectionId, signal, scope) => this.createClient(connectionId, signal, scope))
         );
     }
     async discover(connectionId: string, preset: McpPreset | null = null) {
@@ -75,8 +98,9 @@ export class McpRuntime {
             const tools = definitions.map((tool) => tool.name);
             return {
                 accountLabel: await resolveAccountLabel(client, { preset, signal, timeout, tools }),
-                instructions: client.instructions,
-                serverInfoIcons: (client.serverInfo as { icons?: unknown }).icons,
+                definitions,
+                instructions: client.getInstructions(),
+                serverInfoIcons: client.getServerVersion()?.icons,
                 tools,
             };
         });
@@ -84,35 +108,23 @@ export class McpRuntime {
     async listAgentTools(
         serverId: string,
         agentId: string,
-        traceContext?: TraceCarrier,
+        _traceContext?: TraceCarrier,
         signal?: AbortSignal
     ): Promise<McpToolDefinition[]> {
-        const connections = await this.grantedConnections(serverId, agentId);
+        signal?.throwIfAborted();
+        const scope = { serverId, agentId };
+        const connections = await readGrantedConnections(this.db, scope);
         const definitions = await Promise.all(
             connections.map(async (connection) => {
-                try {
-                    const tools = await this.runUpstream(
-                        connection.id,
-                        'discovery',
-                        (client, signal) =>
-                            listAllTools(client, {
-                                signal,
-                                timeout: this.discoveryTimeoutMs,
-                            }),
-                        traceContext,
-                        signal
-                    );
-                    await this.requireGrant(serverId, agentId, connection.id);
-                    return tools.map((tool) => ({
-                        description: `${connection.name}: ${tool.description ?? `Run ${tool.name}.`}`,
-                        inputSchema: tool.inputSchema as Record<string, unknown>,
-                        name: modelToolName(connection.id, tool.name),
-                        title: tool.annotations?.title ?? null,
-                    }));
-                } catch {
-                    signal?.throwIfAborted();
+                if (!(await hasConnectionGrant(this.db, scope, connection.id))) {
                     return [];
                 }
+                return this.inventory.read(connection.id).map((tool) => ({
+                    description: `${connection.name}: ${tool.description ?? `Run ${tool.name}.`}`,
+                    inputSchema: tool.inputSchema,
+                    name: modelToolName(connection.id, tool.name),
+                    title: tool.annotations?.title ?? null,
+                }));
             })
         );
         return definitions.flat();
@@ -125,28 +137,62 @@ export class McpRuntime {
         traceContext?: TraceCarrier;
         signal?: AbortSignal;
     }): Promise<unknown> {
-        const resolved = await this.resolveGrantedTool(
-            input.serverId,
-            input.agentId,
-            input.toolName
-        );
-        await this.requireGrant(input.serverId, input.agentId, resolved.connectionId);
-        return narrowMcpToolResult(
-            await this.runUpstream(
-                resolved.connectionId,
-                'invocation',
-                (client, signal) =>
-                    callMcpTool(client, {
-                        arguments: asMcpArguments(input.args),
-                        name: resolved.upstreamName,
+        const args = asMcpArguments(input.args);
+        const scope = { serverId: input.serverId, agentId: input.agentId };
+        const connection = await authorizeToolConnection(this.db, scope, input.toolName);
+        const outcome = await this.runUpstream(
+            connection.id,
+            'invocation',
+            async (client, signal) => {
+                let tools = await listAllTools(client, {
+                    signal,
+                    timeout: this.invocationTimeoutMs,
+                });
+                let tool = tools.find(
+                    (item) => modelToolName(connection.id, item.name) === input.toolName
+                );
+                if (!tool) {
+                    tools = (
+                        await client.listTools(undefined, {
+                            signal,
+                            timeout: this.invocationTimeoutMs,
+                            cacheMode: 'refresh',
+                        })
+                    ).tools;
+                    tool = tools.find(
+                        (item) => modelToolName(connection.id, item.name) === input.toolName
+                    );
+                }
+                if (!tool) {
+                    return { kind: 'absent' } as const;
+                }
+                if (!(await hasConnectionGrant(this.db, scope, connection.id))) {
+                    return { kind: 'revoked' } as const;
+                }
+                signal.throwIfAborted();
+                return {
+                    kind: 'called',
+                    result: await callMcpTool(client, {
+                        arguments: args,
+                        name: tool.name,
+                        definition: tool,
                         options: { signal, timeout: this.invocationTimeoutMs },
                     }),
-                input.traceContext,
-                input.signal
-            )
+                } as const;
+            },
+            input.traceContext,
+            input.signal
         );
+        if (outcome.kind === 'absent') {
+            throw toolNotOffered(connection, input.toolName);
+        }
+        if (outcome.kind === 'revoked') {
+            throw new McpDeniedError(missingGrantMessage(connection.name));
+        }
+        return narrowMcpToolResult(outcome.result);
     }
     async closeConnection(connectionId: string): Promise<void> {
+        this.inventory.forget(connectionId);
         clearAmazonProductCache(this);
         await this.clients.closeConnection(connectionId, this.closeTimeoutMs);
     }
@@ -164,6 +210,7 @@ export class McpRuntime {
         );
     }
     async close(): Promise<void> {
+        await this.inventory.close();
         await this.clients.closeAll(this.closeTimeoutMs);
     }
     async readConnection(connectionId: string) {
@@ -197,59 +244,33 @@ export class McpRuntime {
                 target: mcpSecretsTable.connectionId,
             });
     }
-    private createClient(connectionId: string, signal: AbortSignal): Promise<MCPClient> {
-        return createConnectionClient(this, connectionId, signal);
+    ownsClient(connectionId: string, client: MCPClient): boolean {
+        return this.clients.owns(connectionId, client);
     }
-    private async grantedConnections(serverId: string, agentId: string) {
-        return await this.db
-            .select({
-                id: mcpConnectionsTable.id,
-                name: mcpConnectionsTable.name,
-                tools: mcpConnectionsTable.tools,
-            })
-            .from(agentMcpConnectionGrantsTable)
-            .innerJoin(
-                mcpConnectionsTable,
-                and(
-                    eq(mcpConnectionsTable.serverId, agentMcpConnectionGrantsTable.serverId),
-                    eq(mcpConnectionsTable.id, agentMcpConnectionGrantsTable.connectionId)
-                )
+    private createClient(
+        connectionId: string,
+        signal: AbortSignal,
+        scope: Scope.CloseableScope
+    ): Promise<MCPClient> {
+        return createConnectionClient(this, connectionId, signal, { runtime: this.runtime, scope });
+    }
+    start(): Promise<void> {
+        return this.inventory.start();
+    }
+    inventoryFailed(connectionId: string, cause: unknown): void {
+        const failure = classifyMcpUpstreamError(cause, 'discovery');
+        this.runtime.runSync(
+            Effect.logWarning(
+                'MCP inventory refresh failed; retaining the last successful catalog'
+            ).pipe(
+                Effect.annotateLogs({
+                    connectionId,
+                    operation: 'mcp.inventory',
+                    failureKind: failure.failureKind,
+                    code: failure.code,
+                })
             )
-            .where(
-                and(
-                    eq(agentMcpConnectionGrantsTable.serverId, serverId),
-                    eq(agentMcpConnectionGrantsTable.agentId, agentId),
-                    eq(mcpConnectionsTable.connected, true)
-                )
-            );
-    }
-    private async requireGrant(serverId: string, agentId: string, connectionId: string) {
-        const [grant] = await this.db
-            .select({ connectionId: agentMcpConnectionGrantsTable.connectionId })
-            .from(agentMcpConnectionGrantsTable)
-            .where(
-                and(
-                    eq(agentMcpConnectionGrantsTable.serverId, serverId),
-                    eq(agentMcpConnectionGrantsTable.agentId, agentId),
-                    eq(agentMcpConnectionGrantsTable.connectionId, connectionId)
-                )
-            )
-            .limit(1);
-        if (!grant) {
-            throw new McpDeniedError('Access to this MCP connection was revoked.');
-        }
-    }
-    private async resolveGrantedTool(serverId: string, agentId: string, visibleName: string) {
-        const connections = await this.grantedConnections(serverId, agentId);
-        for (const connection of connections) {
-            const upstreamName = connection.tools.find(
-                (toolName) => modelToolName(connection.id, toolName) === visibleName
-            );
-            if (upstreamName) {
-                return { connectionId: connection.id, upstreamName };
-            }
-        }
-        throw new McpDeniedError(`MCP tool ${visibleName} is not granted.`);
+        );
     }
     private async runUpstream<T>(
         connectionId: string,
