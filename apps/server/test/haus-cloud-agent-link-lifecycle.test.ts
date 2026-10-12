@@ -109,8 +109,6 @@ test('deleting the requesting Channel keeps the work, moves Happening now, and s
             messageId: refuge.message.id,
             threadChatId: null,
         },
-        message: { id: refuge.message.id },
-        threadChatId: refugeId,
         work: { chatId: launchpadId, messageId: launched.body.messageId },
     });
 

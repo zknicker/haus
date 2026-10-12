@@ -83,11 +83,16 @@ test('listActive shows queued and running work to members with Chat access only'
             kind: 'work-thread',
             threadChatId: `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`,
         },
-        message: { author: { kind: 'agent' }, body: { kind: 'text' }, id: created.body.messageId },
-        threadAnchorMessage: null,
-        threadChatId: `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`,
         work: { status: 'queued' },
     });
+    expect(Object.keys(forOwner ?? {}).sort()).toEqual([
+        'chatKind',
+        'chatName',
+        'chatPeerUserId',
+        'conversationChatId',
+        'location',
+        'work',
+    ]);
     await expect(
         fixture.outsider.trpc.cloudAgentWork.listActive.query({ serverId: fixture.serverId })
     ).resolves.toEqual([]);

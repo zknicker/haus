@@ -59,7 +59,7 @@ public enum InboxHappeningNowRows {
         resolveActor: InboxActorResolver
     ) -> InboxHappeningNowRow {
         let name = resolveActor(item.work.agentId, nil)?.name
-            ?? InboxActorName.stored(.agent(agentID: item.work.agentId, profile: storedProfile(item)))
+            ?? InboxActorName.stored(.agent(agentID: item.work.agentId, profile: nil))
         let chatLabel = InboxConversationLabel.text(kind: item.chatKind, name: item.chatName)
         return InboxHappeningNowRow(
             id: "work:\(item.work.id)",
@@ -72,15 +72,6 @@ public enum InboxHappeningNowRows {
             detail: "\(chatLabel) · \(name)",
             open: .cloudAgentWork(workID: item.work.id)
         )
-    }
-
-    /// The delegating Agent's stored profile, when the row still carries the
-    /// launch Message it wrote. The Agent is the work's, never a linker's.
-    private static func storedProfile(_ item: ActiveCloudAgentWork) -> ChatAuthorProfile? {
-        guard case .agent(let agentID, let profile) = item.message?.author,
-              agentID == item.work.agentId
-        else { return nil }
-        return profile
     }
 
     /// This list is what is running now, so a job listed only because a

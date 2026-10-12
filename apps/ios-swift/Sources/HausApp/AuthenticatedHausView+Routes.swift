@@ -78,15 +78,6 @@ extension AuthenticatedHausView {
     private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
         switch work.location {
         case .workThread(let threadChatID, let anchorMessageID):
-            if let anchor = work.carriedThreadAnchor,
-               let selection = store.threadSelection(
-                   conversationChatID: work.conversationChatID,
-                   threadChatID: threadChatID,
-                   anchor: anchor
-               ) {
-                pushConversationThread(selection)
-                return
-            }
             openWorkThread(conversationChatID: work.conversationChatID, threadChatID: threadChatID, anchorMessageID: anchorMessageID)
         case .message(let chatID, _, let threadChatID):
             // `chatID` is always the Channel or DM. A Message in or anchoring

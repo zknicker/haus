@@ -52,23 +52,13 @@ test('a DM work names the human peer, and an Agent DM names neither', () => {
     expect(withoutPeer?.chatLabel).toBe('DM');
 });
 
-test('a retired Agent falls back to the name stored on its own Message', () => {
+test('a retired Agent falls back to a name from its id', () => {
     const [row] = toHappeningNowWork([activeWork()], humans, [], now);
-
-    expect(row?.agentName).toBe('Blippy (stored)');
-});
-
-test('a linking Message by another author never names the delegator', () => {
-    const message = {
-        author: { agentId: 'agent_other', kind: 'agent', profile: { displayName: 'Forge' } },
-        id: 'message_link',
-    } as ActiveCloudAgentWork['message'];
-    const [row] = toHappeningNowWork([activeWork({ message })], humans, [], now);
 
     expect(row?.agentName).toBe('Agent blippy');
 });
 
-test('the Server location wins over the launch Thread the old fields name', () => {
+test('the Server location is where the row opens', () => {
     for (const location of Object.values(activeWorkLocations)) {
         const [row] = toHappeningNowWork([activeWork({ location })], humans, agents, now);
         expect(row?.location).toEqual(location);
@@ -111,21 +101,11 @@ function activeWork(overrides: Partial<ActiveCloudAgentWork> = {}): ActiveCloudA
         chatName: 'product',
         chatPeerUserId: null,
         conversationChatId: 'chat_product',
-        message: {
-            author: {
-                agentId: 'agent_blippy',
-                kind: 'agent',
-                profile: {
-                    avatarUrl: null,
-                    deleted: false,
-                    description: null,
-                    displayName: 'Blippy (stored)',
-                },
-            },
-            id: 'message_one',
-        } as ActiveCloudAgentWork['message'],
-        threadAnchorMessage: null,
-        threadChatId: 'chat_thread',
+        location: {
+            anchorMessageId: 'message_one',
+            kind: 'work-thread',
+            threadChatId: 'chat_thread',
+        },
         work: workRecord(),
         ...overrides,
     };

@@ -111,22 +111,23 @@ describe('Happening now location', () => {
         ).toBe(false);
     });
 
-    it('stays optional beside the released fields', () => {
+    it('is the only way a row says where it opens', () => {
         const row = {
             chatKind: 'channel',
             chatName: 'product',
             chatPeerUserId: null,
             conversationChatId: linkedWork.chatId,
-            message: linkedMessage,
-            threadAnchorMessage: null,
-            threadChatId: 'cht_work_thread',
+            location: activeWorkLocations.message,
             work: linkedWork,
         };
-        expect(activeCloudAgentWorkSchema.parse(row).location).toBeUndefined();
-        const located = { ...row, location: activeWorkLocations.message };
-        expect(activeCloudAgentWorkSchema.parse(located).location).toEqual(
-            activeWorkLocations.message
+        expect(activeCloudAgentWorkSchema.parse(row).location).toEqual(activeWorkLocations.message);
+        expect(activeCloudAgentWorkSchema.safeParse({ ...row, location: undefined }).success).toBe(
+            false
         );
+        expect(
+            activeCloudAgentWorkSchema.safeParse({ ...row, threadChatId: 'cht_work_thread' })
+                .success
+        ).toBe(false);
     });
 });
 

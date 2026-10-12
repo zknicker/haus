@@ -4,10 +4,6 @@ import { useActiveCloudAgentWork } from '../../hooks/servers/use-cloud-agent-wor
 import { useThreadAnchorMessage } from '../../hooks/threads/use-thread-anchor-message.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { ThreadPeekDialog } from '../servers/thread/thread-peek-dialog.tsx';
-import {
-    activeCloudAgentWorkLocation,
-    carriedWorkThreadAnchor,
-} from './active-cloud-agent-work-location.ts';
 import { useCloudAgentWorkView } from './use-cloud-agent-work-view.ts';
 
 /**
@@ -24,7 +20,7 @@ export function CloudAgentWorkDialog() {
     const item = openWorkId
         ? active.data?.find((candidate) => candidate.work.id === openWorkId)
         : undefined;
-    const location = item ? activeCloudAgentWorkLocation(item) : null;
+    const location = item?.location;
 
     if (!(item && location?.kind === 'work-thread')) {
         return null;
@@ -56,13 +52,7 @@ function WorkThreadPeek({
     const { server } = useServerContext();
     const { closeWork } = useCloudAgentWorkView();
     const chats = useChats(server.id);
-    const carried = carriedWorkThreadAnchor(item, anchorMessageId);
-    const fetched = useThreadAnchorMessage(
-        server.id,
-        item.conversationChatId,
-        carried ? null : anchorMessageId
-    );
-    const anchor = carried ?? fetched.anchor;
+    const { anchor } = useThreadAnchorMessage(server.id, item.conversationChatId, anchorMessageId);
     const chat = chats.data?.find((candidate) => candidate.id === item.conversationChatId);
 
     if (!(anchor && chat)) {

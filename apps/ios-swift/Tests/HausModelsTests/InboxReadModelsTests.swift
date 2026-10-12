@@ -2,15 +2,6 @@ import Foundation
 import XCTest
 @testable import HausModels
 
-private func messageJSON(id: String, sequence: Int) -> String {
-    """
-    {"attachments":[],"author":{"agentId":"agent_1","kind":"agent","profile":null},
-     "chatId":"chat_1","content":"Ship the iPhone build","createdAt":"2026-09-11T09:00:00.000Z",
-     "id":"\(id)","nonce":"nonce_\(id)","runId":null,"sequence":\(sequence),
-     "serverId":"server_1","task":null}
-    """
-}
-
 private let workJSON = """
 {"activity":{"at":"2026-09-11T09:05:00.000Z","summary":"Reading the diff"},
  "agentId":"agent_1","cancelRequestedAt":null,"chatId":"chat_thread",
@@ -60,12 +51,13 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertNil(chat.lastMessage)
     }
 
+    /// `activeWorkLocations.workThread` in `cloud-agent-work-fixture.ts`.
     func testDecodesServerWideActiveCloudAgentWork() throws {
         let json = """
-        [{"chatKind":"channel","chatName":"product","chatPeerUserId":null,
+        [{"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
           "conversationChatId":"chat_1",
-          "message":\(messageJSON(id: "message_work", sequence: 12)),
-          "threadAnchorMessage":null,"threadChatId":"chat_thread","work":\(workJSON)}]
+          "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"cht_work_thread"},
+          "work":\(workJSON)}]
         """
 
         let rows = try HausJSON.decoder().decode([ActiveCloudAgentWork].self, from: Data(json.utf8))
@@ -76,47 +68,24 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertTrue(row.work.status.isActive)
         XCTAssertEqual(row.work.activity?.summary, "Reading the diff")
         XCTAssertEqual(row.conversationChatID, "chat_1")
-        // A Server without `location` implies the launch work Thread.
-        XCTAssertEqual(row.location, .workThread(threadChatID: "chat_thread", anchorMessageID: "message_work"))
-        XCTAssertEqual(row.carriedThreadAnchor?.id, "message_work")
-    }
-
-    func testLegacyRowPrefersTheThreadAnchorMessage() throws {
-        let json = """
-        {"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
-         "conversationChatId":"chat_1",
-         "message":\(messageJSON(id: "message_work", sequence: 12)),
-         "threadAnchorMessage":\(messageJSON(id: "message_anchor", sequence: 4)),
-         "threadChatId":"chat_thread","work":\(workJSON)}
-        """
-
-        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
-
-        XCTAssertEqual(row.location, .workThread(threadChatID: "chat_thread", anchorMessageID: "message_anchor"))
-        XCTAssertEqual(row.carriedThreadAnchor?.id, "message_anchor")
         XCTAssertEqual(row.chatKind, .dm)
         XCTAssertEqual(row.chatPeerUserID, "user_2")
-    }
-
-    /// `activeWorkLocations.workThread` in `cloud-agent-work-fixture.ts`.
-    func testWorkThreadLocationWinsOverTheLegacyFields() throws {
-        let json = """
-        {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
-         "conversationChatId":"chat_1",
-         "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"cht_work_thread"},
-         "message":\(messageJSON(id: "message_work", sequence: 12)),
-         "threadAnchorMessage":null,"threadChatId":"chat_thread","work":\(workJSON)}
-        """
-
-        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
-
         XCTAssertEqual(row.location, .workThread(threadChatID: "cht_work_thread", anchorMessageID: "message_work"))
     }
 
+    /// `location` is the only way a row says where it opens.
+    func testRejectsARowWithoutALocation() {
+        let json = """
+        {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
+         "conversationChatId":"chat_1","threadChatId":"chat_thread","work":\(workJSON)}
+        """
+
+        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
+    }
+
     /// `activeWorkLocations.message`: the newest visible link, after the launch
-    /// Chat is gone. The contraction slice drops the legacy fields, so the row
-    /// must decode without them.
-    func testMessageLocationDecodesWithoutTheLegacyFields() throws {
+    /// Chat is gone.
+    func testDecodesAMessageLocation() throws {
         let json = """
         {"chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
@@ -130,8 +99,6 @@ final class InboxReadModelsTests: XCTestCase {
             row.location,
             .message(chatID: "cht_tech_ops", messageID: "msg_linking_elsewhere", threadChatID: nil)
         )
-        XCTAssertNil(row.message)
-        XCTAssertNil(row.carriedThreadAnchor)
     }
 
     func testRejectsAnUnknownLocationKind() {

@@ -5,7 +5,6 @@ import type {
     CloudAgentJobState,
     CloudAgentProvider,
 } from '@haus/api';
-import { activeCloudAgentWorkLocation } from '../../cloud-agents/active-cloud-agent-work-location.ts';
 import {
     cloudAgentJobText,
     cloudAgentWorkAgentFallbackName,
@@ -46,7 +45,7 @@ export function toHappeningNowWork(
         agentName: workAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
         id: item.work.id,
-        location: activeCloudAgentWorkLocation(item),
+        location: item.location,
         provider: item.work.provider,
         ...liveStatus(item.work.job, now),
         title: item.work.title,
@@ -73,11 +72,6 @@ function workAgentName(item: ActiveCloudAgentWork, agentsById: ReadonlyMap<strin
     const agent = agentsById.get(item.work.agentId);
     if (agent) {
         return agent.displayName;
-    }
-    // Any Message may link the work; only the delegator's own stored profile names it.
-    const author = item.message.author;
-    if (author.kind === 'agent' && author.agentId === item.work.agentId && author.profile) {
-        return author.profile.displayName;
     }
     return cloudAgentWorkAgentFallbackName(item.work.agentId);
 }

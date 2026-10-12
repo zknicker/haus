@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { type ChatMessage, chatMessageSchema, idSchema } from './chat.ts';
+import { idSchema } from './chat.ts';
 import {
     cloudAgentActivitySchema,
     cloudAgentBranchSchema,
@@ -226,15 +226,8 @@ export const activeCloudAgentWorkSchema = z
         chatName: z.string().nullable(),
         chatPeerUserId: idSchema.nullable(),
         conversationChatId: idSchema,
-        /**
-         * Where opening this row goes. Optional until the Server fills it;
-         * `message`, `threadAnchorMessage`, and `threadChatId` stay for
-         * released Apps until the contraction slice removes them.
-         */
-        location: activeCloudAgentWorkLocationSchema.optional(),
-        message: chatMessageSchema,
-        threadAnchorMessage: chatMessageSchema.nullable(),
-        threadChatId: idSchema,
+        /** Where opening this row goes. */
+        location: activeCloudAgentWorkLocationSchema,
         work: cloudAgentWorkSchema,
     })
     .strict();
@@ -242,8 +235,3 @@ export const activeCloudAgentWorkSchema = z
 export const activeCloudAgentWorkListSchema = z.array(activeCloudAgentWorkSchema);
 
 export type ActiveCloudAgentWork = z.infer<typeof activeCloudAgentWorkSchema>;
-
-/** The Message this work's Thread hangs off. */
-export function activeCloudAgentWorkThreadAnchor(row: ActiveCloudAgentWork): ChatMessage {
-    return row.threadAnchorMessage ?? row.message;
-}
