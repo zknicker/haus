@@ -45,7 +45,7 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
                     size += chunk.byteLength;
                     if (size > (config.maxBytes ?? artifactMaxBytes)) {
                         throw new ArtifactError(
-                            'Artifact exceeds the 256 MiB limit.',
+                            'Artifact exceeds the configured upload size limit.',
                             413,
                             'SIZE_LIMIT'
                         );

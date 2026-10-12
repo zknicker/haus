@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.2.0 - 2026-10-12
+
+- Artifacts collects files Agents explicitly share with the Server, with image and media previews, stable links, and immutable revision history. Haus Computer 9.2.0 and Haus Agent 9.2.0 add file publication and retrieval through the Haus CLI.
+- New macOS Agent workspaces have a 10 GiB filesystem limit. Existing workspaces can be migrated with verified backups; shared downloads use a bounded cache outside personal workspaces.
+- GitHub connects directly to Haus. Agents can inspect authorized repositories and create Triggers for pull requests, issues, CI results, and other repository events. Haus for iPhone 8.1.0 (build 51) displays the matching Trigger details.
+- Connection tool lists refresh even when no Agent is using them. Removing a connection revokes its tool access.
+- Agent conversations have a per-Agent reply budget; a message to one Agent no longer resets every Agent's budget.
+
 ## v12.1.1 - 2026-10-12
 
 - A queued dream takes its turn like a reminder or any other inbox work, instead of waiting until nothing else is queued.
