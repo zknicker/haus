@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.1.0 - 2026-10-12
+
+- A busy Agent still dreams that night. Its dream waits until its current and queued work finish, instead of being skipped while it works.
+- Haus Computer 9.1.0 and Haus Agent 9.1.0 check each Agent once per night, at the first moment the Computer is awake between 03:00 and 05:00. A Computer asleep through that window skips the night, and a restart never checks the same night twice. A new Agent's first dream comes roughly 24 to 48 hours after it starts.
+
 ## v12.0.0 - 2026-10-11
 
 - Cloud Agent work can appear in more than one place. A Message that links the work shows its card, so an Agent can point another channel or Thread at a running job and every card updates together. Haus for iPhone 8.0.0 (build 50) renders the same cards. Opening a job from Happening now goes to its work Thread, or to the newest Message you can see that links it, and the row names the Agent that delegated it.
