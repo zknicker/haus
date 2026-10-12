@@ -9,7 +9,11 @@ import {
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { agentCloudAgentStartResponseSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { renderCloudAgentStart } from '../cloud-agent-render.ts';
+import {
+    renderCloudAgentStart,
+    renderCloudAgentWorkDetail,
+    renderCloudAgentWorkList,
+} from '../cloud-agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
@@ -149,15 +153,7 @@ export async function runCloudAgentInspect(
         agentCloudAgentListReceiptSchema,
         { query: { workId } }
     );
-    if (workId) {
-        deps.write(`${JSON.stringify(works, null, 2)}\n`);
-    } else {
-        deps.write(
-            works.length
-                ? `${works.map((work) => `${work.id} [${work.status}] ${work.title} (${work.repository})`).join('\n')}\n`
-                : 'No cloud agent work found.\n'
-        );
-    }
+    deps.write(workId ? renderCloudAgentWorkDetail(works) : renderCloudAgentWorkList(works));
     return 0;
 }
 

@@ -1,3 +1,4 @@
+import { formatCloudAgentWorkLink } from '@haus/api';
 import type { z } from 'zod';
 import type { agentCloudAgentStartResponseSchema } from './agent-api-schemas.ts';
 import { formatHistoryLine, shortMessageId } from './agent-format.ts';
@@ -14,6 +15,34 @@ export function renderCloudAgentStart(
         : renderStarted(response, request);
 }
 
+/** `haus cloud-agent inspect` without `--work`: one line per work, each with its link. */
+export function renderCloudAgentWorkList(works: readonly CloudAgentWorkLinkSource[]): string {
+    if (works.length === 0) {
+        return 'No cloud agent work found.\n';
+    }
+    const rows = works.map(
+        (work) =>
+            `${work.id} [${work.status}] ${work.title} (${work.repository})\n  Link: ${formatCloudAgentWorkLink(work.title, work.id)}`
+    );
+    return `${rows.join('\n')}\n${linkSentence}\n`;
+}
+
+/** `haus cloud-agent inspect --work <id>`: the recorded work, then its link. */
+export function renderCloudAgentWorkDetail(works: readonly CloudAgentWorkLinkSource[]): string {
+    const links = works.map((work) => `Link: ${formatCloudAgentWorkLink(work.title, work.id)}`);
+    return `${JSON.stringify(works, null, 2)}\n${links.length ? `${[...links, linkSentence].join('\n')}\n` : ''}`;
+}
+
+interface CloudAgentWorkLinkSource {
+    id: string;
+    repository: string;
+    status: string;
+    title: string;
+}
+
+const linkSentence =
+    'To show this work in another conversation, paste its Link line into haus message send.';
+
 function renderStarted(
     receipt: Extract<CloudAgentStartResponse, { state: 'started' }>,
     request: { repository: string; startingRef: string | null }
@@ -26,6 +55,9 @@ function renderStarted(
             ? `Work thread: "${receipt.target}".`
             : `Work thread: "${receipt.target}:${shortMessageId(receipt.messageId)}".`,
         'The result reaches your inbox when the run settles; post what you learn yourself.',
+        // Agents paste this line; they never build a work link themselves.
+        `Link: ${formatCloudAgentWorkLink(receipt.work.title, receipt.work.id)}`,
+        linkSentence,
     ];
     return `${lines.join('\n')}\n`;
 }
