@@ -9,7 +9,12 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
-import { CloudAgentNotLaunchedError, CloudAgentWorkNotFoundError } from './errors.ts';
+import { hasCloudAgentWorkComputer } from './cloud-agent-work-computer.ts';
+import {
+    CloudAgentComputerRemovedError,
+    CloudAgentNotLaunchedError,
+    CloudAgentWorkNotFoundError,
+} from './errors.ts';
 import { listComputerCloudAgentWork } from './list-computer-cloud-agent-work.ts';
 
 export async function sendCloudAgentWork(
@@ -40,6 +45,20 @@ export async function sendCloudAgentWork(
             )
             .limit(1);
         if (!row) {
+            const [own] = await tx
+                .select({ computerId: cloudAgentWorkTable.computerId })
+                .from(cloudAgentWorkTable)
+                .where(
+                    and(
+                        eq(cloudAgentWorkTable.serverId, runner.serverId),
+                        eq(cloudAgentWorkTable.id, input.workId),
+                        eq(cloudAgentWorkTable.agentId, runner.agentId)
+                    )
+                )
+                .limit(1);
+            if (own && !(await hasCloudAgentWorkComputer(tx, runner.serverId, own.computerId))) {
+                throw new CloudAgentComputerRemovedError();
+            }
             throw new CloudAgentWorkNotFoundError();
         }
         if (!row.work.providerAgentId) {

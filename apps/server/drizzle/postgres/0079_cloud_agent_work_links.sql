@@ -1,7 +1,7 @@
 -- ADR 0044: Cloud Agent work is referenced, not embedded. Messages link to the
 -- work; every launch Message becomes an ordinary text Message that links its
--- work, and the work's Chat and launch Message stay as historical pointers
--- with no foreign key, so losing either keeps the work.
+-- work, and the work's Chat, launch Message, and Computer stay as historical
+-- pointers with no foreign key, so losing any of them keeps the work.
 -- Deferred foreign-key checks would otherwise leave trigger events pending
 -- on tables this migration then alters.
 SET CONSTRAINTS ALL IMMEDIATE;--> statement-breakpoint
@@ -20,6 +20,8 @@ ALTER TABLE "cloud_agent_work" DROP CONSTRAINT "cloud_agent_work_message_key";--
 ALTER TABLE "cloud_agent_work" DROP CONSTRAINT "cloud_agent_work_chat_fk";
 --> statement-breakpoint
 ALTER TABLE "cloud_agent_work" DROP CONSTRAINT "cloud_agent_work_message_fk";
+--> statement-breakpoint
+ALTER TABLE "cloud_agent_work" DROP CONSTRAINT "cloud_agent_work_computer_fk";
 --> statement-breakpoint
 ALTER TABLE "cloud_agent_work" RENAME COLUMN "message_id" TO "launch_message_id";--> statement-breakpoint
 ALTER TABLE "cloud_agent_work_links" ADD CONSTRAINT "cloud_agent_work_links_work_fk" FOREIGN KEY ("server_id","work_id") REFERENCES "public"."cloud_agent_work"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -54,8 +56,8 @@ FROM (
 WHERE message."server_id" = link."server_id"
     AND message."id" = link."launch_message_id"
     AND message."body_kind" = 'cloud-agent-work';--> statement-breakpoint
--- A launch Message whose work is already gone (removing its Computer cascades
--- the work away) has nothing to link, so it keeps its words as plain text.
+-- A launch Message whose work is already gone (removing its Computer used to
+-- cascade the work away) has nothing to link, so it keeps its words as plain text.
 UPDATE "chat_messages" SET "body_kind" = 'text' WHERE "body_kind" = 'cloud-agent-work';--> statement-breakpoint
 CREATE INDEX "cloud_agent_work_links_work_idx" ON "cloud_agent_work_links" USING btree ("server_id","work_id","created_at" DESC NULLS LAST,"message_id" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "cloud_agent_work_links_chat_idx" ON "cloud_agent_work_links" USING btree ("server_id","chat_id");--> statement-breakpoint

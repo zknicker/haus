@@ -10,7 +10,6 @@ import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
-import { computersTable } from './computers.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
 const statuses = "('queued', 'running', 'completed', 'failed', 'cancelled', 'expired')";
@@ -18,11 +17,12 @@ const statuses = "('queued', 'running', 'completed', 'failed', 'cancelled', 'exp
 /**
  * One Agent's delegation of bounded development work to a provider-hosted
  * agent (ADR 0044). The work is its own record: Messages link to it through
- * `cloud_agent_work_links`. `chat_id` (the requesting Chat) and
- * `launch_message_id` are historical pointers with no foreign key, so the work
- * survives losing either. Composite foreign keys keep its Agent and Computer
- * inside one Server tenant. Provider prompts, credentials, and transcripts
- * never land here.
+ * `cloud_agent_work_links`. `chat_id` (the requesting Chat),
+ * `launch_message_id`, and `computer_id` (the launching Computer) are
+ * historical pointers with no foreign key, so the work survives losing any of
+ * them; work whose Computer was removed is no longer reachable. A composite
+ * foreign key keeps its Agent inside one Server tenant. Provider prompts,
+ * credentials, and transcripts never land here.
  */
 export const cloudAgentWorkTable = pgTable(
     'cloud_agent_work',
@@ -69,11 +69,6 @@ export const cloudAgentWorkTable = pgTable(
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
             name: 'cloud_agent_work_cancel_membership_fk',
         }),
-        foreignKey({
-            columns: [table.serverId, table.computerId],
-            foreignColumns: [computersTable.serverId, computersTable.id],
-            name: 'cloud_agent_work_computer_fk',
-        }).onDelete('cascade'),
         index('cloud_agent_work_active_idx')
             .on(table.serverId, table.createdAt)
             .where(sql`${table.status} in ('queued', 'running')`),

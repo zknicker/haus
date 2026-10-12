@@ -15,6 +15,7 @@ import { createCloudAgentWork } from '../cloud-agents/create-cloud-agent-work.ts
 import {
     CloudAgentAgentNotFoundError,
     CloudAgentCancelDeniedError,
+    CloudAgentComputerRemovedError,
     CloudAgentNotLaunchedError,
     CloudAgentWorkConflictError,
     CloudAgentWorkNotFoundError,
@@ -206,6 +207,9 @@ function sendCloudAgentFailure(
     }
     if (cause instanceof CloudAgentWorkSettledError) {
         return sendAgentApiError(reply, 409, 'CLOUD_AGENT_WORK_SETTLED', cause.message);
+    }
+    if (cause instanceof CloudAgentComputerRemovedError) {
+        return sendAgentApiError(reply, 409, 'CLOUD_AGENT_COMPUTER_REMOVED', cause.message);
     }
     if (cause instanceof CloudAgentCancelDeniedError) {
         return sendAgentApiError(reply, 403, 'CLOUD_AGENT_CANCEL_DENIED', cause.message);

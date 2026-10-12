@@ -5410,21 +5410,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "cloud_agent_work_computer_fk": {
-          "name": "cloud_agent_work_computer_fk",
-          "tableFrom": "cloud_agent_work",
-          "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},

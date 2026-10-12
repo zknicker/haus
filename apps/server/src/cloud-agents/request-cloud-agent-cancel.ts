@@ -11,7 +11,12 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
-import { CloudAgentWorkNotFoundError, CloudAgentWorkSettledError } from './errors.ts';
+import { hasCloudAgentWorkComputer } from './cloud-agent-work-computer.ts';
+import {
+    CloudAgentComputerRemovedError,
+    CloudAgentWorkNotFoundError,
+    CloudAgentWorkSettledError,
+} from './errors.ts';
 
 export interface CloudAgentCancelRequest {
     /** The frame to push at the assigned Computer once the record commits. */
@@ -59,6 +64,9 @@ export async function requestCloudAgentCancel(
         }
         if (isTerminalCloudAgentStatus(row.status)) {
             throw new CloudAgentWorkSettledError();
+        }
+        if (!(await hasCloudAgentWorkComputer(tx, input.serverId, row.computerId))) {
+            throw new CloudAgentComputerRemovedError();
         }
         const [run] = await tx
             .select({

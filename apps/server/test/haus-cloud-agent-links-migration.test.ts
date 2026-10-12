@@ -75,7 +75,8 @@ test('migration 0079 turns every launch Message into text that links its work', 
                 label: entry.label.replace(/\\([\\[])/gu, '$1'),
             });
         }
-        // A launch Message whose work its Computer's removal cascaded away keeps
+        // A launch Message whose work is already gone (removing a Computer used
+        // to cascade it away) keeps
         // its words as plain text, so 0080's narrowed check can still validate.
         expect(
             await upgraded`
