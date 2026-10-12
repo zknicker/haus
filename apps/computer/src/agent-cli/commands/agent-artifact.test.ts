@@ -1,0 +1,46 @@
+import { afterEach, expect, spyOn, test } from 'bun:test';
+import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
+import { parseArgs, UsageError } from '../parse.ts';
+import { ARTIFACT_SUBCOMMANDS, runArtifactList } from './agent-artifact.ts';
+
+const list = ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'list');
+const listCommand = { ...list, section: 'artifact' } as Parameters<typeof parseArgs>[0];
+const stdout = spyOn(process.stdout, 'write').mockImplementation(() => true);
+afterEach(() => stdout.mockClear());
+
+function client() {
+    const requests: { route: string; input?: AgentApiRequest }[] = [];
+    const requester: AgentApiRequester = {
+        request: <T>(route: string, _schema: unknown, input?: AgentApiRequest) => {
+            requests.push({ route, input });
+            return Promise.resolve({ artifacts: [] } as T);
+        },
+    };
+    return { requester, requests };
+}
+
+test('list forwards --query and --mine as Server filters', async () => {
+    const { requester, requests } = client();
+    const args = parseArgs(listCommand, ['--query', 'roadmap', '--mine', '--offset', '50']);
+    await runArtifactList(args, requester);
+    expect(requests).toEqual([
+        {
+            route: '/api/agent/artifacts',
+            input: { query: { offset: '50', query: 'roadmap', mine: 'true' } },
+        },
+    ]);
+});
+
+test('list without filters sends neither filter', async () => {
+    const { requester, requests } = client();
+    await runArtifactList(parseArgs(listCommand, []), requester);
+    expect(requests[0]?.input?.query).toEqual({ offset: '0', query: undefined, mine: undefined });
+});
+
+test('artifact commands no longer take the no-op --json flag; output is always JSON', () => {
+    for (const sub of ARTIFACT_SUBCOMMANDS) {
+        expect(sub.flags.map((flag) => flag.name)).not.toContain('--json');
+        expect(sub.usage).not.toContain('--json');
+    }
+    expect(() => parseArgs(listCommand, ['--json'])).toThrow(UsageError);
+});

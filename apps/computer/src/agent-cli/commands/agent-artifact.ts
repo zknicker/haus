@@ -9,13 +9,12 @@ import {
     inferAttachmentMediaType,
 } from '@haus/api';
 import * as z from 'zod';
-import { createAgentApiClient } from '../agent-api-client.ts';
+import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 
-const jsonFlag = { name: '--json', description: 'Print the API response as JSON' };
 const revisionFlag = {
     name: '--revision-id',
     valueName: '<id>',
@@ -53,34 +52,38 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<id>',
                 description: 'Reuse with identical bytes and metadata for a safe retry',
             },
-            jsonFlag,
         ],
         notes: [
             'Published files are visible to every member of this Server. Your original file stays in your workspace.',
+            'Share the printed stable_url in your message; Haus shows it as an artifact chip. Do not also attach the file.',
         ],
         run: publish,
     },
     {
         name: 'list',
         summary: 'List shared Server artifacts',
-        usage: 'haus artifact list [--offset <n>] [--json]',
+        usage: 'haus artifact list [--query <text>] [--mine] [--offset <n>]',
         positionals: [],
-        examples: ['haus artifact list --json'],
-        flags: [{ name: '--offset', valueName: '<n>', description: 'Pagination offset' }, jsonFlag],
-        run: async (args) =>
-            print(
-                await createAgentApiClient().request(base, artifactListResultSchema, {
-                    query: { offset: args.values['--offset'] ?? '0' },
-                })
-            ),
+        examples: ['haus artifact list --query roadmap', 'haus artifact list --mine'],
+        flags: [
+            {
+                name: '--query',
+                valueName: '<text>',
+                description: 'Search titles, filenames, and names',
+            },
+            { name: '--mine', description: 'Only artifacts you created' },
+            { name: '--offset', valueName: '<n>', description: 'Pagination offset (50 per page)' },
+        ],
+        notes: ['Newest first.'],
+        run: (args) => runArtifactList(args),
     },
     {
         name: 'get',
         summary: 'Read shared artifact metadata',
-        usage: 'haus artifact get <id> [--revision-id <id>] [--json]',
+        usage: 'haus artifact get <id> [--revision-id <id>]',
         positionals: ['<id>'],
         examples: ['haus artifact get art_123'],
-        flags: [revisionFlag, jsonFlag],
+        flags: [revisionFlag],
         run: async (args) =>
             print(
                 await createAgentApiClient().request(target(args), artifactPublishResultSchema, {
@@ -91,10 +94,10 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'versions',
         summary: 'List retained immutable revisions',
-        usage: 'haus artifact versions <id> [--offset <n>] [--json]',
+        usage: 'haus artifact versions <id> [--offset <n>]',
         positionals: ['<id>'],
         examples: ['haus artifact versions art_123'],
-        flags: [{ name: '--offset', valueName: '<n>', description: 'Pagination offset' }, jsonFlag],
+        flags: [{ name: '--offset', valueName: '<n>', description: 'Pagination offset' }],
         run: async (args) =>
             print(
                 await createAgentApiClient().request(
@@ -122,7 +125,6 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<path>',
                 description: 'Create a writable personal copy at this path',
             },
-            jsonFlag,
         ],
         run: async (args) => {
             const result = await createAgentApiClient().request(
@@ -144,7 +146,7 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
         usage: 'haus artifact delete <id> [--revision-id <id>]',
         positionals: ['<id>'],
         examples: ['haus artifact delete art_123 --revision-id rev_456'],
-        flags: [revisionFlag, jsonFlag],
+        flags: [revisionFlag],
         run: async (args) => {
             const revision = args.values['--revision-id'];
             return print(
@@ -159,6 +161,21 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
         },
     },
 ];
+
+export async function runArtifactList(
+    args: ParsedArgs,
+    client: AgentApiRequester = createAgentApiClient()
+): Promise<number> {
+    return print(
+        await client.request(base, artifactListResultSchema, {
+            query: {
+                offset: args.values['--offset'] ?? '0',
+                query: args.values['--query'],
+                mine: args.flags['--mine'] ? 'true' : undefined,
+            },
+        })
+    );
+}
 
 async function publish(args: ParsedArgs): Promise<number> {
     const filePath = args.values['--path'];

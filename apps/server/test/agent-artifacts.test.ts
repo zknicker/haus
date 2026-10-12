@@ -78,6 +78,33 @@ test('raw CLI publication streams through runner auth and other Agents can publi
     expect(currentDelete.status).toBe(409);
 });
 
+test('Agent list narrows by query and by the calling Agent as creator', async () => {
+    const author = await fixture.mintRunner('run_artifact_list_author');
+    const peer = await fixture.mintRunner('run_artifact_list_peer', fixture.peerAgentId);
+    expect((await publish(author.token, { name: 'quarterly-chart' }, 'a')).status).toBe(200);
+    expect((await publish(peer.token, { name: 'quarterly-notes' }, 'b')).status).toBe(200);
+    expect((await publish(peer.token, { name: 'roadmap-sketch' }, 'c')).status).toBe(200);
+    const names = async (token: string, search: string) => {
+        const response = await fetch(
+            new URL(`/api/agent/artifacts?${search}`, fixture.harness.url),
+            {
+                headers: { authorization: `Bearer ${token}` },
+            }
+        );
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as { artifacts: { name: string }[] };
+        return body.artifacts.map((artifact) => artifact.name).sort();
+    };
+
+    expect(await names(peer.token, 'query=quarterly')).toEqual([
+        'quarterly-chart',
+        'quarterly-notes',
+    ]);
+    expect(await names(peer.token, 'query=quarterly&mine=true')).toEqual(['quarterly-notes']);
+    expect(await names(author.token, 'mine=true&query=sketch')).toEqual([]);
+    expect(await names(peer.token, 'mine=true&query=sketch')).toEqual(['roadmap-sketch']);
+});
+
 test('raw publishing rejects missing auth and retired Agents', async () => {
     expect(
         (await publish('invalid', { name: 'invalid', request_id: 'raw-invalid-auth' }, 'bytes'))

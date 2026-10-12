@@ -1,3 +1,4 @@
+import type { ArtifactListInput } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ArtifactActor } from './access.ts';
 import { deleteArtifact } from './delete.ts';
@@ -11,12 +12,27 @@ export async function runArtifactAction(options: {
     storage: ArtifactStorage | null;
     actor: ArtifactActor;
     origin: string;
-    input: { artifact_id: string; revision_id?: string; offset: number };
+    input: {
+        artifact_id: string;
+        revision_id?: string;
+        offset: number;
+        /** Library filters for `list`; ignored by every other action. */
+        filters?: Pick<ArtifactListInput, 'creator' | 'kind' | 'query'>;
+    };
 }) {
     const { action, actor, db, input, origin, storage } = options;
     switch (action) {
         case 'list':
-            return { artifacts: await listArtifacts(db, actor, origin, input.offset) };
+            return {
+                artifacts: await listArtifacts(
+                    db,
+                    actor,
+                    origin,
+                    input.offset,
+                    undefined,
+                    input.filters
+                ),
+            };
         case 'get':
             return {
                 artifact: (

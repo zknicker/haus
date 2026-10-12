@@ -78,6 +78,8 @@ export function registerAgentArtifactRoutes(
     const query = z.object({
         offset: z.coerce.number().int().min(0).max(100_000).default(0),
         revision_id: z.string().optional(),
+        query: z.string().trim().max(200).default(''),
+        mine: z.enum(['true', 'false']).default('false'),
     });
     for (const action of [
         'list',
@@ -125,6 +127,15 @@ export function registerAgentArtifactRoutes(
                             artifact_id: params.artifactId,
                             revision_id: params.revisionId ?? parsedQuery.revision_id,
                             offset: parsedQuery.offset,
+                            filters: {
+                                kind: 'all',
+                                query: parsedQuery.query,
+                                // `mine` is the calling Agent's own creations; other creators stay unexposed.
+                                creator:
+                                    parsedQuery.mine === 'true'
+                                        ? { type: 'agent', agent_id: runner.agentId }
+                                        : undefined,
+                            },
                         },
                     });
                 } catch (cause) {
