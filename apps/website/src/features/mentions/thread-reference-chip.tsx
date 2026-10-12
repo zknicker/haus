@@ -4,6 +4,7 @@ import { useChat } from '../../hooks/servers/use-chat.ts';
 import { useThreadAnchorMessage } from '../../hooks/threads/use-thread-anchor-message.ts';
 import { cn } from '../../lib/utils.ts';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
+import { messageCloudAgentWork } from '../cloud-agents/message-cloud-agent-work.ts';
 import { ReferenceChipView } from './reference-chip-view.tsx';
 import {
     ReferencePreviewHeader,
@@ -46,9 +47,11 @@ export function ThreadReferenceChip({
     );
 }
 
-export function threadReferenceTitle(anchor: Pick<ChatMessage, 'body' | 'content'>) {
-    const content =
-        anchor.body.kind === 'cloud-agent-work' ? anchor.body.work.title : anchor.content;
+/** A Thread on a Message that links Cloud Agent work is named after the first work it links. */
+export function threadReferenceTitle(
+    anchor: Pick<ChatMessage, 'body' | 'cloudAgentWork' | 'content'>
+) {
+    const content = messageCloudAgentWork(anchor)[0]?.title ?? anchor.content;
     const line = messagePreviewLine(content.split('\n').find((part) => part.trim()) ?? '');
     return line.length > 64 ? `${line.slice(0, 63).trimEnd()}…` : line || 'Thread';
 }

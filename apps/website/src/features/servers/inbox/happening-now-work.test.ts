@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { ActiveCloudAgentWork, Agent } from '@haus/api';
+import { activeWorkLocations } from '../../../../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
 import {
     cloudAgentRunFixture,
     cloudAgentWorkFixture,
@@ -19,7 +20,12 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
         {
             agentName: 'Blippy',
             chatLabel: '#product',
-            id: 'message_one',
+            id: 'caw_one',
+            location: {
+                anchorMessageId: 'message_one',
+                kind: 'work-thread',
+                threadChatId: 'chat_thread',
+            },
             provider: 'cursor',
             state: 'working',
             statusText: 'Working · 7m',
@@ -50,6 +56,23 @@ test('a retired Agent falls back to the name stored on its own Message', () => {
     const [row] = toHappeningNowWork([activeWork()], humans, [], now);
 
     expect(row?.agentName).toBe('Blippy (stored)');
+});
+
+test('a linking Message by another author never names the delegator', () => {
+    const message = {
+        author: { agentId: 'agent_other', kind: 'agent', profile: { displayName: 'Forge' } },
+        id: 'message_link',
+    } as ActiveCloudAgentWork['message'];
+    const [row] = toHappeningNowWork([activeWork({ message })], humans, [], now);
+
+    expect(row?.agentName).toBe('Agent blippy');
+});
+
+test('the Server location wins over the launch Thread the old fields name', () => {
+    for (const location of Object.values(activeWorkLocations)) {
+        const [row] = toHappeningNowWork([activeWork({ location })], humans, agents, now);
+        expect(row?.location).toEqual(location);
+    }
 });
 
 test('a follow-up queued behind a finished Run reads as the waiting follow-up, not done', () => {

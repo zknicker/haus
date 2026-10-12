@@ -194,6 +194,9 @@ describe('Chat stream hooks', () => {
             listKey('chat.get', { chatId: 'cht_a', serverId }),
             listKey('agent.chats', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            // Linked Cloud Agent work may leave the viewer's lists (ADR 0044).
+            listKey('cloudAgentWork.listActive', { serverId }),
+            listKey('cloudAgentWork.listForChat', { serverId }),
         ]);
         // Lifecycle owns no transcript lists: its recovery is its own table row.
         expect(onRecovery.some((entry) => entry.op === 'recoverTranscriptLists')).toBe(false);

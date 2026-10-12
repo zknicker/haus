@@ -1,5 +1,4 @@
 import {
-    type HausRichReference,
     parseAgentReferenceTarget,
     parseChatReferenceTarget,
     parseHausRichReferences,
@@ -11,18 +10,9 @@ import type { Mention } from './mention-types.ts';
 export function readMentionsFromMarkdown(content: string) {
     return normalizeMentions(
         content,
-        parseHausRichReferences(content).flatMap((reference) =>
-            isMention(reference) ? [{ ...reference }] : []
-        )
+        parseHausRichReferences(content).map((reference) => ({ ...reference }))
     );
 }
-
-// Cloud Agent work links render as plain links until the App learns their chip (ADR 0044).
-function isMention(reference: HausRichReference): reference is MentionReference {
-    return reference.kind !== 'cloud-agent-work';
-}
-
-type MentionReference = HausRichReference & Pick<Mention, 'kind' | 'projection'>;
 
 /**
  * Mentions are re-read from the message text on every render, so identity says

@@ -21,6 +21,8 @@ import { MessageContextMenu } from './message-context-menu.tsx';
 import { isThreadAnchorRow } from './thread-anchor.ts';
 import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
+const noWork: readonly CloudAgentWork[] = [];
+
 /** Message attachments become Thread metadata once replies exist. */
 export function ThreadMessageSurface({
     children,
@@ -34,9 +36,11 @@ export function ThreadMessageSurface({
     const context = useTranscriptRenderContextOptional();
     const showTasks = useShowTasksInChat();
     const canOpenThread = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
-    const work = row.message.cloudAgentWork ?? null;
+    const linked = row.message.cloudAgentWork ?? noWork;
     const works = useHoistedCloudAgentWork(row);
-    const hoisted = canOpenThread ? works.filter((item) => item.id !== work?.id) : [];
+    const hoisted = canOpenThread
+        ? works.filter((item) => !linked.some((own) => own.id === item.id))
+        : [];
     const flashing = context?.flashMessageId === row.message.id;
     // A Thread opened on a Task states it in full in the metadata panel above
     // the anchor, so the anchor's own chip would repeat every word of it.
@@ -61,10 +65,12 @@ export function ThreadMessageSurface({
                     {task ? <TranscriptTaskChip row={row} /> : null}
                 </div>
             )}
-            {/* One card everywhere: the transcript and the Thread render the
-                same work card. The way into the Thread is the Message's hover
-                action, or the reply preview below once replies exist. */}
-            {work ? <CloudAgentWorkCard agentName={row.message.sender} work={work} /> : null}
+            {/* One card per linked work, the same everywhere the work is
+                linked (ADR 0044). The way into the Thread is the Message's
+                hover action, or the reply preview below once replies exist. */}
+            {linked.map((work) => (
+                <CloudAgentWorkCard key={work.id} work={work} />
+            ))}
             {canOpenThread ? (
                 <ThreadSurfacePreview
                     hasReplies={hasReplies}
