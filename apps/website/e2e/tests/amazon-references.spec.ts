@@ -3,8 +3,10 @@ import { expect, test } from '../support/test.ts';
 
 test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN chips after disconnect', async ({
     page,
+    context,
 }) => {
     test.setTimeout(60_000);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const { client, server, session } = await createTestServer(page, {
         displayName: 'Amazon references',
         slug: 'amazon-references',
@@ -47,7 +49,6 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
     const slowReleased = new Promise<void>((resolve) => {
         releaseSlow = resolve;
     });
-    // Each chip read is its own unbatched request, so the mock answers one procedure at a time.
     await page.route('**/trpc/mcp.amazonProduct*', async (route) => {
         const path = new URL(route.request().url()).pathname.split('/trpc/')[1];
         const input = route.request().postDataJSON() as { asin: string };
@@ -93,7 +94,6 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
     });
     await page.goto(`/s/amazon-references/chats/${chatId}`);
     const chips = page.getByRole('link', { name: 'Open Freaky Lunch Lady on Amazon' });
-    // Chips resolve independently: these fill in while the slow product is still loading.
     await expect(chips).toHaveCount(2);
     await expect(page.getByRole('link', { name: `Open ${slowAsin} on Amazon` })).toHaveCount(1);
     releaseSlow();
@@ -105,42 +105,45 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
     await expect(chips.first().locator('svg')).toHaveCount(0);
     await expect(chips.first().locator('img')).toHaveCSS('width', '18px');
     await expect(chips.first()).toHaveText('Freaky Lunch Lady');
+    const card = page.getByRole('dialog', { name: 'Freaky Lunch Lady details' });
     await expect(async () => {
         await page.mouse.move(0, 0);
         await chips.first().hover();
-        await expect(page.getByRole('tooltip').getByText('$19.99')).toBeVisible({ timeout: 1500 });
+        await expect(card).toBeVisible({ timeout: 1500 });
     }).toPass({ timeout: 10_000 });
-    await expect(page.getByRole('tooltip').getByText('Freaky Lunch Lady Shirt')).toBeVisible();
-    await expect(page.getByRole('tooltip').getByText('Lunch Lady Designs')).toBeVisible();
-    await expect(page.getByRole('tooltip').locator('img')).toHaveAttribute(
-        'src',
-        summary.cutoutThumbnail.url
-    );
-    const triggerBounds = await chips.first().boundingBox();
-    if (!triggerBounds) {
-        throw new Error('Product chip has no bounds');
-    }
-    const pointer = { x: triggerBounds.x + 12, y: triggerBounds.y + 8 };
-    await page.mouse.move(pointer.x, pointer.y);
-    await expect(async () => {
-        const bounds = await page.getByRole('tooltip').boundingBox();
-        expect(bounds).not.toBeNull();
-        expect(Math.abs(bounds!.x - (pointer.x + 15))).toBeLessThan(2);
-        expect(Math.abs(bounds!.y + bounds!.height - (pointer.y - 15))).toBeLessThan(2);
-    }).toPass();
-    const tooltip = page.getByRole('tooltip');
-    await expect(tooltip).toHaveCSS('pointer-events', 'none');
-    const previewBounds = await tooltip.boundingBox();
-    if (!previewBounds) {
-        throw new Error('Product tooltip has no bounds');
-    }
-    await page.mouse.move(previewBounds.x + 20, previewBounds.y + previewBounds.height - 5);
-    await expect(tooltip).toBeHidden();
+    await expect(card.getByText('Freaky Lunch Lady Shirt')).toBeVisible();
+    await expect(card.getByText('Lunch Lady Designs')).toBeVisible();
+    await expect(card.getByText('$19.99')).toBeVisible();
+    const asin = card.locator('code').filter({ hasText: 'B07XN9T11R' });
+    await expect(asin).toBeVisible();
+    await expect(asin).toHaveClass(/font-mono/);
+    await expect(card.getByRole('button', { name: 'Copy ASIN' })).toBeVisible();
+    await expect(card.locator('img')).toHaveAttribute('src', summary.cutoutThumbnail.url);
+    await asin.hover();
+    await page.waitForTimeout(400);
+    await expect(card).toBeVisible();
+    await page.evaluate(() => navigator.clipboard.writeText('not-the-asin'));
+    await card.getByRole('button', { name: 'Copy ASIN' }).click();
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('B07XN9T11R');
+    await expect(card.getByRole('button', { name: 'Copied' })).toBeVisible();
     await page.mouse.move(0, 0);
-    await chips.last().focus();
-    await expect(page.getByRole('tooltip')).toBeVisible();
-    await expect(page.getByRole('tooltip').getByText('Soft fabric')).toHaveCount(0);
+    await expect(card).toBeHidden();
+    // locator.focus() is not focus-visible, so the card stays closed. Shift+Tab from the
+    // next chip is a real keyboard focus and does not open that chip's own card.
+    const slowChip = page.getByRole('link', { name: 'Open Slow Shirt on Amazon' });
+    await slowChip.focus();
+    await page.keyboard.press('Shift+Tab');
+    await expect(chips.last()).toBeFocused();
+    await expect(card).toBeVisible();
+    await expect(card.getByText('Soft fabric')).toHaveCount(0);
     expect(detailCalls).toBe(1);
+    await page.evaluate(() => navigator.clipboard.writeText('not-the-asin'));
+    await page.keyboard.press('Tab');
+    await expect(card.getByRole('button', { name: 'Copy ASIN' })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('B07XN9T11R');
+    await page.keyboard.press('Escape');
+    await expect(card).toBeHidden();
     summary.shortName = null;
     await page.reload();
     const fallbackChips = page.getByRole('link', { name: 'Open B07XN9T11R on Amazon' });
@@ -153,8 +156,11 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
         'https://www.amazon.com/dp/B07XN9T11R'
     );
     await page.mouse.move(0, 0);
-    await fallbackChips.last().focus();
-    await expect(
-        page.getByRole('tooltip').getByText('Connect RankWrangler for product details')
-    ).toBeVisible();
+    const disconnected = page.getByRole('dialog', { name: 'B07XN9T11R details' });
+    const disconnectedSlowChip = page.getByRole('link', { name: 'Open B0DDZPDF14 on Amazon' });
+    await expect(disconnectedSlowChip).toBeVisible();
+    await disconnectedSlowChip.focus();
+    await page.keyboard.press('Shift+Tab');
+    await expect(fallbackChips.last()).toBeFocused();
+    await expect(disconnected.getByText('Connect RankWrangler for product details')).toBeVisible();
 });
