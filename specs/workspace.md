@@ -8,6 +8,8 @@ agents/<agent-id>/
   home/
   skills/
   runtime/
+  workspace.sparsebundle
+  workspace-volume.json
 ```
 
 The Server owns the Agent's identity, desired configuration, membership, and
@@ -15,6 +17,58 @@ immutable Computer assignment. It never owns or synchronizes the Agent's local
 workspace. The workspace is the Agent's durable working environment and the
 default working directory for its execution harness. It is organization, not a
 security boundary.
+
+## Capacity
+
+Haus Computer supports macOS. Newly provisioned workspaces use a finite,
+case-sensitive APFS sparsebundle mounted at the existing `workspace/` path.
+The default image capacity is 10 GiB. Writes encounter ordinary filesystem
+`ENOSPC`; the Agent chooses what to remove or explicitly publish. Computer
+does not upload or delete personal files automatically. The cap applies to
+`workspace/`, not arbitrary host writes: the trusted shell remains unrestricted.
+
+`home/`, `runtime/`, `skills/`, session state, and Computer recovery records stay
+outside the image. A full workspace therefore does not prevent saving turn
+state or invoking the Haus CLI to publish and recover. Shared-file caches are
+Computer-owned, outside personal workspaces.
+
+Computer reserves each image's full capacity plus filesystem overhead in a
+persisted, cross-process-locked storage ledger. Admission checks both that fixed
+budget and current host free space, retaining 10 GiB of host headroom and a
+2 GiB shared-cache allowance. Sparse allocation does not justify overcommitting
+workspace ceilings. These defaults are explicit Computer implementation options.
+
+Mount identity is verified before execution. A missing image, foreign mount, or
+unverified image blocks launch instead of creating an uncapped replacement.
+Existing ordinary workspace directories remain explicitly legacy until the
+operator invokes migration with the Computer stopped. Migration copies and
+verifies file contents, modes, and symlinks, records recoverable stages, and
+retains the original at `workspace.backup`. It never deletes that backup.
+
+Offline compaction detaches normally, returns unused image blocks to the host,
+and restores a previously mounted workspace. It requires the Computer stopped;
+busy-volume failures are reported rather than forced. Session reset preserves
+the volume. Full reset clears its contents without removing the mounted root;
+retirement detaches before deleting the Agent partition and releases the
+reservation only after deletion succeeds.
+
+### Existing-workspace migration
+
+Migrate after the shared-artifact rollout, one Agent at a time. First inventory
+each workspace and confirm its files fit the 10 GiB ceiling and the Computer
+can reserve the full image capacity while retaining the original backup.
+Have the Agent consolidate or explicitly publish files before migration if needed.
+
+Run `haus-computer stop`, then
+`haus-computer workspace-migrate /server-slug <agent-id>`. Maintenance refuses a
+running Computer or an open workspace. Restart Computer with its normal start
+command, verify the Agent can read its existing files and run a turn, and retain
+`workspace.backup` until the operator has verified recovery. Re-running migration
+resumes its durable receipt; do not manually remove that receipt or image.
+
+Use `haus-computer workspace-compact /server-slug <agent-id>` only while Computer
+is stopped to reclaim deleted sparse-image blocks. Neither migration nor
+compaction publishes personal files.
 
 ## Durable knowledge
 
