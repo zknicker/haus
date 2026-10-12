@@ -89,7 +89,7 @@ export async function listThreadSummaries(
                 )
             ),
         db
-            .select({ messageId: cloudAgentWorkTable.messageId })
+            .select({ messageId: cloudAgentWorkTable.launchMessageId })
             .from(cloudAgentWorkTable)
             .where(
                 and(

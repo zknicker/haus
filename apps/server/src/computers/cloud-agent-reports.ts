@@ -35,7 +35,9 @@ export async function ingestCloudAgentReport(input: {
         input.delivery
     );
     if (applied) {
-        publishRealtime(applied.event);
+        for (const event of applied.events) {
+            publishRealtime(event);
+        }
         if (applied.wake) {
             await input.postCommitWork.wakeAgents(input.delivery, [applied.wake]);
         }

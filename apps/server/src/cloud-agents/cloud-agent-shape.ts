@@ -54,7 +54,7 @@ export function toCloudAgentWork(row: WorkRow, runs: RunRow[]): CloudAgentWork {
         createdAt: row.createdAt.toISOString(),
         id: row.id,
         job: deriveCloudAgentJob({ runs: recent, startedAt, status: row.status, terminalAt }),
-        messageId: row.messageId,
+        messageId: row.launchMessageId,
         provider: row.provider,
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
@@ -86,7 +86,7 @@ export async function findCloudAgentWork(
     return toCloudAgentWork(row, runs.get(workId) ?? []);
 }
 
-export async function findCloudAgentWorkByMessage(
+export async function findCloudAgentWorkByLaunchMessage(
     db: CloudAgentReader,
     serverId: string,
     messageId: string
@@ -97,7 +97,7 @@ export async function findCloudAgentWorkByMessage(
         .where(
             and(
                 eq(cloudAgentWorkTable.serverId, serverId),
-                eq(cloudAgentWorkTable.messageId, messageId)
+                eq(cloudAgentWorkTable.launchMessageId, messageId)
             )
         )
         .limit(1);
@@ -108,7 +108,7 @@ export async function findCloudAgentWorkByMessage(
     return toCloudAgentWork(row, runs.get(row.id) ?? []);
 }
 
-export async function readCloudAgentWorkForMessages(
+export async function readCloudAgentWorkForLaunchMessages(
     db: CloudAgentReader,
     serverId: string,
     messageIds: string[]
@@ -122,7 +122,7 @@ export async function readCloudAgentWorkForMessages(
         .where(
             and(
                 eq(cloudAgentWorkTable.serverId, serverId),
-                inArray(cloudAgentWorkTable.messageId, messageIds)
+                inArray(cloudAgentWorkTable.launchMessageId, messageIds)
             )
         );
     const runs = await readRuns(
@@ -131,7 +131,7 @@ export async function readCloudAgentWorkForMessages(
         rows.map((row) => row.id)
     );
     return new Map(
-        rows.map((row) => [row.messageId, toCloudAgentWork(row, runs.get(row.id) ?? [])])
+        rows.map((row) => [row.launchMessageId, toCloudAgentWork(row, runs.get(row.id) ?? [])])
     );
 }
 

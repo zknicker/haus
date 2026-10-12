@@ -10,8 +10,6 @@ import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
-import { chatMessagesTable } from './chat-messages.ts';
-import { chatsTable } from './chats.ts';
 import { computersTable } from './computers.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
@@ -19,9 +17,12 @@ const statuses = "('queued', 'running', 'completed', 'failed', 'cancelled', 'exp
 
 /**
  * One Agent's delegation of bounded development work to a provider-hosted
- * agent, anchored to exactly one Message. Composite foreign keys keep the work,
- * its Message, its Chat, its Agent, and its Computer inside one Server tenant.
- * Provider prompts, credentials, and transcripts never land here.
+ * agent (ADR 0044). The work is its own record: Messages link to it through
+ * `cloud_agent_work_links`. `chat_id` (the requesting Chat) and
+ * `launch_message_id` are historical pointers with no foreign key, so the work
+ * survives losing either. Composite foreign keys keep its Agent and Computer
+ * inside one Server tenant. Provider prompts, credentials, and transcripts
+ * never land here.
  */
 export const cloudAgentWorkTable = pgTable(
     'cloud_agent_work',
@@ -36,7 +37,8 @@ export const cloudAgentWorkTable = pgTable(
         computerId: text('computer_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
-        messageId: text('message_id').notNull(),
+        /** The Message `haus cloud-agent start` wrote; wire name stays `messageId`. */
+        launchMessageId: text('launch_message_id').notNull(),
         provider: text('provider').notNull().$type<CloudAgentProvider>(),
         providerAgentId: text('provider_agent_id'),
         providerUrl: text('provider_url'),
@@ -51,21 +53,7 @@ export const cloudAgentWorkTable = pgTable(
     },
     (table) => [
         unique('cloud_agent_work_server_id_key').on(table.serverId, table.id),
-        unique('cloud_agent_work_message_key').on(table.serverId, table.messageId),
-        foreignKey({
-            columns: [table.serverId, table.chatId],
-            foreignColumns: [chatsTable.serverId, chatsTable.id],
-            name: 'cloud_agent_work_chat_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.chatId, table.messageId],
-            foreignColumns: [
-                chatMessagesTable.serverId,
-                chatMessagesTable.chatId,
-                chatMessagesTable.id,
-            ],
-            name: 'cloud_agent_work_message_fk',
-        }).onDelete('cascade'),
+        index('cloud_agent_work_launch_message_idx').on(table.serverId, table.launchMessageId),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],

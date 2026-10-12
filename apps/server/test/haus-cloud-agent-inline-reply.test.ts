@@ -28,7 +28,8 @@ test('an inline cloud card retains its channel and has its own detail thread', a
         parentMessageId: parent.message.id,
         rootMessageId: parent.message.id,
     });
-    expect(card?.body.kind).toBe('cloud-agent-work');
+    expect(card?.body.kind).toBe('text');
+    expect(card?.cloudAgentWork.map(({ id }) => id)).toEqual([created.body.work?.id]);
     const threads = await fixture.harness.sql`
         select anchor_message_id from chats
         where server_id = ${fixture.serverId} and parent_chat_id = ${fixture.channelId} and kind = 'thread'

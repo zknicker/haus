@@ -3,7 +3,11 @@ import type {
     AgentCloudAgentReceipt,
     AgentCloudAgentStartInput,
 } from '@haus/api';
-import { agentCloudAgentStartInputSchema } from '@haus/api';
+import {
+    agentCloudAgentStartInputSchema,
+    chatMessageAuthoredContentMaxLength,
+    formatCloudAgentWorkLink,
+} from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { readFreshnessHold } from '../agent-api/send-hold.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -13,6 +17,11 @@ import {
     writeAgentAuthoredMessage,
 } from '../chats/agent-authored-message.ts';
 import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
+import {
+    recordCloudAgentWorkLinks,
+    replayCloudAgentWorkLinks,
+    resolveCloudAgentWorkLinks,
+} from '../chats/cloud-agent-work-links.ts';
 import { resolveInlineReplyParent } from '../chats/reply-context.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -20,9 +29,9 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { prepareCloudAgentWorkEvent } from './cloud-agent-events.ts';
+import { prepareLinkedWorkEvents } from './cloud-agent-events.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
-import { findCloudAgentWorkByMessage } from './cloud-agent-shape.ts';
+import { findCloudAgentWork, findCloudAgentWorkByLaunchMessage } from './cloud-agent-shape.ts';
 import { CloudAgentAgentNotFoundError, CloudAgentWorkConflictError } from './errors.ts';
 
 export type CreateCloudAgentWorkResult =
@@ -35,9 +44,10 @@ export type CreateCloudAgentWorkResult =
     | { held: AgentCloudAgentHeld; kind: 'held' };
 
 /**
- * Writes one Cloud Agent work: the Agent-authored Message whose content is the
- * Agent's own words, the work record, its first Run in `queued`, the
- * deterministic child Thread when the work is top-level, ordinary delivery
+ * Writes one Cloud Agent work: an ordinary text Message holding the Agent's
+ * own words plus a Server-trusted link to the new work (ADR 0044), the work
+ * record, its first Run in `queued`, the Message's links, the deterministic
+ * child Thread and follow when the Message is top-level, ordinary delivery
  * planning, and the durable events — all in one transaction, idempotent by the
  * message nonce. The Computer launches the provider only after this commits, so
  * a later provider failure settles this same work rather than erasing it.
@@ -63,36 +73,42 @@ export async function createCloudAgentWork(
         }
 
         const computerId = await requireAssignedComputer(tx, runner);
-        const content = agentCloudAgentStartInputSchema.shape.content.parse(
-            await canonicalizeAgentMessageContentForPersistence(tx, {
-                content: input.content,
-                serverId: runner.serverId,
-            })
-        );
+        const authored = await authoredContent(tx, runner.serverId, input.content);
         const hold = await readFreshnessHold(tx, runner, plan.chatId);
         if (hold) {
             return { held: { ...hold, state: 'held' }, kind: 'held' };
         }
+        // Only the Agent's own words pass link authorization; the new work's
+        // link is Server-trusted and always last.
+        const linked = await resolveCloudAgentWorkLinks(tx, {
+            author: { agentId: runner.agentId, kind: 'agent' },
+            content: authored,
+            serverId: runner.serverId,
+        });
+        const workId = createOpaqueId('caw');
+        const content = withLaunchLink(linked.content, input.title, workId);
         const written = await writeAgentAuthoredMessage(
             tx,
             runner,
             plan,
             {
-                bodyKind: 'cloud-agent-work',
+                bodyKind: 'text',
                 content,
+                // Released Computers cap inbox content at the authored limit.
+                deliveryContent:
+                    content.length > chatMessageAuthoredContentMaxLength ? linked.content : content,
                 nonce: input.nonce,
                 replyToMessageId: input.replyToMessageId,
             },
             agentDelivery
         );
 
-        const workId = createOpaqueId('caw');
         await tx.insert(cloudAgentWorkTable).values({
             agentId: runner.agentId,
             chatId: plan.chatId,
             computerId,
             id: workId,
-            messageId: written.messageId,
+            launchMessageId: written.messageId,
             provider: input.provider,
             repository: input.repository,
             serverId: runner.serverId,
@@ -110,24 +126,26 @@ export async function createCloudAgentWork(
             serverId: runner.serverId,
             workId,
         });
+        const links = [...linked.links, { ordinal: linked.links.length, workId }];
+        await recordCloudAgentWorkLinks(tx, {
+            chatId: plan.chatId,
+            links,
+            messageId: written.messageId,
+            serverId: runner.serverId,
+        });
 
-        const events = [
-            written.event,
-            prepareCloudAgentWorkEvent({
-                chat: written.chat,
-                chatId: plan.chatId,
-                cloudAgentWorkId: workId,
-                messageId: written.messageId,
-                serverId: runner.serverId,
-            }),
-        ];
-        const work = await findCloudAgentWorkByMessage(tx, runner.serverId, written.messageId);
+        const work = await findCloudAgentWork(tx, runner.serverId, workId);
         if (!work) {
             throw new Error('The Cloud Agent work could not be projected after creation.');
         }
-
         return {
-            events,
+            events: [
+                written.event,
+                ...(await prepareLinkedWorkEvents(tx, {
+                    serverId: runner.serverId,
+                    workIds: links.map((link) => link.workId),
+                })),
+            ],
             kind: 'started',
             receipt: {
                 state: 'started',
@@ -144,6 +162,11 @@ export async function createCloudAgentWork(
     });
 }
 
+/**
+ * A replay rebuilds the whole stored content from `--say`, the links the
+ * launch recorded, and the trusted suffix, then compares; it never strips
+ * link syntax to make a retry match.
+ */
 async function readWorkByNonce(
     db: HausDatabase,
     runner: ResolvedRunner,
@@ -158,12 +181,20 @@ async function readWorkByNonce(
     if (!message) {
         return null;
     }
-    const content = await canonicalizeAgentMessageContentForPersistence(db, {
-        content: input.content,
-        existingContent: message.content,
-        serverId: runner.serverId,
-    });
-    const work = await findCloudAgentWorkByMessage(db, runner.serverId, message.id);
+    const work = await findCloudAgentWorkByLaunchMessage(db, runner.serverId, message.id);
+    if (!work) {
+        throw new CloudAgentWorkConflictError();
+    }
+    const authored = await authoredContent(db, runner.serverId, input.content, message.content);
+    const expected = withLaunchLink(
+        await replayCloudAgentWorkLinks(db, {
+            content: authored,
+            messageId: message.id,
+            serverId: runner.serverId,
+        }),
+        work.title,
+        work.id
+    );
     const reply = input.replyToMessageId
         ? await resolveInlineReplyParent(db, {
               chatId,
@@ -172,9 +203,8 @@ async function readWorkByNonce(
           })
         : null;
     if (
-        !work ||
         message.authorAgentId !== runner.agentId ||
-        message.content !== content ||
+        message.content !== expected ||
         message.replyToMessageId !== (reply?.parent.id ?? null) ||
         work.title !== input.title ||
         work.repository !== input.repository ||
@@ -207,6 +237,26 @@ async function readWorkByNonce(
         target: input.target,
         work,
     };
+}
+
+/** `--say` with bare references resolved, within the authored content cap. */
+async function authoredContent(
+    db: HausDatabase,
+    serverId: string,
+    content: string,
+    existingContent?: string
+): Promise<string> {
+    return agentCloudAgentStartInputSchema.shape.content.parse(
+        await canonicalizeAgentMessageContentForPersistence(db, {
+            content,
+            existingContent,
+            serverId,
+        })
+    );
+}
+
+function withLaunchLink(authored: string, title: string, workId: string): string {
+    return `${authored}\n\n${formatCloudAgentWorkLink(title, workId)}`;
 }
 
 /** Cloud Agent work is owned by the Computer that holds the provider access. */

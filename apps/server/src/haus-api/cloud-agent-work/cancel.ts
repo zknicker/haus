@@ -35,7 +35,9 @@ export const cancelCloudAgentWorkProcedure = memberProcedure
                 serverId: input.serverId,
                 workId: input.workId,
             });
-            publishRealtime(requested.event);
+            for (const event of requested.events) {
+                publishRealtime(event);
+            }
             ctx.computerConnections.send(requested.computerId, requested.command);
             return { cancelRequested: true } as const;
         } catch (cause) {

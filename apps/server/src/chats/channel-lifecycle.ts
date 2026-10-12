@@ -1,6 +1,10 @@
 import type { ChannelDeleteReceipt, ChannelLifecycleReceipt } from '@haus/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
+import {
+    prepareLinkedWorkEvents,
+    readWorkIdsLinkedFrom,
+} from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
@@ -102,8 +106,8 @@ export async function deleteChannel(
     attachmentRoot: AttachmentRoot,
     member: HausUser | null,
     input: { chatId: string; confirmation: string; serverId: string }
-): Promise<LifecycleResult<ChannelDeleteReceipt>> {
-    const event = await db.transaction(async (tx) => {
+): Promise<{ events: PreparedRealtimeEvent[]; receipt: ChannelDeleteReceipt }> {
+    const events = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
         const channel = await requireRegularChannel(tx, input);
@@ -116,7 +120,7 @@ export async function deleteChannel(
             );
         }
         if (channel.deletedAt) {
-            return null;
+            return [];
         }
 
         const deletedAt = new Date();
@@ -125,7 +129,18 @@ export async function deleteChannel(
             .set({ deletedAt, deletedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        return prepareLifecycleEvent(input, 'deleted');
+        // Work this Channel linked stays alive; its surviving links refresh.
+        const linkedWorkIds = await readWorkIdsLinkedFrom(tx, {
+            chatIds: await readChannelChatIds(tx, input),
+            serverId: input.serverId,
+        });
+        return [
+            prepareLifecycleEvent(input, 'deleted'),
+            ...(await prepareLinkedWorkEvents(tx, {
+                serverId: input.serverId,
+                workIds: linkedWorkIds,
+            })),
+        ];
     });
 
     // The committed tombstone is the deletion. A failed purge must not report
@@ -139,7 +154,7 @@ export async function deleteChannel(
             serverId: input.serverId,
         });
     }
-    return { event, receipt: { chatId: input.chatId, serverId: input.serverId } };
+    return { events, receipt: { chatId: input.chatId, serverId: input.serverId } };
 }
 
 async function requireOperator(db: HausDatabase, member: HausUser | null, serverId: string) {
@@ -181,6 +196,23 @@ async function discardQueuedChannelWork(
     db: HausDatabase,
     input: { chatId: string; serverId: string }
 ) {
+    await db
+        .delete(agentInboxTable)
+        .where(
+            and(
+                eq(agentInboxTable.serverId, input.serverId),
+                inArray(agentInboxTable.chatId, await readChannelChatIds(db, input)),
+                isNull(agentInboxTable.runId),
+                eq(agentInboxTable.state, 'queued')
+            )
+        );
+}
+
+/** The Channel and every Thread under it. */
+async function readChannelChatIds(
+    db: HausDatabase,
+    input: { chatId: string; serverId: string }
+): Promise<string[]> {
     const chats = await db
         .select({ id: chatsTable.id })
         .from(chatsTable)
@@ -190,15 +222,5 @@ async function discardQueuedChannelWork(
                 or(eq(chatsTable.id, input.chatId), eq(chatsTable.parentChatId, input.chatId))
             )
         );
-    await db.delete(agentInboxTable).where(
-        and(
-            eq(agentInboxTable.serverId, input.serverId),
-            inArray(
-                agentInboxTable.chatId,
-                chats.map(({ id }) => id)
-            ),
-            isNull(agentInboxTable.runId),
-            eq(agentInboxTable.state, 'queued')
-        )
-    );
+    return chats.map(({ id }) => id);
 }

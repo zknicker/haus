@@ -8,8 +8,8 @@ export const deleteChannelProcedure = chatProcedure
     .output(channelDeleteReceiptSchema)
     .mutation(async ({ ctx, input }) => {
         const result = await deleteChannel(ctx.hausDb, ctx.attachmentRoot, ctx.member, input);
-        if (result.event) {
-            publishRealtime(result.event);
+        for (const event of result.events) {
+            publishRealtime(event);
         }
         return result.receipt;
     });

@@ -57,25 +57,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0057_cloud_agent_model',
             '0058_agent_personality',
             '0059_agent_creation_request',
-            '0060_reminder_descriptions',
-            '0061_agent_wake_pause',
-            '0062_agent_chat_reads',
-            '0063_manual_read_receipts',
-            '0064_agent_conversation_style',
-            '0065_delegating_activity',
-            '0066_agent_run_triggers',
-            '0067_server_turns_index',
-            '0068_channel_descriptions',
-            '0069_user_timezone',
-            '0070_coingecko_preset',
-            '0071_skool-preset',
-            '0072_drop_chat_events',
-            '0073_merchbase-fulfillment-preset',
-            '0074_merchbase-atlas-preset',
-            '0075_cloudflare-vercel-presets',
-            '0076_chatless-dream',
-            '0077_agent-dreams',
-            '0078_agent-dreams-truncated',
+            ...migrationsSince0060,
         ]);
         const [presetConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'mcp_connections_preset'`;
@@ -293,3 +275,27 @@ test('reports each migration applied to a fresh database exactly once', async ()
         await database.close();
     }
 });
+
+/** The receipt tail every upgrade from before 0060 shares. */
+const migrationsSince0060 = [
+    '0060_reminder_descriptions',
+    '0061_agent_wake_pause',
+    '0062_agent_chat_reads',
+    '0063_manual_read_receipts',
+    '0064_agent_conversation_style',
+    '0065_delegating_activity',
+    '0066_agent_run_triggers',
+    '0067_server_turns_index',
+    '0068_channel_descriptions',
+    '0069_user_timezone',
+    '0070_coingecko_preset',
+    '0071_skool-preset',
+    '0072_drop_chat_events',
+    '0073_merchbase-fulfillment-preset',
+    '0074_merchbase-atlas-preset',
+    '0075_cloudflare-vercel-presets',
+    '0076_chatless-dream',
+    '0077_agent-dreams',
+    '0078_agent-dreams-truncated',
+    '0079_cloud_agent_work_links',
+];

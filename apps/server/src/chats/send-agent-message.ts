@@ -10,6 +10,7 @@ import {
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
 import { type AttributedMessageCause, insertMessageCause } from '../automations/message-cause.ts';
+import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -19,9 +20,11 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { canonicalizeAgentMessageContentForPersistence } from './canonicalize-agent-references.ts';
 import { requireChatWritable } from './chat-access.ts';
+import { recordCloudAgentWorkLinks, resolveCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from './message-created-event.ts';
 import { readInlineReplyContext, resolveInlineReplyParent } from './reply-context.ts';
+import { AgentMessageContentTooLongError } from './send-agent-message-errors.ts';
 import {
     readExistingAgentMessage,
     replayAgentMessage,
@@ -96,7 +99,7 @@ export async function sendAgentMessage(
         }
 
         const existing = await readExistingAgentMessage(tx, input);
-        const content =
+        const canonical =
             existing?.content === input.content
                 ? input.content
                 : await canonicalizeAgentMessageContentForPersistence(tx, {
@@ -104,7 +107,7 @@ export async function sendAgentMessage(
                       existingContent: existing?.content,
                       serverId: input.serverId,
                   });
-        if (content.length > maxAgentMessageContentLength) {
+        if (canonical.length > maxAgentMessageContentLength) {
             throw new AgentMessageContentTooLongError();
         }
 
@@ -114,10 +117,15 @@ export async function sendAgentMessage(
                 input,
                 agent,
                 existing,
-                content,
+                canonical,
                 replyParent?.parent.id ?? null
             );
         }
+        const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+            author: { agentId: input.agentId, kind: 'agent' },
+            content: canonical,
+            serverId: input.serverId,
+        });
         const activities: AgentActivityEvent[] = [];
         const startedActivity = await appendServerAgentActivity(tx, {
             agentId: input.agentId,
@@ -167,6 +175,12 @@ export async function sendAgentMessage(
             })
             .returning();
         await associateMessageAttachments(tx, attachments, message.id, input.chatId);
+        await recordCloudAgentWorkLinks(tx, {
+            chatId: input.chatId,
+            links,
+            messageId,
+            serverId: input.serverId,
+        });
         // Own messages count as read; the position stops below the first message
         // from someone else the Agent was never shown (DMs and continueAnyway skip the hold).
         await advanceAgentChatReadsSeen(tx, {
@@ -252,7 +266,13 @@ export async function sendAgentMessage(
 
         return {
             activities,
-            events: [event],
+            events: [
+                event,
+                ...(await prepareLinkedWorkEvents(tx, {
+                    serverId: input.serverId,
+                    workIds: links.map((link) => link.workId),
+                })),
+            ],
             message: toAgentCliMessage(message, {
                 ...agent,
                 agentId: input.agentId,
@@ -270,18 +290,4 @@ export async function sendAgentMessage(
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
-}
-
-export class AgentSendConflictError extends Error {
-    constructor() {
-        super('That message nonce already belongs to a different Agent send.');
-        this.name = 'AgentSendConflictError';
-    }
-}
-
-export class AgentMessageContentTooLongError extends Error {
-    constructor() {
-        super('The message is too long after rich references are resolved.');
-        this.name = 'AgentMessageContentTooLongError';
-    }
 }

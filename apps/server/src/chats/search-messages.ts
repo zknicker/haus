@@ -2,6 +2,7 @@ import type { ChatSearchResult } from '@haus/api';
 import { and, eq, gte, isNull, ne, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
+import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -116,10 +117,11 @@ export async function searchChatMessages(
         .limit(input.limit);
 
     const messageIds = rows.map((message) => message.id);
-    const [attachments, causes, bodies, reactions, replies] = await Promise.all([
+    const [attachments, causes, bodies, works, reactions, replies] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
+        readLinkedCloudAgentWork(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         readInlineReplyContexts(db, input.serverId, rows),
     ]);
@@ -130,6 +132,7 @@ export async function searchChatMessages(
             authorProfile: readStoredAuthorProfile(message),
             body: bodies.get(message.id),
             cause: causes.get(message.id),
+            cloudAgentWork: works.get(message.id),
             reactions: reactions.get(message.id),
             reply: replies.get(message.id) ?? null,
         }),

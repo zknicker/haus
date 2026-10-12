@@ -68,17 +68,17 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
     expect(replay.body).toMatchObject({ idempotent: true, work: { id: work.id } });
     expect(await fixture.countWork()).toBe(1);
 
-    // The Message reads back to humans and Agents with its typed body.
+    // The launch Message is ordinary text that links its work (ADR 0044).
     const history = await fixture.owner.trpc.chat.messages.query({
         chatId: fixture.channelId,
         serverId: fixture.serverId,
     });
-    expect(history.messages.find((message) => message.id === created.body.messageId)).toMatchObject(
-        {
-            body: { kind: 'cloud-agent-work', work: { id: work.id } },
-            content: `Handing [@ada](user://${fixture.ownerUserId}) the work in [#product](chat://${fixture.channelId}).`,
-        }
-    );
+    const launch = history.messages.find((message) => message.id === created.body.messageId);
+    expect(launch).toMatchObject({
+        body: { kind: 'text' },
+        content: `Handing [@ada](user://${fixture.ownerUserId}) the work in [#product](chat://${fixture.channelId}).\n\n[Fix the flaky delivery test](cloud-agent://${work.id})`,
+    });
+    expect(launch?.cloudAgentWork.map((linked) => linked.id)).toEqual([work.id]);
 });
 
 test('a launch that fails validation creates nothing', async () => {
