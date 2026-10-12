@@ -1,0 +1,47 @@
+diff --git a/dist/index.js b/dist/index.js
+index d938550a6848b7f0309cfcfc45b89735b0acfc46..fba96e13a7d81e9be3dbc25e2117d94fcfc51494 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -2196,9 +2196,12 @@ async function createPiSession(input) {
+ 		noExtensions: true,
+ 		noThemes: true,
+ 		noPromptTemplates: true,
++		noContextFiles: true,
++		noSkills: true,
++		additionalSkillPaths: [sandboxSkillRootDir],
+ 		skillsOverride: (base) => ({
+ 			...base,
+-			skills: [...base.skills.filter((skill) => isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir)), ...harnessSkills]
++			skills: [...base.skills.filter((skill) => !harnessSkills.some((harnessSkill) => harnessSkill.name === skill.name)), ...harnessSkills]
+ 		})
+ 	});
+ 	await resourceLoader.reload();
+diff --git a/src/pi-session.ts b/src/pi-session.ts
+index a3659ac98809d66cae2de12f9dcced7b45384753..d93f529205e2e2911c7112a0e68b284e0aaf5559 100644
+--- a/src/pi-session.ts
++++ b/src/pi-session.ts
+@@ -678,13 +678,22 @@ export async function createPiSession(
+     // are kept but filtered to workspace project skills plus harness-provided
+     // skills whose files live in sandbox HOME.
+     noExtensions: true,
++    // Haus: context files walk every ancestor of cwd to `/`, reaching the
++    // operator's AGENTS.md/CLAUDE.md; Agent context is the composed prompt.
++    noContextFiles: true,
++    // Haus: Pi runs in the Computer process, so default skill discovery reads
++    // the operator's HOME and the workspace. Load exactly the native skill
++    // directory in sandbox HOME, which links to the Agent's skill library.
++    noSkills: true,
++    additionalSkillPaths: [sandboxSkillRootDir],
+     noThemes: true,
+     noPromptTemplates: true,
+     skillsOverride: base => ({
+       ...base,
+       skills: [
+-        ...base.skills.filter(skill =>
+-          isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
++        ...base.skills.filter(
++          skill =>
++            !harnessSkills.some(harnessSkill => harnessSkill.name === skill.name),
+         ),
+         ...harnessSkills,
+       ],
