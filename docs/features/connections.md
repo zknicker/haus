@@ -78,7 +78,8 @@ can reuse its configured OAuth client and previously approved authorization-serv
 
 Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
 tools exposed by the connection. The tool names are read-only context, not individual permission
-controls. Access changes take effect on the Agent's next MCP discovery or call without resetting
+controls. A connection grant also covers tools the service adds later. Haus Server keeps the list
+current in the background and listens for tool changes; no manual refresh is needed. Access changes take effect on the Agent's next MCP discovery or call without resetting
 its conversation.
 
 These grants are an Agent's only MCP access. Agents cannot add MCP servers themselves: MCP servers
@@ -97,8 +98,7 @@ A connection has its own settings page at `settings/connections/<connectionId>`;
 keeps Connections active, and the top bar reads `Haus › Settings › Connections › <name>` with
 Connections linking back. An unknown or removed connection, including one just removed from its
 own page, returns to the list. The page reads like a product page in a centered reading column
-that scrolls with Settings. It leads with the server's mark and name, a `···` menu (Refresh tools,
-Remove from Haus), and, while the connection still needs credentials, one primary **Sign in** or
+that scrolls with Settings. It leads with the server's mark and name, a `···` menu (Remove from Haus), and, while the connection still needs credentials, one primary **Sign in** or
 **Add credentials** button; the server's own description follows when it offers one. Below come
 ruled sections, actionable first: **Connected Account** (a card with the account label and its own
 `···` menu for Sign in again or Replace credentials and Disconnect account, plus **Add another

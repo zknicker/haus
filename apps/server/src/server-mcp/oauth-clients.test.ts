@@ -70,12 +70,6 @@ describe('configured OAuth clients', () => {
             scope: githubScope,
             token_endpoint_auth_method: 'client_secret_post',
         });
-        await expect(
-            provider.validateAuthorizationServerURL?.(
-                githubMcpUrl,
-                'https://github.com/login/oauth'
-            )
-        ).resolves.toBeUndefined();
     });
 
     test('Google Calendar keeps its client, basic auth, and trusted origins', async () => {
@@ -93,12 +87,6 @@ describe('configured OAuth clients', () => {
             scope: 'https://www.googleapis.com/auth/calendar',
             token_endpoint_auth_method: 'client_secret_basic',
         });
-        await expect(
-            provider.validateAuthorizationServerURL?.(
-                'https://calendarmcp.googleapis.com/mcp/v1',
-                'https://accounts.google.com'
-            )
-        ).resolves.toBeUndefined();
     });
 
     test('a missing GitHub client reports the connection unavailable', async () => {
@@ -139,6 +127,54 @@ describe('configured OAuth clients', () => {
         expect(runtime.storedSecret().configuredClientInformation).toBeUndefined();
     });
 
+    test('unapproved OAuth endpoints are rejected before any request leaves Server', async () => {
+        let fetched = false;
+        globalThis.fetch = ((_input: RequestInfo | URL) => {
+            fetched = true;
+            return Promise.resolve(Response.json({}));
+        }) as typeof fetch;
+        const provider = await createMcpOAuthProvider(
+            fakeRuntime('merchbase', 'https://mcp.example.test/mcp'),
+            'mcp_custom',
+            redirectUrl,
+            { allowAuthorizationServerOrigin: false, onRedirect() {} }
+        );
+        await expect(provider.fetch('https://unapproved.example.test/token')).rejects.toThrow(
+            'Confirm https://unapproved.example.test'
+        );
+        expect(fetched).toBe(false);
+        await expect(
+            provider.redirectToAuthorization(new URL('https://unapproved.example.test/authorize'))
+        ).rejects.toThrow('Confirm');
+    });
+
+    test('an approved authorization server may declare a separate HTTPS credential endpoint', async () => {
+        let fetched = false;
+        globalThis.fetch = ((_input: RequestInfo | URL) => {
+            fetched = true;
+            return Promise.resolve(Response.json({}));
+        }) as typeof fetch;
+        const runtime = fakeRuntime('merchbase', 'https://mcp.example.test/mcp', {
+            ...emptySecret(),
+            approvedAuthorizationServerOrigins: ['https://issuer.example.test'],
+            discoveryState: {
+                authorizationServerUrl: 'https://issuer.example.test',
+                authorizationServerMetadata: {
+                    token_endpoint: 'https://tokens.example.test/token',
+                },
+            },
+        });
+        const provider = await createMcpOAuthProvider(runtime, 'mcp_custom', redirectUrl, {
+            allowAuthorizationServerOrigin: false,
+            onRedirect() {},
+        });
+        await provider.fetch('https://tokens.example.test/token');
+        expect(fetched).toBe(true);
+        await expect(provider.fetch('https://tokens.example.test/unrelated')).rejects.toThrow(
+            'Confirm'
+        );
+    });
+
     test('a fresh sign-in leaves the Server client off the stored secret', async () => {
         globalThis.fetch = githubDiscoveryFetch();
         const runtime = fakeRuntime('github', githubMcpUrl);
@@ -149,6 +185,16 @@ describe('configured OAuth clients', () => {
             routingState: 'state-1',
         });
         expect(runtime.storedSecret().clientInformation).toBeUndefined();
+        expect(runtime.storedSecret().clientInformationIssuer).toBe(
+            'https://github.com/login/oauth'
+        );
+        const provider = await createMcpOAuthProvider(runtime, 'mcp_github', redirectUrl, {
+            allowAuthorizationServerOrigin: false,
+            onRedirect() {},
+        });
+        expect(await provider.clientInformation()).toMatchObject({
+            issuer: 'https://github.com/login/oauth',
+        });
         expect(JSON.stringify(runtime.storedSecret())).not.toContain('github-secret');
     });
 

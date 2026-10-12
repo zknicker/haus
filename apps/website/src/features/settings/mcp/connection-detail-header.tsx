@@ -17,7 +17,6 @@ import type { McpConnection } from './mcp-server-shared.ts';
 export function ConnectionDetailHeader({
     connection,
     onAddCredentials,
-    onRefresh,
     onRemove,
     onSignIn,
     saving,
@@ -26,7 +25,6 @@ export function ConnectionDetailHeader({
 }: {
     connection: McpConnection;
     onAddCredentials: () => void;
-    onRefresh: () => void;
     onRemove: () => void;
     onSignIn: () => void;
     saving: boolean;
@@ -54,14 +52,6 @@ export function ConnectionDetailHeader({
                     </Button>
                     <Dropdown.Popover placement="bottom end">
                         <Dropdown.Menu>
-                            <Dropdown.Item
-                                id="refresh"
-                                isDisabled={!connection.connected}
-                                onAction={onRefresh}
-                                textValue="Refresh tools"
-                            >
-                                <Label>Refresh tools</Label>
-                            </Dropdown.Item>
                             <Dropdown.Item
                                 id="remove"
                                 onAction={onRemove}

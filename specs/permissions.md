@@ -7,7 +7,7 @@ Tool access is governed by tool source, sandbox mode, and approval policy:
 - harness-native tools come from the selected executor
 - host tools require explicit per-agent grants
 - MCP tools require an exact `(server, agent, connection)` grant
-  that Runtime rechecks immediately before the call
+  that Haus Server rechecks after discovery immediately before the call
 - sandbox mode controls the execution environment
 - exposed tools are auto-approved unless Runtime adds a narrower approval policy
 

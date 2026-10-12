@@ -1,12 +1,16 @@
-import { UnauthorizedError } from '@ai-sdk/mcp';
+import {
+    OAuthError,
+    ProtocolError,
+    SdkError,
+    SdkErrorCode,
+    UnauthorizedError,
+} from '@modelcontextprotocol/client';
 import { McpReconnectRequiredError, McpUpstreamError } from './errors.ts';
 
 type McpOperation = 'discovery' | 'invocation';
 
 /** MCP 2026-07-28 request-validation codes (header mismatch and friends). */
 const PROTOCOL_ERROR_CODES = new Set([-32_020, -32_021, -32_022]);
-const MCP_CLIENT_ERROR_MARKER = Symbol.for('vercel.ai.error.AI_MCPClientError');
-const MCP_OAUTH_ERROR_MARKER = Symbol.for('vercel.ai.error.AI_MCPClientOAuthError');
 const REASON_LIMIT = 200;
 
 /**
@@ -31,7 +35,7 @@ export function classifyMcpUpstreamError(
     }
     const unavailable = `The MCP ${operation} is unavailable`;
     // A JSON-RPC error is an upstream answer, even when its text mentions a timeout.
-    const rpcCode = isMcpClientError(cause) ? readNumber(cause, 'code') : undefined;
+    const rpcCode = cause instanceof ProtocolError ? cause.code : undefined;
     if (rpcCode !== undefined && cause instanceof Error) {
         const reason = sanitizeUpstreamReason(cause.message);
         return new McpUpstreamError(
@@ -74,12 +78,8 @@ function isAuthFailure(cause: unknown): boolean {
     return (
         cause instanceof UnauthorizedError ||
         cause instanceof McpReconnectRequiredError ||
-        hasMarker(cause, MCP_OAUTH_ERROR_MARKER)
+        cause instanceof OAuthError
     );
-}
-
-function isMcpClientError(cause: unknown): boolean {
-    return hasMarker(cause, MCP_CLIENT_ERROR_MARKER);
 }
 
 function isTransportFailure(cause: unknown): boolean {
@@ -91,6 +91,9 @@ function isTimeout(cause: unknown): boolean {
     if (!(cause instanceof Error)) {
         return false;
     }
+    if (cause instanceof SdkError && cause.code === SdkErrorCode.RequestTimeout) {
+        return true;
+    }
     const code = readString(cause, 'code');
     return (
         cause.name === 'AbortError' ||
@@ -98,10 +101,6 @@ function isTimeout(cause: unknown): boolean {
         code === 'UND_ERR_CONNECT_TIMEOUT' ||
         /\b(?:abort|timed?\s*out|timeout)\b/iu.test(cause.message)
     );
-}
-
-function hasMarker(value: unknown, marker: symbol): boolean {
-    return value instanceof Error && marker in value && Reflect.get(value, marker) === true;
 }
 
 function readNumber(value: unknown, key: string): number | undefined {

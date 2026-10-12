@@ -1,5 +1,5 @@
-import type { MCPClient } from '@ai-sdk/mcp';
 import { type TraceCarrier, withTelemetrySpan, withTraceCarrier } from '@haus/effect';
+import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import { Data, Effect, Runtime } from 'effect';
 import type { McpClientCache } from './client-cache.ts';
 import { McpClientAcquireError, McpUpstreamError } from './errors.ts';

@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
-import type { MCPClient } from '@ai-sdk/mcp';
+import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import * as Cause from 'effect/Cause';
 import * as Effect from 'effect/Effect';
 import * as Option from 'effect/Option';
@@ -28,7 +28,8 @@ function makeClient(plan: ClientPlan = {}) {
             state.closeCount += 1;
             return plan.close?.() ?? Promise.resolve();
         },
-        listTools: (request: ListRequest) => plan.list?.(request) ?? Promise.resolve({ tools: [] }),
+        listTools: (_params: unknown, options?: ListRequest['options']) =>
+            plan.list?.({ options }) ?? Promise.resolve({ tools: [] }),
     } as unknown as MCPClient;
     return { client, state };
 }
@@ -98,7 +99,7 @@ test('retirement aborts active operations and rejects late completion', async ()
         ready.pipe(
             Effect.flatMap((client) =>
                 Effect.tryPromise({
-                    try: (signal) => client.listTools({ options: { signal } }),
+                    try: (signal) => client.listTools(undefined, { signal }),
                     catch: (cause) => cause,
                 })
             )
@@ -124,7 +125,7 @@ test('closes a ready client once after a failed operation', async () => {
         ready.pipe(
             Effect.flatMap((client) =>
                 Effect.tryPromise({
-                    try: (signal) => client.listTools({ options: { signal } }),
+                    try: (signal) => client.listTools(undefined, { signal }),
                     catch: (cause) => cause,
                 })
             )

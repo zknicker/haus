@@ -834,6 +834,28 @@
         "manualPromise": 0,
         "timer": 0
       }
+    },
+    "apps/server/src/server-mcp/service.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "A finite diagnostic refresh resumes background inventory reconciliation on both success and failure; MCP runtime scopes own recurring discovery and client retirement.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/server/src/server-mcp/inventory.ts": {
+      "disposition": "effect-owned",
+      "reason": "The Server runtime owns scoped, fixed-delay MCP reconciliation through Effect clocks; connection revisions serialize inventory writes and suppress late results after client retirement. Finite Promise cleanup removes settled single-flight and write entries.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
     }
   },
   "staticRuntimeCeilings": {}
