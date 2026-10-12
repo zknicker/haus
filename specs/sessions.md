@@ -33,9 +33,8 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
 - A dream is the one chatless run: a private nightly turn whose whole input is the
   dreaming instruction ([workspace.md](workspace.md#dreaming)). Its start frame carries
   `chatId: null` and a `dream` attention instead of inbox items, it publishes no Chat
-  lifecycle event, and its recorded trigger is `{ kind: 'dream' }`. It starts only when no
-  other queued work can. Otherwise it is an ordinary concrete run: busy notices reach it, and
-  failure, Stop, and requeue treat it like any other.
+  lifecycle event, and its recorded trigger is `{ kind: 'dream' }`. Otherwise it is an ordinary
+  concrete run: busy notices reach it, and failure, Stop, and requeue treat it like any other.
 - A fresh session with no pending delivery starts with bare `Start.`. After a
   reset, the recovery line precedes either `Start.` or the pending notice/typed
   attention that becomes the first prompt. An Agent created with a standing

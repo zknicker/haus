@@ -35,7 +35,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
-| `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); the only row with no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; queued even while the Agent is busy or has work waiting, and leads a run only when no other queued work can start. Never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
+| `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); the only row with no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; queued even while the Agent is busy or has work waiting, then ordered like any other concrete item. Never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read

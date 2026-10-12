@@ -16,7 +16,8 @@ execution evidence, so they are not admin-only.
 An Agent dreams at most once a night, and only on a night its memory changed. Its Computer checks
 once per local night, early in the 03:00–05:00 window, and the first check only records where
 memory stands. A new Agent's first dream therefore comes roughly 24 to 48 hours after it starts.
-A busy Agent still dreams that night: the dream waits for its current and queued work to finish.
+A busy Agent still dreams that night: the dream waits for its current turn to finish, then takes
+its place in the queue like any other inbox work.
 
 ## On the profile
 

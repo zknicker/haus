@@ -62,8 +62,8 @@ rejecting the ordinary inventory report.
 
 At its one check per night Computer may send `agent-dream-request` (`{ agentId, localDate }`)
 for an Agent whose memory changed ([workspace](../../specs/workspace.md#dreaming)). Server answers
-only by dispatch: it queues the dream for any running Agent, busy or not, and once no other work
-is waiting it starts the one chatless run,
+only by dispatch: it queues the dream for any running Agent, busy or not, and when the dream's
+turn comes it starts the one chatless run,
 a `start` frame with `chatId: null`, a `dream` attention (`{ id, createdAt }`), and no inbox
 items; the runner mint for that run carries `chatId: null` too. Only a Computer that sends the
 request can receive a dream start, so the frame needs no protocol bump: an older Server ignores

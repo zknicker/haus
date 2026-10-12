@@ -92,11 +92,11 @@ configured, running Agent on that Computer, whether it has an active run, waitin
 pause, or a backoff, then dispatches through the normal path. A stopped Agent is never queued a
 dream.
 
-From there a dream is an ordinary concrete inbox item: busy notices reach its run, and settlement,
-failure, backoff, Stop, and requeue treat it like any other. Three rules are its own: it leads a
-run only when no other queued work can start, so it never runs in front of anyone's work; the
-night's identity means it cannot queue twice; and a dream still queued four hours after it was
-requested has missed its night, so it is retired as `seen` instead of leading a run.
+From there a dream is an ordinary concrete inbox item: it takes its turn like a reminder or any
+other concrete item, busy notices reach its run, and settlement, failure, backoff, Stop, and
+requeue treat it like any other. Two rules are its own: the night's identity means it cannot
+queue twice, and a dream still queued four hours after it was requested has missed its night, so
+it is retired as `seen` instead of leading a run.
 
 The dream run is the one chatless run ([sessions.md](sessions.md)). Its whole input is an
 instruction Computer composes: Haus started the turn for the nightly dreaming pass per the Manual
