@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
-import type { GithubInstallation } from '@haus/api';
+import { type GithubInstallation, githubTriggerEventsSchema } from '@haus/api';
 import {
     createGithubEventDraft,
+    githubEventDraftFromEntry,
     githubEventFromDraft,
     githubEventSummary,
 } from './trigger-github-events-model.ts';
@@ -14,6 +15,24 @@ import {
     githubProblemTitle,
     githubScopeSummary,
 } from './trigger-github-model.ts';
+
+test('editing alternative groups retains every include and exclude field', () => {
+    const groups = githubTriggerEventsSchema.parse([
+        {
+            event: 'workflow_run',
+            branches: ['@default'],
+            workflowsIgnore: ['**/test.yml'],
+            actorsIgnore: ['dependabot[bot]'],
+            repositoriesIgnore: ['acme/archive-*'],
+            workflowEvents: ['push'],
+        },
+        { event: 'workflow_run', workflows: ['**/deploy.yml'], conclusions: ['cancelled'] },
+    ]);
+    const drafts = groups.map(githubEventDraftFromEntry);
+    expect(drafts[0]?.key).not.toBe(drafts[1]?.key);
+    expect(drafts.map(githubEventFromDraft)).toEqual(groups);
+    expect(githubEventSummary(groups[0]!)).toContain('exclude repositories: acme/archive-*');
+});
 
 function installation(
     id: string,

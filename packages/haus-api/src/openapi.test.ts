@@ -72,6 +72,7 @@ describe('Haus OpenAPI contract', () => {
             '/api/triggers/{trigger_id}',
             '/api/agent/triggers',
             '/api/agent/triggers/{id}',
+            '/api/agent/triggers/{id}/preview',
             '/api/agent/triggers/{id}/disable',
             '/api/agent/triggers/{id}/enable',
             '/api/agent/triggers/{id}/rotate',
