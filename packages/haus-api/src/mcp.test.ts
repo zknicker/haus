@@ -4,6 +4,13 @@ import { isMcpBearerTokenPreset, mcpPresetAccountCreateSchema, mcpPresetSchema }
 const base = { name: 'Account', serverId: 'srv_1' };
 
 describe('preset account auth', () => {
+    test('Vercel is no longer an accepted built-in preset', () => {
+        expect(mcpPresetSchema.safeParse('vercel').success).toBe(false);
+        expect(mcpPresetAccountCreateSchema.safeParse({ ...base, preset: 'vercel' }).success).toBe(
+            false
+        );
+    });
+
     test('every preset is exactly one auth kind', () => {
         expect(mcpPresetSchema.options.filter(isMcpBearerTokenPreset)).toEqual(['x']);
     });
@@ -23,7 +30,6 @@ describe('preset account auth', () => {
 
     test.each([
         'cloudflare',
-        'vercel',
         'merchbase-atlas',
         'merchbase-fulfillment',
     ])('%s uses OAuth with a Server-owned endpoint', (preset) => {

@@ -47,7 +47,6 @@ test('GitHub lands as an OAuth preset awaiting sign-in', async () => {
 
 test.each([
     ['cloudflare', 'https://mcp.cloudflare.com/mcp'],
-    ['vercel', 'https://mcp.vercel.com'],
 ] as const)('%s awaits OAuth without credentials or Agent grants', async (preset, url) => {
     const created = await owner.trpc.mcp.addPresetAccount.mutate({
         name: preset,
@@ -105,7 +104,6 @@ test.each([
     'google-calendar',
     'rankwrangler',
     'cloudflare',
-    'vercel',
 ] as const)('deletes a %s account and its secrets without removing another account', async (preset) => {
     const first = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
     const second = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });

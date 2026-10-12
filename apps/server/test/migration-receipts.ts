@@ -23,4 +23,5 @@ export const migrationsSince0060 = [
     '0080_message-body-drop-cloud-agent-work',
     '0081_shared-artifacts',
     '0082_github_app',
+    '0083_remove-vercel-preset',
 ];
