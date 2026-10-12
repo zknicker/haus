@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.3.0 - 2026-10-12
+
+- Connections recommends Handmade for Etsy listings, order lookup, and product mockups, with OAuth sign-in and Handmade’s own icon. Vercel leaves the built-in catalog; existing accounts remain available as custom connections.
+- GitHub Triggers can match precise repository, actor, branch, and event filters. Haus Computer 9.3.0 and Haus Agent 9.3.0 let Agents edit those Triggers and preview whether an event will match.
+- Desktop pages open beside the current Chat, with actions to open, replace, or move a page between tabs and windows.
+- Haus Computer 9.3.0 adds current Codex, Claude, and Grok models to its model picker.
+
 ## v12.2.2 - 2026-10-12
 
 - GitHub sign-in completes instead of failing when validating the authorization callback.
