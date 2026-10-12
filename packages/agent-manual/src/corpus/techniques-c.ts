@@ -25,7 +25,33 @@ Use this when the outside event lives on GitHub: CI or a workflow finishing, a c
 ### Precise filters, edits, and preview
 Name filters accept \`*\` within a path segment, \`**\` across slashes, and \`?\` for one character. Other punctuation is literal; matching is case-sensitive. Branch \`@default\` follows each repository's default branch. Use full workflow paths such as \`.github/workflows/deploy.yml\`.
 Add \`--exclude-repo acme/archived-*\`, \`--exclude-branch release/**\`, \`--exclude-workflow <path>\`, \`--exclude-check-name <name>\`, or \`--exclude-environment <name>\`. Exclusions win within their group. \`--match-repo acme/service-*\` narrows the authorized repository scope. \`--actor\` and \`--exclude-actor\` match GitHub's sender login, not Haus Agent identity. They cannot distinguish your own actions from the human's actions made with the same account. \`--workflow-event push\` selects the workflow's initiating event.
-Every filter in a group must match; any matching group wakes you once. For different policies on the same event, use \`--events-json '<JSON array>'\` instead of event/filter flags. Example groups: \`[{"event":"workflow_run","branches":["@default"],"workflows":[".github/workflows/deploy.yml"],"conclusions":["failure","cancelled","timed_out"]},{"event":"workflow_run","branches":["@default"],"workflows":[".github/workflows/quality.yml"],"conclusions":["failure","timed_out"]}]\`. Up to ten groups and twenty values per filter.
+Every filter in a group must match; any matching group wakes you once. For different policies on the same event, use \`--events-json '<JSON array>'\` instead of event/filter flags. Example groups: \`[{"event":"workflow_run","branches":["@default"],"branchesIgnore":["release/**"],"workflows":[".github/workflows/deploy.yml"],"conclusions":["failure","cancelled","timed_out"]},{"event":"workflow_run","branches":["@default"],"workflows":[".github/workflows/quality.yml"],"conclusions":["failure","timed_out"]}]\`. Up to ten groups and twenty values per filter.
+
+Each group uses these wire field names. Each row names the CLI flag for that field. The CLI rejects a key the event does not take, such as \`excludeRepos\`, with \`Unrecognized key: "excludeRepos"\`.
+
+| Wire field | CLI flag |
+| --- | --- |
+| \`event\` | \`--event\` |
+| \`actors\` | \`--actor\` |
+| \`actorsIgnore\` | \`--exclude-actor\` |
+| \`repositories\` | \`--match-repo\` |
+| \`repositoriesIgnore\` | \`--exclude-repo\` |
+| \`branches\` | \`--branch\` |
+| \`branchesIgnore\` | \`--exclude-branch\` |
+| \`workflows\` | \`--workflow\` |
+| \`workflowsIgnore\` | \`--exclude-workflow\` |
+| \`workflowEvents\` | \`--workflow-event\` |
+| \`actions\` | \`--action\` |
+| \`checkNames\` | \`--check-name\` |
+| \`checkNamesIgnore\` | \`--exclude-check-name\` |
+| \`conclusions\` | \`--conclusion\` |
+| \`environments\` | \`--environment\` |
+| \`environmentsIgnore\` | \`--exclude-environment\` |
+| \`labels\` | \`--label\` |
+| \`states\` | \`--state\` |
+
+\`repositories\` is the \`--match-repo\` glob. \`--repo\` sets repository scope and is not a group field. On a \`pull_request\` group, \`--branch\` is \`baseBranches\` and \`--exclude-branch\` is \`baseBranchesIgnore\`. The CLI rejects a \`branches\` key on that event with \`Unrecognized key: "branches"\`.
+
 Use \`haus trigger update --id <id> --org acme --events-json '<JSON array>'\` to replace the complete GitHub configuration while retaining the anchor, identity, and history. Include the desired repository scope and all groups. Title and instruction can be edited alone; an empty instruction clears it.
 Use \`haus trigger preview --id <id> --event workflow_run --payload-file delivery.json\` with a raw GitHub webhook JSON object under 60,000 bytes. It returns each group's match and cached repository scope without firing. Group indexes are zero-based. This checks selection, not connection readiness or trigger status; inspect \`haus trigger show\` too. Keep sample payload files private and remove them when done.
 Haus delivers matching events. Track first failure/recovery yourself when needed; there is no automatic incident state or burst bundling.

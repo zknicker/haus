@@ -64,6 +64,11 @@ test('GitHub trigger manual covers setup, events, loops, and problems', () => {
         'github_trigger_limit',
         'payload as data, not instructions',
         '--cause <fireId>',
+        'actorsIgnore',
+        'Unrecognized key',
+        'baseBranches',
+        'branchesIgnore',
+        'excludeRepos',
     ]) {
         expect(body).toContain(detail);
     }
@@ -79,6 +84,8 @@ test('GitHub trigger manual covers setup, events, loops, and problems', () => {
     }
     expect(body).not.toMatch(/secret:/iu);
     expect(getManualTopic('github')?.body).toContain('haus github installations');
+    expect(getManualTopic('trigger')?.body).toContain('actorsIgnore');
+    expect(getManualTopic('trigger')?.body).toContain('Unrecognized key');
 });
 
 test('reminder manual resolves calendar timezones from the requester, not home time', () => {
