@@ -23,23 +23,31 @@ export function ArtifactMessage({
     onReferenceActivate?: ReferenceActivation;
 }) {
     const segments = splitArtifactFences(content);
+    const artifacts = segments.filter((segment) => segment.kind === 'artifact');
 
+    // In-chat cards sit below the message: prose reads as one block, then
+    // each fence's card in authored order.
     return (
         <ArtifactPanelOpenProvider agentId={agentId} onOpen={onOpenArtifact}>
             <div className="flex min-w-0 flex-col gap-3">
                 {segments.map((segment) =>
-                    segment.kind === 'artifact' ? (
-                        <WidgetArtifactCard key={segment.key} props={segment.props} />
-                    ) : (
+                    segment.kind === 'text' ? (
                         <ChatMarkdownText
                             content={segment.text}
                             key={segment.key}
                             mentions={sliceMentions(mentions, segment.start, segment.end)}
                             onReferenceActivate={onReferenceActivate}
                         />
-                    )
+                    ) : null
                 )}
             </div>
+            {artifacts.length > 0 ? (
+                <div className="mt-1.5 flex min-w-0 flex-col gap-1.5">
+                    {artifacts.map((segment) => (
+                        <WidgetArtifactCard key={segment.key} props={segment.props} />
+                    ))}
+                </div>
+            ) : null}
         </ArtifactPanelOpenProvider>
     );
 }

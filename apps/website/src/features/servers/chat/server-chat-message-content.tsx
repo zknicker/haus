@@ -4,6 +4,10 @@ import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { isLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
+import {
+    MessageSharedArtifactScope,
+    mayLinkSharedArtifact,
+} from '../../chats/message-shared-artifacts.tsx';
 import { MessageRoutingDebug } from '../../chats/routing/message-routing-debug.tsx';
 import { cloudAgentWorkDisplayContent } from '../../cloud-agents/message-cloud-agent-work.ts';
 import {
@@ -62,7 +66,7 @@ export function ServerChatMessageContent({
         })
     );
 
-    return message.hausAgentId ? (
+    const body = message.hausAgentId ? (
         <ArtifactMessage
             agentId={message.hausAgentId}
             content={content}
@@ -81,5 +85,11 @@ export function ServerChatMessageContent({
                 <MessageRoutingDebug messageId={message.id} serverId={serverId} />
             )}
         </>
+    );
+
+    return mayLinkSharedArtifact(content) ? (
+        <MessageSharedArtifactScope serverId={serverId}>{body}</MessageSharedArtifactScope>
+    ) : (
+        body
     );
 }

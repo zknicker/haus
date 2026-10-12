@@ -190,7 +190,7 @@ test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane'
     await expect(thread).toBeVisible();
     await expect(thread.getByText('```artifact', { exact: false })).toHaveCount(0);
     await thread.getByRole('textbox', { name: /Message Thread/u }).fill('Preserved draft');
-    await thread.getByRole('button', { name: /Deterministic workspace audit/u }).click();
+    await thread.getByTestId('artifact-card').press('Enter');
 
     const artifacts = page.getByRole('complementary', { name: 'Artifacts' });
     await expect(thread).toHaveCount(0);

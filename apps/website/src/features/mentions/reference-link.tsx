@@ -1,6 +1,7 @@
 import { cloudAgentPullRequestNumber, parseAmazonProduct } from '@haus/api';
 import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
+import { useSharedArtifactTarget } from '../chats/shared-artifact-scope.tsx';
 import { AmazonReference } from './amazon-reference.tsx';
 import type { Mention, ReferenceActivation } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
@@ -61,6 +62,8 @@ function ReferenceLink({
     serverId?: string;
 }) {
     const prepared = href ? links.get(href) : undefined;
+    // This Server's library links open in the App, never as a website chip.
+    const sharedArtifact = useSharedArtifactTarget(href);
 
     if (prepared?.kind === 'reference') {
         const reference = prepared.reference;
@@ -80,6 +83,10 @@ function ReferenceLink({
 
     if (prepared?.kind === 'resource') {
         return <MarkdownLink href={prepared.href}>{children}</MarkdownLink>;
+    }
+
+    if (href && sharedArtifact) {
+        return <MarkdownLink href={href}>{children}</MarkdownLink>;
     }
 
     const pullRequest = getPullRequestReference(href);

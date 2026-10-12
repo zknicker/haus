@@ -1,10 +1,22 @@
 import type * as React from 'react';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 import { parseHausResourceLink } from './haus-resource-link.ts';
+import { SharedArtifactChip } from './shared-artifact-chip.tsx';
+import { useSharedArtifactScope, useSharedArtifactTarget } from './shared-artifact-scope.tsx';
 
 export function MarkdownLink({ children, href }: { children: React.ReactNode; href: string }) {
     const openArtifactPanel = useArtifactPanelOpen();
     const hausTarget = parseHausResourceLink(href);
+    const artifactScope = useSharedArtifactScope();
+    const artifactTarget = useSharedArtifactTarget(href);
+
+    if (artifactScope && artifactTarget) {
+        return (
+            <SharedArtifactChip scope={artifactScope} target={artifactTarget}>
+                {children}
+            </SharedArtifactChip>
+        );
+    }
 
     if (hausTarget && openArtifactPanel) {
         return (
