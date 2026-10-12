@@ -66,6 +66,18 @@ public struct CloudAgentPullRequest: Codable, Hashable, Sendable {
 public struct ThreadCloudAgentWork: Codable, Hashable, Sendable {
     public let anchorMessageId: String
     public let work: CloudAgentWork
+
+    /// The Chats whose loaded work list names any of the work, so a change
+    /// reaches every Chat that links it rather than only the one an event named.
+    public static func chatIDs(
+        listing workIDs: Set<String>,
+        in lists: [String: [ThreadCloudAgentWork]]
+    ) -> Set<String> {
+        guard !workIDs.isEmpty else { return [] }
+        return Set(lists.compactMap { chatID, rows in
+            rows.contains { workIDs.contains($0.work.id) } ? chatID : nil
+        })
+    }
 }
 
 public struct CloudAgentCapability: Codable, Hashable, Sendable {
@@ -179,34 +191,3 @@ extension CloudAgentSignIn: Codable {
     }
 }
 
-/// One queued or running Cloud Agent work visible to the viewer, with
-/// everything the Inbox's "Happening now" section needs to name it and open its
-/// conversation. Like `OpenAsk`, the Chat facts always name the Channel or DM,
-/// never a Thread. Server membership and Chat access gate the read, so work the
-/// viewer cannot see never arrives and no client-side filtering is needed.
-public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable {
-    public let chatKind: ChatKind
-    public let chatName: String?
-    public let chatPeerUserID: String?
-    public let conversationChatID: String
-    public let message: ChatMessage
-    public let threadAnchorMessage: ChatMessage?
-    public let threadChatID: String
-    public let work: CloudAgentWork
-
-    public var id: String { work.id }
-
-    /// The Message this work's Thread hangs off.
-    public var threadAnchor: ChatMessage { threadAnchorMessage ?? message }
-
-    enum CodingKeys: String, CodingKey {
-        case chatKind
-        case chatName
-        case chatPeerUserID = "chatPeerUserId"
-        case conversationChatID = "conversationChatId"
-        case message
-        case threadAnchorMessage
-        case threadChatID = "threadChatId"
-        case work
-    }
-}

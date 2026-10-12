@@ -97,6 +97,10 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     /// reported one. Decoded tolerantly in `ChatMessageCause.swift`.
     public let cause: ChatMessageCause?
     public let chatID: String
+    /// The Cloud Agent work this Message links, in link order, each visible to
+    /// the viewer (ADR 0044). Servers that predate links omit it, so it
+    /// decodes as empty; read `linkedCloudAgentWork` for every card to draw.
+    public var cloudAgentWork: [CloudAgentWork] = []
     public let content: String
     public let createdAt: Date
     public let id: String
@@ -122,6 +126,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case body
         case cause
         case chatID = "chatId"
+        case cloudAgentWork
         case content
         case createdAt
         case id

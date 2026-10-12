@@ -93,8 +93,9 @@ extension HausStore {
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
-            let ownWork: CloudAgentWork? = if case .cloudAgentWork(let work) = message.body { work } else { nil }
+            let parsed = parsedBody(id: message.id, content: message.displayContent, chatID: message.chatID)
+            // Every linked work draws the same card, wherever the link sits.
+            let linkedWork = message.linkedCloudAgentWork
             return MessagePresentation(
                 id: message.id,
                 author: author,
@@ -107,10 +108,10 @@ extension HausStore {
                 },
                 thread: thread,
                 task: message.task.map(taskPresentation),
-                cloudAgents: ownWork.map { [cloudAgentPresentation($0)] } ?? [],
+                cloudAgents: linkedWork.map { cloudAgentPresentation($0, presentingChatID: message.chatID) },
                 threadCloudAgents: CloudAgentPresentation.threadPreviewWork(
-                    cloudAgentWork, anchorMessageID: message.id, ownWorkID: ownWork?.id
-                ).map(cloudAgentPresentation),
+                    cloudAgentWork, anchorMessageID: message.id, ownWorkIDs: Set(linkedWork.map(\.id))
+                ).map { cloudAgentPresentation($0, presentingChatID: message.chatID) },
                 reactions: reactionPresentations(message.reactions),
                 richBlocks: parsed.richBlocks,
                 visualBody: parsed.visuals,

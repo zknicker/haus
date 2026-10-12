@@ -33,6 +33,9 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     public private(set) var reloadsServerTasks = false
     public private(set) var reloadsActiveCloudAgentWork = false
     public private(set) var cloudAgentWorkChatIDs: Set<String> = []
+    /// Work that changed. Every loaded Message and work list carrying one
+    /// refreshes, whichever Chat links it (ADR 0044).
+    public private(set) var cloudAgentWorkIDs: Set<String> = []
     public private(set) var changedLabelIDs: Set<String> = []
     public private(set) var deletedChatIDs: Set<String> = []
     /// Messages whose reactions changed live, for the sticker arrival motion.
@@ -96,9 +99,12 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         reloadsChatList = true
     }
 
+    /// A deleted Chat takes its links with it: work it linked may leave
+    /// "Happening now" or open somewhere else, so that list reads again.
     mutating func absorb(lifecycle event: ChatLifecycleEvent) {
         if event.action == .deleted {
             deletedChatIDs.insert(event.chatID)
+            reloadsActiveCloudAgentWork = true
         }
         reloadsChatList = true
     }
@@ -113,8 +119,11 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         reloadsServerTasks = true
     }
 
+    /// One event per linking Message: refresh that Message and its Chat's work
+    /// list, and remember the work so every other loaded copy follows.
     mutating func absorb(cloudAgentWork event: CloudAgentWorkUpdatedEvent) {
         entityRefreshes.insert(EntityRefresh(chatID: event.chatID, messageID: event.messageID))
+        cloudAgentWorkIDs.insert(event.workID)
         cloudAgentWorkChatIDs.insert(event.chatID)
         if let parentChatID = event.parentChatID {
             cloudAgentWorkChatIDs.insert(parentChatID)

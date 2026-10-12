@@ -43,11 +43,21 @@ extension HausStore {
         let effects = ChatRealtimeEffects(events, serverID: serverID)
         guard !effects.isEmpty else { return }
 
+        // Work a deleted Chat linked may still be listed elsewhere; read before
+        // the purge forgets which work that was.
+        let workLinkedInDeletedChats = effects.deletedChatIDs.reduce(into: Set<String>()) { ids, chatID in
+            ids.formUnion(transcripts.cloudAgentWorkIDs(linkedIn: chatID))
+            ids.formUnion((cloudAgentWorkByChatID[chatID] ?? []).map(\.work.id))
+        }
         effects.deletedChatIDs.forEach(purgeChat)
         for (chatID, sequence) in effects.tailSequenceByChatID where !deletedChatIDs.contains(chatID) {
             requestTail(chatID: chatID, through: sequence)
         }
-        for refresh in effects.entityRefreshes where !deletedChatIDs.contains(refresh.chatID) {
+        // A work change reaches every loaded Message that links it, not only
+        // the linking Messages the Server's events named.
+        let entityRefreshes = effects.entityRefreshes
+            .union(transcripts.refreshes(carryingCloudAgentWork: effects.cloudAgentWorkIDs))
+        for refresh in entityRefreshes where !deletedChatIDs.contains(refresh.chatID) {
             refreshEntity(refresh)
         }
         for messageID in effects.liveReactionMessageIDs {
@@ -56,7 +66,11 @@ extension HausStore {
         if !effects.changedLabelIDs.isEmpty {
             reloadForLabelChanges(effects.changedLabelIDs)
         }
-        for chatID in effects.cloudAgentWorkChatIDs where cloudAgentWorkByChatID[chatID] != nil {
+        let workListChatIDs = effects.cloudAgentWorkChatIDs.union(ThreadCloudAgentWork.chatIDs(
+            listing: effects.cloudAgentWorkIDs.union(workLinkedInDeletedChats),
+            in: cloudAgentWorkByChatID
+        ))
+        for chatID in workListChatIDs where cloudAgentWorkByChatID[chatID] != nil {
             Task { await self.loadCloudAgentWork(serverID: serverID, chatID: chatID) }
         }
 

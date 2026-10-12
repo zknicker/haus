@@ -15,7 +15,7 @@ extension HausStore {
         anchor: ChatMessage
     ) -> ThreadSelection? {
         guard let author = authorPresentation(anchor.author) else { return nil }
-        let (body, fenced) = MessagePresentation.resolvedBody(content: anchor.content)
+        let (body, fenced) = MessagePresentation.resolvedBody(content: anchor.displayContent)
         return ThreadSelection(
             parentChatID: conversationChatID,
             threadChatID: threadChatID,
@@ -26,6 +26,9 @@ extension HausStore {
                 createdAt: anchor.createdAt,
                 attachments: [],
                 sequence: anchor.sequence,
+                cloudAgents: anchor.linkedCloudAgentWork.map {
+                    cloudAgentPresentation($0, presentingChatID: conversationChatID)
+                },
                 visualBody: fenced
             )
         )
