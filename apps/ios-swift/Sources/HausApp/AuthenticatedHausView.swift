@@ -12,6 +12,7 @@ struct AuthenticatedHausView: View {
     /// The App owns the open Chat so the shell canvas, the pushed Thread, and
     /// the Store's read acknowledgements always name the same Chat.
     @State var selectedDestinationID: ChatDestination.ID?
+    @State var canvasScrollTarget: MessageScrollTarget?
     @State var path: [HausRootRoute] = []
     @State var agentCall: AgentCallRequest?
     /// A cold start lands on the Inbox, which is the canvas itself rather than
@@ -83,10 +84,7 @@ struct AuthenticatedHausView: View {
             // screen mounted by navigation must not replay the entrance.
             if previous != nil { openingEntranceFinished = true }
             guard let current else { return }
-            UserDefaults.standard.set(
-                current.storageValue,
-                forKey: ChatDestination.ID.lastOpenDefaultsKey
-            )
+            UserDefaults.standard.set(current.storageValue, forKey: ChatDestination.ID.lastOpenDefaultsKey)
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             applyReadForeground(phase)
@@ -124,6 +122,7 @@ struct AuthenticatedHausView: View {
                     destinations: store.chatDestinations,
                     selectedDestinationID: $selectedDestinationID,
                     showsInbox: $showsInboxCanvas,
+                    scrollTarget: $canvasScrollTarget,
                     messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
                     isMessageHistoryLoaded: { destination in
                         guard let chat = destination.durableChat else { return true }

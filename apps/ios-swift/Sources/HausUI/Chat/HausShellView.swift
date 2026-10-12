@@ -70,7 +70,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     /// Staged attachments live above the canvas for the same reason drafts do —
     /// a Chat switch or a push-over must not throw away files the user picked.
     @State var composerInteractions = ComposerInteractionStore()
-    @State var scrollTarget: MessageScrollTarget?
+    /// The Message the canvas Chat reveals. The App owns it so a route from
+    /// outside the shell, such as Happening now, can reveal one too.
+    @Binding var scrollTarget: MessageScrollTarget?
     /// Ticks once per Chat switch that no drawer snap already announced.
     @State var chatSwitchFeedback = 0
 
@@ -79,6 +81,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         destinations: [ChatDestination],
         selectedDestinationID: Binding<ChatDestination.ID?> = .constant(nil),
         showsInbox: Binding<Bool> = .constant(false),
+        scrollTarget: Binding<MessageScrollTarget?> = .constant(nil),
         messagesForDestination: @escaping (ChatDestination) -> [MessagePresentation],
         isMessageHistoryLoaded: @escaping (ChatDestination) -> Bool = { _ in true },
         isConnected: Bool,
@@ -117,6 +120,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     ) {
         _selectedDestinationID = selectedDestinationID
         _showsInbox = showsInbox
+        _scrollTarget = scrollTarget
         self.server = server
         self.destinations = destinations
         self.messagesForDestination = messagesForDestination
