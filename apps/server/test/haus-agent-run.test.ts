@@ -16,6 +16,7 @@ import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { invokeMcp } from './mcp-client.ts';
+import { createMcpFixture } from './mcp-fixture.ts';
 import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
 import { registerServerRuntime, registerTestConnections } from './test-computer-connections.ts';
 
@@ -2381,7 +2382,13 @@ test('Server discovers and invokes a granted remote MCP without Computer custody
                               ],
                           }
                         : null;
-            return Response.json({ id: message.id, jsonrpc: '2.0', result });
+            return result === null
+                ? Response.json({
+                      id: message.id,
+                      jsonrpc: '2.0',
+                      error: { code: -32_601, message: 'Method not found' },
+                  })
+                : Response.json({ id: message.id, jsonrpc: '2.0', result });
         },
         hostname: '127.0.0.1',
         port: 0,
@@ -2462,6 +2469,7 @@ test('a slow MCP discovery is bounded without hiding healthy granted tools', asy
             `;
         }
 
+        await runtime.start();
         const startedAt = performance.now();
         const tools = await runtime.listAgentTools(serverId, agentId);
         expect(performance.now() - startedAt).toBeLessThan(150);
@@ -2643,53 +2651,6 @@ test('records a compact turn summary and fails closed on cross-Computer claims',
     `) as { n: number }[];
     expect(foreign[0]?.n).toBe(0);
 });
-
-function createMcpFixture(input: { delayMs?: number; toolName: string }) {
-    return Bun.serve({
-        fetch: async (request) => {
-            if (input.delayMs) {
-                await Bun.sleep(input.delayMs);
-            }
-            if (request.method !== 'POST') {
-                return new Response(null, { status: 405 });
-            }
-            const message = (await request.json()) as {
-                id?: number;
-                method: string;
-                params?: Record<string, unknown>;
-            };
-            if (message.method === 'notifications/initialized') {
-                return new Response(null, { status: 202 });
-            }
-            const result =
-                message.method === 'initialize'
-                    ? {
-                          capabilities: { tools: {} },
-                          protocolVersion: String(message.params?.protocolVersion),
-                          serverInfo: { name: 'MCP fixture', version: '1.0.0' },
-                      }
-                    : message.method === 'tools/list'
-                      ? {
-                            tools: [
-                                {
-                                    inputSchema: {
-                                        additionalProperties: false,
-                                        properties: {},
-                                        type: 'object',
-                                    },
-                                    name: input.toolName,
-                                },
-                            ],
-                        }
-                      : message.method === 'tools/call'
-                        ? { content: [{ text: 'ok', type: 'text' }] }
-                        : null;
-            return Response.json({ id: message.id, jsonrpc: '2.0', result });
-        },
-        hostname: '127.0.0.1',
-        port: 0,
-    });
-}
 
 async function mintRunner(input: { agentId?: string; chatId: string; runId: string }) {
     const response = await fetch(new URL('/computer/runner/mint', harness.url), {

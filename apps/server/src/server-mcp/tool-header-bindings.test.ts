@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { callMcpTool } from './tool-catalog.ts';
-import { classifyMcpUpstreamError } from './upstream-failure.ts';
 
 /**
  * A 2026-07-28 MCP server shaped like GitHub's: `owner` carries `x-mcp-header`, and a
@@ -17,16 +16,10 @@ afterAll(async () => {
     await server.stop(true);
 });
 
-test('a cached client without a tools/list reproduces the GitHub header mismatch', async () => {
+test('the official client loads GitHub header bindings before a direct call', async () => {
     await withClient(async (client) => {
-        const failure = await client
-            .callTool({ arguments: { owner: 'haus' }, name: 'read_repo' })
-            .catch((cause: unknown) => cause);
-        const classified = classifyMcpUpstreamError(failure, 'invocation');
-        expect(classified).toMatchObject({ code: 'MCP_UNAVAILABLE', failureKind: 'protocol' });
-        expect(classified.message).toBe(
-            'The MCP invocation is unavailable: upstream JSON-RPC error -32020: header mismatch: missing Mcp-Param-owner header'
-        );
+        const result = await client.callTool({ arguments: { owner: 'haus' }, name: 'read_repo' });
+        expect(result.content).toEqual([{ text: 'owner=haus', type: 'text' }]);
     });
 });
 
@@ -56,10 +49,14 @@ test('callMcpTool loads header bindings once per client before calling', async (
     });
 });
 
-async function withClient(use: (client: MCPClient) => Promise<void>) {
-    const client = await createMCPClient({
-        transport: { type: 'http', url: `http://127.0.0.1:${server.port}/mcp` },
-    });
+async function withClient(use: (client: Client) => Promise<void>) {
+    const client = new Client(
+        { name: 'fixture', version: '1' },
+        { defaultCacheTtlMs: 300_000, versionNegotiation: { mode: 'auto' } }
+    );
+    await client.connect(
+        new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${server.port}/mcp`))
+    );
     try {
         await use(client);
     } finally {
@@ -94,7 +91,7 @@ async function handle(request: Request): Promise<Response> {
     }
     if (message.method === 'tools/list') {
         requests.lists += 1;
-        return reply({ tools: [repoTool] });
+        return reply({ tools: [repoTool], ttlMs: 300_000, cacheScope: 'private' });
     }
     if (message.method === 'tools/call') {
         const header = request.headers.get('mcp-param-owner');

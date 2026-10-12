@@ -3,7 +3,14 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpUpstreamError } from './errors.ts';
 import { McpRuntime } from './runtime.ts';
-import { fakeQuery, grantDb, invoke, makeClient, tick } from './runtime-test-fixtures.ts';
+import {
+    fakeQuery,
+    fakeUpdate,
+    grantDb,
+    invoke,
+    makeClient,
+    tick,
+} from './runtime-test-fixtures.ts';
 import { modelToolName } from './tool-catalog.ts';
 
 const effectRuntime = makeServerRuntime();
@@ -46,7 +53,7 @@ test('timeouts abort active list and call requests and keep their clients', asyn
             return callGate.promise;
         },
     });
-    const callRuntime = new McpRuntime(grantDb('slow-call', 'echo'), effectRuntime, {
+    const callRuntime = new McpRuntime(grantDb('slow-call'), effectRuntime, {
         clientFactory: async () => called.client,
         invocationTimeoutMs: 15,
     });
@@ -147,7 +154,7 @@ test('close interrupts active non-cooperative discovery and invocation', async (
             return callGate.promise;
         },
     });
-    const callRuntime = new McpRuntime(grantDb('closing-call', 'echo'), effectRuntime, {
+    const callRuntime = new McpRuntime(grantDb('closing-call'), effectRuntime, {
         clientFactory: async () => called.client,
         closeTimeoutMs: 20,
     });
@@ -218,7 +225,10 @@ test('caller cancellation aborts one invocation without retiring its shared MCP 
     });
     const db = {
         select: () =>
-            fakeQuery([{ id: 'shared', name: 'Shared', tools: ['echo'], connectionId: 'shared' }]),
+            fakeQuery([
+                { connected: true, grantedAgentId: 'agent-one', id: 'shared', name: 'Shared' },
+            ]),
+        update: fakeUpdate([]),
     } as unknown as HausDatabase;
     const runtime = new McpRuntime(db, effectRuntime, {
         clientFactory: async () => fixture.client,
