@@ -68,8 +68,9 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
 public enum ActiveCloudAgentWorkLocation: Hashable, Sendable {
     /// The launch work Thread, which the viewer can read.
     case workThread(threadChatID: String, anchorMessageID: String)
-    /// The newest visible linking Message, revealed in its Chat: its existing
-    /// Thread when it has one. Opening never creates or follows a Thread.
+    /// The newest visible linking Message. `chatID` is always the Channel or
+    /// DM; `threadChatID` is the Thread the Message sits in or anchors, which
+    /// opens when set. Opening never creates or follows a Thread.
     case message(chatID: String, messageID: String, threadChatID: String?)
 }
 
@@ -98,11 +99,39 @@ extension ActiveCloudAgentWorkLocation: Decodable {
                 threadChatID: try container.decodeIfPresent(String.self, forKey: .threadChatID)
             )
         default:
-            throw DecodingError.dataCorruptedError(
-                forKey: .kind,
-                in: container,
-                debugDescription: "Unknown Cloud Agent work location \(kind)."
-            )
+            throw UnknownKind(kind: kind)
         }
     }
+
+    /// A location kind this build does not know. The list read skips that
+    /// one row rather than failing "Happening now" as a whole.
+    public struct UnknownKind: Error, Equatable {
+        public let kind: String
+    }
+}
+
+/// The `cloudAgentWork.listActive` read. A row whose location kind is newer
+/// than this build is left out; any other malformed row still fails the read.
+public struct ActiveCloudAgentWorkList: Decodable, Sendable, Equatable {
+    public let rows: [ActiveCloudAgentWork]
+
+    public init(rows: [ActiveCloudAgentWork]) {
+        self.rows = rows
+    }
+
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        var rows: [ActiveCloudAgentWork] = []
+        while !container.isAtEnd {
+            do {
+                rows.append(try container.decode(ActiveCloudAgentWork.self))
+            } catch is ActiveCloudAgentWorkLocation.UnknownKind {
+                // A failed element decode does not advance the container.
+                _ = try container.decode(SkippedRow.self)
+            }
+        }
+        self.rows = rows
+    }
+
+    private struct SkippedRow: Decodable {}
 }

@@ -140,7 +140,58 @@ final class InboxReadModelsTests: XCTestCase {
          "location":{"kind":"elsewhere"},"work":\(workJSON)}
         """
 
-        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
+        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))) {
+            XCTAssertEqual($0 as? ActiveCloudAgentWorkLocation.UnknownKind, .init(kind: "elsewhere"))
+        }
+    }
+
+    /// A Message in a Thread names its Channel as `chatId` and the Thread as
+    /// `threadChatId`; the row decodes both as sent.
+    func testMessageLocationInAThreadKeepsTheChannelAndThread() throws {
+        let json = """
+        {"chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+         "conversationChatId":"cht_tech_ops",
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_reply","threadChatId":"cht_reply_thread"},
+         "work":\(workJSON)}
+        """
+
+        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
+
+        XCTAssertEqual(
+            row.location,
+            .message(chatID: "cht_tech_ops", messageID: "msg_reply", threadChatID: "cht_reply_thread")
+        )
+    }
+
+    /// A newer location kind skips only its own row; "Happening now" keeps the rest.
+    func testListSkipsARowWithAnUnknownLocationKind() throws {
+        let unknown = """
+        {"chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
+         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+        """
+        let known = """
+        {"chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+         "conversationChatId":"cht_tech_ops",
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
+         "work":\(workJSON)}
+        """
+
+        let list = try HausJSON.decoder().decode(
+            ActiveCloudAgentWorkList.self,
+            from: Data("[\(unknown),\(known),\(unknown)]".utf8)
+        )
+
+        XCTAssertEqual(list.rows.map(\.conversationChatID), ["cht_tech_ops"])
+    }
+
+    func testListStillFailsOnAMalformedRow() {
+        let malformed = """
+        {"chatKind":"channel","chatName":null,"chatPeerUserId":null,"work":\(workJSON)}
+        """
+
+        XCTAssertThrowsError(
+            try HausJSON.decoder().decode(ActiveCloudAgentWorkList.self, from: Data("[\(malformed)]".utf8))
+        )
     }
 }
 

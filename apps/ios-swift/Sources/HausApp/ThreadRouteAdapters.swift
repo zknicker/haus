@@ -54,6 +54,27 @@ extension HausStore {
         )
     }
 
+    /// The Thread a row names by its own Chat id alone: `thread.get` supplies
+    /// its parent Chat and anchor. Nil when it cannot be read.
+    func threadSelection(threadChatID: String) async -> ThreadSelection? {
+        guard let serverID = activeServer?.id else { return nil }
+        do {
+            let context: ThreadContext = try await client.query(
+                "thread.get",
+                input: ThreadContextInput(serverID: serverID, threadChatID: threadChatID)
+            )
+            guard activeServer?.id == serverID else { return nil }
+            return await threadSelection(
+                conversationChatID: context.parentChatID,
+                threadChatID: context.threadChatID,
+                anchorMessageID: context.anchorMessageID
+            )
+        } catch {
+            Self.logger.error("Loading a thread failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
     /// One Message read on its own, without touching the Chat's loaded window.
     func fetchMessage(chatID: String, messageID: String) async -> ChatMessage? {
         guard let serverID = activeServer?.id else { return nil }

@@ -90,10 +90,10 @@ extension HausStore {
         guard let serverID = activeServer?.id else { return }
         let readStart = realtimeReconciliation.beginRead()
         do {
-            let rows: [ActiveCloudAgentWork] = try await client.query(
+            let rows = try await (client.query(
                 "cloudAgentWork.listActive",
                 input: ServerScopedInput(serverId: serverID)
-            )
+            ) as ActiveCloudAgentWorkList).rows
             guard activeServer?.id == serverID,
                   realtimeReconciliation.landed(.activeCloudAgentWork, readStartedAt: readStart)
             else { return }

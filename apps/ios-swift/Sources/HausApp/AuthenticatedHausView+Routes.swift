@@ -88,17 +88,16 @@ extension AuthenticatedHausView {
                 return
             }
             openWorkThread(conversationChatID: work.conversationChatID, threadChatID: threadChatID, anchorMessageID: anchorMessageID)
-        case .message(let chatID, let messageID, let threadChatID):
-            if chatID != work.conversationChatID {
-                // The linking Message is a reply inside a Thread: open that Thread.
-                Task {
-                    guard let selection = await store.inboxThreadSelection(threadChatID: chatID) else { return }
-                    pushConversationThread(selection)
-                }
-            } else if let threadChatID {
-                openWorkThread(conversationChatID: chatID, threadChatID: threadChatID, anchorMessageID: messageID)
-            } else {
+        case .message(let chatID, _, let threadChatID):
+            // `chatID` is always the Channel or DM. A Message in or anchoring
+            // a Thread opens that Thread, whose anchor `thread.get` names.
+            guard let threadChatID else {
                 openCanvasChat(.chat(chatID))
+                return
+            }
+            Task {
+                guard let selection = await store.threadSelection(threadChatID: threadChatID) else { return }
+                pushConversationThread(selection)
             }
         }
     }
