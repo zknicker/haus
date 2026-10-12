@@ -119,6 +119,8 @@ export interface StoredChatMessageRelations {
     body?: MessageBody;
     /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
     cause?: MessageCause;
+    /** The linked Cloud Agent work the viewer can see, in link order. */
+    cloudAgentWork?: ChatMessage['cloudAgentWork'];
     reactions?: ChatMessage['reactions'];
     /** Bounded direct-parent and chain-root context for an inline reply. */
     reply?: ChatMessage['reply'];
@@ -128,13 +130,22 @@ export function toChatMessage(
     message: StoredChatMessage,
     related: StoredChatMessageRelations = {}
 ): ChatMessage {
-    const { attachments = [], authorProfile, body, cause, reactions = [], reply = null } = related;
+    const {
+        attachments = [],
+        authorProfile,
+        body,
+        cause,
+        cloudAgentWork = [],
+        reactions = [],
+        reply = null,
+    } = related;
     return {
         attachments,
         author: readAuthor(message, authorProfile),
         body: readBody(message, body),
         ...(cause ? { cause } : {}),
         chatId: message.chatId,
+        cloudAgentWork,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
         id: message.id,

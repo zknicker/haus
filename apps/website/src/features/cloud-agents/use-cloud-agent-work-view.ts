@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 
 /**
- * Which Cloud Agent work is peeked open. `?work=<messageId>` makes it a deep
+ * Which Cloud Agent work is peeked open. `?work=<workId>` makes it a deep
  * link and Back closes it — the same contract `?task=` gives
  * the Tasks page.
  */
@@ -21,10 +21,10 @@ export function useCloudAgentWorkView() {
                 { replace: true }
             );
         },
-        openWork: (messageId: string) => {
+        openWork: (workId: string) => {
             setSearchParams((params) => {
                 const next = new URLSearchParams(params);
-                next.set('work', messageId);
+                next.set('work', workId);
                 return next;
             });
         },

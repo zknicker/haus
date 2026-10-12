@@ -58,11 +58,10 @@ public enum InboxHappeningNowRows {
         now: Date,
         resolveActor: InboxActorResolver
     ) -> InboxHappeningNowRow {
-        let name = resolveActor(item.work.agentId, nil)?.name
-            ?? InboxActorName.stored(item.message.author)
+        let name = resolveActor(item.work.agentId, nil)?.name ?? item.agentName
         let chatLabel = InboxConversationLabel.text(kind: item.chatKind, name: item.chatName)
         return InboxHappeningNowRow(
-            id: "work:\(item.work.messageId)",
+            id: "work:\(item.work.id)",
             mark: .cloudAgent(isRunning: item.work.status == .running),
             title: workTitle(item.work.title),
             // Status trails the title rather than joining this line: it is the
@@ -70,7 +69,7 @@ public enum InboxHappeningNowRows {
             // says this is Cloud work, so the detail is only where and who.
             status: liveStatus(item.work, now: now),
             detail: "\(chatLabel) · \(name)",
-            open: .cloudAgentWork(messageID: item.work.messageId)
+            open: .cloudAgentWork(workID: item.work.id)
         )
     }
 

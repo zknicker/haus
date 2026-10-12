@@ -223,6 +223,7 @@ export function message(chatId: string, sequence: number, agentId?: string): Cha
             : { kind: 'human', profile, userId: viewerUserId },
         body: { kind: 'text' },
         chatId,
+        cloudAgentWork: [],
         content: `Message ${sequence} in ${chatId}`,
         createdAt: new Date(Date.UTC(2026, 9, 1, 12, sequence)).toISOString(),
         id: `msg_${chatId}_${sequence}`,

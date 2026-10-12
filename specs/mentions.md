@@ -24,6 +24,7 @@ message:
 [#product thread](chat://cht_product?thread=msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa)
 [mentions.md](/Users/zknicker/.codex/worktrees/1b41/haus/specs/mentions.md)
 [#482](pr://github/haus/haus/482)
+[Fix login redirect](cloud-agent://caw_0123456789abcdef)
 ```
 
 Autocomplete inserts friendly text while editing, then the composer serializes
@@ -100,6 +101,7 @@ notes are not silently rebound after a rename.
 | `app` | `app://computer-use/<encoded-app-id>` | `capability-reference` | Preserve the link with the selected app label. Computer Use resolves the app when tools are invoked. |
 | `file` | absolute file path | `path-reference` | Preserve the path. Do not attach file contents automatically. |
 | `directory` | absolute directory path | `path-reference` | Preserve the path. Do not recursively attach contents automatically. |
+| `cloud-agent-work` | `cloud-agent://<encoded-work-id>` | `cloud-agent-work-reference` | Links Cloud Agent work ([ADR 0044](../docs/adr/0044-cloud-agent-work-is-referenced-not-embedded.md)). The label is the work title as `formatCloudAgentWorkLink` writes it. Every Message writer keeps the link only when the author can see the work and records it in `cloud_agent_work_links`; otherwise it becomes plain label text. A kept link renders the work's live card below the Message. No notification or wake behavior. |
 | `pull-request` | `pr://github/<owner>/<repo>/<number>` | `visual reference` | Visual reference to a GitHub pull request, also recognized from a pasted `https://github.com/<owner>/<repo>/pull/<n>` link. Owner, repository, and number come from the target; v1 stores no GitHub state. No notification or wake behavior. |
 
 Images can still travel through attachment/image-input paths, but image

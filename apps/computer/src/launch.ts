@@ -16,6 +16,7 @@ import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { createComputerTools } from './computer-tools.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
+import { openDreamRecording } from './harness/dream-record.ts';
 import {
     type HarnessAgentFactory,
     type NoticeSinkRegistrar,
@@ -23,6 +24,7 @@ import {
 } from './harness/executor.ts';
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import type { AgentThoughtNarrator } from './harness/thought-narrator.ts';
+import { turnDeliveryOf } from './harness/turn-prompt.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
 import {
@@ -31,7 +33,7 @@ import {
     runtimeNotInstalledReport,
 } from './launch-failure-turns.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
-import { reportTurn } from './launch-turn-report.ts';
+import { reportTurn, turnSummaryText } from './launch-turn-report.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
@@ -198,6 +200,7 @@ async function runLedgeredLaunch(
     };
 
     let result: RuntimeTurnOutcome = { status: 'failed' };
+    const dream = await openDreamRecording({ ...options, startedAt, workspaceDir: dirs.workspace });
     try {
         await options.onRuntimeReady?.();
         result =
@@ -249,18 +252,13 @@ async function runLedgeredLaunch(
         },
         options.runtime
     );
+    await dream?.finish();
     return reportTurn(options, {
         messageCount: proxy.sendCount(),
         activity: activity.snapshot(),
         startedAt,
         ...result,
-        summary:
-            result.status === 'completed'
-                ? `Sent ${proxy.sendCount()} message(s).`
-                : result.status === 'interrupted'
-                  ? 'The Agent turn was interrupted.'
-                  : (result.summary ??
-                    `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`),
+        summary: turnSummaryText(result, proxy.sendCount()),
         visibleMessages: await readRunVisibleMessages(
             {
                 agentId: command.agentId,
@@ -345,9 +343,7 @@ async function runRealRuntime(
             modelId: command.modelId,
             reasoningEffort:
                 (await readAppliedAgentConfiguration(input.agentRoot))?.reasoningEffort ?? 'medium',
-            drainItemIds: command.drainItemIds ?? [],
-            inbox: command.inbox ?? [],
-            inboxDelivery: command.inboxDelivery,
+            ...turnDeliveryOf(command),
             onStoredNoticeDelivered: input.onStoredNoticeDelivered,
             activity: input.activity,
             thoughts: input.thoughts,
@@ -359,9 +355,6 @@ async function runRealRuntime(
             signal: input.signal,
             serverId: input.serverId,
             skillsDir: input.dirs.skills,
-            totalPending: command.totalPending,
-            unreadElsewhere: command.unreadElsewhere ?? [],
-            warmDrainItemIds: command.warmDrainItemIds ?? [],
             workspaceDir: input.dirs.workspace,
             tools: input.tools,
         });

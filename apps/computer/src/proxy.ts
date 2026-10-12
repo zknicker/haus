@@ -7,8 +7,6 @@ import { classifyHausProxyBoundary } from './harness/haus-proxy-boundary.ts';
 import {
     type AgentInboxLocation,
     consumeServedAutomations,
-    consumeVisibleMessages,
-    recordRunVisibleMessages,
     type VisibleMessageIdentity,
 } from './inbox-store.ts';
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
@@ -22,6 +20,7 @@ import {
     serverUnavailable,
 } from './proxy-send-outcome.ts';
 import { handleSkillRequest } from './proxy-skills.ts';
+import { recordProxyVisibility } from './proxy-visibility.ts';
 import { attestVisibleMessages } from './visibility-receipt.ts';
 
 export interface LoopbackProxy {
@@ -178,10 +177,23 @@ async function handleAuthorizedProxyRequest(
         serverId: input.serverId,
         serverOrigin: input.serverOrigin,
     });
-    if (cloudAgent) {
-        return cloudAgent;
-    }
     const location = agentInboxLocation(input);
+    if (cloudAgent) {
+        // A held launch showed the model newer messages, exactly as a held send does.
+        const launchBody = await cloudAgent.text();
+        await recordProxyVisibility({
+            activeRunId: state.getRunId(),
+            location,
+            mutation: true,
+            runnerToken,
+            serverOrigin: input.serverOrigin,
+            visible: cloudAgent.ok ? extractVisibleMessageIds(url.pathname, launchBody) : [],
+        });
+        return new Response(launchBody, {
+            headers: { 'content-type': 'application/json' },
+            status: cloudAgent.status,
+        });
+    }
     if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {
         const local = await serveLocalAgentEvents({
             location,
@@ -244,40 +256,16 @@ async function handleAuthorizedProxyRequest(
             () => undefined
         );
     }
-    if (location && visibleMessageIds.length > 0) {
-        try {
-            const activeRunId = state.getRunId();
-            if (activeRunId) {
-                await recordRunVisibleMessages(location, activeRunId, visibleMessageIds);
-            }
-            const attested = activeRunId
-                ? await attestVisibleMessages(input.serverOrigin, runnerToken, visibleMessageIds)
-                : null;
-            if (!((activeRunId && attested) || isMessageMutation)) {
-                return Response.json(
-                    {
-                        code: 'VISIBILITY_RECEIPT_UNAVAILABLE',
-                        message: 'The Server could not record visible messages.',
-                    },
-                    { status: 502 }
-                );
-            }
-            await consumeVisibleMessages(location, attested ?? visibleMessageIds);
-        } catch {
-            if (isMessageMutation) {
-                return new Response(responseBody, {
-                    headers: { 'content-type': 'application/json' },
-                    status: upstream.status,
-                });
-            }
-            return Response.json(
-                {
-                    code: 'LOCAL_INBOX_UNAVAILABLE',
-                    message: 'The Agent inbox could not record visible messages.',
-                },
-                { status: 500 }
-            );
-        }
+    const visibilityFailure = await recordProxyVisibility({
+        activeRunId: state.getRunId(),
+        location,
+        mutation: isMessageMutation,
+        runnerToken,
+        serverOrigin: input.serverOrigin,
+        visible: visibleMessageIds,
+    });
+    if (visibilityFailure) {
+        return visibilityFailure;
     }
     return new Response(responseBody, {
         headers: { 'content-type': 'application/json' },

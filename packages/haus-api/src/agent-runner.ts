@@ -381,13 +381,13 @@ export type AgentWorkspaceResult = z.infer<typeof agentWorkspaceResultSchema>;
 /**
  * A Computer mints a per-launch runner credential from its Computer credential
  * before spawning the Agent. The credential is scoped to exactly one Agent,
- * run, and Server. The launch chat carries turn context; Agent API routes still
- * resolve each target and membership Server-side.
+ * run, and Server. The launch chat (null for a dream run) is context only; Agent
+ * API routes still resolve each target and membership Server-side.
  */
 export const runnerMintRequestSchema = z
     .object({
         agentId: idSchema,
-        chatId: idSchema,
+        chatId: idSchema.nullable(),
         credentialHash: z.string().regex(/^[a-f0-9]{64}$/u),
         runId: idSchema,
     })

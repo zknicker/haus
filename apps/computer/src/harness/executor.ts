@@ -35,7 +35,7 @@ import {
 } from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
-import { takeMemorySizeNotice } from './memory-size-notice.ts';
+import { settleDreamBaseline } from './memory-dream.ts';
 import { AgentSessionResumeRejectedError, isPromptResumeRejection } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
@@ -270,7 +270,6 @@ async function executeHarnessTurn(
         // the local notice projection before any stored notice can repeat it.
         await attestComposedDrain(input, prompt.drained);
         const turnContent = prompt.turnContent;
-        const memoryNotice = await takeMemorySizeNotice(input);
         // Cleared only after a completed turn, so a turn that fails before the model sees it retries.
         const skillNotice = await readManagedSkillChangeNotice(input.agentRoot);
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
@@ -279,7 +278,7 @@ async function executeHarnessTurn(
         const turn = await agent.stream({
             abortSignal: turnSignal,
             prompt: projectMessageForAgent({
-                content: [coveGuidance.notice, turnContent, memoryNotice, skillNotice?.text]
+                content: [coveGuidance.notice, turnContent, skillNotice?.text]
                     .filter(Boolean)
                     .join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
@@ -396,6 +395,7 @@ async function executeHarnessTurn(
         if (skillNotice) {
             await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
         }
+        await settleDreamBaseline(input);
         await input.activity.finish(instructionActivityKey, 'completed');
         return observation;
     } catch (error) {

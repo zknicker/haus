@@ -271,6 +271,7 @@ extension MentionPresentationKind {
         case .agent: "Agent"
         case .app: "App"
         case .channel: "Channel"
+        case .cloudAgentWork: "Cloud Agent work"
         case .directory: "Directory"
         case .file: "File"
         case .human: "Human"

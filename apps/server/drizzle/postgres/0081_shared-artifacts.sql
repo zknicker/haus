@@ -19,7 +19,7 @@ CREATE TABLE "artifact_revisions" (
 	CONSTRAINT "artifact_revision_author_shape" CHECK (num_nonnulls("artifact_revisions"."author_agent_id", "artifact_revisions"."author_user_id") = 1),
 	CONSTRAINT "artifact_revision_size" CHECK ("artifact_revisions"."byte_size" >= 0 and "artifact_revisions"."byte_size" <= 268435456 and "artifact_revisions"."reserved_bytes" >= 0),
 	CONSTRAINT "artifact_revision_state" CHECK ("artifact_revisions"."state" in ('uploading', 'ready', 'failed', 'deleting', 'deleted')),
-	CONSTRAINT "artifact_revision_ready" CHECK ("artifact_revisions"."state" <> 'ready' or "artifact_revisions"."sha256" ~ '^[a-f0-9]{64}$')
+	CONSTRAINT "artifact_revision_ready" CHECK ("artifact_revisions"."state" <> 'ready' or ("artifact_revisions"."sha256" is not null and "artifact_revisions"."sha256" ~ '^[a-f0-9]{64}$'))
 );
 --> statement-breakpoint
 CREATE TABLE "artifacts" (
@@ -46,3 +46,12 @@ CREATE UNIQUE INDEX "artifact_revision_nonce_key" ON "artifact_revisions" USING 
 CREATE UNIQUE INDEX "artifact_revision_number_key" ON "artifact_revisions" USING btree ("server_id","artifact_id","revision_number");--> statement-breakpoint
 CREATE UNIQUE INDEX "artifact_revision_tenant_key" ON "artifact_revisions" USING btree ("server_id","artifact_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "artifacts_server_name_key" ON "artifacts" USING btree ("server_id","name") WHERE "artifacts"."deleted_at" is null;
+--> statement-breakpoint
+-- Author identities are inside the same Server cascade. Check cross-links at commit.
+ALTER TABLE "artifact_revisions" ALTER CONSTRAINT "artifact_revisions_server_id_author_agent_id_agents_server_id_id_fk" DEFERRABLE INITIALLY DEFERRED;
+--> statement-breakpoint
+ALTER TABLE "artifact_revisions" ALTER CONSTRAINT "artifact_revisions_server_id_author_user_id_server_memberships_server_id_user_id_fk" DEFERRABLE INITIALLY DEFERRED;
+--> statement-breakpoint
+ALTER TABLE "artifacts" ALTER CONSTRAINT "artifacts_server_id_creator_agent_id_agents_server_id_id_fk" DEFERRABLE INITIALLY DEFERRED;
+--> statement-breakpoint
+ALTER TABLE "artifacts" ALTER CONSTRAINT "artifacts_server_id_creator_user_id_server_memberships_server_id_user_id_fk" DEFERRABLE INITIALLY DEFERRED;

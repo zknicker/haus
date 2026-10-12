@@ -115,7 +115,7 @@ async function tasksHeldByRun(db: TaskWriter, scope: RunScope) {
     const anchors = new Set<string>();
     for (const row of rows) {
         anchors.add(row.dedupeKey);
-        const threadAnchor = anchorMessageIdForThreadChatId(row.chatId);
+        const threadAnchor = row.chatId ? anchorMessageIdForThreadChatId(row.chatId) : null;
         if (threadAnchor) {
             anchors.add(threadAnchor);
         }

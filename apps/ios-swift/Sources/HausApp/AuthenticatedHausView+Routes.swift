@@ -65,15 +65,41 @@ extension AuthenticatedHausView {
                 }
                 pushConversationThread(selection)
             }
-        case .cloudAgentWork(let messageID):
-            guard let work = store.activeCloudAgentWork?
-                .first(where: { $0.work.messageId == messageID }),
-                let selection = store.threadSelection(
-                    conversationChatID: work.conversationChatID,
-                    threadChatID: work.threadChatID,
-                    anchor: work.threadAnchor
-                )
-            else { return }
+        case .cloudAgentWork(let workID):
+            guard let work = store.activeCloudAgentWork?.first(where: { $0.work.id == workID }) else { return }
+            openCloudAgentWork(work)
+        }
+    }
+
+    /// Opens one "Happening now" work where its `location` says (ADR 0044,
+    /// Q4): the launch work Thread, or the newest visible linking Message —
+    /// its existing Thread when it has one, else revealed in its Chat.
+    /// Opening never creates or follows a Thread.
+    private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
+        switch work.location {
+        case .workThread(let threadChatID, let anchorMessageID):
+            openWorkThread(conversationChatID: work.conversationChatID, threadChatID: threadChatID, anchorMessageID: anchorMessageID)
+        case .message(let chatID, let messageID, let threadChatID):
+            // `chatID` is always the Channel or DM. A Message in or anchoring
+            // a Thread opens that Thread, whose anchor `thread.get` names.
+            guard let threadChatID else {
+                openCanvasChat(.chat(chatID), revealing: messageID)
+                return
+            }
+            Task {
+                guard let selection = await store.threadSelection(threadChatID: threadChatID) else { return }
+                pushConversationThread(selection)
+            }
+        }
+    }
+
+    private func openWorkThread(conversationChatID: String, threadChatID: String, anchorMessageID: String) {
+        Task {
+            guard let selection = await store.threadSelection(
+                conversationChatID: conversationChatID,
+                threadChatID: threadChatID,
+                anchorMessageID: anchorMessageID
+            ) else { return }
             pushConversationThread(selection)
         }
     }
@@ -124,10 +150,15 @@ extension AuthenticatedHausView {
 
     /// The one way a route puts a Chat on the canvas: everything covering the
     /// canvas comes off, and the Inbox stops being what it shows.
-    func openCanvasChat(_ id: ChatDestination.ID) {
+    func openCanvasChat(_ id: ChatDestination.ID, revealing messageID: String? = nil) {
         path.removeAll()
         selectedThread = nil
         showsInboxCanvas = false
+        canvasScrollTarget = if case .chat(let chatID) = id, let messageID {
+            MessageScrollTarget(chatID: chatID, messageID: messageID)
+        } else {
+            nil
+        }
         selectedDestinationID = id
     }
 

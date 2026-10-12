@@ -1,7 +1,34 @@
 import * as z from 'zod';
 import { agentInboxItemSchema, unreadElsewhereSchema } from './agent-inbox.ts';
 import { idSchema } from './chat.ts';
+import { timestampSchema } from './chat-contract-primitives.ts';
 import { traceCarrierSchema } from './trace-context.ts';
+
+/**
+ * The nightly dreaming attention: a private turn that exists only for the Agent's
+ * own memory consolidation pass. It has no Chat, sender, or body; `id` is its
+ * inbox identity (`dream:<agentId>:<Computer-local date>`).
+ */
+export const agentDreamAttentionSchema = z
+    .object({ createdAt: timestampSchema, id: idSchema })
+    .strict();
+
+export type AgentDreamAttention = z.infer<typeof agentDreamAttentionSchema>;
+
+/**
+ * Computer→Server: this Agent's memory changed or outgrew its index, the Computer is
+ * in its quiet window, and the Agent is idle here. The Server queues at most one
+ * dream per Agent per `localDate`, and only for an idle, running Agent.
+ */
+export const agentDreamRequestSchema = z
+    .object({
+        agentId: idSchema,
+        localDate: z.iso.date(),
+        type: z.literal('agent-dream-request'),
+    })
+    .strict();
+
+export type AgentDreamRequest = z.infer<typeof agentDreamRequestSchema>;
 
 /**
  * The inbox items whose bodies may enter this run's prompt. Eligibility is
@@ -22,7 +49,10 @@ export const agentStartCommandSchema = z
         agentConversationStyle: z.string().max(10_000).optional(),
         /** The Agent's pickup reaction; null means the Computer's default. */
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
-        chatId: idSchema,
+        /** The run's Chat; null only for a dream run, which has none. */
+        chatId: idSchema.nullable(),
+        /** Present only on a dream run, which carries no inbox items. */
+        dream: agentDreamAttentionSchema.optional(),
         /** Drainable on any start: concrete work, and human work addressed to this Agent. */
         drainItemIds: drainItemIdsSchema,
         homeTimezone: z.string().trim().min(1).max(128).optional(),
@@ -41,7 +71,21 @@ export const agentStartCommandSchema = z
         /** Additionally drainable when the harness session resumes: alive-idle parity. */
         warmDrainItemIds: drainItemIdsSchema,
     })
-    .strict();
+    .strict()
+    .refine(
+        (frame) =>
+            frame.dream
+                ? frame.chatId === null &&
+                  frame.inbox.length === 0 &&
+                  frame.drainItemIds.length === 0 &&
+                  frame.warmDrainItemIds.length === 0 &&
+                  frame.inboxDelivery === 'concrete'
+                : frame.chatId !== null,
+        {
+            message: 'Only a dream run is chatless, and it carries nothing but its dream.',
+            path: ['chatId'],
+        }
+    );
 
 export type AgentStartCommand = z.infer<typeof agentStartCommandSchema>;
 

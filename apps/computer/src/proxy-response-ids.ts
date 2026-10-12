@@ -1,4 +1,5 @@
 import {
+    agentCloudAgentStartResponseSchema,
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
     agentReactionResponseSchema,
@@ -11,6 +12,12 @@ import type { VisibleMessageIdentity } from './inbox-store.ts';
 type VisibleExtractor = (body: unknown) => VisibleMessageIdentity[];
 
 const visibleByPath: Readonly<Record<string, VisibleExtractor>> = {
+    '/api/agent/cloud-agents': (body) => {
+        const parsed = agentCloudAgentStartResponseSchema.safeParse(body);
+        return parsed.success && parsed.data.state === 'held'
+            ? parsed.data.shownMessages.map(identity)
+            : [];
+    },
     '/api/agent/events': (body) => {
         const parsed = agentMessageCheckResponseSchema.safeParse(body);
         return parsed.success ? parsed.data.messages.map((row) => identity(row.message)) : [];

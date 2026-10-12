@@ -88,6 +88,7 @@ function message(id: string, sequence: number, userId = 'usr_inline'): ChatMessa
         author: { kind: 'human', userId },
         body: { kind: 'text' },
         chatId: 'cht_inline',
+        cloudAgentWork: [],
         content: id,
         createdAt: '2026-08-22T12:00:00.000Z',
         id,

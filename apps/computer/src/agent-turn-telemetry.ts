@@ -42,7 +42,7 @@ export function traceAgentTurn<
         'haus.agent.turn',
         {
             'haus.agent.id': command.agentId,
-            'haus.chat.id': command.chatId,
+            ...(command.chatId ? { 'haus.chat.id': command.chatId } : {}),
             'haus.model.id': command.modelId,
             'haus.operation': 'agent.turn',
             'haus.run.id': command.runId,

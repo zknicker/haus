@@ -6,6 +6,7 @@ import {
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
+import { announceRunEngagements } from '../agent-delivery/chat-engagement-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
@@ -14,6 +15,7 @@ import { createCloudAgentWork } from '../cloud-agents/create-cloud-agent-work.ts
 import {
     CloudAgentAgentNotFoundError,
     CloudAgentCancelDeniedError,
+    CloudAgentComputerRemovedError,
     CloudAgentNotLaunchedError,
     CloudAgentWorkConflictError,
     CloudAgentWorkNotFoundError,
@@ -92,8 +94,8 @@ export function registerAgentCloudAgentRoutes(
         }
         try {
             const sent = await sendCloudAgentWork(dependencies.db, runner, parsed.data);
-            if (sent.event) {
-                publishRealtime(sent.event);
+            for (const event of sent.events) {
+                publishRealtime(event);
             }
             return sent.receipt;
         } catch (cause) {
@@ -126,6 +128,13 @@ export function registerAgentCloudAgentRoutes(
                 parsed.data,
                 dependencies.agentDelivery
             );
+            if (created.kind === 'held') {
+                // The hold showed the run news it has now read and not answered.
+                void dependencies.postCommitWork.run('chat.engagement.announce', () =>
+                    announceRunEngagements(dependencies.db, runner)
+                );
+                return created.held;
+            }
             for (const event of created.events) {
                 publishRealtime(event);
             }
@@ -161,7 +170,9 @@ export function registerAgentCloudAgentRoutes(
                 serverId: runner.serverId,
                 workId: parsed.data.workId,
             });
-            publishRealtime(requested.event);
+            for (const event of requested.events) {
+                publishRealtime(event);
+            }
             dependencies.computers.send(requested.computerId, requested.command);
             return { work: requested.work };
         } catch (cause) {
@@ -196,6 +207,9 @@ function sendCloudAgentFailure(
     }
     if (cause instanceof CloudAgentWorkSettledError) {
         return sendAgentApiError(reply, 409, 'CLOUD_AGENT_WORK_SETTLED', cause.message);
+    }
+    if (cause instanceof CloudAgentComputerRemovedError) {
+        return sendAgentApiError(reply, 409, 'CLOUD_AGENT_COMPUTER_REMOVED', cause.message);
     }
     if (cause instanceof CloudAgentCancelDeniedError) {
         return sendAgentApiError(reply, 403, 'CLOUD_AGENT_CANCEL_DENIED', cause.message);

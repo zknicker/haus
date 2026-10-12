@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { SQL } from 'bun';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
+import { migrationsSince0060 } from './migration-receipts.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
@@ -57,30 +58,16 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0057_cloud_agent_model',
             '0058_agent_personality',
             '0059_agent_creation_request',
-            '0060_reminder_descriptions',
-            '0061_agent_wake_pause',
-            '0062_agent_chat_reads',
-            '0063_manual_read_receipts',
-            '0064_agent_conversation_style',
-            '0065_delegating_activity',
-            '0066_agent_run_triggers',
-            '0067_server_turns_index',
-            '0068_channel_descriptions',
-            '0069_user_timezone',
-            '0070_coingecko_preset',
-            '0071_skool-preset',
-            '0072_drop_chat_events',
-            '0073_merchbase-fulfillment-preset',
-            '0074_merchbase-atlas-preset',
-            '0075_glamorous_alice',
-            '0076_smart_lifeguard',
-            '0077_artifact-author-cascade',
+            ...migrationsSince0060,
         ]);
         const [presetConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'mcp_connections_preset'`;
         expect(presetConstraint.definition).toContain("'skool'");
         expect(presetConstraint.definition).toContain("'merchbase-fulfillment'");
         expect(presetConstraint.definition).toContain("'merchbase-atlas'");
+        const [dreamConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
+            FROM pg_constraint WHERE conname = 'agent_inbox_chat'`;
+        expect(dreamConstraint.definition).toContain("'dream'");
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
         ]);
@@ -187,6 +174,10 @@ test('copies each existing reminder title into its new description', async () =>
         await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
         const journalPath = join(folder, 'meta/_journal.json');
         const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+        // The first test pins the exact list; this one replays whatever follows 0059.
+        const later = journal.entries
+            .filter((entry: { idx: number }) => entry.idx > 59)
+            .map((entry: { tag: string }) => entry.tag);
         journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 59);
         await writeFile(journalPath, JSON.stringify(journal));
         await database.unsafe('CREATE DATABASE haus_reminder_description_test');
@@ -204,26 +195,7 @@ test('copies each existing reminder title into its new description', async () =>
                 VALUES ('rem_upgrade', 'srv_upgrade', 'agt_upgrade', 'cht_upgrade', 'msg_upgrade',
                     now(), now(), 'scheduled', 'UTC', ${title}, now())`;
         });
-        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
-            '0060_reminder_descriptions',
-            '0061_agent_wake_pause',
-            '0062_agent_chat_reads',
-            '0063_manual_read_receipts',
-            '0064_agent_conversation_style',
-            '0065_delegating_activity',
-            '0066_agent_run_triggers',
-            '0067_server_turns_index',
-            '0068_channel_descriptions',
-            '0069_user_timezone',
-            '0070_coingecko_preset',
-            '0071_skool-preset',
-            '0072_drop_chat_events',
-            '0073_merchbase-fulfillment-preset',
-            '0074_merchbase-atlas-preset',
-            '0075_glamorous_alice',
-            '0076_smart_lifeguard',
-            '0077_artifact-author-cascade',
-        ]);
+        expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual(later);
         expect(
             await upgraded`SELECT topic_id,resolved_topic_id FROM manual_lookup_audit ORDER BY id`
         ).toEqual([
@@ -270,6 +242,37 @@ test('creates the baseline once and keeps repeated deploys idempotent', async ()
         expect(rows[0]?.total).toBeGreaterThan(0);
         expect(servers).toEqual([{ total: 0 }]);
     } finally {
+        await database.close();
+    }
+});
+
+test('reports each migration applied to a fresh database exactly once', async () => {
+    const database = new SQL(cluster.databaseUrl);
+    const databaseName = 'haus_migration_report_test';
+    const databaseUrl = new URL(cluster.databaseUrl);
+    databaseUrl.pathname = `/${databaseName}`;
+
+    try {
+        await database.unsafe(`CREATE DATABASE ${databaseName}`);
+        const applied = await migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus');
+        const migratedDatabase = new SQL(databaseUrl.toString());
+        let migrationRows: { total: number }[];
+        try {
+            migrationRows = (await migratedDatabase`
+                    SELECT count(*)::int AS total
+                    FROM drizzle.__drizzle_migrations
+                `) as { total: number }[];
+        } finally {
+            await migratedDatabase.close();
+        }
+        expect(applied.length).toBeGreaterThan(0);
+        expect(new Set(applied).size).toBe(applied.length);
+        expect(migrationRows).toEqual([{ total: applied.length }]);
+        await expect(migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus')).resolves.toEqual(
+            []
+        );
+    } finally {
+        await database.unsafe(`DROP DATABASE IF EXISTS ${databaseName}`);
         await database.close();
     }
 });

@@ -15,6 +15,11 @@ import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 import { chatLastMessageSchema } from './chat-last-message.ts';
 import * as reactionContracts from './chat-message-reactions.ts';
 import * as receiptContracts from './chat-message-receipts.ts';
+import { cloudAgentWorkSchema } from './cloud-agent-shared.ts';
+import {
+    chatMessageAuthoredContentMaxLength,
+    chatMessageContentMaxLength,
+} from './cloud-agent-work-link.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
@@ -28,7 +33,12 @@ export const chatMessageSchema = z
         /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
         cause: messageCauseSchema.optional(),
         chatId: idSchema,
-        content: z.string().max(32_000),
+        /**
+         * The Cloud Agent work this Message links, in link order (ADR 0044).
+         * Each entry is visible to the viewer; the card renders from here.
+         */
+        cloudAgentWork: z.array(cloudAgentWorkSchema).default([]),
+        content: z.string().max(chatMessageContentMaxLength),
         createdAt: timestampSchema,
         id: idSchema,
         nonce: z.string().trim().min(1).max(128),
@@ -85,7 +95,7 @@ export type ThreadSummary = z.infer<typeof threadSummarySchema>;
 const chatSendBaseSchema = z
     .object({
         attachmentIds: z.array(idSchema).default([]),
-        content: z.string().trim().max(32_000),
+        content: z.string().trim().max(chatMessageAuthoredContentMaxLength),
         nonce: z.string().trim().min(1).max(128),
         /** The direct parent of an inline reply; the Server derives its root. */
         replyToMessageId: idSchema.optional(),

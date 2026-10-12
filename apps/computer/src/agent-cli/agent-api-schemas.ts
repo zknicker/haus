@@ -1,5 +1,7 @@
 import {
     agentAutomationEventSchema,
+    agentCloudAgentHeldSchema,
+    agentCloudAgentReceiptSchema,
     chatMessageReplySchema,
     type HausAgentMessage,
     type HausAgentSendResponse,
@@ -81,6 +83,8 @@ const messageAgentCreatedSchema = z.object({
 export const agentMessageSchema = z.object({
     agent_created: messageAgentCreatedSchema.nullable().optional(),
     cloud_agent_work: messageCloudAgentWorkSchema.nullable().optional(),
+    /** Every work the Message links, in link order (ADR 0044); `cloud_agent_work` is the first. */
+    cloud_agent_works: z.array(messageCloudAgentWorkSchema).optional(),
     attachments: z.array(jsonObjectSchema),
     author: z.object({
         id: z.string().min(1),
@@ -88,7 +92,7 @@ export const agentMessageSchema = z.object({
         label: z.string().nullable(),
         metadata: jsonObjectSchema,
     }),
-    body_kind: z.enum(['text', 'cloud-agent-work', 'agent-created']),
+    body_kind: z.enum(['text', 'agent-created']),
     chat_id: z.string().min(1),
     content: z.string(),
     created_at: z.string().min(1),
@@ -138,6 +142,12 @@ export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discr
         }),
     ]
 );
+
+/** `haus cloud-agent start`: the started receipt, or a freshness hold with checked messages. */
+export const agentCloudAgentStartResponseSchema = z.discriminatedUnion('state', [
+    agentCloudAgentReceiptSchema,
+    agentCloudAgentHeldSchema.extend({ shownMessages: z.array(agentMessageSchema).max(12) }),
+]);
 
 export const agentMessageCheckResponseSchema = z.object({
     /**

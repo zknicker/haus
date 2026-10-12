@@ -41,3 +41,13 @@ export class CloudAgentCancelDeniedError extends Error {
         this.name = 'CloudAgentCancelDeniedError';
     }
 }
+
+/** The work outlives its removed Computer, but nothing can reach its provider now. */
+export class CloudAgentComputerRemovedError extends Error {
+    constructor() {
+        super(
+            'The Computer that launched this Cloud Agent work was removed, so Haus can no longer reach it.'
+        );
+        this.name = 'CloudAgentComputerRemovedError';
+    }
+}

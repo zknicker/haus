@@ -87,9 +87,12 @@ and [Agent Inbox](../../specs/inbox.md).
   ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
   transcript mark, and the question notifies them ([Inbox](inbox.md#notifications)).
   There is no question card, option buttons, or answered state.
-* **Cloud Agent work.** A Message carrying
+* **Cloud Agent work.** A Message that links
   [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message followed by one
-  work card — the same card in the Chat transcript and inside the Thread (below). The card is
+  work card per linked work — the same card in the Chat transcript, inside the Thread (below), and
+  in any other Chat or Thread whose Message links that work. A final paragraph made only of links
+  the Server recorded on that Message is hidden, since the card states it
+  ([Rich References](rich-references.md)). The card is
   content-sized up to the in-chat card measure, never full transcript width, and carries every
   action inline; there is no detached overflow menu. The card has no Thread button: before any
   reply the Message's ordinary hover thread action opens the Thread, and once replies exist the
@@ -127,11 +130,11 @@ and [Agent Inbox](../../specs/inbox.md).
   has been quiet for ten minutes, a pending stop, `<Agent> asked for changes ·
   waiting <d>` (or `· running <d>`), else the latest activity or when the job
   settled. Because that line never appears or disappears, the card changes
-  height only when its pull request row first appears. The Message's author
-  line above the card says who delegated it and when, so the card carries no
-  receipt. The Run report is not on the card. Everything
-  updates in place from `cloud-agent-work.updated`; the work never writes a
-  second Message.
+  height only when its pull request row first appears. The launch Message's
+  author line above the card says who delegated it and when, so the card
+  carries no receipt. The Run report is not on the card. Every card for the
+  work updates in place from `cloudAgentWork.updated`; the work never writes
+  a second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. Humans pick files with the composer's attachment button or drop them anywhere on the
   open chat or Thread; each drops into its own composer, so split panes never cross. A file drop

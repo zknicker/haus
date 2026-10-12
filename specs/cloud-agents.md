@@ -1,10 +1,12 @@
 ---
-summary: Provider-hosted Cloud Agents as Agent-delegated work carried by durable Messages and executed through Computer-local provider access.
+summary: Provider-hosted Cloud Agents as Agent-delegated work, stored as a standalone record that Messages link to and executed through Computer-local provider access.
 read_when:
   - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
+  - changing Cloud Agent work links, who may see Cloud Agent work, or what survives Chat deletion
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
   - changing the Cloud Agent model setting, the Cursor model catalog, or the model a Run requests
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
+  - changing the freshness hold on `haus cloud-agent start` or the start response union
   - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
 ---
 
@@ -39,14 +41,20 @@ facts and compatibility risks, not unresolved product decisions.
   arrives; an explicit selector is added only when per-execution choice becomes useful.
 - **Agent-held repository context.** The Agent supplies the repository, starting ref, title,
   instructions, and any other provider input it knows. Haus adds no repository registry.
-- **One durable Message.** Launch posts one Agent-authored Message in the initiating Chat. Its
-  immutable `content` is the Agent's response to the request, supplied as `--say` in the same
-  invocation that starts the work. Its typed body is `cloud-agent-work`.
-- **One work conversation.** A top-level work Message receives a child Thread immediately. Work
+- **Standalone work, linked from Messages.** Cloud Agent work is its own Agent-owned record. It
+  belongs to no Message or Chat ([ADR 0044](../docs/adr/0044-cloud-agent-work-is-referenced-not-embedded.md)).
+  Messages link it with the `cloud-agent://<workId>` rich reference, and every linking Message
+  shows the same live card. See [Links](#links).
+- **The launch Message is the first link.** Launch posts one ordinary `text` Message in the
+  initiating Chat. Its immutable `content` is the Agent's `--say` words, supplied in the same
+  invocation that starts the work, followed by a blank line and a Server-written link to the new
+  work.
+- **One work conversation.** A top-level launch Message receives a child Thread immediately. Work
   launched inside an existing Thread stays in that Thread because Threads do not nest. Replying to
   the Message is the human steering and discussion surface; the card has no separate reply model.
-- **One updating presentation.** Haus App renders the Message's Cloud Agent work body as one
-  work card, the same in the parent Chat and inside the Thread. It updates from
+- **One updating presentation.** Haus App renders each work a Message links as one work card,
+  the same in the parent Chat, inside the Thread, and in any other conversation that links it. It
+  updates from
   queued or running into a terminal report without creating automatic progress or completion
   Messages.
 - **Inbox completion.** Every terminal provider run creates at most one durable inbox attention for
@@ -81,12 +89,12 @@ disposal bridge on SDK upgrades, and remove them when the public SDK supports bo
 and abortable, joined subscriptions. Installed-SDK tests cover both contracts.
 
 Cloud Agent work is task-like but is not a Haus Task. It has no assignee, claim, priority, label,
-or board lifecycle, and a structured work Message cannot be promoted to a Task.
+or board lifecycle, and a launch Message cannot be promoted to a Task.
 
 **Delegation from a Task.** A human creates or promotes a Task, an Agent claims it, and the Agent
-delegates inside the Task Thread. The work Message is a reply in that Thread. The Task keeps the
+delegates inside the Task Thread. The launch Message is a reply in that Thread. The Task keeps the
 human lifecycle: the Agent advances it — to `in_review` when a pull request exists, to `done` when
-that pull request merges — through the ordinary versioned task mutation. A work Message is never
+that pull request merges — through the ordinary versioned task mutation. A launch Message is never
 itself promoted to a Task.
 
 ## Messages and cards
@@ -98,8 +106,7 @@ content; it never replaces the Message's authored meaning.
 ```ts
 type MessageBody =
     | { kind: 'text' }
-    | { kind: 'agent-created'; agent: CreatedAgentSummary }
-    | { kind: 'cloud-agent-work'; work: CloudAgentWork };
+    | { kind: 'agent-created'; agent: CreatedAgentSummary };
 
 type Message = {
     id: string;
@@ -111,6 +118,8 @@ type Message = {
     body: MessageBody;
     attachments: Attachment[];
     task?: MessageTask;
+    /** Every Cloud Agent work this Message links and the viewer can see, in link order. */
+    cloudAgentWork: CloudAgentWork[];
 };
 ```
 
@@ -119,16 +128,20 @@ Message ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)).
 
 Body kinds name concrete Haus product acts, not generic mechanisms, rendered entities, or
 providers. Haus has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
-creation uses `agent-created`; delegated hosted work uses `cloud-agent-work`; Cursor is a
-provider field on that work. A pull request becomes a Message body only when a real workflow needs
-to author a pull-request Message independently.
+creation uses `agent-created`. Delegated hosted work has no body kind: it is a record that `text`
+Messages link, and Cursor is a provider field on that work. A pull request becomes a Message body
+only when a real workflow needs to author a pull-request Message independently.
 
 A card is presentation, not a durable noun. It owns no id, placement, lifecycle, authorization, or
-data. Haus App renders a card from the Message and the Server-owned record projected through its
-typed body.
+data. Haus App renders a Cloud Agent work card from the Message's `cloudAgentWork` annotation,
+which the Server projects from the Message's recorded links.
 
-**One card everywhere.** Haus App renders Cloud Agent work as one full work card under the
-delegating Message, the same card in the parent Chat — a Channel or a DM — and inside the Thread.
+**One card everywhere.** Haus App renders Cloud Agent work as one full work card under each
+linking Message, the same card in the parent Chat — a Channel or a DM — inside the Thread, and in
+any other conversation that links it. No link is primary and none is a copy. A Message that links
+several pieces of work shows one card per work in link order. Where the card names the delegating
+Agent, as in the follow-up note, it reads the work's `agentId`, never the linking Message's
+author.
 There is no compact header, pill, or detached overflow menu: every work action sits inline in the
 card's control band. The card is content-sized up to the in-chat card measure (34rem) on the
 `nested-surface` chat card background, never full transcript width.
@@ -149,7 +162,7 @@ entire preview opens the Thread; summary rows are not click targets.
 Server's conversation-scoped `cloudAgentWork.listForChat` read includes all statuses, grouped by
 Thread anchor. The Inbox's separate active-work read remains active-only.
 
-**Inside the Thread**, each delegation Message renders its prose followed by the same work card
+**Inside the Thread**, each linking Message renders its prose followed by the same work card
 in the scrolling conversation. The Message's sequence fixes its position; status, PR, and follow-up
 updates change the same card in place. New delegations get their own Messages and cards. There is
 no pinned Cloud Agents section or carousel. Task metadata remains above the conversation.
@@ -185,8 +198,9 @@ leaves a done job Done, while one cancelled after delivery reads Cancelled. `Que
 headline: a first Run not yet received or still queued reads working.
 The Inbox's Happening now list shows only live work, so a job listed there only because a
 follow-up waits behind a settled Run reads `Follow-up waiting · <d>` with the working spinner. Because the status line never appears or disappears, the card
-changes height only when the pull request row first appears. There is no delegation receipt: the
-Message's author line and timestamp directly above the card already say who delegated it and when.
+changes height only when the pull request row first appears. There is no delegation receipt: on
+the launch Message, the author line and timestamp directly above the card already say who
+delegated it and when.
 The Run report is not on the card. It updates in place from the same event.
 Multiple Cloud Agents may run inside one Task or Thread. The presentation imposes no one-to-one
 workflow restriction. Meaningful result announcements may be new conversation Messages; work
@@ -208,11 +222,11 @@ job-state chip trails the one-line repository row instead of the title, so its t
 only truncate the repository and never rewrap the title; and **Open in `<provider>`** is a bordered
 button beside a chevron `Menu` rather than a split button. Working uses the native indeterminate
 `ProgressView`. Copy link builds the App link from the configured Server origin, which is the App
-origin in production. Older clients and unknown body kinds render the Message `content` and the
-ordinary Thread preview.
+origin in production. An older client that does not read the annotation renders the Message
+`content`, link included, and the ordinary Thread preview.
 
-Server has one Message reader that projects authors, attachments, Tasks, and typed bodies for every
-consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
+Server has one Message reader that projects authors, attachments, Tasks, typed bodies, and linked
+Cloud Agent work for every consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
 join feature records into the transcript or infer a body kind from optional top-level fields.
 
 ## Canonical representation and migrations
@@ -245,16 +259,23 @@ The prerequisite Message migration:
 Cloud Agent work lands only after this pipeline is canonical so it cannot copy the empty-anchor
 pattern.
 
+Migration `0079_cloud_agent_work_links` moved Cloud Agent work to links (ADR 0044). It rewrote
+every `cloud-agent-work` Message into a `text` Message whose content ends with its work's link,
+recorded that link, and dropped the work's foreign keys to its Message and Chat. Migration
+`0080_message-body-drop-cloud-agent-work` then narrows `chat_messages.body_kind` to `text` and
+`agent-created`.
+
 ## Durable Cloud Agent work
 
-Server stores one lifecycle-rich `CloudAgentWork` record for each work Message. The Message owns
-authorship and Chat placement; the work owns mutable execution state.
+Server stores one lifecycle-rich `CloudAgentWork` record for each delegation. The work owns its
+delegating Agent, provider Runs, and mutable execution state. Messages own authorship and Chat
+placement and point at the work through links.
 
 ```ts
 type CloudAgentWork = {
     id: string;
-    messageId: string;
-    chatId: string;
+    messageId: string; // the launch Message: a historical pointer, stored as `launch_message_id`
+    chatId: string; // the requesting Chat: a historical pointer, no foreign key
     agentId: string;
     computerId: string;
     provider: 'cursor';
@@ -317,7 +338,7 @@ type CloudAgentRun = {
 
 One work may contain several provider Runs. A follow-up, correction, or retry adds a Run to the
 same work, reactivates the same surface, and preserves earlier Run outcomes for inspection. A
-substantively separate assignment creates a new Message and Cloud Agent work record. Cursor permits
+substantively separate assignment creates a new launch Message and Cloud Agent work record. Cursor permits
 only one active Run per provider Agent; Computer queues accepted follow-ups until preceding work
 settles. `send --interrupt` stops active work and discards older queued prompts before the follow-up
 runs. `stop` stops active work and discards the pending queue. Follow-up delivery never retries
@@ -354,8 +375,8 @@ cache a missing credential or snapshot. A Computer without `gh` reads public pul
 unauthenticated, and an unreadable pull request simply has no snapshot.
 
 The snapshot's consumers today are the delegating Agent's surfaces: the terminal inbox attention
-states the branch's pull-request state and diff counts, and the work Message reads back with
-`pr=#<n>` wherever messages are shown. The work card's pull request row shows `PR #<n>`, its state,
+states the branch's pull-request state and diff counts, and each Message linking the work reads
+back with `pr=#<n>` wherever messages are shown. The work card's pull request row shows `PR #<n>`, its state,
 and files changed, additions, and deletions when GitHub evidence is available. Missing evidence
 does not become a fabricated zero-line diff.
 
@@ -370,9 +391,59 @@ while a Run is active and treats polling as reconciliation: a Run read every 5 s
 no stream is attached, backed off to 60 seconds after a provider failure, one full Run read on
 reconnect or restart, and nothing further once the Run is terminal.
 
-The physical relationship is one-to-one: the work's `message_id` is unique and references the
-Message. Creation is one Server transaction. `chat_messages.body_kind` and the related record must
-agree; a missing or duplicate record is a mapping failure, never an empty card.
+### Links
+
+`cloud_agent_work_links` records every link: one row per `(Message, work)` with the link's
+first-occurrence `ordinal` in the content. A row cascades from both its Message and its work, so
+losing a Message loses its links and never the work. The work's `chat_id` and
+`launch_message_id` (wire `chatId` and `messageId`) are plain historical pointers to the requesting
+Chat and launch Message, with no uniqueness, foreign key, or cascade. Purging the requesting
+Channel leaves the work and its other links intact. `computer_id` (wire `computerId`) is the same
+kind of pointer, so removing a Computer keeps its work, Runs, and links: live work there simply
+stops updating and reads as quiet, and cancel or follow-up refuses with `CLOUD_AGENT_COMPUTER_REMOVED`.
+
+Every Message writer resolves links at the Message boundary, in the transaction that inserts the
+Message: human send, Agent `haus message send`, human and Agent Task creation, and launch. Each
+`cloud-agent://` link is kept only when the work exists and the author can already see it; any
+other link is rewritten to its plain label text, so a link grants nothing on its own. Duplicates
+collapse to the first occurrence. Humans and Agents may both link; Agents copy the `Link:` line
+that `haus cloud-agent start` and `inspect` print rather than building one. A nonce replay
+rebuilds the expected content from the links recorded on the original Message, not from current
+authorization, so an identical retry stays idempotent and different content under the same nonce
+still conflicts.
+
+**Launch.** Launch keeps today's placement. Creation is one Server transaction that writes the
+launch Message, the work, its first Run, and every link row. A top-level launch creates the launch
+Message's Thread and the launching Agent follows it, so human replies there wake it; a launch
+inside a Thread stays in that Thread. The start receipt prints `Work thread:` with the
+`"<target>:<shortId>"` Thread target, or the enclosing Thread target. Only the `--say` text is
+authored. The Server appends `\n\n` and the new work's link itself, outside the authorization
+path, as the Message's last link. Authored content stays capped at 32,000 characters; stored
+content may exceed that by the generated link. Thread previews leave out any Message that is some
+work's `launch_message_id`.
+
+**Visibility.** A viewer may see Cloud Agent work when they can read a live Message that links it:
+the linking Chat, and a Thread's parent, are not tombstoned, and the viewer can read that Chat by
+the canonical rule (a human also needs an active Server membership). The delegating Agent always
+sees its own work. One predicate (`cloud-agents/cloud-agent-work-visibility.ts`) answers this for
+link authorization, Message annotations, `cloudAgentWork.listForChat`,
+`cloudAgentWork.listActive`, and event delivery.
+
+**Completion target.** A settled Run's inbox notice goes to the requesting Chat, `chatId`, only
+while that Chat and its parent are live. Once the requesting Chat is deleted, the work settles
+without a notice. The notice is never retargeted to a later link.
+
+A launch posts a Message, so it passes the same freshness hold as `haus message send`, inside the
+creation transaction. When the target Chat (a channel or Thread) has newer human or other-Agent
+messages this run has neither seen nor been served, `POST /api/agent/cloud-agents` returns
+`{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount, shownMessages }`
+instead of the `{ state: 'started', … }` receipt. A held launch creates no Message, work, Run, or
+Thread, and the Computer never asks the provider. The CLI prints the shown messages the way a held
+send does and says the launch did not start; the Agent re-runs the command when the launch still
+belongs there. There is no launch draft and no `--anyway`: the hold marks the shown messages served
+to the run (and the Computer proxy attests them like any held send), so the re-run, with any
+nonce, is not held for them again. A nonce that already committed replays its receipt before the
+check, and a held attempt writes nothing under its nonce, so a retry is never poisoned.
 
 The Server record stores provider-safe identifiers and bounded state only. Provider prompts,
 credentials, raw transcripts, tool traces, and hosted workspace files remain on Computer or with
@@ -382,11 +453,13 @@ token and cost usage when present, the provider URL, and the Git branches and pu
 Cursor reports. Streamed thinking, tool arguments, shell output, and interaction deltas are
 execution evidence, not collaboration state.
 
-Lifecycle changes emit a durable `cloud-agent-work.updated` event carrying the Message and work
-identities. Events notify; refetching the Message recovers. The delegating Agent may cancel through
-`haus cloud-agent stop`; human Owners and Admins may cancel through
-`cloudAgentWork.cancel`, reached from the work card's control band. Other Chat participants request cancellation in the Thread. Reply and follow-up
-work use the work Thread rather than surface-local conversation controls.
+Lifecycle changes and new links emit `cloudAgentWork.updated` once for each linking Message in a
+live Chat, carrying that Message's and the work's ids. Events notify; refetching the Message
+recovers. Cancel authority does not follow links: the delegating Agent may cancel through
+`haus cloud-agent stop`, and human Owners and Admins may cancel through `cloudAgentWork.cancel`,
+reached from the work card's control band. Rendering a card grants no action. Other participants
+ask for cancellation in whichever conversation they see the work in. Reply and follow-up work use
+the work Thread rather than surface-local conversation controls.
 
 ### Follow-up delivery
 
@@ -440,7 +513,7 @@ and files changed — that the compact and card-like renderings show. Without a 
 reference renders from its URL alone. Cursor never supplies these facts; the public Cloud Agents
 API reports no diff statistics.
 
-The Thread preview under the work Message shows the latest replies, so a lone pull-request reference
+The Thread preview under the launch Message shows the latest replies, so a lone pull-request reference
 reply surfaces the pull request in the parent Chat without new storage. V1 hoists no pull-request
 reference onto the work header; that is a later read if the preview line proves insufficient.
 
@@ -662,7 +735,7 @@ administrative integration and is outside this Computer capability.
 3. Add Cursor runtime discovery and AI SDK harness support.
 4. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
 5. **Landed.** The `haus cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
-   fake, the durable work and Run records, the work Message, and the eager Thread.
+   fake, the durable work and Run records, the launch Message, and the eager Thread.
 6. **Landed.** Lifecycle reporting, reconnect reconciliation, cancellation by Agent and by
    Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. The combined Effect
    and Cloud Agent contract uses Computer protocol 16.

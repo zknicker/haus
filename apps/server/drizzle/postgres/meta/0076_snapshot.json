@@ -1,6 +1,6 @@
 {
-  "id": "3afcf28e-78d8-4368-970d-10bed6ebbe5f",
-  "prevId": "2a8ed5f1-c25f-41f7-96f0-155abb6ac9f7",
+  "id": "426aac98-0fc9-4f85-95c3-b7427311c888",
+  "prevId": "916aa5b5-15d8-44dd-b832-d795823e85b7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -829,7 +829,7 @@
         },
         "agent_delivery_active_run": {
           "name": "agent_delivery_active_run",
-          "value": "(\n                \"agent_delivery\".\"active_run_id\" is null\n                and \"agent_delivery\".\"active_run_chat_id\" is null\n                and \"agent_delivery\".\"active_run_computer_id\" is null\n                and \"agent_delivery\".\"active_run_runtime_id\" is null\n                and \"agent_delivery\".\"active_run_model_id\" is null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is null\n                and \"agent_delivery\".\"accepted_at\" is null\n                and \"agent_delivery\".\"dispatched_at\" is null\n            ) or (\n                \"agent_delivery\".\"active_run_id\" is not null\n                and \"agent_delivery\".\"active_run_chat_id\" is not null\n                and \"agent_delivery\".\"active_run_computer_id\" is not null\n                and \"agent_delivery\".\"active_run_runtime_id\" is not null\n                and \"agent_delivery\".\"active_run_model_id\" is not null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is not null\n            )"
+          "value": "(\n                \"agent_delivery\".\"active_run_id\" is null\n                and \"agent_delivery\".\"active_run_chat_id\" is null\n                and \"agent_delivery\".\"active_run_computer_id\" is null\n                and \"agent_delivery\".\"active_run_runtime_id\" is null\n                and \"agent_delivery\".\"active_run_model_id\" is null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is null\n                and \"agent_delivery\".\"accepted_at\" is null\n                and \"agent_delivery\".\"dispatched_at\" is null\n            ) or (\n                \"agent_delivery\".\"active_run_id\" is not null\n                and \"agent_delivery\".\"active_run_computer_id\" is not null\n                and \"agent_delivery\".\"active_run_runtime_id\" is not null\n                and \"agent_delivery\".\"active_run_model_id\" is not null\n                and \"agent_delivery\".\"active_run_reasoning_effort\" is not null\n            )"
         },
         "agent_delivery_active_run_reasoning_effort": {
           "name": "agent_delivery_active_run_reasoning_effort",
@@ -1119,7 +1119,7 @@
           "name": "chat_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "content": {
           "name": "content",
@@ -1419,6 +1419,10 @@
         "agent_inbox_addressed_reason": {
           "name": "agent_inbox_addressed_reason",
           "value": "\"agent_inbox\".\"addressed_reason\" is null\n                or \"agent_inbox\".\"addressed_reason\" in ('dm', 'mention', 'routing', 'sole')"
+        },
+        "agent_inbox_chat": {
+          "name": "agent_inbox_chat",
+          "value": "(\"agent_inbox\".\"chat_id\" is null) = (\"agent_inbox\".\"source\" = 'dream')"
         },
         "agent_inbox_id_shape": {
           "name": "agent_inbox_id_shape",
@@ -1899,7 +1903,7 @@
           "name": "chat_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -1991,7 +1995,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "agent_run_triggers_chat": {
+          "name": "agent_run_triggers_chat",
+          "value": "(\"agent_run_triggers\".\"chat_id\" is null) = (\"agent_run_triggers\".\"source\" = 'dream')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.agent_runner_credentials": {
@@ -2008,7 +2017,7 @@
           "name": "chat_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "capabilities": {
           "name": "capabilities",
@@ -6278,7 +6287,7 @@
         },
         "mcp_connections_preset": {
           "name": "mcp_connections_preset",
-          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool')"
+          "value": "\"mcp_connections\".\"preset\" is null or \"mcp_connections\".\"preset\" in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool', 'cloudflare', 'vercel')"
         }
       },
       "isRLSEnabled": false
@@ -9320,418 +9329,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.artifact_revisions": {
-      "name": "artifact_revisions",
-      "schema": "",
-      "columns": {
-        "artifact_id": {
-          "name": "artifact_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "author_agent_id": {
-          "name": "author_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "author_key": {
-          "name": "author_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "author_user_id": {
-          "name": "author_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "byte_size": {
-          "name": "byte_size",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "content_type": {
-          "name": "content_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "filename": {
-          "name": "filename",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "object_key": {
-          "name": "object_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_id": {
-          "name": "request_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reserved_bytes": {
-          "name": "reserved_bytes",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "revision_number": {
-          "name": "revision_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sha256": {
-          "name": "sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "artifact_revision_nonce_key": {
-          "name": "artifact_revision_nonce_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "author_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "request_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artifact_revision_number_key": {
-          "name": "artifact_revision_number_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "artifact_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "revision_number",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artifact_revision_tenant_key": {
-          "name": "artifact_revision_tenant_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "artifact_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artifact_revisions_artifact_fk": {
-          "name": "artifact_revisions_artifact_fk",
-          "tableFrom": "artifact_revisions",
-          "tableTo": "artifacts",
-          "columnsFrom": [
-            "server_id",
-            "artifact_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artifact_revisions_server_id_author_agent_id_agents_server_id_id_fk": {
-          "name": "artifact_revisions_server_id_author_agent_id_agents_server_id_id_fk",
-          "tableFrom": "artifact_revisions",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "author_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "artifact_revisions_server_id_author_user_id_server_memberships_server_id_user_id_fk": {
-          "name": "artifact_revisions_server_id_author_user_id_server_memberships_server_id_user_id_fk",
-          "tableFrom": "artifact_revisions",
-          "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "author_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "artifact_revision_author_shape": {
-          "name": "artifact_revision_author_shape",
-          "value": "num_nonnulls(\"artifact_revisions\".\"author_agent_id\", \"artifact_revisions\".\"author_user_id\") = 1"
-        },
-        "artifact_revision_size": {
-          "name": "artifact_revision_size",
-          "value": "\"artifact_revisions\".\"byte_size\" >= 0 and \"artifact_revisions\".\"byte_size\" <= 268435456 and \"artifact_revisions\".\"reserved_bytes\" >= 0"
-        },
-        "artifact_revision_state": {
-          "name": "artifact_revision_state",
-          "value": "\"artifact_revisions\".\"state\" in ('uploading', 'ready', 'failed', 'deleting', 'deleted')"
-        },
-        "artifact_revision_ready": {
-          "name": "artifact_revision_ready",
-          "value": "\"artifact_revisions\".\"state\" <> 'ready' or (\"artifact_revisions\".\"sha256\" is not null and \"artifact_revisions\".\"sha256\" ~ '^[a-f0-9]{64}$')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.artifacts": {
-      "name": "artifacts",
-      "schema": "",
-      "columns": {
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "creator_agent_id": {
-          "name": "creator_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "creator_user_id": {
-          "name": "creator_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "current_revision_id": {
-          "name": "current_revision_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "next_revision": {
-          "name": "next_revision",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "artifacts_server_name_key": {
-          "name": "artifacts_server_name_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"artifacts\".\"deleted_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artifacts_server_id_servers_id_fk": {
-          "name": "artifacts_server_id_servers_id_fk",
-          "tableFrom": "artifacts",
-          "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artifacts_server_id_creator_agent_id_agents_server_id_id_fk": {
-          "name": "artifacts_server_id_creator_agent_id_agents_server_id_id_fk",
-          "tableFrom": "artifacts",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "creator_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "artifacts_server_id_creator_user_id_server_memberships_server_id_user_id_fk": {
-          "name": "artifacts_server_id_creator_user_id_server_memberships_server_id_user_id_fk",
-          "tableFrom": "artifacts",
-          "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "creator_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "artifacts_server_id_key": {
-          "name": "artifacts_server_id_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "artifacts_creator_shape": {
-          "name": "artifacts_creator_shape",
-          "value": "num_nonnulls(\"artifacts\".\"creator_agent_id\", \"artifacts\".\"creator_user_id\") = 1"
-        }
-      },
       "isRLSEnabled": false
     }
   },

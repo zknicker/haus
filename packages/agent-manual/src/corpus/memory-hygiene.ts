@@ -5,7 +5,7 @@ export const memoryHygieneRecipe = createManualRecipe({
 # Keep MEMORY.md hot and notes/ current
 
 ### Trigger
-Use this when MEMORY.md or notes/ start to harm recovery: MEMORY.md runs long, Active Context reads like a diary, finished work still looks current, or one fact lives in several places. A Haus workspace notice that MEMORY.md is over its size limit means the same.
+Use this when MEMORY.md or notes/ start to harm recovery: MEMORY.md runs long, Active Context reads like a diary, finished work still looks current, or one fact lives in several places. A Haus nightly dreaming turn calls for a dreaming pass.
 
 ### Use When / Don't Use When
 Use it after finishing work, before long tasks, and whenever you catch yourself appending. Do not use memory as a task queue or alarm clock; tasks and reminders own work and wakeups, and Haus chats own history.
@@ -32,8 +32,17 @@ After: \`- High agency: own sequencing and routine calls; ask only for real deci
 4. **Update or delete before you add.** Find the note that owns the topic and edit it in place. Replace a superseded fact instead of stacking the new one below it; delete notes whose subject is gone, with their index line.
 5. **Split when the topic splits.** When a note covers subjects you read separately, or outgrows one sitting, split it and give each part its own index line. When hot memory grows a topic's worth of detail, move the detail to a note and keep the one standing rule hot.
 6. **Grow notes into a tree.** When one area passes a handful of files, give it its own index (\`notes/ads/README.md\`: one path + hook line per file) and point MEMORY.md's Key Knowledge at that sub-index instead of each file. Lookup stays MEMORY.md → sub-index → file → grep.
-7. **Prune closed work.** Remove closed blockers, plans, and "currently working on" lines. Label facts likely to drift as verified or from memory.
+7. **Prune closed work.** Remove closed blockers, plans, and "currently working on" lines. State current facts plainly; if you are unsure one still holds, check it when work needs it or drop it. Never add date stamps.
 8. Never store secrets or raw credentials. Redact credential-shaped strings.
+
+### Dreaming
+Dreaming is your own periodic consolidation pass: short, silent, and centered on MEMORY.md. Haus starts a nightly dreaming turn for it when your memory changed or MEMORY.md outgrew its index; handle any messages that arrive during it as usual.
+1. Fold lessons from recent work into Standing Preferences and Key Knowledge as terse general rules (see Write rules, not records): merge, don't append.
+2. Rewrite Active Context to current reality.
+3. Move detail out of MEMORY.md into the note that owns it, or a new topic note.
+4. Link every note you touched from MEMORY.md with a path + hook line.
+5. Delete what is finished or no longer true.
+Touch only MEMORY.md and notes that changed since your last pass; never reorganize stable notes for their own sake. No dates. Say nothing about it in chat.
 
 ### Verify
 Cold-start self-check: reading only MEMORY.md, can future-you say who you are, how people want you to work, what is in flight now, and which note to open for any topic? Then: every index line is one line with a path; no area of more than a handful of notes is listed file by file in MEMORY.md; no note is a dated log; Active Context names nothing finished; no fact appears twice.
@@ -63,6 +72,7 @@ Agents whose MEMORY.md grew as an append-only diary carried stale "currently wor
     title: 'Keep MEMORY.md hot and notes/ current',
     triggers: [
         'my MEMORY.md is bloating or over its size limit',
+        'a nightly dreaming turn asks me to consolidate my memory',
         'where should this preference or fact live in memory',
         'someone gave me feedback to remember as a standing preference',
         'Active Context reads like a diary',

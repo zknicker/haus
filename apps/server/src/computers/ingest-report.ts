@@ -1,5 +1,7 @@
 import {
     agentDeliveryAckSchema,
+    agentDreamRecordSchema,
+    agentDreamRequestSchema,
     agentEffectiveStateSchema,
     agentExecutionJournalResultSchema,
     agentExecutionOutlinesResultSchema,
@@ -21,10 +23,12 @@ import {
 } from '@haus/api';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { requestAgentDream } from '../agent-delivery/dream-request.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
+import { recordAgentDream } from '../server-agents/record-agent-dream.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
@@ -130,6 +134,20 @@ export async function ingestReport(
     const reminderScript = reminderScriptResultSchema.safeParse(frame);
     if (reminderScript.success) {
         await delivery.onReminderScriptResult(computerId, reminderScript.data);
+        return;
+    }
+
+    const dreamRequest = agentDreamRequestSchema.safeParse(frame);
+    if (dreamRequest.success) {
+        await requestAgentDream(db, delivery, { computerId, request: dreamRequest.data, serverId });
+        return;
+    }
+    const dreamRecord = agentDreamRecordSchema.safeParse(frame);
+    if (dreamRecord.success) {
+        // A dream record is observability only: a failed write must never close the socket.
+        await recordAgentDream(db, computerId, dreamRecord.data).catch((error: unknown) => {
+            console.error('[haus] dream record was not stored', error);
+        });
         return;
     }
 

@@ -117,6 +117,7 @@ import {
     revokeComputerLoginSession,
     runComputerLogin,
 } from './login.ts';
+import { startNightlyDreamCheck } from './nightly-dream.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import {
@@ -882,6 +883,7 @@ async function connect(
     daemonWork: AttachmentDaemonWork
 ): Promise<AttachmentConnectionOutcome> {
     const browserRoot = join(dataRoot, 'servers', attachment.serverId, 'browser');
+    const agentsDir = join(dataRoot, 'servers', attachment.serverId, 'agents');
     void reconcileComputerBrowser(browserRoot, runtime).catch((error) => {
         console.error(error instanceof Error ? error.message : error);
     });
@@ -1109,6 +1111,7 @@ async function connect(
                     startCloudAgentModelCatalogRefresh(connectionWork, () =>
                         trackWriter(reportComputer())
                     );
+                    startNightlyDreamCheck(connectionWork, { agentsDir, daemonWork, runtime });
                     return;
                 }
                 if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
@@ -1162,15 +1165,7 @@ async function connect(
                         .enqueueConfiguration(restart.agentId, async () => {
                             await agentWork.waitForRun(restart.agentId);
                             disposeAgentLaunchHost(attachment.serverId, restart.agentId);
-                            await requestSessionRestart(
-                                join(
-                                    dataRoot,
-                                    'servers',
-                                    attachment.serverId,
-                                    'agents',
-                                    restart.agentId
-                                )
-                            );
+                            await requestSessionRestart(join(agentsDir, restart.agentId));
                         })
                         .catch(reportStateError)
                 );
@@ -1209,13 +1204,7 @@ async function connect(
                     agentWork
                         .enqueueConfiguration(configuration.agentId, async () => {
                             await agentWork.waitForRun(configuration.agentId);
-                            const agentRoot = join(
-                                dataRoot,
-                                'servers',
-                                attachment.serverId,
-                                'agents',
-                                configuration.agentId
-                            );
+                            const agentRoot = join(agentsDir, configuration.agentId);
                             await applyAuthoritativeSession({
                                 agentRoot,
                                 generation: configuration.sessionGeneration,

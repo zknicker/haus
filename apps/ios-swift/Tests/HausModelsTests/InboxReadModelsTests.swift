@@ -2,15 +2,6 @@ import Foundation
 import XCTest
 @testable import HausModels
 
-private func messageJSON(id: String, sequence: Int) -> String {
-    """
-    {"attachments":[],"author":{"agentId":"agent_1","kind":"agent","profile":null},
-     "chatId":"chat_1","content":"Ship the iPhone build","createdAt":"2026-09-11T09:00:00.000Z",
-     "id":"\(id)","nonce":"nonce_\(id)","runId":null,"sequence":\(sequence),
-     "serverId":"server_1","task":null}
-    """
-}
-
 private let workJSON = """
 {"activity":{"at":"2026-09-11T09:05:00.000Z","summary":"Reading the diff"},
  "agentId":"agent_1","cancelRequestedAt":null,"chatId":"chat_thread",
@@ -60,18 +51,16 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertNil(chat.lastMessage)
     }
 
+    /// `activeWorkLocations.workThread` in `cloud-agent-work-fixture.ts`.
     func testDecodesServerWideActiveCloudAgentWork() throws {
         let json = """
-        [{"chatKind":"channel","chatName":"product","chatPeerUserId":null,
+        [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
           "conversationChatId":"chat_1",
-          "message":\(messageJSON(id: "message_work", sequence: 12)),
-          "threadAnchorMessage":null,"threadChatId":"chat_thread","work":\(workJSON)}]
+          "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"cht_work_thread"},
+          "work":\(workJSON)}]
         """
 
-        let rows = try HausJSON.decoder().decode(
-            [ActiveCloudAgentWork].self,
-            from: Data(json.utf8)
-        )
+        let rows = try HausJSON.decoder().decode([ActiveCloudAgentWork].self, from: Data(json.utf8))
         let row = try XCTUnwrap(rows.first)
 
         XCTAssertEqual(row.id, "work_1")
@@ -79,26 +68,97 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertTrue(row.work.status.isActive)
         XCTAssertEqual(row.work.activity?.summary, "Reading the diff")
         XCTAssertEqual(row.conversationChatID, "chat_1")
-        XCTAssertEqual(row.threadChatID, "chat_thread")
-        XCTAssertEqual(row.threadAnchor.id, "message_work")
-    }
-
-    func testActiveCloudAgentWorkPrefersTheThreadAnchorMessage() throws {
-        let json = """
-        {"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
-         "conversationChatId":"chat_1",
-         "message":\(messageJSON(id: "message_work", sequence: 12)),
-         "threadAnchorMessage":\(messageJSON(id: "message_anchor", sequence: 4)),
-         "threadChatId":"chat_thread","work":\(workJSON)}
-        """
-
-        let row = try HausJSON.decoder().decode(
-            ActiveCloudAgentWork.self,
-            from: Data(json.utf8)
-        )
-
-        XCTAssertEqual(row.threadAnchor.id, "message_anchor")
         XCTAssertEqual(row.chatKind, .dm)
         XCTAssertEqual(row.chatPeerUserID, "user_2")
+        XCTAssertEqual(row.location, .workThread(threadChatID: "cht_work_thread", anchorMessageID: "message_work"))
+    }
+
+    /// `location` is the only way a row says where it opens.
+    func testRejectsARowWithoutALocation() {
+        let json = """
+        {"agentName":"Blippy","chatKind":"channel","chatName":"product","chatPeerUserId":null,
+         "conversationChatId":"chat_1","threadChatId":"chat_thread","work":\(workJSON)}
+        """
+
+        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
+    }
+
+    /// `activeWorkLocations.message`: the newest visible link, after the launch
+    /// Chat is gone.
+    func testDecodesAMessageLocation() throws {
+        let json = """
+        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+         "conversationChatId":"cht_tech_ops",
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
+         "work":\(workJSON)}
+        """
+
+        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
+
+        XCTAssertEqual(
+            row.location,
+            .message(chatID: "cht_tech_ops", messageID: "msg_linking_elsewhere", threadChatID: nil)
+        )
+    }
+
+    func testRejectsAnUnknownLocationKind() {
+        let json = """
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
+         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+        """
+
+        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))) {
+            XCTAssertEqual($0 as? ActiveCloudAgentWorkLocation.UnknownKind, .init(kind: "elsewhere"))
+        }
+    }
+
+    /// A Message in a Thread names its Channel as `chatId` and the Thread as
+    /// `threadChatId`; the row decodes both as sent.
+    func testMessageLocationInAThreadKeepsTheChannelAndThread() throws {
+        let json = """
+        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+         "conversationChatId":"cht_tech_ops",
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_reply","threadChatId":"cht_reply_thread"},
+         "work":\(workJSON)}
+        """
+
+        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
+
+        XCTAssertEqual(
+            row.location,
+            .message(chatID: "cht_tech_ops", messageID: "msg_reply", threadChatID: "cht_reply_thread")
+        )
+    }
+
+    /// A newer location kind skips only its own row; "Happening now" keeps the rest.
+    func testListSkipsARowWithAnUnknownLocationKind() throws {
+        let unknown = """
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
+         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+        """
+        let known = """
+        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
+         "conversationChatId":"cht_tech_ops",
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
+         "work":\(workJSON)}
+        """
+
+        let list = try HausJSON.decoder().decode(
+            ActiveCloudAgentWorkList.self,
+            from: Data("[\(unknown),\(known),\(unknown)]".utf8)
+        )
+
+        XCTAssertEqual(list.rows.map(\.conversationChatID), ["cht_tech_ops"])
+    }
+
+    func testListStillFailsOnAMalformedRow() {
+        let malformed = """
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"work":\(workJSON)}
+        """
+
+        XCTAssertThrowsError(
+            try HausJSON.decoder().decode(ActiveCloudAgentWorkList.self, from: Data("[\(malformed)]".utf8))
+        )
     }
 }
+

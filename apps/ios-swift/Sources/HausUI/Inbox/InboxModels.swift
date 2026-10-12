@@ -4,8 +4,8 @@ import HausModels
 /// What pressing an Inbox row asks the App to open.
 ///
 /// A row carries an id, never a resolved route: the record it projects lives on
-/// the Store, and the App layer owns navigation. A Cloud Agent work names its
-/// Message, which is the id its Server read is keyed by.
+/// the Store, and the App layer owns navigation. A Cloud Agent work names
+/// itself; its row on the Store carries where it opens.
 public enum InboxOpenRequest: Hashable, Sendable {
     /// The Agent's own Chat — its DM, which is where a person talks to it.
     case agent(String)
@@ -13,7 +13,7 @@ public enum InboxOpenRequest: Hashable, Sendable {
     /// An unread Thread, named by its own Chat, which is what
     /// `thread.listUnread` keys its row by.
     case thread(threadChatID: String)
-    case cloudAgentWork(messageID: String)
+    case cloudAgentWork(workID: String)
 }
 
 /// The mark every Inbox row leads with: a face, a Channel's icon box, or

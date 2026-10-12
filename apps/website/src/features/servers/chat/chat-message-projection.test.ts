@@ -75,6 +75,7 @@ function layout(id: string): ChatMessageLayout {
         author: { kind: 'human', userId: 'usr_1' },
         body: { kind: 'text' },
         chatId: 'cht_1',
+        cloudAgentWork: [],
         content: id,
         createdAt: '2026-08-11T00:00:00.000Z',
         id,

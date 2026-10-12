@@ -6,17 +6,22 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { emitWorkEvent } from './apply-cloud-agent-observation.ts';
+import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
-import { CloudAgentNotLaunchedError, CloudAgentWorkNotFoundError } from './errors.ts';
+import { hasCloudAgentWorkComputer } from './cloud-agent-work-computer.ts';
+import {
+    CloudAgentComputerRemovedError,
+    CloudAgentNotLaunchedError,
+    CloudAgentWorkNotFoundError,
+} from './errors.ts';
 import { listComputerCloudAgentWork } from './list-computer-cloud-agent-work.ts';
 
 export async function sendCloudAgentWork(
     db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCloudAgentSendInput
-): Promise<{ receipt: AgentCloudAgentSendReceipt; event: PreparedRealtimeEvent | null }> {
+): Promise<{ receipt: AgentCloudAgentSendReceipt; events: PreparedRealtimeEvent[] }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const [row] = await tx
@@ -40,6 +45,20 @@ export async function sendCloudAgentWork(
             )
             .limit(1);
         if (!row) {
+            const [own] = await tx
+                .select({ computerId: cloudAgentWorkTable.computerId })
+                .from(cloudAgentWorkTable)
+                .where(
+                    and(
+                        eq(cloudAgentWorkTable.serverId, runner.serverId),
+                        eq(cloudAgentWorkTable.id, input.workId),
+                        eq(cloudAgentWorkTable.agentId, runner.agentId)
+                    )
+                )
+                .limit(1);
+            if (own && !(await hasCloudAgentWorkComputer(tx, runner.serverId, own.computerId))) {
+                throw new CloudAgentComputerRemovedError();
+            }
             throw new CloudAgentWorkNotFoundError();
         }
         if (!row.work.providerAgentId) {
@@ -59,7 +78,7 @@ export async function sendCloudAgentWork(
                 )
             )
             .limit(1);
-        let event: PreparedRealtimeEvent | null = null;
+        let events: PreparedRealtimeEvent[] = [];
         if (!existing) {
             const model = await resolveRunModel(tx, {
                 computerId: runner.computerId,
@@ -94,9 +113,7 @@ export async function sendCloudAgentWork(
                         eq(cloudAgentWorkTable.id, input.workId)
                     )
                 );
-            event = await emitWorkEvent(tx, {
-                chatId: row.work.chatId,
-                messageId: row.work.messageId,
+            events = await prepareCloudAgentWorkEvents(tx, {
                 serverId: runner.serverId,
                 workId: input.workId,
             });
@@ -124,7 +141,7 @@ export async function sendCloudAgentWork(
             throw new CloudAgentWorkNotFoundError();
         }
         return {
-            event,
+            events,
             receipt: {
                 work,
                 runId,

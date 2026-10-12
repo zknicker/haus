@@ -79,7 +79,7 @@ export async function recordAgentTurnSummary(
 export async function recordRunTrigger(
     db: HausDatabase,
     run: { agentId: string; runId: string; serverId: string },
-    first: { chatId: string; dedupeKey: string; source: string }
+    first: { chatId: string | null; dedupeKey: string; source: string }
 ): Promise<void> {
     await db
         .insert(agentRunTriggersTable)

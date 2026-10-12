@@ -243,6 +243,26 @@ that migrated schema. Recovery after the drop requires a forward fix on the new 
 automatic activation rollback restores only the binary and does not restore the old contract.
 The migration keeps Chat messages and read markers. No database backup is created by this release.
 
+The nightly-dreaming release (migrations 0076–0078, App protocol 10) is an operator-approved
+forward-only release. Migration 0076 lets a dream run have no Chat: `chat_id` may be null on
+`agent_inbox`, `agent_run_triggers`, and `agent_runner_credentials`, and
+`agent_delivery.active_run_chat_id` may be null. The previous Server assumes every one is set, so
+rolling back past this release first requires resetting any Agent with an active chatless dream
+run and retiring every unfinished `dream` inbox row (set `state = 'seen'`). The schema change
+itself is additive and safe to leave in place.
+
+The Cloud Agent work links release (migrations 0079–0080, Computer protocol 29, App protocol 11,
+ADR 0044) is an
+operator-approved forward-only release. Migration `0079_cloud_agent_work_links` adds
+`cloud_agent_work_links`, renames `cloud_agent_work.message_id` to `launch_message_id`, and drops
+the work's unique key and foreign keys to its Message, Chat, and Computer. It also rewrites every launch
+Message from `body_kind = 'cloud-agent-work'` to `text` and appends the work's link to its
+content. Migration `0080_message-body-drop-cloud-agent-work` then narrows the `chat_messages`
+body kind check to `text` and `agent-created`. The previous Server reads `message_id` and expects
+`cloud-agent-work` bodies, so it cannot run against the migrated schema. Rolling back restores
+only the binary: the rewritten content, the dropped constraints, and the renamed column stay.
+Recovery is a forward fix on the new schema.
+
 Migration 0064 keeps the physical `agents.personality` column for rollback to Server 7.1.0.
 The current Server maps its conversation-style field onto that same column, so both versions
 read and write the same value. The product API uses conversation style.

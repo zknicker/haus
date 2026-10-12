@@ -7,6 +7,8 @@ import {
     attachmentMetadata,
     requireMessageAttachments,
 } from '../attachments/message-attachments.ts';
+import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
+import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { applyMessageRouting } from '../message-routing/apply-message-routing.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import { prepareMessageRouting } from '../message-routing/route-human-message.ts';
@@ -20,6 +22,7 @@ import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireActiveDmPeer } from './active-dm-peer.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
+import { recordCloudAgentWorkLinks, resolveCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from './message-created-event.ts';
@@ -149,15 +152,20 @@ export async function sendChatMessage(
             throw new Error('Failed to allocate the Chat message sequence.');
         }
 
+        const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+            author: { kind: 'user', userId: member.id },
+            content: input.content,
+            serverId: input.serverId,
+        });
         const messageId = createOpaqueId('msg');
         const [message] = await tx
             .insert(chatMessagesTable)
             .values({
                 authorUserId: member.id,
                 chatId: writeChatId,
-                content: input.content,
+                content,
                 id: messageId,
-                mentionedUserIds: mentionedUserIds(input.content),
+                mentionedUserIds: mentionedUserIds(content),
                 nonce: input.nonce,
                 replyRootMessageId: replyParent?.root.id ?? messageId,
                 replyToMessageId: replyParent?.parent.id ?? null,
@@ -167,6 +175,12 @@ export async function sendChatMessage(
             .returning();
 
         await associateMessageAttachments(tx, attachments, message.id, writeChatId);
+        await recordCloudAgentWorkLinks(tx, {
+            chatId: writeChatId,
+            links,
+            messageId,
+            serverId: input.serverId,
+        });
         if (thread) {
             await tx
                 .insert(threadFollowsTable)
@@ -184,7 +198,7 @@ export async function sendChatMessage(
                     ],
                 });
             await autoFollowThreadMentions(tx, {
-                content: input.content,
+                content,
                 parentChatId: thread.parentChatId,
                 serverId: input.serverId,
                 threadChatId: thread.id,
@@ -202,7 +216,7 @@ export async function sendChatMessage(
         const plannedRecipients = await planAgentMessageRecipients(tx, {
             authorAgentId: null,
             chatId: writeChatId,
-            content: input.content,
+            content,
             messageId: message.id,
             serverId: input.serverId,
         });
@@ -221,7 +235,7 @@ export async function sendChatMessage(
                 addressedReason: recipient.addressedReason,
                 agentId: recipient.agentId,
                 chatId: writeChatId,
-                content: input.content,
+                content,
                 dedupeKey: message.id,
                 mentioned: recipient.mentioned,
                 sequence: message.sequence,
@@ -231,13 +245,21 @@ export async function sendChatMessage(
             });
         }
 
+        const workIds = links.map((link) => link.workId);
         return {
-            events: [created],
+            events: [
+                created,
+                ...(await prepareLinkedWorkEvents(tx, { serverId: input.serverId, workIds })),
+            ],
             receipt: {
                 idempotent: false,
                 // A human send never creates a typed body; this Message is text.
                 message: toChatMessage(message, {
                     attachments: attachmentMetadata(attachments),
+                    cloudAgentWork:
+                        (await readLinkedCloudAgentWork(tx, input.serverId, [messageId])).get(
+                            messageId
+                        ) ?? [],
                     reply: await readInlineReplyContext(tx, input.serverId, message),
                 }),
                 threadChatId: thread?.id ?? null,

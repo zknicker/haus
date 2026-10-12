@@ -39,6 +39,16 @@ const oauthPresets: Record<
     McpOAuthPreset,
     PresetDefinition<Extract<PresetAuth, { kind: 'oauth' }>>
 > = {
+    cloudflare: {
+        auth: { kind: 'oauth', scopes: [] },
+        name: 'Cloudflare',
+        url: 'https://mcp.cloudflare.com/mcp',
+    },
+    vercel: {
+        auth: { kind: 'oauth', scopes: [] },
+        name: 'Vercel',
+        url: 'https://mcp.vercel.com',
+    },
     // GitHub's scopes come from its Server-configured client (oauth-clients.ts).
     github: {
         auth: { kind: 'oauth', scopes: [] },

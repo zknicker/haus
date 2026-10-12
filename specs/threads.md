@@ -92,7 +92,7 @@ Mark read on a Thread row is `chat.markRead` on the Thread's id. `chat.markRead`
   and a **thread preview block** underneath that opens the pane: a header ("3 replies · 2 new")
   over the newest conversational replies, oldest first, each with the author's avatar, name,
   one-line content, and relative time. `ThreadSummary.recentReplies` carries those rows and
-  excludes Cloud Agent work announcements, which the preview states once as their own per-job rows
+  excludes Cloud Agent launch Messages, which the preview states once as their own per-job rows
   above the replies;
   `replyCount` and `unreadCount` still count those work replies. An anchor whose
   Thread has no replies shows nothing, since "Reply in thread" already lives in the hover

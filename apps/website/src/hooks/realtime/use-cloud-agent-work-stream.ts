@@ -8,9 +8,10 @@ import {
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
- * `cloudAgentWork.onUpdated`: the work Message's entity (its header states
- * the status), the work list of its Chat and of a Thread's parent, and the
- * active-work list behind the Inbox.
+ * `cloudAgentWork.onUpdated`: the Server publishes one event per linking
+ * Message (ADR 0044), so each event refreshes that Message's entity (its card
+ * states the status), the work list of its Chat and of a Thread's parent, and
+ * the active-work list behind the Inbox.
  */
 export function useCloudAgentWorkStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();

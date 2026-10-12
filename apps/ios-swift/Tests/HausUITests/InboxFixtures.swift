@@ -27,16 +27,20 @@ enum InboxFixtures {
     }
 
     static func activeWork(
-        startedAt: Date, title: String = "Ship the iPhone build", job: String? = nil
+        startedAt: Date,
+        title: String = "Ship the iPhone build",
+        job: String? = nil,
+        agentName: String = "Blippy",
+        agentID: String = "agent_blippy"
     ) -> ActiveCloudAgentWork {
         let started = quoted(HausISO8601.string(from: startedAt))
         let job = job ?? #"{"followUp":null,"startedAt":\#(started),"state":"working"}"#
         return decode(
             """
-            {"chatKind":"channel","chatName":"all","chatPeerUserId":null,
-             "conversationChatId":"chat_1","message":\(message(id: "message_work")),
-             "threadAnchorMessage":null,"threadChatId":"chat_thread",
-             "work":{"activity":null,"agentId":"agent_blippy","cancelRequestedAt":null,
+            {"agentName":\(quoted(agentName)),"chatKind":"channel","chatName":"all","chatPeerUserId":null,
+             "conversationChatId":"chat_1",
+             "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"chat_thread"},
+             "work":{"activity":null,"agentId":\(quoted(agentID)),"cancelRequestedAt":null,
                "chatId":"chat_thread","createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
                "messageId":"message_work","provider":"cursor","providerUrl":null,
                "job":\(job),"repository":"zknicker/haus","runs":[],

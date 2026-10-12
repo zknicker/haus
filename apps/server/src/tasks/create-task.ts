@@ -4,9 +4,15 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
+import {
+    recordCloudAgentWorkLinks,
+    replayCloudAgentWorkLinks,
+    resolveCloudAgentWorkLinks,
+} from '../chats/cloud-agent-work-links.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
+import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
@@ -72,7 +78,12 @@ export async function createTask(
             )
             .limit(1);
         if (existing) {
-            if (existing.authorUserId !== member.id || existing.content !== input.content) {
+            const replayed = await replayCloudAgentWorkLinks(tx, {
+                content: input.content,
+                messageId: existing.id,
+                serverId: input.serverId,
+            });
+            if (existing.authorUserId !== member.id || existing.content !== replayed) {
                 throw new ChatNonceConflictError();
             }
             const task = await findMessageTask(tx, input.serverId, existing.id);
@@ -98,19 +109,30 @@ export async function createTask(
             throw new Error('Failed to allocate task-message identity.');
         }
 
+        const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+            author: { kind: 'user', userId: member.id },
+            content: input.content,
+            serverId: input.serverId,
+        });
         const [message] = await tx
             .insert(chatMessagesTable)
             .values({
                 authorUserId: member.id,
                 chatId: input.chatId,
-                content: input.content,
+                content,
                 id: createOpaqueId('msg'),
-                mentionedUserIds: mentionedUserIds(input.content),
+                mentionedUserIds: mentionedUserIds(content),
                 nonce: input.nonce,
                 sequence: numberedChat.messageSequence,
                 serverId: input.serverId,
             })
             .returning();
+        await recordCloudAgentWorkLinks(tx, {
+            chatId: input.chatId,
+            links,
+            messageId: message.id,
+            serverId: input.serverId,
+        });
 
         await tx.insert(messageTasksTable).values({
             chatId: input.chatId,
@@ -137,7 +159,7 @@ export async function createTask(
         const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: null,
             chatId: input.chatId,
-            content: input.content,
+            content,
             messageId: message.id,
             serverId: input.serverId,
         });
@@ -146,7 +168,7 @@ export async function createTask(
                 addressedReason: recipient.addressedReason,
                 agentId: recipient.agentId,
                 chatId: input.chatId,
-                content: input.content,
+                content,
                 dedupeKey: message.id,
                 mentioned: recipient.mentioned,
                 sequence: message.sequence,
@@ -157,7 +179,14 @@ export async function createTask(
         }
 
         return {
-            events: [messageEvent, taskEvent],
+            events: [
+                messageEvent,
+                taskEvent,
+                ...(await prepareLinkedWorkEvents(tx, {
+                    serverId: input.serverId,
+                    workIds: links.map((link) => link.workId),
+                })),
+            ],
             idempotent: false,
             task,
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),

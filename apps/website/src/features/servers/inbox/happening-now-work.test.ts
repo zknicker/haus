@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { ActiveCloudAgentWork, Agent } from '@haus/api';
+import { activeWorkLocations } from '../../../../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
 import {
     cloudAgentRunFixture,
     cloudAgentWorkFixture,
@@ -19,7 +20,12 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
         {
             agentName: 'Blippy',
             chatLabel: '#product',
-            id: 'message_one',
+            id: 'caw_one',
+            location: {
+                anchorMessageId: 'message_one',
+                kind: 'work-thread',
+                threadChatId: 'chat_thread',
+            },
             provider: 'cursor',
             state: 'working',
             statusText: 'Working · 7m',
@@ -46,10 +52,17 @@ test('a DM work names the human peer, and an Agent DM names neither', () => {
     expect(withoutPeer?.chatLabel).toBe('DM');
 });
 
-test('a retired Agent falls back to the name stored on its own Message', () => {
-    const [row] = toHappeningNowWork([activeWork()], humans, [], now);
+test('a retired Agent reads by the name the Server stored for it', () => {
+    const [row] = toHappeningNowWork([activeWork({ agentName: 'Old Blippy' })], humans, [], now);
 
-    expect(row?.agentName).toBe('Blippy (stored)');
+    expect(row?.agentName).toBe('Old Blippy');
+});
+
+test('the Server location is where the row opens', () => {
+    for (const location of Object.values(activeWorkLocations)) {
+        const [row] = toHappeningNowWork([activeWork({ location })], humans, agents, now);
+        expect(row?.location).toEqual(location);
+    }
 });
 
 test('a follow-up queued behind a finished Run reads as the waiting follow-up, not done', () => {
@@ -84,25 +97,16 @@ function workRecord(
 
 function activeWork(overrides: Partial<ActiveCloudAgentWork> = {}): ActiveCloudAgentWork {
     return {
+        agentName: 'Blippy',
         chatKind: 'channel',
         chatName: 'product',
         chatPeerUserId: null,
         conversationChatId: 'chat_product',
-        message: {
-            author: {
-                agentId: 'agent_blippy',
-                kind: 'agent',
-                profile: {
-                    avatarUrl: null,
-                    deleted: false,
-                    description: null,
-                    displayName: 'Blippy (stored)',
-                },
-            },
-            id: 'message_one',
-        } as ActiveCloudAgentWork['message'],
-        threadAnchorMessage: null,
-        threadChatId: 'chat_thread',
+        location: {
+            anchorMessageId: 'message_one',
+            kind: 'work-thread',
+            threadChatId: 'chat_thread',
+        },
         work: workRecord(),
         ...overrides,
     };

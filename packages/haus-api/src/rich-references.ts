@@ -2,6 +2,7 @@ export type HausRichReferenceKind =
     | 'agent'
     | 'app'
     | 'chat'
+    | 'cloud-agent-work'
     | 'directory'
     | 'file'
     | 'plugin'
@@ -12,6 +13,7 @@ export type HausRichReferenceProjection =
     | 'agent-reference'
     | 'capability-reference'
     | 'chat-reference'
+    | 'cloud-agent-work-reference'
     | 'path-reference'
     | 'skill-activation'
     | 'user-reference';
@@ -40,6 +42,11 @@ export function formatChatReferenceTarget(chatId: string) {
 
 export function formatChatThreadReferenceTarget(chatId: string, anchorMessageId: string) {
     return `${formatChatReferenceTarget(chatId)}?thread=${encodeReferenceId(anchorMessageId)}`;
+}
+
+/** `cloud-agent://<workId>`. Build whole links with `formatCloudAgentWorkLink`. */
+export function formatCloudAgentWorkReferenceTarget(workId: string) {
+    return `cloud-agent://${encodeReferenceId(workId)}`;
 }
 
 export function formatSkillReferenceTarget(skillId: string) {
@@ -81,6 +88,10 @@ export function parseChatThreadReferenceTarget(target: string) {
     const chatId = decodeReferenceId(match[1]);
     const anchorMessageId = decodeReferenceId(match[2]);
     return chatId && anchorMessageId ? { anchorMessageId, chatId } : null;
+}
+
+export function parseCloudAgentWorkReferenceTarget(target: string) {
+    return parseSchemeReferenceTarget(target, 'cloud-agent');
 }
 
 export function parseSkillReferenceTarget(target: string) {
@@ -156,6 +167,15 @@ function parseRichReferenceLink({
             kind: 'chat',
             label: stripReferenceLabelSigil(rawLabel, '#'),
             projection: 'chat-reference',
+        };
+    }
+
+    if (parseCloudAgentWorkReferenceTarget(target)) {
+        return {
+            kind: 'cloud-agent-work',
+            // Undo the label escapes `formatCloudAgentWorkLink` writes.
+            label: rawLabel.replace(/\\([\\[])/gu, '$1'),
+            projection: 'cloud-agent-work-reference',
         };
     }
 

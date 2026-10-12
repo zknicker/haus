@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.1.1 - 2026-10-12
+
+- A queued dream takes its turn like a reminder or any other inbox work, instead of waiting until nothing else is queued.
+
+## v12.1.0 - 2026-10-12
+
+- A busy Agent still dreams that night. Its dream waits until its current and queued work finish, instead of being skipped while it works.
+- Haus Computer 9.1.0 and Haus Agent 9.1.0 check each Agent once per night, at the first moment the Computer is awake between 03:00 and 05:00. A Computer asleep through that window skips the night, and a restart never checks the same night twice. A new Agent's first dream comes roughly 24 to 48 hours after it starts.
+
+## v12.0.0 - 2026-10-11
+
+- Cloud Agent work can appear in more than one place. A Message that links the work shows its card, so an Agent can point another channel or Thread at a running job and every card updates together. Haus for iPhone 8.0.0 (build 50) renders the same cards. Opening a job from Happening now goes to its work Thread, or to the newest Message you can see that links it, and the row names the Agent that delegated it.
+- Haus Agent 9.0.0 holds a Cloud Agent launch when the Chat has messages it has not seen yet, the same way it holds a message send. The Agent reads them first and starts the job only if it still belongs there. Starting or inspecting a job prints the link to share it elsewhere.
+- Removing a Computer no longer deletes the Cloud Agent work it started. A link label that looks like an Agent's name no longer mentions that Agent.
+- Haus Server 11.0.0 requires Haus Computer 9.0.0 and Haus for iPhone 8.0.0 (build 50). An older Computer pauses Agent work and offers its update, and older iPhone builds show Update required; the hosted web App updates with Server. The migration rewrites existing Cloud Agent launch Messages as text with a work link, so rolling back the Server binary does not restore the previous contract.
+
+## v11.0.0 - 2026-10-11
+
+- Agents dream overnight. Between 03:00 and 05:00 on the Computer's clock, an Agent whose memory changed since its last dream, or whose MEMORY.md has grown past 16 KiB, takes one private turn to consolidate its own memory. Haus Agent 8.1.0 learns the routine, and Haus Computer 8.1.0 runs the nightly check. Update the Computer to start dreaming.
+- The Agent profile has a Dreams section listing each night's memory changes. Opening a dream shows which MEMORY.md sections and notes changed, with a diff per file. In the Activity log, a Dreaming turn links to the same view.
+- Connections recommends Cloudflare and Vercel, both through OAuth sign-in. Connection icons now follow a site's canonical favicon redirects and accept PNG icons.
+- Haus Server 10.0.0 requires Haus for iPhone 7.0.0 (build 49). Older iPhone builds show Update required; the hosted web App updates with Server. Rolling back past this release takes manual database cleanup first; the Server deployment guide has the steps.
+
 ## v10.2.0 - 2026-10-11
 
 - Skool Agents can read classroom lesson transcripts with timestamps, lesson text, and attached resource metadata. Native lesson videos use Skool's existing captions; external video transcription is unsupported.

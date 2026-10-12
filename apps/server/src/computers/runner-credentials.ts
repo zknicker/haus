@@ -18,7 +18,8 @@ import { ComputerSetupDeniedError, hashComputerSecret } from './service.ts';
 export interface ResolvedRunner {
     agentId: string;
     capabilities: string[];
-    chatId: string;
+    /** The launch Chat; null for a dream run. */
+    chatId: string | null;
     computerId: string;
     runId: string;
     runnerId: string;
@@ -51,13 +52,8 @@ export async function mintRunnerCredential(db: HausDatabase, input: RunnerMintRe
         throw new ComputerSetupDeniedError('That Agent is not assigned to this Computer.');
     }
 
-    const [chat] = await db
-        .select({ id: chatsTable.id })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, computer.serverId), eq(chatsTable.id, input.chatId)))
-        .limit(1);
-    if (!chat) {
-        throw new ComputerSetupDeniedError('That collaboration chat does not exist.');
+    if (input.chatId !== null) {
+        await requireChat(db, computer.serverId, input.chatId);
     }
 
     const runnerToken = `grtr_${randomBytes(32).toString('base64url')}`;
@@ -140,6 +136,17 @@ export async function resolveRunnerCredential(
         )
         .limit(1);
     return row ?? null;
+}
+
+async function requireChat(db: HausDatabase, serverId: string, chatId: string) {
+    const [chat] = await db
+        .select({ id: chatsTable.id })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, chatId)))
+        .limit(1);
+    if (!chat) {
+        throw new ComputerSetupDeniedError('That collaboration chat does not exist.');
+    }
 }
 
 async function requireComputer(db: HausDatabase, credentialHash: string) {

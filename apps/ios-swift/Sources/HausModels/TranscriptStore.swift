@@ -106,6 +106,22 @@ public struct TranscriptStore: Equatable, Sendable {
         }
     }
 
+    /// Cached entities that link any of the work, in whichever Chat (ADR 0044).
+    public func refreshes(carryingCloudAgentWork workIDs: Set<String>) -> [EntityRefresh] {
+        guard !workIDs.isEmpty else { return [] }
+        return entities.values.compactMap { entity in
+            guard entity.message.cloudAgentWork.contains(where: { workIDs.contains($0.id) }) else { return nil }
+            return EntityRefresh(chatID: entity.message.chatID, messageID: entity.message.id)
+        }
+    }
+
+    /// The work every cached Message of `chatID` links.
+    public func cloudAgentWorkIDs(linkedIn chatID: String) -> Set<String> {
+        Set(entities.values.lazy
+            .filter { $0.message.chatID == chatID }
+            .flatMap { $0.message.cloudAgentWork.map(\.id) })
+    }
+
     /// Lands a page read on its list and seeds the entities it carries.
     /// Returns every list whose rendered page changed.
     @discardableResult

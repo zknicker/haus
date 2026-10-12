@@ -161,8 +161,8 @@ Rules:
 - Suffixes, in order: attachments
   (`[2 attachments: a.png (id:att_…), … — use haus attachment view to download]`, WS5),
   task (`[task #N status=… assignee=…]`, WS5),
-  cloud agent work (`[cloud-agent-work status=… title=… pr=#N]`, the pull request omitted until
-  the Run reports one).
+  cloud agent work (`[cloud-agent-work status=… title=… pr=#N]`, one per work the message links,
+  the pull request omitted until the Run reports one).
 - The turn-drain envelope carries the same work facts compressed inside the
   bracket instead of as trailing suffixes, in the same order:
   `task=#N:status:assignee` (`unassigned` when nobody owns it), then
@@ -171,11 +171,18 @@ Rules:
   share one formatting owner (`apps/computer/src/inbox-format.ts`), except the
   Cloud Agent suffix, which is owned beside its schema in `@haus/api` because
   every layer prints it.
-- Every message also carries `body_kind` (`text | cloud-agent-work | agent-created`) on
-  the wire, with Cloud Agent work's facts under `cloud_agent_work`
-  (`id`, `provider`, `status`, `title`, `repository`, `starting_ref`,
-  `provider_url`, `activity`, and the `latest_run` with its status, summary,
-  error code, and branches) so a reader can act without a second call.
+- Every message also carries `body_kind` (`text | agent-created`) on the wire.
+  A message that links Cloud Agent work carries each linked work the reader can
+  see under `cloud_agent_works`, in link order (`id`, `provider`, `status`,
+  `title`, `repository`, `starting_ref`, `provider_url`, `activity`, and the
+  `latest_run` with its status, summary, error code, and branches), so a reader
+  can act without a second call. The single `cloud_agent_work` field still names
+  the first for released CLIs.
+- `haus cloud-agent start` prints the Work ID, the posted message, a
+  `Work thread:` target, and a `Link: [<title>](cloud-agent://<workId>)` line;
+  `haus cloud-agent inspect` prints the same `Link:` line per work. An Agent
+  pastes that line into `haus message send` to show the work in another
+  conversation and never builds a link itself.
 - A settled Cloud Agent Run arrives as its own bodiless attention envelope —
   `[Haus cloud agent attention status=… work=… run=… target=…]` with the
   title, repository, summary, error code, branches, and provider URL. Its `msg=`

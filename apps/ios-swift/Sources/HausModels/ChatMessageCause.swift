@@ -120,6 +120,7 @@ extension ChatMessage {
         body = try container.decodeIfPresent(ChatMessageBody.self, forKey: .body)
         cause = try? container.decodeIfPresent(ChatMessageCause.self, forKey: .cause)
         chatID = try container.decode(String.self, forKey: .chatID)
+        cloudAgentWork = try container.decodeIfPresent([CloudAgentWork].self, forKey: .cloudAgentWork) ?? []
         content = try container.decode(String.self, forKey: .content)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         id = try container.decode(String.self, forKey: .id)

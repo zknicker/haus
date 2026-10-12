@@ -144,6 +144,13 @@ struct RichReferenceParityTests {
             mark: .glyph(.pullRequest)
         ),
         Row(
+            markdown: #"[Open \[draft C:\\fix](cloud-agent://caw_1)"#,
+            kind: .cloudAgentWork,
+            id: "caw_1",
+            label: #"Open [draft C:\fix"#,
+            mark: .glyph(.cloud)
+        ),
+        Row(
             markdown: "[the release notes](https://haus.dev/releases)",
             kind: .website,
             id: "https://haus.dev/releases",

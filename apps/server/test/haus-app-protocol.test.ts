@@ -77,16 +77,17 @@ test('the WebSocket gate rejects a stale subscription before serving it', async 
     }
 });
 
-// Protocol 9 is the focused-realtime cutover (specs/realtime-events.md). A
-// protocol 8 App still speaks `chat.onEvent`, so it must hit the update gate on
-// both transports rather than reach a Server without those procedures.
-test('a protocol 8 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
-    expect(appProtocolVersion).toBe(9);
-    const response = await request(8);
+// Protocol 11 links Cloud Agent work instead of embedding it (ADR 0044): Messages
+// drop the `cloud-agent-work` body, and Happening now work carries a `location`
+// and its Agent's name in place of its launch Message, which a protocol 10 App
+// cannot decode, so it must hit the update gate on both transports.
+test('a protocol 10 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
+    expect(appProtocolVersion).toBe(11);
+    const response = await request(10);
     expect(response.status).toBe(412);
     expect(await response.text()).toContain('PRECONDITION_FAILED');
 
-    const client = createHausClient(harness, null, { protocolVersion: 8 });
+    const client = createHausClient(harness, null, { protocolVersion: 10 });
     try {
         await expect(startServerSubscription(client)).rejects.toMatchObject({
             data: { code: 'PRECONDITION_FAILED' },

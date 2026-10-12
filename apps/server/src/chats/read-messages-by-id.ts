@@ -2,6 +2,7 @@ import type { ChatMessage } from '@haus/api';
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
+import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -62,11 +63,12 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [attachments, tasks, causes, bodies, reactions, replies] = await Promise.all([
+    const [attachments, tasks, causes, bodies, works, reactions, replies] = await Promise.all([
         readMessageAttachments(db, serverId, foundIds),
         listMessageTaskMap(db, serverId, foundIds),
         readMessageCauses(db, serverId, foundIds),
         readMessageBodies(db, serverId, foundIds),
+        readLinkedCloudAgentWork(db, serverId, foundIds),
         readChatMessageReactions(db, serverId, foundIds),
         readInlineReplyContexts(db, serverId, rows),
     ]);
@@ -79,6 +81,7 @@ export async function readMessagesById(
                     authorProfile: readStoredAuthorProfile(row),
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
+                    cloudAgentWork: works.get(row.id),
                     reactions: reactions.get(row.id),
                     reply: replies.get(row.id) ?? null,
                 }),

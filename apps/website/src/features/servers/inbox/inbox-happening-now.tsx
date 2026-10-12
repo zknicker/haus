@@ -5,7 +5,7 @@ import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profil
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useActiveCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
-import { useCloudAgentWorkView } from '../../cloud-agents/use-cloud-agent-work-view.ts';
+import { useOpenCloudAgentWork } from '../../cloud-agents/use-open-cloud-agent-work.ts';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { useServerContext } from '../server-context.ts';
 import { HappeningNowList } from './happening-now-list.tsx';
@@ -22,7 +22,7 @@ import { InboxSectionPending } from './inbox-section.tsx';
 export function InboxHappeningNow() {
     const { server } = useServerContext();
     const openAgentProfile = useOpenAgentProfile();
-    const { openWork } = useCloudAgentWorkView();
+    const openWork = useOpenCloudAgentWork();
     const currentActivity = useOptionalCurrentAgentActivity();
     const lifecycles = useAgentLifecycle();
     const agents = useAgents(server.id);
@@ -42,7 +42,7 @@ export function InboxHappeningNow() {
     );
     const openRow = (row: HappeningNowRow) => {
         if (row.kind === 'work') {
-            openWork(row.id);
+            openWork(row.work);
             return;
         }
         openAgentProfile(row.id);

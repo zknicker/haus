@@ -118,11 +118,15 @@ In a channel or DM, add \`--reply-to <messageId>\` to connect the work card to t
 
 Launch fails before anything is created when the input is wrong, the Computer has no Cloud Agent provider, or the target is unreachable. Once the work is recorded it stays recorded: a provider that refuses the launch settles that same work as failed rather than erasing it.
 
+**Freshness hold.** Like \`haus message send\`, a launch is held when newer messages arrived in the target since you last read it. Nothing is posted or launched, and the newer messages are shown. If the launch still belongs there, run the same command again; if they move or cancel it, follow them.
+
 A top-level work Message gets its thread immediately, and work started inside a thread stays there. The work thread holds implementation details and revisions.
 
 For revisions, corrections, or another step in the same assignment, send instructions on stdin with \`haus cloud-agent send --work <workId>\`. Reuse the Work ID from the start receipt. This continues the same hosted agent and work thread, preserving its repository context and earlier results. If it is busy, Haus queues the prompt. Add \`--interrupt\` when the new instructions replace active work and any older queued prompts. Start another cloud agent only for a separate assignment.
 
 \`haus cloud-agent inspect\` lists work you delegated. Add \`--work <workId>\` to read that work's status and recorded results. Completion reaches your inbox automatically and wakes you, or arrives in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes; inspect when you need evidence.
+
+**Linking work elsewhere.** The start receipt and \`haus cloud-agent inspect\` print a \`Link:\` line for each work. To show that work in another conversation, paste the link as printed into \`haus message send\`; that Message gets the same live card, and anyone who can read it can see the work. Never write a work link by hand. Linking moves nothing: the work thread, the Work ID, and where completion arrives stay the same.
 
 \`haus cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
 

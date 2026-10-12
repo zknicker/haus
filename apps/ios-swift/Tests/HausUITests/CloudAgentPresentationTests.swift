@@ -120,9 +120,9 @@ private typealias Job = CloudAgentWorkFixture.Job
          {"anchorMessageId":"delegation-1","work":\(inner)},
          {"anchorMessageId":"other-anchor","work":\(inner)}]
         """.utf8))
-        let listed = CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkID: own.id)
+        let listed = CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkIDs: [own.id])
         #expect(listed.map(\.id) == ["work-2"])
-        #expect(CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkID: nil).count == 2)
+        #expect(CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkIDs: []).count == 2)
     }
 
     @Test func onlyWebDestinationsCanBeOpened() {
@@ -132,13 +132,9 @@ private typealias Job = CloudAgentWorkFixture.Job
         #expect(CloudAgentPresentation.externalURL("/relative") == nil)
     }
 
-    @Test func typedBodyCarriesTheCardAndUnknownKindsKeepTheirProse() throws {
-        let work = try Fixture.work(
-            status: "failed", job: Job.failed(errorCode: "build", summary: "Broke", followUp: Job.followUp("running", since: Fixture.start))
-        ).work
-        let body = ChatMessageBody.cloudAgentWork(work)
-        let encoded = try HausJSON.encoder().encode(body)
-        #expect(try HausJSON.decoder().decode(ChatMessageBody.self, from: encoded) == body)
+    @Test func workIsNeverABodyAndUnknownKindsKeepTheirProse() throws {
+        let retired = Data(#"{"kind":"cloud-agent-work","work":{}}"#.utf8)
+        #expect(try HausJSON.decoder().decode(ChatMessageBody.self, from: retired) == .unsupported("cloud-agent-work"))
         let unknown = Data(#"{"kind":"future-body","details":{"anything":true}}"#.utf8)
         #expect(try HausJSON.decoder().decode(ChatMessageBody.self, from: unknown) == .unsupported("future-body"))
     }

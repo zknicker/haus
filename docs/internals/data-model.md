@@ -47,9 +47,9 @@ actually applied that version.
 Semantic Agent activity is durable Server metadata. Detailed execution journals remain
 Computer-local and are read only through an authorized live relay.
 
-`chat_messages.body_kind` is the Message body discriminator (ADR 0025). It defaults to `text`, and
-`cloud-agent-work` is the current typed kind and `agent-created` remains for historical reads; optional feature columns never define a Message's
-type. One Server Message reader projects the stored kind and its record together, and fails the
+`chat_messages.body_kind` is the Message body discriminator (ADR 0025). It is `text` (the default)
+or `agent-created`, which remains for historical reads; optional feature columns never define a
+Message's type. Cloud Agent work is not a body kind: `text` Messages link it (ADR 0044). One Server Message reader projects the stored kind and its record together, and fails the
 mapping rather than downgrading a typed Message to text.
 
 `message_reactions` is the durable relation behind a Message's grouped emoji reactions. Each row
@@ -93,8 +93,12 @@ lock serializes allocation through commit and no reader can see N+1 before N.
 `message_tasks.assignee_agent_id` is the only task assignee; tasks are Agent work and carry no
 human assignee.
 
-`cloud_agent_work` is the Server record behind a `cloud-agent-work` body: one row per Message
-(`(server_id, message_id)` is unique) carrying the delegating Agent, the Computer that holds the
+`cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
+`launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching
+Computer as historical pointers with no uniqueness or foreign key, so the work outlives all three. `cloud_agent_work_links` holds one row per
+`(server_id, message_id, work_id)` with the link's `ordinal` in the Message; it cascades from both
+the work and the linking Message, and it drives visibility, Message annotations, the per-Chat and
+active work lists, and realtime fan-out. The work row carries the delegating Agent, the Computer that holds the
 provider access, the provider and its agent id and URL, the title, repository, and starting ref,
 the lifecycle status with its started and terminal timestamps, the bounded one-line `activity`, and
 the cancel request with exactly one of the requesting human or Agent. `cloud_agent_runs` holds one
@@ -108,8 +112,9 @@ each (number, state, changed files, additions, deletions), optional token and co
 newest applied observation timestamp that makes a stale report a no-op. A branch report merges by
 that snapshot's own timestamp, so a read that failed never erases a snapshot the Run already had.
 CHECKs keep each terminal status in agreement with its terminal timestamp, and composite foreign
-keys keep the work, its Message, its Chat, its Agent, its Computer, and its canceller in one Server
-tenant. Lifecycle changes publish the `cloudAgentWork.updated` realtime topic after commit; no event row
+keys keep the work, its Agent, its Computer, and its canceller, and each link with its work and
+Message, in one Server tenant. Lifecycle changes publish the `cloudAgentWork.updated` realtime
+topic, once per linking Message in a live Chat, after commit; no event row
 is stored. Provider prompts, credentials, transcripts, and
 workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
 Agent, in the same transaction that settles it. `servers.cloud_agent_model_id` is the Server's
