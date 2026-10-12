@@ -11,8 +11,9 @@ function five(shown = 't0'): DesktopTabsState {
         ...['a', 'b', 'c', 'd'].map(
             (page) =>
                 ({
-                    intent: 'newTab',
-                    kind: 'openInFocusedPane',
+                    background: false,
+                    fromTabId: null,
+                    kind: 'openTab',
                     location: app(page),
                     newId: `t${page}`,
                 }) as const
@@ -87,7 +88,13 @@ describe('Chrome selection gestures', () => {
         });
         const state = run(
             split,
-            { intent: 'newTab', kind: 'openInFocusedPane', location: app('e'), newId: 'te' },
+            {
+                background: false,
+                fromTabId: 'td',
+                kind: 'openTab',
+                location: app('e'),
+                newId: 'te',
+            },
             { kind: 'select', tabId: 't0' },
             range('tb'),
             // The secondary row shows te; Command-click adds td to that row's own selection.

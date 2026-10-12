@@ -14,7 +14,7 @@ describe('desktop tabs storage', () => {
     test('round-trips panes, focus, histories, and page state; drops closed', () => {
         const state = run(
             split(),
-            { fromTabId: 't0', intent: 'auto', kind: 'openLink', location: web('v1') },
+            { fromTabId: 't0', kind: 'open', location: web('v1') },
             { kind: 'navigate', location: app('chats/a'), mode: 'push', tabId: 't0' },
             { kind: 'savePageState', pageState: { scrollTop: 12 }, tabId: 't0' },
             { kind: 'focusPane', pane: 'secondary' },
@@ -32,7 +32,7 @@ describe('desktop tabs storage', () => {
     test('a new tab page persists, history and all', () => {
         const state = run(
             start(),
-            { intent: 'newTab', kind: 'openInFocusedPane', location: newTabLocation },
+            { background: false, fromTabId: null, kind: 'openTab', location: newTabLocation },
             { kind: 'focusPane', pane: 'primary' }
         );
         const tabId = state.primary?.selectedTabId ?? '';

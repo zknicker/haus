@@ -66,10 +66,10 @@ test('a new web location gets its own view and a host title', () => {
     expect(location.viewId).not.toBe(newBrowserLocation('https://docs.example/a').viewId);
 });
 
-test("a page's open request keeps Chrome's disposition: background-tab stays unselected", () => {
+test("a page's open request: background beside the page, else a plain Open on the right", () => {
     const request = { background: true, openerId: 'v1', url: 'https://example.com/' };
     // ⌘- or middle-click in a page, and the page menu's Open Link in New Tab.
     expect(browserOpenGesture(request)).toBe('backgroundTab');
-    // ⌘⇧-click, ⇧-click, target=_blank, a popup, and an App-window link.
-    expect(browserOpenGesture({ ...request, background: false })).toBe('newTab');
+    // target=_blank and a popup: Open, a selected tab in the right pane.
+    expect(browserOpenGesture({ ...request, background: false })).toBe('auto');
 });

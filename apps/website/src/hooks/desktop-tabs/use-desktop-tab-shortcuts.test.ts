@@ -9,8 +9,8 @@ import { tabInFocusedRow } from './use-desktop-tabs-controller.ts';
 function threeAndOne(): DesktopTabsState {
     return run(
         split(),
-        { intent: 'newTab', kind: 'openInFocusedPane', location: app('a') },
-        { intent: 'newTab', kind: 'openInFocusedPane', location: app('b') }
+        { background: false, fromTabId: null, kind: 'openTab', location: app('a') },
+        { background: false, fromTabId: null, kind: 'openTab', location: app('b') }
     );
 }
 

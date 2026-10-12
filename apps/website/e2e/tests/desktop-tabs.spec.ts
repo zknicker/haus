@@ -34,7 +34,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     await expect(tabs).toContainText('all');
 
-    // Command-click on a sidebar row opens a background tab after the current one.
+    // Command-click on a sidebar row opens a background tab after the left pane's tab.
     await page.getByRole('row', { exact: true, name: 'Tasks' }).click({ modifiers: ['Meta'] });
     await expect(tabs).toHaveCount(2);
     await expect(tabs.nth(0)).toContainText('all');
@@ -111,7 +111,7 @@ test('panes: a Thread opens in the right pane, Move to right pane splits, and an
     const composer = page.getByRole('textbox', { name: 'Message all' });
 
     // A Thread opens as a new tab in the right pane, creating it in a one-pane window
-    // (ADR 0039, amended 2026-10-08); the chat stays in the left pane.
+    // (Open, ADR 0046); the chat stays in the left pane.
     await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
     await expect(left).toHaveCount(1);
     await expect(left).toContainText('all');
@@ -120,7 +120,7 @@ test('panes: a Thread opens in the right pane, Move to right pane splits, and an
     await expect(paneBody(page, 'secondary').getByText('Pane thread reply')).toBeVisible();
     await expect(composer).toBeVisible();
 
-    // The same link again selects that tab instead of duplicating it.
+    // The same link again selects that right-pane tab instead of duplicating it.
     await paneBody(page, 'primary').getByRole('button', { name: 'Open thread, 1 reply' }).click();
     await expect(right).toHaveCount(1);
 

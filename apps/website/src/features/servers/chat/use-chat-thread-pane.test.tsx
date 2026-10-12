@@ -10,8 +10,15 @@ import {
     useNavigate,
     useParams,
 } from 'react-router-dom';
+import {
+    type DesktopTabCommands,
+    DesktopTabsContext,
+} from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { trackOpenGestures } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
+import { TabIdContext } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import { installFakeDom } from '../../../test-support/fake-dom.ts';
 import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
+import { type DesktopShell, DesktopShellContext } from '../../shell/use-tab-navigator.ts';
 import { KeptChatViews } from './kept-chat-views.tsx';
 import { useChatThreadPane } from './use-chat-thread-pane.ts';
 
@@ -80,5 +87,64 @@ test('a kept chat revealed by a route without ?thread= shows no Thread', async (
     await act(() => navigate('/chat/a'));
     expect(selected.a).toBeNull();
 
+    await act(() => (root as Root | null)?.unmount());
+});
+
+function DeepLinkProbe() {
+    useChatThreadPane({
+        chatId: 'c1',
+        initialTask: undefined,
+        revealMessage: () => {},
+        serverId: 'server_one',
+        ready: true,
+    });
+    return null;
+}
+
+test('desktop: a ?thread= deep link is a plain Open on the right, whatever click is in flight', async () => {
+    const { act } = React;
+    const { createRoot } = await import('react-dom/client');
+    const calls: unknown[][] = [];
+    const tabs = {
+        open: (...args: unknown[]) => calls.push(['open', ...args]),
+        openTab: (...args: unknown[]) => calls.push(['openTab', ...args]),
+    } as unknown as DesktopTabCommands;
+    const shell = {
+        server: { slug: 'acme' },
+        windowNavigate: () => undefined,
+    } as unknown as DesktopShell;
+    // A Command-click is still dispatching while the effect runs.
+    const listeners = new Map<string, (event: Event) => void>();
+    const uninstall = trackOpenGestures({
+        addEventListener: (type: string, listener: (event: Event) => void) =>
+            listeners.set(type, listener),
+        removeEventListener: (type: string) => listeners.delete(type),
+    } as unknown as Window);
+    let root: Root | null = null;
+    await act(() => {
+        listeners.get('click')?.({
+            button: 1,
+            ctrlKey: false,
+            isTrusted: true,
+            metaKey: false,
+            type: 'auxclick',
+        } as unknown as Event);
+        root = createRoot(document.createElement('div'));
+        root.render(
+            <TrpcTestProvider>
+                <DesktopShellContext value={shell}>
+                    <DesktopTabsContext value={tabs}>
+                        <TabIdContext value="t0">
+                            <MemoryRouter initialEntries={['/s/acme/chats/c1?thread=m1']}>
+                                <DeepLinkProbe />
+                            </MemoryRouter>
+                        </TabIdContext>
+                    </DesktopTabsContext>
+                </DesktopShellContext>
+            </TrpcTestProvider>
+        );
+    });
+    uninstall();
+    expect(calls).toEqual([['open', 't0', { kind: 'app', path: '/s/acme/threads/c1/m1' }]]);
     await act(() => (root as Root | null)?.unmount());
 });

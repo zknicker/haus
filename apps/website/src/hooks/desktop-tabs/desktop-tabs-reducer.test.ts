@@ -55,8 +55,8 @@ describe('close and reopen', () => {
     test('closing a selection falls to its right neighbor, else its left', () => {
         const state = run(
             start(),
-            { intent: 'newTab', kind: 'openInFocusedPane', location: app('a') },
-            { intent: 'newTab', kind: 'openInFocusedPane', location: app('b') },
+            { background: false, fromTabId: null, kind: 'openTab', location: app('a') },
+            { background: false, fromTabId: null, kind: 'openTab', location: app('b') },
             { kind: 'select', tabId: 't0' }
         );
         const afterFirst = run(state, { kind: 'close', tabIds: ['t0'] });
@@ -117,8 +117,9 @@ describe('close and reopen', () => {
 
     test(`closed tabs keep the newest ${closedTabLimit}`, () => {
         const opens = Array.from({ length: closedTabLimit + 3 }, (_, index) => ({
-            intent: 'newTab' as const,
-            kind: 'openInFocusedPane' as const,
+            background: false,
+            fromTabId: null,
+            kind: 'openTab' as const,
             location: app(`p${index}`),
         }));
         let state = run(start(), ...opens);
@@ -133,7 +134,7 @@ describe('move and focus', () => {
     test('reorders within a row and selects the moved tab', () => {
         const state = run(
             start(),
-            { intent: 'newTab', kind: 'openInFocusedPane', location: app('a') },
+            { background: false, fromTabId: null, kind: 'openTab', location: app('a') },
             { kind: 'move', tabIds: ['t0'], to: { index: 1, pane: 'primary' } }
         );
         expect(describeTabs(state).primary).toBe('a inbox*');
@@ -141,8 +142,9 @@ describe('move and focus', () => {
 
     test('moves between rows, and moving to the right pane opens it', () => {
         const two = run(start(), {
-            intent: 'newTab',
-            kind: 'openInFocusedPane',
+            background: false,
+            fromTabId: null,
+            kind: 'openTab',
             location: app('a'),
         });
         const opened = run(two, {
@@ -189,8 +191,9 @@ describe('move and focus', () => {
 describe('mru and mounting', () => {
     test('shown tabs lead the MRU and the mount set stays bounded', () => {
         const opens = Array.from({ length: 8 }, (_, index) => ({
-            intent: 'newTab' as const,
-            kind: 'openInFocusedPane' as const,
+            background: false,
+            fromTabId: null,
+            kind: 'openTab' as const,
             location: app(`p${index}`),
         }));
         const state = run(split(), ...opens);

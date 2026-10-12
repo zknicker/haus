@@ -41,7 +41,13 @@ export function run(
 export function split(): DesktopTabsState {
     return run(
         start(),
-        { intent: 'newTab', kind: 'openInFocusedPane', location: app('tasks'), newId: 't1' },
+        {
+            background: false,
+            fromTabId: null,
+            kind: 'openTab',
+            location: app('tasks'),
+            newId: 't1',
+        },
         { kind: 'move', tabIds: ['t1'], to: { index: 0, pane: 'secondary' } },
         { kind: 'focusPane', pane: 'primary' }
     );

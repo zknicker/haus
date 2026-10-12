@@ -12,8 +12,9 @@ import { tabPaneMove } from './workspace-tab-move.ts';
 describe('the tab menu pane move', () => {
     test('with one pane, Move to right pane opens the second pane', () => {
         const state = run(start(), {
-            intent: 'newTab',
-            kind: 'openInFocusedPane',
+            background: false,
+            fromTabId: null,
+            kind: 'openTab',
             location: app('tasks'),
         });
         for (const tabId of state.primary?.tabIds ?? []) {
@@ -61,8 +62,20 @@ describe('the tab menu pane move', () => {
     test('a multi-selection moves together and stays selected in the other pane', () => {
         const state = run(
             start(),
-            { intent: 'newTab', kind: 'openInFocusedPane', location: app('a'), newId: 'ta' },
-            { intent: 'newTab', kind: 'openInFocusedPane', location: app('b'), newId: 'tb' },
+            {
+                background: false,
+                fromTabId: null,
+                kind: 'openTab',
+                location: app('a'),
+                newId: 'ta',
+            },
+            {
+                background: false,
+                fromTabId: null,
+                kind: 'openTab',
+                location: app('b'),
+                newId: 'tb',
+            },
             { gesture: 'range', kind: 'extendSelection', tabId: 'ta' }
         );
         const ids = state.primary?.selection?.tabIds ?? [];

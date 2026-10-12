@@ -159,7 +159,7 @@ export async function openDesktopWindow(page: Page, path: string) {
 
 /**
  * Splits a one-pane window: the tab menu's Move to right pane on the tab named
- * `tabName` opens the second pane with it (links never open it on their own).
+ * `tabName` opens the second pane with it (as does any Open from inside a page).
  */
 export async function moveTabToRightPane(page: Page, tabName: string) {
     await page

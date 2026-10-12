@@ -29,7 +29,7 @@ test('a split window can move the focused tab anywhere but has nothing to cycle 
 test('a selection of every tab in a one-pane window has nowhere to move', () => {
     const state = run(
         start(),
-        { intent: 'newTabAtEnd', kind: 'openInFocusedPane', location: app('a'), newId: 'a' },
+        { kind: 'openNewTab', location: app('a'), newId: 'a' },
         { gesture: 'toggle', kind: 'extendSelection', tabId: 't0' }
     );
     expect(tabMenuState(state)).toMatchObject({
@@ -71,9 +71,9 @@ test('Reload Page refetches an App page and leaves web pages and the new tab pag
     expect(appTab.calls).toEqual([['refetch']]);
 
     const webState = run(start(), {
+        background: false,
         fromTabId: 't0',
-        intent: 'auto',
-        kind: 'openLink',
+        kind: 'openTab',
         location: web('v1'),
         newId: 'w',
     });

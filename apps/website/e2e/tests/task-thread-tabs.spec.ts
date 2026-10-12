@@ -21,7 +21,7 @@ test('Task Threads render and update metadata as desktop Thread pages', async ({
         `/s/${server.slug}/chats/${chatId}?thread=${created.task.messageId}`
     );
     // A `?thread=` link opens the Task's Thread page as a new tab in the right pane, creating
-    // it beside the chat (ADR 0039, amended 2026-10-08).
+    // it beside the chat (a deep link is Open, ADR 0046).
     const pane = page.locator('.desktop-tab-frame[data-frame-pane="secondary"]:visible');
     const details = page.getByRole('region', { name: 'Task #1 details' });
     await expect(pane.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
