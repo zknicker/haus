@@ -946,9 +946,11 @@ export class AgentDelivery {
         // row, and overlapping reads on its one connection wedge it.
         const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
         const concreteRows = await store.listQueuedConcreteItems(tx, agentId, maxDrainRows);
-        const candidates = [
+        const queued = [
             ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
         ];
+        const dream = queued.find((row) => row.source === 'dream');
+        const candidates = queued.filter((row) => row.source !== 'dream');
         // Concrete work leads its own run: its envelope exists nowhere but the
         // inbox, so it enters the first prompt instead of waiting behind a
         // notice the Agent may never pull.
@@ -956,12 +958,10 @@ export class AgentDelivery {
             candidates.find((row) => row.source === 'onboarding') ??
             candidates.find((row) => isConcreteSource(row.source)) ??
             candidates[0];
-        // A dream is concrete work with no Chat, so it starts a chatless run.
-        if (!first || first.source === 'dream') {
-            return first ? await planDreamRun(tx, { agentId, config, row: first, state }) : null;
-        }
-        if (!canBeginAgentDrain(candidates, state.agentChainTurns)) {
-            return null;
+        // A dream leads only when no other work can start; having no Chat, it starts a
+        // chatless run.
+        if (!(first && canBeginAgentDrain(candidates, state.agentChainTurns))) {
+            return dream ? await planDreamRun(tx, { agentId, config, row: dream, state }) : null;
         }
         const runId = createOpaqueId('run');
         const concrete = isConcreteSource(first.source);

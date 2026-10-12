@@ -70,7 +70,7 @@ test('an idle Agent gets one chatless dream run, recorded with a dream trigger',
     expect(await dreamRows(seed)).toHaveLength(1);
 });
 
-test('a stopped, busy, waiting, or foreign Agent is never woken to dream', async () => {
+test('a stopped or foreign Agent is never queued a dream', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
@@ -90,12 +90,42 @@ test('a stopped, busy, waiting, or foreign Agent is never woken to dream', async
             serverId: seed.serverId,
         })
     ).toBe(false);
-
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    // Busy with that human run.
-    expect(await dream(delivery, seed)).toBe(false);
     expect(await dreamRows(seed)).toEqual([]);
+    expect(transport.framesOfType('start')).toHaveLength(0);
+});
+
+test('a busy Agent gets its dream queued, and it runs after the current work', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    transport.online.add(seed.computerId);
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    const [human] = transport.framesOfType('start');
+
+    expect(await dream(delivery, seed)).toBe(true);
+    expect(await dreamRows(seed)).toEqual([{ chatId: null, state: 'queued' }]);
+    // At most the unaccepted human run is resent; no dream starts beside it.
+    expect(new Set(transport.framesOfType('start').map((frame) => frame.runId))).toEqual(
+        new Set([human?.runId])
+    );
+
+    await delivery.onTurnSettled(seed.computerId, completed(seed, human?.runId ?? ''));
+    const next = transport.framesOfType('start').at(-1);
+    expect(next).toMatchObject({ chatId: null, dream: { id: `dream:${seed.agentId}:2026-10-11` } });
+});
+
+test('work waiting when a dream is queued leads first; the dream follows', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    expect(await dream(delivery, seed)).toBe(true);
+
+    const first = await wake();
+    expect(first).toMatchObject({ chatId: seed.dmChatId });
+    expect(first).not.toHaveProperty('dream');
+
+    await delivery.onTurnSettled(seed.computerId, completed(seed, first?.runId ?? ''));
+    expect(transport.framesOfType('start').at(-1)).toMatchObject({ chatId: null });
+    expect(transport.framesOfType('start')).toHaveLength(2);
 });
 
 test('ambient rows a settled run already offered never block a dream', async () => {

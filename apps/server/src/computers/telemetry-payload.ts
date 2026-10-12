@@ -1,5 +1,5 @@
 import { agentReasoningEffortSchema } from '@haus/api';
-import type { OtlpSignal } from '@haus/effect';
+import { dreamCheckOutcomes, dreamSkipReasons, type OtlpSignal } from '@haus/effect';
 import { z } from 'zod';
 import {
     metricsPayloadSchema,
@@ -18,7 +18,15 @@ export interface TelemetryComputer {
     readonly serverId: string;
 }
 
-const spanNames = new Set(['haus.agent.turn', 'haus.browser.operation', 'haus.mcp.operation']);
+const spanNames = new Set([
+    'haus.agent.turn',
+    'haus.browser.operation',
+    'haus.dream.check',
+    'haus.mcp.operation',
+]);
+const dreamOutcomes = new Set<string>(dreamCheckOutcomes);
+const dreamSkips = new Set<string>(dreamSkipReasons);
+const localDate = /^\d{4}-\d{2}-\d{2}$/u;
 const metricNames = new Set([
     'haus.operation.count',
     'haus.operation.duration',
@@ -219,6 +227,14 @@ function safeSpanAttributes(
                     return failures.has(value.stringValue ?? '');
                 case 'haus.reasoning.effort':
                     return agentReasoningEffortSchema.safeParse(value.stringValue).success;
+                case 'haus.dream.local_date':
+                    return localDate.test(value.stringValue ?? '');
+                case 'haus.dream.outcome':
+                    return dreamOutcomes.has(value.stringValue ?? '');
+                case 'haus.dream.skip_reason':
+                    return dreamSkips.has(value.stringValue ?? '');
+                case 'haus.memory.bytes':
+                    return /^\d{1,12}$/u.test(value.intValue ?? String(value.doubleValue));
                 case 'haus.turn.harness_ready_ms':
                 case 'haus.turn.bootstrap_ms':
                 case 'haus.turn.session_create_ms':

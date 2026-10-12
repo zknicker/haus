@@ -4,17 +4,16 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { isConfigured } from './deferred-configuration.ts';
 import type { AgentDelivery } from './delivery.ts';
 import { readAgentDispatchConfig } from './dispatch-config.ts';
-import { isBackedOff } from './retry-policy.ts';
 import * as store from './store.ts';
 
 /**
- * Queues one nightly dream for an Agent its Computer reports as changed and idle.
- * The Server is the authority on idle: it queues only for a configured, running
- * Agent assigned to that Computer, with no active run, no work waiting to wake it,
- * and no wake pause or backoff. A dream therefore never starts a stopped Agent and never
- * waits in front of anyone's work; a declined request is simply retried by the
- * Computer's next quiet-window check. `dream:<agentId>:<localDate>` makes a repeat
- * on the same Computer-local night a no-op. Returns whether the Agent was woken.
+ * Queues one nightly dream for an Agent its Computer checked tonight. It queues
+ * only for a configured, running Agent assigned to that Computer; a busy, paused,
+ * or backed-off Agent, or one with work waiting, still gets its dream, which
+ * ordinary delivery leads only once no other work is waiting. A dream therefore
+ * never starts a stopped Agent and never runs in front of anyone's work, and one
+ * still queued four hours later is retired. `dream:<agentId>:<localDate>` makes a
+ * repeat on the same Computer-local night a no-op. Returns whether it was queued.
  */
 export async function requestAgentDream(
     db: HausDatabase,
@@ -31,17 +30,7 @@ export async function requestAgentDream(
         if (!(isConfigured(config) && config.computerId === input.computerId)) {
             return false;
         }
-        const state = await store.readDeliveryState(tx, agentId);
-        if (state && (state.stopped || state.activeRunId || state.pausedAt || isBackedOff(state))) {
-            return false;
-        }
-        // Only work that would start its own run is waiting. Rows a settled run already
-        // offered stay pending without waking the Agent again, so they never block a dream.
-        const waiting = [
-            ...(await store.listUnnoticedQueuedItems(tx, agentId, 1)),
-            ...(await store.listQueuedConcreteItems(tx, agentId, 1)),
-        ];
-        if (waiting.length > 0) {
+        if ((await store.readDeliveryState(tx, agentId))?.stopped) {
             return false;
         }
         await delivery.enqueue(tx, {
