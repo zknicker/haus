@@ -485,7 +485,8 @@ Server records, not a live provider transcript. The CLI prints a `Link:` line fo
 authorized to the delegating Agent alone; `cloudAgentWork.cancel({ serverId, workId })` is the
 Owner/Admin equivalent. Seeing the work through a link grants neither. Both record
 `cancelRequestedAt` and `cancelRequestedBy` and send a `cloud-agent-cancel` frame to the assigned
-Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`.
+Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`; cancelling or following up
+work whose Computer was removed returns `CLOUD_AGENT_COMPUTER_REMOVED`.
 
 Computer reports lifecycle over the attachment socket as a `cloud-agent-observation` frame carrying
 `{ workId, runId, status, observedAt }` plus optional provider ids and URL, raw status, bounded

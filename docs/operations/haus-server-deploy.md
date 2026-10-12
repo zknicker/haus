@@ -255,10 +255,9 @@ The Cloud Agent work links release (migrations 0079–0080, Computer protocol 29
 ADR 0044) is an
 operator-approved forward-only release. Migration `0079_cloud_agent_work_links` adds
 `cloud_agent_work_links`, renames `cloud_agent_work.message_id` to `launch_message_id`, and drops
-the work's unique key and foreign keys to its Message and Chat. It also rewrites every launch
+the work's unique key and foreign keys to its Message, Chat, and Computer. It also rewrites every launch
 Message from `body_kind = 'cloud-agent-work'` to `text` and appends the work's link to its
-content. A launch Message whose work is already gone (removing a Computer cascades its work)
-becomes plain text with no link. Migration `0080_message-body-drop-cloud-agent-work` then narrows the `chat_messages`
+content. Migration `0080_message-body-drop-cloud-agent-work` then narrows the `chat_messages`
 body kind check to `text` and `agent-created`. The previous Server reads `message_id` and expects
 `cloud-agent-work` bodies, so it cannot run against the migrated schema. Rolling back restores
 only the binary: the rewritten content, the dropped constraints, and the renamed column stay.

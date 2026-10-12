@@ -93,6 +93,8 @@ true:
 - Cloud Agent work no longer disappears with a single Message. Losing one Message, or the whole
   Chat that requested the work, loses its links, not the tracking. The work's requesting Chat and
   launch Message ids stay as historical pointers with no cascade.
+- Removing a Computer keeps the work it launched: `computer_id` is a historical pointer too, and
+  that work can no longer be cancelled or followed up.
 - Realtime events change source: `cloudAgentWork.updated` fans out once per linking Message
   instead of naming one owning Message.
 - These docs move to the new model with the implementation, not before:

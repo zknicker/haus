@@ -93,9 +93,9 @@ lock serializes allocation through commit and no reader can see N+1 before N.
 `message_tasks.assignee_agent_id` is the only task assignee; tasks are Agent work and carry no
 human assignee.
 
-`cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id` and
-`launch_message_id` name the requesting Chat and launch Message as historical pointers with no
-uniqueness or foreign key, so the work outlives both. `cloud_agent_work_links` holds one row per
+`cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
+`launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching
+Computer as historical pointers with no uniqueness or foreign key, so the work outlives all three. `cloud_agent_work_links` holds one row per
 `(server_id, message_id, work_id)` with the link's `ordinal` in the Message; it cascades from both
 the work and the linking Message, and it drives visibility, Message annotations, the per-Chat and
 active work lists, and realtime fan-out. The work row carries the delegating Agent, the Computer that holds the

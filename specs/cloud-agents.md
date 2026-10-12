@@ -398,7 +398,9 @@ first-occurrence `ordinal` in the content. A row cascades from both its Message 
 losing a Message loses its links and never the work. The work's `chat_id` and
 `launch_message_id` (wire `chatId` and `messageId`) are plain historical pointers to the requesting
 Chat and launch Message, with no uniqueness, foreign key, or cascade. Purging the requesting
-Channel leaves the work and its other links intact.
+Channel leaves the work and its other links intact. `computer_id` (wire `computerId`) is the same
+kind of pointer, so removing a Computer keeps its work, Runs, and links: live work there simply
+stops updating and reads as quiet, and cancel or follow-up refuses with `CLOUD_AGENT_COMPUTER_REMOVED`.
 
 Every Message writer resolves links at the Message boundary, in the transaction that inserts the
 Message: human send, Agent `haus message send`, human and Agent Task creation, and launch. Each
