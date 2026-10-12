@@ -66,6 +66,11 @@ const oauthPresets: Record<
         name: 'MerchBase',
         url: 'https://app.merchbase.co/mcp',
     },
+    handmade: {
+        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        name: 'Handmade',
+        url: 'https://handmade.merchbase.co/mcp',
+    },
     'merchbase-atlas': {
         auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
         name: 'MerchBase Atlas',

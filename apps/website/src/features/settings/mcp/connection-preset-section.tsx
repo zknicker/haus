@@ -45,6 +45,11 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'MerchBase Atlas',
     },
     {
+        description: 'Manage Etsy listings, look up orders, and create product mockups.',
+        id: 'handmade',
+        name: 'Handmade',
+    },
+    {
         description: 'Review and fulfill Printful orders through your MerchBase account.',
         id: 'merchbase-fulfillment',
         name: 'MerchBase Fulfillment',

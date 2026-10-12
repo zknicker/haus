@@ -17,6 +17,7 @@ export const mcpOAuthPresetSchema = z.enum([
     'cloudflare',
     'github',
     'google-calendar',
+    'handmade',
     'merchbase',
     'merchbase-atlas',
     'merchbase-fulfillment',
