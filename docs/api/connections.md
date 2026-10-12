@@ -64,7 +64,7 @@ to private transport. The connector endpoint and control credential never enter 
 public API. No network route serves that logical URL.
 
 `mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
-on the connection available to that Agent.
+on the connection available to that Agent, including tools added later.
 
 Computer exposes a fixed `execute` tool. Its search, schema lookup, and invocation call scoped
 Server endpoints through the current per-run loopback proxy:
@@ -88,20 +88,30 @@ that tool's full schema; an unfiltered request returns the full granted catalog.
 Invocation resolves the tool, rechecks the grant, and invokes the upstream MCP from
 Server. Computer never receives MCP secrets, OAuth tokens, or upstream session state.
 
-MCP `2026-07-28` servers (GitHub's among them) can mark tool arguments with `x-mcp-header`, and
-reject a `tools/call` that lacks the matching `Mcp-Param-*` header with JSON-RPC `-32020`.
-`@ai-sdk/mcp` derives those headers only from a `tools/list` on the same client, so Server lists a
-client's tools once before its first call (`callMcpTool` in
-`apps/server/src/server-mcp/tool-catalog.ts`). Discovery on that client counts; a rebuilt client
-lists again.
+Server uses the official `@modelcontextprotocol/client` SDK. It negotiates modern HTTP MCP
+with legacy fallback, aggregates paginated tool lists, caches responses per connection, and derives
+`Mcp-Param-*` headers from `x-mcp-header` declarations. Invocation supplies the resolved tool
+definition after rechecking the grant, so protocol recovery cannot silently retry a write call
+with a later tool schema.
+
+The Server inventory starts with Server, independently of Agent sessions, turns, and searches.
+Tool-change notifications refresh it immediately, with SDK debouncing. Modern subscription streams
+are renewed when they end. A jittered five-minute reconciliation covers legacy servers, missed
+notifications, and reconnects; failed connections back off up to fifteen minutes. A successful
+complete list replaces the saved names, including removals and an empty catalog. Failed discovery
+retains the last successful inventory. Changed names publish `mcp.onUpdated`; the App invalidates
+its React Query connection reads. Reading the App cache does not discover upstream tools.
+
+`mcp.refresh` remains an Owner/Admin diagnostic API; ordinary operation needs no manual refresh.
 
 Invocation returns the upstream tool result. When that result carries `structuredContent`, Server
 drops the text block holding the same JSON, because a server that returns structured output also
 serializes it for text-only clients and Haus reads the structured form. Non-text content blocks and
 `isError` results are returned untouched.
 
-Discovery runs concurrently with a five-second deadline for each granted connection. Unavailable
-connections contribute no tools to that search; healthy connections remain available. Invocation
+Background discovery runs in batches of four with a five-second deadline per connection.
+Agent searches read the last successful in-memory definitions and current grants without upstream
+requests. Connections not yet successfully discovered contribute no tools. Invocation
 has a 30-second upstream deadline. Client cancellation interrupts the request through Computer
 and Server without closing other Agents' healthy shared client operations.
 
