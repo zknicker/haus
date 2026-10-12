@@ -31,9 +31,10 @@ model session. Per-turn message delivery is an inbox concern; see
   file injection or a Computer-enforced freshness guarantee; the same global session still resumes.
 - Dreaming is the Agent's own memory consolidation, run overnight as its own private turn. When
   memory (MEMORY.md plus notes/) changed since the last dream, or MEMORY.md is over 16 KiB,
-  Computer asks the Server for a dream during its 03:00–05:00 local quiet window, at most once
-  per 20 hours per Agent. The Server starts it only for an idle, running Agent with no work
-  waiting, then runs it as an ordinary turn: messages that arrive meanwhile reach it as usual. The
+  Computer asks the Server for a dream at its one check per night, the first tick inside its
+  03:00–05:00 local quiet window, at most once per 20 hours per Agent. The Server queues it even
+  for a busy Agent and starts it once no other work is waiting, then runs it as an ordinary
+  turn: messages that arrive meanwhile reach it as usual. The
   dream turn has no Chat; its input is only the dreaming instruction, which names the
   `memory-hygiene` Manual topic, never standing-prompt text ([Agent Workspace](../../specs/workspace.md#dreaming)).
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted

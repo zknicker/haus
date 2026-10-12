@@ -69,32 +69,41 @@ Active Context, moves detail into notes, and touches only what changed since the
 
 ### Dreaming
 
-Dreaming runs overnight as its own private turn, never at the end of a conversation turn. Every ten
-minutes inside a fixed quiet window, 03:00 to 05:00 in the Computer machine's local time, Computer
-checks each Agent configured on it. An Agent is due when its memory (`MEMORY.md` plus every file
-under `notes/`) changed since its last dream, or `MEMORY.md` exceeds a fixed 16 KiB (16,384 bytes,
-Raft v1.21's 4,000-token target), and it has not dreamed in the last 20 hours. Change is a
-fingerprint of path, size, and mtime, with no content reads; the first look only records a
-baseline. Computer keeps the fingerprint and last dream time in `runtime/memory-dream.json`.
+Dreaming runs overnight as its own private turn, never at the end of a conversation turn. Computer
+checks each Agent on it once per Computer-local night: at the first ten-minute tick inside a fixed
+quiet window, 03:00 to 05:00 in the machine's local time, while the machine is awake. A machine
+that wakes at 04:20 checks then; one awake only after 05:00 skips that night. An Agent is due when
+its memory (`MEMORY.md` plus every file under `notes/`) changed since its last dream, or
+`MEMORY.md` exceeds a fixed 16 KiB (16,384 bytes, Raft v1.21's 4,000-token target), and it has not
+dreamed in the last 20 hours. Change is a fingerprint of path, size, and mtime, with no content
+reads. The first look only records a baseline, so a new Agent's first dream comes on a later night,
+roughly 24 to 48 hours after it starts. Computer keeps the fingerprint, last dream time, and last
+checked date in `runtime/memory-dream.json`, so a restart never checks the same night twice. A
+due Agent's request that cannot be sent is retried on the next tick that night.
 
-A due Agent with no live run here gets one `agent-dream-request` frame. Server decides: it queues a
-`dream` inbox item (identity `dream:<agentId>:<Computer-local date>`, so one per night) only for a
-configured, running Agent on that Computer with no active run, no work waiting to wake it (rows a
-settled run already offered do not count), and no wake pause or backoff, then wakes it through the
-normal dispatch path. A stopped Agent is never started to dream, and a declined or busy Agent is
-retried on the next tick.
+Each check logs one `nightly-dream.check` line and exports one `haus.dream.check` span
+([observability](../docs/internals/observability.md#nightly-dream-checks)) with the Agent, the
+local date, the outcome (`baselined`, `requested`, `not-due`, or `skipped` with a reason:
+`retired`, `resetting`, or `not-configured`), and `MEMORY.md`'s size. Skips are not persisted.
+
+A due Agent gets one `agent-dream-request` frame, even while it is busy. Server queues a `dream`
+inbox item (identity `dream:<agentId>:<Computer-local date>`, so one per night) for any
+configured, running Agent on that Computer, whether it has an active run, waiting work, a wake
+pause, or a backoff, then dispatches through the normal path. A stopped Agent is never queued a
+dream.
 
 From there a dream is an ordinary concrete inbox item: busy notices reach its run, and settlement,
-failure, backoff, Stop, and requeue treat it like any other. Two rules are its own: the night's
-identity means it cannot queue twice, and a dream still queued four hours after it was requested
-has missed its night, so it is retired as `seen` instead of leading a run.
+failure, backoff, Stop, and requeue treat it like any other. Three rules are its own: it leads a
+run only when no other queued work can start, so it never runs in front of anyone's work; the
+night's identity means it cannot queue twice; and a dream still queued four hours after it was
+requested has missed its night, so it is retired as `seen` instead of leading a run.
 
 The dream run is the one chatless run ([sessions.md](sessions.md)). Its whole input is an
 instruction Computer composes: Haus started the turn for the nightly dreaming pass per the Manual
 topic, the Agent posts nothing in chat about the dream itself, and messages that arrive meanwhile
 are handled normally. When the dream turn completes, Computer re-records the fingerprint, so the
-Agent's own dreaming edits never make the next dream due. Check and baseline failures are logged
-and never stop the loop or fail a turn. There is no setting and no adjustable threshold.
+Agent's own dreaming edits never make the next dream due. Check, request, and baseline failures
+are logged as warnings and never stop the loop or fail a turn. There is no setting and no adjustable threshold.
 
 Each dream leaves a record members can read on the Agent's profile. When a dream run launches,
 Computer snapshots the text of `MEMORY.md` and every file under `notes/` (symlinks skipped; a

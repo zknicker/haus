@@ -157,6 +157,30 @@ The relay accepts finite nonnegative timings through seven days, integral token 
 12 digits, and only the product's known reasoning settings. No content or new metric dimensions
 are exported.
 
+### Nightly dream checks
+
+Each Agent's once-a-night dream check ([workspace](../../specs/workspace.md#dreaming)) exports
+one short `haus.dream.check` span to `haus-operations`, beside a local `nightly-dream.check` log
+line. Unlike scheduler polling, each check is a once-a-night decision per Agent, so it earns a
+span. It carries `haus.agent.id`, `haus.dream.local_date` (`YYYY-MM-DD`, Computer-local),
+`haus.dream.outcome` (`baselined`, `requested`, `not-due`, `skipped`), `haus.dream.skip_reason`
+on a skip (`retired`, `resetting`, `not-configured`), and `haus.memory.bytes` (MEMORY.md's size)
+when it was read. The relay accepts only those closed values. An Agent with no span for a night
+was not checked: its Computer was asleep or offline through the window. A request the Computer
+could not send stays a local `nightly-dream.request-failed` warning and is retried; whether the
+dream then ran is the durable dream record, not this span.
+
+```apl
+['haus-operations']
+| where name == 'haus.dream.check'
+| extend agent = tostring(['attributes.custom']['haus.agent.id']),
+    night = tostring(['attributes.custom']['haus.dream.local_date']),
+    outcome = tostring(['attributes.custom']['haus.dream.outcome']),
+    reason = tostring(['attributes.custom']['haus.dream.skip_reason']),
+    memory_bytes = toint(['attributes.custom']['haus.memory.bytes'])
+| project _time, agent, night, outcome, reason, memory_bytes
+```
+
 ## Trace shape
 
 The first distributed traces cover the operations where failures otherwise

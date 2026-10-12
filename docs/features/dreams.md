@@ -13,6 +13,11 @@ An Agent dreams overnight: a private turn in which it consolidates its own memor
 when it dreamed and what changed. Dreams are a record of what the Agent now remembers, not
 execution evidence, so they are not admin-only.
 
+An Agent dreams at most once a night, and only on a night its memory changed. Its Computer checks
+once per local night, early in the 03:00–05:00 window, and the first check only records where
+memory stands. A new Agent's first dream therefore comes roughly 24 to 48 hours after it starts.
+A busy Agent still dreams that night: the dream waits for its current and queued work to finish.
+
 ## On the profile
 
 The hub shows a **Dreams** section with the latest four nights and a **See all** button that
