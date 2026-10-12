@@ -100,4 +100,9 @@ Computer artifact must publish before the Server is promoted
 and Done, and the shared notification facts. Haus App 5.0.0 and iPhone 5.0.0 send that version.
 Older installed clients require an update, and an already-open hosted App requires a reload.
 App protocol 10 adds the chatless dream run: `agent.onLifecycle` may carry `chatId: null` and a
-turn trigger may be `{ kind: 'dream' }`. A protocol-9 client gets the update-required response.
+turn trigger may be `{ kind: 'dream' }`.
+App protocol 11 links Cloud Agent work instead of embedding it
+([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)): Messages no longer
+carry a `cloud-agent-work` body, and each `cloudAgentWork.listActive` row drops its launch
+Message and Thread fields for a `location` plus the delegating Agent's stored `agentName`. A
+protocol-10 client gets the update-required response.
