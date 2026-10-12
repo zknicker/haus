@@ -55,6 +55,17 @@ const envSchema = z
         HAUS_APNS_KEY_ID: z.string().min(1).optional(),
         HAUS_APNS_PRIVATE_KEY: z.string().min(1).optional(),
         HAUS_APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
+        HAUS_ARTIFACT_R2_ENDPOINT: z.string().url().optional(),
+        HAUS_ARTIFACT_R2_BUCKET: z.string().min(1).optional(),
+        HAUS_ARTIFACT_R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+        HAUS_ARTIFACT_R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+        HAUS_ARTIFACT_R2_SESSION_TOKEN: z.string().min(1).optional(),
+        HAUS_ARTIFACT_MAX_BYTES: z.coerce.number().int().positive().default(268_435_456),
+        HAUS_ARTIFACT_STORAGE_BYTES: z.coerce.number().int().positive().default(10_737_418_240),
+        HAUS_ENABLE_ARTIFACT_STORAGE: z
+            .enum(['false', 'true'])
+            .default('false')
+            .transform((value) => value === 'true'),
         HAUS_AGENT_E2E_AVATAR_FIXTURE: z.literal('1').optional(),
         HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH: z.string().min(1).optional(),
         HAUS_AGENT_E2E_AVATAR_REQUEST_LOG: z.string().min(1).optional(),
@@ -89,6 +100,22 @@ const envSchema = z
         OTEL_SDK_DISABLED: z.enum(['false', 'true']).optional(),
     })
     .superRefine((value, context) => {
+        const artifactKeys = [
+            'HAUS_ARTIFACT_R2_ENDPOINT',
+            'HAUS_ARTIFACT_R2_BUCKET',
+            'HAUS_ARTIFACT_R2_ACCESS_KEY_ID',
+            'HAUS_ARTIFACT_R2_SECRET_ACCESS_KEY',
+        ] as const;
+        if (
+            (value.HAUS_ENABLE_ARTIFACT_STORAGE || artifactKeys.some((key) => value[key])) &&
+            !artifactKeys.every((key) => value[key])
+        ) {
+            context.addIssue({
+                code: 'custom',
+                message: 'Shared artifacts require all four R2 configuration values.',
+                path: ['HAUS_ARTIFACT_R2_ENDPOINT'],
+            });
+        }
         if (
             value.HAUS_RELEASE_MANIFEST &&
             (!value.HAUS_CLERK_SECRET_KEY || value.HAUS_CLERK_SECRET_KEY === 'INJECT_ON_HOST')

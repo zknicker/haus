@@ -34,6 +34,22 @@ async function start() {
     });
     const application = await createHausServerApplication({
         appOrigin: env.HAUS_APP_ORIGIN,
+        artifactR2:
+            env.HAUS_ENABLE_ARTIFACT_STORAGE &&
+            env.HAUS_ARTIFACT_R2_ENDPOINT &&
+            env.HAUS_ARTIFACT_R2_BUCKET &&
+            env.HAUS_ARTIFACT_R2_ACCESS_KEY_ID &&
+            env.HAUS_ARTIFACT_R2_SECRET_ACCESS_KEY
+                ? {
+                      endpoint: env.HAUS_ARTIFACT_R2_ENDPOINT,
+                      bucket: env.HAUS_ARTIFACT_R2_BUCKET,
+                      accessKeyId: env.HAUS_ARTIFACT_R2_ACCESS_KEY_ID,
+                      secretAccessKey: env.HAUS_ARTIFACT_R2_SECRET_ACCESS_KEY,
+                      sessionToken: env.HAUS_ARTIFACT_R2_SESSION_TOKEN,
+                      maxBytes: env.HAUS_ARTIFACT_MAX_BYTES,
+                  }
+                : undefined,
+        artifactStorageBytes: env.HAUS_ARTIFACT_STORAGE_BYTES,
         attachmentRoot: env.HAUS_ATTACHMENT_ROOT,
         clerkApiUrl: env.HAUS_CLERK_API_URL,
         clerkIssuerUrl: env.HAUS_CLERK_ISSUER_URL,

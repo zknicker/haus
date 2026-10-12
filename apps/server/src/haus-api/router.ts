@@ -1,4 +1,5 @@
 import { agentRouter } from './agent/router.ts';
+import { artifactRouter } from './artifact/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
 import { automationRouter } from './automation/router.ts';
 import { avatarRouter } from './avatar/router.ts';
@@ -27,6 +28,7 @@ import { createRouter } from './trpc.ts';
  * The whole Haus Server contract.
  */
 export const hausRouter = createRouter({
+    artifact: artifactRouter,
     agent: agentRouter,
     attachment: attachmentRouter,
     automation: automationRouter,

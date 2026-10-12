@@ -13,4 +13,5 @@ export { SearchRoute } from './search-route.tsx';
 export { ServerDefaultPage } from './server-default-page.tsx';
 export { ServerLayout } from './server-layout.tsx';
 export { ServerSettingsPage } from './server-settings-page.tsx';
+export { SharedArtifactsPage } from './shared-artifacts-page.tsx';
 export { TasksPage } from './tasks-page.tsx';

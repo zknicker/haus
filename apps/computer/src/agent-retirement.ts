@@ -1,6 +1,12 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentRetireCommand } from '@haus/api';
+import { releaseWorkspace, withStorageLock } from './workspace-volumes/storage-ledger.ts';
+import {
+    detachWorkspaceForRetirement,
+    exists,
+    workspaceVolumePaths,
+} from './workspace-volumes/workspace-volume.ts';
 
 export function parseAgentRetireCommand(frame: unknown): AgentRetireCommand | null {
     if (
@@ -26,9 +32,18 @@ export async function purgeRetiredAgent(input: {
     if (!/^srv_[A-Za-z0-9_-]{16}$/u.test(input.serverId)) {
         throw new Error('Invalid Server id.');
     }
-    await rm(join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId), {
-        force: true,
-        recursive: true,
+    const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
+    if (!(await exists(workspaceVolumePaths(agentRoot).manifest))) {
+        if (await exists(workspaceVolumePaths(agentRoot).image)) {
+            throw new Error('Workspace image is unverified; recover it before retirement.');
+        }
+        await rm(agentRoot, { force: true, recursive: true });
+        return;
+    }
+    await withStorageLock(input.dataRoot, async () => {
+        await detachWorkspaceForRetirement(agentRoot);
+        await rm(agentRoot, { force: true, recursive: true });
+        await releaseWorkspace(input.dataRoot, agentRoot);
     });
 }
 

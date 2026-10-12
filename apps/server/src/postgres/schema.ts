@@ -13,6 +13,7 @@ export * from './schema/agent-session-rotations.ts';
 export * from './schema/agent-token-usage-daily.ts';
 export * from './schema/agent-turns.ts';
 export * from './schema/agents.ts';
+export * from './schema/artifacts.ts';
 export * from './schema/attachments.ts';
 export * from './schema/avatars.ts';
 export * from './schema/channel-agent-participants.ts';

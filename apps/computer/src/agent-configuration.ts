@@ -35,6 +35,7 @@ export async function applyAgentConfiguration(input: {
     dataRoot: string;
     inventory: ComputerInventory;
     serverId: string;
+    prepareWorkspace?: (agentRoot: string) => Promise<unknown>;
 }): Promise<AppliedAgentConfiguration> {
     const applied = resolveConfiguration(input.command, input.inventory);
     const agentRoot = join(
@@ -46,10 +47,15 @@ export async function applyAgentConfiguration(input: {
     );
     await mkdir(agentRoot, { mode: 0o700, recursive: true });
     await Promise.all(
-        ['home', 'runtime', 'skills', 'workspace'].map((directory) =>
+        ['home', 'runtime', 'skills'].map((directory) =>
             mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
         )
     );
+    if (input.prepareWorkspace) {
+        await input.prepareWorkspace(agentRoot);
+    } else {
+        await mkdir(join(agentRoot, 'workspace'), { mode: 0o700, recursive: true });
+    }
     await seedOrdinaryWorkspace(input.command, join(agentRoot, 'workspace'));
     await seedAgentManagedSkills(agentRoot);
     const destination = join(agentRoot, 'configuration.json');

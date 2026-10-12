@@ -26,6 +26,20 @@ const serverSlugArg = {
 
 export const computerCommands: ComputerCommandHelp[] = [
     {
+        group: 'Service',
+        name: 'workspace-migrate',
+        summary: 'Migrate one existing Agent workspace to a capped filesystem',
+        usage: 'workspace-migrate /server-slug <agent-id>',
+        notes: ['Stop the whole Computer first. The verified original stays in workspace.backup.'],
+    },
+    {
+        group: 'Service',
+        name: 'workspace-compact',
+        summary: 'Reclaim unused host blocks from one capped Agent workspace',
+        usage: 'workspace-compact /server-slug <agent-id>',
+        notes: ['Stop the whole Computer first and close any process using its workspace.'],
+    },
+    {
         args: [serverSlugArg],
         group: 'Get started',
         name: 'setup',

@@ -1,6 +1,7 @@
 import { appProtocolHeaders } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
@@ -27,6 +28,8 @@ export interface HausContext {
     appOrigin: string;
     /** App provenance and exact wire-contract declaration for this request. */
     appProtocol: { productVersion: string | null; protocolVersion: number | null };
+    artifactStorage: ArtifactStorage | null;
+    artifactStorageBytes: number;
     attachmentRoot: AttachmentRoot;
     avatarImageService: AvatarImageService;
     clerkSessions: ClerkSessions;
@@ -70,6 +73,8 @@ export interface HausContext {
 export interface HausContextDependencies {
     agentDelivery: AgentDelivery;
     appOrigin: string;
+    artifactStorage: ArtifactStorage | null;
+    artifactStorageBytes: number;
     attachmentRoot: AttachmentRoot;
     avatarImageService: AvatarImageService;
     clerkSessions: ClerkSessions;

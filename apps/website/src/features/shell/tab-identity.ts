@@ -70,7 +70,9 @@ export function parseTabPage(location: TabLocation): TabPage {
         case 'files':
             return first ? { kind: 'files', chatId: first } : sectionPage(pathname, slug);
         case 'artifacts':
-            return { kind: 'artifact', title: new URLSearchParams(search).get('title') };
+            return first
+                ? { kind: 'artifact', title: new URLSearchParams(search).get('title') }
+                : sectionPage(pathname, slug);
         default:
             return sectionPage(pathname, slug);
     }
@@ -146,6 +148,7 @@ export function chatPlace(chat: Pick<Chat, 'kind' | 'name'>): string {
 const pending: TabIdentity = { label: '', mark: { kind: 'none' }, place: null };
 
 const sectionLabels: Record<AppSection, string> = {
+    artifacts: 'Artifacts',
     activity: 'Activity',
     agent: 'Agent',
     chat: 'Chat',

@@ -5,6 +5,7 @@
  */
 export const cliFamilyTopics = {
     agent: 'agent',
+    artifact: 'artifact',
     attachment: 'attachment',
     channel: 'channel',
     'cloud-agent': 'cloud-agents',

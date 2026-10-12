@@ -9,6 +9,7 @@ import { useAgentIds } from '../../hooks/members/use-agents.ts';
 import { useChatNavigationLayout } from '../../hooks/servers/use-chats.ts';
 import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
 import { cn } from '../../lib/utils.ts';
+import { preloadServerSection } from '../../routes/app/server-route-modules.ts';
 import { activityRoute, inboxRoute, tasksRoute } from '../servers/server-routes.ts';
 import { AgentDmNavigationRow } from './agent-dm-navigation-row.tsx';
 import { ListedChatNavigationRow } from './chat-navigation-row.tsx';
@@ -101,6 +102,13 @@ export function ChatNavigation({
                             label="Tasks"
                             onPreload={() => onPreloadSection('tasks')}
                             tab="tasks"
+                        />
+                        <RouteNavigationRow
+                            href={`/s/${slug}/artifacts`}
+                            isCurrent={location.pathname.startsWith(`/s/${slug}/artifacts`)}
+                            label="Artifacts"
+                            onPreload={() => preloadServerSection('artifacts')}
+                            tab="artifacts"
                         />
                         <RouteNavigationRow
                             href={activityRoute(slug)}

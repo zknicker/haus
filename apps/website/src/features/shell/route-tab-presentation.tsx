@@ -3,6 +3,7 @@ import {
     Activity03Icon,
     Chat01Icon,
     CheckListIcon,
+    File01Icon,
     InboxIcon,
     Search01Icon,
     Settings01Icon,
@@ -41,6 +42,8 @@ export function getRouteTabIcon(tab: RouteTab): IconSvgElement {
     switch (tab) {
         case 'tasks':
             return CheckListIcon;
+        case 'artifacts':
+            return File01Icon;
         case 'inbox':
             return InboxIcon;
         case 'search':

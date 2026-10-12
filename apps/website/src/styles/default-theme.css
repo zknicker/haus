@@ -256,6 +256,12 @@
  * a token belongs in `:root` above, where it propagates on its own.
  */
 @layer components {
+    .artifact-tile__preview {
+        aspect-ratio: 1;
+        overflow: hidden;
+        border-radius: var(--radius-xl);
+        background: var(--surface-secondary);
+    }
     .browser-loading-line {
         position: absolute;
         inset-inline: 0;
