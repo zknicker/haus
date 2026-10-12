@@ -40,15 +40,13 @@ export function useSkoolConnect(serverId: string) {
         });
         try {
             const login = bridge.skoolLogin(viewId);
-            tabs.openInFocusedPane(
-                {
-                    kind: 'browser',
-                    viewId,
-                    title: 'Sign in to Skool',
-                    url: 'https://www.skool.com/login',
-                },
-                'newTab'
-            );
+            // Opened from the Settings page like any web link: a tab on the right.
+            tabs.open(originTabId, {
+                kind: 'browser',
+                viewId,
+                title: 'Sign in to Skool',
+                url: 'https://www.skool.com/login',
+            });
             const session = skoolSessionSchema.parse(await login);
             if (active.current !== viewId) {
                 return;

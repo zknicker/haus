@@ -4,6 +4,7 @@ import type * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { formatRelativeTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import type { TranscriptActor } from '../chat-transcript-model.ts';
@@ -55,6 +56,7 @@ export function ThreadPreviewBlock({
                 className="card-shell absolute inset-0 cursor-[var(--cursor-interactive)] outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 onClick={() => context.onOpenThread(row)}
                 type="button"
+                {...opensPlace}
             />
             <div className="pointer-events-none relative flex min-w-0 items-center justify-between gap-2 text-xs">
                 {headerLeading ? (

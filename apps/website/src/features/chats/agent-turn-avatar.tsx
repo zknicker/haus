@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../lib/utils.ts';
 import { LiveAgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
@@ -138,6 +139,7 @@ function AgentTurnProfileButton({
             className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
             onClick={() => openAgentProfile(agentId)}
             type="button"
+            {...opensPlace}
         >
             {children}
         </button>

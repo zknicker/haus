@@ -71,12 +71,14 @@ export function IsolatedTabRouter({
 }
 
 /**
- * A navigator for one tab. `policy: 'page'` turns a cross-page push into a
- * link (`openLink`); `policy: 'shell'` goes to a place from the focused pane
- * (`openInFocusedPane` `current`). A push with no stated intent takes the
- * in-flight click's (`gesture`), so Command-, Shift-, or middle-click on any
- * press handler opens a new tab. Paths outside this Server (`/s`, another slug,
- * `/invite/…`) leave the tab model and go to the window router.
+ * A navigator for one tab. `policy: 'page'` turns a cross-page push into Open
+ * (the right pane); `policy: 'shell'` (window chrome) into Go (the left pane's
+ * selected tab). A push takes the gesture its router state names
+ * (`tabIntentState`, for a handler that awaited), else the in-flight click's
+ * (`gesture`), so Command-, Shift-, or middle-click on any press handler opens a
+ * new tab beside the source: the page's own tab, or for chrome the left pane's.
+ * Paths outside this Server (`/s`, another slug, `/invite/…`) leave the tab
+ * model and go to the window router.
  */
 export function createTabNavigator(input: {
     current: () => TabLocation;
@@ -84,7 +86,7 @@ export function createTabNavigator(input: {
     policy: TabNavigationPolicy;
     serverPath: string;
     tabId: string;
-    tabs: Pick<DesktopTabsApi, 'go' | 'navigate' | 'openInFocusedPane' | 'openLink'>;
+    tabs: Pick<DesktopTabsApi, 'go' | 'goTo' | 'navigate' | 'open' | 'openTab'>;
     windowNavigate: (path: string, options: { replace: boolean }) => void;
 }): Navigator {
     const route = (to: To, state: unknown, mode: 'push' | 'replace') => {
@@ -94,23 +96,27 @@ export function createTabNavigator(input: {
             return;
         }
         const location: TabLocation = { kind: 'app', path };
-        const stated = readTabIntent(state);
         const outcome = resolveTabNavigation({
             from: input.current(),
-            intent: stated === 'auto' && mode === 'push' ? input.gesture() : stated,
+            gesture: readTabIntent(state) ?? input.gesture(),
             mode,
             policy: input.policy,
             to: location,
         });
+        // Chrome has no source tab of its own: its new tabs open from the left pane's.
+        const source = input.policy === 'page' ? input.tabId : null;
         switch (outcome.kind) {
             case 'navigate':
                 input.tabs.navigate(input.tabId, location, outcome.mode);
                 return;
-            case 'openLink':
-                input.tabs.openLink(input.tabId, location, outcome.intent);
+            case 'goTo':
+                input.tabs.goTo(location);
                 return;
-            case 'openInFocusedPane':
-                input.tabs.openInFocusedPane(location, outcome.intent);
+            case 'open':
+                input.tabs.open(source, location);
+                return;
+            case 'openTab':
+                input.tabs.openTab(source, location, { background: outcome.background });
                 return;
         }
     };

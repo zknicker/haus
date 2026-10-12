@@ -63,8 +63,8 @@ export function useDesktopTabShortcuts(tabs: DesktopTabsApi) {
 }
 
 /** ⌘T and the row's plus: the new tab page, appended at the end of the focused pane's row. */
-export function openNewTabPage(tabs: Pick<DesktopTabsApi, 'openInFocusedPane'>) {
-    tabs.openInFocusedPane(newTabLocation, 'newTabAtEnd');
+export function openNewTabPage(tabs: Pick<DesktopTabsApi, 'openNewTab'>) {
+    tabs.openNewTab(newTabLocation);
 }
 
 /** Runs `shortcut` if it is a tab shortcut; false leaves it to page shortcuts. */

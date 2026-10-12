@@ -2573,12 +2573,21 @@
         display: none;
     }
 
-    /* The lead row starts flush under the band, level with the card's top edge. */
+    /*
+     * The lead row starts flush under the band, level with the card's top edge. Desktop
+     * Settings has no Back row (tabs and ⌘[ go back), so there a group label leads: it
+     * takes the lead's place, and the row under it keeps the menu's own pitch.
+     */
     :is([data-shell-variant="canvas"], [data-shell-variant="band"])
         .app-shell
         [data-slot="sidebar-content"]
         > [data-slot="sidebar-group"]:first-child
-        [data-slot="sidebar-menu-item"]:first-child {
+        [data-slot="sidebar-menu-item"]:first-child,
+    :is([data-shell-variant="canvas"], [data-shell-variant="band"])
+        .app-shell
+        [data-slot="sidebar-content"]
+        > [data-slot="sidebar-group"]:first-child
+        > [data-slot="sidebar-group-label"]:first-child {
         margin-block-start: 0;
     }
 
@@ -2645,13 +2654,29 @@
         box-shadow: var(--shell-card-shadow);
     }
 
-    /* Inside the band card the lead row gets the same air above it as the rows' side inset. */
+    /*
+     * Inside the band card the lead gets the same air above it as the rows' side inset: the
+     * first row, or a group label when one leads (desktop Settings) and not the row under it.
+     */
     [data-shell-variant="band"]
         .app-shell
         [data-slot="sidebar-content"]
         > [data-slot="sidebar-group"]:first-child
-        [data-slot="sidebar-menu-item"]:first-child {
+        [data-slot="sidebar-menu-item"]:first-child,
+    [data-shell-variant="band"]
+        .app-shell
+        [data-slot="sidebar-content"]
+        > [data-slot="sidebar-group"]:first-child
+        > [data-slot="sidebar-group-label"]:first-child {
         margin-block-start: calc(var(--spacing-compact) * 3);
+    }
+
+    [data-shell-variant="band"]
+        .app-shell
+        [data-slot="sidebar-content"]
+        > [data-slot="sidebar-group"]:first-child:has(> [data-slot="sidebar-group-label"])
+        [data-slot="sidebar-menu-item"]:first-child {
+        margin-block-start: 0;
     }
 
     [data-shell-variant="band"] .app-shell [data-slot="sidebar"] {

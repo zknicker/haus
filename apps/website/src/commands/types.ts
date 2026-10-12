@@ -18,6 +18,8 @@ export interface AppCommand {
     icon: AppCommandIcon;
     id: string;
     keywords?: readonly string[];
+    /** The command opens a page, so a middle-click on it opens a background tab (desktop). */
+    opensPage?: boolean;
     run: () => void | Promise<void>;
     shortcut?: string;
     subtitle?: string;

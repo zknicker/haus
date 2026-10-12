@@ -6,7 +6,6 @@ import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx'
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { readLastChatId, rememberLastChatId } from '../../features/servers/server-choice.ts';
 import { ServerRealtimeListeners } from '../../features/servers/server-realtime-listeners.tsx';
-import { serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
@@ -23,7 +22,9 @@ import {
     useDesktopSidebarToggle,
 } from '../../hooks/shell/use-app-sidebar-open.ts';
 import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
+import { useSettingsOpener } from '../../hooks/shell/use-settings-opener.ts';
 import { useStableNavigate } from '../../hooks/shell/use-stable-navigate.ts';
+import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { cn } from '../../lib/utils.ts';
 import { preloadServerSection } from './server-route-modules.ts';
@@ -83,9 +84,10 @@ export function ServerShell({
     const settingsSection = resolveSettingsSection(location.pathname, slug);
     const canOperate = server.role === 'owner' || server.role === 'admin';
     const activeSidebarPage = resolveSidebarPage(active);
+    const openSettings = useSettingsOpener(slug, navigate);
     const settingsAction = (
         <SidebarSettingsAction
-            onOpenSettings={() => navigate(serverSettingsRoute(slug))}
+            onOpenSettings={openSettings}
             onPreloadSettings={() => preloadServerSection('settings')}
             // ⌘, is the desktop App menu's Settings… item; the web has no such key.
             shortcut={topbarInWindow ? '⌘,' : undefined}
@@ -125,7 +127,10 @@ export function ServerShell({
                                     </ShellSidebarPage>
                                     <ShellSidebarPage ariaLabel="Settings" value="settings">
                                         <SettingsSidebar
-                                            backRoute={chatSectionRoute}
+                                            // Desktop tabs and ⌘[ go back; only the web keeps the row.
+                                            backRoute={
+                                                isElectronDesktopApp() ? null : chatSectionRoute
+                                            }
                                             canOperate={canOperate}
                                             currentSection={settingsSection}
                                             serverId={server.id}

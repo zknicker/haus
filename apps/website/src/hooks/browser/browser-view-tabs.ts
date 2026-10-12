@@ -9,10 +9,11 @@ export type BrowserTabLocation = Extract<TabLocation, { kind: 'browser' }>;
 
 /**
  * A web page's open request as a tab gesture: Chrome's background-tab disposition (⌘- or
- * middle-click, Open Link in New Tab) stays in the background; every other opens selected.
+ * middle-click, Open Link in New Tab) is a background tab beside the page; every other
+ * (`target=_blank`, a popup) is a plain Open in the right pane.
  */
-export function browserOpenGesture(request: BrowserOpenRequest): 'backgroundTab' | 'newTab' {
-    return request.background ? 'backgroundTab' : 'newTab';
+export function browserOpenGesture(request: BrowserOpenRequest): 'auto' | 'backgroundTab' {
+    return request.background ? 'backgroundTab' : 'auto';
 }
 
 /** A new web tab's location: a fresh view named by the App, titled by host until it loads. */

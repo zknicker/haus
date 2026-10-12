@@ -1,6 +1,7 @@
 import type { WidgetArtifactProps } from '@haus/api/widgets/artifact';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../lib/utils.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 
@@ -26,6 +27,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
             )}
             onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path }, title)}
             type="button"
+            {...opensPlace}
         >
             <span className="card-shell flex size-9 shrink-0 items-center justify-center border border-border/70 bg-default/35">
                 <Icon className="size-4 text-muted" icon={File01Icon} />

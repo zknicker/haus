@@ -2,6 +2,7 @@ import type { Agent } from '@haus/api';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
+import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 
 /** Every Inbox mark is this size, Agent, Channel, or week card alike. */
@@ -34,7 +35,7 @@ export function InboxRow({
             aria-label={label}
             className="item-card--inbox relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
             onClick={onOpen}
-            render={(props) => <button type="button" {...props} />}
+            render={(props) => <button type="button" {...props} {...opensPlace} />}
         >
             <PressableFeedback.Highlight />
             {children}
@@ -83,6 +84,7 @@ export function InboxActionRow({
                 className="absolute inset-0 cursor-(--cursor-interactive) rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
                 onClick={onOpen}
                 type="button"
+                {...opensPlace}
             />
             {children}
             <ItemCard.Action>

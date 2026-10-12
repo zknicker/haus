@@ -104,7 +104,7 @@ export interface ClosedDesktopTab {
  */
 export interface DesktopTabsState {
     closed: readonly ClosedDesktopTab[];
-    /** The pane the person last interacted with: the sidebar, ⌘T, ⌘W, and ⌘1–9 act on it. */
+    /** The pane the person last interacted with: ⌘T, ⌘W, and ⌘1–9 act on it. */
     focusedPane: PaneSide;
     /** Most recently shown first; the first `mountedTabLimit` stay mounted while hidden. */
     mru: readonly string[];
@@ -164,8 +164,8 @@ export function currentLocation(tab: DesktopTab): TabLocation {
 }
 
 /**
- * A page's identity, for "already open in the other pane → select it" and
- * notification reveal. Search and hash are drill-down inside a page, so they
+ * A page's identity, for Open's right-pane match and the Settings singleton
+ * (`desktop-tabs-open.ts`). Search and hash are drill-down inside a page, so they
  * do not change identity; two browser tabs are never the same page.
  */
 export function tabPageKey(location: TabLocation): string {
@@ -183,25 +183,6 @@ export function tabPageKey(location: TabLocation): string {
         return `${section}/${id}/${anchor}`;
     }
     return idSections.has(section) && id ? `${section}/${id}` : section;
-}
-
-/**
- * Where a plain open of a page lands once no tab already shows it (ADR 0039). `place`: the
- * current tab navigates (the place rule). `newTab`: an Agent profile or Settings opens as a new
- * selected tab after the source. `sidePane`: a Thread opens as a new selected tab in the right
- * pane, creating it.
- */
-export type PagePlacement = 'newTab' | 'place' | 'sidePane';
-
-export function pagePlacement(location: TabLocation): PagePlacement {
-    if (location.kind !== 'app') {
-        return 'place';
-    }
-    const key = tabPageKey(location);
-    if (key.startsWith('threads/')) {
-        return 'sidePane';
-    }
-    return key === 'settings' || key.startsWith('agents/') ? 'newTab' : 'place';
 }
 
 /** Sections whose second segment names a different page rather than a drill-down. */

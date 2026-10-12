@@ -116,6 +116,7 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
                 icon: item.icon,
                 id: `navigation.${item.id}`,
                 keywords: ['go', 'open', item.id, item.title],
+                opensPage: true,
                 run: () => {
                     if (item.route) {
                         context.navigate(item.route);
@@ -155,6 +156,7 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
                 title,
                 agent?.handle ?? '',
             ],
+            opensPage: true,
             run: () => context.navigate(serverChatRoute(context.serverSlug, chat.id)),
             title,
         };
@@ -210,6 +212,7 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
                           icon: UserCircleIcon,
                           id: 'current-chat.open-agent-profile',
                           keywords: ['chat', 'agent', 'profile', 'assistant'],
+                          opensPage: true,
                           run: () => context.openAgentProfile(agent.id),
                           title: 'Agent Profile',
                       } satisfies AppCommand,
@@ -227,6 +230,7 @@ function buildSettingsGroup(context: CommandContext): AppCommandGroup {
             icon: item.icon,
             id: `settings.${item.id}`,
             keywords: ['settings', 'preferences', item.id, item.label],
+            opensPage: true,
             run: () => context.navigate(serverSettingsSectionRoute(context.serverSlug, item.id)),
             title: item.label,
         })),
@@ -252,6 +256,7 @@ function buildDeveloperGroup(context: CommandContext): AppCommandGroup {
                           icon: ComputerIcon,
                           id: 'developer.computers',
                           keywords: ['developer', 'computer', 'execution', 'health'],
+                          opensPage: true,
                           run: () => context.navigate(serverComputersRoute(context.serverSlug)),
                           title: 'Computers',
                       } satisfies AppCommand,

@@ -3,117 +3,131 @@ import {
     allTabIds,
     currentLocation,
     type DesktopTabsState,
-    type PaneSide,
-    pagePlacement,
     paneOfTab,
-    shownTabIds,
     type TabLocation,
     tabPageKey,
 } from './desktop-tabs-model.ts';
-import {
-    focusedTabId,
-    insertAfter,
-    insertTab,
-    otherPane,
-    putTab,
-    selectTab,
-} from './desktop-tabs-panes.ts';
-import type { FocusedPaneOpenIntent, TabOpenIntent } from './tab-navigation.ts';
+import { focusedTabId, insertAfter, insertTab, putTab, selectTab } from './desktop-tabs-panes.ts';
 
 /**
- * Two panes: a plain in-page link to a place goes to the OTHER pane (the reading
- * pane stays put). Set false to have links act on their own pane like the sidebar.
- * Agent, Settings, and Thread links follow `pagePlacement` instead.
+ * The desktop navigation verbs (ADR 0039): the surface you click decides which.
+ *
+ * - `goTo`: the sidebar and the command menu. The left pane's selected tab navigates (push).
+ * - `openPage`: anything activated inside a page, notifications, deep links, ⌘F. A selected tab
+ *   in the right pane.
+ * - `openTabFrom`: a modified click (⌘, middle, Shift). A tab right after the source.
+ * - `openSettings`: ⌘, and the Settings button. The window's one Settings tab.
+ *
+ * Ids arrive on the action (`newId`): a new tab's id, or the new history entry's key.
  */
-export const inPageLinksUseOtherPane = true;
 
-/**
- * ADR 0039 placement for a link inside a page. Ids arrive on the action: `newId` names a
- * new tab when one opens and the new history entry's key otherwise (they never collide:
- * each dispatch gets a fresh id).
- */
-export function openLink(
+/** Go: the left pane's selected tab pushes `location` and its pane takes focus. Never dedupes. */
+export function goTo(
     state: DesktopTabsState,
-    input: { fromTabId: string; intent: TabOpenIntent; location: TabLocation; newId: string }
+    input: { location: TabLocation; newId: string }
 ): DesktopTabsState {
-    const { fromTabId, intent, location, newId } = input;
-    const fromPane = paneOfTab(state, fromTabId);
-    if (!fromPane) {
-        return state;
+    const tabId = state.primary?.selectedTabId;
+    if (!tabId) {
+        return appendSelected(state, 'primary', input.location, input.newId);
     }
-    const split = state.secondary !== null;
-    // Web locations always open a new tab: the other pane when there are two, beside the source
-    // otherwise, after that pane's current tab by the opener rule. Selected unless the gesture
-    // asks for the background (Chrome: ⌘- or middle-click).
-    if (location.kind === 'browser') {
-        const opener = split ? state[otherPane(fromPane)]?.selectedTabId : fromTabId;
-        const created = putTab(state, newTab(newId, location, newId));
-        const placed = opener
-            ? insertFromOpener(created, opener, newId)
-            : appendToPane(state, otherPane(fromPane), location, newId);
-        return intent === 'backgroundTab' ? placed : selectTab(placed, newId, { focus: false });
-    }
-    // A new-tab gesture: a tab after the source by the opener rule, in the background for
-    // Command- or middle-click, selected when Shift is held (Chrome's dispositions).
-    if (intent === 'newTab' || intent === 'backgroundTab') {
-        const placed = insertFromOpener(
-            putTab(state, newTab(newId, location, newId)),
-            fromTabId,
-            newId
-        );
-        return intent === 'backgroundTab' ? placed : selectTab(placed, newId, { focus: true });
-    }
-    if (intent === 'here') {
-        return navigateTab(state, fromTabId, location, 'push', newId);
-    }
-    if (!(split && inPageLinksUseOtherPane) || pagePlacement(location) !== 'place') {
-        return goToPlace(state, {
-            candidates: placeCandidates(state),
-            location,
-            newId,
-            tabId: fromTabId,
-        });
-    }
-    const pane = otherPane(fromPane);
-    const row = state[pane];
-    if (!row) {
-        return state;
-    }
-    return goToPlace(state, {
-        candidates: row.tabIds,
-        focus: false,
-        location,
-        newId,
-        tabId: row.selectedTabId,
+    return selectTab(navigateTab(state, tabId, input.location, 'push', input.newId), tabId, {
+        focus: true,
     });
 }
 
 /**
- * Sidebar, command menu, ⌘T: a place (`current`, see `reveal`), a new tab after the current
- * one by the opener rule (`backgroundTab` for Command- or middle-click and the row menu's
- * Open in new tab, `newTab` selected for Shift), or a new selected tab at the end of the row
- * (`newTabAtEnd`, Chrome's ⌘T and plus).
+ * Open: a right-pane tab already on that page is selected (pushing a deeper address onto it);
+ * else a new selected tab in the right pane, created in a one-pane window. It lands after the
+ * source when the source is in the right pane (stacking there), else after the right pane's
+ * selected tab, so consecutive opens keep their order. The right pane takes focus.
  */
-export function openInFocusedPane(
+export function openPage(
     state: DesktopTabsState,
-    input: { intent: FocusedPaneOpenIntent; location: TabLocation; newId: string }
+    input: { fromTabId: string | null; location: TabLocation; newId: string }
 ): DesktopTabsState {
-    const { intent, location, newId } = input;
-    if (intent === 'current') {
-        return reveal(state, { location, newId });
+    const { fromTabId, location, newId } = input;
+    const right = state.secondary;
+    if (!right) {
+        if (!state.primary) {
+            return appendSelected(state, 'primary', location, newId);
+        }
+        return appendSelected(state, 'secondary', location, newId);
     }
-    const current = focusedTabId(state);
-    if (!current) {
-        return selectTab(appendToPane(state, 'primary', location, newId), newId, { focus: true });
+    // Prefer the shown tab when duplicates match, so reopening never switches away from it.
+    const existing = samePage(state, right.selectedTabId, location)
+        ? right.selectedTabId
+        : right.tabIds.find((id) => samePage(state, id, location));
+    if (existing) {
+        return selectTab(navigateTab(state, existing, location, 'push', newId), existing, {
+            focus: true,
+        });
+    }
+    const after =
+        fromTabId && paneOfTab(state, fromTabId) === 'secondary' ? fromTabId : right.selectedTabId;
+    const created = putTab(state, newTab(newId, location, newId));
+    return selectTab(insertAfter(created, after, newId), newId, { focus: true });
+}
+
+/**
+ * A modified click: a new tab right after `fromTabId` in its pane (the left pane's selected tab
+ * when null: the sidebar and the command menu), by the opener rule. Background for ⌘- or
+ * middle-click, selected (its pane focused) with Shift. Never dedupes.
+ */
+export function openTabFrom(
+    state: DesktopTabsState,
+    input: { background: boolean; fromTabId: string | null; location: TabLocation; newId: string }
+): DesktopTabsState {
+    const { background, location, newId } = input;
+    const source =
+        input.fromTabId && paneOfTab(state, input.fromTabId)
+            ? input.fromTabId
+            : state.primary?.selectedTabId;
+    if (!source) {
+        return appendSelected(state, 'primary', location, newId);
+    }
+    const placed = insertFromOpener(putTab(state, newTab(newId, location, newId)), source, newId);
+    return background ? placed : selectTab(placed, newId, { focus: true });
+}
+
+/**
+ * Settings is a singleton: an existing Settings tab anywhere is selected (its pane focused),
+ * taking `location` when that is not an ancestor of the address it shows; else Settings opens
+ * as a new selected tab in the left pane after its selected tab.
+ */
+export function openSettings(
+    state: DesktopTabsState,
+    input: { location: TabLocation; newId: string }
+): DesktopTabsState {
+    const { location, newId } = input;
+    const existing = allTabIds(state).find((id) => samePage(state, id, location));
+    if (existing) {
+        const tab = state.tabs[existing];
+        const shown = tab ? currentLocation(tab) : null;
+        const within =
+            shown?.kind === 'app' &&
+            location.kind === 'app' &&
+            shown.path.startsWith(location.path);
+        const navigated = within ? state : navigateTab(state, existing, location, 'push', newId);
+        return selectTab(navigated, existing, { focus: true });
+    }
+    const left = state.primary?.selectedTabId;
+    if (!left) {
+        return appendSelected(state, 'primary', location, newId);
     }
     const created = putTab(state, newTab(newId, location, newId));
-    if (intent === 'newTabAtEnd') {
-        const pane = paneOfTab(state, current) ?? state.focusedPane;
-        const end = state[pane]?.tabIds.length ?? 0;
-        return selectTab(insertTab(created, pane, newId, end), newId, { focus: true });
-    }
-    const placed = insertFromOpener(created, current, newId);
-    return intent === 'backgroundTab' ? placed : selectTab(placed, newId, { focus: true });
+    return selectTab(insertAfter(created, left, newId), newId, { focus: true });
+}
+
+/** ⌘T and the row's plus: a new selected tab at the end of the focused pane's row. */
+export function openNewTabAtEnd(
+    state: DesktopTabsState,
+    input: { location: TabLocation; newId: string }
+): DesktopTabsState {
+    const current = focusedTabId(state);
+    const pane = (current && paneOfTab(state, current)) || 'primary';
+    const end = state[pane]?.tabIds.length ?? 0;
+    const created = putTab(state, newTab(input.newId, input.location, input.newId));
+    return selectTab(insertTab(created, pane, input.newId, end), input.newId, { focus: true });
 }
 
 /**
@@ -139,73 +153,6 @@ export function insertFromOpener(
     };
 }
 
-/** Sidebar, command menu, ⌘,, notification, deep link: a place from the focused pane. */
-export function reveal(
-    state: DesktopTabsState,
-    input: { location: TabLocation; newId: string }
-): DesktopTabsState {
-    const current = focusedTabId(state);
-    if (!current) {
-        return selectTab(appendToPane(state, 'primary', input.location, input.newId), input.newId, {
-            focus: true,
-        });
-    }
-    return goToPlace(state, { ...input, candidates: placeCandidates(state), tabId: current });
-}
-
-/**
- * The one place rule (ADR 0039), from `tabId`:
- * 1. a tab among `candidates` already on that page is selected, pushing the address only
- *    when it drills in further;
- * 2. else an Agent profile or Settings opens as a new selected tab after `tabId`, and a
- *    Thread as a new selected tab in the right pane (`pagePlacement`);
- * 3. else `tabId` navigates (push) when it shows an app page or a new tab page;
- * 4. else (a web page) the place opens as a new selected tab right after it, so a page
- *    you are reading is never replaced by a place.
- */
-function goToPlace(
-    state: DesktopTabsState,
-    input: {
-        candidates: readonly string[];
-        focus?: boolean;
-        location: TabLocation;
-        newId: string;
-        tabId: string;
-    }
-): DesktopTabsState {
-    const { candidates, focus = true, location, newId, tabId } = input;
-    const existing = candidates.find((id) => samePage(state, id, location));
-    if (existing) {
-        return selectTab(navigateTab(state, existing, location, 'push', newId), existing, {
-            focus,
-        });
-    }
-    const tab = state.tabs[tabId];
-    if (!tab) {
-        return state;
-    }
-    const placement = pagePlacement(location);
-    if (placement === 'sidePane') {
-        return openInSidePane(state, location, newId);
-    }
-    // A blank new tab page becomes the page instead of being left behind.
-    if (placement === 'newTab' && currentLocation(tab).kind !== 'newTab') {
-        const created = putTab(state, newTab(newId, location, newId));
-        return selectTab(insertFromOpener(created, tabId, newId), newId, { focus });
-    }
-    if (currentLocation(tab).kind !== 'browser') {
-        return selectTab(navigateTab(state, tabId, location, 'push', newId), tabId, { focus });
-    }
-    const created = putTab(state, newTab(newId, location, newId));
-    return selectTab(insertAfter(created, tabId, newId), newId, { focus });
-}
-
-/** Shown tabs first, then the focused pane's, then any. */
-function placeCandidates(state: DesktopTabsState): string[] {
-    const focused = state[state.focusedPane]?.tabIds ?? [];
-    return [...new Set([...shownTabIds(state), ...focused, ...allTabIds(state)])];
-}
-
 /** Push or replace inside one tab; a push to the address it already shows is a no-op. */
 export function navigateTab(
     state: DesktopTabsState,
@@ -224,27 +171,17 @@ export function navigateTab(
     });
 }
 
-/**
- * A plain Thread open: a selected tab after the right pane's shown tab, creating that pane in a
- * one-pane window. New-tab gestures skip this and open beside the source like any page.
- */
-function openInSidePane(
+/** A new selected tab after `pane`'s selected tab (the pane created when absent), focused. */
+function appendSelected(
     state: DesktopTabsState,
-    location: TabLocation,
-    newId: string
-): DesktopTabsState {
-    return selectTab(appendToPane(state, 'secondary', location, newId), newId, { focus: true });
-}
-
-function appendToPane(
-    state: DesktopTabsState,
-    pane: PaneSide,
+    pane: 'primary' | 'secondary',
     location: TabLocation,
     tabId: string
 ): DesktopTabsState {
     const row = state[pane];
     const index = row ? row.tabIds.indexOf(row.selectedTabId) + 1 : 0;
-    return insertTab(putTab(state, newTab(tabId, location, tabId)), pane, tabId, index);
+    const placed = insertTab(putTab(state, newTab(tabId, location, tabId)), pane, tabId, index);
+    return selectTab(placed, tabId, { focus: true });
 }
 
 function samePage(state: DesktopTabsState, tabId: string, location: TabLocation) {

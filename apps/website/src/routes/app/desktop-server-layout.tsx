@@ -110,15 +110,17 @@ function useDesktopTabCommands(slug: string) {
     const browser = useBrowserViews();
     const latest = React.useRef({ browser, tabs });
     latest.current = { browser, tabs };
-    const reveal = React.useCallback(
-        (path: string) => latest.current.tabs.reveal({ kind: 'app', path }),
-        []
-    );
-    const routes = React.useMemo(
-        () => ({ searchRoute: serverSearchRoute(slug), settingsRoute: serverSettingsRoute(slug) }),
+    const menu = React.useMemo(
+        () => ({
+            // ⌘F is Open (the right pane); ⌘, the Settings singleton.
+            openSearch: () =>
+                latest.current.tabs.open(null, { kind: 'app', path: serverSearchRoute(slug) }),
+            openSettings: () =>
+                latest.current.tabs.openSettings({ kind: 'app', path: serverSettingsRoute(slug) }),
+        }),
         [slug]
     );
-    useDesktopMenuNavigation(routes, reveal);
+    useDesktopMenuNavigation(menu);
     const followHistory = React.useCallback((direction: 'back' | 'forward') => {
         const { browser: views, tabs: current } = latest.current;
         const tabId = focusedTabId(current.state);

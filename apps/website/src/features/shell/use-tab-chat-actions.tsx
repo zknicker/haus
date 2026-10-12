@@ -8,6 +8,8 @@ import {
     useDesktopTabsSelector,
 } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
+import { openWithGesture } from '../../hooks/desktop-tabs/tab-navigation.ts';
+import { currentOpenGesture } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgentMark } from '../../hooks/members/use-agents.ts';
 import { useListedChat } from '../../hooks/servers/use-chats.ts';
 import { filesPagePath } from '../../routes/app/desktop-page-paths.ts';
@@ -33,7 +35,7 @@ export function useTabChatActions() {
     const actionTab = React.useRef<string | null>(null);
     const openPath = (path: string) => {
         if (actionTab.current) {
-            tabs.openLink(actionTab.current, { kind: 'app', path }, 'auto');
+            openWithGesture(tabs, actionTab.current, { kind: 'app', path }, currentOpenGesture());
         }
     };
     const openFiles = (chatId: string) => openPath(filesPagePath(server.slug, chatId));

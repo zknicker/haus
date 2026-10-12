@@ -2,6 +2,7 @@ import { Button } from '@heroui/react';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { traceRowClass } from '../../turn-trace/turn-trace-grid.tsx';
@@ -85,6 +86,7 @@ export function LogChatButton({
                     onPress={() => navigate(serverChatRoute(serverSlug, target.chatId))}
                     size="sm"
                     variant="ghost"
+                    {...opensPlace}
                 >
                     <span className="@max-2xl/activity-log:sr-only truncate">{label}</span>
                     <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
