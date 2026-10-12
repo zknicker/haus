@@ -1,10 +1,11 @@
+import { agentMessages, turnCommands } from '../artifact-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     optIn: true,
     contract:
-        "Agents discover explicit Server publication, retrieve another Agent's shared file, and publish an immutable revision while retaining personal source files.",
+        'Agents discover explicit Server publication and share its stable link, a peer resolves the shared file from that pasted link alone, and publishes an immutable revision while personal source files stay retained.',
     name: 'shared-artifact-handoff',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [publisher, editor] = agents;
@@ -15,9 +16,10 @@ export default defineScenario({
         let artifactId;
         try {
             log('asking the publisher to discover file sharing');
+            const publisherHead = await kit.readHead(publisher.dmChatId);
             await kit.harness.send(
                 publisher.dmChatId,
-                `Create ${path} in your workspace with exactly "${original}" followed by a newline. Publish it as a shared Server artifact named ${name}, titled "Shared handoff". Keep your personal source file. Reply with its artifact ID and link.`
+                `Create ${path} in your workspace with exactly "${original}" followed by a newline. Publish it as a shared Server artifact named ${name}, titled "Shared handoff". Keep your personal source file, and tell me when it is shared.`
             );
             const publishTurn = await settleTurn(publisher.id);
             expect(publishTurn.status, 'publish turn completed').toBe('completed');
@@ -35,11 +37,17 @@ export default defineScenario({
                 path,
             });
             expect(source.content, 'personal source retained').toBe(`${original}\n`);
+            const announced = (
+                await agentMessages(kit, publisher.id, publisher.dmChatId, publisherHead)
+            )
+                .map((message) => message.content)
+                .join('\n');
+            expect(announced, 'publisher shared the stable link').toContain(artifact.stable_url);
 
             log('asking a different Agent to retrieve and revise');
             await kit.harness.send(
                 editor.dmChatId,
-                `Find the shared Server artifact named ${name}. Read its file and report the exact marker you find. Create a writable personal copy at ${path}, replace its contents with exactly "${revised}" followed by a newline, and publish that as a new revision of the same artifact, titled "Revised handoff". Keep the original shared revision unchanged. Reply with the original marker and the updated artifact link.`
+                `Here is a shared file: ${artifact.stable_url} Read it and report the exact marker you find. Create a writable personal copy at ${path}, replace its contents with exactly "${revised}" followed by a newline, and publish that as a new revision of the same artifact, titled "Revised handoff". Keep the original shared revision unchanged. Reply with the original marker and the updated artifact link.`
             );
             const editTurn = await settleTurn(editor.id);
             expect(editTurn.status, 'edit turn completed').toBe('completed');
@@ -48,6 +56,11 @@ export default defineScenario({
             );
             expect(reply.message.content, 'peer read the undisclosed original marker').toContain(
                 original
+            );
+            const commands = (await turnCommands(kit, editor.id, editTurn)).join('\n');
+            log(`editor commands: ${commands.slice(0, 600)}`);
+            expect(commands, 'peer resolved the pasted link with artifact view').toContain(
+                `artifact view ${artifactId}`
             );
             const result = await kit.trpc('artifact.get', {
                 serverId: kit.serverId,

@@ -306,8 +306,13 @@ Repeat `--only` to run a small named subset in one process.
 Shared file discovery and handoff are opt-in and require enabled development R2 storage:
 `bun run test:agents --include-opt-in --only shared-artifact-handoff --lanes 1`.
 Two fresh Agents publish and revise one shared file from natural-language requests. The scenario
-checks the original personal source, the peer's undisclosed marker, and both immutable revisions'
-downloaded bytes, then deletes its shared artifact.
+checks the original personal source, the publisher's reply carrying the stable URL, the peer
+resolving the file from that pasted link alone (`haus artifact view` in its execution journal), the
+peer's undisclosed marker, and both immutable revisions' downloaded bytes, then deletes its shared
+artifact. Two more opt-in scenarios cover the choice without hints: `shared-artifact-discovery`
+asks to share a markdown file with the team without saying "artifact" and gates on exactly one
+published `.md` artifact whose stable URL is linked, not attached; `one-off-chart-stays-in-chat`
+asks for a quick chart and gates on a fence or attachment with no shared artifact.
 
 Conversation routing has a natural-language lane: `--only conversation-natural-followups`
 checks a basic question, a planning request, and a human Thread follow-up without routing
