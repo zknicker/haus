@@ -31,6 +31,7 @@ describe('preset account auth', () => {
     test.each([
         'cloudflare',
         'merchbase-atlas',
+        'handmade',
         'merchbase-fulfillment',
     ])('%s uses OAuth with a Server-owned endpoint', (preset) => {
         const input = { ...base, preset };
