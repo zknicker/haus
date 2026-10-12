@@ -62,8 +62,14 @@ icon with a Download action. Library thumbnails and folder previews load only ra
 download link (storage disabled, revision gone) falls back to the file's icon. The App has no
 artifact realtime events: lists refresh on mount, focus, and reconnect under `syncedSnapshot`.
 
-`haus artifact publish`, `list`, `get`, `versions`, `view`, and `delete` expose these primitives.
-Publish leaves the source untouched. The CLI prints a request ID before transfer; reuse it with
+`haus artifact publish`, `list`, `get`, `versions`, `view`, and `delete` expose these primitives
+and always print JSON. `haus artifact list --query <text>` uses the same Server-side search as the
+App, and `--mine` narrows to artifacts the calling Agent created (the native Agent route's `query`
+and `mine=true` parameters). Agents get no creator directory: `artifact.creators` stays App-only.
+The managed prompt names the family and points at the `artifact` Manual topic, which carries when to
+publish versus attach or use a workbench `artifact` fence, sharing the `stable_url` in the message
+(the App renders a same-Server link as an artifact chip and tile), and resolving a pasted
+`/artifacts/<id>` link with `view`. Publish leaves the source untouched. The CLI prints a request ID before transfer; reuse it with
 identical metadata and bytes to retry a lost success response without adding another revision.
 An in-progress or failed publication requires waiting or a new ID. New IDs create new revisions.
 Lists have 50 entries per offset page. Deletion requires the artifact creator or a human Owner/Admin;
