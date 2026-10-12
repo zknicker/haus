@@ -365,6 +365,28 @@ fill (21%, a step above the card) rather than by shadow. See "Shell variants" in
 | `warning-soft-foreground` | `#855F2E` | `#F9CB86` | `Light: warning / 80% + foreground / 70%; Dark: warning / 80% + foreground / 30%` | `--warning-soft-foreground` | Prefer the HeroUI token for warning-soft-foreground. | Text color on warning-soft backgrounds. |
 | `warning-soft-hover` | `rgba(245, 165, 36, 0.2)` | `rgba(247, 183, 80, 0.16)` | `Light: warning / 20% + transparent; Dark: warning / 16% + transparent` | `--warning-soft-hover` | Prefer the HeroUI token for warning-soft-hover. | Hover state for warning-soft backgrounds. |
 
+### Artifact icon tokens
+
+The Artifacts library draws files and folders as small illustrated icons
+(`features/artifacts/icons/`). Their color is one hue token per meaning, set
+per theme in `default-theme.css` ("Artifact icons"):
+
+| Family | Names | Meaning |
+| --- | --- | --- |
+| File kinds | `--artifact-kind-{pdf,html,slides,spreadsheet,image,document,code,video,audio,archive,text,other}` | The ink of a file sheet's glyph, one per `ArtifactFileKind` |
+| Folder tones | `--artifact-folder-{neutral,blue,violet,green,amber,rose}` | A library folder's tint; `neutral` is All files; creators are dealt the tints in creator-key order (`artifactFolders`), so a set of creators keeps its colors and none repeat until the tints run out |
+
+Each icon sets only its hue (`--artifact-icon-hue` or `--artifact-folder-hue`);
+`.artifact-icon` and `.artifact-folder-icon` in the theme's component layer
+derive paper, fold, edge, and panel paints from it, so retuning a kind is one
+value per theme. Sheets are light paper in both themes (dark paper sits a step
+below white, like a desktop's dark-mode file icons), so hues sit near L 0.6;
+dark hues carry a touch more chroma. These are product tokens for the library only: nothing else
+reads them, and they are not part of the agent-visual vocabulary below. The
+library's tiles, thumbnails, and preview well (`.artifact-tile`,
+`.artifact-thumbnail`, `.artifact-preview`) sit in the same block and use only
+HeroUI tokens.
+
 ### Agent-visual tokens
 
 `styles/artifact-tokens.css` publishes a second, much smaller vocabulary for
@@ -734,7 +756,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 
 ## Components
 
-- **Shared artifacts:** Library controls live in the shell band, with a compact file-type strip and a full-width scrolling collection. Gallery tiles use square previews on `surface-secondary` with `radius-xl`; titles and revision metadata sit below the media without a padded Card shell. The viewer fills the remaining app height and keeps file details and revisions beside the asset.
+- **Shared artifacts:** The library has no page title. The shell band carries the "Haus › Artifacts › <folder>" trail and every control (search, a file-type menu, list/grid), so the column below is only content. Each date group is a muted label over standalone secondary `ListView` rows (list: no rules, ×2 rounded hover and selected fills) or stock `Card` tiles (grid); rows keep their stock inline padding, and group labels, folder artwork, and grid card edges take that same inset (`--artifact-library-inset`), so every icon shares one edge and row fills grow outward from it to the column edge. Folder tiles stay boxless, Finder-style, with a selection fill that grows outward. The viewer fills the remaining app height and keeps file details and revisions beside the asset.
 - **Amazon references:** Product chips reuse the inline reference shell with an 18px transparent cutout thumbnail from RankWrangler and a short name (ASIN fallback) capped at 16rem. The image fits inside its box without cropping, zoom, or background blending. Missing or failed cutouts use the product icon. Their landscape hover card uses the shared hover-card material at 384px and shows a compact text surface with a two-line title, closely spaced brand, and price, with a 72px transparent cutout floating to its right at −5°. A 1.2-second pop-in with diminishing scale and rotation overshoot settles at −5°; a delayed sparkle fades out. Both respect reduced-motion preferences. Feature bullets are omitted.
 - **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
   no additional end padding, so text and thread previews use the space beside the avatar rail.
@@ -784,11 +806,14 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
   Recalibrate it when those colors change.
   **In-chat column:** every attachment under a message — Action cards (Cloud Agent work), thread
-  previews, the working log, workspace changes — is `w-full` up to one shared cap,
+  previews, artifact cards, the working log, workspace changes — is `w-full` up to one shared cap,
   `--chat-card-width` (36rem) in `default-theme.css`, on every message whether or not other
   attachments are present, so stacked attachments share both edges. Use `max-w-(--chat-card-width)`;
-  never a per-component literal. Compact object tiles (ArtifactCard, 28rem) and inline chips
-  (task chips) stay content-sized. The Cloud Agent card is the same card in the transcript and the
+  never a per-component literal. Inline chips (task and artifact chips) stay content-sized.
+  An Agent's HTML fence card is a stock `ItemCard`
+  with `.item-card--message-object`: the `nested-surface` fill and ring, the shell corner, the
+  thread preview's density, and the library's 40px kind icon as mark. A linked shared-library file
+  is a media strip tile instead (see Chat attachments). The Cloud Agent card is the same card in the transcript and the
   Thread. Message hover lightens the fill without dimming content;
   clickable thread previews strengthen to 12% opacity on hover. Light-mode canvas rows use
   `--background-hover`: a 50% `background-secondary` wash, including messages in task and thread views.
@@ -875,13 +900,18 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 - **Cards and surfaces:** Use HeroUI Card, Surface, overlays, and `bg-surface` tokens. Do not add extra custom shadows to components that already include surface elevation. For surfaces nested inside a turn, drawer, or pane — where Card's padding and shadow fight the layout — use `InlineCard` or the `.card-shell` class so the shell step stays in one place. Component
   overrides like these live in the `@layer components` block of `default-theme.css`, which is
   the shape HeroUI's own theme exports take — variables and BEM overrides in one file.
-- **Chat attachments:** Composer media uses HeroUI's compact stock `ChatAttachment`. A hosted image
-  in the transcript uses the named `chat-attachment--transcript-image` modifier for a 75px square
-  preview. Clicking opens the full image viewer; download lives in that viewer and in the image's
-  **Save Image As…** context-menu action, not in thumbnail hover chrome. The transcript's single
-  outer attachment group owns row spacing and overflow; attachment renderers return items directly
-  and never nest another group. Message text leads; the attachment group follows with one compact
-  spacing step so the file reads as the message's payload rather than its preface.
+- **Chat attachments:** Composer media uses HeroUI's compact stock `ChatAttachment`. Under a
+  message, every image, file, and linked shared-library artifact is a stock `ChatAttachment` with
+  the `chat-attachment--strip-tile` modifier: one 4:3 box (`--chat-media-tile-width` ×
+  `--chat-media-tile-height`, 176×132) and ChatAttachment's own `rounded-xl` corner, so a mixed row
+  reads as one even carousel. Images crop to the box; files and artifacts stack their 36px mark over
+  a two-line name and a muted meta line. The tiles ride one `MessageMediaStrip` per message
+  (`features/chats/message-media-strip.tsx`): stock horizontal `ScrollShadow` with snap, no
+  scrollbar, and no overflow count. Focus draws as an inset outline on the tile, because the strip
+  clips its overflow. Clicking an image opens the full image viewer; download lives in that viewer
+  and in the image's **Save Image As…** context-menu action, not in thumbnail hover chrome. Message
+  text leads; the strip follows one `--chat-block-gap` step below it and keeps that step before the next message, so the media reads as the message's
+  payload rather than its preface.
 - **Forms:** Use HeroUI field components so `--field-background`, `--field-border`, `--field-foreground`, `--field-radius`, and field widths resolve consistently.
 - **Status:** Use semantic status tokens for actual meaning: success for positive outcomes, warning for caution, danger for destructive or critical states.
 - **Inline references:** Use the transparent HeroUI Chip shell with inherited font size, a tight internal line box, no outer padding, one `--spacing` gap, and an 18px identity mark, reduced to 16px for the compact three-sparkle Skill mark. Use a bold label with a dotted underline in the reference's identity color; reserve the underline space inside the label so truncation cannot clip it, and scale its dot size and spacing with the surrounding type. Optically raise the fixed-size mark by 1.5px to align it with the surrounding text. The three-sparkle glyph has extra inline-end whitespace in its official viewBox, so Skill chips alone pull that edge inward by half a spacing step; Agent and Channel spacing stays unchanged. Agent labels use accent, Skill labels use the mode-aware purple `--skill-reference` product token, and Channel labels use their configured Channel color; a colorless Channel falls back to foreground ink with a translucent foreground-wash mark, never `--default` or `--muted` — the sidebar row's hover and current fills are `--default`, so an opaque box built from it vanishes into the exact states meant to emphasize the row, and a wash composites over any fill. In the light theme only, the larger sidebar Channel mark uses a slightly quieter wash than compact reference and preview marks; dark uses one shared ground and one shared fill. The Channel mark, glyph, and label resolve per theme on `channel-icon-box` and `reference-chip--channel` in `default-theme.css`, with the always-dark preview keyed into the dark branch; Skill chips resolve on `reference-chip--skill`, and the contrast preview rebinds the Skill token to its dark value. Interactive references strengthen on hover and focus by moving away from their ground: light deepens, dark brightens. Pointer-following rich previews use non-interactive Tooltips. Their bottom-left corner tracks 15px right and 15px above the pointer without a travel cap (subject to viewport collision bounds), close when the trigger is left, and do not accept pointer input. Runtime help remains an anchored interactive HoverCard for its copy control. Pointer-following updates the individual `translate` property without replacing React Aria placement transforms. The Tooltip trigger itself is middle-aligned so its wrapper cannot move a reference off the paragraph baseline. Channel previews render participant identities below the header as an overlapping 20px `EntityAvatar` stack, each mark ringed in the card's opaque ground so the stack does not smear into one shape, with any remainder as a trailing muted count. The paragraph owns leading; references should read as enhanced text, not standalone badges. Preview anatomy is under **Hover cards**.

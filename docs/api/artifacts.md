@@ -30,15 +30,37 @@ Agent artifact HTTP routes for authenticated download resolution. All routes cal
 logic; no Raft source code is included. Public sharing, comments, GitHub publishing, and JSON/base64
 publication are outside this MVP.
 
-The App library offers grid/list views and Server-side search across current titles, filenames, and
-artifact names. Its native list query accepts `query` and `kind` (`all`, `images`, `documents`,
-`media`, `other`); filtering happens before offset pagination. The viewer keeps file details and
-revision history beside the preview, with stable and fixed links available to copy. Passive raster
-images support fullscreen fit/zoom; supported audio/video use native controls. Other formats open
-through the file action. Library thumbnails load only raster images up to 512 KiB; larger originals
-load when opened, pending dedicated thumbnail renditions.
-Library and viewer controls occupy Haus's shell band; the collection and preview use the remaining
-app surface without a document-page header or content-width limit.
+Artifact metadata carries `creator`, exactly one of `{ type: 'agent', agent_id }` or
+`{ type: 'user', user_id }`: whoever created the artifact identity, not the author of later
+revisions. Storage enforces one creator per artifact; a row without exactly one fails the read rather
+than inventing a creator. `created_at` is when the artifact identity was created. `updated_at` is
+when the described revision was published, so on current metadata it is the latest revision time.
+Library lists sort by `updated_at` descending; version lists sort by revision number.
+
+The native list query accepts `query` (Server-side search across current titles, filenames, and
+artifact names), `kind` (`all`, `images`, `documents`, `media`, `other`), and an optional exact
+`creator`; filtering happens before offset pagination. Storage is flat; the library groups by
+creator instead of folders. `artifact.creators` returns one entry per creator with at least one live
+artifact on the Server: `creator`, `artifact_count`, `latest_at`, and `previews`, the creator's three
+most recently updated artifacts of any kind. Entries sort by `latest_at` descending, and the
+procedure uses the same membership authorization as `list`.
+
+The App library (`features/artifacts/`) is a Finder-style page in the ordinary page column: the
+title with search and a list/grid toggle beside it, a row of folders (All files, then the viewer's
+own files as Yours, then Agents, then other people, each with up to three peeking previews and a
+file count), a kind filter, and the files grouped by `updated_at` in the viewer's time zone (Today,
+Yesterday, weekdays through the past week, days this month, months this year, then years). The
+folder and kind ride the URL (`?creator=agent:<id>`, `?kind=images`) so back, reload, and a desktop
+tab return to the same view; search stays local and the list/grid choice is per device. Rows show
+the file's icon or a photo thumbnail, its kind, creator, and relative time, with size and a ⋮ menu
+(Open, Copy link, Download); pages load 50 at a time behind Show more. The viewer shows a header
+(icon, title, creator, last update, ⋮ menu with Download and both links), the preview, and details
+with revision history beside it, stacking below it in narrow panes. Passive raster images open in
+the fullscreen zoom viewer; supported audio/video use native controls; other formats show their
+icon with a Download action. Library thumbnails and folder previews load only raster images up to
+512 KiB; larger originals load when opened, pending dedicated thumbnail renditions. A refused
+download link (storage disabled, revision gone) falls back to the file's icon. The App has no
+artifact realtime events: lists refresh on mount, focus, and reconnect under `syncedSnapshot`.
 
 `haus artifact publish`, `list`, `get`, `versions`, `view`, and `delete` expose these primitives.
 Publish leaves the source untouched. The CLI prints a request ID before transfer; reuse it with

@@ -55,8 +55,9 @@ crosses the boundary.
 
 The `artifact` fence funnels into the widget machinery (component id
 `haus.widget.artifact`; see [widgets.md](widgets.md)). The transcript
-renderer (`apps/website/src/features/chats/artifact-card.tsx`) draws the compact
-card — title, kind line, open affordance — and performs no workspace read.
+renderer (`apps/website/src/features/chats/artifact-card.tsx`) draws a stock
+`ItemCard` below the message — HTML kind icon, title, kind and file name — and
+performs no workspace read.
 Clicking calls the artifact-panel open path with a `workspaceFile` target,
 the same merge-or-focus flow `haus://workspace` links and the agent
 `pane_open` tool use. In the pane, the workspace HTML preview

@@ -136,19 +136,36 @@ and [Agent Inbox](../../specs/inbox.md).
   work updates in place from `cloudAgentWork.updated`; the work never writes
   a second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
-  messages. Humans pick files with the composer's attachment button or drop them anywhere on the
-  open chat or Thread; each drops into its own composer, so split panes never cross. A file drop
-  outside any chat never navigates the window. The App streams human-selected bytes directly to
-  that Server, and
-  Agents upload through their scoped Server credential with `haus attachment upload`, which infers
-  the media type from the file's content (PNG, JPEG, GIF, WebP, SVG, PDF), then its extension, when
-  `--mime-type` is omitted; the Server stores the declared type and falls back to
-  `application/octet-stream`. An image renders as a preview only when its stored type is an image
-  type. The Server publishes
-  the ready attachment and message atomically. The App renders authenticated
-  compact image previews that open into a full image viewer. Download lives in
-  the viewer and the image context menu. Attachments follow the message text; other files retain
-  their filename/type/size card. A Thread reply stages its attachments in the
+  messages. Humans pick files with the composer's attachment button, paste them (a screenshot, a
+  copied image, or files copied in Finder; rich text that carries a rendered image stays a text
+  paste), or drop them anywhere on the open chat or Thread; each drops into its own composer, so
+  split panes never cross. A file drop outside any chat never navigates the window. The App
+  streams human-selected bytes directly to that Server, and Agents upload through their scoped
+  Server credential with `haus attachment upload`.
+  **Media types are resolved, not trusted.** One resolver in `@haus/api`
+  (`attachment-media-type.ts`) is shared by the composer, the Server, and the Agent CLI: a missing
+  or generic declared type (empty, `application/octet-stream`) takes the content signature (images
+  including AVIF, HEIC/HEIF, BMP, TIFF, ICO, and SVG; PDF; archives; common audio and video), then
+  the extension, then `application/octet-stream`; a declared image type the bytes contradict takes
+  the bytes. The Server applies it when it finalizes a human upload and when it stores an Agent
+  upload, so the stored type is what the bytes are. The Server publishes
+  the ready attachment and message atomically.
+  **Display.** Attachments follow the message text as one media strip: a single row of evenly
+  sized 4:3 tiles (176×132) that scrolls sideways once it outgrows the column, with scroll snap, an
+  edge fade where items continue, no scrollbar, and Tab or the arrow keys walking the tiles. Images
+  (by stored type, or by file name for an older row stored as octet-stream) come first, cropped to
+  the tile; then every other file as a tile with the Artifacts file icon, its name (two lines), and
+  "PDF · 2.4 MB"; then the shared-library artifacts the text links to (below). Each group keeps
+  message order and nothing hides behind a count. An image opens the full image viewer, which steps
+  through the message's other images (buttons or arrow keys); download lives in the viewer and the
+  image context menu. Clicking a file tile or its context menu downloads it. Image bytes download
+  once per attachment id and are decoded before they paint, and every tile is a fixed box, so
+  nothing grows when bytes land and tiles survive transcript remounts; transient download failures
+  retry with backoff, and bytes the browser cannot draw (HEIC in Chrome) become the file tile, never a broken image. The download route sends
+  `private, max-age=31536000, immutable`, because bytes never change under an id. A pending send
+  renders its attachments through the same strip from the staged File, so an image send shows
+  the image at once and the confirmed row reuses that decode; nothing flashes or jumps when the
+  Server confirms. The Files pane lists the same cards with image thumbnails. A Thread reply stages its attachments in the
   parent Chat, because a first reply has no Thread yet; the Server accepts a
   parent-staged attachment on a Thread reply and re-homes it to the Thread the
   reply lands in.
@@ -290,7 +307,18 @@ and [Agent Inbox](../../specs/inbox.md).
   [Widgets](../internals/widgets.md).
 * **Artifacts.** Code, images, files, diffs, documents, and longer pages render
   as durable outputs attached to messages; an agent makes one when asked for
-  something to keep, share, or revisit.
+  something to keep, share, or revisit. An Agent's HTML artifact fence becomes
+  a card below its message (kind icon, title, kind and file name) that opens
+  the page in the Artifact Panel, or its own tab on desktop; it keeps its place
+  in the prose rather than joining the media strip. A link to this
+  Server's shared library (the `stable_url` `haus artifact publish` returns)
+  reads inline as a reference chip (kind icon and title, dotted underline) and
+  adds a tile to the message's media strip, after its attachments: a small
+  image shows its thumbnail, anything else its kind icon, over the title and
+  "Kind · creator". Both open the artifact page in the App. A tile holds its
+  box blank while the artifact reads; a missing or hidden artifact keeps the
+  written link and no tile, and
+  links to another Server or origin stay ordinary links.
 * **Receipts.** Message creation is acknowledged by id. Sends return no
   turns — delivery to agents is planner-owned (see
   [Agent Inbox](../../specs/inbox.md)).

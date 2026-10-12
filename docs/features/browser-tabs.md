@@ -27,8 +27,9 @@ Every tab shares one anatomy: a compact rounded tab holding a leading mark, a ti
 fade when cut off, and a close button that shows on the selected tab and on hover or keyboard
 focus. The whole tab selects it. A tab's mark and title follow its current page and borrow what the
 sidebar shows: a channel's icon and color, a DM's or Agent's avatar, a section's glyph, a Thread's
-or Files page's chat mark (the tooltip adds `#name › thread`, or `DM › files`), the Artifact Panel's
-file glyph, or a web page's favicon (a spinner while it loads, a globe when it has none). A tab whose
+or Files page's chat mark (the tooltip adds `#name › thread`, or `DM › files`), the artifact glyph
+(titled with the authored title for a workspace artifact, or the file's title once a shared library
+artifact's record loads), or a web page's favicon (a spinner while it loads, a globe when it has none). A tab whose
 record is still loading keeps an empty mark slot and title.
 
 Each pane's row sits in the band directly over its pane and always shows, even with one tab. A row
@@ -169,9 +170,11 @@ pages only.
 A **Thread** page shows the same Thread surface the web's side panel hosts, full width like a chat;
 View in chat opens the chat scrolled to the anchor, flashing it. A `?thread=` or `?task=`
 chat link strips its parameter, then opens the Thread page. A chat's **Files** page lists the
-attachments in its loaded messages. An **artifact** page shows the Artifact Panel's renderers (a file
-preview with copy, raw, and link actions, or the workspace browser); a target no Agent workspace
-holds shows "Artifact unavailable". An **Agent** page is the profile hub; its sections stay inside
+attachments in its loaded messages. An **artifact** page from an Agent workspace shows the Artifact Panel's
+renderers (a file preview with copy, raw, and link actions, or the workspace browser); a target no
+Agent workspace holds shows "Artifact unavailable". A shared library artifact (`artifacts/<id>`)
+shows the library's viewer, and the Artifacts section page is the library itself
+([Shared artifacts](../api/artifacts.md)). An **Agent** page is the profile hub; its sections stay inside
 the tab ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)).
 
 ## Persistence and mounting
