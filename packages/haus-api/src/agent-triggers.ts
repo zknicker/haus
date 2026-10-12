@@ -1,6 +1,9 @@
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
-import { githubTriggerConfigInputSchema } from './github-trigger-events.ts';
+import {
+    githubTriggerConfigInputSchema,
+    githubTriggerEventNameSchema,
+} from './github-trigger-events.ts';
 import {
     githubTriggerSchema,
     triggerFireDetailSchema,
@@ -47,6 +50,41 @@ export const agentTriggerCreateInputSchema = z.union([
         .strict(),
 ]);
 export type AgentTriggerCreateInput = z.infer<typeof agentTriggerCreateInputSchema>;
+
+export const agentTriggerUpdateInputSchema = z
+    .object({
+        github: githubTriggerConfigInputSchema.optional(),
+        instruction: triggerInstructionSchema.nullable().optional(),
+        title: triggerTitleInputSchema.optional(),
+    })
+    .strict()
+    .refine(
+        (input) => Object.values(input).some((value) => value !== undefined),
+        'Provide a title, instruction, or GitHub configuration.'
+    );
+export type AgentTriggerUpdateInput = z.infer<typeof agentTriggerUpdateInputSchema>;
+
+export const githubTriggerPreviewInputSchema = z
+    .object({
+        event: githubTriggerEventNameSchema,
+        payload: z
+            .record(z.string(), z.unknown())
+            .refine(
+                (payload) => new TextEncoder().encode(JSON.stringify(payload)).byteLength <= 60_000,
+                'Webhook payload must be under 60,000 bytes.'
+            ),
+    })
+    .strict();
+export type GithubTriggerPreviewInput = z.infer<typeof githubTriggerPreviewInputSchema>;
+export const githubTriggerPreviewResultSchema = z
+    .object({
+        groups: z.array(
+            z.object({ index: z.number().int().nonnegative(), matches: z.boolean() }).strict()
+        ),
+        matches: z.boolean(),
+        repositoryInScope: z.boolean(),
+    })
+    .strict();
 
 /** Webhook create and rotate: the only responses that ever contain a secret. */
 export const agentTriggerSecretResultSchema = z

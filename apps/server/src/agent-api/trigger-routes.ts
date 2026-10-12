@@ -1,5 +1,7 @@
 import {
     agentTriggerCreateInputSchema,
+    agentTriggerUpdateInputSchema,
+    githubTriggerPreviewInputSchema,
     triggerLogLimitDefault,
     triggerLogLimitMax,
 } from '@haus/api';
@@ -19,10 +21,12 @@ import {
     createAgentTrigger,
     deleteAgentTrigger,
     listAgentTriggers,
+    previewAgentTrigger,
     readAgentTrigger,
     readAgentTriggerLog,
     rotateAgentTriggerSecret,
     setAgentTriggerStatus,
+    updateAgentTrigger,
 } from './triggers.ts';
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(200) });
@@ -73,6 +77,42 @@ export function registerAgentTriggerRoutes(
             return invalid(reply);
         }
         return await runAction(reply, () => readAgentTrigger(db, runner, request, parsed.data.id));
+    });
+
+    app.patch('/api/agent/triggers/:id', async (request, reply) => {
+        const runner = await authorizeAgentRunner(db, request);
+        if (!runner) {
+            return unauthorized(reply);
+        }
+        const params = idParamsSchema.safeParse(request.params);
+        const body = agentTriggerUpdateInputSchema.safeParse(request.body);
+        if (!(params.success && body.success)) {
+            return invalid(reply);
+        }
+        return await runAction(reply, () =>
+            updateAgentTrigger(
+                db,
+                runner,
+                request,
+                { ...body.data, triggerId: params.data.id },
+                githubTransport
+            )
+        );
+    });
+
+    app.post('/api/agent/triggers/:id/preview', { bodyLimit: 65_536 }, async (request, reply) => {
+        const runner = await authorizeAgentRunner(db, request);
+        if (!runner) {
+            return unauthorized(reply);
+        }
+        const params = idParamsSchema.safeParse(request.params);
+        const body = githubTriggerPreviewInputSchema.safeParse(request.body);
+        if (!(params.success && body.success)) {
+            return invalid(reply);
+        }
+        return await runAction(reply, () =>
+            previewAgentTrigger(db, runner, request, { ...body.data, triggerId: params.data.id })
+        );
     });
 
     for (const [action, status] of [

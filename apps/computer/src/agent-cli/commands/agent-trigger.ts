@@ -1,4 +1,3 @@
-import type { CliFlag } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import {
     defaultTriggerDeps,
@@ -10,6 +9,8 @@ import {
     runTriggerShow,
     runTriggerStatus,
 } from './agent-trigger-actions.ts';
+import { runTriggerPreview, runTriggerUpdate } from './agent-trigger-edit.ts';
+import { GITHUB_CREATE_FLAGS } from './agent-trigger-flags.ts';
 
 export * from './agent-trigger-actions.ts';
 
@@ -23,42 +24,53 @@ const idFlag = {
     valueName: '<id>',
 };
 
-const GITHUB_CREATE_FLAGS: CliFlag[] = [
-    {
-        description: 'github: a repository to watch (repeatable)',
-        name: '--repo',
-        valueName: '<owner/name>',
-    },
-    {
-        description: 'github: every repository you can reach in this account',
-        name: '--org',
-        valueName: '<login>',
-    },
-    {
-        description: 'github: event to listen to (repeatable)',
-        name: '--event',
-        valueName: '<name>',
-    },
-    { description: 'github: event action filter', name: '--action', valueName: '<action>' },
-    {
-        description: 'github: check or workflow conclusion, e.g. failure',
-        name: '--conclusion',
-        valueName: '<value>',
-    },
-    { description: 'github: branch filter', name: '--branch', valueName: '<branch>' },
-    { description: 'github: label filter', name: '--label', valueName: '<label>' },
-    { description: 'github: deployment or review state', name: '--state', valueName: '<state>' },
-    { description: 'github: deployment environment', name: '--environment', valueName: '<name>' },
-    { description: 'github: workflow file path', name: '--workflow', valueName: '<path>' },
-    { description: 'github: check run name', name: '--check-name', valueName: '<name>' },
-    {
-        description: 'github: collaborators (default) or anyone',
-        name: '--authors',
-        valueName: '<who>',
-    },
-];
-
 export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
+    {
+        name: 'update',
+        summary: 'Edit your trigger without replacing its anchor or history',
+        usage: 'haus trigger update --id <id> [--title <text>] [--instruction <text>] [(--repo <owner/name> | --org <login>) (--event <name> | --events-json <json>) [filters]]',
+        examples: [
+            'haus trigger update --id trg_123 --org acme --event workflow_run --branch @default --exclude-repo acme/archived-* --conclusion failure',
+        ],
+        notes: [
+            'GitHub filters replace the entire GitHub configuration. Include --org or --repo and all desired groups.',
+            'An empty --instruction clears it. Omitted fields stay unchanged.',
+        ],
+        flags: [
+            idFlag,
+            { name: '--title', description: 'New title', valueName: '<text>' },
+            {
+                name: '--instruction',
+                description: 'New instruction; empty clears it',
+                valueName: '<text>',
+            },
+            ...GITHUB_CREATE_FLAGS,
+        ],
+        positionals: [],
+        run: (args) => runTriggerUpdate(args, defaultTriggerDeps()),
+    },
+    {
+        name: 'preview',
+        summary: 'Check a webhook payload against your GitHub trigger without firing it',
+        usage: 'haus trigger preview --id <id> --event <name> --payload-file <path>',
+        examples: [
+            'haus trigger preview --id trg_123 --event workflow_run --payload-file delivery.json',
+        ],
+        flags: [
+            idFlag,
+            { name: '--event', description: 'GitHub webhook event name', valueName: '<name>' },
+            {
+                name: '--payload-file',
+                description: 'Raw webhook JSON object, under 60,000 bytes',
+                valueName: '<path>',
+            },
+        ],
+        notes: [
+            'Reports repository scope and each match group. Does not check runtime readiness or record a fire.',
+        ],
+        positionals: [],
+        run: (args) => runTriggerPreview(args, defaultTriggerDeps()),
+    },
     {
         examples: [
             'haus trigger create --title "deploy finished" --message-id 1a2b3c4d',
@@ -76,6 +88,10 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
             '  --state: deployment_status, pull_request_review   --environment: deployment_status',
             '  --label: pull_request, issues   --workflow: workflow_run (file path)   --check-name: check_run',
             '  --authors: pull_request, pull_request_review, issues (default collaborators)',
+            'Name filters support * within a path segment, ** across /, and ? for one character. Branch @default follows the repository default branch.',
+            'Use --exclude-branch, --exclude-workflow, --exclude-check-name, --exclude-environment, --exclude-repo, or --exclude-actor. Exclusions win inside each group.',
+            '--actor filters sender.login; --workflow-event filters workflow_run.event (e.g. push). --match-repo filters full owner/name within the authorized scope.',
+            '--events-json replaces event/filter flags with up to 10 typed OR groups, including repeated event names.',
         ],
         flags: [
             {

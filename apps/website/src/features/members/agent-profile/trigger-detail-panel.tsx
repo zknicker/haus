@@ -21,6 +21,7 @@ import {
 import { AutomationConfirmDialog } from './automation-confirm-dialog.tsx';
 import { TriggerFireHistory } from './trigger-fire-history.tsx';
 import { TriggerGithubConfigGroup } from './trigger-github-config-group.tsx';
+import { TriggerGithubEventEditor } from './trigger-github-event-editor.tsx';
 import { TriggerManageGroup } from './trigger-manage-group.tsx';
 import { TriggerSummaryGroup } from './trigger-summary-group.tsx';
 import { type TriggerMintedSecret, TriggerWebhookCard } from './trigger-webhook-card.tsx';
@@ -140,7 +141,13 @@ export function TriggerDetailPanel({
                             url={trigger.url}
                         />
                     ) : (
-                        <TriggerGithubConfigGroup agentName={agent.displayName} trigger={trigger} />
+                        <>
+                            <TriggerGithubConfigGroup
+                                agentName={agent.displayName}
+                                trigger={trigger}
+                            />
+                            <TriggerGithubEventEditor serverId={serverId} trigger={trigger} />
+                        </>
                     )}
                     <TriggerManageGroup
                         canTest={canTestTrigger(trigger)}

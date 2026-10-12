@@ -1,6 +1,7 @@
 import type { GithubTriggerEvent, GithubTriggerEventName, GithubTriggerEvents } from '@haus/api';
 import { githubTriggerEventNameSchema } from '@haus/api';
 import { field, labelNames, type Payload, text } from './event-projection/payload.ts';
+import { matchesSelection } from './trigger-pattern.ts';
 
 // Which `github` Triggers a delivery wakes (specs/github-triggers.md#events).
 // Entries are OR'd; within one entry every present filter must pass, and a
@@ -42,16 +43,48 @@ export function repositoryInScope(input: {
     );
 }
 
+export function matchesGithubGroup(
+    entry: GithubTriggerEvent,
+    event: GithubTriggerEventName,
+    payload: Payload
+): boolean {
+    return entry.event === event && matchesEntry(entry, payload);
+}
+
 function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
     const action = text(payload, 'action');
+    const repository = field(payload, 'repository');
+    if (
+        !(
+            matchesSelection(
+                entry.repositories,
+                entry.repositoriesIgnore,
+                text(repository, 'full_name')
+            ) &&
+            matchesSelection(
+                entry.actors,
+                entry.actorsIgnore,
+                text(field(payload, 'sender'), 'login')
+            )
+        )
+    ) {
+        return false;
+    }
+    const defaultBranch = text(repository, 'default_branch');
     switch (entry.event) {
         case 'workflow_run': {
             const run = field(payload, 'workflow_run');
             return (
                 oneOf(entry.actions, action) &&
                 oneOf(entry.conclusions, text(run, 'conclusion')) &&
-                oneOf(entry.branches, text(run, 'head_branch')) &&
-                oneOf(entry.workflows, text(run, 'path'))
+                matchesSelection(
+                    entry.branches,
+                    entry.branchesIgnore,
+                    text(run, 'head_branch'),
+                    defaultBranch
+                ) &&
+                matchesSelection(entry.workflows, entry.workflowsIgnore, text(run, 'path')) &&
+                oneOf(entry.workflowEvents, text(run, 'event'))
             );
         }
         case 'workflow_job': {
@@ -59,7 +92,12 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
             return (
                 oneOf(entry.actions, action) &&
                 oneOf(entry.conclusions, text(job, 'conclusion')) &&
-                oneOf(entry.branches, text(job, 'head_branch'))
+                matchesSelection(
+                    entry.branches,
+                    entry.branchesIgnore,
+                    text(job, 'head_branch'),
+                    defaultBranch
+                )
             );
         }
         case 'check_suite': {
@@ -67,7 +105,12 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
             return (
                 oneOf(entry.actions, action) &&
                 oneOf(entry.conclusions, text(suite, 'conclusion')) &&
-                oneOf(entry.branches, text(suite, 'head_branch'))
+                matchesSelection(
+                    entry.branches,
+                    entry.branchesIgnore,
+                    text(suite, 'head_branch'),
+                    defaultBranch
+                )
             );
         }
         case 'check_run': {
@@ -75,16 +118,22 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
             return (
                 oneOf(entry.actions, action) &&
                 oneOf(entry.conclusions, text(run, 'conclusion')) &&
-                oneOf(entry.branches, text(field(run, 'check_suite'), 'head_branch')) &&
-                oneOf(entry.checkNames, text(run, 'name'))
+                matchesSelection(
+                    entry.branches,
+                    entry.branchesIgnore,
+                    text(field(run, 'check_suite'), 'head_branch'),
+                    defaultBranch
+                ) &&
+                matchesSelection(entry.checkNames, entry.checkNamesIgnore, text(run, 'name'))
             );
         }
         case 'deployment_status': {
             const status = field(payload, 'deployment_status');
             return (
                 oneOf(entry.states, text(status, 'state')) &&
-                oneOf(
+                matchesSelection(
                     entry.environments,
+                    entry.environmentsIgnore,
                     text(status, 'environment') ?? text(field(payload, 'deployment'), 'environment')
                 )
             );
@@ -93,7 +142,12 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
             const pull = field(payload, 'pull_request');
             return (
                 oneOf(entry.actions, action) &&
-                oneOf(entry.baseBranches, text(field(pull, 'base'), 'ref')) &&
+                matchesSelection(
+                    entry.baseBranches,
+                    entry.baseBranchesIgnore,
+                    text(field(pull, 'base'), 'ref'),
+                    defaultBranch
+                ) &&
                 anyLabel(entry.labels, labelNames(pull)) &&
                 authorAllowed(entry.authors, text(pull, 'author_association'))
             );
@@ -107,7 +161,7 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
             );
         }
         case 'push':
-            return matchesPush(entry.branches, payload);
+            return matchesPush(entry.branches, entry.branchesIgnore, payload, defaultBranch);
         case 'issues': {
             const issue = field(payload, 'issue');
             return (
@@ -124,15 +178,23 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
 }
 
 /** A branch deletion never matches; a branch filter matches only `refs/heads/<branch>`. */
-function matchesPush(branches: readonly string[] | undefined, payload: Payload): boolean {
+function matchesPush(
+    branches: readonly string[] | undefined,
+    ignored: readonly string[] | undefined,
+    payload: Payload,
+    defaultBranch: string | null
+): boolean {
     if (field(payload, 'deleted') === true) {
         return false;
     }
-    if (!branches) {
+    const ref = text(payload, 'ref');
+    if (!(branches || ignored)) {
         return true;
     }
-    const ref = text(payload, 'ref');
-    return ref?.startsWith('refs/heads/') === true && branches.includes(ref.slice(11));
+    return (
+        ref?.startsWith('refs/heads/') === true &&
+        matchesSelection(branches, ignored, ref.slice(11), defaultBranch)
+    );
 }
 
 function oneOf(values: readonly string[] | undefined, value: string | null): boolean {

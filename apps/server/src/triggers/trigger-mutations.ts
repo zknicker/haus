@@ -1,4 +1,5 @@
 import type {
+    AgentTriggerUpdateInput,
     GithubTrigger,
     GithubTriggerConfigInput,
     Trigger,
@@ -9,7 +10,7 @@ import { requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
 import type { GithubAuthoringDependencies } from './github-trigger-config.ts';
-import { createGithubTriggerRow } from './github-trigger-writes.ts';
+import { createGithubTriggerRow, updateGithubTriggerRow } from './github-trigger-writes.ts';
 import type { TriggerClock } from './trigger-model.ts';
 import { readOwnedTrigger } from './trigger-queries.ts';
 import {
@@ -18,6 +19,7 @@ import {
     rotateTriggerSecretRow,
     setTriggerStatusRow,
     type TriggerAnchor,
+    updateTriggerRow,
 } from './trigger-writes.ts';
 
 /**
@@ -139,6 +141,25 @@ export async function deleteTrigger(
     clock: TriggerClock
 ): Promise<void> {
     await deleteTriggerRow(db, input, ownedBy(agentId, input), clock);
+}
+
+export async function updateAgentOwnedTrigger(
+    dependencies: GithubAuthoringDependencies,
+    agentId: string,
+    input: AgentTriggerUpdateInput & { origin: string; serverId: string; triggerId: string },
+    clock: TriggerClock
+): Promise<Trigger> {
+    const authorize = ownedBy(agentId, input);
+    await authorize(dependencies.db);
+    if (input.github) {
+        return await updateGithubTriggerRow(
+            dependencies,
+            { ...input, github: input.github },
+            authorize,
+            clock
+        );
+    }
+    return await updateTriggerRow(dependencies.db, input, authorize, clock);
 }
 
 /** The Agent authorization every verb shares: it owns the row and can still reach the anchor. */
