@@ -167,7 +167,7 @@ with `?thread=<anchorMessageId>` on the web — landing on the first unread repl
 open does while the Thread is unread. A reply already in view from the Thread's start stays put
 with the anchor; one below the fold scrolls up to sit clear of the top fade, with the reply
 before it in view. A Cloud Agent work row opens its `location`: the launch work Thread
-when the viewer can read it (peeked at `?work=<messageId>`, the same Thread timeline the Chat
+when the viewer can read it (peeked at `?work=<workId>`, the same Thread timeline the Chat
 opens, work card and all), otherwise the newest linking Message the viewer can see, in its Thread
 when it has one; an Agent row in **Happening now** opens
 that Agent's page.

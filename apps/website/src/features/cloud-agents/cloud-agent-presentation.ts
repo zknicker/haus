@@ -132,12 +132,12 @@ export function cloudAgentBranchPullRequestNumber(branch: CloudAgentBranch): nul
         : cloudAgentPullRequestNumber(branch.pullRequestUrl);
 }
 
-/** Owners and Admins may cancel; a settled Run has nothing left to stop. */
 /** A delegating Agent the viewer's Agent list no longer has, named by the tail of its id. */
 export function cloudAgentWorkAgentFallbackName(agentId: string): string {
     return `Agent ${agentId.slice(-6)}`;
 }
 
+/** Owners and Admins may cancel; a settled Run has nothing left to stop. */
 export function canCancelCloudAgentWork(input: {
     cancelRequestedAt: string | null;
     role: string;
