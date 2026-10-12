@@ -1,0 +1,2 @@
+ALTER TABLE "artifact_revisions" DROP CONSTRAINT "artifact_revision_ready";--> statement-breakpoint
+ALTER TABLE "artifact_revisions" ADD CONSTRAINT "artifact_revision_ready" CHECK ("artifact_revisions"."state" <> 'ready' or ("artifact_revisions"."sha256" is not null and "artifact_revisions"."sha256" ~ '^[a-f0-9]{64}$'));
