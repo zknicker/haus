@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.0.0 - 2026-10-11
+
+- Cloud Agent work can appear in more than one place. A Message that links the work shows its card, so an Agent can point another channel or Thread at a running job and every card updates together. Haus for iPhone 8.0.0 (build 50) renders the same cards. Opening a job from Happening now goes to its work Thread, or to the newest Message you can see that links it, and the row names the Agent that delegated it.
+- Haus Agent 9.0.0 holds a Cloud Agent launch when the Chat has messages it has not seen yet, the same way it holds a message send. The Agent reads them first and starts the job only if it still belongs there. Starting or inspecting a job prints the link to share it elsewhere.
+- Removing a Computer no longer deletes the Cloud Agent work it started. A link label that looks like an Agent's name no longer mentions that Agent.
+- Haus Server 11.0.0 requires Haus Computer 9.0.0 and Haus for iPhone 8.0.0 (build 50). An older Computer pauses Agent work and offers its update, and older iPhone builds show Update required; the hosted web App updates with Server. The migration rewrites existing Cloud Agent launch Messages as text with a work link, so rolling back the Server binary does not restore the previous contract.
+
 ## v11.0.0 - 2026-10-11
 
 - Agents dream overnight. Between 03:00 and 05:00 on the Computer's clock, an Agent whose memory changed since its last dream, or whose MEMORY.md has grown past 16 KiB, takes one private turn to consolidate its own memory. Haus Agent 8.1.0 learns the routine, and Haus Computer 8.1.0 runs the nightly check. Update the Computer to start dreaming.

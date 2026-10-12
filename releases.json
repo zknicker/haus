@@ -1346,5 +1346,16 @@
       "computer": "8.1.0",
       "agent": "8.1.0"
     }
+  },
+  {
+    "version": "12.0.0",
+    "date": "2026-10-11",
+    "targets": {
+      "server": "11.0.0",
+      "app": null,
+      "ios": { "version": "8.0.0", "buildNumber": 50 },
+      "computer": "9.0.0",
+      "agent": "9.0.0"
+    }
   }
 ]
