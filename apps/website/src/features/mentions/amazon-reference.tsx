@@ -1,12 +1,13 @@
 import { type AmazonProductIdentity, amazonProductUrl, parseAmazonProduct } from '@haus/api';
+import { HoverCard } from '@heroui-pro/react';
 import * as React from 'react';
-import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
+import { hausHoverCardClassName } from '../../components/ui/cursor-hover-card.tsx';
+import { cn } from '../../lib/utils.ts';
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 import { AmazonProductPreview, lookupInProgress, productImage } from './amazon-product-preview.tsx';
 import { ReferenceChip } from './reference-chip.tsx';
 import { useAmazonProduct } from './use-amazon-product.ts';
 
-/** The chip comes from the pattern match; the RankWrangler lookup only fills it in. */
 export function AmazonReference({
     product,
     serverId,
@@ -42,35 +43,42 @@ export function AmazonReferenceChip({
     const summary = lookup.status === 'ready' ? lookup.product : undefined;
     const label = summary?.shortName ?? product.asin;
     return (
-        <CursorHoverCard
-            className="haus-product-hover w-96 max-w-[calc(100vw-2rem)]"
-            content={<AmazonProductPreview asin={product.asin} lookup={lookup} />}
-            onOpenChange={onPreviewOpenChange}
-        >
-            <a
-                aria-busy={lookupInProgress(lookup) || undefined}
-                aria-label={`Open ${label} on Amazon`}
-                className="reference-chip-trigger inline-flex max-w-full align-middle no-underline"
-                href={href ?? amazonProductUrl(product)}
-                rel="noreferrer"
-                target="_blank"
+        <HoverCard onOpenChange={onPreviewOpenChange} openDelay={250}>
+            <HoverCard.Trigger>
+                <a
+                    aria-busy={lookupInProgress(lookup) || undefined}
+                    aria-label={`Open ${label} on Amazon`}
+                    className="reference-chip-trigger inline-flex max-w-full align-middle no-underline"
+                    href={href ?? amazonProductUrl(product)}
+                    rel="noreferrer"
+                    target="_blank"
+                >
+                    <ReferenceChip
+                        className="max-w-64"
+                        id={amazonProductUrl(product)}
+                        kind="product"
+                        label={label}
+                        metadata={{
+                            iconDataUrl: summary ? productImage(summary) : undefined,
+                            pending: lookupInProgress(lookup),
+                        }}
+                    />
+                </a>
+            </HoverCard.Trigger>
+            <HoverCard.Content
+                aria-label={`${label} details`}
+                className={cn(
+                    hausHoverCardClassName,
+                    'haus-product-hover w-96 max-w-[calc(100vw-2rem)]'
+                )}
+                placement="bottom start"
             >
-                <ReferenceChip
-                    className="max-w-64"
-                    id={amazonProductUrl(product)}
-                    kind="product"
-                    label={label}
-                    metadata={{
-                        iconDataUrl: summary ? productImage(summary) : undefined,
-                        pending: lookupInProgress(lookup),
-                    }}
-                />
-            </a>
-        </CursorHoverCard>
+                <AmazonProductPreview asin={product.asin} lookup={lookup} />
+            </HoverCard.Content>
+        </HoverCard>
     );
 }
 
-/** Only direct prose text is scanned; Markdown owns nested links, images, and code. */
 export function renderAmazonText(children: React.ReactNode, serverId?: string): React.ReactNode {
     if (!serverId) {
         return children;

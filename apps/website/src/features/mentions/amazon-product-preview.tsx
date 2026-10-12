@@ -1,7 +1,7 @@
 import type { AmazonProductSummary } from '@haus/api';
+import { CopyButton } from '../../components/copy-button.tsx';
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 
-/** One hover card shape across every lookup state; only the notice line changes. */
 export function AmazonProductPreview({
     asin,
     lookup,
@@ -14,28 +14,38 @@ export function AmazonProductPreview({
     const notice = previewNotice(lookup);
     return (
         <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-center gap-2">
-            <div
-                aria-busy={lookupInProgress(lookup) || undefined}
-                className="hover-card__content haus-hover-card dark flex min-w-0 flex-col gap-0.5"
-            >
-                <strong className="line-clamp-2 font-semibold text-foreground text-sm leading-snug">
-                    {product?.title ?? asin}
-                </strong>
-                {product?.brand ? (
-                    <span className="truncate text-muted text-xs">{product.brand}</span>
-                ) : null}
-                {product?.price ? (
-                    <strong className="font-semibold text-base text-foreground leading-snug">
-                        {new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: product.price.currencyCode,
-                        }).format(product.price.amountMinor / 100)}
-                    </strong>
-                ) : null}
-                {product?.amazonListingStatus === 'deleted' ? (
-                    <span className="text-warning text-xs">Listing removed</span>
-                ) : null}
-                {notice ? <span className="text-muted text-xs">{notice}</span> : null}
+            <div className="hover-card__content haus-hover-card dark flex min-w-0 flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                    <code className="min-w-0 flex-1 truncate font-mono text-muted text-xs">
+                        {asin}
+                    </code>
+                    <CopyButton label="Copy ASIN" value={asin} />
+                </div>
+                <div
+                    aria-busy={lookupInProgress(lookup) || undefined}
+                    className="flex min-w-0 flex-col gap-0.5"
+                >
+                    {product?.title ? (
+                        <strong className="line-clamp-2 font-semibold text-foreground text-sm leading-snug">
+                            {product.title}
+                        </strong>
+                    ) : null}
+                    {product?.brand ? (
+                        <span className="truncate text-muted text-xs">{product.brand}</span>
+                    ) : null}
+                    {product?.price ? (
+                        <strong className="font-semibold text-base text-foreground leading-snug">
+                            {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: product.price.currencyCode,
+                            }).format(product.price.amountMinor / 100)}
+                        </strong>
+                    ) : null}
+                    {product?.amazonListingStatus === 'deleted' ? (
+                        <span className="text-warning text-xs">Listing removed</span>
+                    ) : null}
+                    {notice ? <span className="text-muted text-xs">{notice}</span> : null}
+                </div>
             </div>
             {image ? (
                 <div className="haus-product-hover__image">
@@ -55,7 +65,6 @@ export function AmazonProductPreview({
     );
 }
 
-/** The transparent cutout when RankWrangler has one, else the listing photo. */
 export function productImage(product: AmazonProductSummary): string | undefined {
     if (product.cutoutThumbnail?.status === 'available') {
         return product.cutoutThumbnail.url;
@@ -63,7 +72,6 @@ export function productImage(product: AmazonProductSummary): string | undefined 
     return product.thumbnail.status === 'available' ? product.thumbnail.url : undefined;
 }
 
-/** Loading and retrying share the chip's pending look; the hover card tells them apart. */
 export function lookupInProgress(lookup: AmazonProductLookup): boolean {
     return lookup.status === 'loading' || lookup.status === 'retrying';
 }
