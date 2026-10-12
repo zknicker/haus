@@ -239,8 +239,9 @@ export function mentionedAgentIds(
     content: string,
     agents: Array<{ handle: string; id: string }>
 ): Set<string> {
+    const references = parseHausRichReferences(content);
     const ids = new Set(
-        parseHausRichReferences(content).flatMap((reference) => {
+        references.flatMap((reference) => {
             if (reference.kind !== 'agent') {
                 return [];
             }
@@ -248,10 +249,14 @@ export function mentionedAgentIds(
             return id ? [id] : [];
         })
     );
+    // A Haus link's label is display text, such as a Cloud Agent work title,
+    // never a plain-handle mention; an agent link already counted by its id.
+    const plain = references.reduceRight(
+        (text, reference) => `${text.slice(0, reference.start)} ${text.slice(reference.end)}`,
+        content
+    );
     for (const agent of agents) {
-        if (
-            new RegExp(`(^|\\s)@${escapeRegex(agent.handle)}(?=$|[\\s.,!?;:])`, 'iu').test(content)
-        ) {
+        if (new RegExp(`(^|\\s)@${escapeRegex(agent.handle)}(?=$|[\\s.,!?;:])`, 'iu').test(plain)) {
             ids.add(agent.id);
         }
     }
