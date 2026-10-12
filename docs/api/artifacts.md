@@ -51,9 +51,9 @@ cloud deletion failures retain their storage reservation and retry during Server
 The Server reserves the maximum file size before accepting an upload, streams directly to R2 without
 disk staging, and publishes the revision only after storage success. The current pointer advances
 by revision number, so late completion of an older upload cannot replace a newer revision. Default
-limits are 256 MiB per file and 10 GiB of shared storage per Server. Cloudflare ingress can impose a
-lower request limit; production promotion must verify the account's limit or add a direct/chunked
-transfer before promising the full 256 MiB through the Tunnel.
+limits are 256 MiB per file and 10 GiB of shared storage per Server. Production uploads are
+limited to 100 MB to match Cloudflare ingress for haus.chat. Larger uploads require direct or chunked transfer before
+promising the full 256 MiB through the Tunnel.
 
 `view` returns a read-only local path pinned for the current turn. The Computer's shared cache lives
 outside workspaces, isolates Server namespaces, verifies size and SHA-256, reuses revisions, and
@@ -67,8 +67,8 @@ loss cannot retract bytes or links already delivered.
 Enable `HAUS_ENABLE_ARTIFACT_STORAGE` only after the lifecycle's private bucket and bucket-scoped
 Object Read & Write credential exist. `.env.schema` resolves `Cloudflare R2 - Haus` from the matching
 1Password vault: `username` is its S3 access key ID and `credential` its secret access key. Development
-uses `haus-artifacts-development`; production uses `haus-artifacts-production`. The MVP provisions
-only the development bucket. No public bucket endpoint or CDN is required.
+uses `haus-artifacts-development`; production uses `haus-artifacts-production`. Both lifecycle buckets are private. Production enables storage by default; development remains
+opt-in. No public bucket endpoint or CDN is required.
 
 Without storage configuration, metadata reads remain available and file transfer fails explicitly.
 See [workspace capacity and migration](../../specs/workspace.md) for Computer-local storage.
