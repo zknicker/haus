@@ -65,7 +65,7 @@ export class McpOAuthRelay {
         }
     }
 
-    async complete(state: string, code: string): Promise<McpOAuthCallbackResult> {
+    async complete(state: string, code: string, iss?: string): Promise<McpOAuthCallbackResult> {
         const attempt = this.attempts.get(state);
         this.attempts.delete(state);
         if (!attempt || attempt.expiresAt <= this.now()) {
@@ -74,6 +74,7 @@ export class McpOAuthRelay {
         try {
             await completeMcpAuthorization(this.runtime, {
                 code,
+                iss,
                 connectionId: attempt.connectionId,
                 redirectUrl: attempt.redirectUrl,
                 state,
