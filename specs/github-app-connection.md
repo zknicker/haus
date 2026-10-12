@@ -59,7 +59,9 @@ Adding a permission later makes every installation accept it
 
 The `github` preset stays an OAuth MCP connection at `https://api.githubcopilot.com/mcp/`. Its
 configured client is `HAUS_GITHUB_APP_CLIENT_ID` and `HAUS_GITHUB_APP_CLIENT_SECRET` through the
-existing `oauth-clients.ts` path with PKCE and Server-held state. GitHub Apps ignore `scope`, so the
+existing `oauth-clients.ts` path with PKCE and Server-held state. The callback forwards GitHub’s
+RFC 9207 `iss` parameter to the SDK, which validates it against the discovered issuer before
+exchanging the code. GitHub Apps ignore `scope`, so the
 preset sends none. The hosted MCP accepts GitHub App user tokens and permission-checks them through
 the API ([host integration](https://github.com/github/github-mcp-server/blob/main/docs/host-integration.md),
 [scope filtering](https://github.com/github/github-mcp-server/blob/main/docs/scope-filtering.md)).
