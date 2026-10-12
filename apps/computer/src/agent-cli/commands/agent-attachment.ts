@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { inferAttachmentMediaType } from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import {
     agentAttachmentUploadResponseSchema,
     agentAttachmentViewResponseSchema,
 } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { inferAttachmentMediaType } from '../attachment-media-type.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 

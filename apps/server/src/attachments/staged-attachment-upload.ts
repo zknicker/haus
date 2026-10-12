@@ -1,4 +1,4 @@
-import type { AttachmentUploadResult } from '@haus/api';
+import { type AttachmentUploadResult, resolveAttachmentMediaType } from '@haus/api';
 import { asError, settle } from '@haus/effect';
 import { and, eq, inArray } from 'drizzle-orm';
 import { Effect, Exit } from 'effect';
@@ -60,7 +60,7 @@ export async function uploadStagedAttachment(
         runtime,
         Effect.acquireUseRelease(
             Effect.succeed(staged),
-            (resource) => runStagedUpload(db, root, input, attemptId, resource),
+            (resource) => runStagedUpload(db, root, input, attemptId, claimed, resource),
             (resource, exit) =>
                 Exit.isFailure(exit)
                     ? Effect.tryPromise({
@@ -84,6 +84,7 @@ function runStagedUpload(
     root: AttachmentRoot,
     input: AttachmentUploadInput,
     attemptId: string,
+    claimed: Pick<typeof attachmentsTable.$inferSelect, 'filename' | 'mediaType'>,
     resource: StagedUpload
 ) {
     return Effect.tryPromise({
@@ -93,7 +94,10 @@ function runStagedUpload(
         },
         try: async () => {
             resource.file = await root.createStagingFile(input.serverId, attemptId);
-            const { sha256, sizeBytes } = await streamAttachmentToFile(resource.file, input.stream);
+            const { head, sha256, sizeBytes } = await streamAttachmentToFile(
+                resource.file,
+                input.stream
+            );
             await resource.file.sync();
             await input.failureInjection?.beforeStagedFileClose?.();
             await resource.file.close();
@@ -109,7 +113,19 @@ function runStagedUpload(
 
             const [markedFinalizing] = await db
                 .update(attachmentsTable)
-                .set({ byteSize: sizeBytes, sha256, state: 'finalizing', updatedAt: new Date() })
+                .set({
+                    byteSize: sizeBytes,
+                    // Browsers declare an empty type for pasted and unknown files, and
+                    // the App's fallback is octet-stream: the bytes are authoritative.
+                    mediaType: resolveAttachmentMediaType({
+                        declared: claimed.mediaType,
+                        filename: claimed.filename,
+                        head,
+                    }),
+                    sha256,
+                    state: 'finalizing',
+                    updatedAt: new Date(),
+                })
                 .where(currentAttempt(input, attemptId, 'uploading'))
                 .returning({ id: attachmentsTable.id });
             if (!markedFinalizing) {

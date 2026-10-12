@@ -69,6 +69,25 @@ test('streams bytes to one ready attachment and makes response-loss retry idempo
     expect(row.state).toBe('ready');
 });
 
+test('stores the media type the bytes resolve to when the declared type is generic or wrong', async () => {
+    const png = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13);
+    const pasted = await reserve(owner, 'sniff-pasted', 'image', 'application/octet-stream');
+    const pastedUpload = await upload(owner, pasted.attachmentId, png);
+    expect(await pastedUpload.json()).toMatchObject({ attachment: { mediaType: 'image/png' } });
+
+    const mislabeled = await reserve(owner, 'sniff-mislabeled', 'photo.jpg', 'image/jpeg');
+    const mislabeledUpload = await upload(owner, mislabeled.attachmentId, png);
+    expect(await mislabeledUpload.json()).toMatchObject({ attachment: { mediaType: 'image/png' } });
+
+    // A retried reservation repeats the declared type; the finalized row keeps the resolved one.
+    const retried = await reserve(owner, 'sniff-pasted', 'image', 'application/octet-stream');
+    expect(retried).toMatchObject({ attachmentId: pasted.attachmentId, idempotent: true });
+
+    const notes = await reserve(owner, 'sniff-declared', 'notes.txt', 'text/plain');
+    const notesUpload = await upload(owner, notes.attachmentId, png);
+    expect(await notesUpload.json()).toMatchObject({ attachment: { mediaType: 'text/plain' } });
+});
+
 test('accepts missing Content-Length and rejects streamed overflow without a ready object', async () => {
     const small = await reserve(owner, 'chunked-upload', 'empty.bin', 'application/octet-stream');
     const chunked = await uploadChunked(owner, small.attachmentId, [Uint8Array.of(0)]);

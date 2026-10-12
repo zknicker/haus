@@ -66,7 +66,9 @@ export async function reserveAttachment(
         !existing ||
         existing.chatId !== input.chatId ||
         existing.filename !== input.filename ||
-        existing.mediaType !== input.mediaType
+        // Finalize stores the type the bytes resolve to, so a ready row may no
+        // longer carry the declared type the retried reservation repeats.
+        (existing.mediaType !== input.mediaType && !isFinalizedState(existing.state))
     ) {
         throw new AttachmentNonceConflictError();
     }
@@ -77,4 +79,8 @@ export async function reserveAttachment(
         maxSizeBytes: attachmentMaxSizeBytes,
         state: existing.state,
     };
+}
+
+function isFinalizedState(state: AttachmentReservation['state']) {
+    return state === 'finalizing' || state === 'ready';
 }

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { basename } from 'node:path';
+import { attachmentMediaTypeSniffBytes, resolveAttachmentMediaType } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -33,7 +34,11 @@ export async function uploadAgentAttachment(
     }
     const id = createOpaqueId('att');
     const attemptId = createOpaqueId('upl');
-    const mediaType = input.mediaType?.trim() || 'application/octet-stream';
+    const mediaType = resolveAttachmentMediaType({
+        declared: input.mediaType,
+        filename: input.filename,
+        head: bytes.subarray(0, attachmentMediaTypeSniffBytes),
+    });
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     await db.insert(attachmentsTable).values({
         attemptId,

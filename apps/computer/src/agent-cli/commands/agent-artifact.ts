@@ -6,12 +6,12 @@ import {
     artifactMetadataSchema,
     artifactPublishResultSchema,
     artifactVersionsResultSchema,
+    inferAttachmentMediaType,
 } from '@haus/api';
 import * as z from 'zod';
 import { createAgentApiClient } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { inferAttachmentMediaType } from '../attachment-media-type.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 

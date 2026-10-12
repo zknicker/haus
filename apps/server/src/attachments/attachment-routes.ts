@@ -9,8 +9,9 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerRuntime } from '../server-runtime.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
 import { findUserByClerkId } from '../users/haus-user.ts';
+import { attachmentDisposition } from '../utils/content-disposition.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
-import { attachmentDisposition, openAttachmentDownload } from './download-attachment.ts';
+import { openAttachmentDownload } from './download-attachment.ts';
 import { attachmentMaxSizeBytes } from './reserve-attachment.ts';
 import { AttachmentUploadError, uploadAttachment } from './upload-attachment.ts';
 
@@ -47,7 +48,8 @@ export async function registerAttachmentRoutes(
                 );
 
                 reply.headers({
-                    'cache-control': 'private, no-store',
+                    // Attachment bytes never change under an id; only this viewer's cache keeps them.
+                    'cache-control': 'private, max-age=31536000, immutable',
                     'content-disposition': attachmentDisposition(download.filename),
                     'content-length': download.sizeBytes,
                     'content-type': download.mediaType,

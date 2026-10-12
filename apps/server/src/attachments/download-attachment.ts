@@ -63,11 +63,3 @@ export async function openAttachmentDownload(
         sizeBytes: attachment.byteSize,
     };
 }
-
-export function attachmentDisposition(filename: string) {
-    const fallback = filename
-        .normalize('NFKD')
-        .replace(/[^\x20-\x7e]/gu, '_')
-        .replace(/["\\]/gu, '_');
-    return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
-}

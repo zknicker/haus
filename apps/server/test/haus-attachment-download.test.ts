@@ -55,7 +55,7 @@ test('downloads authorized bytes with safe filename and content headers', async 
         `attachment; filename="re_sume_ 2026.txt"; filename*=UTF-8''r%C3%A9sum%C3%A9%202026.txt`
     );
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
-    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('cache-control')).toBe('private, max-age=31536000, immutable');
 });
 
 test('download fails closed without membership and under foreign or path-shaped ids', async () => {

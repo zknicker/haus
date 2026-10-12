@@ -1253,9 +1253,9 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
 test('an Agent uploads, sends, reads, and downloads its own attachment', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_attachment_1' });
     const upload = await agentPost(minted.runnerToken, '/api/agent/attachments/upload', {
+        // No declared type: the Server resolves it (bytes, then the .txt extension).
         dataBase64: Buffer.from('agent attachment bytes').toString('base64'),
         filename: 'notes.txt',
-        mediaType: 'text/plain',
     });
     expect(upload.status).toBe(200);
     expect(upload.body.attachment).toMatchObject({
