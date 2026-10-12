@@ -32,3 +32,16 @@ test.each([
     } satisfies AgentLifecycleEvent;
     expect(projectAgentAvailability([agent], event)[0]?.availability).toBe(availability);
 });
+
+test('a chatless dream run projects working, then idle when it settles', () => {
+    const dream = { ...base, chatId: null } as const;
+    const working = { ...dream, phase: 'working' } satisfies AgentLifecycleEvent;
+    const [busy] = projectAgentAvailability([agent], working);
+    expect(busy?.availability).toBe('working');
+    const settled = {
+        ...dream,
+        outcome: 'completed',
+        phase: 'settled',
+    } satisfies AgentLifecycleEvent;
+    expect(projectAgentAvailability([busy ?? agent], settled)[0]?.availability).toBe('idle');
+});

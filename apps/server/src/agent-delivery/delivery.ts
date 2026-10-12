@@ -8,11 +8,11 @@ import type {
     ReminderScriptResult,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentMessageDraftsTable, agentsTable, chatMessagesTable } from '../postgres/schema.ts';
+import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import {
@@ -27,7 +27,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
-import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
+import { advanceSeenForRun, markCursorSubsumedSeen } from './cursors.ts';
 import {
     configureFrame,
     type DeferredConfiguration,
@@ -51,14 +51,19 @@ import {
     noticeWindow,
     startFrame,
 } from './drain-selection.ts';
+import { planDreamRun, retireStaleDreams } from './dream-run.ts';
 import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
-import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
+import {
+    isConcreteInboxSource as isConcreteSource,
+    isNoticelessInboxSource,
+} from './inbox-lanes.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
+import { attachSummaryVisibility } from './summary-visibility.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
 /** The Server→Computer wire, narrowed to what durable delivery needs. */
@@ -67,7 +72,7 @@ export interface DeliveryTransport {
     send(computerId: string, frame: AgentCommand): boolean;
 }
 
-interface DispatchPlan {
+export interface DispatchPlan {
     activities?: AgentActivityEvent[];
     computerId: string;
     configuration?: DeferredConfiguration;
@@ -87,7 +92,7 @@ export interface EnqueueInput {
     /** Why this item names the Agent personally; null is an ambient delivery. */
     addressedReason?: AddressedReason | null;
     agentId: string;
-    chatId: string;
+    chatId: string | null;
     content: string;
     /** Queue time for work with no Chat message of its own, such as an automation fire. */
     createdAt?: Date;
@@ -217,16 +222,14 @@ export class AgentDelivery {
             if (kill.activity) {
                 publishCommittedAgentActivity(kill.activity);
             }
-            if (kill.chatId) {
-                publishAgentLifecycle({
-                    agentId: input.agentId,
-                    chatId: kill.chatId,
-                    outcome: 'stopped',
-                    phase: 'settled',
-                    runId: kill.runId,
-                    serverId: input.serverId,
-                });
-            }
+            publishAgentLifecycle({
+                agentId: input.agentId,
+                chatId: kill.chatId,
+                outcome: 'stopped',
+                phase: 'settled',
+                runId: kill.runId,
+                serverId: input.serverId,
+            });
             this.transport.send(kill.computerId, {
                 agentId: input.agentId,
                 runId: kill.runId,
@@ -262,16 +265,14 @@ export class AgentDelivery {
             if (interrupted.activity) {
                 publishCommittedAgentActivity(interrupted.activity);
             }
-            if (interrupted.chatId) {
-                publishAgentLifecycle({
-                    agentId: input.agentId,
-                    chatId: interrupted.chatId,
-                    outcome: 'stopped',
-                    phase: 'settled',
-                    runId: interrupted.runId,
-                    serverId: input.serverId,
-                });
-            }
+            publishAgentLifecycle({
+                agentId: input.agentId,
+                chatId: interrupted.chatId,
+                outcome: 'stopped',
+                phase: 'settled',
+                runId: interrupted.runId,
+                serverId: input.serverId,
+            });
             this.transport.send(interrupted.computerId, {
                 agentId: input.agentId,
                 runId: interrupted.runId,
@@ -371,16 +372,14 @@ export class AgentDelivery {
             return;
         }
         if (result.runId) {
-            if (result.chatId) {
-                publishAgentLifecycle({
-                    agentId: input.agentId,
-                    chatId: result.chatId,
-                    outcome: 'stopped',
-                    phase: 'settled',
-                    runId: result.runId,
-                    serverId: input.serverId,
-                });
-            }
+            publishAgentLifecycle({
+                agentId: input.agentId,
+                chatId: result.chatId,
+                outcome: 'stopped',
+                phase: 'settled',
+                runId: result.runId,
+                serverId: input.serverId,
+            });
             this.transport.send(result.computerId, {
                 agentId: input.agentId,
                 runId: result.runId,
@@ -428,7 +427,7 @@ export class AgentDelivery {
             const { runStartedAt: _runStartedAt, ...activity } = stateAndPlan.acceptedActivity;
             publishCommittedAgentActivity(activity);
         }
-        if (state?.activeRunId === input.runId && state.activeRunChatId) {
+        if (state?.activeRunId === input.runId) {
             publishAgentLifecycle({
                 agentId: input.agentId,
                 chatId: state.activeRunChatId,
@@ -457,8 +456,7 @@ export class AgentDelivery {
                 const state = await store.readDeliveryState(tx, summary.agentId);
                 if (
                     state?.activeRunId !== summary.runId ||
-                    state.activeRunComputerId !== computerId ||
-                    !state.activeRunChatId
+                    state.activeRunComputerId !== computerId
                 ) {
                     return null;
                 }
@@ -552,11 +550,7 @@ export class AgentDelivery {
         const settlement = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, serverId);
             const state = await store.readDeliveryState(tx, summary.agentId);
-            if (
-                state?.activeRunId !== summary.runId ||
-                state.activeRunComputerId !== computerId ||
-                !state.activeRunChatId
-            ) {
+            if (state?.activeRunId !== summary.runId || state.activeRunComputerId !== computerId) {
                 // A stale or duplicate summary for an already-cleared run: the
                 // durable record upsert above is the only effect.
                 return null;
@@ -763,16 +757,14 @@ export class AgentDelivery {
                 publishCommittedAgentActivity(rotation.activity);
             }
             if (rotation.runId) {
-                if (rotation.chatId) {
-                    publishAgentLifecycle({
-                        agentId: agent.id,
-                        chatId: rotation.chatId,
-                        outcome: 'stopped',
-                        phase: 'settled',
-                        runId: rotation.runId,
-                        serverId: agent.serverId,
-                    });
-                }
+                publishAgentLifecycle({
+                    agentId: agent.id,
+                    chatId: rotation.chatId,
+                    outcome: 'stopped',
+                    phase: 'settled',
+                    runId: rotation.runId,
+                    serverId: agent.serverId,
+                });
                 this.transport.send(rotation.computerId, {
                     agentId: agent.id,
                     runId: rotation.runId,
@@ -918,11 +910,11 @@ export class AgentDelivery {
             }
             const unnoticed = (
                 await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows)
-            ).filter((row) => row.source !== 'onboarding');
+            ).filter((row) => !isNoticelessInboxSource(row.source));
             if (unnoticed.length > 0) {
                 const pending = noticeWindow(
                     (await store.listQueuedItems(tx, agentId, 1000)).filter(
-                        (row) => row.source !== 'onboarding'
+                        (row) => !isNoticelessInboxSource(row.source)
                     ),
                     unnoticed
                 );
@@ -949,6 +941,7 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
+        await retireStaleDreams(tx, agentId);
         // Sequential: planning runs inside the transaction holding the Server
         // row, and overlapping reads on its one connection wedge it.
         const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
@@ -963,8 +956,9 @@ export class AgentDelivery {
             candidates.find((row) => row.source === 'onboarding') ??
             candidates.find((row) => isConcreteSource(row.source)) ??
             candidates[0];
-        if (!first) {
-            return null;
+        // A dream is concrete work with no Chat, so it starts a chatless run.
+        if (!first || first.source === 'dream') {
+            return first ? await planDreamRun(tx, { agentId, config, row: first, state }) : null;
         }
         if (!canBeginAgentDrain(candidates, state.agentChainTurns)) {
             return null;
@@ -1145,61 +1139,4 @@ function killedRun(
         runId: state.activeRunId ?? '',
         serverId: input.serverId,
     };
-}
-
-async function attachSummaryVisibility(
-    db: HausDatabase,
-    state: store.AgentDeliveryRow,
-    identities: AgentTurnSummary['visibleMessages'] | undefined
-) {
-    if (!(state.activeRunId && identities && identities.length > 0)) {
-        return;
-    }
-    const rows = await store.listInboxItemsByDedupeKeys(db, {
-        agentId: state.agentId,
-        dedupeKeys: identities.map((identity) => identity.id),
-        runId: state.activeRunId,
-    });
-    const byMessageId = new Map(rows.map((row) => [row.dedupeKey, row]));
-    const messages = await db
-        .select({
-            chatId: chatMessagesTable.chatId,
-            id: chatMessagesTable.id,
-            sequence: chatMessagesTable.sequence,
-        })
-        .from(chatMessagesTable)
-        .where(
-            and(
-                eq(chatMessagesTable.serverId, state.serverId),
-                inArray(
-                    chatMessagesTable.id,
-                    identities.map((identity) => identity.id)
-                )
-            )
-        );
-    const messageById = new Map(messages.map((message) => [message.id, message]));
-    const attachableIds: string[] = [];
-    const visibleMessages: Array<{ chatId: string; id: string }> = [];
-    for (const identity of identities) {
-        const row = byMessageId.get(identity.id);
-        const message = messageById.get(identity.id);
-        if (message?.sequence !== identity.sequence || message.chatId !== identity.chatId) {
-            continue;
-        }
-        visibleMessages.push({ chatId: message.chatId, id: message.id });
-        if (row?.chatId === identity.chatId) {
-            attachableIds.push(row.id);
-        }
-    }
-    await store.attachQueuedItemsToRun(db, {
-        agentId: state.agentId,
-        itemIds: attachableIds,
-        runId: state.activeRunId,
-    });
-    await recordExactMessagesServed(db, {
-        agentId: state.agentId,
-        messages: visibleMessages,
-        runId: state.activeRunId,
-        serverId: state.serverId,
-    });
 }

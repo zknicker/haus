@@ -60,6 +60,8 @@ export type HausUpsertResponseRequest = HausApiSchema<'UpsertResponseRequest'>;
 export * from './agent.ts';
 export * from './agent-activity.ts';
 export * from './agent-creation.ts';
+export * from './agent-deliveries.ts';
+export * from './agent-dreams.ts';
 export * from './agent-execution.ts';
 export * from './agent-execution-outline.ts';
 export * from './agent-idempotency.ts';

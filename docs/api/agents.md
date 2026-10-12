@@ -3,6 +3,7 @@ summary: Server Agent contracts, Computer execution reports, turn and delivery o
 read_when:
   - changing Agent CRUD, execution configuration, Computer reports, or managed Agent routes
   - reading Agent turn records or the delivery ledger
+  - changing the dream record (`agent.dreams`, `agent.dream`, `agent-dream-record`)
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
 ---
@@ -98,7 +99,9 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`. `preview`
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or
+`{ kind: 'dream' }`: the Agent's private nightly memory pass, the only trigger with no Chat,
+which needs no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming)). `preview`
 quotes the waking message so a turn row is titled from the same read:
 `{ content, attachmentCount }`, where `content` is the head of the message's raw
 Markdown (at most 1,000 UTF-16 units; the reader collapses it to one line), or `null`
@@ -132,12 +135,30 @@ run after the Computer restarts, the relaunch resumes a Computer-local turn ledg
 (`runtime/turns/<runId>.json`) holding that first start and every operation total the
 lost launch settled, so the summary spans the whole run rather than its tail.
 
+`agent.dreams` (`{ serverId, agentId, cursor?, limit? }`) lists what each nightly dream
+changed in the Agent's memory, newest first by `startedAt` (ties broken by `runId`).
+`limit` is 1–60 (default 20); the Server keeps only the newest 60 dreams per Agent. It
+returns `{ dreams, nextCursor }`: each dream carries `runId` (the dream turn's run),
+`startedAt`, `finishedAt`, `files` (`[{ path, change: 'added' | 'modified' | 'deleted',
+added, removed, omitted? }]`, where `omitted` is `binary` or `too-large` for a file whose text
+is not in the patch), and the `added` and `removed` line totals. A dream that changed nothing
+is still listed, with no files. `agent.dream` (`{ serverId, agentId, runId }`) returns one dream
+with its `patch`, or null when the Server has no record for that run. The patch is one unified
+diff, a `diff --git a/<path> b/<path>` block per file, whose hunk headers name the enclosing
+`## ` section as git's function context does; a file's text is dropped past 64 KiB and the
+whole patch stays under 256 KiB. Both reads use the `agent.turns` gate: any member who may
+view the Agent, with denied and unknown Agents as `NOT_FOUND`. The Computer sends the record
+as an `agent-dream-record` frame just before the dream turn's summary; the Server stores it in
+`agent_dreams` only for the assigned Computer and a run it started as a dream. There is no
+dream event: a settled run already invalidates the App's dream reads.
+
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries
 `chatId`, `source`, `workId`, `messageId`, `state` (`queued`,
 `accepted`, `served`, `seen`), `turnId`, and the per-state timestamps `createdAt`,
 `acceptedAt`, `servedAt`, and `seenAt`. `workId` is the durable identity for
-every kind of work; `messageId` is null for non-Chat work. Rows are retained after
+every kind of work; `messageId` is null for non-Chat work, and `chatId` is null only for a
+`dream`. Rows are retained after
 settlement rather than deleted, so
 "never delivered" and "delivered and answered with silence" read differently.
 `turnId` is the run that consumed the row; it stays null when the seen cursor

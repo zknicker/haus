@@ -12,6 +12,7 @@ export const agentSections = [
     'connections',
     'workspace',
     'activity',
+    'dreams',
 ] as const;
 
 export type AgentSection = (typeof agentSections)[number];

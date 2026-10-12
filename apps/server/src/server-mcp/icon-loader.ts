@@ -2,6 +2,7 @@ import { mcpIconMaxBytes } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
 import { McpIconIoError, mcpFailureKind } from './errors.ts';
+import { fetchMcpIcon } from './icon-fetch.ts';
 
 export type McpIconFetch = (url: string, signal: AbortSignal) => Promise<Response>;
 
@@ -20,16 +21,16 @@ const iconBodyLimit: McpBodyLimit = { maxBytes: mcpIconMaxBytes, overflow: 'disc
  * Fetches one URL and hands its capped body to `encode`. Used for icon bytes
  * and, with a truncating limit, for the site page whose `<link>` tags name one.
  */
-export async function loadRemoteIcon(
+export async function loadRemoteIcon<Result>(
     runtime: EffectRuntime<never>,
     input: {
-        encode(bytes: Uint8Array, mediaType: string | null): string | null;
+        encode(bytes: Uint8Array, mediaType: string | null, url: string): Result | null;
         fetchImpl: McpIconFetch;
         limit?: McpBodyLimit;
         timeoutMs: number;
         url: null | string;
     }
-): Promise<string | null> {
+): Promise<Result | null> {
     if (!input.url) {
         return null;
     }
@@ -55,20 +56,24 @@ export async function loadRemoteIcon(
     return await settle(runtime, load, { onInterrupted: () => null });
 }
 
-function loadResponse(
+function loadResponse<Result>(
     input: { fetchImpl: McpIconFetch; limit: McpBodyLimit; url: string },
     controller: AbortController,
-    encode: (bytes: Uint8Array, mediaType: string | null) => string | null
+    encode: (bytes: Uint8Array, mediaType: string | null, url: string) => Result | null
 ) {
     return Effect.tryPromise({
         catch: (cause) => new McpIconIoError({ cause, operation: 'mcp.icon.fetch' }),
-        try: () => input.fetchImpl(input.url, controller.signal),
+        try: () => fetchMcpIcon(input.fetchImpl, input.url, controller.signal),
     }).pipe(
-        Effect.flatMap((response) => inspectResponse(response)),
+        Effect.flatMap(({ response, url }) =>
+            inspectResponse(response).pipe(Effect.map((inspected) => ({ ...inspected, url })))
+        ),
         Effect.flatMap((response) =>
             response.ok
                 ? readCappedBody(response, input.limit, controller).pipe(
-                      Effect.map((bytes) => (bytes ? encode(bytes, response.mediaType) : null))
+                      Effect.map((bytes) =>
+                          bytes ? encode(bytes, response.mediaType, response.url) : null
+                      )
                   )
                 : Effect.succeed(null)
         )

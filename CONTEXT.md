@@ -590,24 +590,12 @@ An agent-owned startup briefing file in the Agent workspace, such as `MEMORY.md`
 loaded into that agent's prompt and refreshed from Memory by background workers.
 _Avoid_: root-level briefing files, Vault page
 
-**Agent briefing layer**:
-The Layer 1 Memory layer made from an Agent workspace's `USER.md` and `MEMORY.md` files.
-_Avoid_: Wiki root, shared Wiki page, episodic Memory
-
-**Episodic Memory**:
-The per-agent Layer 2 Memory layer of background-extracted observations from chats, turns, and
-external events before they are promoted into stable knowledge.
-_Avoid_: Chat transcript, assistant briefing, Wiki page
-
-**Memory dreaming**:
-The background Memory maintenance pass that reviews Episodic Memory, promotes stable knowledge to
-the Wiki, and refreshes Agent briefing files.
-_Avoid_: Extraction, summarization, compaction
-
-**Wiki surface**:
-The Haus Computer-owned access surface for the Wiki root: path resolution, safe reads, writes,
-moves, deletes, backlinks, freshness, and status.
-_Avoid_: Vault API, Memory browser, ingestion system, maintenance job
+**Dreaming**:
+An Agent's own periodic memory consolidation pass over `MEMORY.md` and recently changed `notes/`,
+run overnight as its own private, chatless dream turn that Computer requests when memory changed
+and Server starts only for an idle, running Agent (Manual topic
+`recipes/technique/memory-hygiene`). The Agent does the work; nothing rewrites memory for it.
+_Avoid_: Tidy pass, nightly memory review, background extraction, compaction
 
 **Charts**:
 The Widget family for agent-authored chart displays.

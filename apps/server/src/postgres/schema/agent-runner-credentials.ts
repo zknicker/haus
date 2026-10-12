@@ -15,7 +15,8 @@ export const agentRunnerCredentialsTable = pgTable(
     'agent_runner_credentials',
     {
         agentId: text('agent_id').notNull(),
-        chatId: text('chat_id').notNull(),
+        /** The launch Chat; null for a dream run, which has none. */
+        chatId: text('chat_id'),
         capabilities: text('capabilities').array().notNull().default(sql`ARRAY['manual']::text[]`),
         computerId: text('computer_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

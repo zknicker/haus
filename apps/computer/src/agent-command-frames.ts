@@ -17,7 +17,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     if (!isRecord(frame) || frame.type !== 'start') {
         return null;
     }
-    const idFields = ['agentId', 'chatId', 'modelId', 'runId', 'runtimeId'] as const;
+    const idFields = ['agentId', 'modelId', 'runId', 'runtimeId'] as const;
     for (const field of idFields) {
         if (typeof frame[field] !== 'string' || (frame[field] as string).length === 0) {
             return null;
@@ -28,6 +28,13 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     const warmDrainItemIds = parseDrainItemIds(frame.warmDrainItemIds);
     const unreadElsewhere = parseUnreadElsewhere(frame.unreadElsewhere);
     if (!(inbox && drainItemIds && warmDrainItemIds && unreadElsewhere)) {
+        return null;
+    }
+    const runChat = parseRunChat(
+        frame,
+        inbox.length + drainItemIds.length + warmDrainItemIds.length
+    );
+    if (!runChat) {
         return null;
     }
     if (
@@ -56,7 +63,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     return {
         ...facts,
         agentId: frame.agentId as string,
-        chatId: frame.chatId as string,
+        ...runChat,
         drainItemIds,
         inbox,
         inboxDelivery: frame.inboxDelivery as 'concrete' | 'notice',
@@ -156,6 +163,36 @@ export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | 
     return isRecord(frame) && frame.type === 'server-delete' && Object.keys(frame).length === 1
         ? { type: 'server-delete' }
         : null;
+}
+
+/** Only a dream run is chatless, and it carries nothing but its dream. */
+function parseRunChat(
+    frame: Record<string, unknown>,
+    itemCount: number
+): Pick<AgentStartCommand, 'chatId' | 'dream'> | null {
+    if (frame.dream === undefined) {
+        return typeof frame.chatId === 'string' && frame.chatId.length > 0
+            ? { chatId: frame.chatId }
+            : null;
+    }
+    const dream = parseDream(frame.dream);
+    return dream && frame.chatId === null && frame.inboxDelivery === 'concrete' && itemCount === 0
+        ? { chatId: null, dream }
+        : null;
+}
+
+function parseDream(value: unknown): { createdAt: string; id: string } | null {
+    if (
+        !isRecord(value) ||
+        Object.keys(value).length !== 2 ||
+        typeof value.id !== 'string' ||
+        value.id.length === 0 ||
+        typeof value.createdAt !== 'string' ||
+        Number.isNaN(Date.parse(value.createdAt))
+    ) {
+        return null;
+    }
+    return { createdAt: value.createdAt, id: value.id };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

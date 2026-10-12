@@ -1,4 +1,5 @@
-import { foreignKey, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, foreignKey, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { chatsTable } from './chats.ts';
 import { serversTable } from './servers.ts';
@@ -13,7 +14,8 @@ export const agentRunTriggersTable = pgTable(
     'agent_run_triggers',
     {
         agentId: text('agent_id').notNull(),
-        chatId: text('chat_id').notNull(),
+        /** Null exactly for a dream run, which has no Chat. */
+        chatId: text('chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         runId: text('run_id').notNull(),
         serverId: text('server_id')
@@ -34,5 +36,9 @@ export const agentRunTriggersTable = pgTable(
             foreignColumns: [chatsTable.serverId, chatsTable.id],
             name: 'agent_run_triggers_chat_fk',
         }).onDelete('cascade'),
+        check(
+            'agent_run_triggers_chat',
+            sql`(${table.chatId} is null) = (${table.source} = 'dream')`
+        ),
     ]
 );

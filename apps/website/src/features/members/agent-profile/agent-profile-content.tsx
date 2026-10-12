@@ -3,6 +3,7 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentUsageTile } from '../../usage/agent-usage-tile.tsx';
 import { AgentChats } from './agent-chats.tsx';
 import { AgentActivity, AgentAutomations, AgentWorkspace } from './agent-content.tsx';
+import { AgentDreams } from './agent-dreams.tsx';
 import { AgentProfileCard } from './agent-profile-card.tsx';
 import { AgentRecentActivity } from './agent-recent-activity.tsx';
 import type { AgentSection } from './agent-sections.ts';
@@ -31,6 +32,7 @@ export function AgentHubContent({
                 onSeeAll={() => onSectionChange('activity')}
                 server={server}
             />
+            <AgentDreams agent={agent} onSeeAll={() => onSectionChange('dreams')} server={server} />
             <AgentUsageTile agent={agent} server={server} />
         </>
     );
@@ -58,5 +60,7 @@ export function AgentSectionBody({
             return <AgentConnectionsSection agent={agent} server={server} />;
         case 'activity':
             return <AgentActivity agent={agent} server={server} />;
+        case 'dreams':
+            return <AgentDreams agent={agent} server={server} />;
     }
 }

@@ -18,6 +18,7 @@ implementation ownership, and runtime details live under
 | Agents | [Agents](agents.md) |
 | Agent conversation behavior | [Agent conversation behavior](agent-conversation-behavior.md) |
 | Context management | [Context management](context-management.md) |
+| Dreams | [Dreams](dreams.md) |
 | Rich references | [Rich references](rich-references.md) |
 | Clarifications | [Clarifications](clarifications.md) |
 | Tasks | [Tasks](tasks.md) |

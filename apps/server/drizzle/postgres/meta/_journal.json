@@ -526,6 +526,34 @@
       "when": 1791678057739,
       "tag": "0074_merchbase-atlas-preset",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1791754155225,
+      "tag": "0075_cloudflare-vercel-presets",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1791754156225,
+      "tag": "0076_chatless-dream",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1791754157225,
+      "tag": "0077_agent-dreams",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1791754158225,
+      "tag": "0078_agent-dreams-truncated",
+      "breakpoints": true
     }
   ]
 }

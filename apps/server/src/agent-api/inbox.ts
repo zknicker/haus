@@ -1,6 +1,7 @@
 import type { AgentAutomationEvent } from '@haus/api';
 import { recordExactMessagesServed } from '../agent-delivery/cursors.ts';
 import { buildInboxItems } from '../agent-delivery/inbox-items.ts';
+import { chatOf, isNoticelessInboxSource } from '../agent-delivery/inbox-lanes.ts';
 import {
     attachQueuedItemsToRun,
     listInboxItemsForRun,
@@ -36,7 +37,7 @@ export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) 
         // Each resolver issues several queries. Bun's transaction client must not run those
         // compound query sequences concurrently or it can wait on itself indefinitely.
         for (const row of selected) {
-            const target = await targetForChat(tx, runner.serverId, row.chatId);
+            const target = await targetForChat(tx, runner.serverId, chatOf(row));
             // A fire or a task assignment writes no Chat message, so its
             // pending row is keyed by its own identity and carries its own
             // envelope body.
@@ -151,7 +152,7 @@ async function serveReceiptRows(
  */
 export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner) {
     const pending = (await listQueuedItems(db, runner.agentId, 1000)).filter(
-        (row) => row.source !== 'onboarding'
+        (row) => !isNoticelessInboxSource(row.source)
     );
     const items = await buildInboxItems(db, pending);
     const groups = new Map<string, typeof items>();

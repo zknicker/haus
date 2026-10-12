@@ -223,6 +223,15 @@ test('returns the complete topic and preserves stable unknown-topic behavior', (
     expect(getManualTopic('recipes/no-such-topic')).toBeNull();
 });
 
+test('memory hygiene teaches dreaming and never invites date stamps', () => {
+    const body = getManualTopic('recipes/technique/memory-hygiene')?.body ?? '';
+
+    expect(body).toContain('### Dreaming');
+    expect(body).toContain('changed since your last pass');
+    expect(body).toContain('Never add date stamps.');
+    expect(body).not.toContain('verified or from memory');
+});
+
 test('publishes the trigger technique card with its CLI verbs and untrusted-payload rule', () => {
     const card = getManualTopic('recipes/technique/trigger-webhook');
 

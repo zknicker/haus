@@ -17,6 +17,16 @@ describe('Agent lifecycle contract', () => {
         });
     });
 
+    test('a dream run publishes with a null chatId', () => {
+        const settled = { ...base, chatId: null, outcome: 'completed', phase: 'settled' } as const;
+        expect(agentLifecycleEventSchema.parse(settled)).toEqual(settled);
+        // Null is explicit: an omitted chatId is still rejected.
+        const { chatId: _chatId, ...withoutChat } = base;
+        expect(
+            agentLifecycleEventSchema.safeParse({ ...withoutChat, phase: 'working' }).success
+        ).toBe(false);
+    });
+
     test('requires composition identity and text only while sending', () => {
         expect(
             agentLifecycleEventSchema.parse({

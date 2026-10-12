@@ -35,6 +35,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
+| `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); the only row with no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read
@@ -181,8 +182,8 @@ cold session with no pending delivery. The Agent chooses whether and when to
 pull bodies.
 
 Computer-composed turn input may also carry private workspace notices that are not inbox items,
-such as the MEMORY.md size notice ([workspace.md](workspace.md#durable-knowledge)). They wake no
-turn, have no identity in this ledger, and never affect cause inference.
+such as a managed skill update notice. They wake no turn, have no identity in this ledger, and
+never affect cause inference.
 
 Each pending identity records the turn that successfully offered it. Settling
 without a pull leaves the row pending and queryable but does not start another
