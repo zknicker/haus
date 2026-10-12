@@ -3,6 +3,7 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useArtifactVersions } from '../../hooks/artifacts/use-artifact-versions.ts';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { artifactPath, formatArtifactDate } from './artifact-format.ts';
 
 /** Every revision, newest first; the one on screen is marked, any other opens pinned. */
@@ -45,6 +46,7 @@ export function ArtifactRevisions({
                                     </Chip>
                                 ) : (
                                     <Button
+                                        {...opensPlace}
                                         aria-label={`View revision ${version.revision_number}`}
                                         onPress={() =>
                                             navigate(

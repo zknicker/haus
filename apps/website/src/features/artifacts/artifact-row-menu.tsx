@@ -3,6 +3,7 @@ import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreVerticalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { copyArtifactLink } from './artifact-link.ts';
 
 /** A library file's rare actions, behind its ⋮ button. */
@@ -28,7 +29,7 @@ export function ArtifactRowMenu({
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu>
-                    <Dropdown.Item id="open" onAction={onOpen} textValue="Open">
+                    <Dropdown.Item id="open" {...opensPlace} onAction={onOpen} textValue="Open">
                         <Label>Open</Label>
                     </Dropdown.Item>
                     <Dropdown.Item

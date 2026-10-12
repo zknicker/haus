@@ -1,6 +1,7 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { Card } from '@heroui/react';
 import { GridList, GridListItem } from 'react-aria-components';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import type { ArtifactRow } from './artifact-file-list.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { ArtifactCover } from './artifact-thumbnail.tsx';
@@ -32,6 +33,7 @@ export function ArtifactFileGrid({
         >
             {({ artifact, meta }) => (
                 <GridListItem
+                    {...opensPlace}
                     className="artifact-file-tile artifact-file-trigger"
                     id={artifact.artifact_id}
                     textValue={artifact.title}

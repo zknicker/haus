@@ -1,5 +1,6 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { ListView } from '@heroui-pro/react';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { formatArtifactBytes } from './artifact-format.ts';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { ArtifactThumbnail } from './artifact-thumbnail.tsx';
@@ -40,6 +41,7 @@ export function ArtifactFileList({
         >
             {({ artifact, meta }) => (
                 <ListView.Item
+                    {...opensPlace}
                     className="artifact-file-trigger"
                     id={artifact.artifact_id}
                     textValue={artifact.title}
