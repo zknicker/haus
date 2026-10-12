@@ -3,8 +3,8 @@ import { settle, tracePromise } from '@haus/effect';
 import { Effect, Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
-import { reconcileArtifacts } from './artifacts/delete.ts';
-import { artifactStorageBytes, createR2ArtifactStorage } from './artifacts/storage.ts';
+import { openArtifactStorage } from './artifacts/startup.ts';
+import { artifactStorageBytes } from './artifacts/storage.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
 import { AvatarImageService, OpenAiAvatarImageProvider } from './avatar-generation/index.ts';
@@ -104,20 +104,7 @@ export async function createHausServerApplication(
         await settle(runtime, Scope.extend(shutdown.register(resources), scope));
         const connectedHaus = await connectHausDatabase(options.databaseUrl);
         haus = connectedHaus;
-        const artifactStorage =
-            options.artifactStorage ??
-            (options.artifactR2 ? createR2ArtifactStorage(options.artifactR2) : null);
-        const artifactRecovery = await reconcileArtifacts(connectedHaus.db, artifactStorage);
-        if (artifactRecovery.failedRevisionIds.length) {
-            await settle(
-                runtime,
-                Effect.logWarning('Artifact cleanup remains pending').pipe(
-                    Effect.annotateLogs({
-                        revisionIds: artifactRecovery.failedRevisionIds.join(','),
-                    })
-                )
-            );
-        }
+        const artifactStorage = await openArtifactStorage(options, connectedHaus.db, runtime);
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot, runtime);
         await reconcileAttachments(connectedHaus.db, attachmentRoot);
         await purgeDeletedChannels(connectedHaus.db, attachmentRoot);
@@ -143,17 +130,12 @@ export async function createHausServerApplication(
         const wakeAgents = (wakes: { agentId: string; serverId: string }[]) => {
             void startedPostCommitWork.wakeAgents(agentDelivery, wakes);
         };
-        const signedIn = githubSignedInHook(
-            options.githubApp ?? null,
-            connectedHaus.db,
-            wakeAgents
-        );
         const mcpOAuthRelay = new McpOAuthRelay(
             connectedHaus.db,
             startedMcpRuntime,
             undefined,
             undefined,
-            signedIn
+            githubSignedInHook(options.githubApp ?? null, connectedHaus.db, wakeAgents)
         );
         // One inbound budget per trigger, shared by the public route and the
         // operator's test fire: a test costs exactly what a real delivery does.
