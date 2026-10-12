@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import Fastify from 'fastify';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { registerMcpOAuthCallback } from '../src/server-mcp/oauth-callback-route.ts';
 import { McpOAuthRelay } from '../src/server-mcp/oauth-relay.ts';
 import { emptySecret, McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
@@ -73,9 +75,18 @@ test('completes OAuth on Server and persists discovered identity and tools', asy
     expect(state).toBeTruthy();
     expect(code).toBeTruthy();
 
-    await expect(relay.complete(String(state), String(code))).resolves.toEqual({
-        status: 'complete',
-    });
+    const app = Fastify();
+    registerMcpOAuthCallback(app, relay);
+    try {
+        const response = await app.inject({
+            method: 'GET',
+            url: callback.pathname + callback.search,
+        });
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toContain('Connection complete');
+    } finally {
+        await app.close();
+    }
     await expect(relay.complete(String(state), String(code))).resolves.toEqual({
         status: 'expired',
     });
@@ -102,6 +113,37 @@ test('completes OAuth on Server and persists discovered identity and tools', asy
             token_type: 'Bearer',
         },
     });
+});
+
+test.each(['missing', 'mismatched'])('rejects a %s callback issuer', async (kind) => {
+    const relay = new McpOAuthRelay(connection.db, runtime);
+    const started = await relay.start({
+        allowAuthorizationServerOrigin: false,
+        connectionId,
+        redirectUrl,
+    });
+    if (started.status !== 'ready') {
+        throw new Error('Expected a ready OAuth attempt.');
+    }
+    const callback = await approve(new URL(started.authorizationUrl));
+    if (kind === 'missing') {
+        callback.searchParams.delete('iss');
+    } else {
+        callback.searchParams.set('iss', 'https://different-issuer.example');
+    }
+    const app = Fastify();
+    registerMcpOAuthCallback(app, relay);
+    try {
+        const response = await app.inject({
+            method: 'GET',
+            url: callback.pathname + callback.search,
+        });
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toContain('Connection failed');
+        expect((await runtime.readSecret(connectionId)).tokens).toBeUndefined();
+    } finally {
+        await app.close();
+    }
 });
 
 test('expires routing state before exchanging the callback code', async () => {

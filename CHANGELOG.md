@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.2.2 - 2026-10-12
+
+- GitHub sign-in completes instead of failing when validating the authorization callback.
+
 ## v12.2.1 - 2026-10-12
 
 - Haus Computer 9.2.1 fixes existing-workspace migration: the documented Server selector works, and macOS's own hidden volume files no longer prevent verification. Personal files and original backups remain checked byte for byte.
