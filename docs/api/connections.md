@@ -39,9 +39,10 @@ header asks the hosted MCP for `X-MCP-Toolsets: default,actions,code_security,de
 notice each), tombstones the installations, and only then deletes the connection. The notified
 Agents are woken after commit.
 
-`cloudflare` and `vercel` create OAuth connections to `https://mcp.cloudflare.com/mcp`
-and `https://mcp.vercel.com`, respectively. They use MCP OAuth discovery with no preset
-scope overrides or static credentials. Creating either account grants no Agent access.
+`cloudflare` creates an OAuth connection to `https://mcp.cloudflare.com/mcp` through MCP OAuth
+discovery with no preset scope overrides or static credentials. Creating an account grants no
+Agent access. `vercel` is not an accepted preset; previously saved Vercel accounts migrate to
+custom connections (`preset: null`) without changing their configuration, secrets, or grants.
 
 `merchbase-atlas` creates an OAuth connection to `https://atlas.merchbase.co/mcp`
 with `openid profile email` scopes and Clerk dynamic client registration. It needs no
@@ -226,7 +227,7 @@ One icon serving both themes is stored in `light` alone and the App falls back t
 connection never carries the same bytes twice on a query that returns every row inline.
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
-Cloudflare, Vercel, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation, legacy
+Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation, legacy
 connection reads, and authenticated discovery share the Server's connection-branding resolver.
 Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.
