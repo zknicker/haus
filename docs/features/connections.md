@@ -24,7 +24,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, GitHub, Cloudflare, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, GitHub, Cloudflare, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is the one built-in connection
@@ -61,6 +61,11 @@ MerchBase Atlas connects to `https://atlas.merchbase.co/mcp` through MerchBase/C
 OAuth. It exposes artwork search, asset management, and design exports. Adding it requires
 sign-in and does not grant Agent access.
 
+Handmade connects to `https://handmade.merchbase.co/mcp` through MerchBase/Clerk OAuth.
+It exposes Etsy listing management, order lookup, and product mockup tools. Etsy shop linking
+remains in Handmade; existing shops must reconnect there to authorize order reads. Adding the
+connection requires sign-in and does not grant Agent access.
+
 MerchBase Fulfillment connects to `https://fulfillment.merchbase.co/mcp/printful` through
 MerchBase/Clerk OAuth. It exposes Printful order review and fulfillment tools. Linking a Printful
 store happens through those tools after sign-in; adding the preset does not link a store or enable
@@ -94,7 +99,7 @@ an Agent writes into its execution runtime's own config are ignored (see
 
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
-page makes no third-party image requests. Legacy curated presets show bundled marks. Cloudflare, MerchBase Atlas, and Fulfillment use their service-owned
+page makes no third-party image requests. Legacy curated presets show bundled marks. Handmade, Cloudflare, MerchBase Atlas, and Fulfillment use their service-owned
 MCP icon metadata or favicon. Presets share one branding lookup across Recommended and Added,
 preferring homepage icon links before legacy favicons. Adding, signing in, or disconnecting an
 account does not discard its service branding. Existing presets with missing artwork recover it

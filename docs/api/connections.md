@@ -48,6 +48,11 @@ custom connections (`preset: null`) without changing their configuration, secret
 with `openid profile email` scopes and Clerk dynamic client registration. It needs no
 configured Server client or static token.
 
+`handmade` creates an OAuth connection to `https://handmade.merchbase.co/mcp`
+with `openid profile email` scopes and Clerk dynamic client registration. It needs no
+configured Server client or static token. Etsy shop authorization remains upstream in Handmade.
+Creating the connection grants no Agent access.
+
 `merchbase-fulfillment` creates an OAuth connection to
 `https://fulfillment.merchbase.co/mcp/printful` with `openid profile email` scopes.
 It uses Clerk dynamic client registration, with no configured Server client or static token.
@@ -227,7 +232,7 @@ One icon serving both themes is stored in `light` alone and the App falls back t
 connection never carries the same bytes twice on a query that returns every row inline.
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
-Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation, legacy
+Handmade, Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation, legacy
 connection reads, and authenticated discovery share the Server's connection-branding resolver.
 Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.
