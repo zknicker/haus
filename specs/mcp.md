@@ -49,18 +49,22 @@ access. A connected account gates previews; each request rechecks membership and
 connection state before reading the account-scoped cache.
 
 - A grant is `(server_id, agent_id, connection_id)` and enables every tool currently exposed by
-  that connection.
+  that connection, including tools added later.
 - Tool discovery changes the read-only tool list; it does not create a second grant layer.
 - Server rechecks the connection grant before every upstream call.
 - Computer receives only safe names, descriptions, and input schemas for granted tools.
 - Computer sends invocation through its scoped per-run Server credential. MCP credentials and
   upstream sessions never enter Computer, Agent prompts, or tool arguments.
-- An unavailable MCP connection does not prevent an Agent from starting. Its tools are omitted
-  until Server can rediscover the connection.
-- Server discovers granted connections concurrently with a five-second deadline per connection.
-  One slow or unavailable connection cannot hide healthy connections or hold Agent startup open.
-- Server resolves invocation authority from the current grant and cached inventory before making
-  one upstream call with a 30-second deadline.
+- Server owns discovery independently of Agent activity and grants. Startup loads connected
+  accounts, notifications refresh changed catalogs, and a jittered five-minute reconciliation
+  recovers missing notifications and legacy servers. Failures back off up to fifteen minutes.
+- A successful full discovery replaces the catalog, including removed tools and empty lists.
+  Failed discovery retains the last successful catalog. Changes publish the connection event.
+- Agent searches read current grants and Server's discovered definitions without contacting MCP.
+  An unavailable connection cannot hold Agent startup open; undiscovered connections contribute
+  no tools, and known definitions remain available during an outage.
+- Server resolves invocation from upstream definitions, never from the saved display names, and
+  rechecks the grant after discovery immediately before dispatch, with a 30-second deadline.
 - Runner errors preserve whether access was denied or revoked, the upstream account needs
   reauthorization, the upstream timed out, or the upstream is unavailable.
 
@@ -68,7 +72,7 @@ connection state before reading the account-scoped cache.
 
 - PostgreSQL stores MCP secrets in a Server-only table that is never returned by tRPC.
 - OAuth uses protected-resource and authorization-server metadata, PKCE, refresh tokens, and DCR
-  through AI SDK. Custom connections may use pre-registered client credentials and scopes.
+  through the official MCP TypeScript client SDK. Custom connections may use pre-registered client credentials and scopes.
 - Server creates and retains PKCE state, handles the hosted callback, exchanges the code, refreshes
   tokens, and persists authorization-server trust.
 - A different authorization-server origin requires explicit operator confirmation.

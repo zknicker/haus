@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
@@ -29,6 +30,10 @@ export interface ProcessRecord {
 }
 
 const execFileAsync = promisify(execFile);
+
+export function attachmentCredentialHash(value: string) {
+    return createHash('sha256').update(value).digest('hex');
+}
 
 /** Avoids a `ps` subprocess in the resident's 500ms supervision loop for children it spawned. */
 export class AttachmentDaemonProcessRegistry {

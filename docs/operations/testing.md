@@ -300,6 +300,12 @@ bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes
 
 Repeat `--only` to run a small named subset in one process.
 
+Shared file discovery and handoff are opt-in and require enabled development R2 storage:
+`bun run test:agents --include-opt-in --only shared-artifact-handoff --lanes 1`.
+Two fresh Agents publish and revise one shared file from natural-language requests. The scenario
+checks the original personal source, the peer's undisclosed marker, and both immutable revisions'
+downloaded bytes, then deletes its shared artifact.
+
 Conversation routing has a natural-language lane: `--only conversation-natural-followups`
 checks a basic question, a planning request, and a human Thread follow-up without routing
 instructions in the requests. `--only solo-progress-threads-on-ack` checks that solo multi-step

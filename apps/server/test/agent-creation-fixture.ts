@@ -1,27 +1,22 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { AgentCreateAgentReceipt, CreatedAgentSummary } from '@haus/api';
+import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import type {
     AvatarImageProvider,
     AvatarProviderRequest,
 } from '../src/avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../src/avatar-generation/service.ts';
 import type { MessageRouter } from '../src/message-routing/jev.ts';
+import { type AvatarProviderMode, deterministicPng } from './agent-creation-avatar-fixture.ts';
 import { readCreationGuidance } from './agent-creation-guidance-fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-/** One-pixel PNG: deterministic bytes, so no test ever reaches a real provider. */
-const deterministicPng = Uint8Array.from(
-    Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-        'base64'
-    )
-);
-
-export type AvatarProviderMode = 'fail' | 'success' | 'unavailable';
-
-export function agentCreationFixture(messageRouter?: MessageRouter) {
+export function agentCreationFixture(
+    messageRouter?: MessageRouter,
+    artifactStorage?: ArtifactStorage
+) {
     let harness: HausServerHarness;
     let owner: HausClient;
     let outsider: HausClient;
@@ -57,7 +52,11 @@ export function agentCreationFixture(messageRouter?: MessageRouter) {
     };
 
     beforeAll(async () => {
-        harness = await startHausServerHarness({ avatarImageProvider, messageRouter });
+        harness = await startHausServerHarness({
+            artifactStorage,
+            avatarImageProvider,
+            messageRouter,
+        });
         owner = await signIn('user_agent_creation_owner', ['ada@haus.test']);
         outsider = await signIn('user_agent_creation_outsider', ['cass@haus.test']);
 

@@ -3,6 +3,8 @@ import { settle, tracePromise } from '@haus/effect';
 import { Effect, Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
+import { reconcileArtifacts } from './artifacts/delete.ts';
+import { artifactStorageBytes, createR2ArtifactStorage } from './artifacts/storage.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
 import { AvatarImageService, OpenAiAvatarImageProvider } from './avatar-generation/index.ts';
@@ -102,10 +104,24 @@ export async function createHausServerApplication(
         await settle(runtime, Scope.extend(shutdown.register(resources), scope));
         const connectedHaus = await connectHausDatabase(options.databaseUrl);
         haus = connectedHaus;
+        const artifactStorage =
+            options.artifactStorage ??
+            (options.artifactR2 ? createR2ArtifactStorage(options.artifactR2) : null);
+        const artifactRecovery = await reconcileArtifacts(connectedHaus.db, artifactStorage);
+        if (artifactRecovery.failedRevisionIds.length) {
+            await settle(
+                runtime,
+                Effect.logWarning('Artifact cleanup remains pending').pipe(
+                    Effect.annotateLogs({
+                        revisionIds: artifactRecovery.failedRevisionIds.join(','),
+                    })
+                )
+            );
+        }
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot, runtime);
         await reconcileAttachments(connectedHaus.db, attachmentRoot);
         await purgeDeletedChannels(connectedHaus.db, attachmentRoot);
-        await purgeDeletedServers(connectedHaus.db, attachmentRoot);
+        await purgeDeletedServers(connectedHaus.db, attachmentRoot, artifactStorage);
         await markAllComputersOffline(connectedHaus.db);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections(runtime);
@@ -122,6 +138,7 @@ export async function createHausServerApplication(
             : undefined;
         const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, { hostedMcps });
         mcpRuntime = startedMcpRuntime;
+        void startedMcpRuntime.start();
         const mcpIconResolver = makeMcpIconResolver(runtime);
         const wakeAgents = (wakes: { agentId: string; serverId: string }[]) => {
             void startedPostCommitWork.wakeAgents(agentDelivery, wakes);
@@ -146,6 +163,8 @@ export async function createHausServerApplication(
             agentDelivery,
             appOrigin: options.appOrigin,
             attachmentRoot,
+            artifactStorage,
+            artifactStorageBytes: options.artifactStorageBytes ?? artifactStorageBytes,
             avatarImageService,
             clerkSessions,
             clerkUsers:

@@ -119,6 +119,7 @@ beforeAll(async () => {
                 },
             }).client,
     });
+    await runtime.start();
     registerAgentMcpRoutes(app, { db: connection.db, runtime });
     appOrigin = await app.listen({ host: '127.0.0.1', port: 0 });
 }, 20_000);
@@ -147,6 +148,8 @@ test('authenticated MCP discovery and invocation continue valid context; malform
         };
         const discovery = await app.inject({ url: '/api/agent/mcp/tools', headers });
         expect(discovery.statusCode).toBe(200);
+        expect(discovery.json().tools).toHaveLength(1);
+        expect(exporter.getFinishedSpans()).toHaveLength(0);
         const invocation = await app.inject({
             url: '/api/agent/mcp/invoke',
             method: 'POST',
@@ -158,7 +161,7 @@ test('authenticated MCP discovery and invocation continue valid context; malform
         });
         expect(invocation.statusCode).toBe(200);
         const spans = exporter.getFinishedSpans();
-        expect(spans).toHaveLength(2);
+        expect(spans).toHaveLength(1);
         for (const span of spans) {
             expect(span.name).toBe('haus.mcp.operation');
             if (traceparent === valid) {

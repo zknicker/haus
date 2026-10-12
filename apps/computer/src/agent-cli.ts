@@ -1,5 +1,6 @@
 import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-agent.ts';
+import { ARTIFACT_SUBCOMMANDS } from './agent-cli/commands/agent-artifact.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
@@ -19,6 +20,7 @@ import { errorBlock } from './agent-cli/ui.ts';
 
 export const commandGroups = {
     agent: AGENT_SUBCOMMANDS,
+    artifact: ARTIFACT_SUBCOMMANDS,
     attachment: ATTACHMENT_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,

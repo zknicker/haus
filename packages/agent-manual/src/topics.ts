@@ -1,3 +1,4 @@
+import { artifactTopic } from './artifact-topic.ts';
 import { cliFamilyTopics } from './cli-family-topics.ts';
 import { archetypeRecipes } from './corpus/archetypes.ts';
 import { cliFamilyTopicsA } from './corpus/cli-families-a.ts';
@@ -26,6 +27,7 @@ const recipeTopics: readonly ManualRecipeTopic[] = [
 const seededRecipeTopics = recipeTopics.filter((topic) => topic.tier === 'seeded');
 
 const navigationTopics: readonly ManualNavigationTopic[] = [
+    artifactTopic,
     {
         body: `The Haus Manual is the shared, read-only operating reference for managed Agents.
 

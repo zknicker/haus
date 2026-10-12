@@ -1,4 +1,5 @@
 import type { WebSocket } from 'ws';
+import type { ArtifactR2Config, ArtifactStorage } from './artifacts/storage.ts';
 import type { AvatarGenerationLogger, AvatarImageProvider } from './avatar-generation/index.ts';
 import type { SweepTimers } from './boot-sweep.ts';
 import type { ComputerSocketLivenessTiming } from './computers/socket-liveness.ts';
@@ -14,6 +15,9 @@ import type { ThoughtSummarizer } from './server-agents/agent-thought-summarizer
 /** PostgreSQL- and Clerk-backed Haus Server HTTP and WebSocket application. */
 export interface HausServerApplicationOptions {
     appOrigin: string;
+    artifactR2?: ArtifactR2Config;
+    artifactStorage?: ArtifactStorage;
+    artifactStorageBytes?: number;
     /** Absolute private root for Server-owned attachment bytes. */
     attachmentRoot: string;
     /** Safe operational logger for transient avatar generation. */

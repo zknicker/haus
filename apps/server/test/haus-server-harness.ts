@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import type { WebSocket } from 'ws';
+import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import type {
     AvatarGenerationLogger,
     AvatarImageProvider,
@@ -62,6 +63,8 @@ export const harnessAppOrigin = 'https://app.haus.test';
 
 export async function startHausServerHarness(
     options: {
+        artifactStorage?: ArtifactStorage;
+        artifactStorageBytes?: number;
         avatarGenerationLogger?: AvatarGenerationLogger;
         avatarImageProvider?: AvatarImageProvider;
         postgresIcuLocale?: string;
@@ -120,6 +123,8 @@ export async function startHausServerHarness(
                 avatarGenerationLogger: options.avatarGenerationLogger,
                 avatarImageProvider: options.avatarImageProvider,
                 attachmentRoot,
+                artifactStorage: options.artifactStorage,
+                artifactStorageBytes: options.artifactStorageBytes,
                 clerkIssuerUrl: issuer.url,
                 clerkUsers,
                 databaseUrl: cluster.databaseUrl,

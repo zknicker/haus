@@ -16,7 +16,7 @@ afterAll(async () => {
     await cluster.stop();
 });
 
-test('migration 0081 signs every GitHub connection out and leaves other connections alone', async () => {
+test('migration 0082 signs every GitHub connection out and leaves other connections alone', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'haus-github-app-'));
     const database = new SQL(cluster.databaseUrl);
     const url = new URL(cluster.databaseUrl);
@@ -34,7 +34,7 @@ test('migration 0081 signs every GitHub connection out and leaves other connecti
                     entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
                 })
             );
-        await throughMigration(80);
+        await throughMigration(81);
         await database.unsafe('CREATE DATABASE haus_github_app_test');
         await migrateHausDatabase(url.toString(), 'haus', 'haus', folder);
         upgraded = new SQL({ max: 1, url: url.toString() });
@@ -62,9 +62,9 @@ test('migration 0081 signs every GitHub connection out and leaves other connecti
             SET session_replication_role = origin;
         `);
 
-        await throughMigration(81);
+        await throughMigration(82);
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus', folder)).toEqual([
-            '0081_github_app',
+            '0082_github_app',
         ]);
         expect(
             await upgraded`SELECT id, connected, tools, account_label FROM mcp_connections ORDER BY id`

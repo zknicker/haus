@@ -20,12 +20,14 @@ client is deleted. Other presets and custom connections are unchanged.
 External service integrations are standard remote HTTP MCP servers. The plugin product,
 proprietary integration framework, local MCP process, and stdio transport are retired.
 
-Haus Server is the AI SDK MCP client and credential broker:
+Haus Server uses the official MCP TypeScript client SDK and is the MCP client and credential broker:
 
 - Server stores connection configuration and secrets.
 - Server owns OAuth, token refresh, authorization-server trust, discovery, sessions, and upstream
   invocation.
-- One `(Server, Agent, connection)` grant enables every tool on that connection.
+- One `(Server, Agent, connection)` grant enables every current and future tool on that connection.
+- Server keeps the inventory current through notifications and background reconciliation,
+  independently of Agent activity. The App reads it through React Query and connection events.
 - Server rechecks the grant at call time.
 - Credentials never enter Agent prompts, tool arguments, audit records, or Computer.
 - Computer exposes one fixed `execute` tool backed by headless Executor. Its discovery and
@@ -36,7 +38,7 @@ Each connection is one account. The same MCP server or preset may have multiple 
 Disconnect removes its active credentials, inventory, and Agent grants. Deleting also removes a
 connection, including a preset account.
 
-OAuth follows the MCP authorization standard through AI SDK. Server owns discovery, PKCE, dynamic
+OAuth follows the MCP authorization standard through the official MCP client SDK. Server owns discovery, PKCE, dynamic
 client registration, optional pre-registered clients, refresh tokens, and authorization-server
 trust. A cross-origin authorization server requires explicit operator confirmation.
 Credential-bearing endpoints require HTTPS.

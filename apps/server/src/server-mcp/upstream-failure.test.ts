@@ -1,19 +1,32 @@
 import { expect, test } from 'bun:test';
-import { UnauthorizedError } from '@ai-sdk/mcp';
+import {
+    OAuthError,
+    ProtocolError,
+    SdkError,
+    SdkErrorCode,
+    SdkHttpError,
+    UnauthorizedError,
+} from '@modelcontextprotocol/client';
 import { McpReconnectRequiredError } from './errors.ts';
 import { classifyMcpUpstreamError, sanitizeUpstreamReason } from './upstream-failure.ts';
 
-function aiSdkError(marker: string, message: string, fields: Record<string, unknown> = {}) {
-    const error = Object.assign(new Error(message), fields);
-    Reflect.set(error, Symbol.for(`vercel.ai.error.${marker}`), true);
-    return error;
+function sdkError(message: string, fields: Record<string, unknown> = {}) {
+    if (typeof fields.statusCode === 'number') {
+        return new SdkHttpError(SdkErrorCode.ClientHttpUnexpectedContent, message, {
+            status: fields.statusCode,
+        });
+    }
+    if (typeof fields.code === 'number') {
+        return new ProtocolError(fields.code, message);
+    }
+    return new SdkError(SdkErrorCode.RequestTimeout, message);
 }
 
 test('OAuth and reconnect failures without an HTTP status require reconnecting', () => {
     for (const cause of [
         new UnauthorizedError(),
         new McpReconnectRequiredError(),
-        aiSdkError('AI_MCPClientOAuthError', 'invalid_grant: refresh token revoked'),
+        new OAuthError('invalid_grant', 'invalid_grant: refresh token revoked'),
     ]) {
         expect(classifyMcpUpstreamError(cause, 'invocation')).toMatchObject({
             code: 'MCP_AUTH_REQUIRED',
@@ -24,8 +37,7 @@ test('OAuth and reconnect failures without an HTTP status require reconnecting',
 });
 
 test('HTTP failures name the status and never echo the response body or URL', () => {
-    const cause = aiSdkError(
-        'AI_MCPClientError',
+    const cause = sdkError(
         'MCP HTTP Transport Error: POSTing to endpoint (HTTP 500): <html>secret-body</html>',
         { responseBody: '<html>secret-body</html>', statusCode: 500, url: 'https://mcp.test/x' }
     );
@@ -35,7 +47,7 @@ test('HTTP failures name the status and never echo the response body or URL', ()
 });
 
 test('JSON-RPC errors keep their code even when the text mentions a timeout', () => {
-    const cause = aiSdkError('AI_MCPClientError', 'Upstream API timed out', { code: -32_603 });
+    const cause = sdkError('Upstream API timed out', { code: -32_603 });
     expect(classifyMcpUpstreamError(cause, 'discovery')).toMatchObject({
         code: 'MCP_UNAVAILABLE',
         failureKind: 'jsonrpc',
@@ -46,10 +58,7 @@ test('JSON-RPC errors keep their code even when the text mentions a timeout', ()
 
 test('library timeouts, network failures, and unknown values stay generic', () => {
     expect(
-        classifyMcpUpstreamError(
-            aiSdkError('AI_MCPClientError', 'Request timed out after 30000ms'),
-            'invocation'
-        )
+        classifyMcpUpstreamError(sdkError('Request timed out after 30000ms'), 'invocation')
     ).toMatchObject({ code: 'MCP_TIMEOUT', failureKind: 'timeout' });
     expect(classifyMcpUpstreamError(new TypeError('fetch failed'), 'invocation')).toMatchObject({
         code: 'MCP_UNAVAILABLE',

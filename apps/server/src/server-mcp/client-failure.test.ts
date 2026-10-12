@@ -1,5 +1,12 @@
 import { afterAll, expect, test } from 'bun:test';
-import { type MCPClient, UnauthorizedError } from '@ai-sdk/mcp';
+import {
+    type Client as MCPClient,
+    ProtocolError,
+    SdkError,
+    SdkErrorCode,
+    SdkHttpError,
+    UnauthorizedError,
+} from '@modelcontextprotocol/client';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpClientCache } from './client-cache.ts';
 import { classifyMcpClientFailure } from './client-failure.ts';
@@ -23,8 +30,7 @@ function makeHarness(list: ListTools) {
                 state.closeCount += 1;
                 return Promise.resolve();
             },
-            listTools: (request: { options: { signal: AbortSignal } }) =>
-                list(request.options.signal),
+            listTools: (_params: unknown, options: { signal: AbortSignal }) => list(options.signal),
         } as unknown as MCPClient;
         return Promise.resolve(client);
     });
@@ -34,17 +40,26 @@ function makeHarness(list: ListTools) {
             connectionId: 'connection',
             operation: 'invocation',
             timeoutMs,
-            use: (client, signal): Promise<unknown> => client.listTools({ options: { signal } }),
+            use: (client, signal): Promise<unknown> => client.listTools(undefined, { signal }),
         });
     return { cache, call, state };
 }
 
-/** Mirrors `MCPClientError` from @ai-sdk/mcp, which the package does not export. */
 function mcpClientError(message: string, fields: { code?: number; statusCode?: number } = {}) {
-    return Object.assign(new Error(message), {
-        ...fields,
-        [Symbol.for('vercel.ai.error.AI_MCPClientError')]: true,
-    });
+    if (fields.statusCode !== undefined) {
+        return new SdkHttpError(SdkErrorCode.ClientHttpUnexpectedContent, message, {
+            status: fields.statusCode,
+        });
+    }
+    if (fields.code !== undefined) {
+        return new ProtocolError(fields.code, message);
+    }
+    return new SdkError(
+        message === 'Connection closed' || message.includes('closed client')
+            ? SdkErrorCode.ConnectionClosed
+            : SdkErrorCode.RequestTimeout,
+        message
+    );
 }
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -135,7 +150,7 @@ test('an auth failure still discards the client and the next call rebuilds', asy
     await cache.closeAll(20);
 });
 
-test('classifies @ai-sdk/mcp failures by the scope they break', () => {
+test('classifies official MCP client failures by the scope they break', () => {
     const operation = [
         mcpClientError('Method not found', { code: -32_601 }),
         mcpClientError('Request timed out after 30000ms'),

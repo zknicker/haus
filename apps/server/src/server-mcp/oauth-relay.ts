@@ -90,6 +90,7 @@ export class McpOAuthRelay {
                 })
                 .where(eq(mcpConnectionsTable.id, attempt.connectionId))
                 .returning({ serverId: mcpConnectionsTable.serverId });
+            await this.runtime.inventory.record(attempt.connectionId, discovery.definitions);
             if (updated) {
                 mcpUpdatedTopic.announce({ serverId: updated.serverId });
                 // Best effort: the connection is signed in either way, and the

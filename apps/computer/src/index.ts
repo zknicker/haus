@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
@@ -7,7 +7,12 @@ import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api'
 import * as commandFrames from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
-import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
+import {
+    agentWorkspacePreparation,
+    resetOwnedAgentState,
+    retireOwnedAgentState,
+} from './agent-partition-lifecycle.ts';
+import { parseAgentRetireCommand } from './agent-retirement.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
@@ -17,10 +22,15 @@ import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
 import {
     AttachmentDaemonProcessRegistry,
+    attachmentCredentialHash as hash,
     readAttachmentDaemonMarker,
 } from './attachment-daemon-process.ts';
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
+import {
+    recordManagementCommandForAttachments,
+    sendSystemEventReport,
+} from './attachment-management-reports.ts';
 import {
     archiveUnlinkedAttachment,
     clearTerminalUnlinked,
@@ -38,10 +48,7 @@ import {
     removePendingAttachment,
 } from './attachment-state.ts';
 import { createAttachmentStore } from './attachment-store.ts';
-import {
-    readAttachmentManagementEvents,
-    recordAttachmentManagementEvent,
-} from './attachment-system-event-outbox.ts';
+import { recordAttachmentManagementEvent } from './attachment-system-event-outbox.ts';
 import { runAttachmentUpdate } from './attachment-update.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
@@ -93,7 +100,6 @@ import {
     type AgentStartCommand,
     type AgentTurnFrame,
     type Attachment,
-    resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
 import { tracedCrashTurn } from './launch-crash-turn.ts';
@@ -135,6 +141,7 @@ import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-rende
 import { saveOpenRouterManagementKey } from './usage/openrouter-settings.ts';
 import { createUsageReporter } from './usage/report.ts';
 import { parseAgentWorkspaceRequest, runAgentWorkspaceRequest } from './workspace-files.ts';
+import { runWorkspaceMaintenance } from './workspace-volumes/command.ts';
 
 interface AttachResponse {
     computerId: string;
@@ -150,7 +157,6 @@ const serverOrigin = process.env.HAUS_SERVER_ORIGIN ?? 'https://haus.chat';
 const { findAttachment, listAttachments, readAttachment } = createAttachmentStore(dataRoot);
 const attachmentDaemonProcesses = new AttachmentDaemonProcessRegistry();
 
-// TTY commands with the one-line header; freshness appears only when relevant.
 const headerCommands: Record<string, { updateStatus: boolean }> = {
     attach: { updateStatus: false },
     'configure-openrouter': { updateStatus: false },
@@ -177,6 +183,16 @@ async function main(args: string[]) {
         await printComputerHelpPage(helpRequest, { dataRoot });
         return;
     }
+    if (command === 'workspace-migrate' || command === 'workspace-compact') {
+        const result = await runWorkspaceMaintenance({
+            command,
+            dataRoot,
+            target,
+            agentId: args[2],
+        });
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+    }
     const headerPrinted =
         command !== undefined && command in headerCommands
             ? await printComputerHeader({
@@ -201,7 +217,7 @@ async function main(args: string[]) {
                 },
                 restart: restartAfterUpdate,
             });
-            await recordManagementCommandForAttachments('rollback');
+            await recordManagementCommandForAttachments(dataRoot, 'rollback');
             console.log(
                 stdoutRenderer.ok('Haus Computer restored the previous verified executable.')
             );
@@ -230,7 +246,7 @@ async function main(args: string[]) {
             console.log(stdoutRenderer.warn(describeConcurrentUpdate(outcome.progress)));
             return;
         }
-        await recordManagementCommandForAttachments('upgrade');
+        await recordManagementCommandForAttachments(dataRoot, 'upgrade');
         console.log(
             stdoutRenderer.ok(
                 `Haus Computer ${outcome.version} is installed. The Computer service is restarting.`
@@ -330,7 +346,7 @@ async function main(args: string[]) {
         if (targetAttachment) {
             await recordAttachmentManagementEvent(dataRoot, targetAttachment.serverId, 'start');
         } else {
-            await recordManagementCommandForAttachments('start');
+            await recordManagementCommandForAttachments(dataRoot, 'start');
         }
         if (process.env.HAUS_COMPUTER_RESIDENT === '1') {
             for (;;) {
@@ -355,7 +371,7 @@ async function main(args: string[]) {
             return;
         }
         await stopComputerService();
-        await recordManagementCommandForAttachments('stop');
+        await recordManagementCommandForAttachments(dataRoot, 'stop');
         console.log(stdoutRenderer.ok('Haus Computer stopped.'));
         return;
     }
@@ -1064,7 +1080,7 @@ async function connect(
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
-                            sendSystemEventReport(sendFrame, attachment.serverId),
+                            sendSystemEventReport(dataRoot, sendFrame, attachment.serverId),
                         ]);
                         const acceptedImports = await listAcceptedHostSkillImports(
                             dataRoot,
@@ -1166,14 +1182,14 @@ async function connect(
                     agentWork
                         .waitForConfiguration(retirement.agentId)
                         .then(() => agentWork.waitForRun(retirement.agentId))
-                        .then(() => {
-                            disposeAgentLaunchHost(attachment.serverId, retirement.agentId);
-                            return purgeRetiredAgent({
+                        .then(() =>
+                            retireOwnedAgentState({
                                 agentId: retirement.agentId,
                                 dataRoot,
                                 serverId: attachment.serverId,
-                            });
-                        })
+                                runtime,
+                            })
+                        )
                         .then(() => reportComputer())
                         .catch(reportStateError)
                 );
@@ -1193,19 +1209,20 @@ async function connect(
                                 agentRoot,
                                 generation: configuration.sessionGeneration,
                                 reset: async () => {
-                                    disposeAgentLaunchHost(
-                                        attachment.serverId,
-                                        configuration.agentId
-                                    );
-                                    await resetAgentState({
+                                    await resetOwnedAgentState({
                                         agentId: configuration.agentId,
                                         dataRoot,
                                         kind: configuration.sessionResetKind,
                                         serverId: attachment.serverId,
+                                        runtime,
                                     });
                                 },
                             });
                             await applyAgentConfiguration({
+                                prepareWorkspace: agentWorkspacePreparation(
+                                    dataRoot,
+                                    configuration.runtimeId
+                                ),
                                 command: configuration,
                                 dataRoot,
                                 inventory: detectInventory(),
@@ -1227,6 +1244,10 @@ async function connect(
                         .enqueueConfiguration(coveApplication.agentId, async () => {
                             await agentWork.waitForRun(coveApplication.agentId);
                             const result = await applyCoveConfiguration({
+                                prepareWorkspace: agentWorkspacePreparation(
+                                    dataRoot,
+                                    coveApplication.runtimeId
+                                ),
                                 command: coveApplication,
                                 dataRoot,
                                 inventory: detectInventory(),
@@ -1309,12 +1330,12 @@ async function connect(
                                 ),
                                 generation: reset.sessionGeneration,
                                 reset: async () => {
-                                    disposeAgentLaunchHost(attachment.serverId, reset.agentId);
-                                    await resetAgentState({
+                                    await resetOwnedAgentState({
                                         agentId: reset.agentId,
                                         dataRoot,
                                         kind: reset.kind,
                                         serverId: attachment.serverId,
+                                        runtime,
                                     });
                                 },
                             });
@@ -1588,27 +1609,6 @@ async function handleStartCommand(input: {
         await clearActiveRun();
         releaseRun();
     }
-}
-
-type SendComputerFrame = (frame: unknown) => boolean;
-
-async function sendSystemEventReport(send: SendComputerFrame, serverId: string) {
-    const events = await readAttachmentManagementEvents(dataRoot, serverId);
-    send({ events, type: 'system-event-report' });
-}
-
-async function recordManagementCommandForAttachments(
-    command: 'rollback' | 'start' | 'stop' | 'upgrade'
-) {
-    await Promise.all(
-        (await listAttachments()).map((attachment) =>
-            recordAttachmentManagementEvent(dataRoot, attachment.serverId, command)
-        )
-    );
-}
-
-function hash(value: string) {
-    return createHash('sha256').update(value).digest('hex');
 }
 
 if (import.meta.main) {

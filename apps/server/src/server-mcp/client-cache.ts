@@ -1,12 +1,16 @@
-import type { MCPClient } from '@ai-sdk/mcp';
 import { type EffectRuntime, settle } from '@haus/effect';
+import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import * as Effect from 'effect/Effect';
 import * as Exit from 'effect/Exit';
 import * as Scope from 'effect/Scope';
 import { classifyMcpClientFailure } from './client-failure.ts';
 import { McpClientAcquireError, McpClientRetiredError } from './errors.ts';
 
-export type ClientFactory = (connectionId: string, signal: AbortSignal) => Promise<MCPClient>;
+export type ClientFactory = (
+    connectionId: string,
+    signal: AbortSignal,
+    scope: Scope.CloseableScope
+) => Promise<MCPClient>;
 
 /** `draining`: a session failure unlisted the entry; in-flight calls finish before it closes. */
 type ClientEntryState = 'acquiring' | 'ready' | 'draining' | 'retired';
@@ -66,6 +70,11 @@ export class McpClientCache {
         } finally {
             this.finishOperation(entry, operationAbort);
         }
+    }
+
+    owns(connectionId: string, client: MCPClient): boolean {
+        const entry = this.entries.get(connectionId);
+        return entry !== undefined && this.isCurrentReady(entry, client);
     }
 
     async closeConnection(connectionId: string, timeoutMs: number): Promise<void> {
@@ -204,7 +213,7 @@ export class McpClientCache {
 
     private startFactory(entry: ClientEntry): Promise<MCPClient> {
         const factoryPromise = Promise.resolve().then(() =>
-            this.factory(entry.connectionId, entry.acquisitionAbort.signal)
+            this.factory(entry.connectionId, entry.acquisitionAbort.signal, entry.scope)
         );
         const settlement = factoryPromise.then(async (client) => {
             if (this.isCurrentAcquiring(entry)) {

@@ -35,6 +35,7 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 }
 
 export const serverRouteModules = {
+    artifacts: cachedRouteModule(() => import('../../features/artifacts/artifacts-content.tsx')),
     activity: cachedRouteModule(() => import('./activity-page-content.tsx')),
     agent: cachedRouteModule(loadAgentProfileContent),
     chat: cachedRouteModule(() => import('./chat-page-content.tsx')),
@@ -49,6 +50,7 @@ const routeModulesBySection: Record<
 > = {
     activity: [serverRouteModules.activity],
     agent: [serverRouteModules.agent],
+    artifacts: [serverRouteModules.artifacts],
     chat: [serverRouteModules.chat],
     inbox: [serverRouteModules.inbox],
     search: [],

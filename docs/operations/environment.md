@@ -198,6 +198,13 @@ would resolve the schema again at boot, under the development lifecycle.
 
 ## Commands
 
+Shared artifacts are opt-in through `HAUS_ENABLE_ARTIFACT_STORAGE`. When enabled,
+Server requires the private R2 endpoint, bucket, access key ID, and secret in
+`.env.schema`; the key pair resolves from `Cloudflare R2 - Haus` in the matching
+Development or Production vault. `HAUS_ARTIFACT_R2_SESSION_TOKEN` additionally
+supports temporary R2 credentials. Computer and App receive no R2 credentials.
+See [Artifacts](../api/artifacts.md) for limits and deployment requirements.
+
 | Command | Does |
 | --- | --- |
 | `bun run env:check` | validates the schema in the `test` lifecycle, fully offline |

@@ -37,6 +37,19 @@ export class HarnessSessionOwner {
         }
     }
 
+    /** Stops a parked native adapter before resetting or retiring its workspace. */
+    async stopAgent(agentRoot: string): Promise<void> {
+        const session = this.sessions.get(agentRoot);
+        if (!session) {
+            return;
+        }
+        session.stopping = true;
+        await session.stop();
+        if (this.sessions.get(agentRoot) === session) {
+            this.sessions.delete(agentRoot);
+        }
+    }
+
     close(signal?: AbortSignal): Promise<void> {
         this.beginShutdown();
         this.closing ??= (async () => {

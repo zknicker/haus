@@ -7,11 +7,11 @@ import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
 import { disconnectMcpConnection } from '../src/server-mcp/service.ts';
 import { connectSkool } from '../src/server-mcp/skool.ts';
 import { listMcpConnections } from '../src/server-mcp/state.ts';
+import { makeServerRuntime } from '../src/server-runtime.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
-import { registerServerRuntime } from './test-computer-connections.ts';
 
-const serverEffectRuntime = registerServerRuntime();
+const serverEffectRuntime = makeServerRuntime();
 const token = 'AAAAAAAAAAAAAAAAAAAAAFixture%2BToken';
 const noIcon = () => Promise.resolve(null);
 
@@ -44,6 +44,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await runtime?.close();
+    await serverEffectRuntime.dispose();
     owner?.close();
     await connection?.close();
     await harness?.close();

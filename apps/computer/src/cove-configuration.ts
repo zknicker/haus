@@ -31,6 +31,7 @@ export async function applyCoveConfiguration(input: {
     dataRoot: string;
     inventory: ComputerInventory;
     serverId: string;
+    prepareWorkspace?: (agentRoot: string) => Promise<unknown>;
 }): Promise<CoveApplyResult> {
     const { command } = input;
     try {
@@ -40,7 +41,12 @@ export async function applyCoveConfiguration(input: {
                 `Cove configuration is unavailable: ${applied.missingResources.join(', ')}`
             );
         }
-        const agentRoot = await ensureAgentRoot(input.dataRoot, input.serverId, command.agentId);
+        const agentRoot = await ensureAgentRoot(
+            input.dataRoot,
+            input.serverId,
+            command.agentId,
+            input.prepareWorkspace
+        );
         const receiptPath = join(agentRoot, 'cove-application.json');
         await seedAgentManagedSkills(agentRoot);
         const existing = await readCoveReceipt(receiptPath);
@@ -113,14 +119,24 @@ interface CoveReceipt {
     runtimeId: string;
 }
 
-async function ensureAgentRoot(dataRoot: string, serverId: string, agentId: string) {
+async function ensureAgentRoot(
+    dataRoot: string,
+    serverId: string,
+    agentId: string,
+    prepareWorkspace?: (agentRoot: string) => Promise<unknown>
+) {
     const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
     await mkdir(agentRoot, { mode: 0o700, recursive: true });
     await Promise.all(
-        ['home', 'runtime', 'skills', 'workspace'].map((directory) =>
+        ['home', 'runtime', 'skills'].map((directory) =>
             mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
         )
     );
+    if (prepareWorkspace) {
+        await prepareWorkspace(agentRoot);
+    } else {
+        await mkdir(join(agentRoot, 'workspace'), { mode: 0o700, recursive: true });
+    }
     return agentRoot;
 }
 

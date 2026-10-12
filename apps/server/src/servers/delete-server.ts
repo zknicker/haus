@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { purgeServerArtifacts } from '../artifacts/delete.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -128,9 +130,11 @@ export async function markServerDeleting(
 export async function purgeDeletedServer(
     db: HausDatabase,
     attachmentRoot: AttachmentRoot,
-    input: { deletionId: string; serverId: string }
+    input: { deletionId: string; serverId: string },
+    artifactStorage: ArtifactStorage | null = null
 ): Promise<void> {
     try {
+        await purgeServerArtifacts(db, artifactStorage, input.serverId);
         await attachmentRoot.purgeServer(input.serverId);
         await db.transaction(async (tx) => {
             const worn = await tx
@@ -176,7 +180,8 @@ export async function purgeDeletedServer(
  */
 export async function purgeDeletedServers(
     db: HausDatabase,
-    attachmentRoot: AttachmentRoot
+    attachmentRoot: AttachmentRoot,
+    artifactStorage: ArtifactStorage | null = null
 ): Promise<void> {
     const pending = await db
         .select({ deletionId: serverDeletionsTable.id, serverId: serversTable.id })
@@ -184,7 +189,7 @@ export async function purgeDeletedServers(
         .innerJoin(serverDeletionsTable, eq(serverDeletionsTable.serverId, serversTable.id))
         .where(isNotNull(serversTable.deletedAt));
     for (const deletion of pending) {
-        await purgeDeletedServer(db, attachmentRoot, deletion);
+        await purgeDeletedServer(db, attachmentRoot, deletion, artifactStorage);
     }
 }
 

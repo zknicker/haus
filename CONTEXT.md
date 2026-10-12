@@ -134,6 +134,8 @@ _Avoid_: Server-owned model credential, per-Agent provider login, hosted provide
 **MCP connection**:
 A Server-owned configured account on one remote HTTP MCP server. Haus Server stores its
 credentials, OAuth state, discovered tools, connection-level Agent grants, and client sessions.
+Server keeps its inventory current through MCP notifications and background reconciliation,
+independently of Agent turns. A connection grant covers current and future upstream tools.
 Computer receives only safe tool schemas and returns granted calls through a scoped runner
 credential. Reusing an external account on another Server requires a separate connection.
 _Avoid_: Computer-owned integration credential, local MCP process, stdio connection

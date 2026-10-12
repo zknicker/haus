@@ -25,6 +25,8 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
         { path: 'tasks', Component: serverRouteComponent('TasksPage') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
+        { path: 'artifacts', Component: serverRouteComponent('SharedArtifactsPage') },
+        { path: 'artifacts/:artifactKey', Component: serverRouteComponent('SharedArtifactsPage') },
         // An Agent is a first-class record, so its page lives in the Server
         // layout rather than inside the settings rail.
         { path: 'agents/:agentId', element: <AgentHomeRedirect /> },
@@ -73,15 +75,11 @@ const ThreadPageRoute = React.lazy(async () => ({
 const FilesPageRoute = React.lazy(async () => ({
     default: (await import('./desktop-tab-pages.tsx')).FilesPageRoute,
 }));
-const ArtifactPageRoute = React.lazy(async () => ({
-    default: (await import('./artifact-page-route.tsx')).ArtifactPageRoute,
-}));
 
 /** Pages only a desktop tab shows; the web hosts them in the chat side pane. */
 const desktopPageRoutes: RouteObject[] = [
     { path: 'threads/:chatId/:anchorMessageId', element: deferred(<ThreadPageRoute />) },
     { path: 'files/:chatId', element: deferred(<FilesPageRoute />) },
-    { path: 'artifacts/:artifactKey', element: deferred(<ArtifactPageRoute />) },
 ];
 
 function deferred(element: React.ReactNode) {

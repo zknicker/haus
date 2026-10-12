@@ -1,11 +1,12 @@
 import type {
-    OAuthAuthorizationServerInformation,
+    FetchLike,
     OAuthClientInformation,
     OAuthClientMetadata,
     OAuthClientProvider,
+    OAuthDiscoveryState,
     OAuthTokens,
-} from '@ai-sdk/mcp';
-import { auth } from '@ai-sdk/mcp';
+} from '@modelcontextprotocol/client';
+import { auth } from '@modelcontextprotocol/client';
 import { configuredOAuthClient, configuredOAuthClientInformation } from './oauth-clients.ts';
 import type { McpRuntime, McpSecret } from './runtime.ts';
 import { assertSecureOrLoopbackUrl, secureMcpFetch } from './secure-fetch.ts';
@@ -50,7 +51,7 @@ export async function startMcpAuthorization(
     try {
         const configured = configuredOAuthClient(connection.preset);
         const result = await auth(provider, {
-            fetchFn: secureMcpFetch,
+            fetchFn: provider.fetch,
             ...(configured?.scopeOverridesResource ? { scope: configured.scope } : {}),
             serverUrl: connection.url,
         });
@@ -83,10 +84,12 @@ export async function completeMcpAuthorization(
             throw new Error('The MCP server requested a new authorization flow.');
         },
     });
+    if ((await runtime.readSecret(input.connectionId)).oauthState !== input.state) {
+        throw new Error('MCP OAuth state does not match the authorization attempt.');
+    }
     const result = await auth(provider, {
         authorizationCode: input.code,
-        callbackState: input.state,
-        fetchFn: secureMcpFetch,
+        fetchFn: provider.fetch,
         serverUrl: connection.url,
     });
     if (result !== 'AUTHORIZED') {
@@ -103,7 +106,7 @@ export async function createMcpOAuthProvider(
         onRedirect(url: URL): void;
         routingState?: string;
     }
-): Promise<OAuthClientProvider> {
+): Promise<OAuthClientProvider & { fetch: FetchLike }> {
     const connection = await requireOAuthConnection(runtime, connectionId);
     const configured = configuredOAuthClient(connection.preset);
     let secret = await runtime.readSecret(connectionId);
@@ -134,18 +137,37 @@ export async function createMcpOAuthProvider(
     };
 
     return {
-        authorizationServerInformation: () =>
-            secret.authorizationServerInformation as
-                | OAuthAuthorizationServerInformation
-                | undefined,
+        discoveryState: () => secret.discoveryState as unknown as OAuthDiscoveryState | undefined,
+        fetch: async (input, init) => {
+            const url = new URL(input instanceof Request ? input.url : String(input));
+            const discovery = secret.discoveryState as unknown as OAuthDiscoveryState | undefined;
+            const trustedDiscovery =
+                discovery && trustedOrigins.has(new URL(discovery.authorizationServerUrl).origin);
+            const declaredEndpoint =
+                trustedDiscovery && oauthCredentialEndpoints(discovery).includes(url.href);
+            if (url.origin !== new URL(connection.url).origin && !declaredEndpoint) {
+                await trustOrigin(url);
+            }
+            return await secureMcpFetch(input, init);
+        },
         async clientInformation() {
             if (secret.configuredClientInformation) {
-                return secret.configuredClientInformation as OAuthClientInformation;
+                return {
+                    ...(secret.configuredClientInformation as OAuthClientInformation),
+                    ...(secret.clientInformationIssuer
+                        ? { issuer: secret.clientInformationIssuer }
+                        : {}),
+                };
             }
             // A Server-owned preset client is read fresh, never copied onto the
             // connection, so a rotated secret reaches existing connections.
             if (configured) {
-                return configuredOAuthClientInformation(configured);
+                return {
+                    ...configuredOAuthClientInformation(configured),
+                    ...(secret.clientInformationIssuer
+                        ? { issuer: secret.clientInformationIssuer }
+                        : {}),
+                };
             }
             return secret.clientInformation as OAuthClientInformation | undefined;
         },
@@ -187,30 +209,33 @@ export async function createMcpOAuthProvider(
             }
             options.onRedirect(url);
         },
-        async saveAuthorizationServerInformation(value) {
-            validateAuthorizationServerInformation(value);
-            await update({
-                authorizationServerInformation: value as unknown as Record<string, unknown>,
-            });
+        async saveDiscoveryState(value) {
+            await trustOrigin(new URL(value.authorizationServerUrl));
+            for (const endpoint of oauthCredentialEndpoints(value)) {
+                assertSecureOrLoopbackUrl(endpoint, 'OAuth credential endpoint');
+            }
+            await update({ discoveryState: value as unknown as Record<string, unknown> });
         },
         async saveClientInformation(value) {
-            await update({ clientInformation: value as unknown as Record<string, unknown> });
+            if (configured || secret.configuredClientInformation) {
+                await update({ clientInformationIssuer: value.issuer });
+            } else {
+                await update({ clientInformation: value as unknown as Record<string, unknown> });
+            }
         },
         async saveCodeVerifier(verifier) {
             await update({ verifier });
         },
-        async saveState(state) {
-            await update({ oauthState: state });
-        },
+
         async saveTokens(tokens) {
             await update({ tokens: tokens as unknown as Record<string, unknown> });
         },
         async state() {
-            return options.routingState ?? crypto.randomUUID();
+            const state = options.routingState ?? crypto.randomUUID();
+            await update({ oauthState: state });
+            return state;
         },
-        async storedState() {
-            return secret.oauthState;
-        },
+
         async tokens() {
             // Re-read per request: the GitHub connection refreshes its user
             // token outside this client (github/user-token.ts), and GitHub
@@ -218,9 +243,7 @@ export async function createMcpOAuthProvider(
             secret = await runtime.readSecret(connectionId);
             return secret.tokens as OAuthTokens | undefined;
         },
-        async validateAuthorizationServerURL(_serverUrl, authorizationServerUrl) {
-            await trustOrigin(new URL(authorizationServerUrl));
-        },
+
         async validateResourceURL(serverUrl, resource) {
             const expected = new URL(serverUrl);
             const actual = new URL(resource ?? expected);
@@ -242,9 +265,12 @@ export async function createMcpOAuthProvider(
                 return;
             }
             await update({
-                ...(scope === 'client' ? { clientInformation: undefined } : {}),
+                ...(scope === 'client'
+                    ? { clientInformation: undefined, clientInformationIssuer: undefined }
+                    : {}),
                 ...(scope === 'tokens' ? { tokens: undefined } : {}),
                 ...(scope === 'verifier' ? { verifier: undefined } : {}),
+                ...(scope === 'discovery' ? { discoveryState: undefined } : {}),
             });
         },
     };
@@ -258,10 +284,9 @@ async function requireOAuthConnection(runtime: McpRuntime, connectionId: string)
     return connection;
 }
 
-function validateAuthorizationServerInformation(value: OAuthAuthorizationServerInformation) {
-    for (const endpoint of [value.authorizationServerUrl, value.tokenEndpoint]) {
-        if (endpoint) {
-            assertSecureOrLoopbackUrl(endpoint, 'OAuth authorization server endpoint');
-        }
-    }
+function oauthCredentialEndpoints(state: OAuthDiscoveryState): string[] {
+    const metadata = state.authorizationServerMetadata;
+    return [metadata?.token_endpoint, metadata?.registration_endpoint]
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => new URL(value).href);
 }

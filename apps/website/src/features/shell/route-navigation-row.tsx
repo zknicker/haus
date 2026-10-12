@@ -18,7 +18,7 @@ export function RouteNavigationRow({
     isCurrent: boolean;
     label: string;
     onPreload: () => void;
-    tab: 'activity' | 'tasks';
+    tab: 'activity' | 'artifacts' | 'tasks';
 }) {
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, onPreload);
 

@@ -20,15 +20,15 @@
     "db:migrate:postgres": "HAUS_MIGRATIONS_FOLDER=drizzle/postgres bun src/haus-server-migrate.ts"
   },
   "dependencies": {
-    "@ai-sdk/mcp": "2.0.62",
     "@fastify/cors": "11.2.0",
     "@fastify/static": "10.1.3",
-    "@haus/api": "workspace:*",
     "@haus/agent-manual": "workspace:*",
+    "@haus/api": "workspace:*",
     "@haus/claude-usage": "workspace:*",
     "@haus/codex-usage": "workspace:*",
     "@haus/effect": "workspace:*",
     "@haus/sdk": "workspace:*",
+    "@modelcontextprotocol/client": "2.3.1",
     "@trpc/server": "11.12.0",
     "bottleneck": "2.19.5",
     "bunqueue": "2.6.38",

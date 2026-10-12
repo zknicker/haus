@@ -1,5 +1,5 @@
-import type { MCPClient } from '@ai-sdk/mcp';
 import type { McpPreset } from '@haus/api';
+import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import { callMcpTool } from './tool-catalog.ts';
 
 interface LabelContext {
@@ -26,7 +26,7 @@ export async function resolveAccountLabel(
 ): Promise<string> {
     const reader = context.preset ? presetLabelReaders[context.preset] : undefined;
     const label = reader ? await reader(client, context).catch(() => null) : null;
-    return label ?? client.serverInfo.name;
+    return label ?? client.getServerVersion()?.name ?? 'MCP server';
 }
 
 /** github-mcp-server's `get_me` returns the authenticated user as JSON text: `{"login": ...}`. */

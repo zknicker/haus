@@ -1,14 +1,6 @@
 import type { TraceCarrier } from '@haus/effect';
-import * as z from 'zod';
 import type { AgentActivityRun } from './agent-activity-run.ts';
-import {
-    createLocalAgentSkill,
-    deleteLocalAgentSkill,
-    listLocalAgentSkills,
-    patchLocalAgentSkill,
-    viewLocalAgentSkill,
-    writeLocalAgentSkillFile,
-} from './agent-skills.ts';
+import { createArtifactProxy } from './artifacts/proxy.ts';
 import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { classifyHausProxyBoundary } from './harness/haus-proxy-boundary.ts';
@@ -27,25 +19,9 @@ import {
     isDefinitelyPreCommitFailure,
     serverUnavailable,
 } from './proxy-send-outcome.ts';
+import { handleSkillRequest } from './proxy-skills.ts';
 import { recordProxyVisibility } from './proxy-visibility.ts';
 import { attestVisibleMessages } from './visibility-receipt.ts';
-
-const skillCreateSchema = z.object({
-    content: z.string().min(1),
-    description: z.string().trim().min(1),
-    name: z.string().trim().min(1),
-});
-const skillPatchSchema = z.object({
-    content: z.string().min(1),
-    expectedHash: z.string().min(1),
-    skillId: z.string().min(1),
-});
-const skillFileSchema = z.object({
-    content: z.string(),
-    expectedHash: z.string().min(1).nullable(),
-    filePath: z.string().min(1),
-    skillId: z.string().min(1),
-});
 
 export interface LoopbackProxy {
     clearRunnerToken(): void;
@@ -72,6 +48,7 @@ export function startLoopbackProxy(input: {
     serverOrigin: string;
     skillsDir?: string;
 }): LoopbackProxy {
+    const artifacts = createArtifactProxy(input);
     let sends = 0;
     let runnerToken: string | null = input.runnerToken;
     let runId: string | null = input.runId ?? null;
@@ -98,6 +75,7 @@ export function startLoopbackProxy(input: {
                     incrementSendCount: () => {
                         sends += 1;
                     },
+                    artifacts,
                 });
             return activityRun && category
                 ? await activityRun.runPromise(
@@ -110,6 +88,7 @@ export function startLoopbackProxy(input: {
                 : await operation();
         },
         hostname: '127.0.0.1',
+        maxRequestBodySize: 256 * 1024 ** 2,
         port: 0,
     });
     return {
@@ -117,8 +96,16 @@ export function startLoopbackProxy(input: {
             runnerToken = null;
             traceContext = undefined;
             onCommittedSend = undefined;
+            void artifacts.release().catch((error: unknown) => {
+                process.stderr.write(`Artifact cache release failed: ${String(error)}\n`);
+            });
         },
-        close: () => server.stop(true),
+        close: () => {
+            server.stop(true);
+            void artifacts.release().catch((error: unknown) => {
+                process.stderr.write(`Artifact cache release failed: ${String(error)}\n`);
+            });
+        },
         resetSendCount: () => {
             sends = 0;
         },
@@ -161,6 +148,7 @@ async function handleAuthorizedProxyRequest(
         traceContext?: TraceCarrier;
         onCommittedSend?: (send: CommittedSend) => void;
         incrementSendCount(): void;
+        artifacts: ReturnType<typeof createArtifactProxy>;
     }
 ): Promise<Response> {
     const skillResponse = await handleSkillRequest(request, url, input);
@@ -174,6 +162,13 @@ async function handleAuthorizedProxyRequest(
             { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
             { status: 409 }
         );
+    }
+    const artifact = await state.artifacts.handle(request, url, {
+        runnerToken,
+        serverOrigin: input.serverOrigin,
+    });
+    if (artifact) {
+        return artifact;
     }
     const cloudAgent = await handleCloudAgentStart(request, url, {
         dataRoot: input.dataRoot,
@@ -297,63 +292,6 @@ function agentInboxLocation(input: {
     return input.agentId && input.dataRoot && input.serverId
         ? { agentId: input.agentId, dataRoot: input.dataRoot, serverId: input.serverId }
         : null;
-}
-
-async function handleSkillRequest(
-    request: Request,
-    url: URL,
-    input: { agentId?: string; skillsDir?: string }
-): Promise<Response | null> {
-    if (!(input.agentId && input.skillsDir && url.pathname.startsWith('/api/agent/skills'))) {
-        return null;
-    }
-    try {
-        if (url.pathname === '/api/agent/skills' && request.method === 'GET') {
-            return Response.json(await listLocalAgentSkills(input.skillsDir));
-        }
-        if (url.pathname === '/api/agent/skills/create' && request.method === 'POST') {
-            return Response.json(
-                await createLocalAgentSkill(
-                    input.skillsDir,
-                    skillCreateSchema.parse(await request.json())
-                )
-            );
-        }
-        if (url.pathname === '/api/agent/skills/patch' && request.method === 'POST') {
-            return Response.json(
-                await patchLocalAgentSkill(
-                    input.skillsDir,
-                    skillPatchSchema.parse(await request.json())
-                )
-            );
-        }
-        if (url.pathname === '/api/agent/skills/write-file' && request.method === 'POST') {
-            return Response.json(
-                await writeLocalAgentSkillFile(
-                    input.skillsDir,
-                    skillFileSchema.parse(await request.json())
-                )
-            );
-        }
-        const skillId = decodeURIComponent(url.pathname.slice('/api/agent/skills/'.length));
-        if (skillId && request.method === 'GET') {
-            return Response.json(await viewLocalAgentSkill(input.skillsDir, skillId));
-        }
-        if (skillId && request.method === 'DELETE') {
-            return Response.json(
-                await deleteLocalAgentSkill(input.skillsDir, input.agentId, skillId)
-            );
-        }
-        return null;
-    } catch (error) {
-        return Response.json(
-            {
-                code: 'INVALID_ARG',
-                message: error instanceof Error ? error.message : String(error),
-            },
-            { status: 409 }
-        );
-    }
 }
 
 function isAuthorized(request: Request, proxyToken: string): boolean {

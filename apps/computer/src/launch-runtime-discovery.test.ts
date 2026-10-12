@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
@@ -16,6 +16,11 @@ test('launch accepts every runtime advertised by executable discovery', async ()
             Response.json({ error: 'Discovery passed; stop before execution.' }, { status: 503 }),
     });
     try {
+        // Discovery isolates PATH and never executes an Agent or provisions a disk image.
+        await mkdir(
+            join(root, 'servers', 'srv_discovery', 'agents', 'agt_discovery', 'workspace'),
+            { recursive: true }
+        );
         for (const command of ['codex', 'claude', 'grok', 'pi']) {
             const path = join(root, command);
             await writeFile(path, '#!/bin/sh\necho "test-runtime 1.0.0"\n');

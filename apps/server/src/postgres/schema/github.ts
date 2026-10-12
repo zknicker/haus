@@ -72,7 +72,7 @@ export const githubInstallationsTable = pgTable(
         index('github_installations_connection_idx').on(table.serverId, table.connectionId),
         // No delete action: deleting a GitHub connection tombstones its
         // installations first, in the same transaction. Deferred (migration
-        // 0081) so a Server purge cascades cleanly.
+        // 0082) so a Server purge cascades cleanly.
         foreignKey({
             columns: [table.serverId, table.connectionId],
             foreignColumns: [mcpConnectionsTable.serverId, mcpConnectionsTable.id],
@@ -133,7 +133,7 @@ export const githubTriggerConfigsTable = pgTable(
             name: 'github_trigger_configs_trigger_fk',
         }).onDelete('cascade'),
         // Installations are tombstoned, never deleted under a Trigger. No delete
-        // action, deferred (migration 0081) so a Server purge cascades cleanly.
+        // action, deferred (migration 0082) so a Server purge cascades cleanly.
         foreignKey({
             columns: [table.serverId, table.installationRowId],
             foreignColumns: [githubInstallationsTable.serverId, githubInstallationsTable.id],

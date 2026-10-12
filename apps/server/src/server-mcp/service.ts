@@ -176,7 +176,11 @@ export async function refreshMcpConnection(
     input: { connectionId: string; serverId: string }
 ): Promise<McpConnection> {
     const connection = await requireOperableConnection(db, member, input);
-    return shapeMcpConnection(await refreshInventory(db, runtime, resolveIcon, connection));
+    try {
+        return shapeMcpConnection(await refreshInventory(db, runtime, resolveIcon, connection));
+    } finally {
+        runtime.inventory.resume(connection.id);
+    }
 }
 
 export async function replaceMcpHeaders(
@@ -282,5 +286,6 @@ async function refreshInventory(
     if (!updated) {
         throw new Error('MCP inventory was not saved.');
     }
+    await runtime.inventory.record(connection.id, discovery.definitions);
     return updated;
 }

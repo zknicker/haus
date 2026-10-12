@@ -1,37 +1,38 @@
-import { UnauthorizedError } from '@ai-sdk/mcp';
+import {
+    OAuthError,
+    ProtocolError,
+    SdkError,
+    SdkErrorCode,
+    SdkHttpError,
+    UnauthorizedError,
+} from '@modelcontextprotocol/client';
 import { McpDeniedError, McpUpstreamError } from './errors.ts';
 
-/**
- * Which part of a shared MCP client a failed operation proves broken.
- * - `operation`: only that request failed; the session still serves sibling calls.
- * - `session`: the transport, session, or credentials are unusable; rebuild the client.
- */
 export type McpClientFailureScope = 'operation' | 'session';
+const SESSION_HTTP_STATUSES = new Set([401, 403, 404]);
+const SESSION_CODES = new Set<string>([
+    SdkErrorCode.ConnectionClosed,
+    SdkErrorCode.NotConnected,
+    SdkErrorCode.NotInitialized,
+    SdkErrorCode.SendFailed,
+]);
 
-/**
- * Classify against what `@ai-sdk/mcp` 2.x throws. `MCPClientError` is not exported, so it is
- * recognized by the AI SDK error marker. Unknown failures (network `TypeError`, OAuth provider
- * errors, Effect defects) count as `session` so a broken client is never kept.
- */
+/** Request failures keep sibling calls alive; broken transports and credentials retire the client. */
 export function classifyMcpClientFailure(cause: unknown): McpClientFailureScope {
     if (cause instanceof McpUpstreamError) {
-        if (cause.code === 'MCP_AUTH_REQUIRED') {
-            return 'session';
-        }
-        // A cause-less MCP_TIMEOUT is the per-call deadline in upstream-operation.ts.
-        if (cause.cause === undefined) {
-            return cause.code === 'MCP_TIMEOUT' ? 'operation' : 'session';
-        }
-        return classifyMcpClientFailure(cause.cause);
+        return classifyUpstreamFailure(cause);
     }
-    if (cause instanceof McpDeniedError) {
+    if (cause instanceof McpDeniedError || cause instanceof ProtocolError) {
         return 'operation';
     }
-    if (cause instanceof UnauthorizedError) {
+    if (cause instanceof UnauthorizedError || cause instanceof OAuthError) {
         return 'session';
     }
-    if (isMcpClientError(cause)) {
-        return classifyMcpClientError(cause);
+    if (cause instanceof SdkHttpError) {
+        return SESSION_HTTP_STATUSES.has(cause.status) ? 'session' : 'operation';
+    }
+    if (cause instanceof SdkError) {
+        return SESSION_CODES.has(cause.code) ? 'session' : 'operation';
     }
     if (cause instanceof Error && (cause.name === 'AbortError' || cause.name === 'TimeoutError')) {
         return 'operation';
@@ -39,36 +40,12 @@ export function classifyMcpClientFailure(cause: unknown): McpClientFailureScope 
     return 'session';
 }
 
-interface McpClientErrorShape {
-    readonly code?: unknown;
-    readonly message: string;
-    readonly statusCode?: unknown;
-}
-
-/** Messages `MCPClient` uses once its transport has closed (`onClose`, `request`). */
-const CLOSED_CLIENT_MESSAGES = new Set([
-    'Attempted to send a request from a closed client',
-    'Connection closed',
-]);
-/** 401/403: credentials need a refresh or reconnect. 404: the HTTP session expired. */
-const SESSION_HTTP_STATUSES = new Set([401, 403, 404]);
-const MCP_CLIENT_ERROR_MARKER = Symbol.for('vercel.ai.error.AI_MCPClientError');
-
-function classifyMcpClientError(error: McpClientErrorShape): McpClientFailureScope {
-    if (typeof error.statusCode === 'number') {
-        return SESSION_HTTP_STATUSES.has(error.statusCode) ? 'session' : 'operation';
+function classifyUpstreamFailure(cause: McpUpstreamError): McpClientFailureScope {
+    if (cause.code === 'MCP_AUTH_REQUIRED') {
+        return 'session';
     }
-    // A JSON-RPC error response (`code`), request timeout, abort, or parse failure is per-request.
-    if (typeof error.code === 'number') {
-        return 'operation';
+    if (cause.cause === undefined) {
+        return cause.code === 'MCP_TIMEOUT' ? 'operation' : 'session';
     }
-    return CLOSED_CLIENT_MESSAGES.has(error.message) ? 'session' : 'operation';
-}
-
-function isMcpClientError(cause: unknown): cause is McpClientErrorShape {
-    return (
-        cause instanceof Error &&
-        MCP_CLIENT_ERROR_MARKER in cause &&
-        Reflect.get(cause, MCP_CLIENT_ERROR_MARKER) === true
-    );
+    return classifyMcpClientFailure(cause.cause);
 }

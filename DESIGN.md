@@ -733,6 +733,8 @@ scopes, and do not scatter override rules into feature CSS. Product CSS may own 
 behavior HeroUI cannot express, but must not recreate component appearance.
 
 ## Components
+
+- **Shared artifacts:** Library controls live in the shell band, with a compact file-type strip and a full-width scrolling collection. Gallery tiles use square previews on `surface-secondary` with `radius-xl`; titles and revision metadata sit below the media without a padded Card shell. The viewer fills the remaining app height and keeps file details and revisions beside the asset.
 - **Amazon references:** Product chips reuse the inline reference shell with an 18px transparent cutout thumbnail from RankWrangler and a short name (ASIN fallback) capped at 16rem. The image fits inside its box without cropping, zoom, or background blending. Missing or failed cutouts use the product icon. Their landscape hover card uses the shared hover-card material at 384px and shows a compact text surface with a two-line title, closely spaced brand, and price, with a 72px transparent cutout floating to its right at −5°. A 1.2-second pop-in with diminishing scale and rotation overshoot settles at −5°; a delayed sparkle fades out. Both respect reduced-motion preferences. Feature bullets are omitted.
 - **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
   no additional end padding, so text and thread previews use the space beside the avatar rail.

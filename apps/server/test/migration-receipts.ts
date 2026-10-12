@@ -21,5 +21,6 @@ export const migrationsSince0060 = [
     '0078_agent-dreams-truncated',
     '0079_cloud_agent_work_links',
     '0080_message-body-drop-cloud-agent-work',
-    '0081_github_app',
+    '0081_shared-artifacts',
+    '0082_github_app',
 ];

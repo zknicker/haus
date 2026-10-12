@@ -1,14 +1,12 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { seedCoveWorkspace } from '@haus/agent-workspace';
 import type { TraceCarrier } from '@haus/effect';
 import type { AgentActivityRun } from './agent-activity-run.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './agent-commands.ts';
 import {
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
-    seedOrdinaryWorkspace,
 } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { createRunPresentation } from './agent-run-frames.ts';
@@ -36,7 +34,6 @@ import {
 } from './launch-failure-turns.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
 import { reportTurn, turnSummaryText } from './launch-turn-report.ts';
-import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
@@ -47,6 +44,7 @@ import {
 } from './turn-failure-report.ts';
 import { type OpenTurnLedger, openTurnLedger } from './turn-ledger.ts';
 import { visibilityReceipt } from './visibility-receipt.ts';
+import { ensureAgentWorkspace } from './workspace-volumes/workspace-volume.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
 export interface Attachment {
@@ -127,14 +125,20 @@ async function runLedgeredLaunch(
         workspace: join(agentRoot, 'workspace'),
     };
     await Promise.all(
-        Object.values(dirs).map((dir) => mkdir(dir, { mode: 0o700, recursive: true }))
+        [dirs.home, dirs.runtime, dirs.skills].map((dir) =>
+            mkdir(dir, { mode: 0o700, recursive: true })
+        )
     );
-    await ensureNativeSkillLinks(dirs.home, dirs.skills);
-
     const runtimeExecutable = resolveRuntimeById(command.runtimeId);
     if (command.runtimeId !== 'fake' && !runtimeExecutable && !options.harnessAgentFactory) {
         return reportTurn(options, runtimeNotInstalledReport(command.runtimeId, startedAt));
     }
+    if (command.runtimeId === 'fake' || options.harnessAgentFactory) {
+        await mkdir(dirs.workspace, { mode: 0o700, recursive: true });
+    } else {
+        await ensureAgentWorkspace({ agentRoot, dataRoot: options.dataRoot });
+    }
+    await ensureNativeSkillLinks(dirs.home, dirs.skills);
 
     let runner: { runnerId: string; runnerToken: string };
     try {
@@ -264,39 +268,6 @@ async function runLedgeredLaunch(
             command.runId
         ),
     });
-}
-
-/** Applies reset semantics inside exactly one Server/Agent filesystem partition. */
-export async function resetAgentState(input: {
-    agentId: string;
-    dataRoot: string;
-    kind: 'full' | 'session';
-    serverId: string;
-}): Promise<void> {
-    const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
-    if (input.kind === 'full') {
-        const seed = await readAgentSeedConfiguration(agentRoot);
-        await Promise.all(
-            ['home', 'runtime', 'skills', 'workspace', '.agent-runs', 'session.json'].map((entry) =>
-                rm(join(agentRoot, entry), { force: true, recursive: true })
-            )
-        );
-        if (seed) {
-            await Promise.all([
-                seed.factoryKind === 'cove'
-                    ? seedCoveWorkspace(join(agentRoot, 'workspace'))
-                    : seedOrdinaryWorkspace(seed, join(agentRoot, 'workspace')),
-                seedAgentManagedSkills(agentRoot),
-            ]);
-        }
-        return;
-    }
-    await Promise.all([
-        rm(join(agentRoot, 'session.json'), { force: true }),
-        rm(join(agentRoot, '.agent-runs'), { force: true, recursive: true }),
-        rm(join(agentRoot, 'runtime', 'inbox'), { force: true, recursive: true }),
-        rm(join(agentRoot, 'runtime', 'pending-notice.json'), { force: true }),
-    ]);
 }
 
 interface RuntimeExecutionInput {

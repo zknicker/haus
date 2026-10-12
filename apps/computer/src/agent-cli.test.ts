@@ -3,6 +3,7 @@ import { runAgentCli } from './agent-cli.ts';
 
 const families = [
     'agent',
+    'artifact',
     'attachment',
     'channel',
     'cloud-agent',

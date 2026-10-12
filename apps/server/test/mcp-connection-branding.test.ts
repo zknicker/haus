@@ -10,11 +10,11 @@ import {
     refreshMcpConnection,
 } from '../src/server-mcp/service.ts';
 import { listMcpConnections } from '../src/server-mcp/state.ts';
+import { makeServerRuntime } from '../src/server-runtime.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
-import { registerServerRuntime } from './test-computer-connections.ts';
 
-const effectRuntime = registerServerRuntime();
+const effectRuntime = makeServerRuntime();
 const icon = { dark: null, light: 'data:image/png;base64,iVBORw0KGgo=' };
 let resolutions = 0;
 const resolveIcon = cacheAnonymousMcpIcons(async () => {
@@ -47,6 +47,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await runtime?.close();
+    await effectRuntime.dispose();
     owner?.close();
     await database?.close();
     await harness?.close();

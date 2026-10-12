@@ -24,7 +24,7 @@ export const deleteServerProcedure = memberProcedure
         // `server.onUpdated` recheck ends with `membership_lost`.
         serverUpdatedTopic.announce({ serverId: result.serverId });
         void ctx.postCommitWork.run('server.delete-purge', () =>
-            purgeDeletedServer(ctx.hausDb, ctx.attachmentRoot, result)
+            purgeDeletedServer(ctx.hausDb, ctx.attachmentRoot, result, ctx.artifactStorage)
         );
         return result;
     });
