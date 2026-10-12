@@ -21,7 +21,6 @@ export const mcpOAuthPresetSchema = z.enum([
     'merchbase-atlas',
     'merchbase-fulfillment',
     'rankwrangler',
-    'vercel',
 ]);
 export const mcpBearerTokenPresetSchema = z.enum(['x']);
 export const mcpDesktopPresetSchema = z.enum(['skool']);

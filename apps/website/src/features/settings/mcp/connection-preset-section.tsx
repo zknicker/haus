@@ -60,11 +60,6 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'Cloudflare',
     },
     {
-        description: 'Manage projects and deployments, and inspect deployment logs.',
-        id: 'vercel',
-        name: 'Vercel',
-    },
-    {
         description: 'Search and read public posts on X.',
         id: 'x',
         name: 'X',
