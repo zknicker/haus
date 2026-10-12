@@ -9,10 +9,9 @@ import * as store from './store.ts';
 /**
  * Queues one nightly dream for an Agent its Computer checked tonight. It queues
  * only for a configured, running Agent assigned to that Computer; a busy, paused,
- * or backed-off Agent, or one with work waiting, still gets its dream, which
- * ordinary delivery leads only once no other work is waiting. A dream therefore
- * never starts a stopped Agent and never runs in front of anyone's work, and one
- * still queued four hours later is retired. `dream:<agentId>:<localDate>` makes a
+ * or backed-off Agent, or one with work waiting, still gets its dream, which then
+ * takes its turn like any other concrete inbox item. A dream never starts a stopped
+ * Agent, and one still queued four hours later is retired. `dream:<agentId>:<localDate>` makes a
  * repeat on the same Computer-local night a no-op. Returns whether it was queued.
  */
 export async function requestAgentDream(

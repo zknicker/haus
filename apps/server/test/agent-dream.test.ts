@@ -113,19 +113,21 @@ test('a busy Agent gets its dream queued, and it runs after the current work', a
     expect(next).toMatchObject({ chatId: null, dream: { id: `dream:${seed.agentId}:2026-10-11` } });
 });
 
-test('work waiting when a dream is queued leads first; the dream follows', async () => {
+test('a queued dream takes its turn like any concrete item, ahead of waiting notices', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
     expect(await dream(delivery, seed)).toBe(true);
 
+    // Concrete work leads its own run, so the dream starts before the notice-lane message.
     const first = await wake();
-    expect(first).toMatchObject({ chatId: seed.dmChatId });
-    expect(first).not.toHaveProperty('dream');
+    expect(first).toMatchObject({
+        chatId: null,
+        dream: { id: `dream:${seed.agentId}:2026-10-11` },
+    });
 
     await delivery.onTurnSettled(seed.computerId, completed(seed, first?.runId ?? ''));
-    expect(transport.framesOfType('start').at(-1)).toMatchObject({ chatId: null });
-    expect(transport.framesOfType('start')).toHaveLength(2);
+    expect(transport.framesOfType('start').at(-1)).toMatchObject({ chatId: seed.dmChatId });
 });
 
 test('ambient rows a settled run already offered never block a dream', async () => {
