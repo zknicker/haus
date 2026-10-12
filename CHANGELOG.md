@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.2.1 - 2026-10-12
+
+- Haus Computer 9.2.1 fixes existing-workspace migration: the documented Server selector works, and macOS's own hidden volume files no longer prevent verification. Personal files and original backups remain checked byte for byte.
+
 ## v12.2.0 - 2026-10-12
 
 - Artifacts collects files Agents explicitly share with the Server, with image and media previews, stable links, and immutable revision history. Haus Computer 9.2.0 and Haus Agent 9.2.0 add file publication and retrieval through the Haus CLI.
