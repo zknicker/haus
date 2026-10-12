@@ -189,12 +189,16 @@ async function copyMigration(
         dereference: false,
         verbatimSymlinks: true,
     });
-    if ((await inventoryDigest(path)) !== (await inventoryDigest(staging))) {
+    const sourceEntries = new Set(await readdir(path));
+    const volumeMetadata = new Set(
+        ['.fseventsd', '.Spotlight-V100', '.Trashes'].filter((name) => !sourceEntries.has(name))
+    );
+    if ((await inventoryDigest(path)) !== (await inventoryDigest(staging, volumeMetadata))) {
         throw new Error('Workspace migration copy verification failed; original preserved.');
     }
 }
 
-async function inventoryDigest(root: string) {
+async function inventoryDigest(root: string, ignoredRootEntries = new Set<string>()) {
     const digest = createHash('sha256');
     async function visit(relative: string): Promise<void> {
         const path = join(root, relative);
@@ -205,8 +209,13 @@ async function inventoryDigest(root: string) {
         if (info.isSymbolicLink()) {
             digest.update(`link:${await readlink(path)}`);
         } else if (info.isDirectory()) {
-            for (const entry of (await readdir(path)).sort()) {
-                await visit(join(relative, entry));
+            const entries = await readdir(path, { withFileTypes: true });
+            entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+            for (const entry of entries) {
+                if (!relative && entry.isDirectory() && ignoredRootEntries.has(entry.name)) {
+                    continue;
+                }
+                await visit(join(relative, entry.name));
             }
         } else if (info.isFile()) {
             digest.update(`file:${info.size}:`);
