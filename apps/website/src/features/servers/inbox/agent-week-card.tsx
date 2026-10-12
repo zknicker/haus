@@ -1,5 +1,6 @@
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Sparkline } from '../../../components/ui/sparkline.tsx';
+import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 import { formatTokens } from '../../stats/usage-format.ts';
@@ -36,7 +37,7 @@ export function AgentWeekCard({
         <ItemCard<'button'>
             className="relative w-52 shrink-0 cursor-(--cursor-interactive) snap-start overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
             onClick={onPress}
-            render={(props) => <button type="button" {...props} />}
+            render={(props) => <button type="button" {...props} {...opensPlace} />}
         >
             <PressableFeedback.Highlight />
             <ItemCard.Content className="gap-3">

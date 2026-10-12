@@ -71,11 +71,17 @@ describe('github trigger events', () => {
         ]);
     });
 
-    test('refuses an empty list, a repeated event, a foreign filter, and an unknown event', () => {
+    test('accepts alternative groups and refuses empty, excessive, foreign, or unknown entries', () => {
         expect(() => githubTriggerEventsSchema.parse([])).toThrow();
+        expect(
+            githubTriggerEventsSchema.parse([
+                { event: 'push', branches: ['main'] },
+                { event: 'push', branches: ['release/*'] },
+            ])
+        ).toHaveLength(2);
         expect(() =>
-            githubTriggerEventsSchema.parse([{ event: 'push' }, { event: 'push' }])
-        ).toThrow(/at most once/u);
+            githubTriggerEventsSchema.parse(Array.from({ length: 11 }, () => ({ event: 'push' })))
+        ).toThrow();
         expect(() =>
             githubTriggerEventsSchema.parse([{ event: 'push', labels: ['bug'] }])
         ).toThrow();

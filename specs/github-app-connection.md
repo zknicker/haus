@@ -15,8 +15,9 @@ OAuth App and every `HAUS_GITHUB_OAUTH_CLIENT_*` path are deleted. v1 adds no Ha
 
 ## The App
 
-Haus registers one GitHub App per lifecycle: **Haus** for production (installable by any account)
-and **Haus Dev** for development. Each has an app id, slug, client id and secret, private key, and
+Haus registers one GitHub App per lifecycle under @zknicker: **Haus Chat** (`haus-chat`) for
+production (installable by any account) and **Haus Chat Dev** (`haus-chat-dev`, private) for
+development. GitHub reserves the plain names for existing accounts. Each has an app id, slug, client id and secret, private key, and
 webhook secret. "Expire user authorization tokens" is on. "Request user authorization during
 installation" is off, because GitHub then sends the code to the first callback URL without Haus's
 `redirect_uri` or PKCE ([user access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)).
@@ -59,7 +60,9 @@ Adding a permission later makes every installation accept it
 
 The `github` preset stays an OAuth MCP connection at `https://api.githubcopilot.com/mcp/`. Its
 configured client is `HAUS_GITHUB_APP_CLIENT_ID` and `HAUS_GITHUB_APP_CLIENT_SECRET` through the
-existing `oauth-clients.ts` path with PKCE and Server-held state. GitHub Apps ignore `scope`, so the
+existing `oauth-clients.ts` path with PKCE and Server-held state. The callback forwards GitHub’s
+RFC 9207 `iss` parameter to the SDK, which validates it against the discovered issuer before
+exchanging the code. GitHub Apps ignore `scope`, so the
 preset sends none. The hosted MCP accepts GitHub App user tokens and permission-checks them through
 the API ([host integration](https://github.com/github/github-mcp-server/blob/main/docs/host-integration.md),
 [scope filtering](https://github.com/github/github-mcp-server/blob/main/docs/scope-filtering.md)).
@@ -339,10 +342,6 @@ Then integration proof on the dev stack, `autoreview`, and grouped commits.
 
 ### Operator steps
 
-1. Register **Haus** and **Haus Dev** with the settings and permissions above; subscribe to the
-   events in [GitHub Triggers](github-triggers.md#events).
-2. Generate each private key and webhook secret; fill `GitHub App - Haus` in both vaults.
-3. After Slice B ships: delete `GitHub MCP OAuth - Haus`, delete the OAuth App on GitHub, and tell
-   users to sign in to GitHub again and regrant Agents.
-4. Install the App on the orgs Haus uses as an org owner; accept permission updates when Haus adds
-   one.
+Registration, the `GitHub App - Haus` vault items, and OAuth App retirement are done (2026-10-12).
+What remains ongoing: install **Haus Chat** on each org Haus uses as an org owner, and accept
+permission updates when Haus adds one.

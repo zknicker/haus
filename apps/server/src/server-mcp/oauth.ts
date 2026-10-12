@@ -75,7 +75,7 @@ export async function startMcpAuthorization(
 
 export async function completeMcpAuthorization(
     runtime: McpRuntime,
-    input: { code: string; connectionId: string; redirectUrl: string; state: string }
+    input: { code: string; connectionId: string; redirectUrl: string; state: string; iss?: string }
 ): Promise<void> {
     const connection = await requireOAuthConnection(runtime, input.connectionId);
     const provider = await createMcpOAuthProvider(runtime, input.connectionId, input.redirectUrl, {
@@ -89,6 +89,7 @@ export async function completeMcpAuthorization(
     }
     const result = await auth(provider, {
         authorizationCode: input.code,
+        iss: input.iss,
         fetchFn: provider.fetch,
         serverUrl: connection.url,
     });

@@ -16,7 +16,17 @@ test('manual refresh discovers a runtime installed after the initial inventory',
         expect(result).toMatchObject({
             requestId: 'req_refresh',
             status: 'refreshed',
-            runtimes: [{ id: 'grok-build', models: [{ id: 'grok-4.6' }, { id: 'grok-4.5' }] }],
+            runtimes: [
+                {
+                    id: 'grok-build',
+                    models: [
+                        { id: 'grok-4.6' },
+                        { id: 'grok-4.5' },
+                        { id: 'grok-4.7' },
+                        { id: 'grok-4.7-build-fast' },
+                    ],
+                },
+            ],
         });
         await rm(executable);
         expect(await refreshRuntimeInventory('req_removed', { searchPath: root })).toMatchObject({

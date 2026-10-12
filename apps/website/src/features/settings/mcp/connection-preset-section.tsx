@@ -45,6 +45,11 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'MerchBase Atlas',
     },
     {
+        description: 'Manage Etsy listings, look up orders, and create product mockups.',
+        id: 'handmade',
+        name: 'Handmade',
+    },
+    {
         description: 'Review and fulfill Printful orders through your MerchBase account.',
         id: 'merchbase-fulfillment',
         name: 'MerchBase Fulfillment',
@@ -58,11 +63,6 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         description: 'Manage DNS, Workers, and other Cloudflare services.',
         id: 'cloudflare',
         name: 'Cloudflare',
-    },
-    {
-        description: 'Manage projects and deployments, and inspect deployment logs.',
-        id: 'vercel',
-        name: 'Vercel',
     },
     {
         description: 'Search and read public posts on X.',

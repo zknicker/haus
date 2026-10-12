@@ -43,7 +43,9 @@ unverified image blocks launch instead of creating an uncapped replacement.
 Existing ordinary workspace directories remain explicitly legacy until the
 operator invokes migration with the Computer stopped. Migration copies and
 verifies file contents, modes, and symlinks, records recoverable stages, and
-retains the original at `workspace.backup`. It never deletes that backup.
+retains the original at `workspace.backup`. It never deletes that backup. Verification ignores
+macOS-created `.fseventsd`, `.Spotlight-V100`, and `.Trashes` directories only at the new volume
+root and only when absent from the source. Source entries with those names remain verified.
 
 Offline compaction detaches normally, returns unused image blocks to the host,
 and restores a previously mounted workspace. It requires the Computer stopped;

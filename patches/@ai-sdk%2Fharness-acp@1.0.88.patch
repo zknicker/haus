@@ -1,0 +1,433 @@
+diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
+index 967e8763e9a1653ba334eb57f09ce6c891d0807a..3f84c7a375f5ce1207364134f98b01fa935e5630 100644
+--- a/dist/bridge/index.mjs
++++ b/dist/bridge/index.mjs
+@@ -815,6 +815,81 @@ function captureACPStream({ stream }) {
+ 		}
+ 	};
+ }
++var CODEX_TOKEN_FIELDS = ["totalTokens", "inputTokens", "cachedInputTokens", "outputTokens", "reasoningOutputTokens"];
++var codexThreadTokenTotals = /* @__PURE__ */ new Map();
++function readCodexTokenCount(value) {
++  if (!isRecord$6(value)) return void 0;
++  for (const field of CODEX_TOKEN_FIELDS) {
++    if (!Number.isSafeInteger(value[field]) || value[field] < 0) return void 0;
++  }
++  return value;
++}
++function subtractCodexTokenCount(minuend, subtrahend) {
++  const result = {};
++  for (const field of CODEX_TOKEN_FIELDS) {
++    result[field] = minuend[field] - subtrahend[field];
++    if (result[field] < 0) return void 0;
++  }
++  return result;
++}
++// Host tools reach Codex over the MCP relay, and codex-acp tags every MCP call.
++// Any other Codex tool call is Codex's own, so it skips the host-tool
++// correlation window instead of surfacing up to a second late.
++function isCodexProviderToolCall(update) {
++  return update.sessionUpdate === "tool_call" && update._meta?.is_mcp_tool_call !== true;
++}
++function createCodexTurnUsage({ sessionId }) {
++  let baseline;
++  let total = codexThreadTokenTotals.get(sessionId);
++  return {
++    // codex-acp (Haus patch) sends app-server's thread-cumulative total and the
++    // request's own usage on every usage_update. A repeated total is a re-send.
++    observe(update) {
++      const reported = update._meta?.["haus/threadTokenUsage"];
++      const reportedTotal = readCodexTokenCount(reported?.total);
++      const reportedLast = readCodexTokenCount(reported?.last);
++      if (reportedTotal == null || reportedLast == null) return;
++      if (reportedTotal.totalTokens === total?.totalTokens) return;
++      baseline ??= total ?? subtractCodexTokenCount(reportedTotal, reportedLast);
++      total = reportedTotal;
++      codexThreadTokenTotals.set(sessionId, reportedTotal);
++    },
++    // The turn spends the thread total's growth, not only the final request.
++    usage() {
++      const turn = baseline == null || total == null ? void 0 : subtractCodexTokenCount(total, baseline);
++      return turn == null ? void 0 : {
++        totalTokens: turn.totalTokens,
++        inputTokens: turn.inputTokens,
++        cachedReadTokens: turn.cachedInputTokens,
++        outputTokens: turn.outputTokens,
++        thoughtTokens: turn.reasoningOutputTokens
++      };
++    }
++  };
++}
++// codex-acp reports input without its cached part (app-server's input_tokens
++// minus cached_input_tokens). Haus counts input inclusive of cached input, as
++// Claude Code does, so a turn's total is input plus output.
++function withCodexCachedInput(usage) {
++  return usage == null ? void 0 : { ...usage, inputTokens: usage.inputTokens + (usage.cachedReadTokens ?? 0) };
++}
++function readGrokTurnUsage(usage) {
++  if (!isRecord$6(usage)) return void 0;
++  for (const field of ["inputTokens", "outputTokens", "totalTokens"]) {
++    if (!Number.isSafeInteger(usage[field]) || usage[field] < 0) return void 0;
++  }
++  for (const field of ["cachedReadTokens", "cacheCreationTokens", "reasoningTokens"]) {
++    if (usage[field] != null && (!Number.isSafeInteger(usage[field]) || usage[field] < 0)) return void 0;
++  }
++  return {
++    inputTokens: usage.inputTokens,
++    outputTokens: usage.outputTokens,
++    totalTokens: usage.totalTokens,
++    cachedReadTokens: usage.cachedReadTokens,
++    cachedWriteTokens: usage.cacheCreationTokens,
++    thoughtTokens: usage.reasoningTokens
++  };
++}
+ function getRawSessionUpdate({ message }) {
+ 	const record = message;
+ 	if (record.method !== "session/update" || !isRecord$6(record.params)) return { isSessionUpdate: false };
+@@ -1619,7 +1694,12 @@ function isRecord$4(value) {
+ //#region src/v1/bridge/host-tool-correlation.ts
+ const CORRELATION_WINDOW_MS = 1e3;
+ const MAX_BUFFERED_UPDATES = 128;
+-function createHostToolCorrelation({ emitSemanticUpdate, emitRawUpdate, hostToolServerName, hostTools }) {
++function createHostToolCorrelation({ emitSemanticUpdate,
++  emitRawUpdate,
++  hostToolServerName,
++  hostTools,
++  isProviderToolCall
++}) {
+ 	const invocations = /* @__PURE__ */ new Map();
+ 	const candidates = /* @__PURE__ */ new Map();
+ 	const suppressedToolCallIds = /* @__PURE__ */ new Set();
+@@ -1729,10 +1809,12 @@ function createHostToolCorrelation({ emitSemanticUpdate, emitRawUpdate, hostTool
+ 				if (isTerminalToolUpdate(message)) releasedToolCallIds.delete(toolCallId);
+ 				return;
+ 			}
+-			buffered.push({
+-				message,
+-				rawUpdate: preservedUpdate
+-			});
++      if (buffered.length === 0 && !candidates.has(toolCallId) && isProviderToolCall?.(message.update) === true) {
++        if (!isTerminalToolUpdate(message)) releasedToolCallIds.add(toolCallId);
++        emitSemanticUpdate({ message, rawUpdate: preservedUpdate });
++        return;
++      }
++      buffered.push({ message, rawUpdate: preservedUpdate });
+ 			const candidate = candidates.get(toolCallId) ?? {
+ 				toolCallId,
+ 				order: ++nextCandidateOrder,
+@@ -2055,7 +2137,12 @@ function isTerminalToolUpdate(message) {
+ }
+ //#endregion
+ //#region src/v1/bridge/create-emit-stream-event.ts
+-function createEmitStreamEvent({ emit, emitToolCallCandidate, builtinTools, hostToolServerName, hostTools }) {
++function createEmitStreamEvent({ emit, emitToolCallCandidate,
++  builtinTools,
++  hostToolServerName,
++  hostTools,
++  isProviderToolCall
++}) {
+ 	const translator = createACPStreamTranslator({
+ 		emit,
+ 		emitToolCallCandidate,
+@@ -2073,7 +2160,8 @@ function createEmitStreamEvent({ emit, emitToolCallCandidate, builtinTools, host
+ 			translator.raw({ rawValue: rawUpdate });
+ 		},
+ 		hostToolServerName,
+-		hostTools
++    hostTools,
++    isProviderToolCall
+ 	});
+ 	return {
+ 		message: ({ message, rawUpdate }) => {
+@@ -3401,7 +3489,8 @@ async function runTurn(start, turn) {
+ 		},
+ 		builtinTools: start.builtinTools,
+ 		hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
+-		hostTools: start.tools ?? []
++		hostTools: start.tools ?? [],
++        isProviderToolCall: bridgeType === "codex" ? isCodexProviderToolCall : void 0
+ 	});
+ 	if (bridgeConfiguration.askUserQuestionsRequestMethod != null) activeQuestionRequest = {
+ 		method: bridgeConfiguration.askUserQuestionsRequestMethod,
+@@ -3427,6 +3516,12 @@ async function runTurn(start, turn) {
+ 		removeCorrelationInvocation: emitStreamEvent.removeHostToolCorrelationInvocation
+ 	};
+ 	activeHostToolRelay.bindTurn({ turn: relayTurn });
++  let markInterjectionReady;
++  const interjectionReady = new Promise((resolve) => {
++    markInterjectionReady = resolve;
++  });
++  let acceptingInterjections = true;
++  const codexTurnUsage = bridgeType === "codex" ? createCodexTurnUsage({ sessionId: activeSession.sessionId }) : void 0;
+ 	try {
+ 		const promptMeta = createOutputSchemaPromptMeta({ start });
+ 		const startPrompt = () => promptActiveSession({
+@@ -3449,6 +3544,52 @@ async function runTurn(start, turn) {
+ 			throw error;
+ 		}
+ 		else startPrompt();
++    if (bridgeType === "grok-build") {
++      void (async () => {
++        for await (const message of turn.experimental_userMessages) {
++          try {
++            await interjectionReady;
++            if (!acceptingInterjections || connection == null) {
++              throw new Error("Grok turn ended before interjection.");
++            }
++            await connection.agent.request("_x.ai/interject", {
++              sessionId: activeSession.sessionId,
++              text: message.text
++            });
++            message.accept();
++          } catch (error) {
++            message.reject(error);
++          }
++        }
++      })();
++    }
++    if (bridgeType === "codex") {
++      void (async () => {
++        for await (const message of turn.experimental_userMessages) {
++          try {
++            await interjectionReady;
++            if (!acceptingInterjections || connection == null) {
++              throw new Error("Codex turn ended before steering.");
++            }
++            const steering = await connection.agent.request("_session/steering", {
++              sessionId: activeSession.sessionId,
++              prompt: [{ type: "text", text: message.text }]
++            });
++            if (steering?.outcome === "startedNewTurn") {
++              await connection?.agent.notify(acp.methods.agent.session.cancel, {
++                sessionId: activeSession.sessionId
++              });
++            }
++            if (steering?.outcome !== "injected") {
++              throw new Error(`Codex steering was not injected (${String(steering?.outcome)}).`);
++            }
++            message.accept();
++          } catch (error) {
++            message.reject(error);
++          }
++        }
++      })();
++    }
+ 		if (turn.abortSignal.aborted) await cancel();
+ 		else turn.abortSignal.addEventListener("abort", () => void cancel(), { once: true });
+ 		for (;;) {
+@@ -3469,7 +3610,14 @@ async function runTurn(start, turn) {
+ 				});
+ 			}
+ 			if (message.kind === "session_update") {
+-				const captured = streamCapture?.takeForUpdate({ update: message.update });
++        markInterjectionReady?.();
++        markInterjectionReady = void 0;
++        if (message.update.sessionUpdate === "usage_update") {
++          codexTurnUsage?.observe(message.update);
++        }
++        const captured = streamCapture?.takeForUpdate({
++          update: message.update
++        });
+ 				hostToolAuthorization.observeUpdate({ update: message.update });
+ 				for (const rawValue of captured?.precedingRawValues ?? []) emitStreamEvent.raw({ rawValue });
+ 				emitStreamEvent.message({
+@@ -3479,9 +3627,21 @@ async function runTurn(start, turn) {
+ 				continue;
+ 			}
+ 			for (const rawValue of streamCapture?.drainRawValues() ?? []) emitStreamEvent.raw({ rawValue });
++      if (bridgeType === "grok-build" && message.kind === "stop" && message.response.usage == null) {
++        const usage = readGrokTurnUsage(message.response._meta?.usage);
++        if (usage != null) {
++          message = { ...message, response: { ...message.response, usage } };
++        }
++      }
++      const codexUsage = message.kind === "stop" && codexTurnUsage != null ? withCodexCachedInput(codexTurnUsage.usage() ?? message.response.usage) : void 0;
++      if (codexUsage != null) {
++        message = { ...message, response: { ...message.response, usage: codexUsage } };
++      }
+ 			if (emitStreamEvent.message({ message })) return;
+ 		}
+ 	} finally {
++    acceptingInterjections = false;
++    markInterjectionReady?.();
+ 		hostToolAuthorization.close();
+ 		if (activeQuestionRequest?.turn === turn) activeQuestionRequest = void 0;
+ 		permissionController.cancelAll();
+@@ -3535,7 +3695,10 @@ async function ensureSession({ start, turn }) {
+ 			privateHome: implementation.privateHome
+ 		}) }
+ 	});
+-	child = spawn(`${implementationDir}/${implementation.executablePath}`, [...implementation.args], {
++  child = spawn(
++    implementation.local ? implementation.executablePath : `${implementationDir}/${implementation.executablePath}`,
++    [...implementation.args],
++    {
+ 		cwd: workDir,
+ 		env: instructionConfiguration.environment,
+ 		shell: false,
+@@ -3841,9 +4004,10 @@ function promptActiveSession({ session, agent, prompt, meta }) {
+ async function readImplementationDescriptor({ path }) {
+ 	const text = await readFile(path, "utf8");
+ 	const value = await new Response(text, { headers: { "content-type": "application/json" } }).json();
+-	if (!isRecord(value) || typeof value.executablePath !== "string" || typeof value.privateHome !== "boolean" || !Array.isArray(value.args) || !value.args.every((item) => typeof item === "string") || !Array.isArray(value.envKeys) || !value.envKeys.every((item) => typeof item === "string")) throw new Error("Invalid ACP implementation descriptor.");
++	if (!isRecord(value) || typeof value.executablePath !== "string" || typeof value.local !== "boolean" || typeof value.privateHome !== "boolean" || !Array.isArray(value.args) || !value.args.every((item) => typeof item === "string") || !Array.isArray(value.envKeys) || !value.envKeys.every((item) => typeof item === "string")) throw new Error("Invalid ACP implementation descriptor.");
+ 	return {
+ 		executablePath: value.executablePath,
++        local: value.local,
+ 		privateHome: value.privateHome,
+ 		args: value.args,
+ 		envKeys: value.envKeys
+diff --git a/dist/bridge/package.json b/dist/bridge/package.json
+index 0581af96a96aeffc454f4c260b8d507d9fb3fb8a..4e0a803bd278794ea000c41b31b284d82e9fdfa4 100644
+--- a/dist/bridge/package.json
++++ b/dist/bridge/package.json
+@@ -3,6 +3,7 @@
+   "version": "0.0.0",
+   "private": true,
+   "type": "module",
++  "packageManager": "pnpm@10.32.1",
+   "dependencies": {
+     "@agentclientprotocol/sdk": "1.7.0",
+     "@modelcontextprotocol/sdk": "1.32.1",
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index e01f20610a4c6da06046022125f5342d9fa34ba6..307046e1f7933082027ccd6a4827c2ef76905829 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -137,7 +137,10 @@ type ACPInstallCommandSource = {
+   readonly type: 'install-command';
+   readonly command: string;
+ };
+-type ACPSource = ACPNpmSimpleSource | ACPNpmLockedSource | ACPInstallCommandSource;
++type ACPLocalSource = {
++    readonly type: 'local';
++};
++type ACPSource = ACPLocalSource | ACPNpmSimpleSource | ACPNpmLockedSource | ACPInstallCommandSource;
+ type ACPAuthentication = {
+   readonly methodId: string;
+   readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
+diff --git a/dist/index.js b/dist/index.js
+index fbb0b13c3b00399123e66ea3bff49be1affe7ec6..9e13e62d68b8b0aef5d38e45d08d912246b0aea7 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -3,6 +3,11 @@ import { z } from "zod/v4";
+ import { createHash } from "node:crypto";
+ import path, { posix } from "node:path";
+ import { HarnessBridgeCapabilityUnsupportedError } from "@ai-sdk/harness/bridge";
++import acpBridge from "./bridge/index.mjs" with { type: "text" };
++import acpHostToolMcp from "./bridge/host-tool-mcp.mjs" with { type: "text" };
++import acpPackageJson from "./bridge/package.json" with { type: "text" };
++import acpPnpmLock from "./bridge/pnpm-lock.yaml" with { type: "text" };
++import { experimental_createBridgeUserMessageSubmitter } from "@ai-sdk/harness/utils";
+ import { SandboxChannel, applyCredentialForwarding, classifyDiskLog, createBridgeErrorHandler, createBridgeStartupError, createBridgeToken, createReadBridgeAsset, drainBridgeProcessStream, forwardBridgeProcessStream, getAiGatewayAuthFromEnv, getRestrictedSandboxSession, isHarnessAuthenticationEnvironment, markBridgeStarting, resolveSandboxCredentialEnvironment, resolveSandboxHomeDir, shellQuote, waitForBridgeReady, warnCredentialBrokeringUnavailable, withBridgeToken, writeInstructions, writeSkills } from "@ai-sdk/harness/utils";
+ import { asSchema } from "@ai-sdk/provider-utils";
+ import { WebSocket } from "ws";
+@@ -141,7 +146,7 @@ function validateACPV1Implementation(implementation) {
+ 		if (source.pnpmLockYaml.length === 0) throw new Error("ACP source.pnpmLockYaml must not be empty.");
+ 		if (source.pnpmWorkspaceYaml?.length === 0) throw new Error("ACP source.pnpmWorkspaceYaml must not be empty.");
+ 	} else if (source.type === "npm-simple") validateNpmSimpleSource({ source });
+-	else if (source.command.trim().length === 0) throw new Error("ACP source.command must not be empty.");
++	else if (source.type !== "local" && source.command.trim().length === 0) throw new Error("ACP source.command must not be empty.");
+ 	if (!EXECUTABLE_NAME_REGEXP.test(implementation.executable)) throw new Error(`ACP executable must be a bare command name without a path; received ${JSON.stringify(implementation.executable)}.`);
+ 	validateForwardEnvironment({ forwardEnv: implementation.forwardEnv });
+ 	validateForwardEnvironment({ forwardEnv: implementation.credentialEnv });
+@@ -156,7 +161,7 @@ function validateACPV1Implementation(implementation) {
+ }
+ function createImplementationManifest({ implementation }) {
+ 	const { source } = implementation;
+-	if (source.type === "install-command") return void 0;
++	if (source.type === "install-command" || source.type === "local") return void 0;
+ 	if (source.type === "npm-locked") return source.packageJson;
+ 	return JSON.stringify({
+ 		name: "harness-acp-implementation",
+@@ -175,8 +180,10 @@ function getImplementationWorkspaceFile({ implementation }) {
+ 	return source.type === "npm-locked" ? source.pnpmWorkspaceYaml : void 0;
+ }
+ function createImplementationDescriptor({ implementation }) {
+-	return JSON.stringify({
+-		executablePath: implementation.source.type === "install-command" ? `home/.local/bin/${implementation.executable}` : `node_modules/.bin/${implementation.executable}`,
++  return JSON.stringify(
++    {
++      executablePath: implementation.source.type === "local" ? implementation.executable : implementation.source.type === "install-command" ? `home/.local/bin/${implementation.executable}` : `node_modules/.bin/${implementation.executable}`,
++      local: implementation.source.type === "local",
+ 		privateHome: implementation.source.type === "install-command",
+ 		args: implementation.args ?? [],
+ 		envKeys: getImplementationEnvironmentKeys({ implementation })
+@@ -193,6 +200,8 @@ function createImplementationIdentity({ harnessId, acpVersion, implementation, c
+ 		type: source.type,
+ 		packageName: source.packageName,
+ 		...source.packageVersion == null ? {} : { packageVersion: source.packageVersion }
++  } : source.type === "local" ? {
++    type: source.type
+ 	} : {
+ 		type: source.type,
+ 		command: source.command
+@@ -284,7 +293,14 @@ function sortValue$1({ value }) {
+ }
+ //#endregion
+ //#region src/v1/acp-v1-bootstrap.ts
+-const readBridgeAsset = createReadBridgeAsset({
++var embeddedBridgeAssets = {
++  "host-tool-mcp.mjs": acpHostToolMcp,
++  "index.mjs": acpBridge,
++  "package.json": acpPackageJson,
++  "pnpm-lock.yaml": acpPnpmLock
++};
++var readBridgeAsset = async (name) => embeddedBridgeAssets[name] ?? await readBridgeAssetFromDisk(name);
++const readBridgeAssetFromDisk = createReadBridgeAsset({
+ 	"package.json": new URL("./bridge/package.json", import.meta.url),
+ 	"pnpm-lock.yaml": new URL("./bridge/pnpm-lock.yaml", import.meta.url),
+ 	"index.mjs": new URL("./bridge/index.mjs", import.meta.url),
+@@ -348,11 +364,18 @@ function createACPBootstrap({ harnessId, implementation }) {
+ 						content: implementationInstallScript
+ 					}]
+ 				],
+-				commands: [{ command: "pnpm install --frozen-lockfile --store-dir .pnpm-store" }, { command: createImplementationInstallCommand({
++        commands: [
++          {
++            command: "pnpm install --ignore-workspace --frozen-lockfile --store-dir .pnpm-store"
++          },
++          ...implementation.source.type === "local" ? [] : [{
++            command: createImplementationInstallCommand({
+ 					implementationDir: "implementation",
+ 					storeDir: "../.pnpm-store",
+ 					implementation
+-				}) }]
++            })
++          }]
++        ]
+ 			};
+ 			return cachedBootstrap;
+ 		}
+@@ -1477,6 +1500,12 @@ function createSession({ sessionId, harnessId, channel, proc, modelMapping, sess
+ 		const toolCallClassificationErrors = /* @__PURE__ */ new Map();
+ 		const activeQuestionRequests = /* @__PURE__ */ new Map();
+ 		const questionToolCallIdsByRequestId = /* @__PURE__ */ new Map();
++    const userMessageSubmitter = harnessId === "grok-build" || harnessId === "codex" ? experimental_createBridgeUserMessageSubmitter({
++      send: (message) => channel.send(message),
++      onResponse: (listener) => channel.on("user-message-response", listener),
++      onReconnect: (listener) => channel.onReconnect(listener)
++    }) : void 0;
++
+ 		const subscriptions = [];
+ 		const forward = (event) => {
+ 			if (event.type === "text-start" || event.type === "reasoning-start") openBlock = {
+@@ -1517,6 +1546,7 @@ function createSession({ sessionId, harnessId, channel, proc, modelMapping, sess
+ 		const settle = ({ error }) => {
+ 			if (settled) return;
+ 			settled = true;
++      userMessageSubmitter?.close(error);
+ 			cleanup();
+ 			if (error === void 0) resolveDone();
+ 			else rejectDone(error);
+@@ -1752,6 +1782,11 @@ function createSession({ sessionId, harnessId, channel, proc, modelMapping, sess
+ 					isError: input.isError,
+ 					toolResult: input.toolResult
+ 				});
++      },
++      ...userMessageSubmitter == null ? {} : {
++        submitUserMessage: async (text) => {
++          await userMessageSubmitter.submit(text);
++        }
+ 			},
+ 			done
+ 		};

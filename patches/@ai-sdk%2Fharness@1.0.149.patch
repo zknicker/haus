@@ -1,0 +1,74 @@
+diff --git a/dist/agent/index.js b/dist/agent/index.js
+index 9b35046a64befe913d422f98e88833520093f5b0..bf126909dd54bc7ec83c80490dc78a897eb0046c 100644
+--- a/dist/agent/index.js
++++ b/dist/agent/index.js
+@@ -1078,6 +1078,7 @@ function stripParsedToolInputWorkDir({ value, sessionWorkDir }) {
+ * (`/work/dir/src/a.ts` → `src/a.ts`); a bare reference to the directory itself
+ * becomes `.`.
+ */
++var WORKSPACE_TOKEN = "<workspace>";
+ function stripString(value, workDir) {
+ 	return stripStreamingString({
+ 		value,
+@@ -1095,11 +1096,11 @@ function stripStreamingString({ value, workDir, final, precedingCharacter }) {
+ 		if (matchIndex >= 0) {
+ 			const followingIndex = matchIndex + workDir.length;
+ 			const hasPathBoundary = isPathBoundary(remaining, matchIndex, characterBeforeRemaining);
+-			if (hasPathBoundary && followingIndex === remaining.length && !final) return {
++			if (hasPathBoundary && !final && (followingIndex === remaining.length || remaining.slice(followingIndex) === ".")) return {
+ 				output: output + remaining.slice(0, matchIndex),
+ 				pending: remaining.slice(matchIndex)
+ 			};
+-			if (!(hasPathBoundary && (followingIndex === remaining.length || remaining[followingIndex] === "/" || isPathTerminator(remaining[followingIndex])))) {
++			if (!(hasPathBoundary && (followingIndex === remaining.length || remaining[followingIndex] === "/" || isPathTerminator(remaining[followingIndex]) || remaining[followingIndex] === "." && (isPathTerminator(remaining[followingIndex + 1]) || remaining.slice(followingIndex + 1, followingIndex + 3) === '\\"')))) {
+ 				output += remaining.slice(0, followingIndex);
+ 				characterBeforeRemaining = remaining[followingIndex - 1];
+ 				remaining = remaining.slice(followingIndex);
+@@ -1108,7 +1109,7 @@ function stripStreamingString({ value, workDir, final, precedingCharacter }) {
+ 				characterBeforeRemaining = remaining[followingIndex];
+ 				remaining = remaining.slice(followingIndex + 1);
+ 			} else {
+-				output += remaining.slice(0, matchIndex) + ".";
++        output += remaining.slice(0, matchIndex) + WORKSPACE_TOKEN;
+ 				remaining = remaining.slice(followingIndex);
+ 			}
+ 			continue;
+diff --git a/dist/utils/index.js b/dist/utils/index.js
+index c13ba7f269d7ae5df1c3ea7708e37f2bff7a757a..6f8bf654ea037ad042659394615722cc93c7a54c 100644
+--- a/dist/utils/index.js
++++ b/dist/utils/index.js
+@@ -1049,10 +1049,13 @@ async function writeSkills({ sandbox, homePath, skillsDir, skills, abortSignal,
+ 		manifestPath,
+ 		abortSignal
+ 	});
+-	const nextEntries = projectedSkills.map(({ name, hash }) => ({
+-		name,
+-		hash
+-	}));
++  // Haus: with nothing to write and nothing owned, leave the directory alone.
++  // Haus passes no skills; the native skill directory links to the Agent's
++  // canonical skill library, which must not gain a harness manifest.
++  if (projectedSkills.length === 0 && existingManifest == null) {
++    return { changed: false, written: [], removed: [], unchanged: [] };
++  }
++  const nextEntries = projectedSkills.map(({ name, hash }) => ({ name, hash }));
+ 	const nextByName = new Map(nextEntries.map((entry) => [entry.name, entry]));
+ 	if (existingManifest?.state === "pending") {
+ 		await ensureSkillsDirectory({
+diff --git a/src/utils/write-skills.ts b/src/utils/write-skills.ts
+index d2b4cb23bd3dcd12a8ca1e0cfca7bce708094075..7bfa77e907757633b5ed156c925328a7d5b80704 100644
+--- a/src/utils/write-skills.ts
++++ b/src/utils/write-skills.ts
+@@ -90,6 +90,12 @@ export async function writeSkills({
+     manifestPath,
+     abortSignal,
+   });
++  // Haus: with nothing to write and nothing owned, leave the directory alone.
++  // Haus passes no skills; the native skill directory links to the Agent's
++  // canonical skill library, which must not gain a harness manifest.
++  if (projectedSkills.length === 0 && existingManifest == null) {
++    return { changed: false, written: [], removed: [], unchanged: [] };
++  }
+   const nextEntries = projectedSkills.map(({ name, hash }) => ({ name, hash }));
+   const nextByName = new Map(nextEntries.map(entry => [entry.name, entry]));
+ 

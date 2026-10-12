@@ -47,7 +47,6 @@ the access boundary.
 | `Clerk - Haus` | `Development`, `Production` | Haus's own Clerk tenancy — backend key, publishable key, issuer |
 | `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
-| `GitHub MCP OAuth - Haus` | `Development`, `Production` | GitHub OAuth App for the GitHub MCP connection: `username` is the client id, `credential` the secret; optional; deleted once the GitHub App replaces it |
 | `GitHub App - Haus` | `Development`, `Production` | The Haus GitHub App (**Haus Dev** in Development): `app_id`, `slug`, `client_id`, `client_secret`, `private_key` (PEM), `webhook_secret`; optional |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
 | `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts and action descriptions; one per lifecycle |
@@ -115,8 +114,7 @@ connection reports unavailable and the app webhook answers `503`. The GitHub con
 uses the App's client id and secret as its configured OAuth client (the callback is
 `https://haus.chat/mcp/oauth/callback`, loopback in development); user tokens expire, so the Server
 needs the secret to refresh them. Test resolves fake literals and no private key, because tests
-inject generated keys; release resolves none. The GitHub OAuth App and its
-`GitHub MCP OAuth - Haus` items are retired.
+inject generated keys; release resolves none.
 
 iPhone push uses `HAUS_APNS_KEY_ID` and `HAUS_APNS_PRIVATE_KEY`, resolved per lifecycle from
 `Apple Push - Haus` with `allowMissing=true`, so a lifecycle without the item still loads. The Server

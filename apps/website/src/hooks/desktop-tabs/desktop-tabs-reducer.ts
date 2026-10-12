@@ -9,11 +9,17 @@ import type {
     TabPageState,
 } from './desktop-tabs-model.ts';
 import { moveTabs } from './desktop-tabs-move.ts';
-import { navigateTab, openInFocusedPane, openLink, reveal } from './desktop-tabs-open.ts';
+import {
+    goTo,
+    navigateTab,
+    openNewTabAtEnd,
+    openPage,
+    openSettings,
+    openTabFrom,
+} from './desktop-tabs-open.ts';
 import { putTab, selectTab, syncMru } from './desktop-tabs-panes.ts';
 import { extendSelection, type SelectionGesture } from './desktop-tabs-selection.ts';
 import { adoptTabs, releaseTabs } from './desktop-tabs-transfer.ts';
-import type { FocusedPaneOpenIntent, TabOpenIntent } from './tab-navigation.ts';
 
 /**
  * Every change to a window's tabs. Ids and entry keys come in on the action
@@ -33,35 +39,32 @@ export type DesktopTabsAction =
       }
     /** Back/forward inside a tab's history; out-of-range deltas are ignored. */
     | { kind: 'go'; delta: number; tabId: string }
+    /** Go (sidebar, command menu): the left pane's selected tab pushes `location`. */
+    | { kind: 'goTo'; location: TabLocation; newId: string }
     /**
-     * A cross-page navigation from inside a tab, placed by the ADR 0039 rules:
-     * `auto` with two panes → the other pane (selecting an existing tab with
-     * the same page key there); `auto` with one pane → the current tab;
-     * `newTab` → a new tab after `fromTabId` in its pane. Web locations always
-     * open a new tab (in the other pane when there are two, else beside the
-     * source). New tabs follow the opener rule (`insertFromOpener`). Links never
-     * open the second pane.
+     * Open (in-page activation, notification, deep link, ⌘F): a selected tab in the right
+     * pane, selecting a right-pane tab already on that page. `fromTabId` null: no source tab.
+     */
+    | { fromTabId: string | null; kind: 'open'; location: TabLocation; newId: string }
+    /**
+     * A modified click: a new tab after `fromTabId` (null: the left pane's selected tab) by
+     * the opener rule, in the background or selected.
      */
     | {
-          kind: 'openLink';
-          fromTabId: string;
-          intent: TabOpenIntent;
+          background: boolean;
+          fromTabId: string | null;
+          kind: 'openTab';
           location: TabLocation;
           newId: string;
       }
-    /** Sidebar / command menu / ⌘T target: the current tab of the focused pane, or a new tab there. */
-    | {
-          kind: 'openInFocusedPane';
-          intent: FocusedPaneOpenIntent;
-          location: TabLocation;
-          newId: string;
-      }
+    /** ⌘, and the Settings button: the window's one Settings tab, else a new one in the left pane. */
+    | { kind: 'openSettings'; location: TabLocation; newId: string }
+    /** ⌘T and the row's plus: a new selected tab at the end of the focused pane's row. */
+    | { kind: 'openNewTab'; location: TabLocation; newId: string }
     /** The tab menu's New tab to the right: a new selected tab right after `afterTabId`. */
     | { afterTabId: string; kind: 'openAfter'; location: TabLocation; newId: string }
     /** Duplicate: copies with their history, right after the last of `tabIds`, selected together. */
     | { kind: 'duplicate'; newId: string; tabIds: readonly string[] }
-    /** Notification and deep-link click: select a tab already showing the page, else navigate the focused pane's current tab. */
-    | { kind: 'reveal'; location: TabLocation; newId: string }
     /** A plain click: shows the tab, collapsing any multi-selection. */
     | { kind: 'select'; tabId: string }
     /** Command- or Shift-click: Chrome's multi-selection rules (`desktop-tabs-selection.ts`). */
@@ -94,8 +97,9 @@ export function desktopTabsReducer(
 }
 
 /**
- * Opens and in-tab navigation keep the opener run going; anything that reorders or
- * selects tabs ends it, as Chrome forgets openers when the active tab changes.
+ * Modified-click opens and in-tab navigation keep the opener run going; anything that
+ * reorders or selects tabs (Open, Go, Settings, a click on a tab) ends it, as Chrome forgets
+ * openers when the active tab changes or a navigation is not a link.
  */
 function endOpenerRun(state: DesktopTabsState, action: DesktopTabsAction): DesktopTabsState {
     if (!state.openerRun || openerRunActions.has(action.kind)) {
@@ -109,8 +113,7 @@ const openerRunActions = new Set<DesktopTabsAction['kind']>([
     'focusPane',
     'go',
     'navigate',
-    'openInFocusedPane',
-    'openLink',
+    'openTab',
     'savePageState',
 ]);
 
@@ -140,12 +143,16 @@ function reduce(state: DesktopTabsState, action: DesktopTabsAction): DesktopTabs
             return navigateTab(state, action.tabId, action.location, action.mode, action.newId);
         case 'go':
             return goTab(state, action.tabId, action.delta);
-        case 'openLink':
-            return openLink(state, action);
-        case 'openInFocusedPane':
-            return openInFocusedPane(state, action);
-        case 'reveal':
-            return reveal(state, action);
+        case 'goTo':
+            return goTo(state, action);
+        case 'open':
+            return openPage(state, action);
+        case 'openTab':
+            return openTabFrom(state, action);
+        case 'openSettings':
+            return openSettings(state, action);
+        case 'openNewTab':
+            return openNewTabAtEnd(state, action);
         case 'openAfter':
             return openTabAfter(state, action);
         case 'duplicate':

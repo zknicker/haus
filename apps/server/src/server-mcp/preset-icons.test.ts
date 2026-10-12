@@ -33,8 +33,8 @@ describe('bundled preset icons', () => {
             (preset) =>
                 preset !== 'merchbase-fulfillment' &&
                 preset !== 'merchbase-atlas' &&
-                preset !== 'cloudflare' &&
-                preset !== 'vercel'
+                preset !== 'handmade' &&
+                preset !== 'cloudflare'
         )
     )('%s ships a contract-valid PNG', (preset) => {
         const icon = mcpPresetIcons[preset];
@@ -47,9 +47,9 @@ describe('bundled preset icons', () => {
 describe('preset icon fallback', () => {
     test.each([
         'cloudflare',
-        'vercel',
         'merchbase-atlas',
         'merchbase-fulfillment',
+        'handmade',
     ] as const)('%s uses discovered identity without a bundled override', (preset) => {
         expect(mcpPresetIcons[preset]).toBeUndefined();
         expect(shapeMcpConnection(row({ preset, icon: resolvedIcon })).icon).toEqual(resolvedIcon);
@@ -66,18 +66,19 @@ describe('preset icon fallback', () => {
         });
         expect(urls).toEqual([
             'https://mcp.cloudflare.com/mcp',
-            'https://mcp.vercel.com',
+            'https://handmade.merchbase.co/mcp',
             'https://atlas.merchbase.co/mcp',
             'https://fulfillment.merchbase.co/mcp/printful',
         ]);
         expect(catalog.find((entry) => entry.preset === 'merchbase-atlas')?.icon).toEqual(
             resolvedIcon
         );
+        expect(catalog.find((entry) => entry.preset === 'handmade')?.icon).toEqual(resolvedIcon);
         expect(catalog.find((entry) => entry.preset === 'merchbase-fulfillment')?.icon).toEqual(
             resolvedIcon
         );
         const unavailable = await resolveMcpPresetIcons(async () => null);
-        for (const preset of ['cloudflare', 'vercel'] as const) {
+        for (const preset of ['cloudflare'] as const) {
             expect(catalog.find((entry) => entry.preset === preset)?.icon).toEqual(resolvedIcon);
             expect(unavailable.find((entry) => entry.preset === preset)?.icon).toBeNull();
         }

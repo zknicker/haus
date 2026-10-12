@@ -11,8 +11,7 @@ function row() {
         ...['a', 'b', 'c'].map(
             (page) =>
                 ({
-                    intent: 'newTabAtEnd',
-                    kind: 'openInFocusedPane',
+                    kind: 'openNewTab',
                     location: app(page),
                     newId: page,
                 }) as const
@@ -76,7 +75,13 @@ describe('duplicate', () => {
     test('a web page reopens at the same address in a fresh view, one per source view', () => {
         const base = run(
             start(),
-            { fromTabId: 't0', intent: 'auto', kind: 'openLink', location: web('v1'), newId: 'w' },
+            {
+                background: false,
+                fromTabId: 't0',
+                kind: 'openTab',
+                location: web('v1'),
+                newId: 'w',
+            },
             { kind: 'navigate', location: app('a'), mode: 'push', tabId: 'w' },
             { kind: 'navigate', location: web('v2'), mode: 'push', tabId: 'w' },
             {

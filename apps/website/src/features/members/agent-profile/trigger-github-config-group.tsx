@@ -1,6 +1,6 @@
 import type { GithubTrigger } from '@haus/api';
 import { Alert, Separator } from '@heroui/react';
-import { ItemCardGroup } from '@heroui-pro/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
 import { AutomationFactRow } from './automation-fact-row.tsx';
 import { githubEventSpecs, githubEventSummary } from './trigger-github-events-model.ts';
@@ -53,12 +53,20 @@ export function TriggerGithubConfigGroup({
                     <AutomationFactRow title="Repositories">
                         {githubScopeSummary(github)}
                     </AutomationFactRow>
-                    {github.events.map((entry) => (
-                        <Fragment key={entry.event}>
+                    {github.events.map((entry, index) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: Read-only match groups have ordinal identity, including identical alternatives.
+                        <Fragment key={`${entry.event}-${index}`}>
                             <Separator />
-                            <AutomationFactRow title={githubEventSpecs[entry.event].label}>
-                                {githubEventSummary(entry)}
-                            </AutomationFactRow>
+                            <ItemCard>
+                                <ItemCard.Content>
+                                    <ItemCard.Title>
+                                        {githubEventSpecs[entry.event].label}
+                                    </ItemCard.Title>
+                                    <ItemCard.Description className="max-w-full whitespace-pre-wrap break-words">
+                                        {githubEventSummary(entry)}
+                                    </ItemCard.Description>
+                                </ItemCard.Content>
+                            </ItemCard>
                         </Fragment>
                     ))}
                     {github.suppressedCount > 0 ? (

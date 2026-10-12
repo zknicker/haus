@@ -4,6 +4,7 @@ import { ChatMessage } from '@heroui-pro/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
 import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx';
 import { ThreadCloudAgentRows } from '../../cloud-agents/thread-cloud-agent-rows.tsx';
@@ -122,6 +123,7 @@ function ThreadSurfacePreview({
                 onPress={() => context?.onOpenThread(row)}
                 size="sm"
                 variant="secondary"
+                {...opensPlace}
             >
                 {marks}
                 <span aria-hidden>›</span>
@@ -182,6 +184,7 @@ export function ThreadMessageActions({
                 aria-label="Reply in thread"
                 className={className}
                 onPress={() => context.onOpenThread(row)}
+                {...opensPlace}
             >
                 <Icon icon={BubbleChatIcon} />
             </ChatMessage.Action>

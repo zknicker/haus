@@ -18,11 +18,17 @@ export async function runWorkspaceMaintenance(input: {
         throw new Error('Haus Computers currently require macOS.');
     }
     if (
-        !(input.target && input.agentId && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u.test(input.agentId))
+        !(
+            input.target?.startsWith('/') &&
+            input.agentId &&
+            /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u.test(input.agentId)
+        )
     ) {
         throw new Error(`Usage: haus-computer ${input.command} /server-slug <agent-id>`);
     }
-    const attachment = await createAttachmentStore(input.dataRoot).findAttachment(input.target);
+    const attachment = await createAttachmentStore(input.dataRoot).findAttachment(
+        input.target.slice(1)
+    );
     if (!attachment) {
         throw new Error('Server attachment was not found.');
     }

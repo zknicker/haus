@@ -265,6 +265,9 @@ login before running:
 HAUS_RUN_LIVE_GROK_TEST=1 bun test apps/computer/src/harness/grok-build-live.test.ts
 ```
 
+Set `HAUS_LIVE_GROK_MODEL` to test a specific model, such as `grok-4.7` or
+`grok-4.7-build-fast`; the smoke defaults to `grok-4.6`.
+
 The Codex live smoke runs only with its variable set and then checks `codex login status`. It
 drives the production runtime table through codex-acp: a steered message lands
 mid-turn, a Computer host tool answers over the harness MCP relay, a stopped

@@ -3,6 +3,7 @@ import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useEffect, useMemo, useState } from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useChatSearch } from '../../hooks/servers/use-chat-search.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { formatRelativeTime, truncate } from '../../lib/format.ts';
@@ -52,6 +53,7 @@ export function CommandMenuMessageResults({
                     <Command.Item
                         id={`message:${message.id}`}
                         key={message.id}
+                        {...opensPlace}
                         // Command.Dialog filters items by textValue against the
                         // typed value. These rows already matched on the server,
                         // so the query rides along to keep them past that filter.
@@ -77,6 +79,7 @@ export function CommandMenuMessageResults({
             })}
             <Command.Item
                 id="message:see-all"
+                {...opensPlace}
                 onAction={() => {
                     onSeeAll(settled);
                     close();

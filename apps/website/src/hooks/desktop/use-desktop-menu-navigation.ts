@@ -4,22 +4,16 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
  * Opens the current Server's surfaces when the native menu asks: Settings…
- * (⌘,) and Edit > Find… (⌘F). Desktop tabs pass `reveal`, which selects a tab
- * already on that page or navigates the focused pane's current tab (ADR 0039).
+ * (⌘,, the window's one Settings tab) and Edit > Find… (⌘F, the Search page
+ * opened on the right), ADR 0039. Pass stable callbacks.
  */
-export function useDesktopMenuNavigation(
-    routes: { searchRoute: string; settingsRoute: string },
-    reveal: (path: string) => void
-) {
-    useEffect(
-        () => getDesktopBridge()?.onOpenSettings?.(() => reveal(routes.settingsRoute)),
-        [reveal, routes.settingsRoute]
-    );
+export function useDesktopMenuNavigation(menu: {
+    openSearch: () => void;
+    openSettings: () => void;
+}) {
+    useEffect(() => getDesktopBridge()?.onOpenSettings?.(menu.openSettings), [menu.openSettings]);
 
-    useEffect(
-        () => getDesktopBridge()?.onOpenSearch?.(() => reveal(routes.searchRoute)),
-        [reveal, routes.searchRoute]
-    );
+    useEffect(() => getDesktopBridge()?.onOpenSearch?.(menu.openSearch), [menu.openSearch]);
 }
 
 type HistoryDirection = 'back' | 'forward';

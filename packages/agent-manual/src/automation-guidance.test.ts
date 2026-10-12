@@ -49,6 +49,13 @@ test('GitHub trigger manual covers setup, events, loops, and problems', () => {
     for (const detail of [
         'haus github installations --repos',
         'haus trigger create --kind github',
+        'haus trigger update --id',
+        'haus trigger preview --id',
+        '--events-json',
+        '--exclude-repo',
+        '--exclude-actor',
+        '@default',
+        'not Haus Agent identity',
         '--conclusion failure',
         'GitHub owner of that org',
         'Comment events',

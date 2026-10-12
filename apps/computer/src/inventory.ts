@@ -20,6 +20,8 @@ const knownRuntimes: ComputerRuntime[] = [
         { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
         { id: 'gpt-6-astra', label: 'GPT-6 Astra' },
         { id: 'gpt-6.1-sol', label: 'GPT-6.1 Sol' },
+        { id: 'gpt-6-sol', label: 'GPT-6 Sol' },
+        { id: 'gpt-6-luna', label: 'GPT-6 Luna' },
     ]),
     supportedRuntime('claude-code', [
         { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
@@ -28,11 +30,14 @@ const knownRuntimes: ComputerRuntime[] = [
         { id: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
         { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
         { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
+        { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
     ]),
     supportedRuntime('pi', [{ id: 'pi', label: 'Pi' }]),
     supportedRuntime('grok-build', [
         { id: 'grok-4.6', label: 'Grok 4.6' },
         { id: 'grok-4.5', label: 'Grok 4.5' },
+        { id: 'grok-4.7', label: 'Grok 4.7' },
+        { id: 'grok-4.7-build-fast', label: 'Grok 4.7 Fast' },
     ]),
 ];
 
@@ -93,6 +98,11 @@ export function reasoningEffortsForModel(
 ): AgentReasoningEffort[] {
     if (runtimeId === 'claude-code' && modelId === 'claude-haiku-4-5') {
         return ['default'];
+    }
+    if (runtimeId === 'grok-build') {
+        return modelId === 'grok-4.5'
+            ? ['low', 'medium', 'high']
+            : ['low', 'medium', 'high', 'xhigh'];
     }
     return ['low', 'medium', 'high', 'xhigh', 'max'];
 }

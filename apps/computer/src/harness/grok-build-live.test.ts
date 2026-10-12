@@ -26,7 +26,7 @@ liveTest(
 
         const agent = new HarnessAgent({
             harness: createGrokBuild(),
-            model: 'grok-4.6',
+            model: process.env.HAUS_LIVE_GROK_MODEL ?? 'grok-4.6',
             permissionMode: 'allow-all',
             sandbox: createLocalTrustedSandboxProvider({
                 authProfiles: ['grok-build'],

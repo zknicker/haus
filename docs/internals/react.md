@@ -216,16 +216,16 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   `<Activity mode="hidden">`: DOM and state stay, effects tear down. A component whose effect
   builds DOM from props (the composer's ProseMirror view) must rebuild from the latest props, not
   its first ones.
-* Two navigator policies place a push (`resolveTabNavigation`, `tab-navigation.ts`). Inside a
-  page (`page`), `replace` and a push to the same page key (`tabPageKey`) stay in the tab; a push
-  to another page is a link and goes through `openLink` (the other pane when two exist, else the
-  same tab). The reducer's placement applies `pagePlacement` (`desktop-tabs-model.ts`) to every
-  entry point after the existing-tab match: an Agent profile or Settings opens a new tab after the
-  source, and a Thread opens a new tab in the right pane, creating it. Window chrome — the
-  sidebar, command menu, settings rail — renders under `ShellTabRouter`, bound to the focused
-  pane's current tab (`shell`), so its pushes navigate that tab and its selection reads that
-  tab's location. Command-click intent rides router state (`tabIntentState`); paths outside the
-  current Server escape to the window router. Server-wide durable events (`ChatEventListeners`)
+* Navigation follows [ADR 0046](../adr/0046-the-sidebar-goes-pages-open-to-the-right.md), with
+  the surface deciding the verb. Inside a page, `replace` and a push to the same page key
+  (`tabPageKey`) stay in the tab; a push to another page is an **Open**: a new tab in the right
+  pane (created if needed), reusing only a right-pane tab already on that page. Window chrome —
+  the sidebar and command menu — is bound to the left pane's selected tab, so its pushes are a
+  **Go** that navigates that tab in place, and its selection reads that tab's location. Settings
+  is a window singleton. A modified click's intent (background or selected new tab beside the
+  source, same pane, never reused) is captured synchronously at click time and passed explicitly
+  to the navigation, so it survives an `await`; paths outside the current Server escape to the
+  window router. Server-wide durable events (`ChatEventListeners`)
   keep caches fresh for every tab. The window hash mirrors the focused tab
   (`history.replaceState`) and only seeds a window with no stored tabs.
 * Page code reads tab presence, not the window: `useTabPresence()` (`shown`, `focusedPane`)

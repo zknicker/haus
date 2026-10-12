@@ -1,19 +1,23 @@
+import { githubTriggerEventsMax } from '@haus/api';
 import {
+    Button,
+    Description,
+    Disclosure,
     Fieldset,
-    Input,
     type Key,
     Label,
     ListBox,
     Select,
     Tag,
     TagGroup,
-    TextField,
 } from '@heroui/react';
+import { EventTextFields } from './trigger-github-event-text-fields.tsx';
 import {
     createGithubEventDraft,
     type GithubEventDraft,
     githubEventOrder,
     githubEventSpecs,
+    githubEventTextFields,
     githubValueLabel,
 } from './trigger-github-events-model.ts';
 
@@ -31,11 +35,16 @@ export function TriggerGithubEvents({
     isDisabled: boolean;
     onChange: (events: GithubEventDraft[]) => void;
 }) {
-    const chosen = events.map((entry) => entry.event);
+    const chosen = [...new Set(events.map((entry) => entry.event))];
 
     return (
         <>
             <Select
+                disabledKeys={
+                    events.length >= githubTriggerEventsMax
+                        ? githubEventOrder.filter((name) => !chosen.includes(name))
+                        : []
+                }
                 fullWidth
                 isDisabled={isDisabled}
                 isRequired
@@ -45,11 +54,10 @@ export function TriggerGithubEvents({
                         return name ? [name] : [];
                     });
                     onChange(
-                        names.map(
-                            (name) =>
-                                events.find((entry) => entry.event === name) ??
-                                createGithubEventDraft(name)
-                        )
+                        names.flatMap((name) => {
+                            const existing = events.filter((entry) => entry.event === name);
+                            return existing.length > 0 ? existing : [createGithubEventDraft(name)];
+                        })
                     );
                 }}
                 placeholder="Choose events"
@@ -79,14 +87,18 @@ export function TriggerGithubEvents({
             </Select>
             {events.map((entry) => (
                 <EventFieldset
+                    canAdd={events.length < githubTriggerEventsMax}
+                    canRemove={events.filter((current) => current.event === entry.event).length > 1}
                     draft={entry}
                     isDisabled={isDisabled}
-                    key={entry.event}
+                    key={entry.key}
+                    onAdd={() => onChange([...events, createGithubEventDraft(entry.event)])}
                     onChange={(next) =>
                         onChange(
-                            events.map((current) => (current.event === next.event ? next : current))
+                            events.map((current) => (current.key === next.key ? next : current))
                         )
                     }
+                    onRemove={() => onChange(events.filter((current) => current.key !== entry.key))}
                 />
             ))}
         </>
@@ -96,9 +108,17 @@ export function TriggerGithubEvents({
 function EventFieldset({
     draft,
     isDisabled,
+    canAdd,
+    canRemove,
+    onAdd,
+    onRemove,
     onChange,
 }: {
     draft: GithubEventDraft;
+    canAdd: boolean;
+    canRemove: boolean;
+    onAdd: () => void;
+    onRemove: () => void;
     isDisabled: boolean;
     onChange: (draft: GithubEventDraft) => void;
 }) {
@@ -107,6 +127,10 @@ function EventFieldset({
     return (
         <Fieldset>
             <Fieldset.Legend>{spec.label}</Fieldset.Legend>
+            <Description>
+                All filters in this group must match. Any matching group wakes the Agent once. Names
+                accept *, **, and ?. Exclusions win in this group.
+            </Description>
             <Fieldset.Group>
                 {spec.actions.length > 1 ? (
                     <ChoiceTags
@@ -133,21 +157,38 @@ function EventFieldset({
                         selected={draft.choices[choice.key] ?? []}
                     />
                 ))}
-                {spec.texts.map((text) => (
-                    <TextField
-                        fullWidth
-                        isDisabled={isDisabled}
-                        key={text.key}
-                        onChange={(value) =>
-                            onChange({ ...draft, texts: { ...draft.texts, [text.key]: value } })
-                        }
-                        value={draft.texts[text.key] ?? ''}
-                        variant="secondary"
-                    >
-                        <Label>{text.label}</Label>
-                        <Input placeholder={text.placeholder} />
-                    </TextField>
-                ))}
+                <EventTextFields
+                    draft={draft}
+                    fields={spec.texts}
+                    isDisabled={isDisabled}
+                    onChange={onChange}
+                />
+                <Disclosure
+                    defaultExpanded={githubEventTextFields(draft.event).some(
+                        (text) => !spec.texts.includes(text) && Boolean(draft.texts[text.key])
+                    )}
+                >
+                    <Disclosure.Heading>
+                        <Button size="sm" slot="trigger" variant="ghost">
+                            More filters and exclusions
+                            <Disclosure.Indicator />
+                        </Button>
+                    </Disclosure.Heading>
+                    <Disclosure.Content>
+                        <Disclosure.Body>
+                            <div className="grid gap-4">
+                                <EventTextFields
+                                    draft={draft}
+                                    fields={githubEventTextFields(draft.event).filter(
+                                        (text) => !spec.texts.includes(text)
+                                    )}
+                                    isDisabled={isDisabled}
+                                    onChange={onChange}
+                                />
+                            </div>
+                        </Disclosure.Body>
+                    </Disclosure.Content>
+                </Disclosure>
                 {spec.authors ? (
                     <ChoiceTags
                         disallowEmpty
@@ -165,6 +206,21 @@ function EventFieldset({
                     />
                 ) : null}
             </Fieldset.Group>
+            <Fieldset.Actions>
+                <Button
+                    isDisabled={isDisabled || !canAdd}
+                    onPress={onAdd}
+                    size="sm"
+                    variant="tertiary"
+                >
+                    Add alternative group
+                </Button>
+                {canRemove ? (
+                    <Button isDisabled={isDisabled} onPress={onRemove} size="sm" variant="ghost">
+                        Remove group
+                    </Button>
+                ) : null}
+            </Fieldset.Actions>
         </Fieldset>
     );
 }

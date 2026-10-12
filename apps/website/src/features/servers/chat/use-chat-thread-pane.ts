@@ -166,7 +166,8 @@ function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) 
             return;
         }
         // Strip first, so the replace lands on this chat's entry before the
-        // Thread opens (in the right pane, ADR 0039).
+        // Thread opens. A deep link is a plain Open (the right pane, ADR 0039),
+        // whatever click happens to be in flight while this effect runs.
         setSearchParams(
             (current) => {
                 const next = new URLSearchParams(current);
@@ -176,6 +177,6 @@ function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) 
             },
             { replace: true }
         );
-        openThreadTab(chatId, anchorMessageId);
+        openThreadTab(chatId, anchorMessageId, 'auto');
     }, [anchorMessageId, chatId, openThreadTab, setSearchParams]);
 }

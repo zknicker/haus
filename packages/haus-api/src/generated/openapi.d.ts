@@ -897,6 +897,24 @@ export interface paths {
         delete: operations["deleteAgentTrigger"];
         options?: never;
         head?: never;
+        /** Edit an owned trigger, preserving its anchor and history. */
+        patch: operations["updateAgentTrigger"];
+        trace?: never;
+    };
+    "/api/agent/triggers/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview GitHub selection without recording a fire or waking the Agent. */
+        post: operations["previewAgentTrigger"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -1659,10 +1677,31 @@ export interface components {
             updatedAt: string;
             version: number;
         };
-        /** @description One event entry. Each event takes its own actions and filters; see specs/github-triggers.md#events. */
+        /** @description One AND group, ORed with other groups. Event names may repeat. Name patterns accept *, **, and ?; branch @default follows the repository default branch. Exclusions override includes inside the group. Each event takes its own actions and filters; see specs/github-triggers.md#events. */
         GithubTriggerEvent: {
             /** @enum {string} */
             event: "workflow_run" | "workflow_job" | "check_suite" | "check_run" | "deployment_status" | "pull_request" | "pull_request_review" | "push" | "issues" | "release";
+            actions?: string[];
+            /** @enum {string} */
+            authors?: "anyone" | "collaborators";
+            conclusions?: string[];
+            states?: string[];
+            branches?: string[];
+            baseBranches?: string[];
+            labels?: string[];
+            workflows?: string[];
+            checkNames?: string[];
+            environments?: string[];
+            actors?: string[];
+            actorsIgnore?: string[];
+            repositories?: string[];
+            repositoriesIgnore?: string[];
+            branchesIgnore?: string[];
+            baseBranchesIgnore?: string[];
+            workflowsIgnore?: string[];
+            checkNamesIgnore?: string[];
+            environmentsIgnore?: string[];
+            workflowEvents?: string[];
         };
         GithubTriggerRepositories: {
             /** @enum {string} */
@@ -1726,6 +1765,27 @@ export interface components {
             github?: components["schemas"]["GithubTriggerConfigInput"];
             messageId: string;
             title: string;
+        };
+        AgentTriggerUpdateRequest: {
+            title?: string;
+            /** @description Null or empty clears it; at most 4096 UTF-8 bytes. */
+            instruction?: string | null;
+            github?: components["schemas"]["GithubTriggerConfigInput"];
+        };
+        GithubTriggerPreviewRequest: {
+            /** @enum {string} */
+            event: "workflow_run" | "workflow_job" | "check_suite" | "check_run" | "deployment_status" | "pull_request" | "pull_request_review" | "push" | "issues" | "release";
+            payload: {
+                [key: string]: unknown;
+            };
+        };
+        GithubTriggerPreviewResponse: {
+            matches: boolean;
+            repositoryInScope: boolean;
+            groups: {
+                index: number;
+                matches: boolean;
+            }[];
         };
         AgentTriggerSingleResponse: {
             trigger: components["schemas"]["AgentTrigger"];
@@ -3981,6 +4041,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTriggerDeleteResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    updateAgentTrigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTriggerUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated trigger. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    previewAgentTrigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GithubTriggerPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Match groups and current cached repository scope; ignores runtime readiness. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubTriggerPreviewResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

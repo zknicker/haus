@@ -7,7 +7,7 @@ import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { DmContextMenuItems } from '../servers/chat/chat-context-menu-items.tsx';
 import { useDmActions } from '../servers/chat/use-dm-actions.ts';
-import { OpenInNewTabItem, openInNewTabKey, useOpenInNewTab } from './open-in-new-tab-item.tsx';
+import { RowTabItems, runRowTabItem, useRowTabOpeners } from './open-in-new-tab-item.tsx';
 
 /**
  * A DM row's right-click menu: open it, then every DM action the chat's own
@@ -29,22 +29,22 @@ export function DmNavigationContextMenu({
     slug: string;
 }) {
     const navigate = useSidebarNavigate();
+    const openers = useDesktopPageOpeners();
     const actions = useDmActions({
-        openFiles: useDesktopPageOpeners()?.openFiles,
-        openPath: navigate,
+        openFiles: openers?.openFiles,
+        // Desktop: View profile and Tasks are Open (the right pane), not the row's own Go.
+        openPath: openers ? (path) => openers.openPage(path) : navigate,
         slug,
     });
-    const openInNewTab = useOpenInNewTab();
+    const tabOpeners = useRowTabOpeners();
     const onAction = (key: React.Key) => {
         if (key === 'open') {
             navigate(href);
             return;
         }
-        if (key === openInNewTabKey) {
-            openInNewTab?.(href);
-            return;
+        if (!runRowTabItem(tabOpeners, key, href)) {
+            actions.run({ agentId, chatId }, key);
         }
-        actions.run({ agentId, chatId }, key);
     };
 
     return (
@@ -58,7 +58,7 @@ export function DmNavigationContextMenu({
                         <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                         <Label>Open chat</Label>
                     </ContextMenu.Item>
-                    {openInNewTab ? <OpenInNewTabItem /> : null}
+                    {tabOpeners ? <RowTabItems /> : null}
                     <ContextMenu.Separator />
                     <DmContextMenuItems
                         files={actions.filesAvailable}

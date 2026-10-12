@@ -14,6 +14,15 @@ test('reports effort capabilities for the runtime and concrete model', () => {
         'max',
     ]);
     expect(reasoningEffortsForModel('claude-code', 'claude-haiku-4-5')).toEqual(['default']);
+    expect(reasoningEffortsForModel('grok-build', 'grok-4.5')).toEqual(['low', 'medium', 'high']);
+    for (const model of ['grok-4.6', 'grok-4.7', 'grok-4.7-build-fast']) {
+        expect(reasoningEffortsForModel('grok-build', model)).toEqual([
+            'low',
+            'medium',
+            'high',
+            'xhigh',
+        ]);
+    }
 });
 
 test('reports the core features each runtime is launched with', () => {
@@ -36,6 +45,7 @@ test('offers Claude 5.5 models with medium default effort after the existing def
         for (const [id, label] of [
             ['claude-opus-5-5', 'Claude Opus 5.5'],
             ['claude-sonnet-5-5', 'Claude Sonnet 5.5'],
+            ['claude-haiku-5-5', 'Claude Haiku 5.5'],
         ]) {
             expect(models).toContainEqual({
                 id,
@@ -92,16 +102,24 @@ test('discovers a runtime from the Computer search path and verifies the executa
         expect(inventory.runtimes.map((runtime) => runtime.id)).toEqual(['codex', 'grok-build']);
         const codexModels = inventory.runtimes.find((runtime) => runtime.id === 'codex')?.models;
         expect(codexModels?.[0]?.id).toBe('gpt-5.6-sol');
-        expect(codexModels).toContainEqual({
-            id: 'gpt-6.1-sol',
-            label: 'GPT-6.1 Sol',
-            defaultReasoningEffort: 'medium',
-            reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
-            features: ['image-generation'],
-        });
+        for (const [id, label] of [
+            ['gpt-6.1-sol', 'GPT-6.1 Sol'],
+            ['gpt-6-sol', 'GPT-6 Sol'],
+            ['gpt-6-luna', 'GPT-6 Luna'],
+        ]) {
+            expect(codexModels).toContainEqual({
+                id,
+                label,
+                defaultReasoningEffort: 'medium',
+                reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+                features: ['image-generation'],
+            });
+        }
         expect(inventory.runtimes.at(-1)?.models.map(({ id, label }) => ({ id, label }))).toEqual([
             { id: 'grok-4.6', label: 'Grok 4.6' },
             { id: 'grok-4.5', label: 'Grok 4.5' },
+            { id: 'grok-4.7', label: 'Grok 4.7' },
+            { id: 'grok-4.7-build-fast', label: 'Grok 4.7 Fast' },
         ]);
     } finally {
         await rm(root, { force: true, recursive: true });

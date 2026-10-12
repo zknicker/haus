@@ -78,7 +78,8 @@ Web pages in desktop tabs ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.m
   still (`browserCapture(viewId)`, placed views only).
 - **Links and focus.** A page's popup, `target=_blank`, ⌘-click, or Open Link in New Tab sends
   `onBrowserOpenRequest` (`openerId`, `background`); the App opens a new tab from the opener's tab
-  by the ADR placement rule (`background` asks for a same-pane new tab). A view taking key focus
+  by [ADR 0046](../adr/0046-the-sidebar-goes-pages-open-to-the-right.md): a selected open lands
+  in the right pane, and `background` asks for a background tab right after the opener, same pane. A view taking key focus
   sends `onBrowserFocus(viewId)` and the App focuses that tab's pane. Keys pressed inside a page act
   on that page.
 - **Disposal.** `BrowserViewsProvider` closes every view no open tab's history names, so views of

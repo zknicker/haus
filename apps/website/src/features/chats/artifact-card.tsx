@@ -2,6 +2,7 @@ import type { WidgetArtifactProps } from '@haus/api/widgets/artifact';
 import { ItemCard } from '@heroui-pro/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { artifactKindLabel } from '../artifacts/artifact-format.ts';
 import { ArtifactFileIcon } from '../artifacts/icons/artifact-file-icon.tsx';
 import { artifactFileKind } from '../artifacts/icons/artifact-file-kind.ts';
@@ -53,6 +54,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
             render={(cardProps) => (
                 <button
                     {...cardProps}
+                    {...opensPlace}
                     aria-label={`Open ${title}`}
                     onClick={() =>
                         openArtifactPanel({ kind: 'workspaceFile', path: props.path }, title)

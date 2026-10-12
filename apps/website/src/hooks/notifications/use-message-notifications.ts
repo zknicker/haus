@@ -29,8 +29,8 @@ type Utils = ReturnType<typeof hausTrpc.useUtils>;
  * Raises a platform notification for a new message that notifies this human
  * (ADR 0038) while Haus is hidden or unfocused, in the browser and the
  * Electron renderer alike. Clicking one brings the window forward and opens
- * the conversation: on desktop it reveals a tab already on it, else the
- * focused pane's current tab navigates there (ADR 0039).
+ * the conversation: on desktop it is Open, a tab in the right pane (selecting
+ * a right-pane tab already on it), ADR 0039.
  *
  * It returns the `onEvent` callbacks the Server's single `chat.onMessageCreated`
  * and `chat.onRead` streams call with each live event; recovery reads never
@@ -41,16 +41,16 @@ type Utils = ReturnType<typeof hausTrpc.useUtils>;
  */
 export function useMessageNotifications(server: { id: string; slug: string }) {
     const navigate = useNavigate();
-    const reveal = useOptionalDesktopTabs()?.reveal;
+    const tabs = useOptionalDesktopTabs();
     const open = React.useCallback(
         (path: string) => {
-            if (reveal) {
-                reveal({ kind: 'app', path });
+            if (tabs) {
+                tabs.open(null, { kind: 'app', path });
             } else {
                 navigate(path);
             }
         },
-        [navigate, reveal]
+        [navigate, tabs]
     );
     const utils = hausTrpc.useUtils();
     const agents = useAgents(server.id);

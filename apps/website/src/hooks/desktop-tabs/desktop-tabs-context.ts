@@ -11,7 +11,6 @@ import {
 import { mountedTabIds } from './desktop-tabs-mounted.ts';
 import type { SelectionGesture } from './desktop-tabs-selection.ts';
 import type { DesktopTabsStore } from './desktop-tabs-store.ts';
-import type { FocusedPaneOpenIntent, TabOpenIntent } from './tab-navigation.ts';
 
 /**
  * A window's tab commands (ADR 0039). The controller
@@ -38,6 +37,8 @@ export interface DesktopTabCommands {
     focusPane: (pane: PaneSide) => void;
     /** ⌘[ / ⌘]: history in the focused pane's current tab. */
     go: (tabId: string, delta: number) => void;
+    /** Go (sidebar, command menu): the left pane's selected tab pushes `location`; never dedupes. */
+    goTo: (location: TabLocation) => void;
     /** Several tabs move together, side by side in row order. */
     move: (tabIds: readonly string[], to: { index: number; pane: PaneSide }) => void;
     /**
@@ -46,18 +47,31 @@ export interface DesktopTabCommands {
      */
     moveToNewWindow: (tabIds: readonly string[]) => void;
     navigate: (tabId: string, location: TabLocation, mode: 'push' | 'replace') => void;
+    /**
+     * Open (anything activated inside a page, notifications, deep links, ⌘F): a selected tab
+     * in the right pane, creating it; a right-pane tab already on that page is selected
+     * instead. `fromTabId` is the tab the open came from, null when none did.
+     */
+    open: (fromTabId: string | null, location: TabLocation) => void;
     /** The tab menu's New tab to the right: a new selected tab right after `tabId`. */
     openAfter: (tabId: string, location: TabLocation) => void;
-    /** Sidebar, command menu, ⌘T, ⌘,: a place from the focused pane (`current`), or a new tab there. */
-    openInFocusedPane: (location: TabLocation, intent: FocusedPaneOpenIntent) => void;
-    /** A cross-page link from inside `fromTabId`, placed by the ADR 0039 rules. */
-    openLink: (fromTabId: string, location: TabLocation, intent: TabOpenIntent) => void;
+    /** ⌘T and the row's plus: a new selected tab at the end of the focused pane's row. */
+    openNewTab: (location: TabLocation) => void;
+    /** ⌘, and the Settings button: the window's one Settings tab, else a new one in the left pane. */
+    openSettings: (location: TabLocation) => void;
+    /**
+     * A modified click (⌘, middle, Shift): a new tab right after `fromTabId` in its pane
+     * (null: the left pane's selected tab), in the background or selected; never dedupes.
+     */
+    openTab: (
+        fromTabId: string | null,
+        location: TabLocation,
+        options: { background: boolean }
+    ) => void;
     /** Tabs dragged out to another window leave, without closed-tab records. */
     release: (tabIds: readonly string[]) => void;
     /** ⌘⇧T. */
     reopenClosed: () => void;
-    /** Notification, deep link, menu Settings…: the place rule from the focused pane (ADR 0039). */
-    reveal: (location: TabLocation) => void;
     /**
      * Saves into the tab's current history entry. Re-renders nothing: page
      * state is read back through `tab` when a page shows, never rendered.

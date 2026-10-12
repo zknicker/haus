@@ -5,6 +5,7 @@ import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatSearch } from '../../../hooks/servers/use-chat-search.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
@@ -193,8 +194,7 @@ function SearchResultRow({
     query: string;
 }) {
     const author = messageAuthor(message);
-    // A DM with an agent already names that agent as the author; repeating
-    // it as the chat label reads as a stutter.
+    // A DM's agent is already the author; repeating it as the label stutters.
     const rawLabel = chat ? searchChatLabel(chat) : null;
     const label = rawLabel === author.name ? null : rawLabel;
 
@@ -204,7 +204,7 @@ function SearchResultRow({
     return (
         <ItemCard<'button'>
             className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            render={(props) => <button onClick={onOpen} type="button" {...props} />}
+            render={(props) => <button onClick={onOpen} type="button" {...props} {...opensPlace} />}
             variant="default"
         >
             <PressableFeedback.Highlight />

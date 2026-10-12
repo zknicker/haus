@@ -1,3 +1,4 @@
+import type { GithubTriggerConfigInput } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** Saves one Trigger and refreshes both its active row and history label. */
@@ -13,7 +14,13 @@ export function useTriggerUpdate(serverId: string, agentId: string) {
 
     return {
         ...mutation,
-        update: (triggerId: string, patch: { instruction?: string | null; title?: string }) =>
-            mutation.mutateAsync({ ...patch, serverId, triggerId }),
+        update: (
+            triggerId: string,
+            patch: {
+                github?: GithubTriggerConfigInput;
+                instruction?: string | null;
+                title?: string;
+            }
+        ) => mutation.mutateAsync({ ...patch, serverId, triggerId }),
     };
 }

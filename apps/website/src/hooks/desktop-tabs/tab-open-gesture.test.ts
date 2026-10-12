@@ -30,7 +30,7 @@ describe('openIntentFromEvent', () => {
 });
 
 describe('trackOpenGestures', () => {
-    test('reads the in-flight trusted click until its dispatch ends', async () => {
+    test('reads the in-flight trusted click or Return until its dispatch ends', async () => {
         const listeners = new Map<string, (event: Event) => void>();
         const uninstall = trackOpenGestures({
             addEventListener: (type: string, listener: (event: Event) => void) =>
@@ -50,6 +50,15 @@ describe('trackOpenGestures', () => {
 
         dispatch('pointerup', { shiftKey: true });
         expect(currentOpenGesture()).toBe('newTab');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        // Command-Return on a focused row or command menu item is a Command-click.
+        dispatch('keydown', { ...command, key: 'Enter' });
+        expect(currentOpenGesture()).toBe('backgroundTab');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        // Other keys (⌘K, ⌘1) are shortcuts, not open gestures.
+        dispatch('keydown', { ...command, key: 'k' });
+        expect(currentOpenGesture()).toBe('auto');
         uninstall();
         expect(currentOpenGesture()).toBe('auto');
         expect(listeners.size).toBe(0);

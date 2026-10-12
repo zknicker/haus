@@ -9,8 +9,8 @@ export interface OpenAgentProfileOptions {
 
 /**
  * The one way to open an Agent's profile: a push to its page. On desktop the
- * router it runs under places it (ADR 0039): an existing tab on that Agent is
- * selected, else it opens as a new tab (`pagePlacement`). It reads only the
+ * router it runs under places it (ADR 0039): from a page it is Open (the right
+ * pane), from the sidebar or command menu Go (the left pane). It reads only the
  * route's Server slug, so it works anywhere in the Server shell. The opener
  * keeps one identity for the caller's lifetime, so a surface can hand it to
  * many rows without re-rendering them when the route changes.

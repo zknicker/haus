@@ -8,6 +8,7 @@ import { getCommandSearchText } from '../../commands/types.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useCommandMenu } from './command-menu-provider.tsx';
 
 export type AgentAvatarLookup = (agentId: string | null | undefined) => string | null;
@@ -73,6 +74,7 @@ export function CommandMenuShell({
                                     {group.commands.map((command) => (
                                         <Command.Item
                                             id={command.id}
+                                            {...(command.opensPage ? opensPlace : {})}
                                             isDisabled={Boolean(command.disabledReason)}
                                             key={command.id}
                                             textValue={getCommandSearchText(command)}

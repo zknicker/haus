@@ -82,17 +82,19 @@ export function createDesktopTabCommands(
                 }
             });
         },
+        goTo: (location) => dispatch({ kind: 'goTo', location, newId: newId() }),
         navigate: (tabId, location, mode) =>
             dispatch({ kind: 'navigate', location, mode, newId: newId(), tabId }),
-        openInFocusedPane: (location, intent) =>
-            dispatch({ kind: 'openInFocusedPane', intent, location, newId: newId() }),
+        open: (fromTabId, location) =>
+            dispatch({ fromTabId, kind: 'open', location, newId: newId() }),
         openAfter: (tabId, location) =>
             dispatch({ afterTabId: tabId, kind: 'openAfter', location, newId: newId() }),
-        openLink: (fromTabId, location, intent) =>
-            dispatch({ kind: 'openLink', fromTabId, intent, location, newId: newId() }),
+        openNewTab: (location) => dispatch({ kind: 'openNewTab', location, newId: newId() }),
+        openSettings: (location) => dispatch({ kind: 'openSettings', location, newId: newId() }),
+        openTab: (fromTabId, location, { background }) =>
+            dispatch({ background, fromTabId, kind: 'openTab', location, newId: newId() }),
         release: (tabIds) => dispatch({ kind: 'release', tabIds }),
         reopenClosed: () => dispatch({ kind: 'reopenClosed' }),
-        reveal: (location) => dispatch({ kind: 'reveal', location, newId: newId() }),
         savePageState: store.savePageState,
         select: (tabId) => dispatch({ kind: 'select', tabId }),
         selectInFocusedPane: (target) => {

@@ -168,6 +168,18 @@ export function ShellSidebarPage({ children }: ShellSidebarPageProps) {
  * that first row in the shared shell band, so its midline meets the content
  * topbar's across the divider without a band element to approximate it.
  */
-export function ShellSidebarPageContent({ children }: { children: React.ReactNode }) {
-    return <Sidebar.Content>{children}</Sidebar.Content>;
+/**
+ * `sourceTabId`: the desktop tab a page-owned sidebar (the Settings rail) belongs to, so a
+ * modified click on its links opens beside that tab (`clickTabId`).
+ */
+export function ShellSidebarPageContent({
+    children,
+    sourceTabId = null,
+}: {
+    children: React.ReactNode;
+    sourceTabId?: string | null;
+}) {
+    return (
+        <Sidebar.Content data-source-tab-id={sourceTabId ?? undefined}>{children}</Sidebar.Content>
+    );
 }

@@ -32,7 +32,10 @@ test('desktop Cloud Agent work opens as a Thread page with working actions', asy
         .locator('xpath=ancestor::*[@data-slot="chat-message-assistant"][1]');
     await anchorRow.hover();
     await anchorRow.locator('button[aria-label="Reply in thread"]').click();
-    // With one pane, the Thread page replaces the chat in the same tab.
+    // The Thread page opens in the right pane beside the chat (Open, ADR 0046).
+    await expect(
+        page.getByRole('navigation', { name: 'Right pane tabs', exact: true })
+    ).toBeVisible();
     const card = page.getByTestId('thread-conversation').getByTestId('cloud-agent-work-card');
     await expect(card).toContainText(title);
     await expect(card).toContainText('Working');

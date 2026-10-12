@@ -10,7 +10,7 @@ import { ChannelContextMenuItems } from '../servers/chat/chat-context-menu-items
 import { type ChannelActions, useChannelActions } from '../servers/chat/use-channel-actions.tsx';
 import { serverChatRoute, serverRoute } from '../servers/server-routes.ts';
 import { DmNavigationContextMenu } from './dm-navigation-context-menu.tsx';
-import { OpenInNewTabItem, openInNewTabKey, useOpenInNewTab } from './open-in-new-tab-item.tsx';
+import { RowTabItems, runRowTabItem, useRowTabOpeners } from './open-in-new-tab-item.tsx';
 
 /**
  * A chat row's right-click menu: open it, then every action the chat's own
@@ -67,11 +67,13 @@ function ChannelNavigationContextMenu({
     slug: string;
 }) {
     const navigate = useSidebarNavigate();
+    const openers = useDesktopPageOpeners();
     const actions = useChannelActions({
         // Deleting the channel you are in leaves it; any other page stays put.
         onDeleted: isCurrent ? () => navigate(serverRoute(slug), { replace: true }) : undefined,
-        openFiles: useDesktopPageOpeners()?.openFiles,
-        openPath: navigate,
+        openFiles: openers?.openFiles,
+        // Desktop: the row's Tasks is Open (the right pane), not the row's own Go.
+        openPath: openers ? (path) => openers.openPage(path) : navigate,
         slug,
     });
 
@@ -112,22 +114,21 @@ function ChannelRowMenu({
     slug: string;
 }) {
     const navigate = useSidebarNavigate();
-    const openInNewTab = useOpenInNewTab();
+    const tabOpeners = useRowTabOpeners();
     const chat = useListedChat(serverId, chatId);
     if (!chat) {
         return null;
     }
     const chatName = chat.name ?? 'channel';
     const onAction = (key: React.Key) => {
+        const path = serverChatRoute(slug, chat.id);
         if (key === 'open') {
-            navigate(serverChatRoute(slug, chat.id));
+            navigate(path);
             return;
         }
-        if (key === openInNewTabKey) {
-            openInNewTab?.(serverChatRoute(slug, chat.id));
-            return;
+        if (!runRowTabItem(tabOpeners, key, path)) {
+            actions.run(chat, key);
         }
-        actions.run(chat, key);
     };
 
     return (
@@ -138,7 +139,7 @@ function ChannelRowMenu({
                 <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                 <Label>Open channel</Label>
             </ContextMenu.Item>
-            {openInNewTab ? <OpenInNewTabItem /> : null}
+            {tabOpeners ? <RowTabItems /> : null}
             <ContextMenu.Separator />
             <ChannelContextMenuItems actions={actions} chat={chat} />
         </ContextMenu.Menu>

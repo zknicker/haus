@@ -106,7 +106,9 @@ test('the Codex bridge steers a live turn through codex-acp session steering', a
     // A steer that lands after the turn ends starts a turn Haus does not own:
     // cancel it and leave the durable notice for the next wake.
     expect(bridge).toContain('steering?.outcome === "startedNewTurn"');
-    expect(bridge).toContain('acp5.methods.agent.session.cancel');
+    expect(bridge).toMatch(
+        /connection\?\.agent\.notify\([\w$]+\.methods\.agent\.session\.cancel, \{/
+    );
     expect(bridge).toContain('steering?.outcome !== "injected"');
     expect(adapter).toContain('harnessId === "grok-build" || harnessId === "codex"');
 });

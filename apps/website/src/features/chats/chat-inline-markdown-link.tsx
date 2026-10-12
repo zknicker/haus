@@ -1,4 +1,5 @@
 import type * as React from 'react';
+import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 import { parseHausResourceLink } from './haus-resource-link.ts';
 import { SharedArtifactChip } from './shared-artifact-chip.tsx';
@@ -27,6 +28,7 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
                     event.preventDefault();
                     openArtifactPanel(hausTarget);
                 }}
+                {...opensPlace}
             >
                 {children}
             </a>

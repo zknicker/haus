@@ -252,6 +252,8 @@
      * It is the sidebar's first navigation row that leads the column, whichever
      * page is mounted — Inbox in chat navigation, Back on the settings pages —
      * so the offset is keyed on that position rather than on one page's row.
+     * This is the web's rule; the desktop window layouts (`band`, `canvas`) set
+     * their own lead offset in `default-theme.css`.
      */
     .app-shell
         [data-slot='sidebar-content']

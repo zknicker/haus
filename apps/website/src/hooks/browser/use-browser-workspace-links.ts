@@ -1,37 +1,36 @@
 import * as React from 'react';
+import { clickTabId } from '../../features/shell/desktop-open-clicks.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { type OpenGesture, openIntentFromEvent } from '../desktop-tabs/tab-open-gesture.ts';
+
+/** An App web link click: its URL, gesture, and the tab it was clicked in (null in window chrome). */
+export interface WebLinkOpen {
+    fromTabId: string | null;
+    gesture: OpenGesture;
+    url: string;
+}
 
 /**
  * Web links clicked in the App (an off-origin anchor, or any `target=_blank` web anchor: message
  * links, website and pull request chips) open as web tabs instead of navigating the App:
- * `open(url, gesture)`, with Chrome's dispositions (`tab-open-gesture.ts`): Command- or
- * middle-click opens it in the background, Shift (alone or with Command) selected, a plain
- * click by the window's rule. Desktop only.
+ * `open(request)`, with Chrome's dispositions (`tab-open-gesture.ts`). The source is the
+ * link's own tab, not the focused one. Desktop only.
  */
-export function useBrowserWorkspaceLinks(open: (url: string, gesture: OpenGesture) => void) {
+export function useBrowserWorkspaceLinks(open: (request: WebLinkOpen) => void) {
     React.useEffect(() => {
         if (!getDesktopBridge()?.browserCommand) {
             return;
         }
-        // A middle press on a web link must not start autoscroll.
-        const press = (event: MouseEvent) => {
-            if (event.button === 1 && webLinkOpen(event, document.baseURI)) {
-                event.preventDefault();
-            }
-        };
         const onClick = (event: MouseEvent) => {
             const request = webLinkOpen(event, document.baseURI);
             if (request) {
                 event.preventDefault();
-                open(request.url, request.gesture);
+                open(request);
             }
         };
-        document.addEventListener('mousedown', press);
         document.addEventListener('click', onClick);
         document.addEventListener('auxclick', onClick);
         return () => {
-            document.removeEventListener('mousedown', press);
             document.removeEventListener('click', onClick);
             document.removeEventListener('auxclick', onClick);
         };
@@ -39,9 +38,9 @@ export function useBrowserWorkspaceLinks(open: (url: string, gesture: OpenGestur
 }
 
 /**
- * The web link a left `click` or a middle press (`mousedown`, `auxclick`) opens, and its
- * gesture; null for any other button, a handled event, or an in-App link. `base` resolves
- * relative hrefs and names the App's origin.
+ * The web link a left `click` or a middle `auxclick` opens, its gesture, and its tab; null for
+ * any other button, a handled event, or an in-App link. `base` resolves relative hrefs and
+ * names the App's origin.
  */
 export function webLinkOpen(
     event: Pick<
@@ -49,7 +48,7 @@ export function webLinkOpen(
         'button' | 'ctrlKey' | 'defaultPrevented' | 'metaKey' | 'shiftKey' | 'target' | 'type'
     >,
     base: string
-): { gesture: OpenGesture; url: string } | null {
+): WebLinkOpen | null {
     const button = event.type === 'click' ? 0 : 1;
     if (event.defaultPrevented || event.button !== button) {
         return null;
@@ -66,5 +65,5 @@ export function webLinkOpen(
     ) {
         return null;
     }
-    return { gesture: openIntentFromEvent(event), url: url.href };
+    return { fromTabId: clickTabId(event), gesture: openIntentFromEvent(event), url: url.href };
 }

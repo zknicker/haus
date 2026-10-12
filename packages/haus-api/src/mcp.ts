@@ -17,11 +17,11 @@ export const mcpOAuthPresetSchema = z.enum([
     'cloudflare',
     'github',
     'google-calendar',
+    'handmade',
     'merchbase',
     'merchbase-atlas',
     'merchbase-fulfillment',
     'rankwrangler',
-    'vercel',
 ]);
 export const mcpBearerTokenPresetSchema = z.enum(['x']);
 export const mcpDesktopPresetSchema = z.enum(['skool']);

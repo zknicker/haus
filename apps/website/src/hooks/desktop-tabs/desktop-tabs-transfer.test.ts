@@ -74,7 +74,7 @@ test('a torn-off window starts as one pane holding its tabs, still selected toge
 test('a drag bundles its tabs in row order, showing the row shown tab', () => {
     const state = run(
         start(),
-        { intent: 'newTab', kind: 'openInFocusedPane', location: app('a'), newId: 'ta' },
+        { background: false, fromTabId: null, kind: 'openTab', location: app('a'), newId: 'ta' },
         { gesture: 'toggle', kind: 'extendSelection', tabId: 't0' }
     );
     const bundle = bundleOf(state, ['t0', 'ta']);

@@ -1,4 +1,7 @@
 import * as React from 'react';
+import { useOptionalDesktopTabs } from '../desktop-tabs/desktop-tabs-context.ts';
+import { paneOfTab } from '../desktop-tabs/desktop-tabs-model.ts';
+import { useTabId } from '../desktop-tabs/tab-presence.ts';
 import { useViewShown, useViewShownChange } from '../desktop-tabs/view-shown.ts';
 import type { ChatMessageJumpTarget } from './use-chat-message-navigation.ts';
 
@@ -33,6 +36,7 @@ export function usePendingMessageReveal({
     // A chat view kept mounted while hidden (`KeptChatViews`) leaves the
     // reveal for a shown view of the Chat, or for its own reveal.
     const viewShown = useViewShown();
+    const inFocusedPane = useInFocusedPane();
     const [revealCount, setRevealCount] = React.useState(0);
     useViewShownChange((shown) => {
         if (shown && pending.has(chatId)) {
@@ -46,13 +50,31 @@ export function usePendingMessageReveal({
         // After the transcript's own first-paint scroll, which would otherwise win.
         // Taken inside the frame: taking it re-renders, and that cleanup would cancel the frame.
         const frame = window.requestAnimationFrame(() => {
+            // Desktop: the reveal belongs to the tab "View in chat" opened, which takes
+            // focus (ADR 0046), not to a copy of the Chat already shown in the other pane.
+            if (!inFocusedPane()) {
+                return;
+            }
             const taken = takeMessageReveal(chatId);
             if (taken) {
                 reveal(taken);
             }
         });
         return () => window.cancelAnimationFrame(frame);
-    }, [chatId, ready, reveal, revealCount, target, viewShown]);
+    }, [chatId, inFocusedPane, ready, reveal, revealCount, target, viewShown]);
+}
+
+/** Whether this view's tab is in the focused pane, read when called; always true on the web. */
+function useInFocusedPane(): () => boolean {
+    const tabs = useOptionalDesktopTabs();
+    const tabId = useTabId();
+    return React.useCallback(() => {
+        if (!(tabs && tabId)) {
+            return true;
+        }
+        const state = tabs.store.latest();
+        return paneOfTab(state, tabId) === state.focusedPane;
+    }, [tabId, tabs]);
 }
 
 /** Removes and returns the Chat's pending reveal; exported for tests. */

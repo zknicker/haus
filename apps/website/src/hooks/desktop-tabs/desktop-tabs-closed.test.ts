@@ -5,9 +5,9 @@ import { app, describeTabs, run, split } from './desktop-tabs-test-fixtures.ts';
 function twoByTwo() {
     return run(
         split(),
-        { intent: 'newTabAtEnd', kind: 'openInFocusedPane', location: app('a'), newId: 'ta' },
+        { kind: 'openNewTab', location: app('a'), newId: 'ta' },
         { kind: 'focusPane', pane: 'secondary' },
-        { intent: 'newTabAtEnd', kind: 'openInFocusedPane', location: app('b'), newId: 'tb' },
+        { kind: 'openNewTab', location: app('b'), newId: 'tb' },
         { kind: 'focusPane', pane: 'primary' }
     );
 }

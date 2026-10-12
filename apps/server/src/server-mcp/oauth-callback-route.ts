@@ -3,10 +3,10 @@ import type { McpOAuthRelay } from './oauth-relay.ts';
 
 export function registerMcpOAuthCallback(app: FastifyInstance, relay: McpOAuthRelay): void {
     app.get('/mcp/oauth/callback', async (request, response) => {
-        const query = request.query as { code?: string; state?: string };
+        const query = request.query as { code?: string; state?: string; iss?: string };
         const result =
             query.code && query.state
-                ? await relay.complete(query.state, query.code)
+                ? await relay.complete(query.state, query.code, query.iss)
                 : ({ status: 'expired' } as const);
         const copy = callbackCopy(result.status);
         response

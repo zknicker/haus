@@ -4,7 +4,7 @@ import * as z from 'zod';
 // which deliveries a Trigger may listen to, the filters each one takes, the
 // App permission each one needs, and the problems a Trigger can be in.
 
-/** Event entries on one Trigger, at most one per event name. */
+/** OR groups on one Trigger; event names may repeat. */
 export const githubTriggerEventsMax = 10;
 /** Values in one filter list. */
 export const githubTriggerFilterValuesMax = 20;
@@ -93,39 +93,53 @@ const authors = githubTriggerAuthorsSchema.default('collaborators');
 const branches = filterList(filterText);
 const conclusions = filterList(githubCheckConclusionSchema);
 const labels = filterList(filterText);
+const commonFilters = {
+    actors: filterList(filterText),
+    actorsIgnore: filterList(filterText),
+    repositories: filterList(filterText),
+    repositoriesIgnore: filterList(filterText),
+};
+const branchFilters = { branches, branchesIgnore: branches };
 
 export const githubTriggerEventSchema = z.discriminatedUnion('event', [
     z
         .object({
+            ...commonFilters,
             actions: actionList(['requested', 'in_progress', 'completed'], ['completed']),
-            branches,
+            ...branchFilters,
             conclusions,
             event: z.literal('workflow_run'),
             /** Workflow file paths, such as `.github/workflows/ci.yml`. */
             workflows: filterList(filterText),
+            workflowsIgnore: filterList(filterText),
+            workflowEvents: filterList(filterText),
         })
         .strict(),
     z
         .object({
+            ...commonFilters,
             actions: actionList(['queued', 'in_progress', 'completed', 'waiting'], ['completed']),
-            branches,
+            ...branchFilters,
             conclusions,
             event: z.literal('workflow_job'),
         })
         .strict(),
     z
         .object({
+            ...commonFilters,
             actions: actionList(['completed'], ['completed']),
-            branches,
+            ...branchFilters,
             conclusions,
             event: z.literal('check_suite'),
         })
         .strict(),
     z
         .object({
+            ...commonFilters,
             actions: actionList(['created', 'completed'], ['completed']),
-            branches,
+            ...branchFilters,
             checkNames: filterList(filterText),
+            checkNamesIgnore: filterList(filterText),
             conclusions,
             event: z.literal('check_run'),
         })
@@ -133,12 +147,15 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
     z
         .object({
             environments: filterList(filterText),
+            ...commonFilters,
+            environmentsIgnore: filterList(filterText),
             event: z.literal('deployment_status'),
             states: filterList(githubDeploymentStateSchema),
         })
         .strict(),
     z
         .object({
+            ...commonFilters,
             actions: actionList(
                 [
                     'opened',
@@ -153,21 +170,24 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
             ),
             authors,
             baseBranches: branches,
+            baseBranchesIgnore: branches,
             event: z.literal('pull_request'),
             labels,
         })
         .strict(),
     z
         .object({
+            ...commonFilters,
             actions: actionList(['submitted'], ['submitted']),
             authors,
             event: z.literal('pull_request_review'),
             states: filterList(githubReviewStateSchema),
         })
         .strict(),
-    z.object({ branches, event: z.literal('push') }).strict(),
+    z.object({ ...commonFilters, ...branchFilters, event: z.literal('push') }).strict(),
     z
         .object({
+            ...commonFilters,
             actions: actionList(
                 ['opened', 'reopened', 'closed', 'labeled', 'assigned'],
                 ['opened']
@@ -179,6 +199,7 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
         .strict(),
     z
         .object({
+            ...commonFilters,
             actions: actionList(['published', 'released', 'prereleased'], ['published']),
             event: z.literal('release'),
         })
@@ -186,15 +207,11 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
 ]);
 export type GithubTriggerEvent = z.infer<typeof githubTriggerEventSchema>;
 
-/** One to ten entries, OR across entries, at most one entry per event name. */
+/** One to ten OR groups; every filter inside a group must match. */
 export const githubTriggerEventsSchema = z
     .array(githubTriggerEventSchema)
     .min(1)
-    .max(githubTriggerEventsMax)
-    .refine(
-        (events) => new Set(events.map((entry) => entry.event)).size === events.length,
-        'List each GitHub event at most once.'
-    );
+    .max(githubTriggerEventsMax);
 export type GithubTriggerEvents = z.infer<typeof githubTriggerEventsSchema>;
 
 /** A repository as GitHub names it: `owner/name`. */
