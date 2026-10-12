@@ -582,6 +582,13 @@
       "when": 1791822950921,
       "tag": "0082_github_app",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1791832687198,
+      "tag": "0083_remove-vercel-preset",
+      "breakpoints": true
     }
   ]
 }
