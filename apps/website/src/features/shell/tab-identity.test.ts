@@ -51,6 +51,14 @@ test('app paths parse to the page they show', () => {
         section: 'settings',
     });
     expect(parseTabPage(app('/s/acme/inbox'))).toEqual({ kind: 'section', section: 'inbox' });
+    expect(parseTabPage(app('/s/acme/artifacts'))).toEqual({
+        kind: 'section',
+        section: 'artifacts',
+    });
+    expect(parseTabPage(app('/s/acme/artifacts/art_123?revision=rev_456'))).toEqual({
+        kind: 'artifact',
+        title: null,
+    });
     expect(parseTabPage(app('/s/acme/chats/%E0'))).toEqual({ chatId: '%E0', kind: 'chat' });
 });
 

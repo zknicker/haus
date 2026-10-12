@@ -60,6 +60,26 @@ test('shutdown resumes and stops a parked session once, preserving identity and 
     expect(() => owner.begin(root)).toThrow('shutting down');
 });
 
+test('Agent reset stops its parked adapter without shutting down other Agents', async () => {
+    const { root, owner, lease } = await fixture();
+    let stops = 0;
+    const live = {
+        detach: async () => parked,
+        stop: async () => {
+            stops++;
+            return stopped;
+        },
+    };
+    lease.attach(live, async () => live);
+    await lease.checkpoint();
+    lease.finish();
+    await owner.stopAgent(root);
+    expect(stops).toBe(1);
+    expect(() => owner.begin(join(root, 'another-agent'))).not.toThrow();
+    const replacement = owner.begin(root);
+    replacement.finish();
+});
+
 test('shutdown waits for the turn to settle and persist its stopped state', async () => {
     const { root, state, owner, lease } = await fixture();
     let stops = 0;
