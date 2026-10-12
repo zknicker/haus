@@ -55,7 +55,8 @@ test('migration 0079 turns every launch Message into text that links its work', 
         ]);
 
         const messages = (await upgraded`
-            SELECT id, body_kind, content, nonce, sequence FROM chat_messages ORDER BY sequence
+            SELECT id, body_kind, content, nonce, sequence FROM chat_messages
+            WHERE id <> 'msg_orphan' ORDER BY sequence
         `) as { body_kind: string; content: string; id: string; nonce: string; sequence: number }[];
         expect(messages).toEqual(
             cases.map((entry, index) => ({
@@ -74,6 +75,13 @@ test('migration 0079 turns every launch Message into text that links its work', 
                 label: entry.label.replace(/\\([\\[])/gu, '$1'),
             });
         }
+        // A launch Message whose work its Computer's removal cascaded away keeps
+        // its words as plain text, so 0080's narrowed check can still validate.
+        expect(
+            await upgraded`
+                SELECT body_kind, content FROM chat_messages WHERE id = 'msg_orphan'
+            `
+        ).toEqual([{ body_kind: 'text', content: original }]);
         expect(
             await upgraded`
                 SELECT count(*)::int AS hits FROM chat_messages
@@ -143,7 +151,13 @@ async function seed(sql: SQL) {
     `;
     await sql`
         INSERT INTO chats (id, server_id, kind, name, last_message_sequence)
-        VALUES ('cht_launch', 'srv_one', 'channel', 'launch', ${cases.length})
+        VALUES ('cht_launch', 'srv_one', 'channel', 'launch', ${cases.length + 1})
+    `;
+    await sql`
+        INSERT INTO chat_messages
+            (id, server_id, chat_id, author_agent_id, body_kind, content, nonce, sequence)
+        VALUES ('msg_orphan', 'srv_one', 'cht_launch', 'agt_forge', 'cloud-agent-work',
+            ${original}, 'nonce_orphan', ${cases.length + 1})
     `;
     for (const [index, entry] of cases.entries()) {
         await sql`

@@ -54,6 +54,9 @@ FROM (
 WHERE message."server_id" = link."server_id"
     AND message."id" = link."launch_message_id"
     AND message."body_kind" = 'cloud-agent-work';--> statement-breakpoint
+-- A launch Message whose work is already gone (removing its Computer cascades
+-- the work away) has nothing to link, so it keeps its words as plain text.
+UPDATE "chat_messages" SET "body_kind" = 'text' WHERE "body_kind" = 'cloud-agent-work';--> statement-breakpoint
 CREATE INDEX "cloud_agent_work_links_work_idx" ON "cloud_agent_work_links" USING btree ("server_id","work_id","created_at" DESC NULLS LAST,"message_id" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "cloud_agent_work_links_chat_idx" ON "cloud_agent_work_links" USING btree ("server_id","chat_id");--> statement-breakpoint
 CREATE INDEX "cloud_agent_work_launch_message_idx" ON "cloud_agent_work" USING btree ("server_id","launch_message_id");
