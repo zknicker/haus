@@ -1,7 +1,8 @@
 ---
-summary: User-facing rich reference behavior for mentions, skills, apps, plugins, files, and future product cards.
+summary: User-facing rich reference behavior for mentions, skills, apps, plugins, files, Cloud Agent work links, and future product cards.
 read_when:
   - changing chat mentions, rich reference rendering, autocomplete references, or explicit typed links in messages
+  - changing the `cloud-agent://` link, its label, or which trailing link paragraph the transcript hides
   - adding a new reference type such as agent, skill, app, plugin, file, directory, pull request, product, ASIN, memory, chat, or session
 ---
 
@@ -21,6 +22,7 @@ Examples:
 - `[#product](chat://cht_product)` opens a channel by immutable chat id.
 - `[README.md](/repo/README.md)` references a file.
 - `[#482](pr://github/haus/haus/482)` references a GitHub pull request.
+- `[Fix login redirect](cloud-agent://caw_…)` links Cloud Agent work by immutable work id.
 
 The human composer persists selected references as explicit typed links. Agent
 output may use bare `@handle` and `#channel` tokens; the Server resolves known
@@ -31,7 +33,7 @@ tokens stay plain text. For example, `@blippy` becomes
 memberships: `@ada` becomes `[@ada](user://usr_ada)`. Ambiguous handles stay
 plain text. Retries reuse the original stored targets, including after a handle
 is renamed or reused. The same lookup applies to Agent creation announcements
-and Cloud Agent work messages. A resolved human mention addresses that human: it sends them a message
+and Cloud Agent launch messages. A resolved human mention addresses that human: it sends them a message
 notification ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md),
 [ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)).
 
@@ -220,6 +222,20 @@ rendering.
   reference into a cached snapshot — title, open, draft, merged, or closed
   state, additions, deletions, and files changed — that both renderings show;
   without a connection the reference renders from the URL alone.
+- Cloud Agent work links use `cloud-agent://<workId>` and the work's title as the
+  label ([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)).
+  The label turns line breaks into spaces, drops `]`, escapes `\` and `[`,
+  keeps at most 120 characters, and reads `Cloud Agent work` when nothing is
+  left. Links are copied, not built: `haus cloud-agent start` and `inspect`
+  print a `Link:` line for Agents to paste, and a human may paste the same
+  Markdown. There is no composer autocomplete for work.
+  The Server keeps a link only when the author can already see that work, and
+  rewrites any other to its plain label text. Each kept link adds the work's
+  live card below the Message and reads inline as a quiet reference chip. When
+  a Message's final paragraph is nothing but links, and every one is a link the
+  Server recorded on that Message, the transcript hides that paragraph because
+  the cards already state it. A forged, unknown, or unrecorded link keeps the
+  paragraph visible, so link syntax can never hide text.
 - Ordinary web links use the same chip shell with the site's favicon and a
   globe fallback. Activating one opens the original URL. Agent and chat chips
   are interactive: they open the referenced Agent's profile or channel.

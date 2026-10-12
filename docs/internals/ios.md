@@ -870,7 +870,9 @@ Cloud agents use the same Server records as the web App. Settings → Cloud agen
 Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
 sign-in browser on that Computer, not on the phone; iOS never receives the credential.
 
-Each delegation's typed Message body supplies its inline cloud-agent card in a Chat or Thread.
+Each Message's `cloudAgentWork` annotation supplies one inline cloud-agent card per linked work in
+a Chat or Thread (`ChatMessageCloudAgentWork.swift`); the card names the Agent from the work's
+`agentId`, and `RichMessageParser` reads `cloud-agent://` links as reference chips.
 The parent Chat's preview carries the Thread's cloud agents from `cloudAgentWork.listForChat` as
 cards beside the ingress button, never inside it (`ThreadCloudAgentStackView`). One job is just its
 card. Two or more collapse like an iOS notification group: `N cloud agents` with a counts line
@@ -890,8 +892,9 @@ card, or beside the bottom Show less when expanded. Cards follow the
 (never "Queued"), an optional PR row, exactly one single-line status line
 (`CloudAgentStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
 Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
-`cloud-agent-work.updated` refreshes the loaded Thread and parent Chat through the normal durable
-event/reconnect path. Cards scroll with their Messages and follow-ups update the same card.
+`cloudAgentWork.updated`, sent once per linking Message, refreshes that Message's loaded Chat and
+parent through the normal durable event/reconnect path; a deleted Chat reloads the active work
+list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
 
 An anchor message owns one unboxed Thread ingress, joined to its avatar rail by a rounded connector.
 The reply count and chevron lead, followed by the latest Server-projected reply's avatar, author,
@@ -953,9 +956,10 @@ and the edge pan are the same ones. `showsInbox` is App-owned state (`Authentica
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
 always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. A Cloud Agent work row
-pushes the Thread it hangs off, carrying the conversation's Chat id and the anchor Message — the
-same pair a Thread composer sends to — and leaving the canvas selection alone for the same reason a
-Task does; an Unread row opens its DM or Channel.
+opens the row's `location`: the launch work Thread when the viewer can read it, else the Thread of
+the newest visible linking Message (by `threadChatId`), carrying the conversation's Chat id and the
+anchor Message — the same pair a Thread composer sends to — and leaving the canvas selection alone
+for the same reason a Task does. A location the phone cannot open is skipped; an Unread row opens its DM or Channel.
 Unread and **Happening now** rows share one Messages-style two-line row (`InboxRowView`): a 44pt
 mark, the title with its perishable fact trailing, and the context below in secondary. Each line is
 capped at one, so every row in both sections is the same height at a given text size. At
@@ -997,7 +1001,7 @@ drives the sidebar's Inbox dot. The app icon badge is not that count: it is the 
 reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
 client already holds, the way the App's invalidation only refetches a live query:
 `message.created` and `chat.read` reload the Chat list, `task.created` and `task.updated` reload the
-Server Task lens beside the affected Chat page, `cloud-agent-work.updated` reloads the active
+Server Task lens beside the affected Chat page, `cloudAgentWork.updated` reloads the active
 work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.

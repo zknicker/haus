@@ -88,6 +88,9 @@ and `generating_video` turn operation categories, the served journal's `failure`
 behind `agent.executionOutlines`. Computer protocol 29 adds the `state` discriminator to the
 `haus cloud-agent start` response (`started` receipt or freshness `held`), which a protocol-28
 Computer's strict receipt schema would reject after the Server had already recorded the work.
+Protocol 29 also removes the retired `cloud-agent-work` body kind from the Agent CLI's message
+schemas: launch Messages are `text`, and linked work arrives under `cloud_agent_works`
+([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)).
 Server and Computer therefore ship each in the same release, and
 the release requires an exact match: Server accepts ordinary work only from a Computer that reports
 protocol 29. A protocol-28 or older Computer
