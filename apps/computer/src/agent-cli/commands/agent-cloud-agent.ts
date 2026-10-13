@@ -19,7 +19,7 @@ import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
 
-const START_RECIPE = `haus cloud-agent start --target "#product" --repo haus/haus --ref main \\
+const START_RECIPE = `haus cloud-agent start --target "#product" --reply-to <messageId> --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" \\
   --say "Handing the flaky delivery test to a cloud agent; I will report back." <<'HAUSMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
@@ -36,9 +36,13 @@ interface CloudAgentDeps {
 const START_COMMAND: SubCommand = {
     examples: [START_RECIPE],
     flags: [
-        { description: 'Channel, DM, or thread target', name: '--target', valueName: '<target>' },
         {
-            description: 'Message this card replies to inline',
+            description: 'Channel or DM target, or a thread already in progress',
+            name: '--target',
+            valueName: '<target>',
+        },
+        {
+            description: 'Request this card replies to inline',
             name: '--reply-to',
             valueName: '<messageId>',
         },

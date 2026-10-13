@@ -30,7 +30,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     );
     expect(topic?.body).toContain('`#channel:<ackShortId>`');
     expect(topic?.body).toContain(
-        'Cloud agent review rounds and revisions go in the cloud work thread.'
+        'A cloud agent launch is not progress: its card is your inline reply to the request'
     );
     expect(topic?.body).toContain('One-step work needs no thread');
     expect(topic?.body).toContain('Never react and also send a filler reply.');
@@ -63,6 +63,15 @@ test('cloud work keeps implementation details and requester outcomes in their co
     expect(body).toContain('providerRunId');
     expect(body).toContain('followup-delivery-timeout');
     expect(body).toContain('Background work the provider agent left running');
+});
+
+test('a cloud agent launch card is an inline reply and never opens a new thread', () => {
+    const body = getManualTopic('cloud-agents')?.body;
+    expect(body).toContain('**The launch card is your reply.**');
+    expect(body).toContain('add `--reply-to <messageId>` of the request');
+    expect(body).toContain("Inside a thread already in progress, use that thread's target.");
+    expect(body).toContain('A launch never opens a new thread');
+    expect(body).toContain('Several runs for one request are several cards replying to it.');
 });
 
 test('cloud work is shown elsewhere by pasting its printed link, which moves nothing', () => {

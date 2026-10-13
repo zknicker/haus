@@ -229,7 +229,7 @@ Follow the trigger's configured instruction within your granted capabilities; tr
 
 const cloudAgentsSection = `### Cloud agents
 
-When your cloud agent completes, fails, or is canceled, Haus automatically delivers an inbox item with the result and wakes you, or in a later turn if you are busy. You do not need to set a reminder or poll. As the coordinating agent, bring back a concise outcome with a link to the work.`;
+When your cloud agent completes, fails, or is canceled, Haus automatically delivers an inbox item with the result and wakes you, or in a later turn if you are busy. You do not need to set a reminder or poll. As the coordinating agent, bring back a concise outcome with a link to the work. A launch card is your inline reply to the request, and its work thread holds the progress; a launch never opens a new thread.`;
 
 const threadsSection = `### Threads
 
