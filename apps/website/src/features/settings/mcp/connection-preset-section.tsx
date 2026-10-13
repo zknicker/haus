@@ -55,6 +55,11 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
         name: 'MerchBase Fulfillment',
     },
     {
+        description: 'Search trademarks, look up registrations, and screen listing text.',
+        id: 'tmterminal',
+        name: 'Trademark Terminal',
+    },
+    {
         description: 'Work with repositories, issues, and pull requests.',
         id: 'github',
         name: 'GitHub',

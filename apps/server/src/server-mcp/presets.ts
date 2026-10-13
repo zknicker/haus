@@ -81,6 +81,11 @@ const oauthPresets: Record<
         name: 'MerchBase Fulfillment',
         url: 'https://fulfillment.merchbase.co/mcp/printful',
     },
+    tmterminal: {
+        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        name: 'Trademark Terminal',
+        url: 'https://tmterminal.merchbase.co/mcp',
+    },
 };
 
 /** X's hosted MCP takes no OAuth discovery; an app-only Bearer token reads public posts. */
