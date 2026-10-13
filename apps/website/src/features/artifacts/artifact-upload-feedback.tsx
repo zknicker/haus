@@ -70,21 +70,24 @@ export function ArtifactUploadStatus({
     if (state.phase === 'uploading') {
         const { doneFiles, sentBytes, totalBytes, totalFiles } = state.progress;
         return (
-            <ProgressBar
-                aria-label="Upload progress"
-                maxValue={Math.max(totalBytes, 1)}
-                size="sm"
-                value={Math.min(sentBytes, totalBytes)}
-                valueLabel={`${formatArtifactBytes(sentBytes)} of ${formatArtifactBytes(totalBytes)}`}
-            >
-                <Label>
-                    Uploading {Math.min(doneFiles + 1, totalFiles)} of {totalFiles}
-                </Label>
-                <ProgressBar.Output />
-                <ProgressBar.Track>
-                    <ProgressBar.Fill />
-                </ProgressBar.Track>
-            </ProgressBar>
+            // Inset like the group labels, so the bar's text shares the files' left edge.
+            <div className="artifact-upload-status">
+                <ProgressBar
+                    aria-label="Upload progress"
+                    maxValue={Math.max(totalBytes, 1)}
+                    size="sm"
+                    value={Math.min(sentBytes, totalBytes)}
+                    valueLabel={`${formatArtifactBytes(sentBytes)} of ${formatArtifactBytes(totalBytes)}`}
+                >
+                    <Label>
+                        Uploading {Math.min(doneFiles + 1, totalFiles)} of {totalFiles}
+                    </Label>
+                    <ProgressBar.Output />
+                    <ProgressBar.Track>
+                        <ProgressBar.Fill />
+                    </ProgressBar.Track>
+                </ProgressBar>
+            </div>
         );
     }
     if (state.phase !== 'done') {

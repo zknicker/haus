@@ -3050,6 +3050,10 @@
         color: var(--muted);
     }
 
+    .artifact-upload-status {
+        padding-inline: var(--artifact-library-inset);
+    }
+
     /* Stock rows sit 12px tall at each edge; a file library scans as a denser column. */
     .list-view--secondary.artifact-file-list .list-view__item {
         padding-block: calc(var(--spacing) * 2);
