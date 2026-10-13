@@ -3,6 +3,7 @@ import {
     type ArtifactMoveResult,
     artifactPathIsInside,
     artifactPathKey,
+    artifactPathMaxLength,
 } from '@haus/api';
 import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -87,6 +88,14 @@ async function moveFolder(
             `\`${input.from}\` cannot move inside itself.`,
             409,
             'PATH_CONFLICT'
+        );
+    }
+    const longest = Math.max(...rows.map((row) => row.path.length));
+    if (longest - input.from.length + input.to.length > artifactPathMaxLength) {
+        throw new ArtifactError(
+            `Moving \`${input.from}\` to \`${input.to}\` would make a path longer than ${artifactPathMaxLength} characters.`,
+            400,
+            'INVALID_PATH'
         );
     }
     const moving = rows.map((row) => row.id);

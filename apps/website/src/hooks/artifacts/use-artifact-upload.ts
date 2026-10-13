@@ -143,7 +143,13 @@ export function useArtifactUpload(serverId: string) {
             }
         };
         await Promise.all(Array.from({ length: Math.min(concurrency, uploads.length) }, worker));
-        await Promise.all([utils.artifact.list.invalidate(), utils.artifact.creators.invalidate()]);
+        // A Replace adds a revision, so an open file and its history refresh too.
+        await Promise.all([
+            utils.artifact.list.invalidate(),
+            utils.artifact.creators.invalidate(),
+            utils.artifact.get.invalidate(),
+            utils.artifact.versions.invalidate(),
+        ]);
         if (progress.failures.length === 0) {
             setState({ phase: 'idle' });
             const uploaded = progress.uploadedFiles;

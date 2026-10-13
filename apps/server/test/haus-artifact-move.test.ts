@@ -59,6 +59,10 @@ test('moves refuse taken destinations, self-nesting, and file-folder clashes', a
     await expectMove('a', 'a/inner', 'PATH_CONFLICT');
     await expectMove('a/one.md', 'loose.md/one.md', 'PATH_CONFLICT');
     await expectMove('missing', 'elsewhere', 'NOT_FOUND');
+    // A folder move may not stretch a file's path past the 1,024-character limit.
+    await publish({ path: `deep/${'d'.repeat(250)}/${'f'.repeat(250)}.md` });
+    const longFolder = Array.from({ length: 4 }, () => 'x'.repeat(200)).join('/');
+    await expectMove('deep', longFolder, 'INVALID_PATH');
     await expect(
         state.owner.trpc.artifact.move.mutate({
             from: '/a',
