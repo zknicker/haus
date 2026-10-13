@@ -62,15 +62,40 @@ with at least one live artifact on the Server: `creator`, `artifact_count`, `lat
 `previews`, the creator's three most recently updated artifacts of any kind. Entries sort by `latest_at` descending, and the
 procedure uses the same membership authorization as `list`.
 
-The App library (`features/artifacts/`) is a Finder-style page in the ordinary page column: the
-title with search and a list/grid toggle beside it, a row of folders (All files, then the viewer's
-own files as Yours, then Agents, then other people, each with up to three peeking previews and a
-file count), a kind filter, and the files grouped by `updated_at` in the viewer's time zone (Today,
-Yesterday, weekdays through the past week, days this month, months this year, then years). The
-folder and kind ride the URL (`?creator=agent:<id>`, `?kind=images`) so back, reload, and a desktop
-tab return to the same view; search stays local and the list/grid choice is per device. Rows show
-the file's icon or a photo thumbnail, its kind, creator, and relative time, with size and a ⋮ menu
-(Open, Copy link, Download); pages load 50 at a time behind Show more. The viewer shows a header
+The App library (`features/artifacts/`) is a Finder-style drive browser in the ordinary page
+column. The band carries the drive trail (Haus › Artifacts › `starter-kit` › `scripts`, each folder
+above the open one a link) and every control: search, a file-type menu, a Created by menu (Anyone,
+You, Agents, then other people with live files, from `artifact.creators`), list/grid, and Upload.
+The column shows the open folder's child folders (`artifact.list` folders: tinted folder icons
+dealt in path-key order, each with its file count and up to three of its newest files peeking out,
+taken from one recursive read of the open folder, never one read per folder), then the files
+directly in it grouped by `updated_at` in the viewer's time zone (Today, Yesterday, weekdays through
+the past week, days this month, months this year, then years). Search reads every file under the
+open folder (`recursive`) and hides folders; a hit names its folder relative to the open one. Kind
+and creator filter files, and folder counts follow them. The folder, kind, and creator ride the URL
+(`?folder=starter-kit/scripts&kind=images&creator=agent:<id>`) so back, reload, and a desktop tab
+return to the same view; search stays local and the list/grid choice is per device. Rows name the
+file (its path's last segment), with the title first in the meta line when it differs, then kind,
+creator, and relative time, plus size and a ⋮ menu (Open, Rename, Copy link, Download); folder
+tiles open on press and offer Rename folder on right-click. Rename changes only the last segment
+through `artifact.move` (a file move carries its head as `base_revision_id`). Pages load 50 at a
+time behind Show more. The page is blank until the first read lands; the empty state appears only
+when the folder truly holds nothing, with an Upload files button.
+
+Members upload with the Upload menu (files or a folder) or by dropping files and folders anywhere
+on the library; dropped folders keep their structure. Uploads land in the open folder through
+`PUT /artifacts/:serverId/publish`, three at a time, each with a fresh `request_id`. Before any
+bytes move the App lists the paths under the folder (`recursive`, `order: 'path'`) and plans the
+upload: OS noise (`.DS_Store`, `Thumbs.db`, `._*`, `__MACOSX/`) is skipped, paths that break the
+drive rules, collide inside the upload, or would land on a folder or under a file are refused, and
+existing names are gathered into one question ("Replace 3 files?"): Replace sends those with
+`replace=true`, Skip keeps them, and new files upload either way without `replace`. A stock
+progress bar counts files and bytes; refused and failed files stay listed until dismissed, and a
+clean upload ends in a toast. Library reads refresh when the upload finishes.
+
+The viewer's band shows
+the file's drive path (Artifacts and each folder above it link back into the library, the file name
+last); the tab keeps the file's title. The viewer shows a header
 (icon, title, creator, last update, ⋮ menu with Download and both links), the preview, and details
 with revision history beside it, stacking below it in narrow panes. Text files render inline
 exactly as the Artifact Panel renders workspace files (the shared `FileTextPreview` in

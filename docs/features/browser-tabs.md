@@ -169,7 +169,8 @@ chat link strips its parameter, then opens the Thread page. A chat's **Files** p
 attachments in its loaded messages. An **artifact** page from an Agent workspace shows the Artifact Panel's
 renderers (a file preview with copy, raw, and link actions, or the workspace browser); a target no
 Agent workspace holds shows "Artifact unavailable". A shared library artifact (`artifacts/<id>`)
-shows the library's viewer, and the Artifacts section page is the library itself
+shows the library's viewer, titled with the file's title, and the Artifacts section page is the
+drive browser itself, its open folder carried in the URL so a tab returns to it
 ([Shared artifacts](../api/artifacts.md)). An **Agent** page is the profile hub; its sections stay inside
 the tab ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)).
 
