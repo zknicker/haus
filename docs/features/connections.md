@@ -24,7 +24,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, GitHub, Cloudflare, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Cloudflare, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is the one built-in connection
@@ -70,6 +70,10 @@ MerchBase Fulfillment connects to `https://fulfillment.merchbase.co/mcp/printful
 MerchBase/Clerk OAuth. It exposes Printful order review and fulfillment tools. Linking a Printful
 store happens through those tools after sign-in; adding the preset does not link a store or enable
 Agent access.
+
+Trademark Terminal connects to `https://tmterminal.merchbase.co/mcp` through MerchBase/Clerk
+OAuth. It exposes trademark search, exact serial or registration lookup, and listing text
+screening. Adding it requires sign-in and does not grant Agent access.
 
 Cloudflare connects to its [official MCP](https://github.com/cloudflare/mcp) at
 `https://mcp.cloudflare.com/mcp` through OAuth, with permissions selected during authorization.

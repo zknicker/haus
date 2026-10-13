@@ -15,7 +15,7 @@ read_when:
 - Connections support no auth, secret headers, or MCP OAuth. Remote endpoints require HTTPS;
   loopback HTTP exists only for development.
 - Haus does not support local or stdio MCP connections.
-- GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, RankWrangler, X, and CoinGecko presets populate immutable URL and auth
+- GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, RankWrangler, X, and CoinGecko presets populate immutable URL and auth
   defaults, then use the same storage, discovery, OAuth, grant, and invocation path as custom
   connections.
 - CoinGecko uses `https://mcp.api.coingecko.com/sse` with no authentication. Adding it
