@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.6.0 - 2026-10-13
+
+- Connections recommends Trademark Terminal for trademark search, registration lookup, and listing text screening, with MerchBase sign-in and its own icon.
+
 ## v12.5.0 - 2026-10-13
 
 - The Artifacts viewer shows Markdown, HTML, plain text, source code, JSON, and CSV files inline instead of only offering a download. Files over 1 MB or with non-text bytes keep the download.
