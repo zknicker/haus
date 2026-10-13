@@ -11,6 +11,7 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 const storage: ArtifactStorage = {
     delete: () => Promise.resolve(),
     downloadUrl: (key) => `https://private-r2.test/${key}`,
+    read: () => Promise.resolve(new Uint8Array()),
     upload: async (_key, stream) => {
         const hash = createHash('sha256');
         let size = 0;

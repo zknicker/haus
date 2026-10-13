@@ -11,6 +11,8 @@ const storage: ArtifactStorage = {
         return Promise.resolve();
     },
     downloadUrl: (key) => `https://r2.test/${key}?temporary-signature=secret`,
+    read: (key, maxBytes) =>
+        Promise.resolve((objects.get(key) ?? new Uint8Array()).slice(0, maxBytes)),
     upload: async (key, stream) => {
         const chunks: Uint8Array[] = [];
         for await (const chunk of stream) {

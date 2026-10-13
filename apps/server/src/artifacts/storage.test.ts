@@ -79,6 +79,28 @@ test('R2 adapter refuses streamed overflow before completing publication', async
         await server.stop(true);
     }
 });
+test('R2 adapter reads a bounded prefix with one ranged GET', async () => {
+    const ranges: (string | null)[] = [];
+    const server = Bun.serve({
+        port: 0,
+        fetch: (request) => {
+            ranges.push(request.headers.get('range'));
+            return new Response('hello', { status: 206 });
+        },
+    });
+    try {
+        const storage = createR2ArtifactStorage({
+            accessKeyId: 'test-access',
+            bucket: 'test',
+            endpoint: server.url.href,
+            secretAccessKey: 'test-secret',
+        });
+        expect(new TextDecoder().decode(await storage.read('notes.md', 5))).toBe('hello');
+        expect(ranges).toEqual(['bytes=0-4']);
+    } finally {
+        await server.stop(true);
+    }
+});
 async function* chunks(bytes: Uint8Array) {
     yield bytes;
 }

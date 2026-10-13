@@ -61,6 +61,19 @@ export const artifactTargetInputSchema = z
 export const artifactDownloadInputSchema = artifactTargetInputSchema.extend({
     save: z.boolean().default(false),
 });
+/** Largest revision `artifact.text` decodes for an inline preview. */
+export const artifactTextMaxBytes = 1_048_576;
+/** Revisions are immutable, so a text read always names one. */
+export const artifactTextInputSchema = z
+    .object({ artifact_id: id, revision_id: id, serverId: id })
+    .strict();
+/** A revision's UTF-8 text, or why the App should offer a download instead. */
+export const artifactTextResultSchema = z.discriminatedUnion('status', [
+    z.object({ status: z.literal('text'), text: z.string() }).strict(),
+    z.object({ status: z.literal('too_large'), limit_bytes: z.number().int().positive() }).strict(),
+    z.object({ status: z.literal('binary') }).strict(),
+]);
+export type ArtifactTextResult = z.infer<typeof artifactTextResultSchema>;
 /** Who created the artifact (its first revision). Exactly one Agent or one Server member. */
 export const artifactCreatorSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('agent'), agent_id: id }).strict(),

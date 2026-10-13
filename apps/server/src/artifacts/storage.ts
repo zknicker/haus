@@ -6,6 +6,8 @@ export interface ArtifactStorage {
     delete(key: string): Promise<void>;
     /** With `saveAs`, the link downloads as that filename instead of rendering inline. */
     downloadUrl(key: string, saveAs?: string): string;
+    /** At most the first `maxBytes` bytes of an object (one ranged GET). */
+    read(key: string, maxBytes: number): Promise<Uint8Array>;
     upload(
         key: string,
         stream: AsyncIterable<Uint8Array>,
@@ -45,6 +47,7 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
                 expiresIn: 300,
                 method: 'GET',
             }),
+        read: async (key, maxBytes) => await client.file(key).slice(0, maxBytes).bytes(),
         upload: async (key, stream, contentType) => {
             const hash = createHash('sha256');
             let size = 0;
