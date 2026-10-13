@@ -65,9 +65,10 @@ export default defineScenario({
                     .join(' | ')
                     .slice(0, 600)}`
             );
-            expect(commands, 'peer resolved the pasted link with artifact view').toContain(
-                `artifact view ${artifactId}`
-            );
+            expect(
+                new RegExp(`artifact view\\s+['"]?${artifactId}`, 'u').test(commands),
+                'peer resolved the pasted link with artifact view'
+            ).toBe(true);
             const result = await kit.trpc('artifact.get', {
                 serverId: kit.serverId,
                 artifact_id: artifactId,

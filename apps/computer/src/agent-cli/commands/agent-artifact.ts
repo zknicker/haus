@@ -74,7 +74,7 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             { name: '--mine', description: 'Only artifacts you created' },
             { name: '--offset', valueName: '<n>', description: 'Pagination offset (50 per page)' },
         ],
-        notes: ['Newest first.'],
+        notes: ['Most recently updated first.'],
         run: (args) => runArtifactList(args),
     },
     {

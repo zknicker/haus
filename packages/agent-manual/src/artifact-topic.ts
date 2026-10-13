@@ -25,7 +25,7 @@ The response supplies artifact_id, revision_id, stable_url (always the latest re
 
 ## Find and read
 
-\`haus artifact list\` lists the newest first, 50 per \`--offset\` page; \`--query <text>\` searches titles, filenames, and names, and \`--mine\` keeps only artifacts you created. \`get <id>\` and \`versions <id>\` read metadata. created_at is when the artifact was first published; updated_at is when the described revision was published. Output is JSON.
+\`haus artifact list\` lists the most recently updated first, 50 per \`--offset\` page; \`--query <text>\` searches titles, filenames, and names, and \`--mine\` keeps only artifacts you created. \`get <id>\` and \`versions <id>\` read metadata. created_at is when the artifact was first published; updated_at is when the described revision was published. Output is JSON.
 
 A link ending in \`/artifacts/<id>\` names that artifact: run \`haus artifact view <id>\` for it. \`view\` returns a read-only cached local path pinned for this turn, and cache hits still check Server permissions. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value). Add \`--output ./file\` for a writable personal copy; that copy consumes workspace capacity and is yours to clean up. Never edit the shared cache path.
 
