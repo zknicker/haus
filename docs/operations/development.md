@@ -289,7 +289,9 @@ SIMCTL_CHILD_HAUS_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" SIMC
 ```
 
 `SIMCTL_CHILD_` prefixes pass an environment variable through to the launched
-app. Haus Server listens on the fourth port of the worktree's group, which is
+app. Add `SIMCTL_CHILD_HAUS_DEV_APP_ORIGIN="http://localhost:$(dev-port)"` (the
+website origin) when absolute shared-artifact links should chip; root-relative
+ones chip without it. Haus Server listens on the fourth port of the worktree's group, which is
 `dev-port` plus three; the development Clerk publishable key is the public
 schema literal the App already uses. A Debug build accepts a development origin only on
 `localhost`, `127.0.0.1`, or `::1`, requests the localhost-only

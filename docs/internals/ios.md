@@ -477,6 +477,30 @@ transport failure while the App's live streams are down (`isConnected` false), s
 offline instead, since blaming the Computer would name the wrong thing to fix. The App installs the reader in
 `ArtifactPageReader` at its root, beside `InAppReferenceRoutes`.
 
+A shared-library artifact link — the `stable_url` `haus artifact publish` returns
+(`/s/<slug>/artifacts/art_…`, absolute or root-relative, optionally `?revision=`) — is a reference
+chip of its own, `.sharedArtifact`. `SharedArtifactLinkTarget` ports the App's
+`parseSharedArtifactLink`: only an App origin this phone knows, the open Server's slug, and an `art_`
+id qualify; another origin, another slug, or a workspace page key stays the website or path
+reference it reads as. The scope rides a task-local (`SharedArtifactLinkScope.current`) that the
+Store sets around each body parse from the active Server's slug and
+`HausRuntimeConfiguration.appOrigins` (production's one origin; in Debug the dev Server origin plus
+`HAUS_DEV_APP_ORIGIN`, the stack's website origin). A slug change retires every parsed body. The
+chip wears the link's words (`Artifact` when the words are only the address) and the document mark
+until `artifact.get` answers; then it takes the artifact's title and a file-kind mark, bumping
+`sharedArtifactRevision` so drawn rows reparse. A failed read keeps the fallback and is not
+retried in a loop. Its `.link` is an in-app `haus-artifact:<id>?revision=` address, so a tap never
+reaches Safari: `InAppReferenceRoutes` presents `SharedArtifactSheet` from the frontmost
+controller. The sheet's header shows the kind mark, title, creator (left out when the App cannot
+name them), and relative update time. Its body comes from the revision's bytes, which are
+downloaded through `artifact.download`'s five-minute signed link into a per-revision temporary
+file, reused when the size matches and re-requested once when storage refuses an expired link.
+Raster images use the attachment viewer's zooming scroll view, audio and video use AVKit, HTML uses
+the artifact-page `VisualWebView`, and everything else (PDF, text, Markdown, CSV, code, office
+files) uses embedded Quick Look. Share hands the file to the system share sheet. Missing,
+forbidden, offline, and storage-off reads each get their own calm unavailable state.
+`SharedArtifactReader` is the seam the App installs.
+
 An Agent's message that answers a Reminder or Trigger fire carries a `cause` (ADR 0026), and the Chat
 row draws `MessageCauseLine` above its identity in place of an inline-reply line: the reply line's
 elbow in the automation's ink, the clock or bolt glyph in a soft box of that ink, then the title. A
@@ -1433,7 +1457,7 @@ responder status the way it drove the `TextField` it replaced; a second, hand-ro
 
 The phone chips every kind the App chips, not just the three the picker offers. `RichReferenceWireForm`
 reads a link target in the App's own precedence — `agent://`, `user://`, `chat://`, `plugin://`,
-`app://computer-use/`, `skill://`, then a leading-`/` path split into a file or a directory by its final
+`app://computer-use/`, `skill://`, then a shared-library artifact link on the open Server, then a leading-`/` path split into a file or a directory by its final
 segment, then an `http(s)` link read as a pull request when the URL names one and as an ordinary site
 otherwise — and a target that matches none of them is still a link. The App renders one as an ordinary
 anchor, so the phone does too: `[report.html](haus://workspace/out/report.html)`, the form the Agent
@@ -1479,9 +1503,10 @@ run's words and over a chip's whole run, the mark's spacer included, so the mark
 rather than sitting in a dead margin before it. Only the schemes the system routes qualify, which is `http`, `https`, `mailto`,
 and `tel`: a website or pull-request chip opens its address, a `haus://` resource draws as a link
 and stays inert because nothing on the phone routes one yet, and an Agent or Channel chip carries no
-`.link` at all, where the App opens a profile or a channel. A Thread chip is the one in-app route: the
+`.link` at all, where the App opens a profile or a channel. A Thread chip is an in-app route: the
 Server rewrites an Agent's Thread mention to `chat://<chatId>?thread=<anchorMessageId>`, which
-`ThreadReferenceTarget` reads ahead of the Channel form (any other query on `chat://` is no reference,
+`ThreadReferenceTarget` reads ahead of the Channel form (a shared artifact chip is the other in-app
+route, described with artifact pages above) (any other query on `chat://` is no reference,
 as in the shared parser). It wears the App's thread glyph, names its anchor's first line once the parent
 page holds the anchor, and keeps that wire target as its `.link`; the coordinator asks
 `InAppReferenceRoutes` before handing any URL to the system, and the App's installed route pushes the
