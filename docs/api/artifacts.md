@@ -1,7 +1,7 @@
 ---
 summary: "Server-shared files with immutable revisions, explicit publication, and bounded Computer caching."
 read_when:
-  - "changing the shared artifact library, media previews, or revision viewer"
+  - "changing the shared artifact library, media or text previews, or revision viewer"
   - "changing shared artifact APIs, revision storage, or Agent file sharing"
   - "changing shared file caching or R2 authorization"
 ---
@@ -66,7 +66,19 @@ tab return to the same view; search stays local and the list/grid choice is per 
 the file's icon or a photo thumbnail, its kind, creator, and relative time, with size and a ⋮ menu
 (Open, Copy link, Download); pages load 50 at a time behind Show more. The viewer shows a header
 (icon, title, creator, last update, ⋮ menu with Download and both links), the preview, and details
-with revision history beside it, stacking below it in narrow panes. Passive raster images open in
+with revision history beside it, stacking below it in narrow panes. Text files render inline
+exactly as the Artifact Panel renders workspace files (the shared `FileTextPreview` in
+`features/chats/file-text-preview.tsx`): Markdown rendered, HTML as a sandboxed page with host
+theme tokens, and plain text, source, JSON, and CSV/TSV as numbered code. `artifactTextRenderer`
+routes by `artifactFileKind`; Office documents, slides, PDFs, and binary spreadsheets stay
+downloads. The bytes come from `artifact.text`, not the signed link: the private R2 bucket sets no
+CORS policy, so the App cannot fetch it cross-origin. `artifact.text` takes a required
+`revision_id`, applies the same membership authorization as `download`, and returns
+`{ status: 'text', text }`, `{ status: 'too_large', limit_bytes }` for revisions over 1 MiB
+(`artifactTextMaxBytes`, refused from metadata without reading storage), or `{ status: 'binary' }`
+when the bytes contain NUL or are not valid UTF-8. Revisions are immutable, so the App caches it
+per revision with no staleness; the viewer is blank while it loads and falls back to the file's icon
+and Download (with "Too large to preview." when oversize) otherwise. Passive raster images open in
 the fullscreen zoom viewer; supported audio/video use native controls; other formats show their
 icon with a Download action. Library thumbnails and folder previews load only raster images up to
 512 KiB; larger originals load when opened, pending dedicated thumbnail renditions. A refused
