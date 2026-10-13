@@ -12,6 +12,28 @@ export function parseBrowserRequest(value: unknown): BrowserRequest | null {
     return parsed.success ? parsed.data : null;
 }
 
+/** Answers a `browser-request` frame; returns false for any other frame. */
+export function handleBrowserRequest(
+    frame: unknown,
+    input: {
+        browserRoot: string;
+        runtime: EffectRuntime<never>;
+        send(frame: unknown): boolean;
+        track<T>(work: Promise<T>): Promise<T>;
+    }
+): boolean {
+    const request = parseBrowserRequest(frame);
+    if (!request) {
+        return false;
+    }
+    void input.track(
+        runBrowserRequest(input.browserRoot, request, input.runtime).then((result) =>
+            input.send(result)
+        )
+    );
+    return true;
+}
+
 export async function runBrowserRequest(
     root: string,
     request: BrowserRequest,

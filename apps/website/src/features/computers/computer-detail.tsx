@@ -22,6 +22,7 @@ import {
     computerRuntimePresentations,
     computerSystemLabel,
 } from './presentation.ts';
+import { SecretsCapabilityCard } from './secrets-capability-card.tsx';
 
 export function ComputerDetail({
     computerId,
@@ -145,6 +146,7 @@ export function ComputerDetail({
 
             <BrowserCapabilityCard computerId={computerId} serverId={serverId} />
             <CloudAgentCapabilityCard computerId={computerId} serverId={serverId} />
+            <SecretsCapabilityCard computerId={computerId} serverId={serverId} />
             <ComputerAgents computerId={computerId} serverId={serverId} />
             <ComputerSystemLog computerId={computerId} key={computerId} serverId={serverId} />
             <ComputerActions

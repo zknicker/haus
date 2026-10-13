@@ -6,6 +6,10 @@ const { isOpenedFromWindow } = require('./window-routing.cjs');
 const bridge = {
     loadsApp: true,
     skoolLogin: (viewId) => ipcRenderer.invoke('desktop:skool:login', viewId),
+    onePasswordVaults: () => ipcRenderer.invoke('desktop:1password:vaults'),
+    onePasswordItems: (request) => ipcRenderer.invoke('desktop:1password:items', request),
+    onePasswordCreateServiceAccount: (request) =>
+        ipcRenderer.invoke('desktop:1password:create-service-account', request),
     openedFromWindow: isOpenedFromWindow(process.argv),
     browserCommand: (command) => ipcRenderer.invoke('desktop:browser:command', command),
     browserSnapshot: () => ipcRenderer.invoke('desktop:browser:snapshot'),

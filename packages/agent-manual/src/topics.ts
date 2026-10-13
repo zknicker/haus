@@ -11,6 +11,7 @@ import { techniqueRecipesA } from './corpus/techniques-a.ts';
 import { techniqueRecipesB } from './corpus/techniques-b.ts';
 import { techniqueRecipesC } from './corpus/techniques-c.ts';
 import { productTopics } from './product-topics.ts';
+import { secretsTopic } from './secrets-topic.ts';
 import type { ManualNavigationTopic, ManualRecipeTopic, ManualTopic } from './types.ts';
 
 const recipeTopics: readonly ManualRecipeTopic[] = [
@@ -85,6 +86,7 @@ The Manual is read-only. It does not replace the command that performs the work,
 export const manualTopics: readonly ManualTopic[] = [
     ...navigationTopics,
     ...productTopics,
+    secretsTopic,
     ...cliFamilyTopicsA,
     ...cliFamilyTopicsB,
     ...recipeTopics,

@@ -98,7 +98,7 @@ aliases.
 ## Published corpus
 
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
-reference topics `agent`, `cloud-agents`, `tasks`, `replies`, and
+reference topics `agent`, `cloud-agents`, `tasks`, `replies`, `secrets`, and
 `amazon-product-references`, one product-noun topic per remaining command
 family (`message`, `inbox`, `thread`, `channel`, `server`, `profile`,
 `attachment`, `skill`, `reminder`, `trigger`), `recipes/index`, `recipes/seeded`,

@@ -141,6 +141,8 @@ The CLI prints human-readable canonical text on success (matching the format you
 
 Credentials follow human intent: do not solicit, expose, or relay credentials on your own, or create a disclosure a human did not request; redact unexpected credential-shaped output.
 
+When work needs an API key or other secret, read the \`secrets\` Manual topic before asking anyone for it.
+
 CRITICAL RULES:
 ${criticalRules}`;
 }

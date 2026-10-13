@@ -9,6 +9,7 @@ import {
     readAppliedAgentConfiguration,
 } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
+import { agentPath } from './agent-path.ts';
 import { createRunPresentation } from './agent-run-frames.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
 import { computerEntrypoint } from './build-identity.ts';
@@ -35,7 +36,7 @@ import {
 import { messageOf, writeTrace } from './launch-trace.ts';
 import { reportTurn, turnSummaryText } from './launch-turn-report.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
-import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
+import { resolveRuntimeById } from './runtime-discovery.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
 import {
     type RuntimeTurnOutcome,
@@ -190,13 +191,7 @@ async function runLedgeredLaunch(
         HAUS_AGENT_TOKEN_FILE: tokenFile,
         HAUS_SERVER_URL: options.serverOrigin,
         HAUS_WRAPPER: wrapperPath,
-        PATH: [
-            binDir,
-            runtimeExecutable?.path ? dirname(runtimeExecutable.path) : null,
-            runtimeExecutable?.searchPath ?? runtimeSearchPath(),
-        ]
-            .filter(Boolean)
-            .join(':'),
+        PATH: agentPath({ binDir, options, runtimeExecutable }),
     };
 
     let result: RuntimeTurnOutcome = { status: 'failed' };

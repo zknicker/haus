@@ -35,7 +35,7 @@ Raft's own writing rule (`systemPrompt.ts` header) governs placement: durable co
 principles live in the standing prompt; event formats, delivery mechanics, and event-specific
 actions live in the event input.
 
-`managed-instructions.test.ts` caps the composed prompt at **37,402** characters, measured with
+`managed-instructions.test.ts` caps the composed prompt at **37,634** characters, measured with
 every conditional section rendered. The cap is a
 ratchet that forces a deliberate decision, not a hard limit: a justified addition raises it to
 the measured render in the same change, with a one-line reason in the history below. Never
@@ -87,7 +87,7 @@ native web tools with no gate and no prompt text, as in Raft, then raised by exa
 37,145 when Formatting asked for a timezone on every clock time, in the reader's saved zone looked
 up rather than assumed from the machine, so readers in other zones get an unambiguous time (2026-10-09; the App time chips it first served were later removed, and the sentence stayed for clarity). Then raised by exactly 114 to 37,259 when the
 header spec made `time=` explicit UTC (examples gained the ` UTC` suffix) and documented the
-Haus-only `sender_tz=` field a human sender's message carries (ADR 0040 amendment, 2026-10-09). Then raised by exactly 143 to 37,402 when Haus-native shared artifacts gained an Artifacts family entry beside Attachments, renumbering the later entries (2026-10-12). Then raised by exactly 126 to 37,528 when the Cloud agents section said a launch card is the inline reply and a launch never opens a new thread, after Agents read the progress-thread rule as covering launches (2026-10-12). Measured line-by-line
+Haus-only `sender_tz=` field a human sender's message carries (ADR 0040 amendment, 2026-10-09). Then raised by exactly 143 to 37,402 when Haus-native shared artifacts gained an Artifacts family entry beside Attachments, renumbering the later entries (2026-10-12). Then raised by exactly 126 to 37,528 when the Cloud agents section said a launch card is the inline reply and a launch never opens a new thread, after Agents read the progress-thread rule as covering launches (2026-10-12). Then raised by exactly 106 to 37,634 when Credential handling gained a Haus-only pointer to the `secrets` Manual topic, so Agents on a Computer with a connected 1Password vault use `haus-secrets` instead of asking for a key in chat (2026-10-13). Measured line-by-line
 against the pinned render, about 19,500 characters of the Haus prompt are Raft-verbatim.
 
 ## Re-baseline on Raft 1.0.25, 2026-09-28
@@ -143,6 +143,7 @@ Sections are in Haus's render order.
 | Communication — suspect the CLI first | Parity with Raft v1.21's paragraph after `--help`, with "the Manual" for "this Manual" (the Haus prompt is not itself the Manual) and "a Computer does not upgrade itself" for "a daemon" | Deliberate — ADR 0020 and specs/raft-alignment/computer-release-and-update.md (no automatic Computer updates; the Server serves the Manual); `discovery-instructions.test.ts` |
 | Agent creation guidance in Manual and Cove factory notes | Haus creates directly on the human's request, then hints an ordinary introduction using the confirmed handle. Raft retains human-committed action cards; its agentic greeting is a private instruction to the new Agent. Haus creation posts no Message and has no `--say` | Deliberate — ADR 0028; agent creation, CLI, Manual, and Cove factory tests |
 | Credential handling, CRITICAL RULES | Parity | — |
+| Credential handling — secrets pointer | Haus-only sentence after Raft's credential paragraph: "When work needs an API key or other secret, read the `secrets` Manual topic before asking anyone for it." Raft has no Computer vault. `haus-secrets` is a PATH command no `haus` family names, so without the pointer an Agent never learns it exists and asks for the key in chat; the mechanics (`--list`, `-- <command>`, never revealing values, missing-key and no-vault handling) live in the Manual topic per ADR 0012. Cap +106 (37,528 → 37,634) | Deliberate — docs/features/computer-secrets.md (prototype); `secrets-topic.test.ts`, `instructions.test.ts`, `managed-instructions.test.ts` |
 | Startup steps 1, 2, 3, 5 | Parity. Step 1 ("send it early with `haus message send`") stays verbatim beside the pickup bullet: step 1 governs timing (signal before deep context gathering), the pickup bullet narrows the form (a reaction, plus a one-line note for multi-step work). Eval runs with both texts signalled pickup 22 to 24 of 24 times | — |
 | Startup step 4 | Parity **plus** "Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (`haus message react --message-id <id> --emoji <emoji>`); an explicit FYI gets nothing." No literal emoji, which would become every Agent's default | Deliberate — specs/inbox.md silence semantics; emoji choice per the `replies` Manual topic; the Agent API accepts exactly one emoji; gated by `fyi-silence-channel` / `fyi-silence-dm` / `ack-reaction-thanks` / `ack-reaction-with-request` / `ack-reaction-variety` in `bun run eval:prompt` |
 | Messaging — async paragraph | Parity | — |

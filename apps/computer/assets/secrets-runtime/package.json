@@ -1,0 +1,10 @@
+{
+  "name": "haus-secrets-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@varlock/1password-plugin": "2.0.3",
+    "varlock": "1.16.1"
+  }
+}

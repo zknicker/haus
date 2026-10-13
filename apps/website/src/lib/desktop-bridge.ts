@@ -66,6 +66,19 @@ export interface HausDesktopBridge {
     onCloseWindowRequest?: (listener: () => void) => () => void;
     /** Main → renderer: the Developer menu toggled dev mode for this device. */
     onDevModeToggle?: (listener: () => void) => () => void;
+    /**
+     * Lists one vault's items, then mints a read-only 1Password service account for it through
+     * the local `op` CLI (approved in 1Password); validate with `parseOnePasswordConnectReply`.
+     */
+    onePasswordCreateServiceAccount?: (request: {
+        account: string;
+        computerName: string;
+        vault: { id: string; name: string };
+    }) => Promise<unknown>;
+    /** Lists one vault's items (approved in 1Password); validate with `parseOnePasswordItemsReply`. */
+    onePasswordItems?: (request: { account: string; vaultId: string }) => Promise<unknown>;
+    /** Lists grantable 1Password vaults (approved in 1Password); validate with `parseOnePasswordVaultsReply`. */
+    onePasswordVaults?: () => Promise<unknown>;
     /** Main → renderer: Go menu (⌘[ / ⌘]) or a macOS page swipe. */
     onHistoryNavigate?: (listener: (direction: 'back' | 'forward') => void) => () => void;
     /** Main → renderer: File > New Tab (⌘T); opens a tab in the active pane when one is open. */

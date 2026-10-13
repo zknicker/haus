@@ -84,6 +84,30 @@ export function parseAgentWorkspaceRequest(frame: unknown): AgentWorkspaceReques
     return parsed.success ? parsed.data : null;
 }
 
+/** Answers an Agent workspace request frame; returns false for any other frame. */
+export function handleAgentWorkspaceRequest(
+    frame: unknown,
+    input: {
+        dataRoot: string;
+        send(frame: unknown): boolean;
+        serverId: string;
+        track<T>(work: Promise<T>): Promise<T>;
+    }
+): boolean {
+    const request = parseAgentWorkspaceRequest(frame);
+    if (!request) {
+        return false;
+    }
+    void input.track(
+        runAgentWorkspaceRequest({
+            dataRoot: input.dataRoot,
+            request,
+            serverId: input.serverId,
+        }).then((result) => input.send(result))
+    );
+    return true;
+}
+
 export async function runAgentWorkspaceRequest(input: {
     dataRoot: string;
     request: AgentWorkspaceRequest;

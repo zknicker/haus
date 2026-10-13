@@ -22,6 +22,7 @@ import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-
 import { ExecutionOutlineReplies } from './execution-outline-replies.ts';
 import { HostSkillFileReplies } from './host-skill-file-replies.ts';
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
+import { SecretsReplyOffice } from './secrets-reply-office.ts';
 
 interface AttachedComputer {
     disconnect?(reason: string): void;
@@ -46,6 +47,7 @@ export class ComputerConnections implements DeliveryTransport {
     readonly hostSkillFiles: HostSkillFileReplies;
     readonly inventoryRefresh: InventoryRefreshReplies;
     readonly executionOutlines: ExecutionOutlineReplies;
+    readonly secrets: SecretsReplyOffice;
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly agentReplies: AgentReplyOffice;
     private readonly browserReplies: BrowserReplyOffice;
@@ -78,6 +80,10 @@ export class ComputerConnections implements DeliveryTransport {
             runtime,
             send: (computerId, frame) => this.send(computerId, frame),
         });
+        this.secrets = new SecretsReplyOffice({
+            runtime,
+            send: (computerId, frame) => this.send(computerId, frame),
+        });
     }
 
     register(computerId: string, computer: AttachedComputer): void {
@@ -91,6 +97,7 @@ export class ComputerConnections implements DeliveryTransport {
         this.attached.delete(computerId);
         this.agentReplies.disconnect(computerId);
         this.browserReplies.disconnect(computerId);
+        this.secrets.disconnect(computerId);
         this.cloudAgentCapabilityReplies.disconnect(computerId);
     }
 

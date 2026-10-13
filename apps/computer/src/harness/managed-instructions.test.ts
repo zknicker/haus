@@ -227,8 +227,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
     // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their
     // runtime's native web tools with no gate and no prompt text, as in Raft.
-    // Raised by exactly 110 (→ 37,145) zoned clock times, 114 (→ 37,259) UTC `time=` + `sender_tz=`, 143 (→ 37,402) Artifacts family, 126 (→ 37,528) launch card is the inline reply.
-    expect(prompt.length).toBeLessThanOrEqual(37_528);
+    // Raised by exactly 110 (→ 37,145) zoned clock times, 114 (→ 37,259) UTC `time=` + `sender_tz=`, 143 (→ 37,402) Artifacts family, 126 (→ 37,528) launch card is the inline reply, 106 (→ 37,634) `secrets` Manual pointer.
+    expect(prompt.length).toBeLessThanOrEqual(37_634);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

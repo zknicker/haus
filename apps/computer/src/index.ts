@@ -50,7 +50,7 @@ import {
 import { createAttachmentStore } from './attachment-store.ts';
 import { recordAttachmentManagementEvent } from './attachment-system-event-outbox.ts';
 import { runAttachmentUpdate } from './attachment-update.ts';
-import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
+import { handleBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
     computerAttachmentDaemonEntrypoint,
@@ -120,6 +120,7 @@ import {
 import { startNightlyDreamCheck } from './nightly-dream.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
+import { handleComputerSecretsRequest } from './secrets/requests.ts';
 import {
     admitActiveRun,
     isNewerVersion,
@@ -140,7 +141,7 @@ import { finishRestart, recoverInterruptedUpdate } from './update-recovery.ts';
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
 import { saveOpenRouterManagementKey } from './usage/openrouter-settings.ts';
 import { createUsageReporter } from './usage/report.ts';
-import { parseAgentWorkspaceRequest, runAgentWorkspaceRequest } from './workspace-files.ts';
+import { handleAgentWorkspaceRequest } from './workspace-files.ts';
 import { runWorkspaceMaintenance } from './workspace-volumes/command.ts';
 
 interface AttachResponse {
@@ -1280,29 +1281,24 @@ async function connect(
             ) {
                 return;
             }
-            const workspaceRequest = parseAgentWorkspaceRequest(frame);
-            if (workspaceRequest) {
-                void trackWriter(
-                    runAgentWorkspaceRequest({
-                        dataRoot,
-                        request: workspaceRequest,
-                        serverId: attachment.serverId,
-                    }).then((result) => sendFrame(result))
-                );
+            const frameContext = {
+                dataRoot,
+                refreshReport: () => reportComputer(),
+                runtime,
+                send: sendFrame,
+                serverId: attachment.serverId,
+                track: trackWriter,
+            };
+            if (
+                handleAgentWorkspaceRequest(frame, frameContext) ||
+                handleBrowserRequest(frame, { ...frameContext, browserRoot }) ||
+                handleComputerSecretsRequest(frame, frameContext)
+            ) {
                 return;
             }
             const evidence = readExecutionEvidenceFrame(frame, dataRoot, attachment.serverId);
             if (evidence) {
                 void trackWriter(evidence.then((result) => sendFrame(result)));
-                return;
-            }
-            const browserRequest = parseBrowserRequest(frame);
-            if (browserRequest) {
-                void trackWriter(
-                    runBrowserRequest(browserRoot, browserRequest, runtime).then((result) =>
-                        sendFrame(result)
-                    )
-                );
                 return;
             }
             const reset = commandFrames.parseResetCommand(frame);

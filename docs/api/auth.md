@@ -22,6 +22,11 @@ Server stores Computer, runner, MCP, and hosted OAuth secrets. Computer stores a
 credentials and local proxy tokens in private files. Operators authenticate through each execution
 runtime's native flow; provider credentials never reach Server or App.
 
+A Computer Secrets 1Password service account token is the one secret the App hands to a Computer.
+The desktop App creates it, Server relays it once in memory to the Owner's chosen Computer without
+persisting or logging it, and the Computer keeps it only in the login macOS Keychain
+([Computer Secrets](../features/computer-secrets.md)).
+
 Claude's isolated Agent home cannot read the host's macOS Keychain login directly. At each native
 start, Computer resolves the current host-owned login and supplies its access token only in the
 Claude bridge process environment. It never writes the token into Agent files or persisted bridge

@@ -13,6 +13,7 @@ import {
     browserResultSchema,
     computerInventoryRefreshResultSchema,
     computerInventorySchema,
+    computerSecretsResultSchema,
     computerSystemEventReportSchema,
     computerUpdateProgressFrameSchema,
     coveApplyResultSchema,
@@ -267,6 +268,12 @@ function acceptComputerReply(connections: ComputerConnections, computerId: strin
     const browser = browserResultSchema.safeParse(frame);
     if (browser.success) {
         connections.acceptBrowserResult(computerId, browser.data);
+        return true;
+    }
+
+    const secrets = computerSecretsResultSchema.safeParse(frame);
+    if (secrets.success) {
+        connections.secrets.accept(computerId, secrets.data);
         return true;
     }
 
