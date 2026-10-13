@@ -14,6 +14,8 @@ export async function seedArtifactLibrary(page: Page, databaseUrl: string, serve
         ['large', 'Large image', 'large.png', 'image/png', 1_048_576],
         ['archive', 'Source archive', 'source.zip', 'application/zip', 4096],
         ['audio', 'Audio draft', 'draft.mp3', 'audio/mpeg', 8192],
+        ['readme', 'Release notes', 'readme.md', 'text/markdown', 256],
+        ['log', 'Server log', 'server.log', 'text/plain', 2_000_000],
     ] as const;
     for (const [name, title, filename, type, size] of files) {
         const id = `art_${serverId}_${name}`;
@@ -29,24 +31,38 @@ export async function seedArtifactLibrary(page: Page, databaseUrl: string, serve
     await page.route('**/trpc/**', async (route) => {
         const url = new URL(route.request().url());
         const procedures = url.pathname.split('/trpc/')[1]?.split(',') ?? [];
-        if (!procedures.includes('artifact.download')) {
+        if (!procedures.some((procedure) => procedure in fileTransport)) {
             await route.continue();
             return;
         }
+        const request = `${decodeURIComponent(url.search)} ${route.request().postData() ?? ''}`;
         const response = await route.fetch();
         const payload = await response.json();
-        const download = {
-            result: {
-                data: { download_url: new URL('/prototypes/cove-avatar.png', page.url()).href },
-            },
-        };
+        const replace = (procedure: string | undefined, result: unknown) =>
+            procedure && procedure in fileTransport
+                ? { result: { data: fileTransport[procedure]?.(page, request) } }
+                : result;
         await route.fulfill({
             json: Array.isArray(payload)
-                ? payload.map((result, index) =>
-                      procedures[index] === 'artifact.download' ? download : result
-                  )
-                : download,
+                ? payload.map((result, index) => replace(procedures[index], result))
+                : replace(procedures[0], payload),
         });
     });
     return { conceptId: `art_${serverId}_concept` };
 }
+
+/** Markdown and plain text the seeded text revisions read back as. */
+export const seededArtifactText = {
+    readme: '# Release notes\n\nShipped **inline text previews** for shared files.',
+    notes: 'Plain project notes, revision two.',
+} as const;
+
+const fileTransport: Record<string, (page: Page, request: string) => unknown> = {
+    'artifact.download': (page) => ({
+        download_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
+    }),
+    'artifact.text': (_page, request) => ({
+        status: 'text',
+        text: request.includes('_readme_') ? seededArtifactText.readme : seededArtifactText.notes,
+    }),
+};

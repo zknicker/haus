@@ -33,6 +33,8 @@ const defaultFloorAllowlist: Record<string, string> = {
 const infiniteStaleTimeAllowlist: Record<string, string> = {
     'features/activation-preview/activation-preview-server.tsx':
         'isolated preview client answering from fixtures; no Server behind it',
+    'hooks/artifacts/use-artifact-text.ts':
+        'artifact revisions are immutable; the key names the revision, and a revision change is a new key',
     'hooks/servers/attachment-image.ts':
         'attachment bytes never change under an id, and a local preview decodes the composer File it is keyed to',
     'hooks/servers/chat-message-entities.ts':

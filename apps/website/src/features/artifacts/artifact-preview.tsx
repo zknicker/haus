@@ -1,22 +1,37 @@
 import type { ArtifactMetadata } from '@haus/api';
-import { Button } from '@heroui/react';
 import { useState } from 'react';
 import { ImageLightbox } from '../../components/chats/image-lightbox.tsx';
 import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
-import { artifactKindLabel, formatArtifactBytes, isPreviewImage } from './artifact-format.ts';
-import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
-import { artifactFileKind } from './icons/artifact-file-kind.ts';
+import { ArtifactFileCard } from './artifact-file-card.tsx';
+import { isPreviewImage } from './artifact-format.ts';
+import { artifactTextRenderer } from './artifact-text.ts';
+import { ArtifactTextPreview } from './artifact-text-preview.tsx';
 
 const playableVideo = ['video/mp4', 'video/webm'];
 const playableAudio = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg', 'audio/webm'];
 
 /**
- * The file itself, in a quiet well: raster images (press to zoom), native
- * video and audio players, and for everything else the file's sheet with a
- * way to download it. Only previewable kinds fetch a signed link up front.
+ * The file itself: text files as the Artifact Panel draws them, raster images
+ * (press to zoom), native video and audio players, and for everything else
+ * the file's sheet with a way to download it.
  */
 export function ArtifactPreview({
+    artifact,
+    serverId,
+}: {
+    artifact: ArtifactMetadata;
+    serverId: string;
+}) {
+    const renderer = artifactTextRenderer(artifact);
+    if (renderer) {
+        return <ArtifactTextPreview artifact={artifact} renderer={renderer} serverId={serverId} />;
+    }
+    return <ArtifactMediaPreview artifact={artifact} serverId={serverId} />;
+}
+
+/** Only previewable media fetch a signed link up front. */
+function ArtifactMediaPreview({
     artifact,
     serverId,
 }: {
@@ -33,11 +48,7 @@ export function ArtifactPreview({
     const url = download.data?.download_url;
 
     if (!previewable || failed || download.error) {
-        return (
-            <section aria-label="File preview" className="artifact-preview artifact-preview--file">
-                <ArtifactFileCard artifact={artifact} serverId={serverId} />
-            </section>
-        );
+        return <ArtifactFileCard artifact={artifact} serverId={serverId} />;
     }
     return (
         <section aria-label="File preview" className="artifact-preview">
@@ -101,38 +112,5 @@ function ArtifactImage({
                 open={expanded}
             />
         </>
-    );
-}
-
-/** A file the App does not render: its sheet, its facts, and the way to download it. */
-function ArtifactFileCard({
-    artifact,
-    serverId,
-}: {
-    artifact: ArtifactMetadata;
-    serverId: string;
-}) {
-    const { saveFile, saving } = useArtifactSave(serverId);
-    const kind = artifactFileKind(artifact);
-    return (
-        <div className="flex flex-col items-center gap-4 text-center">
-            <ArtifactFileIcon kind={kind} size={96} />
-            <div className="flex flex-col gap-1">
-                <p className="break-all font-medium text-foreground text-sm">{artifact.filename}</p>
-                <p className="text-muted text-sm">
-                    {artifactKindLabel(kind)} · {formatArtifactBytes(artifact.size_bytes)}
-                </p>
-            </div>
-            <Button
-                isPending={saving}
-                onPress={() =>
-                    saveFile({ artifactId: artifact.artifact_id, revisionId: artifact.revision_id })
-                }
-                size="sm"
-                variant="secondary"
-            >
-                Download
-            </Button>
-        </div>
     );
 }

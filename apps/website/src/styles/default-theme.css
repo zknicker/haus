@@ -1210,7 +1210,7 @@
      * CodeBlock is built for snippet habitats — a command card in a dialog,
      * a webhook example — so its root is a card: secondary surface,
      * shell radius, block margin, its own horizontal scroller. Hosted as the
-     * fill of a file-viewer pane (`WorkspaceCodeView`), the pane itself is the
+     * fill of a file-viewer pane (`FileCodeView`), the pane itself is the
      * surface and scroller, IDE-style with soft wrap: the root sheds its card
      * chrome and clip, and long lines wrap instead of scrolling sideways.
      * Scoped to the structural class so every snippet habitat keeps the stock
@@ -3204,6 +3204,17 @@
     .artifact-preview--file {
         height: auto;
         padding-block: calc(var(--spacing) * 16);
+    }
+
+    /*
+     * A text file fills the well edge to edge and scrolls inside it, like a
+     * file pane in the Artifact Panel: its renderer brings its own gutters.
+     */
+    .artifact-preview--text {
+        display: block;
+        padding: 0;
+        background: var(--surface);
+        border: 1px solid var(--separator);
     }
 
     .artifact-preview__image {

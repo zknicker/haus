@@ -1,4 +1,4 @@
-import { seedArtifactLibrary } from '../support/artifacts.ts';
+import { seedArtifactLibrary, seededArtifactText } from '../support/artifacts.ts';
 import { createTestServer, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -42,15 +42,15 @@ test('members browse folders and kinds, search, switch revisions and expand an i
     await openSection(page, 'Artifacts');
 
     const today = page.getByRole('grid', { name: 'Today' });
-    await expect(today.getByRole('row')).toHaveCount(5);
+    await expect(today.getByRole('row')).toHaveCount(7);
     await expect(today.getByRole('row', { name: 'Concept render' })).toContainText(
         'Image · You · just now'
     );
 
     const folders = page.getByRole('listbox', { name: 'Folders' });
     await expect(folders.getByRole('option')).toHaveText([
-        /All files\s*5 files/u,
-        /Yours\s*5 files/u,
+        /All files\s*7 files/u,
+        /Yours\s*7 files/u,
     ]);
     await folders.getByRole('option', { name: 'Yours' }).click();
     await expect(page).toHaveURL(/creator=user%3A/u);
@@ -108,6 +108,34 @@ test('members browse folders and kinds, search, switch revisions and expand an i
     await expect(
         page.getByRole('button', { name: 'File type: Images', exact: true })
     ).toBeVisible();
+});
+
+test('text artifacts render inline like workspace files, and oversize text offers a download', async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    const slug = 'artifact-text-viewer';
+    const { server, session } = await createTestServer(page, {
+        displayName: 'Text Viewer',
+        slug,
+    });
+    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await openSection(page, 'Artifacts');
+    const today = page.getByRole('grid', { name: 'Today' });
+    const preview = page.getByRole('region', { name: 'File preview' });
+
+    await today.getByRole('row', { name: 'Release notes' }).click();
+    await expect(preview.getByRole('heading', { name: 'Release notes' })).toBeVisible();
+    await expect(preview.locator('strong')).toHaveText('inline text previews');
+
+    await page.goBack();
+    await today.getByRole('row', { name: 'Project notes' }).click();
+    await expect(preview.locator('pre')).toContainText(seededArtifactText.notes);
+
+    await page.goBack();
+    await today.getByRole('row', { name: 'Server log' }).click();
+    await expect(preview).toContainText('Too large to preview.');
+    await expect(preview.getByRole('button', { name: 'Download' })).toBeVisible();
 });
 
 test('an unavailable fixed revision reports an error within the persistent Server shell', async ({
