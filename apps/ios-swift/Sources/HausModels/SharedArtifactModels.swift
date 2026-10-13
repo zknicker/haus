@@ -34,7 +34,7 @@ public struct SharedArtifactMetadata: Hashable, Sendable, Decodable {
     public let createdAt: Date
     public let creator: SharedArtifactCreator
     public let filename: String
-    public let name: String
+    public let path: String
     public let revisionID: String
     public let revisionNumber: Int
     public let sizeBytes: Int
@@ -48,7 +48,7 @@ public struct SharedArtifactMetadata: Hashable, Sendable, Decodable {
         case createdAt = "created_at"
         case creator
         case filename
-        case name
+        case path
         case revisionID = "revision_id"
         case revisionNumber = "revision_number"
         case sizeBytes = "size_bytes"
@@ -59,7 +59,7 @@ public struct SharedArtifactMetadata: Hashable, Sendable, Decodable {
 
     public init(
         artifactID: String, contentType: String, createdAt: Date, creator: SharedArtifactCreator,
-        filename: String, name: String, revisionID: String, revisionNumber: Int, sizeBytes: Int,
+        filename: String, path: String, revisionID: String, revisionNumber: Int, sizeBytes: Int,
         stableURL: String, title: String, updatedAt: Date
     ) {
         self.artifactID = artifactID
@@ -67,7 +67,7 @@ public struct SharedArtifactMetadata: Hashable, Sendable, Decodable {
         self.createdAt = createdAt
         self.creator = creator
         self.filename = filename
-        self.name = name
+        self.path = path
         self.revisionID = revisionID
         self.revisionNumber = revisionNumber
         self.sizeBytes = sizeBytes

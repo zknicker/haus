@@ -8,7 +8,7 @@ struct SharedArtifactModelsTests {
     private static func metadata(creator: String) -> String {
         """
         {"artifact_id":"art_1","content_type":"image/png","created_at":"2026-10-01T10:00:00.000Z",
-        "creator":\(creator),"filename":"chart.png","name":"chart","revision_id":"rev_2",
+        "creator":\(creator),"filename":"chart.png","path":"charts/chart.png","revision_id":"rev_2",
         "revision_number":2,"sha256":"\(String(repeating: "a", count: 64))","size_bytes":2048,
         "stable_url":"https://haus.chat/s/acme/artifacts/art_1","title":"Q3 chart",
         "updated_at":"2026-10-12T09:30:00Z","version_url":"https://haus.chat/s/acme/artifacts/art_1?revision=rev_2"}
