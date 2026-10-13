@@ -3055,7 +3055,16 @@
         padding-block: calc(var(--spacing) * 2);
     }
 
-    /* Folder tiles: Finder's icon view. Hover and selection tint the whole tile. */
+    /*
+     * The library's scroll area takes file drops anywhere; while files hover
+     * over it, it washes in the accent and rings itself, never moving content.
+     */
+    .artifact-library-drop[data-drop-target] {
+        background: color-mix(in oklab, var(--accent) 4%, transparent);
+        box-shadow: inset 0 0 0 2px var(--accent);
+    }
+
+    /* Folder tiles: Finder's icon view. Hover tints the whole tile. */
     .artifact-folder-row {
         display: flex;
         gap: calc(var(--spacing) * 1);
@@ -3081,10 +3090,6 @@
             &[data-hovered] {
                 background: color-mix(in oklab, var(--default) 50%, transparent);
             }
-        }
-
-        &[data-selected] {
-            background: var(--default);
         }
 
         &[data-focus-visible] {
@@ -3121,6 +3126,11 @@
                 background-color: var(--surface-hover);
             }
         }
+    }
+
+    /* A folder tile's right-click target adds no box; the tile's own column lays out its parts. */
+    .artifact-tile__body {
+        display: contents;
     }
 
     .artifact-tile__well {

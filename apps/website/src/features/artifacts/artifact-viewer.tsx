@@ -1,3 +1,4 @@
+import { artifactPathParent } from '@haus/api';
 import { useSearchParams } from 'react-router-dom';
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { PageColumn } from '../shell/page-column.tsx';
@@ -5,12 +6,16 @@ import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { ArtifactInspector } from './artifact-inspector.tsx';
 import { ArtifactPreview } from './artifact-preview.tsx';
 import { ArtifactViewerHeader } from './artifact-viewer-header.tsx';
-import { ArtifactsTopbar } from './artifacts-topbar.tsx';
+import { type ArtifactsCrumb, ArtifactsTopbar } from './artifacts-topbar.tsx';
+import { artifactFolderCrumbs } from './drive-folders.ts';
+import { libraryHref } from './library-params.ts';
 
 /**
- * One shared file: a calm header, the preview, and details with revision
- * history beside it (below it in a narrow pane). `?revision=` pins a revision;
- * without it the page follows the current one.
+ * One shared file. The band shows where it lives in the drive, each folder a
+ * way back into the library; the heading and the tab keep its title. Below:
+ * a calm header, the preview, and details with revision history beside it
+ * (below it in a narrow pane). `?revision=` pins a revision; without it the
+ * page follows the current one.
  */
 export function ArtifactViewer({
     artifactId,
@@ -29,7 +34,11 @@ export function ArtifactViewer({
     return (
         <>
             <PageTopbar>
-                <ArtifactsTopbar current={artifact?.title ?? ''} slug={slug} />
+                <ArtifactsTopbar
+                    crumbs={artifact ? artifactViewerCrumbs(slug, artifact.path) : []}
+                    current={artifact?.filename ?? ''}
+                    slug={slug}
+                />
             </PageTopbar>
             <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
                 <PageColumn className="@container">
@@ -67,4 +76,16 @@ export function ArtifactViewer({
             </div>
         </>
     );
+}
+
+/** Artifacts, then each folder above the file, every one opening that place in the library. */
+function artifactViewerCrumbs(slug: string, path: string): ArtifactsCrumb[] {
+    const root = { creator: null, folder: '', kind: 'all' } as const;
+    return [
+        { href: libraryHref(slug, root), label: 'Artifacts' },
+        ...artifactFolderCrumbs(artifactPathParent(path)).map((crumb) => ({
+            href: libraryHref(slug, { ...root, folder: crumb.path }),
+            label: crumb.label,
+        })),
+    ];
 }

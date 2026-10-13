@@ -1,5 +1,11 @@
-import { type ArtifactCreator, type ArtifactListInput, artifactListInputSchema } from '@haus/api';
-import { useSearchParams } from 'react-router-dom';
+import {
+    type ArtifactCreator,
+    type ArtifactListInput,
+    artifactListInputSchema,
+    parseArtifactPath,
+} from '@haus/api';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { serverRoute } from '../servers/server-routes.ts';
 import { creatorKey, parseCreatorKey } from './artifact-creators.ts';
 
 export type ArtifactKindFilter = ArtifactListInput['kind'];
@@ -8,36 +14,59 @@ export type ArtifactKindFilter = ArtifactListInput['kind'];
 export const artifactKindFilters: readonly ArtifactKindFilter[] =
     artifactListInputSchema.shape.kind.unwrap().options;
 
+/** Where the library is and what it shows: the open folder (`''` is the root) and its filters. */
+export interface ArtifactLibraryView {
+    creator: ArtifactCreator | null;
+    folder: string;
+    kind: ArtifactKindFilter;
+}
+
 /**
- * The library's folder and kind live in the URL (`?creator=agent:…&kind=images`)
- * so back, reload, and a desktop tab all return to the same view.
+ * The library's folder and filters live in the URL
+ * (`?folder=starter-kit/scripts&kind=images&creator=agent:…`) so back, reload,
+ * and a desktop tab all return to the same view. Anything malformed reads as
+ * its default: the root, all kinds, anyone.
  */
-export function useArtifactLibraryParams() {
-    const [params, setParams] = useSearchParams();
-    const creator = parseCreatorKey(params.get('creator'));
-    const kind = parseKind(params.get('kind'));
-
-    function update(name: 'creator' | 'kind', value: string | null) {
-        setParams((current) => {
-            const next = new URLSearchParams(current);
-            if (value) {
-                next.set(name, value);
-            } else {
-                next.delete(name);
-            }
-            return next;
-        });
-    }
-
+export function parseLibrarySearch(params: URLSearchParams): ArtifactLibraryView {
+    const folder = parseArtifactPath(params.get('folder') ?? '');
     return {
-        creator,
-        kind,
-        selectCreator: (next: ArtifactCreator | null) =>
-            update('creator', next ? creatorKey(next) : null),
-        selectKind: (next: ArtifactKindFilter) => update('kind', next === 'all' ? null : next),
+        creator: parseCreatorKey(params.get('creator')),
+        folder: folder.ok ? folder.path : '',
+        kind: artifactKindFilters.find((kind) => kind === params.get('kind')) ?? 'all',
     };
 }
 
-function parseKind(value: string | null): ArtifactKindFilter {
-    return artifactKindFilters.find((kind) => kind === value) ?? 'all';
+/** The inverse of `parseLibrarySearch`, omitting defaults: `''` for the plain root. */
+export function librarySearch(view: ArtifactLibraryView): string {
+    const params = new URLSearchParams();
+    if (view.folder) {
+        params.set('folder', view.folder);
+    }
+    if (view.kind !== 'all') {
+        params.set('kind', view.kind);
+    }
+    if (view.creator) {
+        params.set('creator', creatorKey(view.creator));
+    }
+    const search = params.toString();
+    return search ? `?${search}` : '';
+}
+
+export function libraryHref(slug: string, view: ArtifactLibraryView): string {
+    return `${serverRoute(slug)}/artifacts${librarySearch(view)}`;
+}
+
+/** The URL view plus moves: opening a folder keeps the filters, as Finder does. */
+export function useArtifactLibraryParams() {
+    const [params] = useSearchParams();
+    const navigate = useNavigate();
+    const view = parseLibrarySearch(params);
+    const go = (next: ArtifactLibraryView) => navigate({ search: librarySearch(next) });
+
+    return {
+        ...view,
+        openFolder: (folder: string) => go({ ...view, folder }),
+        selectCreator: (creator: ArtifactCreator | null) => go({ ...view, creator }),
+        selectKind: (kind: ArtifactKindFilter) => go({ ...view, kind }),
+    };
 }

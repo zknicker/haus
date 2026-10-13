@@ -1,84 +1,99 @@
-import type { ArtifactCreator } from '@haus/api';
+import type { ArtifactFolderEntry, ArtifactMetadata } from '@haus/api';
+import { Label } from '@heroui/react';
+import { ContextMenu } from '@heroui-pro/react';
+import { useState } from 'react';
 import { ListBox, ListBoxItem } from 'react-aria-components';
-import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useArtifactCreators } from '../../hooks/artifacts/use-artifact-creators.ts';
 import { useArtifactDownloadUrls } from '../../hooks/artifacts/use-artifact-download-urls.ts';
-import {
-    type ArtifactFolder,
-    allFolderKey,
-    artifactFolders,
-    creatorKey,
-} from './artifact-creators.ts';
 import { hasLibraryPreview } from './artifact-format.ts';
+import { ArtifactRenameDialog, type ArtifactRenameTarget } from './artifact-rename-dialog.tsx';
+import { artifactFolderToneMap } from './drive-folders.ts';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
-import { ArtifactFolderIcon } from './icons/artifact-folder-icon.tsx';
-import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
+import { ArtifactFolderIcon, type ArtifactFolderTone } from './icons/artifact-folder-icon.tsx';
 import { useDecodedImages } from './use-decoded-image.ts';
 
 /**
- * The library's folders: All, then one per creator. Storage is flat; a folder
- * is a creator filter, chosen like a Finder sidebar item. Hidden until the
- * creators read lands, and when nobody has published anything yet.
+ * The open folder's child folders, Finder's icon view: each tile peeks a few
+ * of its newest files and counts what is inside under the current filters.
+ * Pressing a tile opens the folder; right-clicking it offers Rename folder.
  */
 export function ArtifactFolderRow({
-    onSelect,
-    selected,
+    folders,
+    onOpen,
+    previews,
     serverId,
 }: {
-    onSelect: (creator: ArtifactCreator | null) => void;
-    selected: ArtifactCreator | null;
+    folders: readonly ArtifactFolderEntry[];
+    onOpen: (path: string) => void;
+    previews: ReadonlyMap<string, ArtifactMetadata[]>;
     serverId: string;
 }) {
-    const creators = useArtifactCreators(serverId);
-    const directory = useArtifactCreatorDirectory(serverId);
-    const summaries = creators.data?.creators;
-    if (!summaries || summaries.length === 0) {
-        return null;
-    }
-    const folders = artifactFolders(summaries, directory);
-    const selectedKey = selected ? creatorKey(selected) : allFolderKey;
+    const [renaming, setRenaming] = useState<ArtifactRenameTarget | null>(null);
+    const tones = artifactFolderToneMap(folders.map((folder) => folder.path));
     return (
-        <ListBox
-            aria-label="Folders"
-            className="artifact-folder-row"
-            disallowEmptySelection
-            items={folders}
-            onSelectionChange={(keys) => {
-                const [key] = keys === 'all' ? [] : [...keys];
-                onSelect(folders.find((folder) => folder.key === key)?.creator ?? null);
-            }}
-            orientation="horizontal"
-            selectedKeys={[selectedKey]}
-            selectionMode="single"
-        >
-            {(folder) => (
-                <ListBoxItem
-                    className="artifact-tile artifact-tile--folder artifact-folder-trigger"
-                    data-open={folder.key === selectedKey || undefined}
-                    id={folder.key}
-                    textValue={folder.label}
-                >
-                    <ArtifactFolderTile
-                        avatar={folder.creator ? directory.avatar(folder.creator) : null}
-                        folder={folder}
-                        serverId={serverId}
-                    />
-                </ListBoxItem>
-            )}
-        </ListBox>
+        <>
+            <ListBox
+                aria-label="Folders"
+                className="artifact-folder-row"
+                items={folders.map((folder) => ({ ...folder, id: folder.path }))}
+                onAction={(key) => onOpen(String(key))}
+                orientation="horizontal"
+            >
+                {(folder) => (
+                    <ListBoxItem
+                        className="artifact-tile artifact-tile--folder artifact-folder-trigger"
+                        id={folder.path}
+                        textValue={folder.name}
+                    >
+                        <ContextMenu>
+                            <ContextMenu.Trigger className="artifact-tile__body">
+                                <ArtifactFolderTile
+                                    folder={folder}
+                                    previews={previews.get(folder.path) ?? []}
+                                    serverId={serverId}
+                                    tone={tones.get(folder.path) ?? 'blue'}
+                                />
+                            </ContextMenu.Trigger>
+                            <ContextMenu.Popover>
+                                <ContextMenu.Menu
+                                    onAction={(key) =>
+                                        key === 'open'
+                                            ? onOpen(folder.path)
+                                            : setRenaming({ kind: 'folder', path: folder.path })
+                                    }
+                                >
+                                    <ContextMenu.Item id="open" textValue="Open">
+                                        <Label>Open</Label>
+                                    </ContextMenu.Item>
+                                    <ContextMenu.Item id="rename" textValue="Rename folder">
+                                        <Label>Rename folder</Label>
+                                    </ContextMenu.Item>
+                                </ContextMenu.Menu>
+                            </ContextMenu.Popover>
+                        </ContextMenu>
+                    </ListBoxItem>
+                )}
+            </ListBox>
+            <ArtifactRenameDialog
+                onClose={() => setRenaming(null)}
+                serverId={serverId}
+                target={renaming}
+            />
+        </>
     );
 }
 
 function ArtifactFolderTile({
-    avatar,
     folder,
+    previews,
     serverId,
+    tone,
 }: {
-    avatar: { name: string; src: string | null } | null;
-    folder: ArtifactFolder;
+    folder: ArtifactFolderEntry;
+    previews: readonly ArtifactMetadata[];
     serverId: string;
+    tone: ArtifactFolderTone;
 }) {
-    const photos = folder.previews.filter(hasLibraryPreview);
+    const photos = previews.filter(hasLibraryPreview);
     const urls = useArtifactDownloadUrls(
         serverId,
         photos.map((artifact) => ({
@@ -90,21 +105,20 @@ function ArtifactFolderTile({
     const decoded = useDecodedImages(
         photos.map((artifact, index) => ({ id: artifact.artifact_id, url: urls[index] }))
     );
-    const previews = folder.previews.map((artifact) => ({
+    const peeks = previews.map((artifact) => ({
         imageUrl: hasLibraryPreview(artifact) ? decoded.get(artifact.artifact_id) : undefined,
         kind: artifactFileKind(artifact),
     }));
     return (
         <>
             <span className="artifact-tile__well">
-                <ArtifactFolderIcon previews={previews} size={56} tone={folder.tone} />
+                <ArtifactFolderIcon previews={peeks} size={56} tone={tone} />
             </span>
             <span className="artifact-tile__title">
-                {avatar ? <EntityAvatar name={avatar.name} size={16} src={avatar.src} /> : null}
-                <span className="truncate">{folder.label}</span>
+                <span className="truncate">{folder.name}</span>
             </span>
             <span className="artifact-tile__meta">
-                {folder.count === 1 ? '1 file' : `${folder.count} files`}
+                {folder.file_count === 1 ? '1 file' : `${folder.file_count} files`}
             </span>
         </>
     );

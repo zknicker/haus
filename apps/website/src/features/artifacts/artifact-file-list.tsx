@@ -7,12 +7,12 @@ import { ArtifactThumbnail } from './artifact-thumbnail.tsx';
 
 export interface ArtifactRow {
     artifact: ArtifactMetadata;
-    /** "<Kind> · <creator> · <time>", already resolved by the caller. */
+    /** "[<title> · ][<folder> · ]<kind> · <creator> · <time>", resolved by the caller. */
     meta: string;
 }
 
 /**
- * One date group's files as standalone secondary ListView rows: thumbnail, title, meta,
+ * One date group's files as standalone secondary ListView rows: thumbnail, file name, meta,
  * then size and the ⋮ menu.
  */
 export function ArtifactFileList({
@@ -44,12 +44,12 @@ export function ArtifactFileList({
                     {...opensPlace}
                     className="artifact-file-trigger"
                     id={artifact.artifact_id}
-                    textValue={artifact.title}
+                    textValue={artifact.filename}
                 >
                     <ListView.ItemContent>
                         <ArtifactThumbnail artifact={artifact} serverId={serverId} size={32} />
                         <div className="flex min-w-0 flex-col">
-                            <ListView.Title>{artifact.title}</ListView.Title>
+                            <ListView.Title>{artifact.filename}</ListView.Title>
                             <ListView.Description>{meta}</ListView.Description>
                         </div>
                     </ListView.ItemContent>

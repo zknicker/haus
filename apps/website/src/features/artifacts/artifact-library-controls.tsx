@@ -8,6 +8,7 @@ import {
     Tooltip,
 } from '@heroui/react';
 import { ArrowDown01Icon, GridViewIcon, ListViewIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type { ReactNode } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     type ArtifactLibraryLayout,
@@ -25,37 +26,49 @@ const kindTitles: Record<ArtifactKindFilter, string> = {
 };
 
 /**
- * The library's band controls: search, the file-type menu, then list or grid.
- * They trail the Artifacts trail in the shell band, so the page below is all
- * content.
+ * The library's band controls: search, the file-type and Created by menus,
+ * list or grid, then Upload. They trail the drive trail in the shell band, so
+ * the page below is all content. Search covers the open folder and every
+ * folder under it.
  */
 export function ArtifactLibraryControls({
+    creatorMenu,
+    folderName,
     kind,
     onKindChange,
     onSearchChange,
     search,
+    uploadMenu,
 }: {
+    creatorMenu: ReactNode;
+    /** The open folder's name; null at the drive root. */
+    folderName: string | null;
     kind: ArtifactKindFilter;
     onKindChange: (kind: ArtifactKindFilter) => void;
     onSearchChange: (value: string) => void;
     search: string;
+    uploadMenu: ReactNode;
 }) {
     return (
         <>
             <SearchField
-                aria-label="Search artifacts"
+                aria-label={folderName ? `Search in ${folderName}` : 'Search artifacts'}
                 className="w-44 min-w-0 shrink"
                 onChange={onSearchChange}
                 value={search}
             >
                 <SearchField.Group>
                     <SearchField.SearchIcon />
-                    <SearchField.Input placeholder="Search files" />
+                    <SearchField.Input
+                        placeholder={folderName ? `Search in ${folderName}` : 'Search files'}
+                    />
                     <SearchField.ClearButton />
                 </SearchField.Group>
             </SearchField>
             <ArtifactKindMenu kind={kind} onKindChange={onKindChange} />
+            {creatorMenu}
             <ArtifactLayoutToggle />
+            {uploadMenu}
         </>
     );
 }
