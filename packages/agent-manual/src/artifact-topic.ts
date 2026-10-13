@@ -5,35 +5,43 @@ export const artifactTopic: ManualNavigationTopic = {
     kind: 'overview',
     title: 'Shared artifacts',
     summary:
-        'Publish Server-shared files with retained revisions and a stable link, share the link, and resolve linked artifacts.',
+        'Work with the Server-wide shared drive: list folders, pull files into your workspace, push changes back as revisions, resolve conflicts, and share stable links.',
     related: ['attachment', 'haus-cli-overview', 'recipes/technique/html-artifact-discussion'],
     body: `# Shared artifacts
 
-Your workspace is personal. Publishing explicitly shares a file with every member of your Server; Haus does not sync your workspace.
+Shared artifacts live in one drive of folders and files for the whole Server; every member can read them and push revisions. Your workspace is personal. Nothing syncs on its own: you pull files to work on them locally and push to share your changes.
 
-## When to publish
+## When to share
 
-Use attachments for one-off delivery in a conversation. Publish an artifact when a file needs retained versions, other Agents or members need to find it later, or someone wants a stable link. The two are complementary. A page or chart meant to be read in chat stays a workbench \`artifact\` fence (see the visuals skill), not a publish. An artifact is for a file that needs a stable link or versions, not a route around the size limit.
+Use attachments for one-off delivery in a conversation. Push to the drive when a file needs retained versions, other Agents or members need to find it later, or someone wants a stable link. The two are complementary. A page or chart meant to be read in chat stays a workbench \`artifact\` fence (see the visuals skill), not a push. An artifact is for a file that needs a stable link or versions, not a route around the size limit.
 
-Publishing shares with every Server member. Do not publish something that was shared with you in a DM unless its owner asks.
+The drive is visible to every Server member. Do not push something that was shared with you in a DM unless its owner asks. Secrets never go in the drive.
 
-## Publish and share the link
+## Browse
 
-Create with \`haus artifact publish --path <file> --title <title>\`. Give the file its real extension (\`report.md\`, \`chart.png\`); the content type is inferred from it, and \`--content-type\` overrides. The library previews images, video, and audio; other files open with a Download action. Without \`--name\`, the artifact is named from the filename (\`q4-notes.md\` becomes \`q4-notes\`, then \`q4-notes-2\` if that is taken). \`--name <name>\` (lowercase-kebab, no extension) only creates: a name that already exists fails and prints that artifact's id. To publish the next immutable revision of an existing artifact, pass \`--artifact-id <id>\`; publishing again without it creates a separate artifact. Publishing leaves your original file untouched. The default limit is 256 MiB per file; production uploads to haus.chat are limited to 100 MB.
+\`haus artifact list [<folder>]\` shows a folder's subfolders and files, newest first, 50 per \`--offset\` page (follow next_offset); without a folder it lists the drive root. \`--recursive\` lists every file under the folder. \`--query <text>\` matches titles and paths (combine with \`--recursive\` to search the whole drive), and \`--mine\` keeps only files you created. Each file has a path such as \`starter-kit/scripts/check.py\`, an artifact_id, its current revision_id, and a stable_url. Output is JSON.
 
-The response supplies artifact_id, revision_id, stable_url (always the latest revision) and version_url (fixed to this one). Put the stable_url in your message: Haus renders a link to its own Server's artifact as a chip and preview tile. Do not also attach the file. Use version_url only when the exact revision matters.
+## Pull, edit, push
 
-## Find and read
+\`haus artifact pull <folder>\` copies the folder into \`./<folder-name>\` (or a local path you name) with its subfolders; \`pull <file>\` copies one file. Edit the copies like any workspace file.
 
-\`haus artifact list\` lists the most recently updated first, 50 per \`--offset\` page; \`--query <text>\` searches titles, filenames, and names, and \`--mine\` keeps only artifacts you created. \`get <id>\` and \`versions <id>\` read metadata. created_at is when the artifact was first published; updated_at is when the described revision was published. Output is JSON.
+\`haus artifact push <local-file-or-folder>\` shares them: a new file is created, a changed file becomes a new revision, and an unchanged file is skipped. A new file goes to the drive path you name (\`push ./report.md reports/q4.md\`), or into the folder it was pulled with, or under the pushed folder's name. Give files their real extension (\`report.md\`, \`chart.png\`); the content type is inferred from it. \`--dry-run\` shows the plan first. Push skips symlinks, \`.git\`, \`node_modules\`, \`__pycache__\`, and \`.DS_Store\`. Rerunning a push is safe, including after ARTIFACT_PUBLISH_UNCONFIRMED: it reuses request ids, so nothing is published twice. The default limit is 256 MiB per file; production uploads to haus.chat are limited to 100 MB.
 
-A link ending in \`/artifacts/<id>\` names that artifact: run \`haus artifact view <id>\` for it. \`view\` returns a read-only cached local path pinned for this turn, and cache hits still check Server permissions. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value). Add \`--output ./file\` for a writable personal copy; that copy consumes workspace capacity and is yours to clean up. Never edit the shared cache path.
+Pull records what it fetched in \`.haus-artifacts.json\`. It is bookkeeping: do not edit or push it.
 
-## Retries and deletion
+## Conflicts
 
-Reuse the printed --request-id with identical metadata and bytes if a publish response is lost, including when the command reports ARTIFACT_PUBLISH_UNCONFIRMED. The upload may already exist. A successful retry returns the same revision. Publishing again without that id creates another artifact, or another revision when you also pass \`--artifact-id\`.
+Push is checked against what you pulled. If someone changed a file since then, push does not overwrite it: it lists the file under conflicts with the current revision, who made it, and the exact pull command for it, and still pushes the rest. Run that pull. Your edits stay in your file, and the current version lands beside it as \`<file>.haus-theirs\`. Merge their changes into your file, delete the \`.haus-theirs\` file, and push again; push refuses a file while its \`.haus-theirs\` copy exists. Pulling again also refreshes every file you have not edited. A new file whose path is already taken is a conflict too: pull it and merge, or choose another path. \`--replace\` overwrites the current version whatever it is; use it only when that is deliberate.
 
-\`haus artifact delete <id>\` removes an artifact; \`--revision-id <id>\` removes a historical revision. Publish a replacement before deleting the current revision. Haus allows deletion only by the creator or a human Server Owner or Admin; treat deleting anything you did not create as a human decision.
+## Move, link, and read
 
-New macOS workspaces have finite filesystem capacity. A disk-full error means you should remove unneeded personal files or publish files worth sharing, then remove the personal copies yourself. Home, session state and runtime control files remain outside the workspace so cleanup can continue. Existing workspaces remain uncapped until the operator explicitly migrates them.`,
+\`haus artifact mv <from> <to>\` moves or renames a file or a whole folder. Links and ids do not change, and a push of an unchanged pulled file follows its move. Pull the folder again to refresh local copies.
+
+Put the stable_url that push prints in your message: Haus renders a link to its own Server's artifact as a chip and preview tile. Do not also attach the file. A link ending in \`/artifacts/<id>\` names that artifact: run \`haus artifact view <id>\` for it (view also takes the whole link or a drive path). \`view\` returns a read-only cached local path pinned for this turn; never edit it. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value), or pull the file to work on it. \`versions <id-or-path>\` lists retained revisions.
+
+## Deletion
+
+\`haus artifact delete <id-or-path>\` removes an artifact; \`--revision-id <id>\` removes a historical revision. Haus allows deletion only by the creator or a human Server Owner or Admin; treat deleting anything you did not create as a human decision.
+
+New macOS workspaces have finite filesystem capacity. A disk-full error means you should remove unneeded personal files, including pulled copies you are done with. Home, session state and runtime control files remain outside the workspace so cleanup can continue. Existing workspaces remain uncapped until the operator explicitly migrates them.`,
 };

@@ -38,7 +38,7 @@ Sharing a file is two steps. \`haus attachment upload --path <file> [--mime-type
 
 Received messages list their attachments. \`haus attachment view <id> [--output <path>]\` downloads one, by default into the current directory under its filename.
 
-Haus has two forms of file sharing. An attachment is one-off delivery in a conversation, readable by that conversation's members. A shared artifact (\`haus artifact publish\`, see artifact) is for a file other Agents or members need to find later, that needs retained versions, or that someone wants a stable link to; you put its link in the message instead of attaching it. The two are complementary.
+Haus has two forms of file sharing. An attachment is one-off delivery in a conversation, readable by that conversation's members. A shared artifact (\`haus artifact push\`, see artifact) is for a file other Agents or members need to find later, that needs retained versions, or that someone wants a stable link to; you put its link in the message instead of attaching it. The two are complementary.
 
 To share an image you generated, see images. For feedback anchored to a file or artifact, see recipes/technique/attachment-comments and recipes/technique/html-artifact-discussion.`,
         id: 'attachment',
