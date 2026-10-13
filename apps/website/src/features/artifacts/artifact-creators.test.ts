@@ -1,15 +1,12 @@
 import { expect, test } from 'bun:test';
-import type { ArtifactCreatorSummary, ArtifactMetadata } from '@haus/api';
+import type { ArtifactCreatorSummary } from '@haus/api';
 import { humanDirectory } from '../servers/human-identity.ts';
 import {
     artifactCreatorDirectory,
-    artifactFolders,
+    artifactCreatorOptions,
     creatorKey,
     parseCreatorKey,
 } from './artifact-creators.ts';
-
-const preview = (id: string, updated_at: string) =>
-    ({ artifact_id: id, updated_at }) as ArtifactMetadata;
 
 const member = (userId: string, displayName: string) => ({
     avatarUrl: null,
@@ -27,79 +24,31 @@ const directory = artifactCreatorDirectory(
     [{ avatarUrl: null, displayName: 'Blippy', id: 'ag_blippy' }],
     humans
 );
+const summary = (creator: ArtifactCreatorSummary['creator']) =>
+    ({ creator }) as ArtifactCreatorSummary;
 
 // The Server's order: most recently active first.
-const summaries: ArtifactCreatorSummary[] = [
-    {
-        artifact_count: 2,
-        creator: { type: 'user', user_id: 'u_ada' },
-        latest_at: '2026-10-12T12:00:00Z',
-        previews: [preview('ada1', '2026-10-12T12:00:00Z')],
-    },
-    {
-        artifact_count: 5,
-        creator: { agent_id: 'ag_blippy', type: 'agent' },
-        latest_at: '2026-10-11T12:00:00Z',
-        previews: [preview('b1', '2026-10-11T12:00:00Z'), preview('b2', '2026-10-01T00:00:00Z')],
-    },
-    {
-        artifact_count: 1,
-        creator: { agent_id: 'ag_gone', type: 'agent' },
-        latest_at: '2026-10-10T12:00:00Z',
-        previews: [preview('g1', '2026-10-10T12:00:00Z')],
-    },
-    {
-        artifact_count: 3,
-        creator: { type: 'user', user_id: 'u_self' },
-        latest_at: '2026-10-09T12:00:00Z',
-        previews: [preview('s1', '2026-10-09T12:00:00Z')],
-    },
+const summaries = [
+    summary({ type: 'user', user_id: 'u_ada' }),
+    summary({ agent_id: 'ag_blippy', type: 'agent' }),
+    summary({ agent_id: 'ag_gone', type: 'agent' }),
+    summary({ type: 'user', user_id: 'u_self' }),
 ];
 
-test('All leads, then Yours, then Agents, then other people, each in Server order', () => {
-    const folders = artifactFolders(summaries, directory);
-    expect(folders.map((folder) => [folder.label, folder.count])).toEqual([
-        ['All files', 11],
-        ['Yours', 3],
-        ['Blippy', 5],
-        ['Removed Agent', 1],
-        ['Ada', 2],
+test('Created by lists You, then Agents, then other people, each in Server order', () => {
+    expect(artifactCreatorOptions(summaries, directory).map((option) => option.label)).toEqual([
+        'You',
+        'Blippy',
+        'Removed Agent',
+        'Ada',
     ]);
 });
 
-test('All previews the three newest files across creators and stays neutral', () => {
-    const [all] = artifactFolders(summaries, directory);
-    expect(all?.previews.map((item) => item.artifact_id)).toEqual(['ada1', 'b1', 'g1']);
-    expect(all?.tone).toBe('neutral');
-    expect(all?.creator).toBeNull();
-});
-
-test('an Agent folder keeps one tint across reads', () => {
-    const first = artifactFolders(summaries, directory).find((folder) => folder.label === 'Blippy');
-    const again = artifactFolders([...summaries].reverse(), directory).find(
-        (folder) => folder.label === 'Blippy'
-    );
-    expect(first?.tone).not.toBe('neutral');
-    expect(again?.tone).toBe(first?.tone);
-});
-
-test('creator folders get distinct tints until the tints run out', () => {
-    const tones = artifactFolders(summaries, directory)
-        .slice(1)
-        .map((folder) => folder.tone);
-    expect(new Set(tones).size).toBe(tones.length);
-
-    const many = Array.from({ length: 7 }, (_, index) => ({
-        artifact_count: 1,
-        creator: { agent_id: `ag_${index}`, type: 'agent' as const },
-        latest_at: '2026-10-12T12:00:00Z',
-        previews: [],
-    }));
-    const cycled = artifactFolders(many, directory)
-        .slice(1)
-        .map((folder) => folder.tone);
-    expect(new Set(cycled).size).toBe(5);
-    expect(cycled[5]).toBe(cycled[0]);
+test('an open creator filter keeps its entry after its last file is gone', () => {
+    const options = artifactCreatorOptions([], directory, { type: 'user', user_id: 'u_ada' });
+    expect(options).toEqual([
+        { creator: { type: 'user', user_id: 'u_ada' }, key: 'user:u_ada', label: 'Ada' },
+    ]);
 });
 
 test('rows name the viewer "You"; marks keep real names', () => {
