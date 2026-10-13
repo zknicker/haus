@@ -1,4 +1,5 @@
 import Foundation
+import HausModels
 import SwiftUI
 
 /// Where a tapped reference goes when its target is a Haus record rather than
@@ -19,6 +20,9 @@ public enum InAppReferenceRoutes {
     /// The in-app action a link stands for, or nil when the system should
     /// open it as an ordinary address.
     public static func action(for url: URL) -> (() -> Void)? {
+        if let artifact = SharedArtifactLinkTarget(inAppURL: url) {
+            return { SharedArtifactPresenter.present(artifact) }
+        }
         guard let thread = ThreadReferenceTarget(url: url) else { return nil }
         return { openThread?(thread) }
     }

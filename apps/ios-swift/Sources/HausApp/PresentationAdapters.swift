@@ -17,6 +17,10 @@ extension HausStore {
         // Channel references resolve their label and appearance from the Chat
         // list, so a renamed or recolored channel has to reach a drawn row.
         _ = chatsByID
+        // Shared artifact chips: the open Server's slug decides which links
+        // are library links, and a loaded title retitles a chip.
+        syncSharedArtifactScope()
+        _ = sharedArtifactRevision
     }
 
     /// The Agent directory as an index. `HausStore` rebuilds it with the

@@ -3,9 +3,9 @@ import HausUI
 import SwiftUI
 
 /// What a transcript row reaches beyond itself: a tapped Thread chip, an
-/// opened artifact page, and Try Again or Delete on a failed send. Rows live in hosted cells with no environment, so the
+/// opened artifact page or shared artifact, and Try Again or Delete on a failed send. Rows live in hosted cells with no environment, so the
 /// App installs these once at its root (`InAppReferenceRoutes`,
-/// `ArtifactPageReader`).
+/// `ArtifactPageReader`, `SharedArtifactReader`).
 extension AuthenticatedHausView {
     func installTranscriptRoutes() {
         InAppReferenceRoutes.openThread = { reference in
@@ -14,6 +14,7 @@ extension AuthenticatedHausView {
         ArtifactPageReader.read = { [store] agentID, path in
             try await store.readArtifactPage(agentID: agentID, path: path)
         }
+        store.installSharedArtifactReader()
         FailedSendRoutes.retry = { [store] messageID in
             Task { await store.retryFailedSend(messageID: messageID) }
         }

@@ -188,6 +188,15 @@ struct ChatProjectionCaches {
     /// what retires a parsed body that did not itself change.
     private(set) var referenceRevision = 0
     private var references = ReferenceDirectory()
+    /// Shared artifact chips' scope and loaded titles (`HausStoreSharedArtifacts.swift`).
+    var sharedArtifacts = SharedArtifactChips()
+
+    /// A chip that resolves differently without any directory write: a shared
+    /// artifact's title landing, or the library scope moving to another Server.
+    mutating func retireReferenceChips() {
+        referenceRevision += 1
+        retireAllRows()
+    }
 
     /// Names, avatars, and presence reach every transcript row and sidebar
     /// entry; chips reparse only when a chip-visible fact moved.

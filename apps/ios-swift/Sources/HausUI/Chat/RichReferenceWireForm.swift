@@ -8,9 +8,10 @@ public struct RichReferenceTarget: Hashable, Sendable {
     public let kind: MentionPresentationKind
     public let id: String
     /// The label the target itself fixes, ignoring the link text: a pull
-    /// request reads as `#<n>`, a bare URL as its host, and Cloud Agent work
-    /// as its unescaped title (no sigil is ever stripped from a title). Nil
-    /// everywhere else, where the link text is the label.
+    /// request reads as `#<n>`, a bare URL as its host, Cloud Agent work
+    /// as its unescaped title (no sigil is ever stripped from a title), and a
+    /// shared artifact whose words are only its address as `Artifact` until
+    /// its title resolves. Nil everywhere else, where the link text is the label.
     public let label: String?
 }
 
@@ -58,6 +59,17 @@ public enum RichReferenceWireForm {
         }
         if let id = schemeID(target, scheme: "skill") {
             return RichReferenceTarget(kind: .skill, id: id, label: nil)
+        }
+        // A stable library URL on this App and the open Server, absolute or
+        // root-relative, ahead of the path and web forms it would otherwise
+        // read as. Outside a scope (or for a foreign one) it stays that link.
+        if let scope = SharedArtifactLinkScope.current,
+           let artifact = SharedArtifactLinkTarget(href: target, scope: scope) {
+            return RichReferenceTarget(
+                kind: .sharedArtifact,
+                id: artifact.key,
+                label: SharedArtifactLinkTarget.fallbackLabel(text: text, target: target)
+            )
         }
         if target.hasPrefix("/") {
             return RichReferenceTarget(kind: pathKind(target), id: target, label: nil)

@@ -60,7 +60,7 @@ public enum RichMessageParser {
         var cursor = run.text.startIndex
         for span in protected
         where span.range.lowerBound >= cursor && span.range.upperBound <= run.text.endIndex {
-            appendAutolinked(run.text[cursor..<span.range.lowerBound], style: run.style, into: &segments)
+            appendAutolinked(run.text[cursor..<span.range.lowerBound], style: run.style, resolve: resolve, into: &segments)
             if let code = span.code {
                 append(text: code, style: run.style.union(.code), into: &segments)
             } else if let link = links.first(where: { $0.range == span.range }) {
@@ -68,7 +68,7 @@ public enum RichMessageParser {
             }
             cursor = span.range.upperBound
         }
-        appendAutolinked(run.text[cursor...], style: run.style, into: &segments)
+        appendAutolinked(run.text[cursor...], style: run.style, resolve: resolve, into: &segments)
     }
 
     /// A one-line preview of a message, mirroring the App's `messagePreviewLine`
@@ -193,6 +193,7 @@ public enum RichMessageParser {
     private static func appendAutolinked(
         _ slice: Substring,
         style: RichInlineStyle,
+        resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?,
         into segments: inout [RichMessageSegment]
     ) {
         guard !slice.isEmpty else { return }
@@ -203,12 +204,16 @@ public enum RichMessageParser {
                 text: String(slice[url])
             ) else { continue }
             append(text: slice[cursor..<url.lowerBound], style: style, into: &segments)
-            segments.append(.reference(RichReferencePresentation(
-                id: target.id,
-                kind: target.kind,
-                label: target.label ?? String(slice[url]),
-                avatarURL: nil
-            )))
+            // A bare library URL resolves its title like a written link does;
+            // every other bare address is labeled by the target alone.
+            segments.append(.reference(target.kind == .sharedArtifact
+                ? reference(target, text: String(slice[url]), resolve: resolve)
+                : RichReferencePresentation(
+                    id: target.id,
+                    kind: target.kind,
+                    label: target.label ?? String(slice[url]),
+                    avatarURL: nil
+                )))
             cursor = url.upperBound
         }
         append(text: slice[cursor..<slice.endIndex], style: style, into: &segments)

@@ -1,4 +1,5 @@
 import Foundation
+import HausModels
 @testable import HausUI
 import Testing
 
@@ -150,6 +151,23 @@ struct RichReferenceParityTests {
             label: #"Open [draft C:\fix"#,
             mark: .glyph(.cloud)
         ),
+        // A stable library URL on the open Server, keyed by id and revision.
+        // Its words stand until the title loads; bare-address words read as
+        // `Artifact` rather than the URL.
+        Row(
+            markdown: "[Q3 report](https://haus.chat/s/acme/artifacts/art_1?revision=rev_2)",
+            kind: .sharedArtifact,
+            id: "art_1@rev_2",
+            label: "Q3 report",
+            mark: .glyph(.document)
+        ),
+        Row(
+            markdown: "[/s/acme/artifacts/art_1](/s/acme/artifacts/art_1)",
+            kind: .sharedArtifact,
+            id: "art_1",
+            label: "Artifact",
+            mark: .glyph(.document)
+        ),
         Row(
             markdown: "[the release notes](https://haus.dev/releases)",
             kind: .website,
@@ -160,8 +178,11 @@ struct RichReferenceParityTests {
     ]
 
     @Test func readsEveryWireFormTheAppChips() {
+        let scope = SharedArtifactLinkScope(origins: [URL(string: "https://haus.chat")!], slug: "acme")
         for row in Self.table {
-            let segments = RichMessageParser.parse("Look at \(row.markdown) now.") { _, _, _ in nil }
+            let segments = SharedArtifactLinkScope.$current.withValue(scope) {
+                RichMessageParser.parse("Look at \(row.markdown) now.") { _, _, _ in nil }
+            }
             guard case .reference(let reference) = segments.first(where: { segment in
                 if case .reference = segment { return true }
                 return false

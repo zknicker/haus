@@ -143,6 +143,8 @@ final class HausStore {
     /// Observation: a projection read happens inside a view body, and a tracked
     /// write there would invalidate the body that just performed it.
     @ObservationIgnored var projections = ChatProjectionCaches()
+    /// Advances when a shared artifact chip's title lands (`HausStoreSharedArtifacts.swift`).
+    var sharedArtifactRevision = 0
     /// What each Chat has shown the reader, what Server has confirmed, and what
     /// is in flight. Observation-ignored: no view reads it, and a read
     /// acknowledgement must not repaint the app.

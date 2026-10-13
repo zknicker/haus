@@ -26,7 +26,9 @@ extension HausStore {
         }
         let (body, visuals) = MessagePresentation.resolvedBody(content: content)
         var threadChips: [String: String?] = [:]
-        let blocks = richMessageBlocks(visuals.prose) { target, label in threadChips.updateValue(label, forKey: target) }
+        let blocks = SharedArtifactLinkScope.$current.withValue(projections.sharedArtifacts.scope) {
+            richMessageBlocks(visuals.prose) { target, label in threadChips.updateValue(label, forKey: target) }
+        }
         let parsed = ParsedMessageBody(body: body, visuals: visuals, richBlocks: blocks, threadChips: threadChips)
         projections.bodies.remember(parsed, id: id, content: content, revision: revision)
         return parsed
@@ -66,6 +68,8 @@ extension HausStore {
                 let chip = threadReferencePresentation(wireTarget: id)
                 onThreadChip(id, chip?.label)
                 return chip
+            case .sharedArtifact:
+                return sharedArtifactReference(key: id)
             // No other kind names Server state, so the parser's own chip stands.
             default: return nil
             }

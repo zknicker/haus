@@ -110,7 +110,7 @@ enum ArtifactPagePresenter {
         presenter.present(controller, animated: true)
     }
 
-    private static func frontmostController() -> UIViewController? {
+    static func frontmostController() -> UIViewController? {
         let window = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .filter { $0.activationState == .foregroundActive }

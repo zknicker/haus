@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import HausModels
 
 /// Every reference kind a message body can carry, mirroring the App's
 /// `ReferenceKind`. The composer's picker offers Agents, humans, channels, and
@@ -19,6 +20,9 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     case human
     case plugin
     case pullRequest
+    /// A shared-library artifact on the active Server, by its
+    /// `SharedArtifactLinkTarget.key`; see `SharedArtifactLinkTarget`.
+    case sharedArtifact
     case skill
     /// A Thread, by its parent Chat and anchor Message
     /// (`chat://<chatId>?thread=<anchorMessageId>`); see `ThreadReferenceTarget`.
@@ -144,19 +148,24 @@ public struct RichReferencePresentation: Hashable, Sendable {
     /// A channel reference's live appearance. Nil for every other kind, and
     /// nil for a channel the app cannot currently resolve.
     public let channelAppearance: ChannelAppearance?
+    /// A shared artifact's file-kind glyph once its metadata has loaded. Nil
+    /// for every other kind, and the generic document glyph until then.
+    public let fileGlyph: HausIconName?
 
     public init(
         id: String,
         kind: MentionPresentationKind,
         label: String,
         avatarURL: URL?,
-        channelAppearance: ChannelAppearance? = nil
+        channelAppearance: ChannelAppearance? = nil,
+        fileGlyph: HausIconName? = nil
     ) {
         self.id = id
         self.kind = kind
         self.label = label
         self.avatarURL = avatarURL
         self.channelAppearance = channelAppearance
+        self.fileGlyph = fileGlyph
     }
 
     /// The address this reference opens when it is activated. A web link and a
@@ -168,6 +177,8 @@ public struct RichReferencePresentation: Hashable, Sendable {
         // An in-app address: the text view's link coordinator routes it to the
         // Thread instead of handing it to the system (`InAppReferenceRoutes`).
         case .thread: ThreadReferenceTarget(wireTarget: id).flatMap { _ in URL(string: id) }
+        // In-app too: `InAppReferenceRoutes` opens the artifact viewer.
+        case .sharedArtifact: SharedArtifactLinkTarget(key: id)?.inAppURL
         default: nil
         }
     }
@@ -184,6 +195,7 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .directory: .glyph(.folder)
         case .file: .glyph(.document)
         case .pullRequest: .glyph(.pullRequest)
+        case .sharedArtifact: .glyph(fileGlyph ?? .document)
         case .skill: overrideMark ?? .glyph(.skill)
         case .thread: .glyph(.thread)
         case .website: .glyph(.website)
