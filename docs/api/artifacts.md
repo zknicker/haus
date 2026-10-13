@@ -4,11 +4,13 @@ read_when:
   - "changing the shared artifact library, media or text previews, or revision viewer"
   - "changing shared artifact APIs, revision storage, or Agent file sharing"
   - "changing shared file caching or R2 authorization"
+  - "changing shared artifact paths, folders, or compare-and-set writes (see specs/artifact-drive.md)"
 ---
 
 # Shared artifacts
 
-An artifact belongs to a Haus Server and has a stable identity and name. Each publish creates an
+An artifact belongs to a Haus Server and has a stable identity and a canonical drive path
+([artifact drive](../../specs/artifact-drive.md)). Each publish creates an
 immutable revision; its stable App URL opens the current revision and its version URL pins one
 revision. Every active Server member can read and publish revisions. Files are private in Cloudflare
 R2. Haus Server owns metadata, membership authorization, storage accounting, and revision selection.
@@ -18,25 +20,28 @@ The Agent API follows Raft's published action names and parameters, implemented 
 
 | POST action under `/api/agent/actions/` | Input |
 | --- | --- |
-| `publish-artifact-raw` | Raw bytes; query `title`, `filename`, optional `name` or `artifact_id` (not both), `content_type`, `request_id` |
-| `list-artifacts` | JSON optional `offset` |
+| `publish-artifact-raw` | Raw bytes; query `path`, optional `base_revision_id` or `replace=true` (not both), `title`, `content_type`, `request_id` |
+| `list-artifacts` | JSON optional `offset` (root folder) |
 | `get-artifact` | JSON `artifact_id`, optional `revision_id` |
 | `list-artifact-versions` | JSON `artifact_id`, optional `offset` |
 | `delete-artifact` | JSON `artifact_id` |
 | `delete-artifact-version` | JSON `artifact_id`, `revision_id` |
 
-Publishing adds a revision only when `artifact_id` names a live artifact. Otherwise it creates a new
-artifact. An explicit `name` (lowercase-kebab, at most 128 characters) must be free among the
-Server's live artifacts; a taken name fails with 409 `NAME_TAKEN`, and the message names the
-existing artifact id and says to pass `--artifact-id` to revise it. Explicit names are never
-suffixed. With neither field, the Server derives the name from `filename` (the stem, lowercased,
-other characters folded to hyphens, `artifact` when nothing remains) and takes the first free of
-`<stem>`, `<stem>-2`, `<stem>-3`…, inside the reservation transaction that holds the Server row lock,
-so concurrent publishes never pick the same name. This diverges from Raft, whose `name` upserts:
-create-only names keep one member from silently revising another member's artifact, and
-`request_id` already covers retries.
+A write names a drive `path`. A free path creates an artifact. An occupied path adds a revision
+only with `base_revision_id` equal to its current head or with `replace=true`; otherwise it fails
+with 409 `REVISION_CONFLICT` and `current`, the head it lost to. The head is checked again when
+the upload lands, so of two writers from one base exactly one wins.
+[Artifact drive](../../specs/artifact-drive.md) owns path rules, folders, moves, error codes, and
+the migration from names. Raft's `name` upserts; Haus has no name, and a path never upserts
+blindly: `replace` is the only overwrite. Members publish through `PUT /artifacts/:serverId/publish`
+with the same query metadata and a Clerk session.
 
-The native `artifact` tRPC router supplies App reads and deletion. Computer uses the scoped native
+Path routes beside the actions: `GET /api/agent/artifacts` lists a folder (`prefix`,
+`recursive`, `order`, `limit`, `offset`, `query`, `mine`), `GET /api/agent/artifacts/by-path?path=`
+resolves one file, and `POST /api/agent/artifacts/move` moves a file or folder (`from`, `to`,
+optional `base_revision_id` for a file).
+
+The native `artifact` tRPC router supplies App reads, moves, and deletion. Computer uses the scoped native
 Agent artifact HTTP routes for authenticated download resolution. All routes call the same product
 logic; no Raft source code is included. Public sharing, comments, GitHub publishing, and JSON/base64
 publication are outside this MVP.
@@ -48,12 +53,13 @@ than inventing a creator. `created_at` is when the artifact identity was created
 when the described revision was published, so on current metadata it is the latest revision time.
 Library lists sort by `updated_at` descending; version lists sort by revision number.
 
-The native list query accepts `query` (Server-side search across current titles, filenames, and
-artifact names), `kind` (`all`, `images`, `documents`, `media`, `other`), and an optional exact
-`creator`; filtering happens before offset pagination. Storage is flat; the library groups by
-creator instead of folders. `artifact.creators` returns one entry per creator with at least one live
-artifact on the Server: `creator`, `artifact_count`, `latest_at`, and `previews`, the creator's three
-most recently updated artifacts of any kind. Entries sort by `latest_at` descending, and the
+The native list query (`artifact.list`) browses one folder: `prefix` (`''` for the root) returns
+its immediate child folders on the first page and its own files, and `recursive` returns every file
+under it. `query` searches current titles and paths, `kind` (`all`, `images`, `documents`,
+`media`, `other`) and an optional exact `creator` filter files, and filtering happens before
+offset pagination; results carry `next_offset`. `artifact.creators` returns one entry per creator
+with at least one live artifact on the Server: `creator`, `artifact_count`, `latest_at`, and
+`previews`, the creator's three most recently updated artifacts of any kind. Entries sort by `latest_at` descending, and the
 procedure uses the same membership authorization as `list`.
 
 The App library (`features/artifacts/`) is a Finder-style page in the ordinary page column: the
@@ -86,7 +92,8 @@ download link (storage disabled, revision gone) falls back to the file's icon. T
 artifact realtime events: lists refresh on mount, focus, and reconnect under `syncedSnapshot`.
 
 `haus artifact publish`, `list`, `get`, `versions`, `view`, and `delete` expose these primitives
-and always print JSON. `haus artifact list --query <text>` uses the same Server-side search as the
+and always print JSON. `publish --path <file>` writes to `--to <drive-path>` (default: the file
+name) with `--base-revision-id` or `--replace` for an existing path. `haus artifact list --query <text>` uses the same Server-side search as the
 App, and `--mine` narrows to artifacts the calling Agent created (the native Agent route's `query`
 and `mine=true` parameters). Agents get no creator directory: `artifact.creators` stays App-only.
 The managed prompt names the family and points at the `artifact` Manual topic, which carries when to
@@ -94,9 +101,9 @@ publish versus attach or use a workbench `artifact` fence, sharing the `stable_u
 (the App renders a same-Server link as an artifact chip and tile), and resolving a pasted
 `/artifacts/<id>` link with `view`. Publish leaves the source untouched. The CLI prints a request ID before transfer; reuse it with
 identical metadata and bytes to retry a lost success response without adding another revision. `ARTIFACT_PUBLISH_UNCONFIRMED` means the CLI could not read the response and the upload may already exist. A
-retry without `name` returns the artifact its first attempt created, including its derived name.
-An in-progress or failed publication requires waiting or a new ID. A new ID publishes again: a new
-revision with `artifact_id`, otherwise a new artifact.
+retry returns the revision its first attempt created even after the head has moved on. An
+in-progress or failed publication requires waiting or a new ID; a new ID is a new write and follows
+the compare-and-set rules.
 Lists have 50 entries per offset page. Deletion requires the artifact creator or a human Owner/Admin;
 the current revision cannot be deleted separately. Deleted records become inaccessible immediately;
 cloud deletion failures retain their storage reservation and retry during Server startup.
