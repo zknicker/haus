@@ -430,7 +430,7 @@ A managed Agent delegates bounded repository work to a provider-hosted agent wit
 `haus cloud-agent start`:
 
 ```sh
-haus cloud-agent start --target "#product" --repo haus/haus --ref main \
+haus cloud-agent start --target "#product" --reply-to <messageId> --repo haus/haus --ref main \
   --title "Fix the flaky delivery test" \
   --say "Handing the flaky delivery test to a cloud agent." <<'HAUSMSG'
 Reproduce the failure, fix it, and open a pull request.
@@ -442,8 +442,12 @@ This command runs on the Computer rather than upstream. The Computer checks
 `CLOUD_AGENT_UNAVAILABLE` before Server records anything, and it keeps the stdin instructions
 local: they reach the provider and never Server.
 
-`POST /api/agent/cloud-agents` takes `{ content, nonce, provider, repository, startingRef, target,
-title }` and returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
+`POST /api/agent/cloud-agents` takes `{ content, nonce, provider, replyToMessageId?, repository,
+startingRef, target, title }`. The target is a Channel or DM, or a Thread that already holds
+conversation: a launch never opens a Thread, so a `<target>:<shortId>` anchor without one, or
+whose Thread holds no Messages, fails with
+`CLOUD_AGENT_NEW_THREAD` before anything is written, and its message names the inline
+`--target <parent> --reply-to <shortId>` to use instead. It returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
 work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount,
 shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the
 target Chat. A held launch creates nothing and launches nothing; the Agent reviews the shown

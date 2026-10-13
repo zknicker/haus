@@ -50,7 +50,11 @@ facts and compatibility risks, not unresolved product decisions.
   invocation that starts the work, followed by a blank line and a Server-written link to the new
   work.
 - **One work conversation.** A top-level launch Message receives a child Thread immediately. Work
-  launched inside an existing Thread stays in that Thread because Threads do not nest. Replying to
+  launched inside a Thread that already holds conversation stays in that Thread because Threads
+  do not nest. A launch never opens a new Thread: the launch Message is the Agent's inline reply
+  to the request (`--reply-to`), and a `<target>:<shortId>` whose Thread does not exist or holds
+  no Messages yet (a Follow alone materializes an empty Thread) is refused with
+  `CLOUD_AGENT_NEW_THREAD` before anything is written, whoever authored the anchor. Replying to
   the Message is the human steering and discussion surface; the card has no separate reply model.
 - **One updating presentation.** Haus App renders each work a Message links as one work card,
   the same in the parent Chat, inside the Thread, and in any other conversation that links it. It
@@ -92,7 +96,8 @@ Cloud Agent work is task-like but is not a Haus Task. It has no assignee, claim,
 or board lifecycle, and a launch Message cannot be promoted to a Task.
 
 **Delegation from a Task.** A human creates or promotes a Task, an Agent claims it, and the Agent
-delegates inside the Task Thread. The launch Message is a reply in that Thread. The Task keeps the
+delegates on the Task. When the Task Thread already holds conversation, the launch Message is a
+reply in that Thread; otherwise it is an inline reply to the Task Message. The Task keeps the
 human lifecycle: the Agent advances it — to `in_review` when a pull request exists, to `done` when
 that pull request merges — through the ordinary versioned task mutation. A launch Message is never
 itself promoted to a Task.
@@ -415,7 +420,9 @@ still conflicts.
 **Launch.** Launch keeps today's placement. Creation is one Server transaction that writes the
 launch Message, the work, its first Run, and every link row. A top-level launch creates the launch
 Message's Thread and the launching Agent follows it, so human replies there wake it; a launch
-inside a Thread stays in that Thread. The start receipt prints `Work thread:` with the
+inside a Thread that already holds conversation stays in that Thread. Target resolution never
+creates a Thread for a launch (`haus message send` still does); an anchor without one, or whose
+Thread holds no Messages, fails before the transaction writes anything. The start receipt prints `Work thread:` with the
 `"<target>:<shortId>"` Thread target, or the enclosing Thread target. Only the `--say` text is
 authored. The Server appends `\n\n` and the new work's link itself, outside the authorization
 path, as the Message's last link. Authored content stays capped at 32,000 characters; stored

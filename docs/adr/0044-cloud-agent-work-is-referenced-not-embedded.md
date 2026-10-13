@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: Cloud Agent work is its own Agent-owned record that Messages link to; every link renders the same live card with the same actions, anyone who can read a linking Message can see the work, the `cloud-agent-work` body kind retires, and launch placement (work Thread, receipts, completion target) stays exactly as it is.
+summary: Cloud Agent work is its own Agent-owned record that Messages link to; every link renders the same live card with the same actions, anyone who can read a linking Message can see the work, the `cloud-agent-work` body kind retires, and launch placement (work Thread, receipts, completion target) stays exactly as it is, except that a launch never opens a new Thread (amended 2026-10-12).
 read_when:
   - changing Cloud Agent work storage, its link to Messages, or the `cloud-agent-work` body kind
   - adding or changing the Cloud Agent work rich reference, its card, or who may see Cloud Agent work
@@ -12,7 +12,7 @@ read_when:
 
 ## Status
 
-Accepted, 2026-10-11. Amends [ADR 0025](0025-messages-carry-typed-product-bodies.md) for Cloud
+Accepted, 2026-10-11; amended 2026-10-12 (a launch never opens a Thread), below. Amends [ADR 0025](0025-messages-carry-typed-product-bodies.md) for Cloud
 Agent work. [ADR 0041](0041-cloud-agent-cards-mirror-cursor.md) still governs what the card shows.
 
 ## Context
@@ -109,3 +109,13 @@ true:
   so preservation means no leaks into other conversations, not required Thread posts. The
   implementation also reruns `eval:prompt`, `test:prompt-contract`, and the Server, Computer,
   App, and iOS suites.
+
+## Amendment, 2026-10-12: a launch never opens a Thread
+
+Placement item 5 changes for one case. A launch whose `<target>:<shortId>` anchor has no Thread
+yet, or only an empty one (a Follow alone materializes it), no longer creates or fills that
+Thread; the Server refuses it with `CLOUD_AGENT_NEW_THREAD` before
+writing anything, whoever authored the anchor. Agents kept opening fresh Threads to hold one card,
+hiding it behind "1 reply". The card is the inline reply (`--reply-to`) and gets its own work
+Thread. Launches into a Thread that already holds conversation, including a Task Thread with conversation,
+behave as before. `specs/cloud-agents.md` carries the current contract.
