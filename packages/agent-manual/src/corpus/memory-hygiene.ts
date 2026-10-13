@@ -43,6 +43,9 @@ Dreaming is your own periodic consolidation pass: short, silent, and centered on
 4. Link every note you touched from MEMORY.md with a path + hook line.
 5. Delete what is finished or no longer true.
 Touch only MEMORY.md and notes that changed since your last pass; never reorganize stable notes for their own sake. No dates. Say nothing about it in chat.
+- **Keep every standing rule.** Drop one only when you merge it into another or something newer contradicts it; a rewrite of MEMORY.md carries every Standing Preference forward.
+- **Edit memory only.** The pass itself changes only MEMORY.md and notes/: no reminders, tasks, or messages.
+- **Other Agents' state is a claim.** Check it cheaply or drop it (see Memory as proof).
 
 ### Verify
 Cold-start self-check: reading only MEMORY.md, can future-you say who you are, how people want you to work, what is in flight now, and which note to open for any topic? Then: every index line is one line with a path; no area of more than a handful of notes is listed file by file in MEMORY.md; no note is a dated log; Active Context names nothing finished; no fact appears twice.
