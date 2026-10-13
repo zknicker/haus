@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v13.0.0 - 2026-10-13
+
+- Computer settings has a Secrets row. From Haus for Mac 6.1.0, a Server Owner connects one 1Password vault to a Computer: Haus creates a read-only service account for that vault and keeps its token in the Computer's login Keychain. Agents see item names, never values. Refresh items picks up new or renamed items, and Disconnect forgets the token and names the service account to revoke on 1password.com.
+- Haus Computer 10.0.0 runs commands with vault items as environment variables through `haus-secrets -- <command>`, and `haus-secrets --list` shows the names. When the login Keychain has locked itself, settings shows Keychain locked and asks someone to log in on the Computer. Haus Agent 9.5.0 learns this from the `secrets` Manual topic.
+- Haus Computer 10.0.0 is required: Server 12.0.0 speaks Computer protocol 30, and older Computers connect in update-required mode until updated.
+
 ## v12.6.0 - 2026-10-13
 
 - Connections recommends Trademark Terminal for trademark search, registration lookup, and listing text screening, with MerchBase sign-in and its own icon.
