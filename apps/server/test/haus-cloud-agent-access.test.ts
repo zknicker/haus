@@ -142,7 +142,16 @@ test('a Task Thread lists every delegation under its anchor without leaking othe
         content: 'Review both halves',
         nonce: 'cloud-multiple-task',
     });
+    // A launch never opens a Thread, so the Task Thread is already in progress.
+    await fixture.owner.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'Split it in two.',
+        nonce: 'cloud-multiple-thread',
+        serverId: fixture.serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
     const runner = await fixture.mintRunner('run_cloud_multiple');
+    await fixture.readTarget(runner, `#product:${task.task.messageId}`);
     const first = await fixture.postStart(
         runner,
         fixture.startBody({

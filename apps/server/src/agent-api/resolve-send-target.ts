@@ -2,9 +2,18 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatMessagesTable, serverMembershipsTable } from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { ensureThreadWithAnchorFollow } from '../threads/ensure-thread.ts';
 import { AgentTargetError, escapeLike, resolveAgentTarget } from './resolve-target.ts';
+
+/**
+ * What a send does with an anchor Message that has no Thread yet: a Message
+ * send opens one; a Cloud Agent launch refuses, because its card already gets
+ * its own work Thread. Under `refuse`, a Thread row with no Messages (a human
+ * Follow on an unanswered Message, or every reply deleted) counts as no Thread:
+ * the launch would still be its first Message.
+ */
+export type AnchorWithoutThread = 'open' | 'refuse';
 
 /**
  * Send-only resolver: beyond the strict targets an Agent may already read, a
@@ -15,10 +24,15 @@ import { AgentTargetError, escapeLike, resolveAgentTarget } from './resolve-targ
 export async function resolveAgentSendTarget(
     db: HausDatabase,
     runner: ResolvedRunner,
-    target: string
+    target: string,
+    anchorWithoutThread: AnchorWithoutThread
 ): Promise<string> {
     try {
-        return await resolveAgentTarget(db, runner, target);
+        const chatId = await resolveAgentTarget(db, runner, target);
+        if (anchorWithoutThread === 'refuse') {
+            await requireThreadConversation(db, runner.serverId, chatId, target);
+        }
+        return chatId;
     } catch (cause) {
         if (!(cause instanceof AgentTargetError)) {
             throw cause;
@@ -70,6 +84,9 @@ export async function resolveAgentSendTarget(
     if (anchors.length !== 1) {
         throw new AgentTargetError();
     }
+    if (anchorWithoutThread === 'refuse') {
+        throw new ThreadNotOpenError(parsed.parentTarget, anchors[0].id);
+    }
     return (
         await ensureThreadWithAnchorFollow(db, {
             anchorMessageId: anchors[0].id,
@@ -77,6 +94,45 @@ export async function resolveAgentSendTarget(
             serverId: runner.serverId,
         })
     ).id;
+}
+
+/** A visible anchor Message whose Thread does not exist, under a refusing send. */
+export class ThreadNotOpenError extends Error {
+    readonly anchorMessageId: string;
+    readonly parentTarget: string;
+
+    constructor(parentTarget: string, anchorMessageId: string) {
+        super(`${parentTarget} has no Thread on ${anchorMessageId} yet.`);
+        this.anchorMessageId = anchorMessageId;
+        this.parentTarget = parentTarget;
+        this.name = 'ThreadNotOpenError';
+    }
+}
+
+/** Refuses a Thread target whose Thread holds no Messages yet. */
+async function requireThreadConversation(
+    db: HausDatabase,
+    serverId: string,
+    chatId: string,
+    target: string
+) {
+    const [chat] = await db
+        .select({ anchorMessageId: chatsTable.anchorMessageId, kind: chatsTable.kind })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, chatId)))
+        .limit(1);
+    if (chat?.kind !== 'thread' || !chat.anchorMessageId) {
+        return;
+    }
+    const [message] = await db
+        .select({ id: chatMessagesTable.id })
+        .from(chatMessagesTable)
+        .where(and(eq(chatMessagesTable.serverId, serverId), eq(chatMessagesTable.chatId, chatId)))
+        .limit(1);
+    if (!message) {
+        const separator = target.lastIndexOf(':');
+        throw new ThreadNotOpenError(target.slice(0, separator), chat.anchorMessageId);
+    }
 }
 
 function parseDirectHumanHandle(target: string) {
@@ -91,21 +147,27 @@ async function resolveAgentParentTarget(
     db: HausDatabase,
     runner: ResolvedRunner,
     target: string
-): Promise<{ anchor: string; parentChatId: string } | null> {
+): Promise<{ anchor: string; parentChatId: string; parentTarget: string } | null> {
     if (target.startsWith('#')) {
         const [channelName, anchor, ...extra] = target.slice(1).split(':');
         if (!(channelName && anchor) || extra.length > 0) {
             return null;
         }
-        const parentChatId = await resolveAgentTarget(db, runner, `#${channelName}`);
-        return { anchor, parentChatId };
+        const parentTarget = `#${channelName}`;
+        const parentChatId = await resolveAgentTarget(db, runner, parentTarget);
+        return { anchor, parentChatId, parentTarget };
     }
     if (target.startsWith('dm:@')) {
         const [peer, anchor, ...extra] = target.slice('dm:@'.length).split(':');
         if (!(peer && anchor) || extra.length > 0) {
             return null;
         }
-        return { anchor, parentChatId: await resolveAgentTarget(db, runner, `dm:@${peer}`) };
+        const parentTarget = `dm:@${peer}`;
+        return {
+            anchor,
+            parentChatId: await resolveAgentTarget(db, runner, parentTarget),
+            parentTarget,
+        };
     }
     return null;
 }

@@ -1,7 +1,10 @@
 import type { MessageBodyKind } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
-import { resolveAgentSendTarget } from '../agent-api/resolve-send-target.ts';
+import {
+    type AnchorWithoutThread,
+    resolveAgentSendTarget,
+} from '../agent-api/resolve-send-target.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -53,9 +56,10 @@ export class AgentAuthorNotFoundError extends Error {
 export async function planAgentAuthoredMessage(
     db: HausDatabase,
     runner: ResolvedRunner,
-    target: string
+    target: string,
+    anchorWithoutThread: AnchorWithoutThread
 ): Promise<AgentAuthoredMessagePlan> {
-    const chatId = await resolveAgentSendTarget(db, runner, target);
+    const chatId = await resolveAgentSendTarget(db, runner, target, anchorWithoutThread);
     await requireChatWritable(db, { chatId, serverId: runner.serverId });
     const [agent] = await db
         .select({ handle: agentsTable.handle })

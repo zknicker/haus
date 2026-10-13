@@ -60,7 +60,7 @@ export function registerAgentMessageSendRoute(
         try {
             const committed = await options.db.transaction(async (tx) => {
                 await lockServerRow(tx, runner.serverId);
-                const chatId = await resolveAgentSendTarget(tx, runner, input.target);
+                const chatId = await resolveAgentSendTarget(tx, runner, input.target, 'open');
                 // Provenance is resolved before the hold check so an unknown or
                 // borrowed fire id is refused outright, never held. Without an
                 // explicit `--cause`, a sole served fire answered in its anchor

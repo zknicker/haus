@@ -187,7 +187,7 @@ test('an Agent send target materializes the addressed human pair by handle', asy
     };
 
     const chatId = await connection.db.transaction((tx) =>
-        resolveAgentSendTarget(tx, runner, 'dm:@GRACE-HOPPER')
+        resolveAgentSendTarget(tx, runner, 'dm:@GRACE-HOPPER', 'open')
     );
     const rows = await harness.sql`
         select dm_agent_id, dm_member_one_user_id from chats

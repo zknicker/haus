@@ -65,7 +65,9 @@ export async function createCloudAgentWork(
 ): Promise<CreateCloudAgentWorkResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
-        const plan = await planAgentAuthoredMessage(tx, runner, input.target);
+        // A launch card is an inline reply with its own work Thread, so a
+        // launch never opens a new Thread on any anchor, the Agent's own included.
+        const plan = await planAgentAuthoredMessage(tx, runner, input.target, 'refuse');
 
         const existing = await readWorkByNonce(tx, runner, plan.chatId, input);
         if (existing) {

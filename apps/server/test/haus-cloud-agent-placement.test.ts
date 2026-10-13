@@ -84,6 +84,100 @@ test('a Task Thread launch posts in the Task Thread and notifies it', async () =
     expect(await settleTarget(placed)).toBe(threadId);
 });
 
+test('a launch on an anchor with no Thread is refused and creates nothing', async () => {
+    const anchor = await links.humanSend(
+        fixture.owner,
+        fixture.channelId,
+        'Can a cloud agent look at the flaky test?',
+        'place-refused-anchor'
+    );
+    const refused = await refuseLaunch(`#product:${anchor.message.id}`, 'place-refused');
+    expect(refused).toEqual({
+        code: 'CLOUD_AGENT_NEW_THREAD',
+        message: `A cloud agent launch can't open a new thread; its card gets its own work thread. Reply inline instead: --target "#product" --reply-to ${short(anchor.message.id)}`,
+    });
+    expect(await threadsUnder(fixture.channelId, anchor.message.id)).toEqual([]);
+});
+
+test('a launch into a followed Thread with no Messages is refused like no Thread', async () => {
+    const anchor = await links.humanSend(
+        fixture.owner,
+        fixture.channelId,
+        'Anyone seen the deploy alarm?',
+        'place-empty-anchor'
+    );
+    const threadId = threadChatIdForAnchor(anchor.message.id);
+    // Following an unanswered Message materializes an empty Thread row.
+    await fixture.owner.trpc.thread.setFollow.mutate({
+        follow: true,
+        serverId: fixture.serverId,
+        threadChatId: threadId,
+    });
+    expect(await threadsUnder(fixture.channelId, anchor.message.id)).toEqual([threadId]);
+    const refused = await refuseLaunch(`#product:${short(anchor.message.id)}`, 'place-empty');
+    expect(refused).toEqual({
+        code: 'CLOUD_AGENT_NEW_THREAD',
+        message: `A cloud agent launch can't open a new thread; its card gets its own work thread. Reply inline instead: --target "#product" --reply-to ${short(anchor.message.id)}`,
+    });
+    const [held] = (await fixture.harness.sql`
+        select count(*)::int as total from chat_messages where chat_id = ${threadId}
+    `) as { total: number }[];
+    expect(held?.total).toBe(0);
+});
+
+test('a launch on the Agent’s own DM Message with no Thread is refused too', async () => {
+    const runner = await fixture.mintRunner('run_place-refused-dm-ack');
+    const ack = await links.agentPost(runner, '/api/agent/messages/send', {
+        content: 'On it.',
+        nonce: 'place-refused-dm-ack',
+        target: 'dm:@ada',
+    });
+    expect(ack.status).toBe(200);
+    const ackId = (ack.body as { message: { id: string } }).message.id;
+    const refused = await refuseLaunch(`dm:@ada:${short(ackId)}`, 'place-refused-dm');
+    expect(refused.message).toEndWith(`--target "dm:@ada" --reply-to ${short(ackId)}`);
+    expect(await threadsUnder(await chatOf(ackId), ackId)).toEqual([]);
+});
+
+test('a Message send to an anchor with no Thread still opens the Thread', async () => {
+    const anchor = await links.humanSend(
+        fixture.owner,
+        fixture.channelId,
+        'What broke the deploy?',
+        'place-send-anchor'
+    );
+    const runner = await fixture.mintRunner('run_place-send-thread');
+    await fixture.readTarget(runner, '#product');
+    const sent = await links.agentPost(runner, '/api/agent/messages/send', {
+        content: 'Looking into it here.',
+        nonce: 'place-send-thread',
+        target: `#product:${short(anchor.message.id)}`,
+    });
+    expect(sent.status).toBe(200);
+    expect(await threadsUnder(fixture.channelId, anchor.message.id)).toEqual([
+        threadChatIdForAnchor(anchor.message.id),
+    ]);
+});
+
+/** Launches into a target that must be refused, proving no row was written. */
+async function refuseLaunch(target: string, nonce: string) {
+    const runner = await fixture.mintRunner(`run_${nonce}`);
+    await fixture.readTarget(runner, target.split(':').slice(0, -1).join(':'));
+    const workBefore = await fixture.countWork();
+    const started = await fixture.postStart(runner, fixture.startBody({ nonce, target }));
+    expect(started.status).toBe(400);
+    expect(await fixture.countWork()).toBe(workBefore);
+    const written = (await fixture.harness.sql`
+        select id from chat_messages where server_id = ${fixture.serverId} and nonce = ${nonce}
+    `) as { id: string }[];
+    expect(written).toEqual([]);
+    return started.body as { code?: string; message?: string };
+}
+
+function short(messageId: string) {
+    return messageId.replace(/^msg_/u, '').slice(0, 8);
+}
+
 async function launch(target: string, nonce: string, replyToMessageId?: string) {
     const runner = await fixture.mintRunner(`run_${nonce}`);
     await fixture.readTarget(runner, target.split(':')[0] ?? target);
