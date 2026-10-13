@@ -192,18 +192,6 @@ final class HausStore {
 
     var activeServer: ServerSummary? { servers.first }
 
-    /// Observation notifies on equal-value writes, so the event paths must not
-    /// restate a connection they already have: doing so invalidated the root
-    /// body once per SSE frame. `markDisconnected` is the same rule for the
-    /// paths that observe an outage.
-    func markConnected() {
-        if !isConnected { isConnected = true }
-    }
-
-    func markDisconnected() {
-        if isConnected { isConnected = false }
-    }
-
     // MARK: - Projected Server state
     //
     // The Chat projections are memoized, and these fields are their inputs. Each

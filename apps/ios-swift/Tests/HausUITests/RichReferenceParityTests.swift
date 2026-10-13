@@ -251,23 +251,6 @@ struct RichReferenceParityTests {
         )
     }
 
-    /// A tap opens the two kinds whose target is a real address; every other
-    /// kind names a Haus record the phone has no route to.
-    @Test func opensOnlyTheReferencesWhoseTargetIsAnAddress() {
-        let opens = { (kind: MentionPresentationKind, id: String) in
-            RichReferencePresentation(id: id, kind: kind, label: "x", avatarURL: nil)
-                .activationURL != nil
-        }
-        #expect(opens(.website, "https://haus.dev"))
-        #expect(opens(.pullRequest, "https://github.com/haus/haus/pull/56"))
-        #expect(!opens(.agent, "agt_cove"))
-        #expect(!opens(.channel, "cht_product"))
-        // A workspace resource names an in-app target nothing opens yet.
-        #expect(RichReferenceWireForm.activationURL(for: "haus://workspace/notes.md") == nil)
-        #expect(RichReferenceWireForm.activationURL(for: "notascheme") == nil)
-        #expect(RichReferenceWireForm.activationURL(for: "mailto:ada@haus.dev") != nil)
-    }
-
     @Test func readsAnImageAsMarkdownRatherThanAWebsiteReference() {
         let content = "Here: ![a chart](https://example.com/chart.png)"
         #expect(RichMessageParser.parse(content) { _, _, _ in nil } == [.text(content)])
@@ -300,16 +283,5 @@ struct RichReferenceParityTests {
             label: "#56",
             avatarURL: nil
         ))))
-    }
-
-    @Test func drawsTheSkillMarkSmallerThanEveryOtherMark() {
-        #expect(RichReferenceMark.glyph(.skill).sizeScale < 1)
-        #expect(RichReferenceMark.glyph(.document).sizeScale == 1)
-        #expect(RichReferenceMark.avatar(nil).sizeScale == 1)
-        #expect(RichReferenceMark.channel(.default).sizeScale == 1)
-        // The shrink pays for the sparkles' own viewbox, so a Skill wearing a
-        // brand mark instead is drawn at the same size as every other mark.
-        #expect(RichReferenceMark.glyph(.github).sizeScale == 1)
-        #expect(RichReferenceMark.brandGlyph(.chrome, .success).sizeScale == 1)
     }
 }

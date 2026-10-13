@@ -95,6 +95,17 @@ struct RichReferenceMarkGeometryTests {
             #expect(abs(rect.maxY - (40 + metrics.descent)) < 0.001)
         }
     }
+
+    @Test func drawsTheSkillMarkSmallerThanEveryOtherMark() {
+        #expect(RichReferenceMark.glyph(.skill).sizeScale < 1)
+        #expect(RichReferenceMark.glyph(.document).sizeScale == 1)
+        #expect(RichReferenceMark.avatar(nil).sizeScale == 1)
+        #expect(RichReferenceMark.channel(.default).sizeScale == 1)
+        // The shrink pays for the sparkles' own viewbox, so a Skill wearing a
+        // brand mark instead is drawn at the same size as every other mark.
+        #expect(RichReferenceMark.glyph(.github).sizeScale == 1)
+        #expect(RichReferenceMark.brandGlyph(.chrome, .success).sizeScale == 1)
+    }
 }
 
 /// SF's vertical metrics at a point size, as UIKit reports them: no leading,

@@ -63,6 +63,23 @@ struct RichMessageLinkRunTests {
         }
     }
 
+    /// A tap opens the two kinds whose target is a real address; every other
+    /// kind names a Haus record the phone has no route to.
+    @Test func opensOnlyTheReferencesWhoseTargetIsAnAddress() {
+        let opens = { (kind: MentionPresentationKind, id: String) in
+            RichReferencePresentation(id: id, kind: kind, label: "x", avatarURL: nil)
+                .activationURL != nil
+        }
+        #expect(opens(.website, "https://haus.dev"))
+        #expect(opens(.pullRequest, "https://github.com/haus/haus/pull/56"))
+        #expect(!opens(.agent, "agt_cove"))
+        #expect(!opens(.channel, "cht_product"))
+        // A workspace resource names an in-app target nothing opens yet.
+        #expect(RichReferenceWireForm.activationURL(for: "haus://workspace/notes.md") == nil)
+        #expect(RichReferenceWireForm.activationURL(for: "notascheme") == nil)
+        #expect(RichReferenceWireForm.activationURL(for: "mailto:ada@haus.dev") != nil)
+    }
+
     private func makeBody(_ segments: [RichMessageSegment]) -> NSAttributedString {
         RichMessageAttributedText.make(
             segments: segments,

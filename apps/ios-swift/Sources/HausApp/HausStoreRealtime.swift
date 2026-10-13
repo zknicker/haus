@@ -25,6 +25,18 @@ struct ServerSnapshot: Sendable {
 }
 
 extension HausStore {
+    /// Observation notifies on equal-value writes, so the event paths must not
+    /// restate a connection they already have: doing so invalidated the root
+    /// body once per SSE frame. `markDisconnected` is the same rule for the
+    /// paths that observe an outage.
+    func markConnected() {
+        if !isConnected { isConnected = true }
+    }
+
+    func markDisconnected() {
+        if isConnected { isConnected = false }
+    }
+
     /// How long live delivery accumulates events before applying a batch. Short
     /// enough that a single message still lands as an immediate arrival.
     static let liveChatEventWindow = Duration.milliseconds(80)
