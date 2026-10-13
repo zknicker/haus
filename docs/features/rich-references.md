@@ -62,8 +62,13 @@ transient problem, and "Product details unavailable" for an unknown ASIN or a
 permanent failure. Once a lookup has explained a problem it never falls back to
 the bare loading copy. Without a RankWrangler connection in Settings →
 Connections the hover card notes that details need it.
-The hover card retains the full listing
-title. Hover or keyboard focus opens a compact glass card with a title of at most two lines, brand, and available price. The transparent product cutout floats beside it, tilted slightly, with a brief settling entrance and sparkle. Reduced motion disables the decoration. Clicking opens Amazon.
+The card is anchored below the chip. Its first line is the ASIN in monospace
+with a Copy ASIN button in every lookup state (loading, failure, and without
+RankWrangler), then the title when RankWrangler has one, brand, and price. The
+pointer can move into the card. Tab from the chip reaches Copy ASIN. Escape
+closes it. The transparent product cutout floats beside the text, tilted
+slightly, with a brief settling entrance and sparkle. Reduced motion disables
+the decoration. Clicking the chip still opens Amazon.
 
 ASIN recognition requires ten uppercase letters/digits beginning with B and
 containing a digit. Links support amazon.com `/dp/`, `/gp/product/`, and

@@ -44,6 +44,7 @@ test('the chip renders from the pattern match before any product data', () => {
     const markup = chip({ status: 'loading' });
     expect(markup).toContain('aria-label="Open B07XN9T11R on Amazon"');
     expect(markup).toContain('href="https://www.amazon.com/dp/B07XN9T11R"');
+    expect(markup).not.toContain('Copy ASIN');
     expect(markup).toContain('aria-busy="true"');
     expect(markup).toContain('reference-chip--product');
     expect(markup).toContain('animate-pulse');
@@ -78,6 +79,37 @@ test('failed and disconnected lookups keep the ASIN chip linking to Amazon', () 
         expect(markup).not.toContain('animate-pulse');
     }
 });
+test('every lookup state leads with a copyable ASIN, and the title follows only when RankWrangler returned one', () => {
+    const lookups = [
+        { status: 'loading' },
+        { status: 'retrying' },
+        { status: 'temporarilyUnavailable' },
+        { status: 'unavailable' },
+        { status: 'disconnected' },
+        { status: 'ready', detailFailed: false, product: summary },
+        {
+            status: 'ready',
+            detailFailed: false,
+            product: { ...summary, title: null },
+        },
+    ] as const satisfies readonly AmazonProductLookup[];
+    for (const lookup of lookups) {
+        const markup = preview(lookup);
+        expect(markup).toMatch(/<code[^>]*class="[^"]*\bfont-mono\b[^"]*"[^>]*>B07XN9T11R<\/code>/);
+        expect(markup).toContain('aria-label="Copy ASIN"');
+    }
+    const titled = preview({ status: 'ready', detailFailed: false, product: summary });
+    expect(titled.match(/B07XN9T11R/g)).toEqual(['B07XN9T11R']);
+    expect(titled).toContain('Freaky Lunch Lady Shirt');
+    expect(titled.indexOf('B07XN9T11R')).toBeLessThan(titled.indexOf('Freaky Lunch Lady Shirt'));
+    const untitled = preview({
+        status: 'ready',
+        detailFailed: false,
+        product: { ...summary, title: null },
+    });
+    expect(untitled).not.toContain('Freaky Lunch Lady Shirt');
+    expect(untitled).not.toMatch(/<strong[^>]*>B07XN9T11R<\/strong>/);
+});
 test('each lookup state explains itself in the hover card', () => {
     const copy: Record<Exclude<AmazonProductLookup['status'], 'ready'>, string> = {
         loading: 'Fetching product details…',
@@ -90,7 +122,6 @@ test('each lookup state explains itself in the hover card', () => {
     for (const [status, text] of Object.entries(copy)) {
         expect(preview({ status } as AmazonProductLookup)).toContain(text);
     }
-    // Retrying keeps the chip's existing pending look; no new chip state.
     expect(chip({ status: 'retrying' })).toContain('animate-pulse');
 });
 test('product chips share the reference shell and thumbnail registry', () => {
