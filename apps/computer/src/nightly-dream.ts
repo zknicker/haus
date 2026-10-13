@@ -146,9 +146,13 @@ function localDateOf(now: Date): string {
     return `${now.getFullYear()}-${month}-${day}`;
 }
 
+/** Agent folders only; dot-entries such as `.harness-bridge-prewarm` are Computer scratch. */
 async function listAgentIds(agentsDir: string): Promise<string[]> {
     try {
-        return await readdir(agentsDir);
+        const entries = await readdir(agentsDir, { withFileTypes: true });
+        return entries
+            .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+            .map((entry) => entry.name);
     } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
             return [];
