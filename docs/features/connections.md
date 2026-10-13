@@ -24,7 +24,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Cloudflare, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Linear, Cloudflare, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is the one built-in connection
@@ -79,6 +79,11 @@ Cloudflare connects to its [official MCP](https://github.com/cloudflare/mcp) at
 `https://mcp.cloudflare.com/mcp` through OAuth, with permissions selected during authorization.
 It exposes Cloudflare API and documentation tools, including DNS and Workers operations.
 Cloudflare requires sign-in and an explicit Agent access grant.
+
+Linear connects to its [official MCP](https://linear.app/docs/mcp) at
+`https://mcp.linear.app/mcp` through OAuth with dynamic client registration. It exposes issue,
+project, and comment tools. Adding it requires sign-in and an explicit Agent access grant;
+no Server OAuth client credentials are required.
 
 Vercel is not a built-in connection. Previously saved Vercel accounts remain custom MCP
 connections, retaining their credentials and Agent grants. Its official MCP requires approval of
