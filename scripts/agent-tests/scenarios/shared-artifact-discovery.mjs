@@ -2,7 +2,12 @@
 // "artifact", so the Agent must find `haus artifact` from its prompt's family
 // entry and the Manual, keep the file's real extension, and link it.
 
-import { agentMessages, artifactsCreatedBy, deleteArtifacts } from '../artifact-evidence.mjs';
+import {
+    agentMessages,
+    artifactsCreatedBy,
+    deleteArtifacts,
+    turnCommands,
+} from '../artifact-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
@@ -25,6 +30,10 @@ export default defineScenario({
             const turn = await settleTurn(worker.id);
             expect(turn.status, 'turn completed').toBe('completed');
 
+            const discovery = (await turnCommands(kit, worker.id, turn)).filter((command) =>
+                /haus (?:manual|artifact|attachment)/u.test(command)
+            );
+            log(`discovery: ${discovery.join(' | ').slice(0, 600)}`);
             published = await artifactsCreatedBy(kit, worker.id);
             log(`published: ${published.map((entry) => entry.filename).join(', ') || 'none'}`);
             expect(published, 'exactly one shared artifact published').toHaveLength(1);

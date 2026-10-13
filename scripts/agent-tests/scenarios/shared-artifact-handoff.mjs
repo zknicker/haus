@@ -58,7 +58,13 @@ export default defineScenario({
                 original
             );
             const commands = (await turnCommands(kit, editor.id, editTurn)).join('\n');
-            log(`editor commands: ${commands.slice(0, 600)}`);
+            log(
+                `editor artifact commands: ${commands
+                    .split('\n')
+                    .filter((line) => line.includes('haus artifact'))
+                    .join(' | ')
+                    .slice(0, 600)}`
+            );
             expect(commands, 'peer resolved the pasted link with artifact view').toContain(
                 `artifact view ${artifactId}`
             );
