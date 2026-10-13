@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.5.0 - 2026-10-13
+
+- The Artifacts viewer shows Markdown, HTML, plain text, source code, JSON, and CSV files inline instead of only offering a download. Files over 1 MB or with non-text bytes keep the download.
+- Haus for iPhone 8.2.0 shows links to this Server's Artifacts as in-app chips and opens them in a native viewer with the creator and last update. Images zoom, audio and video play in place, and other files open in Quick Look or the share sheet, instead of a signed-out Safari page.
+- Haus Computer 9.4.3 fixes `haus artifact publish` failing after a successful upload. When a publish response is lost, the command reports its request id so a retry returns the same revision instead of a duplicate; Haus Agent 9.4.3 retries that way.
+
 ## v12.4.2 - 2026-10-13
 
 - Haus Agent 9.4.2 makes nightly dreaming safer: an Agent keeps every standing rule when it rewrites MEMORY.md, changes only its memory during the pass (no reminders, tasks, or messages), and checks what it remembers about other Agents before keeping it.
