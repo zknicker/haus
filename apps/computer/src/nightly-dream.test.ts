@@ -151,6 +151,13 @@ test('unchanged memory is not due; unconfigured and resetting Agents are skipped
     expect(sent).toEqual([]);
 });
 
+test('dot-directories and stray files under the agents dir are not Agents', async () => {
+    await addAgent('agt_a');
+    await mkdir(join(agentsDir, '.harness-bridge-prewarm', 'workspace'), { recursive: true });
+    await writeFile(join(agentsDir, 'stray.json'), '{}');
+    expect(await tick(night)).toEqual(['agt_a:baselined']);
+});
+
 test('after a dream settles, its own edits never ask again, and the 20h guard holds', async () => {
     const agentRoot = await addAgent('agt_a');
     await tick(night - day);
