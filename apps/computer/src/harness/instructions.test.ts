@@ -127,6 +127,10 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions).toContain(
         'Before creating or managing a trigger, read Manual topic `recipes/technique/trigger-webhook` for setup, secret handling, and fire history.'
     );
+    // Computer Secrets: `haus-secrets` is no `haus` family, so only this pointer reveals it.
+    expect(instructions).toContain(
+        'When work needs an API key or other secret, read the `secrets` Manual topic before asking anyone for it.'
+    );
     // Provenance rides the Agent's own message: the fire itself is silent in chat.
     expect(instructions).toContain(
         'Answer a trigger fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in.'
