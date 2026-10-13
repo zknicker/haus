@@ -30,6 +30,7 @@ describe('preset account auth', () => {
 
     test.each([
         'cloudflare',
+        'linear',
         'merchbase-atlas',
         'handmade',
         'merchbase-fulfillment',

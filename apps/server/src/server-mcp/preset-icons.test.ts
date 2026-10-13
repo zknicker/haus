@@ -35,7 +35,8 @@ describe('bundled preset icons', () => {
                 preset !== 'merchbase-atlas' &&
                 preset !== 'handmade' &&
                 preset !== 'tmterminal' &&
-                preset !== 'cloudflare'
+                preset !== 'cloudflare' &&
+                preset !== 'linear'
         )
     )('%s ships a contract-valid PNG', (preset) => {
         const icon = mcpPresetIcons[preset];
@@ -48,6 +49,7 @@ describe('bundled preset icons', () => {
 describe('preset icon fallback', () => {
     test.each([
         'cloudflare',
+        'linear',
         'merchbase-atlas',
         'merchbase-fulfillment',
         'handmade',
@@ -68,6 +70,7 @@ describe('preset icon fallback', () => {
         });
         expect(urls).toEqual([
             'https://mcp.cloudflare.com/mcp',
+            'https://mcp.linear.app/mcp',
             'https://handmade.merchbase.co/mcp',
             'https://atlas.merchbase.co/mcp',
             'https://fulfillment.merchbase.co/mcp/printful',
@@ -81,7 +84,7 @@ describe('preset icon fallback', () => {
             resolvedIcon
         );
         const unavailable = await resolveMcpPresetIcons(async () => null);
-        for (const preset of ['cloudflare', 'tmterminal'] as const) {
+        for (const preset of ['cloudflare', 'linear', 'tmterminal'] as const) {
             expect(catalog.find((entry) => entry.preset === preset)?.icon).toEqual(resolvedIcon);
             expect(unavailable.find((entry) => entry.preset === preset)?.icon).toBeNull();
         }
