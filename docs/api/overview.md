@@ -92,9 +92,13 @@ Computer's strict receipt schema would reject after the Server had already recor
 Protocol 29 also removes the retired `cloud-agent-work` body kind from the Agent CLI's message
 schemas: launch Messages are `text`, and linked work arrives under `cloud_agent_works`
 ([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)).
+Computer protocol 30 adds the Owner-only `computer-secrets-request` and `-result` frames
+behind `computerSecrets.connect`, `refreshItems`, and `disconnect`, and the inventory `secrets`
+field, which a protocol-29 Server's strict inventory schema would reject
+([Computer Secrets](../features/computer-secrets.md)).
 Server and Computer therefore ship each in the same release, and
 the release requires an exact match: Server accepts ordinary work only from a Computer that reports
-protocol 29. A protocol-28 or older Computer
+protocol 30. A protocol-29 or older Computer
 connects in bootstrap mode, which keeps update control but cannot execute ordinary work, so the
 Computer artifact must publish before the Server is promoted
 ([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you
