@@ -60,8 +60,13 @@ afterAll(async () => {
 });
 
 test('members read each immutable revision as UTF-8 text; outsiders are refused', async () => {
-    const first = await publish('text-one', null, '# Notes');
-    const second = await publish('text-two', first.artifact.artifact_id, '# Notes v2');
+    const first = await publish('text-one', 'text/notes.md', '# Notes');
+    const second = await publish(
+        'text-two',
+        'text/notes.md',
+        '# Notes v2',
+        first.artifact.revision_id
+    );
     expect(await owner.trpc.artifact.text.query(target(first))).toEqual({
         status: 'text',
         text: '# Notes',
@@ -76,7 +81,11 @@ test('members read each immutable revision as UTF-8 text; outsiders are refused'
 });
 
 test('an oversize revision is refused from metadata without reading storage', async () => {
-    const large = await publish('text-large', null, 'a'.repeat(artifactTextMaxBytes + 1));
+    const large = await publish(
+        'text-large',
+        'text/large.md',
+        'a'.repeat(artifactTextMaxBytes + 1)
+    );
     reads.length = 0;
     expect(await owner.trpc.artifact.text.query(target(large))).toEqual({
         limit_bytes: artifactTextMaxBytes,
@@ -86,7 +95,11 @@ test('an oversize revision is refused from metadata without reading storage', as
 });
 
 test('a revision that is not valid UTF-8 reads as binary', async () => {
-    const binary = await publish('text-binary', null, Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0));
+    const binary = await publish(
+        'text-binary',
+        'text/binary.md',
+        Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0)
+    );
     expect(await owner.trpc.artifact.text.query(target(binary))).toEqual({ status: 'binary' });
 });
 
@@ -97,14 +110,19 @@ function target(result: { artifact: { artifact_id: string; revision_id: string }
         serverId,
     };
 }
-function publish(requestId: string, artifactId: string | null, body: string | Uint8Array) {
+function publish(
+    requestId: string,
+    path: string,
+    body: string | Uint8Array,
+    baseRevisionId?: string
+) {
     return publishArtifact({
         actor,
         db: connection.db,
         input: artifactPublishInputSchema.parse({
             content_type: 'text/markdown',
-            filename: 'readme.md',
-            ...(artifactId ? { artifact_id: artifactId } : {}),
+            path,
+            ...(baseRevisionId ? { base_revision_id: baseRevisionId } : {}),
             request_id: requestId,
             title: 'Readme',
         }),

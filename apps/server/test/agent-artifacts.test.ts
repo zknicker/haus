@@ -30,7 +30,7 @@ test('raw CLI publication streams through runner auth and other Agents can publi
     const secondRunner = await fixture.mintRunner('run_artifact_peer', fixture.peerAgentId);
     const first = await publish(
         firstRunner.token,
-        { name: 'shared-report', request_id: 'raw-first-publish' },
+        { path: 'shared/report.txt', request_id: 'raw-first-publish' },
         'first bytes'
     );
     expect(first.status).toBe(200);
@@ -38,7 +38,11 @@ test('raw CLI publication streams through runner auth and other Agents can publi
     expect(new URL(published.stable_url).origin).toBe(fixture.harness.appOrigin);
     const second = await publish(
         secondRunner.token,
-        { artifact_id: published.artifact_id, request_id: 'raw-second-publish' },
+        {
+            base_revision_id: published.revision_id,
+            path: 'shared/report.txt',
+            request_id: 'raw-second-publish',
+        },
         'second bytes'
     );
     expect(second.status).toBe(200);
@@ -47,17 +51,31 @@ test('raw CLI publication streams through runner auth and other Agents can publi
     expect(revision.revision_number).toBe(2);
     const taken = await publish(
         secondRunner.token,
-        { name: 'shared-report', request_id: 'raw-taken-name' },
+        { path: 'Shared/Report.txt', request_id: 'raw-taken-path' },
         'peer bytes'
     );
     expect(taken.status).toBe(409);
-    expect(await taken.json()).toEqual({
-        code: 'NAME_TAKEN',
-        message: `\`shared-report\` already exists (${published.artifact_id}). Pass --artifact-id ${published.artifact_id} to add a revision, or choose another name.`,
+    expect(await taken.json()).toMatchObject({
+        code: 'REVISION_CONFLICT',
+        current: { path: 'shared/report.txt', revision_id: revision.revision_id },
     });
-    const unnamed = await publish(secondRunner.token, { request_id: 'raw-unnamed' }, 'unnamed');
-    expect(unnamed.status).toBe(200);
-    expect(artifactPublishResultSchema.parse(await unnamed.json()).artifact.name).toBe('report');
+    const stale = await publish(
+        secondRunner.token,
+        {
+            base_revision_id: published.revision_id,
+            path: 'shared/report.txt',
+            request_id: 'raw-stale-base',
+        },
+        'stale bytes'
+    );
+    expect(stale.status).toBe(409);
+    expect(await stale.json()).toMatchObject({
+        code: 'REVISION_CONFLICT',
+        current: { revision_id: revision.revision_id },
+    });
+    const invalid = await publish(secondRunner.token, { path: '/shared/x.txt' }, 'bytes');
+    expect(invalid.status).toBe(400);
+    expect(await invalid.json()).toMatchObject({ code: 'INVALID_PATH' });
     const query = await fetch(
         new URL(
             `/api/agent/artifacts/${published.artifact_id}/download?revision_id=${published.revision_id}`,
@@ -96,9 +114,9 @@ test('raw CLI publication streams through runner auth and other Agents can publi
 test('Agent list narrows by query and by the calling Agent as creator', async () => {
     const author = await fixture.mintRunner('run_artifact_list_author');
     const peer = await fixture.mintRunner('run_artifact_list_peer', fixture.peerAgentId);
-    expect((await publish(author.token, { name: 'quarterly-chart' }, 'a')).status).toBe(200);
-    expect((await publish(peer.token, { name: 'quarterly-notes' }, 'b')).status).toBe(200);
-    expect((await publish(peer.token, { name: 'roadmap-sketch' }, 'c')).status).toBe(200);
+    expect((await publish(author.token, { path: 'quarterly-chart.txt' }, 'a')).status).toBe(200);
+    expect((await publish(peer.token, { path: 'quarterly-notes.txt' }, 'b')).status).toBe(200);
+    expect((await publish(peer.token, { path: 'roadmap-sketch.txt' }, 'c')).status).toBe(200);
     const names = async (token: string, search: string) => {
         const response = await fetch(
             new URL(`/api/agent/artifacts?${search}`, fixture.harness.url),
@@ -107,8 +125,8 @@ test('Agent list narrows by query and by the calling Agent as creator', async ()
             }
         );
         expect(response.status).toBe(200);
-        const body = (await response.json()) as { artifacts: { name: string }[] };
-        return body.artifacts.map((artifact) => artifact.name).sort();
+        const body = (await response.json()) as { artifacts: { path: string }[] };
+        return body.artifacts.map((artifact) => artifact.path.replace(/\.txt$/u, '')).sort();
     };
 
     expect(await names(peer.token, 'query=quarterly')).toEqual([
@@ -122,15 +140,20 @@ test('Agent list narrows by query and by the calling Agent as creator', async ()
 
 test('raw publishing rejects missing auth and retired Agents', async () => {
     expect(
-        (await publish('invalid', { name: 'invalid', request_id: 'raw-invalid-auth' }, 'bytes'))
+        (await publish('invalid', { path: 'invalid.txt', request_id: 'raw-invalid-auth' }, 'bytes'))
             .status
     ).toBe(401);
     const runner = await fixture.mintRunner('run_artifact_retired', fixture.peerAgentId);
     await fixture.harness
         .sql`update agents set retired_at = now() where id = ${fixture.peerAgentId}`;
     expect(
-        (await publish(runner.token, { name: 'retired', request_id: 'raw-retired-auth' }, 'bytes'))
-            .status
+        (
+            await publish(
+                runner.token,
+                { path: 'retired.txt', request_id: 'raw-retired-auth' },
+                'bytes'
+            )
+        ).status
     ).toBe(403);
 });
 
@@ -138,9 +161,8 @@ test('Raft action names publish without a nonce and read the same native artifac
     const runner = await fixture.mintRunner('run_artifact_actions');
     const url = new URL('/api/agent/actions/publish-artifact-raw', fixture.harness.url);
     url.search = new URLSearchParams({
-        name: 'raft-actions',
+        path: 'raft/bytes.bin',
         title: 'Raft actions',
-        filename: 'bytes.bin',
         content_type: 'application/octet-stream',
     }).toString();
     const response = await fetch(url, {
@@ -188,7 +210,6 @@ function publish(token: string, metadata: Record<string, string>, body: string) 
     const url = new URL('/api/agent/artifacts/publish-artifact-raw', fixture.harness.url);
     url.search = new URLSearchParams({
         ...metadata,
-        filename: 'report.txt',
         title: 'Shared report',
         content_type: 'text/plain',
     }).toString();

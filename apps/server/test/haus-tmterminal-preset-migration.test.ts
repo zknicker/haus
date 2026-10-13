@@ -30,7 +30,13 @@ test('an existing Server accepts tmterminal after migration without changing sav
                     'https://handmade.merchbase.co/mcp', 'oauth', false, '{}', '{}', 'handmade')`;
         });
         const connections = await database`SELECT * FROM mcp_connections`;
-        await writeFile(journalPath, JSON.stringify(journal));
+        await writeFile(
+            journalPath,
+            JSON.stringify({
+                ...journal,
+                entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= 85),
+            })
+        );
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             '0085_tmterminal-preset',
         ]);

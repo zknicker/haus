@@ -26,4 +26,5 @@ export const migrationsSince0060 = [
     '0083_remove-vercel-preset',
     '0084_handmade-preset',
     '0085_tmterminal-preset',
+    '0087_artifact-paths',
 ];

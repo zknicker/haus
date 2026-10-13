@@ -76,8 +76,8 @@ afterAll(async () => {
 });
 
 test('Server artifacts keep a stable identity and immutable versions, with retry idempotency', async () => {
-    const first = await publish('version-one', 'report', 'one');
-    const second = await publish('version-two', revise(first), 'two');
+    const first = await publish('version-one', 'report.txt', 'one');
+    const second = await publish('version-two', 'report.txt', 'two', revise(first));
     expect(first.artifact.artifact_id).toBe(second.artifact.artifact_id);
     expect(first.artifact.revision_id).not.toBe(second.artifact.revision_id);
     expect(first.artifact.stable_url).toBe(second.artifact.stable_url);
@@ -93,10 +93,10 @@ test('Server artifacts keep a stable identity and immutable versions, with retry
         serverId,
     });
     expect(historical.artifact.sha256).toBe(first.artifact.sha256);
-    expect((await publish('version-one', 'report', 'one')).artifact.revision_id).toBe(
+    expect((await publish('version-one', 'report.txt', 'one')).artifact.revision_id).toBe(
         first.artifact.revision_id
     );
-    await expect(publish('version-one', 'report', 'different')).rejects.toMatchObject({
+    await expect(publish('version-one', 'report.txt', 'different')).rejects.toMatchObject({
         code: 'IDEMPOTENCY_KEY_REUSED',
     });
     const versions = await owner.trpc.artifact.versions.query({
@@ -107,7 +107,7 @@ test('Server artifacts keep a stable identity and immutable versions, with retry
 });
 
 test('members read the library, outsiders fail, and current revisions cannot be deleted', async () => {
-    const result = await publish('access-check', 'private', 'private');
+    const result = await publish('access-check', 'private.txt', 'private');
     const input = { artifact_id: result.artifact.artifact_id, serverId };
     await expect(outsider.trpc.artifact.get.query(input)).rejects.toMatchObject({
         data: { code: 'FORBIDDEN' },
@@ -116,7 +116,7 @@ test('members read the library, outsiders fail, and current revisions cannot be 
     expect(download.download_url).toContain('private-r2.test');
     expect(download.download_url).not.toContain('save-as');
     const saved = await owner.trpc.artifact.download.query({ ...input, save: true });
-    expect(saved.download_url).toContain('save-as=report.txt');
+    expect(saved.download_url).toContain('save-as=private.txt');
     await expect(
         owner.trpc.artifact.deleteVersion.mutate({
             ...input,
@@ -129,29 +129,10 @@ test('members read the library, outsiders fail, and current revisions cannot be 
     });
 });
 
-test('parallel publications receive distinct revisions without losing historical bytes', async () => {
-    const base = await publish('parallel-base', 'parallel', 'base');
-    const results = await Promise.all([
-        publish('parallel-first', revise(base), 'first'),
-        publish('parallel-second', revise(base), 'second'),
-    ]);
-    expect(new Set(results.map((result) => result.artifact.revision_number)).size).toBe(2);
-    const current = await owner.trpc.artifact.get.query({
-        artifact_id: base.artifact.artifact_id,
-        serverId,
-    });
-    expect(current.artifact.revision_number).toBe(3);
-    const versions = await owner.trpc.artifact.versions.query({
-        artifact_id: base.artifact.artifact_id,
-        serverId,
-    });
-    expect(versions.versions).toHaveLength(3);
-});
-
 test('failed uploads preserve the current revision and recover reserved capacity', async () => {
-    const first = await publish('failure-base', 'failure', 'base');
+    const first = await publish('failure-base', 'failure.txt', 'base');
     failUpload = true;
-    await expect(publish('failure-upload', revise(first), 'bad')).rejects.toThrow(
+    await expect(publish('failure-upload', 'failure.txt', 'bad', revise(first))).rejects.toThrow(
         'R2 upload unavailable'
     );
     failUpload = false;
@@ -169,7 +150,7 @@ test('failed uploads preserve the current revision and recover reserved capacity
 });
 
 test('interrupted uploads and failed deletion recover on restart without exposing bytes', async () => {
-    const result = await publish('delete-recovery', 'recover', 'recover');
+    const result = await publish('delete-recovery', 'recover.txt', 'recover');
     failDelete = true;
     await expect(
         deleteArtifact(connection.db, actor, storage, result.artifact.artifact_id)
@@ -189,7 +170,7 @@ test('interrupted uploads and failed deletion recover on restart without exposin
 });
 
 test('cleanup never purges a live Server and reports pending cloud cleanup without breaking startup', async () => {
-    const result = await publish('cleanup-live', 'cleanup-live', 'keep');
+    const result = await publish('cleanup-live', 'cleanup-live.txt', 'keep');
     const count = objects.size;
     await purgeServerArtifacts(connection.db, storage, serverId);
     expect(objects.size).toBe(count);
@@ -209,8 +190,7 @@ test('unconfigured cloud storage refuses publication without local storage fallb
             actor,
             db: connection.db,
             input: artifactPublishInputSchema.parse({
-                filename: 'file.txt',
-                name: 'disabled',
+                path: 'disabled.txt',
                 request_id: 'storage-disabled',
                 title: 'Disabled',
             }),
@@ -225,51 +205,49 @@ test('unconfigured cloud storage refuses publication without local storage fallb
 });
 
 test('library search escapes wildcards and filters file types before pagination', async () => {
-    await publish('filter-image', 'filter-image', 'image', 'image/png');
-    await publish('filter-media', 'filter-media', 'audio', 'audio/mpeg');
-    await publish('filter-other', 'filter-other', 'zip', 'application/zip');
-    await publish('filter-literal', 'filter-literal', 'text', 'text/plain', 'filter_100%.txt');
-    await publish('filter-decoy', 'filter-decoy', 'decoy', 'text/plain', 'filterX1000.txt');
+    await publish('filter-image', 'filter-image.png', 'image', undefined, 'image/png');
+    await publish('filter-media', 'filter-media.mp3', 'audio', undefined, 'audio/mpeg');
+    await publish('filter-other', 'filter-other.zip', 'zip', undefined, 'application/zip');
+    await publish('filter-literal', 'filter_100%.txt', 'text');
+    await publish('filter-decoy', 'filterX1000.txt', 'decoy');
     const list = (
         query: string,
         kind: 'all' | 'images' | 'documents' | 'media' | 'other',
         offset = 0
     ) => owner.trpc.artifact.list.query({ serverId, query, kind, offset });
-    expect((await list('filter_100%', 'all')).artifacts.map((item) => item.name)).toEqual([
-        'filter-literal',
+    expect((await list('filter_100%', 'all')).artifacts.map((item) => item.path)).toEqual([
+        'filter_100%.txt',
     ]);
-    for (const [kind, name] of [
-        ['images', 'filter-image'],
-        ['media', 'filter-media'],
-        ['other', 'filter-other'],
+    for (const [kind, path] of [
+        ['images', 'filter-image.png'],
+        ['media', 'filter-media.mp3'],
+        ['other', 'filter-other.zip'],
     ] as const) {
-        expect((await list('filter', kind)).artifacts.map((item) => item.name)).toEqual([name]);
+        expect((await list('filter', kind)).artifacts.map((item) => item.path)).toEqual([path]);
     }
     expect((await list('filter', 'documents')).artifacts).toHaveLength(2);
     expect((await list('filter', 'documents', 1)).artifacts).toHaveLength(1);
     expect((await list('filter', 'images', 1)).artifacts).toHaveLength(0);
-    expect((await list('report.txt', 'images')).artifacts).toHaveLength(1);
+    expect((await list('FILTER-IMAGE.png', 'images')).artifacts).toHaveLength(1);
 });
 
-/** A string target is an explicit new name; `null` lets the Server derive one from the filename. */
-type PublishTarget = string | { artifact_id: string } | null;
-function revise(result: { artifact: { artifact_id: string } }): PublishTarget {
-    return { artifact_id: result.artifact.artifact_id };
+function revise(result: { artifact: { revision_id: string } }) {
+    return result.artifact.revision_id;
 }
 function publish(
     requestId: string,
-    target: PublishTarget,
+    path: string,
     body: string,
-    contentType = 'text/plain',
-    filename = 'report.txt'
+    baseRevisionId?: string,
+    contentType = 'text/plain'
 ) {
     return publishArtifact({
         actor,
         db: connection.db,
         input: artifactPublishInputSchema.parse({
+            ...(baseRevisionId ? { base_revision_id: baseRevisionId } : {}),
             content_type: contentType,
-            filename,
-            ...(typeof target === 'string' ? { name: target } : target),
+            path,
             request_id: requestId,
             title: 'Report',
         }),
@@ -284,8 +262,7 @@ function publishWithBudget(requestId: string, budget: number) {
         budget,
         db: connection.db,
         input: artifactPublishInputSchema.parse({
-            filename: 'report.txt',
-            name: 'budget',
+            path: 'budget.txt',
             request_id: requestId,
             title: 'Budget',
         }),

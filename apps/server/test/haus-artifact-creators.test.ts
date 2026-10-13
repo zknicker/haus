@@ -65,8 +65,7 @@ beforeAll(async () => {
             actor,
             db: connection.db,
             input: artifactPublishInputSchema.parse({
-                filename: `${name}.txt`,
-                name,
+                path: `${name}.txt`,
                 request_id: `creator-${name}`,
                 title: name,
             }),
@@ -81,12 +80,12 @@ beforeAll(async () => {
         `;
         await harness.sql`
             update artifacts set created_at = ${minute(createdMinute)}
-            where server_id = ${serverId} and name = ${name}
+            where server_id = ${serverId} and path = ${`${name}.txt`}
         `;
     }
     await harness.sql`
         update artifacts set creator_user_id = null, creator_agent_id = ${agentId}
-        where server_id = ${serverId} and name in ('agent-d', 'agent-e')
+        where server_id = ${serverId} and path in ('agent-d.txt', 'agent-e.txt')
     `;
 });
 afterAll(async () => {
@@ -98,7 +97,7 @@ afterAll(async () => {
 
 test('list sorts by latest revision time and maps creators and timestamps', async () => {
     const { artifacts } = await owner.trpc.artifact.list.query({ serverId });
-    expect(artifacts.map((item) => item.name)).toEqual([
+    expect(artifacts.map((item) => item.title)).toEqual([
         'agent-d',
         'user-c',
         'user-b',
@@ -110,21 +109,23 @@ test('list sorts by latest revision time and maps creators and timestamps', asyn
     expect(newest?.creator).toEqual(agentCreator);
     expect(newest?.updated_at).toBe(minute(6).toISOString());
     expect(newest?.created_at).toBe(minute(4).toISOString());
-    expect(artifacts.find((item) => item.name === 'user-a')?.creator).toEqual(userCreator);
+    expect(artifacts.find((item) => item.title === 'user-a')?.creator).toEqual(userCreator);
 });
 
 test('creator filter composes with search and pagination', async () => {
     const list = (creator: ArtifactCreator, query = '', offset = 0) =>
         owner.trpc.artifact.list.query({ creator, offset, query, serverId });
-    expect((await list(agentCreator)).artifacts.map((item) => item.name)).toEqual([
+    expect((await list(agentCreator)).artifacts.map((item) => item.title)).toEqual([
         'agent-d',
         'agent-e',
     ]);
-    expect((await list(userCreator, 'user-b')).artifacts.map((item) => item.name)).toEqual([
+    expect((await list(userCreator, 'user-b')).artifacts.map((item) => item.title)).toEqual([
         'user-b',
     ]);
     expect((await list(userCreator, 'agent')).artifacts).toHaveLength(0);
-    expect((await list(userCreator, '', 3)).artifacts.map((item) => item.name)).toEqual(['user-f']);
+    expect((await list(userCreator, '', 3)).artifacts.map((item) => item.title)).toEqual([
+        'user-f',
+    ]);
     expect((await list({ type: 'agent', agent_id: 'agt_unknown' })).artifacts).toHaveLength(0);
 });
 
@@ -135,7 +136,7 @@ test('creators summarizes each creator with counts and three newest previews', a
             count: entry.artifact_count,
             creator: entry.creator,
             latest: entry.latest_at,
-            previews: entry.previews.map((item) => item.name),
+            previews: entry.previews.map((item) => item.title),
         }))
     ).toEqual([
         {
