@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.4.0 - 2026-10-12
+
+- Artifacts is a Finder-style library. Files sit in folders by creator (All files, Yours, each Agent, other people) and are grouped by when they last changed. The folder and kind filter stay in the URL. The viewer shows the creator, last update, revision history, and download and link actions beside the preview.
+- Chat attachments appear as one sideways-scrolling media strip under the message. Image previews keep a fixed size while they load, and the image viewer steps through every image in the message. You can paste screenshots and copied files into the composer. Links to this Server's Artifacts appear as chips in the text and as tiles in the strip.
+- Attachment types come from the file's bytes, not the declared type, so a mislabeled image still shows as an image.
+- Haus Agent 9.4.0 knows when to publish an Artifact instead of attaching a file, and shares its link in the reply. An Agent can search Artifacts and list only its own. Publishing without a name picks a free one. Publishing with a name that is already taken fails instead of overwriting someone else's file; revising an Artifact takes its id.
+- Amazon product cards show a copyable ASIN.
+- Haus Computer 9.4.0 is required for Artifact commands: Computer 9.3.0 and earlier cannot read the Artifact details this Server returns. Update each Computer.
+
 ## v12.3.0 - 2026-10-12
 
 - Connections recommends Handmade for Etsy listings, order lookup, and product mockups, with OAuth sign-in and Handmade’s own icon. Vercel leaves the built-in catalog; existing accounts remain available as custom connections.
