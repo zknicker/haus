@@ -14,6 +14,7 @@ test('retiring Vercel preserves saved accounts as custom MCP connections', async
         await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
         const journalPath = join(folder, 'meta/_journal.json');
         const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 83);
         await writeFile(
             journalPath,
             JSON.stringify({

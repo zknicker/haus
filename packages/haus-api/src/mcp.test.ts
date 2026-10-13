@@ -33,6 +33,7 @@ describe('preset account auth', () => {
         'merchbase-atlas',
         'handmade',
         'merchbase-fulfillment',
+        'tmterminal',
     ])('%s uses OAuth with a Server-owned endpoint', (preset) => {
         const input = { ...base, preset };
         expect(mcpPresetAccountCreateSchema.safeParse(input).success).toBe(true);

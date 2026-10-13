@@ -25,4 +25,5 @@ export const migrationsSince0060 = [
     '0082_github_app',
     '0083_remove-vercel-preset',
     '0084_handmade-preset',
+    '0085_tmterminal-preset',
 ];

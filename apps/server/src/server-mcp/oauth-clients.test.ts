@@ -37,6 +37,7 @@ describe('configured OAuth clients', () => {
     test.each([
         ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
         ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
+        ['tmterminal', 'https://tmterminal.merchbase.co/mcp'],
     ] as const)('%s uses identity scopes without a configured client', async (preset, url) => {
         const runtime = fakeRuntime(preset, url, {
             ...emptySecret(),

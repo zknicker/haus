@@ -74,6 +74,7 @@ test.each([
     ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
     ['handmade', 'https://handmade.merchbase.co/mcp'],
     ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
+    ['tmterminal', 'https://tmterminal.merchbase.co/mcp'],
 ] as const)('%s awaits OAuth with identity scopes and no Agent grants', async (preset, url) => {
     const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
         name: preset,
@@ -103,6 +104,7 @@ test.each([
     'merchbase-atlas',
     'handmade',
     'merchbase-fulfillment',
+    'tmterminal',
     'google-calendar',
     'rankwrangler',
     'cloudflare',
