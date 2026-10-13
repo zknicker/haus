@@ -1,19 +1,15 @@
-import { agentHtmlSandbox } from '@haus/api/widgets/visual/frame';
 import { EmptyState } from '@heroui-pro/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { type ReactNode, useMemo } from 'react';
-import { agentHtmlTokenCss, injectHostTokenStyle } from '../../agent-html/tokens.ts';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import type { ReactNode } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { codeLanguageForPath, countCodeLines } from '../../lib/code-language.ts';
-import { WorkspaceCodeView } from './chat-artifact-workspace-code-view.tsx';
 import {
     isWorkspaceMarkdownFile,
     isWorkspaceSourceFile,
     type WorkspaceArtifact,
 } from './chat-artifact-workspace-file.tsx';
-import { ChatMarkdownText } from './chat-markdown-text.tsx';
-import type { HausResourceTarget } from './haus-resource-link.ts';
+import { FileTextPreview } from './file-text-preview.tsx';
+import { formatHausResourceLink, type HausResourceTarget } from './haus-resource-link.ts';
 
 export function WorkspaceArtifactContent({
     agentId,
@@ -126,17 +122,20 @@ function WorkspaceFilePreview({
             </div>
         );
     }
-    if (mediaType === 'text/html') {
-        return <WorkspaceHtmlPreview content={content} path={path} />;
-    }
-    if (!raw && isWorkspaceMarkdownFile({ mediaType }, path)) {
-        return (
-            <div className="h-full overflow-auto px-6 py-5 text-base">
-                <ChatMarkdownText content={content} />
-            </div>
-        );
-    }
-    return <WorkspaceCodeView content={content} path={path} target={target} />;
+    const renderer =
+        mediaType === 'text/html'
+            ? 'html'
+            : !raw && isWorkspaceMarkdownFile({ mediaType }, path)
+              ? 'markdown'
+              : 'code';
+    return (
+        <FileTextPreview
+            content={content}
+            path={path}
+            quoteSource={{ href: formatHausResourceLink(target), label: path }}
+            renderer={renderer}
+        />
+    );
 }
 
 export function formatWorkspaceFileMetadata(
@@ -167,30 +166,6 @@ export function formatWorkspaceFileBytes(sizeBytes: number) {
         return `${(sizeBytes / 1024).toFixed(1)} KB`;
     }
     return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/**
- * Sandboxed HTML preview with host tokens riding in: artifacts (and any
- * workspace HTML file) get the app's resolved theme variables injected, so a
- * page styled with tokens wears the Haus look and follows the app scheme.
- * Opaque origin, never allow-same-origin.
- */
-function WorkspaceHtmlPreview({ content, path }: { content: string; path: string }) {
-    const scheme = useResolvedThemeOptional();
-    const srcDoc = useMemo(
-        () => injectHostTokenStyle(content, agentHtmlTokenCss(scheme)),
-        [content, scheme]
-    );
-
-    return (
-        <iframe
-            className="h-full min-h-0 w-full"
-            sandbox={agentHtmlSandbox}
-            srcDoc={srcDoc}
-            style={{ colorScheme: scheme }}
-            title={path}
-        />
-    );
 }
 
 export function WorkspaceArtifactEmpty({ detail, title }: { detail: string; title: string }) {

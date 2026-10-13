@@ -1,12 +1,14 @@
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import type { CSSProperties } from 'react';
-import { SelectionQuoteContainer } from '../../components/quote/selection-quote.tsx';
+import {
+    SelectionQuoteContainer,
+    type SelectionQuoteSource,
+} from '../../components/quote/selection-quote.tsx';
 import { codeHighlightLanguage, countCodeLines } from '../../lib/code-language.ts';
-import { formatHausResourceLink, type HausResourceTarget } from './haus-resource-link.ts';
 
 /**
- * Read-only, IDE-style view of a workspace text file: the stock CodeBlock (the
- * app's one shiki renderer) with soft wrap and a hanging line-number gutter.
+ * Read-only, IDE-style view of a text file: the stock CodeBlock (the app's one
+ * shiki renderer) with soft wrap and a hanging line-number gutter.
  *
  * Numbers are CSS counters on shiki's per-line spans (`.code-block--numbered .line` in the
  * theme), so a wrapped line keeps its number on its first row and copying or
@@ -14,14 +16,15 @@ import { formatHausResourceLink, type HausResourceTarget } from './haus-resource
  * from the line count. Large files skip tokenizing (`codeHighlightLanguage`)
  * and stay plain, unnumbered text.
  */
-export function WorkspaceCodeView({
+export function FileCodeView({
     content,
     path,
-    target,
+    quoteSource,
 }: {
     content: string;
     path: string;
-    target: Extract<HausResourceTarget, { kind: 'workspaceFile' }>;
+    /** Where a quoted selection links back to. */
+    quoteSource: SelectionQuoteSource;
 }) {
     const digits = String(countCodeLines(content)).length;
 
@@ -30,7 +33,7 @@ export function WorkspaceCodeView({
             className="code-pane h-full min-h-0 overflow-y-auto"
             style={{ '--code-line-digits': digits } as CSSProperties}
         >
-            <SelectionQuoteContainer source={{ href: formatHausResourceLink(target), label: path }}>
+            <SelectionQuoteContainer source={quoteSource}>
                 <CodeBlock className="code-block--numbered">
                     <CodeBlock.Code
                         code={content}
