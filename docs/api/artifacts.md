@@ -18,12 +18,23 @@ The Agent API follows Raft's published action names and parameters, implemented 
 
 | POST action under `/api/agent/actions/` | Input |
 | --- | --- |
-| `publish-artifact-raw` | Raw bytes; query `name` or `artifact_id`, `title`, `filename`, optional `content_type`, `request_id` |
+| `publish-artifact-raw` | Raw bytes; query `title`, `filename`, optional `name` or `artifact_id` (not both), `content_type`, `request_id` |
 | `list-artifacts` | JSON optional `offset` |
 | `get-artifact` | JSON `artifact_id`, optional `revision_id` |
 | `list-artifact-versions` | JSON `artifact_id`, optional `offset` |
 | `delete-artifact` | JSON `artifact_id` |
 | `delete-artifact-version` | JSON `artifact_id`, `revision_id` |
+
+Publishing adds a revision only when `artifact_id` names a live artifact. Otherwise it creates a new
+artifact. An explicit `name` (lowercase-kebab, at most 128 characters) must be free among the
+Server's live artifacts; a taken name fails with 409 `NAME_TAKEN`, and the message names the
+existing artifact id and says to pass `--artifact-id` to revise it. Explicit names are never
+suffixed. With neither field, the Server derives the name from `filename` (the stem, lowercased,
+other characters folded to hyphens, `artifact` when nothing remains) and takes the first free of
+`<stem>`, `<stem>-2`, `<stem>-3`…, inside the reservation transaction that holds the Server row lock,
+so concurrent publishes never pick the same name. This diverges from Raft, whose `name` upserts:
+create-only names keep one member from silently revising another member's artifact, and
+`request_id` already covers retries.
 
 The native `artifact` tRPC router supplies App reads and deletion. Computer uses the scoped native
 Agent artifact HTTP routes for authenticated download resolution. All routes call the same product
@@ -70,8 +81,10 @@ The managed prompt names the family and points at the `artifact` Manual topic, w
 publish versus attach or use a workbench `artifact` fence, sharing the `stable_url` in the message
 (the App renders a same-Server link as an artifact chip and tile), and resolving a pasted
 `/artifacts/<id>` link with `view`. Publish leaves the source untouched. The CLI prints a request ID before transfer; reuse it with
-identical metadata and bytes to retry a lost success response without adding another revision.
-An in-progress or failed publication requires waiting or a new ID. New IDs create new revisions.
+identical metadata and bytes to retry a lost success response without adding another revision. A
+retry without `name` returns the artifact its first attempt created, including its derived name.
+An in-progress or failed publication requires waiting or a new ID. A new ID publishes again: a new
+revision with `artifact_id`, otherwise a new artifact.
 Lists have 50 entries per offset page. Deletion requires the artifact creator or a human Owner/Admin;
 the current revision cannot be deleted separately. Deleted records become inaccessible immediately;
 cloud deletion failures retain their storage reservation and retry during Server startup.

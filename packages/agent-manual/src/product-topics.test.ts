@@ -235,6 +235,14 @@ test('artifact guidance separates one-off attachments from shared, linked files'
     expect(topic?.body).toContain('`--query <text>`');
     expect(topic?.body).toContain('`--mine`');
     expect(topic?.body).not.toContain('--json');
+    expect(topic?.body).toContain(
+        'Create with `haus artifact publish --path <file> --title <title>`.'
+    );
+    expect(topic?.body).toContain('the artifact is named from the filename');
+    expect(topic?.body).toContain(
+        "only creates: a name that already exists fails and prints that artifact's id"
+    );
+    expect(topic?.body).toContain('pass `--artifact-id <id>`');
     expect(topic?.related).toContain('attachment');
     const attachment = getManualTopic('attachment');
     expect(attachment?.body).toContain('Haus has two forms of file sharing.');

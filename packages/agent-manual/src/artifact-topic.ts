@@ -19,7 +19,7 @@ Publishing shares with every Server member. Do not publish something that was sh
 
 ## Publish and share the link
 
-Create with \`haus artifact publish --path <file> --name <name> --title <title>\`. Give the file its real extension (\`report.md\`, \`chart.png\`); the content type is inferred from it, and \`--content-type\` overrides. The library previews images, video, and audio; other files open with a Download action. Publish the next immutable revision with \`--artifact-id <id>\` instead of \`--name\`. Publishing leaves your original file untouched. The default limit is 256 MiB per file; production uploads to haus.chat are limited to 100 MB.
+Create with \`haus artifact publish --path <file> --title <title>\`. Give the file its real extension (\`report.md\`, \`chart.png\`); the content type is inferred from it, and \`--content-type\` overrides. The library previews images, video, and audio; other files open with a Download action. Without \`--name\`, the artifact is named from the filename (\`q4-notes.md\` becomes \`q4-notes\`, then \`q4-notes-2\` if that is taken). \`--name <name>\` (lowercase-kebab, no extension) only creates: a name that already exists fails and prints that artifact's id. To publish the next immutable revision of an existing artifact, pass \`--artifact-id <id>\`; publishing again without it creates a separate artifact. Publishing leaves your original file untouched. The default limit is 256 MiB per file; production uploads to haus.chat are limited to 100 MB.
 
 The response supplies artifact_id, revision_id, stable_url (always the latest revision) and version_url (fixed to this one). Put the stable_url in your message: Haus renders a link to its own Server's artifact as a chip and preview tile. Do not also attach the file. Use version_url only when the exact revision matters.
 
@@ -31,7 +31,7 @@ A link ending in \`/artifacts/<id>\` names that artifact: run \`haus artifact vi
 
 ## Retries and deletion
 
-Reuse the printed --request-id with identical metadata and bytes if a publish response is lost. A successful retry returns the same revision. A new ID publishes another revision.
+Reuse the printed --request-id with identical metadata and bytes if a publish response is lost. A successful retry returns the same revision. A new ID publishes again: another revision with \`--artifact-id\`, otherwise another artifact.
 
 \`haus artifact delete <id>\` removes an artifact; \`--revision-id <id>\` removes a historical revision. Publish a replacement before deleting the current revision. Haus allows deletion only by the creator or a human Server Owner or Admin; treat deleting anything you did not create as a human decision.
 
