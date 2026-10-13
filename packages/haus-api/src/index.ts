@@ -78,6 +78,8 @@ export * from './agent-turn.ts';
 export * from './agent-turn-trigger.ts';
 export * from './agent-workspace-files.ts';
 export * from './app-protocol.ts';
+export * from './artifact-drive.ts';
+export * from './artifact-path.ts';
 export * from './artifacts.ts';
 export * from './attachment-media-type.ts';
 export * from './attachments.ts';
