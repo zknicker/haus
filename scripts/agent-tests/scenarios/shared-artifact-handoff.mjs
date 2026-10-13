@@ -24,9 +24,13 @@ export default defineScenario({
             const publishTurn = await settleTurn(publisher.id);
             expect(publishTurn.status, 'publish turn completed').toBe('completed');
             const shared = await files(kit, folder);
-            expect(shared.map((file) => file.path).sort(), 'folder pushed with both files').toEqual(
-                [`${folder}/notes.txt`, `${folder}/plan.md`]
-            );
+            expect(
+                shared
+                    .map((file) => file.path)
+                    .sort()
+                    .join(' '),
+                'folder pushed with both files'
+            ).toBe(`${folder}/notes.txt ${folder}/plan.md`);
             const notes = shared.find((file) => file.path.endsWith('notes.txt'));
             const plan = shared.find((file) => file.path.endsWith('plan.md'));
             expect(await bytes(kit, notes), 'original notes bytes').toBe(`${original}\n`);
