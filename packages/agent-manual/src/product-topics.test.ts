@@ -252,6 +252,8 @@ test('artifact guidance separates one-off attachments from shared, linked files'
         "only creates: a name that already exists fails and prints that artifact's id"
     );
     expect(topic?.body).toContain('pass `--artifact-id <id>`');
+    expect(topic?.body).toContain('ARTIFACT_PUBLISH_UNCONFIRMED');
+    expect(topic?.body).toContain('Publishing again without that id creates another artifact');
     expect(topic?.related).toContain('attachment');
     const attachment = getManualTopic('attachment');
     expect(attachment?.body).toContain('Haus has two forms of file sharing.');

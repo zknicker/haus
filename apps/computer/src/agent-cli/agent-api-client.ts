@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { applyServerAcceptEncoding } from '../server-encoding.ts';
 import { type AgentContext, resolveAgentContext } from './agent-context.ts';
 import { AgentCliError } from './agent-error.ts';
 
@@ -48,10 +49,12 @@ export class AgentApiClient implements AgentApiRequester {
         try {
             response = await this.fetcher(url, {
                 ...(input.body === undefined ? {} : { body: JSON.stringify(input.body) }),
-                headers: {
-                    authorization: `Bearer ${this.context.token}`,
-                    ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
-                },
+                headers: applyServerAcceptEncoding(
+                    new Headers({
+                        authorization: `Bearer ${this.context.token}`,
+                        ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
+                    })
+                ),
                 method: input.method ?? 'GET',
                 signal: input.signal
                     ? AbortSignal.any([

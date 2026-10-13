@@ -93,7 +93,7 @@ The managed prompt names the family and points at the `artifact` Manual topic, w
 publish versus attach or use a workbench `artifact` fence, sharing the `stable_url` in the message
 (the App renders a same-Server link as an artifact chip and tile), and resolving a pasted
 `/artifacts/<id>` link with `view`. Publish leaves the source untouched. The CLI prints a request ID before transfer; reuse it with
-identical metadata and bytes to retry a lost success response without adding another revision. A
+identical metadata and bytes to retry a lost success response without adding another revision. `ARTIFACT_PUBLISH_UNCONFIRMED` means the CLI could not read the response and the upload may already exist. A
 retry without `name` returns the artifact its first attempt created, including its derived name.
 An in-progress or failed publication requires waiting or a new ID. A new ID publishes again: a new
 revision with `artifact_id`, otherwise a new artifact.
