@@ -3,6 +3,7 @@ import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
 import { cloudAgentModelCatalogSchema } from './cloud-agent-model.ts';
 import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './cloud-agent-shared.ts';
+import { computerSecretsStatusSchema } from './computer-secrets.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -143,6 +144,8 @@ export const computerInventorySchema = z
             .max(4)
             .optional(),
         runtimes: z.array(computerRuntimeSchema).max(50),
+        /** The Computer's 1Password vault connection (Computer Secrets), names only. */
+        secrets: computerSecretsStatusSchema.optional(),
     })
     .strict();
 

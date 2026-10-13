@@ -99,6 +99,7 @@ export * from './cloud-agent-shared.ts';
 export * from './cloud-agent-work-link.ts';
 export * from './computer-inventory-refresh.ts';
 export * from './computer-runtime.ts';
+export * from './computer-secrets.ts';
 export * from './computer-system-events.ts';
 export * from './computer-update.ts';
 export * from './development-chat-demos.ts';

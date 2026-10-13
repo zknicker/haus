@@ -28,6 +28,8 @@ const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { buildWindowUrl, nextWindowBounds, openerArguments } = require('./window-routing.cjs');
 const { registerWindowIpc } = require('./window-ipc.cjs');
 const { registerTabDrag } = require('./tab-drag-ipc.cjs');
+const { registerOnePassword } = require('./onepassword.cjs');
+const { registerDesktopShellIpc } = require('./desktop-shell-ipc.cjs');
 const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
 const { hideLastWindowOnClose, markQuitting, showWindow } = require('./window-lifecycle.cjs');
 const { forwardWindowSignals } = require('./window-signals.cjs');
@@ -262,15 +264,8 @@ function registerIpcHandlers() {
         session,
     });
     registerEditContextMenuHandlers({ appUrl, ipcMain });
-
-    ipcMain.handle('desktop:get-info', (event) => {
-        assertTrustedRenderer(event, appUrl);
-        return {
-            isPackaged: app.isPackaged,
-            platform: process.platform,
-            version: app.getVersion(),
-        };
-    });
+    registerOnePassword({ appUrl, BrowserWindow, ipcMain });
+    registerDesktopShellIpc({ app, appUrl, ipcMain, nativeTheme });
 
     ({ queryCache: queryCacheHandoff } = registerWindowIpc({
         app,
@@ -295,20 +290,6 @@ function registerIpcHandlers() {
         if (window) {
             appMenu?.report(window, state);
         }
-    });
-
-    ipcMain.handle('desktop:dock:set-badge', (event, count) => {
-        assertTrustedRenderer(event, appUrl);
-        if (!Number.isInteger(count) || count < 0) {
-            return;
-        }
-
-        app.dock?.setBadge(count > 0 ? String(count) : '');
-    });
-
-    ipcMain.handle('desktop:window:set-theme', (event, theme) => {
-        assertTrustedRenderer(event, appUrl);
-        nativeTheme.themeSource = theme === 'dark' || theme === 'light' ? theme : 'system';
     });
 
     ipcMain.handle('desktop:update:check', async (event) => {

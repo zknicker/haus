@@ -8,6 +8,7 @@ import {
 import { detectFullInventory } from './inventory.ts';
 import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
+import { readSecretsStatus } from './secrets/store.ts';
 
 export function createComputerReporter(dataRoot: string) {
     return async (
@@ -44,6 +45,8 @@ export async function sendEffectiveComputerReport({
             agentSkills: await listAgentSkillReports(dataRoot, serverId),
             importableSkills: await listImportableSkills(),
             name: computerName,
+            // An unreadable secrets state must not cost the whole report.
+            secrets: await readSecretsStatus({ dataRoot, serverId }).catch(reportStateError),
         },
         type: 'report',
     });

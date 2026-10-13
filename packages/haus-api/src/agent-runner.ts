@@ -1,5 +1,6 @@
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import { executionEvidenceRequestSchemas } from './agent-execution-outline.ts';
+import { browserRequestSchema } from './browser-frames.ts';
 import {
     cloudAgentCancelCommandSchema,
     cloudAgentCapabilityRequestSchema,
@@ -9,6 +10,7 @@ import {
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
 export * from './agent-inbox.ts';
+export * from './browser-frames.ts';
 export * from './cloud-agent-protocol.ts';
 
 import * as z from 'zod';
@@ -28,12 +30,8 @@ import {
 } from './agent-workspace-files.ts';
 import { idSchema } from './chat.ts';
 import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
+import { computerSecretsRequestSchema } from './computer-secrets.ts';
 import { hostSkillFileRequestSchema } from './host-skill-file.ts';
-import {
-    agentRuntimeBrowserSettingsSchema,
-    agentRuntimeSaveBrowserSettingsSchema,
-} from './runtime/contracts.ts';
-import { traceCarrierSchema } from './trace-context.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -154,28 +152,6 @@ export const serverDeleteCommandSchema = z.object({ type: z.literal('server-dele
 
 export type ServerDeleteCommand = z.infer<typeof serverDeleteCommandSchema>;
 
-/**
- * Authenticated Browser request for one Computer attachment. Connection settings
- * go through Server; the App never accesses the Computer socket.
- */
-export const browserRequestSchema = z
-    .object({
-        operation: z.discriminatedUnion('kind', [
-            z.object({ kind: z.literal('get') }).strict(),
-            z
-                .object({
-                    input: agentRuntimeSaveBrowserSettingsSchema,
-                    kind: z.literal('save'),
-                })
-                .strict(),
-        ]),
-        requestId: idSchema,
-        traceContext: traceCarrierSchema.optional(),
-        type: z.literal('browser-request'),
-    })
-    .strict();
-
-export type BrowserRequest = z.infer<typeof browserRequestSchema>;
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const agentCommandSchema = z.discriminatedUnion('type', [
     computerInventoryRefreshRequestSchema,
@@ -192,6 +168,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     agentWorkspaceRequestSchema,
     ...executionEvidenceRequestSchemas,
     browserRequestSchema,
+    computerSecretsRequestSchema,
     reminderScriptCommandSchema,
     agentNoticeCommandSchema,
     cloudAgentCancelCommandSchema,
@@ -201,24 +178,6 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
 ]);
 
 export type AgentCommand = z.infer<typeof agentCommandSchema>;
-
-export const browserResultSchema = z
-    .object({
-        error: z.string().trim().min(1).max(500).optional(),
-        requestId: idSchema,
-        result: z
-            .object({
-                kind: z.literal('settings'),
-                value: agentRuntimeBrowserSettingsSchema,
-            })
-            .strict()
-            .optional(),
-        type: z.literal('browser-result'),
-    })
-    .strict()
-    .refine((value) => Boolean(value.error) !== Boolean(value.result));
-
-export type BrowserResult = z.infer<typeof browserResultSchema>;
 
 /**
  * The Computer's local-acceptance acknowledgement for a start command. An ack
