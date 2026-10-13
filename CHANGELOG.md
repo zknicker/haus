@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.4.2 - 2026-10-13
+
+- Haus Agent 9.4.2 makes nightly dreaming safer: an Agent keeps every standing rule when it rewrites MEMORY.md, changes only its memory during the pass (no reminders, tasks, or messages), and checks what it remembers about other Agents before keeping it.
+- Haus Computer 9.4.2 stops logging its own hidden scratch folders as skipped Agents in the nightly dream check.
+
 ## v12.4.1 - 2026-10-13
 
 - A Cloud Agent launch no longer opens a new Thread. The launch card is the Agent's inline reply and brings its own work Thread, so launching into a channel message with no conversation yet fails with the exact reply command to use instead. Haus Agent 9.4.1 and Haus Computer 9.4.1 teach the same rule.
