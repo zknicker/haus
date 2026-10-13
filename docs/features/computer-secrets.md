@@ -55,9 +55,17 @@ plugin in the `node_modules` beside the schema. Items are referenced as
 ## Status
 
 Computer reports `inventory.secrets` in its ordinary report: connected or not, account, vault,
-item env names and titles, service account name, and `issue: 'runtime-missing'` when the Varlock
-install is gone. Settings reads this Server-reported state, so it stays visible while the
-Computer is offline. Values never leave the Computer.
+item env names and titles, service account name, and an `issue` that blocks Agent use:
+
+- `runtime-missing`: the Varlock install is gone. Refresh items reinstalls it.
+- `keychain-locked`: reading the token with `security find-generic-password` failed with any exit
+  code other than 0 or 44 (not found). The login Keychain locks itself after its idle timeout
+  (6 hours by default), and a headless Computer cannot unlock it. Settings shows **Keychain
+  locked**; someone must log in on the Computer to unlock it. Each report re-probes the item
+  (value discarded), so the issue clears on the next report after unlock.
+
+Settings reads this Server-reported state, so it stays visible while the Computer is offline.
+Values never leave the Computer.
 
 ## Refresh items
 
@@ -73,7 +81,9 @@ runtime if it went missing. The token and service account are unchanged.
 `haus-secrets --list` prints the env names; `haus-secrets -- <command>` reads the token from the
 Keychain, exports it only into the `varlock run --inject vars` process it execs (with Varlock
 telemetry off), and Varlock injects each item into the command while stripping the `@internal`
-token. Piped output is redacted by Varlock.
+token. Piped output is redacted by Varlock. When the token cannot be read, `haus-secrets` exits 78
+with one stderr line: no 1Password connection (exit 44 from `security`), or a locked Keychain
+that someone must unlock by logging in on the Computer (any other failure).
 
 Agents run as the same OS user without isolation, so this reduces leaks; it is not a boundary.
 

@@ -37,6 +37,15 @@ export function secretsCapabilityView(input: {
                 statusLabel: 'Needs attention',
             };
         }
+        if (status.issue === 'keychain-locked') {
+            return {
+                ...actions,
+                description:
+                    "This Computer's Keychain is locked. Log in on the Computer to unlock it.",
+                status: 'needs-attention',
+                statusLabel: 'Keychain locked',
+            };
+        }
         return {
             ...actions,
             description: `Agents on this Computer can read “${status.vault.name}” (${items}) with haus-secrets.`,

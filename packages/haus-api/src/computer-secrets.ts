@@ -61,8 +61,15 @@ export const onePasswordItemListSchema = z.array(onePasswordItemSchema).max(200)
 /** A service account name Haus creates; the Owner revokes it on 1password.com by this name. */
 export const onePasswordServiceAccountNameSchema = z.string().trim().min(1).max(120);
 
-/** Why a connected vault cannot run commands yet; `null` when it can. */
-export const computerSecretsIssueSchema = z.enum(['runtime-missing']);
+/**
+ * Why a connected vault cannot run commands yet; `null` when it can.
+ * `keychain-locked`: the login Keychain holding the token is locked (it locks
+ * itself after an idle timeout), so `haus-secrets` cannot read it until
+ * someone logs in on the Computer.
+ */
+export const computerSecretsIssueSchema = z.enum(['keychain-locked', 'runtime-missing']);
+
+export type ComputerSecretsIssue = z.infer<typeof computerSecretsIssueSchema>;
 
 /** One vault item exposed to Agents as an environment variable name. */
 export const computerSecretItemSchema = z

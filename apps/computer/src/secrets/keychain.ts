@@ -4,7 +4,17 @@ import { join } from 'node:path';
 /** Keychain service for every Computer Secrets token; the account is the Server attachment id. */
 export const secretsKeychainService = 'haus.computer.1password';
 
-const securityPath = '/usr/bin/security';
+export const securityPath = '/usr/bin/security';
+
+/** `security` exits with the low byte of the OSStatus; 44 is errSecItemNotFound. */
+export const keychainItemNotFoundExitCode = 44;
+
+/**
+ * Whether the token can be read right now. Any failure other than "not found"
+ * means the Keychain refused the read, which on a headless Computer is the
+ * login Keychain locking itself after its idle timeout.
+ */
+export type KeychainTokenState = 'locked' | 'missing' | 'present';
 
 /**
  * Where the token lives: one macOS login Keychain item per Server attachment.
@@ -14,8 +24,16 @@ const securityPath = '/usr/bin/security';
 export interface SecretsKeychain {
     delete(account: string): Promise<void>;
     path: string;
+    probe(account: string): Promise<KeychainTokenState>;
     read(account: string): Promise<string | null>;
     write(account: string, token: string): Promise<void>;
+}
+
+export class KeychainLockedError extends Error {
+    constructor() {
+        super("This Computer's Keychain is locked. Log in on the Computer to unlock it.");
+        this.name = 'KeychainLockedError';
+    }
 }
 
 export function loginKeychain(path = join(homedir(), 'Library/Keychains/login.keychain-db')) {
@@ -35,21 +53,20 @@ export function loginKeychain(path = join(homedir(), 'Library/Keychains/login.ke
                 throw new Error('Could not save the 1Password token to the macOS Keychain.');
             }
         },
+        async probe(account: string) {
+            // Same read `haus-secrets` makes, so the report matches what Agents
+            // hit; the value is discarded unread.
+            const result = await run(findTokenArgs(account, path), { stdout: 'ignore' });
+            return tokenState(result.exitCode);
+        },
         async read(account: string) {
-            const result = await run([
-                'find-generic-password',
-                '-s',
-                secretsKeychainService,
-                '-a',
-                account,
-                '-w',
-                path,
-            ]);
-            if (result.exitCode === 44) {
+            const result = await run(findTokenArgs(account, path));
+            const state = tokenState(result.exitCode);
+            if (state === 'missing') {
                 return null;
             }
-            if (result.exitCode !== 0) {
-                throw new Error('Could not read the 1Password token from the macOS Keychain.');
+            if (state === 'locked') {
+                throw new KeychainLockedError();
             }
             return result.stdout.trim() || null;
         },
@@ -62,20 +79,34 @@ export function loginKeychain(path = join(homedir(), 'Library/Keychains/login.ke
                 account,
                 path,
             ]);
-            if (result.exitCode !== 0 && result.exitCode !== 44) {
+            if (result.exitCode !== 0 && result.exitCode !== keychainItemNotFoundExitCode) {
                 throw new Error('Could not remove the 1Password token from the macOS Keychain.');
             }
         },
     } satisfies SecretsKeychain;
 }
 
-async function run(args: string[], options: { stdin?: string } = {}) {
+export function tokenState(exitCode: number): KeychainTokenState {
+    if (exitCode === 0) {
+        return 'present';
+    }
+    return exitCode === keychainItemNotFoundExitCode ? 'missing' : 'locked';
+}
+
+function findTokenArgs(account: string, path: string) {
+    return ['find-generic-password', '-s', secretsKeychainService, '-a', account, '-w', path];
+}
+
+async function run(args: string[], options: { stdin?: string; stdout?: 'ignore' } = {}) {
     const child = Bun.spawn([securityPath, ...args], {
         stderr: 'ignore',
         stdin: options.stdin === undefined ? 'ignore' : new TextEncoder().encode(options.stdin),
-        stdout: 'pipe',
+        stdout: options.stdout ?? 'pipe',
     });
-    const [stdout, exitCode] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+    const [stdout, exitCode] = await Promise.all([
+        child.stdout ? new Response(child.stdout).text() : Promise.resolve(''),
+        child.exited,
+    ]);
     return { exitCode, stdout };
 }
 

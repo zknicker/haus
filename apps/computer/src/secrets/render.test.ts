@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { OnePasswordItem } from '@haus/api';
 import {
     envNameForTitle,
@@ -99,6 +102,40 @@ describe('renderSecretsWrapper', () => {
         expect(wrapper).toContain(
             `exec '/data/servers/srv_1/secrets/node_modules/.bin/varlock' run --path '/data/servers/srv_1/secrets/schema/' --inject vars "$@"`
         );
+    });
+
+    test.each([
+        [44, 'has no 1Password connection'],
+        [36, "this Computer's Keychain is locked"],
+    ])('security exit %i fails with a clear message', async (exitCode, message) => {
+        const dir = await mkdtemp(join(tmpdir(), 'haus-secrets-wrapper-'));
+        try {
+            const security = join(dir, 'security');
+            await writeFile(security, `#!/bin/sh\nexit ${exitCode}\n`, { mode: 0o700 });
+            const script = join(dir, 'haus-secrets');
+            await writeFile(
+                script,
+                renderSecretsWrapper({
+                    account: 'srv_1',
+                    bindings: [],
+                    keychainPath: join(dir, 'login.keychain-db'),
+                    schemaDir: dir,
+                    securityPath: security,
+                    service: 'haus.computer.1password',
+                    varlockPath: join(dir, 'varlock-never-runs'),
+                }),
+                { mode: 0o700 }
+            );
+            const child = Bun.spawn([script, '--', 'true'], { stderr: 'pipe', stdout: 'ignore' });
+            const [stderr, code] = await Promise.all([
+                new Response(child.stderr).text(),
+                child.exited,
+            ]);
+            expect(code).toBe(78);
+            expect(stderr).toContain(message);
+        } finally {
+            await rm(dir, { force: true, recursive: true });
+        }
     });
 
     test('lists names without touching the keychain', () => {

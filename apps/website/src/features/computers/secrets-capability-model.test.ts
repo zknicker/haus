@@ -81,4 +81,18 @@ describe('secretsCapabilityView', () => {
             statusLabel: 'Needs attention',
         });
     });
+
+    test('a locked Keychain asks someone to log in on the Computer', () => {
+        expect(
+            secretsCapabilityView({
+                canUseOnePassword: true,
+                isOffline: false,
+                status: { ...connected, issue: 'keychain-locked' },
+            })
+        ).toMatchObject({
+            description: "This Computer's Keychain is locked. Log in on the Computer to unlock it.",
+            status: 'needs-attention',
+            statusLabel: 'Keychain locked',
+        });
+    });
 });

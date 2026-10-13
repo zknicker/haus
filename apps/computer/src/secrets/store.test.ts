@@ -34,11 +34,13 @@ const notConnected: ComputerSecretsStatus = { connected: false, provider: '1pass
 let dataRoot: string;
 let stored: Map<string, string>;
 let installs: number;
+let locked: boolean;
 
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-secrets-'));
     stored = new Map();
     installs = 0;
+    locked = false;
 });
 
 afterEach(async () => {
@@ -51,6 +53,12 @@ function host(overrides: Partial<SecretsHost> = {}): SecretsHost {
             stored.delete(account);
         },
         path: '/tmp/test.keychain-db',
+        probe: async (account) => {
+            if (locked) {
+                return 'locked';
+            }
+            return stored.has(account) ? 'present' : 'missing';
+        },
         read: async (account) => stored.get(account) ?? null,
         write: async (account, value) => {
             stored.set(account, value);
@@ -113,6 +121,17 @@ describe('Computer Secrets store', () => {
             connected: true,
             issue: 'runtime-missing',
         });
+    });
+
+    test('flags a locked Keychain until it unlocks again', async () => {
+        await connectSecrets(host(), connect);
+        locked = true;
+        expect(await readSecretsStatus(host())).toMatchObject({
+            connected: true,
+            issue: 'keychain-locked',
+        });
+        locked = false;
+        expect(await readSecretsStatus(host())).toMatchObject({ connected: true, issue: null });
     });
 
     test('refresh replaces the items, keeps the token, and reinstalls a missing runtime', async () => {

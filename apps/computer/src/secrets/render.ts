@@ -1,4 +1,5 @@
 import type { ComputerSecretItem, OnePasswordItem } from '@haus/api';
+import { keychainItemNotFoundExitCode, securityPath } from './keychain.ts';
 import { secretsRuntimePlugin } from './runtime.ts';
 
 /** A vault item Agents can use: its env name plus the reference Varlock resolves. */
@@ -79,6 +80,8 @@ export function renderSecretsWrapper(input: {
     bindings: readonly SecretBinding[];
     keychainPath: string;
     schemaDir: string;
+    /** Tests swap in a stub; production always uses `/usr/bin/security`. */
+    securityPath?: string;
     service: string;
     varlockPath: string;
 }): string {
@@ -91,12 +94,17 @@ export function renderSecretsWrapper(input: {
         names ? `    printf '%s\\n' ${names}` : '    :',
         '    exit 0',
         'fi',
-        `if ! token=$(/usr/bin/security find-generic-password -s ${shellQuote(input.service)} -a ${shellQuote(input.account)} -w ${shellQuote(input.keychainPath)} 2>/dev/null); then`,
+        `token=$(${shellQuote(input.securityPath ?? securityPath)} find-generic-password -s ${shellQuote(input.service)} -a ${shellQuote(input.account)} -w ${shellQuote(input.keychainPath)} 2>/dev/null)`,
+        'code=$?',
+        `if [ "$code" -eq ${keychainItemNotFoundExitCode} ]; then`,
         `    echo "haus-secrets: this Computer has no 1Password connection. Ask the Server Owner to connect one in Computer settings." >&2`,
+        '    exit 78',
+        'elif [ "$code" -ne 0 ]; then',
+        `    echo "haus-secrets: this Computer's Keychain is locked, so the 1Password token cannot be read. Someone must log in on the Computer to unlock it." >&2`,
         '    exit 78',
         'fi',
         'export HAUS_OP_TOKEN="$token" VARLOCK_TELEMETRY_DISABLED=1',
-        'unset token __VARLOCK_ENV',
+        'unset code token __VARLOCK_ENV',
         `exec ${shellQuote(input.varlockPath)} run --path ${shellQuote(`${input.schemaDir}/`)} --inject vars "$@"`,
         '',
     ].join('\n');

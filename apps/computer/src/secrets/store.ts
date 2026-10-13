@@ -1,6 +1,7 @@
 import { chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+    type ComputerSecretsIssue,
     type ComputerSecretsOperation,
     type ComputerSecretsStatus,
     computerSecretItemSchema,
@@ -55,7 +56,7 @@ export function secretsPaths(dataRoot: string, serverId: string) {
 }
 
 export async function readSecretsStatus(
-    host: Pick<SecretsHost, 'dataRoot' | 'serverId'>
+    host: Pick<SecretsHost, 'dataRoot' | 'keychain' | 'serverId'>
 ): Promise<ComputerSecretsStatus> {
     const paths = secretsPaths(host.dataRoot, host.serverId);
     const state = await readState(paths.state);
@@ -65,7 +66,7 @@ export async function readSecretsStatus(
     return {
         ...state,
         connected: true,
-        issue: isSecretsRuntimeInstalled(paths.root) ? null : 'runtime-missing',
+        issue: await readIssue(host, paths.root),
         provider: '1password',
     };
 }
@@ -167,6 +168,16 @@ async function writeConnection(
         items: bindings.map(({ envName, title }) => ({ envName, title })),
     };
     await writeFile(paths.state, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
+}
+
+async function readIssue(
+    host: Pick<SecretsHost, 'keychain' | 'serverId'>,
+    root: string
+): Promise<ComputerSecretsIssue | null> {
+    if (!isSecretsRuntimeInstalled(root)) {
+        return 'runtime-missing';
+    }
+    return (await host.keychain.probe(host.serverId)) === 'locked' ? 'keychain-locked' : null;
 }
 
 async function readState(path: string): Promise<SecretsState | null> {
