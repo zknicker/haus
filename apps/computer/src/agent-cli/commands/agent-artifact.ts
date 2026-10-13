@@ -4,7 +4,7 @@ import path from 'node:path';
 import {
     artifactListResultSchema,
     artifactMetadataSchema,
-    artifactPublishInputSchema,
+    artifactNameSchema,
     artifactPublishResultSchema,
     artifactVersionsResultSchema,
     inferAttachmentMediaType,
@@ -27,9 +27,12 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'publish',
         summary: 'Share a file with this Server or publish a new revision',
-        usage: 'haus artifact publish --path <file> --title <title> (--name <name> | --artifact-id <id>)',
+        usage: 'haus artifact publish --path <file> --title <title> [--name <name> | --artifact-id <id>]',
         positionals: [],
-        examples: ['haus artifact publish --path ./report.pdf --name report --title "Report"'],
+        examples: [
+            'haus artifact publish --path ./report.pdf --title "Report"',
+            'haus artifact publish --path ./report.pdf --title "Report" --artifact-id art_123',
+        ],
         flags: [
             { name: '--path', valueName: '<file>', description: 'Local file to publish' },
             { name: '--title', valueName: '<title>', description: 'Artifact title' },
@@ -37,7 +40,7 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
                 name: '--name',
                 valueName: '<name>',
                 description:
-                    'Server-scoped name for a new artifact: lowercase-kebab, no extension (q4-report)',
+                    'Name for a new artifact: lowercase-kebab, no extension (q4-report). Defaults to one derived from the filename; a taken name fails',
             },
             {
                 name: '--artifact-id',
@@ -192,15 +195,7 @@ async function publish(args: ParsedArgs): Promise<number> {
     if (file.size > 256 * 1024 ** 2) {
         throw new AgentCliError('INVALID_ARG', 'Artifact exceeds the 256 MiB limit.');
     }
-    const name = args.values['--name'];
-    const artifactId = args.values['--artifact-id'];
-    if (Boolean(name) === Boolean(artifactId)) {
-        throw new AgentCliError('INVALID_ARG', 'Provide exactly one of --name or --artifact-id.');
-    }
-    const nameError = name ? artifactNameError(name) : null;
-    if (nameError) {
-        throw new AgentCliError('INVALID_ARG', nameError);
-    }
+    const { name, artifactId } = publishTarget(args);
     const context = resolveAgentContext();
     const url = new URL(`${base}/publish-artifact-raw`, context.serverUrl);
     const requestId = args.values['--request-id'] ?? randomUUID();
@@ -248,9 +243,28 @@ function target(args: ParsedArgs): string {
     }
     return `${base}/${encodeURIComponent(id)}`;
 }
+/**
+ * Resolves what a publish targets: `--artifact-id` revises, `--name` creates under that name, and
+ * neither creates under a name the Server derives from the filename.
+ */
+export function publishTarget(args: ParsedArgs): { name?: string; artifactId?: string } {
+    const name = args.values['--name'];
+    const artifactId = args.values['--artifact-id'];
+    if (name && artifactId) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            'Pass --artifact-id to add a revision or --name to create, not both.'
+        );
+    }
+    const nameError = name ? artifactNameError(name) : null;
+    if (nameError) {
+        throw new AgentCliError('INVALID_ARG', nameError);
+    }
+    return { name, artifactId };
+}
 /** Checks `--name` against the publish contract before upload, suggesting a valid name. */
 export function artifactNameError(name: string): string | null {
-    if (artifactPublishInputSchema.shape.name.safeParse(name).success) {
+    if (artifactNameSchema.safeParse(name).success) {
         return null;
     }
     const suggestion = path

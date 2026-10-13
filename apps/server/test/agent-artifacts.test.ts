@@ -43,6 +43,19 @@ test('raw CLI publication streams through runner auth and other Agents can publi
     const revision = artifactPublishResultSchema.parse(await second.json()).artifact;
     expect(revision.artifact_id).toBe(published.artifact_id);
     expect(revision.revision_number).toBe(2);
+    const taken = await publish(
+        secondRunner.token,
+        { name: 'shared-report', request_id: 'raw-taken-name' },
+        'peer bytes'
+    );
+    expect(taken.status).toBe(409);
+    expect(await taken.json()).toEqual({
+        code: 'NAME_TAKEN',
+        message: `\`shared-report\` already exists (${published.artifact_id}). Pass --artifact-id ${published.artifact_id} to add a revision, or choose another name.`,
+    });
+    const unnamed = await publish(secondRunner.token, { request_id: 'raw-unnamed' }, 'unnamed');
+    expect(unnamed.status).toBe(200);
+    expect(artifactPublishResultSchema.parse(await unnamed.json()).artifact.name).toBe('report');
     const query = await fetch(
         new URL(
             `/api/agent/artifacts/${published.artifact_id}/download?revision_id=${published.revision_id}`,

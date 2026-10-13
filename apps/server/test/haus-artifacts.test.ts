@@ -75,7 +75,7 @@ afterAll(async () => {
 
 test('Server artifacts keep a stable identity and immutable versions, with retry idempotency', async () => {
     const first = await publish('version-one', 'report', 'one');
-    const second = await publish('version-two', 'report', 'two');
+    const second = await publish('version-two', revise(first), 'two');
     expect(first.artifact.artifact_id).toBe(second.artifact.artifact_id);
     expect(first.artifact.revision_id).not.toBe(second.artifact.revision_id);
     expect(first.artifact.stable_url).toBe(second.artifact.stable_url);
@@ -130,8 +130,8 @@ test('members read the library, outsiders fail, and current revisions cannot be 
 test('parallel publications receive distinct revisions without losing historical bytes', async () => {
     const base = await publish('parallel-base', 'parallel', 'base');
     const results = await Promise.all([
-        publish('parallel-first', 'parallel', 'first'),
-        publish('parallel-second', 'parallel', 'second'),
+        publish('parallel-first', revise(base), 'first'),
+        publish('parallel-second', revise(base), 'second'),
     ]);
     expect(new Set(results.map((result) => result.artifact.revision_number)).size).toBe(2);
     const current = await owner.trpc.artifact.get.query({
@@ -149,7 +149,7 @@ test('parallel publications receive distinct revisions without losing historical
 test('failed uploads preserve the current revision and recover reserved capacity', async () => {
     const first = await publish('failure-base', 'failure', 'base');
     failUpload = true;
-    await expect(publish('failure-upload', 'failure', 'bad')).rejects.toThrow(
+    await expect(publish('failure-upload', revise(first), 'bad')).rejects.toThrow(
         'R2 upload unavailable'
     );
     failUpload = false;
@@ -249,9 +249,14 @@ test('library search escapes wildcards and filters file types before pagination'
     expect((await list('report.txt', 'images')).artifacts).toHaveLength(1);
 });
 
+/** A string target is an explicit new name; `null` lets the Server derive one from the filename. */
+type PublishTarget = string | { artifact_id: string } | null;
+function revise(result: { artifact: { artifact_id: string } }): PublishTarget {
+    return { artifact_id: result.artifact.artifact_id };
+}
 function publish(
     requestId: string,
-    name: string,
+    target: PublishTarget,
     body: string,
     contentType = 'text/plain',
     filename = 'report.txt'
@@ -262,7 +267,7 @@ function publish(
         input: artifactPublishInputSchema.parse({
             content_type: contentType,
             filename,
-            name,
+            ...(typeof target === 'string' ? { name: target } : target),
             request_id: requestId,
             title: 'Report',
         }),

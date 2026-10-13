@@ -1,7 +1,12 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import { parseArgs, UsageError } from '../parse.ts';
-import { ARTIFACT_SUBCOMMANDS, artifactNameError, runArtifactList } from './agent-artifact.ts';
+import {
+    ARTIFACT_SUBCOMMANDS,
+    artifactNameError,
+    publishTarget,
+    runArtifactList,
+} from './agent-artifact.ts';
 
 const list = ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'list');
 const listCommand = { ...list, section: 'artifact' } as Parameters<typeof parseArgs>[0];
@@ -43,6 +48,20 @@ test('artifact commands no longer take the no-op --json flag; output is always J
         expect(sub.usage).not.toContain('--json');
     }
     expect(() => parseArgs(listCommand, ['--json'])).toThrow(UsageError);
+});
+
+test('publish needs neither --name nor --artifact-id, but refuses both', () => {
+    const publish = ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'publish');
+    const command = { ...publish, section: 'artifact' } as Parameters<typeof parseArgs>[0];
+    const parse = (extra: string[]) =>
+        publishTarget(parseArgs(command, ['--path', 'a.md', '--title', 'A', ...extra]));
+    expect(parse([])).toEqual({ name: undefined, artifactId: undefined });
+    expect(parse(['--name', 'notes'])).toEqual({ name: 'notes', artifactId: undefined });
+    expect(parse(['--artifact-id', 'art_1'])).toEqual({ name: undefined, artifactId: 'art_1' });
+    expect(() => parse(['--name', 'notes', '--artifact-id', 'art_1'])).toThrow(
+        'Pass --artifact-id to add a revision or --name to create, not both.'
+    );
+    expect(() => parse(['--name', 'Notes.md'])).toThrow('Try --name notes.');
 });
 
 test('publish rejects a filename-shaped --name before upload and suggests a valid one', () => {

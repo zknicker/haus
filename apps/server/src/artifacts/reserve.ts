@@ -8,6 +8,7 @@ import {
     serversTable,
 } from '../postgres/schema.ts';
 import type { ArtifactAccess } from './access.ts';
+import { resolveNewArtifactName } from './name.ts';
 import { ArtifactError, artifactMaxBytes } from './storage.ts';
 
 export async function reserveArtifact(
@@ -57,34 +58,9 @@ export async function reserveArtifact(
             .from(revisions)
             .where(eq(revisions.serverId, access.serverId));
         requireStorageBudget(used?.total, budget);
-        let [artifact] = await tx
-            .select()
-            .from(artifacts)
-            .where(
-                and(
-                    eq(artifacts.serverId, access.serverId),
-                    isNull(artifacts.deletedAt),
-                    input.artifact_id
-                        ? eq(artifacts.id, input.artifact_id)
-                        : eq(artifacts.name, input.name ?? '')
-                )
-            )
-            .limit(1);
-        if (!artifact) {
-            if (input.artifact_id) {
-                throw new ArtifactError('Artifact was not found.', 404, 'NOT_FOUND');
-            }
-            [artifact] = await tx
-                .insert(artifacts)
-                .values({
-                    creatorAgentId: access.agentId,
-                    creatorUserId: access.userId,
-                    id: createOpaqueId('art'),
-                    name: input.name ?? '',
-                    serverId: access.serverId,
-                })
-                .returning();
-        }
+        const artifact = input.artifact_id
+            ? await findLiveArtifact(tx, access.serverId, input.artifact_id)
+            : await createArtifact(tx, access, input);
         if (!artifact) {
             throw new Error('Artifact reservation did not return its row.');
         }
@@ -131,9 +107,10 @@ function verifyRetry(
         revision.filename === input.filename &&
         revision.contentType === input.content_type &&
         revision.title === input.title;
+    // A create retry matches the artifact its first attempt created, including a derived name.
     const sameTarget = input.artifact_id
         ? input.artifact_id === artifact.id
-        : input.name === artifact.name;
+        : revision.revisionNumber === 1 && (!input.name || input.name === artifact.name);
     if (!(matches && sameTarget)) {
         throw new ArtifactError(
             'That request_id belongs to a different publication.',
@@ -141,6 +118,42 @@ function verifyRetry(
             'IDEMPOTENCY_KEY_REUSED'
         );
     }
+    return artifact;
+}
+
+async function findLiveArtifact(tx: HausDatabase, serverId: string, artifactId: string) {
+    const [artifact] = await tx
+        .select()
+        .from(artifacts)
+        .where(
+            and(
+                eq(artifacts.serverId, serverId),
+                isNull(artifacts.deletedAt),
+                eq(artifacts.id, artifactId)
+            )
+        )
+        .limit(1);
+    if (!artifact) {
+        throw new ArtifactError('Artifact was not found.', 404, 'NOT_FOUND');
+    }
+    return artifact;
+}
+
+async function createArtifact(
+    tx: HausDatabase,
+    access: ArtifactAccess,
+    input: ArtifactPublishInput
+) {
+    const [artifact] = await tx
+        .insert(artifacts)
+        .values({
+            creatorAgentId: access.agentId,
+            creatorUserId: access.userId,
+            id: createOpaqueId('art'),
+            name: await resolveNewArtifactName(tx, access.serverId, input),
+            serverId: access.serverId,
+        })
+        .returning();
     return artifact;
 }
 

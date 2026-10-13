@@ -1,6 +1,16 @@
 import * as z from 'zod';
 
 const id = z.string().trim().min(1).max(128);
+export const artifactNameMaxLength = 128;
+/** Server-scoped artifact name: lowercase-kebab, no extension. */
+export const artifactNameSchema = z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u)
+    .max(artifactNameMaxLength);
+/**
+ * Publishing creates a new artifact unless `artifact_id` names one to revise. An explicit `name`
+ * must be free; with neither, the Server derives a free name from `filename`.
+ */
 export const artifactPublishInputSchema = z
     .object({
         artifact_id: id.optional(),
@@ -16,19 +26,29 @@ export const artifactPublishInputSchema = z
             .min(1)
             .max(255)
             .regex(/^[^/\\\u0000-\u001f\u007f]+$/u),
-        name: z
-            .string()
-            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u)
-            .max(128)
-            .optional(),
+        name: artifactNameSchema.optional(),
         request_id: z.string().regex(/^[A-Za-z0-9_-]{8,128}$/u),
         title: z.string().trim().min(1).max(255),
     })
     .strict()
-    .refine((value) => Boolean(value.name) !== Boolean(value.artifact_id), {
-        message: 'Supply exactly one of name or artifact_id.',
+    .refine((value) => !(value.name && value.artifact_id), {
+        message: 'Supply name or artifact_id, not both.',
     });
 export type ArtifactPublishInput = z.infer<typeof artifactPublishInputSchema>;
+/**
+ * The artifact name a filename implies: its stem, lowercased, with runs of other characters
+ * folded to single hyphens. Returns `artifact` when nothing usable remains.
+ */
+export function artifactNameFromFilename(filename: string, maxLength = artifactNameMaxLength) {
+    const lastDot = filename.lastIndexOf('.');
+    const stem = lastDot > 0 ? filename.slice(0, lastDot) : filename;
+    const name = stem
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/gu, '-')
+        .slice(0, maxLength)
+        .replace(/^-+|-+$/gu, '');
+    return name || 'artifact';
+}
 export const artifactTargetInputSchema = z
     .object({
         artifact_id: id,
