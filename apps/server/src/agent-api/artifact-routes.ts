@@ -1,13 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { artifactPublishInputSchema } from '@haus/api';
+import { artifactFolderSchema, artifactListPageMax } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { ArtifactActor } from '../artifacts/access.ts';
-import { runArtifactAction } from '../artifacts/action.ts';
+import { defaultArtifactListFilters, runArtifactAction } from '../artifacts/action.ts';
 import { publishArtifact } from '../artifacts/publish.ts';
+import { publishInputFromQuery } from '../artifacts/publish-route.ts';
 import { ArtifactError, type ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { registerAgentArtifactActions } from './artifact-actions.ts';
+import { registerAgentArtifactDriveRoutes } from './artifact-drive-routes.ts';
 import { sendArtifactError } from './artifact-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 
@@ -21,6 +23,7 @@ export function registerAgentArtifactRoutes(
     }
 ) {
     registerAgentArtifactActions(app, options);
+    registerAgentArtifactDriveRoutes(app, options);
     for (const path of [
         '/api/agent/artifacts/publish-artifact-raw',
         '/api/agent/actions/publish-artifact-raw',
@@ -39,10 +42,8 @@ export function registerAgentArtifactRoutes(
                                 'A valid runner credential is required.'
                             );
                         }
-                        const metadata = z.record(z.string(), z.unknown()).parse(request.query);
-                        const input = artifactPublishInputSchema.parse({
-                            ...metadata,
-                            request_id: metadata.request_id ?? randomUUID(),
+                        const input = publishInputFromQuery(request.query, {
+                            request_id: randomUUID(),
                         });
                         if (
                             request.headers['content-type'] &&
@@ -76,10 +77,14 @@ export function registerAgentArtifactRoutes(
 
     const target = z.object({ artifactId: z.string().min(1), revisionId: z.string().optional() });
     const query = z.object({
-        offset: z.coerce.number().int().min(0).max(100_000).default(0),
-        revision_id: z.string().optional(),
-        query: z.string().trim().max(200).default(''),
+        limit: z.coerce.number().int().min(1).max(artifactListPageMax).default(50),
         mine: z.enum(['true', 'false']).default('false'),
+        offset: z.coerce.number().int().min(0).max(100_000).default(0),
+        order: z.enum(['updated', 'path']).default('updated'),
+        prefix: artifactFolderSchema.default(''),
+        query: z.string().trim().max(200).default(''),
+        recursive: z.enum(['true', 'false']).default('false'),
+        revision_id: z.string().optional(),
     });
     for (const action of [
         'list',
@@ -128,8 +133,12 @@ export function registerAgentArtifactRoutes(
                             revision_id: params.revisionId ?? parsedQuery.revision_id,
                             offset: parsedQuery.offset,
                             filters: {
-                                kind: 'all',
+                                ...defaultArtifactListFilters,
+                                limit: parsedQuery.limit,
+                                order: parsedQuery.order,
+                                prefix: parsedQuery.prefix,
                                 query: parsedQuery.query,
+                                recursive: parsedQuery.recursive === 'true',
                                 // `mine` is the calling Agent's own creations; other creators stay unexposed.
                                 creator:
                                     parsedQuery.mine === 'true'

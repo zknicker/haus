@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { ArtifactErrorCode, ArtifactMetadata } from '@haus/api';
 import { S3Client } from 'bun';
 import { attachmentDisposition } from '../utils/content-disposition.ts';
 
@@ -26,7 +27,9 @@ export class ArtifactError extends Error {
     constructor(
         message: string,
         readonly status: number,
-        readonly code: string
+        readonly code: ArtifactErrorCode,
+        /** For `REVISION_CONFLICT`: the live head the write lost to, or null. */
+        readonly current: ArtifactMetadata | null = null
     ) {
         super(message);
     }

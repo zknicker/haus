@@ -15,7 +15,9 @@ export const artifactProcedure = memberProcedure.use(async ({ next }) => {
                   ? 'FORBIDDEN'
                   : cause.status === 503
                     ? 'SERVICE_UNAVAILABLE'
-                    : 'CONFLICT';
+                    : cause.status === 400
+                      ? 'BAD_REQUEST'
+                      : 'CONFLICT';
         throw new TRPCError({ cause, code, message: cause.message });
     }
     throw result.error;

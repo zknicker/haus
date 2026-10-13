@@ -1,5 +1,5 @@
 import { artifactTargetInputSchema, artifactVersionsResultSchema } from '@haus/api';
-import { listArtifacts } from '../../artifacts/read.ts';
+import { listArtifactVersions } from '../../artifacts/read.ts';
 import { artifactProcedure } from './procedure.ts';
 
 export const versionsArtifactProcedure = artifactProcedure
@@ -8,12 +8,12 @@ export const versionsArtifactProcedure = artifactProcedure
     .query(async ({ ctx, input }) => {
         const actor = { kind: 'human', member: ctx.member, serverId: input.serverId } as const;
         return {
-            versions: await listArtifacts(
+            versions: await listArtifactVersions(
                 ctx.hausDb,
                 actor,
                 ctx.appOrigin,
-                input.offset,
-                input.artifact_id
+                input.artifact_id,
+                input.offset
             ),
         };
     });

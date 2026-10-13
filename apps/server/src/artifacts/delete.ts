@@ -6,6 +6,7 @@ import {
     serversTable,
 } from '../postgres/schema.ts';
 import { type ArtifactAccess, type ArtifactActor, artifactAccess } from './access.ts';
+import { releasePendingPath } from './publish.ts';
 import { ArtifactError, type ArtifactStorage, requireArtifactStorage } from './storage.ts';
 
 export async function deleteArtifact(
@@ -94,6 +95,9 @@ export async function reconcileArtifacts(db: HausDatabase, storage: ArtifactStor
     for (const row of rows) {
         try {
             await purgeRevision(db, storage, row);
+            if (row.state === 'uploading') {
+                await releasePendingPath(db, row.artifactId);
+            }
         } catch {
             failedRevisionIds.push(row.id);
         }

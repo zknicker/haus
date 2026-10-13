@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { ArtifactPublishInput } from '@haus/api';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
@@ -8,8 +8,9 @@ import {
     serversTable,
 } from '../postgres/schema.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';
+import { revisionConflict } from './conflict.ts';
 import { getArtifact } from './read.ts';
-import { reserveArtifact } from './reserve.ts';
+import { type ArtifactWriteExpectation, reserveArtifact } from './reserve.ts';
 import {
     ArtifactError,
     type ArtifactStorage,
@@ -34,7 +35,8 @@ export async function publishArtifact(options: {
         db,
         access,
         input,
-        options.budget ?? artifactStorageBytes
+        options.budget ?? artifactStorageBytes,
+        origin
     );
     if (reserved.retry) {
         const hash = createHash('sha256');
@@ -95,24 +97,20 @@ export async function publishArtifact(options: {
                         state: 'ready',
                     })
                     .where(eq(revisions.id, reserved.revision.id));
-                const [current] = artifact.currentRevisionId
-                    ? await tx
-                          .select({ number: revisions.revisionNumber })
-                          .from(revisions)
-                          .where(eq(revisions.id, artifact.currentRevisionId))
-                    : [];
-                if (!current || current.number < reserved.revision.revisionNumber) {
-                    await tx
-                        .update(artifacts)
-                        .set({ currentRevisionId: reserved.revision.id })
-                        .where(eq(artifacts.id, artifact.id));
-                }
+                await advanceHead(tx, artifact, reserved.revision, reserved.expect, () =>
+                    revisionConflict(tx, access, origin, {
+                        artifactId: artifact.id,
+                        baseRevisionId: reserved.expect.replace ? null : reserved.expect.base,
+                        path: artifact.path,
+                    })
+                );
             });
         } catch (cause) {
             await db
                 .update(revisions)
                 .set({ state: 'failed' })
                 .where(eq(revisions.id, reserved.revision.id));
+            await releasePendingPath(db, reserved.artifact.id);
             try {
                 await storage.delete(reserved.revision.objectKey);
                 await db
@@ -132,4 +130,47 @@ export async function publishArtifact(options: {
         artifact: (await getArtifact(db, actor, origin, reserved.artifact.id, reserved.revision.id))
             .metadata,
     };
+}
+
+/**
+ * Points the artifact at the landed revision. `replace` advances unless a newer revision already
+ * landed; otherwise the head must still be the expected base, or the write lost the race.
+ */
+async function advanceHead(
+    tx: HausDatabase,
+    artifact: typeof artifacts.$inferSelect,
+    revision: typeof revisions.$inferSelect,
+    expect: ArtifactWriteExpectation,
+    conflict: () => Promise<ArtifactError>
+) {
+    if (!expect.replace && artifact.currentRevisionId !== expect.base) {
+        throw await conflict();
+    }
+    const [current] = artifact.currentRevisionId
+        ? await tx
+              .select({ number: revisions.revisionNumber })
+              .from(revisions)
+              .where(eq(revisions.id, artifact.currentRevisionId))
+        : [];
+    if (!current || current.number < revision.revisionNumber) {
+        await tx
+            .update(artifacts)
+            .set({ currentRevisionId: revision.id })
+            .where(eq(artifacts.id, artifact.id));
+    }
+}
+
+/** A create whose only upload failed never existed: free its path for the next writer. */
+export async function releasePendingPath(db: HausDatabase, artifactId: string) {
+    await db
+        .update(artifacts)
+        .set({ deletedAt: new Date() })
+        .where(
+            and(
+                eq(artifacts.id, artifactId),
+                isNull(artifacts.currentRevisionId),
+                isNull(artifacts.deletedAt),
+                sql`not exists (select 1 from ${revisions} where ${revisions.artifactId} = ${artifacts.id} and ${revisions.state} = 'uploading')`
+            )
+        );
 }

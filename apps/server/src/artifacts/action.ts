@@ -1,11 +1,17 @@
-import type { ArtifactListInput } from '@haus/api';
+import { type ArtifactListFilters, artifactListInputSchema } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ArtifactActor } from './access.ts';
 import { deleteArtifact } from './delete.ts';
-import { downloadArtifact, getArtifact, listArtifacts } from './read.ts';
+import { listArtifactDrive } from './list.ts';
+import { downloadArtifact, getArtifact, listArtifactVersions } from './read.ts';
 import { ArtifactError, type ArtifactStorage } from './storage.ts';
 
 export type ArtifactAction = 'list' | 'get' | 'versions' | 'download' | 'delete' | 'deleteVersion';
+/** List filters with every default applied: the root folder, 50 newest files. */
+export const defaultArtifactListFilters: ArtifactListFilters = artifactListInputSchema
+    .omit({ serverId: true })
+    .parse({});
+
 export async function runArtifactAction(options: {
     action: ArtifactAction;
     db: HausDatabase;
@@ -16,23 +22,17 @@ export async function runArtifactAction(options: {
         artifact_id: string;
         revision_id?: string;
         offset: number;
-        /** Library filters for `list`; ignored by every other action. */
-        filters?: Pick<ArtifactListInput, 'creator' | 'kind' | 'query'>;
+        /** Drive listing for `list`; ignored by every other action. */
+        filters?: ArtifactListFilters;
     };
 }) {
     const { action, actor, db, input, origin, storage } = options;
     switch (action) {
         case 'list':
-            return {
-                artifacts: await listArtifacts(
-                    db,
-                    actor,
-                    origin,
-                    input.offset,
-                    undefined,
-                    input.filters
-                ),
-            };
+            return await listArtifactDrive(db, actor, origin, {
+                ...(input.filters ?? defaultArtifactListFilters),
+                offset: input.offset,
+            });
         case 'get':
             return {
                 artifact: (
@@ -41,7 +41,13 @@ export async function runArtifactAction(options: {
             };
         case 'versions':
             return {
-                versions: await listArtifacts(db, actor, origin, input.offset, input.artifact_id),
+                versions: await listArtifactVersions(
+                    db,
+                    actor,
+                    origin,
+                    input.artifact_id,
+                    input.offset
+                ),
             };
         case 'download':
             return await downloadArtifact(

@@ -3,6 +3,7 @@ import {
     bigint,
     check,
     foreignKey,
+    index,
     integer,
     pgTable,
     text,
@@ -23,16 +24,22 @@ export const artifactsTable = pgTable(
         currentRevisionId: text('current_revision_id'),
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
         id: text('id').primaryKey(),
-        name: text('name').notNull(),
         nextRevision: integer('next_revision').notNull().default(1),
+        /** Canonical drive path, NFC-normalized (specs/artifact-drive.md). */
+        path: text('path').notNull(),
+        /** `artifactPathKey(path)`: the case- and normalization-folded uniqueness key. */
+        pathKey: text('path_key').notNull(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
     },
     (table) => [
         unique('artifacts_server_id_key').on(table.serverId, table.id),
-        uniqueIndex('artifacts_server_name_key')
-            .on(table.serverId, table.name)
+        uniqueIndex('artifacts_server_path_key')
+            .on(table.serverId, table.pathKey)
+            .where(sql`${table.deletedAt} is null`),
+        index('artifacts_server_path_prefix')
+            .on(table.serverId, sql`${table.pathKey} text_pattern_ops`)
             .where(sql`${table.deletedAt} is null`),
         check(
             'artifacts_creator_shape',

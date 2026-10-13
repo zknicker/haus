@@ -1,11 +1,12 @@
-import type { ArtifactCreator, ArtifactListInput, ArtifactMetadata } from '@haus/api';
-import { and, desc, eq, ilike, isNull, not, or, sql } from 'drizzle-orm';
+import { type ArtifactCreator, type ArtifactMetadata, artifactPathBasename } from '@haus/api';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
 } from '../postgres/schema.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';
+import { liveArtifactAtPath } from './path.ts';
 import { ArtifactError, type ArtifactStorage, requireArtifactStorage } from './storage.ts';
 
 export async function getArtifact(
@@ -44,14 +45,33 @@ export async function getArtifact(
     };
 }
 
-export async function listArtifacts(
+/** The live file at a drive path, by the same case- and normalization-folded key writes use. */
+export async function getArtifactAtPath(
     db: HausDatabase,
     actor: ArtifactActor,
     origin: string,
-    offset: number,
-    artifactId?: string,
-    filters?: Pick<ArtifactListInput, 'creator' | 'kind' | 'query'>
+    path: string
 ) {
+    const access = await artifactAccess(db, actor);
+    const artifact = await liveArtifactAtPath(db, access.serverId, path);
+    const metadata = artifact
+        ? await currentArtifactMetadata(db, access.serverId, artifact.id, origin, access.slug)
+        : null;
+    if (!metadata) {
+        throw new ArtifactError(`Nothing lives at \`${path}\`.`, 404, 'NOT_FOUND');
+    }
+    return metadata;
+}
+
+/** Every ready revision of one artifact, newest revision number first, 50 per page. */
+export async function listArtifactVersions(
+    db: HausDatabase,
+    actor: ArtifactActor,
+    origin: string,
+    artifactId: string,
+    offset: number
+) {
+    await getArtifact(db, actor, origin, artifactId);
     const access = await artifactAccess(db, actor);
     const rows = await db
         .select({ artifact: artifacts, revision: revisions })
@@ -63,63 +83,46 @@ export async function listArtifacts(
         .where(
             and(
                 eq(artifacts.serverId, access.serverId),
+                eq(artifacts.id, artifactId),
                 isNull(artifacts.deletedAt),
-                eq(revisions.state, 'ready'),
-                artifactFilters(filters),
-                artifactId
-                    ? eq(artifacts.id, artifactId)
-                    : eq(revisions.id, artifacts.currentRevisionId)
+                eq(revisions.state, 'ready')
             )
         )
-        .orderBy(
-            desc(artifactId ? revisions.revisionNumber : revisions.createdAt),
-            desc(artifacts.id)
-        )
+        .orderBy(desc(revisions.revisionNumber))
         .limit(50)
         .offset(offset);
-    if (artifactId) {
-        await getArtifact(db, actor, origin, artifactId);
-    }
     return rows.map((row) => artifactMetadata(row, origin, access.slug));
 }
 
-function artifactFilters(filters: Parameters<typeof listArtifacts>[5]) {
-    if (!filters) {
-        return undefined;
-    }
-    const image = ilike(revisions.contentType, 'image/%');
-    const media = or(
-        ilike(revisions.contentType, 'audio/%'),
-        ilike(revisions.contentType, 'video/%')
-    );
-    const documents = or(
-        ilike(revisions.contentType, 'text/%'),
-        eq(revisions.contentType, 'application/pdf'),
-        ilike(revisions.contentType, '%officedocument%'),
-        eq(revisions.contentType, 'application/json')
-    );
-    const kind =
-        filters.kind === 'images'
-            ? image
-            : filters.kind === 'media'
-              ? media
-              : filters.kind === 'documents'
-                ? documents
-                : filters.kind === 'other'
-                  ? not(sql`(${image} or ${media} or ${documents})`)
-                  : undefined;
-    const pattern = `%${filters.query.replace(/[\\%_]/gu, '\\$&')}%`;
-    return and(
-        kind,
-        artifactCreatorFilter(filters.creator),
-        filters.query
-            ? or(
-                  ilike(revisions.title, pattern),
-                  ilike(revisions.filename, pattern),
-                  ilike(artifacts.name, pattern)
-              )
-            : undefined
-    );
+/** The live head of an artifact, or null while its first publish is still in flight. */
+export async function currentArtifactMetadata(
+    db: HausDatabase,
+    serverId: string,
+    artifactId: string,
+    origin: string,
+    slug: string
+) {
+    const [row] = await db
+        .select({ artifact: artifacts, revision: revisions })
+        .from(artifacts)
+        .innerJoin(
+            revisions,
+            and(
+                eq(revisions.serverId, artifacts.serverId),
+                eq(revisions.artifactId, artifacts.id),
+                eq(revisions.id, artifacts.currentRevisionId)
+            )
+        )
+        .where(
+            and(
+                eq(artifacts.serverId, serverId),
+                eq(artifacts.id, artifactId),
+                isNull(artifacts.deletedAt),
+                eq(revisions.state, 'ready')
+            )
+        )
+        .limit(1);
+    return row ? artifactMetadata(row, origin, slug) : null;
 }
 
 export async function downloadArtifact(
@@ -157,8 +160,8 @@ export function artifactMetadata(
         content_type: row.revision.contentType,
         created_at: row.artifact.createdAt.toISOString(),
         creator: artifactCreator(row.artifact),
-        filename: row.revision.filename,
-        name: row.artifact.name,
+        filename: artifactPathBasename(row.artifact.path),
+        path: row.artifact.path,
         revision_id: row.revision.id,
         revision_number: row.revision.revisionNumber,
         sha256: row.revision.sha256,

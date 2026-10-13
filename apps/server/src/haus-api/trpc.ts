@@ -1,5 +1,6 @@
 import { appProtocolVersion } from '@haus/api';
 import { initTRPC, TRPCError } from '@trpc/server';
+import { artifactErrorData } from '../artifacts/error-data.ts';
 import {
     type ClerkSessionIdentity,
     ClerkSessionUnavailableError,
@@ -24,7 +25,7 @@ const t = initTRPC.context<HausContext>().create({
     // from a role refusal or a transient failure (specs/realtime-events.md).
     errorFormatter: ({ error, shape }) => ({
         ...shape,
-        data: { ...shape.data, ...realtimeRefusalData(error) },
+        data: { ...shape.data, ...realtimeRefusalData(error), ...artifactErrorData(error) },
     }),
 });
 
