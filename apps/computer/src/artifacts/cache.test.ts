@@ -74,7 +74,7 @@ function metadata(revision: string, bytes: string): ArtifactMetadata {
         artifact_id: 'artifact',
         revision_id: revision,
         revision_number: 1,
-        name: 'sample',
+        path: 'sample.txt',
         title: 'Sample',
         filename: 'sample.txt',
         content_type: 'text/plain',

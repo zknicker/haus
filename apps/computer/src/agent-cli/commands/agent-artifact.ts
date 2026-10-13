@@ -4,7 +4,6 @@ import path from 'node:path';
 import {
     artifactListResultSchema,
     artifactMetadataSchema,
-    artifactNameSchema,
     artifactPublishResultSchema,
     artifactVersionsResultSchema,
     inferAttachmentMediaType,
@@ -29,26 +28,26 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'publish',
         summary: 'Share a file with this Server or publish a new revision',
-        usage: 'haus artifact publish --path <file> --title <title> [--name <name> | --artifact-id <id>]',
+        usage: 'haus artifact publish --path <file> [--to <drive-path>] [--title <title>] [--base-revision-id <id> | --replace]',
         positionals: [],
         examples: [
-            'haus artifact publish --path ./report.pdf --title "Report"',
-            'haus artifact publish --path ./report.pdf --title "Report" --artifact-id art_123',
+            'haus artifact publish --path ./report.pdf --to reports/q4.pdf',
+            'haus artifact publish --path ./report.pdf --to reports/q4.pdf --base-revision-id rev_123',
         ],
         flags: [
             { name: '--path', valueName: '<file>', description: 'Local file to publish' },
+            {
+                name: '--to',
+                valueName: '<drive-path>',
+                description: 'Drive path to write (folder/file.ext); defaults to the file name',
+            },
             { name: '--title', valueName: '<title>', description: 'Artifact title' },
             {
-                name: '--name',
-                valueName: '<name>',
-                description:
-                    'Name for a new artifact: lowercase-kebab, no extension (q4-report). Defaults to one derived from the filename; a taken name fails',
-            },
-            {
-                name: '--artifact-id',
+                name: '--base-revision-id',
                 valueName: '<id>',
-                description: 'Existing artifact receiving a new revision',
+                description: 'Current head revision an existing path is updated from',
             },
+            { name: '--replace', description: 'Overwrite an existing path whatever its head is' },
             {
                 name: '--content-type',
                 valueName: '<type>',
@@ -186,9 +185,8 @@ export async function runArtifactList(
 
 async function publish(args: ParsedArgs): Promise<number> {
     const filePath = args.values['--path'];
-    const title = args.values['--title'];
-    if (!(filePath && title)) {
-        throw new AgentCliError('INVALID_ARG', 'Provide --path and --title.');
+    if (!filePath) {
+        throw new AgentCliError('INVALID_ARG', 'Provide --path.');
     }
     const file = Bun.file(filePath);
     if (!((await file.exists()) && (await fs.stat(filePath)).isFile())) {
@@ -197,15 +195,14 @@ async function publish(args: ParsedArgs): Promise<number> {
     if (file.size > 256 * 1024 ** 2) {
         throw new AgentCliError('INVALID_ARG', 'Artifact exceeds the 256 MiB limit.');
     }
-    const { name, artifactId } = publishTarget(args);
     const context = resolveAgentContext();
     const url = new URL(`${base}/publish-artifact-raw`, context.serverUrl);
     const requestId = args.values['--request-id'] ?? randomUUID();
     for (const [key, value] of Object.entries({
-        name,
-        artifact_id: artifactId,
-        title,
-        filename: path.basename(filePath),
+        path: args.values['--to'] ?? path.basename(filePath),
+        base_revision_id: args.values['--base-revision-id'],
+        replace: args.flags['--replace'] ? 'true' : undefined,
+        title: args.values['--title'],
         content_type:
             args.values['--content-type'] ??
             inferAttachmentMediaType(
@@ -247,35 +244,6 @@ function target(args: ParsedArgs): string {
     return `${base}/${encodeURIComponent(id)}`;
 }
 
-export function publishTarget(args: ParsedArgs): { name?: string; artifactId?: string } {
-    const name = args.values['--name'];
-    const artifactId = args.values['--artifact-id'];
-    if (name && artifactId) {
-        throw new AgentCliError(
-            'INVALID_ARG',
-            'Pass --artifact-id to add a revision or --name to create, not both.'
-        );
-    }
-    const nameError = name ? artifactNameError(name) : null;
-    if (nameError) {
-        throw new AgentCliError('INVALID_ARG', nameError);
-    }
-    return { name, artifactId };
-}
-
-export function artifactNameError(name: string): string | null {
-    if (artifactNameSchema.safeParse(name).success) {
-        return null;
-    }
-    const suggestion = path
-        .parse(name)
-        .name.toLowerCase()
-        .replace(/[^a-z0-9]+/gu, '-')
-        .replace(/^-+|-+$/gu, '')
-        .slice(0, 128);
-    const hint = suggestion ? ` Try --name ${suggestion}.` : '';
-    return `--name must be lowercase-kebab with no extension.${hint} The file keeps its own filename.`;
-}
 function revisionQuery(args: ParsedArgs) {
     return { revision_id: args.values['--revision-id'] };
 }
