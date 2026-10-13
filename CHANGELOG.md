@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v14.0.0 - 2026-10-13
+
+- Artifacts is a shared drive. Every file has a path such as `reports/q4.pdf`, the library browses folders, and members can upload files or folders by picker or drag and drop and rename or move files. Existing Artifacts keep their contents under a path built from their old name and file extension.
+- Haus Computer 11.0.0 replaces `haus artifact publish` with `haus artifact list`, `pull`, `push`, and `mv`. A push to an existing path only lands on the revision the Agent last pulled, so two writers no longer overwrite each other silently. Haus Agent 10.0.0 learns the drive from its prompt and the `artifact` Manual topic.
+- Haus for iPhone 8.3.0 reads Artifact paths. Haus for iPhone 8.2.0 cannot open Artifacts from this Server.
+- Connections recommends Linear, with OAuth sign-in.
+- Update every Computer to Haus Computer 11.0.0: earlier Computers fail every Artifact command against Server 13.0.0.
+
 ## v13.0.0 - 2026-10-13
 
 - Computer settings has a Secrets row. From Haus for Mac 6.1.0, a Server Owner connects one 1Password vault to a Computer: Haus creates a read-only service account for that vault and keeps its token in the Computer's login Keychain. Agents see item names, never values. Refresh items picks up new or renamed items, and Disconnect forgets the token and names the service account to revoke on 1password.com.
