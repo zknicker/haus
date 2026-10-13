@@ -263,6 +263,10 @@ body kind check to `text` and `agent-created`. The previous Server reads `messag
 only the binary: the rewritten content, the dropped constraints, and the renamed column stay.
 Recovery is a forward fix on the new schema.
 
+Haus 14.0.0 is an operator-approved exception (2026-10-13): migration `0087_artifact-paths` drops
+`artifacts.name`, so Server 12.0.0 and earlier cannot run on the migrated schema and recovery is a
+forward fix; losing existing Artifacts is acceptable at this stage of the product.
+
 Migration 0064 keeps the physical `agents.personality` column for rollback to Server 7.1.0.
 The current Server maps its conversation-style field onto that same column, so both versions
 read and write the same value. The product API uses conversation style.
