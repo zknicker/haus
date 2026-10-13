@@ -91,19 +91,56 @@ icon with a Download action. Library thumbnails and folder previews load only ra
 download link (storage disabled, revision gone) falls back to the file's icon. The App has no
 artifact realtime events: lists refresh on mount, focus, and reconnect under `syncedSnapshot`.
 
-`haus artifact publish`, `list`, `get`, `versions`, `view`, and `delete` expose these primitives
-and always print JSON. `publish --path <file>` writes to `--to <drive-path>` (default: the file
-name) with `--base-revision-id` or `--replace` for an existing path. `haus artifact list --query <text>` uses the same Server-side search as the
-App, and `--mine` narrows to artifacts the calling Agent created (the native Agent route's `query`
-and `mine=true` parameters). Agents get no creator directory: `artifact.creators` stays App-only.
-The managed prompt names the family and points at the `artifact` Manual topic, which carries when to
-publish versus attach or use a workbench `artifact` fence, sharing the `stable_url` in the message
-(the App renders a same-Server link as an artifact chip and tile), and resolving a pasted
-`/artifacts/<id>` link with `view`. Publish leaves the source untouched. The CLI prints a request ID before transfer; reuse it with
-identical metadata and bytes to retry a lost success response without adding another revision. `ARTIFACT_PUBLISH_UNCONFIRMED` means the CLI could not read the response and the upload may already exist. A
-retry returns the revision its first attempt created even after the head has moved on. An
-in-progress or failed publication requires waiting or a new ID; a new ID is a new write and follows
-the compare-and-set rules.
+### Agent CLI
+
+Agents work on the drive with explicit pulls and pushes; every command prints JSON.
+
+```
+haus artifact list [<folder>] [--recursive] [--query <text>] [--mine] [--offset <n>]
+haus artifact pull <drive-path> [<local-path>]
+haus artifact push <local-path> [<drive-path>] [--replace] [--title <title>] [--dry-run]
+haus artifact mv <from> <to> [--base-revision-id <id>]
+haus artifact view <id|link|drive-path> [--revision-id <id>] [--output <path>]
+haus artifact versions <id|link|drive-path> [--offset <n>]
+haus artifact delete <id|link|drive-path> [--revision-id <id>]
+```
+
+`list` prints `{ folder, folders, files, next_offset }` over the Agent list route; `--mine` is the
+calling Agent's own files, and Agents get no creator directory (`artifact.creators` stays App-only).
+`pull` resolves a file with `by-path`, otherwise pages a recursive `order=path` listing of the
+folder, and copies each revision out of the Computer's verified cache (the `view` route) into the
+local folder, keeping relative paths. Local writes are atomic and refuse dot segments, symlinked
+folders, symlinked targets, and the manifest name. The pulled root holds `.haus-artifacts.json`:
+
+```json
+{ "version": 1, "folder": "starter-kit",
+  "files": { "scripts/check.py": { "path": "starter-kit/scripts/check.py",
+    "artifact_id": "art_…", "revision_id": "rev_…", "sha256": "…" } } }
+```
+
+The nearest manifest at or above a file owns it. Re-pulling skips files whose bytes match, updates
+files with no local edits, keeps edited files when the drive did not change, and otherwise writes
+the incoming revision beside the edited file as `<file>.haus-theirs` while recording it as the new
+base. Files that left the folder are deleted locally only when unedited.
+
+`push` walks regular files (no symlinks, `.git`, `node_modules`, `__pycache__`, `.DS_Store`,
+`*.haus-theirs`, or the manifest) and maps each to an explicit `<drive-path>`, its recorded path,
+its manifest's folder, or the pushed folder's name. Unchanged files are skipped; recorded files
+publish with `base_revision_id`; new files create; `--replace` sends `replace=true`. Each success
+rewrites the manifest atomically. A `REVISION_CONFLICT` does not stop the batch: the summary
+(`{ created, updated, unchanged, conflicts, unmerged, errors, skipped }`) lists the file, its
+reason (`changed`, `exists`, `deleted`, `in_progress`), the current head's revision, path,
+`updated_at`, and creator, and the `haus artifact pull` command that stages it for a merge. A file
+with a pending `.haus-theirs` copy is reported as unmerged and not pushed. Any conflict, unmerged
+file, or error exits 1. When the head equals the base but the path moved, push follows the move.
+Request ids derive from path, content hash, base (or replace/create), title, and content type, so
+rerunning a push after `ARTIFACT_PUBLISH_UNCONFIRMED` returns the first attempt's revision; a spent
+id (`DELETED`, `IDEMPOTENCY_KEY_REUSED`, `UPLOAD_CONFLICT`) is retried once with a fresh one.
+
+The managed prompt names `list`, `pull`, and `push` and points at the `artifact` Manual topic,
+which carries when to share versus attach or use a workbench `artifact` fence, the pull-merge-push
+loop, sharing the `stable_url` in the message (the App renders a same-Server link as an artifact
+chip and tile), and resolving a pasted `/artifacts/<id>` link with `view`.
 Lists have 50 entries per offset page. Deletion requires the artifact creator or a human Owner/Admin;
 the current revision cannot be deleted separately. Deleted records become inaccessible immediately;
 cloud deletion failures retain their storage reservation and retry during Server startup.
