@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v12.4.1 - 2026-10-12
+
+- A Cloud Agent launch no longer opens a new Thread. The launch card is the Agent's inline reply and brings its own work Thread, so launching into a channel message with no conversation yet fails with the exact reply command to use instead. Haus Agent 9.4.1 and Haus Computer 9.4.1 teach the same rule.
+
 ## v12.4.0 - 2026-10-12
 
 - Artifacts is a Finder-style library. Files sit in folders by creator (All files, Yours, each Agent, other people) and are grouped by when they last changed. The folder and kind filter stay in the URL. The viewer shows the creator, last update, revision history, and download and link actions beside the preview.
