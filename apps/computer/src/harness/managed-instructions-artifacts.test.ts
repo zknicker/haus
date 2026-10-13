@@ -16,6 +16,6 @@ test('the Artifacts family entry points at the artifact Manual topic', () => {
     });
 
     expect(prompt).toContain(
-        '6. **Attachments**: `haus attachment upload`, `haus attachment view`.\n7. **Artifacts**: `haus artifact publish`, `haus artifact list`, `haus artifact view`. Read the `artifact` Manual topic before the first one.\n8. **Profiles**'
+        '6. **Attachments**: `haus attachment upload`, `haus attachment view`.\n7. **Artifacts**: `haus artifact list`, `haus artifact pull`, `haus artifact push`. Read the `artifact` Manual topic before the first one.\n8. **Profiles**'
     );
 });
