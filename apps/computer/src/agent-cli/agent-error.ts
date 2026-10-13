@@ -10,6 +10,7 @@ export type AgentCliErrorCode =
     | 'AGENT_NO_COMPUTER'
     | 'AGENT_NOT_FOUND'
     | 'AMBIGUOUS_ID'
+    | 'ARTIFACT_PUBLISH_UNCONFIRMED'
     | 'AVATAR_GENERATION_BUSY'
     | 'AVATAR_OUTPUT_INVALID'
     | 'AVATAR_PROVIDER_FAILED'
@@ -64,11 +65,6 @@ export class AgentCliError extends Error {
     }
 }
 
-/**
- * A claim conflict states itself — the structured block already names the
- * holder and the refusal — so it replaces the generic `Error:` line rather
- * than repeating it.
- */
 export function renderAgentCliError(error: AgentCliError): string {
     const lead = error.options.claimConflict
         ? formatTaskClaimConflict(error.options.claimConflict)

@@ -10,11 +10,13 @@ import {
     inferAttachmentMediaType,
 } from '@haus/api';
 import * as z from 'zod';
+import { applyServerAcceptEncoding } from '../../server-encoding.ts';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
+import { readArtifactPublishReceipt, unconfirmedPublish } from './artifact-publish-receipt.ts';
 
 const revisionFlag = {
     name: '--revision-id',
@@ -217,23 +219,24 @@ async function publish(args: ParsedArgs): Promise<number> {
         }
     }
     process.stderr.write(`Publish request ID: ${requestId}\n`);
-    const response = await fetch(url, {
-        method: 'POST',
-        body: file,
-        headers: {
-            authorization: `Bearer ${context.token}`,
-            'content-type': 'application/octet-stream',
-            'content-length': String(file.size),
-        },
-        signal: AbortSignal.timeout(300_000),
-    });
-    if (!response.ok) {
-        throw new AgentCliError(
-            'ARTIFACT_PUBLISH_FAILED',
-            `Publishing failed (${response.status}): ${await response.text()}`
-        );
+    let response: Response;
+    try {
+        response = await fetch(url, {
+            method: 'POST',
+            body: file,
+            headers: applyServerAcceptEncoding(
+                new Headers({
+                    authorization: `Bearer ${context.token}`,
+                    'content-length': String(file.size),
+                    'content-type': 'application/octet-stream',
+                })
+            ),
+            signal: AbortSignal.timeout(300_000),
+        });
+    } catch {
+        throw unconfirmedPublish(requestId);
     }
-    return print(artifactPublishResultSchema.parse(await response.json()));
+    return print(await readArtifactPublishReceipt(response, requestId));
 }
 
 function target(args: ParsedArgs): string {
@@ -243,10 +246,7 @@ function target(args: ParsedArgs): string {
     }
     return `${base}/${encodeURIComponent(id)}`;
 }
-/**
- * Resolves what a publish targets: `--artifact-id` revises, `--name` creates under that name, and
- * neither creates under a name the Server derives from the filename.
- */
+
 export function publishTarget(args: ParsedArgs): { name?: string; artifactId?: string } {
     const name = args.values['--name'];
     const artifactId = args.values['--artifact-id'];
@@ -262,7 +262,7 @@ export function publishTarget(args: ParsedArgs): { name?: string; artifactId?: s
     }
     return { name, artifactId };
 }
-/** Checks `--name` against the publish contract before upload, suggesting a valid name. */
+
 export function artifactNameError(name: string): string | null {
     if (artifactNameSchema.safeParse(name).success) {
         return null;

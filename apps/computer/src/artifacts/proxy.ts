@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { artifactDownloadResultSchema } from '@haus/api';
+import { applyServerAcceptEncoding, relayDecodedResponse } from '../server-encoding.ts';
 import { ArtifactCache } from './cache.ts';
 
 export function createArtifactProxy(input: { dataRoot?: string; serverId?: string }) {
@@ -64,11 +65,13 @@ async function handleArtifactRequest(
         );
     }
     const response = await fetch(upstream, {
-        headers: { authorization: `Bearer ${authority.runnerToken}` },
+        headers: applyServerAcceptEncoding(
+            new Headers({ authorization: `Bearer ${authority.runnerToken}` })
+        ),
         signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) {
-        return response;
+        return await relayDecodedResponse(response);
     }
     const download = artifactDownloadResultSchema.parse(await response.json());
     const path = await cache.resolve({
@@ -79,14 +82,22 @@ async function handleArtifactRequest(
     return Response.json({ artifact: download.artifact, path });
 }
 
-function forwardPublish(request: Request, upstream: URL, runnerToken: string) {
-    const headers = new Headers({
-        authorization: `Bearer ${runnerToken}`,
-        'content-type': request.headers.get('content-type') ?? 'application/octet-stream',
-    });
+async function forwardPublish(request: Request, upstream: URL, runnerToken: string) {
+    const headers = applyServerAcceptEncoding(
+        new Headers({
+            authorization: `Bearer ${runnerToken}`,
+            'content-type': request.headers.get('content-type') ?? 'application/octet-stream',
+        })
+    );
     const length = request.headers.get('content-length');
     if (length) {
         headers.set('content-length', length);
     }
-    return fetch(upstream, { method: 'POST', body: request.body, headers, signal: request.signal });
+    const response = await fetch(upstream, {
+        method: 'POST',
+        body: request.body,
+        headers,
+        signal: request.signal,
+    });
+    return await relayDecodedResponse(response);
 }

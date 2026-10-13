@@ -153,13 +153,65 @@ test('a lost publish response names the request id and forbids a fresh publish',
     }
 });
 
+test('a rejected publish reports the Server error', async () => {
+    const origin = Bun.serve({
+        hostname: '127.0.0.1',
+        port: 0,
+        fetch() {
+            return new Response(Bun.zstdCompressSync(Buffer.from('name taken art_existing')), {
+                status: 409,
+                headers: {
+                    'content-encoding': 'zstd',
+                    'content-type': 'text/plain',
+                },
+            });
+        },
+    });
+    const proxy = startLoopbackProxy({
+        proxyToken: token,
+        runnerToken: 'runner',
+        serverOrigin: `http://127.0.0.1:${origin.port}`,
+    });
+    const directory = mkdtempSync(join(tmpdir(), 'haus-publish-reject-'));
+    const file = join(directory, 'notes.txt');
+    const tokenFile = join(directory, 'token');
+    writeFileSync(file, 'hello');
+    writeFileSync(tokenFile, token);
+    process.env.HAUS_AGENT_ID = 'agt_wren';
+    process.env.HAUS_SERVER_URL = proxy.url;
+    process.env.HAUS_AGENT_TOKEN_FILE = tokenFile;
+    try {
+        await publish?.run(
+            parseArgs(publishCommand, [
+                '--path',
+                file,
+                '--title',
+                'Notes',
+                '--request-id',
+                'publish-reject-1',
+            ])
+        );
+        throw new Error('publish should have failed');
+    } catch (error) {
+        expect(error).toBeInstanceOf(AgentCliError);
+        expect(error).toMatchObject({
+            code: 'ARTIFACT_PUBLISH_FAILED',
+            message: 'Publishing failed (409): name taken art_existing',
+        });
+    } finally {
+        proxy.close();
+        origin.stop(true);
+        rmSync(directory, { recursive: true, force: true });
+    }
+});
+
 test('the shared CLI client reads zstd without advertising it', async () => {
-    let acceptEncoding: string | null = null;
+    const seen = { acceptEncoding: '' };
     const server = Bun.serve({
         hostname: '127.0.0.1',
         port: 0,
         fetch(request) {
-            acceptEncoding = request.headers.get('accept-encoding');
+            seen.acceptEncoding = request.headers.get('accept-encoding') ?? '';
             return new Response(Bun.zstdCompressSync(Buffer.from(JSON.stringify({ ok: true }))), {
                 headers: {
                     'content-encoding': 'zstd',
@@ -178,7 +230,7 @@ test('the shared CLI client reads zstd without advertising it', async () => {
         await expect(
             client.request('/api/agent/ping', z.object({ ok: z.literal(true) }))
         ).resolves.toEqual({ ok: true });
-        expect(acceptEncoding).toBe('gzip, deflate, br');
+        expect(seen.acceptEncoding).toBe('gzip, deflate, br');
     } finally {
         server.stop(true);
     }

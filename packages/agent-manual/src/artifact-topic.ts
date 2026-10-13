@@ -31,7 +31,7 @@ A link ending in \`/artifacts/<id>\` names that artifact: run \`haus artifact vi
 
 ## Retries and deletion
 
-Reuse the printed --request-id with identical metadata and bytes if a publish response is lost. A successful retry returns the same revision. A new ID publishes again: another revision with \`--artifact-id\`, otherwise another artifact.
+Reuse the printed --request-id with identical metadata and bytes if a publish response is lost, including when the command reports ARTIFACT_PUBLISH_UNCONFIRMED. The upload may already exist. A successful retry returns the same revision. Publishing again without that id creates another artifact, or another revision when you also pass \`--artifact-id\`.
 
 \`haus artifact delete <id>\` removes an artifact; \`--revision-id <id>\` removes a historical revision. Publish a replacement before deleting the current revision. Haus allows deletion only by the creator or a human Server Owner or Admin; treat deleting anything you did not create as a human decision.
 
