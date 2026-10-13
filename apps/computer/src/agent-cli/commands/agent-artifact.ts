@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
     artifactListResultSchema,
     artifactMetadataSchema,
+    artifactPublishInputSchema,
     artifactPublishResultSchema,
     artifactVersionsResultSchema,
     inferAttachmentMediaType,
@@ -35,7 +36,8 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             {
                 name: '--name',
                 valueName: '<name>',
-                description: 'Server-scoped name for a new artifact',
+                description:
+                    'Server-scoped name for a new artifact: lowercase-kebab, no extension (q4-report)',
             },
             {
                 name: '--artifact-id',
@@ -195,6 +197,10 @@ async function publish(args: ParsedArgs): Promise<number> {
     if (Boolean(name) === Boolean(artifactId)) {
         throw new AgentCliError('INVALID_ARG', 'Provide exactly one of --name or --artifact-id.');
     }
+    const nameError = name ? artifactNameError(name) : null;
+    if (nameError) {
+        throw new AgentCliError('INVALID_ARG', nameError);
+    }
     const context = resolveAgentContext();
     const url = new URL(`${base}/publish-artifact-raw`, context.serverUrl);
     const requestId = args.values['--request-id'] ?? randomUUID();
@@ -241,6 +247,20 @@ function target(args: ParsedArgs): string {
         throw new AgentCliError('INVALID_ARG', 'An artifact ID is required.');
     }
     return `${base}/${encodeURIComponent(id)}`;
+}
+/** Checks `--name` against the publish contract before upload, suggesting a valid name. */
+export function artifactNameError(name: string): string | null {
+    if (artifactPublishInputSchema.shape.name.safeParse(name).success) {
+        return null;
+    }
+    const suggestion = path
+        .parse(name)
+        .name.toLowerCase()
+        .replace(/[^a-z0-9]+/gu, '-')
+        .replace(/^-+|-+$/gu, '')
+        .slice(0, 128);
+    const hint = suggestion ? ` Try --name ${suggestion}.` : '';
+    return `--name must be lowercase-kebab with no extension.${hint} The file keeps its own filename.`;
 }
 function revisionQuery(args: ParsedArgs) {
     return { revision_id: args.values['--revision-id'] };

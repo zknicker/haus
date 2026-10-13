@@ -1,7 +1,7 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import { parseArgs, UsageError } from '../parse.ts';
-import { ARTIFACT_SUBCOMMANDS, runArtifactList } from './agent-artifact.ts';
+import { ARTIFACT_SUBCOMMANDS, artifactNameError, runArtifactList } from './agent-artifact.ts';
 
 const list = ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'list');
 const listCommand = { ...list, section: 'artifact' } as Parameters<typeof parseArgs>[0];
@@ -43,4 +43,14 @@ test('artifact commands no longer take the no-op --json flag; output is always J
         expect(sub.usage).not.toContain('--json');
     }
     expect(() => parseArgs(listCommand, ['--json'])).toThrow(UsageError);
+});
+
+test('publish rejects a filename-shaped --name before upload and suggests a valid one', () => {
+    expect(artifactNameError('q4-report')).toBeNull();
+    expect(artifactNameError('NOTES-X.md')).toBe(
+        '--name must be lowercase-kebab with no extension. Try --name notes-x. The file keeps its own filename.'
+    );
+    expect(artifactNameError('...')).toBe(
+        '--name must be lowercase-kebab with no extension. The file keeps its own filename.'
+    );
 });
