@@ -44,6 +44,11 @@ const oauthPresets: Record<
         name: 'Cloudflare',
         url: 'https://mcp.cloudflare.com/mcp',
     },
+    linear: {
+        auth: { kind: 'oauth', scopes: [] },
+        name: 'Linear',
+        url: 'https://mcp.linear.app/mcp',
+    },
     // Signs in through the Haus GitHub App's client (oauth-clients.ts); a GitHub
     // App has permissions, not scopes. Installations are github/ state.
     github: {
