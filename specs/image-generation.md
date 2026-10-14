@@ -205,7 +205,7 @@ type ImageGeneration = {
     provider: 'openai' | 'gemini';
     prompt: string;
     request: {
-        aspectRatio: { width: number; height: number }; // derived from size or aspect; sizes cards in every state
+        aspectRatio: { width: number; height: number }; // derived from size or aspect
         size: { width: number; height: number } | null;
         aspect: string | null;
         resolution: '1K' | '2K' | '4K' | null;
@@ -265,15 +265,18 @@ bytes, usage, and an error summary are not stored.
 ## Cards
 
 Each linked generation renders as one card at the link's position in the Message: the image with
-its caption attached in the card footer as one unit. The card takes the generation's own aspect
-ratio, requested before ready and rendered after, so it never reflows when it resolves.
+its caption attached in the card footer as one unit. The card is the chat media tile box (the
+attachment tile's fixed size) in every state, alone or in a strip, so it never reflows when it
+resolves. The image crops to the tile (`object-cover`); the viewer shows the whole picture.
 
-- **Pending or generating**: a loading card; the footer shows the model display name and elapsed
+- **Pending or generating**: a shimmering tile; the footer shows the model display name and elapsed
   time. OpenAI `partial_images` may progressively preview it; this is optional.
 - **Ready**: the image; the footer shows display name, resolution, and cost, for example
   `GPT Image 2.5 Sunburst · 2K · $0.11` (`~` before an estimated cost). The lightbox adds the
   prompt, rendered size, quality, and duration.
-- **Failed**: the footer shows the model display name and the failure reason.
+- **Failed**: the pending tile's surface with a soft danger "Failed" chip and the prompt as a
+  fading muted ghost. The footer shows the model display name and "Didn't render" (plus the cost
+  when billed); the failure reason is in the tooltip and accessible name.
 
 The carousel is presentation only. When a Message links several generations consecutively, the App
 renders their cards side by side in one horizontal strip; a single link renders a single card.

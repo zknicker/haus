@@ -817,6 +817,13 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   Thread. Message hover lightens the fill without dimming content;
   clickable thread previews strengthen to 12% opacity on hover. Light-mode canvas rows use
   `--background-hover`: a 50% `background-secondary` wash, including messages in task and thread views.
+- **Image generation tile:** one fixed tile box, the attachment tile's (`--chat-media-tile-*`,
+  `rounded-xl`), in every state and in a lone card or a strip; the image is `object-cover` and the
+  viewer shows it whole. Pending is the `Skeleton` shimmer on `surface-secondary`. Failed is the
+  same surface with a stock soft danger `Chip` ("Failed") and the prompt as muted italic caption
+  text fading out toward the bottom; no frame, no glyph. The two-line footer is model name, then
+  elapsed time, `resolution · cost`, or "Didn't render" (plus cost when billed). Cards sit at the
+  Action card header step, `mt-1.5`.
 - **Thread transcript fade:** Task and thread views fade messages over the final 4rem,
   reaching transparency 0.75rem above the composer so content clears its rounded edges.
 - **Workspace tabs:** Desktop only, in the window band. One anatomy for the primary tab and every
