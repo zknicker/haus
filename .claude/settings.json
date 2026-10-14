@@ -6,6 +6,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "[ \"${CLAUDE_CODE_REMOTE:-}\" = true ] || bun run setup:worktree",
+            "timeout": 900
+          },
+          {
+            "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/session-start.sh",
             "timeout": 900
           }

@@ -1,6 +1,6 @@
 {
   "name": "Haus",
-  "install": "bash scripts/cloud-agent-install.sh",
+  "install": "bash cloud-agent/install.sh",
   "start": "bash .cursor/start.sh",
   "terminals": [
     {

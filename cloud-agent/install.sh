@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Cloud agent environment install for Haus, shared by every cloud agent
-# platform (Cursor's environment.json install, Claude's SessionStart hook).
+# Haus cloud agent install (repo-owned part of the fleet cloud-agent contract),
+# shared by every platform: Cursor's environment.json install and Claude's
+# .claude/session-start.sh.
 # Must be idempotent: it can run repeatedly on top of prepared disk state.
 #
 # There is no .env step: the committed .env.schema is the environment contract

@@ -272,17 +272,19 @@ publishes a Server target deploys production automatically through the Release w
 
 ## Cloud agents
 
-Cloud agent platforms share one install and one bootstrap; each platform keeps only a thin
-adapter. `scripts/cloud-agent-install.sh` provisions Bun `1.4.2` and PostgreSQL 16, then runs
-`bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download).
-`scripts/fetch-fleet.sh` downloads the `zknicker/agents` fleet bundle into `~/.agents/fleet`.
+Cloud agent platforms share the fleet `cloud-agent/` contract (`zknicker/agents`
+`docs/cloud-environments.md`); `.cursor/` and `.claude/` keep only thin platform adapters.
+`cloud-agent/install.sh` provisions Bun `1.4.2` and PostgreSQL 16, then runs
+`bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download), and
+`cloud-agent/env.sh` holds session exports. `cloud-agent/fetch-fleet.sh`,
+`cloud-agent/fleet/.env.schema`, and `.claude/session-start.sh` are fleet-owned copies: refresh
+them with `port-cloud-agent`, never edit them here.
 
 - There are no per-repository cloud secrets. Each platform provides the fleet-wide read-only
  Development identity as `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`; every value resolves from
  1Password through the committed `.env.schema`. The two licensed install credentials are fetched
  by `bun run setup:worktree` under the install context switch; the Clerk credentials arrive as
- ordinary schema values when the stack starts. The fleet read key resolves through
- `scripts/fleet-bootstrap/.env.schema`. See
+ ordinary schema values when the stack starts. See
  [docs/operations/environment.md](docs/operations/environment.md).
 - Haus's own product skills stay in the committed `.agents/skills`.
 - PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, and the install symlinks its binaries into
@@ -305,16 +307,16 @@ adapter. `scripts/cloud-agent-install.sh` provisions Bun `1.4.2` and PostgreSQL 
 
 ### Cursor adapter
 
-`.cursor/environment.json` runs the shared install, then `.cursor/start.sh`, which seeds the fleet
-with Cursor's account Runtime Secret `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN` (agent tooling, kept in
-Cursor's own secret store). The full stack auto-starts in the `dev-stack` terminal.
+`.cursor/environment.json` runs `cloud-agent/install.sh`, then `.cursor/start.sh`, which seeds the
+fleet with Cursor's account Runtime Secret `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN` (agent tooling, kept
+in Cursor's own secret store). The full stack auto-starts in the `dev-stack` terminal.
 
 ### Claude Code adapter
 
-`.claude/settings.json` runs `.claude/session-start.sh`. Local sessions only run
-`bun run setup:worktree`. Cloud sessions fetch the fleet, run its `claude/cloud/start.sh`
-(poteto-mode, fleet skills, global rules), then the shared install. A failed fleet step logs a skip
-and the install still runs. The dev stack is not auto-started.
+`.claude/settings.json` runs `bun run setup:worktree` in local sessions and
+`.claude/session-start.sh` in cloud sessions, which loads the fleet (poteto-mode, fleet skills,
+global rules) and runs `cloud-agent/install.sh`. A failed fleet step logs a skip and the install
+still runs. The dev stack is not auto-started.
 
 - One Claude cloud environment serves every fleet repo. It carries
  `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` as an environment variable and needs no Setup script.
