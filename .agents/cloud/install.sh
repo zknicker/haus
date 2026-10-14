@@ -70,10 +70,19 @@ SUDO=""
 if [ "$(id -u)" -ne 0 ]; then
     SUDO=sudo
 fi
+# A user-level Node (Cursor's nvm) owns its global prefix and is not on sudo's
+# PATH, so only escalate when the prefix is not writable.
+npm_install_global() {
+    if [ -w "$(npm prefix -g)" ]; then
+        npm install -g "$@"
+    else
+        ${SUDO} env "PATH=$PATH" npm install -g "$@"
+    fi
+}
 CODEX_VERSION="0.159.0"
 echo "==> Ensuring Codex CLI ${CODEX_VERSION} is installed"
 if [ "$(codex --version 2>/dev/null || true)" != "codex-cli ${CODEX_VERSION}" ]; then
-    ${SUDO} npm install -g "@openai/codex@${CODEX_VERSION}"
+    npm_install_global "@openai/codex@${CODEX_VERSION}"
 fi
 
 # The agent Browser tool discovers Chromium on PATH and drives it through
@@ -85,7 +94,7 @@ if ! command -v chromium >/dev/null 2>&1 && [ -x /opt/pw-browsers/chromium ]; th
     ${SUDO} ln -sf /opt/pw-browsers/chromium /usr/local/bin/chromium
 fi
 if [ "$(agent-browser --version 2>/dev/null || true)" != "agent-browser ${AGENT_BROWSER_VERSION}" ]; then
-    ${SUDO} npm install -g "agent-browser@${AGENT_BROWSER_VERSION}"
+    npm_install_global "agent-browser@${AGENT_BROWSER_VERSION}"
 fi
 
 echo "==> Install complete"
