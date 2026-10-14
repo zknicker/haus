@@ -1,8 +1,10 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { parseProcStat } from './process-group-liveness.ts';
 import { createSandboxProcessRegistry } from './sandbox-processes.ts';
 
 const roots: string[] = [];
@@ -146,11 +148,20 @@ function isProcessAlive(pid: number | undefined): boolean {
     }
     try {
         process.kill(pid, 0);
-        return true;
     } catch (error) {
         if (error instanceof Error && 'code' in error && error.code === 'ESRCH') {
             return false;
         }
         throw error;
     }
+    // A zombie no init process reaps (a container's PID 1) has already exited.
+    return (
+        !existsSync(`/proc/${pid}/stat`) ||
+        parseProcStat(readFileSync(`/proc/${pid}/stat`, 'utf8'))?.state !== 'Z'
+    );
 }
+
+test('parses a process state and group past a comm containing parens', () => {
+    expect(parseProcStat('42 (a) b)) S 1 42 42 0')).toEqual({ processGroupId: 42, state: 'S' });
+    expect(parseProcStat('43 (sleep) Z 1 40 40 0')).toEqual({ processGroupId: 40, state: 'Z' });
+});

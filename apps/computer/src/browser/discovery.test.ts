@@ -75,3 +75,22 @@ test('arbitrary profile directories and parent processes use the same discovery 
         },
     ]);
 });
+
+test('matches a Linux browser by resolved executable when argv[0] is a symlink', () => {
+    const binary = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+    const browsers = existingBrowserCandidates({
+        applications: [{ executablePath: binary, path: binary, version: '141' }],
+        root: '/haus/servers/one/browser',
+        processes: [
+            {
+                ...record('/tmp/probe/Cloud'),
+                command:
+                    '/opt/pw-browsers/chromium --remote-debugging-port=0 --user-data-dir=/tmp/probe/Cloud',
+                executablePath: binary,
+            },
+        ],
+    });
+    expect(browsers).toEqual([
+        { applicationPath: binary, version: '141', name: 'Cloud', userDataDir: '/tmp/probe/Cloud' },
+    ]);
+});

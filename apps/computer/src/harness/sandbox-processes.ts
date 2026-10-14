@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect, Exit, Scope } from 'effect';
+import { isProcessGroupAlive, isSystemErrorCode } from './process-group-liveness.ts';
 import { sandboxProcessOwner } from './sandbox-process-owner.ts';
 
 const TERMINATION_GRACE_MS = 1000;
@@ -257,24 +258,6 @@ function cancelGroupExitCheck(tracked: TrackedProcess): void {
     tracked.groupExitCheck = undefined;
 }
 
-function isProcessGroupAlive(processGroupId: number | undefined): boolean {
-    if (processGroupId === undefined) {
-        return false;
-    }
-    try {
-        process.kill(-processGroupId, 0);
-        return true;
-    } catch (error) {
-        if (isSystemErrorCode(error, 'ESRCH')) {
-            return false;
-        }
-        if (isSystemErrorCode(error, 'EPERM')) {
-            return true;
-        }
-        throw error;
-    }
-}
-
 function signalOwnedProcess(tracked: TrackedProcess, signal: NodeJS.Signals): void {
     if (tracked.ownershipReleased) {
         return;
@@ -290,8 +273,4 @@ function signalOwnedProcess(tracked: TrackedProcess, signal: NodeJS.Signals): vo
             throw error;
         }
     }
-}
-
-function isSystemErrorCode(error: unknown, code: string): boolean {
-    return error instanceof Error && 'code' in error && error.code === code;
 }

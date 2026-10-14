@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Haus cloud agent install (repo-owned part of the fleet cloud-agent contract),
-# shared by every platform: Cursor's environment.json install and Claude's
-# .claude/session-start.sh.
+# Haus cloud agent install, the repo-owned part of the fleet cloud agent
+# contract (zknicker/agents cloud-agent-setup skill). Cursor runs it as its
+# snapshot install; Claude runs it from the fleet start each session.
 # Must be idempotent: it can run repeatedly on top of prepared disk state.
 #
 # There is no .env step: the committed .env.schema is the environment contract
@@ -9,7 +9,7 @@
 # each platform provides as CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN.
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 BUN_VERSION="1.4.2"
@@ -59,8 +59,33 @@ echo "==> Installing project dependencies and HeroUI Pro artifacts"
 # HeroUI Pro artifacts. Both licensed credentials it needs are @internal schema
 # items, so `varlock run` deliberately does not export them; setup:worktree
 # fetches them itself with `varlock printenv` under the install switch,
-# resolving from the Development vault through the Cursor fleet identity. No
-# per-repo Cursor secret is involved.
+# resolving from the Development vault through CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN.
+# No per-repo secret is involved.
 bun run setup:worktree
+
+# Agent turns need a runtime CLI on the host; the dev seed runs on Codex. Pinned
+# with the Codex bridge in apps/computer/assets/harness-bridges/codex. Its login
+# happens per session in start.sh so no snapshot bakes in a credential.
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+    SUDO=sudo
+fi
+CODEX_VERSION="0.159.0"
+echo "==> Ensuring Codex CLI ${CODEX_VERSION} is installed"
+if [ "$(codex --version 2>/dev/null || true)" != "codex-cli ${CODEX_VERSION}" ]; then
+    ${SUDO} npm install -g "@openai/codex@${CODEX_VERSION}"
+fi
+
+# The agent Browser tool discovers Chromium on PATH and drives it through
+# agent-browser. /usr/local/bin/google-chrome here is a wrapper script, which
+# discovery skips, so expose the preinstalled Playwright Chromium binary.
+AGENT_BROWSER_VERSION="0.38.2"
+echo "==> Ensuring Chromium and agent-browser ${AGENT_BROWSER_VERSION} for the Browser tool"
+if ! command -v chromium >/dev/null 2>&1 && [ -x /opt/pw-browsers/chromium ]; then
+    ${SUDO} ln -sf /opt/pw-browsers/chromium /usr/local/bin/chromium
+fi
+if [ "$(agent-browser --version 2>/dev/null || true)" != "agent-browser ${AGENT_BROWSER_VERSION}" ]; then
+    ${SUDO} npm install -g "agent-browser@${AGENT_BROWSER_VERSION}"
+fi
 
 echo "==> Install complete"

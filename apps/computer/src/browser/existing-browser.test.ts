@@ -65,3 +65,27 @@ test('a stale endpoint cannot connect Haus to a different profile process', asyn
     expect(await connection.status()).toMatchObject({ state: 'degraded', running: false });
     expect(probes).toBe(0);
 });
+
+test('a wrapper-launched Linux browser is matched by its resolved executable', async () => {
+    const binary = '/opt/google/chrome/chrome';
+    const connection = new ExistingBrowserConnection(
+        { executablePath: binary, userDataDir: contract.userDataDir },
+        '141',
+        {
+            read: async () => [
+                {
+                    ...process,
+                    command: `/usr/bin/google-chrome --user-data-dir=${contract.userDataDir} --remote-debugging-port=0`,
+                    executablePath: binary,
+                },
+            ],
+        },
+        {
+            probe: async () => ({ state: 'healthy', latencyMs: 1 }),
+            attachment: async () => {
+                throw new Error('unexpected');
+            },
+        }
+    );
+    expect(await connection.status()).toMatchObject({ state: 'healthy', pid: 123 });
+});

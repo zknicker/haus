@@ -79,6 +79,10 @@ export const macWorkspaceDisk: WorkspaceDisk = {
     },
 };
 
+/** Capped sparsebundle workspaces exist only on macOS; other hosts use plain directories. */
+export const hostWorkspaceDisk: WorkspaceDisk | null =
+    process.platform === 'darwin' ? macWorkspaceDisk : null;
+
 function assertMac() {
     if (process.platform !== 'darwin') {
         throw new Error('Haus Computer capped workspaces require macOS.');

@@ -21,17 +21,6 @@
     }
   },
   "lifecycleCandidates": {
-    "apps/computer/src/artifacts/cache-lock.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One awaited cache operation acquires a foreign shlock with a bounded acquisition deadline and releases it in lexical finally. The awaited retry delay owns no detached timer or background task.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
     "apps/computer/src/artifacts/cache.ts": {
       "disposition": "finite-cleanup",
       "reason": "The finite verified download closes its file handle in lexical finally before returning a cached path. Persistent cache leases are domain records, recovered by process liveness, rather than background resources.",
@@ -43,15 +32,26 @@
         "timer": 0
       }
     },
-    "apps/computer/src/workspace-volumes/storage-ledger.ts": {
+    "apps/computer/src/browser/linux-chrome-detection.ts": {
       "disposition": "finite-cleanup",
-      "reason": "One awaited storage admission operation acquires a foreign shlock and releases it in lexical finally. Atomic ledger writes finish inside that operation without detached work.",
+      "reason": "Detection awaits each bounded --version probe and closes the ELF header file descriptor in lexical finally; it owns no detached work.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
         "finallyBlock": 1,
         "manualPromise": 0,
         "timer": 0
+      }
+    },
+    "apps/computer/src/pid-lock.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One awaited operation acquires an exclusive pid lock file with a bounded acquisition deadline and removes it in lexical finally; acquisition closes its file handle in lexical finally. The awaited retry delay owns no detached timer or background task.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 2
       }
     },
     "apps/server/src/voice/voice-call.ts": {
