@@ -22,7 +22,9 @@ test('dreaming re-reads all of MEMORY.md and may fix stale old notes', () => {
 
 test('dreaming drops what a haus command can look up and keeps what is hard to re-derive', () => {
     expect(dreaming).toContain('Keep what is hard to re-derive');
-    expect(dreaming).toContain("other Agents' status, task details, chat contents; keep a handle instead");
+    expect(dreaming).toContain(
+        "other Agents' status, task details, chat contents; keep a handle instead"
+    );
 });
 
 test('dates: no verification stamps or dated logs, real deadlines written absolute', () => {
