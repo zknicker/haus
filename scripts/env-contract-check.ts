@@ -77,7 +77,7 @@ const externallyConsumedNames = new Map([
     ['AWS_SECRET_ACCESS_KEY', 'the aws CLI in scripts/release/publish-desktop.mjs'],
     ['CLOUDFLARE_API_TOKEN', 'Wrangler in scripts/deploy-release-host.mjs'],
     ['CI_OP_TOKEN', 'varlock @initOp(id=development)'],
-    ['CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
+    ['CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['DEPLOY_AGENT_PRODUCTION_OP_TOKEN', 'varlock @initOp(id=production)'],
     ['RELEASE_AGENT_TOOLING_OP_TOKEN', 'varlock @initOp(id=tooling)'],
 ]);
@@ -240,8 +240,8 @@ for (const match of runServer.matchAll(/^export ([A-Z][A-Z0-9_]*)=/gmu)) {
 }
 
 // 7. Workflows may hold only the deploy/CI bootstrap and the dedicated release
-//    Tooling bootstrap. Each maps to its named consumer role; Cursor's
-//    account-level token never appears in GitHub Actions.
+//    Tooling bootstrap. Each maps to its named consumer role; the
+//    cloud-agent token never appears in GitHub Actions.
 const allowedWorkflowSecrets = new Map([
     [deployWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
     [releaseHostWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
@@ -307,9 +307,9 @@ if (!releaseSetupAction.includes(compositeBootstrapMapping)) {
 }
 
 for (const [workflowPath, workflow] of workflowContents) {
-    if (workflow.includes('CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN')) {
+    if (workflow.includes('CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN')) {
         issues.push(
-            `${workflowPath.replace(`${repositoryRoot}/`, '')} uses the Cursor bootstrap slot; that name belongs only to Cursor Runtime Secrets.`
+            `${workflowPath.replace(`${repositoryRoot}/`, '')} uses the cloud-agent bootstrap slot; that name belongs only to Cursor and Claude cloud environments.`
         );
     }
 }

@@ -280,7 +280,7 @@ artifact download). `start.sh` seeds fleet agents on every boot. The full stack
 
 - There are no per-repository Cursor secrets. Every value resolves from 1Password through the
  committed `.env.schema`, using the fleet-wide Development identity Cursor injects as the
- account-level Runtime Secret `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`. The two licensed
+ account-level Runtime Secret `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`. The two licensed
  install credentials are fetched during `install` by `bun run setup:worktree` under the install
  context switch; the Clerk credentials arrive as ordinary schema values when the stack starts.
  See [docs/operations/environment.md](docs/operations/environment.md).
@@ -312,8 +312,8 @@ Claude Code cloud sessions follow the fleet's BidBeacon pilot (`zknicker/agents`
 cloud sessions seeds the `zknicker/agents` fleet (poteto-mode, fleet skills, global rules) and then
 runs `.cursor/install.sh`. Local sessions only run `bun run setup:worktree`.
 
-- The cloud environment carries the same single bootstrap Cursor uses,
- `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`, as an environment variable. Install credentials and
+- The cloud environment carries one bootstrap, `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`, as an
+ environment variable, the same name Cursor's Runtime Secret uses. Install credentials and
  app values resolve through `.env.schema`; the fleet GitHub read key resolves through
  `.claude/cloud-bootstrap/.env.schema`.
 - The environment's Setup script is the fleet's `claude/cloud/setup.sh` (1Password CLI and the
