@@ -12,7 +12,7 @@ const ref: CloudAgentRunRef = {
 };
 
 function recordedController(input: {
-    events: Array<Record<string, unknown>>;
+    events: Record<string, unknown>[];
     session?: Partial<ClaudeSession>;
 }) {
     const calls: string[] = [];
