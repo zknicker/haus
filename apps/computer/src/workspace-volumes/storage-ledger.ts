@@ -22,6 +22,11 @@ export async function withStorageLock<T>(
     dataRoot: string,
     operation: () => Promise<T>
 ): Promise<T> {
+    // shlock and the sparsebundle volumes it guards exist only on macOS; without
+    // this, a Linux host spins for the full deadline and reports "busy".
+    if (process.platform !== 'darwin') {
+        throw new Error('Haus Computer capped workspaces require macOS.');
+    }
     await mkdir(dataRoot, { recursive: true, mode: 0o700 });
     const lock = join(dataRoot, 'workspace-storage.lock');
     const deadline = Date.now() + 30_000;

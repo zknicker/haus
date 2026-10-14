@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Cloud Agent environment install for Haus.
-# Runs during Builds (and dependency refreshes) from the repository root.
+# Haus cloud agent install (repo-owned part of the fleet cloud-agent contract),
+# shared by every platform: Cursor's environment.json install and Claude's
+# .claude/session-start.sh.
 # Must be idempotent: it can run repeatedly on top of prepared disk state.
 #
 # There is no .env step: the committed .env.schema is the environment contract
 # and values resolve from 1Password through the fleet-wide Development identity
-# that Cursor injects as an account-scoped Runtime Secret.
+# each platform provides as CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

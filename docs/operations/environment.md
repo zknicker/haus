@@ -22,7 +22,7 @@ rather than quietly riding each value's development arm.
 
 | Lifecycle | Resolves from | Used by |
 | --- | --- | --- |
-| `development` | `Development` vault | the dev stack, Cursor cloud agents, operator commands |
+| `development` | `Development` vault | the dev stack, Cursor and Claude cloud agents, operator commands |
 | `production` | `Production` vault | the Mac mini deploy job only |
 | `test` | fake-but-shaped literals in the schema | every test lane and `env:check` — fully offline, no 1Password access |
 
@@ -132,7 +132,7 @@ names four bootstrap slots for them:
 | Slot | Filled by | Reads |
 | --- | --- | --- |
 | `DEPLOY_AGENT_PRODUCTION_OP_TOKEN` | the `GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN` repository secret, on the mini's self-hosted runner | `Production` + `Development` |
-| `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | a Cursor account-level Runtime Secret, fleet-wide | `Development` |
+| `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | a Cursor account-level Runtime Secret and a Claude cloud environment variable, fleet-wide | `Development` |
 | `CI_OP_TOKEN` | the same GitHub repository secret, mapped only by Quality | `Development` |
 | `RELEASE_AGENT_TOOLING_OP_TOKEN` | the `GH_RELEASE_AGENT_TOOLING_OP_TOKEN` repository secret, mapped only by Release target jobs | `Tooling` |
 

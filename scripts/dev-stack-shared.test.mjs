@@ -8,6 +8,7 @@ import {
     createDevStackEnvironment,
     formatPortBlockers,
 } from './dev-stack-shared.mjs';
+import { postgresServerPath } from './postgres-server-account.mjs';
 
 test('formatPortBlockers includes current Server process details', () => {
     const repositoryRoot = path.join('/Users', 'zknicker', 'repo');
@@ -50,7 +51,7 @@ test('createDevStackEnvironment uses isolated current-product state', () => {
     );
     assert.equal(
         environment.HAUS_POSTGRES_DATA_ROOT,
-        path.join(os.homedir(), '.haus', 'dev', 'alpha', 'postgres')
+        postgresServerPath(path.join(os.homedir(), '.haus', 'dev', 'alpha', 'postgres'))
     );
     assert.equal(environment.HAUS_SERVER_PORT, '42003');
     assert.equal(environment.HAUS_WEBSITE_PORT, '42000');

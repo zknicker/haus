@@ -3,6 +3,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { resolveDevPorts } from './dev-ports.mjs';
+import { postgresServerPath } from './postgres-server-account.mjs';
 
 export const startupEventPrefix = 'HAUS_STARTUP_EVENT ';
 const ansiPattern = /\u001B\[[0-9;?]*[ -/]*[@-~]/gu;
@@ -228,19 +229,15 @@ export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
     const stackId =
         baseEnvironment.HAUS_DEV_STACK_ID ??
         `${path.basename(repositoryRoot)}-${hashString(repositoryRoot).slice(0, 8)}`;
-    const appStateRoot = resolveDevStackStateRoot(stackId);
+    const appStateRoot = path.join(os.homedir(), '.haus', 'dev', stackId);
 
     return {
         appStateRoot,
         computerDataRoot: path.join(appStateRoot, 'computer'),
         attachmentRoot: path.join(appStateRoot, 'server', 'attachments'),
-        postgresDataRoot: path.join(appStateRoot, 'postgres'),
-        postgresSocketRoot: path.join(appStateRoot, 'postgres-socket'),
+        postgresDataRoot: postgresServerPath(path.join(appStateRoot, 'postgres')),
+        postgresSocketRoot: postgresServerPath(path.join(appStateRoot, 'postgres-socket')),
     };
-}
-
-function resolveDevStackStateRoot(stackId) {
-    return path.join(os.homedir(), '.haus', 'dev', stackId);
 }
 
 function shortenRepositoryPath(value, repositoryRoot) {

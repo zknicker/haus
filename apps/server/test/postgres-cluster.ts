@@ -3,6 +3,10 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { postgresLocaleEnvironment } from '../../../scripts/dev-postgres.mjs';
+import {
+    postgresServerCommand,
+    preparePostgresServerDirectory,
+} from '../../../scripts/postgres-server-account.mjs';
 
 /**
  * Runs a throwaway PostgreSQL cluster so Server tests exercise real
@@ -33,13 +37,14 @@ export async function startPostgresCluster(
 ): Promise<PostgresCluster> {
     const binaries = resolvePostgresBinaries();
     const root = mkdtempSync(join(tmpdir(), 'haus-postgres-'));
+    preparePostgresServerDirectory(root);
     const dataDirectory = join(root, 'data');
     const port = reserveLoopbackPort();
 
     const localeArgs = options.icuLocale
         ? ['--locale-provider=icu', `--icu-locale=${options.icuLocale}`]
         : [];
-    run(binaries.initdb, [
+    runServer(binaries.initdb, [
         '--auth=trust',
         '--encoding=UTF8',
         '--no-sync',
@@ -50,22 +55,23 @@ export async function startPostgresCluster(
         dataDirectory,
     ]);
 
+    const postgres = postgresServerCommand(binaries.postgres, [
+        '-D',
+        dataDirectory,
+        '-p',
+        String(port),
+        '-h',
+        '127.0.0.1',
+        '-k',
+        root,
+        '-c',
+        'fsync=off',
+        '-c',
+        'full_page_writes=off',
+    ]);
     const server = spawn(
-        binaries.postgres,
-        [
-            '-D',
-            dataDirectory,
-            '-p',
-            String(port),
-            '-h',
-            '127.0.0.1',
-            '-k',
-            root,
-            '-c',
-            'fsync=off',
-            '-c',
-            'full_page_writes=off',
-        ],
+        postgres.command,
+        postgres.args,
         // stderr is buffered rather than discarded: a postmaster that dies during
         // startup reports why on stderr, and dropping it leaves only an exit code.
         { env: clusterEnvironment(), stdio: ['ignore', 'ignore', 'pipe'] }
@@ -209,6 +215,11 @@ function resolvePostgresBinaries(): PostgresBinaries {
  */
 function clusterEnvironment(): NodeJS.ProcessEnv {
     return { ...process.env, ...postgresLocaleEnvironment() };
+}
+
+function runServer(binary: string, args: string[]) {
+    const { command, args: commandArgs } = postgresServerCommand(binary, args);
+    run(command, commandArgs);
 }
 
 function run(command: string, args: string[]) {
