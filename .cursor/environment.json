@@ -1,6 +1,6 @@
 {
   "name": "Haus",
-  "install": "bash .agents/cloud/install.sh",
+  "install": "bash .agents/cloud/bootstrap.sh cursor-install",
   "start": "bash .agents/cloud/bootstrap.sh cursor",
   "terminals": [
     {
