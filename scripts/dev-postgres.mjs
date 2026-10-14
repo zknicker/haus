@@ -2,6 +2,10 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
+import {
+    postgresServerCommand,
+    preparePostgresServerDirectory,
+} from './postgres-server-account.mjs';
 
 const postgresUser = 'haus';
 const postgresDatabase = 'haus';
@@ -17,18 +21,20 @@ export function stopStaleDevPostgres(environment, options = {}) {
     }
 
     const binaries = options.binaries ?? resolvePostgresBinaries();
-    const status = spawnCommand(binaries.pgCtl, ['--pgdata', dataRoot, 'status'], {
-        encoding: 'utf8',
-    });
+    const pgCtl = (args) => {
+        const { command, args: commandArgs } = postgresServerCommand(
+            binaries.pgCtl,
+            args,
+            options.uid
+        );
+        return spawnCommand(command, commandArgs, { encoding: 'utf8' });
+    };
+    const status = pgCtl(['--pgdata', dataRoot, 'status']);
     if (status.status !== 0) {
         return 0;
     }
 
-    const result = spawnCommand(
-        binaries.pgCtl,
-        ['--pgdata', dataRoot, '--mode', 'fast', '--wait', 'stop'],
-        { encoding: 'utf8' }
-    );
+    const result = pgCtl(['--pgdata', dataRoot, '--mode', 'fast', '--wait', 'stop']);
     if (result.status !== 0) {
         throw new Error(
             result.stderr?.trim() ||
@@ -59,9 +65,10 @@ export function prepareDevPostgres(environment, port) {
     const socketRoot = environment.HAUS_POSTGRES_SOCKET_ROOT;
 
     fs.mkdirSync(path.dirname(dataRoot), { recursive: true });
-    fs.mkdirSync(socketRoot, { recursive: true });
+    preparePostgresServerDirectory(socketRoot);
     if (!fs.existsSync(path.join(dataRoot, 'PG_VERSION'))) {
-        run(binaries.initdb, [
+        preparePostgresServerDirectory(dataRoot);
+        const initdb = postgresServerCommand(binaries.initdb, [
             '--auth=trust',
             '--encoding=UTF8',
             '--no-sync',
@@ -70,26 +77,28 @@ export function prepareDevPostgres(environment, port) {
             '--pgdata',
             dataRoot,
         ]);
+        run(initdb.command, initdb.args);
     }
+    const server = postgresServerCommand(binaries.postgres, [
+        '-D',
+        dataRoot,
+        '-h',
+        '127.0.0.1',
+        '-k',
+        socketRoot,
+        '-p',
+        String(port),
+        '-c',
+        'fsync=off',
+        '-c',
+        'full_page_writes=off',
+    ]);
 
     return {
-        args: [
-            '-D',
-            dataRoot,
-            '-h',
-            '127.0.0.1',
-            '-k',
-            socketRoot,
-            '-p',
-            String(port),
-            '-c',
-            'fsync=off',
-            '-c',
-            'full_page_writes=off',
-        ],
+        args: server.args,
         binaries,
         databaseUrl: `postgres://${postgresUser}@127.0.0.1:${port}/${postgresDatabase}`,
-        executable: binaries.postgres,
+        executable: server.command,
         port,
         socketRoot,
     };

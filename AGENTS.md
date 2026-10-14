@@ -291,6 +291,9 @@ adapter. `scripts/cloud-agent-install.sh` provisions Bun `1.4.2` and PostgreSQL 
  harness otherwise only auto-discover Homebrew paths on Linux; if you run PostgreSQL 16 from a
  non-standard location, set `HAUS_POSTGRES_BIN` to its bin directory. Do not start a system
  PostgreSQL service; each lane owns a throwaway/worktree-isolated cluster.
+- PostgreSQL's server binaries refuse to run as root. On root hosts (Claude cloud containers)
+ `scripts/postgres-server-account.mjs` runs them as the `postgres` account and keeps their state
+ under that account's home.
 - The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against Haus's development Clerk
  instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
  channels, starter messages). No manual login is required in dev.
