@@ -276,7 +276,7 @@ Haus follows the fleet cloud agent contract; set up or repair it with the `zknic
 `cloud-agent-setup` skill. `.agents/cloud/install.sh` provisions Bun `1.4.2` and PostgreSQL 16,
 then runs `bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download), and
 `.agents/cloud/env.sh` holds session exports. `.agents/cloud/bootstrap.sh` is a fleet-owned copy:
-never edit it here. It runs the Haus scripts on both platforms. The fleet (poteto-mode, fleet
+never edit it here. It runs the Haus scripts on both platforms. The fleet (make-it-so, fleet
 skills, global rules) loads separately: on Claude from the cloud environment's Setup script, on
 Cursor from `bootstrap.sh cursor`.
 
