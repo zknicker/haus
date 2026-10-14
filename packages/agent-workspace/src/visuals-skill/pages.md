@@ -26,6 +26,9 @@ holds; this module covers what changes. The skeleton is
   right-aligned numbers, mono for timestamps and ids.
 - Write the file under `workbench/`, then reference it with a bare `artifact`
   fence holding exactly one JSON object.
+- The card is a snapshot of the page for that conversation's members; push the
+  file to the shared drive (Manual topic `artifact`) when it needs revisions or
+  a stable link.
 
 ## Before shipping the page
 

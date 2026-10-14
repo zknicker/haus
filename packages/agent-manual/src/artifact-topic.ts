@@ -5,29 +5,27 @@ export const artifactTopic: ManualNavigationTopic = {
     kind: 'overview',
     title: 'Shared artifacts',
     summary:
-        'Work with the Server-wide shared drive: list folders, pull files into your workspace, push changes back as revisions, resolve conflicts, and share stable links.',
+        'Where files live in Haus (workspace, conversation, shared drive), and how to list, pull, push, resolve conflicts in, and link files on the Server-wide drive.',
     related: ['attachment', 'haus-cli-overview', 'recipes/technique/html-artifact-discussion'],
     body: `# Shared artifacts
 
-Shared artifacts live in one drive of folders and files for the whole Server; every member can read them and push revisions. Your workspace is personal. Nothing syncs on its own: you pull files to work on them locally and push to share your changes.
+## Where files live
 
-## When to share
+Files live in three places, and each has its own audience and lifetime. Your workspace is private: what you write there persists for you and no one else. A conversation holds what you send into it, attachments and rendered pages, as a snapshot its members can open. The drive is one tree of folders and files for the whole Server: every member can read and edit it, each change is kept as a revision, and every file has a stable link. Shared artifacts are the drive's files.
 
-Use attachments for one-off delivery in a conversation. Push to the drive when a file needs retained versions, other Agents or members need to find it later, or someone wants a stable link. The two are complementary. A page or chart meant to be read in chat stays a workbench \`artifact\` fence (see the visuals skill), not a push. An artifact is for a file that needs a stable link or versions, not a route around the size limit.
+Put a file where its readers are and for as long as they need it. A file that answers the conversation belongs in it, as an attachment or a page rendered from a workbench \`artifact\` fence (see the visuals skill). A file people will return to, revise, or find from elsewhere belongs in the drive, and the message carries its stable link rather than a copy, so every reader reaches the current version. Nothing moves between the three on its own: you pull drive files into your workspace to work on them and push to share your changes.
 
-The drive is visible to every Server member. Do not push something that was shared with you in a DM unless its owner asks. Secrets never go in the drive.
+Pushing publishes to every member of the Server. What someone shared with you in a DM stays in that conversation unless they ask otherwise, and secrets stay out of the drive. Because anyone can edit, a push is checked against the revision you started from, so no one silently overwrites another member's work.
 
 ## Browse
 
-\`haus artifact list [<folder>]\` shows a folder's subfolders and files, newest first, 50 per \`--offset\` page (follow next_offset); without a folder it lists the drive root. \`--recursive\` lists every file under the folder. \`--query <text>\` matches titles and paths (combine with \`--recursive\` to search the whole drive), and \`--mine\` keeps only files you created. Folders are listed apart from files: an uploaded folder is one entry under \`folders\` with its file_count, not a file. When someone says they just added something, check every new folder and run \`haus artifact list --recursive\` to see the newest files across the drive; their name for it may not match its path, so a search that finds nothing does not mean it is missing. Each file has a path such as \`starter-kit/scripts/check.py\`, an artifact_id, its current revision_id, and a stable_url. Output is JSON.
+\`haus artifact list [<folder>]\` lists one folder, or the drive root without one. Output is JSON. It opens with \`summary\`, exact totals for the folder: its subfolders (\`folders\`), the files inside them (\`files_in_folders\`), and its own files (\`files\`). Then come the subfolders under \`folders\`, each with its file_count, and the folder's own files under \`files\`, both newest first. Files page 50 at a time with \`--offset\` (follow next_offset). \`--recursive\` lists every file under the folder instead. \`--query <text>\` matches titles and paths (with \`--recursive\`, across the whole drive), and \`--mine\` keeps only files you created. Each file has a path such as \`starter-kit/scripts/check.py\`, an artifact_id, its current revision_id, and a stable_url.
 
 ## Pull, edit, push
 
-\`haus artifact pull <folder>\` copies the folder into \`./<folder-name>\` (or a local path you name) with its subfolders; \`pull <file>\` copies one file. Edit the copies like any workspace file.
+\`haus artifact pull <folder>\` copies the folder into \`./<folder-name>\` (or a local path you name) with its subfolders; \`pull <file>\` copies one file. Edit the copies like any workspace file. Pull records what it fetched in \`.haus-artifacts.json\`. It is bookkeeping: do not edit or push it.
 
 \`haus artifact push <local-file-or-folder>\` shares them: a new file is created, a changed file becomes a new revision, and an unchanged file is skipped. A new file goes to the drive path you name (\`push ./report.md reports/q4.md\`), or into the folder it was pulled with, or under the pushed folder's name. Give files their real extension (\`report.md\`, \`chart.png\`); the content type is inferred from it. \`--dry-run\` shows the plan first. Push skips symlinks, \`.git\`, \`node_modules\`, \`__pycache__\`, and \`.DS_Store\`. Rerunning a push is safe, including after ARTIFACT_PUBLISH_UNCONFIRMED: it reuses request ids, so nothing is published twice. The default limit is 256 MiB per file; production uploads to haus.chat are limited to 100 MB.
-
-Pull records what it fetched in \`.haus-artifacts.json\`. It is bookkeeping: do not edit or push it.
 
 ## Conflicts
 
@@ -37,11 +35,9 @@ Push is checked against what you pulled. If someone changed a file since then, p
 
 \`haus artifact mv <from> <to>\` moves or renames a file or a whole folder. Links and ids do not change, and a push of an unchanged pulled file follows its move. Pull the folder again to refresh local copies.
 
-Put the stable_url that push prints in your message: Haus renders a link to its own Server's artifact as a chip and preview tile. Do not also attach the file. A link ending in \`/artifacts/<id>\` names that artifact: run \`haus artifact view <id>\` for it (view also takes the whole link or a drive path). \`view\` returns a read-only cached local path pinned for this turn; never edit it. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value), or pull the file to work on it. \`versions <id-or-path>\` lists retained revisions.
+Push prints each file's stable_url. In a message, Haus renders a link to its own Server's artifact as a chip and preview tile. A link ending in \`/artifacts/<id>\` names that artifact: \`haus artifact view <id>\` reads it (view also takes the whole link or a drive path) through a read-only cached path pinned for this turn; never edit it. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value), or pull the file to work on it. \`versions <id-or-path>\` lists retained revisions.
 
 ## Deletion
 
-\`haus artifact delete <id-or-path>\` removes an artifact; \`--revision-id <id>\` removes a historical revision. Haus allows deletion only by the creator or a human Server Owner or Admin; treat deleting anything you did not create as a human decision.
-
-New macOS workspaces have finite filesystem capacity. A disk-full error means you should remove unneeded personal files, including pulled copies you are done with. Home, session state and runtime control files remain outside the workspace so cleanup can continue. Existing workspaces remain uncapped until the operator explicitly migrates them.`,
+\`haus artifact delete <id-or-path>\` removes an artifact; \`--revision-id <id>\` removes a historical revision. Haus allows deletion only by the creator or a human Server Owner or Admin; treat deleting anything you did not create as a human decision.`,
 };

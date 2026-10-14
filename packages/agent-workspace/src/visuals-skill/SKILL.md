@@ -66,6 +66,9 @@ comments, no trailing commas:
 ```
 ````
 
+The card is a snapshot of the page for that conversation's members; push the file to the shared
+drive (Manual topic `artifact`) when it needs revisions or a stable link.
+
 Rules:
 
 - Start the fence on its own line, never glued to the end of a sentence. Haus strips fences from
