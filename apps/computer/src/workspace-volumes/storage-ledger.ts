@@ -1,8 +1,7 @@
-import { execFile } from 'node:child_process';
-import { lstat, mkdir, readdir, readFile, rename, rm, statfs, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, rename, statfs, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { z } from 'zod';
+import { withPidLock } from '../pid-lock.ts';
 
 export const GiB = 1024 ** 3;
 export const workspaceDefaults = {
@@ -15,40 +14,22 @@ const ledgerSchema = z.object({
     budgetBytes: z.number().int().nonnegative(),
     allocations: z.record(z.string(), z.number().int().positive()),
 });
-const execute = promisify(execFile);
 
-/** shlock checks owner liveness and acquires atomically across attachment daemons. */
+/** Serializes ledger reservations across attachment daemons sharing one data root. */
 export async function withStorageLock<T>(
     dataRoot: string,
     operation: () => Promise<T>
 ): Promise<T> {
-    // shlock and the sparsebundle volumes it guards exist only on macOS; without
-    // this, a Linux host spins for the full deadline and reports "busy".
-    if (process.platform !== 'darwin') {
-        throw new Error('Haus Computer capped workspaces require macOS.');
-    }
     await mkdir(dataRoot, { recursive: true, mode: 0o700 });
-    const lock = join(dataRoot, 'workspace-storage.lock');
-    const deadline = Date.now() + 30_000;
-    for (;;) {
-        try {
-            await execute('/usr/bin/shlock', ['-p', String(process.pid), '-f', lock]);
-            break;
-        } catch (error) {
-            if (Date.now() >= deadline) {
-                throw new Error(
-                    'Workspace storage is busy; retry after Computer maintenance completes.',
-                    { cause: error }
-                );
-            }
-            await Bun.sleep(50);
-        }
-    }
-    try {
-        return await operation();
-    } finally {
-        await rm(lock, { force: true });
-    }
+    return withPidLock(
+        join(dataRoot, 'workspace-storage.lock'),
+        {
+            busyMessage: 'Workspace storage is busy; retry after Computer maintenance completes.',
+            pollMs: 50,
+            timeoutMs: 30_000,
+        },
+        operation
+    );
 }
 
 export async function reserveWorkspace(

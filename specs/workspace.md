@@ -20,8 +20,11 @@ security boundary.
 
 ## Capacity
 
-Haus Computer supports macOS. Newly provisioned workspaces use a finite,
-case-sensitive APFS sparsebundle mounted at the existing `workspace/` path.
+On macOS, newly provisioned workspaces use a finite, case-sensitive APFS
+sparsebundle mounted at the existing `workspace/` path. Other hosts, such as Linux
+development and cloud sessions, provision `workspace/` as an ordinary uncapped
+directory with no image, manifest, or reservation, and refuse to replace a
+capped workspace they cannot mount.
 The default image capacity is 10 GiB. Writes encounter ordinary filesystem
 `ENOSPC`; the Agent chooses what to remove or explicitly publish. Computer
 does not upload or delete personal files automatically. The cap applies to

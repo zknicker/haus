@@ -1,7 +1,7 @@
 import { chmod, lstat, mkdir, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { macWorkspaceDisk, type WorkspaceDisk } from './disk-image.ts';
+import { hostWorkspaceDisk, type WorkspaceDisk } from './disk-image.ts';
 import {
     isMissing,
     readJson,
@@ -19,11 +19,12 @@ export const workspaceVolumeSchema = z.object({
 export interface WorkspaceLocation {
     agentRoot: string;
     dataRoot: string;
-    disk?: WorkspaceDisk;
+    disk?: WorkspaceDisk | null;
     options?: WorkspaceOptions;
 }
 export type WorkspaceState =
     | { kind: 'legacy'; path: string }
+    | { kind: 'uncapped'; path: string }
     | { kind: 'capped'; path: string; capacityBytes: number };
 
 /** Existing directories are explicit legacy state, never silently migrated. */
@@ -32,7 +33,10 @@ export function ensureAgentWorkspace(input: WorkspaceLocation): Promise<Workspac
 }
 
 export async function ensureWorkspaceLocked(input: WorkspaceLocation): Promise<WorkspaceState> {
-    const disk = input.disk ?? macWorkspaceDisk;
+    const disk = input.disk === undefined ? hostWorkspaceDisk : input.disk;
+    if (!disk) {
+        return await ensureUncappedWorkspace(input.agentRoot);
+    }
     const options = input.options ?? workspaceDefaults;
     const { image, manifest, path } = workspaceVolumePaths(input.agentRoot);
     await mkdir(input.agentRoot, { recursive: true, mode: 0o700 });
@@ -76,7 +80,7 @@ export async function ensureWorkspaceLocked(input: WorkspaceLocation): Promise<W
 
 export async function resetWorkspaceContents(
     agentRoot: string,
-    disk: WorkspaceDisk = macWorkspaceDisk
+    disk: WorkspaceDisk | null = hostWorkspaceDisk
 ) {
     const { manifest, path } = workspaceVolumePaths(agentRoot);
     const record = await readJson(manifest, workspaceVolumeSchema);
@@ -87,7 +91,7 @@ export async function resetWorkspaceContents(
         await rm(path, { force: true, recursive: true });
         return;
     }
-    if ((await mountUuid(disk, path)) !== record.volumeUuid) {
+    if ((await mountUuid(requireCappedDisk(disk), path)) !== record.volumeUuid) {
         throw new Error('Cannot reset an unmounted capped workspace.');
     }
     for (const entry of await readdir(path)) {
@@ -97,19 +101,19 @@ export async function resetWorkspaceContents(
 
 export async function detachWorkspaceForRetirement(
     agentRoot: string,
-    disk: WorkspaceDisk = macWorkspaceDisk
+    disk: WorkspaceDisk | null = hostWorkspaceDisk
 ) {
     const { manifest, path } = workspaceVolumePaths(agentRoot);
     const record = await readJson(manifest, workspaceVolumeSchema);
     if (!record) {
         return;
     }
-    const mounted = await mountUuid(disk, path);
+    const mounted = await mountUuid(requireCappedDisk(disk), path);
     if (mounted && mounted !== record.volumeUuid) {
         throw new Error('Cannot detach a foreign workspace volume.');
     }
     if (mounted) {
-        await disk.detach(path);
+        await requireCappedDisk(disk).detach(path);
     }
 }
 
@@ -141,6 +145,28 @@ export async function exists(path: string) {
         }
         throw error;
     }
+}
+
+/** Off macOS a workspace is an ordinary directory: no volume, cap, or reservation. */
+async function ensureUncappedWorkspace(agentRoot: string): Promise<WorkspaceState> {
+    const { image, manifest, path } = workspaceVolumePaths(agentRoot);
+    if ((await exists(manifest)) || (await exists(image))) {
+        // Never hide or replace a capped workspace's files with an empty directory.
+        throw new Error('This workspace is a capped macOS volume; open it on macOS.');
+    }
+    await mkdir(path, { recursive: true, mode: 0o700 });
+    const info = await lstat(path);
+    if (!info.isDirectory() || info.isSymbolicLink()) {
+        throw new Error('Workspace must be an ordinary directory.');
+    }
+    return { kind: 'uncapped', path };
+}
+
+function requireCappedDisk(disk: WorkspaceDisk | null) {
+    if (!disk) {
+        throw new Error('This workspace is a capped macOS volume; open it on macOS.');
+    }
+    return disk;
 }
 
 async function assertImageExists(image: string) {

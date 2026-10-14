@@ -2,8 +2,8 @@ import { execFile } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { processExists } from '../artifacts/cache-lock.ts';
 import { createAttachmentStore } from '../attachment-store.ts';
+import { processExists } from '../pid-lock.ts';
 import { compactAgentWorkspace, migrateAgentWorkspace } from './maintenance.ts';
 
 const execute = promisify(execFile);
