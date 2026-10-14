@@ -304,3 +304,20 @@ artifact download). `start.sh` seeds fleet agents on every boot. The full stack
  website port plus three). Read those URLs from the banner rather than assuming `3100`/`8090`. See
  `docs/operations/development.md` for stack details and `docs/operations/testing.md` for
  lint/test/build lanes (`bun run lint`, `bun run typecheck`).
+
+## Claude Code cloud specific instructions
+
+Claude Code cloud sessions use the committed `.claude/settings.json` SessionStart hook, which runs
+`bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download). The default cloud
+image already ships Bun and PostgreSQL 16; the dev stack is not auto-started.
+
+- The Claude cloud environment holds one secret: `CLAUDE_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`, a
+ read-only 1Password service account token for the `Development` vault. It fills the same
+ `@initOp(id=development)` slot as Cursor's token, so install credentials, Clerk, and every other
+ development value resolve through `.env.schema` exactly as they do for Cursor.
+- Set `HAUS_POSTGRES_BIN=/usr/lib/postgresql/16/bin` on the environment so PostgreSQL-backed lanes
+ and the dev stack find the binaries.
+- Network access must allow `*.1password.com` (service account sign-in), `npm.hugeicons.com`
+ (licensed icon registry), and `api.heroui.pro` (HeroUI Pro artifacts), alongside package
+ managers. Without them `setup:worktree` warns that tokens did not resolve and the install fails.
+- Fleet skills from `zknicker/agents` are not seeded in Claude cloud sessions.
