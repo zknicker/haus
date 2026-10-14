@@ -57,7 +57,8 @@ The native list query (`artifact.list`) browses one folder: `prefix` (`''` for t
 its immediate child folders on the first page and its own files, and `recursive` returns every file
 under it. `query` searches current titles and paths, `kind` (`all`, `images`, `documents`,
 `media`, `other`) and an optional exact `creator` filter files, and filtering happens before
-offset pagination; results carry `next_offset`. `artifact.creators` returns one entry per creator
+offset pagination; results carry `next_offset` and a page-independent `summary` of totals
+(`folders`, `files_in_folders`, `files`; see the drive spec). Child folders come newest first. `artifact.creators` returns one entry per creator
 with at least one live artifact on the Server: `creator`, `artifact_count`, `latest_at`, and
 `previews`, the creator's three most recently updated artifacts of any kind. Entries sort by `latest_at` descending, and the
 procedure uses the same membership authorization as `list`.
@@ -67,7 +68,7 @@ column. The band carries the drive trail (Haus › Artifacts › `starter-kit` �
 above the open one a link) and every control: search, a file-type menu, a Created by menu (Anyone,
 You, Agents, then other people with live files, from `artifact.creators`), list/grid, and Upload.
 The column shows the open folder's child folders (`artifact.list` folders: tinted folder icons
-dealt in path-key order, each with its file count and up to three of its newest files peeking out,
+in the list's newest-first order, tints dealt in path-key order, each with its file count and up to three of its newest files peeking out,
 taken from one recursive read of the open folder, never one read per folder), then the files
 directly in it grouped by `updated_at` in the viewer's time zone (Today, Yesterday, weekdays through
 the past week, days this month, months this year, then years). Search reads every file under the
@@ -130,7 +131,7 @@ haus artifact versions <id|link|drive-path> [--offset <n>]
 haus artifact delete <id|link|drive-path> [--revision-id <id>]
 ```
 
-`list` prints `{ folder, folders, files, next_offset }` over the Agent list route; `--mine` is the
+`list` prints `{ folder, summary, folders, files, next_offset }` over the Agent list route; `--mine` is the
 calling Agent's own files, and Agents get no creator directory (`artifact.creators` stays App-only).
 `pull` resolves a file with `by-path`, otherwise pages a recursive `order=path` listing of the
 folder, and copies each revision out of the Computer's verified cache (the `view` route) into the

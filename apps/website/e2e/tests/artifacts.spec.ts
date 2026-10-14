@@ -28,6 +28,7 @@ test('a Server member opens the shared library and reloads its stable address', 
         artifacts: [],
         folders: [],
         next_offset: null,
+        summary: { folders: 0, files_in_folders: 0, files: 0 },
     });
     expect(await client.artifact.creators.query({ serverId: server.id })).toEqual({
         creators: [],
@@ -70,9 +71,10 @@ test('members browse drive folders, filter by kind and creator, search, and open
 
     await folders.getByRole('option', { name: 'starter-kit' }).click();
     await expect(page).toHaveURL(/folder=starter-kit$/u);
+    // Newest first: the seed writes scripts after assets.
     await expect(folders.getByRole('option')).toHaveText([
-        /assets\s*1 file/u,
         /scripts\s*2 files/u,
+        /assets\s*1 file/u,
     ]);
     await expect(today.getByRole('row')).toHaveText([/README\.md/u]);
     await folders.getByRole('option', { name: 'scripts' }).click();

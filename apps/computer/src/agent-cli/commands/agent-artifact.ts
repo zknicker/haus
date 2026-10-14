@@ -37,8 +37,8 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             { name: '--offset', valueName: '<n>', description: 'File page offset (next_offset)' },
         ],
         notes: [
-            'Newest first, 50 files per page. Without a folder, lists the drive root.',
-            'An uploaded folder is one `folders` entry with its file_count; list it, or use --recursive for the newest files across the drive.',
+            '50 files per page. Without a folder, lists the drive root.',
+            'Output opens with a summary of totals; folders and files each come newest first.',
         ],
         run: (args) => runArtifactList(args),
     },
@@ -215,6 +215,7 @@ export async function runArtifactList(
     });
     return print({
         folder: prefix,
+        summary: result.summary,
         folders: result.folders,
         files: result.artifacts.map((artifact) => ({
             path: artifact.path,

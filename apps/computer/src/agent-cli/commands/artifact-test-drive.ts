@@ -70,7 +70,12 @@ export function createTestDrive(pageSize = 2) {
                 const offset = Number(query.offset ?? 0);
                 const page = all.slice(offset, offset + pageSize);
                 const next = offset + pageSize < all.length ? offset + pageSize : null;
-                return Promise.resolve({ artifacts: page, folders: [], next_offset: next } as T);
+                return Promise.resolve({
+                    artifacts: page,
+                    folders: [],
+                    next_offset: next,
+                    summary: { folders: 0, files_in_folders: 0, files: all.length },
+                } as T);
             }
             const view = /^\/api\/agent\/artifacts\/([^/]+)\/view$/u.exec(route);
             if (view) {

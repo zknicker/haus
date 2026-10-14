@@ -41,10 +41,16 @@ appears while some live file sits under it and disappears with its last file.
 
 `artifact.list` (and `GET /api/agent/artifacts`) takes `prefix` (`''` is the root). By default it
 returns the folder's immediate child folders (`name`, `path`, `file_count`, `updated_at`; first
-page only) and the folder's own files. `recursive: true` returns every file under the prefix and no
-folders, which is the bulk-pull shape; `order: 'path'` gives it a stable order. `creator`, `kind`,
-and `query` (title or path) filter files, and folder counts follow the same filters. Pages hold up
-to `limit` files (default 50, at most 200) and report `next_offset`, null on the last page.
+page only; newest `updated_at` first, path key breaking ties) and the folder's own files.
+`recursive: true` returns every file under the prefix and no folders, which is the bulk-pull shape;
+`order: 'path'` gives it a stable order. `creator`, `kind`, and `query` (title or path) filter
+files, and folder counts follow the same filters. Pages hold up to `limit` files (default 50, at
+most 200) and report `next_offset`, null on the last page.
+
+Every page carries `summary`, exact totals for the listed folder under the same filters and
+independent of the page: `folders` (child folders), `files_in_folders` (files anywhere under them),
+and `files` (files directly in the folder). A recursive list reports `folders: 0`,
+`files_in_folders: 0`, and every file under the prefix in `files`.
 
 ## Writes
 
