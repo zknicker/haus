@@ -291,5 +291,7 @@ test('artifact guidance teaches the drive: list, pull, push, conflicts, and move
     expect(body).toContain('`.haus-artifacts.json`. It is bookkeeping');
     expect(body).toContain('ARTIFACT_PUBLISH_UNCONFIRMED');
     expect(body).toContain('Push skips symlinks');
+    expect(body).toContain('an uploaded folder is one entry under `folders`');
+    expect(body).toContain('a search that finds nothing does not mean it is missing');
     expect(body).not.toMatch(/--name|--artifact-id|artifact publish|named from the filename/u);
 });

@@ -19,7 +19,7 @@ The drive is visible to every Server member. Do not push something that was shar
 
 ## Browse
 
-\`haus artifact list [<folder>]\` shows a folder's subfolders and files, newest first, 50 per \`--offset\` page (follow next_offset); without a folder it lists the drive root. \`--recursive\` lists every file under the folder. \`--query <text>\` matches titles and paths (combine with \`--recursive\` to search the whole drive), and \`--mine\` keeps only files you created. Each file has a path such as \`starter-kit/scripts/check.py\`, an artifact_id, its current revision_id, and a stable_url. Output is JSON.
+\`haus artifact list [<folder>]\` shows a folder's subfolders and files, newest first, 50 per \`--offset\` page (follow next_offset); without a folder it lists the drive root. \`--recursive\` lists every file under the folder. \`--query <text>\` matches titles and paths (combine with \`--recursive\` to search the whole drive), and \`--mine\` keeps only files you created. Folders are listed apart from files: an uploaded folder is one entry under \`folders\` with its file_count, not a file. When someone says they just added something, check every new folder and run \`haus artifact list --recursive\` to see the newest files across the drive; their name for it may not match its path, so a search that finds nothing does not mean it is missing. Each file has a path such as \`starter-kit/scripts/check.py\`, an artifact_id, its current revision_id, and a stable_url. Output is JSON.
 
 ## Pull, edit, push
 

@@ -36,7 +36,10 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             { name: '--mine', description: 'Only files you created' },
             { name: '--offset', valueName: '<n>', description: 'File page offset (next_offset)' },
         ],
-        notes: ['Newest first, 50 files per page. Without a folder, lists the drive root.'],
+        notes: [
+            'Newest first, 50 files per page. Without a folder, lists the drive root.',
+            'An uploaded folder is one `folders` entry with its file_count; list it, or use --recursive for the newest files across the drive.',
+        ],
         run: (args) => runArtifactList(args),
     },
     {
