@@ -12,7 +12,7 @@ import type { ArtifactUploader } from './artifact-upload.ts';
 const command = (name: string) =>
     ({
         ...ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === name),
-        section: 'artifact',
+        section: 'files',
     }) as Parameters<typeof parseArgs>[0];
 let stdout: ReturnType<typeof spyOn>;
 let stderr: ReturnType<typeof spyOn>;
@@ -100,7 +100,7 @@ test('conflicts are collected per file without stopping the batch, then resolved
                 updated_at: theirs.updated_at,
                 creator: { type: 'agent', agent_id: 'agt_other' },
             }),
-            pull: expect.stringMatching(/^haus artifact pull kit\/a\.md \S+a\.md$/u),
+            pull: expect.stringMatching(/^haus files pull kit\/a\.md \S+a\.md$/u),
         }),
     ]);
     expect(drive.text('kit/a.md')).toBe('a-theirs\n');

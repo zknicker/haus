@@ -38,17 +38,17 @@ export class ArtifactCache {
             await fs.mkdir(folder, { recursive: true, mode: 0o700 });
             const existing = await fs.stat(path).catch(() => null);
             if (existing && (!existing.isFile() || existing.size !== input.artifact.size_bytes)) {
-                throw new Error('Shared artifact cache entry is invalid.');
+                throw new Error('Shared file cache entry is invalid.');
             }
             if (existing && (await fileDigest(path)) !== input.artifact.sha256) {
-                throw new Error('Shared artifact cache entry failed integrity verification.');
+                throw new Error('Shared file cache entry failed integrity verification.');
             }
             if (!existing) {
                 await this.makeRoom(input.artifact.size_bytes);
                 await downloadVerified(input, path);
             }
             if (generation !== this.generation) {
-                throw new Error('The Agent turn ended before the artifact was available.');
+                throw new Error('The Agent turn ended before the file was available.');
             }
             await fs.utimes(path, new Date(), new Date());
             this.pinned.add(path);

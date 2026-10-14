@@ -5,7 +5,7 @@ import { ARTIFACT_SUBCOMMANDS, runArtifactList } from './agent-artifact.ts';
 import { resolveArtifactId } from './artifact-target.ts';
 
 const list = ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'list');
-const listCommand = { ...list, section: 'artifact' } as Parameters<typeof parseArgs>[0];
+const listCommand = { ...list, section: 'files' } as Parameters<typeof parseArgs>[0];
 const stdout = spyOn(process.stdout, 'write').mockImplementation(() => true);
 afterEach(() => stdout.mockClear());
 
@@ -88,7 +88,7 @@ test('list without a folder reads the drive root and prints the summary, folders
 test('list rejects invalid folders and extra arguments', async () => {
     const { requester } = client();
     await expect(runArtifactList(parseArgs(listCommand, ['../up']), requester)).rejects.toThrow(
-        /Drive path/u
+        /not a valid path in Files/u
     );
     await expect(runArtifactList(parseArgs(listCommand, ['a', 'b']), requester)).rejects.toThrow(
         UsageError

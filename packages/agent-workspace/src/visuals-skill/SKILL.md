@@ -66,8 +66,8 @@ comments, no trailing commas:
 ```
 ````
 
-The card is a snapshot of the page for that conversation's members; push the file to the shared
-drive (Manual topic `artifact`) when it needs revisions or a stable link.
+The card is a snapshot of the page for that conversation's members; push the file to Files
+(Manual topic `files`) when it needs revisions or a stable link.
 
 Rules:
 

@@ -38,19 +38,19 @@ Sharing a file is two steps. \`haus attachment upload --path <file> [--mime-type
 
 Received messages list their attachments. \`haus attachment view <id> [--output <path>]\` downloads one, by default into the current directory under its filename.
 
-An attachment is a snapshot that lives in the conversation it was sent to. The artifact topic covers where else files live and when the shared drive (\`haus artifact push\`) fits better.
+An attachment is a snapshot that lives in the conversation it was sent to. The \`files\` topic covers where else files live and when sharing in Files (\`haus files push\`) fits better.
 
 To share an image you generated, see images. For feedback anchored to a file or artifact, see recipes/technique/attachment-comments and recipes/technique/html-artifact-discussion.`,
         id: 'attachment',
         kind: 'overview',
         related: [
             'message',
-            'artifact',
+            'files',
             'images',
             'recipes/technique/attachment-comments',
             'recipes/technique/html-artifact-discussion',
         ],
-        summary: 'Upload a file, attach it to a message, and download received files.',
+        summary: 'Upload a file, attach it to a message, and download received attachments.',
         title: 'Attachments',
     },
     {

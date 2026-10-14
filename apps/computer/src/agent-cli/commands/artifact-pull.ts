@@ -41,7 +41,7 @@ interface PullReport {
     updated: string[];
 }
 
-/** `haus artifact pull <drive-path> [<local>]`: one file, or every file under a folder. */
+/** `haus files pull <path> [<local>]`: one file, or every file under a folder. */
 export async function runArtifactPull(
     args: ParsedArgs,
     client: AgentApiRequester
@@ -85,7 +85,7 @@ export async function runArtifactPull(
     );
     if (report.merge.length > 0) {
         process.stderr.write(
-            `Kept your local edits to ${report.merge.length} file(s). The current drive version sits beside each as ${THEIRS_SUFFIX}: merge it into your file, delete the ${THEIRS_SUFFIX} file, then push.\n`
+            `Kept your local edits to ${report.merge.length} file(s). The current version in Files sits beside each as ${THEIRS_SUFFIX}: merge it into your file, delete the ${THEIRS_SUFFIX} file, then push.\n`
         );
     }
     return 0;
@@ -119,8 +119,8 @@ async function listFolder(client: AgentApiRequester, prefix: string): Promise<Ar
         offset = page.next_offset;
     }
     if (artifacts.length === 0) {
-        throw new AgentCliError('NOT_FOUND', `Nothing lives at ${prefix} on the drive.`, {
-            nextAction: 'Run haus artifact list to browse folders.',
+        throw new AgentCliError('NOT_FOUND', `Nothing lives at ${prefix} in Files.`, {
+            nextAction: 'Run haus files list to browse folders.',
         });
     }
     return artifacts.filter((artifact) => artifactPathIsInside(artifact.path, prefix));
@@ -245,7 +245,10 @@ async function localFileTarget(artifact: ArtifactMetadata, local: string | undef
 export function requireDrivePath(raw: string | undefined): string {
     const parsed = parseArtifactPath((raw ?? '').replace(/\/+$/u, ''));
     if (!parsed.ok) {
-        throw new AgentCliError('INVALID_PATH', `Drive path ${raw ?? ''}: ${parsed.message}`);
+        throw new AgentCliError(
+            'INVALID_PATH',
+            `${raw ?? ''} is not a valid path in Files: ${parsed.message}`
+        );
     }
     return parsed.path;
 }

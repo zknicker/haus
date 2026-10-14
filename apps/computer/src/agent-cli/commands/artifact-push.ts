@@ -47,7 +47,7 @@ export interface PushSummary {
 /** Failures a fresh request id resolves: the deterministic id names a deleted, moved, or failed upload. */
 const retryWithFreshId = new Set(['DELETED', 'IDEMPOTENCY_KEY_REUSED', 'UPLOAD_CONFLICT']);
 
-/** `haus artifact push <local> [<drive-path>]`: publishes what changed since the last pull. */
+/** `haus files push <local> [<path>]`: publishes what changed since the last pull. */
 export async function runArtifactPush(args: ParsedArgs, upload: ArtifactUploader): Promise<number> {
     const [local, target] = args.positionals;
     if (!local) {
@@ -79,7 +79,7 @@ export async function runArtifactPush(args: ParsedArgs, upload: ArtifactUploader
     process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
     if (summary.conflicts.length > 0) {
         process.stderr.write(
-            `${summary.conflicts.length} file(s) changed on the drive since you last pulled them, so they were not pushed. For each, run its pull command: your edits stay, and the drive version lands beside your file as ${THEIRS_SUFFIX}. Merge it in, delete the ${THEIRS_SUFFIX} file, and push again. Use --replace only to deliberately overwrite someone else's changes.\n`
+            `${summary.conflicts.length} file(s) changed in Files since you last pulled them, so they were not pushed. For each, run its pull command: your edits stay, and the version in Files lands beside your file as ${THEIRS_SUFFIX}. Merge it in, delete the ${THEIRS_SUFFIX} file, and push again. Use --replace only to deliberately overwrite someone else's changes.\n`
         );
     }
     if (summary.unmerged.length > 0) {
@@ -225,7 +225,7 @@ function conflictReport(
         message: outcome.message,
         path: item.path,
         pull: current
-            ? `haus artifact pull ${shellArg(current.path)} ${shellArg(displayPath(item.local))}`
+            ? `haus files pull ${shellArg(current.path)} ${shellArg(displayPath(item.local))}`
             : null,
         reason,
     };

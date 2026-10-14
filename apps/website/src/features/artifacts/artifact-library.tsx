@@ -47,7 +47,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                             : [
                                   {
                                       href: libraryHref(slug, { ...filters, folder: '' }),
-                                      label: 'Artifacts',
+                                      label: 'Files',
                                   },
                                   ...crumbs.slice(0, -1).map((crumb) => ({
                                       href: libraryHref(slug, { ...filters, folder: crumb.path }),
@@ -55,7 +55,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                                   })),
                               ]
                     }
-                    current={crumbs.at(-1)?.label ?? 'Artifacts'}
+                    current={crumbs.at(-1)?.label ?? 'Files'}
                     slug={slug}
                 >
                     <ArtifactLibraryControls

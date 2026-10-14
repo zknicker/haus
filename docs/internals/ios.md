@@ -477,7 +477,7 @@ transport failure while the App's live streams are down (`isConnected` false), s
 offline instead, since blaming the Computer would name the wrong thing to fix. The App installs the reader in
 `ArtifactPageReader` at its root, beside `InAppReferenceRoutes`.
 
-A shared-library artifact link — the `stable_url` `haus artifact push` prints
+A link to a file in Files — the `stable_url` `haus files push` prints
 (`/s/<slug>/artifacts/art_…`, absolute or root-relative, optionally `?revision=`) — is a reference
 chip of its own, `.sharedArtifact`. `SharedArtifactLinkTarget` ports the App's
 `parseSharedArtifactLink`: only an App origin this phone knows, the open Server's slug, and an `art_`

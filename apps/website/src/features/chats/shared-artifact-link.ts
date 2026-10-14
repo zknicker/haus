@@ -1,4 +1,4 @@
-/** One shared-library artifact a message links to: the stable URL `haus artifact push` prints. */
+/** One file in Files a message links to: the stable URL `haus files push` prints. */
 export interface SharedArtifactLinkTarget {
     artifactId: string;
     revisionId?: string;

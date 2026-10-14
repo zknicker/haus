@@ -158,7 +158,7 @@ export function chatPlace(chat: Pick<Chat, 'kind' | 'name'>): string {
 const pending: TabIdentity = { label: '', mark: { kind: 'none' }, place: null };
 
 const sectionLabels: Record<AppSection, string> = {
-    artifacts: 'Artifacts',
+    artifacts: 'Files',
     activity: 'Activity',
     agent: 'Agent',
     chat: 'Chat',

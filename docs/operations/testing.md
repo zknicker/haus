@@ -305,16 +305,16 @@ Repeat `--only` to run a small named subset in one process.
 
 Shared file discovery and handoff are opt-in and require enabled development R2 storage:
 `bun run test:agents --include-opt-in --only shared-artifact-handoff --lanes 1`.
-Two fresh Agents share a folder on the drive from natural-language requests. The publisher pushes
+Two fresh Agents share a folder in Files from natural-language requests. The publisher pushes
 a two-file folder and links one file; the peer pulls the folder, reports an undisclosed marker,
-edits one file, and pushes (`haus artifact pull`/`push` in its execution journal) while the other
+edits one file, and pushes (`haus files pull`/`push` in its execution journal) while the other
 file stays at revision 1; then the publisher edits its stale copy of the same file and must pull,
 merge, and push without `--replace`, so the final revision carries both edits. The scenario
-deletes the folder's artifacts. Two more opt-in scenarios cover the choice without hints:
-`shared-artifact-discovery` asks to share a markdown file with the team without saying "artifact"
-and gates on a `haus artifact push` and exactly one `.md` artifact whose stable URL is linked, not
+deletes the folder's files. Two more opt-in scenarios cover the choice without hints:
+`shared-artifact-discovery` asks to share a markdown file with the team without naming Files
+and gates on a `haus files push` and exactly one `.md` file whose stable URL is linked, not
 attached; `one-off-chart-stays-in-chat`
-asks for a quick chart and gates on a fence or attachment with no shared artifact.
+asks for a quick chart and gates on a fence or attachment with nothing pushed to Files.
 
 Conversation routing has a natural-language lane: `--only conversation-natural-followups`
 checks a basic question, a planning request, and a human Thread follow-up without routing

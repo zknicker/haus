@@ -92,7 +92,7 @@ export const artifactMoveResultSchema = z
     .strict();
 export type ArtifactMoveResult = z.infer<typeof artifactMoveResultSchema>;
 
-/** Exact path lookup; the Agent route behind `haus artifact` path commands. */
+/** Exact path lookup; the Agent route behind `haus files` path commands. */
 export const artifactResolveInputSchema = z
     .object({ path: artifactPathSchema, serverId: id })
     .strict();

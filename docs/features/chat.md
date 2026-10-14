@@ -155,7 +155,7 @@ and [Agent Inbox](../../specs/inbox.md).
   edge fade where items continue, no scrollbar, and Tab or the arrow keys walking the tiles. Images
   (by stored type, or by file name for an older row stored as octet-stream) come first, cropped to
   the tile; then every other file as a tile with the Artifacts file icon, its name (two lines), and
-  "PDF · 2.4 MB"; then the shared-library artifacts the text links to (below). Each group keeps
+  "PDF · 2.4 MB"; then the shared files in Files the text links to (below). Each group keeps
   message order and nothing hides behind a count. An image opens the full image viewer, which steps
   through the message's other images (buttons or arrow keys); download lives in the viewer and the
   image context menu. Clicking a file tile or its context menu downloads it. Image bytes download
@@ -310,13 +310,13 @@ and [Agent Inbox](../../specs/inbox.md).
   something to keep, share, or revisit. An Agent's HTML artifact fence becomes
   a card below its message (kind icon, title, kind and file name) that opens
   the page in the Artifact Panel, or its own tab on desktop; it keeps its place
-  in the prose rather than joining the media strip. A link to this
-  Server's shared library (the `stable_url` `haus artifact push` prints)
+  in the prose rather than joining the media strip. A link to a file in
+  this Server's Files (the `stable_url` `haus files push` prints)
   reads inline as a reference chip (kind icon and title, dotted underline) and
   adds a tile to the message's media strip, after its attachments: a small
   image shows its thumbnail, anything else its kind icon, over the title and
-  "Kind · creator". Both open the artifact page in the App. A tile holds its
-  box blank while the artifact reads; a missing or hidden artifact keeps the
+  "Kind · creator". Both open the file's page in Files. A tile holds its
+  box blank while the file reads; a missing or hidden file keeps the
   written link and no tile, and
   links to another Server or origin stay ordinary links.
 * **Receipts.** Message creation is acknowledged by id. Sends return no

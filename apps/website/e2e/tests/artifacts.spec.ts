@@ -19,9 +19,9 @@ test('a Server member opens the shared library and reloads its stable address', 
         slug,
     });
 
-    await openSection(page, 'Artifacts');
+    await openSection(page, 'Files');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
-    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Upload files' })).toBeVisible();
     await expect(page.getByRole('listbox', { name: 'Folders' })).toHaveCount(0);
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({
@@ -35,15 +35,15 @@ test('a Server member opens the shared library and reloads its stable address', 
     });
 
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
 
     await openSection(page, 'Inbox');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/inbox$`, 'u'));
-    await openSection(page, 'Artifacts');
-    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
+    await openSection(page, 'Files');
+    await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
 });
 
-test('members browse drive folders, filter by kind and creator, search, and open a file', async ({
+test('members browse folders in Files, filter by kind and creator, search, and open a file', async ({
     page,
 }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -55,7 +55,7 @@ test('members browse drive folders, filter by kind and creator, search, and open
     const { conceptId } = await seedArtifactLibrary(page, session.databaseUrl, server.id);
     // The seeded Agent joins the shell's Agent list on a fresh load.
     await page.reload();
-    await openSection(page, 'Artifacts');
+    await openSection(page, 'Files');
 
     // The root holds its child folders, then only the files directly in it.
     const today = page.getByRole('grid', { name: 'Today' });
@@ -82,9 +82,9 @@ test('members browse drive folders, filter by kind and creator, search, and open
     await expect(today.getByRole('row')).toHaveCount(2);
     await expect(folders).toHaveCount(0);
 
-    // The band is the drive trail; each folder above is a way back.
-    const trail = page.getByRole('navigation', { name: 'Drive path' });
-    await expect(trail).toContainText('Artifacts');
+    // The band is the folder trail; each folder above is a way back.
+    const trail = page.getByRole('navigation', { name: 'Folder path' });
+    await expect(trail).toContainText('Files');
     await expect(trail).toContainText('starter-kit');
     await expect(trail).toContainText('scripts');
 
@@ -102,7 +102,7 @@ test('members browse drive folders, filter by kind and creator, search, and open
     await expect(page).toHaveURL(/folder=starter-kit$/u);
     await page.goBack();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
-    await trail.getByRole('link', { name: 'Artifacts', exact: true }).click();
+    await trail.getByRole('link', { name: 'Files', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
 
     // Search covers the whole subtree and names where each hit lives.
@@ -131,7 +131,7 @@ test('members browse drive folders, filter by kind and creator, search, and open
     await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
     await expect(trail).toContainText('concept.png');
     await expect(page.getByRole('img', { name: 'Concept render', exact: true })).toBeVisible();
-    const details = page.getByRole('complementary', { name: 'Artifact details' });
+    const details = page.getByRole('complementary', { name: 'File details' });
     await expect(details).toContainText('Created by');
     await details.getByRole('button', { name: 'View revision 1', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${conceptId}\\?revision=.*_r1$`, 'u'));
@@ -162,12 +162,12 @@ test('members browse drive folders, filter by kind and creator, search, and open
     ).toBeVisible();
 });
 
-test('a viewer names the file by its drive path, each folder a way back', async ({ page }) => {
+test('a viewer names the file by its path in Files, each folder a way back', async ({ page }) => {
     const slug = 'artifact-viewer-path';
     const { server, session } = await createTestServer(page, { displayName: 'Viewer Path', slug });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts/art_${server.id}_tmcheck`);
-    const trail = page.getByRole('navigation', { name: 'Drive path' });
+    const trail = page.getByRole('navigation', { name: 'Folder path' });
     await expect(page.getByRole('heading', { name: 'tm_check.py', exact: true })).toBeVisible();
     await expect(trail).toContainText('scripts');
     await trail.getByRole('link', { name: 'scripts', exact: true }).click();
@@ -246,7 +246,7 @@ test('text artifacts render inline like workspace files, and oversize text offer
         slug,
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
-    await openSection(page, 'Artifacts');
+    await openSection(page, 'Files');
     const today = page.getByRole('grid', { name: 'Today' });
     const preview = page.getByRole('region', { name: 'File preview' });
 
@@ -275,6 +275,6 @@ test('an unavailable fixed revision reports an error within the persistent Serve
     await expect(page.getByRole('row', { name: 'Inbox', exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('alert')).toContainText('Artifact or revision was not found.');
-    await openSection(page, 'Artifacts');
-    await expect(page.getByRole('heading', { name: 'No artifacts yet' })).toBeVisible();
+    await openSection(page, 'Files');
+    await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
 });

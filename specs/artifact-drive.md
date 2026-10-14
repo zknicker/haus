@@ -1,5 +1,5 @@
 ---
-summary: Normative contract for shared-artifact drive paths, folders, compare-and-set writes, and moves.
+summary: Normative contract for Files (the shared-artifact drive) paths, folders, compare-and-set writes, and moves.
 read_when:
   - changing shared artifact paths, folders, listing, publish, or move behavior
   - changing how the CLI or App reads or writes shared artifacts in bulk
@@ -7,6 +7,9 @@ read_when:
 ---
 
 # Artifact drive
+
+The product noun is **Files** (the App's Files section, `haus files` in the Agent CLI, the `files`
+Manual topic); wire names keep `artifact`. "Drive" in this spec is internal shorthand only.
 
 Shared artifacts stay Server-hosted with explicit reads and writes. There is no sync engine, no
 local mirror, and no background process: clients list, pull, and push on demand. The drive adds

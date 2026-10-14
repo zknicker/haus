@@ -16,19 +16,19 @@ import { artifactRoute, resolveArtifactId } from './artifact-target.ts';
 import { uploadArtifact } from './artifact-upload.ts';
 
 const revisionFlag = { name: '--revision-id', valueName: '<id>', description: 'A fixed revision' };
-const targetPositional = '<id|link|drive-path>';
+const targetPositional = '<id|link|path>';
 
 export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'list',
-        summary: 'Browse the shared drive: a folder’s subfolders and files',
-        usage: 'haus artifact list [<folder>] [--recursive] [--query <text>] [--mine] [--offset <n>]',
+        summary: 'Browse Files: a folder’s subfolders and files',
+        usage: 'haus files list [<folder>] [--recursive] [--query <text>] [--mine] [--offset <n>]',
         positionals: ['[<folder>]'],
         allowExtraPositionals: true,
         examples: [
-            'haus artifact list',
-            'haus artifact list starter-kit',
-            'haus artifact list --recursive --query roadmap',
+            'haus files list',
+            'haus files list starter-kit',
+            'haus files list --recursive --query roadmap',
         ],
         flags: [
             { name: '--recursive', description: 'Every file under the folder, without subfolders' },
@@ -37,7 +37,7 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             { name: '--offset', valueName: '<n>', description: 'File page offset (next_offset)' },
         ],
         notes: [
-            '50 files per page. Without a folder, lists the drive root.',
+            '50 files per page. Without a folder, lists the top of Files.',
             'Output opens with a summary of totals; folders and files each come newest first.',
         ],
         run: (args) => runArtifactList(args),
@@ -45,40 +45,40 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'pull',
         summary: 'Copy a shared file or folder into your workspace to work on',
-        usage: 'haus artifact pull <drive-path> [<local-path>]',
-        positionals: ['<drive-path>', '[<local-path>]'],
+        usage: 'haus files pull <path> [<local-path>]',
+        positionals: ['<path>', '[<local-path>]'],
         allowExtraPositionals: true,
         examples: [
-            'haus artifact pull starter-kit',
-            'haus artifact pull starter-kit/scripts/check.py ./starter-kit/scripts/check.py',
+            'haus files pull starter-kit',
+            'haus files pull starter-kit/scripts/check.py ./starter-kit/scripts/check.py',
         ],
         flags: [],
         notes: [
             'A folder lands in ./<folder-name> (or <local-path>) with its subfolders; a file lands in the working directory (or <local-path>).',
             'Records what you pulled in .haus-artifacts.json so push can check your changes against it. Do not edit that file.',
-            'Pulling again updates unchanged files. A file you edited keeps your edits; the drive version lands beside it as <file>.haus-theirs to merge.',
+            'Pulling again updates unchanged files. A file you edited keeps your edits; the version in Files lands beside it as <file>.haus-theirs to merge.',
         ],
         run: (args) => runArtifactPull(arity(args, 1, 2), createAgentApiClient()),
     },
     {
         name: 'push',
         summary: 'Share local files: create new ones and publish your changes as revisions',
-        usage: 'haus artifact push <local-path> [<drive-path>] [--replace] [--title <title>] [--dry-run]',
-        positionals: ['<local-path>', '[<drive-path>]'],
+        usage: 'haus files push <local-path> [<path>] [--replace] [--title <title>] [--dry-run]',
+        positionals: ['<local-path>', '[<path>]'],
         allowExtraPositionals: true,
         examples: [
-            'haus artifact push ./starter-kit',
-            'haus artifact push ./report.pdf reports/q4.pdf --title "Q4 report"',
-            'haus artifact push ./starter-kit --dry-run',
+            'haus files push ./starter-kit',
+            'haus files push ./report.pdf reports/q4.pdf --title "Q4 report"',
+            'haus files push ./starter-kit --dry-run',
         ],
         flags: [
-            { name: '--replace', description: 'Overwrite the drive version whatever it is now' },
+            { name: '--replace', description: 'Overwrite the version in Files whatever it is now' },
             { name: '--title', valueName: '<title>', description: 'Title for a single-file push' },
             { name: '--dry-run', description: 'Show what would be created or updated' },
         ],
         notes: [
             'Unchanged files are skipped. A pulled file publishes a revision only if nobody changed it since your pull; otherwise it is listed under conflicts with the pull command that fetches the current version.',
-            'A new file goes to <drive-path>, or keeps the folder it was pulled from, or lands under the pushed folder name.',
+            'A new file goes to <path> in Files, or keeps the folder it was pulled from, or lands under the pushed folder name.',
             'Skips symlinks, .git, node_modules, __pycache__, .DS_Store, .haus-theirs files, and .haus-artifacts.json. Rerunning a push is safe.',
             'Share the printed stable_url in your message; do not also attach the file.',
         ],
@@ -87,11 +87,11 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'mv',
         summary: 'Move or rename a shared file or folder',
-        usage: 'haus artifact mv <from> <to> [--base-revision-id <id>]',
+        usage: 'haus files mv <from> <to> [--base-revision-id <id>]',
         positionals: ['<from>', '<to>'],
         examples: [
-            'haus artifact mv drafts/plan.md plans/plan.md',
-            'haus artifact mv drafts archive/drafts',
+            'haus files mv drafts/plan.md plans/plan.md',
+            'haus files mv drafts archive/drafts',
         ],
         flags: [
             {
@@ -122,11 +122,11 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'view',
         summary: 'Read a shared file through a read-only cached path',
-        usage: `haus artifact view ${targetPositional} [--revision-id <id>] [--output <path>]`,
+        usage: `haus files view ${targetPositional} [--revision-id <id>] [--output <path>]`,
         positionals: [targetPositional],
         examples: [
-            'haus artifact view https://haus.chat/s/demo/artifacts/art_123',
-            'haus artifact view reports/q4.pdf --output ./q4.pdf',
+            'haus files view https://haus.chat/s/demo/artifacts/art_123',
+            'haus files view reports/q4.pdf --output ./q4.pdf',
         ],
         flags: [
             revisionFlag,
@@ -155,9 +155,9 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'versions',
         summary: 'List a shared file’s retained revisions',
-        usage: `haus artifact versions ${targetPositional} [--offset <n>]`,
+        usage: `haus files versions ${targetPositional} [--offset <n>]`,
         positionals: [targetPositional],
-        examples: ['haus artifact versions reports/q4.pdf'],
+        examples: ['haus files versions reports/q4.pdf'],
         flags: [{ name: '--offset', valueName: '<n>', description: 'Pagination offset' }],
         run: async (args) => {
             const client = createAgentApiClient();
@@ -172,11 +172,11 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'delete',
         summary: 'Delete a shared file or one historical revision',
-        usage: `haus artifact delete ${targetPositional} [--revision-id <id>]`,
+        usage: `haus files delete ${targetPositional} [--revision-id <id>]`,
         positionals: [targetPositional],
         examples: [
-            'haus artifact delete drafts/old.md',
-            'haus artifact delete art_123 --revision-id rev_456',
+            'haus files delete drafts/old.md',
+            'haus files delete art_123 --revision-id rev_456',
         ],
         flags: [revisionFlag],
         run: async (args) => {

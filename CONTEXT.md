@@ -569,6 +569,12 @@ _Avoid_: Prompt design section, page-design skill, per-medium design skills
 A durable Runtime-owned output that can be rendered, reopened, and referenced from chat.
 _Avoid_: Preview, attachment, tool result, generated file
 
+**Files**:
+The Server-wide tree of shared folders and files every member can read and edit, with retained
+revisions and a stable link per file: the App's Files section and `haus files` in the Agent CLI.
+Wire names keep `artifact` (`artifact_id`, `/artifacts/<id>`, `ARTIFACT_*`).
+_Avoid_: drive, shared drive, shared artifacts (in product prose)
+
 **Artifact Panel**:
 The app-owned side surface where users open and inspect Artifact Panel targets beside chat.
 _Avoid_: Workbench, browser shell, output pane, Artifact Space
