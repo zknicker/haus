@@ -276,8 +276,9 @@ Haus follows the fleet cloud agent contract; set up or repair it with the `zknic
 `cloud-agent-setup` skill. `.agents/cloud/install.sh` provisions Bun `1.4.2` and PostgreSQL 16,
 then runs `bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download), and
 `.agents/cloud/env.sh` holds session exports. `.agents/cloud/bootstrap.sh` is a fleet-owned copy:
-never edit it here. It loads the fleet (poteto-mode, fleet skills, global rules) and runs the
-Haus scripts on both platforms.
+never edit it here. It runs the Haus scripts on both platforms. The fleet (poteto-mode, fleet
+skills, global rules) loads separately: on Claude from the cloud environment's Setup script, on
+Cursor from `bootstrap.sh cursor`.
 
 - There are no per-repository cloud secrets. Each platform provides the fleet-wide read-only
  Development identity as `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`; every value resolves from
@@ -313,7 +314,9 @@ Haus scripts on both platforms.
 - Claude Code: `.claude/settings.json` runs `bun run setup:worktree` in local sessions and
  `.agents/cloud/bootstrap.sh claude` in cloud sessions. The dev stack is not auto-started.
 - One Claude cloud environment serves every fleet repo. It carries
- `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` as an environment variable and needs no Setup script.
+ `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` as an environment variable, and its Setup script is the
+ `zknicker/agents` `cloud/setup-script.sh`, which loads the fleet in every session, including
+ sessions with several repositories.
 - Network access must allow the default package managers plus `downloads.1password.com`,
  `knickerbockerventures.1password.com`, `npm.hugeicons.com`, `api.heroui.pro`, and
  `raw.githubusercontent.com`.
