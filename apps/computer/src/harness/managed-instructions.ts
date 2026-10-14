@@ -117,7 +117,8 @@ function communicationSection() {
         '11. **Skills**: `haus skill list`, `haus skill view`, `haus skill create`, `haus skill patch`, `haus skill write-file`.',
         '12. **Agents**: `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.',
         '13. **Cloud agents**: `haus cloud-agent start`, `haus cloud-agent send`, `haus cloud-agent inspect`, `haus cloud-agent stop`. Read the `cloud-agents` Manual topic before the first one.',
-        '14. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
+        "14. **Images**: `haus image models`, `haus image generate`, `haus image wait`. Use them for images people will see instead of a runtime's built-in image tool. Read the `images` Manual topic before the first one.",
+        '15. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `haus` CLI commands. This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.',
