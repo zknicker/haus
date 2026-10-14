@@ -127,13 +127,12 @@ lifecycles resolve no key. Setup is in [iPhone Push](ios-push.md).
 
 Humans and supervised local agents authorize through the 1Password desktop app.
 Unattended consumers each hold their own read-only identity, and the schema
-names five bootstrap slots for them:
+names four bootstrap slots for them:
 
 | Slot | Filled by | Reads |
 | --- | --- | --- |
 | `DEPLOY_AGENT_PRODUCTION_OP_TOKEN` | the `GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN` repository secret, on the mini's self-hosted runner | `Production` + `Development` |
-| `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | a Cursor account-level Runtime Secret, fleet-wide | `Development` |
-| `CLAUDE_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | an environment variable on the Claude Code cloud environment | `Development` |
+| `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | a Cursor account-level Runtime Secret, fleet-wide; Claude cloud environments reuse it as an environment variable | `Development` |
 | `CI_OP_TOKEN` | the same GitHub repository secret, mapped only by Quality | `Development` |
 | `RELEASE_AGENT_TOOLING_OP_TOKEN` | the `GH_RELEASE_AGENT_TOOLING_OP_TOKEN` repository secret, mapped only by Release target jobs | `Tooling` |
 

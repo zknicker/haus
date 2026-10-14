@@ -307,17 +307,18 @@ artifact download). `start.sh` seeds fleet agents on every boot. The full stack
 
 ## Claude Code cloud specific instructions
 
-Claude Code cloud sessions use the committed `.claude/settings.json` SessionStart hook, which runs
-`bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download). The default cloud
-image already ships Bun and PostgreSQL 16; the dev stack is not auto-started.
+Claude Code cloud sessions follow the fleet's BidBeacon pilot (`zknicker/agents`
+`docs/cloud-environments.md`). `.claude/settings.json` runs `.claude/session-start.sh`, which in
+cloud sessions seeds the `zknicker/agents` fleet (poteto-mode, fleet skills, global rules) and then
+runs `.cursor/install.sh`. Local sessions only run `bun run setup:worktree`.
 
-- The Claude cloud environment holds one secret: `CLAUDE_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`, a
- read-only 1Password service account token for the `Development` vault. It fills the same
- `@initOp(id=development)` slot as Cursor's token, so install credentials, Clerk, and every other
- development value resolve through `.env.schema` exactly as they do for Cursor.
-- Set `HAUS_POSTGRES_BIN=/usr/lib/postgresql/16/bin` on the environment so PostgreSQL-backed lanes
- and the dev stack find the binaries.
-- Network access must allow `*.1password.com` (service account sign-in), `npm.hugeicons.com`
- (licensed icon registry), and `api.heroui.pro` (HeroUI Pro artifacts), alongside package
- managers. Without them `setup:worktree` warns that tokens did not resolve and the install fails.
-- Fleet skills from `zknicker/agents` are not seeded in Claude cloud sessions.
+- The cloud environment carries the same single bootstrap Cursor uses,
+ `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`, as an environment variable. Install credentials and
+ app values resolve through `.env.schema`; the fleet GitHub read key resolves through
+ `.claude/cloud-bootstrap/.env.schema`.
+- The environment's Setup script is the fleet's `claude/cloud/setup.sh` (1Password CLI and the
+ `google-chrome` shim). The hook exports `HAUS_POSTGRES_BIN` for the session.
+- Network access must allow the default package managers plus `downloads.1password.com`,
+ `knickerbockerventures.1password.com`, `npm.hugeicons.com`, `api.heroui.pro`, and
+ `raw.githubusercontent.com`.
+- A failed fleet seed logs a skip and continues; the install still runs.

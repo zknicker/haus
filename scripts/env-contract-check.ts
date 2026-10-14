@@ -77,7 +77,6 @@ const externallyConsumedNames = new Map([
     ['AWS_SECRET_ACCESS_KEY', 'the aws CLI in scripts/release/publish-desktop.mjs'],
     ['CLOUDFLARE_API_TOKEN', 'Wrangler in scripts/deploy-release-host.mjs'],
     ['CI_OP_TOKEN', 'varlock @initOp(id=development)'],
-    ['CLAUDE_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['DEPLOY_AGENT_PRODUCTION_OP_TOKEN', 'varlock @initOp(id=production)'],
     ['RELEASE_AGENT_TOOLING_OP_TOKEN', 'varlock @initOp(id=tooling)'],
@@ -240,8 +239,9 @@ for (const match of runServer.matchAll(/^export ([A-Z][A-Z0-9_]*)=/gmu)) {
     }
 }
 
-// 7. Workflows hold only the deploy/CI and release Tooling bootstraps, each
-//    mapped to its named consumer; Cursor's token never appears in Actions.
+// 7. Workflows may hold only the deploy/CI bootstrap and the dedicated release
+//    Tooling bootstrap. Each maps to its named consumer role; Cursor's
+//    account-level token never appears in GitHub Actions.
 const allowedWorkflowSecrets = new Map([
     [deployWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
     [releaseHostWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
