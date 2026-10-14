@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 import type { ProcessListReader, ProcessRecord } from './types.ts';
@@ -12,8 +13,21 @@ export class SystemProcessList implements ProcessListReader {
             ['-axo', 'pid=,ppid=,etime=,%cpu=,rss=,command='],
             { maxBuffer: 16 * 1024 * 1024, timeout: 10_000 }
         );
-        return parseProcessList(stdout);
+        const records = parseProcessList(stdout);
+        return process.platform === 'linux'
+            ? await Promise.all(records.map(withLinuxExecutablePath))
+            : records;
     }
+}
+
+/**
+ * Linux argv[0] is often a symlink or wrapper name (`exec -a "$0"`), so the
+ * kernel-resolved executable also identifies the application.
+ */
+export function isApplicationProcess(record: ProcessRecord, executablePath: string): boolean {
+    return (
+        record.executablePath === executablePath || record.command.startsWith(`${executablePath} `)
+    );
 }
 
 export function parseProcessList(output: string): ProcessRecord[] {
@@ -44,6 +58,17 @@ function parseProcessLine(line: string): ProcessRecord | null {
         pid: Number(pid),
         rssBytes: Number(rssKilobytes) * 1024,
     };
+}
+
+async function withLinuxExecutablePath(record: ProcessRecord): Promise<ProcessRecord> {
+    if (!record.command.includes('--remote-debugging-port')) {
+        return record;
+    }
+    try {
+        return { ...record, executablePath: await fs.readlink(`/proc/${record.pid}/exe`) };
+    } catch {
+        return record;
+    }
 }
 
 // ps etime formats: MM:SS, HH:MM:SS, or D-HH:MM:SS.

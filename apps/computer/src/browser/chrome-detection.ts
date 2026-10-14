@@ -4,13 +4,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import { detectLinuxChromeApplications } from './linux-chrome-detection.ts';
 import type { ChromeApplication } from './types.ts';
 
 const execFileAsync = promisify(execFile);
 
 const chromeExecutableRelativePath = 'Contents/MacOS/Google Chrome';
 
-// Version one supports Google Chrome Stable at fixed macOS bundle locations.
+// macOS supports Google Chrome Stable at fixed bundle locations.
 function chromeBundleCandidates(): string[] {
     return [
         '/Applications/Google Chrome.app',
@@ -19,6 +20,9 @@ function chromeBundleCandidates(): string[] {
 }
 
 export async function detectChromeApplications(): Promise<ChromeApplication[]> {
+    if (process.platform === 'linux') {
+        return await detectLinuxChromeApplications();
+    }
     if (process.platform !== 'darwin') {
         return [];
     }
