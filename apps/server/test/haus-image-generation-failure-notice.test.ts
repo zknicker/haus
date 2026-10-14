@@ -103,6 +103,30 @@ test('a successful generation never enqueues a notice', async () => {
     expect(await noticeRows(id)).toEqual([]);
 });
 
+test('a send linking an already-failed generation reports it in the receipt', async () => {
+    fixture.behavior.mode = 'fail';
+    const runner = await fixture.mintRunner('run_img_notice_fast_fail');
+    const created = await fixture.create(runner, { nonce: 'notice-fast-fail' });
+    const id = created.body.generation.id as string;
+    await fixture.settled(runner, id);
+    fixture.behavior.mode = 'ok';
+
+    const sent = await fixture.agentCall(runner, 'POST', '/api/agent/messages/send', {
+        content: formatImageGenerationLink(id),
+        nonce: 'notice-fast-fail-link',
+        target: '#art',
+    });
+
+    expect(sent.status).toBe(200);
+    expect(sent.body.failedImageGenerations).toEqual([
+        {
+            id,
+            modelDisplayName: 'GPT Image 2.5 Sunburst',
+            reason: 'The image provider rate limit was reached.',
+        },
+    ]);
+});
+
 test('the notice text names the model, link, reason, and one Next line', () => {
     expect(
         imageGenerationFailureNoticeText({

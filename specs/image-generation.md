@@ -175,6 +175,11 @@ generation never enqueues anything and never wakes the Agent.
   would mean a new lane across schema, target rendering, and turn triggers. The Agent that never
   posted the link is either running `wait` (which prints the failure) or nobody saw a card. A
   failure that lands in the instant before the link posts is also silent; the card still shows it.
+- **Send-time tell.** A fast failure can beat the link, so the `POST /api/agent/messages/send`
+  `sent` receipt carries optional `failedImageGenerations` (`id`, `modelDisplayName`, `reason`) for
+  every generation the sent Message links that is already `failed`. `haus message send` prints one
+  line each after the normal receipt: `Image generation <id> (<model>) already failed: <reason>.
+  Tell the person; retry with haus image generate if useful.`
 - Text (event input, not system prompt):
 
 ```
@@ -310,6 +315,9 @@ scratch work no one else needs.
 - **Model required.** No provider-only or tier aliases.
 - **Edits through references only.** Masks and inpainting are out.
 - **Failed generations are kept** like ready ones; a provider-billed failure records its cost.
+- **A rejected key uses the fixed auth reason**, never provider text: HTTP 401/403 on either
+  provider, and Gemini's HTTP 400 `INVALID_ARGUMENT` whose `error.details[].reason` is
+  `API_KEY_INVALID`.
 - **No concurrency limit.** Provider rate limits fail the generation with the provider's reason.
 
 ## Open questions

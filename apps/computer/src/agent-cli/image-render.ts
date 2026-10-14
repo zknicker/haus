@@ -59,6 +59,16 @@ export function formatCost(cost: { basis: 'estimate' | 'usage'; usd: number }): 
     return `${formatUsd(cost.usd)} (${cost.basis})`;
 }
 
+/** The lines `haus message send` prints for linked generations that had already failed. */
+export function renderFailedImageGenerations(
+    images: ReadonlyArray<{ id: string; modelDisplayName: string; reason: string }>
+): string[] {
+    return images.map(
+        (image) =>
+            `Image generation ${image.id} (${image.modelDisplayName}) already failed: ${image.reason.replace(/\.$/u, '')}. Tell the person; retry with haus image generate if useful.`
+    );
+}
+
 /** `haus image models`: one block per curated model. */
 export function renderImageModels(models: readonly ImageGenerationModelStatus[]): string {
     if (models.length === 0) {

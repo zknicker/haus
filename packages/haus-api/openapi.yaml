@@ -1988,6 +1988,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AgentRecentUnread'
+        failedImageGenerations:
+          type: array
+          description: Image generations the sent Message links that had already failed when it was sent. Absent on an older Server.
+          items:
+            $ref: '#/components/schemas/AgentFailedImageGeneration'
+    AgentFailedImageGeneration:
+      type: object
+      additionalProperties: false
+      required: [id, modelDisplayName, reason]
+      properties:
+        id: { type: string, minLength: 1 }
+        modelDisplayName: { type: string, minLength: 1 }
+        reason: { type: string, minLength: 1 }
     AgentRecentUnread:
       type: object
       additionalProperties: false

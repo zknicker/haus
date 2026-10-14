@@ -1371,6 +1371,13 @@ export interface components {
             state: "sent";
             message: components["schemas"]["AgentMessage"];
             recentUnread: components["schemas"]["AgentRecentUnread"][];
+            /** @description Image generations the sent Message links that had already failed when it was sent. Absent on an older Server. */
+            failedImageGenerations?: components["schemas"]["AgentFailedImageGeneration"][];
+        };
+        AgentFailedImageGeneration: {
+            id: string;
+            modelDisplayName: string;
+            reason: string;
         };
         AgentRecentUnread: {
             target: string;

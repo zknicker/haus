@@ -125,6 +125,16 @@ export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discr
     'state',
     [
         z.object({
+            /** Absent on an older Server. */
+            failedImageGenerations: z
+                .array(
+                    z.object({
+                        id: z.string().min(1),
+                        modelDisplayName: z.string().min(1),
+                        reason: z.string().min(1),
+                    })
+                )
+                .optional(),
             message: agentMessageSchema,
             recentUnread: z.array(
                 z.object({ message: agentMessageSchema, target: z.string().min(1) })

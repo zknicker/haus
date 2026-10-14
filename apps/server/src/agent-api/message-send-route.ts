@@ -15,6 +15,7 @@ import {
     AgentMessageContentTooLongError,
     AgentSendConflictError,
 } from '../chats/send-agent-message-errors.ts';
+import { readFailedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
@@ -137,7 +138,17 @@ export function registerAgentMessageSendRoute(
                 publishRealtime(event);
             }
             await options.postCommitWork.wakeAgents(options.agentDelivery, result.wakes);
-            return { message: result.message, recentUnread: [], state: 'sent' as const };
+            const failedImageGenerations = await readFailedImageGenerations(
+                options.db,
+                runner.serverId,
+                result.message.id
+            );
+            return {
+                ...(failedImageGenerations.length > 0 ? { failedImageGenerations } : {}),
+                message: result.message,
+                recentUnread: [],
+                state: 'sent' as const,
+            };
         } catch (cause) {
             return sendAgentMessageError(reply, cause);
         }

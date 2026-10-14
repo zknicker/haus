@@ -239,3 +239,30 @@ test('a freshness hold explains recovery without automatically sending a human a
     expect(outputs[0]).toContain('Stay silent only if no reply is needed');
     expect(outputs[0]).not.toContain('Message sent to');
 });
+
+test('send prints one line per already-failed image generation after the receipt', async () => {
+    const outputs: string[] = [];
+    const client: AgentApiRequester = {
+        request: async <T>(_route: string, schema: z.ZodType<T>) =>
+            schema.parse({
+                failedImageGenerations: [
+                    {
+                        id: 'img_failedone',
+                        modelDisplayName: 'Nano Banana 2.1',
+                        reason: 'The Gemini key was rejected.',
+                    },
+                ],
+                message: message('msg_sent', 7),
+                recentUnread: [],
+                state: 'sent',
+            }) as T,
+    };
+    await runSend(sendArgs({ '--target': '#general' }), {
+        ...depsFor(client, outputs),
+        readStdin: async () => '[Generated image](image-generation://img_failedone)',
+    });
+    expect(outputs[0]).toContain('Message sent to #general. Message ID: msg_sent');
+    expect(outputs[0]).toContain(
+        'Image generation img_failedone (Nano Banana 2.1) already failed: The Gemini key was rejected. Tell the person; retry with haus image generate if useful.'
+    );
+});

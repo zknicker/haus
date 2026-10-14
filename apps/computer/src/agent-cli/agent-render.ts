@@ -20,17 +20,17 @@ import {
     formatUtcTime,
     shortMessageId,
 } from './agent-format.ts';
+import { renderFailedImageGenerations } from './image-render.ts';
 
 type AgentSendResponse = HausAgentSendResponse;
+type SentResponse = Extract<AgentSendResponse, { state: 'sent' }>;
 type AgentHistoryResponse = z.infer<typeof agentHistoryResponseSchema>;
 type AgentServerInfo = z.infer<typeof agentServerInfoSchema>;
 type AgentChannel = z.infer<typeof agentChannelSchema>;
 type AgentChannelMembers = z.infer<typeof agentChannelMembersSchema>;
 
 export function renderSendResponse(target: string, response: AgentSendResponse): string {
-    return response.state === 'sent'
-        ? renderSent(target, response.message, response.recentUnread)
-        : renderHeld(target, response);
+    return response.state === 'sent' ? renderSent(target, response) : renderHeld(target, response);
 }
 
 /** `anchored`: the read used --before, --after, or --around, so the cursor hint is noise. */
@@ -154,8 +154,7 @@ export function renderChannelMembers(response: AgentChannelMembers): string {
 
 function renderSent(
     target: string,
-    message: AgentCliMessage,
-    unread: Array<{ message: AgentCliMessage; target: string }>
+    { failedImageGenerations, message, recentUnread }: SentResponse
 ): string {
     const lines = [`Message sent to ${target}. Message ID: ${message.id}`];
     if (!isThreadTarget(target)) {
@@ -163,11 +162,12 @@ function renderSent(
             `(to reply in this message's thread, use target "${target}:${shortMessageId(message.id)}")`
         );
     }
-    if (unread.length > 0) {
+    lines.push(...renderFailedImageGenerations(failedImageGenerations ?? []));
+    if (recentUnread.length > 0) {
         lines.push(
             '',
             '--- New messages you may have missed ---',
-            ...unread.map((row) => formatDeliveryEnvelope(row.target, row.message))
+            ...recentUnread.map((row) => formatDeliveryEnvelope(row.target, row.message))
         );
     }
     return `${lines.join('\n')}\n`;

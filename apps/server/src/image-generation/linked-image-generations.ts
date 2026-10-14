@@ -5,6 +5,30 @@ import { imageGenerationLinksTable, imageGenerationsTable } from '../postgres/sc
 import { toImageGeneration } from './image-generation-shape.ts';
 
 /**
+ * The generations a just-sent Message links that already failed, in the Agent
+ * API's wire shape. A fast failure beats the link, so the Chat-scoped failure
+ * notice never fires; the send receipt tells the Agent instead.
+ */
+export async function readFailedImageGenerations(
+    db: Pick<HausDatabase, 'select'>,
+    serverId: string,
+    messageId: string
+): Promise<Array<{ id: string; modelDisplayName: string; reason: string }>> {
+    const linked = (await readLinkedImageGenerations(db, serverId, [messageId])).get(messageId);
+    return (linked ?? []).flatMap((generation) =>
+        generation.result.state === 'failed'
+            ? [
+                  {
+                      id: generation.id,
+                      modelDisplayName: generation.modelDisplayName,
+                      reason: generation.result.reason,
+                  },
+              ]
+            : []
+    );
+}
+
+/**
  * The `ChatMessage.imageGenerations` annotation for one page of Messages: each
  * Message's linked generations in link order (ADR 0044 pattern). Whoever can
  * read a Message can see the generations it links, so the caller's Message
