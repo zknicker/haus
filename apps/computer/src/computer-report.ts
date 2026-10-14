@@ -1,4 +1,5 @@
 import type { AgentEffectiveState } from '@haus/api';
+import { readCloudAgentSettings } from './cloud-agents/settings.ts';
 import { type EffectiveAgentState, readEffectiveAgentStates } from './effective-state.ts';
 import {
     listAgentSkillImportReports,
@@ -39,6 +40,7 @@ export async function sendEffectiveComputerReport({
         agents: agents.map(toReportedAgentState),
         inventory: {
             ...(await detectFullInventory()),
+            defaultCloudAgentProvider: (await readCloudAgentSettings(dataRoot)).defaultProvider,
             runtimeIssues: await readRuntimeIssues(dataRoot),
             agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
             agentSkills: await listAgentSkillReports(dataRoot, serverId),

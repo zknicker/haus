@@ -2,14 +2,16 @@ import type {
     AddressedReason,
     AgentThreadContext,
     ChatMessageReply,
-    CloudAgentBranch,
+    CloudAgentInputAttention,
 } from '@haus/api';
+import type * as z from 'zod';
 
 export interface AgentInboxItem {
     /** This item names the Agent personally: a DM, an @mention, a Jev routing, or a sole Agent. */
     addressed?: boolean;
     addressedReason?: AddressedReason;
     chatId: string;
+    cloudAgentInput?: CloudAgentInputAttention;
     cloudAgentWork?: AgentCloudAgentWorkAttention;
     content: string;
     createdAt: string;
@@ -37,15 +39,6 @@ export interface AgentInboxItem {
 }
 
 /** A settled Cloud Agent Run's terminal attention for the delegating Agent. */
-export interface AgentCloudAgentWorkAttention {
-    branches: CloudAgentBranch[];
-    errorCode: string | null;
-    provider: 'cursor';
-    providerUrl: string | null;
-    repository: string;
-    runId: string;
-    status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
-    summary: string | null;
-    title: string;
-    workId: string;
-}
+export type AgentCloudAgentWorkAttention = z.infer<
+    typeof import('@haus/api').cloudAgentWorkAttentionSchema
+>;

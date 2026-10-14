@@ -1,10 +1,10 @@
-import type { CloudAgentCapabilityState, ComputerInventory } from '@haus/api';
+import type { CloudAgentCapabilityState, CloudAgentProvider, ComputerInventory } from '@haus/api';
 
 export interface CloudAgentCapabilityView {
     canConnect: boolean;
     canDisconnect: boolean;
     description: string;
-    status: 'connecting' | 'not-connected' | 'ready' | 'unavailable';
+    status: 'connecting' | 'not-connected' | 'ready' | 'setup-required' | 'unavailable';
     statusLabel: string;
 }
 
@@ -26,6 +26,9 @@ export function cloudAgentCapabilityView(input: {
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };
+    }
+    if (input.state.provider === 'claude') {
+        return claudeCapabilityView(input.state);
     }
     if (input.isConnecting || input.state.signIn?.status === 'waiting') {
         return {
@@ -81,10 +84,11 @@ export function cloudAgentCapabilityView(input: {
  * Computer is offline and the read cannot run at all.
  */
 export function reportedCloudAgentCapability(
-    inventory: ComputerInventory | null
+    inventory: ComputerInventory | null,
+    provider: CloudAgentProvider = 'cursor'
 ): CloudAgentCapabilityState | null {
     const reported = inventory?.cloudAgentProviders?.find(
-        (candidate) => candidate.provider === 'cursor'
+        (candidate) => candidate.provider === provider
     );
     if (!reported) {
         return null;
@@ -107,4 +111,32 @@ function connectedDescription(state: CloudAgentCapabilityState): string {
     return `${account} ${assignment} Reconnect by ${new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
     }).format(new Date(state.expiresAt))}.`;
+}
+
+function claudeCapabilityView(state: CloudAgentCapabilityState): CloudAgentCapabilityView {
+    const actions = { canConnect: false, canDisconnect: false };
+    if (state.ready) {
+        return {
+            ...actions,
+            canDisconnect: true,
+            status: 'ready',
+            statusLabel: 'Ready',
+            description: `Connected${state.accountEmail ? ` as ${state.accountEmail}` : ''}. Work bills to your Claude plan.`,
+        };
+    }
+    if (state.reason === 'provider-unavailable') {
+        return {
+            ...actions,
+            status: 'unavailable',
+            statusLabel: 'Unavailable',
+            description: 'Install Claude Code on this Computer to use Claude Cloud.',
+        };
+    }
+    return {
+        ...actions,
+        status: state.reason === 'setup-required' ? 'setup-required' : 'not-connected',
+        statusLabel: state.reason === 'setup-required' ? 'Setup required' : 'Not connected',
+        description:
+            'Sign in with Claude Code on this Computer. Complete Claude Cloud setup and select an environment before launching.',
+    };
 }

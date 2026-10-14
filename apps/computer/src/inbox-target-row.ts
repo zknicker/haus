@@ -5,6 +5,7 @@
  * drifting (Raft prints both with one row formatter too).
  */
 export interface InboxTargetSummary {
+    cloudAgentInput?: boolean;
     /** A settled Cloud Agent Run waits here, so the target counts work items. */
     cloudAgentResult: boolean;
     firstShortId: string;
@@ -18,7 +19,7 @@ export interface InboxTargetSummary {
 }
 
 export function formatInboxTargetRow(row: InboxTargetSummary): string {
-    const noun = row.cloudAgentResult ? 'work item' : 'message';
+    const noun = row.cloudAgentResult || row.cloudAgentInput ? 'work item' : 'message';
     return [
         row.target,
         `  pending: ${row.pendingCount} ${plural(row.pendingCount, noun)}`,
@@ -34,6 +35,7 @@ function formatInboxTags(row: InboxTargetSummary): string {
         targetTag(row.target),
         row.taskNumber === null ? null : `task #${row.taskNumber}`,
         row.cloudAgentResult ? 'cloud agent result' : null,
+        row.cloudAgentInput ? 'cloud agent pending input' : null,
         row.mentioned ? 'you were mentioned' : null,
     ].filter(Boolean);
     return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';

@@ -142,6 +142,7 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
     const stateTitles: Record<CloudAgentStatus, string> = {
         queued: 'Compact attachment previews',
         running: 'Tighten sidebar spacing',
+        pending_input: 'Confirm the database migration plan',
         completed: 'Rename Computer settings labels',
         failed: 'Migrate reminder schedules',
         cancelled: 'Draft release notes',

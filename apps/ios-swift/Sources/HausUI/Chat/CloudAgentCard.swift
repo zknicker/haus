@@ -81,7 +81,7 @@ struct CloudAgentCard: View {
 
     private func header(now: Date, titleLineLimit: Int?) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            CloudAgentMark()
+            CloudAgentMark(provider: agent.work.provider)
             VStack(alignment: .leading, spacing: 4) {
                 Text(agent.work.title).fontWeight(.semibold)
                     .lineLimit(titleLineLimit)

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { AgentCloudAgentSendInput, AgentCloudAgentSendReceipt } from '@haus/api';
-import { and, eq, lt, sql } from 'drizzle-orm';
+import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
@@ -13,6 +13,7 @@ import { hasCloudAgentWorkComputer } from './cloud-agent-work-computer.ts';
 import {
     CloudAgentComputerRemovedError,
     CloudAgentNotLaunchedError,
+    CloudAgentWorkConflictError,
     CloudAgentWorkNotFoundError,
 } from './errors.ts';
 import { listComputerCloudAgentWork } from './list-computer-cloud-agent-work.ts';
@@ -64,6 +65,7 @@ export async function sendCloudAgentWork(
         if (!row.work.providerAgentId) {
             throw new CloudAgentNotLaunchedError();
         }
+        await requireClaudeCancellationSettled(tx, row.work);
         const runId = `car_${createHash('sha256')
             .update(JSON.stringify([runner.serverId, input.workId, input.nonce]))
             .digest('base64url')
@@ -82,6 +84,7 @@ export async function sendCloudAgentWork(
         if (!existing) {
             const model = await resolveRunModel(tx, {
                 computerId: runner.computerId,
+                provider: row.work.provider,
                 serverId: runner.serverId,
             });
             await tx.insert(cloudAgentRunsTable).values({
@@ -152,4 +155,29 @@ export async function sendCloudAgentWork(
             },
         };
     });
+}
+
+async function requireClaudeCancellationSettled(
+    db: HausDatabase,
+    work: typeof cloudAgentWorkTable.$inferSelect
+) {
+    if (work.provider !== 'claude' || !work.cancelRequestedAt) {
+        return;
+    }
+    const [active] = await db
+        .select({ id: cloudAgentRunsTable.id })
+        .from(cloudAgentRunsTable)
+        .where(
+            and(
+                eq(cloudAgentRunsTable.serverId, work.serverId),
+                eq(cloudAgentRunsTable.workId, work.id),
+                inArray(cloudAgentRunsTable.status, ['queued', 'running', 'pending_input'])
+            )
+        )
+        .limit(1);
+    if (active) {
+        throw new CloudAgentWorkConflictError(
+            'Claude Cloud is stopping. Wait for Cancelled before sending another prompt.'
+        );
+    }
 }

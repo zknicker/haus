@@ -4,15 +4,21 @@ import {
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
 } from '@haus/api';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import {
+    cloudAgentInputTable,
+    cloudAgentRunsTable,
+    cloudAgentWorkTable,
+} from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { hasCloudAgentWorkComputer } from './cloud-agent-work-computer.ts';
 import {
+    CloudAgentCancelDeniedError,
+    CloudAgentCancelUnsupportedError,
     CloudAgentComputerRemovedError,
     CloudAgentWorkNotFoundError,
     CloudAgentWorkSettledError,
@@ -50,6 +56,7 @@ export async function requestCloudAgentCancel(
                 provider: cloudAgentWorkTable.provider,
                 providerAgentId: cloudAgentWorkTable.providerAgentId,
                 status: cloudAgentWorkTable.status,
+                agentId: cloudAgentWorkTable.agentId,
             })
             .from(cloudAgentWorkTable)
             .where(
@@ -62,6 +69,7 @@ export async function requestCloudAgentCancel(
         if (!row) {
             throw new CloudAgentWorkNotFoundError();
         }
+        requireCancelAuthority(row, input.requestedBy);
         if (isTerminalCloudAgentStatus(row.status)) {
             throw new CloudAgentWorkSettledError();
         }
@@ -104,6 +112,7 @@ export async function requestCloudAgentCancel(
                     )
                 );
         }
+        await invalidateClaudeInput(tx, input, row);
 
         const work = await findCloudAgentWork(tx, input.serverId, input.workId);
         if (!work) {
@@ -126,4 +135,62 @@ export async function requestCloudAgentCancel(
             work,
         };
     });
+}
+
+function requireCancelAuthority(
+    work: Pick<typeof cloudAgentWorkTable.$inferSelect, 'provider' | 'agentId'>,
+    requestedBy: CloudAgentCancelRequestedBy
+) {
+    if (work.provider === 'claude' && requestedBy.kind !== 'agent') {
+        throw new CloudAgentCancelUnsupportedError();
+    }
+    if (requestedBy.kind === 'agent' && requestedBy.id !== work.agentId) {
+        throw new CloudAgentCancelDeniedError();
+    }
+}
+async function invalidateClaudeInput(
+    db: HausDatabase,
+    input: { serverId: string; workId: string },
+    work: Pick<typeof cloudAgentWorkTable.$inferSelect, 'provider' | 'status'>
+) {
+    if (work.provider === 'claude') {
+        const runs = await db
+            .select({ id: cloudAgentRunsTable.id })
+            .from(cloudAgentRunsTable)
+            .where(
+                and(
+                    eq(cloudAgentRunsTable.serverId, input.serverId),
+                    eq(cloudAgentRunsTable.workId, input.workId)
+                )
+            );
+        await db
+            .update(cloudAgentInputTable)
+            .set({ state: 'cancelled' })
+            .where(
+                and(
+                    eq(cloudAgentInputTable.serverId, input.serverId),
+                    inArray(
+                        cloudAgentInputTable.runId,
+                        runs.map((entry) => entry.id)
+                    ),
+                    inArray(cloudAgentInputTable.state, ['pending', 'answered'])
+                )
+            );
+        await db
+            .update(cloudAgentRunsTable)
+            .set({ status: 'running' })
+            .where(
+                and(
+                    eq(cloudAgentRunsTable.serverId, input.serverId),
+                    eq(cloudAgentRunsTable.workId, input.workId),
+                    eq(cloudAgentRunsTable.status, 'pending_input')
+                )
+            );
+        if (work.status === 'pending_input') {
+            await db
+                .update(cloudAgentWorkTable)
+                .set({ status: 'running' })
+                .where(eq(cloudAgentWorkTable.id, input.workId));
+        }
+    }
 }

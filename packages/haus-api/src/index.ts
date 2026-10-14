@@ -92,6 +92,7 @@ export * from './chat-last-message.ts';
 export * from './chat-message-read.ts';
 export * from './chat-read.ts';
 export * from './cloud-agent.ts';
+export * from './cloud-agent-input.ts';
 export * from './cloud-agent-job.ts';
 export * from './cloud-agent-model.ts';
 export * from './cloud-agent-model-choice.ts';

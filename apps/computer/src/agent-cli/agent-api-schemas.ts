@@ -3,6 +3,8 @@ import {
     agentCloudAgentHeldSchema,
     agentCloudAgentReceiptSchema,
     chatMessageReplySchema,
+    cloudAgentProviderSchema,
+    cloudAgentStatusSchema,
     type HausAgentMessage,
     type HausAgentSendResponse,
     humanTimezoneSchema,
@@ -59,15 +61,15 @@ const messageCloudAgentWorkSchema = z.object({
             ),
             error_code: z.string().nullable(),
             run_id: z.string(),
-            status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
+            status: cloudAgentStatusSchema,
             summary: z.string().nullable(),
         })
         .nullable(),
-    provider: z.literal('cursor'),
+    provider: cloudAgentProviderSchema,
     provider_url: z.string().nullable(),
     repository: z.string(),
     starting_ref: z.string().nullable(),
-    status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
+    status: cloudAgentStatusSchema,
     title: z.string(),
 });
 

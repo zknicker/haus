@@ -1,9 +1,10 @@
 import Foundation
 
 public enum CloudAgentStatus: String, Codable, Hashable, Sendable {
+    case pendingInput = "pending_input"
     case queued, running, completed, failed, cancelled, expired
 
-    public var isActive: Bool { self == .queued || self == .running }
+    public var isActive: Bool { self == .queued || self == .running || self == .pendingInput }
 }
 
 public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {

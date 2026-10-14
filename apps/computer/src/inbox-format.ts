@@ -103,7 +103,8 @@ export function composeInboxNotice(
             throw new Error('Inbox notice target cannot be empty.');
         }
         return formatInboxTargetRow({
-            cloudAgentResult: ordered.some(isAttention),
+            cloudAgentResult: ordered.some((item) => Boolean(item.cloudAgentWork)),
+            cloudAgentInput: ordered.some((item) => Boolean(item.cloudAgentInput)),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,
             latestShortId: shortInboxId(latest.id),
@@ -129,6 +130,10 @@ function plural(count: number, singular: string): string {
 }
 
 function formatEnvelope(item: AgentInboxItem): string {
+    if (item.cloudAgentInput) {
+        const input = item.cloudAgentInput;
+        return `[cloud agent input target=${item.target} work=${input.request.workId} request=${input.request.id}] ${input.title}\nOriginal questions: ${JSON.stringify(input.request.questions)}\nAnswer from the delegated task and known context. If human judgment or expanded authority is required, ask the human in the originating conversation, then answer the same request. Submit JSON mapping exact question text to answer on stdin to haus cloud-agent answer --request ${input.request.id}. Pending input clears only after native consumption.`;
+    }
     if (item.cloudAgentWork) {
         return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
     }
@@ -225,7 +230,7 @@ function taskAssignee(item: AgentInboxItem): string {
 
 /** A bodiless typed attention: work to act on, not a message to read. */
 function isAttention(item: AgentInboxItem): boolean {
-    return Boolean(item.cloudAgentWork);
+    return Boolean(item.cloudAgentWork || item.cloudAgentInput);
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

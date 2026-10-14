@@ -24,7 +24,7 @@ public enum InboxMark: Hashable, Sendable {
     /// Every Cloud row shares the provider's mark, so whether the run has
     /// started rides it as a status dot — yellow working, gray queued — the
     /// way presence rides an Agent's face.
-    case cloudAgent(isRunning: Bool)
+    case cloudAgent(provider: String, isRunning: Bool)
 }
 
 /// A week card's mark. Rows draw the same mark at `InboxMetrics.markSize`.

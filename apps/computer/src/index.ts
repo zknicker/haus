@@ -61,8 +61,9 @@ import {
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
+import { createAttachmentCloudAgents } from './cloud-agents/attachment.ts';
 import { startCloudAgentModelCatalogRefresh } from './cloud-agents/model-catalog.ts';
-import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
+import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { readComputerName } from './computer-name.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
 import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
@@ -404,10 +405,7 @@ async function main(args: string[]) {
             async (runtime) => {
                 const daemonWork = new AttachmentDaemonWork(
                     runtime,
-                    new CloudAgentWorkSupervisor(runtime, {
-                        dataRoot,
-                        serverId: attachment.serverId,
-                    })
+                    createAttachmentCloudAgents(runtime, { dataRoot, attachment })
                 );
                 return withAttachmentShutdown(daemonWork, runtime, attachment.serverId, () =>
                     runAttachmentDaemon(runtime, {
@@ -1140,6 +1138,7 @@ async function connect(
             }
             if (
                 handleCloudAgentFrame(frame, {
+                    dataRoot,
                     runtime,
                     cloudAgents: daemonWork.cloudAgents,
                     track: trackWriter,

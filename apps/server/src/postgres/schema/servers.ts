@@ -1,7 +1,4 @@
-import type { CloudAgentModelParams } from '@haus/api';
-import { sql } from 'drizzle-orm';
-import { check, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import { bunJsonb } from './bun-jsonb.ts';
+import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 /**
  * A Haus server: an opaque id every relationship points at, a globally
@@ -12,35 +9,15 @@ import { bunJsonb } from './bun-jsonb.ts';
  * disables every membership gate immediately while the asynchronous purge
  * cascades away the rows and local attachment bytes. It is never cleared —
  * deletion has no restore path.
- *
- * `cloudAgentModelId` is the human-chosen Cloud Agent model; `null` is Auto,
- * Cursor's per-run model router. `cloudAgentModelParams` holds the effort and
- * fast choices for that model; an absent key is the model's own default, and
- * Auto has none.
  */
 export const serversTable = pgTable(
     'servers',
     {
-        cloudAgentModelId: text('cloud_agent_model_id'),
-        cloudAgentModelParams: bunJsonb('cloud_agent_model_params')
-            .notNull()
-            .$type<CloudAgentModelParams>()
-            .default({}),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
         displayName: text('display_name').notNull(),
         id: text('id').primaryKey(),
         slug: text('slug').notNull(),
     },
-    (table) => [
-        uniqueIndex('servers_slug_key').on(table.slug),
-        check(
-            'servers_cloud_agent_model_id_length',
-            sql`${table.cloudAgentModelId} is null or char_length(${table.cloudAgentModelId}) between 1 and 200`
-        ),
-        check(
-            'servers_cloud_agent_model_params_shape',
-            sql`jsonb_typeof(${table.cloudAgentModelParams}) = 'object' and (${table.cloudAgentModelId} is not null or ${table.cloudAgentModelParams} = '{}'::jsonb)`
-        ),
-    ]
+    (table) => [uniqueIndex('servers_slug_key').on(table.slug)]
 );

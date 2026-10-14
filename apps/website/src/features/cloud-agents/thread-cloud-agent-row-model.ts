@@ -39,7 +39,10 @@ export function threadCloudAgentRows(
 function toRow(work: CloudAgentWork, now: number): ThreadCloudAgentRow {
     const branch = cloudAgentWorkBranch(work);
     const pullRequestNumber = branch ? cloudAgentBranchPullRequestNumber(branch) : null;
-    const quiet = work.job.state === 'failed' ? null : quietFor(work, now);
+    const quiet =
+        work.job.state === 'failed' || work.job.state === 'pending-input'
+            ? null
+            : quietFor(work, now);
     if (quiet !== null) {
         return {
             pullRequestNumber,
@@ -55,7 +58,7 @@ function toRow(work: CloudAgentWork, now: number): ThreadCloudAgentRow {
         pullRequestNumber,
         state: work.job.state,
         statusText: elapsed === null ? label : `${label} · ${elapsed}`,
-        tone: 'default',
+        tone: work.job.state === 'pending-input' ? 'warning' : 'default',
         work,
     };
 }

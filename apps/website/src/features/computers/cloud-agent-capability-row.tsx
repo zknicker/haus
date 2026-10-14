@@ -83,6 +83,7 @@ function statusColor(status: CloudAgentCapabilityView['status']) {
             return 'success' as const;
         case 'connecting':
             return 'accent' as const;
+        case 'setup-required':
         case 'not-connected':
             return 'warning' as const;
         case 'unavailable':

@@ -2,6 +2,7 @@ import {
     type CloudAgentModelCatalog,
     type CloudAgentModelParams,
     type CloudAgentModelSetting,
+    type CloudAgentProvider,
     type CloudAgentRunModel,
     type CloudAgentSettings,
     type ComputerInventory,
@@ -15,7 +16,7 @@ import {
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { computersTable, serversTable } from '../postgres/schema.ts';
+import { cloudAgentSettingsTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -49,10 +50,11 @@ export class CloudAgentModelParamUnofferedError extends Error {
 export async function readCloudAgentSettings(
     db: Reader,
     member: HausUser | null,
-    serverId: string
+    serverId: string,
+    provider: CloudAgentProvider = 'cursor'
 ): Promise<CloudAgentSettings> {
     await requireServerMembership(db, member, serverId);
-    return await settingsOf(db, serverId);
+    return await settingsOf(db, serverId, provider);
 }
 
 /**
@@ -64,8 +66,9 @@ export async function readCloudAgentSettings(
 export async function setCloudAgentModel(
     db: HausDatabase,
     member: HausUser | null,
-    input: { model: CloudAgentModelSetting; serverId: string }
+    input: { model: CloudAgentModelSetting; serverId: string; provider?: CloudAgentProvider }
 ): Promise<CloudAgentSettings> {
+    const provider = input.provider ?? 'cursor';
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -75,7 +78,7 @@ export async function setCloudAgentModel(
         if (input.model.kind === 'model') {
             const model = findCloudAgentModel(
                 input.model.id,
-                await readServerModelCatalog(tx, input.serverId)
+                await readServerModelCatalog(tx, input.serverId, provider)
             );
             if (!model) {
                 throw new CloudAgentModelUnlistedError(input.model.id);
@@ -85,18 +88,20 @@ export async function setCloudAgentModel(
                 throw new CloudAgentModelParamUnofferedError(model.id, unoffered);
             }
         }
+        const values = {
+            serverId: input.serverId,
+            provider,
+            modelId: input.model.kind === 'model' ? input.model.id : null,
+            modelParams: input.model.kind === 'model' ? input.model.params : {},
+        };
         await tx
-            .update(serversTable)
-            .set(
-                input.model.kind === 'model'
-                    ? {
-                          cloudAgentModelId: input.model.id,
-                          cloudAgentModelParams: input.model.params,
-                      }
-                    : { cloudAgentModelId: null, cloudAgentModelParams: {} }
-            )
-            .where(eq(serversTable.id, input.serverId));
-        return await settingsOf(tx, input.serverId);
+            .insert(cloudAgentSettingsTable)
+            .values(values)
+            .onConflictDoUpdate({
+                target: [cloudAgentSettingsTable.serverId, cloudAgentSettingsTable.provider],
+                set: { modelId: values.modelId, modelParams: values.modelParams },
+            });
+        return await settingsOf(tx, input.serverId, provider);
     });
 }
 
@@ -108,39 +113,54 @@ export async function setCloudAgentModel(
  */
 export async function resolveRunModel(
     db: Reader,
-    input: { computerId: string; serverId: string }
+    input: { computerId: string; serverId: string; provider?: CloudAgentProvider }
 ): Promise<CloudAgentRunModel> {
-    const [row] = await db
-        .select({
-            cloudAgentModelId: serversTable.cloudAgentModelId,
-            cloudAgentModelParams: serversTable.cloudAgentModelParams,
-            inventory: computersTable.reportedInventory,
-        })
-        .from(serversTable)
-        .leftJoin(
-            computersTable,
+    const provider = input.provider ?? 'cursor';
+    const [setting] = await db
+        .select()
+        .from(cloudAgentSettingsTable)
+        .where(
             and(
-                eq(computersTable.serverId, serversTable.id),
+                eq(cloudAgentSettingsTable.serverId, input.serverId),
+                eq(cloudAgentSettingsTable.provider, provider)
+            )
+        )
+        .limit(1);
+    const [computer] = await db
+        .select({ inventory: computersTable.reportedInventory })
+        .from(computersTable)
+        .where(
+            and(
+                eq(computersTable.serverId, input.serverId),
                 eq(computersTable.id, input.computerId)
             )
         )
-        .where(eq(serversTable.id, input.serverId))
         .limit(1);
-    return resolveCloudAgentRunModel(settingOf(row ?? null), catalogOf(row?.inventory ?? null));
+    return resolveCloudAgentRunModel(
+        settingOf(setting ?? null),
+        catalogOf(computer?.inventory ?? null, provider)
+    );
 }
 
-async function settingsOf(db: Reader, serverId: string): Promise<CloudAgentSettings> {
-    const [server] = await db
-        .select({
-            cloudAgentModelId: serversTable.cloudAgentModelId,
-            cloudAgentModelParams: serversTable.cloudAgentModelParams,
-        })
-        .from(serversTable)
-        .where(eq(serversTable.id, serverId))
+async function settingsOf(
+    db: Reader,
+    serverId: string,
+    provider: CloudAgentProvider
+): Promise<CloudAgentSettings> {
+    const [row] = await db
+        .select()
+        .from(cloudAgentSettingsTable)
+        .where(
+            and(
+                eq(cloudAgentSettingsTable.serverId, serverId),
+                eq(cloudAgentSettingsTable.provider, provider)
+            )
+        )
         .limit(1);
-    const model = settingOf(server ?? null);
-    const catalog = await readServerModelCatalog(db, serverId);
+    const model = settingOf(row ?? null);
+    const catalog = await readServerModelCatalog(db, serverId, provider);
     return {
+        provider,
         catalog,
         model,
         savedModelUnavailable:
@@ -151,7 +171,8 @@ async function settingsOf(db: Reader, serverId: string): Promise<CloudAgentSetti
 /** The freshest catalog any of this Server's Computers reported. */
 async function readServerModelCatalog(
     db: Reader,
-    serverId: string
+    serverId: string,
+    provider: CloudAgentProvider
 ): Promise<CloudAgentModelCatalog | null> {
     const rows = await db
         .select({ inventory: computersTable.reportedInventory })
@@ -159,7 +180,7 @@ async function readServerModelCatalog(
         .where(eq(computersTable.serverId, serverId));
     let freshest: CloudAgentModelCatalog | null = null;
     for (const row of rows) {
-        const catalog = catalogOf(row.inventory);
+        const catalog = catalogOf(row.inventory, provider);
         if (
             catalog &&
             (!freshest || Date.parse(catalog.refreshedAt) > Date.parse(freshest.refreshedAt))
@@ -171,24 +192,29 @@ async function readServerModelCatalog(
 }
 
 /** Stored inventories are not re-validated on write, so the catalog is parsed on read. */
-function catalogOf(inventory: ComputerInventory | null): CloudAgentModelCatalog | null {
+function catalogOf(
+    inventory: ComputerInventory | null,
+    selected: CloudAgentProvider
+): CloudAgentModelCatalog | null {
     const reported = inventory?.cloudAgentProviders?.find(
-        (provider) => provider.provider === 'cursor'
+        (provider) => provider.provider === selected
     )?.models;
     const parsed = cloudAgentModelCatalogSchema.safeParse(reported);
-    return parsed.success ? parsed.data : null;
+    return parsed.success
+        ? { ...parsed.data, autoAvailable: selected === 'cursor' && parsed.data.autoAvailable }
+        : null;
 }
 
 function settingOf(
-    row: { cloudAgentModelId: string | null; cloudAgentModelParams: CloudAgentModelParams } | null
+    row: { modelId: string | null; modelParams: CloudAgentModelParams } | null
 ): CloudAgentModelSetting {
-    if (!row?.cloudAgentModelId) {
+    if (!row?.modelId) {
         return { kind: 'auto' };
     }
     // Stored jsonb is not re-validated on write, so a malformed value reads as model defaults.
-    const params = cloudAgentModelParamsSchema.safeParse(row.cloudAgentModelParams);
+    const params = cloudAgentModelParamsSchema.safeParse(row.modelParams);
     return {
-        id: row.cloudAgentModelId,
+        id: row.modelId,
         kind: 'model',
         params: params.success ? params.data : {},
     };

@@ -55,7 +55,14 @@ export function CloudAgentStatusDisc({
             <circle cx="8" cy="8" fill="currentColor" r="6.75" />
             {/* var(--surface), not white: the disc fills with a theme token,
                 and a white glyph washes out on it. */}
-            {state === 'done' ? (
+            {state === 'pending-input' ? (
+                <path
+                    d="M6 5.5v5M10 5.5v5"
+                    stroke="var(--surface)"
+                    strokeLinecap="round"
+                    strokeWidth="1.5"
+                />
+            ) : state === 'done' ? (
                 <path
                     d="M5.1 8.3l2 2 3.8-4.2"
                     fill="none"

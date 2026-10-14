@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { chatMessageReplySchema, idSchema } from './chat.ts';
+import { cloudAgentInputAttentionSchema } from './cloud-agent-input.ts';
 import {
     cloudAgentBranchSchema,
     cloudAgentProviderSchema,
@@ -103,6 +104,7 @@ export const agentInboxItemSchema = z
         addressedReason: addressedReasonSchema.optional(),
         /** Typed Server attention; unlike a Chat message, it has no message cursor. */
         cloudAgentWork: cloudAgentWorkAttentionSchema.optional(),
+        cloudAgentInput: cloudAgentInputAttentionSchema.optional(),
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),
@@ -124,11 +126,16 @@ export const agentInboxItemSchema = z
     .strict()
     .refine(
         (item) =>
-            item.cloudAgentWork
-                ? item.sequence === 0 &&
-                  item.id === item.cloudAgentWork.runId &&
+            item.cloudAgentInput
+                ? item.cloudAgentWork === undefined &&
+                  item.sequence === 0 &&
+                  item.id === item.cloudAgentInput.request.id &&
                   item.senderType === 'system'
-                : item.sequence > 0,
+                : item.cloudAgentWork
+                  ? item.sequence === 0 &&
+                    item.id === item.cloudAgentWork.runId &&
+                    item.senderType === 'system'
+                  : item.sequence > 0,
         {
             message: 'Typed attentions use their own identity and zero Chat sequence.',
             path: ['sequence'],

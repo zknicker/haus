@@ -1,4 +1,4 @@
-import { agentCloudAgentSendReceiptSchema } from '@haus/api';
+import { agentCloudAgentListReceiptSchema, agentCloudAgentSendReceiptSchema } from '@haus/api';
 import { CloudLaunchJournal, type CloudLaunchRecord } from './launch-journal.ts';
 import { CloudAgentServerError } from './launch-work.ts';
 import { cloudAgentModelSelectionOf } from './provider.ts';
@@ -20,6 +20,9 @@ export async function sendCloudAgentWork(input: {
     serverOrigin: string;
 }) {
     const { instructions, interrupt, ...body } = input.request;
+    if (interrupt) {
+        await assertInterruptSupported(input);
+    }
     const response = await fetch(new URL('/api/agent/cloud-agents/send', input.serverOrigin), {
         body: JSON.stringify(body),
         headers: {
@@ -40,6 +43,7 @@ export async function sendCloudAgentWork(input: {
     }
     const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
     const ref = {
+        provider: receipt.work.provider,
         providerAgentId,
         providerRunId: run?.providerRunId ?? null,
         runId: receipt.runId,
@@ -81,5 +85,28 @@ export class CloudAgentFollowUpSettledError extends Error {
                       'This follow-up was settled failed before it reached the provider.')
         );
         this.name = 'CloudAgentFollowUpSettledError';
+    }
+}
+
+async function assertInterruptSupported(input: {
+    request: CloudAgentSendRequest;
+    runnerToken: string;
+    serverOrigin: string;
+}) {
+    const url = new URL('/api/agent/cloud-agents', input.serverOrigin);
+    url.searchParams.set('workId', input.request.workId);
+    const response = await fetch(url, {
+        headers: { authorization: `Bearer ${input.runnerToken}` },
+        signal: AbortSignal.timeout(30_000),
+    });
+    const payload: unknown = await response.json();
+    if (!response.ok) {
+        throw new CloudAgentServerError(payload);
+    }
+    const { works } = agentCloudAgentListReceiptSchema.parse(payload);
+    if (works.some((work) => work.id === input.request.workId && work.provider === 'claude')) {
+        throw new Error(
+            'Claude Cloud does not support interrupt-and-replace. Stop the work, wait for confirmed Cancelled, then send a follow-up.'
+        );
     }
 }

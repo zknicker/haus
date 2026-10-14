@@ -2,6 +2,7 @@ import type { CloudAgentProvider, CloudAgentWork } from '@haus/api';
 import { toast } from '@heroui/react';
 import type { ModelProviderLogoSource } from '../../components/badges/model-provider-logo.tsx';
 import { getDesktopBridge, type HausDesktopBridge } from '../../lib/desktop-bridge.ts';
+import { anthropicProviderLogo } from '../../lib/model-provider-logo-presets.ts';
 import { openExternalLink } from '../../lib/open-external-link.ts';
 
 /**
@@ -11,7 +12,7 @@ import { openExternalLink } from '../../lib/open-external-link.ts';
 export interface CloudAgentProviderPresentation {
     color: string;
     /** The provider desktop app's deeplink to one run. Desktop main allowlists each one. */
-    desktopAppUrl: (providerAgentId: string) => string;
+    desktopAppUrl: ((providerAgentId: string) => string) | null;
     logo: ModelProviderLogoSource;
     name: string;
 }
@@ -30,6 +31,12 @@ export const cloudAgentProviderPresentation: Record<
     CloudAgentProvider,
     CloudAgentProviderPresentation
 > = {
+    claude: {
+        color: '#D97757',
+        desktopAppUrl: null,
+        logo: anthropicProviderLogo,
+        name: 'Claude',
+    },
     cursor: {
         color: '#111827',
         desktopAppUrl: (providerAgentId) =>
@@ -62,7 +69,12 @@ export function canOpenCloudAgentProvider(
     target: CloudAgentProviderTarget,
     bridge: HausDesktopBridge | null = getDesktopBridge()
 ): boolean {
-    return Boolean(target.providerUrl || (bridge && target.providerAgentId));
+    return Boolean(
+        target.providerUrl ||
+            (bridge &&
+                target.providerAgentId &&
+                cloudAgentProviderPresentation[target.provider].desktopAppUrl)
+    );
 }
 
 /**
@@ -86,9 +98,9 @@ export async function openCloudAgentProviderTarget(
     openWebPage: (url: string) => Promise<void>
 ): Promise<void> {
     const { providerAgentId, providerUrl } = target;
-    if (bridge && providerAgentId) {
-        const appUrl =
-            cloudAgentProviderPresentation[target.provider].desktopAppUrl(providerAgentId);
+    const desktopAppUrl = cloudAgentProviderPresentation[target.provider].desktopAppUrl;
+    if (bridge && providerAgentId && desktopAppUrl) {
+        const appUrl = desktopAppUrl(providerAgentId);
         try {
             await bridge.openExternal(appUrl);
             return;

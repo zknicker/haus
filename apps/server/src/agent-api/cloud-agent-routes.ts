@@ -15,6 +15,7 @@ import { createCloudAgentWork } from '../cloud-agents/create-cloud-agent-work.ts
 import {
     CloudAgentAgentNotFoundError,
     CloudAgentCancelDeniedError,
+    CloudAgentCancelUnsupportedError,
     CloudAgentComputerRemovedError,
     CloudAgentNotLaunchedError,
     CloudAgentWorkConflictError,
@@ -186,6 +187,9 @@ function sendCloudAgentFailure(
     reply: Parameters<typeof sendAgentApiError>[0],
     cause: unknown
 ): unknown {
+    if (cause instanceof CloudAgentCancelUnsupportedError) {
+        return sendAgentApiError(reply, 409, 'CLOUD_AGENT_CANCEL_UNSUPPORTED', cause.message);
+    }
     if (cause instanceof InvalidInlineReplyError) {
         return sendAgentApiError(reply, 400, 'INVALID_REPLY', cause.message);
     }

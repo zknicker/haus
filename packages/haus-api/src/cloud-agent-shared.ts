@@ -1,6 +1,13 @@
 import * as z from 'zod';
+import { cloudAgentComputerSettingsSchema } from './cloud-agent-computer-settings.ts';
 import { cloudAgentJobSchema } from './cloud-agent-job.ts';
 import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
+
+export * from './cloud-agent-computer-settings.ts';
+
+import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
+
+export { cloudAgentProviderSchema, cloudAgentProviders } from './cloud-agent-provider.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
 const cloudAgentTimestampSchema = z.iso.datetime({ offset: true });
@@ -9,11 +16,6 @@ export const cloudAgentTitleMaxLength = 120;
 export const cloudAgentActivityMaxLength = 120;
 export const cloudAgentSummaryMaxLength = 2000;
 export const cloudAgentRunsRetained = 20;
-
-/** Cursor is the only provider; a second one needs a real per-execution choice. */
-export const cloudAgentProviders = ['cursor'] as const;
-
-export const cloudAgentProviderSchema = z.enum(cloudAgentProviders);
 
 /**
  * Why a Cloud Agent provider is not ready on a Computer. `not-connected` — no
@@ -27,6 +29,7 @@ export const cloudAgentUnreadyReasons = [
     'not-connected',
     'expired',
     'provider-unavailable',
+    'setup-required',
 ] as const;
 
 export const cloudAgentUnreadyReasonSchema = z.enum(cloudAgentUnreadyReasons);
@@ -34,6 +37,7 @@ export const cloudAgentUnreadyReasonSchema = z.enum(cloudAgentUnreadyReasons);
 export const cloudAgentStatuses = [
     'queued',
     'running',
+    'pending_input',
     'completed',
     'failed',
     'cancelled',
@@ -208,6 +212,15 @@ export const cloudAgentCapabilityStateSchema = z
         expiresAt: cloudAgentTimestampSchema.nullable(),
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),
+        settings: cloudAgentComputerSettingsSchema.optional(),
+        bootstrapSetup: z
+            .object({
+                serverOrigin: z.url(),
+                headerName: z.literal('X-Haus-Cloud-Bootstrap'),
+                token: z.string().min(32).max(200),
+            })
+            .strict()
+            .optional(),
         reason: cloudAgentUnreadyReasonSchema.nullable(),
         signIn: z
             .discriminatedUnion('status', [

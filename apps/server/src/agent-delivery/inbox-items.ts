@@ -1,6 +1,7 @@
 import type {
     AgentInboxItem,
     AgentThreadContext,
+    CloudAgentInputAttention,
     CloudAgentWorkAttention,
     HausAgentMessage,
 } from '@haus/api';
@@ -10,6 +11,7 @@ import {
     targetForChat as targetForAgentChat,
     toAgentMessages,
 } from '../agent-api/message-view.ts';
+import { readCloudAgentInputAttentions } from '../cloud-agents/read-cloud-agent-input-attentions.ts';
 import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
@@ -60,6 +62,16 @@ export async function buildInboxItems(
     const sequenceByMessageId = new Map(
         messageRows.map((message) => [message.id, message.sequence])
     );
+    const cloudAgentInputs =
+        serverId && rows.some((row) => row.source === 'cloud_agent_input')
+            ? await readCloudAgentInputAttentions(
+                  db,
+                  serverId,
+                  rows
+                      .filter((row) => row.source === 'cloud_agent_input')
+                      .map((row) => row.dedupeKey)
+              )
+            : new Map<string, CloudAgentInputAttention>();
     const taskByMessage = serverId
         ? await listMessageTaskMap(
               db,
@@ -88,6 +100,10 @@ export async function buildInboxItems(
                 row.source === 'cloud_agent_work'
                     ? requireAttention(row, cloudAgentWorkByRun)
                     : undefined,
+            cloudAgentInput:
+                row.source === 'cloud_agent_input'
+                    ? requireInputAttention(row, cloudAgentInputs)
+                    : undefined,
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
             target: targetByChatId.get(chatOf(row)) ?? '#unknown',
             task: taskByMessage.get(row.dedupeKey),
@@ -98,6 +114,7 @@ export async function buildInboxItems(
 
 interface InboxItemFacets {
     apiMessage: HausAgentMessage | undefined;
+    cloudAgentInput: CloudAgentInputAttention | undefined;
     cloudAgentWork: CloudAgentWorkAttention | undefined;
     sequence: number;
     target: string;
@@ -106,8 +123,8 @@ interface InboxItemFacets {
 }
 
 function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInboxItem {
-    const { apiMessage, cloudAgentWork, target } = facets;
-    const attention = Boolean(cloudAgentWork);
+    const { apiMessage, cloudAgentWork, cloudAgentInput, target } = facets;
+    const attention = Boolean(cloudAgentWork || cloudAgentInput);
     const sender = inboxSender({ attention, message: apiMessage, source: row.source, target });
     // Only a human-authored envelope carries the human's saved zone; a task
     // assignment wrapping a human's message is a system envelope.
@@ -116,6 +133,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...messageFacets(apiMessage),
         ...(row.addressedReason ? { addressed: true, addressedReason: row.addressedReason } : {}),
         ...(cloudAgentWork ? { cloudAgentWork } : {}),
+        ...(cloudAgentInput ? { cloudAgentInput } : {}),
         ...(row.mentioned ? { mentioned: true } : {}),
         ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
         ...(facets.task ? { task: facets.task } : {}),
@@ -153,6 +171,17 @@ function requireAttention(
     const attention = attentions.get(row.dedupeKey);
     if (!attention) {
         throw new Error(`Cloud Agent attention ${row.dedupeKey} is missing.`);
+    }
+    return attention;
+}
+
+function requireInputAttention(
+    row: store.InboxItemRow,
+    attentions: Map<string, CloudAgentInputAttention>
+): CloudAgentInputAttention {
+    const attention = attentions.get(row.dedupeKey);
+    if (!attention) {
+        throw new Error(`Cloud Agent input attention ${row.dedupeKey} is missing.`);
     }
     return attention;
 }

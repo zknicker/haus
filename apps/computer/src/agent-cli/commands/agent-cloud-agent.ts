@@ -3,6 +3,7 @@ import {
     agentCloudAgentCancelReceiptSchema,
     agentCloudAgentListReceiptSchema,
     agentCloudAgentSendReceiptSchema,
+    cloudAgentProviderSchema,
     cloudAgentRepositorySchema,
     cloudAgentTitleSchema,
 } from '@haus/api';
@@ -18,6 +19,7 @@ import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
+import { CLOUD_AGENT_INPUT_COMMANDS } from './cloud-agent-input.ts';
 
 const START_RECIPE = `haus cloud-agent start --target "#product" --reply-to <messageId> --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" \\
@@ -47,6 +49,11 @@ const START_COMMAND: SubCommand = {
             valueName: '<messageId>',
         },
         { description: 'Repository as owner/name', name: '--repo', valueName: '<owner/name>' },
+        {
+            description: "Cloud connection; omit for this Computer's default",
+            name: '--provider',
+            valueName: '<cursor|claude>',
+        },
         { description: 'Starting ref (branch, tag, or SHA)', name: '--ref', valueName: '<ref>' },
         { description: 'One-line title for the work', name: '--title', valueName: '<text>' },
         { description: 'What you tell the chat you are doing', name: '--say', valueName: '<text>' },
@@ -113,6 +120,7 @@ export const CLOUD_AGENT_SUBCOMMANDS: SubCommand[] = [
     INSPECT_COMMAND,
     STOP_COMMAND,
     CANCEL_COMMAND,
+    ...CLOUD_AGENT_INPUT_COMMANDS,
 ];
 
 export async function runCloudAgentSend(args: ParsedArgs, deps: CloudAgentDeps): Promise<number> {
@@ -162,6 +170,10 @@ export async function runCloudAgentInspect(
 }
 
 export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps): Promise<number> {
+    const provider =
+        args.values['--provider'] === undefined
+            ? undefined
+            : cloudAgentProviderSchema.parse(requiredValue(args, '--provider'));
     const target = requiredValue(args, '--target');
     assertAgentTarget(target);
     const repository = readRepository(args);
@@ -185,6 +197,7 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
         agentCloudAgentStartResponseSchema,
         {
             body: {
+                ...(provider ? { provider } : {}),
                 content: content.trim(),
                 instructions: instructions.trimEnd(),
                 nonce: deps.mintNonce(),

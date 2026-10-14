@@ -1,4 +1,4 @@
-import type { CloudAgentCapabilityRequest } from '@haus/api';
+import type { CloudAgentCapabilityRequest, CloudAgentProvider } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import {
     CloudAgentCapabilityDeniedError,
@@ -10,6 +10,7 @@ import { memberProcedure } from '../server/procedure.ts';
 import { createRouter } from '../trpc.ts';
 import {
     cloudAgentProviderActionInputSchema,
+    cloudAgentProviderConfigureInputSchema,
     cloudAgentProviderGetInputSchema,
     cloudAgentProviderOutputSchema,
 } from './contracts.ts';
@@ -20,6 +21,12 @@ import {
  * sees, stores, or forwards the credential it mints.
  */
 export const cloudAgentProviderRouter = createRouter({
+    configure: memberProcedure
+        .input(cloudAgentProviderConfigureInputSchema)
+        .output(cloudAgentProviderOutputSchema)
+        .mutation(({ ctx, input }) =>
+            relay(ctx, input, { kind: 'configure', settings: input.settings })
+        ),
     cancelSignIn: actionProcedure('cancel-sign-in'),
     connect: actionProcedure('connect'),
     disconnect: actionProcedure('disconnect'),
@@ -38,7 +45,7 @@ function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in') {
 
 async function relay(
     ctx: HausContext & { member: HausUser | null },
-    input: { computerId: string; provider: 'cursor'; serverId: string },
+    input: { computerId: string; provider: CloudAgentProvider; serverId: string },
     operation: CloudAgentCapabilityRequest['operation']
 ) {
     try {

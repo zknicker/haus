@@ -11,6 +11,7 @@
 export const concreteInboxSources = [
     'onboarding',
     'cloud_agent_work',
+    'cloud_agent_input',
     'trigger',
     'trigger_problem',
     'reminder',
@@ -30,6 +31,7 @@ export function isConcreteInboxSource(source: string): boolean {
 export const bodilessInboxSources = [
     'onboarding',
     'cloud_agent_work',
+    'cloud_agent_input',
     'trigger_problem',
     'dream',
 ] as const;

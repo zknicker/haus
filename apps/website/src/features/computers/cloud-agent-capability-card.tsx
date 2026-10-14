@@ -8,6 +8,7 @@ import {
     useCloudAgentDisconnect,
 } from '../../hooks/servers/use-cloud-agent-capability.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { ClaudeCloudCapabilityRow } from './claude-cloud-capability-row.tsx';
 import {
     cloudAgentCapabilityView,
     reportedCloudAgentCapability,
@@ -99,6 +100,11 @@ export function CloudAgentCapabilityCard({
                         onConnect={handleConnect}
                         onDisconnect={handleDisconnect}
                         view={view}
+                    />
+                    <ClaudeCloudCapabilityRow
+                        computerId={computerId}
+                        isOffline={isOffline}
+                        serverId={serverId}
                     />
                 </ItemCardGroup>
             </ItemCardGroup>

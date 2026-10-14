@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -155,11 +156,18 @@ export const cloudAgentRunModelSchema = z
     );
 
 export const cloudAgentSettingsGetInputSchema = z
-    .object({ serverId: z.string().trim().min(1) })
+    .object({
+        serverId: z.string().trim().min(1),
+        provider: cloudAgentProviderSchema.default('cursor'),
+    })
     .strict();
 
 export const cloudAgentSettingsSetModelInputSchema = z
-    .object({ model: cloudAgentModelSettingSchema, serverId: z.string().trim().min(1) })
+    .object({
+        model: cloudAgentModelSettingSchema,
+        serverId: z.string().trim().min(1),
+        provider: cloudAgentProviderSchema.default('cursor'),
+    })
     .strict();
 
 /**
@@ -170,6 +178,7 @@ export const cloudAgentSettingsSetModelInputSchema = z
  */
 export const cloudAgentSettingsSchema = z
     .object({
+        provider: cloudAgentProviderSchema.optional(),
         catalog: cloudAgentModelCatalogSchema.nullable(),
         model: cloudAgentModelSettingSchema,
         savedModelUnavailable: z.boolean(),

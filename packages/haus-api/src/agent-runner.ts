@@ -1,10 +1,6 @@
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import { executionEvidenceRequestSchemas } from './agent-execution-outline.ts';
-import {
-    cloudAgentCancelCommandSchema,
-    cloudAgentCapabilityRequestSchema,
-    cloudAgentReconcileCommandSchema,
-} from './cloud-agent-protocol.ts';
+import { cloudAgentCommandSchemas } from './cloud-agent-protocol.ts';
 
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
@@ -194,9 +190,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     browserRequestSchema,
     reminderScriptCommandSchema,
     agentNoticeCommandSchema,
-    cloudAgentCancelCommandSchema,
-    cloudAgentCapabilityRequestSchema,
-    cloudAgentReconcileCommandSchema,
+    ...cloudAgentCommandSchemas,
     serverDeleteCommandSchema,
 ]);
 

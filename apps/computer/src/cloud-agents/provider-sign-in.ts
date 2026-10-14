@@ -80,12 +80,13 @@ export class ProviderSignIn {
             Effect.timeout(this.timeoutMs),
             Effect.tap((readiness) =>
                 Effect.sync(() => {
-                    this.signIn = readiness.ready
-                        ? undefined
-                        : {
-                              status: 'failed',
-                              message: 'Cursor did not finish connecting. Try again.',
-                          };
+                    this.signIn =
+                        readiness.ready || readiness.reason === 'setup-required'
+                            ? undefined
+                            : {
+                                  status: 'failed',
+                                  message: `${this.provider.provider === 'claude' ? 'Claude' : 'Cursor'} did not finish connecting. Try again.`,
+                              };
                 })
             ),
             Effect.catchTag('TimeoutException', () =>
@@ -100,7 +101,7 @@ export class ProviderSignIn {
                 Effect.sync(() => {
                     this.signIn = {
                         status: 'failed',
-                        message: 'Could not complete Cursor sign-in. Try again.',
+                        message: `Could not complete ${this.provider.provider === 'claude' ? 'Claude' : 'Cursor'} sign-in. Try again.`,
                     };
                 })
             ),

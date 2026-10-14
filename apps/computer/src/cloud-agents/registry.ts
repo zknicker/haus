@@ -1,4 +1,6 @@
 import type { CloudAgentCapabilityState, CloudAgentProviderReadiness } from '@haus/api';
+import type { ClaudeCloudComputer } from './claude/bootstrap.ts';
+import { createClaudeCloudAgentProvider } from './claude/provider.ts';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import { createCursorSdkTransport } from './cursor/sdk-transport.ts';
 import { readCloudAgentModelCatalog } from './model-catalog.ts';
@@ -11,14 +13,34 @@ import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';
  * fails before any Message exists.
  */
 let installed: CloudAgentProvider = createCursorCloudAgentProvider(createCursorSdkTransport());
+let claude: CloudAgentProvider = createClaudeCloudAgentProvider();
+let claudeComputer: ClaudeCloudComputer | null = null;
+
+export function configureClaudeCloudComputer(computer: ClaudeCloudComputer): void {
+    claudeComputer = computer;
+    claude = createClaudeCloudAgentProvider(computer);
+}
+
+export function claudeCloudComputer(): ClaudeCloudComputer | null {
+    return claudeComputer;
+}
 
 /** The Cloud Agent provider this Computer can reach. */
-export function cloudAgentProvider(): CloudAgentProvider {
-    return installed;
+export function cloudAgentProvider(
+    provider: import('@haus/api').CloudAgentProvider = 'cursor'
+): CloudAgentProvider {
+    return provider === 'claude' ? claude : installed;
 }
 
 /** Installs a provider adapter; returns the restore for tests and teardown. */
 export function setCloudAgentProvider(provider: CloudAgentProvider): () => void {
+    if (provider.provider === 'claude') {
+        const previous = claude;
+        claude = provider;
+        return () => {
+            claude = previous;
+        };
+    }
     const previous = installed;
     installed = provider;
     return () => {
@@ -35,16 +57,18 @@ export function setCloudAgentProvider(provider: CloudAgentProvider): () => void 
  * cached per account and read from the provider at most daily.
  */
 export async function detectCloudAgentProviders(): Promise<CloudAgentProviderReadiness[]> {
-    const provider = cloudAgentProvider();
-    const readiness = await readCloudAgentReadiness(provider);
-    return [
-        {
-            models: await readCloudAgentModelCatalog(provider, readiness),
-            provider: provider.provider,
-            ready: readiness.ready,
-            reason: readiness.ready ? null : readiness.reason,
-        },
-    ];
+    return Promise.all(
+        ['cursor', 'claude'].map(async (id) => {
+            const provider = cloudAgentProvider(id === 'claude' ? 'claude' : 'cursor');
+            const readiness = await readCloudAgentReadiness(provider);
+            return {
+                models: await readCloudAgentModelCatalog(provider, readiness),
+                provider: provider.provider,
+                ready: readiness.ready,
+                reason: readiness.ready ? null : readiness.reason,
+            };
+        })
+    );
 }
 
 /** The same capability, plus the account it resolves to, for Computer settings. */

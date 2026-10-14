@@ -26,6 +26,13 @@ export const cloudAgentJobSchema = z.discriminatedUnion('state', [
         .object({
             followUp: cloudAgentFollowUpSchema.nullable(),
             startedAt: timestampSchema.nullable(),
+            state: z.literal('pending-input'),
+        })
+        .strict(),
+    z
+        .object({
+            followUp: cloudAgentFollowUpSchema.nullable(),
+            startedAt: timestampSchema.nullable(),
             state: z.literal('working'),
         })
         .strict(),
@@ -114,7 +121,7 @@ function followUpOf(run: JobRun): CloudAgentFollowUp | null {
     if (run.status === 'queued') {
         return { since: run.createdAt, state: 'waiting' };
     }
-    if (run.status === 'running') {
+    if (run.status === 'running' || run.status === 'pending_input') {
         return { since: run.startedAt ?? run.createdAt, state: 'running' };
     }
     return null;
@@ -125,6 +132,8 @@ function jobFrom(
     followUp: CloudAgentFollowUp | null
 ): CloudAgentJob {
     switch (run.status) {
+        case 'pending_input':
+            return { followUp, startedAt: run.startedAt, state: 'pending-input' };
         case 'queued':
         case 'running':
             return { followUp, startedAt: run.startedAt, state: 'working' };

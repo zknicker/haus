@@ -4,6 +4,7 @@ import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { foreign } from './foreign-operation.ts';
 import type { CloudLaunchJournal, CloudPendingSend as Pending } from './launch-journal.ts';
 import type { CloudAgentProvider, CloudAgentRunRef } from './provider.ts';
+import { CloudAgentDeliveryUnconfirmedError } from './provider.ts';
 import { deliveryDue, sendFailureOutcome } from './send-delivery.ts';
 
 /** Serializes short queue transitions; waiting for a remote turn never holds the permit. */
@@ -14,7 +15,9 @@ export class CloudAgentSendQueue {
         runtime: DaemonRuntime,
         private readonly journal: CloudLaunchJournal,
         private readonly serverId: string,
-        private readonly provider: () => CloudAgentProvider
+        private readonly provider: (
+            provider?: import('@haus/api').CloudAgentProvider
+        ) => CloudAgentProvider
     ) {
         this.permit = runtime.runSync(Effect.makeSemaphore(1));
     }
@@ -54,7 +57,8 @@ export class CloudAgentSendQueue {
         return Effect.gen(function* () {
             const sent = yield* Effect.either(
                 foreign(() =>
-                    self.provider().send({
+                    self.provider(ref.provider ?? 'cursor').send({
+                        ...(ref.provider === 'claude' ? { workId: ref.workId } : {}),
                         idempotencyKey: ref.runId,
                         instructions: pending.instructions,
                         model: pending.model,
@@ -64,6 +68,10 @@ export class CloudAgentSendQueue {
             );
             if (sent._tag === 'Right') {
                 yield* foreign(() => self.journal.record(self.serverId, ref, sent.right));
+                return;
+            }
+            if (sent.left.cause instanceof CloudAgentDeliveryUnconfirmedError) {
+                yield* foreign(() => self.journal.unconfirmed(self.serverId, ref));
                 return;
             }
             const outcome = sendFailureOutcome(
@@ -113,15 +121,16 @@ export class CloudAgentSendQueue {
                 return stop;
             }
             const ref = record?.phase === 'launched' ? { ...previous, ...record.launch } : previous;
-            if (!(ref.providerAgentId && ref.providerRunId)) {
+            if (!(ref.providerAgentId && (ref.provider === 'claude' || ref.providerRunId))) {
                 return yield* self.unaddressedReady(previous, record === null && stop);
             }
-            const observation = yield* foreign((signal) => self.provider().read(ref, signal));
+            const provider = self.provider(previous.provider ?? 'cursor');
+            const observation = yield* foreign((signal) => provider.read(ref, signal));
             if (isTerminalCloudAgentStatus(observation.status)) {
                 return true;
             }
             if (stop) {
-                yield* foreign((signal) => self.provider().cancel(ref, signal));
+                yield* foreign((signal) => provider.cancel(ref, signal));
             }
             return false;
         });

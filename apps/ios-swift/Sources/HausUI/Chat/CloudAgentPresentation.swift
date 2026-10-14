@@ -26,7 +26,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     public var providerName: String { Self.providerName(work.provider) }
 
     public static func providerName(_ provider: String) -> String {
-        provider == "cursor" ? "Cursor" : provider
+        provider == "cursor" ? "Cursor" : provider == "claude" ? "Claude" : provider
     }
 
     /// The headline: the job's state, never its newest Run's. A working job
@@ -40,13 +40,14 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         case .done(let startedAt, let settledAt, _):
             guard let startedAt, let settledAt else { return label }
             return "\(label) · \(Self.duration(from: startedAt, to: settledAt))"
-        case .failed, .cancelled, .expired:
+        case .pendingInput, .failed, .cancelled, .expired:
             return label
         }
     }
 
     public static func jobLabel(_ state: CloudAgentJobState) -> String {
         switch state {
+        case .pendingInput: "Pending input"
         case .working: "Working"
         case .done: "Done"
         case .failed: "Failed"
@@ -59,7 +60,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     /// threshold. Reads the work's own `updatedAt`, which any Run's observation
     /// advances, never Computer connection state.
     public func quietFor(at now: Date) -> TimeInterval? {
-        guard work.status.isActive else { return nil }
+        guard work.status.isActive, work.status != .pendingInput else { return nil }
         let quiet = now.timeIntervalSince(work.updatedAt)
         return quiet > Self.staleAfter ? quiet : nil
     }
@@ -84,7 +85,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
 
     /// Cancel is for a live Run nobody has asked to stop; the role gate is the
     /// App's cancel action, installed only for Owners and Admins.
-    public var canBeCancelled: Bool { work.status.isActive && work.cancelRequestedAt == nil }
+    public var canBeCancelled: Bool { work.provider != "claude" && work.status.isActive && work.cancelRequestedAt == nil }
 
     /// The Cloud Agent duration grammar, matching the App's
     /// `formatCloudAgentDuration`: `45s`, `25m`, `2h`, `2h 5m`, `26h 5m`.

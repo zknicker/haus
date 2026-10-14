@@ -33,6 +33,9 @@ export function cloudAgentStatusLine(
     if (job.state === 'failed') {
         return { text: failureReason(job), tone: 'danger' };
     }
+    if (job.state === 'pending-input') {
+        return { text: `${input.agentName} has a question to answer`, tone: 'warning' };
+    }
     const quiet = quietFor(work, input.now);
     if (quiet !== null) {
         return { text: `No update in ${formatCloudAgentDuration(quiet)}`, tone: 'warning' };

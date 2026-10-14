@@ -29,7 +29,7 @@ interface WatchedRun {
     terminal: boolean;
     /** When this monitor first found no journal record for an unaddressed Run. */
     unrecordedSince?: number;
-    readonly wake: Deferred.Deferred<void>;
+    wake: Deferred.Deferred<void>;
 }
 
 interface Connection {
@@ -47,14 +47,16 @@ export class CloudAgentWorkSupervisor {
     private readonly launches: CloudAgentLaunchScope;
     private readonly enrich: EnrichObservation;
     private readonly localRuns: CloudAgentLocalRuns;
-    private readonly provider: () => CloudAgentProvider;
+    private readonly provider: (
+        provider?: import('@haus/api').CloudAgentProvider
+    ) => CloudAgentProvider;
 
     constructor(
         private readonly runtime: DaemonRuntime,
         options: {
             dataRoot: string;
             serverId: string;
-            provider?: () => CloudAgentProvider;
+            provider?: (provider?: import('@haus/api').CloudAgentProvider) => CloudAgentProvider;
             enrich?: EnrichObservation;
         }
     ) {
@@ -106,6 +108,13 @@ export class CloudAgentWorkSupervisor {
 
     watch(ref: CloudAgentRunRef): void {
         this.admit(ref, false);
+    }
+
+    notify(ref: { workId: string; runId: string }): void {
+        const run = this.connection?.runs.get(ref.runId);
+        if (run && run.ref.workId === ref.workId) {
+            this.runtime.runSync(Deferred.succeed(run.wake, undefined));
+        }
     }
 
     async cancel(command: CloudAgentCancelCommand): Promise<void> {
@@ -162,11 +171,12 @@ export class CloudAgentWorkSupervisor {
             yield* Effect.forkScoped(reports.consume());
             let streamAttempted = false;
             while (!run.terminal) {
+                run.wake = yield* Deferred.make<void>();
                 const attempt = Effect.gen(function* () {
                     if (!(yield* self.resolveAddress(connection, run))) {
                         return false;
                     }
-                    const provider = self.provider();
+                    const provider = self.provider(run.ref.provider ?? 'cursor');
                     if (run.cancelRequested) {
                         yield* foreign((signal) => provider.cancel(run.ref, signal));
                     }
@@ -190,7 +200,6 @@ export class CloudAgentWorkSupervisor {
                     }
                     return false;
                 });
-                const wasCancelling = run.cancelRequested;
                 const outcome = yield* Effect.either(attempt);
                 yield* Deferred.succeed(run.ready, undefined);
                 if (run.terminal) {
@@ -203,9 +212,9 @@ export class CloudAgentWorkSupervisor {
                             runId: run.ref.runId,
                         })
                     );
-                    yield* self.pause(run, '60 seconds', wasCancelling);
+                    yield* self.pause(run, '60 seconds');
                 } else if (!outcome.right) {
-                    yield* self.pause(run, '5 seconds', wasCancelling);
+                    yield* self.pause(run, '5 seconds');
                 }
             }
         }).pipe(
@@ -216,10 +225,8 @@ export class CloudAgentWorkSupervisor {
         );
     }
 
-    private pause(run: WatchedRun, duration: Duration.DurationInput, wasCancelling: boolean) {
-        return wasCancelling
-            ? Effect.sleep(duration)
-            : Effect.raceFirst(Effect.sleep(duration), Deferred.await(run.wake));
+    private pause(run: WatchedRun, duration: Duration.DurationInput) {
+        return Effect.raceFirst(Effect.sleep(duration), Deferred.await(run.wake));
     }
 
     private resolveAddress(
@@ -228,7 +235,10 @@ export class CloudAgentWorkSupervisor {
     ): Effect.Effect<boolean, CloudAgentOperationError> {
         const self = this;
         return Effect.gen(function* () {
-            if (run.ref.providerAgentId && run.ref.providerRunId) {
+            if (
+                run.ref.providerAgentId &&
+                (run.ref.provider === 'claude' || run.ref.providerRunId)
+            ) {
                 return true;
             }
             const state = yield* self.localRuns.resolve(run);
@@ -245,6 +255,7 @@ export class CloudAgentWorkSupervisor {
             };
             self.observe(connection, run, {
                 ...state.launch,
+                providerRunId: state.launch.providerRunId ?? undefined,
                 providerUrl: state.launch.providerUrl ?? undefined,
                 observedAt: state.observedAt,
             });
@@ -260,6 +271,11 @@ export class CloudAgentWorkSupervisor {
         if (this.connection !== connection || run.terminal) {
             return;
         }
+        run.ref = {
+            ...run.ref,
+            providerAgentId: observation.providerAgentId ?? run.ref.providerAgentId,
+            providerRunId: observation.providerRunId ?? run.ref.providerRunId,
+        };
         connection.sink({
             ...observation,
             providerAgentId: run.ref.providerAgentId ?? undefined,

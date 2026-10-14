@@ -1,26 +1,17 @@
-import {
-    type CloudAgentObservation,
-    type CloudAgentWork,
-    isTerminalCloudAgentStatus,
-} from '@haus/api';
-import { and, desc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { type CloudAgentObservation, isTerminalCloudAgentStatus } from '@haus/api';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
-import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { applyClaudeCancellation } from './apply-claude-cancellation.ts';
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
+import type { AppliedCloudAgentObservation } from './cloud-agent-observation-result.ts';
+import { isCloudAgentRequestChatLive } from './cloud-agent-request-chat.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
-import { linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
-
-export interface AppliedCloudAgentObservation {
-    /** One `cloudAgentWork.updated` per linking Message in a live Chat. */
-    events: PreparedRealtimeEvent[];
-    /** The delegating Agent to wake, set only when a settled Run notified it. */
-    wake: { agentId: string; serverId: string } | null;
-    work: CloudAgentWork;
-}
+import { prepareClaudeObservation } from './merge-claude-launch-receipt.ts';
+import { preserveCloudAgentInput } from './preserve-cloud-agent-input.ts';
 
 /**
  * Applies one bounded Computer observation to its Run and work. A duplicate,
@@ -35,7 +26,7 @@ export async function applyCloudAgentObservation(
     input: { computerId: string; observation: CloudAgentObservation; serverId: string },
     agentDelivery: AgentDelivery
 ): Promise<AppliedCloudAgentObservation | null> {
-    const { observation } = input;
+    let observation = input.observation;
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const [row] = await tx
@@ -44,6 +35,12 @@ export async function applyCloudAgentObservation(
                 branches: cloudAgentRunsTable.branches,
                 chatId: cloudAgentWorkTable.chatId,
                 computerId: cloudAgentWorkTable.computerId,
+                provider: cloudAgentWorkTable.provider,
+                providerAgentId: cloudAgentWorkTable.providerAgentId,
+                providerUrl: cloudAgentWorkTable.providerUrl,
+                providerRunId: cloudAgentRunsTable.providerRunId,
+                status: cloudAgentRunsTable.status,
+                cancelRequestedAt: cloudAgentWorkTable.cancelRequestedAt,
                 observedAt: cloudAgentRunsTable.observedAt,
                 runStartedAt: cloudAgentRunsTable.startedAt,
                 terminalAt: cloudAgentRunsTable.terminalAt,
@@ -68,10 +65,35 @@ export async function applyCloudAgentObservation(
         if (!row || row.computerId !== input.computerId) {
             return null;
         }
+        const prepared = await prepareClaudeObservation(
+            tx,
+            { ...row, id: observation.workId },
+            observation
+        );
+        observation = prepared.observation;
+        const cancellation = await applyClaudeCancellation(
+            tx,
+            { serverId: input.serverId, observation },
+            row,
+            agentDelivery
+        );
+        if (cancellation.handled) {
+            return cancellation.result;
+        }
         const observedAt = new Date(observation.observedAt);
         if (row.terminalAt || (row.observedAt && row.observedAt >= observedAt)) {
+            return await metadataObservation(
+                tx,
+                input.serverId,
+                observation.workId,
+                prepared.receiptChanged
+            );
+        }
+        const guarded = await preserveCloudAgentInput(tx, row.provider, observation);
+        if (!guarded) {
             return null;
         }
+        observation = guarded;
 
         const settling = isTerminalCloudAgentStatus(observation.status);
         await tx
@@ -116,7 +138,11 @@ export async function applyCloudAgentObservation(
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles silently.
         const notifying =
-            settling && (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }));
+            settling &&
+            (await isCloudAgentRequestChatLive(tx, {
+                chatId: row.chatId,
+                serverId: input.serverId,
+            }));
         if (notifying) {
             await agentDelivery.enqueue(tx, {
                 agentId: row.agentId,
@@ -143,33 +169,27 @@ export async function applyCloudAgentObservation(
     });
 }
 
-/** A Chat that still exists and is not tombstoned, nor is its parent. */
-async function isLiveChat(db: HausDatabase, input: { chatId: string; serverId: string }) {
-    const [chat] = await db
-        .select({ id: chatsTable.id })
-        .from(chatsTable)
-        .leftJoin(
-            linkParentChatsTable,
-            and(
-                eq(linkParentChatsTable.serverId, chatsTable.serverId),
-                eq(linkParentChatsTable.id, chatsTable.parentChatId)
-            )
-        )
-        .where(
-            and(
-                eq(chatsTable.serverId, input.serverId),
-                eq(chatsTable.id, input.chatId),
-                isNull(chatsTable.deletedAt),
-                or(
-                    isNull(chatsTable.parentChatId),
-                    and(isNotNull(linkParentChatsTable.id), isNull(linkParentChatsTable.deletedAt))
-                )
-            )
-        )
-        .limit(1);
-    return chat !== undefined;
+async function metadataObservation(
+    db: HausDatabase,
+    serverId: string,
+    workId: string,
+    changed: boolean
+): Promise<AppliedCloudAgentObservation | null> {
+    if (!changed) {
+        return null;
+    }
+    const work = await findCloudAgentWork(db, serverId, workId);
+    if (!work) {
+        throw new Error('The Cloud Agent work disappeared after its launch receipt.');
+    }
+    return {
+        work,
+        wake: null,
+        events: await prepareCloudAgentWorkEvents(db, { serverId, workId }),
+    };
 }
 
+/** A Chat that still exists and is not tombstoned, nor is its parent. */
 function runObservationUpdate(
     observation: CloudAgentObservation,
     previousStart: Date | null,

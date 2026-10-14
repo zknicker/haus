@@ -2,12 +2,18 @@ import SwiftUI
 
 struct CloudAgentMark: View {
     enum Style { case tile, glyph }
+    var provider: String = "cursor"
     var size: CGFloat = 36
     var style: Style = .tile
 
     var body: some View {
-        CursorGlyph()
-            .fill(.primary)
+        Group {
+            if provider == "claude" {
+                AnthropicGlyph().fill(.primary)
+            } else {
+                CursorGlyph().fill(.primary)
+            }
+        }
             .frame(width: size * (style == .glyph ? 466.73 / 532.09 : 0.52),
                    height: size * (style == .glyph ? 1 : 0.60))
             .frame(width: size, height: size)
@@ -29,5 +35,14 @@ private struct CursorGlyph: Shape {
 
     func path(in rect: CGRect) -> Path {
         Self.outline.applying(CGAffineTransform(scaleX: rect.width / 466.73, y: rect.height / 532.09))
+    }
+}
+
+private struct AnthropicGlyph: Shape {
+    private static let outline = SVGPathData.path(from:
+        "M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-7.258 0h3.767L16.906 20h-3.674l-1.343-3.461H5.017l-1.344 3.46H0L6.57 3.522zm4.132 9.959L8.453 7.687 6.205 13.48H10.7z"
+    )
+    func path(in rect: CGRect) -> Path {
+        Self.outline.applying(CGAffineTransform(scaleX: rect.width / 24, y: rect.height / 24))
     }
 }

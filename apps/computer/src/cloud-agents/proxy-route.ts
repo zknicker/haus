@@ -1,3 +1,4 @@
+import { cloudAgentProviderSchema } from '@haus/api';
 import * as z from 'zod';
 import { CloudAgentLaunchFailedError, startCloudAgentWork } from './launch-work.ts';
 import { CloudAgentProviderUnavailableError } from './provider.ts';
@@ -5,6 +6,7 @@ import { sendCloudAgentWork } from './send-work.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 const cloudAgentStartSchema = z.object({
+    provider: cloudAgentProviderSchema.optional(),
     content: z.string().trim().min(1),
     instructions: z.string().trim().min(1),
     nonce: z.string().trim().min(1),

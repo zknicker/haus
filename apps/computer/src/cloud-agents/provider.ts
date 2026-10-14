@@ -14,6 +14,8 @@ export type CloudAgentReadiness =
 
 /** Everything a provider needs to address one Run it is already hosting. */
 export interface CloudAgentRunRef {
+    /** Absent only for existing Cursor journals and callers predating Claude support. */
+    provider?: import('@haus/api').CloudAgentProvider;
     providerAgentId: string | null;
     providerRunId: string | null;
     runId: string;
@@ -58,11 +60,12 @@ export interface CloudAgentStartInput {
     ref: string | null;
     repository: string;
     title: string;
+    workId?: string;
 }
 
 export interface CloudAgentLaunch {
     providerAgentId: string;
-    providerRunId: string;
+    providerRunId: string | null;
     providerUrl: string | null;
     status: CloudAgentStatus;
 }
@@ -73,6 +76,7 @@ export interface CloudAgentSendInput {
     /** The model Server resolved for this Run (`default` is Auto); `null` sends none. */
     model: CloudAgentModelSelection | null;
     providerAgentId: string;
+    workId?: string;
 }
 
 /** One bounded provider reading, before Haus's own work and Run identities. */
@@ -115,7 +119,7 @@ export interface CloudAgentProvider {
     disconnect(): Promise<CloudAgentReadiness>;
     /** The provider's raw model catalog for the connected account. */
     listModels(): Promise<CloudAgentModelListing[]>;
-    readonly provider: 'cursor';
+    readonly provider: import('@haus/api').CloudAgentProvider;
     read(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
     send(input: CloudAgentSendInput): Promise<CloudAgentLaunch>;
@@ -143,6 +147,11 @@ export class CloudAgentLaunchRejectedError extends Error {
     }
 }
 
+/** Delivery may have occurred; only a correlated native receipt can resolve it. */
+export class CloudAgentDeliveryUnconfirmedError extends Error {
+    override readonly name = 'CloudAgentDeliveryUnconfirmedError';
+}
+
 export class CloudAgentProviderUnavailableError extends Error {
     readonly reason: CloudAgentUnreadyReason;
 
@@ -162,6 +171,8 @@ export function cloudAgentUnreadyMessage(reason: CloudAgentUnreadyReason): strin
             return "This Computer's Cloud Agent credential expired. Reconnect the provider in Computer settings.";
         case 'provider-unavailable':
             return 'This Computer cannot reach the Cloud Agent provider.';
+        case 'setup-required':
+            return 'Claude Cloud requires secure hosted hooks and lifecycle verification before Haus can launch work. Configure it in Computer settings.';
     }
 }
 

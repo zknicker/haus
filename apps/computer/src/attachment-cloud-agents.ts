@@ -4,6 +4,7 @@ import {
 } from './cloud-agents/capability-requests.ts';
 import {
     parseCloudAgentCancelCommand,
+    parseCloudAgentNativeUpdate,
     parseCloudAgentReconcileCommand,
 } from './cloud-agents/frames.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
@@ -14,6 +15,7 @@ export function handleCloudAgentFrame(
     frame: unknown,
     options: {
         runtime: DaemonRuntime;
+        dataRoot?: string;
         cloudAgents?: CloudAgentWorkSupervisor;
         track(operation: Promise<void>): Promise<void>;
         send(frame: unknown): boolean;
@@ -21,6 +23,11 @@ export function handleCloudAgentFrame(
         onFailure(error: unknown): void;
     }
 ): boolean {
+    const native = parseCloudAgentNativeUpdate(frame);
+    if (native) {
+        options.cloudAgents?.notify(native);
+        return true;
+    }
     const cancel = parseCloudAgentCancelCommand(frame);
     if (cancel) {
         void options.track(
@@ -42,7 +49,7 @@ export function handleCloudAgentFrame(
         return false;
     }
     void options.track(
-        runCloudAgentCapabilityRequest(capability, options.runtime)
+        runCloudAgentCapabilityRequest(capability, options.runtime, options.dataRoot)
             .then(async (result) => {
                 options.send(result);
                 if (capability.operation.kind !== 'get') {

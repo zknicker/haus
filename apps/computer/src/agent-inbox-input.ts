@@ -1,12 +1,6 @@
-import {
-    addressedReasonSchema,
-    agentThreadContextSchema,
-    chatMessageReplySchema,
-    cloudAgentWorkAttentionSchema,
-    humanTimezoneSchema,
-} from '@haus/api';
+import { agentInboxItemSchema } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
-import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
 
 /**
  * Inbox identities the Server marked drainable for this run. An older Server
@@ -68,67 +62,7 @@ export function parseInbox(value: unknown): AgentInboxItem[] | null {
 }
 
 function parseInboxItem(item: unknown): AgentInboxItem | null {
-    if (
-        !(
-            isRecord(item) &&
-            ['chatId', 'createdAt', 'id', 'senderHandle', 'target'].every(
-                (field) => typeof item[field] === 'string' && item[field].length > 0
-            ) &&
-            typeof item.content === 'string' &&
-            (item.addressed === undefined || typeof item.addressed === 'boolean') &&
-            (item.addressedReason === undefined ||
-                addressedReasonSchema.safeParse(item.addressedReason).success) &&
-            (item.senderDescription === undefined || typeof item.senderDescription === 'string') &&
-            (item.senderTimezone === undefined ||
-                (item.senderType === 'human' &&
-                    humanTimezoneSchema.safeParse(item.senderTimezone).success)) &&
-            (item.message === undefined || isRecord(item.message)) &&
-            (item.threadFollowReactivated === undefined ||
-                typeof item.threadFollowReactivated === 'boolean') &&
-            ['agent', 'human', 'system', 'trigger'].includes(item.senderType as string)
-        ) ||
-        typeof item.sequence !== 'number' ||
-        !Number.isInteger(item.sequence) ||
-        item.sequence < 0
-    ) {
-        return null;
-    }
-    const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
-    const reply = chatMessageReplySchema.nullish().safeParse(item.reply);
-    const threadContext = agentThreadContextSchema.optional().safeParse(item.threadContext);
-    if (!(reply.success && threadContext.success)) {
-        return null;
-    }
-    if (item.cloudAgentWork !== undefined && !cloudAgentWork) {
-        return null;
-    }
-    if (invalidAttentionIdentity(item, cloudAgentWork)) {
-        return null;
-    }
-    return {
-        ...item,
-        ...(reply.data !== undefined ? { reply: reply.data } : {}),
-        ...(cloudAgentWork ? { cloudAgentWork } : {}),
-    } as unknown as AgentInboxItem;
-}
-
-function invalidAttentionIdentity(
-    item: Record<string, unknown>,
-    work: AgentCloudAgentWorkAttention | null | undefined
-): boolean {
-    if (work) {
-        return item.sequence !== 0 || item.id !== work.runId || item.senderType !== 'system';
-    }
-    return item.sequence === 0;
-}
-
-function parseCloudAgentWorkAttention(
-    value: unknown
-): AgentCloudAgentWorkAttention | undefined | null {
-    if (value === undefined) {
-        return undefined;
-    }
-    const parsed = cloudAgentWorkAttentionSchema.safeParse(value);
+    const parsed = agentInboxItemSchema.safeParse(item);
     return parsed.success ? parsed.data : null;
 }
 

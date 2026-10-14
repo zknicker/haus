@@ -118,7 +118,11 @@ export async function createCloudAgentWork(
             title: input.title,
         });
         const runId = createOpaqueId('car');
-        const model = await resolveRunModel(tx, { computerId, serverId: runner.serverId });
+        const model = await resolveRunModel(tx, {
+            computerId,
+            serverId: runner.serverId,
+            provider: input.provider,
+        });
         await tx.insert(cloudAgentRunsTable).values({
             id: runId,
             modelDroppedParams: model.droppedParams,

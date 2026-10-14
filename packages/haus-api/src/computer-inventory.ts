@@ -115,6 +115,7 @@ export type CloudAgentProviderReadiness = z.infer<typeof cloudAgentProviderReadi
 
 export const computerInventorySchema = z
     .object({
+        defaultCloudAgentProvider: cloudAgentProviderSchema.optional(),
         agentSkillImports: z.array(agentSkillImportRecordSchema).max(100).optional(),
         agentSkills: z
             .array(

@@ -4,6 +4,7 @@ import Foundation
 /// has received, in Cursor's vocabulary. `queued` is never a job state — a job
 /// whose first Run has not started yet is `working`.
 public enum CloudAgentJobState: String, Codable, CaseIterable, Hashable, Sendable {
+    case pendingInput = "pending-input"
     case working, done, failed, cancelled, expired
 }
 
@@ -25,6 +26,7 @@ public struct CloudAgentFollowUp: Codable, Hashable, Sendable {
 /// case carries exactly the fields its wire variant does, so a failed job
 /// cannot lose its report and a working one cannot claim a settle time.
 public enum CloudAgentJob: Hashable, Sendable {
+    case pendingInput(startedAt: Date?, followUp: CloudAgentFollowUp?)
     case working(startedAt: Date?, followUp: CloudAgentFollowUp?)
     case done(startedAt: Date?, settledAt: Date?, followUp: CloudAgentFollowUp?)
     case failed(errorCode: String?, summary: String?, settledAt: Date?, followUp: CloudAgentFollowUp?)
@@ -33,6 +35,7 @@ public enum CloudAgentJob: Hashable, Sendable {
 
     public var state: CloudAgentJobState {
         switch self {
+        case .pendingInput: .pendingInput
         case .working: .working
         case .done: .done
         case .failed: .failed
@@ -43,7 +46,7 @@ public enum CloudAgentJob: Hashable, Sendable {
 
     public var followUp: CloudAgentFollowUp? {
         switch self {
-        case .working(_, let followUp), .done(_, _, let followUp), .failed(_, _, _, let followUp),
+        case .pendingInput(_, let followUp), .working(_, let followUp), .done(_, _, let followUp), .failed(_, _, _, let followUp),
              .cancelled(_, let followUp), .expired(_, let followUp):
             followUp
         }
@@ -52,7 +55,7 @@ public enum CloudAgentJob: Hashable, Sendable {
     /// When the Run the state comes from settled; nil while working.
     public var settledAt: Date? {
         switch self {
-        case .working: nil
+        case .working, .pendingInput: nil
         case .done(_, let settledAt, _), .failed(_, _, let settledAt, _),
              .cancelled(let settledAt, _), .expired(let settledAt, _):
             settledAt
@@ -71,6 +74,8 @@ extension CloudAgentJob: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let followUp = try container.decode(CloudAgentFollowUp?.self, forKey: .followUp)
         switch try container.decode(CloudAgentJobState.self, forKey: .state) {
+        case .pendingInput:
+            self = .pendingInput(startedAt: try container.decode(Date?.self, forKey: .startedAt), followUp: followUp)
         case .working:
             self = .working(startedAt: try container.decode(Date?.self, forKey: .startedAt), followUp: followUp)
         case .done:
@@ -98,7 +103,7 @@ extension CloudAgentJob: Codable {
         try container.encode(state, forKey: .state)
         try container.encode(followUp, forKey: .followUp)
         switch self {
-        case .working(let startedAt, _):
+        case .working(let startedAt, _), .pendingInput(let startedAt, _):
             try container.encode(startedAt, forKey: .startedAt)
         case .done(let startedAt, let settledAt, _):
             try container.encode(startedAt, forKey: .startedAt)

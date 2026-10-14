@@ -46,7 +46,11 @@ export class CloudAgentLocalRuns {
                 case 'launched':
                     return { kind: 'launched', launch: recorded.launch, observedAt } as const;
                 case 'cancelled':
-                    return unsent({ observedAt, status: 'cancelled' });
+                    return unsent({
+                        observedAt,
+                        status: 'cancelled',
+                        ...(run.ref.provider === 'claude' ? { rawStatus: 'NOT_LAUNCHED' } : {}),
+                    });
                 case 'rejected':
                     return unsent({
                         errorCode: recorded.errorCode,

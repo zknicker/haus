@@ -1,3 +1,4 @@
+import type { CloudAgentProvider } from '@haus/api';
 import { Description, Label, ListBox, Select, Separator, Switch } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { useSetCloudAgentModel } from '../../../hooks/servers/use-cloud-agent-settings.ts';
@@ -12,10 +13,12 @@ import { type CloudAgentModelParamsView, settingWithParam } from './cloud-agent-
 export function CloudAgentParamRows({
     canManage,
     serverId,
+    provider,
     view,
 }: {
     canManage: boolean;
     serverId: string;
+    provider: CloudAgentProvider;
     view: CloudAgentModelParamsView;
 }) {
     return (
@@ -23,13 +26,23 @@ export function CloudAgentParamRows({
             {view.effort ? (
                 <>
                     <Separator />
-                    <EffortRow canManage={canManage} serverId={serverId} view={view} />
+                    <EffortRow
+                        canManage={canManage}
+                        provider={provider}
+                        serverId={serverId}
+                        view={view}
+                    />
                 </>
             ) : null}
             {view.fast ? (
                 <>
                     <Separator />
-                    <FastRow canManage={canManage} serverId={serverId} view={view} />
+                    <FastRow
+                        canManage={canManage}
+                        provider={provider}
+                        serverId={serverId}
+                        view={view}
+                    />
                 </>
             ) : null}
         </>
@@ -39,13 +52,15 @@ export function CloudAgentParamRows({
 function EffortRow({
     canManage,
     serverId,
+    provider,
     view,
 }: {
     canManage: boolean;
     serverId: string;
+    provider: CloudAgentProvider;
     view: CloudAgentModelParamsView;
 }) {
-    const setModel = useSetCloudAgentModel(serverId);
+    const setModel = useSetCloudAgentModel(serverId, provider);
     const options = view.effort?.options ?? [];
     const selected = view.effort?.selected ?? null;
     const selectedLabel = options.find((option) => option.value === selected)?.label ?? 'Default';
@@ -66,6 +81,7 @@ function EffortRow({
                                 setModel.mutate({
                                     model: settingWithParam(view, { effort: key }),
                                     serverId,
+                                    provider,
                                 });
                             }
                         }}
@@ -115,13 +131,15 @@ function EffortRow({
 function FastRow({
     canManage,
     serverId,
+    provider,
     view,
 }: {
     canManage: boolean;
     serverId: string;
+    provider: CloudAgentProvider;
     view: CloudAgentModelParamsView;
 }) {
-    const setModel = useSetCloudAgentModel(serverId);
+    const setModel = useSetCloudAgentModel(serverId, provider);
     const isOn = view.fast?.selected ?? false;
 
     return (
@@ -136,7 +154,11 @@ function FastRow({
                         aria-label="Cloud Agent fast mode"
                         isSelected={isOn}
                         onChange={(fast) =>
-                            setModel.mutate({ model: settingWithParam(view, { fast }), serverId })
+                            setModel.mutate({
+                                model: settingWithParam(view, { fast }),
+                                serverId,
+                                provider,
+                            })
                         }
                     >
                         <Switch.Content>

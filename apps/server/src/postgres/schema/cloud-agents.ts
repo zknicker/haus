@@ -12,7 +12,8 @@ import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
-const statuses = "('queued', 'running', 'completed', 'failed', 'cancelled', 'expired')";
+const statuses =
+    "('queued', 'running', 'pending_input', 'completed', 'failed', 'cancelled', 'expired')";
 
 /**
  * One Agent's delegation of bounded development work to a provider-hosted
@@ -71,12 +72,12 @@ export const cloudAgentWorkTable = pgTable(
         }),
         index('cloud_agent_work_active_idx')
             .on(table.serverId, table.createdAt)
-            .where(sql`${table.status} in ('queued', 'running')`),
+            .where(sql`${table.status} in ('queued', 'running', 'pending_input')`),
         index('cloud_agent_work_computer_active_idx')
             .on(table.computerId, table.createdAt)
-            .where(sql`${table.status} in ('queued', 'running')`),
+            .where(sql`${table.status} in ('queued', 'running', 'pending_input')`),
         check('cloud_agent_work_id_shape', sql`${table.id} ~ '^caw_[A-Za-z0-9_-]{16}$'`),
-        check('cloud_agent_work_provider', sql`${table.provider} = 'cursor'`),
+        check('cloud_agent_work_provider', sql`${table.provider} in ('cursor', 'claude')`),
         check('cloud_agent_work_status', sql.raw(`"cloud_agent_work"."status" in ${statuses}`)),
         check('cloud_agent_work_title_length', sql`char_length(${table.title}) between 1 and 120`),
         check(

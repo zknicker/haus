@@ -35,6 +35,15 @@ export class CloudAgentWorkSettledError extends Error {
     }
 }
 
+export class CloudAgentCancelUnsupportedError extends Error {
+    constructor() {
+        super(
+            'Claude Cloud cancellation requires stopping the session in Claude. Open the provider page to stop it.'
+        );
+        this.name = 'CloudAgentCancelUnsupportedError';
+    }
+}
+
 export class CloudAgentCancelDeniedError extends Error {
     constructor() {
         super('Only the delegating Agent, an Owner, or an Admin may cancel Cloud Agent work.');

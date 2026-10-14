@@ -17,7 +17,7 @@ struct CloudAgentStatusGlyph: View {
                     .controlSize(.mini)
                     .tint(tint)
             } else {
-                Image(systemName: state == .done ? "checkmark.circle.fill" : "xmark.circle.fill")
+                Image(systemName: state == .pendingInput ? "pause.circle.fill" : state == .done ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .resizable()
                     .scaledToFit()
                     .foregroundStyle(tint)
@@ -39,6 +39,7 @@ enum CloudAgentTone {
 
     static func color(for state: CloudAgentJobState) -> Color {
         switch state {
+        case .pendingInput: warning
         case .working: .accentColor
         case .done: .green
         case .failed: .red

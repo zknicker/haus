@@ -42,7 +42,7 @@ export async function listActiveCloudAgentWork(
         .where(
             and(
                 eq(cloudAgentWorkTable.serverId, input.serverId),
-                inArray(cloudAgentWorkTable.status, ['queued', 'running']),
+                inArray(cloudAgentWorkTable.status, ['queued', 'running', 'pending_input']),
                 cloudAgentWorkVisibleSql(db, input.serverId, { kind: 'user', userId: member.id })
             )
         )

@@ -2,6 +2,8 @@ import { makeProcessTelemetryRelay } from '@haus/effect';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import type { FastifyInstance } from 'fastify';
 import { registerAgentArtifactRoutes } from './agent-api/artifact-routes.ts';
+import { registerCloudAgentBootstrapRoutes } from './agent-api/cloud-agent-bootstrap-routes.ts';
+import { registerCloudAgentInputRoutes } from './agent-api/cloud-agent-input-routes.ts';
 import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
@@ -55,6 +57,18 @@ export async function registerHausServerRoutes(
         githubApp: dependencies.githubApp,
         mcpRuntime: dependencies.mcpRuntime,
         postCommitWork: dependencies.postCommitWork,
+    });
+    registerCloudAgentInputRoutes(app, {
+        db,
+        appOrigin: dependencies.appOrigin,
+        agentDelivery: dependencies.agentDelivery,
+        postCommitWork: dependencies.postCommitWork,
+        computers: dependencies.computerConnections,
+    });
+    registerCloudAgentBootstrapRoutes(app, {
+        db,
+        appOrigin: dependencies.appOrigin,
+        computers: dependencies.computerConnections,
     });
     registerMcpOAuthCallback(app, dependencies.mcpOAuthRelay);
     registerGithubSetupRoute(app, {

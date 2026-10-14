@@ -10,6 +10,7 @@ import {
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import { launchRejection } from './send-delivery.ts';
+import { readCloudAgentSettings } from './settings.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 export interface CloudAgentStartRequest {
@@ -17,6 +18,7 @@ export interface CloudAgentStartRequest {
     /** The provider prompt. It stays on this Computer and never reaches Server. */
     instructions: string;
     nonce: string;
+    provider?: import('@haus/api').CloudAgentProvider;
     replyToMessageId?: string;
     repository: string;
     startingRef: string | null;
@@ -61,7 +63,8 @@ export async function startCloudAgentWork(input: {
     serverId: string;
     serverOrigin: string;
 }): Promise<AgentCloudAgentStartResponse> {
-    const provider = cloudAgentProvider();
+    const settings = await readCloudAgentSettings(input.dataRoot);
+    const provider = cloudAgentProvider(input.request.provider ?? settings.defaultProvider);
     const readiness = await provider.readiness();
     if (!readiness.ready) {
         throw new CloudAgentProviderUnavailableError(readiness.reason);
@@ -88,6 +91,7 @@ export async function startCloudAgentWork(input: {
     }
     const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
     const ref: CloudAgentRunRef = {
+        provider: receipt.work.provider,
         providerAgentId: receipt.work.providerAgentId,
         providerRunId: run?.providerRunId ?? null,
         runId: receipt.runId,
@@ -138,6 +142,7 @@ export async function startCloudAgentWork(input: {
     let launch: CloudAgentLaunch;
     try {
         launch = await provider.start({
+            ...nativeWorkIdentity(provider, receipt.work.id),
             idempotencyKey: receipt.runId,
             instructions,
             // Server resolved the Server's chosen model, or its Auto fallback, onto the Run.
@@ -173,7 +178,7 @@ export async function startCloudAgentWork(input: {
     input.supervisor.report(ref, {
         observedAt: new Date().toISOString(),
         providerAgentId: launch.providerAgentId,
-        providerRunId: launch.providerRunId,
+        providerRunId: launch.providerRunId ?? undefined,
         ...(launch.providerUrl ? { providerUrl: launch.providerUrl } : {}),
         status: launch.status,
     });
@@ -198,4 +203,8 @@ export class CloudAgentServerError extends Error {
         this.code = 'code' in body && typeof body.code === 'string' ? body.code : 'SERVER_5XX';
         this.name = 'CloudAgentServerError';
     }
+}
+
+function nativeWorkIdentity(provider: import('./provider.ts').CloudAgentProvider, workId: string) {
+    return provider.provider === 'claude' ? { workId } : {};
 }

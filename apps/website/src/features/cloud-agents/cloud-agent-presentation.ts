@@ -23,6 +23,7 @@ export const cloudAgentJobLabels: Record<CloudAgentJobState, string> = {
     expired: 'Expired',
     failed: 'Failed',
     working: 'Working',
+    'pending-input': 'Pending input',
 };
 
 /** A cancelled or expired job ended without failing, so it no longer asks for attention. */
@@ -36,6 +37,8 @@ export function isEndedCloudAgentJob(state: CloudAgentJobState): boolean {
  */
 export function cloudAgentJobTone(state: CloudAgentJobState): CloudAgentTone {
     switch (state) {
+        case 'pending-input':
+            return 'warning';
         case 'working':
             return 'accent';
         case 'done':
@@ -51,8 +54,10 @@ export function cloudAgentJobTone(state: CloudAgentJobState): CloudAgentTone {
 /** The Chip color the card's headline wears, from the one tone rule above. */
 export function cloudAgentJobChipColor(
     state: CloudAgentJobState
-): 'accent' | 'danger' | 'default' | 'success' {
+): 'accent' | 'danger' | 'default' | 'success' | 'warning' {
     switch (state) {
+        case 'pending-input':
+            return 'warning';
         case 'working':
             return 'accent';
         case 'done':
@@ -94,7 +99,7 @@ export function quietFor(
     work: Pick<CloudAgentWorkPresentationInput, 'status' | 'updatedAt'>,
     now: number
 ): null | number {
-    if (isTerminalCloudAgentStatus(work.status)) {
+    if (isTerminalCloudAgentStatus(work.status) || work.status === 'pending_input') {
         return null;
     }
     const updatedAt = Date.parse(work.updatedAt);
@@ -139,11 +144,13 @@ export function cloudAgentWorkAgentFallbackName(agentId: string): string {
 
 /** Owners and Admins may cancel; a settled Run has nothing left to stop. */
 export function canCancelCloudAgentWork(input: {
+    provider?: CloudAgentWork['provider'];
     cancelRequestedAt: string | null;
     role: string;
     status: CloudAgentStatus;
 }): boolean {
     return (
+        input.provider !== 'claude' &&
         (input.role === 'owner' || input.role === 'admin') &&
         !isTerminalCloudAgentStatus(input.status) &&
         input.cancelRequestedAt === null

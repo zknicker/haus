@@ -35,7 +35,7 @@ public struct ThreadCloudAgentRow: Identifiable, Hashable, Sendable {
 
     static func row(_ agent: CloudAgentPresentation, at now: Date) -> ThreadCloudAgentRow {
         let job = agent.work.job
-        let quiet = job.state == .failed ? nil : agent.quietFor(at: now)
+        let quiet = (job.state == .failed || job.state == .pendingInput) ? nil : agent.quietFor(at: now)
         let statusText: String
         if let quiet {
             statusText = "No update in \(CloudAgentPresentation.duration(seconds: Int(quiet)))"
@@ -48,7 +48,7 @@ public struct ThreadCloudAgentRow: Identifiable, Hashable, Sendable {
             agent: agent,
             state: job.state,
             statusText: statusText,
-            tone: quiet == nil ? .standard : .warning,
+            tone: quiet == nil && job.state != .pendingInput ? .standard : .warning,
             pullRequestNumber: agent.pullRequestNumber
         )
     }
@@ -100,7 +100,8 @@ public struct ThreadCloudAgentStack: Hashable, Sendable {
     public var counts: [Count] {
         let buckets: [(String, Count.Tone, (ThreadCloudAgentRow) -> Bool)] = [
             ("failed", .danger, { $0.state == .failed }),
-            ("no update", .warning, { $0.tone == .warning }),
+            ("pending input", .warning, { $0.state == .pendingInput }),
+            ("no update", .warning, { $0.tone == .warning && $0.state != .pendingInput }),
             ("working", .standard, { $0.state == .working && $0.tone == .standard }),
             ("done", .standard, { $0.state == .done && $0.tone == .standard }),
             ("cancelled", .standard, { $0.state == .cancelled && $0.tone == .standard }),

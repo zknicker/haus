@@ -1,7 +1,11 @@
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import { cloudAgentObservationSchema, cloudAgentReconcileEntrySchema } from './cloud-agent.ts';
-import { cloudAgentCapabilityStateSchema, cloudAgentProviderSchema } from './cloud-agent-shared.ts';
+import {
+    cloudAgentCapabilityStateSchema,
+    cloudAgentComputerSettingsPatchSchema,
+    cloudAgentProviderSchema,
+} from './cloud-agent-shared.ts';
 
 /**
  * Server-recorded cancellation riding down to the Computer that owns the
@@ -46,6 +50,12 @@ export const cloudAgentCapabilityRequestSchema = z
     .object({
         operation: z.discriminatedUnion('kind', [
             z.object({ kind: z.literal('get') }).strict(),
+            z
+                .object({
+                    kind: z.literal('configure'),
+                    settings: cloudAgentComputerSettingsPatchSchema,
+                })
+                .strict(),
             z.object({ kind: z.literal('connect') }).strict(),
             z.object({ kind: z.literal('cancel-sign-in') }).strict(),
             z.object({ kind: z.literal('disconnect') }).strict(),
@@ -79,3 +89,32 @@ export const cloudAgentObservationFrameSchema = z
     .strict();
 
 export type CloudAgentObservationFrame = z.infer<typeof cloudAgentObservationFrameSchema>;
+
+/** A durable stored answer is ready for its Computer-owned native continuation. */
+export const cloudAgentInputAnsweredCommandSchema = z
+    .object({
+        type: z.literal('cloud-agent-input-answered'),
+        workId: idSchema,
+        runId: idSchema,
+        requestId: idSchema,
+    })
+    .strict();
+export type CloudAgentInputAnsweredCommand = z.infer<typeof cloudAgentInputAnsweredCommandSchema>;
+
+/** Native callback state changed; Computer reads the canonical execution snapshot. */
+export const cloudAgentNativeUpdatedCommandSchema = z
+    .object({
+        type: z.literal('cloud-agent-native-updated'),
+        workId: idSchema,
+        runId: idSchema,
+    })
+    .strict();
+export type CloudAgentNativeUpdatedCommand = z.infer<typeof cloudAgentNativeUpdatedCommandSchema>;
+
+export const cloudAgentCommandSchemas = [
+    cloudAgentCancelCommandSchema,
+    cloudAgentInputAnsweredCommandSchema,
+    cloudAgentNativeUpdatedCommandSchema,
+    cloudAgentCapabilityRequestSchema,
+    cloudAgentReconcileCommandSchema,
+] as const;

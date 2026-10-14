@@ -1,15 +1,17 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { type FileHandle, mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { cloudAgentProviderSchema, cloudAgentStatusSchema } from '@haus/api';
 import * as z from 'zod';
 import type { CloudAgentLaunch, CloudAgentRunRef } from './provider.ts';
 
 const launchSchema = z.object({
     providerAgentId: z.string().min(1),
-    providerRunId: z.string().min(1),
+    providerRunId: z.string().min(1).nullable(),
     providerUrl: z.string().nullable(),
-    status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
+    status: cloudAgentStatusSchema,
 });
+const identity = { workId: z.string(), provider: cloudAgentProviderSchema.optional() };
 /** Retryable send failures so far; absent until the first attempt fails. */
 const deliverySchema = z.object({
     attempts: z.number().int().positive(),
@@ -20,7 +22,7 @@ const deliverySchema = z.object({
 const recordSchema = z.discriminatedUnion('phase', [
     z.object({
         phase: z.literal('pending'),
-        workId: z.string(),
+        ...identity,
         instructions: z.string().min(1),
         /** Absent in records written before Server resolved a model: no model sent. */
         model: z
@@ -34,7 +36,7 @@ const recordSchema = z.discriminatedUnion('phase', [
         interrupt: z.boolean(),
         predecessors: z.array(
             z.object({
-                workId: z.string(),
+                ...identity,
                 runId: z.string(),
                 providerAgentId: z.string().nullable(),
                 providerRunId: z.string().nullable(),
@@ -42,12 +44,12 @@ const recordSchema = z.discriminatedUnion('phase', [
         ),
         delivery: deliverySchema.nullable().default(null),
     }),
-    z.object({ phase: z.literal('cancelled'), workId: z.string() }),
-    z.object({ phase: z.literal('launching'), workId: z.string() }),
-    z.object({ phase: z.literal('launched'), workId: z.string(), launch: launchSchema }),
+    z.object({ phase: z.literal('cancelled'), ...identity }),
+    z.object({ phase: z.literal('launching'), ...identity }),
+    z.object({ phase: z.literal('launched'), ...identity, launch: launchSchema }),
     z.object({
         phase: z.literal('rejected'),
-        workId: z.string(),
+        ...identity,
         /** Absent in records written before rejections carried a reason. */
         errorCode: z.string().min(1).default('provider-launch-rejected'),
         summary: z.string().min(1).nullable().default(null),
@@ -79,6 +81,9 @@ export class CloudLaunchJournal {
         if (record.workId !== ref.workId) {
             throw new Error('Cloud launch journal work identity does not match.');
         }
+        if ((record.provider ?? 'cursor') !== (ref.provider ?? 'cursor')) {
+            throw new Error('Cloud launch journal provider does not match the work.');
+        }
         return record;
     }
 
@@ -92,7 +97,10 @@ export class CloudLaunchJournal {
         ref: CloudAgentRunRef,
         initial?: z.input<typeof recordSchema>
     ): Promise<boolean> {
-        const record = recordSchema.parse(initial ?? { phase: 'launching', workId: ref.workId });
+        const record = recordSchema.parse({
+            ...(initial ?? { phase: 'launching', workId: ref.workId }),
+            ...(ref.provider === 'claude' ? { provider: ref.provider } : {}),
+        });
         await mkdir(this.directory(serverId), { recursive: true, mode: 0o700 });
         let file: FileHandle;
         try {
@@ -139,6 +147,14 @@ export class CloudLaunchJournal {
         await this.write(serverId, ref, { phase: 'cancelled', workId: ref.workId });
     }
 
+    async unconfirmed(serverId: string, ref: CloudAgentRunRef): Promise<void> {
+        await this.write(serverId, ref, {
+            phase: 'launching',
+            workId: ref.workId,
+            provider: ref.provider ?? 'cursor',
+        });
+    }
+
     private async write(
         serverId: string,
         ref: CloudAgentRunRef,
@@ -148,7 +164,12 @@ export class CloudLaunchJournal {
         const temporary = `${destination}.${randomUUID()}.tmp`;
         const file = await open(temporary, 'wx', 0o600);
         try {
-            await file.writeFile(JSON.stringify(record));
+            await file.writeFile(
+                JSON.stringify({
+                    ...record,
+                    ...(ref.provider === 'claude' ? { provider: ref.provider } : {}),
+                })
+            );
             await file.sync();
             await file.close();
             await rename(temporary, destination);

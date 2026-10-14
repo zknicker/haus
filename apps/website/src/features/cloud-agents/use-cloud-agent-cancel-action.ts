@@ -21,6 +21,7 @@ export function useCloudAgentCancelAction(work: CloudAgentWork) {
         canCancel:
             server !== undefined &&
             canCancelCloudAgentWork({
+                provider: work.provider,
                 cancelRequestedAt: work.cancelRequestedAt,
                 role: server.role,
                 status: work.status,

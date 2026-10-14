@@ -36,7 +36,7 @@ export async function listComputerCloudAgentWork(
                 eq(cloudAgentWorkTable.serverId, input.serverId),
                 eq(cloudAgentWorkTable.computerId, input.computerId),
                 input.workId ? eq(cloudAgentWorkTable.id, input.workId) : undefined,
-                inArray(cloudAgentRunsTable.status, ['queued', 'running'])
+                inArray(cloudAgentRunsTable.status, ['queued', 'running', 'pending_input'])
             )
         )
         .orderBy(asc(cloudAgentRunsTable.createdAt));

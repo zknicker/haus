@@ -21,6 +21,9 @@ extension CloudAgentPresentation {
         if case .failed(let errorCode, let summary, _, _) = job {
             return CloudAgentStatusLine(text: Self.failureReason(errorCode: errorCode, summary: summary), tone: .danger)
         }
+        if job.state == .pendingInput {
+            return CloudAgentStatusLine(text: "\(agentName) has a question to answer", tone: .warning)
+        }
         if let quiet = quietFor(at: now) {
             return CloudAgentStatusLine(text: "No update in \(Self.duration(seconds: Int(quiet)))", tone: .warning)
         }
@@ -34,6 +37,8 @@ extension CloudAgentPresentation {
         }
         let settledAt = job.settledAt ?? work.updatedAt
         let text: String = switch job.state {
+        case .pendingInput:
+            "Pending input"
         case .working:
             work.activity.flatMap { Self.oneLine($0.summary) } ?? "Updated \(relative(work.updatedAt, now))"
         case .done:
