@@ -259,6 +259,44 @@ recovers the issued Computer instead of creating another. `logout` revokes only
 the human management session and stops the service; it preserves every Server
 attachment and Agent workspace for an explicit later `start`.
 
+## Linux And Cloud Sessions
+
+`bun run dev` runs the whole stack on Linux, including Agent turns. Haus
+Computer keeps its macOS-only pieces behind platform seams:
+
+- Agent workspaces are plain directories, not capped sparsebundles (see
+  [Workspace](../../specs/workspace.md#capacity)); workspace maintenance
+  commands stay macOS-only.
+- Computer Secrets stores its 1Password token in the macOS Keychain, so
+  connecting a vault fails on Linux. Turns without Secrets are unaffected.
+- Browser discovers Chrome or Chromium binaries; the browser must still be
+  started externally (see [Browser](../internals/browser.md)).
+
+Turns need a signed-in runtime CLI on the host, exactly as on a Mac. The dev
+seed puts Cove, Blippy, and Tiny on Codex. Cloud sessions handle this
+automatically: `.agents/cloud/install.sh` installs the Codex CLI pinned in
+`harness-bridges/codex/`, and `.agents/cloud/start.sh` signs it in each session
+with the Development OpenAI key. Elsewhere on Linux, do the same by hand:
+
+```bash
+npm install -g @openai/codex@0.159.0
+varlock printenv HAUS_OPENAI_API_KEY | codex login --with-api-key
+```
+
+Restart the stack after signing in so Computer reports the runtime. A Cove whose
+setup already failed recovers on its own once the inventory includes Codex. The
+cloud install also exposes Playwright's Chromium as `chromium` and installs
+`agent-browser`, so a headless Chromium started with a dedicated
+`--user-data-dir` and `--remote-debugging-port=0` can be connected for the
+Browser tool.
+
+`bun run ui:capture -- <path-or-url>` screenshots the running website headlessly,
+resolving a bare path against this checkout's website port. `--video <dir>`
+records a WebM, `--send <text>` types a message into the composer first, and
+`--wait <ms>` holds before the screenshot, which is long enough to capture an
+Agent's reply when set to a minute or two. It uses Playwright's Chromium, or
+the preinstalled `$PLAYWRIGHT_BROWSERS_PATH/chromium` in cloud sessions.
+
 ## Haus For iPhone In Simulator
 
 The iPhone app signs in automatically against a local Server, the same way the

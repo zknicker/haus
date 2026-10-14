@@ -17,6 +17,48 @@ import { macWorkspaceDisk } from './disk-image.ts';
 import { compactAgentWorkspace, migrateAgentWorkspace } from './maintenance.ts';
 import { ensureAgentWorkspace, resetWorkspaceContents } from './workspace-volume.ts';
 
+test('hosts without capped volumes provision and reset a plain directory workspace', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'haus-volume-uncapped-'));
+    const agentRoot = join(root, 'agent');
+    try {
+        expect(await ensureAgentWorkspace({ dataRoot: root, agentRoot, disk: null })).toEqual({
+            kind: 'uncapped',
+            path: join(agentRoot, 'workspace'),
+        });
+        await writeFile(join(agentRoot, 'workspace', 'notes.md'), 'kept');
+        await ensureAgentWorkspace({ dataRoot: root, agentRoot, disk: null });
+        expect(await readFile(join(agentRoot, 'workspace', 'notes.md'), 'utf8')).toBe('kept');
+        await resetWorkspaceContents(agentRoot, null);
+        expect(await readdir(agentRoot)).toEqual([]);
+    } finally {
+        await rm(root, { force: true, recursive: true });
+    }
+});
+
+test('hosts without capped volumes refuse to replace a capped workspace', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'haus-volume-foreign-'));
+    const agentRoot = join(root, 'agent');
+    await mkdir(join(agentRoot, 'workspace.sparsebundle'), { recursive: true });
+    await writeFile(
+        join(agentRoot, 'workspace-volume.json'),
+        JSON.stringify({ capacityBytes: 128 * 1024 ** 2, volumeUuid: 'mac' })
+    );
+    try {
+        await expect(
+            ensureAgentWorkspace({ dataRoot: root, agentRoot, disk: null })
+        ).rejects.toThrow('capped macOS volume');
+        await expect(resetWorkspaceContents(agentRoot, null)).rejects.toThrow(
+            'capped macOS volume'
+        );
+        expect((await readdir(agentRoot)).sort()).toEqual([
+            'workspace-volume.json',
+            'workspace.sparsebundle',
+        ]);
+    } finally {
+        await rm(root, { force: true, recursive: true });
+    }
+});
+
 const macTest = test.skipIf(process.platform !== 'darwin');
 macTest('legacy workspace is preserved and never silently migrated', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-volume-legacy-'));
