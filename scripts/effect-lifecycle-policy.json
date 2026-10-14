@@ -65,6 +65,39 @@
         "timer": 4
       }
     },
+    "apps/computer/src/cloud-agents/claude/interrupt-journal.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each awaited immutable journal write exclusively opens one metadata file, fsyncs it and closes its descriptor in lexical finally. No credentials, timer, retry loop or detached task live here; the Effect-owned supervisor drives bounded interruption attempts and reconciliation.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/claude/native-commands.ts": {
+      "disposition": "external-adapter",
+      "reason": "One bounded native CLI call owns its PTY and the two trust-prompt keystroke timers, cancels both timers and closes the PTY in lexical finally. Four timer references include the two handle types. The daemon Effect supervisor owns monitoring, cancellation signals and retry policy; this adapter never cancels hosted work or retries an uncertain delivery.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 4
+      }
+    },
+    "apps/computer/src/cloud-agents/settings.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each caller awaits its finite atomic settings-file transaction and removes its temporary file in lexical finally. The per-path Promise tail only orders those awaited transactions and is released by the last caller; recovering a prior caller's rejection unblocks the next write without suppressing either caller's own failure. No timer, detached task or recurring owner is created.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/computer/src/cloud-agents/cursor/provider.ts": {
       "disposition": "external-adapter",
       "reason": "Cursor terminal stream handling aborts only the local subscription. The daemon Effect supervisor owns polling, retries and joined subscription teardown.",

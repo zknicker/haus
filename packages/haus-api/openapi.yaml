@@ -3580,10 +3580,10 @@ components:
           minLength: 1
         provider:
           type: string
-          enum: [cursor]
+          enum: [cursor, claude]
         status:
           type: string
-          enum: [queued, running, completed, failed, cancelled, expired]
+          enum: [queued, running, pending_input, completed, failed, cancelled, expired]
         title:
           type: string
           minLength: 1
@@ -3615,7 +3615,7 @@ components:
           minLength: 1
         status:
           type: string
-          enum: [queued, running, completed, failed, cancelled, expired]
+          enum: [queued, running, pending_input, completed, failed, cancelled, expired]
         summary:
           type: [string, 'null']
         error_code:

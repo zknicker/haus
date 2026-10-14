@@ -1,0 +1,2 @@
+ALTER TABLE "cloud_agent_work" DROP CONSTRAINT "cloud_agent_work_provider";--> statement-breakpoint
+ALTER TABLE "cloud_agent_work" ADD CONSTRAINT "cloud_agent_work_provider" CHECK ("cloud_agent_work"."provider" in ('cursor', 'claude'));

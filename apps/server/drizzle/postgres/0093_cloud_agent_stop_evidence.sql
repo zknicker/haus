@@ -1,0 +1,1 @@
+ALTER TABLE "cloud_agent_prompts" ADD COLUMN "stop_evidence" jsonb;

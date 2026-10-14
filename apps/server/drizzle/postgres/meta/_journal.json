@@ -603,6 +603,62 @@
       "when": 1791849600000,
       "tag": "0085_tmterminal-preset",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1791934153266,
+      "tag": "0086_cloud_agent_input",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1791934269194,
+      "tag": "0087_cloud_agent_providers",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1791934400007,
+      "tag": "0088_cloud_agent_provider_choice",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1791934477547,
+      "tag": "0089_cloud_agent_question_receipt",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1791934622824,
+      "tag": "0090_cloud_agent_bootstrap",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1791934755929,
+      "tag": "0091_cloud_agent_bootstrap_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1791939867834,
+      "tag": "0092_cloud_agent_pending_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1791949803171,
+      "tag": "0093_cloud_agent_stop_evidence",
+      "breakpoints": true
     }
   ]
 }
