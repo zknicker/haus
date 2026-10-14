@@ -30,7 +30,7 @@ export function ImageGenerationCard({
     serverId,
 }: {
     generation: ImageGeneration;
-    /** Position in its strip; staggers the entrance. */
+    /** Position among the Message's cards, across strips; staggers the entrance. */
     index?: number;
     /** Opens the viewer; only a ready card has a picture to open. */
     onOpen: () => void;
@@ -48,10 +48,11 @@ export function ImageGenerationCard({
     const reveal = React.useCallback(() => setRevealed(true), []);
     const shimmer = live || (state === 'ready' && !revealed);
     const entrance = arrivedLive ? imageGenerationEntrance(index, reduceMotion) : null;
+    const painted = usePaintedOnce(entrance !== null);
 
     return (
         <motion.figure
-            animate={entrance?.animate}
+            animate={entrance ? (painted ? entrance.animate : entrance.initial) : undefined}
             aria-label={imageGenerationLabel(generation)}
             className="m-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-nested-surface"
             data-slot="image-generation-card"
@@ -71,6 +72,25 @@ export function ImageGenerationCard({
             <GenerationFooter generation={generation} />
         </motion.figure>
     );
+}
+
+/**
+ * False until the frame after this card first paints, when `wait` is set. The
+ * commit that mounts a new Message can be one long frame; an entrance started
+ * inside it would skip its first third, so it starts on the frame after.
+ */
+function usePaintedOnce(wait: boolean): boolean {
+    const [painted, setPainted] = React.useState(!wait);
+    React.useEffect(() => {
+        if (painted) {
+            return;
+        }
+        let frame = requestAnimationFrame(() => {
+            frame = requestAnimationFrame(() => setPainted(true));
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [painted]);
+    return painted;
 }
 
 function GenerationPicture({

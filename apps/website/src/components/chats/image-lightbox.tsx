@@ -24,6 +24,8 @@ interface ImageLightboxProps {
     navigation?: { onNext?: () => void; onPrevious?: () => void };
     onOpenChange: (open: boolean) => void;
     open: boolean;
+    /** The header's words and the dialog's name when the file name means little to a person; defaults to `filename`. */
+    title?: string;
     width?: number | null;
 }
 
@@ -42,6 +44,7 @@ export function ImageLightbox({
     navigation,
     onOpenChange,
     open,
+    title = filename,
     width,
 }: ImageLightboxProps) {
     const [zoom, setZoom] = React.useState(1);
@@ -84,13 +87,10 @@ export function ImageLightbox({
             onOpenChange={onOpenChange}
         >
             <Modal className="data-entering:fade-in data-exiting:fade-out data-entering:zoom-in-95 data-exiting:zoom-out-95 fixed inset-0 z-50 data-entering:animate-in data-exiting:animate-out">
-                <Dialog
-                    aria-label={filename}
-                    className="flex h-dvh flex-col text-white outline-none"
-                >
+                <Dialog aria-label={title} className="flex h-dvh flex-col text-white outline-none">
                     {/* The header owns the actions, so nothing below ever tucks under them. */}
                     <div className="flex h-16 shrink-0 items-center gap-3 pr-4 pl-24">
-                        <p className="min-w-0 flex-1 truncate text-sm text-white/75">{filename}</p>
+                        <p className="min-w-0 flex-1 truncate text-sm text-white/75">{title}</p>
                         <ImageLightboxDownload
                             dataUrl={dataUrl}
                             download={download}
@@ -107,7 +107,7 @@ export function ImageLightbox({
                     </div>
                     <div className="flex min-h-0 flex-1 flex-col md:flex-row">
                         <div className="relative flex min-h-0 min-w-0 flex-1">
-                            <div className="min-h-0 flex-1 overflow-auto px-20 pt-2 pb-24">
+                            <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-24 md:px-20">
                                 <div
                                     className={cn(
                                         'relative flex items-center justify-center',

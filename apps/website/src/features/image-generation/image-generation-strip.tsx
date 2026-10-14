@@ -12,9 +12,12 @@ import { ImageGenerationLightbox } from './image-generation-lightbox.tsx';
  * the ready images of this strip only. There is no total or summary.
  */
 export function ImageGenerationStrip({
+    firstIndex = 0,
     generations,
     serverId,
 }: {
+    /** How many cards earlier strips of the same Message hold, so the entrance staggers across them. */
+    firstIndex?: number;
     generations: readonly ImageGeneration[];
     serverId: string;
 }) {
@@ -30,7 +33,7 @@ export function ImageGenerationStrip({
                 {generations.map((generation, index) => (
                     <ImageGenerationCard
                         generation={generation}
-                        index={index}
+                        index={firstIndex + index}
                         key={generation.id}
                         onOpen={() => setViewingId(generation.id)}
                         serverId={serverId}

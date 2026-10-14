@@ -12,7 +12,10 @@ import {
 import { MessageRoutingDebug } from '../../chats/routing/message-routing-debug.tsx';
 import { cloudAgentWorkDisplayContent } from '../../cloud-agents/message-cloud-agent-work.ts';
 import { ImageGenerationStrip } from '../../image-generation/image-generation-strip.tsx';
-import { splitImageGenerationContent } from '../../image-generation/message-image-generations.ts';
+import {
+    type MessageImageSegment,
+    splitImageGenerationContent,
+} from '../../image-generation/message-image-generations.ts';
 import {
     applyAgentMentionAppearance,
     applyChatMentionAppearance,
@@ -51,14 +54,16 @@ export function ServerChatMessageContent({
     // backed image links becomes a card (or a strip of them) in place, so the
     // raw link text is never shown beside its card.
     const segments = splitImageGenerationContent(content, message.imageGenerations ?? []);
+    const firstCardIndex = firstCardIndexes(segments);
 
     const Wrapper = segments.length > 1 ? SegmentColumn : React.Fragment;
     const body = (
         <>
             <Wrapper>
-                {segments.map((segment) =>
+                {segments.map((segment, index) =>
                     segment.kind === 'images' ? (
                         <ImageGenerationStrip
+                            firstIndex={firstCardIndex[index]}
                             generations={segment.generations}
                             key={segment.key}
                             serverId={serverId}
@@ -88,6 +93,16 @@ export function ServerChatMessageContent({
     ) : (
         body
     );
+}
+
+/** Per segment, how many image cards come before it in the Message. */
+function firstCardIndexes(segments: readonly MessageImageSegment[]): number[] {
+    let count = 0;
+    return segments.map((segment) => {
+        const first = count;
+        count += segment.kind === 'images' ? segment.generations.length : 0;
+        return first;
+    });
 }
 
 /** Text and image cards stack one block-gap apart, like the other in-chat cards. */
