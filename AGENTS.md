@@ -270,32 +270,27 @@ publishes a Server target deploys production automatically through the Release w
 `production` Environment. Manual deploy and activate runs are for recovery only; see
 `docs/operations/haus-server-deploy.md`.
 
-## Cursor Cloud specific instructions
+## Cloud agents
 
-The Cloud Agent environment is repository-managed via `.cursor/environment.json`,
-`.cursor/install.sh`, and `.cursor/start.sh`. The install step provisions Bun `1.4.2`
-and PostgreSQL 16, then runs `bun run setup:worktree` (frozen `bun install` + HeroUI Pro
-artifact download). `start.sh` seeds fleet agents on every boot. The full stack
-(`bun run dev`) auto-starts in the `dev-stack` terminal.
+Cloud agent platforms share one install and one bootstrap; each platform keeps only a thin
+adapter. `scripts/cloud-agent-install.sh` provisions Bun `1.4.2` and PostgreSQL 16, then runs
+`bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download).
+`scripts/fetch-fleet.sh` downloads the `zknicker/agents` fleet bundle into `~/.agents/fleet`.
 
-- There are no per-repository Cursor secrets. Every value resolves from 1Password through the
- committed `.env.schema`, using the fleet-wide Development identity Cursor injects as the
- account-level Runtime Secret `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`. The two licensed
- install credentials are fetched during `install` by `bun run setup:worktree` under the install
- context switch; the Clerk credentials arrive as ordinary schema values when the stack starts.
- See [docs/operations/environment.md](docs/operations/environment.md).
-- `.cursor/start.sh` seeds the shared fleet skill library from the private
- `zknicker/agents` repository on every boot, using the account-level Runtime Secret
- `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN`. That credential is agent tooling, not part of Haus's
- environment contract, so it lives in Cursor's own secret store and never touches the schema.
- Haus's own product skills stay in the committed `.agents/skills`.
-- PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, and `.cursor/install.sh` symlinks its
- binaries into `/usr/local/bin` so every PostgreSQL-backed lane finds them on `PATH`
- (`bun run test:app`, `apps/server` tests, evals, and the dev stack). `scripts/dev-postgres.mjs` and
- the server test harness otherwise only auto-discover Homebrew paths on Linux; if you run PostgreSQL
- 16 from a non-standard location, set `HAUS_POSTGRES_BIN` to its bin directory (the `dev-stack`
- terminal already exports it explicitly). Do not start a system PostgreSQL service; each lane owns a
- throwaway/worktree-isolated cluster.
+- There are no per-repository cloud secrets. Each platform provides the fleet-wide read-only
+ Development identity as `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`; every value resolves from
+ 1Password through the committed `.env.schema`. The two licensed install credentials are fetched
+ by `bun run setup:worktree` under the install context switch; the Clerk credentials arrive as
+ ordinary schema values when the stack starts. The fleet read key resolves through
+ `scripts/fleet-bootstrap/.env.schema`. See
+ [docs/operations/environment.md](docs/operations/environment.md).
+- Haus's own product skills stay in the committed `.agents/skills`.
+- PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, and the install symlinks its binaries into
+ `/usr/local/bin` so every PostgreSQL-backed lane finds them on `PATH` (`bun run test:app`,
+ `apps/server` tests, evals, and the dev stack). `scripts/dev-postgres.mjs` and the server test
+ harness otherwise only auto-discover Homebrew paths on Linux; if you run PostgreSQL 16 from a
+ non-standard location, set `HAUS_POSTGRES_BIN` to its bin directory. Do not start a system
+ PostgreSQL service; each lane owns a throwaway/worktree-isolated cluster.
 - The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against Haus's development Clerk
  instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
  channels, starter messages). No manual login is required in dev.
@@ -305,20 +300,21 @@ artifact download). `start.sh` seeds fleet agents on every boot. The full stack
  `docs/operations/development.md` for stack details and `docs/operations/testing.md` for
  lint/test/build lanes (`bun run lint`, `bun run typecheck`).
 
-## Claude Code cloud specific instructions
+### Cursor adapter
 
-Claude Code cloud sessions follow the fleet's BidBeacon pilot (`zknicker/agents`
-`docs/cloud-environments.md`). `.claude/settings.json` runs `.claude/session-start.sh`, which in
-cloud sessions seeds the `zknicker/agents` fleet (poteto-mode, fleet skills, global rules) and then
-runs `.cursor/install.sh`. Local sessions only run `bun run setup:worktree`.
+`.cursor/environment.json` runs the shared install, then `.cursor/start.sh`, which seeds the fleet
+with Cursor's account Runtime Secret `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN` (agent tooling, kept in
+Cursor's own secret store). The full stack auto-starts in the `dev-stack` terminal.
 
-- The cloud environment carries one bootstrap, `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`, as an
- environment variable, the same name Cursor's Runtime Secret uses. Install credentials and
- app values resolve through `.env.schema`; the fleet GitHub read key resolves through
- `.claude/cloud-bootstrap/.env.schema`.
-- No environment Setup script is needed: Varlock reads 1Password without the `op` CLI. The hook
- exports `HAUS_POSTGRES_BIN` for the session.
-- Network access must allow the default package managers plus
+### Claude Code adapter
+
+`.claude/settings.json` runs `.claude/session-start.sh`. Local sessions only run
+`bun run setup:worktree`. Cloud sessions fetch the fleet, run its `claude/cloud/start.sh`
+(poteto-mode, fleet skills, global rules), then the shared install. A failed fleet step logs a skip
+and the install still runs. The dev stack is not auto-started.
+
+- One Claude cloud environment serves every fleet repo. It carries
+ `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` as an environment variable and needs no Setup script.
+- Network access must allow the default package managers plus `downloads.1password.com`,
  `knickerbockerventures.1password.com`, `npm.hugeicons.com`, `api.heroui.pro`, and
  `raw.githubusercontent.com`.
-- A failed fleet seed logs a skip and continues; the install still runs.
