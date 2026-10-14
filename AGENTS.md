@@ -316,9 +316,9 @@ runs `.cursor/install.sh`. Local sessions only run `bun run setup:worktree`.
  environment variable, the same name Cursor's Runtime Secret uses. Install credentials and
  app values resolve through `.env.schema`; the fleet GitHub read key resolves through
  `.claude/cloud-bootstrap/.env.schema`.
-- The environment's Setup script is the fleet's `claude/cloud/setup.sh` (1Password CLI and the
- `google-chrome` shim). The hook exports `HAUS_POSTGRES_BIN` for the session.
-- Network access must allow the default package managers plus `downloads.1password.com`,
+- No environment Setup script is needed: Varlock reads 1Password without the `op` CLI. The hook
+ exports `HAUS_POSTGRES_BIN` for the session.
+- Network access must allow the default package managers plus
  `knickerbockerventures.1password.com`, `npm.hugeicons.com`, `api.heroui.pro`, and
  `raw.githubusercontent.com`.
 - A failed fleet seed logs a skip and continues; the install still runs.
