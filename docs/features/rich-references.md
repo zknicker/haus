@@ -2,7 +2,7 @@
 summary: User-facing rich reference behavior for mentions, skills, apps, plugins, files, Cloud Agent work links, and future product cards.
 read_when:
   - changing chat mentions, rich reference rendering, autocomplete references, or explicit typed links in messages
-  - changing the `cloud-agent://` link, its label, or which trailing link paragraph the transcript hides
+  - changing the `cloud-agent://` or `image-generation://` link, its label, or which trailing link paragraph the transcript hides
   - adding a new reference type such as agent, skill, app, plugin, file, directory, pull request, product, ASIN, memory, chat, or session
 ---
 
@@ -23,6 +23,7 @@ Examples:
 - `[README.md](/repo/README.md)` references a file.
 - `[#482](pr://github/haus/haus/482)` references a GitHub pull request.
 - `[Fix login redirect](cloud-agent://caw_…)` links Cloud Agent work by immutable work id.
+- `[Generated image](image-generation://img_…)` links one image generation by immutable id.
 
 The human composer persists selected references as explicit typed links. Agent
 output may use bare `@handle` and `#channel` tokens; the Server resolves known
@@ -241,6 +242,12 @@ rendering.
   Server recorded on that Message, the transcript hides that paragraph because
   the cards already state it. A forged, unknown, or unrecorded link keeps the
   paragraph visible, so link syntax can never hide text.
+- Image generation links use `image-generation://<generationId>` and the label
+  `Generated image` ([Image generation](../../specs/image-generation.md)). Links are
+  copied, not built: `haus image generate` prints a `Link:` line at creation for Agents to
+  paste into a `haus message send`. The Server follows the same keep, rewrite, and
+  trailing-paragraph rules as Cloud Agent work links, and each kept link adds the image's
+  card below the Message.
 - Ordinary web links use the same chip shell with the site's favicon and a
   globe fallback. Activating one opens the original URL. Agent and chat chips
   are interactive: they open the referenced Agent's profile or channel.

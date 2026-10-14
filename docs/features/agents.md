@@ -237,7 +237,10 @@ the workspace, its ancestors, or the operator's home (Grok Build still reads
 generic names in the workspace; see
 [Context Management](context-management.md)).
 
-Haus has no general image generator. Computer does not suppress image-generation capabilities
+Agents generate images through Haus with `haus image`, a Server-owned curated model list that works
+on every execution runtime and runs on the Server Owner's own provider keys
+([ADR 0047](../adr/0047-agents-generate-images-through-haus.md),
+[Image generation](../../specs/image-generation.md)). Computer also does not suppress image-generation capabilities
 native to an Agent's selected execution runtime: Codex (on ChatGPT plans that include image
 generation) and Grok Build generate images natively; Claude Code and Pi do not. Availability
 follows that runtime and model; it is separate from Haus's avatar service and is not controlled by

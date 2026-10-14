@@ -297,6 +297,14 @@ launch Message is simply the first link. Anyone who can read a live linking Mess
 work, and an author may link only work they can already see.
 _Avoid_: work copy, embedded work, origin card, primary card
 
+**Image generation**:
+One image an Agent renders through `haus image generate`, kept as a standalone Server record that
+belongs to no Message or Chat. It is started detached from any Chat, owns its model, request,
+state, and cost, and is addressed as `image-generation://<id>`. Messages link to it and render
+its card; the finished image is an ordinary Agent-owned attachment. See
+[Image generation](specs/image-generation.md).
+_Avoid_: image job, image Message, native image tool output
+
 **Agent execution configuration**:
 The Haus server's immutable Computer assignment plus desired executor, model reference, execution
 policy, Server-owned MCP connection grants, and lifecycle state for an Agent. Humans may edit this desired

@@ -173,6 +173,10 @@ Computer
 then runs their real Agent turns using the host's Codex, Claude Code, Grok Build, or Pi
 sign-in.
 
+When `HAUS_OPENAI_API_KEY` or `HAUS_GEMINI_API_KEY` resolves in the dev stack, bootstrap stores it as
+the demo Server's image generation key for that provider (`seed-image-generation-keys.ts`), only
+if none is set yet, so a key set in Settings is never overwritten.
+
 Seeding runs once per Server. To pick up changes to
 `apps/server/src/development/seed-server.ts`, delete the demo Server row
 (its Threads and messages first, since both reference it) and reload the App.

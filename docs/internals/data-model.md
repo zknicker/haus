@@ -15,7 +15,7 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, image generations (`image_generations`), their Message links (`image_generation_links`) and per-provider keys (`image_generation_keys`), GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
 | Computer data root | Haus Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Haus App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 

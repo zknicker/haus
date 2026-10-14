@@ -148,7 +148,13 @@ the file and the prompt as the body. The file is the workspace file Computer jou
 (`generated-images/…`, see [Agents](../features/agents.md)), falling back to the runtime's own
 `savedPath`. An image step is a closed row like any other; opened, it shows the picture, read
 through the same `agent.workspaceFile` query the workspace pane uses, with its prompt folded to
-three lines; a
+three lines. A shell step that ran `haus image generate` or `haus image wait` is also an `image` step
+(`turn-trace-haus-image.ts`), not bookkeeping: `generate` reads `Started · <model display name>`
+(the name comes from the CLI's start line; the model id stands in until it prints), and `wait`
+reads `Generated · <model display name>` (`Generating` while it runs, `Generation failed` when it
+fails). `wait`'s receipt `Cost` rides as the row detail, and its `Path` is the workspace file the
+body shows, with the prompt read from the stdin heredoc on `generate`. Activity parses CLI output
+today; a typed generation reference from Computer is a follow-up. A
 video, a host-only path, or a failed read names the file instead. Nothing renders while it
 loads. Pressing the picture (Enter or Space) opens it in a HeroUI Modal at the window's size
 with its file name and prompt, and on desktop an "Open in workspace" action that opens the file
