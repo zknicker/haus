@@ -73,6 +73,7 @@
     "typecheck": "bun run typecheck:fast && bun run typecheck:licensed",
     "typecheck:fast": "bun run --filter @haus/api typecheck && bun run --filter @haus/sdk typecheck && bun run --filter @haus/claude-usage typecheck && bun run --filter @haus/codex-usage typecheck && bun run --filter @haus/server typecheck",
     "typecheck:licensed": "bun run --filter @haus/website typecheck && bun run --filter @haus/computer typecheck",
+    "ui:capture": "node scripts/capture-ui.mjs",
     "visuals:lab": "bun scripts/visuals-lab/server.mjs"
   },
   "devDependencies": {

@@ -20,7 +20,11 @@ untouched. A fresh Computer requires external browser setup before connecting.
 ## Discovery and identity
 
 Computer detects Chrome Stable in `/Applications` and the user's `Applications`
-directory. It discovers root Chrome processes with a dedicated user-data directory
+directory. On Linux it detects Chrome and Chromium ELF binaries (`/opt/google/chrome/chrome`
+and `google-chrome-stable`, `google-chrome`, `chromium`, or `chromium-browser` on `PATH`,
+symlinks resolved, wrapper scripts skipped) and matches processes by their resolved
+executable; the browser must still be started externally, for example headless Chromium in
+a cloud session. It discovers root Chrome processes with a dedicated user-data directory
 and `--remote-debugging-port=0`. Ordinary personal Chrome profiles and helper
 processes are not connectable. Old Haus-managed profile directories are excluded
 from discovery, including other Server attachments' profiles.

@@ -2,6 +2,8 @@ export interface ProcessRecord {
     command: string;
     cpuPercent: number;
     elapsedSeconds: number;
+    /** Kernel-resolved executable; Linux only, absent when unreadable. */
+    executablePath?: string;
     parentPid: number;
     pid: number;
     rssBytes: number;

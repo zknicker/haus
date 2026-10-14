@@ -1,6 +1,6 @@
 import type { AgentRuntimeBrowserStatus } from '@haus/api';
 import { SystemCdpProber } from './cdp-probe.ts';
-import { SystemProcessList } from './chrome-processes.ts';
+import { isApplicationProcess, SystemProcessList } from './chrome-processes.ts';
 import { chromeUserDataDir } from './discovery.ts';
 import type { BrowserTarget, CdpProber, ProcessListReader } from './types.ts';
 
@@ -18,7 +18,7 @@ export class ExistingBrowserConnection {
         const process = records.find(
             (record) =>
                 !record.command.includes('--type=') &&
-                record.command.startsWith(`${this.contract.executablePath} `) &&
+                isApplicationProcess(record, this.contract.executablePath) &&
                 chromeUserDataDir(record.command) === this.contract.userDataDir &&
                 record.command.includes('--remote-debugging-port=0')
         );

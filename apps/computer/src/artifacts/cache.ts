@@ -4,7 +4,8 @@ import fs from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ArtifactMetadata } from '@haus/api';
 import * as z from 'zod';
-import { processExists, withArtifactCacheLock } from './cache-lock.ts';
+import { processExists } from '../pid-lock.ts';
+import { withArtifactCacheLock } from './cache-lock.ts';
 
 const leaseSchema = z.object({ pid: z.number().int().positive(), paths: z.array(z.string()) });
 const DEFAULT_CACHE_BYTES = 2 * 1024 ** 3;

@@ -212,13 +212,17 @@ test('each check exports one haus.dream.check span through the Server relay', as
     }
 });
 
-test("one Agent's failure is logged and never stops the others or the loop", async () => {
-    const first = await addAgent('agt_a');
-    const broken = await addAgent('agt_b');
-    await tick(night - day);
-    await change(first);
-    await change(broken);
-    await chmod(join(broken, 'workspace', 'notes'), 0o000);
+// Root reads through a 0o000 directory, so the injected failure needs an unprivileged user.
+test.skipIf(process.getuid?.() === 0)(
+    "one Agent's failure is logged and never stops the others or the loop",
+    async () => {
+        const first = await addAgent('agt_a');
+        const broken = await addAgent('agt_b');
+        await tick(night - day);
+        await change(first);
+        await change(broken);
+        await chmod(join(broken, 'workspace', 'notes'), 0o000);
 
-    expect(await tick(night)).toEqual(['agt_a:requested']);
-});
+        expect(await tick(night)).toEqual(['agt_a:requested']);
+    }
+);
