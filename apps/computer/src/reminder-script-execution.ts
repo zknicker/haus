@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { Data, Effect, Exit } from 'effect';
 
 export interface ReminderScriptChild {
@@ -45,12 +46,14 @@ export type ReminderScriptExecutionRunner = (input: {
 }) => Effect.Effect<ReminderScriptExecution, ReminderScriptExecutionFailure>;
 
 const timeoutMs = 60_000;
+// The macOS login shell; Linux hosts often ship without zsh.
+const reminderShell = existsSync('/bin/zsh') ? '/bin/zsh' : '/bin/bash';
 const maxOutputBytes = 65_536;
 
 export const liveReminderScriptExecution = createReminderScriptExecution({
     sleep: (durationMs) => Effect.sleep(durationMs),
     spawn: ({ cwd, env, script, signal }) =>
-        Bun.spawn(['/bin/zsh', '-lc', script], {
+        Bun.spawn([reminderShell, '-lc', script], {
             cwd,
             env,
             signal,

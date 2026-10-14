@@ -15,11 +15,9 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
     const browserBin = join(dataRoot, 'browser-bin');
     const browserMarker = join(dataRoot, 'browser-opened.txt');
     await mkdir(browserBin, { recursive: true });
-    await writeFile(
-        join(browserBin, 'open'),
-        '#!/bin/sh\nprintf \'%s\' "$1" > "$HAUS_BROWSER_OPEN_MARKER"\n',
-        { mode: 0o755 }
-    );
+    const opener = '#!/bin/sh\nprintf \'%s\' "$1" > "$HAUS_BROWSER_OPEN_MARKER"\n';
+    await writeFile(join(browserBin, 'open'), opener, { mode: 0o755 });
+    await writeFile(join(browserBin, 'xdg-open'), opener, { mode: 0o755 }); // Linux opener
     const effectiveAgentRoot = join(dataRoot, 'servers', 'srv_test', 'agents', 'agt_effective');
     await mkdir(effectiveAgentRoot, { recursive: true });
     await writeFile(
