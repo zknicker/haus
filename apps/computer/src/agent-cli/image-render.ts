@@ -6,7 +6,7 @@ import type {
 } from '@haus/api';
 
 export function imageNotPostedSentence(generationId: string): string {
-    return `Nothing was posted. Include this Link line in a haus message send now; the card shows progress and updates when the image is ready. Run haus image wait ${generationId} when you need the file.`;
+    return `Nothing was posted. Include this Link line in a haus message send now; the card shows progress and updates when the image is ready. Only run haus image wait ${generationId} if your next step needs the file; you'll get an Inbox notice if the generation fails.`;
 }
 
 const providerNames: Record<ImageGenerationProvider, string> = {

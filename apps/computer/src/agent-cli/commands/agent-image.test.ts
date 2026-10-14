@@ -20,7 +20,7 @@ test('generate creates the record, prints the Link and hint, and returns without
         [
             `Image generation started with Nano Banana 2.1. Generation ID: ${ID}`,
             `Link: ${link}`,
-            `Nothing was posted. Include this Link line in a haus message send now; the card shows progress and updates when the image is ready. Run haus image wait ${ID} when you need the file.`,
+            `Nothing was posted. Include this Link line in a haus message send now; the card shows progress and updates when the image is ready. Only run haus image wait ${ID} if your next step needs the file; you'll get an Inbox notice if the generation fails.`,
             '',
         ].join('\n')
     );

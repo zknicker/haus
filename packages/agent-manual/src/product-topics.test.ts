@@ -230,6 +230,9 @@ test('image guidance teaches haus image, links, and stays runtime-neutral', () =
     expect(topic?.body).toContain('Generating never posts on its own');
     expect(topic?.body).toContain('paste the `Link:` line as printed into `haus message send`');
     expect(topic?.body).toContain('links back to back render side by side');
+    expect(topic?.body).toContain('Post the link and finish your turn');
+    expect(topic?.body).toContain('a successful one never wakes you');
+    expect(topic?.body).toContain('Wait only when your next step needs the file');
     expect(topic?.body).toContain('`haus image wait <generation id>');
     expect(topic?.body).toContain('names the nearest supported option');
     expect(topic?.body).toContain('Every image card shows its model and cost');

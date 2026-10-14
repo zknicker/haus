@@ -26,7 +26,9 @@ Use \`haus image generate\` for any image people will see or that needs a specif
 
 **Show it now, keep working.** Right after generate returns, paste the \`Link:\` line as printed into \`haus message send\`; the card shows progress and fills in when the image is ready. Then continue other work. Start several generations back to back and send their links in one message; links back to back render side by side. Generating never posts on its own. Never write the link by hand. Where the image goes follows the human's request.
 
-**Get the file.** Run \`haus image wait <generation id> [--out <workspace dir>] [--timeout <seconds>]\` when you need the image itself, for example to check it or use it as a later reference. It waits for the result, saves the file in \`generated-images/\` in your workspace, and prints the model, rendered size, quality, duration, and cost. It is safe to run again, and if it times out the generation keeps running; run it again.
+**Do not wait by default.** Post the link and finish your turn. If a generation fails, you get one Inbox notice naming the model and the reason; a successful one never wakes you. Tell the person and, if it helps, retry with another model. A failure before you have posted the link sends no notice.
+
+**Get the file.** Wait only when your next step needs the file: checking quality, editing it, using it as a reference, or feeding a pipeline. Run \`haus image wait <generation id> [--out <workspace dir>] [--timeout <seconds>]\`. It waits for the result, saves the file in \`generated-images/\` in your workspace, and prints the model, rendered size, quality, duration, and cost. It is safe to run again, and if it times out the generation keeps running; run it again.
 
 **References.** \`--reference\` takes an attachment id or a workspace file, for an edit or a style match. Only models with a reference limit accept it, and going over the limit fails.
 
