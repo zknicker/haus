@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Haus cloud agent install (repo-owned part of the fleet cloud-agent contract),
-# shared by every platform: Cursor's environment.json install and Claude's
-# .claude/session-start.sh.
+# Haus cloud agent install, the repo-owned part of the fleet cloud agent
+# contract (zknicker/agents cloud-agent-setup skill). Cursor runs it as its
+# snapshot install; Claude runs it from the fleet start each session.
 # Must be idempotent: it can run repeatedly on top of prepared disk state.
 #
 # There is no .env step: the committed .env.schema is the environment contract
@@ -9,7 +9,7 @@
 # each platform provides as CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN.
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 BUN_VERSION="1.4.2"
@@ -59,8 +59,8 @@ echo "==> Installing project dependencies and HeroUI Pro artifacts"
 # HeroUI Pro artifacts. Both licensed credentials it needs are @internal schema
 # items, so `varlock run` deliberately does not export them; setup:worktree
 # fetches them itself with `varlock printenv` under the install switch,
-# resolving from the Development vault through the Cursor fleet identity. No
-# per-repo Cursor secret is involved.
+# resolving from the Development vault through CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN.
+# No per-repo secret is involved.
 bun run setup:worktree
 
 echo "==> Install complete"
