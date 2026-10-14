@@ -15,6 +15,9 @@ platform="${1:?Usage: bootstrap.sh <claude|cursor>}"
 root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 fleet_root="$HOME/.agents/fleet"
 fleet_ref="${CLOUD_AGENTS_FLEET_REF:-main}"
+# Platform start hooks can run without a login shell; expose the usual
+# user-level toolchain locations.
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
