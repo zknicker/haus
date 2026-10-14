@@ -3,21 +3,19 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ImageGenerationCard } from './image-generation-card.tsx';
 import { failedResult, imageGenerationFixture } from './image-generation-fixture.ts';
 
-function render(generation = imageGenerationFixture(), layout: 'solo' | 'strip' = 'solo'): string {
+function render(generation = imageGenerationFixture()): string {
     return renderToStaticMarkup(
-        <ImageGenerationCard
-            generation={generation}
-            layout={layout}
-            onOpen={() => undefined}
-            serverId="srv_1"
-        />
+        <ImageGenerationCard generation={generation} onOpen={() => undefined} serverId="srv_1" />
     );
 }
 
-test('a generating card reserves the requested aspect and shows model and elapsed time', () => {
+const tileBox = 'h-(--chat-media-tile-height)';
+
+test('a generating card is the media tile box with model and elapsed time', () => {
     const html = render(imageGenerationFixture({ result: { state: 'generating' } }));
     expect(html).toContain('data-state="generating"');
-    expect(html).toContain('--ar:1.7777');
+    expect(html).toContain('w-(--chat-media-tile-width)');
+    expect(html).toContain(tileBox);
     expect(html).toContain('GPT Image 2.5 Sunburst');
     expect(html).toContain('generating');
     expect(html).not.toContain('<button');
@@ -29,17 +27,21 @@ test('a pending card renders like a generating one', () => {
     );
 });
 
-test('a failed card states the reason in the body and no charge in the footer', () => {
+test('a failed card is the same box, quiet, with the reason off the tile', () => {
     const html = render(imageGenerationFixture({ result: failedResult }));
     expect(html).toContain('data-state="failed"');
-    expect(html).toContain('The provider declined this prompt.');
-    expect(html).toContain('no charge');
+    expect(html).toContain('w-(--chat-media-tile-width)');
+    expect(html).toContain(tileBox);
+    expect(html).toContain('Couldn&#x27;t generate: The provider declined this prompt.');
+    expect(html).toContain('chip--danger');
+    expect(html).toContain('A warm hero image for the launch post.');
+    expect(html).toContain('Didn&#x27;t render');
+    expect(html).not.toContain('border-dashed');
     expect(html).not.toContain('<img');
 });
 
-test('a lone card is bounded by max width, a strip card clamps its width from its aspect', () => {
-    expect(render(imageGenerationFixture(), 'solo')).toContain('w-[min(100%,22rem');
-    const strip = render(imageGenerationFixture(), 'strip');
-    expect(strip).toContain('w-[clamp(8.5rem');
-    expect(strip).toContain('snap-start');
+test('card size never depends on the image aspect', () => {
+    const html = render();
+    expect(html).not.toContain('--ar');
+    expect(html).not.toContain('clamp(');
 });

@@ -3,7 +3,6 @@ import { failedResult, imageGenerationFixture, readyResult } from './image-gener
 import {
     formatElapsed,
     formatImageGenerationCost,
-    imageGenerationAspect,
     imageGenerationFilename,
     imageGenerationFooter,
 } from './image-generation-presentation.ts';
@@ -41,22 +40,16 @@ test('a ready card shows resolution and cost, with ~ on an estimate', () => {
     expect(imageGenerationFooter(estimated, now).facts).toBe('2K · ~$0.11');
 });
 
-test('a failed card says no charge unless the provider billed it', () => {
+test("a failed card says Didn't render, plus the cost when billed", () => {
     const free = imageGenerationFooter(imageGenerationFixture({ result: failedResult }), now);
-    expect(free).toMatchObject({ facts: 'no charge', status: 'failed', tone: 'danger' });
+    expect(free).toMatchObject({ facts: "Didn't render", status: null });
     const billed = imageGenerationFooter(
         imageGenerationFixture({
             result: { ...failedResult, cost: { basis: 'usage', usd: 0.05 } },
         }),
         now
     );
-    expect(billed.facts).toBe('$0.05');
-});
-
-test('aspect follows the request until the render lands, then the rendered pixels', () => {
-    expect(imageGenerationAspect(imageGenerationFixture())).toBeCloseTo(16 / 9);
-    const ready = imageGenerationFixture({ result: { ...readyResult, height: 1000, width: 1000 } });
-    expect(imageGenerationAspect(ready)).toBe(1);
+    expect(billed.facts).toBe("Didn't render · $0.05");
 });
 
 test('the save name carries the extension the bytes have', () => {

@@ -30,14 +30,14 @@ export function formatElapsed(ms: number): string {
 /**
  * The card footer's two lines. Line one is always the full model name; line
  * two is `status · facts`, where the status word is shown only while the
- * generation is live or has failed.
+ * generation is live. A failed render reads "Didn't render", plus the cost
+ * when the provider billed it.
  */
 export interface ImageGenerationFooter {
     readonly facts: string;
     readonly live: boolean;
     readonly model: string;
-    readonly status: 'failed' | 'generating' | null;
-    readonly tone: 'danger' | 'default';
+    readonly status: 'generating' | null;
 }
 
 export function imageGenerationFooter(
@@ -54,7 +54,6 @@ export function imageGenerationFooter(
                 live: true,
                 model,
                 status: 'generating',
-                tone: 'default',
             };
         case 'ready':
             return {
@@ -62,27 +61,19 @@ export function imageGenerationFooter(
                 live: false,
                 model,
                 status: null,
-                tone: 'default',
             };
         case 'failed':
             return {
-                facts: result.cost ? formatImageGenerationCost(result.cost) : 'no charge',
+                facts: result.cost
+                    ? `Didn't render · ${formatImageGenerationCost(result.cost)}`
+                    : "Didn't render",
                 live: false,
                 model,
-                status: 'failed',
-                tone: 'danger',
+                status: null,
             };
         default:
             return assertNever(result);
     }
-}
-
-/** Width over height. Ready renders use the rendered pixels; every other state the requested ratio. */
-export function imageGenerationAspect(generation: ImageGeneration): number {
-    const { result, request } = generation;
-    return result.state === 'ready'
-        ? result.width / result.height
-        : request.aspectRatio.width / request.aspectRatio.height;
 }
 
 /** The save-as name: the generation id plus the extension the bytes carry. */

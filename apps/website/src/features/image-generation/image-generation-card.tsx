@@ -1,9 +1,8 @@
 import type { ImageGeneration } from '@haus/api';
-import { Label, Skeleton } from '@heroui/react';
+import { Chip, Label, Skeleton, Tooltip } from '@heroui/react';
 import { ContextMenu, TextShimmer } from '@heroui-pro/react';
-import { AlertCircleIcon, Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useReducedMotion } from 'framer-motion';
-import type * as React from 'react';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAttachmentImage } from '../../hooks/servers/use-attachment-image.ts';
@@ -11,30 +10,24 @@ import { useImageGenerationDownload } from '../../hooks/servers/use-image-genera
 import { cn } from '../../lib/utils.ts';
 import {
     type ImageGenerationFooter,
-    imageGenerationAspect,
     imageGenerationFooter,
     imageGenerationLabel,
 } from './image-generation-presentation.ts';
 
-export type ImageGenerationCardLayout = 'solo' | 'strip';
-
 /**
- * One generation as one card at its link: the picture and a two-line footer
- * inside a single bordered surface. The picture holds the generation's own
- * aspect ratio in every state, so a card never reflows when its bytes land.
- * A lone card is bounded by a max width and a max picture height; in a strip
- * every card shares one picture-row height and takes its width from its own
- * aspect, clamped, so a tall image never dominates and a wide one never
- * overflows (specs/image-generation.md, Cards).
+ * One generation as one card at its link: the chat media tile box (the same
+ * `--chat-media-tile-*` 4:3 box and `rounded-xl` corner as attachment tiles)
+ * with a two-line footer attached as one unit. The box is the same in every
+ * state and in a lone card or a strip, so nothing reflows when bytes land or
+ * one render fails beside three that worked; the image crops to it and the
+ * viewer shows the whole picture (specs/image-generation.md, Cards).
  */
 export function ImageGenerationCard({
     generation,
-    layout,
     onOpen,
     serverId,
 }: {
     generation: ImageGeneration;
-    layout: ImageGenerationCardLayout;
     /** Opens the viewer; only a ready card has a picture to open. */
     onOpen: () => void;
     serverId: string;
@@ -42,36 +35,16 @@ export function ImageGenerationCard({
     return (
         <figure
             aria-label={imageGenerationLabel(generation)}
-            className={cn(
-                'card-shell m-0 flex min-w-0 flex-col overflow-hidden border border-separator bg-nested-surface',
-                layout === 'solo'
-                    ? 'w-[min(100%,22rem,calc(20rem*var(--ar)))]'
-                    : 'w-[clamp(8.5rem,calc(10rem*var(--ar)),18rem)] shrink-0 snap-start max-sm:w-[clamp(7.5rem,calc(8.5rem*var(--ar)),15rem)]'
-            )}
+            className="m-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-nested-surface"
             data-slot="image-generation-card"
             data-state={generation.result.state}
-            style={{ '--ar': imageGenerationAspect(generation) } as React.CSSProperties}
         >
             <div
                 className={cn(
-                    'grid place-items-center border-separator border-b',
-                    layout === 'strip' && 'h-40 max-sm:h-34'
+                    'relative h-(--chat-media-tile-height) w-full overflow-hidden bg-surface-secondary'
                 )}
             >
-                <div
-                    className={cn(
-                        'relative aspect-(--ar) overflow-hidden bg-surface-secondary',
-                        layout === 'solo'
-                            ? 'w-full'
-                            : 'w-[min(100%,calc(10rem*var(--ar)))] max-sm:w-[min(100%,calc(8.5rem*var(--ar)))]'
-                    )}
-                >
-                    <GenerationPicture
-                        generation={generation}
-                        onOpen={onOpen}
-                        serverId={serverId}
-                    />
-                </div>
+                <GenerationPicture generation={generation} onOpen={onOpen} serverId={serverId} />
             </div>
             <GenerationFooter generation={generation} />
         </figure>
@@ -102,13 +75,13 @@ function GenerationPicture({
                 />
             );
         case 'failed':
-            return <FailedPicture reason={result.reason} />;
+            return <FailedPicture prompt={generation.prompt} reason={result.reason} />;
         default:
             return null;
     }
 }
 
-/** A blank box at the requested aspect with a slow sweep; motion yields to reduced motion. */
+/** The neutral box with a slow sweep; motion yields to reduced motion. */
 function PendingPicture() {
     const reduceMotion = useReducedMotion();
     return (
@@ -122,23 +95,29 @@ function PendingPicture() {
     );
 }
 
-function FailedPicture({ reason }: { reason: string }) {
+/**
+ * The pending tile's neutral surface with a soft danger chip and the prompt
+ * as a fading muted ghost. The reason is on hover and in the accessible name.
+ */
+function FailedPicture({ prompt, reason }: { prompt: string; reason: string }) {
     return (
-        <div
-            className="absolute inset-0 flex flex-col justify-end gap-0.5 overflow-hidden bg-danger-soft p-2.5"
-            role="img"
-        >
-            <Icon
-                aria-hidden="true"
-                className="absolute top-2.5 left-2.5 text-danger"
-                icon={AlertCircleIcon}
-                size={18}
-            />
-            <strong className="font-semibold text-danger text-xs leading-snug">
-                Generation failed
-            </strong>
-            <span className="line-clamp-4 text-muted text-xs leading-snug">{reason}</span>
-        </div>
+        <Tooltip>
+            <Tooltip.Trigger>
+                <div
+                    aria-label={`Couldn't generate: ${reason}`}
+                    className="absolute inset-0 flex flex-col items-start gap-1.5 p-2.5"
+                    role="img"
+                >
+                    <Chip color="danger" size="sm" variant="soft">
+                        Failed
+                    </Chip>
+                    <p className="mask-[linear-gradient(to_bottom,black_55%,transparent)] line-clamp-5 min-h-0 text-left text-muted text-xs italic">
+                        {prompt}
+                    </p>
+                </div>
+            </Tooltip.Trigger>
+            <Tooltip.Content className="max-w-72">{reason}</Tooltip.Content>
+        </Tooltip>
     );
 }
 
@@ -177,7 +156,7 @@ function ReadyPicture({
                 >
                     <img
                         alt=""
-                        className="size-full object-contain"
+                        className="size-full object-cover"
                         height={loaded.image.height}
                         src={loaded.image.url}
                         width={loaded.image.width}
@@ -219,16 +198,10 @@ function FooterLines({ footer }: { footer: ImageGenerationFooter }) {
     return (
         <figcaption className="flex min-w-0 flex-col px-2.5 py-1.5 text-xs tabular-nums leading-snug">
             <span className="truncate font-medium text-foreground">{footer.model}</span>
-            <span
-                className={cn('truncate', footer.tone === 'danger' ? 'text-danger' : 'text-muted')}
-            >
+            <span className="truncate text-muted">
                 {footer.status ? (
                     <>
-                        {footer.live ? (
-                            <TextShimmer>{footer.status}</TextShimmer>
-                        ) : (
-                            <span className="font-medium">{footer.status}</span>
-                        )}
+                        <TextShimmer>{footer.status}</TextShimmer>
                         {' · '}
                     </>
                 ) : null}
