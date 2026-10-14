@@ -217,11 +217,22 @@ test('no Manual text sends Agent posts into the task thread', () => {
     expect(offenders).toEqual([]);
 });
 
-test('image guidance routes generated files through attachments and stays runtime-neutral', () => {
+test('image guidance teaches haus image, links, and stays runtime-neutral', () => {
     expect(
         searchManualTopics('generate image picture', { limit: 5, scope: 'all' }).map(({ id }) => id)
     ).toContain('images');
     const topic = getManualTopic('images');
+    expect(topic?.body).toContain('Use `haus image generate` for any image people will see');
+    expect(topic?.body).toContain('scratch work no one else needs');
+    expect(topic?.body).toContain('`haus image models`');
+    expect(topic?.body).toContain('One generation is one image');
+    expect(topic?.body).toContain('returns at once');
+    expect(topic?.body).toContain('Generating never posts on its own');
+    expect(topic?.body).toContain('paste the `Link:` line as printed into `haus message send`');
+    expect(topic?.body).toContain('links back to back render side by side');
+    expect(topic?.body).toContain('`haus image wait <generation id>');
+    expect(topic?.body).toContain('names the nearest supported option');
+    expect(topic?.body).toContain('Every image card shows its model and cost');
     expect(topic?.body).toContain('haus attachment upload --path <file>');
     expect(topic?.body).toContain('--attachment-id <id>');
     expect(topic?.body).toContain('say so plainly');

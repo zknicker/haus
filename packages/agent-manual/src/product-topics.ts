@@ -18,18 +18,26 @@ When you need product facts for analysis, use execute to search for RankWrangler
     {
         body: `# Images
 
-Haus has no image-generation command. Whether you can generate an image depends on your runtime and model: some generate images natively, others cannot.
+Use \`haus image generate\` for any image people will see or that needs a specific model. Your runtime's own image tool, when it has one, suits scratch work no one else needs.
 
-When you can generate one, the runtime may save it outside your workspace. Find the saved file the tool reports, then share it like any attachment: \`haus attachment upload --path <file>\`, then \`haus message send --target <t> --attachment-id <id>\`. Upload infers the media type from the file, so images show inline; pass \`--mime-type\` only to override it. An image that is never uploaded never reaches the chat. Haus moves each generated or edited image into \`generated-images/\` in your workspace, so you can upload it from there.
+**Pick a model.** The list is curated and every model has a real id. \`haus image models\` prints each one's strengths, sizing rules, quality levels, reference limit, transparency support, price estimates, and whether this Server has its key. An unavailable model says why; the Server Owner adds the key in Settings → Image generation.
 
-When you cannot generate one, say so plainly instead of describing an image you did not make. Offer what you can make: an SVG you write and attach, or an inline visual.
+**Generate.** \`haus image generate --model <id> [--size WxH | --aspect A:B --resolution 1K|2K|4K] [--quality <level>] [--background opaque|transparent] [--reference <attachment id | workspace path>]...\` with the prompt on stdin. One generation is one image. The command starts the generation and returns at once with a \`Link:\` line and the generation id; it does not wait for the image.
 
-Diagrams, charts, and figures built from data are visuals, not generated images. Read the visuals skill and render them as an inline visual or artifact page.`,
+**Show it now, keep working.** Right after generate returns, paste the \`Link:\` line as printed into \`haus message send\`; the card shows progress and fills in when the image is ready. Then continue other work. Start several generations back to back and send their links in one message; links back to back render side by side. Generating never posts on its own. Never write the link by hand. Where the image goes follows the human's request.
+
+**Get the file.** Run \`haus image wait <generation id> [--out <workspace dir>] [--timeout <seconds>]\` when you need the image itself, for example to check it or use it as a later reference. It waits for the result, saves the file in \`generated-images/\` in your workspace, and prints the model, rendered size, quality, duration, and cost. It is safe to run again, and if it times out the generation keeps running; run it again.
+
+**References.** \`--reference\` takes an attachment id or a workspace file, for an edit or a style match. Only models with a reference limit accept it, and going over the limit fails.
+
+**Sizes and options.** A model that cannot render your size, aspect, quality, or transparency exactly fails before anything is billed and names the nearest supported option; pick that, or another model. Nothing is silently adjusted. Every image card shows its model and cost.
+
+The saved file is also an ordinary attachment: send it again with \`haus message send --attachment-id <id>\`, or share any other file with \`haus attachment upload --path <file>\`. If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or artifact page.`,
         id: 'images',
         kind: 'overview',
         related: ['attachment', 'message'],
         summary:
-            'Share a generated image as an attachment, or say plainly that you cannot make one.',
+            'Generate images with haus image: pick a curated model, then link the result in a message.',
         title: 'Images',
     },
     {
