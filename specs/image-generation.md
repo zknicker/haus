@@ -278,8 +278,17 @@ resolves. The image crops to the tile (`object-cover`); the viewer shows the who
   fading muted ghost. The footer shows the model display name and "Didn't render" (plus the cost
   when billed); the failure reason is in the tooltip and accessible name.
 
-The carousel is presentation only. When a Message links several generations consecutively, the App
-renders their cards side by side in one horizontal strip; a single link renders a single card.
+The carousel is presentation only. The App places cards line by line: a line made only of
+recorded generation links becomes a strip of cards in its place; links that end a line ("Left to
+right: [img] [img]") leave the line's text and become a strip right below it; a link inside a
+sentence keeps its chip and its card follows that paragraph. Strips with only blank lines between
+them merge, so consecutive links render side by side in one horizontal strip; a single link renders
+a single card. A recorded generation whose link the text does not carry follows the last segment.
+
+Motion is quiet and one-time: a card for a running job fades up a few pixels on arrival, a strip's
+cards following each other in a short stagger; history renders settled. One shimmer spans pending,
+generating, and the decode after ready, and the finished image crossfades over it. Live footers
+tick together on one shared second clock. Reduced motion keeps short fades only.
 There is no aggregate total or summary. Web, desktop, and iOS render the same cards from the same
 projection. An older client renders the Message `content`, links included.
 

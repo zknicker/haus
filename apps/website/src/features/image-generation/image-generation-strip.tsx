@@ -27,9 +27,10 @@ export function ImageGenerationStrip({
         // author line, so a body that opens with a card clears it the same way.
         <div className="mt-1.5 min-w-0">
             <MessageMediaStrip>
-                {generations.map((generation) => (
+                {generations.map((generation, index) => (
                     <ImageGenerationCard
                         generation={generation}
+                        index={index}
                         key={generation.id}
                         onOpen={() => setViewingId(generation.id)}
                         serverId={serverId}
