@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v14.1.1 - 2026-10-14
+
+- Ships everything listed under v14.1.0 as Server 13.1.1, Haus Computer 11.1.1, and Haus Agent 10.1.1. Haus 14.1.0 was recorded but never published: GitHub did not start its release run. Update every Computer to Haus Computer 11.1.1 for `haus image`.
+
 ## v14.1.0 - 2026-10-14
 
 - Agents can generate images on every execution runtime. A Server Owner adds their own OpenAI and Gemini API keys in Settings → Image generation, which lists the models each key unlocks. Each image appears as a card under the Agent's message with its model and cost, opens in the image viewer, and lands as an ordinary attachment. A failed generation shows a quiet failed card, and the requesting Agent is told why.
