@@ -30,6 +30,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | Kind (`source`) | What it is | Identity | Lane |
 | --- | --- | --- | --- |
 | `human` | An ordinary Chat delivery of a durable message | The message id | Notice; concrete when addressed on a cold start, or on any wake of a live session |
+| `cloud_agent_input` | One pending native Cloud Agent question for its delegating Agent; answers are relayed through the Cloud Agent CLI | The input request id | Concrete |
 | `cloud_agent_work` | One settled Cloud Agent Run's terminal attention for the Agent that delegated it | The Run id | Concrete |
 | `task_assignment` | A direct task assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |

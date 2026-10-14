@@ -3,8 +3,8 @@ summary: Provider-hosted Cloud Agents as Agent-delegated work, stored as a stand
 read_when:
   - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
   - changing Cloud Agent work links, who may see Cloud Agent work, or what survives Chat deletion
-  - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
-  - changing the Cloud Agent model setting, the Cursor model catalog, or the model a Run requests
+  - changing Cursor or Claude Cloud discovery, authentication, environment setup, or usage reporting
+  - changing provider-scoped Cloud Agent model settings, catalogs, or the model a Run requests
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
   - changing the freshness hold on `haus cloud-agent start` or the start response union
   - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
@@ -14,7 +14,7 @@ read_when:
 
 Cloud Agents let any Haus Agent delegate bounded development work to a provider-hosted agent.
 The delegating Agent starts the work, receives completion through its inbox, inspects the result,
-and decides what to say or do next. Cursor is the first provider.
+and decides what to say or do next. Cursor and Claude Code Cloud are supported providers.
 
 This spec is the canonical implementation plan. Earlier Fable and architecture reviews under
 `~/.claude/plans` are research inputs and may describe superseded designs.
@@ -31,14 +31,15 @@ facts and compatibility risks, not unresolved product decisions.
   `--say` — the Agent's own words, which become the Message content — with the provider
   instructions on stdin.
   `send --work <workId>` takes another prompt on stdin and continues the same hosted agent;
-  a busy agent queues it, and `--interrupt` stops active work and discards older queued prompts
-  before processing it.
+  a busy agent queues it. Cursor `--interrupt` stops active work and discards older queued prompts
+  before processing it. Claude rejects `--interrupt` before Run admission: stop, wait for
+  Cancelled, then send.
   `inspect` lists the caller's work, or reads recorded details with `--work <workId>`.
   `stop --work <workId>` requests cancellation. The published `cancel` spelling remains a CLI
   compatibility alias for existing callers.
-- **Provider-neutral capability.** Cursor is the only initial implementation, so an Agent does not
-  pass a provider on every call. Computer configuration chooses the default if a second provider
-  arrives; an explicit selector is added only when per-execution choice becomes useful.
+- **Provider choice.** Each Computer has an explicit default Cloud Agent connection. `start` may
+  select `--provider cursor|claude`; omission uses that default. Work pins the chosen provider for
+  every follow-up and observation. An unavailable connection never silently falls back.
 - **Agent-held repository context.** The Agent supplies the repository, starting ref, title,
   instructions, and any other provider input it knows. Haus adds no repository registry.
 - **Standalone work, linked from Messages.** Cloud Agent work is its own Agent-owned record. It
@@ -627,9 +628,62 @@ Cursor's Cloud Agents API is public beta. The adapter isolates provider requests
 status mapping from Haus's durable contracts. Repository validation happens at that adapter: a
 repository is usable only when the Cursor account has the required source-control access.
 
+## Claude Cloud connection and input
+
+Computer settings show Claude Cloud beneath Cursor Cloud, with independent connection state and
+an explicit default selection. Claude uses the signed-in native CLI account and the account's
+selected default environment (`/remote-env`). Inline CLI settings are not transported to the
+hosted VM; unsupported environment overrides remain setup-required. Claude model choices use
+native `sonnet`, `opus`, and `haiku` aliases. Cursor's Auto identifier is never sent to Claude.
+
+Connecting requires a publicly reachable HTTPS Haus Server, a Computer-scoped callback bootstrap
+installed as a native Claude Network Secret, and the downloaded managed hook installer in the
+native environment Setup script. Network Secrets are unavailable during Setup: the generic
+nonsecret hook artifact is public and its host must be allowed explicitly. Runtime handoff
+and answers remain authenticated. Server stores only credential hashes; Computer stores its
+bootstrap at mode 0600. Prompts carry nonsecret work/run identities. The VM receives a scoped
+per-work callback lease, not a Haus Agent credential or the 1Password bootstrap. Ready requires
+a fresh native protocol/version verification receipt; preparing credentials alone is insufficient.
+Native bootstrap uses `X-Haus-Cloud-Bootstrap`; callbacks and input reads use the leased
+`X-Haus-Cloud-Run` credential. Agent API authentication remains separate.
+
+A native question atomically creates durable `cloud_agent_input` attention for the delegating
+Agent. The card reads **Pending input**, ahead of freshness warnings, without choices or a form.
+The Agent reads `haus cloud-agent input --work <id>` and submits structured answers with
+`haus cloud-agent answer --request <id>` on stdin. It answers from existing authority or asks the
+human in the originating conversation. Technical answers never grant security permissions.
+
+Answer persistence and CLI send acknowledgment do not clear Pending input. A durable, singly
+claimed continuation dispatches the original question and stored answer; only correlated native
+consumption clears the wait. Native runtime, prompt, and tool-call identities correlate callbacks.
+Native Stop settles only when both task and scheduled-wakeup registries are present and empty;
+unknown registry state and outstanding scheduled work never imply Done.
+Uncertain launch, send, or continuation delivery is not blindly retried. Deleted requesting Chats
+do not retarget attention or prevent the standalone work from settling.
+
+Claude Cloud is Preview. The delegating Agent may use `haus cloud-agent stop`; human cards
+retain **Open in Claude** without a Stop button. Computer uses the native account credential
+loader and an internal first-party controller API, isolated behind the Claude adapter. A durable
+work-scoped interrupt intent pins the cancellation fence and admitted Runs before dispatch.
+Native background tasks require their own correlated `stop_task` requests before the final turn
+interrupt. Only a matching successful native receipt with no queued prompts, idle execution, and
+terminal receipts for tracked tasks settles the fenced Runs as Cancelled. HTTP acceptance or idle alone
+is insufficient. Ambiguous dispatch recovers evidence without blindly interrupting again.
+Before any native address or prompt exists, an exclusive Computer journal claim that prevents
+launch may settle cancellation without an interrupt receipt. It cannot settle hosted work.
+
+Stopping invalidates pending input and fences follow-ups and late callbacks. A later send after
+confirmed cancellation creates a new Run in the same hosted session. Native interruption is
+session-wide; Haus serializes its own submissions and refuses observed foreign prompts, but the
+controller has no compare-and-set protection against concurrent submissions from Claude's UI.
+Integration evidence and remaining contracts live in
+`docs/operations/claude-cloud-compatibility.md`. Cursor's existing cancellation, environment,
+authentication, and fleet setup are unchanged.
+
 ## Model
 
-A human picks the Cloud Agent model once per Server; the default is **Auto**, Cursor's per-run
+A human picks the Cloud Agent model independently for each provider on a Server; Cursor defaults
+to **Auto**, its per-run
 model router. Haus sends Auto as Cursor's catalog id `default` on every Run, so the setting means
 the same thing whatever default model the Cursor account configured (sending no model would mean
 that account default, and no SDK API reports which model it is). Agents cannot choose
@@ -663,10 +717,11 @@ inventory on `computers.reported_inventory`.
 
 **Setting.** The contract is the union `{ kind: 'auto' } | { kind: 'model', id, params: { effort?,
 fast? } }`. `auto` is Auto. An absent param means the model's own default, so `params: {}`
-is "this model as Cursor configures it". `servers.cloud_agent_model_id` (`null` is Auto)
-and `servers.cloud_agent_model_params` (jsonb, `{}` whenever the id is `null`) hold it. Any member
-reads it through `cloudAgentSettings.get({ serverId })`; only an Owner or Admin writes it through
-`cloudAgentSettings.setModel({ serverId, model })`, which refuses (`BAD_REQUEST`) an id that the
+is "this model as Cursor configures it". `cloud_agent_settings`, keyed by Server and provider, stores `model_id` and
+`model_params`. A null model means Auto for Cursor and the native account default for Claude.
+Migration preserves existing Cursor selections. Any member
+reads it through `cloudAgentSettings.get({ serverId, provider })`; only an Owner or Admin writes it through
+`cloudAgentSettings.setModel({ serverId, provider, model })`, which refuses (`BAD_REQUEST`) an id that the
 freshest catalog on any of the Server's Computers does not list, an `effort` value that model does
 not offer, or `fast` on a model without it. The read returns `{ model, catalog,
 savedModelUnavailable }`. `catalog` is that freshest catalog, or `null` when no Computer has

@@ -82,3 +82,12 @@ pointed the same way.
 - Open question: "Open in Cursor" uses `https://cursor.com/agents?id=<agentId>` on the web and an
   unverified `cursor://anysphere.cursor-deeplink/background-agent?bcId=<id>` desktop deeplink.
   Whether to switch to Cursor's documented `cursor.com/agents/<id>` path is unresolved.
+
+## Amendment: Claude Cloud, 2026-10-13
+
+The shared card mirrors substantiated provider execution evidence. Claude adds a nonterminal
+**Pending input** state from a correlated native question. It takes priority over freshness
+warnings; no choices or answer form appear in the card. A dedicated inbox attention wakes the
+delegating Agent. Stored answers and delivery acknowledgment do not clear it; native consumption
+does. Claude uses Open in Claude and has no automatic Cancel action in Preview. Cursor's mapping
+and cancellation remain unchanged.
