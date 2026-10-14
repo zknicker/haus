@@ -131,7 +131,8 @@ haus image generate --model <id> [--size WxH | --aspect A:B --resolution 1K|2K|4
 - The command is asynchronous: it creates the record and returns at once, with no polling. It
   prints a start line (model display name and generation id), the `Link:` line, and a hint:
   "Nothing was posted. Include this Link line in a haus message send now; the card shows progress
-  and updates when the image is ready. Run haus image wait <id> when you need the file." The Agent
+  and updates when the image is ready. Only run haus image wait <id> if your next step needs the
+  file; you'll get an Inbox notice if the generation fails." The Agent
   shows the image by putting that link in any Message it sends through `haus message send`, right
   away, then keeps working; the card renders at the link and updates live. Several generations
   can be started back to back and their links sent in one Message; they render side by side.
@@ -154,6 +155,34 @@ haus image wait <generation id> [--out <workspace dir>] [--timeout <seconds>]
 - It is re-runnable: each run fetches and writes the file again, so a dropped CLI never strands a
   paid image. On failure it prints the reason and exits non-zero. On timeout it exits non-zero with
   a next action to run `wait` again; the generation keeps running on the Server.
+
+## Failure notice
+
+An Agent does not wait for a generation by default: it posts the link, finishes its turn, and
+`wait` is only for a next step that needs the file (checking, editing, references, pipelines). So a
+generation that reaches `failed` (a provider error, an invalid request found at run time, or boot
+recovery's `server-restarted`) sends its requesting Agent exactly one inbox notice. A successful
+generation never enqueues anything and never wakes the Agent.
+
+- The notice is an `agent_inbox` row with source `image_generation_failed` (concrete and bodiless,
+  like `trigger_problem`, and automation-authored for the chain ceiling). Its dedupe key is
+  `image-generation-failed:<generation id>`, so no generation notifies twice.
+- It lands in the Chat of the earliest live Message that links the generation, where people saw
+  the card fail. It is committed in its own transaction right after the failure settles, then the
+  Agent is woken.
+- **Unlinked failures send nothing.** `agent_inbox.chat_id` is null only for a `dream`, and every
+  inbox lane, target, and trigger projection assumes a Chat for everything else. A chatless notice
+  would mean a new lane across schema, target rendering, and turn triggers. The Agent that never
+  posted the link is either running `wait` (which prints the failure) or nobody saw a card. A
+  failure that lands in the instant before the link posts is also silent; the card still shows it.
+- Text (event input, not system prompt):
+
+```
+⚠️ Image generation failed: <model display name>
+[Generated image](image-generation://<id>)
+Reason: <failure reason>
+Next: tell the person it failed; if a retry would help, run haus image generate with another model.
+```
 
 ## Durable image generation
 
