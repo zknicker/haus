@@ -65,6 +65,28 @@
         "timer": 4
       }
     },
+    "apps/computer/src/cloud-agents/claude/checkout.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One launch clones into a private temporary directory and removes it in lexical finally whether or not the launch succeeds. Child processes are awaited with their own timeouts.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/claude/native-commands.ts": {
+      "disposition": "external-adapter",
+      "reason": "Claude Code's launcher is awaited to exit under its own timeout. The two short timers that accept the folder-trust prompt are cleared and the terminal is closed in lexical finally.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 3
+      }
+    },
     "apps/computer/src/cloud-agents/cursor/provider.ts": {
       "disposition": "external-adapter",
       "reason": "Cursor terminal stream handling aborts only the local subscription. The daemon Effect supervisor owns polling, retries and joined subscription teardown.",
@@ -127,6 +149,17 @@
         "abortController": 0,
         "catchAndIgnore": 0,
         "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/settings.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "The default-provider write is one atomic rename of a temporary file it removes in lexical finally.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
         "manualPromise": 0,
         "timer": 0
       }
