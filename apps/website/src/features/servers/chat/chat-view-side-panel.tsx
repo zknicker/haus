@@ -28,7 +28,7 @@ export function shouldTakeOverChatSidePanel({
 }
 
 /**
- * The website chat's own side panel: Artifact Panel, Files, and Thread share
+ * The website chat's own side panel: Artifact Panel, Attachments, and Thread share
  * it, portaled into the shell's side-pane column. Desktop has no chat side
  * panel; those surfaces open as workspace tabs in its one side pane.
  */

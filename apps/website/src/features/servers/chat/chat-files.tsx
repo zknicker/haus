@@ -15,10 +15,10 @@ import {
 } from './attachment-view.ts';
 
 /**
- * Chat-scoped Files pane (website): the attachments carried by this chat's
+ * Chat-scoped Attachments pane (website): the attachments carried by this chat's
  * loaded messages, listed in the shared side panel. Attachments are
  * message-scoped on the Server, so the chat's set is derived from its
- * transcript. Desktop opens a Files workspace tab instead.
+ * transcript. Desktop opens an Attachments workspace tab instead.
  */
 export function ChatFilesPanel({
     messages,
@@ -32,7 +32,7 @@ export function ChatFilesPanel({
     takeover: boolean;
 }) {
     return (
-        <ChatSidePaneShell label="Files" open={open} takeover={takeover}>
+        <ChatSidePaneShell label="Attachments" open={open} takeover={takeover}>
             {(width) => (
                 <div
                     className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
@@ -41,10 +41,12 @@ export function ChatFilesPanel({
                     <header
                         className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 px-3`}
                     >
-                        <h2 className="min-w-0 flex-1 truncate font-semibold text-sm">Files</h2>
+                        <h2 className="min-w-0 flex-1 truncate font-semibold text-sm">
+                            Attachments
+                        </h2>
                         <Tooltip>
                             <Button
-                                aria-label="Close files"
+                                aria-label="Close attachments"
                                 isIconOnly
                                 onPress={onClose}
                                 size="sm"
@@ -56,7 +58,7 @@ export function ChatFilesPanel({
                                     size={shellBandIconSize}
                                 />
                             </Button>
-                            <Tooltip.Content>Close files</Tooltip.Content>
+                            <Tooltip.Content>Close attachments</Tooltip.Content>
                         </Tooltip>
                     </header>
                     <ChatFiles messages={messages} />
@@ -66,7 +68,7 @@ export function ChatFilesPanel({
     );
 }
 
-/** The chat's Files list: the website's Files pane body and a desktop Files tab's body. */
+/** The chat's Attachments list: the website's Attachments pane body and a desktop Attachments tab's body. */
 export function ChatFiles({ messages }: { messages: ChatFilesMessages }) {
     const download = useAttachmentDownload();
     const attachments =
@@ -78,10 +80,10 @@ export function ChatFiles({ messages }: { messages: ChatFilesMessages }) {
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-1.5 py-2">
             {attachments.length === 0 ? (
-                <p className="m-auto text-muted text-sm">No files in this chat.</p>
+                <p className="m-auto text-muted text-sm">No attachments in this chat.</p>
             ) : (
                 <ListBox
-                    aria-label="Files"
+                    aria-label="Attachments"
                     onAction={(key) => {
                         const attachment = byId.get(String(key));
                         if (attachment?.source.kind === 'hosted') {

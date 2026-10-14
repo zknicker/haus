@@ -12,7 +12,7 @@ import { readServerRouteShells } from './server-route-modules.ts';
  * The one table of pages inside a Server (`/s/:slug/…`). The web mounts it
  * under the window router's `ServerLayout`; desktop mounts the same table in
  * every tab's own router (ADR 0039), plus the pages only a tab shows: a
- * Thread, a chat's Files, and an artifact. Child routes render cached frames
+ * Thread, a chat's Attachments, and an artifact. Child routes render cached frames
  * synchronously (no `lazy`), which is what lets a plain `useRoutes` serve them.
  */
 export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject[] {

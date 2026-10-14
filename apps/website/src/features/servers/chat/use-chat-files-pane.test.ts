@@ -1,7 +1,7 @@
 import { expect, mock, test } from 'bun:test';
 import { routeChatFilesOpen } from './use-chat-files-pane.ts';
 
-test('desktop opens a chat Files tab instead of the chat side panel', () => {
+test('desktop opens a chat Attachments tab instead of the chat side panel', () => {
     const openFilesTab = mock((_chatId: string) => undefined);
     const openPanel = mock(() => undefined);
 
@@ -11,7 +11,7 @@ test('desktop opens a chat Files tab instead of the chat side panel', () => {
     expect(openPanel).not.toHaveBeenCalled();
 });
 
-test('the website opens Files in the chat side panel', () => {
+test('the website opens Attachments in the chat side panel', () => {
     const openPanel = mock(() => undefined);
 
     routeChatFilesOpen('chat-1', { openFilesTab: undefined, openPanel });

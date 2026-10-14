@@ -83,7 +83,7 @@ test('a page whose record has not loaded keeps an empty slot', () => {
     ).toEqual({ label: '', mark: { kind: 'none' }, place: null });
 });
 
-test('Thread and Files pages wear their chat mark and name it as context', () => {
+test('Thread and Attachments pages wear their chat mark and name it as context', () => {
     const thread = resolveTabIdentity(parseTabPage(app('/s/acme/threads/c1/m1')), {
         ...records,
         threadExcerpt: 'Ship it',
@@ -94,7 +94,7 @@ test('Thread and Files pages wear their chat mark and name it as context', () =>
         place: '#product › thread',
     });
     expect(resolveTabIdentity(parseTabPage(app('/s/acme/files/d1')), records).place).toBe(
-        'DM › files'
+        'DM › attachments'
     );
 });
 

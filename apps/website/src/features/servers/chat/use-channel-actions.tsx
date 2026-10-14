@@ -15,7 +15,7 @@ import { tasksRoute } from '../server-routes.ts';
 
 /** Where a chat menu's links go; each surface places them its own way. */
 export interface ChatActionRoutes {
-    /** The chat's Files. Omitted where a surface cannot open them, which hides the item. */
+    /** The chat's Attachments. Omitted where a surface cannot open them, which hides the item. */
     openFiles?: (chatId: string) => void;
     /** Tasks and profile links: the surface's own navigate (a router, a tab, the sidebar). */
     openPath: (path: string) => void;

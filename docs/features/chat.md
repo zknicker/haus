@@ -165,7 +165,7 @@ and [Agent Inbox](../../specs/inbox.md).
   `private, max-age=31536000, immutable`, because bytes never change under an id. A pending send
   renders its attachments through the same strip from the staged File, so an image send shows
   the image at once and the confirmed row reuses that decode; nothing flashes or jumps when the
-  Server confirms. The Files pane lists the same cards with image thumbnails. A Thread reply stages its attachments in the
+  Server confirms. The Attachments pane lists the same cards with image thumbnails. A Thread reply stages its attachments in the
   parent Chat, because a first reply has no Thread yet; the Server accepts a
   parent-staged attachment on a Thread reply and re-homes it to the Thread the
   reply lands in.
@@ -330,13 +330,13 @@ and [Agent Inbox](../../specs/inbox.md).
   Agent DMs share the same header dropdown and right-click menus before and
   after the first message, including on the selected sidebar row. The sidebar
   row keeps its Agent identity as the Chat materializes, preserving an open menu. View agent
-  profile works immediately; chat-scoped Tasks and Files remain disabled until
+  profile works immediately; chat-scoped Tasks and Attachments remain disabled until
   the Chat exists. Opening these menus or the profile does not create a Chat. The
   first human send, Agent `dm:@<human-handle>` send, or Server activity that needs a
   durable message atomically materializes the canonical human-stint↔Agent Chat
   and message. Every materialized chat's actions menu offers its chat-scoped
-  surfaces: View tasks opens the Tasks page filtered to the chat, and Files
-  opens a side pane (a Files page on desktop) listing attachments from its messages. Channels render with
+  surfaces: View tasks opens the Tasks page filtered to the chat, and Attachments
+  opens a side pane (an Attachments page on desktop) listing attachments from its messages. Channels render with
   a hash or chosen catalog icon and optional channel color. Opening a Server
   restores that Server's last visited Chat when it still exists, then falls back
   to `#all` or the first available Chat. A user can drag any part of a Channel
@@ -350,8 +350,8 @@ and [Agent Inbox](../../specs/inbox.md).
   and of its tab (in one Channel or DM submenu). Every chat menu — the web
   "…", a sidebar row, a desktop tab's submenu — lists the same actions in the
   same order; a sidebar row adds Open first (and, on desktop, Open in new tab, the same
-  open as Command-clicking the row), and Files appears there only on desktop, where
-  Files opens as a page. Editing a channel is three separate
+  open as Command-clicking the row), and Attachments appears there only on desktop, where
+  Attachments opens as a page. Editing a channel is three separate
   decisions, each with its own dialog: Name & description, Icon & color, and
   Agents, which carries the participant count. The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;

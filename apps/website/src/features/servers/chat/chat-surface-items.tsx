@@ -3,7 +3,7 @@ import { ContextMenu } from '@heroui-pro/react';
 import { Attachment01Icon, CheckListIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 
-/** The chat-scoped surfaces every chat menu offers: its tasks and its files. */
+/** The chat-scoped surfaces every chat menu offers: its tasks and its attachments. */
 export function ChatSurfaceItems({ isDisabled = false }: { isDisabled?: boolean }) {
     return (
         <>
@@ -11,9 +11,9 @@ export function ChatSurfaceItems({ isDisabled = false }: { isDisabled?: boolean 
                 <Icon icon={CheckListIcon} size={16} />
                 <Label>View tasks</Label>
             </Dropdown.Item>
-            <Dropdown.Item id="files" isDisabled={isDisabled} textValue="Files">
+            <Dropdown.Item id="files" isDisabled={isDisabled} textValue="Attachments">
                 <Icon icon={Attachment01Icon} size={16} />
-                <Label>Files</Label>
+                <Label>Attachments</Label>
             </Dropdown.Item>
         </>
     );
@@ -34,9 +34,9 @@ export function ChatContextSurfaceItems({
                 <Label>View tasks</Label>
             </ContextMenu.Item>
             {files ? (
-                <ContextMenu.Item id="files" isDisabled={isDisabled} textValue="Files">
+                <ContextMenu.Item id="files" isDisabled={isDisabled} textValue="Attachments">
                     <Icon icon={Attachment01Icon} size={16} />
-                    <Label>Files</Label>
+                    <Label>Attachments</Label>
                 </ContextMenu.Item>
             ) : null}
         </>

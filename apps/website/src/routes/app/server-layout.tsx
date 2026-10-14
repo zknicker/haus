@@ -84,7 +84,7 @@ export function ServerLayout() {
     );
 }
 
-/** The web's one routed page, beside the chat side pane that hosts Threads, Files, and artifacts. */
+/** The web's one routed page, beside the chat side pane that hosts Threads, Attachments, and artifacts. */
 function WebServerLayout({
     server,
     serverError,

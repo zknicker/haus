@@ -10,7 +10,7 @@ import type { HausOutputs } from '../../lib/haus-server.tsx';
  * and the prose live only on the `chat.message` entity a row reads.
  *
  * `author` carries its profile because the transcript names a deleted author
- * from it; `attachments` because Files lists a chat's loaded attachments
+ * from it; `attachments` because Attachments lists a chat's loaded attachments
  * without reading every entity.
  */
 export type ChatMessageLayout = Pick<
