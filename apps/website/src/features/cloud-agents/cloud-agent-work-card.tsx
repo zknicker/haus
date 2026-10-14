@@ -23,9 +23,9 @@ import { useCloudAgentWorkAgentName } from './use-cloud-agent-work-agent-name.ts
  *
  * Four parts, top to bottom: the header (provider mark, title, the job's
  * state, the repository), the pull request once one exists, exactly one status
- * line, and the actions. The headline is the job's state — Cursor's status
- * for the newest Run Cursor has received: working, done, failed, cancelled, or
- * expired — so a follow-up still in Haus's queue never turns a finished job
+ * line, and the actions. The headline is the job's state — the provider's
+ * status for the newest Run it has received: working, needs input, done,
+ * failed, cancelled, or expired — so a follow-up still in Haus's queue never turns a finished job
  * back into "queued". The status line is always there and always
  * one line, so the card changes height only when its pull request first
  * appears.

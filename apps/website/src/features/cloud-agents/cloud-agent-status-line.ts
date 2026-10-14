@@ -19,11 +19,14 @@ export interface CloudAgentStatusLine {
  * follow-up or a quiet spell never adds or removes a row: the card only grows
  * when its pull request first appears. The most urgent fact wins:
  *
- * 1. why the job failed, or the question it stopped to ask,
+ * 1. why the job failed,
  * 2. that a live Run has gone quiet,
  * 3. that a stop was requested,
- * 4. that the delegating Agent sent a follow-up,
- * 5. otherwise the latest activity, or when the job settled.
+ * 4. that the delegating Agent sent a follow-up (including its answer),
+ * 5. otherwise the latest activity, who must answer, or when the job settled.
+ *
+ * A job that needs input never shows its question: that is for the delegating
+ * Agent, which the inbox wakes. The card only says who the job is waiting on.
  */
 export function cloudAgentStatusLine(
     work: CloudAgentWorkPresentationInput,
@@ -32,12 +35,6 @@ export function cloudAgentStatusLine(
     const { job } = work;
     if (job.state === 'failed') {
         return { text: failureReason(job), tone: 'danger' };
-    }
-    if (job.state === 'pending-input') {
-        return {
-            text: oneLine(job.question) ?? `Waiting for ${input.agentName} to answer`,
-            tone: 'warning',
-        };
     }
     const quiet = quietFor(work, input.now);
     if (quiet !== null) {
@@ -62,6 +59,8 @@ export function cloudAgentStatusLine(
                     `Updated ${formatRelativeTime(work.updatedAt, input.now)}`,
                 tone: 'muted',
             };
+        case 'pending-input':
+            return { text: `Waiting for ${input.agentName} to answer`, tone: 'warning' };
         case 'done':
             return {
                 text: `Finished ${formatRelativeTime(job.settledAt ?? work.updatedAt, input.now)}`,

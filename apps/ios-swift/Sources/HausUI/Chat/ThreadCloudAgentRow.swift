@@ -100,7 +100,7 @@ public struct ThreadCloudAgentStack: Hashable, Sendable {
     public var counts: [Count] {
         let buckets: [(String, Count.Tone, (ThreadCloudAgentRow) -> Bool)] = [
             ("failed", .danger, { $0.state == .failed }),
-            ("pending input", .warning, { $0.state == .pendingInput }),
+            ("needs input", .warning, { $0.state == .pendingInput }),
             ("no update", .warning, { $0.tone == .warning && $0.state != .pendingInput }),
             ("working", .standard, { $0.state == .working && $0.tone == .standard }),
             ("done", .standard, { $0.state == .done && $0.tone == .standard }),

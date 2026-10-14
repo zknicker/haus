@@ -13,17 +13,15 @@ public struct CloudAgentStatusLine: Hashable, Sendable {
 }
 
 extension CloudAgentPresentation {
-    /// The most urgent fact wins: why the job failed, the question a hosted agent is waiting on, that a live Run has gone
+    /// The most urgent fact wins: why the job failed, that a live Run has gone
     /// quiet, that a stop was requested, that the delegating Agent sent a
-    /// follow-up, otherwise the latest activity or when the job settled.
+    /// follow-up (including its answer), otherwise the latest activity, who
+    /// must answer, or when the job settled. A job that needs input never
+    /// shows its question: that is for the delegating Agent, not the card.
     public func statusLine(agentName: String, at now: Date) -> CloudAgentStatusLine {
         let job = work.job
         if case .failed(let errorCode, let summary, _, _) = job {
             return CloudAgentStatusLine(text: Self.failureReason(errorCode: errorCode, summary: summary), tone: .danger)
-        }
-        if case .pendingInput(let question, _, _, _) = job {
-            let asked = question.flatMap(Self.oneLine) ?? "\(agentName) has a question"
-            return CloudAgentStatusLine(text: asked, tone: .warning)
         }
         if let quiet = quietFor(at: now) {
             return CloudAgentStatusLine(text: "No update in \(Self.duration(seconds: Int(quiet)))", tone: .warning)
@@ -43,11 +41,11 @@ extension CloudAgentPresentation {
         case .done:
             "Finished \(relative(settledAt, now))"
         case .pendingInput:
-            "Pending input · \(relative(settledAt, now))"
+            "Waiting for \(agentName) to answer"
         case .cancelled, .expired, .failed:
             "\(Self.jobLabel(job.state)) · \(relative(settledAt, now))"
         }
-        return CloudAgentStatusLine(text: text, tone: .muted)
+        return CloudAgentStatusLine(text: text, tone: job.state == .pendingInput ? .warning : .muted)
     }
 
     /// The provider's own report, else its error code, as one readable line.

@@ -107,7 +107,7 @@ test('a job keeps its title and gains a pull request marker, never the diff', ()
     expect(row?.pullRequestNumber).toBe(59);
 });
 
-test('a job waiting on an answer reads pending input in the warning tone', () => {
+test('a job waiting on an answer reads needs input in the warning tone', () => {
     const [row] = threadCloudAgentRows(
         [
             work({
@@ -121,7 +121,7 @@ test('a job waiting on an answer reads pending input in the warning tone', () =>
     );
     expect(row).toMatchObject({
         state: 'pending-input',
-        statusText: 'Pending input',
+        statusText: 'Needs input',
         tone: 'warning',
     });
 });

@@ -95,12 +95,11 @@ private typealias Job = CloudAgentWorkFixture.Job
             .text == "Expired · 30m ago")
     }
 
-    @Test func pendingInputShowsTheQuestionAsAWarning() throws {
+    @Test func needsInputNamesWhoMustAnswerAndNeverShowsTheQuestion() throws {
         let asked = try Fixture.work(status: "pending_input", job: Job.pendingInput(question: "Which branch\nshould I use?"))
-        #expect(line(asked).tone == .warning)
-        #expect(line(asked).text.contains("Which branch"))
+        #expect(line(asked) == CloudAgentStatusLine(text: "Waiting for Blippy to answer", tone: .warning))
         let blank = try Fixture.work(status: "pending_input", job: Job.pendingInput(question: nil))
-        #expect(line(blank).text == "Blippy has a question")
+        #expect(line(blank) == line(asked))
     }
 
     @Test func everyJobStateHasAStatusLine() throws {

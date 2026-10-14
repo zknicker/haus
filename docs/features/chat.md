@@ -122,14 +122,14 @@ and [Agent Inbox](../../specs/inbox.md).
   **Open in `<provider>`** with Copy link and, for Owners and Admins while a
   Run is live, Cancel run behind the chevron). The chip mirrors Cursor's own
   status for the newest Run Cursor has received: `Working · <elapsed>` with a
-  spinner, `Done · <duration>`, `Failed`, `Cancelled`, or `Expired`; it never
-  says Queued. A follow-up still in Haus's queue is not a Cursor Run yet, so it
+  spinner, `Done · <duration>`, `Failed`, `Cancelled`, or `Expired`, plus
+  `Needs input` for a Claude Run that stopped to ask; it never says Queued. A follow-up still in Haus's queue is not a Cursor Run yet, so it
   only shows as the follow-up note: the job still reads Done, and stays Done if
   that follow-up is cancelled before Cursor receives it. The status line is always one line and shows
   the most urgent fact: the failure reason, `No update in <d>` once a live Run
   has been quiet for ten minutes, a pending stop, `<Agent> asked for changes ·
-  waiting <d>` (or `· running <d>`), else the latest activity or when the job
-  settled. Because that line never appears or disappears, the card changes
+  waiting <d>` (or `· running <d>`), else the latest activity, `Waiting for
+  <Agent> to answer` (never the question itself), or when the job settled. Because that line never appears or disappears, the card changes
   height only when its pull request row first appears. The launch Message's
   author line above the card says who delegated it and when, so the card
   carries no receipt. The Run report is not on the card. Every card for the

@@ -56,7 +56,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         case .failed: "Failed"
         case .cancelled: "Cancelled"
         case .expired: "Expired"
-        case .pendingInput: "Pending input"
+        case .pendingInput: "Needs input"
         }
     }
 

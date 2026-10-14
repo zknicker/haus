@@ -185,11 +185,19 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
     for (const [title, status] of [
         ['Claude · Trim the settings copy', 'running'],
         ['Claude · Pick the reminder default', 'pending_input'],
+        ['Claude · Rename the inbox labels', 'completed'],
+        ['Claude · Migrate the digest schedule', 'failed'],
+        ['Claude · Draft the changelog', 'cancelled'],
     ] as const) {
         await galleryThread(
             db,
             context,
-            await galleryWork(db, context, { provider: 'claude', status, title })
+            await galleryWork(db, context, {
+                provider: 'claude',
+                status,
+                title,
+                withBranch: status === 'completed',
+            })
         );
     }
     const discussed = await galleryWork(db, context, {

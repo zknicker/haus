@@ -123,7 +123,7 @@ test('every job state has a status line', () => {
     }
 });
 
-test('a job waiting on an answer shows the question as a warning', () => {
+test('a job that needs input names who must answer and never shows the question', () => {
     const asked = work({
         runs: [
             run({
@@ -138,8 +138,18 @@ test('a job waiting on an answer shows the question as a warning', () => {
     });
 
     expect(asked.job.state).toBe('pending-input');
-    expect(line(asked)).toEqual({
-        text: 'Should the reminder default to 9am or 10am?',
-        tone: 'warning',
+    expect(line(asked)).toEqual({ text: 'Waiting for Blippy to answer', tone: 'warning' });
+});
+
+test('an answer on its way reads as the follow-up note, not as waiting', () => {
+    const answered = followedUp(
+        { status: 'pending_input', summary: 'Which default?' },
+        { status: 'pending_input' }
+    );
+
+    expect(answered.job.state).toBe('pending-input');
+    expect(line(answered)).toEqual({
+        text: 'Blippy asked for changes · waiting 3m',
+        tone: 'muted',
     });
 });

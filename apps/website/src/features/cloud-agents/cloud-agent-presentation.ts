@@ -22,7 +22,7 @@ export const cloudAgentJobLabels: Record<CloudAgentJobState, string> = {
     done: 'Done',
     expired: 'Expired',
     failed: 'Failed',
-    'pending-input': 'Pending input',
+    'pending-input': 'Needs input',
     working: 'Working',
 };
 
