@@ -1,11 +1,11 @@
 {
   "name": "Haus",
-  "install": "bash cloud-agent/install.sh",
-  "start": "bash .cursor/start.sh",
+  "install": "bash .agents/cloud/install.sh",
+  "start": "bash .agents/cloud/bootstrap.sh cursor",
   "terminals": [
     {
       "name": "dev-stack",
-      "command": "HAUS_POSTGRES_BIN=/usr/lib/postgresql/16/bin bun run dev"
+      "command": ". .agents/cloud/env.sh && bun run dev"
     }
   ]
 }
