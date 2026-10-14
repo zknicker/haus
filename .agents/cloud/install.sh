@@ -63,4 +63,29 @@ echo "==> Installing project dependencies and HeroUI Pro artifacts"
 # No per-repo secret is involved.
 bun run setup:worktree
 
+# Agent turns need a runtime CLI on the host; the dev seed runs on Codex. Pinned
+# with the Codex bridge in apps/computer/assets/harness-bridges/codex. Its login
+# happens per session in start.sh so no snapshot bakes in a credential.
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+    SUDO=sudo
+fi
+CODEX_VERSION="0.159.0"
+echo "==> Ensuring Codex CLI ${CODEX_VERSION} is installed"
+if [ "$(codex --version 2>/dev/null || true)" != "codex-cli ${CODEX_VERSION}" ]; then
+    ${SUDO} npm install -g "@openai/codex@${CODEX_VERSION}"
+fi
+
+# The agent Browser tool discovers Chromium on PATH and drives it through
+# agent-browser. /usr/local/bin/google-chrome here is a wrapper script, which
+# discovery skips, so expose the preinstalled Playwright Chromium binary.
+AGENT_BROWSER_VERSION="0.38.2"
+echo "==> Ensuring Chromium and agent-browser ${AGENT_BROWSER_VERSION} for the Browser tool"
+if ! command -v chromium >/dev/null 2>&1 && [ -x /opt/pw-browsers/chromium ]; then
+    ${SUDO} ln -sf /opt/pw-browsers/chromium /usr/local/bin/chromium
+fi
+if [ "$(agent-browser --version 2>/dev/null || true)" != "agent-browser ${AGENT_BROWSER_VERSION}" ]; then
+    ${SUDO} npm install -g "agent-browser@${AGENT_BROWSER_VERSION}"
+fi
+
 echo "==> Install complete"

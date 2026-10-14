@@ -292,6 +292,8 @@ Haus scripts on both platforms.
  harness otherwise only auto-discover Homebrew paths on Linux; if you run PostgreSQL 16 from a
  non-standard location, set `HAUS_POSTGRES_BIN` to its bin directory. Do not start a system
  PostgreSQL service; each lane owns a throwaway/worktree-isolated cluster.
+- The full dev stack, Agent turns, and UI capture work in cloud sessions; see
+ [Linux And Cloud Sessions](docs/operations/development.md#linux-and-cloud-sessions).
 - PostgreSQL's server binaries refuse to run as root. On root hosts (Claude cloud containers)
  `scripts/postgres-server-account.mjs` runs them as the `postgres` account and keeps their state
  under that account's home.

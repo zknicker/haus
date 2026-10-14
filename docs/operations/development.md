@@ -273,17 +273,22 @@ Computer keeps its macOS-only pieces behind platform seams:
   started externally (see [Browser](../internals/browser.md)).
 
 Turns need a signed-in runtime CLI on the host, exactly as on a Mac. The dev
-seed puts Cove, Blippy, and Tiny on Codex, so a cloud session installs the
-Codex CLI pinned in `harness-bridges/codex/` and signs it in with the
-Development OpenAI key:
+seed puts Cove, Blippy, and Tiny on Codex. Cloud sessions handle this
+automatically: `.agents/cloud/install.sh` installs the Codex CLI pinned in
+`harness-bridges/codex/`, and `.agents/cloud/start.sh` signs it in each session
+with the Development OpenAI key. Elsewhere on Linux, do the same by hand:
 
 ```bash
 npm install -g @openai/codex@0.159.0
 varlock printenv HAUS_OPENAI_API_KEY | codex login --with-api-key
 ```
 
-Restart the stack afterwards so Computer reports the runtime. A Cove whose
-setup already failed recovers on its own once the inventory includes Codex.
+Restart the stack after signing in so Computer reports the runtime. A Cove whose
+setup already failed recovers on its own once the inventory includes Codex. The
+cloud install also exposes Playwright's Chromium as `chromium` and installs
+`agent-browser`, so a headless Chromium started with a dedicated
+`--user-data-dir` and `--remote-debugging-port=0` can be connected for the
+Browser tool.
 
 `bun run ui:capture -- <path-or-url>` screenshots the running website headlessly,
 resolving a bare path against this checkout's website port. `--video <dir>`
