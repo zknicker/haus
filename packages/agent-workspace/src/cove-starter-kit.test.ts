@@ -141,6 +141,13 @@ test('refuses to acknowledge an extra file nested inside the factory tree', asyn
     await expect(validateCoveWorkspace(workspaceDir)).rejects.toThrow(/inventory/u);
 });
 
+test('ignores the macOS volume event log at the workspace root', async () => {
+    await seedCoveWorkspace(workspaceDir);
+    await fs.mkdir(path.join(workspaceDir, '.fseventsd'));
+    await fs.writeFile(path.join(workspaceDir, '.fseventsd', 'fseventsd-uuid'), 'uuid');
+    await expect(validateCoveWorkspace(workspaceDir)).resolves.toMatch(/^[0-9a-f]{64}$/u);
+});
+
 test('refuses a preexisting noncanonical Cove file instead of blessing its bytes', async () => {
     await fs.writeFile(path.join(workspaceDir, 'MEMORY.md'), '# ordinary Agent memory\n');
 

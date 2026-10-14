@@ -119,6 +119,10 @@ async function readWorkspaceInventory(
 ): Promise<string[]> {
     const inventory: string[] = [];
     for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+        // macOS writes .fseventsd onto the root of the mounted workspace volume.
+        if (!relativeDirectory && entry.name === '.fseventsd') {
+            continue;
+        }
         const relativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
         inventory.push(`${relativePath}${entry.isDirectory() ? '/' : ''}`);
         if (entry.isDirectory()) {
