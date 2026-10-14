@@ -19,7 +19,7 @@ export interface CloudAgentStatusLine {
  * follow-up or a quiet spell never adds or removes a row: the card only grows
  * when its pull request first appears. The most urgent fact wins:
  *
- * 1. why the job failed,
+ * 1. why the job failed, or the question it stopped to ask,
  * 2. that a live Run has gone quiet,
  * 3. that a stop was requested,
  * 4. that the delegating Agent sent a follow-up,
@@ -32,6 +32,12 @@ export function cloudAgentStatusLine(
     const { job } = work;
     if (job.state === 'failed') {
         return { text: failureReason(job), tone: 'danger' };
+    }
+    if (job.state === 'pending-input') {
+        return {
+            text: oneLine(job.question) ?? `Waiting for ${input.agentName} to answer`,
+            tone: 'warning',
+        };
     }
     const quiet = quietFor(work, input.now);
     if (quiet !== null) {

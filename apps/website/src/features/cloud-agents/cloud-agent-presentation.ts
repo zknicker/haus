@@ -22,6 +22,7 @@ export const cloudAgentJobLabels: Record<CloudAgentJobState, string> = {
     done: 'Done',
     expired: 'Expired',
     failed: 'Failed',
+    'pending-input': 'Pending input',
     working: 'Working',
 };
 
@@ -33,6 +34,7 @@ export function isEndedCloudAgentJob(state: CloudAgentJobState): boolean {
 /**
  * The one point of lifecycle color on the surface. A cancelled or expired job
  * is muted rather than dangerous: somebody asked for it, or it ran out of time.
+ * A job waiting on an answer is a warning: it is stopped until someone replies.
  */
 export function cloudAgentJobTone(state: CloudAgentJobState): CloudAgentTone {
     switch (state) {
@@ -42,6 +44,8 @@ export function cloudAgentJobTone(state: CloudAgentJobState): CloudAgentTone {
             return 'success';
         case 'failed':
             return 'danger';
+        case 'pending-input':
+            return 'warning';
         case 'cancelled':
         case 'expired':
             return 'muted';
@@ -51,7 +55,7 @@ export function cloudAgentJobTone(state: CloudAgentJobState): CloudAgentTone {
 /** The Chip color the card's headline wears, from the one tone rule above. */
 export function cloudAgentJobChipColor(
     state: CloudAgentJobState
-): 'accent' | 'danger' | 'default' | 'success' {
+): 'accent' | 'danger' | 'default' | 'success' | 'warning' {
     switch (state) {
         case 'working':
             return 'accent';
@@ -59,6 +63,8 @@ export function cloudAgentJobChipColor(
             return 'success';
         case 'failed':
             return 'danger';
+        case 'pending-input':
+            return 'warning';
         case 'cancelled':
         case 'expired':
             return 'default';

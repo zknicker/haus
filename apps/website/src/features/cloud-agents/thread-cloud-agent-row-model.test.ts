@@ -106,3 +106,22 @@ test('a job keeps its title and gains a pull request marker, never the diff', ()
     expect(row?.work.title).toBe('Fix the failing migration');
     expect(row?.pullRequestNumber).toBe(59);
 });
+
+test('a job waiting on an answer reads pending input in the warning tone', () => {
+    const [row] = threadCloudAgentRows(
+        [
+            work({
+                runs: [run({ status: 'pending_input', terminalAt: minutesAgo(2) })],
+                status: 'pending_input',
+                terminalAt: minutesAgo(2),
+                updatedAt: minutesAgo(2),
+            }),
+        ],
+        now
+    );
+    expect(row).toMatchObject({
+        state: 'pending-input',
+        statusText: 'Pending input',
+        tone: 'warning',
+    });
+});

@@ -1,24 +1,30 @@
-import type { CloudAgentModelSetting, CloudAgentSettings } from '@haus/api';
+import type { CloudAgentModelSetting, CloudAgentProvider, CloudAgentSettings } from '@haus/api';
 import { isCloudAgentModelListed } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
+/** One provider's Cloud Agent settings on one Server. */
+export interface CloudAgentSettingsTarget {
+    provider: CloudAgentProvider;
+    serverId: string;
+}
+
 /**
- * The Server's Cloud Agent settings. Server events refresh it: `server` scope
- * when someone saves a model, `computer` scope when a Computer reports a new
- * catalog (`createServerUpdateHandler`).
+ * One provider's Cloud Agent settings. Server events refresh every provider's
+ * read: `server` scope when someone saves a model, `computer` scope when a
+ * Computer reports a new catalog (`createServerUpdateHandler`).
  */
-export function useCloudAgentSettings(serverId: string) {
-    return hausTrpc.cloudAgentSettings.get.useQuery({ serverId }, queryPolicy.syncedSnapshot);
+export function useCloudAgentSettings(target: CloudAgentSettingsTarget) {
+    return hausTrpc.cloudAgentSettings.get.useQuery(target, queryPolicy.syncedSnapshot);
 }
 
 /**
  * Saves the Server's model. The pick shows at once; the Server's answer then
  * replaces it, and a refusal restores what was there.
  */
-export function useSetCloudAgentModel(serverId: string) {
+export function useSetCloudAgentModel(target: CloudAgentSettingsTarget) {
     const utils = hausTrpc.useUtils();
-    const input = { serverId };
+    const input = { provider: target.provider, serverId: target.serverId };
 
     return hausTrpc.cloudAgentSettings.setModel.useMutation({
         onMutate: async ({ model }) => {

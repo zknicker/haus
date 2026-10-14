@@ -122,3 +122,24 @@ test('every job state has a status line', () => {
         expect(line(work({ status, updatedAt: minutesAgo(1) })).text.length).toBeGreaterThan(0);
     }
 });
+
+test('a job waiting on an answer shows the question as a warning', () => {
+    const asked = work({
+        runs: [
+            run({
+                status: 'pending_input',
+                summary: 'Should the reminder default to **9am** or 10am?',
+                terminalAt: minutesAgo(2),
+            }),
+        ],
+        status: 'pending_input',
+        terminalAt: minutesAgo(2),
+        updatedAt: minutesAgo(2),
+    });
+
+    expect(asked.job.state).toBe('pending-input');
+    expect(line(asked)).toEqual({
+        text: 'Should the reminder default to 9am or 10am?',
+        tone: 'warning',
+    });
+});

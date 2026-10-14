@@ -1,10 +1,10 @@
-import type { CloudAgentCapabilityState } from '@haus/api';
+import type { CloudAgentCapabilityState, CloudAgentProvider } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export interface CloudAgentCapabilityTarget {
     computerId: string;
-    provider: 'cursor';
+    provider: CloudAgentProvider;
     serverId: string;
 }
 
@@ -34,6 +34,25 @@ export function useCloudAgentCancelSignIn(target: CloudAgentCapabilityTarget) {
     return hausTrpc.cloudAgentProvider.cancelSignIn.useMutation(
         useCapabilityMutationOptions(target)
     );
+}
+
+/**
+ * The default is one flag across the Computer's providers, so every provider's
+ * snapshot on that Computer is read again once it moves.
+ */
+export function useCloudAgentMakeDefault(target: CloudAgentCapabilityTarget) {
+    const utils = hausTrpc.useUtils();
+    const options = useCapabilityMutationOptions(target);
+    return hausTrpc.cloudAgentProvider.makeDefault.useMutation({
+        ...options,
+        onSuccess: async (state: CloudAgentCapabilityState) => {
+            await options.onSuccess(state);
+            await utils.cloudAgentProvider.get.invalidate({
+                computerId: target.computerId,
+                serverId: target.serverId,
+            });
+        },
+    });
 }
 
 function useCapabilityMutationOptions(target: CloudAgentCapabilityTarget) {

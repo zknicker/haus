@@ -7,6 +7,12 @@ import { type CloudAgentTone, cloudAgentJobTone } from './cloud-agent-presentati
 // the row around it tightened.
 const glyphSize = 'size-[15px]';
 
+const settledGlyphs = {
+    done: 'M5.1 8.3l2 2 3.8-4.2',
+    ended: 'M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2',
+    'pending-input': 'M6.2 6.4a1.85 1.85 0 1 1 2.6 1.7c-.5.25-.8.6-.8 1.15v.2M8 11.3v.05',
+};
+
 const toneClasses: Record<CloudAgentTone, string> = {
     accent: 'text-accent',
     danger: 'text-danger',
@@ -17,7 +23,8 @@ const toneClasses: Record<CloudAgentTone, string> = {
 
 /**
  * The Cloud Agent job's one point of lifecycle color: HeroUI's own spinner
- * while it works, and a solid disc with a check or a cross once it settles.
+ * while it works, and a solid disc once it settles: a check when done, a
+ * question mark while it waits on an answer, otherwise a cross.
  */
 export function CloudAgentStatusDisc({
     className,
@@ -55,24 +62,14 @@ export function CloudAgentStatusDisc({
             <circle cx="8" cy="8" fill="currentColor" r="6.75" />
             {/* var(--surface), not white: the disc fills with a theme token,
                 and a white glyph washes out on it. */}
-            {state === 'done' ? (
-                <path
-                    d="M5.1 8.3l2 2 3.8-4.2"
-                    fill="none"
-                    stroke="var(--surface)"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.5"
-                />
-            ) : (
-                <path
-                    d="M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2"
-                    fill="none"
-                    stroke="var(--surface)"
-                    strokeLinecap="round"
-                    strokeWidth="1.5"
-                />
-            )}
+            <path
+                d={settledGlyphs[state === 'done' || state === 'pending-input' ? state : 'ended']}
+                fill="none"
+                stroke="var(--surface)"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+            />
         </svg>
     );
 }

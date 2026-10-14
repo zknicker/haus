@@ -1,6 +1,10 @@
 import { Description, Label, ListBox, Select, Separator, Switch } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
-import { useSetCloudAgentModel } from '../../../hooks/servers/use-cloud-agent-settings.ts';
+import {
+    type CloudAgentSettingsTarget,
+    useSetCloudAgentModel,
+} from '../../../hooks/servers/use-cloud-agent-settings.ts';
+import { cloudAgentProviderName } from '../../cloud-agents/cloud-agent-provider-presentation.ts';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 import { type CloudAgentModelParamsView, settingWithParam } from './cloud-agent-params.ts';
 
@@ -11,11 +15,11 @@ import { type CloudAgentModelParamsView, settingWithParam } from './cloud-agent-
  */
 export function CloudAgentParamRows({
     canManage,
-    serverId,
+    target,
     view,
 }: {
     canManage: boolean;
-    serverId: string;
+    target: CloudAgentSettingsTarget;
     view: CloudAgentModelParamsView;
 }) {
     return (
@@ -23,13 +27,13 @@ export function CloudAgentParamRows({
             {view.effort ? (
                 <>
                     <Separator />
-                    <EffortRow canManage={canManage} serverId={serverId} view={view} />
+                    <EffortRow canManage={canManage} target={target} view={view} />
                 </>
             ) : null}
             {view.fast ? (
                 <>
                     <Separator />
-                    <FastRow canManage={canManage} serverId={serverId} view={view} />
+                    <FastRow canManage={canManage} target={target} view={view} />
                 </>
             ) : null}
         </>
@@ -38,14 +42,14 @@ export function CloudAgentParamRows({
 
 function EffortRow({
     canManage,
-    serverId,
+    target,
     view,
 }: {
     canManage: boolean;
-    serverId: string;
+    target: CloudAgentSettingsTarget;
     view: CloudAgentModelParamsView;
 }) {
-    const setModel = useSetCloudAgentModel(serverId);
+    const setModel = useSetCloudAgentModel(target);
     const options = view.effort?.options ?? [];
     const selected = view.effort?.selected ?? null;
     const selectedLabel = options.find((option) => option.value === selected)?.label ?? 'Default';
@@ -59,13 +63,13 @@ function EffortRow({
             <ItemCard.Action>
                 {canManage ? (
                     <Select
-                        aria-label="Cloud Agent effort"
+                        aria-label={`${cloudAgentProviderName(target.provider)} cloud agent effort`}
                         className="w-60"
                         onChange={(key) => {
                             if (typeof key === 'string' && key !== selected) {
                                 setModel.mutate({
                                     model: settingWithParam(view, { effort: key }),
-                                    serverId,
+                                    ...target,
                                 });
                             }
                         }}
@@ -114,14 +118,14 @@ function EffortRow({
 
 function FastRow({
     canManage,
-    serverId,
+    target,
     view,
 }: {
     canManage: boolean;
-    serverId: string;
+    target: CloudAgentSettingsTarget;
     view: CloudAgentModelParamsView;
 }) {
-    const setModel = useSetCloudAgentModel(serverId);
+    const setModel = useSetCloudAgentModel(target);
     const isOn = view.fast?.selected ?? false;
 
     return (
@@ -133,10 +137,10 @@ function FastRow({
             <ItemCard.Action>
                 {canManage ? (
                     <Switch
-                        aria-label="Cloud Agent fast mode"
+                        aria-label={`${cloudAgentProviderName(target.provider)} cloud agent fast mode`}
                         isSelected={isOn}
                         onChange={(fast) =>
-                            setModel.mutate({ model: settingWithParam(view, { fast }), serverId })
+                            setModel.mutate({ ...target, model: settingWithParam(view, { fast }) })
                         }
                     >
                         <Switch.Content>

@@ -12,7 +12,8 @@ import {
  * One job as the Thread preview lists it: always its title, its job state in
  * the card's vocabulary, and the pull request number once there is one. A
  * live job that has gone quiet reads as `No update in <d>` instead of its
- * state, because that is the fact a reader has to act on.
+ * state, because that is the fact a reader has to act on; a job waiting on an
+ * answer wears the same warning tone.
  */
 export interface ThreadCloudAgentRow {
     pullRequestNumber: null | number;
@@ -55,7 +56,7 @@ function toRow(work: CloudAgentWork, now: number): ThreadCloudAgentRow {
         pullRequestNumber,
         state: work.job.state,
         statusText: elapsed === null ? label : `${label} · ${elapsed}`,
-        tone: 'default',
+        tone: work.job.state === 'pending-input' ? 'warning' : 'default',
         work,
     };
 }
