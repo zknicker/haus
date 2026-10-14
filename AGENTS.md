@@ -278,7 +278,7 @@ then runs `bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact d
 `.agents/cloud/env.sh` holds session exports. `.agents/cloud/bootstrap.sh` is a fleet-owned copy:
 never edit it here. It runs the Haus scripts on both platforms. The fleet (make-it-so, fleet
 skills, global rules) loads separately: on Claude from the cloud environment's Setup script, on
-Cursor from `bootstrap.sh cursor`.
+Cursor from `bootstrap.sh cursor-install` and `bootstrap.sh cursor`.
 
 - There are no per-repository cloud secrets. Each platform provides the fleet-wide read-only
  Development identity as `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`; every value resolves from
@@ -309,7 +309,7 @@ Cursor from `bootstrap.sh cursor`.
 
 ### Platform adapters
 
-- Cursor: `.cursor/environment.json` installs with `.agents/cloud/install.sh`, starts with
+- Cursor: `.cursor/environment.json` installs with `.agents/cloud/bootstrap.sh cursor-install`, starts with
  `.agents/cloud/bootstrap.sh cursor`, and auto-starts the full stack in the `dev-stack` terminal.
 - Claude Code: `.claude/settings.json` runs `bun run setup:worktree` in local sessions and
  `.agents/cloud/bootstrap.sh claude` in cloud sessions. The dev stack is not auto-started.
