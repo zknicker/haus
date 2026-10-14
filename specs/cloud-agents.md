@@ -1,10 +1,12 @@
 ---
-summary: Provider-hosted Cloud Agents as Agent-delegated work, stored as a standalone record that Messages link to and executed through Computer-local provider access.
+summary: Provider-hosted Cloud Agents (Cursor and Claude) as Agent-delegated work, stored as a standalone record that Messages link to and executed through Computer-local provider access.
 read_when:
   - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
   - changing Cloud Agent work links, who may see Cloud Agent work, or what survives Chat deletion
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
-  - changing the Cloud Agent model setting, the Cursor model catalog, or the model a Run requests
+  - changing the Claude Cloud Agent adapter, its Claude Code sign-in, polling, or status mapping
+  - changing the default Cloud Agent provider, the `--provider` flag, or the `pending_input` Run status
+  - changing the Cloud Agent model setting, the per-provider model, the Cursor model catalog, or the model a Run requests
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
   - changing the freshness hold on `haus cloud-agent start` or the start response union
   - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
@@ -14,7 +16,7 @@ read_when:
 
 Cloud Agents let any Haus Agent delegate bounded development work to a provider-hosted agent.
 The delegating Agent starts the work, receives completion through its inbox, inspects the result,
-and decides what to say or do next. Cursor is the first provider.
+and decides what to say or do next. Cursor and Claude are the providers.
 
 This spec is the canonical implementation plan. Earlier Fable and architecture reviews under
 `~/.claude/plans` are research inputs and may describe superseded designs.
@@ -27,18 +29,24 @@ facts and compatibility risks, not unresolved product decisions.
 - **Agent CLI verbs.** `haus cloud-agent start`, `send`, `inspect`, and `stop` are the Agent
   surface, not a harness tool, because the Agent CLI is an Agent's only output channel
   (ADR 0014). Every supported execution runtime may call them; the caller does not need to be a
-  Cursor-backed Agent. `start` takes `--target`, `--repo`, an optional `--ref`, `--title`, and
+  Cursor-backed Agent. `start` takes `--target`, `--repo`, an optional `--ref`, an optional
+  `--provider`, `--title`, and
   `--say` — the Agent's own words, which become the Message content — with the provider
   instructions on stdin.
-  `send --work <workId>` takes another prompt on stdin and continues the same hosted agent;
+  `send --work <workId>` takes another prompt on stdin and continues the same hosted agent
+  (it is also how the Agent answers a `pending_input` question);
   a busy agent queues it, and `--interrupt` stops active work and discards older queued prompts
   before processing it.
   `inspect` lists the caller's work, or reads recorded details with `--work <workId>`.
   `stop --work <workId>` requests cancellation. The published `cancel` spelling remains a CLI
   compatibility alias for existing callers.
-- **Provider-neutral capability.** Cursor is the only initial implementation, so an Agent does not
-  pass a provider on every call. Computer configuration chooses the default if a second provider
-  arrives; an explicit selector is added only when per-execution choice becomes useful.
+- **Provider-neutral capability.** `cursor` and `claude` are the providers
+  (`packages/haus-api/src/cloud-agent-provider.ts`), and every Computer ships both adapters. Each
+  Computer keeps a local default provider in `${dataRoot}/cloud-agents.json` (`{ defaultProvider }`),
+  Cursor until a human changes it from Computer settings (**Make default** on a provider row, the
+  `make-default` capability operation behind `cloudAgentProvider.makeDefault`). Capability state
+  and the Computer inventory report `isDefault`. `haus cloud-agent start` uses that default unless
+  the Agent passes `--provider cursor|claude`.
 - **Agent-held repository context.** The Agent supplies the repository, starting ref, title,
   instructions, and any other provider input it knows. Haus adds no repository registry.
 - **Standalone work, linked from Messages.** Cloud Agent work is its own Agent-owned record. It
@@ -61,8 +69,8 @@ facts and compatibility risks, not unresolved product decisions.
   updates from
   queued or running into a terminal report without creating automatic progress or completion
   Messages.
-- **Inbox completion.** Every terminal provider run creates at most one durable inbox attention for
-  the delegating Agent. Completion does not keep the launch turn open. The resumed Agent owns any
+- **Inbox completion.** Every settled provider run, including one that stopped to ask a question
+  (`pending_input`), creates at most one durable inbox attention for the delegating Agent. Completion does not keep the launch turn open. The resumed Agent owns any
   follow-up and may post an ordinary Message when it has useful judgment to add.
   Cloud Agent instructions explicitly explain this automatic wake: the Agent does not need a
   reminder or polling to learn when the work finishes. The work Thread holds implementation details
@@ -134,7 +142,7 @@ Message ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)).
 Body kinds name concrete Haus product acts, not generic mechanisms, rendered entities, or
 providers. Haus has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
 creation uses `agent-created`. Delegated hosted work has no body kind: it is a record that `text`
-Messages link, and Cursor is a provider field on that work. A pull request becomes a Message body
+Messages link, and the provider is a field on that work. A pull request becomes a Message body
 only when a real workflow needs to author a pull-request Message independently.
 
 A card is presentation, not a durable noun. It owns no id, placement, lifecycle, authorization, or
@@ -181,7 +189,8 @@ hierarchy):
    when the Computer's GitHub reading carries them. The newest Run that reported a pull request
    supplies it, so a follow-up Run that has not reported yet never hides it.
 3. **Exactly one status line**, always present, one line, truncated. The most urgent fact wins:
-   the failure reason (danger: the failed Run's summary, else its error code); `No update in <d>`
+   the failure reason (danger: the failed Run's summary, else its error code); the question
+   (warning) when the job is pending input; `No update in <d>`
    (warning) when the newest Run is queued or running and the work's `updatedAt` is older than ten
    minutes (an observation from any of the work's Runs advances `updatedAt`, so an earlier Run
    still reporting while a follow-up waits keeps the work fresh); `Stopping · requested <relative>` while a cancel is pending; the follow-up note
@@ -192,12 +201,13 @@ hierarchy):
    button whose primary half is **Open in `<provider>`** and whose chevron holds Copy link, plus
    Cancel run for Owners and Admins while a Run is live. There is no restart action.
 
-**Job state mirrors Cursor.** The chip states the Server-derived `job` (`deriveCloudAgentJob` in
+**Job state mirrors the provider.** The chip states the Server-derived `job` (`deriveCloudAgentJob` in
 `packages/haus-api`): the provider's own status for the newest Run the provider has received (the
 Run carries a `providerRunId`), with no Haus logic layered on top. `Working · <elapsed>` with HeroUI's
 spinner for CREATING or RUNNING, `Done · <duration>` in success for FINISHED (pull request merge
 state stays on the pull request row), `Failed` in danger for ERROR, and `Cancelled` or `Expired`
-muted for CANCELLED or EXPIRED. A follow-up still in Haus's local queue is not a provider Run yet:
+muted for CANCELLED or EXPIRED, and `Pending input` in the warning tone for a Run that stopped to
+ask a question (Claude only; see [Claude provider](#claude-provider)). A follow-up still in Haus's local queue is not a provider Run yet:
 it never moves the headline and only shows as the follow-up note, so one cancelled before delivery
 leaves a done job Done, while one cancelled after delivery reads Cancelled. `Queued` is never a
 headline: a first Run not yet received or still queued reads working.
@@ -283,13 +293,13 @@ type CloudAgentWork = {
     chatId: string; // the requesting Chat: a historical pointer, no foreign key
     agentId: string;
     computerId: string;
-    provider: 'cursor';
+    provider: 'cursor' | 'claude';
     providerAgentId: string | null;
     providerUrl: string | null;
     title: string;
     repository: string;
     startingRef: string | null;
-    status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'expired';
+    status: 'queued' | 'running' | 'pending_input' | 'completed' | 'failed' | 'cancelled' | 'expired';
     startedAt: string | null;
     terminalAt: string | null;
     cancelRequestedAt: string | null;
@@ -309,6 +319,7 @@ type CloudAgentFollowUp = { state: 'waiting' | 'running'; since: string };
 // follow-up. `startedAt`/`settledAt` belong to the Run the state comes from.
 type CloudAgentJob =
     | { state: 'working'; startedAt: string | null; followUp: CloudAgentFollowUp | null }
+    | { state: 'pending-input'; question: string | null; startedAt: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
     | { state: 'done'; startedAt: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
     | { state: 'failed'; summary: string | null; errorCode: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
     | { state: 'cancelled' | 'expired'; settledAt: string | null; followUp: CloudAgentFollowUp | null };
@@ -316,7 +327,7 @@ type CloudAgentJob =
 type CloudAgentRun = {
     runId: string;
     providerRunId: string | null;
-    status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'expired';
+    status: 'queued' | 'running' | 'pending_input' | 'completed' | 'failed' | 'cancelled' | 'expired';
     rawStatus: string | null;
     createdAt: string; // when the Run was queued
 
@@ -353,6 +364,14 @@ A cancelled Run cannot resume, so continuing after cancellation creates another 
 work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and is bounded
 at twenty; the work keeps recent Runs for inspection rather than an unbounded execution history.
 Each accepted follow-up adds a Run to the existing work without creating another Message or Task.
+
+`pending_input` is settled, like `completed`: the cloud agent stopped to ask a question and the
+Run's `summary` is that question. It creates the same one `cloud_agent_work` inbox attention as any
+settled Run, so the delegating Agent wakes once, and the inbox item tells it to answer with
+`haus cloud-agent send --work <workId>`. The answer is an ordinary follow-up Run. The derived job
+reads `pending-input` with the `question`; while the answer has not been taken by the provider (no
+`providerRunId` yet) the job still reads pending-input with the follow-up waiting. Active work
+(`cloudAgentWork.listActive`, Happening now) includes `pending_input`.
 
 `activity` is one bounded line of at most 120 characters. Computer may update it from provider
 events no more than every few seconds. It is the work's current state in a sentence, never a
@@ -523,6 +542,45 @@ The Thread preview under the launch Message shows the latest replies, so a lone 
 reply surfaces the pull request in the parent Chat without new storage. V1 hoists no pull-request
 reference onto the work header; that is a later read if the preview line proves insufficient.
 
+## Claude provider
+
+The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code's cloud sessions.
+
+- **Sign-in.** It uses this Computer's own Claude Code sign-in (`claude auth status`, the claude.ai
+  login). Haus stores no Claude credential and never signs Claude Code out. No hook, callback,
+  network secret, or Haus credential runs inside Claude's environment; an earlier design that did
+  was dropped.
+- **Launch.** `claude --cloud <prompt>` runs in a throwaway checkout of the repository at the
+  starting ref; the folder-trust prompt is accepted automatically and the checkout is deleted
+  afterwards. Follow-ups run `claude -p --cloud <session> --output-format json <prompt>`.
+- **Run tag.** Each prompt's first line is `HAUS_CLOUD_RUN=<workId>/<runId>`. Launch returns no Run
+  id, so the tagged prompt's event id becomes the Run's `providerRunId` once Computer observes it.
+- **Monitoring.** Computer polls Claude's session controller API about every 10 seconds: session
+  `worker_status` (`running`, `idle`, `requires_action`), `status` (`active`, `archived`), and the
+  session event log.
+- **Mapping.**
+
+  | Claude session state | Haus status |
+  | --- | --- |
+  | Tagged prompt not yet in the log | `queued` (`expired` if the session is archived) |
+  | `requires_action` | `pending_input`; the open AskUserQuestion, or the tool Claude asks to use, is the summary |
+  | `idle` with no open background tasks after a result | `completed`, or `failed` with `errorCode` `claude-<subtype>` |
+  | Haus's own interrupt acknowledged and the worker not running | `cancelled` |
+  | Session archived | `expired` |
+  | Otherwise | `running`, with the latest activity |
+
+- **Cancel and answers.** Cancel stops open background tasks, then sends an interrupt with request
+  id `haus-cancel-<runId>`. Before delivering an answer to a session waiting on a question, Computer
+  interrupts the pending question and waits for the worker to go idle.
+- **Links.** Claude has no desktop-app deeplink, so **Open in Claude** opens claude.ai/code.
+
+Known limits:
+
+- A human answering directly in Claude's own UI is not observed, because the `pending_input` Run is
+  already settled.
+- Claude's branch and pull request are inferred from its own `git push` command and the GitHub pull
+  request URL it writes, so they can be missed.
+
 ## Cursor readiness and authentication
 
 Cursor runtime readiness and Cursor Cloud Agent readiness are related but independent Computer
@@ -629,10 +687,12 @@ repository is usable only when the Cursor account has the required source-contro
 
 ## Model
 
-A human picks the Cloud Agent model once per Server; the default is **Auto**, Cursor's per-run
-model router. Haus sends Auto as Cursor's catalog id `default` on every Run, so the setting means
+A human picks the Cloud Agent model once per Server for each provider; the default is **Auto**.
+For Cursor, Auto is the per-run model router. Haus sends Auto as Cursor's catalog id `default` on every Run, so the setting means
 the same thing whatever default model the Cursor account configured (sending no model would mean
-that account default, and no SDK API reports which model it is). Agents cannot choose
+that account default, and no SDK API reports which model it is). For Claude, Auto sends no model,
+so the account default applies: Claude's catalog lists sonnet, opus, and haiku with
+`autoAvailable: false`. Agents cannot choose
 or override it: no Agent route, CLI flag, or start input carries a model.
 
 **Catalog.** Cursor is the source of truth for which models exist. The Computer that holds the
@@ -663,10 +723,13 @@ inventory on `computers.reported_inventory`.
 
 **Setting.** The contract is the union `{ kind: 'auto' } | { kind: 'model', id, params: { effort?,
 fast? } }`. `auto` is Auto. An absent param means the model's own default, so `params: {}`
-is "this model as Cursor configures it". `servers.cloud_agent_model_id` (`null` is Auto)
-and `servers.cloud_agent_model_params` (jsonb, `{}` whenever the id is `null`) hold it. Any member
-reads it through `cloudAgentSettings.get({ serverId })`; only an Owner or Admin writes it through
-`cloudAgentSettings.setModel({ serverId, model })`, which refuses (`BAD_REQUEST`) an id that the
+is "this model as Cursor configures it". `cloud_agent_model_settings(server_id, provider,
+model_id, model_params)` holds one row per Server and provider; no row means Auto. (Migration
+`0089_cloud-agent-claude` moved the former `servers.cloud_agent_model_id` and
+`.cloud_agent_model_params` into the Cursor row.) Any member reads it through
+`cloudAgentSettings.get({ serverId, provider })`; only an Owner or Admin writes it through
+`cloudAgentSettings.setModel({ serverId, provider, model })`; `provider` defaults to `cursor`.
+The write refuses (`BAD_REQUEST`) an id that the
 freshest catalog on any of the Server's Computers does not list, an `effort` value that model does
 not offer, or `fast` on a model without it. The read returns `{ model, catalog,
 savedModelUnavailable }`. `catalog` is that freshest catalog, or `null` when no Computer has
@@ -692,7 +755,7 @@ option when the id is `null`. Computer protocol 26 carries the catalog and the R
 
 ## Settings and usage
 
-Computer settings report Cursor runtime and Cursor Cloud Agent as separate capabilities even when
+Settings → Models shows one model row per provider. Computer settings report Cursor runtime and Cursor Cloud Agent as separate capabilities even when
 they use the same Cursor account. Cursor appears alongside other detected execution runtimes, and
 the Cloud Agent capability is one row beside them with Connect and Disconnect behind its overflow
 menu once connected. Pending sign-in can be resumed from the row. The dialog offers Continue in
@@ -717,8 +780,9 @@ administrative integration and is outside this Computer capability.
 - No requirement that the delegating Agent use the Cursor runtime.
 - No representation of a Cloud Agent as a named Haus teammate or Harness subagent.
 - No product-wide generic action, card, output, or provider framework.
-- No Server-hosted Cursor credential or raw provider transcript in Chat history.
-- No provider selector until a second implementation creates a real choice.
+- No Server-hosted Cursor or Claude credential or raw provider transcript in Chat history.
+- No per-Server default provider: the default is Computer-local, and the Agent's only override is
+  `--provider`.
 - No GitHub-owned PR state, checks, reviews, or merge actions in v1.
 - No automatic completion Message; the delegating Agent decides whether the result deserves one.
 - No outputs relation, output table, or produced-by provenance; results are ordinary Messages and

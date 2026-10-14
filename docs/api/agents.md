@@ -442,6 +442,11 @@ This command runs on the Computer rather than upstream. The Computer checks
 `CLOUD_AGENT_UNAVAILABLE` before Server records anything, and it keeps the stdin instructions
 local: they reach the provider and never Server.
 
+`start` also takes `--provider cursor|claude`; without it the Computer's default provider applies
+(Cursor until a human picks another in Computer settings). A Run whose cloud agent stopped to ask
+a question settles as `pending_input` and wakes the Agent once; it answers with
+`haus cloud-agent send --work <workId>`.
+
 `POST /api/agent/cloud-agents` takes `{ content, nonce, provider, replyToMessageId?, repository,
 startingRef, target, title }`. The target is a Channel or DM, or a Thread that already holds
 conversation: a launch never opens a Thread, so a `<target>:<shortId>` anchor without one, or
@@ -517,13 +522,15 @@ Threads, keyed by the Thread anchor for an in-Thread link and by the linking Mes
 
 Cloud Agent provider access is a Computer capability with its own credential store, separate from
 the Cursor runtime harness even when both belong to one Cursor account. Each Computer reports it in
-its inventory as `cloudAgentProviders: [{ provider, ready, reason, models }]`, where an unready reason is
+its inventory as `cloudAgentProviders: [{ provider, isDefault, ready, reason, models }]` (`provider` is `cursor` or
+`claude`), where an unready reason is
 `not-connected`, `expired`, or `provider-unavailable`. `models` is the provider's model catalog for
 the connected account, `{ autoAvailable, models: [{ id, displayName, description, family, order,
 effort, fast }], refreshedAt }`, or `null`; `autoAvailable` says Cursor listed its Auto entry
 (see [Cloud Agents → Model](../../specs/cloud-agents.md#model)).
 
-`cloudAgentSettings.get({ serverId })` answers any member with
+`cloudAgentSettings.get({ serverId, provider })` (`provider` defaults to `cursor`; each provider
+keeps its own Server-wide model) answers any member with
 `{ model, catalog, savedModelUnavailable }`. `model` is `{ kind: "auto" }`, shown as Auto
 (Haus sends Cursor's `default` id, so Cursor picks a model for each Run), or
 `{ kind: "model", id, params: { effort?, fast? } }`, where an absent param is the model's default.

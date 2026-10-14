@@ -117,10 +117,12 @@ Message, in one Server tenant. Lifecycle changes publish the `cloudAgentWork.upd
 topic, once per linking Message in a live Chat, after commit; no event row
 is stored. Provider prompts, credentials, transcripts, and
 workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
-Agent, in the same transaction that settles it. `servers.cloud_agent_model_id` is the Server's
-human-chosen Cloud Agent model (`null` is Auto) and `servers.cloud_agent_model_params` its
-effort and fast choices; the Cursor catalog it is checked against lives in
-each Computer's `reported_inventory`.
+Agent, in the same transaction that settles it. `cloud_agent_model_settings`
+holds one row per Server and provider (`server_id`, `provider`, `model_id`, `model_params`) with
+the human-chosen Cloud Agent model and its effort and fast choices; no row is Auto. Migration
+`0089_cloud-agent-claude` moved the former `servers.cloud_agent_model_id` and
+`servers.cloud_agent_model_params` columns into the Cursor row and dropped them. The catalog a
+model is checked against lives in each Computer's `reported_inventory`.
 
 An Agent created by another Agent (ADR 0028) records `created_by_agent_id`,
 `creation_nonce`, and `creation_request_hash` on `agents`. The nonce is unique per

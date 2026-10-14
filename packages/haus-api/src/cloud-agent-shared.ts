@@ -220,10 +220,7 @@ export const cloudAgentCapabilityStateSchema = z
         accountEmail: z.string().trim().min(1).max(320).nullable(),
         /** When the resolved credential expires, when the provider dates it. */
         expiresAt: cloudAgentTimestampSchema.nullable(),
-        /**
-         * This Computer launches here when an Agent names no provider. Absent
-         * from Computers that predate provider choice, which only ran Cursor.
-         */
+        /** Whether a launch that names no provider uses this one on this Computer. */
         isDefault: z.boolean().default(false),
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),
