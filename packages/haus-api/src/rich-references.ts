@@ -5,6 +5,7 @@ export type HausRichReferenceKind =
     | 'cloud-agent-work'
     | 'directory'
     | 'file'
+    | 'image-generation'
     | 'plugin'
     | 'skill'
     | 'user';
@@ -14,6 +15,7 @@ export type HausRichReferenceProjection =
     | 'capability-reference'
     | 'chat-reference'
     | 'cloud-agent-work-reference'
+    | 'image-generation-reference'
     | 'path-reference'
     | 'skill-activation'
     | 'user-reference';
@@ -47,6 +49,11 @@ export function formatChatThreadReferenceTarget(chatId: string, anchorMessageId:
 /** `cloud-agent://<workId>`. Build whole links with `formatCloudAgentWorkLink`. */
 export function formatCloudAgentWorkReferenceTarget(workId: string) {
     return `cloud-agent://${encodeReferenceId(workId)}`;
+}
+
+/** `image-generation://<generationId>`. Build whole links with `formatImageGenerationLink`. */
+export function formatImageGenerationReferenceTarget(generationId: string) {
+    return `image-generation://${encodeReferenceId(generationId)}`;
 }
 
 export function formatSkillReferenceTarget(skillId: string) {
@@ -92,6 +99,10 @@ export function parseChatThreadReferenceTarget(target: string) {
 
 export function parseCloudAgentWorkReferenceTarget(target: string) {
     return parseSchemeReferenceTarget(target, 'cloud-agent');
+}
+
+export function parseImageGenerationReferenceTarget(target: string) {
+    return parseSchemeReferenceTarget(target, 'image-generation');
 }
 
 export function parseSkillReferenceTarget(target: string) {
@@ -176,6 +187,14 @@ function parseRichReferenceLink({
             // Undo the label escapes `formatCloudAgentWorkLink` writes.
             label: rawLabel.replace(/\\([\\[])/gu, '$1'),
             projection: 'cloud-agent-work-reference',
+        };
+    }
+
+    if (parseImageGenerationReferenceTarget(target)) {
+        return {
+            kind: 'image-generation',
+            label: rawLabel.replace(/\\([\\[])/gu, '$1'),
+            projection: 'image-generation-reference',
         };
     }
 

@@ -241,6 +241,17 @@
         "timer": 2
       }
     },
+    "apps/computer/src/agent-cli/commands/agent-image.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "The one-shot CLI poll waits with a single awaited sleep timer that fires once per poll, bounded by a five-minute timeout; no timer outlives the awaiting command.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 1
+      }
+    },
     "apps/computer/src/agent-run-frames.ts": {
       "disposition": "finite-cleanup",
       "reason": "Each run holds at most one unref'd trailing journal-change timer that fires once within a second and sends a dropped-if-disconnected presentation frame.",
@@ -646,6 +657,17 @@
         "finallyBlock": 0,
         "manualPromise": 1,
         "timer": 1
+      }
+    },
+    "apps/server/src/image-generation/run-image-generation.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One awaited generation run settles its durable row and re-announces the final state in lexical finally. It owns no detached timer or background task; boot recovery fails rows left generating.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
       }
     },
     "apps/server/src/identity/clerk-sessions.ts": {

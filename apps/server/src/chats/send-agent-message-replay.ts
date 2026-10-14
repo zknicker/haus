@@ -4,6 +4,7 @@ import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { replayCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
+import { replayImageGenerationLinks } from './image-generation-links.ts';
 import { readInlineReplyContext } from './reply-context.ts';
 import type { SendAgentMessageInput, SendAgentMessageResult } from './send-agent-message.ts';
 import { AgentSendConflictError } from './send-agent-message-errors.ts';
@@ -47,8 +48,12 @@ export async function replayAgentMessage(
     canonical: string,
     replyParentId: string | null
 ): Promise<SendAgentMessageResult> {
-    const content = await replayCloudAgentWorkLinks(db, {
-        content: canonical,
+    const content = await replayImageGenerationLinks(db, {
+        content: await replayCloudAgentWorkLinks(db, {
+            content: canonical,
+            messageId: existing.id,
+            serverId: input.serverId,
+        }),
         messageId: existing.id,
         serverId: input.serverId,
     });

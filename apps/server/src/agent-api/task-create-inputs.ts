@@ -2,6 +2,7 @@ import { AGENT_TASK_CREATE_MAX_TITLES } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { AgentMessageRecipientPlan } from '../agent-delivery/message-recipients.ts';
 import { replayCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
+import { replayImageGenerationLinks } from '../chats/image-generation-links.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -95,8 +96,12 @@ export async function replayAgentTasks(
     for (const [index, title] of titles.entries()) {
         const message = byNonce.get(taskNonce(nonce, index));
         const replayed = message
-            ? await replayCloudAgentWorkLinks(db, {
-                  content: title.trim(),
+            ? await replayImageGenerationLinks(db, {
+                  content: await replayCloudAgentWorkLinks(db, {
+                      content: title.trim(),
+                      messageId: message.id,
+                      serverId: runner.serverId,
+                  }),
                   messageId: message.id,
                   serverId: runner.serverId,
               })

@@ -194,6 +194,7 @@ export async function createHausServerApplication(
             ...contextDependencies,
             createContext,
             githubIngest,
+            imageGenerationAdapters: options.imageGenerationAdapters,
             releaseIdentity: options.releaseIdentity,
         });
 

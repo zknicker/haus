@@ -4,6 +4,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { replayCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
+import { replayImageGenerationLinks } from './image-generation-links.ts';
 import { toChatMessage } from './message-shape.ts';
 import { readMessageRelations } from './read-message-relations.ts';
 
@@ -54,8 +55,12 @@ export async function replayChatMessage(
     conflict: () => Error
 ): Promise<{ events: []; receipt: ChatMessageReceipt; wakes: [] }> {
     const existingRelations = await readMessageRelations(db, input.serverId, existing.id);
-    const content = await replayCloudAgentWorkLinks(db, {
-        content: input.content,
+    const content = await replayImageGenerationLinks(db, {
+        content: await replayCloudAgentWorkLinks(db, {
+            content: input.content,
+            messageId: existing.id,
+            serverId: input.serverId,
+        }),
         messageId: existing.id,
         serverId: input.serverId,
     });

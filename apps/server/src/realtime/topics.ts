@@ -5,6 +5,7 @@ import {
     cloudAgentSettingsUpdatedEventSchema,
     cloudAgentWorkUpdatedEventSchema,
     computerUpdatedEventSchema,
+    imageGenerationUpdatedEventSchema,
     invitationUpdatedEventSchema,
     mcpUpdatedEventSchema,
     memberUpdatedEventSchema,
@@ -43,6 +44,10 @@ export const taskLabelUpdatedTopic = createTopic('taskLabel.updated', taskLabelU
 export const cloudAgentWorkUpdatedTopic = createTopic(
     'cloudAgentWork.updated',
     cloudAgentWorkUpdatedEventSchema
+);
+export const imageGenerationUpdatedTopic = createTopic(
+    'imageGeneration.updated',
+    imageGenerationUpdatedEventSchema
 );
 export const reminderUpdatedTopic = createTopic('reminder.updated', reminderUpdatedEventSchema);
 

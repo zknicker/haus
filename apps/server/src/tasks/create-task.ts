@@ -4,15 +4,16 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import {
-    recordCloudAgentWorkLinks,
-    replayCloudAgentWorkLinks,
-    resolveCloudAgentWorkLinks,
-} from '../chats/cloud-agent-work-links.ts';
+import { replayCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
+import { replayImageGenerationLinks } from '../chats/image-generation-links.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
+import {
+    prepareMessageLinkEvents,
+    recordMessageLinks,
+    resolveMessageLinks,
+} from '../chats/message-links.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
-import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
@@ -78,8 +79,12 @@ export async function createTask(
             )
             .limit(1);
         if (existing) {
-            const replayed = await replayCloudAgentWorkLinks(tx, {
-                content: input.content,
+            const replayed = await replayImageGenerationLinks(tx, {
+                content: await replayCloudAgentWorkLinks(tx, {
+                    content: input.content,
+                    messageId: existing.id,
+                    serverId: input.serverId,
+                }),
                 messageId: existing.id,
                 serverId: input.serverId,
             });
@@ -109,7 +114,7 @@ export async function createTask(
             throw new Error('Failed to allocate task-message identity.');
         }
 
-        const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+        const { cloudLinks, content, imageLinks } = await resolveMessageLinks(tx, {
             author: { kind: 'user', userId: member.id },
             content: input.content,
             serverId: input.serverId,
@@ -127,9 +132,10 @@ export async function createTask(
                 serverId: input.serverId,
             })
             .returning();
-        await recordCloudAgentWorkLinks(tx, {
+        await recordMessageLinks(tx, {
             chatId: input.chatId,
-            links,
+            cloudLinks,
+            imageLinks,
             messageId: message.id,
             serverId: input.serverId,
         });
@@ -182,9 +188,10 @@ export async function createTask(
             events: [
                 messageEvent,
                 taskEvent,
-                ...(await prepareLinkedWorkEvents(tx, {
+                ...(await prepareMessageLinkEvents(tx, {
+                    cloudLinks,
+                    imageLinks,
                     serverId: input.serverId,
-                    workIds: links.map((link) => link.workId),
                 })),
             ],
             idempotent: false,

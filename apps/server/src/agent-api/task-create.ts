@@ -5,14 +5,14 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import {
-    recordCloudAgentWorkLinks,
-    resolveCloudAgentWorkLinks,
-} from '../chats/cloud-agent-work-links.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
+import {
+    prepareMessageLinkEvents,
+    recordMessageLinks,
+    resolveMessageLinks,
+} from '../chats/message-links.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
-import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -95,7 +95,7 @@ export async function createAgentTasks(
             if (!numberedChat) {
                 throw new AgentTaskError('That task target no longer exists.');
             }
-            const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+            const { cloudLinks, content, imageLinks } = await resolveMessageLinks(tx, {
                 author: { agentId: runner.agentId, kind: 'agent' },
                 content: title.trim(),
                 serverId: runner.serverId,
@@ -117,9 +117,10 @@ export async function createAgentTasks(
                     sessionGeneration,
                 })
                 .returning(messageSelection);
-            await recordCloudAgentWorkLinks(tx, {
+            await recordMessageLinks(tx, {
                 chatId,
-                links,
+                cloudLinks,
+                imageLinks,
                 messageId,
                 serverId: runner.serverId,
             });
@@ -229,9 +230,10 @@ export async function createAgentTasks(
                     serverId: runner.serverId,
                     type: 'task.created',
                 }),
-                ...(await prepareLinkedWorkEvents(tx, {
+                ...(await prepareMessageLinkEvents(tx, {
+                    cloudLinks,
+                    imageLinks,
                     serverId: runner.serverId,
-                    workIds: links.map((link) => link.workId),
                 }))
             );
             const [task] = await tx

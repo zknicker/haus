@@ -13,6 +13,7 @@ import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentGithubRoutes } from './github-routes.ts';
+import { registerAgentImageGenerationRoutes } from './image-generation-routes.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
@@ -78,6 +79,7 @@ export function registerAgentApiRoutes(
         computers: import('../computers/connections.ts').ComputerConnections;
         db: HausDatabase;
         githubApp: import('../github/github-app.ts').GithubApp | null;
+        imageGeneration: import('../image-generation/image-generation-service.ts').ImageGenerationService;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         postCommitWork: ServerPostCommitWork;
     }
@@ -97,6 +99,10 @@ export function registerAgentApiRoutes(
         postCommitWork: options.postCommitWork,
     });
     registerAgentGithubRoutes(app, { db: options.db, githubApp: options.githubApp });
+    registerAgentImageGenerationRoutes(app, {
+        db: options.db,
+        imageGeneration: options.imageGeneration,
+    });
     registerAgentInboxRoutes(app, options);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });

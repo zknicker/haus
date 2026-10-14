@@ -2,6 +2,7 @@ import type { AttachmentMetadata, ChatMessage } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
+import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
@@ -14,12 +15,14 @@ export async function readMessageRelations(
 ): Promise<{
     attachments: AttachmentMetadata[];
     cloudAgentWork: ChatMessage['cloudAgentWork'];
+    imageGenerations: ChatMessage['imageGenerations'];
     reactions: ChatMessage['reactions'] | undefined;
     reply: ChatMessage['reply'];
 }> {
     // The caller may hold a transaction connection, so keep these reads sequential.
     const attachments = await readMessageAttachments(db, serverId, [messageId]);
     const works = await readLinkedCloudAgentWork(db, serverId, [messageId]);
+    const images = await readLinkedImageGenerations(db, serverId, [messageId]);
     const reactions = await readChatMessageReactions(db, serverId, [messageId]);
     const [message] = await db
         .select({
@@ -33,6 +36,7 @@ export async function readMessageRelations(
     return {
         attachments: attachments.get(messageId) ?? [],
         cloudAgentWork: works.get(messageId) ?? [],
+        imageGenerations: images.get(messageId) ?? [],
         reactions: reactions.get(messageId),
         reply: message ? await readInlineReplyContext(db, serverId, message) : null,
     };

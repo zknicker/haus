@@ -20,6 +20,7 @@ import {
     chatMessageAuthoredContentMaxLength,
     chatMessageContentMaxLength,
 } from './cloud-agent-work-link.ts';
+import { imageGenerationSchema } from './image-generation.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
@@ -41,6 +42,11 @@ export const chatMessageSchema = z
         content: z.string().max(chatMessageContentMaxLength),
         createdAt: timestampSchema,
         id: idSchema,
+        /**
+         * The image generations this Message links, in link order. Each entry
+         * is visible to the viewer; the image card renders from here.
+         */
+        imageGenerations: z.array(imageGenerationSchema).default([]),
         nonce: z.string().trim().min(1).max(128),
         reactions: z.array(reactionContracts.chatMessageReactionSchema).default([]),
         /** Bounded direct-parent and chain-root context for an inline reply. */

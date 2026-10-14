@@ -2,6 +2,7 @@ import type { ChatMessage, ThreadSummary } from '@haus/api';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
+import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
@@ -30,6 +31,7 @@ export async function projectChatMessages(
         causeByMessageId,
         bodyByMessageId,
         workByMessageId,
+        imageGenerationsByMessageId,
         reactionsByMessageId,
         replyByMessageId,
     ] = await Promise.all([
@@ -38,6 +40,7 @@ export async function projectChatMessages(
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
         readLinkedCloudAgentWork(db, input.serverId, messageIds),
+        readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         readInlineReplyContexts(db, input.serverId, rows),
     ]);
@@ -48,6 +51,7 @@ export async function projectChatMessages(
             body: bodyByMessageId.get(message.id),
             cause: causeByMessageId.get(message.id),
             cloudAgentWork: workByMessageId.get(message.id),
+            imageGenerations: imageGenerationsByMessageId.get(message.id),
             reactions: reactionsByMessageId.get(message.id),
             reply: replyByMessageId.get(message.id) ?? null,
         }),

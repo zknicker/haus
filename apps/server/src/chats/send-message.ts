@@ -7,8 +7,8 @@ import {
     attachmentMetadata,
     requireMessageAttachments,
 } from '../attachments/message-attachments.ts';
-import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
+import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import { applyMessageRouting } from '../message-routing/apply-message-routing.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import { prepareMessageRouting } from '../message-routing/route-human-message.ts';
@@ -22,10 +22,14 @@ import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireActiveDmPeer } from './active-dm-peer.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
-import { recordCloudAgentWorkLinks, resolveCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from './message-created-event.ts';
+import {
+    prepareMessageLinkEvents,
+    recordMessageLinks,
+    resolveMessageLinks,
+} from './message-links.ts';
 import { toChatMessage } from './message-shape.ts';
 import {
     InvalidInlineReplyError,
@@ -152,11 +156,12 @@ export async function sendChatMessage(
             throw new Error('Failed to allocate the Chat message sequence.');
         }
 
-        const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+        const linked = await resolveMessageLinks(tx, {
             author: { kind: 'user', userId: member.id },
             content: input.content,
             serverId: input.serverId,
         });
+        const { content } = linked;
         const messageId = createOpaqueId('msg');
         const [message] = await tx
             .insert(chatMessagesTable)
@@ -175,9 +180,9 @@ export async function sendChatMessage(
             .returning();
 
         await associateMessageAttachments(tx, attachments, message.id, writeChatId);
-        await recordCloudAgentWorkLinks(tx, {
+        await recordMessageLinks(tx, {
+            ...linked,
             chatId: writeChatId,
-            links,
             messageId,
             serverId: input.serverId,
         });
@@ -245,11 +250,10 @@ export async function sendChatMessage(
             });
         }
 
-        const workIds = links.map((link) => link.workId);
         return {
             events: [
                 created,
-                ...(await prepareLinkedWorkEvents(tx, { serverId: input.serverId, workIds })),
+                ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
             receipt: {
                 idempotent: false,
@@ -258,6 +262,10 @@ export async function sendChatMessage(
                     attachments: attachmentMetadata(attachments),
                     cloudAgentWork:
                         (await readLinkedCloudAgentWork(tx, input.serverId, [messageId])).get(
+                            messageId
+                        ) ?? [],
+                    imageGenerations:
+                        (await readLinkedImageGenerations(tx, input.serverId, [messageId])).get(
                             messageId
                         ) ?? [],
                     reply: await readInlineReplyContext(tx, input.serverId, message),

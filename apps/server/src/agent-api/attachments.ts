@@ -4,6 +4,7 @@ import { attachmentMediaTypeSniffBytes, resolveAttachmentMediaType } from '@haus
 import { and, eq } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
+import { isVisibleGeneratedImage } from '../image-generation/image-generation-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable, chatsTable } from '../postgres/schema.ts';
@@ -24,7 +25,7 @@ export class AgentAttachmentError extends Error {
 export async function uploadAgentAttachment(
     db: HausDatabase,
     root: AttachmentRoot,
-    runner: ResolvedRunner,
+    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
     input: { dataBase64: string; filename: string; mediaType?: string }
 ) {
     requireFilename(input.filename);
@@ -110,6 +111,28 @@ export async function viewAgentAttachment(
     runner: ResolvedRunner,
     attachmentId: string
 ) {
+    const attachment = await requireVisibleAgentAttachment(db, runner, attachmentId);
+    const bytes = await readAttachmentBytes(root, runner.serverId, attachment);
+    return {
+        attachment: {
+            byteSize: attachment.byteSize,
+            dataBase64: bytes.toString('base64'),
+            filename: attachment.filename,
+            id: attachment.id,
+            mediaType: attachment.mediaType,
+        },
+    };
+}
+
+/**
+ * The ready attachment an Agent may read: its own upload, or one on a Message
+ * in a Chat it can read. Anything else is not found or not visible.
+ */
+export async function requireVisibleAgentAttachment(
+    db: HausDatabase,
+    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
+    attachmentId: string
+) {
     const [attachment] = await db
         .select()
         .from(attachmentsTable)
@@ -136,34 +159,44 @@ export async function viewAgentAttachment(
         attachment.uploaderAgentId === runner.agentId ||
         (attachment.messageId !== null &&
             attachment.chatId !== null &&
-            (await canReadChat(db, runner, attachment.chatId)));
+            (await canReadChat(db, runner, attachment.chatId))) ||
+        (await isVisibleGeneratedImage(db, {
+            attachmentId: attachment.id,
+            serverId: runner.serverId,
+            viewer: { agentId: runner.agentId, kind: 'agent' },
+        }));
     if (!visible) {
         throw new AgentAttachmentError(
             `Attachment ${attachmentId} is not visible to the caller.`,
             'ATTACHMENT_NOT_VISIBLE'
         );
     }
-    const file = await root.openObject(runner.serverId, attachment.id);
+    return { ...attachment, byteSize: attachment.byteSize };
+}
+
+/** The bytes of a ready attachment, checked against its recorded size. */
+export async function readAttachmentBytes(
+    root: AttachmentRoot,
+    serverId: string,
+    attachment: { byteSize: number; id: string }
+) {
+    const file = await root.openObject(serverId, attachment.id);
     try {
         const bytes = await file.readFile();
         if (bytes.byteLength !== attachment.byteSize) {
             throw new Error('Attachment bytes do not match their PostgreSQL metadata.');
         }
-        return {
-            attachment: {
-                byteSize: attachment.byteSize,
-                dataBase64: bytes.toString('base64'),
-                filename: attachment.filename,
-                id: attachment.id,
-                mediaType: attachment.mediaType,
-            },
-        };
+        return bytes;
     } finally {
         await file.close();
     }
 }
 
-async function canReadChat(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
+async function canReadChat(
+    db: HausDatabase,
+    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
+    chatId: string
+) {
     const [chat] = await db
         .select({ id: chatsTable.id })
         .from(chatsTable)

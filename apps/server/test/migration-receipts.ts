@@ -28,4 +28,5 @@ export const migrationsSince0060 = [
     '0085_tmterminal-preset',
     '0086_linear-preset',
     '0087_artifact-paths',
+    '0088_image-generation',
 ];

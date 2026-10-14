@@ -7,6 +7,7 @@ import type { GithubApp } from './github/github-app.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { HostedMcpDefinition } from './hosted-mcp/catalog.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
+import type { ImageProviderAdapters } from './image-generation/run-image-generation.ts';
 import type { MessageRouter } from './message-routing/jev.ts';
 import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
@@ -49,6 +50,8 @@ export interface HausServerApplicationOptions {
      */
     githubRecoveryIntervalMs?: number | null;
     hostedMcps?: { definitions: readonly HostedMcpDefinition[]; storageRoot: string };
+    /** Test seam: replaces the OpenAI and Gemini image adapters outright. */
+    imageGenerationAdapters?: ImageProviderAdapters;
     messageRouter?: MessageRouter;
     /** Server-owned OpenAI key for avatar generation and GPT-Live calls. */
     openAiApiKey?: string;

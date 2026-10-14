@@ -12,6 +12,8 @@ import { computerRouter } from './computer/router.ts';
 import { computerSecretsRouter } from './computer-secrets/router.ts';
 import { devRouter } from './dev/router.ts';
 import { githubRouter } from './github/router.ts';
+import { imageGenerationRouter } from './image-generation/router.ts';
+import { imageGenerationSettingsRouter } from './image-generation-settings/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
@@ -44,6 +46,8 @@ export const hausRouter = createRouter({
     computerSecrets: computerSecretsRouter,
     dev: devRouter,
     github: githubRouter,
+    imageGeneration: imageGenerationRouter,
+    imageGenerationSettings: imageGenerationSettingsRouter,
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,

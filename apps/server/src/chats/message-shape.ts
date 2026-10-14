@@ -121,6 +121,8 @@ export interface StoredChatMessageRelations {
     cause?: MessageCause;
     /** The linked Cloud Agent work the viewer can see, in link order. */
     cloudAgentWork?: ChatMessage['cloudAgentWork'];
+    /** The linked image generations the viewer can see, in link order. */
+    imageGenerations?: ChatMessage['imageGenerations'];
     reactions?: ChatMessage['reactions'];
     /** Bounded direct-parent and chain-root context for an inline reply. */
     reply?: ChatMessage['reply'];
@@ -136,6 +138,7 @@ export function toChatMessage(
         body,
         cause,
         cloudAgentWork = [],
+        imageGenerations = [],
         reactions = [],
         reply = null,
     } = related;
@@ -149,6 +152,7 @@ export function toChatMessage(
         content: message.content,
         createdAt: message.createdAt.toISOString(),
         id: message.id,
+        imageGenerations,
         nonce: message.nonce,
         runId: message.runId,
         reactions,

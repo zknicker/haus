@@ -16,6 +16,7 @@ import {
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
 import type { ClerkUsers } from '../src/identity/clerk-users.ts';
+import type { ImageProviderAdapters } from '../src/image-generation/run-image-generation.ts';
 import type { MessageRouter } from '../src/message-routing/jev.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import type { PushSender } from '../src/push/push-sender.ts';
@@ -77,6 +78,8 @@ export async function startHausServerHarness(
         /** The Haus GitHub App, usually over a faked GitHub transport. */
         githubApp?: GithubApp | null;
         socketSessionGraceMs?: number;
+        /** Fake image providers; image generation never reaches OpenAI or Gemini in tests. */
+        imageGenerationAdapters?: ImageProviderAdapters;
     } = {}
 ): Promise<HausServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster({
@@ -134,6 +137,7 @@ export async function startHausServerHarness(
                 connectLive: options.connectLive,
                 computerSocketLiveness: options.computerSocketLiveness,
                 githubApp: options.githubApp,
+                imageGenerationAdapters: options.imageGenerationAdapters,
                 // Tests drive GitHub delivery recovery directly, never on a timer.
                 githubRecoveryIntervalMs: null,
                 socketSessionGraceMs: options.socketSessionGraceMs,

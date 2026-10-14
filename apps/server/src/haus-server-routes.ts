@@ -13,6 +13,11 @@ import type { createHausContextFactory, HausContextDependencies } from './haus-a
 import { hausRouter } from './haus-api/router.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import { registerHausReleaseRoute } from './haus-release-route.ts';
+import { ImageGenerationService } from './image-generation/image-generation-service.ts';
+import {
+    failInterruptedImageGenerations,
+    type ImageProviderAdapters,
+} from './image-generation/run-image-generation.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
@@ -20,6 +25,8 @@ export interface HausServerRouteDependencies extends HausContextDependencies {
     createContext: ReturnType<typeof createHausContextFactory>;
     /** The GitHub delivery ingest the webhook shares with recovery. */
     githubIngest: GithubRouteOptions['ingest'];
+    /** Test seam: replaces the OpenAI and Gemini image adapters outright. */
+    imageGenerationAdapters?: ImageProviderAdapters;
     releaseIdentity?: HausReleaseIdentity | null;
 }
 
@@ -29,6 +36,17 @@ export async function registerHausServerRoutes(
     dependencies: HausServerRouteDependencies
 ): Promise<void> {
     const db = dependencies.hausDb;
+    // A restart orphans claimed generations; they can never settle. Pending ones just run.
+    await failInterruptedImageGenerations(db);
+    const imageGeneration = new ImageGenerationService({
+        adapters: dependencies.imageGenerationAdapters,
+        db,
+        postCommitWork: dependencies.postCommitWork,
+        root: dependencies.attachmentRoot,
+    });
+    void dependencies.postCommitWork.run('image-generation.sweep', () =>
+        imageGeneration.sweepPending()
+    );
     await registerAttachmentRoutes(app, {
         clerkSessions: dependencies.clerkSessions,
         db,
@@ -61,6 +79,7 @@ export async function registerHausServerRoutes(
         computers: dependencies.computerConnections,
         db,
         githubApp: dependencies.githubApp,
+        imageGeneration,
         mcpRuntime: dependencies.mcpRuntime,
         postCommitWork: dependencies.postCommitWork,
     });

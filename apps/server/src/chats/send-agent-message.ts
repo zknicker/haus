@@ -10,7 +10,6 @@ import {
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
 import { type AttributedMessageCause, insertMessageCause } from '../automations/message-cause.ts';
-import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -20,9 +19,13 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { canonicalizeAgentMessageContentForPersistence } from './canonicalize-agent-references.ts';
 import { requireChatWritable } from './chat-access.ts';
-import { recordCloudAgentWorkLinks, resolveCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from './message-created-event.ts';
+import {
+    prepareMessageLinkEvents,
+    recordMessageLinks,
+    resolveMessageLinks,
+} from './message-links.ts';
 import { readInlineReplyContext, resolveInlineReplyParent } from './reply-context.ts';
 import { AgentMessageContentTooLongError } from './send-agent-message-errors.ts';
 import {
@@ -121,11 +124,12 @@ export async function sendAgentMessage(
                 replyParent?.parent.id ?? null
             );
         }
-        const { content, links } = await resolveCloudAgentWorkLinks(tx, {
+        const linked = await resolveMessageLinks(tx, {
             author: { agentId: input.agentId, kind: 'agent' },
             content: canonical,
             serverId: input.serverId,
         });
+        const { content } = linked;
         const activities: AgentActivityEvent[] = [];
         const startedActivity = await appendServerAgentActivity(tx, {
             agentId: input.agentId,
@@ -175,9 +179,9 @@ export async function sendAgentMessage(
             })
             .returning();
         await associateMessageAttachments(tx, attachments, message.id, input.chatId);
-        await recordCloudAgentWorkLinks(tx, {
+        await recordMessageLinks(tx, {
+            ...linked,
             chatId: input.chatId,
-            links,
             messageId,
             serverId: input.serverId,
         });
@@ -268,10 +272,7 @@ export async function sendAgentMessage(
             activities,
             events: [
                 event,
-                ...(await prepareLinkedWorkEvents(tx, {
-                    serverId: input.serverId,
-                    workIds: links.map((link) => link.workId),
-                })),
+                ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
             message: toAgentCliMessage(message, {
                 ...agent,

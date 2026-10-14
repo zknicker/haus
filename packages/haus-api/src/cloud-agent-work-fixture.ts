@@ -47,6 +47,7 @@ export const linkedMessage: ChatMessage = {
     content: `On it, sending this to a Cloud Agent.\n\n${linkedWorkLink}`,
     createdAt: linkedWork.createdAt,
     id: linkedWork.messageId,
+    imageGenerations: [],
     nonce: 'nonce_cloud_agent_launch',
     reactions: [],
     reply: null,
