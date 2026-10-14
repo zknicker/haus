@@ -5,37 +5,9 @@ import {
     type CloudAgentModelCatalog,
 } from '@haus/api';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
+import { auto, nano, noModel, opus } from './cloud-agent-model-fixture.ts';
 
 const fixture = cloudAgentFixture();
-
-const nano = {
-    description: null,
-    displayName: 'GPT-5.4 Nano',
-    effort: {
-        defaultValue: 'medium',
-        options: [
-            { displayName: 'Low', value: 'low' },
-            { displayName: 'Medium', value: 'medium' },
-            { displayName: 'High', value: 'high' },
-        ],
-        providerParamId: 'reasoning',
-    },
-    family: 'gpt' as const,
-    fast: { defaultValue: true },
-    id: 'gpt-5.4-nano',
-    order: 0,
-};
-const opus = {
-    description: 'Frontier',
-    displayName: 'Claude Opus',
-    effort: null,
-    family: 'claude' as const,
-    fast: null,
-    id: 'claude-opus',
-    order: 1,
-};
-const noModel = { droppedParams: [], fallbackFrom: null, id: null, params: [] };
-const auto = { ...noModel, id: 'default' };
 
 async function reportCatalog(catalog: CloudAgentModelCatalog | null) {
     const inventory = {
@@ -58,6 +30,7 @@ async function startWork(nonce: string) {
 test('a Server starts on Auto with no catalog until a Computer reports one', async () => {
     const settings = fixture.owner.trpc.cloudAgentSettings;
     expect(await settings.get.query({ serverId: fixture.serverId })).toEqual({
+        provider: 'cursor',
         catalog: null,
         model: { kind: 'auto' },
         savedModelUnavailable: false,
@@ -124,9 +97,9 @@ test('only an Owner or Admin saves a model, and only one the catalog lists with 
         serverId: fixture.serverId,
     });
     const [server] = await fixture.harness.sql`
-        select cloud_agent_model_id, cloud_agent_model_params from servers where id = ${fixture.serverId}
+        select model_id, model_params from cloud_agent_settings where server_id = ${fixture.serverId} and provider = 'cursor'
     `;
-    expect(server).toEqual({ cloud_agent_model_id: null, cloud_agent_model_params: {} });
+    expect(server).toEqual({ model_id: null, model_params: {} });
 });
 
 test('every Run records the model and params it asked for, falling back to Auto when the catalog drops them', async () => {

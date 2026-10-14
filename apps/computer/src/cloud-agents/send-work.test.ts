@@ -120,3 +120,58 @@ test('send retains the Server rejection code and never starts a monitor', async 
     });
     expect(f.watched).toEqual([]);
 });
+
+test('Claude interrupt-and-replace is rejected before any Run admission', async () => {
+    const f = await fixture();
+    const methods: string[] = [];
+    const server = Bun.serve({
+        port: 0,
+        fetch(request) {
+            methods.push(request.method);
+            return Response.json({ works: [{ ...work, provider: 'claude' }] });
+        },
+    });
+    cleanup.push(async () => {
+        await server.stop(true);
+    });
+    await expect(
+        sendCloudAgentWork({
+            ...f.input,
+            serverOrigin: server.url.origin,
+            request: { ...f.input.request, interrupt: true },
+        })
+    ).rejects.toThrow('wait for confirmed Cancelled');
+    expect(methods).toEqual(['GET']);
+    expect(f.watched).toHaveLength(0);
+});
+
+test('Cursor interrupt-and-replace still admits its follow-up', async () => {
+    const f = await fixture();
+    const methods: string[] = [];
+    const server = Bun.serve({
+        port: 0,
+        fetch(request) {
+            methods.push(request.method);
+            return Response.json(
+                request.method === 'GET'
+                    ? { works: [work] }
+                    : {
+                          work,
+                          runId: 'car_followup12345678',
+                          idempotent: false,
+                          predecessors: [],
+                      }
+            );
+        },
+    });
+    cleanup.push(async () => {
+        await server.stop(true);
+    });
+    await sendCloudAgentWork({
+        ...f.input,
+        serverOrigin: server.url.origin,
+        request: { ...f.input.request, interrupt: true },
+    });
+    expect(methods).toEqual(['GET', 'POST']);
+    expect(f.watched).toHaveLength(1);
+});

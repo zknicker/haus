@@ -122,3 +122,15 @@ test('every job state has a status line', () => {
         expect(line(work({ status, updatedAt: minutesAgo(1) })).text.length).toBeGreaterThan(0);
     }
 });
+
+test('confirmed pending input takes priority over stale observation and follow-up', () => {
+    const pending = work({
+        updatedAt: minutesAgo(60),
+        status: 'pending_input',
+        job: { state: 'pending-input', startedAt: null, followUp: null },
+    });
+    expect(cloudAgentStatusLine(pending, { agentName: 'Blippy', now })).toEqual({
+        text: 'Blippy has a question to answer',
+        tone: 'warning',
+    });
+});

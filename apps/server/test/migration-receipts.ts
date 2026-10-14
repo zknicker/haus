@@ -26,4 +26,12 @@ export const migrationsSince0060 = [
     '0083_remove-vercel-preset',
     '0084_handmade-preset',
     '0085_tmterminal-preset',
+    '0086_cloud_agent_input',
+    '0087_cloud_agent_providers',
+    '0088_cloud_agent_provider_choice',
+    '0089_cloud_agent_question_receipt',
+    '0090_cloud_agent_bootstrap',
+    '0091_cloud_agent_bootstrap_verification',
+    '0092_cloud_agent_pending_indexes',
+    '0093_cloud_agent_stop_evidence',
 ];

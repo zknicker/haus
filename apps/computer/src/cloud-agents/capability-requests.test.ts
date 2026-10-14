@@ -94,20 +94,24 @@ test('a refused login answers with a retryable state, never raw authentication d
 
 test('the Computer inventory reports Cursor readiness truthfully', async () => {
     installDisconnectedCursor();
-    expect((await detectFullInventory()).cloudAgentProviders).toEqual([
-        { models: null, provider: 'cursor', ready: false, reason: 'not-connected' },
-    ]);
+    expect((await detectFullInventory()).cloudAgentProviders).toEqual(
+        expect.arrayContaining([
+            { models: null, provider: 'cursor', ready: false, reason: 'not-connected' },
+        ])
+    );
 
     await runCloudAgentCapabilityRequest(request('connect'), runtime);
-    expect((await detectFullInventory()).cloudAgentProviders).toEqual([
-        {
-            models: {
-                ...mapCloudAgentModelCatalog(recordedModels),
-                refreshedAt: expect.any(String),
+    expect((await detectFullInventory()).cloudAgentProviders).toEqual(
+        expect.arrayContaining([
+            {
+                models: {
+                    ...mapCloudAgentModelCatalog(recordedModels),
+                    refreshedAt: expect.any(String),
+                },
+                provider: 'cursor',
+                ready: true,
+                reason: null,
             },
-            provider: 'cursor',
-            ready: true,
-            reason: null,
-        },
-    ]);
+        ])
+    );
 });

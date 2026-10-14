@@ -39,6 +39,19 @@ describe('deriveCloudAgentJob', () => {
         expect(job(run('queued'))).toEqual({ followUp: null, startedAt: null, state: 'working' });
     });
 
+    test('a native input wait remains pending while a later follow-up waits in Haus', () => {
+        expect(job(run('pending_input'))).toEqual({
+            followUp: null,
+            startedAt,
+            state: 'pending-input',
+        });
+        expect(job(run('queued', { createdAt: queuedAt }), run('pending_input'))).toEqual({
+            followUp: { since: queuedAt, state: 'waiting' },
+            startedAt,
+            state: 'pending-input',
+        });
+    });
+
     test('a running first Run is working since it started', () => {
         expect(job(run('running'))).toEqual({ followUp: null, startedAt, state: 'working' });
     });

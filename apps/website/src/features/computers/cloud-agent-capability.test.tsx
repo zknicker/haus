@@ -176,3 +176,29 @@ test('recovered Computer state supersedes a lost connect response', () => {
         })
     ).toEqual({ status: 'connected', email: connected.accountEmail });
 });
+
+test('Claude credentials alone do not imply readiness before cloud setup', () => {
+    const view = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        state: {
+            accountEmail: 'claude@example.com',
+            expiresAt: null,
+            provider: 'claude',
+            ready: false,
+            reason: 'setup-required',
+        },
+    });
+    expect(view.statusLabel).toBe('Setup required');
+    expect(view.canConnect).toBe(false);
+    expect(view.description).toContain('Claude Code');
+});
+
+test('verified Claude connection offers revocation and offline disables it', () => {
+    const state = { ...connected, provider: 'claude' as const };
+    const ready = cloudAgentCapabilityView({ isConnecting: false, isOffline: false, state });
+    expect(ready.status).toBe('ready');
+    expect(ready.canDisconnect).toBe(true);
+    const offline = cloudAgentCapabilityView({ isConnecting: false, isOffline: true, state });
+    expect(offline.canDisconnect).toBe(false);
+});

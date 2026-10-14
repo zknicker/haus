@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
+import { migrationsSince0060 } from './migration-receipts.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 test('an existing Server accepts tmterminal after migration without changing saved accounts', async () => {
@@ -31,9 +32,9 @@ test('an existing Server accepts tmterminal after migration without changing sav
         });
         const connections = await database`SELECT * FROM mcp_connections`;
         await writeFile(journalPath, JSON.stringify(journal));
-        expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0085_tmterminal-preset',
-        ]);
+        expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual(
+            migrationsSince0060.slice(migrationsSince0060.indexOf('0085_tmterminal-preset'))
+        );
         expect(await database`SELECT * FROM mcp_connections`).toEqual(connections);
         await database.begin(async (tx) => {
             await tx`SET LOCAL session_replication_role = replica`;

@@ -185,3 +185,16 @@ test('a branch names its pull request from the snapshot, then from its URL', () 
         })
     ).toBe(null);
 });
+
+test('Claude pending input is warning and cannot offer unsupported cancellation', () => {
+    expect(cloudAgentJobChipColor('pending-input')).toBe('warning');
+    expect(cloudAgentJobTone('pending-input')).toBe('warning');
+    expect(
+        canCancelCloudAgentWork({
+            provider: 'claude',
+            role: 'owner',
+            status: 'pending_input',
+            cancelRequestedAt: null,
+        })
+    ).toBe(false);
+});

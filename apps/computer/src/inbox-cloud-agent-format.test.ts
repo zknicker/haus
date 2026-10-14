@@ -1,6 +1,55 @@
 import { expect, test } from 'bun:test';
+import { parseInbox } from './agent-inbox-input.ts';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
+
+test('a native question reaches the Agent as input attention with its exact answer contract', () => {
+    const attention = item({
+        content: '',
+        id: 'cai_input',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+        cloudAgentInput: {
+            title: 'Pick the route',
+            repository: 'owner/repo',
+            providerUrl: 'https://claude.ai/code/session_example',
+            request: {
+                id: 'cai_input',
+                workId: 'caw_work',
+                runId: 'car_run',
+                sessionId: '12345678-1234-4234-8234-123456789abc',
+                promptId: 'prompt',
+                toolUseId: 'tool',
+                questions: [
+                    {
+                        question: 'Which route?',
+                        header: 'Route',
+                        multiSelect: false,
+                        options: [
+                            { label: 'alpha', description: 'First' },
+                            { label: 'beta', description: 'Second' },
+                        ],
+                    },
+                ],
+                answer: null,
+                state: 'pending',
+                createdAt: '2026-10-13T00:00:00.000Z',
+                resumedPromptId: null,
+                resumedToolUseId: null,
+            },
+        },
+    });
+    expect(parseInbox([attention])).toEqual([attention]);
+    expect(parseInbox([{ ...attention, id: 'cai_wrong' }])).toBeNull();
+    const drain = composeInboxDrain([attention]);
+    expect(drain).toContain('haus cloud-agent answer --request cai_input');
+    expect(drain).toContain('Which route?');
+    expect(drain).toContain('human judgment or expanded authority');
+    expect(drain).toContain('after native consumption');
+    expect(composeInboxNotice([attention])).toContain('cloud agent pending input');
+    expect(composeInboxNotice([attention])).not.toContain('Which route?');
+});
 
 test('projects a settled Cloud Agent Run with the evidence its Agent must inspect', () => {
     const attention = item({

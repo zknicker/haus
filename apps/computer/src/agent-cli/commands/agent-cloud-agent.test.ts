@@ -280,5 +280,7 @@ test('inspect lists owned work or requests recorded details for one work', async
         'inspect',
         'stop',
         'cancel',
+        'input',
+        'answer',
     ]);
 });

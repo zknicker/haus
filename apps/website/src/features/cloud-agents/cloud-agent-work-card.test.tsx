@@ -95,3 +95,21 @@ test('a branch that opened no pull request renders no row', () => {
         )
     ).toBe('');
 });
+
+test('a Claude pending question renders a status without answer controls', () => {
+    const html = renderToStaticMarkup(
+        <ThreadCloudAgentRows
+            works={[
+                work({
+                    provider: 'claude',
+                    status: 'pending_input',
+                    updatedAt: '2020-01-01T00:00:00.000Z',
+                }),
+            ]}
+        />
+    );
+    expect(html).toContain('Pending input');
+    expect(html).not.toContain('No update');
+    expect(html).not.toContain('<button');
+    expect(html).not.toContain('Cursor');
+});

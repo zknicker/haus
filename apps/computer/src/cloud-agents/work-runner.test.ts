@@ -79,6 +79,24 @@ test('a failed cancellation keeps its retry owner until the provider settles', a
     expect(attempts).toBe(2);
 });
 
+test('Claude cancellation without a launch journal reports definitive non-delivery', async () => {
+    const f = await fixture();
+    let interrupts = 0;
+    f.provider.cancel = async () => {
+        interrupts++;
+    };
+    await f.work.cancel({
+        ...entry,
+        provider: 'claude',
+        providerAgentId: null,
+        providerRunId: null,
+        type: 'cloud-agent-cancel',
+    });
+    expect(f.observations.at(-1)?.status).toBe('cancelled');
+    expect(f.observations.at(-1)?.rawStatus).toBe('NOT_LAUNCHED');
+    expect(interrupts).toBe(0);
+});
+
 test('cancellation interrupts a live stream and waits for its cleanup before cancelling', async () => {
     const f = await fixture();
     const started = Promise.withResolvers<void>();
@@ -241,4 +259,41 @@ test('slow pull request evidence stays before later terminal observations', asyn
         'completed',
     ]);
     expect(f.observations[1]?.summary).toBe('GitHub evidence attached');
+});
+
+test('native update frames wake matching work once without spinning the monitor', async () => {
+    const { handleCloudAgentFrame } = await import('../attachment-cloud-agents.ts');
+    const f = await fixture();
+    let reads = 0;
+    f.provider.read = () => {
+        reads++;
+        return Promise.resolve({ observedAt: new Date(0).toISOString(), status: 'running' });
+    };
+    const options = {
+        runtime: f.runtime,
+        cloudAgents: f.work,
+        track: (operation: Promise<void>) => operation,
+        send: () => true,
+        refresh: () => Promise.resolve(),
+        onFailure: () => undefined,
+    };
+    await f.work.reconcile([entry]);
+    const tick = () => f.runtime.runPromise(TestClock.adjust('0 millis'));
+    await tick();
+    handleCloudAgentFrame(
+        { type: 'cloud-agent-native-updated', workId: 'caw_unrelated', runId: entry.runId },
+        options
+    );
+    await tick();
+    expect(reads).toBe(1);
+    handleCloudAgentFrame(
+        { type: 'cloud-agent-native-updated', workId: entry.workId, runId: entry.runId },
+        options
+    );
+    await tick();
+    expect(reads).toBe(2);
+    await tick();
+    expect(reads).toBe(2);
+    await f.runtime.runPromise(TestClock.adjust('5 seconds'));
+    expect(reads).toBe(3);
 });

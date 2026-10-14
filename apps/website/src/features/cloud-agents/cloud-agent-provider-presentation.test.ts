@@ -72,3 +72,19 @@ function desktop({ rejects = false } = {}) {
     } as unknown as HausDesktopBridge;
     return { bridge, opened };
 }
+
+test('Claude opens its native cloud page without attempting a Cursor deeplink', async () => {
+    const { bridge, opened } = desktop();
+    await openCloudAgentProviderTarget(
+        {
+            provider: 'claude',
+            providerAgentId: 'session_test',
+            providerUrl: 'https://claude.ai/code/session_test',
+        },
+        bridge,
+        async (url) => {
+            opened.push(url);
+        }
+    );
+    expect(opened).toEqual(['https://claude.ai/code/session_test']);
+});

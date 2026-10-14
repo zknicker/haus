@@ -36,6 +36,9 @@ test.skipIf(!enabled)(
         });
         expect(launch.providerAgentId).toStartWith('bc');
         expect(launch.providerUrl).toContain(launch.providerAgentId);
+        if (!launch.providerRunId) {
+            throw new Error('Cursor must return its native Run identity.');
+        }
 
         const ref = {
             providerAgentId: launch.providerAgentId,
