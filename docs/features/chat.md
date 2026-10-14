@@ -311,7 +311,7 @@ and [Agent Inbox](../../specs/inbox.md).
   a card below its message (kind icon, title, kind and file name) that opens
   the page in the Artifact Panel, or its own tab on desktop; it keeps its place
   in the prose rather than joining the media strip. A link to this
-  Server's shared library (the `stable_url` `haus artifact publish` returns)
+  Server's shared library (the `stable_url` `haus artifact push` prints)
   reads inline as a reference chip (kind icon and title, dotted underline) and
   adds a tile to the message's media strip, after its attachments: a small
   image shows its thumbnail, anything else its kind icon, over the title and
