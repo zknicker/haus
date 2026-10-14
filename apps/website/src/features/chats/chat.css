@@ -22,6 +22,19 @@
     }
 }
 
+@keyframes image-generation-enter {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+@keyframes image-generation-fade {
+    from {
+        opacity: 0;
+    }
+}
+
 @keyframes chat-thread-flash {
     0%,
     24% {
@@ -90,6 +103,12 @@
         @starting-style {
             opacity: 0;
         }
+    }
+
+    /* Compositor-driven so the long frames after a new Message mounts cannot
+       swallow the start; the inline delay staggers a Message's cards. */
+    .image-generation-enter {
+        animation: image-generation-enter 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
     }
 
     .chat-streaming-text-chunk {
@@ -165,5 +184,12 @@
 
     .chat-thread-flash {
         animation: none !important;
+    }
+
+    .image-generation-enter {
+        animation-name: image-generation-fade;
+        animation-duration: 150ms;
+        animation-timing-function: linear;
+        animation-delay: 0ms !important;
     }
 }

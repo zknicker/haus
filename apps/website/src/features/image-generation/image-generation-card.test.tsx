@@ -45,3 +45,19 @@ test('card size never depends on the image aspect', () => {
     expect(html).not.toContain('--ar');
     expect(html).not.toContain('clamp(');
 });
+
+test('only a card for a running job enters, staggered by its place in the Message', () => {
+    const live = renderToStaticMarkup(
+        <ImageGenerationCard
+            generation={imageGenerationFixture({ result: { state: 'generating' } })}
+            index={2}
+            onOpen={() => undefined}
+            serverId="server-1"
+        />
+    );
+    expect(live).toMatch(/class="[^"]*\bbg-nested-surface image-generation-enter\b/u);
+    expect(live).toContain('animation-delay:100ms');
+    const settled = render(imageGenerationFixture({ result: failedResult }));
+    expect(settled).not.toContain('image-generation-enter');
+    expect(settled).toContain('bg-nested-surface');
+});

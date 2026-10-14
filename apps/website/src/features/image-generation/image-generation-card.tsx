@@ -8,7 +8,8 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useAttachmentImage } from '../../hooks/servers/use-attachment-image.ts';
 import { useImageGenerationDownload } from '../../hooks/servers/use-image-generation-download.ts';
 import { useSecondClock } from '../../hooks/time/use-second-clock.ts';
-import { imageGenerationEntrance, imageGenerationReveal } from './image-generation-motion.ts';
+import { cn } from '../../lib/utils.ts';
+import { imageGenerationEntranceDelay, imageGenerationReveal } from './image-generation-motion.ts';
 import {
     type ImageGenerationFooter,
     imageGenerationFooter,
@@ -36,7 +37,6 @@ export function ImageGenerationCard({
     onOpen: () => void;
     serverId: string;
 }) {
-    const reduceMotion = useReducedMotion();
     const { state } = generation.result;
     const live = state === 'pending' || state === 'generating';
     // Only a card for a running job arrives with motion; history and chat
@@ -47,18 +47,17 @@ export function ImageGenerationCard({
     const [revealed, setRevealed] = React.useState(false);
     const reveal = React.useCallback(() => setRevealed(true), []);
     const shimmer = live || (state === 'ready' && !revealed);
-    const entrance = arrivedLive ? imageGenerationEntrance(index, reduceMotion) : null;
-    const painted = usePaintedOnce(entrance !== null);
 
     return (
-        <motion.figure
-            animate={entrance ? (painted ? entrance.animate : entrance.initial) : undefined}
+        <figure
             aria-label={imageGenerationLabel(generation)}
-            className="m-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-nested-surface"
+            className={cn(
+                'm-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-nested-surface',
+                arrivedLive && 'image-generation-enter'
+            )}
             data-slot="image-generation-card"
             data-state={state}
-            initial={entrance ? entrance.initial : false}
-            transition={entrance?.transition}
+            style={arrivedLive ? imageGenerationEntranceDelay(index) : undefined}
         >
             <div className="relative h-(--chat-media-tile-height) w-full overflow-hidden bg-surface-secondary">
                 {shimmer ? <PendingPicture announce={live} /> : null}
@@ -70,27 +69,8 @@ export function ImageGenerationCard({
                 />
             </div>
             <GenerationFooter generation={generation} />
-        </motion.figure>
+        </figure>
     );
-}
-
-/**
- * False until the frame after this card first paints, when `wait` is set. The
- * commit that mounts a new Message can be one long frame; an entrance started
- * inside it would skip its first third, so it starts on the frame after.
- */
-function usePaintedOnce(wait: boolean): boolean {
-    const [painted, setPainted] = React.useState(!wait);
-    React.useEffect(() => {
-        if (painted) {
-            return;
-        }
-        let frame = requestAnimationFrame(() => {
-            frame = requestAnimationFrame(() => setPainted(true));
-        });
-        return () => cancelAnimationFrame(frame);
-    }, [painted]);
-    return painted;
 }
 
 function GenerationPicture({
