@@ -227,12 +227,11 @@ test('returns the complete topic and preserves stable unknown-topic behavior', (
     expect(getManualTopic('recipes/no-such-topic')).toBeNull();
 });
 
-test('memory hygiene teaches dreaming and never invites date stamps', () => {
+test('memory hygiene teaches dreaming and never invites verification stamps', () => {
     const body = getManualTopic('recipes/technique/memory-hygiene')?.body ?? '';
 
     expect(body).toContain('### Dreaming');
-    expect(body).toContain('changed since your last pass');
-    expect(body).toContain('Never add date stamps.');
+    expect(body).toContain('No "verified <date>" stamps');
     expect(body).not.toContain('verified or from memory');
 });
 

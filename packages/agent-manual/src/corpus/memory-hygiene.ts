@@ -19,7 +19,8 @@ Use it after finishing work, before long tasks, and whenever you catch yourself 
 Standing Preferences are rules you follow, not a log of feedback.
 - One terse imperative line per rule, stating the resulting rule, not the delta: "High agency", not "Exercise more agency".
 - Merge new feedback into the closest existing rule and rewrite it. Never append a near-duplicate.
-- No sources, dates, or caveats. Chat holds the evidence; handles are for work state.
+- Add one short "because …" clause only when the reason isn't obvious. No sources (who said it), dates, or caveats; chat holds the evidence, and handles are for work state.
+- Record confirmed approaches too, not only corrections: what worked and the person liked becomes a rule.
 - Do not restate rules your system prompt already enforces.
 
 Before: \`- Exercise more agency: carry authorized work through, choose routine next steps, and avoid unnecessary questions. @dana will redirect when needed. This does not authorize irreversible actions. Source: #ops msg 8f3k2a.\`
@@ -28,24 +29,25 @@ After: \`- High agency: own sequencing and routine calls; ask only for real deci
 ### Do This
 1. **Keep hot memory short.** A fact earns a hot line only if you would act wrongly without it on a typical wake. A preference that matters for one project goes in that project's note.
 2. **Rewrite Active Context, never append.** On every update, replace it with current state: what is in flight, who is waiting, the next step. A finished item leaves; its lasting lesson goes to a topic note, and its story stays in chat.
-3. **Index lines are path + hook.** Each Key Knowledge line names a note and says in one line when to read it: \`- notes/deploys.md — how staging and prod ship; read before a release\`. No detail or history in the index.
+3. **Index lines are path + hook.** Each Key Knowledge line names a note and says in one line when to read it: \`- notes/deploys.md — how staging and prod ship; read before a release\`. The hook says when ("read before changing any bid"), not a vague label ("bid stuff"). No detail or history in the index.
 4. **Update or delete before you add.** Find the note that owns the topic and edit it in place. Replace a superseded fact instead of stacking the new one below it; delete notes whose subject is gone, with their index line.
 5. **Split when the topic splits.** When a note covers subjects you read separately, or outgrows one sitting, split it and give each part its own index line. When hot memory grows a topic's worth of detail, move the detail to a note and keep the one standing rule hot.
 6. **Grow notes into a tree.** When one area passes a handful of files, give it its own index (\`notes/ads/README.md\`: one path + hook line per file) and point MEMORY.md's Key Knowledge at that sub-index instead of each file. Lookup stays MEMORY.md → sub-index → file → grep.
-7. **Prune closed work.** Remove closed blockers, plans, and "currently working on" lines. State current facts plainly; if you are unsure one still holds, check it when work needs it or drop it. Never add date stamps.
+7. **Prune closed work.** Remove closed blockers, plans, and "currently working on" lines. State current facts plainly; if you are unsure one still holds, check it when work needs it or drop it. No "verified <date>" stamps or dated log entries; a real deadline or schedule keeps its date, written absolute ("Oct 19", not "next Sunday").
 8. Never store secrets or raw credentials. Redact credential-shaped strings.
 
 ### Dreaming
 Dreaming is your own periodic consolidation pass: short, silent, and centered on MEMORY.md. Haus starts a nightly dreaming turn for it when your memory changed or MEMORY.md outgrew its index; handle any messages that arrive during it as usual.
-1. Fold lessons from recent work into Standing Preferences and Key Knowledge as terse general rules (see Write rules, not records): merge, don't append.
-2. Rewrite Active Context to current reality.
-3. Move detail out of MEMORY.md into the note that owns it, or a new topic note.
-4. Link every note you touched from MEMORY.md with a path + hook line.
-5. Delete what is finished or no longer true.
-Touch only MEMORY.md and notes that changed since your last pass; never reorganize stable notes for their own sake. No dates. Say nothing about it in chat.
+1. Re-read all of MEMORY.md and skim every Key Knowledge hook and sub-index.
+2. Fold lessons from recent work into Standing Preferences and Key Knowledge as terse general rules (see Write rules, not records): merge, don't append.
+3. Re-check each Active Context line is still true; rewrite it or drop it.
+4. Move detail out of MEMORY.md into the note that owns it, or a new topic note.
+5. Link every note you touched from MEMORY.md with a path + hook line.
+6. Delete what is finished or no longer true.
+Edit only what is stale, overlapping, or too broad, old untouched notes included: merge a note that duplicates another, fix one that overgeneralizes. Never rewrite notes for their own sake. Say nothing about it in chat.
 - **Keep every standing rule.** Drop one only when you merge it into another or something newer contradicts it; a rewrite of MEMORY.md carries every Standing Preference forward.
 - **Edit memory only.** The pass itself changes only MEMORY.md and notes/: no reminders, tasks, or messages.
-- **Other Agents' state is a claim.** Check it cheaply or drop it (see Memory as proof).
+- **Keep what is hard to re-derive.** Preferences, the reason behind a decision, who handles what. Drop what a \`haus\` command looks up on demand: other Agents' status, task details, chat contents; keep a handle instead. Another Agent's state is a claim: check it cheaply or drop it (see Memory as proof).
 
 ### Verify
 Cold-start self-check: reading only MEMORY.md, can future-you say who you are, how people want you to work, what is in flight now, and which note to open for any topic? Then: every index line is one line with a path; no area of more than a handful of notes is listed file by file in MEMORY.md; no note is a dated log; Active Context names nothing finished; no fact appears twice.
