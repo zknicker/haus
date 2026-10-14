@@ -31,3 +31,11 @@ test.skipIf(process.platform !== 'darwin')(
         }
     }
 );
+
+test.skipIf(process.platform === 'darwin')('withStorageLock fails fast off macOS', async () => {
+    const started = Date.now();
+    await expect(withStorageLock(tmpdir(), () => Promise.resolve())).rejects.toThrow(
+        'Haus Computer capped workspaces require macOS.'
+    );
+    expect(Date.now() - started).toBeLessThan(1000);
+});
