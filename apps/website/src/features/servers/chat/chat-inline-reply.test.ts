@@ -117,6 +117,7 @@ function message(id: string, sequence: number): ChatMessage {
         body: { kind: 'text' },
         chatId: 'cht_inline',
         cloudAgentWork: [],
+        imageGenerations: [],
         content: `Message ${id}`,
         createdAt: '2026-08-22T12:00:00.000Z',
         id,

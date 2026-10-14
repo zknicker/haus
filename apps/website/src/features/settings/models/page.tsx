@@ -3,6 +3,7 @@ import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react'
 import * as React from 'react';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
+import { ImageGenerationSettings } from '../image-generation/image-generation-group.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { CloudAgentModelGroup } from './cloud-agent-model-group.tsx';
 import {
@@ -19,7 +20,15 @@ interface RuntimeRow {
     models: string;
 }
 
-export function ModelsSettings({ canManage, serverId }: { canManage: boolean; serverId: string }) {
+export function ModelsSettings({
+    canManage,
+    isOwner = false,
+    serverId,
+}: {
+    canManage: boolean;
+    isOwner?: boolean;
+    serverId: string;
+}) {
     const computers = useComputers(serverId);
     const [query, setQuery] = React.useState('');
     const items: ModelsComputer[] = computers.data ?? [];
@@ -62,6 +71,8 @@ export function ModelsSettings({ canManage, serverId }: { canManage: boolean; se
             />
 
             <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
+
+            <ImageGenerationSettings isOwner={isOwner} serverId={serverId} />
 
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>

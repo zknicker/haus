@@ -43,7 +43,11 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     connections: () => <ConnectionsPage embedded />,
     members: ({ server }) => <MembersSection server={server} />,
     models: ({ server }) => (
-        <ModelsSettings canManage={hasServerAdminAuthority(server.role)} serverId={server.id} />
+        <ModelsSettings
+            canManage={hasServerAdminAuthority(server.role)}
+            isOwner={server.role === 'owner'}
+            serverId={server.id}
+        />
     ),
     preferences: () => <PreferencesSettings />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,

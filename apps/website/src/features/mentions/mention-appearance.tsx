@@ -74,6 +74,7 @@ const defaultMentionAppearance = {
     directory: { icon: 'folder' },
     file: { icon: 'file' },
     image: { icon: 'image' },
+    'image-generation': { icon: 'image' },
     plugin: { icon: 'plugin' },
     product: { icon: 'image' },
     'pull-request': { icon: 'pull-request' },

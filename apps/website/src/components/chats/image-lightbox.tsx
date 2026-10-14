@@ -13,6 +13,8 @@ import { Icon } from '../ui/icon.tsx';
 
 interface ImageLightboxProps {
     dataUrl: string;
+    /** A side panel of facts about the image (its prompt, model, cost); stacks under the image on a narrow screen. */
+    details?: React.ReactNode;
     download:
         | { filename: string; kind: 'link' }
         | { disabled: boolean; kind: 'action'; onDownload: () => void };
@@ -33,6 +35,7 @@ interface ImageLightboxProps {
  */
 export function ImageLightbox({
     dataUrl,
+    details,
     download,
     filename,
     height,
@@ -103,28 +106,40 @@ export function ImageLightbox({
                     <div className="flex h-14 shrink-0 items-center gap-3 pr-32 pl-24">
                         <p className="min-w-0 flex-1 truncate text-sm text-white/75">{filename}</p>
                     </div>
-                    <div className="min-h-0 flex-1 overflow-auto px-6 pt-2 pb-8 md:px-12 md:pb-12">
-                        <div className="relative flex min-h-full min-w-full items-center justify-center">
-                            <button
-                                aria-hidden="true"
-                                className="absolute inset-0 cursor-zoom-out"
-                                onClick={() => onOpenChange(false)}
-                                tabIndex={-1}
-                                type="button"
-                            />
-                            <img
-                                alt=""
-                                className={cn(
-                                    'relative z-10 cursor-default rounded-md object-contain shadow-2xl shadow-black/55',
-                                    isFitZoom ? 'max-h-full max-w-full' : 'max-w-none'
-                                )}
-                                height={scaledHeight}
-                                src={dataUrl}
-                                width={scaledWidth}
-                            />
+                    <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+                        <div className="min-h-0 flex-1 overflow-auto px-6 pt-2 pb-8 md:px-12 md:pb-12">
+                            <div className="relative flex min-h-full min-w-full items-center justify-center">
+                                <button
+                                    aria-hidden="true"
+                                    className="absolute inset-0 cursor-zoom-out"
+                                    onClick={() => onOpenChange(false)}
+                                    tabIndex={-1}
+                                    type="button"
+                                />
+                                <img
+                                    alt=""
+                                    className={cn(
+                                        'relative z-10 cursor-default rounded-md object-contain shadow-2xl shadow-black/55',
+                                        isFitZoom ? 'max-h-full max-w-full' : 'max-w-none'
+                                    )}
+                                    height={scaledHeight}
+                                    src={dataUrl}
+                                    width={scaledWidth}
+                                />
+                            </div>
                         </div>
+                        {details ? (
+                            <aside className="z-20 max-h-[45%] shrink-0 overflow-auto rounded-2xl bg-surface p-4 text-foreground md:m-4 md:mt-2 md:max-h-none md:w-72">
+                                {details}
+                            </aside>
+                        ) : null}
                     </div>
-                    {navigation ? <ImageLightboxSteps navigation={navigation} /> : null}
+                    {navigation ? (
+                        <ImageLightboxSteps
+                            navigation={navigation}
+                            reserveDetails={Boolean(details)}
+                        />
+                    ) : null}
                     <ImageZoomControls
                         onZoomIn={() => setZoom((value) => Math.min(4, value + 0.25))}
                         onZoomOut={() => setZoom((value) => Math.max(1, value - 0.25))}
@@ -198,8 +213,11 @@ function useArrowKeySteps(navigation: ImageLightboxProps['navigation']) {
 
 function ImageLightboxSteps({
     navigation,
+    reserveDetails,
 }: {
     navigation: NonNullable<ImageLightboxProps['navigation']>;
+    /** Keeps Next clear of the details panel that owns the right edge on a wide screen. */
+    reserveDetails: boolean;
 }) {
     // aria-disabled, not disabled: stepping onto the last image must not drop
     // focus from the button the user just pressed, or Escape stops reaching the dialog.
@@ -222,7 +240,8 @@ function ImageLightboxSteps({
                 aria-label="Next image"
                 className={cn(
                     imageViewerActionButtonClassName,
-                    'absolute top-1/2 right-4 z-20 -translate-y-1/2'
+                    'absolute top-1/2 right-4 z-20 -translate-y-1/2',
+                    reserveDetails && 'md:right-80'
                 )}
                 onClick={navigation.onNext}
                 type="button"

@@ -251,6 +251,7 @@ function item(overrides: { content?: string } = {}): TaskListItem {
             body: { kind: 'text' },
             chatId: 'chat_one',
             cloudAgentWork: [],
+            imageGenerations: [],
             content: overrides.content ?? 'Ship the Server board',
             createdAt: '2026-07-26T12:00:00.000Z',
             id: 'message_one',

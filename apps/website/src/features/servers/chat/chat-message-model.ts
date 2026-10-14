@@ -4,6 +4,7 @@ import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx'
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 import { messageCloudAgentWork } from '../../cloud-agents/message-cloud-agent-work.ts';
+import { messageImageGenerations } from '../../image-generation/message-image-generations.ts';
 
 export function mergeTaskAnchor<Message extends { id: string; sequence: number }>(
     messages: readonly Message[] | undefined,
@@ -63,6 +64,7 @@ export function projectChatMessage(
             cloudAgentWork: messageCloudAgentWork(message),
             content: message.content,
             id: message.id,
+            imageGenerations: messageImageGenerations(message),
             sender: messageSender(message),
             senderType,
             sourceSessionId: null,

@@ -1,4 +1,10 @@
-import type { ChatMessage, CloudAgentWork, MessageCause, TaskLabel } from '@haus/api';
+import type {
+    ChatMessage,
+    CloudAgentWork,
+    ImageGeneration,
+    MessageCause,
+    TaskLabel,
+} from '@haus/api';
 import type { MessageTask, TaskOrigin } from '../tasks/task-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
@@ -79,6 +85,11 @@ export interface TranscriptMessage {
     content: string;
     hausAgentId?: string | null;
     id: string;
+    /**
+     * The image generations this Message links, in link order. Each renders
+     * as a card where its link was written.
+     */
+    imageGenerations?: readonly ImageGeneration[];
     metadata?: TranscriptMessageMetadata;
     reactions?: TranscriptMessageReaction[];
     /** The bounded direct parent/root context for an inline reply. */

@@ -4,6 +4,7 @@ import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-
 import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agent-settings-stream.ts';
 import { useCloudAgentWorkStream } from '../../hooks/realtime/use-cloud-agent-work-stream.ts';
 import { useComputerUpdateStream } from '../../hooks/realtime/use-computer-update-stream.ts';
+import { useImageGenerationStream } from '../../hooks/realtime/use-image-generation-stream.ts';
 import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-update-stream.ts';
 import { useMcpUpdateStream } from '../../hooks/realtime/use-mcp-update-stream.ts';
 import { useMessageReactionStream } from '../../hooks/realtime/use-message-reaction-stream.ts';
@@ -37,6 +38,7 @@ export function ServerRealtimeListeners({
             <TaskChangeStream serverId={serverId} />
             <TaskLabelStream serverId={serverId} />
             <CloudAgentWorkStream serverId={serverId} />
+            <ImageGenerationStream serverId={serverId} />
             <AgentUpdateStream server={server} />
             <ComputerUpdateStream server={server} />
             <McpUpdateStream serverId={serverId} />
@@ -78,6 +80,11 @@ function TaskLabelStream({ serverId }: StreamProps) {
 
 function CloudAgentWorkStream({ serverId }: StreamProps) {
     useCloudAgentWorkStream(serverId);
+    return null;
+}
+
+function ImageGenerationStream({ serverId }: StreamProps) {
+    useImageGenerationStream(serverId);
     return null;
 }
 

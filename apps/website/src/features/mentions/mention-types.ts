@@ -6,6 +6,7 @@ export type MentionKind =
     | 'directory'
     | 'file'
     | 'image'
+    | 'image-generation'
     | 'plugin'
     | 'skill'
     | 'user';
@@ -17,6 +18,7 @@ export type MentionProjection =
     | 'capability-reference'
     | 'chat-reference'
     | 'cloud-agent-work-reference'
+    | 'image-generation-reference'
     | 'image-input'
     | 'path-reference'
     | 'skill-activation'

@@ -81,6 +81,7 @@ const durableMessage: ChatMessage = {
     body: { kind: 'text' },
     chatId: 'cht_1',
     cloudAgentWork: [],
+    imageGenerations: [],
     content: pending.content,
     createdAt,
     id: 'msg_1',

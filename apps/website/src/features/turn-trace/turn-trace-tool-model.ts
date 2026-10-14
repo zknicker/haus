@@ -19,25 +19,22 @@ import {
     readToolFields,
     type TurnTraceToolFields,
 } from './turn-trace-tool-fields.ts';
-import { formatTraceToolLabel } from './turn-trace-tool-label.ts';
-import { readRecord, readString, readTraceText, stableJson } from './turn-trace-values.ts';
+import {
+    readHausImageStep,
+    readToolImage,
+    readToolLabels,
+    type TurnTraceImage,
+} from './turn-trace-tool-image.ts';
+import { readRecord, readTraceText, stableJson } from './turn-trace-values.ts';
 
 export type { TurnTraceToolFields, TurnTraceToolKind } from './turn-trace-tool-fields.ts';
+export type { TurnTraceImage } from './turn-trace-tool-image.ts';
 
 /**
  * A call's settled outcome. `warning` is a sub-agent that completed while one
  * of its own calls failed: done, but not cleanly.
  */
 export type TurnTraceStatus = 'completed' | 'failed' | 'interrupted' | 'running' | 'warning';
-
-/** A generated image or video: the workspace file a preview reads, and the prompt behind it. */
-export interface TurnTraceImage {
-    readonly file: TracePath | null;
-    readonly media: 'image' | 'video';
-    readonly prompt: string | null;
-    /** Workspace-relative (`generated-images/…`), readable through `agent.workspaceFile`; null when only a host path exists. */
-    readonly workspacePath: string | null;
-}
 
 export interface TurnTraceTool extends TurnTraceToolFields {
     /** A sub-agent's own calls, in order; empty for every other kind. */
@@ -89,23 +86,26 @@ export function classifyTraceTool(
     // A call is a sub-agent by what the runtime reported, never by its wire name.
     const isSubagent = tool.subagent !== undefined || children.length > 0;
     const runStatus = resolveSubagentStatus(tool);
-    const fields: TurnTraceToolFields = isSubagent
+    const baseFields: TurnTraceToolFields = isSubagent
         ? { ...blankToolFields, kind: 'subagent' }
         : readToolFields(name, readRecord(tool.input) ?? {});
-    const shell = fields.kind === 'shell' && fields.command ? readShellLabel(fields.command) : null;
-    const labels = isSubagent ? readSubagentLabels(tool) : formatTraceToolLabel(fields, name);
-    const failedChildCount = countFailedChildren(tool, children);
     const output = resolveTraceOutput(tool);
+    const hausImage = readHausImageStep(baseFields, output);
+    const fields: TurnTraceToolFields = hausImage ? { ...baseFields, kind: 'image' } : baseFields;
+    const shell = fields.kind === 'shell' && fields.command ? readShellLabel(fields.command) : null;
+    const labels = isSubagent ? readSubagentLabels(tool) : readToolLabels(fields, name, hausImage);
+    const failedChildCount = countFailedChildren(tool, children);
     const error = resolveTraceError(tool);
     const target = fields.path ? readTracePath(fields.path) : null;
     // Haus CLI calls, message sends, and MEMORY.md upkeep: the Agent's bookkeeping, not its work.
     const isBookkeeping =
-        !isSubagent && isExecutionBookkeeping({ input: tool.input, toolName: name });
+        !(isSubagent || hausImage) && isExecutionBookkeeping({ input: tool.input, toolName: name });
 
     return {
         ...fields,
         children,
         ...readShellFacts(shell),
+        ...(hausImage?.cost ? { detail: hausImage.cost } : {}),
         error,
         failedChildCount,
         failure: runStatus === 'failed' ? readFailure(tool.failure, error) : null,
@@ -113,7 +113,7 @@ export function classifyTraceTool(
             isBookkeeping && fields.command
                 ? readHausMessage(unwrapShellCommand(fields.command))
                 : null,
-        image: fields.kind === 'image' ? readImage(name, tool.input, output) : null,
+        image: readToolImage({ fields, hausImage, input: tool.input, name, output }),
         interrupted: runStatus === 'interrupted',
         interruption: readInterruption(tool, isSubagent),
         isBookkeeping,
@@ -202,25 +202,6 @@ export function formatInterruption(tool: AgentExecutionJournalTool): string | nu
 function readSubagentLabels(tool: AgentExecutionJournalTool): TraceLabel {
     const label = formatSubagentLabel(tool);
     return { past: label, present: label };
-}
-
-/**
- * Computer journals a finished image as its workspace copy (`path`) beside the
- * runtime's own file (`savedPath`); a call journaled before that copy, or a
- * video, carries only the runtime's host path, which no preview can read. The
- * prompt is Grok Build's input or Codex's revised prompt.
- */
-function readImage(name: string, input: unknown, output: unknown): TurnTraceImage {
-    const record = readRecord(output);
-    const path = readString(record?.path);
-    const workspacePath = path && !path.startsWith('/') ? path : null;
-    const display = path ?? readString(record?.savedPath);
-    return {
-        file: display ? readTracePath(display) : null,
-        media: /video/u.test(name.toLowerCase()) ? 'video' : 'image',
-        prompt: readString(readRecord(input)?.prompt) ?? readString(record?.revisedPrompt),
-        workspacePath,
-    };
 }
 
 /** What a shell call's label leaves to the row: its detail, extra commands, and script size. */
