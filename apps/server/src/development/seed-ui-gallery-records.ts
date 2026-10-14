@@ -1,4 +1,5 @@
 import {
+    type CloudAgentProvider,
     type CloudAgentStatus,
     formatCloudAgentWorkLink,
     formatUserReferenceTarget,
@@ -138,6 +139,7 @@ export async function galleryWork(
         cancelling?: boolean;
         /** A follow-up Run the Agent sent after the first one settled. */
         followUp?: GalleryFollowUp;
+        provider?: CloudAgentProvider;
         repository?: string;
         stale?: boolean;
         withBranch?: boolean;
@@ -160,7 +162,7 @@ export async function galleryWork(
         launchMessageId: messageId,
         agentId: context.agentId,
         computerId: context.computerId,
-        provider: 'cursor',
+        provider: input.provider ?? 'cursor',
         repository: input.repository ?? 'demo/ui-gallery',
         startingRef: 'main',
         title: input.title,
@@ -179,10 +181,7 @@ export async function galleryWork(
         terminalAt,
         observedAt,
         startedAt: input.status === 'queued' ? null : new Date(context.now.getTime() - 180_000),
-        summary:
-            input.status === 'failed'
-                ? 'The sample build failed. Check the branch before retrying.'
-                : null,
+        summary: gallerySummary(input.status),
         errorCode: input.status === 'failed' ? 'sample_build_failed' : null,
         branches: input.withBranch
             ? [
@@ -269,4 +268,15 @@ function workLifecycle(
         terminalAt: times.terminalAt,
         updatedAt: times.observedAt,
     };
+}
+
+function gallerySummary(status: CloudAgentStatus): string | null {
+    switch (status) {
+        case 'failed':
+            return 'The sample build failed. Check the branch before retrying.';
+        case 'pending_input':
+            return 'Should the onboarding copy use the short variant or the long one?';
+        default:
+            return null;
+    }
 }

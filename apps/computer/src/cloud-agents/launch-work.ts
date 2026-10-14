@@ -1,4 +1,8 @@
-import type { AgentCloudAgentReceipt, AgentCloudAgentStartResponse } from '@haus/api';
+import type {
+    AgentCloudAgentReceipt,
+    AgentCloudAgentStartResponse,
+    CloudAgentProvider,
+} from '@haus/api';
 import { agentCloudAgentStartResponseSchema, isTerminalCloudAgentStatus } from '@haus/api';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import {
@@ -10,6 +14,7 @@ import {
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import { launchRejection } from './send-delivery.ts';
+import { readDefaultCloudAgentProvider } from './settings.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 export interface CloudAgentStartRequest {
@@ -17,6 +22,8 @@ export interface CloudAgentStartRequest {
     /** The provider prompt. It stays on this Computer and never reaches Server. */
     instructions: string;
     nonce: string;
+    /** Absent means this Computer's default provider. */
+    provider?: CloudAgentProvider;
     replyToMessageId?: string;
     repository: string;
     startingRef: string | null;
@@ -39,15 +46,17 @@ export class CloudAgentLaunchFailedError extends Error {
 export class CloudAgentLaunchUnconfirmedError extends Error {
     readonly code = 'CLOUD_AGENT_LAUNCH_UNCONFIRMED';
 
-    constructor() {
+    constructor(provider: CloudAgentProvider) {
         super(
-            'The launch could not be confirmed. Inspect the existing work in Cursor before starting another run.'
+            `The launch could not be confirmed. Inspect the existing work in ${provider === 'claude' ? 'Claude' : 'Cursor'} before starting another run.`
         );
     }
 }
 
 /**
- * Runs one `haus cloud-agent start`. Readiness is checked before Server is
+ * Runs one `haus cloud-agent start` on the provider the Agent named, or this
+ * Computer's default. An unready provider never falls back to the other one.
+ * Readiness is checked before Server is
  * asked for anything, so an unavailable capability creates no Message. Once
  * Server has accepted the launch the work exists: a provider refusal is
  * reported as a failed observation against that same work rather than erased.
@@ -61,7 +70,9 @@ export async function startCloudAgentWork(input: {
     serverId: string;
     serverOrigin: string;
 }): Promise<AgentCloudAgentStartResponse> {
-    const provider = cloudAgentProvider();
+    const provider = cloudAgentProvider(
+        input.request.provider ?? (await readDefaultCloudAgentProvider(input.dataRoot))
+    );
     const readiness = await provider.readiness();
     if (!readiness.ready) {
         throw new CloudAgentProviderUnavailableError(readiness.reason);
@@ -88,6 +99,7 @@ export async function startCloudAgentWork(input: {
     }
     const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
     const ref: CloudAgentRunRef = {
+        provider: receipt.work.provider,
         providerAgentId: receipt.work.providerAgentId,
         providerRunId: run?.providerRunId ?? null,
         runId: receipt.runId,
@@ -112,7 +124,6 @@ export async function startCloudAgentWork(input: {
                 providerAgentId: existing.launch.providerAgentId,
                 providerRunId: existing.launch.providerRunId,
                 cancelRequested: receipt.work.cancelRequestedAt !== null,
-                provider: provider.provider,
                 status: receipt.work.status,
             },
         ]);
@@ -124,16 +135,15 @@ export async function startCloudAgentWork(input: {
                 {
                     ...ref,
                     cancelRequested: receipt.work.cancelRequestedAt !== null,
-                    provider: provider.provider,
                     status: receipt.work.status,
                 },
             ]);
             return receipt;
         }
-        throw new CloudAgentLaunchUnconfirmedError();
+        throw new CloudAgentLaunchUnconfirmedError(provider.provider);
     }
     if (!(await journal.claim(input.serverId, ref))) {
-        throw new CloudAgentLaunchUnconfirmedError();
+        throw new CloudAgentLaunchUnconfirmedError(provider.provider);
     }
     let launch: CloudAgentLaunch;
     try {
@@ -145,6 +155,7 @@ export async function startCloudAgentWork(input: {
             ref: receipt.work.startingRef,
             repository: receipt.work.repository,
             title: receipt.work.title,
+            workId: receipt.work.id,
         });
     } catch (cause) {
         if (cause instanceof CloudAgentLaunchRejectedError) {
@@ -166,14 +177,14 @@ export async function startCloudAgentWork(input: {
                 summary: 'Launch confirmation unavailable; inspect provider before retrying.',
             },
         });
-        throw new CloudAgentLaunchUnconfirmedError();
+        throw new CloudAgentLaunchUnconfirmedError(provider.provider);
     }
     // Store the address before reporting it. Reconnect can recover a lost socket report.
     await journal.record(input.serverId, ref, launch);
     input.supervisor.report(ref, {
         observedAt: new Date().toISOString(),
         providerAgentId: launch.providerAgentId,
-        providerRunId: launch.providerRunId,
+        ...(launch.providerRunId ? { providerRunId: launch.providerRunId } : {}),
         ...(launch.providerUrl ? { providerUrl: launch.providerUrl } : {}),
         status: launch.status,
     });

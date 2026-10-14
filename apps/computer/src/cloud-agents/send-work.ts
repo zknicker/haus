@@ -40,6 +40,7 @@ export async function sendCloudAgentWork(input: {
     }
     const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
     const ref = {
+        provider: receipt.work.provider,
         providerAgentId,
         providerRunId: run?.providerRunId ?? null,
         runId: receipt.runId,

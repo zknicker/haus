@@ -16,6 +16,7 @@ import { cloudAgentStatusOf } from './status.ts';
 import { type CursorTransport, CursorTransportUnavailableError } from './transport.ts';
 
 const ref = {
+    provider: 'cursor' as const,
     providerAgentId: recordedAgentId,
     providerRunId: recordedRunId,
     runId: 'car_1234567890abcdef',
@@ -68,6 +69,7 @@ test('a launch creates the provider Agent and returns its Run and page', async (
         model: { id: 'gpt-5.4-nano', params: [{ id: 'reasoning', value: 'low' }] },
         ref: 'main',
         repository: 'haus/haus',
+        workId: 'caw_1234567890abcdef',
         title: 'Fix the flaky delivery test',
     });
 
@@ -94,6 +96,7 @@ test('a provider refusal reaches the caller instead of settling the Run', async 
                 model: null,
                 ref: null,
                 repository: 'haus/haus',
+                workId: 'caw_1234567890abcdef',
                 title: 'Fix the flaky delivery test',
             })
         ).rejects.toThrow(failure.message);

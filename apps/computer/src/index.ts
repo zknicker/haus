@@ -1142,6 +1142,7 @@ async function connect(
             if (
                 handleCloudAgentFrame(frame, {
                     runtime,
+                    dataRoot,
                     cloudAgents: daemonWork.cloudAgents,
                     track: trackWriter,
                     send: sendFrame,

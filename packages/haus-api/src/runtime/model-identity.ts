@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { agentRuntimeModelProviderIdSchema } from './model-providers.js';
+import { agentRuntimeModelProviderIdSchema } from './model-providers.ts';
 
 export const agentRuntimeModelProviderSchema = agentRuntimeModelProviderIdSchema;
 export const agentRuntimeModelIdSchema = z.string().trim().min(1);

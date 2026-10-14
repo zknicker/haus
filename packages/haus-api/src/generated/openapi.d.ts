@@ -2188,9 +2188,9 @@ export interface components {
         MessageCloudAgentWork: {
             id: string;
             /** @enum {string} */
-            provider: "cursor";
+            provider: "cursor" | "claude";
             /** @enum {string} */
-            status: "queued" | "running" | "completed" | "failed" | "cancelled" | "expired";
+            status: "queued" | "running" | "pending_input" | "completed" | "failed" | "cancelled" | "expired";
             title: string;
             repository: string;
             starting_ref: string | null;
@@ -2201,7 +2201,7 @@ export interface components {
         MessageCloudAgentRun: {
             run_id: string;
             /** @enum {string} */
-            status: "queued" | "running" | "completed" | "failed" | "cancelled" | "expired";
+            status: "queued" | "running" | "pending_input" | "completed" | "failed" | "cancelled" | "expired";
             summary: string | null;
             error_code: string | null;
             branches: {

@@ -1,17 +1,17 @@
 import { EXECUTION_JOURNAL_REASONING_MAX_CHARS } from '@haus/api';
-import { applyJournalRecord, findJournalReasoning } from './execution-journal-mutations';
-import type { JournalMutationRecord } from './execution-journal-records';
+import { applyJournalRecord, findJournalReasoning } from './execution-journal-mutations.ts';
+import type { JournalMutationRecord } from './execution-journal-records.ts';
 import {
     appendExecutionJournalRecords,
     writeExecutionJournalSnapshot,
-} from './execution-journal-store';
+} from './execution-journal-store.ts';
 import type {
     ComputerExecutionJournal,
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalStatus,
     ComputerExecutionJournalSubagentPatch,
-} from './execution-journal-types';
-import { journalValue } from './execution-journal-values';
+} from './execution-journal-types.ts';
+import { journalValue } from './execution-journal-values.ts';
 
 /**
  * The in-memory document stays the source of truth for the live turn; each

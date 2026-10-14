@@ -1,14 +1,16 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { type FileHandle, mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { cloudAgentProviderSchema, cloudAgentStatusSchema } from '@haus/api';
 import * as z from 'zod';
 import type { CloudAgentLaunch, CloudAgentRunRef } from './provider.ts';
 
 const launchSchema = z.object({
     providerAgentId: z.string().min(1),
-    providerRunId: z.string().min(1),
+    /** Null for a provider that names the execution only once a reading finds it. */
+    providerRunId: z.string().min(1).nullable(),
     providerUrl: z.string().nullable(),
-    status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
+    status: cloudAgentStatusSchema,
 });
 /** Retryable send failures so far; absent until the first attempt fails. */
 const deliverySchema = z.object({
@@ -34,6 +36,8 @@ const recordSchema = z.discriminatedUnion('phase', [
         interrupt: z.boolean(),
         predecessors: z.array(
             z.object({
+                /** Absent in records written before Claude: those were Cursor's. */
+                provider: cloudAgentProviderSchema.default('cursor'),
                 workId: z.string(),
                 runId: z.string(),
                 providerAgentId: z.string().nullable(),

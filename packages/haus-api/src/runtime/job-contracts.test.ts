@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { agentRuntimeRunJobInputSchema } from './contracts.js';
+import { agentRuntimeRunJobInputSchema } from './contracts.ts';
 
 describe('Runtime job contracts', () => {
     it('defaults job run input to an empty payload', () => {

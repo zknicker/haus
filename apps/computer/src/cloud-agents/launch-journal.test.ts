@@ -5,7 +5,13 @@ import { join } from 'node:path';
 import { CloudLaunchJournal } from './launch-journal.ts';
 
 const roots: string[] = [];
-const ref = { workId: 'caw_work', runId: 'car_run', providerAgentId: null, providerRunId: null };
+const ref = {
+    provider: 'cursor' as const,
+    workId: 'caw_work',
+    runId: 'car_run',
+    providerAgentId: null,
+    providerRunId: null,
+};
 const launch = {
     providerAgentId: 'provider-agent',
     providerRunId: 'provider-run',

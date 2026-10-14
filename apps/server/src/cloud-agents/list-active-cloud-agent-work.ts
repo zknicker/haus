@@ -15,7 +15,7 @@ import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { cloudAgentWorkVisibleSql } from './cloud-agent-work-visibility.ts';
 
 /**
- * Every queued or running Cloud Agent work the viewer can see, oldest first
+ * Every queued, running, or pending-input Cloud Agent work the viewer can see, oldest first
  * (ADR 0044): visible when any link lives in a Chat the viewer can read.
  * `location` says where the row opens.
  */
@@ -42,7 +42,7 @@ export async function listActiveCloudAgentWork(
         .where(
             and(
                 eq(cloudAgentWorkTable.serverId, input.serverId),
-                inArray(cloudAgentWorkTable.status, ['queued', 'running']),
+                inArray(cloudAgentWorkTable.status, ['queued', 'running', 'pending_input']),
                 cloudAgentWorkVisibleSql(db, input.serverId, { kind: 'user', userId: member.id })
             )
         )

@@ -6,4 +6,4 @@ import { memberProcedure } from '../server/procedure.ts';
 export const getCloudAgentSettingsProcedure = memberProcedure
     .input(cloudAgentSettingsGetInputSchema)
     .output(cloudAgentSettingsSchema)
-    .query(({ ctx, input }) => readCloudAgentSettings(ctx.hausDb, ctx.member, input.serverId));
+    .query(({ ctx, input }) => readCloudAgentSettings(ctx.hausDb, ctx.member, input));

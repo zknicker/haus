@@ -1,11 +1,11 @@
 // Runtime aliases keep execution-runtime contracts readable while the shared package names the external bridge as agent-runtime.
 // They are first-party aliases, not compatibility for an older public API.
 
-import * as contracts from './contracts.js';
-import * as model_identity from './model-identity.js';
-import * as model_providers from './model-providers.js';
-import * as routes from './routes.js';
-import * as skills from './skills.js';
+import * as contracts from './contracts.ts';
+import * as model_identity from './model-identity.ts';
+import * as model_providers from './model-providers.ts';
+import * as routes from './routes.ts';
+import * as skills from './skills.ts';
 
 export const runtimeProtocolVersion = contracts.agentRuntimeProtocolVersion;
 export const runtimeCapabilitySchema = contracts.agentRuntimeCapabilitySchema;

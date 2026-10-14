@@ -3,6 +3,7 @@ import { cloudAgentCapabilityRequestSchema, cloudAgentCapabilityResultSchema } f
 import type { EffectRuntime } from '@haus/effect';
 import { providerSignIn } from './provider-sign-in.ts';
 import { cloudAgentCapabilityState, cloudAgentProvider } from './registry.ts';
+import { readDefaultCloudAgentProvider, writeDefaultCloudAgentProvider } from './settings.ts';
 
 export function parseCloudAgentCapabilityRequest(
     value: unknown
@@ -14,22 +15,22 @@ export function parseCloudAgentCapabilityRequest(
 /**
  * The Computer side of the Cloud Agent capability row in Computer settings.
  * `connect` returns a sign-in link while Computer waits for approval and owns
- * the credential store. No credential travels back. Only a
- * human action in settings reaches this path, never an Agent turn.
+ * the credential store. No credential travels back. `make-default` names the
+ * provider an Agent's `start` uses when it names none. Only a human action in
+ * settings reaches this path, never an Agent turn.
  */
 export async function runCloudAgentCapabilityRequest(
     request: CloudAgentCapabilityRequest,
-    runtime: EffectRuntime<never>
+    runtime: EffectRuntime<never>,
+    dataRoot: string
 ): Promise<CloudAgentCapabilityResult> {
-    const provider = cloudAgentProvider();
+    const provider = cloudAgentProvider(request.provider);
     try {
-        if (provider.provider !== request.provider) {
-            throw new Error(`This Computer has no ${request.provider} Cloud Agent provider.`);
-        }
         const state = await resolve(request.operation.kind);
+        const defaultProvider = await readDefaultCloudAgentProvider(dataRoot);
         return cloudAgentCapabilityResultSchema.parse({
             requestId: request.requestId,
-            result: state,
+            result: { ...state, isDefault: defaultProvider === request.provider },
             type: 'cloud-agent-capability-result',
         });
     } catch (error) {
@@ -52,6 +53,9 @@ export async function runCloudAgentCapabilityRequest(
             case 'disconnect':
                 await signIn.cancel();
                 return cloudAgentCapabilityState(provider, await provider.disconnect());
+            case 'make-default':
+                await writeDefaultCloudAgentProvider(dataRoot, request.provider);
+                return signIn.get();
         }
     }
 }

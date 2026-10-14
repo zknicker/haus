@@ -130,6 +130,12 @@ test('upgrades the preceding production schema without replaying migrations', as
             ORDER BY table_name, column_name`
         ).toEqual([
             {
+                table_name: 'cloud_agent_model_settings',
+                column_name: 'model_params',
+                is_nullable: 'NO',
+                column_default: "'{}'::jsonb",
+            },
+            {
                 table_name: 'cloud_agent_runs',
                 column_name: 'model_dropped_params',
                 is_nullable: 'NO',
@@ -141,20 +147,14 @@ test('upgrades the preceding production schema without replaying migrations', as
                 is_nullable: 'NO',
                 column_default: "'[]'::jsonb",
             },
-            {
-                table_name: 'servers',
-                column_name: 'cloud_agent_model_params',
-                is_nullable: 'NO',
-                column_default: "'{}'::jsonb",
-            },
         ]);
         expect(
             await upgraded`SELECT conname FROM pg_constraint
-            WHERE conname IN ('servers_cloud_agent_model_params_shape', 'cloud_agent_runs_model_params_shape')
+            WHERE conname IN ('cloud_agent_model_settings_params_shape', 'cloud_agent_runs_model_params_shape')
             ORDER BY conname`
         ).toEqual([
+            { conname: 'cloud_agent_model_settings_params_shape' },
             { conname: 'cloud_agent_runs_model_params_shape' },
-            { conname: 'servers_cloud_agent_model_params_shape' },
         ]);
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([]);
     } finally {

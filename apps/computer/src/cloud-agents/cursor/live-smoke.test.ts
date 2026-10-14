@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { cloudAgentObservationSchema, isTerminalCloudAgentStatus } from '@haus/api';
+import type { CloudAgentRunRef } from '../provider.ts';
 import { createCursorCloudAgentProvider } from './provider.ts';
 import { createCursorSdkTransport } from './sdk-transport.ts';
 
@@ -33,13 +34,15 @@ test.skipIf(!enabled)(
             ref: null,
             repository,
             title: 'Haus live Cloud Agent smoke',
+            workId: `caw_live_${runId}`,
         });
         expect(launch.providerAgentId).toStartWith('bc');
         expect(launch.providerUrl).toContain(launch.providerAgentId);
 
         const ref = {
+            provider: 'cursor' as const,
             providerAgentId: launch.providerAgentId,
-            providerRunId: launch.providerRunId,
+            providerRunId: launch.providerRunId ?? '',
             runId,
             workId: `caw_live_${runId}`,
         };
@@ -55,7 +58,7 @@ test.skipIf(!enabled)(
         });
         expect(isTerminalCloudAgentStatus(observation.status)).toBe(true);
         expect(observation.rawStatus).toBeString();
-        expect(observation.providerRunId).toBe(launch.providerRunId);
+        expect(observation.providerRunId).toBe(launch.providerRunId ?? undefined);
         expect(observation.providerUrl).toBe(launch.providerUrl ?? undefined);
         if (observation.status === 'completed') {
             expect(observation.summary).toBeString();
@@ -66,7 +69,7 @@ test.skipIf(!enabled)(
 
 async function waitForTerminal(
     provider: ReturnType<typeof createCursorCloudAgentProvider>,
-    ref: { providerAgentId: string; providerRunId: string; runId: string; workId: string }
+    ref: CloudAgentRunRef
 ) {
     const deadline = Date.now() + twentyMinutes - 60_000;
     let observation = await provider.read(ref);

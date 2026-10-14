@@ -14,6 +14,7 @@ export function handleCloudAgentFrame(
     frame: unknown,
     options: {
         runtime: DaemonRuntime;
+        dataRoot: string;
         cloudAgents?: CloudAgentWorkSupervisor;
         track(operation: Promise<void>): Promise<void>;
         send(frame: unknown): boolean;
@@ -42,7 +43,7 @@ export function handleCloudAgentFrame(
         return false;
     }
     void options.track(
-        runCloudAgentCapabilityRequest(capability, options.runtime)
+        runCloudAgentCapabilityRequest(capability, options.runtime, options.dataRoot)
             .then(async (result) => {
                 options.send(result);
                 if (capability.operation.kind !== 'get') {

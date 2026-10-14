@@ -14,6 +14,7 @@ afterEach(async () => {
     }
 });
 const prior = {
+    provider: 'cursor' as const,
     workId: 'work',
     runId: 'prior',
     providerAgentId: 'bc_same',

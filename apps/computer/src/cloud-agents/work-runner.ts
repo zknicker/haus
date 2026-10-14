@@ -1,6 +1,7 @@
 import type {
     CloudAgentCancelCommand,
     CloudAgentObservation,
+    CloudAgentProvider as CloudAgentProviderId,
     CloudAgentReconcileEntry,
 } from '@haus/api';
 import { isTerminalCloudAgentStatus } from '@haus/api';
@@ -23,6 +24,8 @@ import { cloudAgentProvider } from './registry.ts';
 import { CloudAgentSendQueue } from './send-queue.ts';
 
 interface WatchedRun {
+    /** The journal confirmed the provider accepted this Run's prompt. */
+    addressed?: boolean;
     cancelRequested: boolean;
     readonly ready: Deferred.Deferred<void>;
     ref: CloudAgentRunRef;
@@ -47,14 +50,14 @@ export class CloudAgentWorkSupervisor {
     private readonly launches: CloudAgentLaunchScope;
     private readonly enrich: EnrichObservation;
     private readonly localRuns: CloudAgentLocalRuns;
-    private readonly provider: () => CloudAgentProvider;
+    private readonly provider: (id: CloudAgentProviderId) => CloudAgentProvider;
 
     constructor(
         private readonly runtime: DaemonRuntime,
         options: {
             dataRoot: string;
             serverId: string;
-            provider?: () => CloudAgentProvider;
+            provider?: (id: CloudAgentProviderId) => CloudAgentProvider;
             enrich?: EnrichObservation;
         }
     ) {
@@ -166,13 +169,13 @@ export class CloudAgentWorkSupervisor {
                     if (!(yield* self.resolveAddress(connection, run))) {
                         return false;
                     }
-                    const provider = self.provider();
+                    const provider = self.provider(run.ref.provider);
                     if (run.cancelRequested) {
                         yield* foreign((signal) => provider.cancel(run.ref, signal));
                     }
-                    yield* reports.publish(
-                        yield* foreign((signal) => provider.read(run.ref, signal))
-                    );
+                    const observation = yield* foreign((signal) => provider.read(run.ref, signal));
+                    self.learnRunId(run, observation);
+                    yield* reports.publish(observation);
                     yield* Deferred.succeed(run.ready, undefined);
                     if (!(run.terminal || run.cancelRequested || streamAttempted)) {
                         streamAttempted = true;
@@ -180,7 +183,10 @@ export class CloudAgentWorkSupervisor {
                             foreign((signal) =>
                                 provider.subscribe(
                                     run.ref,
-                                    (observation) => reports.enqueue(observation),
+                                    (observation) => {
+                                        self.learnRunId(run, observation);
+                                        reports.enqueue(observation);
+                                    },
                                     signal
                                 )
                             ),
@@ -216,6 +222,16 @@ export class CloudAgentWorkSupervisor {
         );
     }
 
+    /**
+     * A provider that acknowledged the prompt before naming its execution
+     * (Claude) names it in a later reading; the ref keeps it from then on.
+     */
+    private learnRunId(run: WatchedRun, observation: CloudAgentProviderObservation): void {
+        if (!run.ref.providerRunId && observation.providerRunId) {
+            run.ref = { ...run.ref, providerRunId: observation.providerRunId };
+        }
+    }
+
     private pause(run: WatchedRun, duration: Duration.DurationInput, wasCancelling: boolean) {
         return wasCancelling
             ? Effect.sleep(duration)
@@ -228,7 +244,7 @@ export class CloudAgentWorkSupervisor {
     ): Effect.Effect<boolean, CloudAgentOperationError> {
         const self = this;
         return Effect.gen(function* () {
-            if (run.ref.providerAgentId && run.ref.providerRunId) {
+            if (run.addressed || (run.ref.providerAgentId && run.ref.providerRunId)) {
                 return true;
             }
             const state = yield* self.localRuns.resolve(run);
@@ -238,14 +254,17 @@ export class CloudAgentWorkSupervisor {
                 }
                 return false;
             }
+            run.addressed = true;
             run.ref = {
                 ...run.ref,
                 providerAgentId: state.launch.providerAgentId,
-                providerRunId: state.launch.providerRunId,
+                providerRunId: run.ref.providerRunId ?? state.launch.providerRunId,
             };
+            const { providerRunId, providerUrl, ...launch } = state.launch;
             self.observe(connection, run, {
-                ...state.launch,
-                providerUrl: state.launch.providerUrl ?? undefined,
+                ...launch,
+                ...(providerRunId ? { providerRunId } : {}),
+                ...(providerUrl ? { providerUrl } : {}),
                 observedAt: state.observedAt,
             });
             return !run.terminal;
@@ -263,7 +282,7 @@ export class CloudAgentWorkSupervisor {
         connection.sink({
             ...observation,
             providerAgentId: run.ref.providerAgentId ?? undefined,
-            providerRunId: run.ref.providerRunId ?? undefined,
+            providerRunId: run.ref.providerRunId ?? observation.providerRunId,
             runId: run.ref.runId,
             workId: run.ref.workId,
         });

@@ -75,6 +75,7 @@ test('an Owner reads Cloud Agent readiness from the Computer that owns the crede
     const computerReply = answerNextCapabilityRequest(socket, 'get', {
         accountEmail: null,
         expiresAt: null,
+        isDefault: true,
         provider: 'cursor',
         ready: false,
         reason: 'not-connected',
@@ -84,6 +85,7 @@ test('an Owner reads Cloud Agent readiness from the Computer that owns the crede
     ).resolves.toEqual({
         accountEmail: null,
         expiresAt: null,
+        isDefault: true,
         provider: 'cursor',
         ready: false,
         reason: 'not-connected',
@@ -95,6 +97,7 @@ test('connecting relays to the Computer and answers with readiness, never a cred
     const computerReply = answerNextCapabilityRequest(socket, 'connect', {
         accountEmail: 'delegate@example.com',
         expiresAt: '2026-12-03T21:03:33.000Z',
+        isDefault: true,
         provider: 'cursor',
         ready: true,
         reason: null,
@@ -111,6 +114,7 @@ test('connecting relays to the Computer and answers with readiness, never a cred
     expect(Object.keys(connected).sort()).toEqual([
         'accountEmail',
         'expiresAt',
+        'isDefault',
         'provider',
         'ready',
         'reason',
@@ -129,6 +133,7 @@ test('sign-in links and cancellation relay through the authorized Computer capab
     const waiting = {
         accountEmail: null,
         expiresAt: null,
+        isDefault: true,
         provider: 'cursor',
         ready: false,
         reason: 'not-connected',
@@ -145,6 +150,7 @@ test('sign-in links and cancellation relay through the authorized Computer capab
     const cancelled = answerNextCapabilityRequest(socket, 'cancel-sign-in', {
         accountEmail: null,
         expiresAt: null,
+        isDefault: true,
         provider: 'cursor',
         ready: false,
         reason: 'not-connected',

@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { cloudAgentJobSchema } from './cloud-agent-job.ts';
 import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
+import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
 const cloudAgentTimestampSchema = z.iso.datetime({ offset: true });
@@ -10,10 +11,11 @@ export const cloudAgentActivityMaxLength = 120;
 export const cloudAgentSummaryMaxLength = 2000;
 export const cloudAgentRunsRetained = 20;
 
-/** Cursor is the only provider; a second one needs a real per-execution choice. */
-export const cloudAgentProviders = ['cursor'] as const;
-
-export const cloudAgentProviderSchema = z.enum(cloudAgentProviders);
+export {
+    type CloudAgentProvider,
+    cloudAgentProviderSchema,
+    cloudAgentProviders,
+} from './cloud-agent-provider.ts';
 
 /**
  * Why a Cloud Agent provider is not ready on a Computer. `not-connected` — no
@@ -34,6 +36,7 @@ export const cloudAgentUnreadyReasonSchema = z.enum(cloudAgentUnreadyReasons);
 export const cloudAgentStatuses = [
     'queued',
     'running',
+    'pending_input',
     'completed',
     'failed',
     'cancelled',
@@ -42,7 +45,18 @@ export const cloudAgentStatuses = [
 
 export const cloudAgentStatusSchema = z.enum(cloudAgentStatuses);
 
-export const cloudAgentTerminalStatuses = ['completed', 'failed', 'cancelled', 'expired'] as const;
+/**
+ * A Run is settled once its provider stops working on it. `pending_input` is
+ * settled too: the hosted agent stopped to ask a question, and the delegating
+ * Agent answers with a follow-up Run, exactly as it would after `completed`.
+ */
+export const cloudAgentTerminalStatuses = [
+    'pending_input',
+    'completed',
+    'failed',
+    'cancelled',
+    'expired',
+] as const;
 
 export function isTerminalCloudAgentStatus(status: CloudAgentStatus): boolean {
     return (cloudAgentTerminalStatuses as readonly string[]).includes(status);
@@ -206,6 +220,11 @@ export const cloudAgentCapabilityStateSchema = z
         accountEmail: z.string().trim().min(1).max(320).nullable(),
         /** When the resolved credential expires, when the provider dates it. */
         expiresAt: cloudAgentTimestampSchema.nullable(),
+        /**
+         * This Computer launches here when an Agent names no provider. Absent
+         * from Computers that predate provider choice, which only ran Cursor.
+         */
+        isDefault: z.boolean().default(false),
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),
         reason: cloudAgentUnreadyReasonSchema.nullable(),
@@ -252,7 +271,6 @@ export type CloudAgentPullRequest = z.infer<typeof cloudAgentPullRequestSchema>;
 export type CloudAgentPullRequestState = z.infer<typeof cloudAgentPullRequestStateSchema>;
 export type CloudAgentUnreadyReason = z.infer<typeof cloudAgentUnreadyReasonSchema>;
 export type CloudAgentCancelRequestedBy = z.infer<typeof cloudAgentCancelRequestedBySchema>;
-export type CloudAgentProvider = z.infer<typeof cloudAgentProviderSchema>;
 export type CloudAgentRun = z.infer<typeof cloudAgentRunSchema>;
 export type CloudAgentStatus = z.infer<typeof cloudAgentStatusSchema>;
 export type CloudAgentUsage = z.infer<typeof cloudAgentUsageSchema>;

@@ -1,4 +1,4 @@
-import { type AgentRuntimeSkillFile, agentRuntimeSkillFileSchema } from './contracts.js';
+import { type AgentRuntimeSkillFile, agentRuntimeSkillFileSchema } from './contracts.ts';
 
 function normalizePathSlashes(value: string) {
     return value.replaceAll('\\', '/');

@@ -60,6 +60,7 @@ test('a Server starts on Auto with no catalog until a Computer reports one', asy
     expect(await settings.get.query({ serverId: fixture.serverId })).toEqual({
         catalog: null,
         model: { kind: 'auto' },
+        provider: 'cursor',
         savedModelUnavailable: false,
     });
 
@@ -123,10 +124,11 @@ test('only an Owner or Admin saves a model, and only one the catalog lists with 
         model: { kind: 'auto' },
         serverId: fixture.serverId,
     });
-    const [server] = await fixture.harness.sql`
-        select cloud_agent_model_id, cloud_agent_model_params from servers where id = ${fixture.serverId}
-    `;
-    expect(server).toEqual({ cloud_agent_model_id: null, cloud_agent_model_params: {} });
+    expect(
+        await fixture.harness.sql`
+            select model_id from cloud_agent_model_settings where server_id = ${fixture.serverId}
+        `
+    ).toEqual([]);
 });
 
 test('every Run records the model and params it asked for, falling back to Auto when the catalog drops them', async () => {

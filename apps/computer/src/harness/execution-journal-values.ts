@@ -3,7 +3,7 @@ import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalTool,
     JournalValue,
-} from './execution-journal-types';
+} from './execution-journal-types.ts';
 
 export function interruptTool(
     tool: ComputerExecutionJournalTool,

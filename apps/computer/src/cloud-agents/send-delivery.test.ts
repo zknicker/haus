@@ -18,7 +18,13 @@ afterEach(async () => {
     }
 });
 
-const prior = { workId: 'work', runId: 'prior', providerAgentId: 'bc_same', providerRunId: 'r_p' };
+const prior = {
+    provider: 'cursor' as const,
+    workId: 'work',
+    runId: 'prior',
+    providerAgentId: 'bc_same',
+    providerRunId: 'r_p',
+};
 const next = { ...prior, runId: 'next', providerRunId: null };
 
 async function fixture(options: { predecessor?: CloudAgentRunRef; interrupt?: boolean } = {}) {

@@ -1,4 +1,9 @@
-import type { AgentReasoningEffort, ComputerInventory, ComputerModelFeature } from '@haus/api';
+import type {
+    AgentReasoningEffort,
+    CloudAgentProvider,
+    ComputerInventory,
+    ComputerModelFeature,
+} from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
 import { supportsSubagents } from './harness/runtime-harness.ts';
@@ -47,11 +52,13 @@ const knownRuntimes: ComputerRuntime[] = [
  * the runtime harnesses even when a provider shares a vendor with one.
  */
 export async function detectFullInventory(
-    options: { searchPath?: string } = {}
+    options: { defaultCloudAgentProvider?: CloudAgentProvider; searchPath?: string } = {}
 ): Promise<ComputerInventory> {
     return {
         ...detectInventory(options),
-        cloudAgentProviders: await detectCloudAgentProviders(),
+        cloudAgentProviders: await detectCloudAgentProviders(
+            options.defaultCloudAgentProvider ?? 'cursor'
+        ),
     };
 }
 

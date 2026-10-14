@@ -5,13 +5,13 @@
  * reproduces the document the turn held rather than approximating it.
  */
 import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from '@haus/api';
-import type { JournalMutationRecord } from './execution-journal-records';
-import { applySubagent, settleSubagent } from './execution-journal-subagent';
+import type { JournalMutationRecord } from './execution-journal-records.ts';
+import { applySubagent, settleSubagent } from './execution-journal-subagent.ts';
 import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalTool,
-} from './execution-journal-types';
-import { interruptTool } from './execution-journal-values';
+} from './execution-journal-types.ts';
+import { interruptTool } from './execution-journal-values.ts';
 
 /** Applies one record in place and reports whether it changed the document. */
 export function applyJournalRecord(

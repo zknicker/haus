@@ -1,28 +1,37 @@
-import type { CloudAgentCapabilityState, CloudAgentProviderReadiness } from '@haus/api';
+import {
+    type CloudAgentCapabilityState,
+    type CloudAgentProvider as CloudAgentProviderId,
+    type CloudAgentProviderReadiness,
+    cloudAgentProviders,
+} from '@haus/api';
+import { createClaudeCloudAgentProvider } from './claude/provider.ts';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import { createCursorSdkTransport } from './cursor/sdk-transport.ts';
 import { readCloudAgentModelCatalog } from './model-catalog.ts';
 import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';
 
 /**
- * Cursor is the Cloud Agent provider every Computer ships with. It reports its
- * own readiness truthfully — `not-connected` until a credential resolves — so
- * an unconnected Computer needs no placeholder provider and a launch still
- * fails before any Message exists.
+ * Cursor and Claude are the Cloud Agent providers every Computer ships with.
+ * Each reports its own readiness truthfully — `not-connected` until a
+ * credential resolves — so an unconnected Computer needs no placeholder
+ * provider and a launch still fails before any Message exists.
  */
-let installed: CloudAgentProvider = createCursorCloudAgentProvider(createCursorSdkTransport());
+const installed: Record<CloudAgentProviderId, CloudAgentProvider> = {
+    claude: createClaudeCloudAgentProvider(),
+    cursor: createCursorCloudAgentProvider(createCursorSdkTransport()),
+};
 
-/** The Cloud Agent provider this Computer can reach. */
-export function cloudAgentProvider(): CloudAgentProvider {
-    return installed;
+/** The adapter for one Cloud Agent provider on this Computer. */
+export function cloudAgentProvider(provider: CloudAgentProviderId): CloudAgentProvider {
+    return installed[provider];
 }
 
 /** Installs a provider adapter; returns the restore for tests and teardown. */
 export function setCloudAgentProvider(provider: CloudAgentProvider): () => void {
-    const previous = installed;
-    installed = provider;
+    const previous = installed[provider.provider];
+    installed[provider.provider] = provider;
     return () => {
-        installed = previous;
+        installed[provider.provider] = previous;
     };
 }
 
@@ -34,24 +43,32 @@ export function setCloudAgentProvider(provider: CloudAgentProvider): () => void 
  * up on the next one. The provider's model catalog rides the same line; it is
  * cached per account and read from the provider at most daily.
  */
-export async function detectCloudAgentProviders(): Promise<CloudAgentProviderReadiness[]> {
-    const provider = cloudAgentProvider();
-    const readiness = await readCloudAgentReadiness(provider);
-    return [
-        {
-            models: await readCloudAgentModelCatalog(provider, readiness),
-            provider: provider.provider,
-            ready: readiness.ready,
-            reason: readiness.ready ? null : readiness.reason,
-        },
-    ];
+export function detectCloudAgentProviders(
+    defaultProvider: CloudAgentProviderId
+): Promise<CloudAgentProviderReadiness[]> {
+    return Promise.all(
+        cloudAgentProviders.map(async (id) => {
+            const provider = cloudAgentProvider(id);
+            const readiness = await readCloudAgentReadiness(provider);
+            return {
+                isDefault: id === defaultProvider,
+                models: await readCloudAgentModelCatalog(provider, readiness),
+                provider: id,
+                ready: readiness.ready,
+                reason: readiness.ready ? null : readiness.reason,
+            };
+        })
+    );
 }
+
+/** One provider's access as Computer settings read it, before the default is known. */
+export type CloudAgentProviderAccess = Omit<CloudAgentCapabilityState, 'isDefault'>;
 
 /** The same capability, plus the account it resolves to, for Computer settings. */
 export function cloudAgentCapabilityState(
     provider: CloudAgentProvider,
     readiness: CloudAgentReadiness
-): CloudAgentCapabilityState {
+): CloudAgentProviderAccess {
     return readiness.ready
         ? {
               accountEmail: readiness.account.email,
