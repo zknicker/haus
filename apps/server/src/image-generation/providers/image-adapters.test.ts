@@ -195,6 +195,34 @@ describe('GeminiImageAdapter', () => {
         expect((missing as ImageProviderError).kind).toBe('provider-unavailable');
     });
 
+    test('maps Gemini invalid-key 400 to the fixed auth reason', async () => {
+        const { fetcher } = fakeFetch(() =>
+            Response.json(
+                {
+                    error: {
+                        code: 400,
+                        details: [
+                            {
+                                '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                                reason: 'API_KEY_INVALID',
+                            },
+                        ],
+                        message: 'API key not valid. Please pass a valid API key: AIzaSyLEAK',
+                        status: 'INVALID_ARGUMENT',
+                    },
+                },
+                { status: 400 }
+            )
+        );
+        const failure = await new GeminiImageAdapter(fetcher)
+            .generate(providerRequest({ model: 'gemini-3-pro-image' }), 'k')
+            .catch((cause: unknown) => cause);
+        expect((failure as ImageProviderError).kind).toBe('auth');
+        expect((failure as ImageProviderError).message).toBe(
+            'The Gemini key was rejected. The Server Owner can replace it in Settings → Image generation.'
+        );
+    });
+
     test('maps an auth failure', async () => {
         const { fetcher } = fakeFetch(() =>
             Response.json({ error: { message: 'bad key' } }, { status: 403 })

@@ -91,7 +91,8 @@ export async function providerFailure(
     provider: ImageGenerationProvider
 ): Promise<ImageProviderError> {
     const { status } = response;
-    if (status === 401 || status === 403) {
+    const body = await readErrorBody(response);
+    if (status === 401 || status === 403 || hasInvalidKeyReason(body)) {
         // Fixed text only: a provider's auth error can echo a fragment of the key,
         // and the reason is shown to everyone who reads the generation.
         const name = provider === 'openai' ? 'OpenAI' : 'Gemini';
@@ -100,7 +101,7 @@ export async function providerFailure(
             `The ${name} key was rejected. The Server Owner can replace it in Settings → Image generation.`
         );
     }
-    const detail = await readErrorDetail(response);
+    const detail = errorDetail(body);
     const suffix = detail ? `: ${detail}` : '';
     if (status === 429) {
         return new ImageProviderError(
@@ -126,13 +127,27 @@ export async function providerFailure(
     );
 }
 
-async function readErrorDetail(response: Response): Promise<string> {
-    let text: string;
+async function readErrorBody(response: Response): Promise<string> {
     try {
-        text = await response.text();
+        return await response.text();
     } catch {
         return '';
     }
+}
+
+/** Gemini answers an invalid key with 400 INVALID_ARGUMENT and a typed API_KEY_INVALID detail. */
+function hasInvalidKeyReason(text: string): boolean {
+    try {
+        const parsed: unknown = JSON.parse(text);
+        const error = isRecord(parsed) ? parsed.error : null;
+        const details = isRecord(error) && Array.isArray(error.details) ? error.details : [];
+        return details.some((detail) => isRecord(detail) && detail.reason === 'API_KEY_INVALID');
+    } catch {
+        return false;
+    }
+}
+
+function errorDetail(text: string): string {
     try {
         const parsed: unknown = JSON.parse(text);
         const error = isRecord(parsed) ? parsed.error : null;
