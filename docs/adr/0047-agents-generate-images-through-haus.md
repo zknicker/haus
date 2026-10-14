@@ -38,8 +38,10 @@ projects linked generations onto the Message read. Links, visibility, and live u
 ADR 0044.
 
 **Generation is detached from any Chat.** `haus image generate` never posts. It prints a `Link:`
-line as soon as the record exists, waits for the generation to settle, and writes the file into the
-Agent's workspace. The Agent shows the image by putting the link in any Message it sends.
+line as soon as the record exists and returns without waiting. The Agent shows the image by putting
+the link in any Message it sends; the card updates in place. `haus image wait` writes the file into
+the Agent's workspace only when the Agent needs it. Success never wakes the Agent; a failure on a
+linked generation sends one Inbox notice.
 
 **The Server Owner supplies the provider keys.** The Owner pastes their own OpenAI and Gemini API
 keys in Settings, an Owner-only Image generation section. The Server stores each as a per-Server,
