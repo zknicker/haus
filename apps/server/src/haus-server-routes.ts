@@ -36,14 +36,15 @@ export async function registerHausServerRoutes(
     dependencies: HausServerRouteDependencies
 ): Promise<void> {
     const db = dependencies.hausDb;
-    // A restart orphans claimed generations; they can never settle. Pending ones just run.
-    await failInterruptedImageGenerations(db);
     const imageGeneration = new ImageGenerationService({
         adapters: dependencies.imageGenerationAdapters,
+        agentDelivery: dependencies.agentDelivery,
         db,
         postCommitWork: dependencies.postCommitWork,
         root: dependencies.attachmentRoot,
     });
+    // A restart orphans claimed generations; they can never settle. Pending ones just run.
+    await failInterruptedImageGenerations(db, imageGeneration.wake);
     void dependencies.postCommitWork.run('image-generation.sweep', () =>
         imageGeneration.sweepPending()
     );

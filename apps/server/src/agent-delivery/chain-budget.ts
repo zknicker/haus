@@ -29,7 +29,8 @@ export function isAutomationAuthored(row: AuthoredWork): boolean {
     return (
         row.source.startsWith('agent:') ||
         row.source === 'trigger' ||
-        row.source === 'trigger_problem'
+        row.source === 'trigger_problem' ||
+        row.source === 'image_generation_failed'
     );
 }
 
@@ -173,7 +174,11 @@ async function findOldestQueuedChainResetItem(
             and(
                 queuedFor(agentId),
                 notLike(agentInboxTable.source, 'agent:%'),
-                notInArray(agentInboxTable.source, ['trigger', 'trigger_problem']),
+                notInArray(agentInboxTable.source, [
+                    'trigger',
+                    'trigger_problem',
+                    'image_generation_failed',
+                ]),
                 or(
                     inArray(agentInboxTable.source, [...concreteInboxSources]),
                     isNull(agentInboxTable.noticeRunId)

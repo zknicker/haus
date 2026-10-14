@@ -11,6 +11,10 @@ import { imageGenerationsTable } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { costOfImageGeneration } from './image-generation-cost.ts';
 import { prepareImageGenerationEvents } from './image-generation-events.ts';
+import {
+    enqueueImageGenerationFailureNotice,
+    type ImageGenerationFailureWake,
+} from './image-generation-failure-notice.ts';
 import { readImageGenerationKey } from './image-generation-keys.ts';
 import { findImageGenerationModel } from './image-generation-registry.ts';
 import type { ImageGenerationRow } from './image-generation-shape.ts';
@@ -29,7 +33,11 @@ export interface ImageGenerationRunDependencies {
     announce?: (db: HausDatabase, row: ImageGenerationRow) => Promise<void>;
     db: HausDatabase;
     root: AttachmentRoot;
+    /** Wakes the requesting Agent after its failure notice commits; absent in tests that only settle. */
+    wake?: ImageGenerationWake;
 }
+
+export type ImageGenerationWake = (wake: ImageGenerationFailureWake) => Promise<void>;
 
 /**
  * Runs one generation to a settled state: `pending → generating → ready | failed`.
@@ -73,7 +81,8 @@ export async function runImageGeneration(
             console.error(`Image generation ${row.id} failed internally.`, cause);
         }
         try {
-            await settleFailed(db, row, cause, Date.now() - startedAt);
+            const failed = await settleFailed(db, row, cause, Date.now() - startedAt);
+            await notifyFailure(db, failed, dependencies.wake);
         } catch (settleCause) {
             // Boot recovery fails a row left generating.
             console.error(`Image generation ${row.id} could not be settled.`, settleCause);
@@ -110,8 +119,11 @@ export async function sweepPendingImageGenerations(
  * the provider and can never settle, so it fails. Unclaimed `pending` rows are
  * left for the sweep.
  */
-export async function failInterruptedImageGenerations(db: HausDatabase): Promise<void> {
-    await db
+export async function failInterruptedImageGenerations(
+    db: HausDatabase,
+    wake?: ImageGenerationWake
+): Promise<void> {
+    const failed = await db
         .update(imageGenerationsTable)
         .set({
             errorCode: 'server-restarted',
@@ -119,7 +131,27 @@ export async function failInterruptedImageGenerations(db: HausDatabase): Promise
             state: 'failed',
             updatedAt: new Date(),
         })
-        .where(eq(imageGenerationsTable.state, 'generating'));
+        .where(eq(imageGenerationsTable.state, 'generating'))
+        .returning();
+    for (const row of failed) {
+        try {
+            await notifyFailure(db, row, wake);
+        } catch (cause) {
+            console.error(`Image generation ${row.id} failure notice could not be sent.`, cause);
+        }
+    }
+}
+
+/** One durable notice per failed generation; the wake is best-effort after the commit. */
+async function notifyFailure(
+    db: HausDatabase,
+    row: ImageGenerationRow,
+    wake: ImageGenerationWake | undefined
+) {
+    const target = await enqueueImageGenerationFailureNotice(db, row);
+    if (target) {
+        await wake?.(target);
+    }
 }
 
 async function settleReady(
@@ -203,13 +235,13 @@ async function settleFailed(
     row: ImageGenerationRow,
     cause: unknown,
     durationMs: number
-) {
+): Promise<ImageGenerationRow> {
     const providerError = cause instanceof ImageProviderError ? cause : null;
     const reason = (providerError?.message ?? 'The Server could not finish this image.').slice(
         0,
         1000
     );
-    await db
+    const [failed] = await db
         .update(imageGenerationsTable)
         .set({
             costBasis: providerError?.cost?.basis ?? null,
@@ -220,7 +252,12 @@ async function settleFailed(
             state: 'failed',
             updatedAt: new Date(),
         })
-        .where(eq(imageGenerationsTable.id, row.id));
+        .where(eq(imageGenerationsTable.id, row.id))
+        .returning();
+    if (!failed) {
+        throw new Error(`Image generation ${row.id} vanished before it failed.`);
+    }
+    return failed;
 }
 
 async function announceUpdate(db: HausDatabase, row: ImageGenerationRow) {

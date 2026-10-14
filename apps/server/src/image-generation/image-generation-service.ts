@@ -7,6 +7,7 @@ import {
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type * as z from 'zod';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -22,6 +23,7 @@ import { GeminiImageAdapter } from './providers/gemini-image-adapter.ts';
 import type { ImageProviderFetch } from './providers/image-provider.ts';
 import { OpenAiImageAdapter } from './providers/openai-image-adapter.ts';
 import {
+    type ImageGenerationWake,
     type ImageProviderAdapters,
     runImageGeneration,
     sweepPendingImageGenerations,
@@ -36,6 +38,8 @@ export class ImageGenerationService {
     constructor(
         private readonly options: {
             adapters?: ImageProviderAdapters;
+            /** Wakes an Agent after its generation failure notice commits. */
+            agentDelivery?: Pick<AgentDelivery, 'dispatchAgent'>;
             db: HausDatabase;
             fetcher?: ImageProviderFetch;
             postCommitWork: ServerPostCommitWork;
@@ -82,8 +86,18 @@ export class ImageGenerationService {
         return sweepPendingImageGenerations(this.runDependencies());
     }
 
+    /** The wake for a failure notice; `failInterruptedImageGenerations` takes it at boot. */
+    readonly wake: ImageGenerationWake = async ({ agentId, serverId }) => {
+        await this.options.agentDelivery?.dispatchAgent(agentId, serverId);
+    };
+
     private runDependencies() {
-        return { adapters: this.adapters, db: this.options.db, root: this.options.root };
+        return {
+            adapters: this.adapters,
+            db: this.options.db,
+            root: this.options.root,
+            wake: this.wake,
+        };
     }
 
     /** One generation the Agent may see: its own, or one a Message it can read links. */

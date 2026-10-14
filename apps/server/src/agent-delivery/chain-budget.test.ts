@@ -9,7 +9,7 @@ import {
 const now = new Date('2026-10-11T12:00:00.000Z');
 
 test('allows exactly sixteen consecutive automation-authored drain turns', () => {
-    for (const source of ['agent:wren', 'trigger', 'trigger_problem']) {
+    for (const source of ['agent:wren', 'trigger', 'trigger_problem', 'image_generation_failed']) {
         expect(canBeginAgentDrain([{ source }], maxAgentChainTurns - 1)).toBe(true);
         expect(canBeginAgentDrain([{ source }], maxAgentChainTurns)).toBe(false);
     }
