@@ -3,6 +3,8 @@ import {
     agentCloudAgentCancelReceiptSchema,
     agentCloudAgentListReceiptSchema,
     agentCloudAgentSendReceiptSchema,
+    type CloudAgentProvider,
+    cloudAgentProviderSchema,
     cloudAgentRepositorySchema,
     cloudAgentTitleSchema,
 } from '@haus/api';
@@ -50,12 +52,17 @@ const START_COMMAND: SubCommand = {
         { description: 'Starting ref (branch, tag, or SHA)', name: '--ref', valueName: '<ref>' },
         { description: 'One-line title for the work', name: '--title', valueName: '<text>' },
         { description: 'What you tell the chat you are doing', name: '--say', valueName: '<text>' },
+        {
+            description: "Cloud agent provider; omit for this Computer's default",
+            name: '--provider',
+            valueName: '<cursor|claude>',
+        },
     ],
     name: 'start',
     positionals: [],
     run: (args) => runCloudAgentStart(args, defaultDeps()),
     summary: 'Delegate bounded work to a cloud agent; the instructions come from stdin',
-    usage: 'haus cloud-agent start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text>',
+    usage: 'haus cloud-agent start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text> [--provider <cursor|claude>]',
 };
 
 const SEND_COMMAND: SubCommand = {
@@ -168,6 +175,7 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
     const title = readTitle(args);
     const content = requiredValue(args, '--say');
     const startingRef = args.values['--ref']?.trim() || null;
+    const provider = readProvider(args);
     const replyToMessageId =
         args.values['--reply-to'] === undefined ? undefined : requiredValue(args, '--reply-to');
 
@@ -188,6 +196,7 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
                 content: content.trim(),
                 instructions: instructions.trimEnd(),
                 nonce: deps.mintNonce(),
+                ...(provider ? { provider } : {}),
                 repository,
                 ...(replyToMessageId ? { replyToMessageId } : {}),
                 startingRef,
@@ -246,4 +255,18 @@ function defaultDeps(): CloudAgentDeps {
         stdinIsTty: process.stdin.isTTY === true,
         write: (text) => process.stdout.write(text),
     };
+}
+
+function readProvider(args: ParsedArgs): CloudAgentProvider | undefined {
+    const raw = args.values['--provider'];
+    if (raw === undefined) {
+        return;
+    }
+    const parsed = cloudAgentProviderSchema.safeParse(raw.trim());
+    if (!parsed.success) {
+        throw new AgentCliError('INVALID_ARG', `Invalid cloud agent provider "${raw}".`, {
+            nextAction: 'Use --provider cursor or --provider claude, or omit it for the default.',
+        });
+    }
+    return parsed.data;
 }

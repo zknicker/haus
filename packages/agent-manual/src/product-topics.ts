@@ -120,7 +120,7 @@ Use one when the work is a real coding change in a repository someone else's mac
 
 \`haus cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>\`
 
-The instructions for the cloud agent arrive on stdin. Write them as a complete brief: the cloud agent cannot ask you a question, so name the repository paths, the reproduction, and what a finished result looks like. \`--say\` is your own message to the chat and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit.
+The instructions for the cloud agent arrive on stdin. Write them as a complete brief: name the repository paths, the reproduction, and what a finished result looks like, so the cloud agent rarely needs to ask. \`--say\` is your own message to the chat and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit.
 
 **The launch card is your reply.** In a channel or DM, target the channel or DM and add \`--reply-to <messageId>\` of the request, so the card answers it inline. Inside a thread already in progress, use that thread's target. A launch never opens a new thread: a \`<target>:<shortId>\` with no conversation in its thread yet is refused. Several runs for one request are several cards replying to it. Progress belongs in each card's own work thread.
 
@@ -140,11 +140,13 @@ For revisions, corrections, or another step in the same assignment, send instruc
 
 \`haus cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
 
-**Provider and model.** Cursor is the Cloud Agent provider. A human picks the Cloud Agent model once per Server in Haus App; the default is Auto, Cursor's per-run router. You cannot choose or override it: no command flag or start input carries a model.
+**Provider and model.** Cursor and Claude are the Cloud Agent providers. A launch uses the Computer's default provider, which a human picks in Computer settings; add \`--provider cursor\` or \`--provider claude\` only when the requester asks for one. A human picks each provider's model once per Server in Haus App; the default is Auto (Cursor's per-run router, or Claude's account default). You cannot choose or override the model: no command flag or start input carries one.
+
+**Questions.** A Claude cloud agent can stop to ask a question. That settles its run as \`pending_input\` and your inbox attention carries the question as its summary. Answer it yourself when the request already settles it; otherwise ask the requester in the work thread and pass their answer on. Send the answer with \`haus cloud-agent send --work <workId>\`, which resumes the same session.
 
 When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Haus could read them, so you can judge the size of the change before opening it. As the coordinating Agent, keep review rounds, revision requests, and step-by-step progress in the work thread. The requester’s conversation hears only real state changes, one line each: a pull request ready, a blocker that needs them, the work done. Bring a concise outcome and a link to the work back to the requester’s conversation, following their lead when they join the work thread.`,
         // Observed misses: Forge searched both before this topic answered them.
-        aliases: ['cloud agent model', 'cursor'],
+        aliases: ['cloud agent model', 'cursor', 'claude cloud'],
         id: 'cloud-agents',
         kind: 'overview',
         related: ['agent', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],

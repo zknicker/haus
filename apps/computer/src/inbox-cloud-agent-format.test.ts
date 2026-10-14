@@ -120,6 +120,34 @@ test('a follow-up that never reached the provider tells its Agent why', () => {
     );
 });
 
+test('a cloud agent question tells its Agent how to answer it', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        cloudAgentWork: {
+            branches: [],
+            errorCode: null,
+            provider: 'claude',
+            providerUrl: 'https://claude.ai/code/session_01Question',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            status: 'pending_input',
+            summary: 'Should the reminder default to 9am or 10am? (9am / 10am)',
+            title: 'Pick the reminder default',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention]);
+    expect(drain).toContain('[Haus cloud agent attention status=pending_input');
+    expect(drain).toContain('summary=Should the reminder default to 9am or 10am? (9am / 10am)');
+    expect(drain).toContain('haus cloud-agent send --work caw_1234567890abcdef');
+});
+
 function item(overrides: Partial<AgentInboxItem> = {}): AgentInboxItem {
     return {
         chatId: 'cht_general',
