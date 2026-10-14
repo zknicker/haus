@@ -108,8 +108,8 @@ struct InboxMarkView: View {
             AvatarView(name: name, url: avatarURL, presence: presence, size: size)
         case .channel(let appearance):
             ChannelIconBox(appearance: appearance, size: size)
-        case .cloudAgent(let isRunning):
-            CloudAgentMark(size: size * 0.5, style: .glyph)
+        case .cloudAgent(let provider, let isRunning):
+            CloudAgentMark(provider: provider, size: size * 0.5, style: .glyph)
                 .frame(width: size, height: size)
                 .background(
                     ChannelIconBox.mutedFill(colorScheme),

@@ -5,6 +5,7 @@ import Foundation
 /// whose first Run has not started yet is `working`.
 public enum CloudAgentJobState: String, Codable, CaseIterable, Hashable, Sendable {
     case working, done, failed, cancelled, expired
+    case pendingInput = "pending-input"
 }
 
 /// A follow-up Run the delegating Agent sent after the first one. `waiting`
@@ -23,13 +24,16 @@ public struct CloudAgentFollowUp: Codable, Hashable, Sendable {
 
 /// The Server-derived job (`deriveCloudAgentJob` in `packages/haus-api`). Each
 /// case carries exactly the fields its wire variant does, so a failed job
-/// cannot lose its report and a working one cannot claim a settle time.
+/// cannot lose its report and a working one cannot claim a settle time. A
+/// `pendingInput` job is a hosted agent that stopped to ask the delegating
+/// Agent something; `question` is what it asked.
 public enum CloudAgentJob: Hashable, Sendable {
     case working(startedAt: Date?, followUp: CloudAgentFollowUp?)
     case done(startedAt: Date?, settledAt: Date?, followUp: CloudAgentFollowUp?)
     case failed(errorCode: String?, summary: String?, settledAt: Date?, followUp: CloudAgentFollowUp?)
     case cancelled(settledAt: Date?, followUp: CloudAgentFollowUp?)
     case expired(settledAt: Date?, followUp: CloudAgentFollowUp?)
+    case pendingInput(question: String?, startedAt: Date?, settledAt: Date?, followUp: CloudAgentFollowUp?)
 
     public var state: CloudAgentJobState {
         switch self {
@@ -38,13 +42,14 @@ public enum CloudAgentJob: Hashable, Sendable {
         case .failed: .failed
         case .cancelled: .cancelled
         case .expired: .expired
+        case .pendingInput: .pendingInput
         }
     }
 
     public var followUp: CloudAgentFollowUp? {
         switch self {
         case .working(_, let followUp), .done(_, _, let followUp), .failed(_, _, _, let followUp),
-             .cancelled(_, let followUp), .expired(_, let followUp):
+             .cancelled(_, let followUp), .expired(_, let followUp), .pendingInput(_, _, _, let followUp):
             followUp
         }
     }
@@ -54,7 +59,8 @@ public enum CloudAgentJob: Hashable, Sendable {
         switch self {
         case .working: nil
         case .done(_, let settledAt, _), .failed(_, _, let settledAt, _),
-             .cancelled(let settledAt, _), .expired(let settledAt, _):
+             .cancelled(let settledAt, _), .expired(let settledAt, _),
+             .pendingInput(_, _, let settledAt, _):
             settledAt
         }
     }
@@ -62,7 +68,7 @@ public enum CloudAgentJob: Hashable, Sendable {
 
 extension CloudAgentJob: Codable {
     private enum CodingKeys: String, CodingKey {
-        case errorCode, followUp, settledAt, startedAt, state, summary
+        case errorCode, followUp, question, settledAt, startedAt, state, summary
     }
 
     // Every key a variant names is required on the wire (null when unknown),
@@ -90,6 +96,13 @@ extension CloudAgentJob: Codable {
             self = .cancelled(settledAt: try container.decode(Date?.self, forKey: .settledAt), followUp: followUp)
         case .expired:
             self = .expired(settledAt: try container.decode(Date?.self, forKey: .settledAt), followUp: followUp)
+        case .pendingInput:
+            self = .pendingInput(
+                question: try container.decode(String?.self, forKey: .question),
+                startedAt: try container.decode(Date?.self, forKey: .startedAt),
+                settledAt: try container.decode(Date?.self, forKey: .settledAt),
+                followUp: followUp
+            )
         }
     }
 
@@ -108,6 +121,10 @@ extension CloudAgentJob: Codable {
             try container.encode(summary, forKey: .summary)
             try container.encode(settledAt, forKey: .settledAt)
         case .cancelled(let settledAt, _), .expired(let settledAt, _):
+            try container.encode(settledAt, forKey: .settledAt)
+        case .pendingInput(let question, let startedAt, let settledAt, _):
+            try container.encode(question, forKey: .question)
+            try container.encode(startedAt, forKey: .startedAt)
             try container.encode(settledAt, forKey: .settledAt)
         }
     }

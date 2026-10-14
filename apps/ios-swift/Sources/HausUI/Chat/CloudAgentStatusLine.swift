@@ -13,13 +13,17 @@ public struct CloudAgentStatusLine: Hashable, Sendable {
 }
 
 extension CloudAgentPresentation {
-    /// The most urgent fact wins: why the job failed, that a live Run has gone
+    /// The most urgent fact wins: why the job failed, the question a hosted agent is waiting on, that a live Run has gone
     /// quiet, that a stop was requested, that the delegating Agent sent a
     /// follow-up, otherwise the latest activity or when the job settled.
     public func statusLine(agentName: String, at now: Date) -> CloudAgentStatusLine {
         let job = work.job
         if case .failed(let errorCode, let summary, _, _) = job {
             return CloudAgentStatusLine(text: Self.failureReason(errorCode: errorCode, summary: summary), tone: .danger)
+        }
+        if case .pendingInput(let question, _, _, _) = job {
+            let asked = question.flatMap(Self.oneLine) ?? "\(agentName) has a question"
+            return CloudAgentStatusLine(text: asked, tone: .warning)
         }
         if let quiet = quietFor(at: now) {
             return CloudAgentStatusLine(text: "No update in \(Self.duration(seconds: Int(quiet)))", tone: .warning)
@@ -38,6 +42,8 @@ extension CloudAgentPresentation {
             work.activity.flatMap { Self.oneLine($0.summary) } ?? "Updated \(relative(work.updatedAt, now))"
         case .done:
             "Finished \(relative(settledAt, now))"
+        case .pendingInput:
+            "Pending input · \(relative(settledAt, now))"
         case .cancelled, .expired, .failed:
             "\(Self.jobLabel(job.state)) · \(relative(settledAt, now))"
         }

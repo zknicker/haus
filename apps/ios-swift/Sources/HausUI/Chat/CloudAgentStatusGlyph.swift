@@ -17,7 +17,7 @@ struct CloudAgentStatusGlyph: View {
                     .controlSize(.mini)
                     .tint(tint)
             } else {
-                Image(systemName: state == .done ? "checkmark.circle.fill" : "xmark.circle.fill")
+                Image(systemName: Self.symbol(for: state))
                     .resizable()
                     .scaledToFit()
                     .foregroundStyle(tint)
@@ -28,12 +28,20 @@ struct CloudAgentStatusGlyph: View {
         .accessibilityHidden(true)
     }
 
+    private static func symbol(for state: CloudAgentJobState) -> String {
+        switch state {
+        case .done: "checkmark.circle.fill"
+        case .pendingInput: "questionmark.circle.fill"
+        default: "xmark.circle.fill"
+        }
+    }
+
     private var tint: Color { CloudAgentTone.color(for: state) }
 }
 
 /// The lifecycle colors a Cloud Agent surface may use, from the App's one tone
 /// rule: accent while working, success when done, danger when failed, muted
-/// once cancelled or expired, and warning only for a quiet live Run.
+/// once cancelled or expired, and warning for a quiet live Run or a question waiting for an answer.
 enum CloudAgentTone {
     static let warning = Color.orange
 
@@ -43,6 +51,7 @@ enum CloudAgentTone {
         case .done: .green
         case .failed: .red
         case .cancelled, .expired: .secondary
+        case .pendingInput: warning
         }
     }
 
