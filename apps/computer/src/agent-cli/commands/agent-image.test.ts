@@ -62,6 +62,7 @@ test('wait polls until ready, then saves the file and prints the receipt', async
             'Quality: default',
             'Duration: 12.3s',
             'Cost: $0.05 (estimate)',
+            'The linked card already shows this image. Do not attach or re-send it unless someone asks for the file.',
             '',
         ].join('\n')
     );

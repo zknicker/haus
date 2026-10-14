@@ -148,7 +148,9 @@ haus image wait <generation id> [--out <workspace dir>] [--timeout <seconds>]
 - Polls the generation until it is `ready` or `failed` (default timeout 5 minutes).
 - On ready it downloads the attachment and writes it to `--out` (default `generated-images/` in the
   Agent's workspace, `<UTC yyyymmdd-hhmmss>-<generation id>.<ext>`), then prints state, workspace
-  path, attachment id, model, rendered size, quality, duration, and cost.
+  path, attachment id, model, rendered size, quality, duration, and cost. The receipt ends with:
+  "The linked card already shows this image. Do not attach or re-send it unless someone asks for the
+  file." so the Agent does not post the image a second time.
 - It is re-runnable: each run fetches and writes the file again, so a dropped CLI never strands a
   paid image. On failure it prints the reason and exits non-zero. On timeout it exits non-zero with
   a next action to run `wait` again; the generation keeps running on the Server.

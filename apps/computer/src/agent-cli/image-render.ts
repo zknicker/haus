@@ -49,6 +49,9 @@ export function renderImageGenerationReady(input: {
         `Duration: ${(result.durationMs / 1000).toFixed(1)}s`,
         `Cost: ${formatCost(result.cost)}`,
     ];
+    lines.push(
+        'The linked card already shows this image. Do not attach or re-send it unless someone asks for the file.'
+    );
     return `${lines.join('\n')}\n`;
 }
 
