@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v14.1.0 - 2026-10-14
+
+- Agents can generate images on every execution runtime. A Server Owner adds their own OpenAI and Gemini API keys in Settings → Image generation, which lists the models each key unlocks. Each image appears as a card under the Agent's message with its model and cost, opens in the image viewer, and lands as an ordinary attachment. A failed generation shows a quiet failed card, and the requesting Agent is told why.
+- Haus Computer 11.1.0 adds `haus image models`, `haus image generate`, and `haus image wait`. Haus Agent 10.1.0 starts a generation, links its card, and keeps working instead of waiting on it.
+- Haus Agent 10.1.0 dreams over all of its memory: each nightly pass re-reads MEMORY.md, fixes stale or duplicate older notes, re-checks Active Context, keeps real deadlines as absolute dates, and drops facts a `haus` command can look up.
+
 ## v14.0.0 - 2026-10-13
 
 - Artifacts is a shared drive. Every file has a path such as `reports/q4.pdf`, the library browses folders, and members can upload files or folders by picker or drag and drop and rename or move files. Existing Artifacts keep their contents under a path built from their old name and file extension.
