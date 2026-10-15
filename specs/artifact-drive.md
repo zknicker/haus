@@ -46,8 +46,14 @@ appears while some live file sits under it and disappears with its last file.
 returns the folder's immediate child folders (`name`, `path`, `file_count`, `updated_at`; first
 page only; newest `updated_at` first, path key breaking ties) and the folder's own files.
 `recursive: true` returns every file under the prefix and no folders, which is the bulk-pull shape;
-`order: 'path'` gives it a stable order. `creator`, `kind`, and `query` (title or path) filter
-files, and folder counts follow the same filters. Pages hold up to `limit` files (default 50, at
+`order: 'path'` gives it a stable order. A recursive search (`query` set) also returns, on its first
+page, up to 50 folders under the prefix whose own name matches, newest first. `order` also takes
+`name` (the file name in natural order, `2` before `10`, through migration 0093's ICU collation
+`artifact_natural`; equal names fall back to the path), `size`, and `kind` (content type, then
+name), and `direction` (`asc`/`desc`) flips any of them; it defaults to newest first for
+`updated` and ascending otherwise. Every order ends on the artifact id, so offset pages neither
+repeat nor skip. `creator`, `kind`, and `query` (title or path) filter files, and folder counts
+follow the same filters. Pages hold up to `limit` files (default 50, at
 most 200) and report `next_offset`, null on the last page.
 
 Every page carries `summary`, exact totals for the listed folder under the same filters and
