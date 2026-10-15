@@ -769,6 +769,11 @@
      * already have. Fields that do take typed text keep theirs; a search box
      * in a toolbar should still look like somewhere to type.
      */
+    .toolbar .select__trigger {
+        --border-width-field: 0;
+        --field-radius: calc(var(--radius) * 3);
+    }
+
     /*
      * Stock `search-field__input` is `flex-1` without `min-width: 0`, so its
      * intrinsic ~20ch width overflows a fixed-width field: the group clips,
@@ -777,11 +782,6 @@
      */
     .search-field__input {
         min-width: 0;
-    }
-
-    .toolbar .select__trigger {
-        --border-width-field: 0;
-        --field-radius: calc(var(--radius) * 3);
     }
 
     /*
@@ -3034,14 +3034,6 @@
     }
 
     /* ---- Artifacts library (features/artifacts/) ---- */
-
-    /*
-     * The Files band's search sits among pill buttons and menus, so it takes
-     * their ×3 tier, the same way sub-sidebar chrome does, through the token.
-     */
-    .files-band {
-        --field-radius: calc(var(--radius) * 3);
-    }
 
     /* ListView sizes every svg in a row's content to 16px; a file sheet carries its own box. */
     .list-view__item-content .artifact-icon {
