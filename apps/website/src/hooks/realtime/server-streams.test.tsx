@@ -6,6 +6,7 @@ import {
     runRestarts,
 } from '../../test-support/realtime-stream-harness.tsx';
 import { useAgentUpdateStream } from './use-agent-update-stream.ts';
+import { useArtifactUpdateStream } from './use-artifact-update-stream.ts';
 import { useCloudAgentSettingsStream } from './use-cloud-agent-settings-stream.ts';
 import { useComputerUpdateStream } from './use-computer-update-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
@@ -103,6 +104,28 @@ describe('Server-level stream hooks', () => {
         ];
         expect(onEvent).toEqual(reads);
         expect(onRecovery).toEqual(reads);
+    });
+
+    test('artifact.onUpdated with a file refreshes every listing and that file', async () => {
+        const { onEvent, onRecovery } = await drive(
+            'artifact.onUpdated',
+            () => useArtifactUpdateStream(serverId),
+            { artifactId: 'art_1', serverId }
+        );
+        const file = { artifact_id: 'art_1', serverId };
+        expect(onEvent).toEqual([
+            read('artifact.list', { serverId }),
+            read('artifact.creators', { serverId }),
+            read('artifact.get', file),
+            read('artifact.versions', file),
+        ]);
+        // Recovery (and a folder move's null id) refreshes every file's reads.
+        expect(onRecovery).toEqual([
+            read('artifact.list', { serverId }),
+            read('artifact.creators', { serverId }),
+            read('artifact.get', { serverId }),
+            read('artifact.versions', { serverId }),
+        ]);
     });
 
     test('server.onUpdated refreshes this Server detail and the Server list', async () => {
