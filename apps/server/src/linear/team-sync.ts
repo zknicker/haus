@@ -12,6 +12,7 @@ import { LinearSignInRequiredError } from './linear-errors.ts';
 import { sweepLinearAttempts } from './oauth-attempts.ts';
 import { sweepLinearTriggerReferences } from './reference-sweep.ts';
 import { replaceTeamAccess } from './team-access.ts';
+import { orphanSessionsOutsideTeamScope } from './team-session-scope.ts';
 import { rederiveLinearTriggerProblems } from './trigger-problem-wakes.ts';
 
 // Team scope (specs/linear-app.md#team-scope): access is synced at install, on
@@ -37,9 +38,10 @@ export interface LinearTeamSyncOutcome {
 
 /**
  * Replaces one credential's team access with what Linear reported, inside the
- * caller's Server-locked transaction. The workspace actor's newly accessible
- * teams get pending Agent label rows, and its `linear` Triggers re-derive
- * their problems; answers the owners to wake after commit.
+ * caller's Server-locked transaction. Identity sessions whose issue team left
+ * effective access are orphaned, the workspace actor's newly accessible teams
+ * get pending Agent label rows, and the workspace's `linear` Triggers
+ * re-derive their problems; answers the owners to wake after commit.
  */
 export async function applyLinearTeamAccess(
     tx: HausDatabase,
@@ -53,14 +55,17 @@ export async function applyLinearTeamAccess(
         serverId: credential.serverId,
         teams,
     });
-    // Trigger problems follow the workspace actor's teams only.
-    if (credential.identityId) {
-        return [];
-    }
-    await labelLifecycle.teamsChanged(tx, {
+    await orphanSessionsOutsideTeamScope(tx, {
+        now,
         serverId: credential.serverId,
         workspaceId: credential.workspaceId,
     });
+    if (!credential.identityId) {
+        await labelLifecycle.teamsChanged(tx, {
+            serverId: credential.serverId,
+            workspaceId: credential.workspaceId,
+        });
+    }
     return await rederiveLinearTriggerProblems(tx, {
         now,
         scope: { workspaceId: credential.workspaceId },
