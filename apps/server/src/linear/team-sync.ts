@@ -7,8 +7,8 @@ import { linearCredentialsTable, linearWorkspacesTable } from '../postgres/schem
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { LinearCredential } from './credentials.ts';
 import { labelLifecycle } from './label-lifecycle.ts';
-import { readLinearTeams } from './linear-api.ts';
 import { LinearSignInRequiredError } from './linear-errors.ts';
+import { readLinearTeams } from './linear-install-reads.ts';
 import { sweepLinearAttempts } from './oauth-attempts.ts';
 import { sweepLinearTriggerReferences } from './reference-sweep.ts';
 import { replaceTeamAccess } from './team-access.ts';

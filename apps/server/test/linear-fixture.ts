@@ -106,19 +106,18 @@ export function createFakeLinear(): FakeLinear {
         }
         const body = JSON.parse(String(init?.body)) as {
             query: string;
-            variables?: { id?: string };
+            variables?: { after?: string | null; first?: number; id?: string };
         };
         if (body.query.includes('HausInstall')) {
             return Response.json({
                 data: {
                     organization: actor.organization,
-                    teams: { nodes: actor.teams },
                     viewer: { displayName: actor.displayName, id: actor.appUserId },
                 },
             });
         }
         if (body.query.includes('HausTeams')) {
-            return Response.json({ data: { teams: { nodes: actor.teams } } });
+            return Response.json({ data: { teams: teamsPage(actor.teams, body.variables) } });
         }
         const teamIds = fake.entityTeams.get(body.variables?.id ?? '');
         const entity = teamIds
@@ -129,6 +128,20 @@ export function createFakeLinear(): FakeLinear {
         return Response.json({ data: { entity } });
     };
     return fake;
+}
+
+/** Pages as Linear does: `first` per page, the cursor is the next offset. */
+function teamsPage(
+    teams: readonly LinearTeam[],
+    variables: { after?: string | null; first?: number } = {}
+) {
+    const start = Number(variables.after ?? 0);
+    const end = start + (variables.first ?? 50);
+    const hasNextPage = end < teams.length;
+    return {
+        nodes: teams.slice(start, end),
+        pageInfo: { endCursor: hasNextPage ? String(end) : null, hasNextPage },
+    };
 }
 
 export const teamDesign: LinearTeam = { id: 'team-design', key: 'DES', name: 'Design' };

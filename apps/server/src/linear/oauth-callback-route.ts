@@ -11,10 +11,10 @@ import {
     LinearApiError,
     type LinearApp,
     type LinearTokenPair,
-    readLinearInstallFacts,
     revokeLinearToken,
 } from './linear-api.ts';
 import { LinearRefusedError } from './linear-errors.ts';
+import { readLinearInstallFacts } from './linear-install-reads.ts';
 import { consumeLinearAttempt, type LinearAttempt } from './oauth-attempts.ts';
 
 export const linearOauthCallbackPath = '/linear/oauth/callback';

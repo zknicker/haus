@@ -8,7 +8,7 @@ import {
 } from './credentials.ts';
 import type { LinearDeliveryHandler, LinearDeliveryRow } from './delivery-handler.ts';
 import { credentialFailed } from './lifecycle.ts';
-import { readLinearTeams } from './linear-api.ts';
+import { readLinearTeams } from './linear-install-reads.ts';
 import { orphanLinearSessions } from './sessions.ts';
 import { applyLinearTeamAccess } from './team-sync.ts';
 

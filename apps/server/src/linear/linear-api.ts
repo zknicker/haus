@@ -1,4 +1,3 @@
-import type { LinearTeam } from '@haus/api';
 import * as z from 'zod';
 
 // Linear's OAuth and GraphQL endpoints as the Server calls them
@@ -160,59 +159,6 @@ export async function linearGraphql<T>(
         throw new LinearApiError('upstream', 'Linear answered with an unexpected shape.');
     }
     return parsed.data;
-}
-
-/** What an install proves about itself, read with the new token before binding. */
-export interface LinearInstallFacts {
-    appUser: { displayName: string; id: string };
-    organization: { id: string; name: string; urlKey: string };
-    teams: LinearTeam[];
-}
-
-const teamsSchema = z.object({
-    nodes: z.array(z.object({ id: z.string().min(1), key: z.string().min(1), name: z.string() })),
-});
-const installFactsSchema = z.object({
-    organization: z.object({ id: z.string().min(1), name: z.string(), urlKey: z.string().min(1) }),
-    teams: teamsSchema,
-    viewer: z.object({ displayName: z.string().min(1), id: z.string().min(1) }),
-});
-
-export async function readLinearInstallFacts(
-    transport: typeof fetch,
-    token: string
-): Promise<LinearInstallFacts> {
-    const facts = await linearGraphql(
-        transport,
-        token,
-        {
-            query: 'query HausInstall { viewer { id displayName } organization { id name urlKey } teams(first: 250) { nodes { id key name } } }',
-        },
-        installFactsSchema
-    );
-    return {
-        appUser: facts.viewer,
-        organization: {
-            ...facts.organization,
-            name: facts.organization.name || facts.organization.urlKey,
-        },
-        teams: facts.teams.nodes.map(shapeTeam),
-    };
-}
-
-/** The teams one actor's token reaches. */
-export async function readLinearTeams(transport: typeof fetch, token: string) {
-    const result = await linearGraphql(
-        transport,
-        token,
-        { query: 'query HausTeams { teams(first: 250) { nodes { id key name } } }' },
-        z.object({ teams: teamsSchema })
-    );
-    return result.teams.nodes.map(shapeTeam);
-}
-
-function shapeTeam(team: { id: string; key: string; name: string }): LinearTeam {
-    return { id: team.id, key: team.key, name: team.name || team.key };
 }
 
 async function tokenRequest(

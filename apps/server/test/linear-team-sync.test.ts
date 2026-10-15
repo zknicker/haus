@@ -30,7 +30,7 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-/** Linear's `teams` query, answering per token; a token in `failing` gets a 503. */
+/** Linear's paged `teams` query, answering per token; a token in `failing` gets a 503. */
 function fakeLinear(failing: ReadonlySet<string>) {
     return ((_url: string | URL | Request, init?: RequestInit) => {
         const token = new Headers(init?.headers).get('authorization')?.replace('Bearer ', '') ?? '';
@@ -41,7 +41,25 @@ function fakeLinear(failing: ReadonlySet<string>) {
             { id: 'team-des', key: 'DES', name: 'Design' },
             { id: 'team-ops', key: 'OPS', name: 'Operations' },
         ];
-        return Promise.resolve(Response.json({ data: { teams: { nodes: teams } } }));
+        // One team per page, so the sync must follow the cursor to see them all.
+        const { variables } = JSON.parse(String(init?.body)) as {
+            variables: { after: string | null };
+        };
+        const index = Number(variables.after ?? 0);
+        const hasNextPage = index + 1 < teams.length;
+        return Promise.resolve(
+            Response.json({
+                data: {
+                    teams: {
+                        nodes: [teams[index]],
+                        pageInfo: {
+                            endCursor: hasNextPage ? String(index + 1) : null,
+                            hasNextPage,
+                        },
+                    },
+                },
+            })
+        );
     }) as typeof fetch;
 }
 
