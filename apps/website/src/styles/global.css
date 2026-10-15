@@ -56,18 +56,29 @@
         pointer-events: none;
     }
 
+    /*
+     * Text selection, the native rule (DESIGN.md → "Text selection").
+     *
+     * App chrome never selects: rows, tiles, labels, bands, tabs, menus and
+     * buttons ignore click-drag, double-click and Shift-click, as in a Mac
+     * app. Content opts back in: fields and editors always, code anywhere,
+     * an Alert's message, and every region a content component marks with
+     * `data-selectable-text` (message bodies, rendered Markdown, read-only
+     * fact values). The opt-in inherits, so a content region's text selects
+     * as one run while the HeroUI controls inside it keep their own `none`.
+     */
+    body {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
     input,
     textarea,
     pre,
     code,
-    [contenteditable='true'],
-    [contenteditable='plaintext-only'],
+    [contenteditable]:not([contenteditable='false']),
     [data-selectable-text],
-    [data-selectable-text] *,
-    [data-slot='input'],
-    [data-slot='input-control'],
-    [data-slot='textarea'],
-    [data-slot='textarea-control'] {
+    .alert__description {
         -webkit-user-select: text;
         user-select: text;
     }

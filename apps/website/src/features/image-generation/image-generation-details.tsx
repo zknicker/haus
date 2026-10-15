@@ -67,6 +67,7 @@ function ExpandablePrompt({ prompt }: { prompt: string }) {
                         ? 'whitespace-pre-wrap break-words text-sm leading-relaxed'
                         : 'line-clamp-4 whitespace-pre-wrap break-words text-sm leading-relaxed'
                 }
+                data-selectable-text=""
             >
                 {prompt}
             </p>

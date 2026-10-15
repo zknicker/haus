@@ -56,7 +56,10 @@ export function ReminderInstructionsGroup({ text }: { text: string }) {
                 <ItemCard>
                     <ItemCard.Content>
                         {/* The one place the full text reads, so it wraps. */}
-                        <ItemCard.Description className="max-w-full whitespace-pre-wrap break-words">
+                        <ItemCard.Description
+                            className="max-w-full whitespace-pre-wrap break-words"
+                            data-selectable-text=""
+                        >
                             {text}
                         </ItemCard.Description>
                     </ItemCard.Content>

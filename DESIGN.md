@@ -754,6 +754,19 @@ Two constraints hold at every rung. Do not add new per-region `--spacing` or `--
 scopes, and do not scatter override rules into feature CSS. Product CSS may own layout or
 behavior HeroUI cannot express, but must not recreate component appearance.
 
+## Text selection
+
+The App selects text like a native Mac app, on desktop and web alike: chrome never selects,
+content does. `styles/global.css` holds the whole policy — `user-select: none` on the body, then
+one opt-in list: inputs, textareas, contenteditable, `pre`/`code`, an Alert's description, and
+any region marked `data-selectable-text`. Content components carry that attribute once at their
+root: the transcript message body, rendered Markdown (`ReferenceMarkdown`, so file previews and
+traces too), `SettingsFact`/`SettingsRowError` values, trace sections and failures, diffs, and
+image prompts. Rows, tiles, labels, bands, tabs, menus, badges, and empty states stay
+unselectable, so click-drag, double-click, and Shift-click on them never highlight text. Mark a
+new content region with the attribute; never add `select-text`/`select-none` at a call site to
+fix a single surface. `styles/text-selection-contract.test.ts` guards the default and opt-ins.
+
 ## Components
 
 - **Files:** The library has no page title. The shell band carries the folder trail ("Haus › Files › <folder> › <folder>") and every control (search, a file-type menu, a Created by menu, list/grid, then a secondary `sm` Upload menu), so the column below is only content. Each date group is a muted label over standalone secondary `ListView` rows (list: no rules, ×2 rounded hover and selected fills) or stock `Card` tiles (grid); rows keep their stock inline padding, and group labels, folder artwork, and grid card edges take that same inset (`--artifact-library-inset`), so every icon shares one edge and row fills grow outward from it to the column edge. Folder tiles stay boxless, Finder-style, with a hover fill that grows outward; pressing one opens the folder. Upload progress is a stock `sm` `ProgressBar` at the top of the column, and problems a danger `Alert`. A file drag over the library washes the scroll area in the accent with an inset ring (`.artifact-library-drop`), never moving content. The viewer fills the remaining app height and keeps file details and revisions beside the asset.

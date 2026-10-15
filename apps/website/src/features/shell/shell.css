@@ -33,12 +33,6 @@
         cursor: default;
     }
 
-    [data-window-drag-region],
-    [data-window-drag-region] * {
-        -webkit-user-select: none;
-        user-select: none;
-    }
-
     [data-window-drag-region]
         :is(button, a[href], [role='button'], [role='tab']):not(:disabled):not(
             [aria-disabled='true']
