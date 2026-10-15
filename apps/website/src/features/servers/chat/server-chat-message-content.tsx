@@ -69,16 +69,17 @@ export function ServerChatMessageContent({
                             serverId={serverId}
                         />
                     ) : (
-                        <MessageTextBody
-                            agentsById={agentsById}
-                            chatsById={chatsById}
-                            content={segment.text}
-                            hausAgentId={message.hausAgentId ?? null}
-                            humans={humans}
-                            key={segment.key}
-                            onOpenArtifact={onOpenArtifact}
-                            onReferenceActivate={onReferenceActivate}
-                        />
+                        <SectionGap key={segment.key} open={opensSection(segments, index)}>
+                            <MessageTextBody
+                                agentsById={agentsById}
+                                chatsById={chatsById}
+                                content={segment.text}
+                                hausAgentId={message.hausAgentId ?? null}
+                                humans={humans}
+                                onOpenArtifact={onOpenArtifact}
+                                onReferenceActivate={onReferenceActivate}
+                            />
+                        </SectionGap>
                     )
                 )}
             </Wrapper>
@@ -103,6 +104,24 @@ function firstCardIndexes(segments: readonly MessageImageSegment[]): number[] {
         count += segment.kind === 'images' ? segment.generations.length : 0;
         return first;
     });
+}
+
+/**
+ * A heading after a strip opens the next group, so it takes a second block gap
+ * above it and reads as the title of the strip below rather than equidistant.
+ */
+function opensSection(segments: readonly MessageImageSegment[], index: number): boolean {
+    const segment = segments[index];
+    return (
+        segments[index - 1]?.kind === 'images' &&
+        segment?.kind === 'text' &&
+        /^\s*#{1,6}\s/u.test(segment.text)
+    );
+}
+
+/** Wraps only a section-opening segment, so every other text segment keeps its DOM. */
+function SectionGap({ children, open }: { children: React.ReactNode; open: boolean }) {
+    return open ? <div className="mt-(--chat-block-gap)">{children}</div> : children;
 }
 
 /** Text and image cards stack one block-gap apart, like the other in-chat cards. */
