@@ -6,7 +6,7 @@ import {
     runRestarts,
 } from '../../test-support/realtime-stream-harness.tsx';
 import { useAgentUpdateStream } from './use-agent-update-stream.ts';
-import { useArtifactUpdateStream } from './use-artifact-update-stream.ts';
+import { artifactListingRefreshMs, useArtifactUpdateStream } from './use-artifact-update-stream.ts';
 import { useCloudAgentSettingsStream } from './use-cloud-agent-settings-stream.ts';
 import { useComputerUpdateStream } from './use-computer-update-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
@@ -126,6 +126,31 @@ describe('Server-level stream hooks', () => {
             read('artifact.get', { serverId }),
             read('artifact.versions', { serverId }),
         ]);
+    });
+
+    test('an artifact.onUpdated burst refreshes listings once now and once after the window', async () => {
+        const harness = createRealtimeHarness();
+        function Stream() {
+            useArtifactUpdateStream(serverId);
+            return null;
+        }
+        const mounted = await harness.mount(<Stream />);
+        harness.start('artifact.onUpdated');
+        harness.ops.splice(0);
+        const listings = () =>
+            invalidated(harness.ops).filter((op) => op.path === 'artifact.list').length;
+        for (const artifactId of ['art_1', 'art_2', 'art_3', 'art_4', 'art_5']) {
+            harness.emit('artifact.onUpdated', { artifactId, serverId });
+        }
+        expect(listings()).toBe(1);
+        // Per-file reads never wait.
+        expect(invalidated(harness.ops).filter((op) => op.path === 'artifact.get')).toHaveLength(5);
+        await Bun.sleep(artifactListingRefreshMs + 50);
+        expect(listings()).toBe(2);
+        // The trailing refresh opened one more window that closes with nothing pending.
+        await Bun.sleep(artifactListingRefreshMs + 50);
+        expect(listings()).toBe(2);
+        await mounted.unmount();
     });
 
     test('server.onUpdated refreshes this Server detail and the Server list', async () => {

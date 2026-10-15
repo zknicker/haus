@@ -3,6 +3,8 @@ import { deleteArtifact } from '../src/artifacts/delete.ts';
 import { artifactThumbnailKey } from '../src/artifacts/storage.ts';
 import {
     artifactThumbnailEdge,
+    artifactThumbnailSourceMaxBytes,
+    artifactThumbnailSourceMaxPixels,
     renderArtifactThumbnail,
 } from '../src/artifacts/thumbnail-render.ts';
 import { ArtifactThumbnails } from '../src/artifacts/thumbnails.ts';
@@ -96,6 +98,40 @@ test('bytes that do not decode publish fine, mark the thumbnail failed, and read
         serverId: state.serverId,
     });
     expect(read).toEqual({ status: 'none' });
+});
+
+test('a print-size source renders and one over the pixel cap is refused', async () => {
+    // 4500×5400 (24.3M pixels) is a common print size and stays under the cap.
+    expect(await imageMetadata(await renderArtifactThumbnail(await poster(4500, 5400)))).toEqual({
+        format: 'webp',
+        height: artifactThumbnailEdge,
+        width: 853,
+    });
+    const side = Math.ceil(Math.sqrt(artifactThumbnailSourceMaxPixels)) + 1;
+    await expect(renderArtifactThumbnail(await poster(side, side))).rejects.toThrow();
+});
+
+test('a source over the byte cap is marked failed without being read or rendered', async () => {
+    const rendered: number[] = [];
+    const service = new ArtifactThumbnails(state.connection.db, storage, {
+        logFailure: () => undefined,
+        render: (source) => {
+            rendered.push(source.length);
+            return renderArtifactThumbnail(source);
+        },
+    });
+    const published = await publish({
+        body: await poster(64, 64),
+        contentType: 'image/png',
+        path: 'thumbs/huge.png',
+    });
+    await state.harness.sql`
+        update artifact_revisions set byte_size = ${artifactThumbnailSourceMaxBytes + 1}
+        where id = ${published.artifact.revision_id}
+    `;
+    expect(await service.ensure(await revisionRow(published.artifact.revision_id))).toBe(false);
+    expect(rendered).toEqual([]);
+    expect((await revisionRow(published.artifact.revision_id)).thumbnailState).toBe('failed');
 });
 
 test('non-raster files never render a thumbnail', async () => {

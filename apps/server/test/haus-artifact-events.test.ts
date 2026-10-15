@@ -63,7 +63,7 @@ test('a conflicting write publishes nothing', async () => {
     expect(events).toEqual([]);
 });
 
-test('a retention prune names each file that lost revisions', async () => {
+test('a retention prune is one broad event per Server', async () => {
     const first = await publish({ body: 'one', path: 'events/pruned.txt' });
     await publish({ base: first.artifact.revision_id, body: 'two', path: 'events/pruned.txt' });
     await state.harness.sql`
@@ -74,7 +74,7 @@ test('a retention prune names each file that lost revisions', async () => {
     events = [];
     await deleteExpiredArtifactRevisions(state.connection.db, storage, new Date());
     await delivered();
-    expect(events).toEqual([{ artifactId: first.artifact.artifact_id, serverId: state.serverId }]);
+    expect(events).toEqual([{ artifactId: null, serverId: state.serverId }]);
 });
 
 /** Topic deliveries reach the async iterator a few ticks after the write returns. */
