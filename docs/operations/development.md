@@ -378,8 +378,11 @@ preview message after showing its pending state.
 ## Shutdown
 
 From the terminal, stop the dev stack with `Ctrl+C` or `kill -TERM <dev-stack-pid>`.
-The stack forwards that signal to every directly managed child process immediately, then waits
-for each process group to exit before returning control to the shell.
+The stack forwards that signal to every directly managed child process except PostgreSQL
+immediately, then waits for each process group to exit in order (desktop, website, Computer,
+Server) before returning control to the shell. PostgreSQL gets its fast-shutdown `SIGINT` last,
+after the Server and Computer exit, so their teardown can still write; a second `Ctrl+C` signals
+everything at once.
 
 In desktop mode, quitting the app with `Cmd+Q` also lets the stack unwind. The
 desktop process exits first, then the stack signals the remaining website,

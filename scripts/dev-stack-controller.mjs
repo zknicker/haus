@@ -26,8 +26,8 @@ import {
     stripAnsi,
     waitForPort,
 } from './dev-stack-shared.mjs';
+import { signalAllProcesses, stopInShutdownOrder } from './dev-stack-shutdown-order.mjs';
 
-const shutdownProcessOrder = ['desktop', 'website', 'computer', 'haus', 'postgres'];
 const shutdownTimeoutMs = Number.parseInt(process.env.HAUS_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000', 10);
 const processGroupShutdownPollMs = 50;
 
@@ -393,12 +393,13 @@ export class DevStackController extends EventEmitter {
                 snapshot.phase = 'stopping';
             });
 
-            this.signalManagedProcesses(shutdownSignal);
-
-            for (const source of shutdownProcessOrder) {
-                await this.stopProcess(source, { signaled: true });
-            }
-
+            this.signalBackgroundProcesses(shutdownSignal);
+            await stopInShutdownOrder({
+                processes: this.processes,
+                signal: shutdownSignal,
+                signalProcess: signalChildProcessGroup,
+                stopProcess: (source) => this.stopProcess(source, { signaled: true }),
+            });
             this.emit('exit', exitCode);
         })();
 
@@ -406,9 +407,7 @@ export class DevStackController extends EventEmitter {
     }
 
     signalManagedProcesses(signal) {
-        for (const [source, child] of this.processes) {
-            signalChildProcessGroup(child, source === 'postgres' ? 'SIGINT' : signal);
-        }
+        signalAllProcesses(this.processes, signal, signalChildProcessGroup);
         this.signalBackgroundProcesses(signal);
     }
 
