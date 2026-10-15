@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import type { Tool } from '@modelcontextprotocol/client';
 import { eq } from 'drizzle-orm';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { LinearAttemptTarget } from '../src/linear/oauth-attempts.ts';
@@ -14,6 +15,8 @@ import {
     mcpConnectionsTable,
     serverMembershipsTable,
 } from '../src/postgres/schema.ts';
+import { McpInventory } from '../src/server-mcp/inventory.ts';
+import { makeServerRuntime } from '../src/server-runtime.ts';
 import { type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { acme, createFakeLinear, type FakeLinear, grant, teamDesign } from './linear-fixture.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -28,6 +31,12 @@ let fake: FakeLinear;
 let app: FastifyInstance;
 let alpha: Seed;
 let beta: Seed;
+let inventory: McpInventory;
+const effectRuntime = makeServerRuntime();
+const linearTools: Tool[] = ['list_issues', 'save_issue'].map((name) => ({
+    inputSchema: { type: 'object' },
+    name,
+}));
 const appOrigin = 'https://app.haus.test';
 const linearApp = () => ({ clientId: 'haus-client', fetch: fake.fetch, publicOrigin: appOrigin });
 
@@ -38,14 +47,22 @@ beforeAll(async () => {
     fake = createFakeLinear();
     alpha = await seedAgent(connection.db);
     beta = await seedAgent(connection.db);
+    inventory = new McpInventory(
+        connection.db,
+        async () => linearTools,
+        () => {},
+        effectRuntime
+    );
     app = Fastify();
     registerLinearOauthCallback(app, {
         appOrigin,
         db: connection.db,
         linearApp: linearApp(),
+        // Real inventory: closeConnection forgets (pauses) the id like McpRuntime does,
+        // so the callback must resume before its post-install discovery.
         mcpRuntime: {
-            closeConnection: async () => {},
-            inventory: { refresh: async () => {} },
+            closeConnection: async (id: string) => inventory.forget(id),
+            inventory,
         } as never,
     });
     await app.ready();
@@ -53,6 +70,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await app?.close();
+    await inventory?.close();
+    await effectRuntime.dispose();
     await connection?.close();
     await cluster?.stop();
 });
@@ -118,7 +137,9 @@ test('an Owner binds a new workspace once; a replayed state binds nothing', asyn
         connected: true,
         name: 'Acme',
         preset: 'linear',
+        tools: ['list_issues', 'save_issue'],
     });
+    expect(inventory.read(workspace?.connectionId ?? '')).toEqual(linearTools);
     const teams = await connection.db.select().from(linearTeamAccessTable);
     expect(teams.map((team) => team.teamId)).toEqual([teamDesign.id]);
     expect((await callback(attempt.state, 'code-alpha')).status).toBe(400);

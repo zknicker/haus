@@ -159,6 +159,8 @@ async function refreshInventory(
 ) {
     try {
         await runtime.closeConnection(connectionId);
+        // closeConnection pauses inventory for the id; refresh is a no-op until resumed.
+        runtime.inventory.resume(connectionId);
         await runtime.inventory.refresh(connectionId);
     } catch (cause) {
         // The periodic inventory retries; the binding already committed.
