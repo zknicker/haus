@@ -3,6 +3,7 @@ import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import type { FastifyInstance } from 'fastify';
 import { registerAgentArtifactRoutes } from './agent-api/artifact-routes.ts';
 import { registerAgentApiRoutes } from './agent-api/routes.ts';
+import { registerArtifactPublicRoutes } from './artifacts/public-route.ts';
 import { registerArtifactPublishRoute } from './artifacts/publish-route.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
@@ -65,6 +66,11 @@ export async function registerHausServerRoutes(
         appOrigin: dependencies.appOrigin,
         budget: dependencies.artifactStorageBytes,
         clerkSessions: dependencies.clerkSessions,
+        db,
+        storage: dependencies.artifactStorage,
+        thumbnails: dependencies.artifactThumbnails,
+    });
+    registerArtifactPublicRoutes(app, {
         db,
         storage: dependencies.artifactStorage,
         thumbnails: dependencies.artifactThumbnails,

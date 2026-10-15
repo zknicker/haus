@@ -7,8 +7,11 @@ import { getArtifactProcedure } from './get.ts';
 import { listArtifactProcedure } from './list.ts';
 import { moveArtifactProcedure } from './move.ts';
 import { onArtifactUpdatedProcedure } from './on-updated.ts';
+import { publicLinkArtifactProcedure } from './public-link.ts';
+import { shareArtifactProcedure } from './share.ts';
 import { textArtifactProcedure } from './text.ts';
 import { thumbnailArtifactProcedure } from './thumbnail.ts';
+import { unshareArtifactProcedure } from './unshare.ts';
 import { versionsArtifactProcedure } from './versions.ts';
 export const artifactRouter = createRouter({
     list: listArtifactProcedure,
@@ -21,5 +24,8 @@ export const artifactRouter = createRouter({
     move: moveArtifactProcedure,
     delete: deleteArtifactProcedure,
     deleteVersion: deleteVersionArtifactProcedure,
+    publicLink: publicLinkArtifactProcedure,
+    share: shareArtifactProcedure,
+    unshare: unshareArtifactProcedure,
     onUpdated: onArtifactUpdatedProcedure,
 });

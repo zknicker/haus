@@ -9,6 +9,8 @@ export interface ArtifactStorage {
     downloadUrl(key: string, saveAs?: string): string;
     /** At most the first `maxBytes` bytes of an object (one ranged GET). */
     read(key: string, maxBytes: number): Promise<Uint8Array>;
+    /** The whole object as a stream, for public links; a missing object errors the stream. */
+    stream(key: string): ReadableStream<Uint8Array>;
     upload(
         key: string,
         stream: AsyncIterable<Uint8Array>,
@@ -52,6 +54,7 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
                 method: 'GET',
             }),
         read: async (key, maxBytes) => await client.file(key).slice(0, maxBytes).bytes(),
+        stream: (key) => client.file(key).stream(),
         upload: async (key, stream, contentType) => {
             const hash = createHash('sha256');
             let size = 0;

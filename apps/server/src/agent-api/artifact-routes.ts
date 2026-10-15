@@ -12,6 +12,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { registerAgentArtifactActions } from './artifact-actions.ts';
 import { registerAgentArtifactDriveRoutes } from './artifact-drive-routes.ts';
 import { sendArtifactError } from './artifact-errors.ts';
+import { registerAgentArtifactPublicLinkRoutes } from './artifact-public-link-routes.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 
 export function registerAgentArtifactRoutes(
@@ -26,6 +27,7 @@ export function registerAgentArtifactRoutes(
 ) {
     registerAgentArtifactActions(app, options);
     registerAgentArtifactDriveRoutes(app, options);
+    registerAgentArtifactPublicLinkRoutes(app, options);
     for (const path of [
         '/api/agent/artifacts/publish-artifact-raw',
         '/api/agent/actions/publish-artifact-raw',

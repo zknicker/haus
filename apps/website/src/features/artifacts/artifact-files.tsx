@@ -29,7 +29,7 @@ export function ArtifactFiles({
     artifacts: readonly ArtifactMetadata[];
     folder: string;
     layout: ArtifactLibraryLayout;
-    library: Pick<ArtifactLibrary, 'hasMore' | 'isFetchingMore' | 'loadMore'>;
+    library: Pick<ArtifactLibrary, 'hasMore' | 'isFetchingMore' | 'loadMore' | 'publicLinks'>;
     serverId: string;
     slug: string;
 }) {
@@ -50,6 +50,7 @@ export function ArtifactFiles({
         ]
             .filter(Boolean)
             .join(' · '),
+        publicLink: library.publicLinks[artifact.artifact_id] ?? null,
     });
 
     return (

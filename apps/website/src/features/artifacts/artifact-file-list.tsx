@@ -1,7 +1,8 @@
-import type { ArtifactMetadata } from '@haus/api';
+import type { ArtifactMetadata, ArtifactPublicLink } from '@haus/api';
 import { ListView } from '@heroui-pro/react';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { formatArtifactBytes } from './artifact-format.ts';
+import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { ArtifactThumbnail } from './artifact-thumbnail.tsx';
 
@@ -9,6 +10,8 @@ export interface ArtifactRow {
     artifact: ArtifactMetadata;
     /** "[<title> · ][<folder> · ]<kind> · <creator> · <time>", resolved by the caller. */
     meta: string;
+    /** The file's public link, from its library page. */
+    publicLink: ArtifactPublicLink | null;
 }
 
 /**
@@ -39,7 +42,7 @@ export function ArtifactFileList({
             }}
             variant="secondary"
         >
-            {({ artifact, meta }) => (
+            {({ artifact, meta, publicLink }) => (
                 <ListView.Item
                     {...opensPlace}
                     className="artifact-file-trigger"
@@ -55,12 +58,14 @@ export function ArtifactFileList({
                     </ListView.ItemContent>
                     <ListView.ItemAction>
                         <div className="flex items-center gap-3">
+                            {publicLink ? <PublicLinkMark /> : null}
                             <span className="@md:inline hidden text-muted text-sm tabular-nums">
                                 {formatArtifactBytes(artifact.size_bytes)}
                             </span>
                             <ArtifactRowMenu
                                 artifact={artifact}
                                 onOpen={() => onOpen(artifact)}
+                                publicLink={publicLink}
                                 serverId={serverId}
                             />
                         </div>

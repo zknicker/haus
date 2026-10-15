@@ -39,6 +39,10 @@ Push is checked against what you pulled. If someone changed a file since then, p
 
 Push prints each file's stable_url. In a message, Haus renders a link to a file in its own Server's Files as a chip and preview tile. A link ending in \`/artifacts/<id>\` names that file: \`haus files view <id>\` reads it (view also takes the whole link or a path in Files) through a read-only cached path pinned for this turn; never edit it. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value), or pull the file to work on it. \`versions <id-or-path>\` lists retained revisions.
 
+## Public links
+
+Stable links open only for Server members. For people or tools outside Haus, such as a Linear issue, \`haus files share <id-or-path>\` prints a public url: anyone with it sees the file's current version, and images embed inline (append \`/thumbnail\` for a small preview of a large image). Share only when asked or when the destination is outside Haus, since the file becomes visible to anyone with the url. \`--disable\` turns it off; you can disable links you created, and Owners and Admins any.
+
 ## Deletion
 
 \`haus files delete <id-or-path>\` removes a file; \`--revision-id <id>\` removes a historical revision. Haus allows deletion only by the creator or a human Server Owner or Admin; treat deleting anything you did not create as a human decision.`,

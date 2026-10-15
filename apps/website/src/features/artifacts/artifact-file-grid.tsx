@@ -3,6 +3,7 @@ import { Card } from '@heroui/react';
 import { GridList, GridListItem } from 'react-aria-components';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import type { ArtifactRow } from './artifact-file-list.tsx';
+import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { ArtifactCover } from './artifact-thumbnail.tsx';
 
@@ -31,7 +32,7 @@ export function ArtifactFileGrid({
                 }
             }}
         >
-            {({ artifact, meta }) => (
+            {({ artifact, meta, publicLink }) => (
                 <GridListItem
                     {...opensPlace}
                     className="artifact-file-tile artifact-file-trigger"
@@ -46,12 +47,14 @@ export function ArtifactFileGrid({
                             <span className="artifact-tile__text">
                                 <span className="artifact-tile__title">
                                     <span className="truncate">{artifact.filename}</span>
+                                    {publicLink ? <PublicLinkMark /> : null}
                                 </span>
                                 <span className="artifact-tile__meta">{meta}</span>
                             </span>
                             <ArtifactRowMenu
                                 artifact={artifact}
                                 onOpen={() => onOpen(artifact)}
+                                publicLink={publicLink}
                                 serverId={serverId}
                             />
                         </span>

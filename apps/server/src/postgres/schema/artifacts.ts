@@ -29,6 +29,11 @@ export const artifactsTable = pgTable(
         path: text('path').notNull(),
         /** `artifactPathKey(path)`: the case- and normalization-folded uniqueness key. */
         pathKey: text('path_key').notNull(),
+        /** Public link (specs/artifact-public-links.md): all four columns are null together. */
+        publicLinkCreatedAt: timestamp('public_link_created_at', { withTimezone: true }),
+        publicLinkCreatorAgentId: text('public_link_creator_agent_id'),
+        publicLinkCreatorUserId: text('public_link_creator_user_id'),
+        publicToken: text('public_token'),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -44,6 +49,13 @@ export const artifactsTable = pgTable(
         check(
             'artifacts_creator_shape',
             sql`num_nonnulls(${table.creatorAgentId}, ${table.creatorUserId}) = 1`
+        ),
+        uniqueIndex('artifacts_public_token_key')
+            .on(table.publicToken)
+            .where(sql`${table.publicToken} is not null`),
+        check(
+            'artifacts_public_link_shape',
+            sql`(${table.publicToken} is null and ${table.publicLinkCreatedAt} is null and num_nonnulls(${table.publicLinkCreatorAgentId}, ${table.publicLinkCreatorUserId}) = 0) or (${table.publicToken} is not null and ${table.publicLinkCreatedAt} is not null and num_nonnulls(${table.publicLinkCreatorAgentId}, ${table.publicLinkCreatorUserId}) = 1)`
         ),
         foreignKey({
             columns: [table.serverId, table.creatorAgentId],

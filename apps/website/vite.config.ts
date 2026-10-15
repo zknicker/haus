@@ -46,6 +46,10 @@ export default defineConfig(({ command }) => ({
             '/api/haus-release': {
                 target: hausServerOrigin,
             },
+            // Files public links (specs/artifact-public-links.md) are Server routes.
+            '^/f/': {
+                target: serverOrigin,
+            },
             '/healthz': {
                 target: serverOrigin,
             },
