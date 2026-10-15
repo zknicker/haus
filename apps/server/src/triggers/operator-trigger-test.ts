@@ -1,9 +1,12 @@
-import type { GithubTrigger } from '@haus/api';
+import type { GithubTrigger, LinearTrigger } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { projectGithubDelivery } from '../github/event-projection/project.ts';
 import { sampleGithubPayload } from '../github/event-projection/sample.ts';
 import { githubEnvelopeLines } from '../github/trigger-envelope.ts';
+import { serializeLinearProjection } from '../linear/event-projection/project.ts';
+import { sampleLinearProjection } from '../linear/event-projection/sample.ts';
+import { linearEnvelopeLines } from '../linear/trigger-envelope.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -66,13 +69,15 @@ export async function testOperatorTrigger(
             dedupeKey: null,
             ...(trigger.kind === 'github'
                 ? githubTestFire(trigger)
-                : {
-                      payload: JSON.stringify({
-                          test: true,
-                          sentBy: handle ?? operator.id,
-                          sentAt: clock.now().toISOString(),
-                      }),
-                  }),
+                : trigger.kind === 'linear'
+                  ? linearTestFire(trigger)
+                  : {
+                        payload: JSON.stringify({
+                            test: true,
+                            sentBy: handle ?? operator.id,
+                            sentAt: clock.now().toISOString(),
+                        }),
+                    }),
             trigger: {
                 id: trigger.id,
                 serverId: input.serverId,
@@ -93,6 +98,15 @@ export async function testOperatorTrigger(
         );
     }
     return { fireId: outcome.fireId };
+}
+
+/** A `linear` test fire: a sample projection of the first group, `delivery=test`. */
+function linearTestFire(trigger: LinearTrigger) {
+    const projection = sampleLinearProjection(trigger.linear);
+    return {
+        linear: linearEnvelopeLines({ deliveryId: 'test', projection }),
+        payload: serializeLinearProjection(projection),
+    };
 }
 
 /**

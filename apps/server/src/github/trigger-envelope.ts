@@ -1,4 +1,5 @@
 import type { GithubTriggerEventName } from '@haus/api';
+import type { TriggerSourceLines } from '../triggers/trigger-envelope.ts';
 import { count, field, type Payload, text } from './event-projection/payload.ts';
 
 // The Server-built lines a `github` fire adds to the `type=trigger` envelope
@@ -9,21 +10,11 @@ import { count, field, type Payload, text } from './event-projection/payload.ts'
 const summaryMaxChars = 200;
 const separator = ' · ';
 
-/** What `triggerEnvelope` adds for a `github` fire. */
-export interface GithubEnvelopeLines {
-    /** `delivery=<guid>` provenance segment value. */
-    delivery: string;
-    /** `github-event=<event>.<action>` provenance segment value. */
-    eventAction: string;
-    /** The `GitHub:` line, without its label. */
-    summary: string;
-}
-
 export function githubEnvelopeLines(input: {
     deliveryGuid: string;
     event: GithubTriggerEventName;
     payload: Payload;
-}): GithubEnvelopeLines {
+}): TriggerSourceLines {
     const action = enumerated(text(input.payload, 'action'));
     return {
         delivery: input.deliveryGuid.replace(/[^A-Za-z0-9-]/gu, '').slice(0, 64),

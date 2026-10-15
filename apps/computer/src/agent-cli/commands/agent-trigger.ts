@@ -11,13 +11,14 @@ import {
     runTriggerStatus,
 } from './agent-trigger-actions.ts';
 import { runTriggerPreview, runTriggerUpdate } from './agent-trigger-edit.ts';
-import { GITHUB_CREATE_FLAGS } from './agent-trigger-flags.ts';
+import { GITHUB_CREATE_FLAGS, LINEAR_CREATE_FLAGS } from './agent-trigger-flags.ts';
 
 export * from './agent-trigger-actions.ts';
 
 // Family 9 — Triggers (ADR 0027, ADR 0045). Agent-owned wakes anchored to a
-// message: an outside system POSTs to a private URL (webhook) or a GitHub App
-// delivery matches (github). Never scheduled — time-based work stays with reminders.
+// message: an outside system POSTs to a private URL (webhook), a GitHub App
+// delivery matches (github), or a Linear data change matches (linear). Never
+// scheduled — time-based work stays with reminders.
 
 const idFlag = {
     description: 'Trigger id from haus trigger list',
@@ -29,12 +30,13 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'update',
         summary: 'Edit your trigger without replacing its anchor or history',
-        usage: 'haus trigger update --id <id> [--title <text>] [--instruction <text>] [(--repo <owner/name> | --org <login>) (--event <name> | --events-json <json>) [filters]]',
+        usage: 'haus trigger update --id <id> [--title <text>] [--instruction <text>] [github or linear configuration flags]',
         examples: [
             'haus trigger update --id trg_123 --org acme --event workflow_run --branch @default --exclude-repo acme/archived-* --conclusion failure',
+            'haus trigger update --id trg_456 --event issue --action update --state-to "Changes Requested" --delegate @self',
         ],
         notes: [
-            'GitHub filters replace the entire GitHub configuration. Include --org or --repo and all desired groups.',
+            'Configuration flags replace the trigger’s entire GitHub or Linear configuration. Include the GitHub scope (--org/--repo) and all desired groups; a Linear trigger keeps its workspace unless --workspace names another.',
             'An empty --instruction clears it. Omitted fields stay unchanged.',
         ],
         flags: [
@@ -46,20 +48,26 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<text>',
             },
             ...GITHUB_CREATE_FLAGS,
+            ...LINEAR_CREATE_FLAGS,
         ],
         positionals: [],
         run: (args) => runTriggerUpdate(args, defaultTriggerDeps()),
     },
     {
         name: 'preview',
-        summary: 'Check a webhook payload against your GitHub trigger without firing it',
-        usage: 'haus trigger preview --id <id> --event <name> --payload-file <path>',
+        summary: 'Check a webhook payload against your GitHub or Linear trigger without firing it',
+        usage: 'haus trigger preview --id <id> [--event <name>] --payload-file <path>',
         examples: [
             'haus trigger preview --id trg_123 --event workflow_run --payload-file delivery.json',
+            'haus trigger preview --id trg_456 --payload-file linear-issue-update.json',
         ],
         flags: [
             idFlag,
-            { name: '--event', description: 'GitHub webhook event name', valueName: '<name>' },
+            {
+                name: '--event',
+                description: 'GitHub webhook event name; omit for Linear',
+                valueName: '<name>',
+            },
             {
                 name: '--payload-file',
                 description: 'Raw webhook JSON object, under 60,000 bytes',
@@ -67,7 +75,8 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
             },
         ],
         notes: [
-            'Reports repository scope and each match group. Does not check runtime readiness or record a fire.',
+            'GitHub reports repository scope and each match group. Linear reports the matching group indexes and a reason such as own_change or no_group_matched.',
+            'Does not check runtime readiness or record a fire.',
         ],
         positionals: [],
         run: (args) => runTriggerPreview(args, defaultTriggerDeps()),
@@ -78,6 +87,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
             'haus trigger create --title "sentry alert" --message-id 1a2b3c4d --instruction "Summarize the error in this thread and open a task when it is new."',
             'haus trigger create --kind github --title "CI failed on main" --message-id 1a2b3c4d --repo acme/api --event workflow_run --conclusion failure --branch main',
             'haus trigger create --kind github --title "new PRs" --message-id 1a2b3c4d --org acme --event pull_request --action opened --action ready_for_review',
+            'haus trigger create --kind linear --title "Design needs changes" --message-id 1a2b3c4d --workspace acme --event issue --action update --state-to "Changes Requested" --delegate @self',
         ],
         notes: [
             'A webhook prints its URL and secret once. Never post the secret in any chat.',
@@ -95,6 +105,13 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
             '--actor filters sender.login; --workflow-event filters workflow_run.event (e.g. push). --match-repo filters full owner/name within the authorized scope.',
             '--events-json replaces event/filter flags with up to 10 OR groups, including repeated event names. Keys are camelCase fields (conclusions, branchesIgnore, repositoriesIgnore, ...); an unknown key fails with the keys its event takes:',
             '  [{"event":"workflow_run","conclusions":["failure"],"branches":["main"]},{"event":"push","branchesIgnore":["release/**"]}]',
+            'A linear Trigger has no URL or secret. --workspace takes the url key (Linear whoami shows it); omit it when you have one workspace. Your own Linear changes do not wake you.',
+            '  Events (actions, default first): issue (create, update, remove), comment (create, update), project (update, create)',
+            '  Every event: --team, --project, --label, --exclude-label, --delegate, --assignee, --actor, --exclude-actor',
+            '  issue: --changed (state, labels, assignee, delegate, priority, ...), --state-from, --state-to, --state-type   project: --changed',
+            '  Agents are @self or @agent:<handle>. A label change is --event issue --changed labels.',
+            '  Flags build one group; --groups-json takes up to 10 OR groups with keys actions, teams, projects, labels, labelsIgnore, delegates, assignees, actors, actorsIgnore, changed, stateFrom, stateTo, stateTypes (issue), onIssueDelegatedTo (comment), projectStatuses (project).',
+            '  Design review: --event issue --action update --state-from "Design Review" --state-to "Changes Requested" --delegate @self',
         ],
         flags: [
             {
@@ -113,17 +130,19 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<text>',
             },
             {
-                description: 'webhook (default) or github',
+                description: 'webhook (default), github, or linear',
                 name: '--kind',
                 valueName: '<kind>',
             },
             ...GITHUB_CREATE_FLAGS,
+            ...LINEAR_CREATE_FLAGS,
         ],
         name: 'create',
         positionals: [],
         run: (args) => runTriggerCreate(args, defaultTriggerDeps()),
-        summary: 'Create a webhook or GitHub Trigger that wakes you when an outside event happens',
-        usage: 'haus trigger create --title <text> --message-id <id> [--instruction <text>] [--kind github (--repo <owner/name>... | --org <login>) --event <name>... [filters]]',
+        summary:
+            'Create a webhook, GitHub, or Linear Trigger that wakes you when an outside event happens',
+        usage: 'haus trigger create --title <text> --message-id <id> [--instruction <text>] [--kind github (--repo <owner/name>... | --org <login>) --event <name>... [filters] | --kind linear [--workspace <urlKey>] (--event <name> [filters] | --groups-json <json>)]',
     },
     {
         examples: ['haus trigger list'],
@@ -131,7 +150,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         name: 'list',
         positionals: [],
         run: (args) => runTriggerList(args, defaultTriggerDeps()),
-        summary: 'List your triggers with their URLs or GitHub scope, events, and problems',
+        summary: 'List your triggers with their URLs, GitHub scope, or Linear groups, and problems',
         usage: 'haus trigger list',
     },
     {

@@ -1,14 +1,11 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { clearMcpIdentity } from '../src/server-mcp/connection-identity.ts';
 import { cacheAnonymousMcpIcons } from '../src/server-mcp/icon-cache.ts';
 import { createMcpPresetAccount, resolveMcpPresetIcons } from '../src/server-mcp/presets.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
-import {
-    clearMcpIdentity,
-    disconnectMcpConnection,
-    refreshMcpConnection,
-} from '../src/server-mcp/service.ts';
+import { disconnectMcpConnection, refreshMcpConnection } from '../src/server-mcp/service.ts';
 import { listMcpConnections } from '../src/server-mcp/state.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';

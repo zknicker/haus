@@ -934,6 +934,39 @@
         "timer": 0
       }
     },
+    "apps/server/src/hosted-mcp/verify-linear-package.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Finite Linear packaging verification closes its MCP client, owned Effect scope, runtime and temporary fixture storage before returning.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 4,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/server/src/linear/poller.ts": {
+      "disposition": "external-adapter",
+      "reason": "Linear's delivery and outbox worker loop keeps a fixed interval plus post-commit kicks. Server acquires both workers in its Effect Scope; close stops admission and joins the batch in flight before database teardown.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
+      }
+    },
+    "apps/server/src/linear/thumbnail-route.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One bounded Linear asset fetch per request under a fixed timeout signal; a failed fetch maps to a 502 answer, and nothing outlives the request.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/server/src/server-mcp/service.ts": {
       "disposition": "finite-cleanup",
       "reason": "A finite diagnostic refresh resumes background inventory reconciliation on both success and failure; MCP runtime scopes own recurring discovery and client retirement.",

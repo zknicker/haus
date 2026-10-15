@@ -96,6 +96,15 @@ const envSchema = z
         HAUS_GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(),
         HAUS_GITHUB_APP_SLUG: z.string().min(1).optional(),
         HAUS_GITHUB_APP_WEBHOOK_SECRET: z.string().min(32).optional(),
+        // The Haus Linear app (specs/linear-app.md#environment). Each is
+        // optional: without them Linear reports unavailable.
+        // Development and evals only: a loopback fake Linear (linear-api-origin.ts).
+        HAUS_LINEAR_API_ORIGIN: z.string().url().optional(),
+        HAUS_LINEAR_APP_CLIENT_ID: z.string().min(1).optional(),
+        HAUS_LINEAR_APP_WEBHOOK_SECRET: z.string().min(1).optional(),
+        HAUS_LINEAR_APP_WEBHOOK_SECRET_PREVIOUS: z.string().min(1).optional(),
+        HAUS_LINEAR_PUBLIC_ORIGIN: z.string().url().optional(),
+        HAUS_LINEAR_URL_SIGNING_KEY: z.string().min(32).optional(),
         HAUS_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
         HAUS_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultHausServerPort()),
         HAUS_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),

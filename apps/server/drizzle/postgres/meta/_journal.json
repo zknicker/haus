@@ -659,6 +659,27 @@
       "when": 1792083398838,
       "tag": "0093_artifact-image-facts",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1792089481422,
+      "tag": "0094_linear-app",
+      "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1792089482422,
+      "tag": "0095_linear-ingest-outbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1792089483422,
+      "tag": "0096_linear-identity-hand-back",
+      "breakpoints": true
     }
   ]
 }

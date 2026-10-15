@@ -1,5 +1,4 @@
 import { triggerResultSchema, triggerSetStatusInputSchema } from '@haus/api';
-import { problemWakes } from '../../github/trigger-problems.ts';
 import { setOperatorTriggerStatus } from '../../triggers/operator-triggers.ts';
 import { triggerClock, triggerProcedure } from './procedure.ts';
 
@@ -15,9 +14,10 @@ export const setTriggerStatusProcedure = triggerProcedure
             triggerClock
         );
         if (entered.length > 0) {
+            const owners = new Set(entered.map((notice) => notice.ownerAgentId));
             void ctx.postCommitWork.wakeAgents(
                 ctx.agentDelivery,
-                problemWakes(input.serverId, entered)
+                [...owners].map((agentId) => ({ agentId, serverId: input.serverId }))
             );
         }
         return { trigger };

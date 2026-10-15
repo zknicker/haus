@@ -1,10 +1,13 @@
 import { TRPCError } from '@trpc/server';
+import { linearAuthoring } from '../../triggers/linear-trigger-config.ts';
+import type { TriggerAuthoringServices } from '../../triggers/operator-triggers.ts';
 import {
     TriggerAccessDeniedError,
     TriggerNotFoundError,
     TriggerRefusedError,
     TriggerRequestRefusedError,
 } from '../../triggers/trigger-model.ts';
+import type { HausContext } from '../context.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 /**
@@ -36,3 +39,13 @@ export const triggerProcedure = memberProcedure.use(async ({ next }) => {
 });
 
 export const triggerClock = { now: () => new Date() };
+
+/** The GitHub transport and Linear reads `github` and `linear` authoring use. */
+export function triggerAuthoring(
+    ctx: Pick<HausContext, 'githubApp' | 'hausDb' | 'linear'>
+): TriggerAuthoringServices {
+    return {
+        githubTransport: ctx.githubApp?.transport ?? {},
+        linear: linearAuthoring(ctx.hausDb, ctx.linear),
+    };
+}

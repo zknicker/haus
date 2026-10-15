@@ -2,7 +2,7 @@ import { seedArtifactLibrary } from '../support/artifacts.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('Files selects on click, opens on double click or Return, and walks its own history', async ({
+test('Files selects on click, opens on double click or Return, and Back walks the tab history', async ({
     page,
 }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -22,7 +22,8 @@ test('Files selects on click, opens on double click or Return, and walks its own
     const folders = page.getByRole('listbox', { name: 'Folders' });
     const back = page.getByRole('button', { name: 'Back', exact: true });
     const forward = page.getByRole('button', { name: 'Forward', exact: true });
-    await expect(back).toBeDisabled();
+    // Back is the shell's: it steps to the Server page before Files, not just folders.
+    await expect(back).toBeEnabled();
     await expect(forward).toBeDisabled();
 
     // A click selects a folder without opening it; Return opens the selection.
@@ -47,16 +48,16 @@ test('Files selects on click, opens on double click or Return, and walks its own
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts%2Fa%2Fb%2Fc$/u);
 
     // Every ancestor is a link; the middle of a deep trail folds into a menu; the open folder is not.
-    const trail = page.getByRole('navigation', { name: 'Folder path' });
+    const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(trail.locator('a[href]')).toHaveText(['Haus', 'Files', 'b']);
     await expect(trail.getByText('c', { exact: true })).toHaveAttribute('aria-current', 'page');
-    await trail.getByRole('button', { name: 'Show enclosing folders' }).click();
-    const enclosing = page.getByRole('menu', { name: 'Enclosing folders' });
+    await trail.getByRole('button', { name: 'Show enclosing places' }).click();
+    const enclosing = page.getByRole('menu', { name: 'Enclosing places' });
     await expect(enclosing.getByRole('menuitem')).toHaveText(['starter-kit', 'scripts', 'a']);
     await enclosing.getByRole('menuitem', { name: 'scripts' }).click();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
 
-    // Back and Forward walk the folder history and agree with the browser's.
+    // Back and Forward walk the history and agree with the browser's.
     await back.click();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts%2Fa%2Fb%2Fc$/u);
     await forward.click();

@@ -4,7 +4,6 @@ import { tracePromise } from '@haus/effect';
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { ChatArchivedError, ChatNotFoundError, requireChatWritable } from '../chats/chat-access.ts';
-import type { GithubEnvelopeLines } from '../github/trigger-envelope.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
@@ -16,7 +15,7 @@ import {
 } from '../reminders/reminder-model.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { triggerEnvelope } from './trigger-envelope.ts';
+import { type TriggerSourceLines, triggerEnvelope } from './trigger-envelope.ts';
 import { hashTriggerSecret, type TriggerClock } from './trigger-model.ts';
 
 /** One trigger the caller has already proven the bearer secret for. */
@@ -31,7 +30,9 @@ export interface TriggerFireRequest {
     /** The caller's `Idempotency-Key`, or null when it sent none. */
     dedupeKey: string | null;
     /** A `github` fire's summary line and provenance segments. */
-    github?: GithubEnvelopeLines;
+    github?: TriggerSourceLines;
+    /** A `linear` fire's summary line and provenance segments. */
+    linear?: TriggerSourceLines;
     payload: string;
     trigger: AuthenticatedTrigger;
 }
@@ -193,6 +194,7 @@ export async function recordTriggerFire(
             fireId,
             github: request.github,
             instruction: locked.instruction,
+            linear: request.linear,
             payload: request.payload,
             payloadBytes,
             title: locked.title,

@@ -9,9 +9,9 @@ import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { settingsConnectionRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
+import { BuiltInConnectionSections } from '../connections/built-in/built-in-connection-sections.tsx';
 import { ConnectionDetailHeader } from './connection-detail-header.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
-import { GithubInstallationsSection } from './github-installations-section.tsx';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
 import { McpAccountSection } from './mcp-connection-account.tsx';
 import {
@@ -106,12 +106,26 @@ export function ConnectionPage({
                     saving={saving}
                     usesToken={tokenPreset !== null}
                 />
-                <GithubInstallationsSection connection={connection} serverId={serverId} />
+                <BuiltInConnectionSections
+                    connection={connection}
+                    placement="after-account"
+                    serverId={serverId}
+                />
                 <McpAgentAccessSection connection={connection} serverId={serverId} />
+                <BuiltInConnectionSections
+                    connection={connection}
+                    placement="after-agent-access"
+                    serverId={serverId}
+                />
                 <McpToolsSection
                     connection={connection}
                     pending={signIn.connecting}
                     tools={record.tools}
+                />
+                <BuiltInConnectionSections
+                    connection={connection}
+                    placement="after-tools"
+                    serverId={serverId}
                 />
                 <McpConnectionFacts connection={connection} usesToken={tokenPreset !== null} />
             </div>

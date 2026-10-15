@@ -6,7 +6,7 @@ import { Effect, type Scope } from 'effect';
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
 import type { HostedMcpAccess } from '../hosted-mcp/supervisor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { mcpConnectionsTable, mcpSecretsTable } from '../postgres/schema.ts';
+import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { resolveAccountLabel } from './account-label.ts';
 import {
     authorizeToolConnection,
@@ -15,11 +15,20 @@ import {
     readGrantedConnections,
     toolNotOffered,
 } from './agent-access.ts';
+import { connectionSearchText } from './catalog-response.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { createConnectionClient } from './connection-client.ts';
+import { type McpSecret, readMcpSecret, writeMcpSecret } from './connection-secret.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { McpInventory } from './inventory.ts';
-import { callMcpTool, listAllTools, modelToolName } from './tool-catalog.ts';
+import {
+    callMcpTool,
+    callModelTool,
+    findModelTool,
+    listAllTools,
+    type McpToolCallTransport,
+    modelToolName,
+} from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
 import { classifyMcpUpstreamError } from './upstream-failure.ts';
 import { runMcpUpstream } from './upstream-operation.ts';
@@ -28,24 +37,15 @@ const DEFAULT_DISCOVERY_TIMEOUT_MS = 5000;
 const DEFAULT_INVOCATION_TIMEOUT_MS = 30_000;
 const DEFAULT_CLOSE_TIMEOUT_MS = 5000;
 
-export interface McpSecret {
-    approvedAuthorizationServerOrigins: string[];
-    clientInformation?: Record<string, unknown>;
-    clientInformationIssuer?: string;
-    configuredClientInformation?: Record<string, unknown>;
-    discoveryState?: Record<string, unknown>;
-    headers: Record<string, string>;
-    oauthScopes: string[];
-    oauthState?: string;
-    redirectUrl?: string;
-    tokens?: Record<string, unknown>;
-    verifier?: string;
-}
 export interface McpToolDefinition {
     description: string;
     inputSchema: Record<string, unknown>;
     name: string;
     title: string | null;
+}
+/** A catalog tool plus Server-only search text naming its connection and service. */
+export interface McpCatalogTool extends McpToolDefinition {
+    searchText: string;
 }
 interface McpRuntimeOptions {
     clientFactory?: ClientFactory;
@@ -54,10 +54,13 @@ interface McpRuntimeOptions {
     hostedMcps?: HostedMcpAccess;
     inventoryIntervalMs?: number;
     invocationTimeoutMs?: number;
+    /** Per-call `_meta` and retry for built-in connections served by a stateless connector. */
+    toolCallTransports?: ReadonlyMap<McpPreset | null, McpToolCallTransport>;
 }
 export class McpRuntime {
     readonly inventory: McpInventory;
     readonly hostedMcps: HostedMcpAccess | undefined;
+    private readonly toolCallTransports: ReadonlyMap<McpPreset | null, McpToolCallTransport>;
     private readonly clients: McpClientCache;
     private readonly closeTimeoutMs: number;
     private readonly discoveryTimeoutMs: number;
@@ -68,6 +71,7 @@ export class McpRuntime {
         options: McpRuntimeOptions = {}
     ) {
         this.hostedMcps = options.hostedMcps;
+        this.toolCallTransports = options.toolCallTransports ?? new Map();
         this.closeTimeoutMs = options.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
         this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
         this.invocationTimeoutMs = options.invocationTimeoutMs ?? DEFAULT_INVOCATION_TIMEOUT_MS;
@@ -110,7 +114,7 @@ export class McpRuntime {
         agentId: string,
         _traceContext?: TraceCarrier,
         signal?: AbortSignal
-    ): Promise<McpToolDefinition[]> {
+    ): Promise<McpCatalogTool[]> {
         signal?.throwIfAborted();
         const scope = { serverId, agentId };
         const connections = await readGrantedConnections(this.db, scope);
@@ -119,10 +123,12 @@ export class McpRuntime {
                 if (!(await hasConnectionGrant(this.db, scope, connection.id))) {
                     return [];
                 }
+                const searchText = connectionSearchText(connection);
                 return this.inventory.read(connection.id).map((tool) => ({
                     description: `${connection.name}: ${tool.description ?? `Run ${tool.name}.`}`,
                     inputSchema: tool.inputSchema,
                     name: modelToolName(connection.id, tool.name),
+                    searchText,
                     title: tool.annotations?.title ?? null,
                 }));
             })
@@ -132,6 +138,7 @@ export class McpRuntime {
     async invoke(input: {
         agentId: string;
         args: unknown;
+        requestId?: string;
         serverId: string;
         toolName: string;
         traceContext?: TraceCarrier;
@@ -140,29 +147,16 @@ export class McpRuntime {
         const args = asMcpArguments(input.args);
         const scope = { serverId: input.serverId, agentId: input.agentId };
         const connection = await authorizeToolConnection(this.db, scope, input.toolName);
+        const transport =
+            this.toolCallTransports.size > 0
+                ? this.toolCallTransports.get((await this.readConnection(connection.id)).preset)
+                : undefined;
         const outcome = await this.runUpstream(
             connection.id,
             'invocation',
             async (client, signal) => {
-                let tools = await listAllTools(client, {
-                    signal,
-                    timeout: this.invocationTimeoutMs,
-                });
-                let tool = tools.find(
-                    (item) => modelToolName(connection.id, item.name) === input.toolName
-                );
-                if (!tool) {
-                    tools = (
-                        await client.listTools(undefined, {
-                            signal,
-                            timeout: this.invocationTimeoutMs,
-                            cacheMode: 'refresh',
-                        })
-                    ).tools;
-                    tool = tools.find(
-                        (item) => modelToolName(connection.id, item.name) === input.toolName
-                    );
-                }
+                const options = { signal, timeout: this.invocationTimeoutMs };
+                const tool = await findModelTool(client, connection.id, input.toolName, options);
                 if (!tool) {
                     return { kind: 'absent' } as const;
                 }
@@ -170,14 +164,17 @@ export class McpRuntime {
                     return { kind: 'revoked' } as const;
                 }
                 signal.throwIfAborted();
+                const call = {
+                    ...scope,
+                    arguments: args,
+                    connectionId: connection.id,
+                    deadlineMs: this.invocationTimeoutMs,
+                    requestId: input.requestId,
+                    toolName: tool.name,
+                };
                 return {
                     kind: 'called',
-                    result: await callMcpTool(client, {
-                        arguments: args,
-                        name: tool.name,
-                        definition: tool,
-                        options: { signal, timeout: this.invocationTimeoutMs },
-                    }),
+                    result: await callModelTool(client, tool, call, options, transport),
                 } as const;
             },
             input.traceContext,
@@ -224,25 +221,11 @@ export class McpRuntime {
         }
         return connection;
     }
-    async readSecret(connectionId: string): Promise<McpSecret> {
-        const [row] = await this.db
-            .select({ secret: mcpSecretsTable.secret })
-            .from(mcpSecretsTable)
-            .where(eq(mcpSecretsTable.connectionId, connectionId))
-            .limit(1);
-        return (row?.secret as unknown as McpSecret | undefined) ?? emptySecret();
+    readSecret(connectionId: string): Promise<McpSecret> {
+        return readMcpSecret(this.db, connectionId);
     }
-    async writeSecret(connectionId: string, secret: McpSecret): Promise<void> {
-        await this.db
-            .insert(mcpSecretsTable)
-            .values({ connectionId, secret: secret as unknown as Record<string, unknown> })
-            .onConflictDoUpdate({
-                set: {
-                    secret: secret as unknown as Record<string, unknown>,
-                    updatedAt: new Date(),
-                },
-                target: mcpSecretsTable.connectionId,
-            });
+    writeSecret(connectionId: string, secret: McpSecret): Promise<void> {
+        return writeMcpSecret(this.db, connectionId, secret);
     }
     ownsClient(connectionId: string, client: MCPClient): boolean {
         return this.clients.owns(connectionId, client);
@@ -290,8 +273,4 @@ export class McpRuntime {
             use,
         });
     }
-}
-
-export function emptySecret(): McpSecret {
-    return { approvedAuthorizationServerOrigins: [], headers: {}, oauthScopes: [] };
 }

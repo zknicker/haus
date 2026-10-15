@@ -1,0 +1,54 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "b0db72f7-4b81-4709-a57a-45f2cbb43a9d",
+    "linear-event": "Comment",
+    "linear-signature": "0fa73557b500660a1850f2825da007e3ff3f25cdbc1579e511bfd98653f0f718",
+    "linear-timestamp": "1792083273421"
+  },
+  "body": {
+    "action": "create",
+    "actor": {
+      "id": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "name": "Haus Dev",
+      "email": "c639344c-21df-41e2-9777-8dc93d249999@oauthapp.linear.app",
+      "url": "https://linear.app/haus-chat/profiles/hausdev",
+      "type": "user"
+    },
+    "createdAt": "2026-10-15T16:53:32.987Z",
+    "url": "https://linear.app/haus-chat/issue/HTST-12/fixture-proactive-session#comment-2bc7def3",
+    "type": "Comment",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "data": {
+      "id": "2bc7def3-d3ad-4bae-95cb-48cfa56016ed",
+      "createdAt": "2026-10-15T16:53:32.987Z",
+      "updatedAt": "2026-10-15T16:53:32.974Z",
+      "body": "Retry probe",
+      "issueId": "a371d92c-9451-46ff-a32c-ba335e5e378a",
+      "userId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "reactionData": [],
+      "isArtificialAgentSessionRoot": false,
+      "botActor": null,
+      "user": {
+        "id": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+        "name": "Haus Dev",
+        "email": "c639344c-21df-41e2-9777-8dc93d249999@oauthapp.linear.app",
+        "url": "https://linear.app/haus-chat/profiles/hausdev"
+      },
+      "issue": {
+        "id": "a371d92c-9451-46ff-a32c-ba335e5e378a",
+        "title": "Fixture: proactive session",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-12",
+        "url": "https://linear.app/haus-chat/issue/HTST-12/fixture-proactive-session"
+      }
+    },
+    "webhookTimestamp": 1792083273421,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

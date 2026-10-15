@@ -116,6 +116,17 @@ uses the App's client id and secret as its configured OAuth client (the callback
 needs the secret to refresh them. Test resolves fake literals and no private key, because tests
 inject generated keys; release resolves none.
 
+The Haus Linear app ([Linear app](../../specs/linear-app.md#environment)) uses
+`HAUS_LINEAR_APP_CLIENT_ID` (public), and `HAUS_LINEAR_APP_WEBHOOK_SECRET`,
+`HAUS_LINEAR_APP_WEBHOOK_SECRET_PREVIOUS`, and `HAUS_LINEAR_URL_SIGNING_KEY` (sensitive), resolved
+per lifecycle from `Linear App - Haus` (`client_id`, `webhook_secret`, `webhook_secret_previous`,
+`url_signing_key`) with `allowMissing=true`. All are delivered only to the Server. Installs use
+PKCE, so there is no client secret. Without the client id Linear reports unavailable; without the
+webhook secret the Haus app webhook answers `503`. `HAUS_LINEAR_PUBLIC_ORIGIN` (public, optional,
+no 1Password source) is the origin Linear reaches the Server at and defaults to `HAUS_APP_ORIGIN`; a
+development stack sets it to its Tailscale Funnel origin. Test resolves fake literals; release
+resolves none.
+
 iPhone push uses `HAUS_APNS_KEY_ID` and `HAUS_APNS_PRIVATE_KEY`, resolved per lifecycle from
 `Apple Push - Haus` with `allowMissing=true`, so a lifecycle without the item still loads. The Server
 signs its APNs provider token with the public `APPLE_TEAM_ID`, which the renderer therefore

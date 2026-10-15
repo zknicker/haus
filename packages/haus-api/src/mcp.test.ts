@@ -28,9 +28,14 @@ describe('preset account auth', () => {
         ).toBe(false);
     });
 
+    test('Linear is a built-in connection, never a preset account', () => {
+        expect(mcpPresetAccountCreateSchema.safeParse({ ...base, preset: 'linear' }).success).toBe(
+            false
+        );
+    });
+
     test.each([
         'cloudflare',
-        'linear',
         'merchbase-atlas',
         'handmade',
         'merchbase-fulfillment',

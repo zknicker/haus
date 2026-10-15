@@ -1,12 +1,14 @@
 import {
     isMcpBearerTokenPreset,
+    isMcpBuiltInPreset,
     type McpConnection,
     type McpConnectionCreate,
     type McpOAuthStart,
     type McpOAuthStartResult,
     type McpPreset,
 } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { builtInConnection } from '../built-in-connections/built-in-connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -18,11 +20,13 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireAdmin, requireConnection, requireOperableConnection } from './connection-access.ts';
 import { resolveMcpConnectionIcon } from './connection-branding.ts';
+import { clearMcpIdentity } from './connection-identity.ts';
+import { emptySecret } from './connection-secret.ts';
 import { McpDeniedError } from './errors.ts';
 import type { McpIconResolver } from './icons.ts';
 import { summarizeInstructions } from './instructions-summary.ts';
 import type { McpOAuthRelay } from './oauth-relay.ts';
-import { emptySecret, type McpRuntime } from './runtime.ts';
+import type { McpRuntime } from './runtime.ts';
 import { shapeMcpConnection } from './state.ts';
 
 export async function createMcpConnection(
@@ -134,6 +138,10 @@ export async function disconnectMcpConnection(
         await tx
             .delete(agentMcpConnectionGrantsTable)
             .where(eq(agentMcpConnectionGrantsTable.connectionId, input.connectionId));
+        await builtInConnection(connection.preset)?.connectionDisconnected?.(tx, {
+            connectionId: input.connectionId,
+            serverId: input.serverId,
+        });
         await tx
             .update(mcpSecretsTable)
             .set({
@@ -236,29 +244,6 @@ export async function saveMcpHeaders(
         : shapeMcpConnection(row);
 }
 
-export async function clearMcpIdentity(
-    db: HausDatabase,
-    runtime: McpRuntime,
-    serverId: string,
-    connectionId: string
-) {
-    await runtime.closeConnection(connectionId);
-    await db.transaction(async (tx) => {
-        await lockServerRow(tx, serverId);
-        await tx
-            .delete(agentMcpConnectionGrantsTable)
-            .where(eq(agentMcpConnectionGrantsTable.connectionId, connectionId));
-        await tx
-            .update(mcpConnectionsTable)
-            .set({ accountLabel: null, connected: false, summary: null, tools: [] })
-            .where(
-                and(
-                    eq(mcpConnectionsTable.serverId, serverId),
-                    eq(mcpConnectionsTable.id, connectionId)
-                )
-            );
-    });
-}
 async function refreshInventory(
     db: HausDatabase,
     runtime: McpRuntime,
@@ -275,7 +260,10 @@ async function refreshInventory(
     const [updated] = await db
         .update(mcpConnectionsTable)
         .set({
-            accountLabel: discovery.accountLabel,
+            // A built-in connection's account comes from its install flow.
+            accountLabel: isMcpBuiltInPreset(connection.preset)
+                ? connection.accountLabel
+                : discovery.accountLabel,
             connected: true,
             icon,
             summary: summarizeInstructions(discovery.instructions),

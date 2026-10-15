@@ -5,6 +5,7 @@ import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import { linearAuthoring } from '../triggers/linear-trigger-config.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { unfollowAgentThread } from './attention.ts';
@@ -78,6 +79,8 @@ export function registerAgentApiRoutes(
         computers: import('../computers/connections.ts').ComputerConnections;
         db: HausDatabase;
         githubApp: import('../github/github-app.ts').GithubApp | null;
+        /** Linear reads for `linear` Trigger authoring and preview. */
+        linear?: import('../linear/linear-runtime.ts').LinearRuntime;
         imageGeneration: import('../image-generation/image-generation-service.ts').ImageGenerationService;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         postCommitWork: ServerPostCommitWork;
@@ -111,7 +114,10 @@ export function registerAgentApiRoutes(
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
-    registerAgentTriggerRoutes(app, options.db, options.githubApp?.transport);
+    registerAgentTriggerRoutes(app, options.db, {
+        githubTransport: options.githubApp?.transport ?? {},
+        linear: linearAuthoring(options.db, options.linear ?? null),
+    });
 
     registerAgentProfileRoutes(app, options.db);
 

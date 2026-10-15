@@ -12,8 +12,7 @@ import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
 import { formatRelativeTime, truncate } from '../../../lib/format.ts';
-import { SectionHeader } from '../../shell/section-header.tsx';
-import { PageTopbar } from '../../shell/shell-topbar.tsx';
+import { PageBand } from '../../shell/page-band.tsx';
 import {
     ChatSearchFilterRow,
     defaultSearchFilterSelection,
@@ -63,30 +62,26 @@ export function ChatSearch({
 
     return (
         <section aria-label="Search" className="flex min-h-0 flex-1 flex-col">
-            <PageTopbar>
-                <SectionHeader
-                    center={
-                        <SearchField
-                            aria-label="Search messages"
-                            autoFocus
-                            className="w-full max-w-96"
-                            onChange={setDraft}
-                            onClear={() => setQuery('')}
-                            onSubmit={(value) => setQuery(value.trim())}
-                            value={draft}
-                        >
-                            <SearchField.Group>
-                                <SearchField.SearchIcon />
-                                <SearchField.Input
-                                    placeholder="Search messages..."
-                                    ref={inputRef}
-                                />
-                                <SearchField.ClearButton />
-                            </SearchField.Group>
-                        </SearchField>
-                    }
-                />
-            </PageTopbar>
+            <PageBand>
+                <PageBand.Trail current="Search" />
+                <PageBand.Center>
+                    <SearchField
+                        aria-label="Search messages"
+                        autoFocus
+                        className="w-full max-w-96"
+                        onChange={setDraft}
+                        onClear={() => setQuery('')}
+                        onSubmit={(value) => setQuery(value.trim())}
+                        value={draft}
+                    >
+                        <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="Search messages..." ref={inputRef} />
+                            <SearchField.ClearButton />
+                        </SearchField.Group>
+                    </SearchField>
+                </PageBand.Center>
+            </PageBand>
             <div className="min-h-0 flex-1 overflow-y-auto">
                 <div className="flex min-h-full w-full flex-col px-6 py-6">
                     <div className="mb-4">

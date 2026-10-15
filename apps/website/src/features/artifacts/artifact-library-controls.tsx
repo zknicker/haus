@@ -12,7 +12,7 @@ import type { ArtifactKindFilter } from './library-params.ts';
  * The library's band controls: search, the file-type and Created by menus,
  * sort, list or grid, then Upload. They trail the drive trail in the shell band, so
  * the page below is all content. Search keeps a fixed width and a short
- * placeholder, so it never squeezes or clips; when the band (the `files-band`
+ * placeholder, so it never squeezes or clips; when the band (the `band`
  * container) is too narrow for every control, the menus and the layout switch
  * fold into one Filters menu instead. Search covers the open folder and every
  * folder under it.
@@ -43,7 +43,7 @@ export function ArtifactLibraryControls({
         <>
             <SearchField
                 aria-label={folderName ? `Search in ${folderName}` : 'Search files'}
-                className="@min-[40rem]/files-band:w-44 w-36 shrink-0"
+                className="@min-[40rem]/band:w-44 w-36 shrink-0"
                 onChange={onSearchChange}
                 value={search}
             >
@@ -53,7 +53,7 @@ export function ArtifactLibraryControls({
                     <SearchField.ClearButton />
                 </SearchField.Group>
             </SearchField>
-            <span className="@min-[58rem]/files-band:contents hidden">
+            <span className="@min-[58rem]/band:contents hidden">
                 <ArtifactKindMenu kind={kind} onKindChange={onKindChange} />
                 <ArtifactCreatorMenu
                     creator={creator}
@@ -63,7 +63,7 @@ export function ArtifactLibraryControls({
                 <ArtifactSortMenu />
                 <ArtifactLayoutToggle />
             </span>
-            <span className="contents @min-[58rem]/files-band:hidden">
+            <span className="contents @min-[58rem]/band:hidden">
                 <ArtifactFilterMenu
                     creator={creator}
                     kind={kind}

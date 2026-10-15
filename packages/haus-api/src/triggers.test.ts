@@ -52,7 +52,7 @@ describe('trigger contracts', () => {
         });
         expect(() => triggerSchema.parse({ ...trigger, secret: 'grtt_leak' })).toThrow();
         expect(() => triggerSchema.parse({ ...trigger, kind: 'schedule' })).toThrow();
-        expect(triggerKindSchema.options).toEqual(['webhook', 'github']);
+        expect(triggerKindSchema.options).toEqual(['webhook', 'github', 'linear']);
     });
 
     test('an Agent-created trigger has no creator, and the Agent view inherits the URL', () => {
@@ -217,7 +217,10 @@ describe('trigger contracts', () => {
         };
         const schemas = document.components.schemas;
 
-        expect(schemas.TriggerKind).toEqual({ enum: ['webhook', 'github'], type: 'string' });
+        expect(schemas.TriggerKind).toEqual({
+            enum: ['webhook', 'github', 'linear'],
+            type: 'string',
+        });
         expect(schemas.WebhookTrigger.required).toEqual(Object.keys(trigger).sort());
         expect(schemas.GithubTrigger.required).toEqual(
             [...Object.keys(trigger).filter((key) => key !== 'url'), 'github'].sort()

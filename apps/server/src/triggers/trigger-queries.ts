@@ -5,6 +5,8 @@ import {
     agentsTable,
     githubInstallationsTable,
     githubTriggerConfigsTable,
+    linearTriggerConfigsTable,
+    linearWorkspacesTable,
     serverMembershipsTable,
     triggerFiresTable,
     triggersTable,
@@ -139,6 +141,8 @@ export interface TriggerRow {
     creatorHandle: string | null;
     githubConfig: typeof githubTriggerConfigsTable.$inferSelect | null;
     githubInstallationLogin: string | null;
+    linearConfig: typeof linearTriggerConfigsTable.$inferSelect | null;
+    linearWorkspace: { connectionId: string | null; name: string } | null;
     ownerHandle: string;
     trigger: typeof triggersTable.$inferSelect;
 }
@@ -150,6 +154,10 @@ export function viewTrigger(row: TriggerRow, origin: string): Trigger {
             row.githubConfig && row.githubInstallationLogin
                 ? { config: row.githubConfig, installationLogin: row.githubInstallationLogin }
                 : null,
+        linear:
+            row.linearConfig && row.linearWorkspace
+                ? { config: row.linearConfig, workspace: row.linearWorkspace }
+                : null,
         origin,
         ownerHandle: row.ownerHandle,
     });
@@ -158,10 +166,10 @@ export function viewTrigger(row: TriggerRow, origin: string): Trigger {
 /**
  * One trigger with what a reader needs beside the row: the Agent that owns it,
  * the Server handle of the human who created it, and, for a `github` Trigger,
- * its configuration and installation. The creator join is a left join because
- * an Agent-created trigger has no creator, and a human keeps the trigger even
- * after their handle or membership is gone. The GitHub joins are left joins
- * because a webhook has neither.
+ * its configuration and installation (for `linear`, its workspace). The
+ * creator join is a left join because an Agent-created trigger has no
+ * creator, and a human keeps the trigger even after their handle or membership
+ * is gone. The kind joins are left joins because only one kind matches.
  */
 export function triggerRows(db: TriggerReader) {
     return db
@@ -169,6 +177,11 @@ export function triggerRows(db: TriggerReader) {
             creatorHandle: serverMembershipsTable.handle,
             githubConfig: githubTriggerConfigsTable,
             githubInstallationLogin: githubInstallationsTable.accountLogin,
+            linearConfig: linearTriggerConfigsTable,
+            linearWorkspace: {
+                connectionId: linearWorkspacesTable.connectionId,
+                name: linearWorkspacesTable.name,
+            },
             ownerHandle: agentsTable.handle,
             trigger: triggersTable,
         })
@@ -200,6 +213,20 @@ export function triggerRows(db: TriggerReader) {
             and(
                 eq(githubInstallationsTable.serverId, githubTriggerConfigsTable.serverId),
                 eq(githubInstallationsTable.id, githubTriggerConfigsTable.installationRowId)
+            )
+        )
+        .leftJoin(
+            linearTriggerConfigsTable,
+            and(
+                eq(linearTriggerConfigsTable.serverId, triggersTable.serverId),
+                eq(linearTriggerConfigsTable.triggerId, triggersTable.id)
+            )
+        )
+        .leftJoin(
+            linearWorkspacesTable,
+            and(
+                eq(linearWorkspacesTable.serverId, linearTriggerConfigsTable.serverId),
+                eq(linearWorkspacesTable.id, linearTriggerConfigsTable.workspaceId)
             )
         )
         .$dynamic();

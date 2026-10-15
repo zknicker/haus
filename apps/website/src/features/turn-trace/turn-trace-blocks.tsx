@@ -39,6 +39,7 @@ export function TraceSection({
                     // A folded prose block cuts mid-line wherever its height lands, so the cut fades.
                     !isExpanded && overflows && 'mask-b-from-[calc(100%-2.5rem)] mask-b-to-100%'
                 )}
+                data-selectable-text=""
                 id={bodyId}
                 ref={ref}
             >
@@ -105,7 +106,12 @@ export function TurnTraceFact({ label, value }: { label: string; value: string }
             <dt>
                 <MicroLabel>{label}</MicroLabel>
             </dt>
-            <dd className="min-w-0 truncate font-mono text-foreground text-xs">{value}</dd>
+            <dd
+                className="min-w-0 truncate font-mono text-foreground text-xs"
+                data-selectable-text=""
+            >
+                {value}
+            </dd>
         </>
     );
 }
@@ -132,6 +138,7 @@ export function TurnTraceProse({ text }: { text: string }) {
                     'max-w-prose whitespace-pre-wrap break-words text-muted text-sm',
                     foldable && !expanded && 'line-clamp-3'
                 )}
+                data-selectable-text=""
                 id={bodyId}
             >
                 {shown}

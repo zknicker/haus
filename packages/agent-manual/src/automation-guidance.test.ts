@@ -56,6 +56,15 @@ test('GitHub triggers defer their mechanics to CLI help, not a Manual topic', ()
     expect(getManualTopic('recipes/technique/trigger-github')).toBeNull();
 });
 
+test('Linear has no Manual topic of its own; the trigger family names the kind', () => {
+    expect(getManualTopic('linear')).toBeNull();
+    expect(getManualTopic('recipes/technique/trigger-linear')).toBeNull();
+    const trigger = getManualTopic('trigger')?.body ?? '';
+    expect(trigger).toContain('--kind linear');
+    expect(trigger).toContain('haus trigger create --help');
+    expect(trigger).not.toContain('trigger-linear');
+});
+
 test('reminder manual resolves calendar timezones from the requester, not home time', () => {
     const topic = getManualTopic('reminder')?.body;
     for (const detail of [

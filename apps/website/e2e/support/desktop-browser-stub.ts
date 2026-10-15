@@ -139,7 +139,6 @@ export async function installDesktopBrowserStub(page: Page) {
                 onSsoCallback: () => () => undefined,
                 runEditCommand: async () => undefined,
                 checkForUpdate: async () => undefined,
-                startWindowDrag: async () => undefined,
             },
         });
     }, freshWindowFlag);

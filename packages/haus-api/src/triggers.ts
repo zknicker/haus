@@ -1,10 +1,13 @@
 import * as z from 'zod';
-import { AUTOMATION_HISTORY_RETENTION_DAYS } from './automation.ts';
 import { idSchema } from './chat.ts';
 import {
     githubTriggerConfigInputSchema,
     githubTriggerViewSchema,
 } from './github-trigger-events.ts';
+import {
+    linearTriggerConfigInputSchema,
+    linearTriggerViewSchema,
+} from './linear-trigger-events.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -19,10 +22,6 @@ export const triggerDedupeKeyMaxLength = 200;
 /** Fire history page size: the default and the ceiling for `log --limit`. */
 export const triggerLogLimitDefault = 50;
 export const triggerLogLimitMax = 100;
-/** Agent-profile history page size and shared fire-history retention window. */
-export const TRIGGER_HISTORY_LIMIT_DEFAULT = 200;
-export const TRIGGER_HISTORY_LIMIT_MAX = 500;
-export const TRIGGER_HISTORY_RETENTION_DAYS = AUTOMATION_HISTORY_RETENTION_DAYS;
 /** Minted secret prefix. The rest is 32 random bytes, base64url. */
 export const triggerSecretPrefix = 'grtt_';
 
@@ -47,9 +46,10 @@ export type TriggerStatus = z.infer<typeof triggerStatusSchema>;
 /**
  * What kind of outside stimulus wakes the Agent. A `webhook` is a POST to a
  * private URL with a bearer secret; a `github` Trigger is fed by the Haus
- * GitHub App's webhook and has no URL and no secret.
+ * GitHub App's webhook and a `linear` Trigger by the Haus Linear app's
+ * workspace webhook, and neither has a URL or a secret.
  */
-export const triggerKindSchema = z.enum(['webhook', 'github']);
+export const triggerKindSchema = z.enum(['webhook', 'github', 'linear']);
 export type TriggerKind = z.infer<typeof triggerKindSchema>;
 
 /**
@@ -67,6 +67,20 @@ export const triggerRequestRefusalSchema = z.enum([
     'github_permissions_missing',
     /** A selected repository is outside what the connection's GitHub user can reach. */
     'github_repositories_unavailable',
+    /** The workspace connection holds its cap of undeleted `linear` Triggers. */
+    'linear_trigger_limit',
+    /** The Linear workspace is not `active` on this Server. */
+    'linear_workspace_unavailable',
+    /** The Agent named no workspace and holds several; the message lists the url keys. */
+    'linear_workspace_ambiguous',
+    /** The owning Agent lacks the Linear connection grant. */
+    'linear_access_required',
+    /** A referenced Linear object cannot be resolved now. */
+    'linear_reference_unavailable',
+    /** A name resolves to more than one Linear object; the message lists candidates. */
+    'linear_reference_ambiguous',
+    /** A team is outside the workspace actor's team access. */
+    'linear_team_outside_access',
     /** The request names a field the Trigger's kind does not have. */
     'trigger_kind_mismatch',
     'trigger_has_no_secret',
@@ -115,10 +129,16 @@ export const githubTriggerSchema = z
     .strict();
 export type GithubTrigger = z.infer<typeof githubTriggerSchema>;
 
+export const linearTriggerSchema = z
+    .object({ ...triggerBaseShape, kind: z.literal('linear'), linear: linearTriggerViewSchema })
+    .strict();
+export type LinearTrigger = z.infer<typeof linearTriggerSchema>;
+
 /** One Agent-owned Trigger, a union on `kind`. */
 export const triggerSchema = z.discriminatedUnion('kind', [
     webhookTriggerSchema,
     githubTriggerSchema,
+    linearTriggerSchema,
 ]);
 export type Trigger = z.infer<typeof triggerSchema>;
 
@@ -163,40 +183,6 @@ export const triggerRunsInputSchema = triggerIdInputSchema;
 
 export const triggerRunsSchema = z.array(triggerFireSchema);
 
-export const triggerHistoryInputSchema = z
-    .object({
-        agentId: idSchema,
-        limit: z
-            .number()
-            .int()
-            .min(1)
-            .max(TRIGGER_HISTORY_LIMIT_MAX)
-            .default(TRIGGER_HISTORY_LIMIT_DEFAULT),
-        serverId: idSchema,
-    })
-    .strict();
-
-/** One retained Trigger fire as shown in the Agent profile history drawer. */
-export const triggerHistoryEntrySchema = z
-    .object({
-        /** The Agent's marked answer to this fire, when it has posted one. */
-        answer: z.object({ chatId: idSchema, messageId: idSchema }).strict().nullable(),
-        contentType: z.string().nullable(),
-        dedupeKey: z.string().nullable(),
-        fireId: idSchema,
-        firedAt: timestampSchema,
-        payloadBytes: z.number().int().nonnegative(),
-        /** Non-null while the retained Trigger is a deletion tombstone. */
-        triggerDeletedAt: timestampSchema.nullable(),
-        title: z.string().min(1).max(triggerTitleMaxLength),
-        triggerId: idSchema,
-    })
-    .strict();
-
-export type TriggerHistoryEntry = z.infer<typeof triggerHistoryEntrySchema>;
-
-export const triggerHistorySchema = z.array(triggerHistoryEntrySchema);
-
 /** Rotate, delete, and test each address one existing trigger and nothing else. */
 export const triggerRotateInputSchema = triggerIdInputSchema;
 export const triggerDeleteInputSchema = triggerIdInputSchema;
@@ -226,18 +212,30 @@ export const triggerCreateInputSchema = z.discriminatedUnion('kind', [
             title: triggerTitleInputSchema,
         })
         .strict(),
+    z
+        .object({
+            agentId: idSchema,
+            instruction: triggerInstructionSchema.min(1).optional(),
+            kind: z.literal('linear'),
+            linear: linearTriggerConfigInputSchema,
+            serverId: idSchema,
+            title: triggerTitleInputSchema,
+        })
+        .strict(),
 ]);
 export type TriggerCreateInput = z.infer<typeof triggerCreateInputSchema>;
 
 /**
  * Update at least one editable field. `instruction: null` (or an empty string)
- * clears the standing instruction; omitting it leaves it alone. `github`
- * replaces a `github` Trigger's configuration and is refused on a webhook.
+ * clears the standing instruction; omitting it leaves it alone. `github` and
+ * `linear` replace that kind's configuration whole and are refused on any
+ * other kind.
  */
 export const triggerUpdateInputSchema = z
     .object({
         github: githubTriggerConfigInputSchema.optional(),
         instruction: triggerInstructionSchema.nullable().optional(),
+        linear: linearTriggerConfigInputSchema.optional(),
         serverId: idSchema,
         title: triggerTitleInputSchema.optional(),
         triggerId: idSchema,
@@ -247,8 +245,9 @@ export const triggerUpdateInputSchema = z
         (input) =>
             input.title !== undefined ||
             input.instruction !== undefined ||
-            input.github !== undefined,
-        'Provide a title, an instruction, or a GitHub configuration to update.'
+            input.github !== undefined ||
+            input.linear !== undefined,
+        'Provide a title, an instruction, or a GitHub or Linear configuration to update.'
     );
 
 export const triggerSetStatusInputSchema = z

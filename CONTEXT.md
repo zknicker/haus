@@ -159,6 +159,25 @@ signed-in GitHub user's ownership of the account. A removed installation is kept
 Agents reach it only through the connection grant.
 _Avoid_: GitHub org connection, repository connection, seeing an installation as authority
 
+**Linear workspace**:
+One Linear organization bound to one Haus Server through one Linear connection, by an install of
+the shared Haus Linear app that a Server Owner or Admin starts and a Linear admin approves. Its
+app user is the workspace actor every granted Agent can work through. An organization binds to at
+most one Haus Server; a removed workspace is kept as a tombstone.
+_Avoid_: Linear team, Linear account, Linear installation
+
+**Linear identity**:
+An optional per-Agent Linear app the Owner registers in their own workspace, which makes that
+Agent a Linear teammate with its own name, avatar, delegate slot, and @-handle. The Server picks
+the actor per operation; the Agent never names one.
+_Avoid_: Linear user, Linear seat, Linear account per Agent
+
+**Linear session**:
+Linear's agent session, opened when someone mentions or delegates an issue to the Haus app or an
+identity, held in Haus under an `lss_` handle and routed to one Agent. Its events reach the Agent
+as Linear session inbox rows; the Agent answers in Linear with the session's handle.
+_Avoid_: Agent session, Haus session, Linear conversation
+
 **Computer bootstrap protocol**:
 The minimal stable handshake through which a Computer authenticates and reports its binary and
 protocol versions before entering the versioned Computer protocol. An incompatible Computer may

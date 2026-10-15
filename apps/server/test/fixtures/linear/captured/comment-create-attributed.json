@@ -1,0 +1,47 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "7a092e57-e4dd-4a67-b7f5-dd6103c6da98",
+    "linear-event": "Comment",
+    "linear-signature": "81427f4768ed4127fc132ca000d11a8501b3bed118915924b66906d33fdcef62",
+    "linear-timestamp": "1792083065233"
+  },
+  "body": {
+    "action": "create",
+    "actor": {
+      "id": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "name": "Haus Dev",
+      "email": "c639344c-21df-41e2-9777-8dc93d249999@oauthapp.linear.app",
+      "url": "https://linear.app/haus-chat/profiles/hausdev",
+      "type": "user"
+    },
+    "createdAt": "2026-10-15T16:51:05.036Z",
+    "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst#comment-d5975934",
+    "type": "Comment",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "data": {
+      "id": "d5975934-78e1-470d-a31e-fdbf1cac23b4",
+      "createdAt": "2026-10-15T16:51:05.036Z",
+      "updatedAt": "2026-10-15T16:51:04.980Z",
+      "body": "Fixture comment",
+      "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "reactionData": [],
+      "isArtificialAgentSessionRoot": false,
+      "botActor": "{\"id\":\"af943b1c0c19bc247d377df9ec5b4313\",\"type\":\"oauthClient\",\"name\":\"Haus Dev\",\"userDisplayName\":\"Juniper\"}",
+      "issue": {
+        "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+        "title": "Fixture: design HTST",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-11",
+        "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst"
+      }
+    },
+    "webhookTimestamp": 1792083065233,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

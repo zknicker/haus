@@ -173,11 +173,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   everywhere, by construction. Only the strip's value is declared per platform
   (`--app-shell-titlebar-inset`, `shell.css`); the web currently takes the same
   one. The Inbox page fills the band like every other routed
-  destination: the page's own glyph and its breadcrumb trail, in Settings' own
-  band shape, and nothing at the trailing end. Every band's trail leads with a
-  "Haus" crumb linking back to the Inbox: the Inbox band reads Haus › Inbox,
-  Settings reads Haus › Settings › page (› record), and an Agent profile reads
-  Haus › Agent (› section). Its column is stock,
+  destination (see the page band below), and nothing at the trailing end. Its column is stock,
   so the greeting opens under the band at the page's ordinary top inset on
   every surface; on desktop each tab's page keeps that band at the top of its pane,
   under the tab rows. Switching,
@@ -194,8 +190,32 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   left sidebar also reflow immediately; right-side chat panes retain their own
   open and close motion.
 * The web shell renders one `ShellTopbar`; on desktop each tab frame renders its
-  own. Pages compose its content through `PageTopbar` and `SectionHeader`.
-  Embedded surfaces use `SectionBar`.
+  own. Every content surface fills it with one **page band**
+  (`features/shell/page-band.tsx`), composed from slots:
+  `<PageBand><PageBand.Trail crumbs current /><PageBand.Controls>…</PageBand.Controls></PageBand>`
+  (plus `PageBand.Center` for Search's field). The trail always reads Haus › section › … ›
+  page: "Haus" links to the Inbox, every crumb but the last is a destination, the current page
+  is the unlinked end, and a trail deeper than three crumbs folds its middle into one menu
+  (`band-trail.ts`). Inbox, Tasks, Activity, Search, and Files are sections (Haus › Tasks);
+  Settings reads Haus › Settings › page (› record), Archived chats Haus › Settings › Archived
+  chats, and an Agent Haus › Agent (› section), the Agent and member crumbs wearing their face.
+  The band carries no page glyph and no title apart from the trail: the trail is the one
+  representation of where you are, beside a desktop tab too. A chat is the one exception: on the
+  web its band is its identity row (`SectionHeader`), and on desktop it has none. Embedded
+  surfaces use `SectionBar`.
+* Back and Forward are the shell's, never a page's (`features/shell/history-buttons.tsx`). On
+  the web they lead `ShellTopbar` on every surface, chat included, and step the browser's
+  history (`useWebHistory`): each is enabled while the neighboring entry is an App page
+  (`/s/…`, `appHistorySteps`; Navigation API, else React Router's entry index for Back). On
+  desktop one pair serves the window: it sits in the window band's lead over the sidebar, right
+  of the traffic lights and just short of the sidebar's edge (beside the traffic lights when the
+  sidebar is hidden), so it holds one place over a full-height chat and every other page and the
+  tab rows keep their position. It steps the focused pane's selected tab through
+  `stepPageHistory` (a web page's own history first, then the tab's) and re-reads on focus and
+  tab switches (`WindowHistoryButtons`, `usePaneHistory`, `paneHistorySteps`). With two panes
+  the unfocused row's selected tab reads muted (`data-focused` on `WorkspaceTabStrip`), so it is
+  clear which pane they act on. Web pages and the new tab page carry no Back or Forward of their
+  own.
 * **Desktop tabs route per tab** ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.md)).
   The window's hash router keeps only the Server shell (`/s/:slug`). Each tab's history lives in
   the tabs reducer (`hooks/desktop-tabs/`, owned by `DesktopTabsProvider` and its controller,
@@ -363,7 +383,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   the reader. A failed action is `SettingsRowError` at the end of the body, not
   a boxed `Alert`: an Alert outweighs every row it sits under.
 * Controls sit at the altitude they act on. A page-level action goes in the
-  shell band through `PageTopbar` + `SectionHeader` with no title; a control
+  page band's `PageBand.Controls`; a control
   scoped to one section rides in that section's `ItemCardGroup.Header`; a
   control acting on one row lives in that row's `ItemCard.Action`.
   `SettingsPageHeader` carries identity only — a title with either a

@@ -1,0 +1,67 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "aeea5f09-38f3-4ffd-af8c-cb0e9bce4dd8",
+    "linear-event": "AgentSessionEvent",
+    "linear-signature": "3bf4c381e58e98e1879ee3ad452fa3b498b4cdc96779d3b0a58a59e7e85f1bcf",
+    "linear-timestamp": "1792083067294"
+  },
+  "body": {
+    "type": "AgentSessionEvent",
+    "action": "created",
+    "createdAt": "2026-10-15T16:51:07.235Z",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "oauthClientId": "af943b1c0c19bc247d377df9ec5b4313",
+    "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+    "agentSession": {
+      "id": "9a246df4-695e-49c3-ad24-9bab4d48f355",
+      "createdAt": "2026-10-15T16:51:06.747Z",
+      "updatedAt": "2026-10-15T16:51:06.747Z",
+      "archivedAt": null,
+      "creatorId": null,
+      "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "commentId": "ae150aee-32f2-43a9-9c04-e61fd6c157d2",
+      "sourceCommentId": null,
+      "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "pullRequestId": null,
+      "slugId": "58550dceea3b2",
+      "status": "pending",
+      "startedAt": null,
+      "endedAt": null,
+      "dismissedAt": null,
+      "dismissedById": null,
+      "externalLink": null,
+      "summary": null,
+      "sourceMetadata": null,
+      "modelSelection": null,
+      "plan": null,
+      "workspaceDiff": null,
+      "context": [],
+      "url": "https://linear.app/haus-chat/agent-session/9a246df4-695e-49c3-ad24-9bab4d48f355",
+      "externalUrls": [],
+      "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+      "comment": {
+        "id": "ae150aee-32f2-43a9-9c04-e61fd6c157d2",
+        "body": "This thread is for an agent session with hausdev.",
+        "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643"
+      },
+      "issue": {
+        "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+        "title": "Fixture: design HTST",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-11",
+        "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst"
+      }
+    },
+    "previousComments": null,
+    "guidance": null,
+    "promptContext": "<issue identifier=\"HTST-11\">\n<title>Fixture: design HTST</title>\n<team name=\"Haus Test\"/>\n<label>Agent \u203a Juniper</label>\n</issue>\n\n<other-thread comment-id=\"d5975934-78e1-470d-a31e-fdbf1cac23b4\"><comment created-at=\"2026-10-15T16:51:05.036Z\">Fixture comment</comment></other-thread>",
+    "webhookTimestamp": 1792083067294,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

@@ -19,10 +19,6 @@ function registerWindowIpc({ app, appUrl, BrowserWindow, createWindow, ipcMain }
         ipcMain,
         onSessionChange: queryCache.clear,
     });
-    ipcMain.handle('desktop:window:start-drag', (event) => {
-        assertTrustedRenderer(event, appUrl);
-    });
-
     ipcMain.handle('desktop:window:open', (event, route) => {
         assertTrustedRenderer(event, appUrl);
         if (!isSafeWindowRoute(route)) {

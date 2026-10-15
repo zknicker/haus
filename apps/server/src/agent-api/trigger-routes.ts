@@ -2,18 +2,19 @@ import {
     agentTriggerCreateInputSchema,
     agentTriggerUpdateInputSchema,
     githubTriggerPreviewInputSchema,
+    linearTriggerPreviewInputSchema,
     triggerLogLimitDefault,
     triggerLogLimitMax,
 } from '@haus/api';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as z from 'zod';
 import { ChatArchivedError, ChatNotFoundError } from '../chats/chat-access.ts';
-import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     ReminderAgentInactiveError,
     ReminderAnchorAccessError,
 } from '../reminders/reminder-model.ts';
+import type { TriggerAuthoringServices } from '../triggers/operator-triggers.ts';
 import { TriggerNotFoundError, TriggerRequestRefusedError } from '../triggers/trigger-model.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { AgentTargetError } from './resolve-target.ts';
@@ -30,6 +31,11 @@ import {
 } from './triggers.ts';
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(200) });
+/** A GitHub body with its event name, or a raw Linear body. */
+const previewInputSchema = z.union([
+    githubTriggerPreviewInputSchema,
+    linearTriggerPreviewInputSchema,
+]);
 const logQuerySchema = z.object({
     fire: z.string().min(1).max(200).optional(),
     limit: z.coerce.number().int().min(1).max(triggerLogLimitMax).default(triggerLogLimitDefault),
@@ -43,7 +49,7 @@ const logQuerySchema = z.object({
 export function registerAgentTriggerRoutes(
     app: FastifyInstance,
     db: HausDatabase,
-    githubTransport: GithubApiTransport = {}
+    services: TriggerAuthoringServices
 ) {
     app.post('/api/agent/triggers', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
@@ -55,7 +61,7 @@ export function registerAgentTriggerRoutes(
             return invalid(reply);
         }
         return await runAction(reply, () =>
-            createAgentTrigger(db, runner, request, parsed.data, githubTransport)
+            createAgentTrigger(db, runner, request, parsed.data, services)
         );
     });
 
@@ -95,7 +101,7 @@ export function registerAgentTriggerRoutes(
                 runner,
                 request,
                 { ...body.data, triggerId: params.data.id },
-                githubTransport
+                services
             )
         );
     });
@@ -106,12 +112,15 @@ export function registerAgentTriggerRoutes(
             return unauthorized(reply);
         }
         const params = idParamsSchema.safeParse(request.params);
-        const body = githubTriggerPreviewInputSchema.safeParse(request.body);
+        const body = previewInputSchema.safeParse(request.body);
         if (!(params.success && body.success)) {
             return invalid(reply);
         }
         return await runAction(reply, () =>
-            previewAgentTrigger(db, runner, request, { ...body.data, triggerId: params.data.id })
+            previewAgentTrigger(db, services, runner, request, {
+                ...body.data,
+                triggerId: params.data.id,
+            })
         );
     });
 

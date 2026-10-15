@@ -5,6 +5,7 @@ import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release
 for (const file of [
     'apps/hosted-mcp/hosted/managed.py',
     'apps/hosted-mcp/uv.lock',
+    'apps/hosted-mcp-linear/src/main.ts',
     'scripts/package-hosted-mcp.mjs',
     'scripts/build-haus-server-artifact.mjs',
 ]) {

@@ -27,7 +27,7 @@ export function SettingsFact({
     title?: string;
 }) {
     return (
-        <span className={cn('text-muted text-sm', className)} title={title}>
+        <span className={cn('text-muted text-sm', className)} data-selectable-text="" title={title}>
             {children}
         </span>
     );
@@ -44,7 +44,7 @@ export function SettingsRowError({ children }: { children?: React.ReactNode }) {
     }
 
     return (
-        <p className="mt-1 text-danger text-sm" role="alert">
+        <p className="mt-1 text-danger text-sm" data-selectable-text="" role="alert">
             {children}
         </p>
     );

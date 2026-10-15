@@ -2,6 +2,7 @@ export const requiredPrefixes = {
     server: [
         'apps/server/src/',
         'apps/hosted-mcp/',
+        'apps/hosted-mcp-linear/',
         'scripts/package-hosted-mcp.mjs',
         'scripts/build-haus-server-artifact.mjs',
         'apps/server/drizzle/',

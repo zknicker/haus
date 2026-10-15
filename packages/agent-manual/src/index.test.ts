@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import sourceManifest from '../../../specs/raft-alignment/manual-source.json' with { type: 'json' };
 import {
     getManualTopic,
     type ManualRecipeTopic,
@@ -47,7 +48,7 @@ const recipeIds = [
 // Cards written for Haus itself, with no captured source card behind them.
 // The fidelity test below asserts each really has no source file, so this list
 // cannot quietly become an escape hatch for a drifted adapted card.
-const hausNativeIds = new Set<string>(['recipes/technique/trigger-webhook']);
+const hausNativeIds = new Set<string>(sourceManifest.hausNativeRecipeIds);
 
 // Cards Haus rewrote on purpose. The captured source card stays the record of
 // what was adapted; each rewrite owns a row in specs/raft-alignment/prompt-divergences.md.

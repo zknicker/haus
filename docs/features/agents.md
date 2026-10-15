@@ -71,10 +71,9 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity — each turn one line: its time, the request that woke it
   (or, muted, what it did in words when no request is visible), and its duration, and consecutive identical failures folded into one
   row (`Failed 5×`) — and **See all** into Activity, the full-width event log of every turn and its steps under a pinned day overview, and a compact 30-day processed-token tile linking to Usage.
-- The profile's trail rides in the page's top band, in Settings' band shape: the Agent's face,
-  then `Haus / Juniper / Connections`, the Agent crumb leading back to the hub. On the hub the trail
-  ends at the Agent and titles the web band; a desktop tab already names the Agent, so there the
-  hub's band collapses. A drill-down section's band also holds the lifecycle menu at its end for
+- The profile's trail rides in the shared page band: `Haus › Juniper › Connections`, the Agent
+  crumb wearing its face and leading back to the hub. On the hub the trail ends at the Agent, on
+  the web and in a desktop tab alike. A drill-down section's band also holds the lifecycle menu at its end for
   Owners and Admins; it is the section's only header (Workspace folds both into one bar). **Runs on**
   holds the assigned Computer and the model/runtime/effort editor; **Profile** the identity
   facts (name, handle, description, created by); **Automations** Reminders and Triggers;

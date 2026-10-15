@@ -14,6 +14,12 @@ export interface ConnectionRef {
     readonly name: string;
 }
 
+/** A granted connection plus the service labels its tools are searchable by. */
+export interface GrantedConnection extends ConnectionRef {
+    readonly preset: string | null;
+    readonly url: string;
+}
+
 export type ToolAccess =
     | { readonly kind: 'granted'; readonly connection: ConnectionRef }
     | { readonly kind: 'ungranted'; readonly connection: ConnectionRef }
@@ -30,11 +36,13 @@ export interface ConnectionAccessRow {
 export async function readGrantedConnections(
     db: HausDatabase,
     scope: AgentScope
-): Promise<ConnectionRef[]> {
+): Promise<GrantedConnection[]> {
     return await db
         .select({
             id: mcpConnectionsTable.id,
             name: mcpConnectionsTable.name,
+            preset: mcpConnectionsTable.preset,
+            url: mcpConnectionsTable.url,
         })
         .from(agentMcpConnectionGrantsTable)
         .innerJoin(

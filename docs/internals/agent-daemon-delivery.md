@@ -7,6 +7,7 @@ read_when:
   - changing which visibility writes or lifecycle facts start and end chat engagement
   - changing automation chain limits (Agent and Trigger wakes) or turn failure retry policy
   - changing how runtime provider or authentication failures are detected
+  - changing the `linear_session` inbox sources or how Linear session events reach an Agent
 ---
 
 # Agent Daemon And Delivery
@@ -41,7 +42,8 @@ Server queued work
   -> accepted ACK
   -> content-free notice (ordinary Chat work)
   -> Agent-chosen local message check (ordinary Chat work)
-  -> concrete typed attention (Cove, committed action, fire, task assignment)
+  -> concrete typed attention (Cove, committed action, fire, task assignment,
+     Linear session event)
   -> exact visibility receipt where applicable
   -> settled proof
   -> Server exact seen evidence + consumption
@@ -292,8 +294,9 @@ answer stays in the automation's fire history and nowhere else.
 
 One Agent admits one turn at a time; different Agents run concurrently.
 Sixteen consecutive drains containing only automation-authored work (Agent
-messages, Trigger fires, and Trigger problem notices: sources `agent:*`,
-`trigger`, and `trigger_problem`) are allowed. The seventeenth remains queued
+messages, Trigger fires, Trigger problem notices, and Linear session events
+another Agent's write started: sources `agent:*`, `trigger`, `trigger_problem`,
+and `linear_session_automated`) are allowed. The seventeenth remains queued
 until human input arrives; human input resets the counter on arrival, and any
 drain containing other work (a human message, a reminder, a task assignment)
 resets it at settlement. Admission judges the drain that will actually run: at
@@ -363,6 +366,33 @@ A rejected start whose run, Agent, runtime, and model identities remain valid
 reports a configuration failure immediately, without acknowledging delivery or
 exposing the rejected payload. Server retains the inbox work for recovery instead
 of leaving the run on Starting work.
+
+## Linear Session Events
+
+A Linear session (someone mentioned or delegated to an Agent in Linear) reaches
+the Agent as an inbox row written by `apps/server/src/linear/session-inbox.ts`,
+inside the delivery worker's routing transaction
+([Linear app](../../specs/linear-app.md#inbox-sources)):
+
+- **Chat.** The DM between the Agent and the workspace's binder (or the
+  Server's longest-standing active Owner), found or created with
+  `ensureAgentDmRecord`. No Chat message is written; a DM created here is
+  announced after commit.
+- **Sources.** `linear_session` when a person caused the event (it resets the
+  chain like a human message) and `linear_session_automated` when the write
+  ledger ties it to a Haus write (it counts against the chain). Both are
+  concrete and bodiless: the envelope is the row's content, capped at 24,000
+  bytes, and Linear's `promptContext` inside it is marked untrusted.
+- **Dedupe.** `linear:<lss id>:<Linear-Delivery>`, so a replayed delivery never
+  queues a second row.
+- **Cancellation.** A session that becomes `complete`, `stopped`,
+  `handed_off`, or `orphaned` deletes its queued rows no run has taken (dedupe
+  prefix `linear:<lss id>:`); a session rerouted to another Agent drops only the
+  previous Agent's.
+
+Linear's 10-second acknowledgment never waits on a Computer: the routing
+transaction enqueues a `session_ack` outbox row and the outbox worker sends it
+first.
 
 ## App Work Projection
 

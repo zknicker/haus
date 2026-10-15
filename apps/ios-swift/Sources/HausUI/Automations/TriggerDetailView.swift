@@ -45,8 +45,17 @@ struct TriggerDetailView: View {
                                     value: AutomationFormatting.githubProblemTitle(problem)
                                 )
                             }
+                            if let problem = trigger.linear?.problem {
+                                AutomationFactRow(
+                                    title: "Problem",
+                                    value: AutomationFormatting.linearProblemTitle(problem)
+                                )
+                            }
                             if let github = trigger.github {
                                 AutomationFactRow(title: "Installation", value: github.installationLogin)
+                            }
+                            if let linear = trigger.linear {
+                                AutomationFactRow(title: "Workspace", value: linear.workspaceName)
                             }
                             AutomationFactRow(
                                 title: "Created by",

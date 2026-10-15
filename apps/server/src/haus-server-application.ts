@@ -21,16 +21,18 @@ import { registerHausHealth } from './haus-health.ts';
 import type { HausServerApplicationOptions } from './haus-server-options.ts';
 import { registerHausServerRoutes } from './haus-server-routes.ts';
 import {
-    type HausServerShutdownResources,
+    emptyHausServerHandles,
+    hausServerShutdownResources,
     makeHausServerShutdown,
 } from './haus-server-shutdown.ts';
 import { registerHausStaticApp } from './haus-static-app.ts';
 import { startHostedMcps } from './hosted-mcp/supervisor.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { createClerkUsers } from './identity/clerk-users.ts';
+import { createLinearServices } from './linear/linear-runtime.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
-import { type ServerRecurringWork, startServerRecurringWork } from './recurring-work.ts';
+import { startServerRecurringWork } from './recurring-work.ts';
 import { tickReminders } from './reminders/scheduler.ts';
 import { makeMcpIconResolver } from './server-mcp/icons.ts';
 import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
@@ -60,45 +62,16 @@ export async function createHausServerApplication(
     });
     const scope = await settle(runtime, Scope.make());
     const shutdown = await settle(runtime, makeHausServerShutdown());
-    let haus: Awaited<ReturnType<typeof connectHausDatabase>> | null = null;
-    let app: FastifyInstance | null = null;
-    let recurringWork: ServerRecurringWork | null = null;
-    let postCommitWork: ServerPostCommitWork | null = null;
+    const handles = emptyHausServerHandles();
     const hostedScope = await settle(runtime, Scope.make());
-    let mcpRuntime: McpRuntime | null = null;
-    let computerSocket: ReturnType<typeof startComputerAttachmentSocket> | null = null;
-    let webSocketServer: ReturnType<typeof startHausWebSocketServer> | null = null;
-    let voiceSocket: ReturnType<typeof startVoiceSocket> | null = null;
-    const resources = {
-        broadcastReconnectNotification: () => webSocketServer?.broadcastReconnectNotification(),
-        closeComputerSocket: () => computerSocket?.close(),
-        closeDatabase: async () => {
-            await haus?.close();
-        },
-        closeFastify: async () => {
-            await app?.close();
-        },
-        closeHostedMcps: () => settle(runtime, Scope.close(hostedScope, Exit.succeed(undefined))),
-        closeHttpConnections: () => app?.server.closeAllConnections(),
-        closeMcpClients: async () => {
-            await mcpRuntime?.close();
-        },
-        closePostCommitWork: async () => {
-            await postCommitWork?.close();
-        },
-        closeRecurringWork: async () => {
-            await recurringWork?.close();
-        },
-        closeWebSocketServer: async () => {
-            await voiceSocket?.close();
-            webSocketServer?.close();
-        },
-    } satisfies HausServerShutdownResources;
+    const resources = hausServerShutdownResources(handles, () =>
+        settle(runtime, Scope.close(hostedScope, Exit.succeed(undefined)))
+    );
 
     try {
         await settle(runtime, Scope.extend(shutdown.register(resources), scope));
         const connectedHaus = await connectHausDatabase(options.databaseUrl);
-        haus = connectedHaus;
+        handles.haus = connectedHaus;
         const artifacts = await openArtifactStorage(options, connectedHaus.db, runtime, scope);
         const { artifactStorage } = artifacts;
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot, runtime);
@@ -110,7 +83,7 @@ export async function createHausServerApplication(
         const computerConnections = new ComputerConnections(runtime);
         const agentDelivery = new AgentDelivery(connectedHaus.db, computerConnections, runtime);
         const startedPostCommitWork = new ServerPostCommitWork(runtime);
-        postCommitWork = startedPostCommitWork;
+        handles.postCommitWork = startedPostCommitWork;
         const avatarImageService = new AvatarImageService(
             options.avatarImageProvider ??
                 new OpenAiAvatarImageProvider({ apiKey: options.openAiApiKey }),
@@ -119,8 +92,23 @@ export async function createHausServerApplication(
         const hostedMcps = options.hostedMcps
             ? await startHostedMcps({ ...options.hostedMcps, runtime, scope: hostedScope })
             : undefined;
-        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, { hostedMcps });
-        mcpRuntime = startedMcpRuntime;
+        // One inbound budget per trigger, shared by the public route, Linear fires,
+        // and the operator's test fire: a test costs exactly what a real delivery does.
+        const triggerRateLimiter = new TriggerRateLimiter();
+        // One refresh owner per process: tools, chips, ingest, and the outbox share it.
+        const linearServices = createLinearServices(options, {
+            agentDelivery,
+            db: connectedHaus.db,
+            postCommitWork: startedPostCommitWork,
+            runtime,
+            triggerRateLimiter,
+        });
+        const { linear } = linearServices;
+        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, {
+            hostedMcps,
+            toolCallTransports: new Map([['linear', linear.transport]]),
+        });
+        handles.mcpRuntime = startedMcpRuntime;
         void startedMcpRuntime.start();
         const mcpIconResolver = makeMcpIconResolver(runtime);
         const wakeAgents = (wakes: { agentId: string; serverId: string }[]) => {
@@ -133,9 +121,6 @@ export async function createHausServerApplication(
             undefined,
             githubSignedInHook(options.githubApp ?? null, connectedHaus.db, wakeAgents)
         );
-        // One inbound budget per trigger, shared by the public route and the
-        // operator's test fire: a test costs exactly what a real delivery does.
-        const triggerRateLimiter = new TriggerRateLimiter();
         const contextDependencies = {
             messageRouter: options.messageRouter,
             agentDelivery,
@@ -155,6 +140,7 @@ export async function createHausServerApplication(
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             githubApp: options.githubApp ?? null,
             hausDb: connectedHaus.db,
+            linear,
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,
@@ -175,7 +161,7 @@ export async function createHausServerApplication(
             isAllowedAppOrigin(origin, options.appOrigin);
 
         const startedApp = Fastify(hausFastifyOptions);
-        app = startedApp;
+        handles.app = startedApp;
 
         await startedApp.register(cors, {
             credentials: true,
@@ -190,6 +176,7 @@ export async function createHausServerApplication(
             createContext,
             githubIngest,
             imageGenerationAdapters: options.imageGenerationAdapters,
+            linearWebhook: linearServices.webhook,
             releaseIdentity: options.releaseIdentity,
         });
 
@@ -198,8 +185,8 @@ export async function createHausServerApplication(
             isAllowedOrigin,
             socketSessionGraceMs: options.socketSessionGraceMs,
         });
-        webSocketServer = startedWebSocketServer;
-        voiceSocket = startVoiceSocket(startedApp.server, {
+        handles.webSocketServer = startedWebSocketServer;
+        handles.voiceSocket = startVoiceSocket(startedApp.server, {
             apiKey: options.openAiApiKey,
             connectLive: options.connectLive,
             createContext,
@@ -214,7 +201,7 @@ export async function createHausServerApplication(
             options.thoughtSummarizer ?? null,
             options.computerSocketLiveness
         );
-        computerSocket = startedComputerSocket;
+        handles.computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, shutdown, {
             appOrigin: options.appOrigin,
@@ -224,12 +211,13 @@ export async function createHausServerApplication(
             githubApp: options.githubApp ?? null,
             githubIngest,
             githubRecoveryIntervalMs: options.githubRecoveryIntervalMs,
+            linearWorkers: linearServices.workers,
             pushReadGraceMs: options.pushReadGraceMs,
             pushSender: options.pushSender ?? null,
             timers: options.sweepTimers,
             wakeAgents,
         });
-        recurringWork = await startServerRecurringWork({
+        handles.recurringWork = await startServerRecurringWork({
             delivery: agentDelivery,
             reminderClock,
             reminderTick: () => tickReminders(connectedHaus.db, reminderClock, agentDelivery),
@@ -242,7 +230,7 @@ export async function createHausServerApplication(
             5000,
             () => {
                 return (
-                    recurringWork?.reminderHealth() ?? {
+                    handles.recurringWork?.reminderHealth() ?? {
                         consecutiveFailures: 1,
                         lastSuccessfulTickAt: null,
                         status: 'degraded' as const,

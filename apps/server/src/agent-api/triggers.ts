@@ -3,16 +3,19 @@ import type {
     AgentTriggerCreateInput,
     AgentTriggerUpdateInput,
     GithubTriggerPreviewInput,
+    LinearTriggerPreviewInput,
     Trigger,
     TriggerStatus,
 } from '@haus/api';
 import type { FastifyRequest } from 'fastify';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { previewGithubTrigger } from '../triggers/github-trigger-preview.ts';
+import { previewLinearTrigger } from '../triggers/linear-trigger-preview.ts';
+import type { TriggerAuthoringServices } from '../triggers/operator-triggers.ts';
 import {
     createAgentGithubTrigger,
+    createAgentLinearTrigger,
     createTrigger,
     deleteTrigger,
     rotateTriggerSecret,
@@ -26,16 +29,19 @@ import {
     readTriggerFire,
 } from '../triggers/trigger-queries.ts';
 import { publicOrigin, triggerCurlCommand } from '../triggers/trigger-url.ts';
+import { resolveAgentLinearConfig } from './linear-trigger-workspace.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { targetForChat } from './message-view.ts';
 
 const clock = { now: () => new Date() };
 
+/** A GitHub body with its event name, or a raw Linear body; nothing fires. */
 export async function previewAgentTrigger(
     db: HausDatabase,
+    services: TriggerAuthoringServices,
     runner: ResolvedRunner,
     request: FastifyRequest,
-    input: GithubTriggerPreviewInput & { triggerId: string }
+    input: (GithubTriggerPreviewInput | LinearTriggerPreviewInput) & { triggerId: string }
 ) {
     const trigger = await readOwnedTrigger(db, {
         agentId: runner.agentId,
@@ -43,7 +49,15 @@ export async function previewAgentTrigger(
         serverId: runner.serverId,
         triggerId: input.triggerId,
     });
-    return await previewGithubTrigger(db, runner.serverId, trigger, input);
+    if ('event' in input) {
+        return await previewGithubTrigger(db, runner.serverId, trigger, input);
+    }
+    return await previewLinearTrigger(services.linear, {
+        now: clock.now(),
+        payload: input.payload,
+        serverId: runner.serverId,
+        trigger,
+    });
 }
 
 export async function updateAgentTrigger(
@@ -51,12 +65,28 @@ export async function updateAgentTrigger(
     runner: ResolvedRunner,
     request: FastifyRequest,
     input: AgentTriggerUpdateInput & { triggerId: string },
-    githubTransport: GithubApiTransport
+    services: TriggerAuthoringServices
 ) {
+    const origin = publicOrigin(request);
+    const { linear, ...edit } = input;
+    const resolved = linear
+        ? {
+              linear: await resolveAgentLinearConfig(db, runner, linear, async () => {
+                  const owned = await readOwnedTrigger(db, {
+                      agentId: runner.agentId,
+                      origin,
+                      serverId: runner.serverId,
+                      triggerId: input.triggerId,
+                  });
+                  return owned.kind === 'linear' ? owned.linear.connectionId : null;
+              }),
+          }
+        : {};
     const trigger = await updateAgentOwnedTrigger(
-        { db, transport: githubTransport },
+        db,
+        services,
         runner.agentId,
-        { ...input, origin: publicOrigin(request), serverId: runner.serverId },
+        { ...edit, ...resolved, origin, serverId: runner.serverId },
         clock
     );
     return { trigger: await toAgentTrigger(db, runner.serverId, trigger) };
@@ -67,12 +97,29 @@ export async function createAgentTrigger(
     runner: ResolvedRunner,
     request: FastifyRequest,
     input: AgentTriggerCreateInput,
-    githubTransport: GithubApiTransport = {}
+    services: TriggerAuthoringServices
 ) {
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
+    if (input.kind === 'linear') {
+        const created = await createAgentLinearTrigger(
+            services.linear,
+            runner.agentId,
+            {
+                anchorChatId: anchor.chat_id,
+                anchorMessageId: anchor.id,
+                instruction: input.instruction ?? null,
+                linear: await resolveAgentLinearConfig(db, runner, input.linear),
+                origin: publicOrigin(request),
+                serverId: runner.serverId,
+                title: input.title,
+            },
+            clock
+        );
+        return { trigger: await toAgentTrigger(db, runner.serverId, created) };
+    }
     if (input.kind === 'github') {
         const created = await createAgentGithubTrigger(
-            { db, transport: githubTransport },
+            { db, transport: services.githubTransport },
             runner.agentId,
             {
                 anchorChatId: anchor.chat_id,

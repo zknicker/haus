@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { McpPreset } from '@haus/api';
+import { emptySecret, type McpSecret } from './connection-secret.ts';
 import { createMcpOAuthProvider, startMcpAuthorization } from './oauth.ts';
-import { emptySecret, type McpRuntime, type McpSecret } from './runtime.ts';
+import type { McpRuntime } from './runtime.ts';
 
 const redirectUrl = 'https://haus.chat/mcp/oauth/callback';
 const githubMcpUrl = 'https://api.githubcopilot.com/mcp/';

@@ -1323,7 +1323,7 @@ paths:
     post:
       operationId: previewAgentTrigger
       tags: [Agent CLI]
-      summary: Preview GitHub selection without recording a fire or waking the Agent.
+      summary: Preview GitHub or Linear selection without recording a fire or waking the Agent.
       parameters:
         - $ref: '#/components/parameters/TriggerId'
       requestBody:
@@ -1331,14 +1331,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GithubTriggerPreviewRequest'
+              oneOf:
+                - $ref: '#/components/schemas/GithubTriggerPreviewRequest'
+                - $ref: '#/components/schemas/LinearTriggerPreviewRequest'
       responses:
         '200':
-          description: Match groups and current cached repository scope; ignores runtime readiness.
+          description: Matching groups for the Trigger's kind; ignores runtime readiness.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GithubTriggerPreviewResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/GithubTriggerPreviewResponse'
+                  - $ref: '#/components/schemas/LinearTriggerPreviewResponse'
         default:
           $ref: '#/components/responses/AgentError'
   /api/agent/triggers/{id}/disable:
@@ -2431,16 +2435,18 @@ components:
         target: { type: string, minLength: 1 }
     TriggerKind:
       type: string
-      enum: [webhook, github]
+      enum: [webhook, github, linear]
     Trigger:
       discriminator:
         propertyName: kind
         mapping:
           webhook: '#/components/schemas/WebhookTrigger'
           github: '#/components/schemas/GithubTrigger'
+          linear: '#/components/schemas/LinearTrigger'
       oneOf:
         - $ref: '#/components/schemas/WebhookTrigger'
         - $ref: '#/components/schemas/GithubTrigger'
+        - $ref: '#/components/schemas/LinearTrigger'
     WebhookTrigger:
       type: object
       additionalProperties: false
@@ -2488,6 +2494,143 @@ components:
         title: { type: string, maxLength: 200 }
         updatedAt: { type: string, format: date-time }
         version: { type: integer, minimum: 1 }
+    LinearTrigger:
+      type: object
+      additionalProperties: false
+      required: [anchorChatId, anchorMessageId, createdAt, createdByHandle, createdByUserId, disabledAt, fireCount, id, instruction, kind, lastFiredAt, linear, ownerAgentId, ownerHandle, status, title, updatedAt, version]
+      properties:
+        anchorChatId: { type: string }
+        anchorMessageId: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        createdByHandle: { type: [string, 'null'] }
+        createdByUserId: { type: [string, 'null'] }
+        disabledAt: { type: [string, 'null'], format: date-time }
+        fireCount: { type: integer, minimum: 0 }
+        id: { type: string }
+        instruction: { type: [string, 'null'] }
+        kind: { type: string, enum: [linear] }
+        lastFiredAt: { type: [string, 'null'], format: date-time }
+        linear:
+          $ref: '#/components/schemas/LinearTriggerView'
+        ownerAgentId: { type: string }
+        ownerHandle: { type: string }
+        status: { type: string, enum: [armed, disabled] }
+        title: { type: string, maxLength: 200 }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    LinearTriggerView:
+      type: object
+      additionalProperties: false
+      required: [connectionId, display, groups, problem, problemSince, selfSuppressedCount, suppressedCount, workspaceName]
+      properties:
+        connectionId: { type: [string, 'null'], description: Null once the workspace is removed. }
+        display:
+          type: object
+          description: A name snapshot per stored id (Linear ids and Haus Agent ids), for rendering only.
+          additionalProperties: { type: string }
+        groups:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/LinearTriggerGroup'
+        problem:
+          type: [string, 'null']
+          enum: [workspace_removed, sign_in_required, agent_access_revoked, teams_unavailable, references_unavailable, null]
+        problemSince: { type: [string, 'null'], format: date-time }
+        selfSuppressedCount: { type: integer, minimum: 0 }
+        suppressedCount: { type: integer, minimum: 0 }
+        workspaceName: { type: string }
+    LinearAgentRef:
+      type: object
+      additionalProperties: false
+      required: [agent]
+      properties:
+        agent: { type: string, description: A Haus Agent id. }
+    LinearTriggerGroup:
+      type: object
+      description: One stored AND group of stable ids, ORed with other groups; see specs/linear-triggers.md#events. Event filters apply only to their event (issue changed/stateFrom/stateTo/stateTypes, comment onIssueDelegatedTo, project changed/projectStatuses).
+      required: [actions, event]
+      properties:
+        event: { type: string, enum: [issue, comment, project] }
+        actions:
+          type: array
+          minItems: 1
+          items: { type: string, enum: [create, update, remove] }
+        teams: { type: array, items: { type: string } }
+        projects: { type: array, items: { type: string } }
+        labels: { type: array, items: { type: string } }
+        labelsIgnore: { type: array, items: { type: string } }
+        assignees: { type: array, items: { type: string } }
+        delegates: { type: array, items: { $ref: '#/components/schemas/LinearAgentRef' } }
+        onIssueDelegatedTo: { type: array, items: { $ref: '#/components/schemas/LinearAgentRef' } }
+        actors:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/LinearAgentRef'
+              - { type: object, additionalProperties: false, required: [linearUser], properties: { linearUser: { type: string } } }
+        actorsIgnore:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/LinearAgentRef'
+              - { type: object, additionalProperties: false, required: [linearUser], properties: { linearUser: { type: string } } }
+        changed: { type: array, items: { type: string } }
+        stateFrom: { type: array, items: { type: string } }
+        stateTo: { type: array, items: { type: string } }
+        stateTypes: { type: array, items: { type: string, enum: [triage, backlog, unstarted, started, completed, canceled] } }
+        projectStatuses: { type: array, items: { type: string } }
+    LinearTriggerGroupInput:
+      type: object
+      description: One authoring group. Values are names, team keys, project names or URLs, emails, and Agent selectors (@self, @agent:<handle>) that the Server resolves to stable ids; each list holds 1 to 20 values. An absent actions list takes the event's default (issue and comment create, project update).
+      required: [event]
+      properties:
+        event: { type: string, enum: [issue, comment, project] }
+        actions:
+          type: array
+          minItems: 1
+          items: { type: string, enum: [create, update, remove] }
+        teams: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        projects: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        labels: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        labelsIgnore: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        assignees: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        delegates: { type: array, minItems: 1, maxItems: 20, items: { type: string, pattern: '^@(self|agent:[A-Za-z0-9._-]{1,64})$' } }
+        onIssueDelegatedTo: { type: array, minItems: 1, maxItems: 20, items: { type: string, pattern: '^@(self|agent:[A-Za-z0-9._-]{1,64})$' } }
+        actors: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        actorsIgnore: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        changed: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        stateFrom: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        stateTo: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        stateTypes: { type: array, minItems: 1, maxItems: 20, items: { type: string, enum: [triage, backlog, unstarted, started, completed, canceled] } }
+        projectStatuses: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+    LinearTriggerConfigInput:
+      type: object
+      additionalProperties: false
+      required: [groups]
+      properties:
+        workspace: { type: string, minLength: 1, description: "The Linear workspace url key; optional when the Agent has exactly one granted workspace, and on update when keeping the current one." }
+        groups:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/LinearTriggerGroupInput'
+    LinearTriggerPreviewRequest:
+      type: object
+      additionalProperties: false
+      required: [payload]
+      properties:
+        payload: { type: object, additionalProperties: true, description: A raw Linear webhook body under 60,000 bytes; its type names the event. }
+    LinearTriggerPreviewResponse:
+      type: object
+      additionalProperties: false
+      required: [groups, matched]
+      properties:
+        groups: { type: array, items: { type: integer, minimum: 0 } }
+        matched: { type: boolean }
+        reason: { type: string, description: 'unsupported_event, unreadable_payload, team_outside_access, no_group_matched, or own_change.' }
     GithubTriggerEvent:
       type: object
       description: One AND group, ORed with other groups. Event names may repeat. Name patterns accept *, **, and ?; branch @default follows the repository default branch. Exclusions override includes inside the group. Each event takes its own actions and filters; see specs/github-triggers.md#events.
@@ -2700,6 +2843,9 @@ components:
         github:
           $ref: '#/components/schemas/AgentGithubTriggerConfigInput'
           description: Required exactly when kind is github.
+        linear:
+          $ref: '#/components/schemas/LinearTriggerConfigInput'
+          description: Required exactly when kind is linear.
         messageId: { type: string, minLength: 1 }
         title: { type: string, minLength: 1, maxLength: 200 }
     AgentTriggerUpdateRequest:
@@ -2711,6 +2857,8 @@ components:
         instruction: { type: [string, 'null'], maxLength: 4096, description: 'Null or empty clears it; at most 4096 UTF-8 bytes.' }
         github:
           $ref: '#/components/schemas/AgentGithubTriggerConfigInput'
+        linear:
+          $ref: '#/components/schemas/LinearTriggerConfigInput'
     GithubTriggerPreviewRequest:
       type: object
       additionalProperties: false

@@ -33,16 +33,18 @@ or Attachments page's chat mark (the tooltip adds `#name › thread`, or `DM ›
 record in Files loads), or a web page's favicon (a spinner while it loads, a globe when it has none). A tab whose
 record is still loading keeps an empty mark slot and title.
 
-Each pane's row sits in the band directly over its pane and always shows, even with one tab. A row
-never scrolls: every tab holds one width basis and shrinks evenly down to mark-only tabs, the
-selected tab keeps its close button, and the row's plus button stays pinned after the last tab. Each
-page keeps its own band at the top of its pane, under the rows; because the tab names the page, band
-content drops what repeats that identity and keeps only controls or a more specific title. A band
-its page leaves empty collapses, so the page starts at the top of its pane: a Chat, DM, Inbox,
-Agent profile hub, Thread, Attachments, or workspace page shows no band. An Agent profile section keeps
-its trail and actions in the band, except Workspace: its bar (breadcrumb, file controls, and "…"
-menu) sits over the content column in band chrome so the file rail reaches the top of the pane,
-and the band collapses. A Chat's actions live in its tab's
+Each pane's row sits in the band directly over its pane and always shows, even with one tab. The
+window's one Back and Forward sit over the sidebar beside the traffic lights: they step the focused
+pane's selected tab (a web page's own history first, then the tab's), follow focus and tab
+switches, and sit in the same place over every page, a chat included. With two panes the unfocused
+row's selected tab reads muted, so the focused pane is always evident. A row never scrolls: every tab holds one
+width basis and shrinks evenly down to mark-only tabs, the selected tab keeps its close button, and
+the row's plus button stays pinned after the last tab. Each page keeps its own band at the top of
+its pane, under the rows: the same page band the web shows (Haus › section › … › page, then the
+page's controls). A conversation shows no band, so it starts at the top of its pane: a Chat, DM,
+Thread, Attachments, or workspace page. The Agent Workspace draws its bar (breadcrumb, file
+controls, and "…" menu) over the content column in band chrome so the file rail reaches the top of
+the pane, and the band collapses. A Chat's actions live in its tab's
 context menu and in its sidebar row's context menu. A sidebar chat or DM row's menu offers Open,
 Open in new tab (the same background tab as Command-clicking the row, as Chrome's link and bookmark
 menus open one), and Open on the right (see [Where things open](#where-things-open)).
@@ -207,7 +209,7 @@ elsewhere; on macOS other Control combos stay with the page's text bindings.
 | Command-Shift-W | Close the window |
 | Command-1 … Command-9 | Select a tab in the focused pane's row; 9 selects its last |
 | Control-Tab / Control-Shift-Tab, Command-Shift-] / [, Command-Option-Right / Left | Next / previous tab in the focused pane |
-| Command-[ / Command-], swipe between pages, mouse back / forward buttons | Back / forward in the focused pane: a web page's own history first, then the tab's (mouse buttons act only over App pages) |
+| Command-[ / Command-], swipe between pages, mouse back / forward buttons, the title bar's chevrons | Back / forward in the focused pane: a web page's own history first, then the tab's (mouse buttons act only over App pages) |
 | Command-L | Focus and select a web page's address |
 | Command-R | Reload the web page; refetch an App page's data |
 | Command-Shift-R | Reload bypassing the cache (web page only) |
@@ -225,18 +227,18 @@ the toolbar shows its zoom level; pressing it resets.
 ## New tab page
 
 Command-T and a row's plus button open a new tab at the end of the focused pane's row (Chrome's rule; links and Command-click stay after the current tab), on the
-new tab page ("New tab", a globe mark): a pure browser start page. Its toolbar holds Back, Forward,
-and the address field, which takes focus whenever the page is shown in the focused pane; up to
+new tab page ("New tab", a globe mark): a pure browser start page. Its toolbar holds the address
+field, which takes focus whenever the page is shown in the focused pane; up to
 eight recently visited sites (one tile per site, reopening its latest page) sit a third of the way
 down. Enter commits the field by the address rules below; Escape clears it; leaving it rests it.
 Choosing an address or a site turns that same tab into the web page, so Back (Command-[ or the
-toolbar arrow) returns to the start page. The page shows nothing chat-related: the sidebar and
+title bar's chevron) returns to the start page. The page shows nothing chat-related: the sidebar and
 Command-K cover chats, and navigate a new tab page in the left pane in place like any other tab. It persists,
 closes, and reopens like any tab.
 
 ## Web pages
 
-Each web page has one compact toolbar row: Back, Forward (the page's own history, then the tab's), Reload (Stop while loading, with a thin
+Each web page has one compact toolbar row (Back and Forward are the title bar's): Reload (Stop while loading, with a thin
 fading loading line), an address field, and Open in default browser. At rest the address shows a
 condensed label (host and path, without scheme, `www.`, query, or trailing slash; IDN hosts stay in
 punycode). Focusing it shows the full URL, selected, over up to eight recent pages. Typing replaces

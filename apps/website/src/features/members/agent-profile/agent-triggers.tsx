@@ -1,9 +1,10 @@
-import type { Agent } from '@haus/api';
+import type { Agent, TriggerKind } from '@haus/api';
 import { Button, Separator, Tooltip } from '@heroui/react';
 import {
     Add01Icon,
     GithubIcon,
     HistoryIcon,
+    Task01Icon,
     WebhookIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -22,6 +23,12 @@ import { AutomationRow } from './automation-row.tsx';
 import { ProfileListSection } from './profile-list-section.tsx';
 import { TriggerHistoryDrawer } from './trigger-history-drawer.tsx';
 import { TriggerSheet } from './trigger-sheet.tsx';
+
+const triggerKindIcons = {
+    github: GithubIcon,
+    linear: Task01Icon,
+    webhook: WebhookIcon,
+} as const satisfies Record<TriggerKind, unknown>;
 
 /** The Agent's inbound webhook and GitHub wakes, authored here or from the `haus` CLI. */
 export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerDetail }) {
@@ -90,7 +97,7 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                             {/* Every action on a Trigger lives in the sheet its row
                                 opens, so there is one place a Trigger is operated. */}
                             <AutomationRow
-                                icon={trigger.kind === 'github' ? GithubIcon : WebhookIcon}
+                                icon={triggerKindIcons[trigger.kind]}
                                 kind="trigger"
                                 onPress={
                                     canManage

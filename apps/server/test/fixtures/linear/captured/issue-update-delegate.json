@@ -1,0 +1,81 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "e235fd1d-0375-4d69-9091-e0eeb74843d2",
+    "linear-event": "Issue",
+    "linear-signature": "a01c8d6acbc200e2f969e9b9576ba929d0923c7a7ef130e79212e4eabcf51b80",
+    "linear-timestamp": "1792083067105"
+  },
+  "body": {
+    "action": "update",
+    "actor": {
+      "id": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "name": "Haus Dev",
+      "email": "c639344c-21df-41e2-9777-8dc93d249999@oauthapp.linear.app",
+      "url": "https://linear.app/haus-chat/profiles/hausdev",
+      "type": "user"
+    },
+    "createdAt": "2026-10-15T16:51:06.806Z",
+    "updatedFrom": {
+      "updatedAt": "2026-10-15T16:51:03.312Z",
+      "subscriberIds": [],
+      "delegateId": null
+    },
+    "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst",
+    "type": "Issue",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "data": {
+      "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "createdAt": "2026-10-15T16:50:59.741Z",
+      "updatedAt": "2026-10-15T16:51:06.805Z",
+      "number": 11,
+      "title": "Fixture: design HTST",
+      "priority": 0,
+      "sortOrder": -1918,
+      "prioritySortOrder": -7045,
+      "startedAt": "2026-10-15T16:51:01.468Z",
+      "slaType": "all",
+      "addedToTeamAt": "2026-10-15T16:50:59.779Z",
+      "labelIds": ["704a1876-a9b0-45e5-8675-ebc4e350e72c"],
+      "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+      "previousIdentifiers": [],
+      "delegateId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "stateId": "9090cdfc-dd10-42fa-96aa-d71eac198e55",
+      "reactionData": [],
+      "priorityLabel": "No priority",
+      "inheritsSharedAccess": false,
+      "botActor": "{\"id\":\"af943b1c0c19bc247d377df9ec5b4313\",\"type\":\"oauthClient\",\"name\":\"Haus Dev\",\"userDisplayName\":\"Juniper\"}",
+      "identifier": "HTST-11",
+      "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst",
+      "subscriberIds": ["ea30be86-13ea-4566-9ef5-1b8a0f411298"],
+      "delegate": {
+        "id": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+        "name": "Haus Dev",
+        "email": "c639344c-21df-41e2-9777-8dc93d249999@oauthapp.linear.app",
+        "url": "https://linear.app/haus-chat/profiles/hausdev"
+      },
+      "state": {
+        "id": "9090cdfc-dd10-42fa-96aa-d71eac198e55",
+        "color": "#5e6ad2",
+        "name": "Haus Probe Renamed",
+        "type": "started"
+      },
+      "team": {
+        "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "key": "HTST",
+        "name": "Haus Test"
+      },
+      "labels": [
+        {
+          "id": "704a1876-a9b0-45e5-8675-ebc4e350e72c",
+          "color": "#5e6ad2",
+          "name": "Juniper",
+          "parentId": "42d01b03-8b7a-4118-8003-8223278a806a"
+        }
+      ],
+      "releases": []
+    },
+    "webhookTimestamp": 1792083067105,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

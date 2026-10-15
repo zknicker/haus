@@ -6,6 +6,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fakeLinearOrigin } from '../agent-tests/fake-linear.mjs';
 import { resolveDevPorts } from '../dev-ports.mjs';
 
 const bootTimeoutMs = 6 * 60_000;
@@ -39,7 +40,8 @@ export async function bootStack({ logFile, root, stackId }) {
     const log = createWriteStream(logFile, { flags: 'a' });
     const child = spawn('node', ['scripts/run-dev-stack.mjs', 'web'], {
         cwd: root,
-        env: stackEnvironment(stackId),
+        // Linear scenarios serve a fake Linear here; nothing reaches api.linear.app.
+        env: stackEnvironment(stackId, { HAUS_LINEAR_API_ORIGIN: fakeLinearOrigin(ports) }),
         stdio: ['ignore', 'pipe', 'pipe'],
     });
     const output = { stopped: false, text: '' };
