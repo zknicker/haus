@@ -1,6 +1,6 @@
 import type { ArtifactFolderEntry, ArtifactMetadata } from '@haus/api';
 import { Tooltip } from '@heroui/react';
-import { ListBox, ListBoxItem } from 'react-aria-components';
+import { GridListItem, GridListSection } from 'react-aria-components';
 import { useArtifactThumbnailUrls } from '../../hooks/artifacts/use-artifact-thumbnails.ts';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { hasLibraryPreview } from './artifact-format.ts';
@@ -8,53 +8,43 @@ import { ArtifactInlineRename } from './artifact-inline-rename.tsx';
 import { artifactFolderTone, artifactFolderWithin, middleTruncatedName } from './drive-folders.ts';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import { ArtifactFolderIcon } from './icons/artifact-folder-icon.tsx';
-import {
-    type LibrarySelection,
-    librarySelectionProps,
-    useOpenInTabPress,
-} from './library-selection.ts';
+import { useOpenInTabPress } from './library-selection.ts';
 import { useDecodedImages } from './use-decoded-image.ts';
 
 /**
- * The open folder's child folders (or a search's matching folders), Finder's
- * icon view: each tile peeks a few of its newest files and counts what is
- * inside under the current filters. A click selects a tile and a double click
- * or Return opens it (a touch tap opens at once); right-clicking it opens the
- * library's folder menu, and a tile being renamed shows its name as a field.
+ * The open folder's child folders (or a search's matching folders) as the
+ * first section of the library's collection, Finder's icon view: each tile
+ * peeks a few of its newest files and counts what is inside under the current
+ * filters. Tiles select, open, and take dropped items like every other item;
+ * the tile under a drag of library items lights up (`dropTarget`), and a tile
+ * being renamed shows its name as a field.
  */
-export function ArtifactFolderRow({
+export function ArtifactFolderSection({
+    dropTarget,
     folder,
     folders,
     onOpen,
     previews,
-    selection,
     serverId,
 }: {
+    /** The folder tile a drag of library items is over, if any. */
+    dropTarget: string | null;
     /** The open folder, so a search hit deeper down names where it sits. */
     folder: string;
     folders: readonly ArtifactFolderEntry[];
     onOpen: (path: string) => void;
     previews: ReadonlyMap<string, ArtifactMetadata[]>;
-    selection: LibrarySelection;
     serverId: string;
 }) {
     const openInTabPress = useOpenInTabPress();
     return (
-        <ListBox
-            aria-label="Folders"
-            className="artifact-folder-row"
-            items={folders.map((entry) => ({ ...entry, id: entry.path }))}
-            onAction={(key) => onOpen(String(key))}
-            orientation="horizontal"
-            {...librarySelectionProps(
-                selection,
-                folders.map((entry) => entry.path)
-            )}
-        >
-            {(entry) => (
-                <ListBoxItem
+        <GridListSection aria-label="Folders" className="artifact-folder-row" id="folders">
+            {folders.map((entry) => (
+                <GridListItem
                     className="artifact-tile artifact-tile--folder artifact-folder-trigger"
+                    data-move-target={dropTarget === entry.path || undefined}
                     id={entry.path}
+                    key={entry.path}
                     onPress={openInTabPress(() => onOpen(entry.path))}
                     textValue={entry.name}
                 >
@@ -64,9 +54,9 @@ export function ArtifactFolderRow({
                         serverId={serverId}
                         within={artifactFolderWithin(entry.path, folder)}
                     />
-                </ListBoxItem>
-            )}
-        </ListBox>
+                </GridListItem>
+            ))}
+        </GridListSection>
     );
 }
 

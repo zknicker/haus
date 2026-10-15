@@ -7,6 +7,7 @@ import {
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
+import { useArtifactZipDownload } from '../../hooks/artifacts/use-artifact-zip-download.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { appLink } from '../servers/server-routes.ts';
 import { useRowTabOpeners } from '../shell/open-in-new-tab-item.tsx';
@@ -22,7 +23,7 @@ import {
 import { ArtifactDeleteDialog, type ArtifactDeleteTarget } from './artifact-delete-dialog.tsx';
 import { artifactPath } from './artifact-format.ts';
 import { copyArtifactLink, copyArtifactPathText } from './artifact-link.ts';
-import { ArtifactMoveDialog } from './artifact-move-dialog.tsx';
+import { ArtifactMoveDialog, type ArtifactMoveTarget } from './artifact-move-dialog.tsx';
 import type { ArtifactRenameTarget } from './artifact-rename.ts';
 import { ArtifactRenameDialog } from './artifact-rename-dialog.tsx';
 import { rememberLibraryItem } from './library-focus.ts';
@@ -76,9 +77,10 @@ export function useArtifactActions(input: {
     const navigate = useNavigate();
     const tabs = useRowTabOpeners();
     const { saveFile } = useArtifactSave(serverId);
+    const { downloadZip } = useArtifactZipDownload(serverId);
     const publicLinks = usePublicLinkActions(serverId);
     const [renaming, setRenaming] = React.useState<ArtifactRenameTarget | null>(null);
-    const [moving, setMoving] = React.useState<ArtifactRenameTarget | null>(null);
+    const [moving, setMoving] = React.useState<ArtifactMoveTarget | null>(null);
     const [deleting, setDeleting] = React.useState<
         (ArtifactDeleteTarget & { path: string }) | null
     >(null);
@@ -150,7 +152,7 @@ export function useArtifactActions(input: {
                     setRenaming(fileTarget(file));
                     return;
                 case 'move':
-                    setMoving(fileTarget(file));
+                    setMoving([fileTarget(file)]);
                     return;
                 case 'history':
                     // The viewer scrolls its own Revisions into view; the library opens it there.
@@ -174,6 +176,10 @@ export function useArtifactActions(input: {
                 case 'open':
                     onOpenFolder?.(path);
                     return;
+                case 'download':
+                    // The zip names the folder itself, so it unpacks into a folder of that name.
+                    void downloadZip({ paths: [path], root: artifactPathParent(path) });
+                    return;
                 case 'open-new-tab':
                     tabs?.openInNewTab(libraryHref(slug, folderView(path)));
                     return;
@@ -190,7 +196,7 @@ export function useArtifactActions(input: {
                     setRenaming({ kind: 'folder', path });
                     return;
                 case 'move':
-                    setMoving({ kind: 'folder', path });
+                    setMoving([{ kind: 'folder', path }]);
                     return;
             }
         },

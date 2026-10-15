@@ -6,12 +6,21 @@ import type { ReactNode } from 'react';
  * where you are and never links, whatever it carries.
  */
 export interface BandCrumb {
+    /** The crumb takes drops from its page (Files moves dragged items into a folder crumb). */
+    drop?: BandCrumbDrop;
     href?: string;
     /** Plain text: a folded crumb lists it in a menu, and it is the tooltip-free name. */
     label: string;
     /** A record's face (an Agent, a member) drawn before the label; never folded. */
     mark?: ReactNode;
     onPress?: () => void;
+}
+
+/** How a crumb takes a drag: whether the drag in progress may land on it, and the landing. */
+export interface BandCrumbDrop {
+    /** Checked on every dragover with the drag's types; false leaves the drop refused. */
+    accepts: (types: readonly string[]) => boolean;
+    onDrop: () => void;
 }
 
 /** The trail as drawn: leading crumbs, the folded middle (empty when none), trailing crumbs. */

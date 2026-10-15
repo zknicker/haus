@@ -41,6 +41,7 @@ export type FileActionId =
     | 'delete';
 
 export type FolderActionId =
+    | 'download'
     | 'open'
     | 'open-new-tab'
     | 'show-in-folder'
@@ -132,10 +133,29 @@ export function folderActions(context: ItemActionContext): ArtifactAction<Folder
         context.canShowInFolder
             ? { group: 0, icon: FolderOpenIcon, id: 'show-in-folder', label: 'Show in folder' }
             : null,
+        { group: 1, icon: Download01Icon, id: 'download', label: 'Download as zip' },
         { group: 1, icon: CopyLinkIcon, id: 'copy-link', label: 'Copy link' },
         { group: 1, icon: Copy01Icon, id: 'copy-path', label: 'Copy path' },
         { group: 2, icon: Edit02Icon, id: 'rename', label: 'Rename' },
         { group: 2, icon: FolderTransferIcon, id: 'move', label: 'Move to…' },
+    ];
+    return actions.filter((action) => action !== null);
+}
+
+/** What a selection of several items offers; single-item actions (Open, Rename…) drop out. */
+export type SelectionActionId = 'download' | 'copy-links' | 'move' | 'delete';
+
+export function selectionActions(access: {
+    /** Selected files this member may delete; Delete… is hidden when there are none. */
+    deletable: number;
+}): ArtifactAction<SelectionActionId>[] {
+    const actions: (ArtifactAction<SelectionActionId> | null)[] = [
+        { group: 0, icon: Download01Icon, id: 'download', label: 'Download as zip' },
+        { group: 0, icon: CopyLinkIcon, id: 'copy-links', label: 'Copy links' },
+        { group: 1, icon: FolderTransferIcon, id: 'move', label: 'Move to…' },
+        access.deletable > 0
+            ? { danger: true, group: 2, icon: Delete02Icon, id: 'delete', label: 'Delete…' }
+            : null,
     ];
     return actions.filter((action) => action !== null);
 }

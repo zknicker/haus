@@ -4,7 +4,7 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 const moveMessages: Partial<Record<string, string>> = {
     PATH_CONFLICT: 'That name collides with a file or folder in the way.',
     PATH_TAKEN: 'Something with that name is already here.',
-    REVISION_CONFLICT: 'The file changed while you were renaming it. Try again.',
+    REVISION_CONFLICT: 'A file changed in the meantime. Try again.',
 };
 
 /** A refused move in words: the drive's reason when it names one, else the error's message. */

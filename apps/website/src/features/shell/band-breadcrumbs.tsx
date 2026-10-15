@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { inboxRoute } from '../servers/server-routes.ts';
 import { type BandCrumb, collapseTrail, crumbKey } from './band-trail.ts';
+import { CrumbDropTarget } from './crumb-drop-target.tsx';
 
 /**
  * Where you are, as one trail that always starts at the product: "Haus" (the
@@ -58,15 +59,15 @@ function linkedCrumb(crumb: BandCrumb) {
 
 /** A member or Agent leads with their face everywhere else in the app, so their crumb does too. */
 function CrumbLabel({ crumb }: { crumb: BandCrumb }) {
-    if (!crumb.mark) {
-        return crumb.label;
-    }
-    return (
+    const label = crumb.mark ? (
         <span className="flex min-w-0 items-center gap-1.5">
             {crumb.mark}
             <span className="min-w-0 truncate">{crumb.label}</span>
         </span>
+    ) : (
+        crumb.label
     );
+    return crumb.drop ? <CrumbDropTarget drop={crumb.drop}>{label}</CrumbDropTarget> : label;
 }
 
 const separatorClassName = breadcrumbsVariants().separator();

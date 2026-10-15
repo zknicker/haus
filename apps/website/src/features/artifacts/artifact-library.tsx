@@ -1,49 +1,60 @@
-import { type ArtifactRecord, artifactPathBasename, artifactPathParent } from '@haus/api';
-import { useDeferredValue, useRef, useState } from 'react';
+import {
+    type ArtifactRecord,
+    artifactBatchMaxItems,
+    artifactPathBasename,
+    artifactPathParent,
+} from '@haus/api';
+import * as React from 'react';
+import type { Selection } from 'react-aria-components';
 import { useNavigate } from 'react-router-dom';
 import { useArtifactLibrary } from '../../hooks/artifacts/use-artifact-library.ts';
 import { useArtifactUpload } from '../../hooks/artifacts/use-artifact-upload.ts';
-import type { BandCrumb } from '../shell/band-trail.ts';
 import { PageBand } from '../shell/page-band.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
 import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { ArtifactLibraryContent } from './artifact-library-content.tsx';
 import { ArtifactLibraryContextMenu } from './artifact-library-context-menu.tsx';
 import { ArtifactLibraryControls } from './artifact-library-controls.tsx';
+import { ArtifactSelectionBar } from './artifact-selection-bar.tsx';
 import { ArtifactUploadConfirm, ArtifactUploadStatus } from './artifact-upload-feedback.tsx';
 import { ArtifactUploadMenu } from './artifact-upload-menu.tsx';
 import { artifactFolderCrumbs } from './drive-folders.ts';
+import { selectionSummary } from './library-bulk.ts';
 import { rememberLibraryItem } from './library-focus.ts';
+import { libraryItems, selectedLibraryItems } from './library-items.ts';
 import {
-    type ArtifactLibraryView,
     type ArtifactViewerContext,
     artifactViewerHref,
     libraryHref,
     useArtifactLibraryParams,
 } from './library-params.ts';
-import { librarySortOrder, useArtifactLibrarySort } from './library-sort.ts';
+import { librarySortOrder, sortLibraryFolders, useArtifactLibrarySort } from './library-sort.ts';
+import { libraryTrail } from './library-trail.ts';
 import { useArtifactActions } from './use-artifact-actions.tsx';
-import { useLibraryFileDrop } from './use-library-file-drop.ts';
-import { useLibraryPick } from './use-library-pick.ts';
+import { useLibraryDrag } from './use-library-drag.tsx';
+import { useLibraryDrop } from './use-library-drop.ts';
+import { useLibrarySelection } from './use-library-selection.ts';
+import { useSelectionActions } from './use-selection-actions.tsx';
 import { useUploadPickers } from './use-upload-pickers.tsx';
 
 /**
  * The Server's shared drive as a Finder-style library: the open folder's
- * child folders, then its own files in the viewer's sort. The band carries
- * the drive trail and every control; the column below is only content.
- * Folder, kind, and creator ride the URL; search and the selection stay local
- * to the folder (a folder opens with its last-opened item selected, if any).
- * Files and folders dropped anywhere, or picked from Upload, land in the open
- * folder. One action owner feeds every row menu and the right-click menu.
+ * child folders, then its own files in the viewer's sort, as one selectable
+ * collection. The band carries the drive trail and every control; while
+ * several items are selected the controls give way to the selection's
+ * actions. Folder, kind, and creator ride the URL; search and the selection
+ * stay local to the folder. Files dropped anywhere, or picked from Upload,
+ * land in the open folder; library items dragged onto a folder tile or a
+ * trail crumb move there. One action owner feeds every menu.
  */
 export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: string }) {
     const params = useArtifactLibraryParams();
     const navigate = useNavigate();
     // Search belongs to the folder it was typed in: opening another clears it.
-    const [typed, setTyped] = useState({ folder: params.folder, text: '' });
+    const [typed, setTyped] = React.useState({ folder: params.folder, text: '' });
     const search = typed.folder === params.folder ? typed.text : '';
     const setSearch = (text: string) => setTyped({ folder: params.folder, text });
-    const query = useDeferredValue(search);
+    const query = React.useDeferredValue(search);
     const sort = useArtifactLibrarySort();
     const filters = { creator: params.creator, folder: params.folder, kind: params.kind };
     const library = useArtifactLibrary(serverId, {
@@ -51,79 +62,123 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
         query,
         sort: librarySortOrder(sort),
     });
+    const folders = React.useMemo(
+        () => sortLibraryFolders(library.folders, sort),
+        [library.folders, sort]
+    );
+    const items = React.useMemo(
+        () => libraryItems(folders, library.artifacts ?? [], library.publicLinks),
+        [folders, library.artifacts, library.publicLinks]
+    );
     const upload = useArtifactUpload(serverId);
     const startUpload = (sources: Parameters<typeof upload.start>[0]) =>
         void upload.start(sources, params.folder);
     const pickers = useUploadPickers(startUpload);
-    const drop = useLibraryFileDrop(startUpload);
-    const crumbs = artifactFolderCrumbs(params.folder);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const selection = useLibraryPick(params.folder, scrollRef, library.artifacts);
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    const picked = useLibrarySelection(params.folder, scrollRef, library.artifacts);
+    const selection = {
+        ...picked,
+        // Command-A selects every loaded item and loads the rest, up to one batch.
+        onChange: (keys: Selection) => {
+            if (keys === 'all' && library.hasMore) {
+                void library.loadAll(artifactBatchMaxItems);
+            }
+            picked.onChange(keys);
+        },
+    };
+    const selected = selectedLibraryItems(selection.keys, items);
     const context: ArtifactViewerContext = { ...filters, query };
-    const showInFolder = (folder: string, key: string) => {
-        rememberLibraryItem(folder, key);
-        selection.pick(folder, key);
-        params.openFolder(folder);
+    const openFile = (file: { artifact_id: string }) => {
+        rememberLibraryItem(params.folder, file.artifact_id);
+        navigate(artifactViewerHref(slug, file.artifact_id, context));
     };
     const { actions, dialogs } = useArtifactActions({
         fileHref: (file) => artifactViewerHref(slug, file.artifact_id, context),
         folder: query.trim() ? undefined : params.folder,
-        onOpenFile: (file) => {
-            rememberLibraryItem(params.folder, file.artifact_id);
-            navigate(artifactViewerHref(slug, file.artifact_id, context));
-        },
+        onOpenFile: openFile,
         onOpenFolder: params.openFolder,
-        onShowInFolder: showInFolder,
+        onShowInFolder: (folder, key) => {
+            rememberLibraryItem(folder, key);
+            picked.pick(folder, key);
+            params.openFolder(folder);
+        },
         serverId,
         slug,
         surface: 'library',
     });
+    const bulk = useSelectionActions({
+        folder: params.folder,
+        onDeleted: selection.clear,
+        serverId,
+        slug,
+    });
+    const drag = useLibraryDrag({ items, onMove: bulk.selection.moveInto });
+    const drop = useLibraryDrop({
+        canMoveInto: drag.canMoveInto,
+        folderAt: (target) => {
+            const key =
+                target instanceof Element
+                    ? target.closest('[data-key]')?.getAttribute('data-key')
+                    : null;
+            const item = items.find((entry) => entry.key === key);
+            return item?.kind === 'folder' ? item.path : null;
+        },
+        onFiles: startUpload,
+        onMove: drag.moveInto,
+    });
+    const crumbs = artifactFolderCrumbs(params.folder);
+    const summary =
+        selection.keys === 'all' && library.hasMore
+            ? `${selectionSummary(selected)} · loaded files only`
+            : selectionSummary(selected);
 
     return (
         <ArtifactActionsContext value={actions}>
             <PageBand>
                 <PageBand.Trail
-                    crumbs={trailCrumbs(slug, filters)}
+                    crumbs={libraryTrail(slug, filters, drag)}
                     current={crumbs.at(-1)?.label ?? 'Files'}
                 />
                 <PageBand.Controls>
-                    <ArtifactLibraryControls
-                        creator={params.creator}
-                        folderName={params.folder ? artifactPathBasename(params.folder) : null}
-                        kind={params.kind}
-                        onCreatorChange={params.selectCreator}
-                        onKindChange={params.selectKind}
-                        onSearchChange={setSearch}
-                        search={search}
-                        serverId={serverId}
-                        uploadMenu={
-                            <ArtifactUploadMenu
-                                isPending={upload.state.phase === 'planning'}
-                                onUploadFiles={pickers.openFiles}
-                                onUploadFolder={pickers.openFolder}
-                            />
-                        }
-                    />
+                    {selected.length > 1 ? (
+                        <ArtifactSelectionBar
+                            actions={bulk.selection.actions(selected)}
+                            onClear={selection.clear}
+                            onRun={(id) => bulk.selection.run(id, selected)}
+                            summary={summary}
+                        />
+                    ) : (
+                        <ArtifactLibraryControls
+                            creator={params.creator}
+                            folderName={params.folder ? artifactPathBasename(params.folder) : null}
+                            kind={params.kind}
+                            onCreatorChange={params.selectCreator}
+                            onKindChange={params.selectKind}
+                            onSearchChange={setSearch}
+                            search={search}
+                            serverId={serverId}
+                            uploadMenu={
+                                <ArtifactUploadMenu
+                                    isPending={upload.state.phase === 'planning'}
+                                    onUploadFiles={pickers.openFiles}
+                                    onUploadFolder={pickers.openFolder}
+                                />
+                            }
+                        />
+                    )}
                 </PageBand.Controls>
             </PageBand>
             <ArtifactLibraryContextMenu
                 actions={actions}
                 className="artifact-library-drop block min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+                items={items}
                 onUpload={(id) =>
                     id === 'upload-folder' ? pickers.openFolder() : pickers.openFiles()
                 }
-                resolve={(key) => {
-                    const file = library.artifacts?.find((entry) => entry.artifact_id === key);
-                    if (file) {
-                        const publicLink = library.publicLinks[file.artifact_id] ?? null;
-                        return { file, kind: 'file', publicLink };
-                    }
-                    const folder = library.folders.find((entry) => entry.path === key);
-                    return folder ? { kind: 'folder', path: folder.path } : null;
-                }}
                 selection={selection}
+                selectionActions={bulk.selection}
                 triggerProps={{
-                    'data-drop-target': drop.isDropTarget || undefined,
+                    'data-drop-target': drop.isFileTarget || undefined,
                     ...drop.dropProps,
                 }}
             >
@@ -134,9 +189,13 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                         state={upload.state}
                     />
                     <ArtifactLibraryContent
+                        dragAndDropHooks={drag.dragAndDropHooks}
+                        dropTarget={drop.moveTarget}
                         filtered={Boolean(params.creator || query.trim() || params.kind !== 'all')}
                         filters={filters}
+                        folders={folders}
                         library={library}
+                        onOpenFile={openFile}
                         onOpenFolder={params.openFolder}
                         onShowFolder={(artifact: ArtifactRecord) => {
                             const folder = artifactPathParent(artifact.path);
@@ -144,7 +203,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                                 href: libraryHref(slug, { ...filters, folder }),
                                 onOpen: () => {
                                     rememberLibraryItem(folder, artifact.artifact_id);
-                                    selection.pick(folder, artifact.artifact_id);
+                                    picked.pick(folder, artifact.artifact_id);
                                 },
                             };
                         }}
@@ -156,6 +215,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
             </ArtifactLibraryContextMenu>
             {pickers.inputs}
             {dialogs}
+            {bulk.dialogs}
             <ArtifactUploadConfirm
                 onCancel={upload.cancel}
                 onConfirm={upload.confirm}
@@ -163,19 +223,4 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
             />
         </ArtifactActionsContext>
     );
-}
-
-/** Files, then each folder above the open one; the open folder is the trail's unlinked end. */
-function trailCrumbs(slug: string, view: ArtifactLibraryView): BandCrumb[] {
-    const crumbs = artifactFolderCrumbs(view.folder);
-    if (crumbs.length === 0) {
-        return [];
-    }
-    return [
-        { href: libraryHref(slug, { ...view, folder: '' }), label: 'Files' },
-        ...crumbs.slice(0, -1).map((crumb) => ({
-            href: libraryHref(slug, { ...view, folder: crumb.path }),
-            label: crumb.label,
-        })),
-    ];
 }

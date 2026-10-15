@@ -77,6 +77,16 @@ export function useArtifactLibrary(
         folders,
         hasMore: result.hasNextPage,
         isFetchingMore: result.isFetchingNextPage,
+        /** Loads further pages until every file is loaded or `limit` files are (Command-A). */
+        loadAll: async (limit: number) => {
+            let current = result;
+            while (current.hasNextPage && dedupeArtifacts(current.data?.pages).length < limit) {
+                current = await current.fetchNextPage();
+                if (current.isError) {
+                    return;
+                }
+            }
+        },
         loadMore: () => void result.fetchNextPage(),
         /** Public links of the loaded files, keyed by artifact id. */
         publicLinks,

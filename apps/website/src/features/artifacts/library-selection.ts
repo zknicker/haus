@@ -1,53 +1,48 @@
-import type { Key, PressEvent, Selection } from 'react-aria-components';
-import { openIntentFromEvent } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
+import type { PressEvent, Selection } from 'react-aria-components';
+import { currentOpenGesture } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useTabId } from '../../hooks/desktop-tabs/tab-presence.ts';
 
 /**
- * The library's one Finder-style selection, shared by the folder tiles and
- * every date group of files, so selecting anywhere clears the rest. Owned by
- * the open folder's content; a new folder starts with nothing selected.
+ * The library's one Finder-style selection over every folder tile and file
+ * row, owned per open folder (`useLibrarySelection`). `all` is Command-A.
  */
 export interface LibrarySelection {
-    onSelect: (key: string | null) => void;
-    selectedKey: string | null;
+    clear: () => void;
+    keys: Selection;
+    onChange: (keys: Selection) => void;
 }
 
 /**
- * React Aria's `replace` selection gives Finder's gestures for free: a mouse
- * click selects, a double click or Return performs the collection's action
- * (open), arrow keys move the selection, and a touch tap (or pen) opens
- * directly. `ids` are this collection's keys, so it shows the shared
- * selection only when the selected item is one of its own.
+ * React Aria's stock multiple selection with `replace` behavior gives Finder's
+ * gestures: a click selects one item, Command-click toggles, Shift-click and
+ * Shift+Arrow extend a range in the collection's visual order, Command-A
+ * selects everything, Escape clears, a double click or Return performs the
+ * collection's action (open), and a touch tap opens while a long press starts
+ * selecting.
  */
-export function librarySelectionProps(selection: LibrarySelection, ids: readonly Key[]) {
-    const owns = (key: string | null) => key !== null && ids.includes(key);
+export function librarySelectionProps(selection: LibrarySelection) {
     return {
-        onSelectionChange: (keys: Selection) => {
-            const [key] = keys === 'all' ? [] : [...keys];
-            if (key !== undefined) {
-                selection.onSelect(String(key));
-            } else if (owns(selection.selectedKey)) {
-                selection.onSelect(null);
-            }
-        },
-        selectedKeys: owns(selection.selectedKey) ? [selection.selectedKey as string] : [],
+        escapeKeyBehavior: 'clearSelection' as const,
+        onSelectionChange: selection.onChange,
+        selectedKeys: selection.keys,
         selectionBehavior: 'replace' as const,
-        selectionMode: 'single' as const,
+        selectionMode: 'multiple' as const,
     };
 }
 
 /**
- * Command-, Shift-, or Control-click (off macOS) on a desktop row still opens
- * it in a new tab (ADR 0046), though a plain click only selects. The web has
- * no tabs to open, so there a modified click just selects. Returns each
- * item's `onPress`.
+ * A middle click on a desktop row still opens it in a background tab
+ * (ADR 0046). Command- and Shift-click now shape the selection, as in Finder,
+ * so only the unmodified click the window relays for the middle button opens a
+ * tab. The web has no tabs to open. Returns each item's `onPress`.
  */
 export function useOpenInTabPress() {
     const inTab = useTabId() !== null;
     return (onOpen: () => void): ((event: PressEvent) => void) | undefined =>
         inTab
             ? (event) => {
-                  if (event.pointerType === 'mouse' && openIntentFromEvent(event) !== 'auto') {
+                  const modified = event.metaKey || event.ctrlKey || event.shiftKey;
+                  if (!modified && currentOpenGesture() === 'backgroundTab') {
                       onOpen();
                   }
               }

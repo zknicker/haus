@@ -1,44 +1,46 @@
 import * as React from 'react';
+import type { Selection } from 'react-aria-components';
 import { lastLibraryItem } from './library-focus.ts';
 import type { LibrarySelection } from './library-selection.ts';
 
 /** About a second of frames to hold a hand-off's focus while the page settles. */
 const focusFrames = 60;
 
-interface Pick {
-    /** Focus the item once it is on screen: a hand-off back into the library. */
-    focus: boolean;
+interface Picked {
+    /** Focus this item once it is on screen: a hand-off back into the library. */
+    focus: string | null;
     folder: string;
-    key: string | null;
+    keys: Selection;
 }
 
 /**
- * The library's one selection, owned per open folder. A folder opens with the
- * item it last handed off selected (the file Back returns from, or the one
- * Show in folder points at) and focuses that item once its row or tile is on
- * screen, so the keyboard picks up where it left. A click selects without
- * moving focus anywhere new.
+ * The library's one selection, owned per open folder: opening another folder
+ * starts over. A folder opens with the item it last handed off selected (the
+ * file Back returns from, or the one Show in folder points at) and focuses
+ * that item once its row or tile is on screen, so the keyboard picks up where
+ * it left. Clicks change the selection without moving focus anywhere new.
  */
-export function useLibraryPick(
+export function useLibrarySelection(
     folder: string,
     root: React.RefObject<HTMLElement | null>,
     /** The loaded items; a change retries a focus whose item was not on screen yet. */
     items: unknown
 ): LibrarySelection & { pick: (folder: string, key: string) => void } {
-    const [picked, setPicked] = React.useState<Pick>(() => ({
-        focus: true,
-        folder,
-        key: lastLibraryItem(folder),
-    }));
-    const current: Pick =
-        picked.folder === folder ? picked : { focus: true, folder, key: lastLibraryItem(folder) };
+    const [picked, setPicked] = React.useState<Picked>(() => handoff(folder));
+    const opened = React.useMemo(() => handoff(folder), [folder]);
+    const current: Picked = picked.folder === folder ? picked : opened;
 
     React.useEffect(() => {
-        if (!(current.focus && current.key && items)) {
+        if (!(current.focus && items)) {
             return;
         }
-        const selector = `[data-key="${CSS.escape(current.key)}"]`;
-        const settle = () => setPicked({ focus: false, folder: current.folder, key: current.key });
+        const selector = `[data-key="${CSS.escape(current.focus)}"]`;
+        const settle = () =>
+            setPicked((state) =>
+                state.folder === current.folder
+                    ? { ...state, focus: null }
+                    : { folder: current.folder, focus: null, keys: current.keys }
+            );
         let frame = 0;
         let tries = 0;
         let placed = false;
@@ -68,11 +70,17 @@ export function useLibraryPick(
         };
         hold();
         return () => cancelAnimationFrame(frame);
-    }, [current.focus, current.folder, current.key, items, root]);
+    }, [current.focus, current.folder, current.keys, items, root]);
 
     return {
-        onSelect: (key) => setPicked({ focus: false, folder, key }),
-        pick: (next, key) => setPicked({ focus: true, folder: next, key }),
-        selectedKey: current.key,
+        clear: () => setPicked({ folder, focus: null, keys: new Set() }),
+        keys: current.keys,
+        onChange: (keys) => setPicked({ folder, focus: null, keys }),
+        pick: (next, key) => setPicked({ folder: next, focus: key, keys: new Set([key]) }),
     };
+}
+
+function handoff(folder: string): Picked {
+    const key = lastLibraryItem(folder);
+    return { folder, focus: key, keys: new Set(key ? [key] : []) };
 }

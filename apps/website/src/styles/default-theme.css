@@ -3181,6 +3181,45 @@
         box-shadow: inset 0 0 0 2px var(--accent);
     }
 
+    /*
+     * The library is one collection (folders, then each date group of files)
+     * so one selection spans it; its sections stack like the separate lists
+     * they replaced, a date label over each run.
+     */
+    .artifact-library-grid,
+    .list-view.artifact-file-list {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 5);
+        outline: none;
+    }
+
+    .artifact-file-run {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 1);
+    }
+
+    /* A drag of library items over a folder tile it may land in, or over a trail crumb. */
+    .artifact-tile[data-move-target] {
+        background: var(--accent-soft);
+        box-shadow: inset 0 0 0 2px var(--accent);
+    }
+
+    .band-crumb-drop {
+        border-radius: calc(var(--radius) * 1);
+
+        &[data-drop-target] {
+            background: var(--accent-soft);
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+    }
+
+    .artifact-tile[data-dragging],
+    .artifact-file-tile[data-dragging] {
+        opacity: 0.5;
+    }
+
     /* Folder tiles: Finder's icon view. Hover tints the whole tile. */
     .artifact-folder-row {
         display: flex;
@@ -3237,6 +3276,12 @@
         gap: calc(var(--spacing) * 3);
         padding-inline: var(--artifact-library-inset);
         outline: none;
+
+        /* The date label spans the run's row, already inset with the cards. */
+        > .artifact-group-label {
+            grid-column: 1 / -1;
+            padding-inline: 0;
+        }
     }
 
     .artifact-file-tile {
@@ -3250,17 +3295,17 @@
         }
 
         @media (hover: hover) {
-            &[data-hovered] > .card {
+            &[data-hovered] .card {
                 background-color: var(--surface-hover);
             }
         }
 
-        &[data-selected] > .card {
+        &[data-selected] .card {
             background-color: var(--accent-soft);
         }
 
         @media (hover: hover) {
-            &[data-selected][data-hovered] > .card {
+            &[data-selected][data-hovered] .card {
                 background-color: var(--accent-soft-hover);
             }
         }
