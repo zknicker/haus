@@ -71,14 +71,8 @@ export const linearOutboxTable = pgTable(
             )`
         ),
         check('linear_outbox_state', sql`${table.state} in ('queued', 'done', 'dead')`),
-        check(
-            'linear_outbox_done',
-            sql`(${table.state} = 'queued') = (${table.doneAt} is null)`
-        ),
+        check('linear_outbox_done', sql`(${table.state} = 'queued') = (${table.doneAt} is null)`),
         check('linear_outbox_nonnegative', sql`${table.attempts} >= 0`),
-        check(
-            'linear_outbox_input_size',
-            sql`octet_length(${table.input}::text) <= 65536`
-        ),
+        check('linear_outbox_input_size', sql`octet_length(${table.input}::text) <= 65536`),
     ]
 );
