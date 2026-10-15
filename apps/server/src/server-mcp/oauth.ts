@@ -7,8 +7,9 @@ import type {
     OAuthTokens,
 } from '@modelcontextprotocol/client';
 import { auth } from '@modelcontextprotocol/client';
+import type { McpSecret } from './connection-secret.ts';
 import { configuredOAuthClient, configuredOAuthClientInformation } from './oauth-clients.ts';
-import type { McpRuntime, McpSecret } from './runtime.ts';
+import type { McpRuntime } from './runtime.ts';
 import { assertSecureOrLoopbackUrl, secureMcpFetch } from './secure-fetch.ts';
 
 export type McpOAuthStartResult =

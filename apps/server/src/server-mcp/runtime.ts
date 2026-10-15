@@ -6,7 +6,7 @@ import { Effect, type Scope } from 'effect';
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
 import type { HostedMcpAccess } from '../hosted-mcp/supervisor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { mcpConnectionsTable, mcpSecretsTable } from '../postgres/schema.ts';
+import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { resolveAccountLabel } from './account-label.ts';
 import {
     authorizeToolConnection,
@@ -18,6 +18,7 @@ import {
 import { connectionSearchText } from './catalog-response.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { createConnectionClient } from './connection-client.ts';
+import { type McpSecret, readMcpSecret, writeMcpSecret } from './connection-secret.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { McpInventory } from './inventory.ts';
 import {
@@ -36,19 +37,6 @@ const DEFAULT_DISCOVERY_TIMEOUT_MS = 5000;
 const DEFAULT_INVOCATION_TIMEOUT_MS = 30_000;
 const DEFAULT_CLOSE_TIMEOUT_MS = 5000;
 
-export interface McpSecret {
-    approvedAuthorizationServerOrigins: string[];
-    clientInformation?: Record<string, unknown>;
-    clientInformationIssuer?: string;
-    configuredClientInformation?: Record<string, unknown>;
-    discoveryState?: Record<string, unknown>;
-    headers: Record<string, string>;
-    oauthScopes: string[];
-    oauthState?: string;
-    redirectUrl?: string;
-    tokens?: Record<string, unknown>;
-    verifier?: string;
-}
 export interface McpToolDefinition {
     description: string;
     inputSchema: Record<string, unknown>;
@@ -233,25 +221,11 @@ export class McpRuntime {
         }
         return connection;
     }
-    async readSecret(connectionId: string): Promise<McpSecret> {
-        const [row] = await this.db
-            .select({ secret: mcpSecretsTable.secret })
-            .from(mcpSecretsTable)
-            .where(eq(mcpSecretsTable.connectionId, connectionId))
-            .limit(1);
-        return (row?.secret as unknown as McpSecret | undefined) ?? emptySecret();
+    readSecret(connectionId: string): Promise<McpSecret> {
+        return readMcpSecret(this.db, connectionId);
     }
-    async writeSecret(connectionId: string, secret: McpSecret): Promise<void> {
-        await this.db
-            .insert(mcpSecretsTable)
-            .values({ connectionId, secret: secret as unknown as Record<string, unknown> })
-            .onConflictDoUpdate({
-                set: {
-                    secret: secret as unknown as Record<string, unknown>,
-                    updatedAt: new Date(),
-                },
-                target: mcpSecretsTable.connectionId,
-            });
+    writeSecret(connectionId: string, secret: McpSecret): Promise<void> {
+        return writeMcpSecret(this.db, connectionId, secret);
     }
     ownsClient(connectionId: string, client: MCPClient): boolean {
         return this.clients.owns(connectionId, client);
@@ -299,8 +273,4 @@ export class McpRuntime {
             use,
         });
     }
-}
-
-export function emptySecret(): McpSecret {
-    return { approvedAuthorizationServerOrigins: [], headers: {}, oauthScopes: [] };
 }

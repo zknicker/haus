@@ -9,7 +9,7 @@ import {
     mcpConnectionsTable,
     mcpSecretsTable,
 } from '../postgres/schema.ts';
-import { emptySecret } from '../server-mcp/runtime.ts';
+import { emptySecret } from '../server-mcp/connection-secret.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { holdsGrant, requireAdminRole } from './authority.ts';
 import { storeLinearCredential } from './credentials.ts';
