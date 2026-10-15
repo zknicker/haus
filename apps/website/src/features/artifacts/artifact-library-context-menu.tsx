@@ -21,8 +21,9 @@ export type LibraryMenuTarget =
  * The library's one right-click menu, Finder's: it wraps the whole scroll
  * area, so a row, a tile, or the empty space between them each get their own
  * actions. Right-clicking an item selects it first. Shift+F10 and the Menu key
- * open the same menu for the focused (or selected) item, at that item. The
- * actions are the ones every ⋮ menu shows (`useArtifactActions`).
+ * open the same menu for the focused (or selected) item, at that item, and F2
+ * renames it in place. The actions are the ones every ⋮ menu shows
+ * (`useArtifactActions`).
  */
 export function ArtifactLibraryContextMenu({
     actions,
@@ -53,6 +54,10 @@ export function ArtifactLibraryContextMenu({
     };
 
     const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'F2') {
+            renameAt(event);
+            return;
+        }
         if (!((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu')) {
             return;
         }
@@ -76,6 +81,21 @@ export function ArtifactLibraryContextMenu({
                 clientY: rect.top + rect.height / 2,
             })
         );
+    };
+
+    // Finder's rename key: F2 renames the focused (or selected) item in place.
+    const renameAt = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        const key = itemKeyAt(event.target) ?? selection.selectedKey;
+        const item = key === null ? null : resolve(key);
+        if (!item) {
+            return;
+        }
+        event.preventDefault();
+        if (item.kind === 'file') {
+            actions.runFile('rename', item.file);
+        } else {
+            actions.runFolder('rename', item.path);
+        }
     };
 
     return (
@@ -120,7 +140,7 @@ function TargetMenu({
                     aria-label="Folder actions"
                     onAction={(key) => actions.runFolder(key as FolderActionId, target.path)}
                 >
-                    {artifactActionItems(actions.folderActions)}
+                    {artifactActionItems(actions.folderActions(target.path))}
                 </ContextMenu.Menu>
             );
         case 'area':

@@ -1,4 +1,4 @@
-import type { ArtifactMetadata } from '@haus/api';
+import type { ArtifactRecord } from '@haus/api';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
@@ -12,7 +12,7 @@ export function useArtifactVersions(serverId: string, artifactId: string) {
     const input = { artifact_id: artifactId, serverId };
     const query = useInfiniteQuery({
         ...queryPolicy.syncedSnapshot,
-        getNextPageParam: (lastPage: ArtifactMetadata[], pages: ArtifactMetadata[][]) =>
+        getNextPageParam: (lastPage: ArtifactRecord[], pages: ArtifactRecord[][]) =>
             nextArtifactOffset(lastPage, pages),
         initialPageParam: 0,
         queryFn: async ({ pageParam }) =>

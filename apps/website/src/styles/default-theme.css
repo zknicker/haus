@@ -769,6 +769,16 @@
      * already have. Fields that do take typed text keep theirs; a search box
      * in a toolbar should still look like somewhere to type.
      */
+    /*
+     * Stock `search-field__input` is `flex-1` without `min-width: 0`, so its
+     * intrinsic ~20ch width overflows a fixed-width field: the group clips,
+     * and focusing the input scrolls the search icon out of view (Files band,
+     * HeroUI 3.2.6). Remove once the stock input can shrink.
+     */
+    .search-field__input {
+        min-width: 0;
+    }
+
     .toolbar .select__trigger {
         --border-width-field: 0;
         --field-radius: calc(var(--radius) * 3);
@@ -2205,6 +2215,15 @@
         top: calc(var(--app-shell-band-height) + var(--spacing) * 3);
     }
 
+    /*
+     * A Files viewer's header puts the file's actions (Public link, ⋮) at the
+     * column's top end, right where a toast lands; while one is open, toasts
+     * hang below that header instead of covering what they confirm.
+     */
+    :root:has(.artifact-viewer-header) .toast-region--top-end {
+        top: calc(var(--app-shell-band-height) + var(--spacing) * 24);
+    }
+
     .chip.reference-chip--channel {
         --chip-fg: var(--channel-color-light, var(--foreground));
     }
@@ -3016,6 +3035,14 @@
 
     /* ---- Artifacts library (features/artifacts/) ---- */
 
+    /*
+     * The Files band's search sits among pill buttons and menus, so it takes
+     * their ×3 tier, the same way sub-sidebar chrome does, through the token.
+     */
+    .files-band {
+        --field-radius: calc(var(--radius) * 3);
+    }
+
     /* ListView sizes every svg in a row's content to 16px; a file sheet carries its own box. */
     .list-view__item-content .artifact-icon {
         width: auto;
@@ -3060,7 +3087,71 @@
     }
 
     .artifact-upload-status {
+        display: flex;
+        align-items: flex-end;
+        gap: calc(var(--spacing) * 3);
         padding-inline: var(--artifact-library-inset);
+    }
+
+    /*
+     * The list's column headers over its rows' Kind, Modified, and Size cells.
+     * Header and row share the column boxes below, and each column appears at
+     * the same container width in both, so the labels always sit over their
+     * values. The menu column is the row ⋮ button's box.
+     */
+    .artifact-list-header {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+        padding-inline: var(--artifact-library-inset);
+    }
+
+    .artifact-list-header__name {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .artifact-column {
+        display: none;
+        flex-shrink: 0;
+        justify-content: center;
+        overflow: hidden;
+        font-size: var(--text-sm);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .artifact-column--kind {
+        width: calc(var(--spacing) * 24);
+    }
+
+    .artifact-column--modified {
+        width: calc(var(--spacing) * 26);
+    }
+
+    .artifact-column--size {
+        width: calc(var(--spacing) * 18);
+    }
+
+    .artifact-column--menu {
+        width: calc(var(--spacing) * 8);
+    }
+
+    @container (min-width: 28rem) {
+        .artifact-column--size,
+        .artifact-column--menu {
+            display: flex;
+        }
+    }
+
+    @container (min-width: 42rem) {
+        .artifact-column--kind,
+        .artifact-column--modified {
+            display: flex;
+        }
     }
 
     /* Stock rows sit 12px tall at each edge; a file library scans as a denser column. */
@@ -3168,7 +3259,9 @@
     }
 
     /*
-     * A file's preview well; the image crops to it, other kinds sit centered.
+     * A file's preview well; the whole image fits inside it on the well's
+     * neutral ground (a portrait print shows head to toe), other kinds sit
+     * centered.
      * Its corner is the card's shell corner less the card's padding, so the
      * two curves stay concentric at any --radius.
      */
@@ -3206,12 +3299,31 @@
         color: var(--foreground);
     }
 
+    /*
+     * A folder's name wraps to two lines: print folders share long prefixes
+     * ("KEY-100-cat-dads-design-0…"), so one truncated line made look-alikes.
+     */
+    .artifact-tile__title--wrap {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        /* Break anywhere, not at hyphens, so the distinguishing tail fits on line two. */
+        word-break: break-all;
+        line-height: 1.25;
+    }
+
     .artifact-tile__meta {
         overflow: hidden;
         font-size: var(--text-xs);
         color: var(--muted);
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .artifact-tile__well--cover .artifact-cover {
+        object-fit: contain;
+        outline: none;
     }
 
     /* The viewer's preview: one quiet well at the shell tier, the file fitted inside it. */

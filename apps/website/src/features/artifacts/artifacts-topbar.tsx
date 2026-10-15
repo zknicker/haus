@@ -35,7 +35,7 @@ export function ArtifactsTopbar({
     const inTab = useWorkspaceBandTabLabel() !== null;
     const trail = collapseTrail(crumbs);
     return (
-        <div className="@container/files-band flex min-w-0 flex-1 items-center gap-3">
+        <div className="files-band @container/files-band flex min-w-0 flex-1 items-center gap-3">
             {history}
             {inTab ? null : (
                 <RouteTabIcon className="shrink-0 text-muted" size={16} tab="artifacts" />

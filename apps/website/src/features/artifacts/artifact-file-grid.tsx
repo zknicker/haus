@@ -2,9 +2,11 @@ import type { ArtifactMetadata } from '@haus/api';
 import { Card } from '@heroui/react';
 import { GridList, GridListItem } from 'react-aria-components';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
-import type { ArtifactRow } from './artifact-file-list.tsx';
+import { useArtifactActionsContext } from './artifact-actions-context.ts';
+import { ArtifactInlineRename } from './artifact-inline-rename.tsx';
 import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
+import { type ArtifactRow, ArtifactRowMeta } from './artifact-row-meta.tsx';
 import { ArtifactCover } from './artifact-thumbnail.tsx';
 import {
     type LibrarySelection,
@@ -12,7 +14,10 @@ import {
     useOpenInTabPress,
 } from './library-selection.ts';
 
-/** One date group's files as stock Cards: a preview well, then file name, meta, and the ⋮ menu. */
+/**
+ * One run of files as stock Cards: a preview well that fits the whole file
+ * (a portrait print shows head to toe), then file name, meta, and the ⋮ menu.
+ */
 export function ArtifactFileGrid({
     label,
     onOpen,
@@ -26,6 +31,7 @@ export function ArtifactFileGrid({
     selection: LibrarySelection;
     serverId: string;
 }) {
+    const actions = useArtifactActionsContext();
     const openInTabPress = useOpenInTabPress();
     return (
         <GridList
@@ -44,7 +50,7 @@ export function ArtifactFileGrid({
                 rows.map((row) => row.artifact.artifact_id)
             )}
         >
-            {({ artifact, meta, publicLink }) => (
+            {({ artifact, facts, publicLink }) => (
                 <GridListItem
                     {...opensPlace}
                     className="artifact-file-tile artifact-file-trigger"
@@ -58,11 +64,22 @@ export function ArtifactFileGrid({
                         </span>
                         <span className="artifact-tile__caption">
                             <span className="artifact-tile__text">
-                                <span className="artifact-tile__title">
-                                    <span className="truncate">{artifact.filename}</span>
-                                    {publicLink ? <PublicLinkMark /> : null}
+                                {actions.renaming?.kind === 'file' &&
+                                actions.renaming.path === artifact.path ? (
+                                    <ArtifactInlineRename
+                                        onDone={actions.endRename}
+                                        serverId={serverId}
+                                        target={actions.renaming}
+                                    />
+                                ) : (
+                                    <span className="artifact-tile__title">
+                                        <span className="truncate">{artifact.filename}</span>
+                                        {publicLink ? <PublicLinkMark /> : null}
+                                    </span>
+                                )}
+                                <span className="artifact-tile__meta">
+                                    <ArtifactRowMeta facts={facts} />
                                 </span>
-                                <span className="artifact-tile__meta">{meta}</span>
                             </span>
                             <ArtifactRowMenu artifact={artifact} publicLink={publicLink} />
                         </span>

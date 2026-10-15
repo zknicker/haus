@@ -1,4 +1,4 @@
-import type { ArtifactMetadata } from '@haus/api';
+import type { ArtifactRecord } from '@haus/api';
 import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
@@ -8,25 +8,32 @@ import { ArtifactRevisions } from './artifact-revisions.tsx';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
 
-/** File facts and revision history beside the preview. */
+/**
+ * File facts and revision history beside the preview. Images add their pixel
+ * size and, when the file records one, print density.
+ */
 export function ArtifactInspector({
     artifact,
+    revisionHref,
     serverId,
-    slug,
 }: {
-    artifact: ArtifactMetadata;
+    artifact: ArtifactRecord;
+    revisionHref: (revisionId: string) => string;
     serverId: string;
-    slug: string;
 }) {
     const directory = useArtifactCreatorDirectory(serverId);
+    const image = artifact.image;
     const facts = [
         { label: 'Name', value: artifact.filename },
         { label: 'Kind', value: artifactKindLabel(artifactFileKind(artifact)) },
         { label: 'Size', value: formatArtifactBytes(artifact.size_bytes) },
+        image ? { label: 'Dimensions', value: `${image.width} × ${image.height} px` } : null,
+        image?.dpi ? { label: 'Resolution', value: `${image.dpi} DPI` } : null,
         { label: 'Created by', value: directory.name(artifact.creator) },
         { label: 'Created', value: formatArtifactDate(artifact.created_at) },
+        { label: 'Updated by', value: directory.name(artifact.author) },
         { label: 'Updated', value: formatArtifactDate(artifact.updated_at) },
-    ];
+    ].filter((fact) => fact !== null);
     return (
         <aside aria-label="File details" className="flex min-w-0 flex-col gap-8">
             <ItemCardGroup variant="transparent">
@@ -51,8 +58,8 @@ export function ArtifactInspector({
             </ItemCardGroup>
             <ArtifactRevisions
                 artifactId={artifact.artifact_id}
+                revisionHref={revisionHref}
                 serverId={serverId}
-                slug={slug}
                 viewingRevisionId={artifact.revision_id}
             />
         </aside>

@@ -3,10 +3,10 @@ import type {
     ArtifactFolderEntry,
     ArtifactLibraryPage,
     ArtifactListInput,
-    ArtifactMetadata,
     ArtifactPublicLink,
+    ArtifactRecord,
 } from '@haus/api';
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
+import { type QueryKey, useInfiniteQuery } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -18,21 +18,30 @@ export interface ArtifactLibraryFilters {
     folder: string;
     kind: ArtifactListInput['kind'];
     query: string;
+    /** The list order (`librarySortOrder`); folders sort on the client. */
+    sort: Pick<ArtifactListInput, 'direction' | 'order'>;
 }
 
 /**
- * One drive folder for the library (`artifact.list`), newest revision first,
- * a page at a time: its child folders (first page) and its own files. A
- * search reads every file under the folder instead, with no folders. A
- * filter change keeps the previous result on screen until the narrowed read
- * lands, so typing a search never blanks it.
+ * One drive folder for the library (`artifact.list`) in the viewer's sort, a
+ * page at a time: its child folders (first page) and its own files. A search
+ * reads every file under the folder instead, plus the folders whose name
+ * matches. A filter change keeps the previous result on screen until the
+ * narrowed read lands, so typing a search never blanks it; opening another
+ * folder does not.
  */
-export function useArtifactLibrary(serverId: string, filters: ArtifactLibraryFilters) {
+export function useArtifactLibrary(
+    serverId: string,
+    filters: ArtifactLibraryFilters,
+    options: { enabled?: boolean } = {}
+) {
     const utils = hausTrpc.useUtils();
     const query = filters.query.trim();
     const input = {
         ...(filters.creator ? { creator: filters.creator } : {}),
         kind: filters.kind,
+        direction: filters.sort.direction,
+        order: filters.sort.order,
         prefix: filters.folder,
         query,
         recursive: query !== '',
@@ -40,9 +49,15 @@ export function useArtifactLibrary(serverId: string, filters: ArtifactLibraryFil
     };
     const result = useInfiniteQuery({
         ...queryPolicy.syncedSnapshot,
+        enabled: options.enabled ?? true,
         getNextPageParam: (lastPage: ArtifactLibraryPage) => lastPage.next_offset ?? undefined,
         initialPageParam: 0,
-        placeholderData: keepPreviousData,
+        // Only a filter, search, or sort change keeps the last result up; another folder's
+        // contents never stand in under this folder's trail.
+        placeholderData: (previous, previousQuery) =>
+            previousQuery && listedPrefix(previousQuery.queryKey) === input.prefix
+                ? previous
+                : undefined,
         queryFn: async ({ pageParam }) =>
             await utils.client.artifact.list.query({ ...input, offset: pageParam }),
         queryKey: getQueryKey(hausTrpc.artifact.list, input, 'infinite'),
@@ -70,8 +85,14 @@ export function useArtifactLibrary(serverId: string, filters: ArtifactLibraryFil
 
 export type ArtifactLibrary = ReturnType<typeof useArtifactLibrary>;
 
+/** The folder a cached `artifact.list` read listed (tRPC keys hold `[path, { input }]`). */
+function listedPrefix(key: QueryKey): string | undefined {
+    const input = (key[1] as { input?: { prefix?: unknown } } | undefined)?.input;
+    return typeof input?.prefix === 'string' ? input.prefix : undefined;
+}
+
 /** A publish between page reads shifts offsets by one; keep each artifact once. */
-function dedupeArtifacts(pages: readonly ArtifactLibraryPage[] | undefined): ArtifactMetadata[] {
+function dedupeArtifacts(pages: readonly ArtifactLibraryPage[] | undefined): ArtifactRecord[] {
     const seen = new Set<string>();
     return (pages ?? [])
         .flatMap((page) => page.artifacts)
