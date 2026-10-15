@@ -9,7 +9,6 @@ import { patternRecipesB } from './corpus/patterns-b.ts';
 import { playbookRecipes } from './corpus/playbooks.ts';
 import { techniqueRecipesA } from './corpus/techniques-a.ts';
 import { techniqueRecipesB } from './corpus/techniques-b.ts';
-import { techniqueRecipesC } from './corpus/techniques-c.ts';
 import { productTopics } from './product-topics.ts';
 import { secretsTopic } from './secrets-topic.ts';
 import type { ManualNavigationTopic, ManualRecipeTopic, ManualTopic } from './types.ts';
@@ -22,7 +21,6 @@ const recipeTopics: readonly ManualRecipeTopic[] = [
     ...playbookRecipes,
     ...techniqueRecipesA,
     ...techniqueRecipesB,
-    ...techniqueRecipesC,
 ];
 
 const seededRecipeTopics = recipeTopics.filter((topic) => topic.tier === 'seeded');
@@ -34,7 +32,7 @@ const navigationTopics: readonly ManualNavigationTopic[] = [
 
 Use the Haus CLI for collaboration and retrieve deeper guidance only when the task needs it.
 
-The Manual contains 34 complete recipe cards: 12 seeded cards for proactive orientation and 22 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
+The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orientation and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
 
 Product reference topics describe current Haus capabilities without turning them into prescriptive recipes. Every haus command family has one named after its noun: ${cliFamilyTopicList()}. Get accepts the family noun in singular or plural form.
 
@@ -69,7 +67,7 @@ The Manual is read-only. It does not replace the command that performs the work,
         kind: 'recipe-index',
         related: ['recipes/seeded', ...recipeTopics.map((topic) => topic.id)],
         summary:
-            'Find all 34 recipe cards by class (archetype, decision, pattern, playbook, technique), stable topic id, tier, and keywords.',
+            'Find all 33 recipe cards by class (archetype, decision, pattern, playbook, technique), stable topic id, tier, and keywords.',
         title: 'Recipe index',
     },
     {
@@ -104,7 +102,7 @@ function recipeIndexBody(): string {
     );
     return `Recipes are complete procedures for recurring judgment calls. Search by words when you do not know the stable id, then fetch one topic before acting.
 
-The complete corpus has 34 cards. Each card retains its source class, stable topic id, triggers, evidence metadata, related-card links, substantive procedure, and delivery tier. Seeded and query are delivery tiers, not authorization tiers.
+The complete corpus has 33 cards. Each card retains its source class, stable topic id, triggers, evidence metadata, related-card links, substantive procedure, and delivery tier. Seeded and query are delivery tiers, not authorization tiers.
 
 ${lines.join('\n')}
 

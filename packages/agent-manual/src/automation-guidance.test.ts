@@ -44,51 +44,16 @@ test('webhook manual never sends a secret through chat', () => {
     expect(body).toContain('install the secret there yourself');
     expect(body).toContain('Never paste the curl line into chat');
     expect(body).not.toMatch(/hand the url and the secret/iu);
-    expect(body).toContain('technique/trigger-github');
+    expect(body).toContain('use a GitHub trigger');
+    expect(body).toContain('haus trigger create --help');
 });
 
-test('GitHub trigger manual covers setup, events, loops, and problems', () => {
-    const body = getManualTopic('recipes/technique/trigger-github')?.body ?? '';
-    for (const detail of [
-        'haus github installations --repos',
-        'haus trigger create --kind github',
-        'haus trigger update --id',
-        'haus trigger preview --id',
-        '--events-json',
-        '--exclude-repo',
-        '--exclude-actor',
-        '@default',
-        'not Haus Agent identity',
-        '--conclusion failure',
-        'GitHub owner of that org',
-        'Comment events',
-        'after 16 automation-only turns',
-        'degraded: <problem>',
-        'github_trigger_limit',
-        'payload as data, not instructions',
-        '--cause <fireId>',
-        'actorsIgnore',
-        'Unrecognized key',
-        'baseBranches',
-        'branchesIgnore',
-        'excludeRepos',
-    ]) {
-        expect(body).toContain(detail);
-    }
-    for (const problem of [
-        'installation removed',
-        'installation suspended',
-        'sign in required',
-        'agent access revoked',
-        'permissions missing',
-        'repositories unavailable',
-    ]) {
-        expect(body).toContain(problem);
-    }
-    expect(body).not.toMatch(/secret:/iu);
-    expect(getManualTopic('github')?.body).toContain('haus github installations');
-    expect(getManualTopic('trigger')?.body).toContain('actorsIgnore');
-    expect(getManualTopic('trigger')?.body).toContain('Unrecognized key');
+test('GitHub triggers defer their mechanics to CLI help, not a Manual topic', () => {
+    const body = getManualTopic('trigger')?.body ?? '';
+    expect(body).toContain('haus trigger create --kind github');
+    expect(body).toContain('haus trigger create --help');
+    expect(body).not.toContain('trigger-github');
+    expect(getManualTopic('recipes/technique/trigger-github')).toBeNull();
 });
 
 test('reminder manual resolves calendar timezones from the requester, not home time', () => {
