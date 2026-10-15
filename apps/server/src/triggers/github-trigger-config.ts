@@ -134,7 +134,7 @@ export async function validateGithubTriggerConfig(
     if (missing.length > 0) {
         throw new TriggerRequestRefusedError(
             'github_repositories_unavailable',
-            `${missing.map(({ name }) => name).join(', ')} ${missing.length === 1 ? 'is' : 'are'} not reachable through this installation. Add ${missing.length === 1 ? 'it' : 'them'} to the installation on GitHub, or pick from the repositories it lists.`
+            `${missing.map(({ name }) => name).join(', ')} ${missing.length === 1 ? 'is' : 'are'} not reachable through the ${installation.accountLogin} installation. ${describeReachable(installation, input.repositories)}Add ${missing.length === 1 ? 'it' : 'them'} to the installation on GitHub, or watch a reachable repository.`
         );
     }
     const repositories = selected.flatMap(({ repository }) => (repository ? [repository] : []));
@@ -269,6 +269,24 @@ async function requireCapacity(
             `The installation on ${installation.accountLogin} already has ${githubTriggerInstallationCap} GitHub Triggers. Delete one, or widen an existing Trigger's events and filters.`
         );
     }
+}
+
+const reachableListLimit = 10;
+
+/** "Reachable: a, b, and 3 more. " from repositories already fetched, or nothing. */
+function describeReachable(
+    installation: Installation,
+    repositories: GithubRepository[] | null
+): string {
+    const names = (repositories ?? [])
+        .filter((repository) => installation.accessibleRepositoryIds.includes(repository.id))
+        .map((repository) => repository.fullName);
+    if (names.length === 0) {
+        return '';
+    }
+    const shown = names.slice(0, reachableListLimit).join(', ');
+    const rest = names.length - reachableListLimit;
+    return `Reachable: ${shown}${rest > 0 ? `, and ${rest} more` : ''}. `;
 }
 
 function signInRequired() {

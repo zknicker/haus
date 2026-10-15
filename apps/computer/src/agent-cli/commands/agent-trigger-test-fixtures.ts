@@ -39,19 +39,6 @@ export const githubTrigger = {
     version: 1,
 };
 
-export const installations = {
-    installations: [
-        {
-            accessibleRepositoryCount: 3,
-            account: { id: 7, login: 'Acme', type: 'Organization' },
-            githubInstallationId: 42,
-            id: 'ghi_0123456789abcdef',
-            repositorySelection: 'all',
-            status: 'active',
-        },
-    ],
-};
-
 export function args(
     values: Record<string, string>,
     lists: Record<string, string[]> = {}

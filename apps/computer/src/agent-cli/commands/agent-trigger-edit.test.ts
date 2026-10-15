@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AgentApiRequest } from '../agent-api-client.ts';
 import { runTriggerCreate } from './agent-trigger-actions.ts';
-import { args, githubTrigger, installations, requester } from './agent-trigger-test-fixtures.ts';
+import { args, githubTrigger, requester } from './agent-trigger-test-fixtures.ts';
 
 test('agents can create alternative groups and replace them with update', async () => {
     const { runTriggerUpdate } = await import('./agent-trigger-edit.ts');
@@ -21,7 +21,7 @@ test('agents can create alternative groups and replace them with update', async 
     const calls: { route: string; input: AgentApiRequest }[] = [];
     const client = requester((route, input) => {
         calls.push({ route, input });
-        return route.endsWith('/installations') ? installations : { trigger: githubTrigger };
+        return { trigger: githubTrigger };
     });
     await runTriggerCreate(
         args({
@@ -57,6 +57,34 @@ test('agents can create alternative groups and replace them with update', async 
     ).rejects.toThrow('--events-json replaces');
 });
 
+test('--events-json names the group, the unknown key, and the keys its event takes', async () => {
+    const create = (events: unknown) =>
+        runTriggerCreate(
+            args({
+                '--events-json': JSON.stringify(events),
+                '--kind': 'github',
+                '--message-id': 'msg_test',
+                '--org': 'acme',
+                '--title': 'CI',
+            }),
+            {
+                client: requester(() => {
+                    throw new Error('Should not send');
+                }),
+                write: () => undefined,
+            }
+        );
+    await expect(
+        create([{ event: 'workflow_run' }, { event: 'push', excludeRepos: ['acme/old'] }])
+    ).rejects.toMatchObject({
+        message: '--events-json group 2 (push) does not take excludeRepos.',
+        options: { nextAction: expect.stringContaining('repositoriesIgnore') },
+    });
+    await expect(create([{ event: 'issue_comment' }])).rejects.toMatchObject({
+        message: '--events-json group 1 (issue_comment) is not a GitHub Trigger event.',
+    });
+});
+
 test('exclude flags and source event filters reach the typed configuration', async () => {
     let body: unknown;
     await runTriggerCreate(
@@ -73,11 +101,9 @@ test('exclude flags and source event filters reach the typed configuration', asy
             '--workflow-event': 'push',
         }),
         {
-            client: requester((route, input) => {
+            client: requester((_route, input) => {
                 body = input.body;
-                return route.endsWith('/installations')
-                    ? installations
-                    : { trigger: githubTrigger };
+                return { trigger: githubTrigger };
             }),
             write: () => undefined,
         }

@@ -19,7 +19,7 @@ export async function runTriggerUpdate(args: ParsedArgs, deps: TriggerDeps): Pro
         ...(args.values['--instruction'] === undefined
             ? {}
             : { instruction: args.values['--instruction'] || null }),
-        ...(hasGithub ? { github: await readGithubTriggerConfig(args, deps.client) } : {}),
+        ...(hasGithub ? { github: readGithubTriggerConfig(args) } : {}),
     });
     if (!input.success) {
         throw new AgentCliError('INVALID_ARG', input.error.issues[0]?.message ?? 'Invalid edit.');

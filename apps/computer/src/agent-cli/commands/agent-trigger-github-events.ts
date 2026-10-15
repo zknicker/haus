@@ -6,6 +6,7 @@ import {
     githubTriggerEventSchema,
     githubTriggerEventsSchema,
 } from '@haus/api';
+import type * as z from 'zod';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 
@@ -80,10 +81,7 @@ export function readGithubTriggerEvents(args: ParsedArgs): GithubTriggerEvent[] 
         }
         const parsed = githubTriggerEventsSchema.safeParse(value);
         if (!parsed.success) {
-            throw new AgentCliError(
-                'INVALID_ARG',
-                parsed.error.issues[0]?.message ?? 'Invalid match groups.'
-            );
+            throw eventsJsonError(value, parsed.error.issues[0]);
         }
         return parsed.data;
     }
@@ -196,6 +194,36 @@ function applyAuthors(args: ParsedArgs, entries: Record<string, unknown>[]) {
     for (const entry of takers) {
         entry.authors = authors.data;
     }
+}
+
+/** Names the group and, for an unknown key, the keys its event takes. */
+function eventsJsonError(value: unknown, issue: z.core.$ZodIssue | undefined): AgentCliError {
+    const index = typeof issue?.path[0] === 'number' ? issue.path[0] : null;
+    const group = index === null || !Array.isArray(value) ? null : value[index];
+    const event = typeof group?.event === 'string' ? group.event : null;
+    const where =
+        index === null
+            ? '--events-json'
+            : `--events-json group ${index + 1}${event ? ` (${event})` : ''}`;
+    if (issue?.code === 'unrecognized_keys') {
+        const allowed = githubTriggerEventSchema.options.find(
+            (option) => option.shape.event.value === event
+        );
+        return new AgentCliError(
+            'INVALID_ARG',
+            `${where} does not take ${issue.keys.join(', ')}.`,
+            allowed ? { nextAction: `Allowed keys: ${Object.keys(allowed.shape).join(', ')}.` } : {}
+        );
+    }
+    if (event && !githubTriggerEventNameSchema.safeParse(event).success) {
+        return new AgentCliError('INVALID_ARG', `${where} is not a GitHub Trigger event.`, {
+            nextAction: `Events: ${githubTriggerEventNameSchema.options.join(', ')}.`,
+        });
+    }
+    return new AgentCliError(
+        'INVALID_ARG',
+        `${where}: ${issue?.message ?? 'Invalid match groups.'}`
+    );
 }
 
 /** Whether one event entry takes `field` with this single value. */

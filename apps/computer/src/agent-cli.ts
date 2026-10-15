@@ -4,7 +4,6 @@ import { ARTIFACT_SUBCOMMANDS } from './agent-cli/commands/agent-artifact.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
-import { GITHUB_SUBCOMMANDS } from './agent-cli/commands/agent-github.ts';
 import { IMAGE_SUBCOMMANDS } from './agent-cli/commands/agent-image.ts';
 import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
 import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
@@ -25,7 +24,6 @@ export const commandGroups = {
     channel: CHANNEL_SUBCOMMANDS,
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
     files: ARTIFACT_SUBCOMMANDS,
-    github: GITHUB_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,
     manual: MANUAL_SUBCOMMANDS,

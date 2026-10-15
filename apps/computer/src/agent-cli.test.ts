@@ -7,7 +7,6 @@ const families = [
     'channel',
     'cloud-agent',
     'files',
-    'github',
     'inbox',
     'message',
     'profile',

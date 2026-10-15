@@ -204,49 +204,6 @@ test('an installation bound to another Server answers CONFLICT without naming it
     expect(message).not.toContain(fixture.slug);
 });
 
-test('an Agent lists the installations its connection grant reaches', async () => {
-    const minted = await fetch(new URL('/computer/runner/mint', fixture.harness.url), {
-        body: JSON.stringify({
-            agentId: fixture.agentId,
-            chatId: fixture.channelId,
-            credentialHash: 'b'.repeat(64),
-            runId: 'run_github_binding',
-        }),
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-    });
-    const { runnerToken } = (await minted.json()) as { runnerToken: string };
-    const response = await fetch(
-        new URL('/api/agent/github/installations?repos=true', fixture.harness.url),
-        { headers: { authorization: `Bearer ${runnerToken}` } }
-    );
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-        installations: [
-            {
-                accessibleRepositoryCount: 2,
-                account: acme,
-                githubInstallationId: 4001,
-                id: expect.stringMatching(/^ghi_/u),
-                repositories: [
-                    { fullName: 'acme/api', id: 7001, private: true },
-                    { fullName: 'acme/web', id: 7002, private: false },
-                ],
-                repositorySelection: 'selected',
-                status: 'active',
-            },
-        ],
-    });
-
-    await fixture.harness.sql`
-        delete from agent_mcp_connection_grants where agent_id = ${fixture.agentId}
-    `;
-    const revoked = await fetch(new URL('/api/agent/github/installations', fixture.harness.url), {
-        headers: { authorization: `Bearer ${runnerToken}` },
-    });
-    expect(await revoked.json()).toEqual({ installations: [] });
-});
-
 test('an expired user token refreshes once and the rotated pair is stored', async () => {
     fixture.fake.expired.add('ghu_owner');
     fixture.fake.users.set('ghu_owner_2', zach);

@@ -1,7 +1,7 @@
 import type {
+    AgentGithubTriggerConfigInput,
     AgentTriggerUpdateInput,
     GithubTrigger,
-    GithubTriggerConfigInput,
     Trigger,
     TriggerStatus,
     WebhookTrigger,
@@ -9,6 +9,7 @@ import type {
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
+import { resolveAgentGithubConfig } from './github-trigger-account.ts';
 import type { GithubAuthoringDependencies } from './github-trigger-config.ts';
 import { createGithubTriggerRow, updateGithubTriggerRow } from './github-trigger-writes.ts';
 import type { TriggerClock } from './trigger-model.ts';
@@ -72,14 +73,19 @@ export async function createTrigger(
 export async function createAgentGithubTrigger(
     dependencies: GithubAuthoringDependencies,
     agentId: string,
-    input: Omit<CreateTriggerInput, 'kind'> & { github: GithubTriggerConfigInput },
+    input: Omit<CreateTriggerInput, 'kind'> & { github: AgentGithubTriggerConfigInput },
     clock: TriggerClock
 ): Promise<GithubTrigger> {
+    const github = await resolveAgentGithubConfig(dependencies.db, {
+        agentId,
+        config: input.github,
+        serverId: input.serverId,
+    });
     const created = await createGithubTriggerRow(
         dependencies,
         {
             createdByUserId: null,
-            github: input.github,
+            github,
             instruction: input.instruction,
             origin: input.origin,
             ownerAgentId: agentId,
@@ -152,12 +158,12 @@ export async function updateAgentOwnedTrigger(
     const authorize = ownedBy(agentId, input);
     await authorize(dependencies.db);
     if (input.github) {
-        return await updateGithubTriggerRow(
-            dependencies,
-            { ...input, github: input.github },
-            authorize,
-            clock
-        );
+        const github = await resolveAgentGithubConfig(dependencies.db, {
+            agentId,
+            config: input.github,
+            serverId: input.serverId,
+        });
+        return await updateGithubTriggerRow(dependencies, { ...input, github }, authorize, clock);
     }
     return await updateTriggerRow(dependencies.db, input, authorize, clock);
 }

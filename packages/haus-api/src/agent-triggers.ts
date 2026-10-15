@@ -1,8 +1,9 @@
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import {
-    githubTriggerConfigInputSchema,
     githubTriggerEventNameSchema,
+    githubTriggerEventsSchema,
+    githubTriggerRepositoriesSchema,
 } from './github-trigger-events.ts';
 import {
     githubTriggerSchema,
@@ -29,6 +30,19 @@ export const agentTriggerSchema = z.discriminatedUnion('kind', [
 export type AgentTrigger = z.infer<typeof agentTriggerSchema>;
 export type AgentWebhookTrigger = z.infer<typeof agentWebhookTriggerSchema>;
 
+/**
+ * What an Agent's `github` Trigger listens to. `account` is the GitHub org or
+ * user login; the Server resolves it to an installation the Agent can use.
+ */
+export const agentGithubTriggerConfigInputSchema = z
+    .object({
+        account: z.string().trim().min(1).max(100),
+        events: githubTriggerEventsSchema,
+        repositories: githubTriggerRepositoriesSchema,
+    })
+    .strict();
+export type AgentGithubTriggerConfigInput = z.infer<typeof agentGithubTriggerConfigInputSchema>;
+
 /** Create input. An omitted `kind` is a webhook. */
 export const agentTriggerCreateInputSchema = z.union([
     z
@@ -41,7 +55,7 @@ export const agentTriggerCreateInputSchema = z.union([
         .strict(),
     z
         .object({
-            github: githubTriggerConfigInputSchema,
+            github: agentGithubTriggerConfigInputSchema,
             instruction: triggerInstructionSchema.min(1).optional(),
             kind: z.literal('github'),
             messageId: idSchema,
@@ -53,7 +67,7 @@ export type AgentTriggerCreateInput = z.infer<typeof agentTriggerCreateInputSche
 
 export const agentTriggerUpdateInputSchema = z
     .object({
-        github: githubTriggerConfigInputSchema.optional(),
+        github: agentGithubTriggerConfigInputSchema.optional(),
         instruction: triggerInstructionSchema.nullable().optional(),
         title: triggerTitleInputSchema.optional(),
     })

@@ -986,23 +986,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/github/installations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List GitHub installations on connections the calling agent is granted. */
-        get: operations["listAgentGithubInstallations"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/attachments/upload": {
         parameters: {
             query?: never;
@@ -1718,10 +1701,10 @@ export interface components {
             /** @enum {string} */
             scope: "repositories";
         };
-        GithubTriggerConfigInput: {
+        AgentGithubTriggerConfigInput: {
+            /** @description GitHub account login (org or user) whose Haus GitHub App installation the Trigger watches; the Server resolves it among installations the calling agent can use. */
+            account: string;
             events: components["schemas"]["GithubTriggerEvent"][];
-            /** @description The Haus installation id (ghi_…). */
-            installationId: string;
             repositories: components["schemas"]["GithubTriggerRepositories"];
         };
         GithubTriggerView: {
@@ -1769,7 +1752,7 @@ export interface components {
             instruction?: string;
             kind?: components["schemas"]["TriggerKind"];
             /** @description Required exactly when kind is github. */
-            github?: components["schemas"]["GithubTriggerConfigInput"];
+            github?: components["schemas"]["AgentGithubTriggerConfigInput"];
             messageId: string;
             title: string;
         };
@@ -1777,7 +1760,7 @@ export interface components {
             title?: string;
             /** @description Null or empty clears it; at most 4096 UTF-8 bytes. */
             instruction?: string | null;
-            github?: components["schemas"]["GithubTriggerConfigInput"];
+            github?: components["schemas"]["AgentGithubTriggerConfigInput"];
         };
         GithubTriggerPreviewRequest: {
             /** @enum {string} */
@@ -1796,30 +1779,6 @@ export interface components {
         };
         AgentTriggerSingleResponse: {
             trigger: components["schemas"]["AgentTrigger"];
-        };
-        AgentGithubInstallation: {
-            accessibleRepositoryCount: number;
-            account: {
-                id: number;
-                login: string;
-                /** @enum {string} */
-                type: "User" | "Organization";
-            };
-            githubInstallationId: number;
-            /** @description The Haus installation row id (`ghi_…`). */
-            id: string;
-            repositories?: {
-                fullName: string;
-                id: number;
-                private: boolean;
-            }[];
-            /** @enum {string} */
-            repositorySelection: "all" | "selected";
-            /** @enum {string} */
-            status: "active" | "suspended" | "removed";
-        };
-        AgentGithubInstallationsResponse: {
-            installations: components["schemas"]["AgentGithubInstallation"][];
         };
         AgentTriggerListResponse: {
             triggers: components["schemas"]["AgentTrigger"][];
@@ -4197,30 +4156,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTriggerLogResponse"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    listAgentGithubInstallations: {
-        parameters: {
-            query?: {
-                /** @description Also list each active installation's accessible repositories. */
-                repos?: "true" | "false";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Usable GitHub installations. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentGithubInstallationsResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

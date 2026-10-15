@@ -128,8 +128,9 @@ test('authoring a github Trigger checks the installation and names the fix', asy
         owner.trpc.trigger.update.mutate({ github: config, serverId, triggerId: githubTriggerId })
     ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
 
+    const { installationId: _installationId, ...agentConfig } = config;
     const refused = await agentRequest('POST', '/api/agent/triggers', {
-        github: config,
+        github: { ...agentConfig, account: 'acme' },
         kind: 'github',
         messageId: anchorMessageId,
         title: 'CI failed',

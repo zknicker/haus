@@ -36,7 +36,7 @@ beforeAll(async () => {
         kind: 'github',
         github: {
             events: [{ event: 'workflow_run' }],
-            installationId: world.installationRowId,
+            account: 'acme',
             repositories: { scope: 'installation' },
         },
     });
@@ -55,7 +55,7 @@ test('agent edits preserve the anchor and replace all match groups', async () =>
     const response = await request('PATCH', `/api/agent/triggers/${id}`, {
         title: 'Deploy or CI failed',
         github: {
-            installationId: world.installationRowId,
+            account: 'acme',
             repositories: { scope: 'installation' },
             events: [
                 {
@@ -128,7 +128,7 @@ test('agent and operator previews share selection without recording fires', asyn
 test('overlapping groups produce one durable fire and one delivery', async () => {
     const updated = await request('PATCH', `/api/agent/triggers/${id}`, {
         github: {
-            installationId: world.installationRowId,
+            account: 'acme',
             repositories: { scope: 'installation' },
             events: [
                 { event: 'workflow_run', conclusions: ['failure'] },
@@ -154,7 +154,7 @@ test('revoked GitHub access refuses edits instead of broadening scope', async ()
     await harness.sql`delete from agent_mcp_connection_grants where server_id = ${world.serverId} and agent_id = ${world.agentId} and connection_id = ${world.connectionId}`;
     const response = await request('PATCH', `/api/agent/triggers/${id}`, {
         github: {
-            installationId: world.installationRowId,
+            account: 'acme',
             repositories: { scope: 'installation' },
             events: [{ event: 'workflow_run' }],
         },

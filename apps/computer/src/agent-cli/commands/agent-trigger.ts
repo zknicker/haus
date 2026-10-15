@@ -1,3 +1,4 @@
+import { githubTriggerEventNameSchema } from '@haus/api';
 import type { SubCommand } from '../subcommand.ts';
 import {
     defaultTriggerDeps,
@@ -80,7 +81,8 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         ],
         notes: [
             'A webhook prints its URL and secret once. Never post the secret in any chat.',
-            'A github Trigger has no URL or secret. Run haus github installations first; comment events are not available.',
+            'A github Trigger has no URL or secret. --repo or --org names one GitHub account; the Server picks its Haus GitHub App installation, and a refusal names the accounts you can use.',
+            `Events: ${githubTriggerEventNameSchema.options.join(', ')}. Comment events are not available.`,
             'Filter flags apply to every listed event that takes them and repeat or take commas:',
             '  --action: every event but push and deployment_status (default per event, e.g. completed, opened)',
             '  --conclusion: workflow_run, workflow_job, check_suite, check_run',
@@ -91,7 +93,8 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
             'Name filters support * within a path segment, ** across /, and ? for one character. Branch @default follows the repository default branch.',
             'Use --exclude-branch, --exclude-workflow, --exclude-check-name, --exclude-environment, --exclude-repo, or --exclude-actor. Exclusions win inside each group.',
             '--actor filters sender.login; --workflow-event filters workflow_run.event (e.g. push). --match-repo filters full owner/name within the authorized scope.',
-            '--events-json replaces event/filter flags with up to 10 typed OR groups, including repeated event names.',
+            '--events-json replaces event/filter flags with up to 10 OR groups, including repeated event names. Keys are camelCase fields (conclusions, branchesIgnore, repositoriesIgnore, ...); an unknown key fails with the keys its event takes:',
+            '  [{"event":"workflow_run","conclusions":["failure"],"branches":["main"]},{"event":"push","branchesIgnore":["release/**"]}]',
         ],
         flags: [
             {

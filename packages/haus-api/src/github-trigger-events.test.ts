@@ -53,6 +53,11 @@ const config = {
     installationId: 'ghi_0123456789abcdef',
     repositories: { scope: 'installation' },
 };
+const agentConfig = {
+    account: 'acme',
+    events: [{ event: 'workflow_run' }],
+    repositories: { scope: 'installation' },
+};
 
 describe('github trigger events', () => {
     test('fills each event default: actions, and authors that default to collaborators', () => {
@@ -184,9 +189,17 @@ describe('github trigger wire shape', () => {
                 title: 'Deploy',
             })
         ).toThrow();
-        expect(
+        expect(() =>
             agentTriggerCreateInputSchema.parse({
                 github: config,
+                kind: 'github',
+                messageId: 'msg_anchor',
+                title: 'CI failed',
+            })
+        ).toThrow();
+        expect(
+            agentTriggerCreateInputSchema.parse({
+                github: agentConfig,
                 kind: 'github',
                 messageId: 'msg_anchor',
                 title: 'CI failed',
@@ -194,7 +207,7 @@ describe('github trigger wire shape', () => {
         ).toMatchObject({ kind: 'github' });
         expect(() =>
             agentTriggerCreateInputSchema.parse({
-                github: config,
+                github: agentConfig,
                 messageId: 'msg_anchor',
                 title: 'CI failed',
             })

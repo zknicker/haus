@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import type { AgentApiRequest } from '../agent-api-client.ts';
 import { runTriggerCreate, runTriggerList, runTriggerShow } from './agent-trigger.ts';
 
-import { args, githubTrigger, installations, requester } from './agent-trigger-test-fixtures.ts';
+import { args, githubTrigger, requester } from './agent-trigger-test-fixtures.ts';
 
 test('lists a GitHub Trigger with its scope, events, and suppressed count, no URL', async () => {
     const written: string[] = [];
@@ -44,7 +44,7 @@ test('show marks a degraded Trigger and names the human fix', async () => {
     expect(output).toContain('Not firing. A selected repository left the installation');
 });
 
-test('creates a GitHub Trigger on the installation that owns the repository', async () => {
+test('creates a GitHub Trigger naming the account that owns the repository', async () => {
     const calls: { input: AgentApiRequest; route: string }[] = [];
     const written: string[] = [];
     await runTriggerCreate(
@@ -65,20 +65,16 @@ test('creates a GitHub Trigger on the installation that owns the repository', as
         {
             client: requester((route, input) => {
                 calls.push({ input, route });
-                return route === '/api/agent/github/installations'
-                    ? installations
-                    : { trigger: githubTrigger };
+                return { trigger: githubTrigger };
             }),
             write: (text) => written.push(text),
         }
     );
 
-    expect(calls.map((call) => call.route)).toEqual([
-        '/api/agent/github/installations',
-        '/api/agent/triggers',
-    ]);
-    expect(calls[1]?.input.body).toEqual({
+    expect(calls.map((call) => call.route)).toEqual(['/api/agent/triggers']);
+    expect(calls[0]?.input.body).toEqual({
         github: {
+            account: 'acme',
             events: [
                 {
                     actions: ['completed'],
@@ -93,7 +89,6 @@ test('creates a GitHub Trigger on the installation that owns the repository', as
                     event: 'pull_request',
                 },
             ],
-            installationId: 'ghi_0123456789abcdef',
             repositories: { names: ['acme/api', 'acme/web'], scope: 'repositories' },
         },
         instruction: 'Find the failing step.',
@@ -118,18 +113,17 @@ test('--org watches the whole installation and --action lands on the events that
             }
         ),
         {
-            client: requester((route, input) => {
+            client: requester((_route, input) => {
                 bodies.push(input.body);
-                return route === '/api/agent/github/installations'
-                    ? installations
-                    : { trigger: githubTrigger };
+                return { trigger: githubTrigger };
             }),
             write: () => undefined,
         }
     );
 
-    expect(bodies[1]).toMatchObject({
+    expect(bodies[0]).toMatchObject({
         github: {
+            account: 'acme',
             events: [
                 { actions: ['opened', 'ready_for_review'], event: 'pull_request' },
                 { actions: ['published'], event: 'release' },
@@ -174,29 +168,13 @@ test.each([
             {
                 client: requester((route) => {
                     routes.push(route);
-                    return installations;
+                    return {};
                 }),
                 write: () => undefined,
             }
         )
     ).rejects.toThrow(message);
-    expect(routes).not.toContain('/api/agent/triggers');
-});
-
-test('names the missing installation and who can install the App', async () => {
-    await expect(
-        runTriggerCreate(
-            args(
-                { '--kind': 'github', '--message-id': 'deadbeef', '--title': 'CI failed' },
-                { '--event': ['push'], '--repo': ['globex/api'] }
-            ),
-            { client: requester(() => installations), write: () => undefined }
-        )
-    ).rejects.toMatchObject({
-        code: 'INVALID_TARGET',
-        message: 'No Haus GitHub installation you can use covers globex.',
-        options: { nextAction: expect.stringContaining('install the Haus GitHub App') },
-    });
+    expect(routes).toEqual([]);
 });
 
 test('a webhook create refuses github-only flags', async () => {

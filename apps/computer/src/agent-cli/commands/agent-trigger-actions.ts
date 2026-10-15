@@ -41,7 +41,7 @@ export async function runTriggerCreate(args: ParsedArgs, deps: TriggerDeps): Pro
     const kind = readKind(args);
     const base = { messageId, title, ...(instruction ? { instruction } : {}) };
     if (kind === 'github') {
-        const github = await readGithubTriggerConfig(args, deps.client);
+        const github = readGithubTriggerConfig(args);
         const response = await deps.client.request(
             '/api/agent/triggers',
             agentTriggerResultSchema,

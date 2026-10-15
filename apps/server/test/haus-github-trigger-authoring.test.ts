@@ -89,20 +89,44 @@ test('an Agent creates a github Trigger anchored on the asking message', async (
         method: 'POST',
     });
     const { runnerToken } = (await minted.json()) as { runnerToken: string };
-    const response = await fetch(new URL('/api/agent/triggers', harness.url), {
-        body: JSON.stringify({
-            github: {
-                events: [{ conclusions: ['failure'], event: 'workflow_run' }],
-                installationId: world.installationRowId,
-                repositories: { scope: 'installation' },
+    const post = (github: Record<string, unknown>) =>
+        fetch(new URL('/api/agent/triggers', harness.url), {
+            body: JSON.stringify({
+                github: {
+                    events: [{ conclusions: ['failure'], event: 'workflow_run' }],
+                    ...github,
+                },
+                kind: 'github',
+                messageId: world.anchorMessageId,
+                title: 'CI failed',
+            }),
+            headers: {
+                authorization: `Bearer ${runnerToken}`,
+                'content-type': 'application/json',
             },
-            kind: 'github',
-            messageId: world.anchorMessageId,
-            title: 'CI failed',
-        }),
-        headers: { authorization: `Bearer ${runnerToken}`, 'content-type': 'application/json' },
-        method: 'POST',
+            method: 'POST',
+        });
+    const unknownAccount = await post({
+        account: 'globex',
+        repositories: { scope: 'installation' },
     });
+    expect(unknownAccount.status).toBe(400);
+    expect(await unknownAccount.json()).toMatchObject({
+        message: expect.stringMatching(
+            /^github_installation_unavailable: No Haus GitHub installation covers globex\. You can use: acme\. /u
+        ),
+    });
+    const unreachable = await post({
+        account: 'acme',
+        repositories: { names: ['acme/infra'], scope: 'repositories' },
+    });
+    expect(unreachable.status).toBe(400);
+    expect(await unreachable.json()).toMatchObject({
+        message: expect.stringContaining(
+            'acme/infra is not reachable through the acme installation. Reachable: acme/api, acme/web. '
+        ),
+    });
+    const response = await post({ account: 'ACME', repositories: { scope: 'installation' } });
     expect(response.status).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;
     expect(body).not.toHaveProperty('secret');
