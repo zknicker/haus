@@ -1,0 +1,6 @@
+ALTER TABLE "artifacts" ADD COLUMN "public_link_created_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artifacts" ADD COLUMN "public_link_creator_agent_id" text;--> statement-breakpoint
+ALTER TABLE "artifacts" ADD COLUMN "public_link_creator_user_id" text;--> statement-breakpoint
+ALTER TABLE "artifacts" ADD COLUMN "public_token" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "artifacts_public_token_key" ON "artifacts" USING btree ("public_token") WHERE "artifacts"."public_token" is not null;--> statement-breakpoint
+ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_public_link_shape" CHECK (("artifacts"."public_token" is null and "artifacts"."public_link_created_at" is null and num_nonnulls("artifacts"."public_link_creator_agent_id", "artifacts"."public_link_creator_user_id") = 0) or ("artifacts"."public_token" is not null and "artifacts"."public_link_created_at" is not null and num_nonnulls("artifacts"."public_link_creator_agent_id", "artifacts"."public_link_creator_user_id") = 1));

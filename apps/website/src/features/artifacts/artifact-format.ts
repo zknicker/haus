@@ -47,9 +47,9 @@ export function isPreviewImage(contentType: string) {
     );
 }
 
-/** Library thumbnails load the original, so only small rasters earn one. */
-export function hasLibraryPreview(artifact: Pick<ArtifactMetadata, 'content_type' | 'size_bytes'>) {
-    return isPreviewImage(artifact.content_type) && artifact.size_bytes <= 512 * 1024;
+/** Raster files show their Server-rendered thumbnail in the library, whatever their size. */
+export function hasLibraryPreview(artifact: Pick<ArtifactMetadata, 'content_type'>) {
+    return isPreviewImage(artifact.content_type);
 }
 
 /** "just now", "12m ago", "3h ago" within a day; a short date after that. */

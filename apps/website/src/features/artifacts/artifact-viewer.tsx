@@ -1,14 +1,17 @@
 import { artifactPathParent } from '@haus/api';
-import { useSearchParams } from 'react-router-dom';
+import * as React from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { PageColumn } from '../shell/page-column.tsx';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
+import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { ArtifactInspector } from './artifact-inspector.tsx';
 import { ArtifactPreview } from './artifact-preview.tsx';
 import { ArtifactViewerHeader } from './artifact-viewer-header.tsx';
 import { type ArtifactsCrumb, ArtifactsTopbar } from './artifacts-topbar.tsx';
 import { artifactFolderCrumbs } from './drive-folders.ts';
 import { libraryHref } from './library-params.ts';
+import { useArtifactActions } from './use-artifact-actions.tsx';
 
 /**
  * One shared file. The band shows where it lives in the drive, each folder a
@@ -30,9 +33,12 @@ export function ArtifactViewer({
     const pinnedRevisionId = params.get('revision') ?? undefined;
     const query = useArtifact(serverId, artifactId, pinnedRevisionId);
     const artifact = query.data?.artifact;
+    const { actions, dialogs } = useArtifactActions({ serverId, slug, surface: 'viewer' });
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    useRevisionsAnchor(scrollRef, artifact !== undefined);
 
     return (
-        <>
+        <ArtifactActionsContext value={actions}>
             <PageTopbar>
                 <ArtifactsTopbar
                     crumbs={artifact ? artifactViewerCrumbs(slug, artifact.path) : []}
@@ -40,7 +46,10 @@ export function ArtifactViewer({
                     slug={slug}
                 />
             </PageTopbar>
-            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+            <div
+                className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+                ref={scrollRef}
+            >
                 <PageColumn className="@container">
                     {query.error ? (
                         <p role="alert">{query.error.message}</p>
@@ -70,8 +79,23 @@ export function ArtifactViewer({
                     )}
                 </PageColumn>
             </div>
-        </>
+            {dialogs}
+        </ArtifactActionsContext>
     );
+}
+
+/**
+ * Version history (a file menu action) lands on `#revisions`: once the file
+ * is on screen, its Revisions scroll into view.
+ */
+function useRevisionsAnchor(page: React.RefObject<HTMLElement | null>, ready: boolean) {
+    const { hash } = useLocation();
+    React.useEffect(() => {
+        if (ready && hash === '#revisions') {
+            // Scoped to this page: kept desktop tabs may hold other viewers.
+            page.current?.querySelector('#revisions')?.scrollIntoView({ block: 'start' });
+        }
+    }, [hash, page, ready]);
 }
 
 /** Artifacts, then each folder above the file, every one opening that place in the library. */

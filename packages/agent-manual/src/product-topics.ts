@@ -28,13 +28,13 @@ Use \`haus image generate\` for any image people will see or that needs a specif
 
 **Do not wait by default.** Post the link and finish your turn. If a generation fails, you get one Inbox notice naming the model and the reason; a successful one never wakes you. Tell the person and, if it helps, retry with another model. A failure before you have posted the link sends no notice; if it already failed, \`haus message send\` tells you when you post the link.
 
-**Get the file.** Wait only when your next step needs the file: checking quality, editing it, using it as a reference, or feeding a pipeline. Run \`haus image wait <generation id> [--out <workspace dir>] [--timeout <seconds>]\`. It waits for the result, saves the file in \`generated-images/\` in your workspace, and prints the model, rendered size, quality, duration, and cost. It is safe to run again, and if it times out the generation keeps running; run it again.
+**Get the file.** Wait only when your next step needs the file: editing it, using it as a reference, or feeding a pipeline. Run \`haus image wait <generation id> [--out <workspace dir>] [--timeout <seconds>]\`. It waits for the result, saves the file in \`generated-images/\` in your workspace, and prints the model, rendered size, quality, duration, and cost. It is safe to run again, and if it times out the generation keeps running; run it again.
 
 **References.** \`--reference\` takes an attachment id or a workspace file, for an edit or a style match. Only models with a reference limit accept it, and going over the limit fails.
 
-**Sizes and options.** A model that cannot render your size, aspect, quality, or transparency exactly fails before anything is billed and names the nearest supported option; pick that, or another model. Nothing is silently adjusted. Every image card shows its model and cost.
+**Sizes and options.** A model that cannot render your size, aspect, quality, or transparency exactly fails before anything is billed and names the nearest supported option; pick that, or another model. Nothing is silently adjusted.
 
-The image card updates in place when the image is ready; a short text follow-up is fine, but never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Files (see files). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or a page.`,
+The card fills in with the image, its model, and its cost; that is the result. Never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Files (see files). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or a page.`,
         id: 'images',
         kind: 'overview',
         related: ['attachment', 'files', 'message'],

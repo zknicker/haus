@@ -9,6 +9,8 @@ export interface ArtifactStorage {
     downloadUrl(key: string, saveAs?: string): string;
     /** At most the first `maxBytes` bytes of an object (one ranged GET). */
     read(key: string, maxBytes: number): Promise<Uint8Array>;
+    /** The whole object as a stream, for public links; a missing object errors the stream. */
+    stream(key: string): ReadableStream<Uint8Array>;
     upload(
         key: string,
         stream: AsyncIterable<Uint8Array>,
@@ -35,7 +37,8 @@ export class ArtifactError extends Error {
     }
 }
 export const artifactMaxBytes = 268_435_456;
-export const artifactStorageBytes = 10_737_418_240;
+/** Per-Server shared-file cap: a product guard, not a cost limit. */
+export const artifactStorageBytes = 107_374_182_400;
 
 export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStorage {
     const client = new S3Client({ ...config, region: 'auto' });
@@ -51,6 +54,7 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
                 method: 'GET',
             }),
         read: async (key, maxBytes) => await client.file(key).slice(0, maxBytes).bytes(),
+        stream: (key) => client.file(key).stream(),
         upload: async (key, stream, contentType) => {
             const hash = createHash('sha256');
             let size = 0;
@@ -94,6 +98,17 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
             return { sha256: hash.digest('hex'), size };
         },
     };
+}
+
+/** A revision's WebP thumbnail sits beside its original. */
+export function artifactThumbnailKey(objectKey: string) {
+    return `${objectKey}.thumb.webp`;
+}
+
+/** Deletes a revision's original and its thumbnail; deleting a key that never existed succeeds. */
+export async function deleteRevisionObjects(storage: ArtifactStorage, objectKey: string) {
+    await storage.delete(objectKey);
+    await storage.delete(artifactThumbnailKey(objectKey));
 }
 
 export function requireArtifactStorage(storage: ArtifactStorage | null): ArtifactStorage {

@@ -37,6 +37,22 @@ test('formats current stack services without standalone Runtime surfaces', () =>
     assert.doesNotMatch(output, /Runtime|Local API|Jobs|\.sqlite/u);
 });
 
+test('shows the Files gateway once it runs', () => {
+    assert.match(formatReadyBlock(snapshot(), { colorize: false }), /Files\s+disabled/u);
+    const output = formatReadyBlock(
+        snapshot({
+            config: {
+                ...snapshot().config,
+                objectStoragePath: '~/.haus/dev/test/object-storage',
+                objectStorageUrl: 'http://127.0.0.1:51234',
+            },
+        }),
+        { colorize: false }
+    );
+    assert.match(output, /Files\s+http:\/\/127\.0\.0\.1:51234/u);
+    assert.match(output, /S3\s+~\/\.haus\/dev\/test\/object-storage/u);
+});
+
 test('streams Computer startup and emits the final ready block', () => {
     const initial = snapshotDigest(snapshot());
     const runningSnapshot = snapshot({

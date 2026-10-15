@@ -1,12 +1,11 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { ChatAttachment } from '@heroui-pro/react';
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
-import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
-import { artifactKindLabel, hasLibraryPreview } from '../artifacts/artifact-format.ts';
+import { artifactKindLabel } from '../artifacts/artifact-format.ts';
 import { ArtifactFileIcon } from '../artifacts/icons/artifact-file-icon.tsx';
 import { artifactFileKind } from '../artifacts/icons/artifact-file-kind.ts';
 import { useArtifactCreatorDirectory } from '../artifacts/use-artifact-creator-directory.ts';
-import { useDecodedImage } from '../artifacts/use-decoded-image.ts';
+import { useArtifactPhoto } from '../artifacts/use-artifact-photo.ts';
 import {
     mediaStripMarkSize,
     mediaStripPlaceholderClassName,
@@ -109,18 +108,4 @@ export function SharedArtifactTileView({
             )}
         </a>
     );
-}
-
-/**
- * The library photo's signed link once the browser has decoded it; null for
- * files without one, while loading, and when the link is refused or broken,
- * so the tile shows the kind icon instead of an empty box.
- */
-function useArtifactPhoto(artifact: ArtifactMetadata, serverId: string) {
-    const previewable = hasLibraryPreview(artifact);
-    const download = useArtifactDownload(serverId, artifact.artifact_id, artifact.revision_id, {
-        enabled: previewable,
-    });
-    const src = useDecodedImage(previewable ? download.data?.download_url : undefined);
-    return previewable ? src : null;
 }

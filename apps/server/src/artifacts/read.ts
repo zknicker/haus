@@ -42,6 +42,7 @@ export async function getArtifact(
     return {
         metadata: artifactMetadata(row, origin, access.slug),
         objectKey: row.revision.objectKey,
+        revision: row.revision,
     };
 }
 

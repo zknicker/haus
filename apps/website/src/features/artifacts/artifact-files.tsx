@@ -1,16 +1,17 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { Button } from '@heroui/react';
-import { useNavigate } from 'react-router-dom';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import type { ArtifactLibrary } from '../../hooks/artifacts/use-artifact-library.ts';
 import { useViewerTimeZone } from '../../hooks/members/use-viewer-time-zone.ts';
+import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { groupArtifactsByDate } from './artifact-date-groups.ts';
 import { ArtifactFileGrid } from './artifact-file-grid.tsx';
 import { ArtifactFileList, type ArtifactRow } from './artifact-file-list.tsx';
-import { artifactKindLabel, artifactPath, artifactTimeLabel } from './artifact-format.ts';
+import { artifactKindLabel, artifactTimeLabel } from './artifact-format.ts';
 import { artifactFolderWithin } from './drive-folders.ts';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import type { ArtifactLibraryLayout } from './library-layout.ts';
+import type { LibrarySelection } from './library-selection.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
 
 /**
@@ -23,21 +24,21 @@ export function ArtifactFiles({
     folder,
     layout,
     library,
+    selection,
     serverId,
-    slug,
 }: {
     artifacts: readonly ArtifactMetadata[];
     folder: string;
     layout: ArtifactLibraryLayout;
-    library: Pick<ArtifactLibrary, 'hasMore' | 'isFetchingMore' | 'loadMore'>;
+    library: Pick<ArtifactLibrary, 'hasMore' | 'isFetchingMore' | 'loadMore' | 'publicLinks'>;
+    selection: LibrarySelection;
     serverId: string;
-    slug: string;
 }) {
-    const navigate = useNavigate();
+    const actions = useArtifactActionsContext();
     const directory = useArtifactCreatorDirectory(serverId);
     const timeZone = useViewerTimeZone(serverId);
     const now = useRelativeNow(60_000);
-    const open = (artifact: ArtifactMetadata) => navigate(artifactPath(slug, artifact.artifact_id));
+    const open = (artifact: ArtifactMetadata) => actions.runFile('open', artifact);
     const Collection = layout === 'grid' ? ArtifactFileGrid : ArtifactFileList;
     const rowFor = (artifact: ArtifactMetadata): ArtifactRow => ({
         artifact,
@@ -50,6 +51,7 @@ export function ArtifactFiles({
         ]
             .filter(Boolean)
             .join(' · '),
+        publicLink: library.publicLinks[artifact.artifact_id] ?? null,
     });
 
     return (
@@ -61,6 +63,7 @@ export function ArtifactFiles({
                         label={group.label}
                         onOpen={open}
                         rows={group.artifacts.map(rowFor)}
+                        selection={selection}
                         serverId={serverId}
                     />
                 </section>

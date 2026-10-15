@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { artifactPublishResultSchema } from '@haus/api';
+import { artifactPublicLinkResultSchema, artifactPublishResultSchema } from '@haus/api';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 
@@ -11,6 +11,7 @@ const storage: ArtifactStorage = {
         return Promise.resolve();
     },
     downloadUrl: (key) => `https://r2.test/${key}?temporary-signature=secret`,
+    stream: () => new ReadableStream(),
     read: (key, maxBytes) =>
         Promise.resolve((objects.get(key) ?? new Uint8Array()).slice(0, maxBytes)),
     upload: async (key, stream) => {
@@ -204,6 +205,52 @@ test('Raft action names publish without a nonce and read the same native artifac
     expect((await action('delete-artifact', { artifact_id: published.artifact_id })).status).toBe(
         200
     );
+});
+
+test('Agents share public links; only the link creator or an Owner/Admin disables one', async () => {
+    const author = await fixture.mintRunner('run_public_link_author');
+    // The peer Agent was retired above; Cove stands in as another Agent.
+    const peer = await fixture.mintRunner('run_public_link_peer', fixture.coveAgentId);
+    const created = await publish(author.token, { path: 'pod/design.txt' }, 'design');
+    const { artifact_id } = artifactPublishResultSchema.parse(await created.json()).artifact;
+    const route = (token: string, suffix = '') =>
+        fetch(
+            new URL(
+                `/api/agent/artifacts/${artifact_id}/public-link${suffix}`,
+                fixture.harness.url
+            ),
+            {
+                headers: { authorization: `Bearer ${token}` },
+                method: 'POST',
+            }
+        );
+    const shared = artifactPublicLinkResultSchema.parse(await (await route(author.token)).json());
+    expect(shared.link).toMatchObject({ can_disable: true, creator: { type: 'agent' } });
+    const seen = artifactPublicLinkResultSchema.parse(await (await route(peer.token)).json());
+    expect(seen.link).toMatchObject({ can_disable: false, url: shared.link?.url });
+    const refused = await route(peer.token, '/disable');
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toMatchObject({ code: 'FORBIDDEN' });
+    const target = { artifact_id, serverId: fixture.serverId };
+    expect((await fixture.owner.trpc.artifact.publicLink.query(target)).link?.can_disable).toBe(
+        true
+    );
+    await fixture.owner.trpc.artifact.unshare.mutate(target);
+    expect(
+        (
+            await fetch(
+                shared.link?.url.replace(fixture.harness.appOrigin, fixture.harness.url.origin) ??
+                    ''
+            )
+        ).status
+    ).toBe(404);
+    expect((await route(author.token, '/disable')).status).toBe(200);
+    expect((await route(peer.token, '/disable')).status).toBe(200);
+    const missing = await fetch(
+        new URL('/api/agent/artifacts/art_missing/public-link', fixture.harness.url),
+        { headers: { authorization: `Bearer ${author.token}` }, method: 'POST' }
+    );
+    expect(missing.status).toBe(404);
 });
 
 function publish(token: string, metadata: Record<string, string>, body: string) {

@@ -7,10 +7,12 @@ import { defaultArtifactListFilters, runArtifactAction } from '../artifacts/acti
 import { publishArtifact } from '../artifacts/publish.ts';
 import { publishInputFromQuery } from '../artifacts/publish-route.ts';
 import { ArtifactError, type ArtifactStorage } from '../artifacts/storage.ts';
+import type { ArtifactThumbnails } from '../artifacts/thumbnails.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { registerAgentArtifactActions } from './artifact-actions.ts';
 import { registerAgentArtifactDriveRoutes } from './artifact-drive-routes.ts';
 import { sendArtifactError } from './artifact-errors.ts';
+import { registerAgentArtifactPublicLinkRoutes } from './artifact-public-link-routes.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 
 export function registerAgentArtifactRoutes(
@@ -20,10 +22,12 @@ export function registerAgentArtifactRoutes(
         db: HausDatabase;
         storage: ArtifactStorage | null;
         budget: number;
+        thumbnails: ArtifactThumbnails | null;
     }
 ) {
     registerAgentArtifactActions(app, options);
     registerAgentArtifactDriveRoutes(app, options);
+    registerAgentArtifactPublicLinkRoutes(app, options);
     for (const path of [
         '/api/agent/artifacts/publish-artifact-raw',
         '/api/agent/actions/publish-artifact-raw',
@@ -64,6 +68,7 @@ export function registerAgentArtifactRoutes(
                             origin: options.appOrigin,
                             storage: options.storage,
                             stream: request.raw,
+                            thumbnails: options.thumbnails,
                         });
                         return await reply.send(result);
                     } catch (cause) {

@@ -61,6 +61,25 @@ export function artifactFolderPreviews(
     return previews;
 }
 
+/**
+ * Where Move to… lands `path` (a file or folder) inside `folder`, keeping its
+ * name; null when that is no move (it is already there) or impossible (a
+ * folder into itself or one of its own subfolders).
+ */
+export function artifactMoveTarget(path: string, folder: string): string | null {
+    if (artifactPathKey(artifactPathParent(path)) === artifactPathKey(folder)) {
+        return null;
+    }
+    if (
+        folder !== '' &&
+        (artifactPathKey(folder) === artifactPathKey(path) || artifactPathIsInside(folder, path))
+    ) {
+        return null;
+    }
+    const name = artifactPathBasename(path);
+    return folder ? `${folder}/${name}` : name;
+}
+
 /** Where a search hit lives, relative to the folder being searched; `''` when directly in it. */
 export function artifactFolderWithin(path: string, folder: string): string {
     const parent = artifactPathParent(path);

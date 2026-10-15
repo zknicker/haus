@@ -7,6 +7,7 @@ import {
     artifactRevisionsTable as revisions,
     serversTable,
 } from '../postgres/schema.ts';
+import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';
 import { revisionConflict } from './conflict.ts';
 import { getArtifact } from './read.ts';
@@ -18,6 +19,7 @@ import {
     artifactStorageBytes,
     requireArtifactStorage,
 } from './storage.ts';
+import type { ArtifactThumbnails } from './thumbnails.ts';
 
 export async function publishArtifact(options: {
     db: HausDatabase;
@@ -27,6 +29,8 @@ export async function publishArtifact(options: {
     budget?: number;
     input: ArtifactPublishInput;
     stream: AsyncIterable<Uint8Array>;
+    /** Renders the new revision's thumbnail after it lands; never fails the publish. */
+    thumbnails?: ArtifactThumbnails | null;
 }) {
     const { db, actor, input, origin } = options;
     const storage = requireArtifactStorage(options.storage);
@@ -59,6 +63,7 @@ export async function publishArtifact(options: {
             );
         }
     } else {
+        let published: { size: number };
         try {
             const uploaded = await storage.upload(
                 reserved.revision.objectKey,
@@ -68,6 +73,7 @@ export async function publishArtifact(options: {
             if (uploaded.size > artifactMaxBytes) {
                 throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
             }
+            published = uploaded;
             await db.transaction(async (tx) => {
                 const [server] = await tx
                     .select({ id: serversTable.id })
@@ -121,6 +127,18 @@ export async function publishArtifact(options: {
             }
             throw cause;
         }
+        // Committed: nothing below may fail the publish or reach its cleanup above.
+        artifactUpdatedTopic.announce({
+            artifactId: reserved.artifact.id,
+            serverId: access.serverId,
+        });
+        void options.thumbnails?.ensure({
+            byteSize: published.size,
+            contentType: input.content_type,
+            id: reserved.revision.id,
+            objectKey: reserved.revision.objectKey,
+            thumbnailState: null,
+        });
     }
     return {
         artifact: (await getArtifact(db, actor, origin, reserved.artifact.id, reserved.revision.id))

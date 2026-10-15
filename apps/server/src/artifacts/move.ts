@@ -8,6 +8,7 @@ import {
 import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { artifactsTable as artifacts, serversTable } from '../postgres/schema.ts';
+import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { type ArtifactAccess, type ArtifactActor, artifactAccess } from './access.ts';
 import { revisionConflict } from './conflict.ts';
 import { insideFolder, live, liveArtifactAtPath, placeArtifactPath } from './path.ts';
@@ -24,7 +25,7 @@ export async function moveArtifacts(
     input: Omit<ArtifactMoveInput, 'serverId'>
 ): Promise<ArtifactMoveResult> {
     const access = await artifactAccess(db, actor);
-    return await db.transaction(async (tx) => {
+    const moved = await db.transaction(async (tx) => {
         const [server] = await tx
             .select({ id: serversTable.id })
             .from(serversTable)
@@ -35,9 +36,11 @@ export async function moveArtifacts(
         }
         const file = await liveArtifactAtPath(tx, access.serverId, input.from);
         return file
-            ? await moveFile(tx, access, origin, file, input)
-            : await moveFolder(tx, access, input);
+            ? { artifactId: file.id, result: await moveFile(tx, access, origin, file, input) }
+            : { artifactId: null, result: await moveFolder(tx, access, input) };
     });
+    artifactUpdatedTopic.announce({ artifactId: moved.artifactId, serverId: access.serverId });
+    return moved.result;
 }
 
 async function moveFile(

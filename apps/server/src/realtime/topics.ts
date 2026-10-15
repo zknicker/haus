@@ -1,5 +1,6 @@
 import {
     agentUpdatedEventSchema,
+    artifactUpdatedEventSchema,
     chatLifecycleEventSchema,
     chatReadEventSchema,
     cloudAgentSettingsUpdatedEventSchema,
@@ -53,6 +54,7 @@ export const reminderUpdatedTopic = createTopic('reminder.updated', reminderUpda
 
 // Server-level streams.
 export const agentUpdatedTopic = createTopic('agent.updated', agentUpdatedEventSchema);
+export const artifactUpdatedTopic = createTopic('artifact.updated', artifactUpdatedEventSchema);
 export const computerUpdatedTopic = createTopic('computer.updated', computerUpdatedEventSchema);
 export const mcpUpdatedTopic = createTopic('mcp.updated', mcpUpdatedEventSchema);
 /** Also the membership sentinel: every publish that can revoke membership sends it. */

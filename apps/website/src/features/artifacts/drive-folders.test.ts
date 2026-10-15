@@ -5,9 +5,19 @@ import {
     artifactFolderPreviews,
     artifactFolderToneMap,
     artifactFolderWithin,
+    artifactMoveTarget,
 } from './drive-folders.ts';
 
 const file = (id: string, path: string) => ({ artifact_id: id, path }) as ArtifactMetadata;
+
+test('Move to… keeps the name and refuses a no-op or a folder into itself', () => {
+    expect(artifactMoveTarget('a/notes.md', '')).toBe('notes.md');
+    expect(artifactMoveTarget('notes.md', 'a/b')).toBe('a/b/notes.md');
+    expect(artifactMoveTarget('a/notes.md', 'A')).toBeNull();
+    expect(artifactMoveTarget('a/b', 'a/b')).toBeNull();
+    expect(artifactMoveTarget('a/b', 'a/b/c')).toBeNull();
+    expect(artifactMoveTarget('a/b', 'a/bc')).toBe('a/bc/b');
+});
 
 test('a folder path becomes a navigable trail, outermost first; the root has none', () => {
     expect(artifactFolderCrumbs('')).toEqual([]);

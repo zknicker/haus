@@ -1,9 +1,10 @@
 import type {
     ArtifactCreator,
     ArtifactFolderEntry,
+    ArtifactLibraryPage,
     ArtifactListInput,
-    ArtifactListResult,
     ArtifactMetadata,
+    ArtifactPublicLink,
 } from '@haus/api';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
@@ -39,7 +40,7 @@ export function useArtifactLibrary(serverId: string, filters: ArtifactLibraryFil
     };
     const result = useInfiniteQuery({
         ...queryPolicy.syncedSnapshot,
-        getNextPageParam: (lastPage: ArtifactListResult) => lastPage.next_offset ?? undefined,
+        getNextPageParam: (lastPage: ArtifactLibraryPage) => lastPage.next_offset ?? undefined,
         initialPageParam: 0,
         placeholderData: keepPreviousData,
         queryFn: async ({ pageParam }) =>
@@ -48,6 +49,11 @@ export function useArtifactLibrary(serverId: string, filters: ArtifactLibraryFil
     });
     const pages = result.data?.pages;
     const artifacts = React.useMemo(() => dedupeArtifacts(pages), [pages]);
+    const publicLinks = React.useMemo(
+        (): Readonly<Record<string, ArtifactPublicLink>> =>
+            Object.assign({}, ...(pages ?? []).map((page) => page.public_links)),
+        [pages]
+    );
     const folders: ArtifactFolderEntry[] = pages?.[0]?.folders ?? [];
 
     return {
@@ -57,13 +63,15 @@ export function useArtifactLibrary(serverId: string, filters: ArtifactLibraryFil
         hasMore: result.hasNextPage,
         isFetchingMore: result.isFetchingNextPage,
         loadMore: () => void result.fetchNextPage(),
+        /** Public links of the loaded files, keyed by artifact id. */
+        publicLinks,
     };
 }
 
 export type ArtifactLibrary = ReturnType<typeof useArtifactLibrary>;
 
 /** A publish between page reads shifts offsets by one; keep each artifact once. */
-function dedupeArtifacts(pages: readonly ArtifactListResult[] | undefined): ArtifactMetadata[] {
+function dedupeArtifacts(pages: readonly ArtifactLibraryPage[] | undefined): ArtifactMetadata[] {
     const seen = new Set<string>();
     return (pages ?? [])
         .flatMap((page) => page.artifacts)

@@ -24,19 +24,20 @@ export function startBootSweep(options: {
     intervalMs: number;
     /** Names the sweep in the one operational line a failure logs. */
     name: string;
-    run(): Promise<unknown>;
+    /** `closing` aborts on `close`; a long run checks it between steps so shutdown stays prompt. */
+    run(closing: AbortSignal): Promise<unknown>;
     timers?: SweepTimers;
 }): BootSweep {
     const timers = options.timers ?? defaultSweepTimers;
-    let closing = false;
+    const closing = new AbortController();
     let inFlight: Promise<void> | null = null;
 
     const run = () => {
-        if (inFlight || closing) {
+        if (inFlight || closing.signal.aborted) {
             return;
         }
         inFlight = options
-            .run()
+            .run(closing.signal)
             .then(() => undefined)
             .catch((error: unknown) => {
                 console.error(
@@ -55,7 +56,7 @@ export function startBootSweep(options: {
 
     return {
         async close() {
-            closing = true;
+            closing.abort();
             timers.clearInterval(interval);
             await inFlight;
         },

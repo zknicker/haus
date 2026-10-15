@@ -3,6 +3,13 @@ import { EventEmitter } from 'node:events';
 import path from 'node:path';
 import readline from 'node:readline';
 import {
+    prepareDevObjectStorage,
+    reserveDevObjectStoragePort,
+    shouldRunDevObjectStorage,
+    stopStaleDevObjectStorage,
+    waitForDevObjectStorage,
+} from './dev-object-storage.mjs';
+import {
     hasHausSchema,
     postgresLocaleEnvironment,
     prepareDevPostgres,
@@ -10,6 +17,11 @@ import {
     stopStaleDevPostgres,
     waitForDevPostgres,
 } from './dev-postgres.mjs';
+import {
+    shutdownTimeoutMs,
+    signalChildProcessGroup,
+    waitForChildShutdown,
+} from './dev-stack-processes.mjs';
 import {
     createDesktopDevEnvironment,
     createDevServerEnvironment,
@@ -27,9 +39,6 @@ import {
     waitForPort,
 } from './dev-stack-shared.mjs';
 import { signalAllProcesses, stopInShutdownOrder } from './dev-stack-shutdown-order.mjs';
-
-const shutdownTimeoutMs = Number.parseInt(process.env.HAUS_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000', 10);
-const processGroupShutdownPollMs = 50;
 
 export class DevStackController extends EventEmitter {
     constructor({ mode, ports, repositoryRoot, spawnImpl = spawn }) {
@@ -63,6 +72,7 @@ export class DevStackController extends EventEmitter {
                 desktop: { status: isDesktop ? 'waiting' : 'disabled' },
                 haus: { status: 'waiting' },
                 postgres: { status: 'waiting' },
+                storage: { status: 'waiting' },
                 website: { status: 'waiting' },
             },
             staleCleanupCount: 0,
@@ -213,7 +223,9 @@ export class DevStackController extends EventEmitter {
                     mode: this.mode,
                     ports: this.ports,
                     repositoryRoot: this.repositoryRoot,
-                }) + stopStaleDevPostgres(devStackEnvironment);
+                }) +
+                stopStaleDevPostgres(devStackEnvironment) +
+                stopStaleDevObjectStorage(devStackEnvironment);
         });
     }
 
@@ -297,7 +309,8 @@ export class DevStackController extends EventEmitter {
         const serverEnv = createDevServerEnvironment(
             startupUiEnv,
             this.ports,
-            postgres.databaseUrl
+            postgres.databaseUrl,
+            await this.startObjectStorage(devStackEnvironment, startupUiEnv)
         );
         if (hasHausSchema(postgres)) {
             const migrated = await this.spawnBackgroundProcess(
@@ -372,6 +385,29 @@ export class DevStackController extends EventEmitter {
         }
 
         this.maybeEnterSteadyState();
+    }
+
+    /** Starts the worktree's Files gateway; returns its endpoint, or null when it is not needed. */
+    async startObjectStorage(devStackEnvironment, startupUiEnv) {
+        if (!shouldRunDevObjectStorage(devStackEnvironment)) {
+            this.update((snapshot) => {
+                snapshot.processes.storage.status = 'disabled';
+            });
+            return null;
+        }
+        const storage = prepareDevObjectStorage(
+            devStackEnvironment,
+            await reserveDevObjectStoragePort()
+        );
+        const child = this.spawnProcess('storage', storage.executable, storage.args, {
+            env: { ...startupUiEnv, ...storage.env },
+        });
+        await waitForDevObjectStorage(storage, child);
+        this.update((snapshot) => {
+            snapshot.config.objectStorageUrl = storage.endpoint;
+            snapshot.processes.storage.status = 'running';
+        });
+        return storage.endpoint;
     }
 
     async stop(exitCode = 0, options = {}) {
@@ -473,90 +509,6 @@ export class DevStackController extends EventEmitter {
 
 export { createDesktopDevEnvironment } from './dev-stack-server-environment.mjs';
 
-export function signalChildProcessGroup(child, signal, killProcessGroup = process.kill) {
-    if (!child.pid) {
-        return false;
-    }
-
-    try {
-        killProcessGroup(-child.pid, signal);
-        return true;
-    } catch {
-        if (child.exitCode !== null || child.signalCode !== null) {
-            return false;
-        }
-
-        return child.kill(signal);
-    }
-}
-
-export function waitForChildShutdown(child, beforeWait, options = {}) {
-    const isProcessGroupActive =
-        options.isProcessGroupActive ??
-        (() => {
-            return isChildProcessGroupActive(child);
-        });
-    const pollMs = options.pollMs ?? processGroupShutdownPollMs;
-    const timeoutMs = options.timeoutMs ?? shutdownTimeoutMs;
-    let childExited = child.exitCode !== null || child.signalCode !== null;
-
-    if (!child.pid) {
-        return Promise.resolve(childExited);
-    }
-
-    return new Promise((resolve) => {
-        let interval = null;
-        const timeout = setTimeout(() => {
-            child.off('exit', onExit);
-            if (interval) {
-                clearInterval(interval);
-            }
-            resolve(false);
-        }, timeoutMs);
-
-        const finish = () => {
-            clearTimeout(timeout);
-            if (interval) {
-                clearInterval(interval);
-            }
-            child.off('exit', onExit);
-            resolve(true);
-        };
-
-        const checkShutdown = () => {
-            if (childExited && !isProcessGroupActive()) {
-                finish();
-            }
-        };
-
-        const onExit = () => {
-            childExited = true;
-            checkShutdown();
-        };
-
-        if (!childExited) {
-            child.once('exit', onExit);
-        }
-
-        interval = setInterval(checkShutdown, pollMs);
-        beforeWait?.();
-        checkShutdown();
-    });
-}
-
-function isChildProcessGroupActive(child) {
-    if (!child.pid) {
-        return false;
-    }
-
-    try {
-        process.kill(-child.pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 function isStartupComplete(snapshot) {
     const desktopReady =
         snapshot.processes.desktop.status === 'disabled' ||
@@ -564,11 +516,15 @@ function isStartupComplete(snapshot) {
     const hausReady = snapshot.processes.haus.status === 'running';
     const computerReady = snapshot.processes.computer.status === 'running';
     const postgresReady = snapshot.processes.postgres.status === 'running';
+    const storageReady =
+        snapshot.processes.storage.status === 'disabled' ||
+        snapshot.processes.storage.status === 'running';
 
     return (
         computerReady &&
         hausReady &&
         postgresReady &&
+        storageReady &&
         snapshot.processes.website.status === 'running' &&
         desktopReady
     );
