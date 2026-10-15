@@ -117,10 +117,29 @@ when the bytes contain NUL or are not valid UTF-8. Revisions are immutable, so t
 per revision with no staleness; the viewer is blank while it loads and falls back to the file's icon
 and Download (with "Too large to preview." when oversize) otherwise. Passive raster images open in
 the fullscreen zoom viewer; supported audio/video use native controls; other formats show their
-icon with a Download action. Library thumbnails and folder previews load only raster images up to
-512 KiB; larger originals load when opened, pending dedicated thumbnail renditions. A refused
-download link (storage disabled, revision gone) falls back to the file's icon. The App has no
+icon with a Download action. Library rows and grid tiles, folder-tile previews, and chat file
+tiles show raster images (PNG, JPEG, GIF, WebP, AVIF) through their thumbnail, whatever the
+original's size; only the viewer and its fullscreen zoom load the original. A refused link
+(storage disabled, revision gone) or a revision without a thumbnail falls back to the file's icon. The App has no
 artifact realtime events: lists refresh on mount, focus, and reconnect under `syncedSnapshot`.
+
+### Thumbnails
+
+Haus Server renders one WebP thumbnail per raster revision, longest edge 1024 px (never enlarged),
+and stores it in the same private bucket beside the original at `<revision object key>.thumb.webp`.
+Rendering uses Bun's built-in `Bun.Image` codec (`apps/server/src/artifacts/thumbnail-render.ts`), so
+the compiled Server needs no native addon. A publish starts the render after the revision lands
+and never waits for it or fails because of it. `artifact.thumbnail` (required `revision_id`, the
+same membership authorization as `download`) answers `{ status: 'ready', thumbnail_url,
+expires_at }` with a five-minute signed link, or `{ status: 'none' }` for files without one. A
+revision with no thumbnail yet renders on that first read (the read waits for it), which is how
+revisions published before thumbnails existed get one; there is no backfill job. Renders run two at
+a time per Server, and a publish and a read of the same revision share one render.
+`artifact_revisions.thumbnail_state` records the outcome: `ready`, or `failed` when the bytes do
+not decode as a supported raster image (logged, never retried, kind icon in the App). A storage
+error leaves the state empty so the next read retries. Originals over 100 MB are not read back
+and have no thumbnail. Deleting or pruning a revision deletes its thumbnail with it. Thumbnails
+are not counted against the storage cap.
 
 ### Agent CLI
 
