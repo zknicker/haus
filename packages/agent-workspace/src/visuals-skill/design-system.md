@@ -1,6 +1,6 @@
 # Haus visuals — design system
 
-Everything you render — inline visuals and artifact pages — wears the app's theme. Almost
+Everything you render — inline visuals and pages — wears the app's theme. Almost
 every decision below is already a token; spend them instead of inventing values.
 
 This file is the core. Read it, then read the one module for what you are making.
@@ -12,7 +12,7 @@ This file is the core. Read it, then read the one module for what you are making
 | Any chart, plot, sparkline, heat map, or map | [charts.md](charts.md), then [marks-and-anatomy.md](marks-and-anatomy.md), [interaction.md](interaction.md), and [anti-patterns.md](anti-patterns.md) |
 | A flow, tree, sequence, timeline, or state machine | [diagrams.md](diagrams.md) |
 | Tiles, cards, status lists, meters, calculators, tables, UI mockups | [components.md](components.md) |
-| A durable artifact page | [pages.md](pages.md) |
+| A page | [pages.md](pages.md) |
 | Anything with an icon-shaped spot | [icons.md](icons.md) |
 
 ## Philosophy
@@ -38,7 +38,7 @@ Nothing outside this table is published; an unlisted name resolves to nothing.
 | `--font-sans` | All UI, body, display values, and SVG text |
 | `--font-mono` | Code, hashes, ids, logs — small and secondary only |
 | `--app-ui-font-size` | Body size, already set on the frame body |
-| `--background` | The page ground. Artifact pages only |
+| `--background` | The page ground. Pages only |
 | `--surface` | Card, tile, panel fill |
 | `--surface-secondary` | A plate nested on a surface |
 | `--surface-tertiary` | A plate nested on that |

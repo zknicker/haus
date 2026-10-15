@@ -88,7 +88,11 @@ test('pinned source inventory accounts for every card, omission and Haus additio
         } else {
             expect(topic.triggers).toEqual(metadata.triggers);
         }
-        expect(topic.prereqs).toEqual(metadata.prereqs);
+        expect(topic.prereqs).toEqual(
+            topic.id === 'recipes/technique/html-artifact-discussion'
+                ? ['page fence']
+                : metadata.prereqs
+        );
         expect(topic.industries).toEqual(
             Array.isArray(metadata.industries) ? metadata.industries : [metadata.industries]
         );

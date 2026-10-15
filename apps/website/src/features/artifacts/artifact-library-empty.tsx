@@ -16,7 +16,7 @@ export function ArtifactLibraryEmpty({
     filtered: boolean;
     onUpload: () => void;
 }) {
-    const title = filtered ? 'No matching files' : atRoot ? 'No artifacts yet' : 'No files here';
+    const title = filtered ? 'No matching files' : atRoot ? 'No files yet' : 'No files here';
     const description = filtered
         ? 'Try another file type, creator, or search.'
         : atRoot

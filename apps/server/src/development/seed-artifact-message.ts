@@ -12,8 +12,8 @@ import {
 const seedNonce = 'dev-artifact-tabs';
 
 /**
- * Keeps one Blippy message in #product that shares real workspace artifacts, so
- * artifact cards, `haus://workspace` links, and desktop artifact tabs have
+ * Keeps one Blippy message in #product that shares real workspace files, so
+ * page cards, `haus://workspace` links, and desktop workspace tabs have
  * something to open. Idempotent, and it runs for existing dev workspaces too.
  * The files go straight into Blippy's workspace on the dev Computer's data
  * root, the same dev-only shortcut the Computer attachment seed takes.

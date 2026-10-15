@@ -16,15 +16,16 @@ const WorkspaceArtifact = lazy(async () => ({
 }));
 
 /**
- * `artifacts` is the shared library; `artifacts/<id>` one shared file. A
+ * `artifacts` is Files, the shared library; `artifacts/<id>` one shared file. A
  * workspace target key (`workspaceFile:<agent>:<path>`) is a desktop artifact
  * page from an Agent's workspace instead.
  */
 export function SharedArtifactsPage() {
     const { server } = useServerContext();
     const { artifactKey } = useParams();
-    useWindowTitle('Artifacts');
-    if (artifactKey && parseArtifactPageKey(artifactKey)) {
+    const workspacePage = artifactKey ? parseArtifactPageKey(artifactKey) !== null : false;
+    useWindowTitle(workspacePage ? 'Workspace' : 'Files');
+    if (workspacePage) {
         return (
             <Suspense fallback={null}>
                 <WorkspaceArtifact />
@@ -32,7 +33,7 @@ export function SharedArtifactsPage() {
         );
     }
     return (
-        <section aria-label="Artifacts" className="flex min-h-0 flex-1 flex-col">
+        <section aria-label="Files" className="flex min-h-0 flex-1 flex-col">
             <Suspense fallback={null}>
                 {artifactKey ? (
                     <ArtifactViewer

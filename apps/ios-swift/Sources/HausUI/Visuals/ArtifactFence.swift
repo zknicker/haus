@@ -1,6 +1,6 @@
 import Foundation
 
-/// One ```artifact fence: a self-contained HTML page in the authoring Agent's
+/// One ```page fence: a self-contained HTML page in the authoring Agent's
 /// workspace, drawn in the transcript as a compact card.
 public struct ArtifactSegment: Sendable, Hashable, Identifiable {
     public let ordinal: Int
@@ -24,8 +24,9 @@ public struct ArtifactSegment: Sendable, Hashable, Identifiable {
     public var displayTitle: String { title ?? fileName }
 }
 
-/// The ```artifact fence grammar, ported from the App's `splitArtifactFences`
-/// and the shared `widgetArtifactPropsSchema`.
+/// The ```page fence grammar, ported from the App's `splitArtifactFences`
+/// and the shared `widgetArtifactPropsSchema`. The retired ```artifact fence
+/// is not read.
 ///
 /// The opener reads mid-line, so a model that glues it to the end of a sentence
 /// still gets a card, and the terminator closes whether it stands on its own
@@ -81,12 +82,12 @@ public enum ArtifactFence {
         return pieces
     }
 
-    private static let opener = "```artifact"
+    private static let opener = "```page"
 
     /// The fallback a preview line reads where the fence was: the title, else
-    /// `Artifact: <path>` — the shared `widgetFallbackText`.
+    /// `Page: <path>`.
     public static func fallbackText(_ artifact: ArtifactSegment) -> String {
-        String((artifact.title ?? "Artifact: \(artifact.path)").prefix(500))
+        String((artifact.title ?? "Page: \(artifact.path)").prefix(500))
     }
 
     /// `widgetArtifactPropsSchema`: a strict object with a confined
@@ -124,6 +125,6 @@ public enum ArtifactFence {
     }
 
     private static let expression = try? NSRegularExpression(
-        pattern: #"```artifact[^\S\r\n]*\r?\n([\s\S]*?)\r?\n?[ \t]*```"#
+        pattern: #"```page[^\S\r\n]*\r?\n([\s\S]*?)\r?\n?[ \t]*```"#
     )
 }

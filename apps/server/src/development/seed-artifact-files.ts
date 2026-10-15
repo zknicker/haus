@@ -111,9 +111,9 @@ Where the desktop workspace tabs still feel rough, in the order I'd fix them.
     },
 } as const;
 
-/** Blippy's message: a `haus://workspace` link to the notes and an `artifact` card for the page. */
+/** Blippy's message: a `haus://workspace` link to the notes and a `page` card for the page. */
 export const developmentArtifactMessageContent = `Pulled the tab strip feedback into [Tab strip polish notes](haus://workspace/${developmentArtifactFiles.notes.path}). I also mocked the strip states so we can compare them side by side:
 
-\`\`\`artifact
+\`\`\`page
 ${JSON.stringify({ path: developmentArtifactFiles.page.path, title: developmentArtifactFiles.page.title })}
 \`\`\``;

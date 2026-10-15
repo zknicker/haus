@@ -83,7 +83,7 @@ test('a page whose record has not loaded keeps an empty slot', () => {
     ).toEqual({ label: '', mark: { kind: 'none' }, place: null });
 });
 
-test('Thread and Files pages wear their chat mark and name it as context', () => {
+test('Thread and Attachments pages wear their chat mark and name it as context', () => {
     const thread = resolveTabIdentity(parseTabPage(app('/s/acme/threads/c1/m1')), {
         ...records,
         threadExcerpt: 'Ship it',
@@ -94,7 +94,7 @@ test('Thread and Files pages wear their chat mark and name it as context', () =>
         place: '#product › thread',
     });
     expect(resolveTabIdentity(parseTabPage(app('/s/acme/files/d1')), records).place).toBe(
-        'DM › files'
+        'DM › attachments'
     );
 });
 
@@ -114,13 +114,18 @@ test('a shared artifact tab shows its file title once the record loads', () => {
         'Launch plan'
     );
     const workspace = parseTabPage(app('/s/acme/artifacts/workspaceFile%3Aag1%3Aplan.md'));
-    expect(resolveTabIdentity(workspace, records).label).toBe('Artifact');
+    expect(resolveTabIdentity(workspace, records).label).toBe('Workspace');
 });
 
 test('sections wear their glyph; web pages prefer the live title and favicon', () => {
     expect(resolveTabIdentity(parseTabPage(app('/s/acme/tasks')), records)).toEqual({
         label: 'Tasks',
         mark: { glyph: 'tasks', kind: 'glyph' },
+        place: null,
+    });
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme/artifacts')), records)).toEqual({
+        label: 'Files',
+        mark: { glyph: 'artifacts', kind: 'glyph' },
         place: null,
     });
     const web = { kind: 'browser', title: 'Old', url: 'https://x.dev', viewId: 'v1' } as const;

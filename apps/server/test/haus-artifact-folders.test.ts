@@ -68,16 +68,67 @@ test('a folder lists its child folders with counts and its own files', async () 
     ]);
     expect(root.artifacts.map((item) => item.path)).toContain('notes.md');
     expect(root.artifacts.some((item) => item.path.includes('/'))).toBe(false);
+    expect(root.summary).toEqual({ folders: 1, files_in_folders: 4, files: 2 });
     const kit = await list({ prefix: 'Starter-Kit' });
     expect(kit.folders.map((folder) => [folder.path, folder.file_count])).toEqual([
         ['starter-kit/assets', 1],
         ['starter-kit/scripts', 2],
     ]);
     expect(kit.artifacts.map((item) => item.path)).toEqual(['starter-kit/README.md']);
+    expect(kit.summary).toEqual({ folders: 2, files_in_folders: 3, files: 1 });
     const images = await list({ kind: 'images', prefix: 'starter-kit' });
     expect(images.folders.map((folder) => folder.path)).toEqual(['starter-kit/assets']);
     expect(images.artifacts).toEqual([]);
-    expect((await list({ prefix: 'missing' })).folders).toEqual([]);
+    expect(images.summary).toEqual({ folders: 1, files_in_folders: 1, files: 0 });
+    const missing = await list({ prefix: 'missing' });
+    expect(missing.folders).toEqual([]);
+    expect(missing.summary).toEqual({ folders: 0, files_in_folders: 0, files: 0 });
+});
+
+test('child folders come newest first, with ties broken by path', async () => {
+    const added = await publish({ path: 'starter-kit/zeta/new.md' });
+    try {
+        const kit = await list({ prefix: 'starter-kit' });
+        expect(kit.folders.map((folder) => folder.path)).toEqual([
+            'starter-kit/zeta',
+            'starter-kit/assets',
+            'starter-kit/scripts',
+        ]);
+        await state.harness.sql`
+            update artifact_revisions set created_at = ${new Date(Date.UTC(2026, 9, 1, 0, 4))}
+            where id = ${added.artifact.revision_id}
+        `;
+        const tied = await list({ prefix: 'starter-kit' });
+        expect(tied.folders.map((folder) => folder.path)).toEqual([
+            'starter-kit/assets',
+            'starter-kit/zeta',
+            'starter-kit/scripts',
+        ]);
+    } finally {
+        await state.owner.trpc.artifact.delete.mutate({
+            artifact_id: added.artifact.artifact_id,
+            serverId: state.serverId,
+        });
+    }
+});
+
+test('the summary counts every matching file, whatever the page or recursion', async () => {
+    const first = await list({ limit: 1 });
+    expect(first.artifacts).toHaveLength(1);
+    expect(first.next_offset).toBe(1);
+    expect(first.folders).toHaveLength(1);
+    expect(first.summary).toEqual({ folders: 1, files_in_folders: 4, files: 2 });
+    const second = await list({ limit: 1, offset: 1 });
+    expect(second.folders).toEqual([]);
+    expect(second.summary).toEqual(first.summary);
+    const query = await list({ query: 'scripts' });
+    expect(query.folders.map((folder) => [folder.path, folder.file_count])).toEqual([
+        ['starter-kit', 2],
+    ]);
+    expect(query.summary).toEqual({ folders: 1, files_in_folders: 2, files: 0 });
+    const recursive = await list({ limit: 2, prefix: 'starter-kit', recursive: true });
+    expect(recursive.artifacts).toHaveLength(2);
+    expect(recursive.summary).toEqual({ folders: 2, files_in_folders: 3, files: 1 });
 });
 
 test('recursive listing pages every file under a prefix in stable path order', async () => {

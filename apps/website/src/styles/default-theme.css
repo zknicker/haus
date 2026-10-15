@@ -298,7 +298,7 @@
 
     /*
      * A page's one top bar (`PageToolbar`, features/shell/page-toolbar.tsx):
-     * a browser tab, the new tab page, an artifact page, the Agent Workspace.
+     * a browser tab, the new tab page, a workspace page, the Agent Workspace.
      * It sits on the page ground, so a hairline rather than empty space
      * separates it from the page below; the browser's loading line rides this
      * edge.
@@ -3256,7 +3256,7 @@
     /* ---- Chat artifacts (features/chats/artifact-card.tsx, shared-artifact-chip.tsx) ---- */
 
     /*
-     * An Agent's HTML artifact card is a stock ItemCard in the chat card
+     * An Agent's page card is a stock ItemCard in the chat card
      * material: the `nested-surface` fill and ring that thread previews and
      * Action cards wear, the same shell corner, and the thread preview's
      * density so a stack of them reads as one column of objects. The paired

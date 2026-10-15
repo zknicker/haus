@@ -64,8 +64,8 @@ struct SharedArtifactLinkTests {
 
     @Test func fallsBackToArtifactOnlyWhenTheWordsAreTheAddress() {
         let href = "https://haus.chat/s/acme/artifacts/art_1"
-        #expect(SharedArtifactLinkTarget.fallbackLabel(text: href, target: href) == "Artifact")
-        #expect(SharedArtifactLinkTarget.fallbackLabel(text: "/s/acme/artifacts/art_1", target: "/s/acme/artifacts/art_1") == "Artifact")
+        #expect(SharedArtifactLinkTarget.fallbackLabel(text: href, target: href) == "File")
+        #expect(SharedArtifactLinkTarget.fallbackLabel(text: "/s/acme/artifacts/art_1", target: "/s/acme/artifacts/art_1") == "File")
         #expect(SharedArtifactLinkTarget.fallbackLabel(text: "Q3 report", target: href) == nil)
     }
 

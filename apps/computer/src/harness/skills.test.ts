@@ -18,7 +18,7 @@ test('reads the authored frontmatter description, not the frontmatter fence', as
             'name: visuals',
             'description: >',
             '  Haus design system for everything you render — inline visuals',
-            '  and artifact pages. Read this BEFORE emitting any fence.',
+            '  and pages. Read this BEFORE emitting any fence.',
             '---',
             '',
             '# Visuals',
@@ -32,7 +32,7 @@ test('reads the authored frontmatter description, not the frontmatter fence', as
     expect(skills).toHaveLength(1);
     expect(skills[0]?.name).toBe('visuals');
     expect(skills[0]?.description).toBe(
-        'Haus design system for everything you render — inline visuals and artifact pages. Read this BEFORE emitting any fence.'
+        'Haus design system for everything you render — inline visuals and pages. Read this BEFORE emitting any fence.'
     );
     // The whole file stays the skill content; adapters add their own frontmatter.
     expect(skills[0]?.content).toContain('description: >');

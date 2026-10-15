@@ -232,7 +232,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   gates mark-read and window-level key handlers; the web default is always shown. Presence
   flips on every tab or kept-view show and hide, so a reader that needs only the tab id uses
   `useTabId()`, and a large view puts its presence read in a leaf (`ChatReadState`). Desktop-only
-  openers (`useDesktopPageOpeners` for Threads, Files, and artifacts) are null on the web, where
+  openers (`useDesktopPageOpeners` for Threads, chat Attachments, and artifacts) are null on the web, where
   the chat's side panel (`useChatThreadPane`, `useChatFilesPane`) hosts them. A page that can be a
   tab renders host-agnostically (no outlet context from outside its tab router) and works at
   420px. Native web views and their placement belong to `BrowserViewsProvider`

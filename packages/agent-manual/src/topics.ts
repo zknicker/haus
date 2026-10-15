@@ -1,4 +1,4 @@
-import { artifactTopic } from './artifact-topic.ts';
+import { filesTopic } from './artifact-topic.ts';
 import { cliFamilyTopics } from './cli-family-topics.ts';
 import { archetypeRecipes } from './corpus/archetypes.ts';
 import { cliFamilyTopicsA } from './corpus/cli-families-a.ts';
@@ -28,7 +28,7 @@ const recipeTopics: readonly ManualRecipeTopic[] = [
 const seededRecipeTopics = recipeTopics.filter((topic) => topic.tier === 'seeded');
 
 const navigationTopics: readonly ManualNavigationTopic[] = [
-    artifactTopic,
+    filesTopic,
     {
         body: `The Haus Manual is the shared, read-only operating reference for managed Agents.
 
@@ -50,7 +50,7 @@ Manual lookups require a natural-language --intent and --reason, each 12–500 c
     {
         body: `Haus Agents use the CLI as their only collaboration output channel.
 
-This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus task, haus reminder, haus thread, haus attachment, haus skill, haus agent, and haus manual. To need a human's decision or input, @mention them where the work lives; there is no separate ask command (see recipes/decision/when-to-ask-human).
+This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus task, haus reminder, haus thread, haus attachment, haus files, haus skill, haus agent, and haus manual. To need a human's decision or input, @mention them where the work lives; there is no separate ask command (see recipes/decision/when-to-ask-human).
 
 Read the current identity with haus profile show. List your unread conversations with haus inbox check, read one with haus message read --target <target> --unread, and drain new deliveries with haus message check. Send durable collaboration with haus message send, adding --done to the message that completes your reply in a chat (see replies).
 

@@ -367,14 +367,14 @@ fill (21%, a step above the card) rather than by shadow. See "Shell variants" in
 
 ### Artifact icon tokens
 
-The Artifacts library draws files and folders as small illustrated icons
+The Files library draws files and folders as small illustrated icons
 (`features/artifacts/icons/`). Their color is one hue token per meaning, set
 per theme in `default-theme.css` ("Artifact icons"):
 
 | Family | Names | Meaning |
 | --- | --- | --- |
 | File kinds | `--artifact-kind-{pdf,html,slides,spreadsheet,image,document,code,video,audio,archive,text,other}` | The ink of a file sheet's glyph, one per `ArtifactFileKind` |
-| Folder tones | `--artifact-folder-{neutral,blue,violet,green,amber,rose}` | A drive folder's tint; sibling folders are dealt the tints (never `neutral`) in path-key order (`artifactFolderToneMap`), so a set of folders keeps its colors and none repeat until the tints run out |
+| Folder tones | `--artifact-folder-{neutral,blue,violet,green,amber,rose}` | A folder's tint in Files; sibling folders are dealt the tints (never `neutral`) in path-key order (`artifactFolderToneMap`), so a set of folders keeps its colors and none repeat until the tints run out |
 
 Each icon sets only its hue (`--artifact-icon-hue` or `--artifact-folder-hue`);
 `.artifact-icon` and `.artifact-folder-icon` in the theme's component layer
@@ -390,7 +390,7 @@ HeroUI tokens.
 ### Agent-visual tokens
 
 `styles/artifact-tokens.css` publishes a second, much smaller vocabulary for
-agent-authored HTML — in-chat visuals and artifact pages, which render in a
+agent-authored HTML — in-chat visuals and pages, which render in a
 sandboxed frame and never see these stylesheets. Most of its names alias the
 HeroUI roles above, so an agent never writes a HeroUI name and a re-pointed
 alias updates every page ever authored.
@@ -756,7 +756,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 
 ## Components
 
-- **Shared artifacts:** The library has no page title. The shell band carries the drive trail ("Haus › Artifacts › <folder> › <folder>") and every control (search, a file-type menu, a Created by menu, list/grid, then a secondary `sm` Upload menu), so the column below is only content. Each date group is a muted label over standalone secondary `ListView` rows (list: no rules, ×2 rounded hover and selected fills) or stock `Card` tiles (grid); rows keep their stock inline padding, and group labels, folder artwork, and grid card edges take that same inset (`--artifact-library-inset`), so every icon shares one edge and row fills grow outward from it to the column edge. Folder tiles stay boxless, Finder-style, with a hover fill that grows outward; pressing one opens the folder. Upload progress is a stock `sm` `ProgressBar` at the top of the column, and problems a danger `Alert`. A file drag over the library washes the scroll area in the accent with an inset ring (`.artifact-library-drop`), never moving content. The viewer fills the remaining app height and keeps file details and revisions beside the asset.
+- **Files:** The library has no page title. The shell band carries the folder trail ("Haus › Files › <folder> › <folder>") and every control (search, a file-type menu, a Created by menu, list/grid, then a secondary `sm` Upload menu), so the column below is only content. Each date group is a muted label over standalone secondary `ListView` rows (list: no rules, ×2 rounded hover and selected fills) or stock `Card` tiles (grid); rows keep their stock inline padding, and group labels, folder artwork, and grid card edges take that same inset (`--artifact-library-inset`), so every icon shares one edge and row fills grow outward from it to the column edge. Folder tiles stay boxless, Finder-style, with a hover fill that grows outward; pressing one opens the folder. Upload progress is a stock `sm` `ProgressBar` at the top of the column, and problems a danger `Alert`. A file drag over the library washes the scroll area in the accent with an inset ring (`.artifact-library-drop`), never moving content. The viewer fills the remaining app height and keeps file details and revisions beside the asset.
 - **Amazon references:** Product chips reuse the inline reference shell with an 18px transparent cutout thumbnail from RankWrangler and a short name (ASIN fallback) capped at 16rem. The image fits inside its box without cropping, zoom, or background blending. Missing or failed cutouts use the product icon. Their landscape hover card uses the shared hover-card material at 384px and shows a compact text surface with a two-line title, closely spaced brand, and price, with a 72px transparent cutout floating to its right at −5°. The text column opens with the ASIN in `font-mono text-muted text-xs` beside a CopyButton labelled "Copy ASIN" in every lookup state, the title line appears only when RankWrangler returns one, and the card is an anchored interactive HoverCard opening below the chip. A 1.2-second pop-in with diminishing scale and rotation overshoot settles at −5°; a delayed sparkle fades out. Both respect reduced-motion preferences. Feature bullets are omitted.
 - **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
   no additional end padding, so text and thread previews use the space beside the avatar rail.
@@ -806,7 +806,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
   Recalibrate it when those colors change.
   **In-chat column:** every attachment under a message — Action cards (Cloud Agent work), thread
-  previews, artifact cards, the working log, workspace changes — is `w-full` up to one shared cap,
+  previews, page cards, the working log, workspace changes — is `w-full` up to one shared cap,
   `--chat-card-width` (36rem) in `default-theme.css`, on every message whether or not other
   attachments are present, so stacked attachments share both edges. Use `max-w-(--chat-card-width)`;
   never a per-component literal. Inline chips (task and artifact chips) stay content-sized.
@@ -827,7 +827,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 - **Thread transcript fade:** Task and thread views fade messages over the final 4rem,
   reaching transparency 0.75rem above the composer so content clears its rounded edges.
 - **Workspace tabs:** Desktop only, in the window band. One anatomy for the primary tab and every
-  browser and artifact tab (`WorkspaceTab`, base rules on `.workspace-tab` and Codex's window-tab
+  browser and workspace tab (`WorkspaceTab`, base rules on `.workspace-tab` and Codex's window-tab
   values on `.shell-window-band .workspace-tab…`, tokens `--shell-tab-*`, in `default-theme.css`).
   It copies Codex's window tabs: a 32px box with a 10px corner, a 20px mark slot, a regular-weight
   `text-sm` (13px) title 8px after it, a start inset equal to the slot's vertical inset (6px) and a
@@ -843,7 +843,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   Every tab, the primary one included, holds a 240px basis (`--workspace-tab-width` in the band)
   while there is room, so switching chats never moves the strip, and all tabs shrink evenly together
   down to mark-only when the strip is crowded. The primary tab carries no trailing action and sorts
-  with the other tabs in one draggable list. Browser and artifact tabs
+  with the other tabs in one draggable list. Browser and workspace tabs
   show a 20px ghost close button (14px glyph, 7px from the end) on select, hover, or focus. Tabs
   sit 4px apart; a 1 × 12px divider at 8% foreground centered in each gap (and before the new-tab
   button) keeps adjacent resting tabs apart, and hides beside the selected, multi-selected, hovered, or dragged tab.
@@ -852,7 +852,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   section glyph, the page favicon, or the artifact file glyph. The layout controls sit as
   icon-only ghost `sm` Buttons at the band's end
   (`.workspace-band-end`), outside the window drag region. Settings is not in the band: on the
-  desktop its ghost `sm` gear leads the sidebar footer. Browser and artifact tabs share the
+  desktop its ghost `sm` gear leads the sidebar footer. Browser and workspace tabs share the
   closable-tab rules (`.workspace-tab:not([data-kind="primary"])`).
 - **Settings rows:** Settings pages are stock `ItemCardGroup` lists of `ItemCard` rows, following
   HeroUI Pro's anatomy: a group's `Header` carries its `Title` (and any group-wide
@@ -885,7 +885,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   identity-mark curve `×2.5`, holding a 20px favicon or globe, over one muted `text-sm` label that
   ends in an ellipsis. The tile takes the shell corner. No instruction copy; no history, no tiles.
 - **Page toolbar:** A page's one top bar where the page has no shell band — a browser tab, the
-  new tab page, an artifact page — is `PageToolbar` (`features/shell/page-toolbar.tsx`, `.page-toolbar` in
+  new tab page, a workspace page — is `PageToolbar` (`features/shell/page-toolbar.tsx`, `.page-toolbar` in
   `default-theme.css`): `×2` side padding, `×1.25` block padding, `×1.5` gap, a bottom `--hairline`
   and no other edge. Actions are icon-only ghost `sm` buttons with tooltips (`PageToolbarButton`);
   a `Toolbar` inside the bar tightens to a `×0.5` cluster. Toggles in the bar are ghost `sm`
@@ -994,7 +994,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   (x in percent, y in pixels) so their text stays 12px on a phone; every other plot draws on a 736 viewBox. The app's usage chart and
   agent-authored visuals share the same tokens.
 
-The desktop window band keeps one primary Chat tab and additional browser and artifact tabs in one
+The desktop window band keeps one primary Chat tab and additional browser and workspace tabs in one
 sortable strip; the layout controls follow it at the band's end. A chat's actions live in its sidebar row's context menu (a flat list) and in its tab's context menu (one Channel or DM submenu, so the tab's own commands stay short), not in a band. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the page
 ground without a background tray; their fill, corner, and selected material follow **Workspace tabs**
 above. Each tab's stock HeroUI Button and its trailing Close action are siblings inside the tab, so

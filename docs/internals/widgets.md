@@ -1,7 +1,7 @@
 ---
-summary: Visual and artifact architecture — tagged fences, generative visuals in sandboxed iframes, message-backed visual rendering, dormant widget-activity pipeline, legacy catalog replay, and chat rendering.
+summary: Visual and page architecture — tagged fences, generative visuals in sandboxed iframes, message-backed visual rendering, dormant widget-activity pipeline, legacy catalog replay, and chat rendering.
 read_when:
-  - changing visual or artifact persistence, fence parsing, or renderer behavior
+  - changing visual or page persistence, fence parsing, or renderer behavior
   - changing the visual sandbox, its CSP or CDN allowlist, or the theme-token injection
   - changing the published agent-visual token vocabulary or the chart palette
   - changing how assistant final replies become app-rendered chat UI
@@ -16,7 +16,7 @@ renders in one of two places.
 | surface | what it is | where it renders | renderer |
 | --- | --- | --- | --- |
 | Visual | a ```` ```visual ```` fence inside a message | inline in the transcript | `features/chats/visual-card.tsx` |
-| Artifact | a durable `.html` file in the workspace | card in chat → artifact side pane | `features/chats/artifact-card.tsx` → `chat-artifact-workspace-preview.tsx` |
+| Page | a durable `.html` file in the workspace, posted with a `page` fence | card in chat → Workspace pane | `features/chats/artifact-card.tsx` → `chat-artifact-workspace-preview.tsx` |
 
 Both share `src/agent-html/tokens.ts`, the single published token list plus
 the snapshot/injection helpers, and `agentHtmlSandbox` in
@@ -31,8 +31,10 @@ the 2026-07 retirement as fallback-text cards; nothing emits new ones.
 
 Agents render exactly two kinds of visual output: **visuals** — bespoke
 inline HTML/SVG drawn in a ```` ```visual ```` fence and rendered in a
-sandboxed iframe — and **artifacts** — durable self-contained pages carded
-in chat and rendered in the artifact pane ([artifacts.md](artifacts.md)).
+sandboxed iframe — and **pages** — durable self-contained HTML files posted
+with a ```` ```page ```` fence, carded in chat, and rendered in the Workspace
+pane ([pages.md](pages.md)). The old ```` ```artifact ```` spelling is not
+recognized.
 The old closed widget catalog (tables, charts, calendars, html-preview,
 plugin widgets) was retired in 2026-07; stored catalog widgets in historical
 chats replay as fallback-text cards.
@@ -68,7 +70,7 @@ registration), with optional info-string text as the title:
   whitespace after it, and a tag inside another fenced block — the
   four-backtick examples the visuals skill ships — belongs to that block. The
   skill still instructs agents to start the fence on its own line: tolerance
-  in the parser, clarity in the instruction. The `artifact` fence reads
+  in the parser, clarity in the instruction. The `page` fence reads
   mid-line on both ends too
   (`apps/website/src/features/servers/chat/artifact-message.tsx`), and the iOS
   parser (`apps/ios-swift/Sources/HausUI/Visuals/VisualFence.swift`) mirrors
@@ -166,7 +168,7 @@ registration), with optional info-string text as the title:
   postMessage API for model content) — interactivity is within-iframe over
   embedded data.
 - **Taste layer.** One seeded `visuals` skill owns everything the agent
-  renders — when to render, the visual and artifact fence contracts, and the
+  renders — when to render, the visual and page fence contracts, and the
   design system and the curated icon assets, written against the published
   token names in `artifact-tokens.css`; DESIGN.md carries the app-side
   reference. The managed prompt keeps a three-line pointer: the surfaces exist
@@ -224,14 +226,14 @@ registration), with optional info-string text as the title:
   Rerun it after changing the token list or any value it resolves from.
   See [ios.md](ios.md).
 
-## Artifacts
+## Pages
 
 The durable tier: an agent-authored self-contained single-file HTML page
-that opens in the artifact pane. Authored as a bare ```` ```artifact ````
+that opens in the Workspace pane. Authored as a bare ```` ```page ````
 fence containing exactly one JSON object:
 
 ````markdown
-```artifact
+```page
 {"path":"workbench/report.html","title":"June report"}
 ```
 ````
@@ -240,18 +242,18 @@ Props are `{ path, title? }`; the path must be workspace-relative with
 confined segments and an `.html`/`.htm` extension
 (`packages/haus-api/src/widgets/workspace-path.ts`). The transcript
 renders a compact card (title, kind, open affordance) and never the page
-itself; opening the card opens the artifact (the chat's Artifact Panel on the web, an artifact
-page on desktop), where the
+itself; opening the card opens the page (the chat's Workspace pane on the web, a workspace
+tab on desktop), where the
 sandboxed HTML preview renders the file with the app's theme tokens injected
 as CSS variables. Rendering is live file state — later edits or deletion
-change what historical chats display. See [artifacts.md](artifacts.md) for
+change what historical chats display. See [pages.md](pages.md) for
 the authoring contract.
 
 ## Contract
 
-Both fences funnel into the widget render envelope. Names map one-to-one to
+Historical `widget` rows store the render envelope. Names map one-to-one to
 durable component ids `haus.widget.<name>` where `name` is `visual` or
-`artifact`. The stored envelope is:
+`artifact` (the page tier's row name; its fence is `page`). The stored envelope is:
 
 ```ts
 {
@@ -266,7 +268,7 @@ A reply may contain multiple fences; each becomes its own activity in fence
 order. An invalid fence (unknown name, malformed JSON, or props that fail
 the schema) is stripped from the visible reply and produces no activity; the
 prose still delivers. While an assistant is streaming, open `visual` fences
-render progressively and `artifact` fences are hidden until the turn
+render progressively and `page` fences are hidden until the turn
 completes.
 
 ## Reply composition
@@ -344,7 +346,7 @@ Canonical names, props schemas, and the render envelope live in
 from message content and `assistant-reply-body.tsx` renders the iframe card —
 Computer does not parse fences or write `widget` activity. Server still
 holds the dormant row projection (`apps/server/src/widgets/widgets.ts`) and
-Website the `widget`-row renderers (`apps/website/src/widgets`: artifact card
+Website the `widget`-row renderers (`apps/website/src/widgets`: page card
 and fallback card) for the pipeline noted under **Storage**. The pane's HTML
 preview and host token injection live with the other pane renderers in
-`apps/website/src/features/chats/` (see [artifacts.md](artifacts.md)).
+`apps/website/src/features/chats/` (see [pages.md](pages.md)).

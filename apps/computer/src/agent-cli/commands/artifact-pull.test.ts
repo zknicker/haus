@@ -19,7 +19,7 @@ import { createTestDrive } from './artifact-test-drive.ts';
 
 const spec = {
     ...ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'pull'),
-    section: 'artifact',
+    section: 'files',
 } as Parameters<typeof parseArgs>[0];
 let stdout: ReturnType<typeof spyOn>;
 let stderr: ReturnType<typeof spyOn>;

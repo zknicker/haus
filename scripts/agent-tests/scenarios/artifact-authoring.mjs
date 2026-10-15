@@ -1,5 +1,5 @@
-// An Agent asked for a shareable artifact must produce two durable things: the
-// workspace file it claims to have written, and an artifact fence in Chat that
+// An Agent asked for a shareable page must produce two durable things: the
+// workspace file it claims to have written, and a `page` fence in Chat that
 // points at that exact path. Rendering is the App lane's job, not this one.
 
 import { defineScenario } from '../scenario.mjs';
@@ -7,20 +7,20 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An Agent asked for a shared HTML artifact writes the exact workspace file, whose bytes carry the requested heading, and shares it as an artifact fence naming that same path.',
+        'An Agent asked for a shared HTML page writes the exact workspace file, whose bytes carry the requested heading, and shares it as a page fence naming that same path.',
     name: 'artifact-authoring',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
         const token = marker('ARTIFACT');
         const artifactPath = `eval-artifacts/${kit.stamp}.html`;
-        const artifactTitle = `Eval artifact ${kit.stamp}`;
+        const artifactTitle = `Eval page ${kit.stamp}`;
         expect(worker.dmChatId, 'worker Owner DM').toBeTruthy();
 
-        log('asking for the artifact');
+        log('asking for the page');
         const head = await kit.readHead(worker.dmChatId);
         await kit.harness.send(
             worker.dmChatId,
-            `Create a self-contained HTML status page at ${artifactPath} whose visible heading is exactly "${token}". Share it here as an artifact card titled "${artifactTitle}".`
+            `Create a self-contained HTML status page at ${artifactPath} whose visible heading is exactly "${token}". Share it here as a page card titled "${artifactTitle}".`
         );
 
         const turn = await settleTurn(worker.id);
@@ -30,8 +30,8 @@ export default defineScenario({
 
         log('checking gates');
         const replies = await agentReplies(kit, worker.id, worker.dmChatId, head);
-        expect(replies, 'an artifact fence in the reply').toContain('```artifact');
-        expect(replies, 'the artifact path in the reply').toContain(artifactPath);
+        expect(replies, 'a page fence in the reply').toContain('```page');
+        expect(replies, 'the page path in the reply').toContain(artifactPath);
 
         const file = await kit.trpc('agent.workspaceFile', {
             agentId: worker.id,

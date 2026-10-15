@@ -37,7 +37,7 @@ export async function getArtifact(
         )
         .limit(1);
     if (!row) {
-        throw new ArtifactError('Artifact or revision was not found.', 404, 'NOT_FOUND');
+        throw new ArtifactError('File or revision was not found.', 404, 'NOT_FOUND');
     }
     return {
         metadata: artifactMetadata(row, origin, access.slug),

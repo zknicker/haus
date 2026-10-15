@@ -15,7 +15,7 @@ read_when:
 | PostgreSQL model | [Data Model](data-model.md) |
 | React conventions | [React Conventions](react.md) |
 | Browser control | [Browser](browser.md) |
-| Artifacts | [Artifacts](artifacts.md) |
+| Pages | [Pages](pages.md) |
 | Widgets | [Widgets](widgets.md) |
 
 Computer's execution ownership is defined by

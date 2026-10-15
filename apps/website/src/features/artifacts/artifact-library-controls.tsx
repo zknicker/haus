@@ -52,7 +52,7 @@ export function ArtifactLibraryControls({
     return (
         <>
             <SearchField
-                aria-label={folderName ? `Search in ${folderName}` : 'Search artifacts'}
+                aria-label={folderName ? `Search in ${folderName}` : 'Search files'}
                 className="w-44 min-w-0 shrink"
                 onChange={onSearchChange}
                 value={search}

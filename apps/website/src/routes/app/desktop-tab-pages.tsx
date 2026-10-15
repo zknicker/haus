@@ -63,7 +63,7 @@ export function ThreadPageRoute() {
 }
 
 /**
- * A chat's Files as a desktop page (`files/:chatId`): the Files list in a
+ * A chat's Attachments as a desktop page (`files/:chatId`): the Attachments list in a
  * centered reading column, read from the chat's transcript cache so it lists
  * the same loaded messages the chat shows.
  */
@@ -72,7 +72,7 @@ export function FilesPageRoute() {
     const { server } = useServerContext();
     const messages = useChatMessages(server.id, chatId);
     return (
-        <section aria-label="Files" className="flex min-h-0 flex-1 flex-col bg-background">
+        <section aria-label="Attachments" className="flex min-h-0 flex-1 flex-col bg-background">
             <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
                 <ChatFiles messages={messages.data?.entries} />
             </div>

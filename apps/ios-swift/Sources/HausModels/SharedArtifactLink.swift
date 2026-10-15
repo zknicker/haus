@@ -25,8 +25,8 @@ public struct SharedArtifactLinkScope: Equatable, Sendable {
     @TaskLocal public static var current: SharedArtifactLinkScope?
 }
 
-/// One shared-library artifact a message links to: the stable URL
-/// `haus artifact publish` returns, optionally pinned to a revision.
+/// One file in Files a message links to: the stable URL
+/// `haus files push` returns, optionally pinned to a revision.
 public struct SharedArtifactLinkTarget: Hashable, Sendable {
     public let artifactID: String
     public let revisionID: String?
@@ -97,7 +97,7 @@ public struct SharedArtifactLinkTarget: Hashable, Sendable {
             || trimmed.hasPrefix("http://")
             || trimmed.hasPrefix("https://")
             || trimmed.hasPrefix("/")
-        return isAddress ? "Artifact" : nil
+        return isAddress ? "File" : nil
     }
 
     static func origin(of url: URL) -> String? {

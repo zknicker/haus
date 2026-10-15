@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils.ts';
 
 /**
  * The class every page's top bar shares: a browser tab's toolbar, the new tab
- * page, an artifact page, and the Agent Workspace. `.page-toolbar` in the
+ * page, a workspace page, and the Agent Workspace. `.page-toolbar` in the
  * theme layer owns the inset, the gap, the height, the bottom hairline, and
  * the tight cluster gap of a `Toolbar` inside it. Hosts that need a form or a
  * grid (the browser) put the class on their own element.

@@ -6,7 +6,7 @@ import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { Mention, ReferenceActivation } from '../../mentions/mention-types.ts';
 
 type ArtifactMessageSegment =
-    | { key: string; kind: 'artifact'; props: WidgetArtifactProps }
+    | { key: string; kind: 'page'; props: WidgetArtifactProps }
     | { end: number; key: string; kind: 'text'; start: number; text: string };
 
 export function ArtifactMessage({
@@ -23,7 +23,7 @@ export function ArtifactMessage({
     onReferenceActivate?: ReferenceActivation;
 }) {
     const segments = splitArtifactFences(content);
-    const artifacts = segments.filter((segment) => segment.kind === 'artifact');
+    const pages = segments.filter((segment) => segment.kind === 'page');
 
     // In-chat cards sit below the message: prose reads as one block, then
     // each fence's card in authored order.
@@ -41,9 +41,9 @@ export function ArtifactMessage({
                     ) : null
                 )}
             </div>
-            {artifacts.length > 0 ? (
+            {pages.length > 0 ? (
                 <div className="mt-1.5 flex min-w-0 flex-col gap-1.5">
-                    {artifacts.map((segment) => (
+                    {pages.map((segment) => (
                         <WidgetArtifactCard key={segment.key} props={segment.props} />
                     ))}
                 </div>
@@ -53,13 +53,14 @@ export function ArtifactMessage({
 }
 
 /**
- * The `artifact` fence already reads mid-line — a model that glues the opener
+ * The `page` fence (a workspace HTML page; the old `artifact` fence is no
+ * longer recognized) already reads mid-line — a model that glues the opener
  * to the end of a sentence still gets a card — and the terminator is now as
  * forgiving as the visual one: it closes whether it stands on its own line or
  * is glued to the end of the JSON. Text on either side stays message text.
  */
 export function splitArtifactFences(content: string): ArtifactMessageSegment[] {
-    const fence = /```artifact[^\S\r\n]*\r?\n([\s\S]*?)\r?\n?[ \t]*```/gu;
+    const fence = /```page[^\S\r\n]*\r?\n([\s\S]*?)\r?\n?[ \t]*```/gu;
     const segments: ArtifactMessageSegment[] = [];
     let cursor = 0;
 
@@ -79,8 +80,8 @@ export function splitArtifactFences(content: string): ArtifactMessageSegment[] {
             });
         }
         segments.push({
-            key: `artifact:${matchIndex}:${match[0].length}`,
-            kind: 'artifact',
+            key: `page:${matchIndex}:${match[0].length}`,
+            kind: 'page',
             props: parsed,
         });
         cursor = matchIndex + match[0].length;

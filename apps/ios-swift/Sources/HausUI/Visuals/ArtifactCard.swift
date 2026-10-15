@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A compact card for one ```artifact page under the message that linked it —
+/// A compact card for one ```page fence under the message that linked it —
 /// the App's `WidgetArtifactCard`: a document glyph in its own box, the page's
 /// title over `Page · path`, and a trailing chevron. The card reads nothing;
 /// tapping it opens the page in a sheet, which reads it from the Agent's

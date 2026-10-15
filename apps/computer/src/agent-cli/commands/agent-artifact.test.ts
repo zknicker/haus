@@ -5,11 +5,15 @@ import { ARTIFACT_SUBCOMMANDS, runArtifactList } from './agent-artifact.ts';
 import { resolveArtifactId } from './artifact-target.ts';
 
 const list = ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'list');
-const listCommand = { ...list, section: 'artifact' } as Parameters<typeof parseArgs>[0];
+const listCommand = { ...list, section: 'files' } as Parameters<typeof parseArgs>[0];
 const stdout = spyOn(process.stdout, 'write').mockImplementation(() => true);
 afterEach(() => stdout.mockClear());
 
-function client(response: unknown = { artifacts: [], folders: [], next_offset: null }) {
+const emptySummary = { folders: 0, files_in_folders: 0, files: 0 };
+
+function client(
+    response: unknown = { artifacts: [], folders: [], next_offset: null, summary: emptySummary }
+) {
     const requests: { route: string; input?: AgentApiRequest }[] = [];
     const requester: AgentApiRequester = {
         request: <T>(route: string, _schema: unknown, input?: AgentApiRequest) => {
@@ -48,14 +52,20 @@ test('list browses one folder and forwards the filters', async () => {
     ]);
 });
 
-test('list without a folder reads the drive root and prints folders and files', async () => {
+test('list without a folder reads the drive root and prints the summary, folders, and files', async () => {
     const folder = {
         name: 'kit',
         path: 'kit',
-        file_count: 2,
+        file_count: 89,
         updated_at: '2026-10-13T00:00:00.000Z',
     };
-    const { requester, requests } = client({ artifacts: [], folders: [folder], next_offset: null });
+    const summary = { folders: 1, files_in_folders: 89, files: 1 };
+    const { requester, requests } = client({
+        artifacts: [],
+        folders: [folder],
+        next_offset: null,
+        summary,
+    });
     await runArtifactList(parseArgs(listCommand, []), requester);
     expect(requests[0]?.input?.query).toEqual({
         prefix: '',
@@ -65,13 +75,20 @@ test('list without a folder reads the drive root and prints folders and files', 
         mine: undefined,
     });
     const printed = JSON.parse(String(stdout.mock.calls[0]?.[0]));
-    expect(printed).toEqual({ folder: '', folders: [folder], files: [], next_offset: null });
+    expect(printed).toEqual({
+        summary,
+        folder: '',
+        folders: [folder],
+        files: [],
+        next_offset: null,
+    });
+    expect(Object.keys(printed)).toEqual(['summary', 'folder', 'folders', 'files', 'next_offset']);
 });
 
 test('list rejects invalid folders and extra arguments', async () => {
     const { requester } = client();
     await expect(runArtifactList(parseArgs(listCommand, ['../up']), requester)).rejects.toThrow(
-        /Drive path/u
+        /not a valid path in Files/u
     );
     await expect(runArtifactList(parseArgs(listCommand, ['a', 'b']), requester)).rejects.toThrow(
         UsageError

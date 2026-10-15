@@ -196,7 +196,7 @@ would resolve the schema again at boot, under the development lifecycle.
 
 ## Commands
 
-Shared artifacts are opt-in through `HAUS_ENABLE_ARTIFACT_STORAGE`. When enabled,
+Files (shared artifacts) are opt-in through `HAUS_ENABLE_ARTIFACT_STORAGE`. When enabled,
 Server requires the private R2 endpoint, bucket, access key ID, and secret in
 `.env.schema`; the key pair resolves from `Cloudflare R2 - Haus` in the matching
 Development or Production vault. `HAUS_ARTIFACT_R2_SESSION_TOKEN` additionally

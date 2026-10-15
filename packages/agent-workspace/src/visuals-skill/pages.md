@@ -1,12 +1,12 @@
-# Haus visuals — artifact pages
+# Haus visuals — pages
 
-Read [design-system.md](design-system.md) first. An artifact is a durable
-self-contained HTML page, carded in chat and opened in the artifact pane, for a
-page the user asked to keep, share, or revisit, or content too long for one
-inline visual. A report, comparison, or set of mockups answered in chat is a
+Read [design-system.md](design-system.md) first. A page is a self-contained
+HTML file in your workspace, carded in chat and opened in the Workspace pane as
+a live view of that file, for a page the user asked for or content too long for
+one inline visual. A report, comparison, or set of mockups answered in chat is a
 visual, not a page. Everything in the design system
 holds; this module covers what changes. The skeleton is
-[artifact-page](fragments/artifact-page.md).
+[page](fragments/page.md).
 
 ## What changes
 
@@ -16,16 +16,19 @@ holds; this module covers what changes. The skeleton is
 - **No base styles.** A page gets the tokens and nothing else, so it styles its
   own `body`, `table`, and form controls. The inline frame's defaults are not
   there.
-- **No network, ever.** Not even the pinned map atlases: an artifact renders
-  offline from a snapshot. `data:` URIs for small images, charts as inline SVG
+- **No network, ever.** Not even the pinned map atlases: a page renders
+  offline from its own file. `data:` URIs for small images, charts as inline SVG
   drawn the same way as inline visuals, all data embedded at generation time.
 - **Headings come back.** One `<h1>`, then sentence-case section titles at
   15–16px weight 500. The no-headings rule is about inline visuals.
 - **Layout.** Prose column about 48rem; tables and dashboards may go full
   width. Operational, not editorial: dense sections, hairline dividers,
   right-aligned numbers, mono for timestamps and ids.
-- Write the file under `workbench/`, then reference it with a bare `artifact`
+- Write the file under `workbench/`, then reference it with a bare `page`
   fence holding exactly one JSON object.
+- The card opens the file live, so it changes when the file does. The Manual
+  topic `files` says who can open a page and how to share it with every member
+  or keep a version.
 
 ## Before shipping the page
 

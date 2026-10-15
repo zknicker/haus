@@ -16,7 +16,7 @@ export async function resolveArtifactId(
 ): Promise<string> {
     const value = raw?.trim() ?? '';
     if (value === '') {
-        throw new AgentCliError('INVALID_ARG', 'Name an artifact: its id, link, or drive path.');
+        throw new AgentCliError('INVALID_ARG', 'Name a file: its id, link, or path in Files.');
     }
     const linked = artifactLink.exec(value)?.[1];
     if (linked) {

@@ -127,7 +127,7 @@ export function getSystemSummary(row: Extract<TranscriptRow, { kind: 'system' }>
         case 'accessEvent':
             return { icon: ToolsIcon, label: 'Checked access' };
         case 'artifact':
-            return { icon: PackageIcon, label: 'Captured artifact' };
+            return { icon: PackageIcon, label: 'Captured output' };
         case 'delivery':
             return { icon: Message01Icon, label: 'Delivered update' };
         case 'runtimeNotice': {

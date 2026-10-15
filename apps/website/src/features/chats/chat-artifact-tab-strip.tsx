@@ -10,7 +10,7 @@ import {
 } from './haus-resource-link.ts';
 
 /*
- * Editor-style artifact tabs, owned by chat.
+ * Editor-style Workspace pane tabs, owned by chat.
  *
  * Stock HeroUI Tabs cannot express these: its list is a React Aria
  * collection that only accepts Tab children, so a per-tab close control
@@ -32,7 +32,7 @@ export function ArtifactTabStrip({
 }) {
     return (
         <div
-            aria-label="Open artifacts"
+            aria-label="Open workspace items"
             className="flex h-8 w-max min-w-full items-center gap-1"
             role="tablist"
         >

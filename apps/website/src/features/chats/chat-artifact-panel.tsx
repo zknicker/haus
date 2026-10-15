@@ -27,7 +27,7 @@ export function ChatArtifactPanel({
     takeover?: boolean;
 }) {
     return (
-        <ChatSidePaneShell label="Artifacts" open={open && state.visible} takeover={takeover}>
+        <ChatSidePaneShell label="Workspace" open={open && state.visible} takeover={takeover}>
             {(width) => (
                 <ArtifactPanelBody
                     agentId={agentId}
@@ -97,8 +97,8 @@ function ArtifactPanelBody({
                     />
                 ) : (
                     <ArtifactPanelEmpty
-                        detail="Open a workspace file from the + menu, or click a linked output in chat."
-                        title="No artifacts open"
+                        detail="Open a workspace file from the + menu, or a page or file linked in chat."
+                        title="Nothing open"
                     />
                 )}
             </div>

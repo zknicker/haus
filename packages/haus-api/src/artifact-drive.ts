@@ -41,12 +41,29 @@ export const artifactFolderEntrySchema = z
     })
     .strict();
 export type ArtifactFolderEntry = z.infer<typeof artifactFolderEntrySchema>;
+/**
+ * Exact totals for the listed folder under the same filters, independent of the page and the
+ * same with or without `recursive`.
+ */
+export const artifactListSummarySchema = z
+    .object({
+        /** Child folders: every one, though only the first page carries `folders`. */
+        folders: z.number().int().nonnegative(),
+        /** Files anywhere under those child folders. */
+        files_in_folders: z.number().int().nonnegative(),
+        /** Files directly in the folder, across every page. */
+        files: z.number().int().nonnegative(),
+    })
+    .strict();
+export type ArtifactListSummary = z.infer<typeof artifactListSummarySchema>;
 export const artifactListResultSchema = z
     .object({
         artifacts: z.array(artifactMetadataSchema),
+        /** Child folders, newest `updated_at` first. */
         folders: z.array(artifactFolderEntrySchema),
         /** Offset of the next file page, or null on the last page. */
         next_offset: z.number().int().nonnegative().nullable(),
+        summary: artifactListSummarySchema,
     })
     .strict();
 export type ArtifactListResult = z.infer<typeof artifactListResultSchema>;
@@ -75,7 +92,7 @@ export const artifactMoveResultSchema = z
     .strict();
 export type ArtifactMoveResult = z.infer<typeof artifactMoveResultSchema>;
 
-/** Exact path lookup; the Agent route behind `haus artifact` path commands. */
+/** Exact path lookup; the Agent route behind `haus files` path commands. */
 export const artifactResolveInputSchema = z
     .object({ path: artifactPathSchema, serverId: id })
     .strict();

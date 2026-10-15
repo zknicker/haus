@@ -11,7 +11,7 @@ import { RowTabItems, runRowTabItem, useRowTabOpeners } from './open-in-new-tab-
 
 /**
  * A DM row's right-click menu: open it, then every DM action the chat's own
- * menu has (Files only on desktop, which opens them as a page).
+ * menu has (Attachments only on desktop, which opens them as a page).
  */
 export function DmNavigationContextMenu({
     agentId,

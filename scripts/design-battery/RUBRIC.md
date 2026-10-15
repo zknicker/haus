@@ -99,7 +99,7 @@ geometry is the agent's and these checks are about arithmetic as much as taste.
 - [ ] Controls neutral (no browser default blue); values update live;
       layout stable while dragging; motion uses the motion tokens.
 
-## Artifact pages
+## Pages
 
 - [ ] Page owns its ground (background token), panels on card/surfaces.
 - [ ] Layout rhythm: constrained prose width, full-width tables/charts,

@@ -16,18 +16,18 @@ public enum SharedArtifactUnavailable: Error, Equatable, Sendable {
 
     public var title: String {
         switch self {
-        case .missing: "Artifact not found"
-        case .forbidden: "Artifact not shared with you"
+        case .missing: "File not found"
+        case .forbidden: "File not shared with you"
         case .offline: "You’re offline"
         case .storageUnavailable: "File unavailable"
-        case .failed: "Artifact unavailable"
+        case .failed: "File unavailable"
         }
     }
 
     public var message: String {
         switch self {
         case .missing:
-            "This artifact was deleted, or the link points somewhere it never existed."
+            "This file was deleted, or the link points somewhere it never existed."
         case .forbidden:
             "You don’t have access to this Server’s shared files."
         case .offline:
@@ -35,7 +35,7 @@ public enum SharedArtifactUnavailable: Error, Equatable, Sendable {
         case .storageUnavailable:
             "This Server can’t hand out its shared files right now."
         case .failed:
-            "Haus couldn’t load this artifact. Try again in a moment."
+            "Haus couldn’t load this file. Try again in a moment."
         }
     }
 

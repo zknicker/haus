@@ -29,14 +29,14 @@ test('malformed artifact keys name no target', () => {
     });
 });
 
-test('two Threads in one chat are different pages; Files is its own page', () => {
+test('two Threads in one chat are different pages; Attachments is its own page', () => {
     const a = tabPageKey({ kind: 'app', path: threadPagePath('acme', 'c1', 'm1') });
     const b = tabPageKey({ kind: 'app', path: threadPagePath('acme', 'c1', 'm2') });
     expect(a).not.toBe(b);
     expect(tabPageKey({ kind: 'app', path: filesPagePath('acme', 'c1') })).toBe('files/c1');
 });
 
-test('only desktop tabs route Thread, Files, and artifact pages', () => {
+test('only desktop tabs route Thread, Attachments, and artifact pages', () => {
     const paths = (desktop: boolean) =>
         serverPageRoutes({ desktop }).map((route) => route.path ?? '(index)');
     const desktopOnly = [

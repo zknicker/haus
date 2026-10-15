@@ -1,6 +1,6 @@
-// No-hint variant of shared-artifact-handoff: the request never says
-// "artifact", so the Agent must find `haus artifact` from its prompt's family
-// entry and the Manual, keep the file's real extension, and link it.
+// No-hint variant of shared-artifact-handoff: the request never names Files,
+// so the Agent must find `haus files` from its prompt's family entry and the
+// Manual, keep the file's real extension, and link it.
 
 import {
     agentMessages,
@@ -14,7 +14,7 @@ export default defineScenario({
     agents: [{ kind: 'worker' }],
     optIn: true,
     contract:
-        'Asked to share a file with the team so anyone can find it later, without the word artifact, an Agent pushes it once to the shared drive with a .md filename and links its stable URL in its reply instead of attaching the file.',
+        'Asked to share a file with the team so anyone can find it later, without naming Files, an Agent pushes it once to Files with a .md filename and links its stable URL in its reply instead of attaching the file.',
     name: 'shared-artifact-discovery',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
@@ -31,12 +31,12 @@ export default defineScenario({
             expect(turn.status, 'turn completed').toBe('completed');
 
             const discovery = (await turnCommands(kit, worker.id, turn)).filter((command) =>
-                /haus (?:manual|artifact|attachment)/u.test(command)
+                /haus (?:manual|files|attachment)/u.test(command)
             );
             log(`discovery: ${discovery.join(' | ').slice(0, 600)}`);
             expect(
-                discovery.some((command) => /haus artifact push\b/u.test(command)),
-                'shared with haus artifact push'
+                discovery.some((command) => /haus files push\b/u.test(command)),
+                'shared with haus files push'
             ).toBe(true);
             published = await artifactsCreatedBy(kit, worker.id);
             log(`published: ${published.map((entry) => entry.filename).join(', ') || 'none'}`);

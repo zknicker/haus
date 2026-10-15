@@ -28,7 +28,7 @@ export function ArtifactInspector({
         { label: 'Updated', value: formatArtifactDate(artifact.updated_at) },
     ];
     return (
-        <aside aria-label="Artifact details" className="flex min-w-0 flex-col gap-8">
+        <aside aria-label="File details" className="flex min-w-0 flex-col gap-8">
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Details</ItemCardGroup.Title>

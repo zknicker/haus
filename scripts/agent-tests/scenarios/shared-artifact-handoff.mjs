@@ -5,7 +5,7 @@ export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     optIn: true,
     contract:
-        'An Agent pushes a workspace folder to the shared drive and links it; a peer pulls the folder, edits one file, and pushes a revision while the untouched file stays put; the first Agent, editing its now-stale copy of the same file, pulls the peer revision, merges, and pushes without --replace so both edits survive.',
+        'An Agent pushes a workspace folder to Files and links it; a peer pulls the folder, edits one file, and pushes a revision while the untouched file stays put; the first Agent, editing its now-stale copy of the same file, pulls the peer revision, merges, and pushes without --replace so both edits survive.',
     name: 'shared-artifact-handoff',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [publisher, editor] = agents;
@@ -19,7 +19,7 @@ export default defineScenario({
             const publisherHead = await kit.readHead(publisher.dmChatId);
             await kit.harness.send(
                 publisher.dmChatId,
-                `In your workspace, create a folder ${local} with two files: notes.txt containing exactly "${original}" followed by a newline, and plan.md containing exactly "# Plan" followed by a newline. Share the folder on this Server's shared drive at ${folder} so the team can work on it, keep your local copy, and send me the link to notes.txt.`
+                `In your workspace, create a folder ${local} with two files: notes.txt containing exactly "${original}" followed by a newline, and plan.md containing exactly "# Plan" followed by a newline. Share the folder in this Server's Files at ${folder} so the team can work on it, keep your local copy, and send me the link to notes.txt.`
             );
             const publishTurn = await settleTurn(publisher.id);
             expect(publishTurn.status, 'publish turn completed').toBe('completed');
@@ -44,14 +44,14 @@ export default defineScenario({
             log('editor pulls, edits one file, pushes');
             await kit.harness.send(
                 editor.dmChatId,
-                `The shared drive folder ${folder} has our handoff notes. Work on it in your workspace: report the marker in notes.txt, change notes.txt to contain exactly "${revised}" followed by a newline, and push your change back to the drive. Do not change plan.md.`
+                `The folder ${folder} in Files has our handoff notes. Work on it in your workspace: report the marker in notes.txt, change notes.txt to contain exactly "${revised}" followed by a newline, and push your change back to Files. Do not change plan.md.`
             );
             const editTurn = await settleTurn(editor.id);
             expect(editTurn.status, 'edit turn completed').toBe('completed');
             const editorCommands = artifactCommands(await turnCommands(kit, editor.id, editTurn));
             log(`editor artifact commands: ${editorCommands.join(' | ').slice(0, 600)}`);
-            expect(/artifact pull\b/u.test(editorCommands.join('\n')), 'editor pulled').toBe(true);
-            expect(/artifact push\b/u.test(editorCommands.join('\n')), 'editor pushed').toBe(true);
+            expect(/files pull\b/u.test(editorCommands.join('\n')), 'editor pulled').toBe(true);
+            expect(/files push\b/u.test(editorCommands.join('\n')), 'editor pushed').toBe(true);
             await kit.awaitAgentReply(editor.dmChatId, editor.id, (message) =>
                 message.content.includes(original)
             );
@@ -63,7 +63,7 @@ export default defineScenario({
             log('publisher edits its stale copy and must merge');
             await kit.harness.send(
                 publisher.dmChatId,
-                `In your local ${local} folder, add a new last line to notes.txt containing exactly "${alpha}", then push the change to the shared drive.`
+                `In your local ${local} folder, add a new last line to notes.txt containing exactly "${alpha}", then push the change to Files.`
             );
             const mergeTurn = await settleTurn(publisher.id);
             expect(mergeTurn.status, 'merge turn completed').toBe('completed');
@@ -74,7 +74,7 @@ export default defineScenario({
             // Pulling before the first push (staging the merge up front) is as good as pulling
             // after the conflict; what matters is fetching the peer's revision, not overwriting it.
             expect(
-                mergeCommands.some((command) => /artifact pull\b/u.test(command)),
+                mergeCommands.some((command) => /files pull\b/u.test(command)),
                 'pulled the current version to merge'
             ).toBe(true);
             expect(
@@ -93,7 +93,7 @@ export default defineScenario({
 });
 
 function artifactCommands(commands) {
-    return commands.filter((command) => command.includes('haus artifact'));
+    return commands.filter((command) => command.includes('haus files'));
 }
 
 async function files(kit, prefix) {

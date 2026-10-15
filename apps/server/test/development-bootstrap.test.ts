@@ -131,7 +131,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(artifactMessages[0]?.content).toContain(
         `haus://workspace/${developmentArtifactFiles.notes.path}`
     );
-    expect(artifactMessages[0]?.content).toContain('```artifact');
+    expect(artifactMessages[0]?.content).toContain('```page');
     expect(product?.lastMessageSequence).toBe(
         Math.max(
             ...(await connection.db.select().from(chatMessagesTable))

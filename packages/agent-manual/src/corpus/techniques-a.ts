@@ -166,12 +166,13 @@ Any discussion about something visual or structural that text keeps failing to p
 A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.
 
 ### In Haus
-Post the artifact as an \`artifact\` fence naming a \`workbench/*.html\` file: it renders a card in the message that opens the page in the artifact pane, and the visuals skill carries the fence contract. When the rounds are a file others need to keep (a spec, a design export), push the first round with \`haus artifact push <file> <drive-path>\` and each later round by pushing the same file again: every version is retained and the stable link always opens the latest.`,
+Build each round as a self-contained HTML file in your workspace and show it with a \`page\` fence; the visuals skill carries the fence contract, and the \`files\` Manual topic says who can open a page. A page is a live view of its file, so write each round to a new file (\`workbench/layout-v2.html\`) rather than overwriting the last, and every earlier card keeps showing its own round. When every member should open a round, or the file outlives the discussion as a spec or design export others will revise or build from, push it to Files with \`haus files push <file> <path>\` and link it. Pushing the same path again adds a revision: every version is retained, and the stable link always opens the latest.`,
         class: 'technique',
         industries: [
             'universal (anything with a visual/structural shape — UI, docs layout, posters, slides, flows)',
         ],
-        prereqs: ['attachment upload'],
+        // Haus posts rounds as page fences or pushes to Files, not attachment uploads.
+        prereqs: ['page fence'],
         related: [
             'technique/video-review',
             'technique/attachment-comments',

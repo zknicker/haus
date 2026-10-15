@@ -38,17 +38,17 @@ export class ArtifactCache {
             await fs.mkdir(folder, { recursive: true, mode: 0o700 });
             const existing = await fs.stat(path).catch(() => null);
             if (existing && (!existing.isFile() || existing.size !== input.artifact.size_bytes)) {
-                throw new Error('Shared artifact cache entry is invalid.');
+                throw new Error('Shared file cache entry is invalid.');
             }
             if (existing && (await fileDigest(path)) !== input.artifact.sha256) {
-                throw new Error('Shared artifact cache entry failed integrity verification.');
+                throw new Error('Shared file cache entry failed integrity verification.');
             }
             if (!existing) {
                 await this.makeRoom(input.artifact.size_bytes);
                 await downloadVerified(input, path);
             }
             if (generation !== this.generation) {
-                throw new Error('The Agent turn ended before the artifact was available.');
+                throw new Error('The Agent turn ended before the file was available.');
             }
             await fs.utimes(path, new Date(), new Date());
             this.pinned.add(path);
@@ -85,7 +85,7 @@ export class ArtifactCache {
 
     private async makeRoom(bytes: number): Promise<void> {
         if (bytes > this.capacity) {
-            throw new Error('Artifact exceeds the Computer shared cache capacity.');
+            throw new Error('File exceeds the Computer shared cache capacity.');
         }
         const protectedPaths = await readPinnedPaths(this.root);
         const entries: { path: string; size: number; accessed: number }[] = [];
@@ -152,7 +152,7 @@ async function downloadVerified(
         signal: AbortSignal.timeout(300_000),
     });
     if (!(response.ok && response.body)) {
-        throw new Error('Artifact download failed.');
+        throw new Error('File download failed.');
     }
     const temporary = `${path}.partial`;
     await fs.rm(temporary, { force: true });
@@ -163,7 +163,7 @@ async function downloadVerified(
         for await (const chunk of response.body) {
             size += chunk.byteLength;
             if (size > input.artifact.size_bytes) {
-                throw new Error('Artifact download exceeded its declared size.');
+                throw new Error('File download exceeded its declared size.');
             }
             hash.update(chunk);
             let offset = 0;
@@ -173,7 +173,7 @@ async function downloadVerified(
             }
         }
         if (size !== input.artifact.size_bytes || hash.digest('hex') !== input.artifact.sha256) {
-            throw new Error('Artifact download failed integrity verification.');
+            throw new Error('File download failed integrity verification.');
         }
         await file.sync();
         await file.chmod(0o444);

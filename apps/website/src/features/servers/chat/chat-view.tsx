@@ -47,7 +47,7 @@ export function ChatView({
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
-    // Desktop opens Files, artifacts, and Threads as pages (ADR 0039), so the
+    // Desktop opens Attachments, artifacts, and Threads as pages (ADR 0039), so the
     // chat renders no side panel there.
     const desktopTabs = useOptionalDesktopTabs() !== null;
     const filesPane = useChatFilesPane(chat.id);

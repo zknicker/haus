@@ -9,7 +9,7 @@ import { parseArgs } from '../agent-cli/parse.ts';
 import { startLoopbackProxy } from '../proxy.ts';
 
 const push = ARTIFACT_SUBCOMMANDS.find((sub) => sub.name === 'push');
-const pushCommand = { ...push, section: 'artifact' } as Parameters<typeof parseArgs>[0];
+const pushCommand = { ...push, section: 'files' } as Parameters<typeof parseArgs>[0];
 const token = `grta_${'a'.repeat(43)}`;
 const artifact = {
     artifact_id: 'art_report',
@@ -34,7 +34,7 @@ afterEach(() => {
     }
 });
 
-/** Runs `haus artifact push <file> notes.txt` through the real Computer proxy against `respond`. */
+/** Runs `haus files push <file> notes.txt` through the real Computer proxy against `respond`. */
 async function pushThroughProxy(
     respond: (request: Request) => Response | Promise<Response>,
     extra: string[] = []
@@ -136,7 +136,7 @@ test('a taken path is collected as a conflict with the pull command for the curr
             reason: 'exists',
             base_revision_id: null,
             current: expect.objectContaining({ revision_id: 'rev_theirs', path: 'notes.txt' }),
-            pull: expect.stringMatching(/^haus artifact pull notes\.txt \S+notes\.txt$/u),
+            pull: expect.stringMatching(/^haus files pull notes\.txt \S+notes\.txt$/u),
         }),
     ]);
 });

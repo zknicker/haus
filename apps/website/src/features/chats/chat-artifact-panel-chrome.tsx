@@ -62,7 +62,7 @@ export function ArtifactPanelChrome({
             {activeTarget ? <ArtifactOptionsMenu target={activeTarget} /> : null}
             {closeButtonHidden ? null : (
                 <Button
-                    aria-label="Hide artifacts"
+                    aria-label="Hide workspace"
                     isIconOnly
                     onPress={onClose}
                     size="sm"
@@ -78,7 +78,7 @@ export function ArtifactPanelChrome({
 export function ArtifactOptionsMenu({ target }: { target: HausResourceTarget }) {
     return (
         <Dropdown>
-            <Button aria-label="Artifact options" isIconOnly size="sm" variant="ghost">
+            <Button aria-label="Workspace item options" isIconOnly size="sm" variant="ghost">
                 <Icon className="size-3.5" icon={MoreHorizontalIcon} />
             </Button>
             <Dropdown.Popover placement="bottom end">
@@ -95,8 +95,8 @@ export function ArtifactOptionsMenu({ target }: { target: HausResourceTarget }) 
                         <Icon icon={Link01Icon} size={16} />
                         <Label>Copy link</Label>
                     </Dropdown.Item>
-                    {/* Explicit: this menu also opens from a Toolbar (the artifact
-                        page), whose context would otherwise turn it vertical. */}
+                    {/* Explicit: this menu also opens from a Toolbar (the desktop
+                        workspace page), whose context would otherwise turn it vertical. */}
                     <Separator orientation="horizontal" />
                     <Dropdown.Item id="copy-path" textValue="Copy path">
                         <Icon icon={File01Icon} size={16} />

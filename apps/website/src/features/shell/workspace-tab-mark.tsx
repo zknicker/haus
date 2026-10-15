@@ -16,7 +16,7 @@ const identityMarkSize = 20;
 
 /**
  * A desktop tab's mark from its identity (ADR 0039): a channel box or an
- * avatar at identity size, a section, artifact, Files, or new tab glyph, or
+ * avatar at identity size, a section, artifact, Attachments, or new tab glyph, or
  * a web page's favicon.
  */
 export function TabIdentityMark({ mark }: { mark: TabMark }) {

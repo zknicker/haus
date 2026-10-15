@@ -154,8 +154,8 @@ and [Agent Inbox](../../specs/inbox.md).
   sized 4:3 tiles (176×132) that scrolls sideways once it outgrows the column, with scroll snap, an
   edge fade where items continue, no scrollbar, and Tab or the arrow keys walking the tiles. Images
   (by stored type, or by file name for an older row stored as octet-stream) come first, cropped to
-  the tile; then every other file as a tile with the Artifacts file icon, its name (two lines), and
-  "PDF · 2.4 MB"; then the shared-library artifacts the text links to (below). Each group keeps
+  the tile; then every other file as a tile with its Files file-type icon, its name (two lines), and
+  "PDF · 2.4 MB"; then the shared files in Files the text links to (below). Each group keeps
   message order and nothing hides behind a count. An image opens the full image viewer, which steps
   through the message's other images (buttons or arrow keys); download lives in the viewer and the
   image context menu. Clicking a file tile or its context menu downloads it. Image bytes download
@@ -165,7 +165,7 @@ and [Agent Inbox](../../specs/inbox.md).
   `private, max-age=31536000, immutable`, because bytes never change under an id. A pending send
   renders its attachments through the same strip from the staged File, so an image send shows
   the image at once and the confirmed row reuses that decode; nothing flashes or jumps when the
-  Server confirms. The Files pane lists the same cards with image thumbnails. A Thread reply stages its attachments in the
+  Server confirms. The Attachments pane lists the same cards with image thumbnails. A Thread reply stages its attachments in the
   parent Chat, because a first reply has no Thread yet; the Server accepts a
   parent-staged attachment on a Thread reply and re-homes it to the Thread the
   reply lands in.
@@ -305,18 +305,18 @@ and [Agent Inbox](../../specs/inbox.md).
   numbers. Design guidance lives in the factory-managed `visuals` skill (see
   [Skills](skills.md)); rendering is described in
   [Widgets](../internals/widgets.md).
-* **Artifacts.** Code, images, files, diffs, documents, and longer pages render
+* **Pages and outputs.** Code, images, files, diffs, documents, and longer pages render
   as durable outputs attached to messages; an agent makes one when asked for
-  something to keep, share, or revisit. An Agent's HTML artifact fence becomes
-  a card below its message (kind icon, title, kind and file name) that opens
-  the page in the Artifact Panel, or its own tab on desktop; it keeps its place
-  in the prose rather than joining the media strip. A link to this
-  Server's shared library (the `stable_url` `haus artifact publish` returns)
+  something to keep, share, or revisit. An Agent's `page` fence (a workspace
+  HTML page) becomes a card below its message (kind icon, title, `Page` and file
+  name) that opens the page in the chat's Workspace pane, or its own tab on desktop; it keeps its place
+  in the prose rather than joining the media strip. A link to a file in
+  this Server's Files (the `stable_url` `haus files push` prints)
   reads inline as a reference chip (kind icon and title, dotted underline) and
   adds a tile to the message's media strip, after its attachments: a small
   image shows its thumbnail, anything else its kind icon, over the title and
-  "Kind · creator". Both open the artifact page in the App. A tile holds its
-  box blank while the artifact reads; a missing or hidden artifact keeps the
+  "Kind · creator". Both open the file's page in Files. A tile holds its
+  box blank while the file reads; a missing or hidden file keeps the
   written link and no tile, and
   links to another Server or origin stay ordinary links.
 * **Receipts.** Message creation is acknowledged by id. Sends return no
@@ -330,13 +330,13 @@ and [Agent Inbox](../../specs/inbox.md).
   Agent DMs share the same header dropdown and right-click menus before and
   after the first message, including on the selected sidebar row. The sidebar
   row keeps its Agent identity as the Chat materializes, preserving an open menu. View agent
-  profile works immediately; chat-scoped Tasks and Files remain disabled until
+  profile works immediately; chat-scoped Tasks and Attachments remain disabled until
   the Chat exists. Opening these menus or the profile does not create a Chat. The
   first human send, Agent `dm:@<human-handle>` send, or Server activity that needs a
   durable message atomically materializes the canonical human-stint↔Agent Chat
   and message. Every materialized chat's actions menu offers its chat-scoped
-  surfaces: View tasks opens the Tasks page filtered to the chat, and Files
-  opens a side pane (a Files page on desktop) listing attachments from its messages. Channels render with
+  surfaces: View tasks opens the Tasks page filtered to the chat, and Attachments
+  opens a side pane (an Attachments page on desktop) listing attachments from its messages. Channels render with
   a hash or chosen catalog icon and optional channel color. Opening a Server
   restores that Server's last visited Chat when it still exists, then falls back
   to `#all` or the first available Chat. A user can drag any part of a Channel
@@ -350,8 +350,8 @@ and [Agent Inbox](../../specs/inbox.md).
   and of its tab (in one Channel or DM submenu). Every chat menu — the web
   "…", a sidebar row, a desktop tab's submenu — lists the same actions in the
   same order; a sidebar row adds Open first (and, on desktop, Open in new tab, the same
-  open as Command-clicking the row), and Files appears there only on desktop, where
-  Files opens as a page. Editing a channel is three separate
+  open as Command-clicking the row), and Attachments appears there only on desktop, where
+  Attachments opens as a page. Editing a channel is three separate
   decisions, each with its own dialog: Name & description, Icon & color, and
   Agents, which carries the participant count. The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;
@@ -416,7 +416,7 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Agent profile.** Hovering an Agent's transcript avatar or chip shows its
   hover card; clicking opens the Agent's profile (a tab on desktop, the profile
   page on web) — see [ADR 0038](../adr/0038-destinations-open-as-tabs.md).
-  The chat's right pane holds only artifact, files, and thread panes, which
+  The chat's right pane holds only the Workspace, Attachments, and Thread panes, which
   share one visible slot and width per chat; the latest opener wins without
   clearing another pane's state. Desktop renders no chat side pane: every
   Thread opener (reply counts, Thread cards, Reply in thread, Inbox and
@@ -437,20 +437,18 @@ and [Agent Inbox](../../specs/inbox.md).
 
 ## Timeline inputs
 
-The timeline combines three inputs:
+The timeline combines two inputs:
 
 | Input | Owner | Role |
 | --- | --- | --- |
 | Durable messages | Haus Server | Canonical timeline rows |
-| Artifacts | Haus Server | Rich renderable outputs |
 | Optimistic local rows | Haus App | One-frame accepted-message handoff |
 
 Rendering rules:
 
 * key user and assistant rows by durable message id
-* key artifacts by artifact id
 * reconcile optimistic rows by durable message id
-* recover reloads from Server messages and artifacts
+* recover reloads from Server messages
 
 ## App Data Flow
 

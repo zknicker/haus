@@ -36,7 +36,7 @@ test('agent DM menus work before the first message and on the selected conversat
     await header.click();
     await expect(profile).toBeEnabled();
     await expect(tasks).toBeDisabled();
-    await expect(page.getByRole('menuitem', { name: 'Files', exact: true })).toBeDisabled();
+    await expect(page.getByRole('menuitem', { name: 'Attachments', exact: true })).toBeDisabled();
     await profile.click();
     await expect(page).toHaveURL(/\/agents\/agt_e2edmmenus000000/u);
     await page.goBack();
@@ -70,7 +70,9 @@ test('agent DM menus work before the first message and on the selected conversat
         }
         await header.click();
         await expect(tasks).toBeEnabled();
-        await expect(page.getByRole('menuitem', { name: 'Files', exact: true })).toBeEnabled();
+        await expect(
+            page.getByRole('menuitem', { name: 'Attachments', exact: true })
+        ).toBeEnabled();
         await page.keyboard.press('Escape');
     }
 });

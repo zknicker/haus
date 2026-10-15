@@ -110,7 +110,7 @@ function communicationSection() {
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, threads), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
         '5. **Tasks**: `haus task list`, `haus task create`, `haus task claim`, `haus task unclaim`, `haus task assign`, `haus task unassign`, `haus task update`.',
         '6. **Attachments**: `haus attachment upload`, `haus attachment view`.',
-        '7. **Artifacts**: `haus artifact list`, `haus artifact pull`, `haus artifact push`. Read the `artifact` Manual topic before the first one.',
+        '7. **Files**: `haus files list`, `haus files pull`, `haus files push`. Read the `files` Manual topic before the first one.',
         '8. **Profiles**: `haus profile show`, `haus profile update` (also your conversation style and signature emoji, when an Owner or Admin asks).',
         '9. **Reminders**: `haus reminder schedule`, `haus reminder list`, `haus reminder snooze`, `haus reminder update`, `haus reminder cancel`, `haus reminder log`.',
         '10. **Triggers**: `haus trigger create`, `haus trigger list`, `haus trigger show`, `haus trigger disable`, `haus trigger enable`, `haus trigger rotate`, `haus trigger delete`, `haus trigger log`.',
@@ -435,13 +435,13 @@ Your context will be periodically compressed to stay within limits. When this ha
 
 const outputsSection = `## Outputs
 
-- Fences render only inside messages you send: write visual and artifact fences directly in the body of a \`haus message send\`.
+- Fences render only inside messages you send: write visual and page fences directly in the body of a \`haus message send\`.
 - Link inspectable files and generated assets: prefer CLI-returned links; otherwise \`[name](haus://workspace/path)\` for workspace files.
-- Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens. Still link the file in your message.`;
+- Page fences render a card the reader clicks to open in the Workspace pane; nothing auto-opens. Still link the file in your message.`;
 
 const visualsSection = `## Visuals
 
-Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; keepable deliverables get artifact pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
+Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; full documents get pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
 
 // The Initial role line is the agent's description (ruling W2): it rides every
 // envelope and the evolved role lives in MEMORY.md. Optional, Raft parity: no

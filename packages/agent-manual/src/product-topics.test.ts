@@ -236,60 +236,12 @@ test('image guidance teaches haus image, links, and stays runtime-neutral', () =
     expect(topic?.body).toContain('`haus image wait <generation id>');
     expect(topic?.body).toContain('names the nearest supported option');
     expect(topic?.body).toContain('Every image card shows its model and cost');
-    expect(topic?.body).toContain('haus attachment upload --path <file>');
+    expect(topic?.body).toContain('an attachment or in Files (see files)');
+    expect(topic?.related).toContain('files');
     expect(topic?.body).toContain('--attachment-id <id>');
     expect(topic?.body).toContain('say so plainly');
     expect(topic?.body).toContain('visuals skill');
     expect(topic?.body).not.toMatch(/codex|claude|grok|\bpi\b/i);
     expect(resolveManualTopic('image')?.id).toBe('images');
     expect(getManualTopic('attachment')?.related).toContain('images');
-});
-
-test('artifact guidance separates one-off attachments from shared, linked files', () => {
-    const topic = getManualTopic('artifact');
-    expect(topic?.body).toContain('Use attachments for one-off delivery in a conversation.');
-    expect(topic?.body).toContain('Put the stable_url that push prints in your message');
-    expect(topic?.body).toContain('Do not also attach the file.');
-    expect(topic?.body).toContain('run `haus artifact view <id>` for it');
-    expect(topic?.body).toContain('stays a workbench `artifact` fence');
-    expect(topic?.body).toContain('not a route around the size limit');
-    expect(topic?.body).toContain('shared with you in a DM unless its owner asks');
-    expect(topic?.body).toContain('Give files their real extension');
-    expect(topic?.body).toContain('`--query <text>`');
-    expect(topic?.body).toContain('`--mine`');
-    expect(topic?.body).not.toContain('--json');
-    expect(topic?.body).toContain('Secrets never go in the drive.');
-    expect(topic?.related).toContain('attachment');
-    const attachment = getManualTopic('attachment');
-    expect(attachment?.body).toContain('Haus has two forms of file sharing.');
-    expect(attachment?.body).toContain('`haus artifact push`');
-    expect(attachment?.related).toContain('artifact');
-    expect(getManualTopic('recipes/technique/html-artifact-discussion')?.body).toContain(
-        'each later round by pushing the same file again'
-    );
-    expect(
-        searchManualTopics('share file stable link versions', { limit: 5, scope: 'all' }).map(
-            ({ id }) => id
-        )
-    ).toContain('artifact');
-});
-
-test('artifact guidance teaches the drive: list, pull, push, conflicts, and moves', () => {
-    const body = getManualTopic('artifact')?.body ?? '';
-    for (const command of [
-        'haus artifact list [<folder>]',
-        'haus artifact pull <folder>',
-        'haus artifact push <local-file-or-folder>',
-        'haus artifact mv <from> <to>',
-    ]) {
-        expect(body).toContain(command);
-    }
-    expect(body).toContain('Push is checked against what you pulled.');
-    expect(body).toContain('`<file>.haus-theirs`');
-    expect(body).toContain('Merge their changes into your file');
-    expect(body).toContain('use it only when that is deliberate');
-    expect(body).toContain('`.haus-artifacts.json`. It is bookkeeping');
-    expect(body).toContain('ARTIFACT_PUBLISH_UNCONFIRMED');
-    expect(body).toContain('Push skips symlinks');
-    expect(body).not.toMatch(/--name|--artifact-id|artifact publish|named from the filename/u);
 });

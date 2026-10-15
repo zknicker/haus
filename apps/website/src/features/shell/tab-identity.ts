@@ -43,7 +43,7 @@ export type TabPage =
 
 /**
  * Parses a tab location. App paths are `/s/<slug>/<section>/<id>…`; desktop
- * Thread, Files, and artifact pages are `threads/<chatId>/<anchorId>`,
+ * Thread, Attachments, and artifact pages are `threads/<chatId>/<anchorId>`,
  * `files/<chatId>`, and `artifacts/<key>?title=…`; a shared library file is
  * `artifacts/<artifactId>`, titled from its record.
  */
@@ -135,7 +135,7 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
         case 'artifact':
             return {
                 // A shared file names itself once its record loads; until then the slot stays empty.
-                label: page.title ?? records.artifactTitle ?? (page.shared ? '' : 'Artifact'),
+                label: page.title ?? records.artifactTitle ?? (page.shared ? '' : 'Workspace'),
                 mark: { kind: 'glyph', glyph: 'artifact' },
                 place: null,
             };
@@ -158,7 +158,7 @@ export function chatPlace(chat: Pick<Chat, 'kind' | 'name'>): string {
 const pending: TabIdentity = { label: '', mark: { kind: 'none' }, place: null };
 
 const sectionLabels: Record<AppSection, string> = {
-    artifacts: 'Artifacts',
+    artifacts: 'Files',
     activity: 'Activity',
     agent: 'Agent',
     chat: 'Chat',
@@ -185,7 +185,7 @@ function chatIdentity(chat: TabChat, records: TabIdentityRecords): TabIdentity {
     };
 }
 
-/** Thread and Files pages wear their chat's mark and name it as context. */
+/** Thread and Attachments pages wear their chat's mark and name it as context. */
 function chatChildIdentity(
     page: Extract<TabPage, { kind: 'files' | 'thread' }>,
     records: TabIdentityRecords
@@ -194,9 +194,9 @@ function chatChildIdentity(
     const thread = page.kind === 'thread';
     const fallback: TabMark = thread ? { kind: 'none' } : { kind: 'glyph', glyph: 'files' };
     return {
-        label: thread ? (records.threadExcerpt ?? '') : 'Files',
+        label: thread ? (records.threadExcerpt ?? '') : 'Attachments',
         mark: chat ? chatIdentity(chat, records).mark : fallback,
-        place: chat ? `${chatPlace(chat)} › ${thread ? 'thread' : 'files'}` : null,
+        place: chat ? `${chatPlace(chat)} › ${thread ? 'thread' : 'attachments'}` : null,
     };
 }
 

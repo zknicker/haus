@@ -3,7 +3,7 @@ import { useDesktopPageOpeners } from '../../../hooks/desktop-tabs/use-desktop-p
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 
 /**
- * Where a chat's Files open. Desktop opens the chat's Files page as a link
+ * Where a chat's Attachments open. Desktop opens the chat's Attachments page as a link
  * (ADR 0039). The website shares the chat side panel with the artifact and
  * thread panes; the latest opener wins the slot, and closing hands the slot
  * back to the artifact pane.
@@ -34,7 +34,7 @@ export function useChatFilesPane(chatId: string) {
     };
 }
 
-/** Desktop (an `openFilesTab`): the chat's Files tab. Website: the chat side panel. */
+/** Desktop (an `openFilesTab`): the chat's Attachments tab. Website: the chat side panel. */
 export function routeChatFilesOpen(
     chatId: string,
     {

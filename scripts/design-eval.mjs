@@ -211,7 +211,7 @@ async function openLatestArtifact() {
         await card.click();
         await sleep(2500);
     } else {
-        process.stdout.write('  ! no artifact card found; capturing transcript instead\n');
+        process.stdout.write('  ! no page card found; capturing transcript instead\n');
     }
 }
 

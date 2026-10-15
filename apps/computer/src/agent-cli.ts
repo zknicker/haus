@@ -21,10 +21,10 @@ import { errorBlock } from './agent-cli/ui.ts';
 
 export const commandGroups = {
     agent: AGENT_SUBCOMMANDS,
-    artifact: ARTIFACT_SUBCOMMANDS,
     attachment: ATTACHMENT_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
+    files: ARTIFACT_SUBCOMMANDS,
     github: GITHUB_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,

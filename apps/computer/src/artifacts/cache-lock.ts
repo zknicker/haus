@@ -10,7 +10,7 @@ export async function withArtifactCacheLock<T>(
     return withPidLock(
         join(root, '.lock'),
         {
-            busyMessage: 'Shared artifact cache is busy. Retry after the current download.',
+            busyMessage: 'Shared file cache is busy. Retry after the current download.',
             pollMs: 100,
             timeoutMs: 300_000,
         },

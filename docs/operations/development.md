@@ -141,10 +141,10 @@ settled Cloud Agent work, and seven days of Agent turns. That activity is idempo
 in `apps/server/src/development/seed-inbox-activity.ts`.
 
 Another idempotent seed (`seed-artifact-message.ts`) gives fresh and existing demo workspaces a
-Blippy message in `#product` that shares two artifacts: a `haus://workspace` link to
-`notes/tab-strip-polish.md` and an artifact card for `workbench/tab-strip-states.html`. It writes
+Blippy message in `#product` that shares two workspace files: a `haus://workspace` link to
+`notes/tab-strip-polish.md` and a page card for `workbench/tab-strip-states.html`. It writes
 both files into Blippy's workspace under `HAUS_COMPUTER_DATA_ROOT` when they are missing, so the
-card, the link, and desktop artifact tabs have real files to open.
+card, the link, and desktop workspace tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
 anchor messages cover human @mentions in Channels and Threads, all task statuses,

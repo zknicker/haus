@@ -461,14 +461,15 @@ with 240pt reserved until the first report, a 120pt minimum, and a 100,000pt res
 pathological documents, matching the web. Height changes apply immediately without animation or
 collapse controls. The transcript owns vertical scrolling; wide tables still pan horizontally.
 
-An ```` ```artifact ```` fence names a self-contained HTML page in the authoring Agent's workspace.
+A ```` ```page ```` fence names a self-contained HTML page in the authoring Agent's workspace
+(the retired ```` ```artifact ```` spelling is not read).
 `ArtifactFence` ports the App's `splitArtifactFences` and the shared props schema — opener mid-line,
 terminator glued or on its own line, a strict `{path, title?}` object with a confined `.html`/`.htm`
 path — and only a payload that passes becomes a card; anything else stays message text. Valid fences
 leave the prose before the visual split runs, so their JSON never renders, and a preview line reads the
-page's title (else `Artifact: <path>`). The cards sit under the visuals, as compact rows that read
+page's title (else `Page: <path>`). The cards sit under the visuals, as compact rows that read
 nothing: tapping one presents `ArtifactPageSheet` from the frontmost controller (rows have no view
-controller of their own), which reads the page through `agent.workspaceFile` — the App's artifact pane
+controller of their own), which reads the page through `agent.workspaceFile` — the App's Workspace pane
 read — and draws it in `VisualWebView` with scrolling on, the app's tokens injected after `<head>` and
 a viewport rule added when the page has none. Blank while it loads; a Computer that does not answer is
 a calm unavailable state with Try Again, never an error string. A read that never reached the Server
@@ -477,7 +478,7 @@ transport failure while the App's live streams are down (`isConnected` false), s
 offline instead, since blaming the Computer would name the wrong thing to fix. The App installs the reader in
 `ArtifactPageReader` at its root, beside `InAppReferenceRoutes`.
 
-A shared-library artifact link — the `stable_url` `haus artifact publish` returns
+A link to a file in Files — the `stable_url` `haus files push` prints
 (`/s/<slug>/artifacts/art_…`, absolute or root-relative, optionally `?revision=`) — is a reference
 chip of its own, `.sharedArtifact`. `SharedArtifactLinkTarget` ports the App's
 `parseSharedArtifactLink`: only an App origin this phone knows, the open Server's slug, and an `art_`
@@ -496,7 +497,7 @@ name them), and relative update time. Its body comes from the revision's bytes, 
 downloaded through `artifact.download`'s five-minute signed link into a per-revision temporary
 file, reused when the size matches and re-requested once when storage refuses an expired link.
 Raster images use the attachment viewer's zooming scroll view, audio and video use AVKit, HTML uses
-the artifact-page `VisualWebView`, and everything else (PDF, text, Markdown, CSV, code, office
+the page `VisualWebView`, and everything else (PDF, text, Markdown, CSV, code, office
 files) uses embedded Quick Look. Share hands the file to the system share sheet. Missing,
 forbidden, offline, and storage-off reads each get their own calm unavailable state.
 `SharedArtifactReader` is the seam the App installs.
@@ -1506,7 +1507,7 @@ and stays inert because nothing on the phone routes one yet, and an Agent or Cha
 `.link` at all, where the App opens a profile or a channel. A Thread chip is an in-app route: the
 Server rewrites an Agent's Thread mention to `chat://<chatId>?thread=<anchorMessageId>`, which
 `ThreadReferenceTarget` reads ahead of the Channel form (a shared artifact chip is the other in-app
-route, described with artifact pages above) (any other query on `chat://` is no reference,
+route, described with pages above) (any other query on `chat://` is no reference,
 as in the shared parser). It wears the App's thread glyph, names its anchor's first line once the parent
 page holds the anchor, and keeps that wire target as its `.link`; the coordinator asks
 `InAppReferenceRoutes` before handing any URL to the system, and the App's installed route pushes the
@@ -1686,8 +1687,8 @@ the human taps "Sign in to local Server".
 The app shell, navigation, chat timeline, composer, and threads are native SwiftUI. An interactive
 artifact may use an isolated web canvas inside a native route when the artifact runtime requires
 browser APIs; that canvas would receive a narrow serialized contract and would not own authentication,
-navigation, Server queries, or durable app state. An ```` ```artifact ```` page is the one such
-canvas today (see the artifact cards above).
+navigation, Server queries, or durable app state. A ```` ```page ```` page is the one such
+canvas today (see the page cards above).
 
 Corners come from one scale, `HausRadius`, beside `HausPlatformColor`: `inline` 4 for text-run plates
 such as inline code, `small` 8 for compact controls, `medium` 12 for content inside a transcript or

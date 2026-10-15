@@ -44,7 +44,7 @@ export async function publishArtifact(options: {
         for await (const chunk of options.stream) {
             size += chunk.byteLength;
             if (size > artifactMaxBytes) {
-                throw new ArtifactError('Artifact exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
+                throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
             }
             hash.update(chunk);
         }
@@ -66,7 +66,7 @@ export async function publishArtifact(options: {
                 input.content_type
             );
             if (uploaded.size > artifactMaxBytes) {
-                throw new ArtifactError('Artifact exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
+                throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
             }
             await db.transaction(async (tx) => {
                 const [server] = await tx
@@ -82,11 +82,7 @@ export async function publishArtifact(options: {
                     .where(and(eq(artifacts.id, reserved.artifact.id), isNull(artifacts.deletedAt)))
                     .limit(1);
                 if (!(server && artifact)) {
-                    throw new ArtifactError(
-                        'Artifact was deleted during publication.',
-                        409,
-                        'DELETED'
-                    );
+                    throw new ArtifactError('File was deleted during publication.', 409, 'DELETED');
                 }
                 await tx
                     .update(revisions)

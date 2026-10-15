@@ -2,14 +2,14 @@ import Foundation
 @testable import HausUI
 import Testing
 
-/// The ```artifact fence, ported from the App's `splitArtifactFences` and the
+/// The ```page fence, ported from the App's `splitArtifactFences` and the
 /// shared props schema. Before, the phone read only `visual`, so an artifact
 /// showed as a raw code block of JSON.
 struct ArtifactFenceTests {
     private static let fence = "```"
 
     @Test func cutsAValidFenceOutOfTheProse() {
-        let content = "Here is the report.\n\(Self.fence)artifact\n{\"path\":\"out/report.html\",\"title\":\"Q3 report\"}\n\(Self.fence)\nEnjoy."
+        let content = "Here is the report.\n\(Self.fence)page\n{\"path\":\"out/report.html\",\"title\":\"Q3 report\"}\n\(Self.fence)\nEnjoy."
         let body = VisualFence.body(content)
 
         #expect(body.prose == "Here is the report.\n\nEnjoy.")
@@ -18,7 +18,7 @@ struct ArtifactFenceTests {
     }
 
     @Test func readsAnOpenerGluedToASentenceAndATerminatorGluedToTheJSON() {
-        let content = "Done:\(Self.fence)artifact\n{\"path\":\"a.htm\"}\(Self.fence) and \(Self.fence)artifact\n{\"path\":\"b/c.HTML\"}\n\(Self.fence)"
+        let content = "Done:\(Self.fence)page\n{\"path\":\"a.htm\"}\(Self.fence) and \(Self.fence)page\n{\"path\":\"b/c.HTML\"}\n\(Self.fence)"
         let (text, artifacts) = ArtifactFence.extract(content)
 
         #expect(text == "Done: and ")
@@ -41,7 +41,7 @@ struct ArtifactFenceTests {
             "not json",
         ]
         for payload in payloads {
-            let content = "\(Self.fence)artifact\n\(payload)\n\(Self.fence)"
+            let content = "\(Self.fence)page\n\(payload)\n\(Self.fence)"
             let (text, artifacts) = ArtifactFence.extract(content)
             #expect(artifacts.isEmpty, "payload \(payload)")
             #expect(text == content, "payload \(payload)")
@@ -49,16 +49,16 @@ struct ArtifactFenceTests {
     }
 
     @Test func trimsThePathAndTitleTheWayTheSchemaDoes() {
-        let content = "\(Self.fence)artifact\n{\"path\":\"  out/page.html \",\"title\":\" Plan \"}\n\(Self.fence)"
+        let content = "\(Self.fence)page\n{\"path\":\"  out/page.html \",\"title\":\" Plan \"}\n\(Self.fence)"
         #expect(ArtifactFence.extract(content).artifacts == [ArtifactSegment(ordinal: 1, path: "out/page.html", title: "Plan")])
     }
 
     @Test func aPreviewReadsThePagesNameInsteadOfItsJSON() {
-        let titled = "See \(Self.fence)artifact\n{\"path\":\"out/report.html\",\"title\":\"Q3 report\"}\n\(Self.fence)"
+        let titled = "See \(Self.fence)page\n{\"path\":\"out/report.html\",\"title\":\"Q3 report\"}\n\(Self.fence)"
         #expect(VisualFence.previewText(titled) == "See Q3 report")
 
-        let untitled = "\(Self.fence)artifact\n{\"path\":\"out/report.html\"}\n\(Self.fence)"
-        #expect(VisualFence.previewText(untitled) == "Artifact: out/report.html")
+        let untitled = "\(Self.fence)page\n{\"path\":\"out/report.html\"}\n\(Self.fence)"
+        #expect(VisualFence.previewText(untitled) == "Page: out/report.html")
     }
 
     @Test func aMessageWithoutAFenceIsUntouched() {

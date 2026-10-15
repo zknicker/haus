@@ -550,8 +550,8 @@ disabled copy.
 _Avoid_: Import-source deletion, unassignment, global skill disablement
 
 **Widget activity envelope**:
-The durable `haus.widget.<name>` render envelope that stores a Visual or Artifact fence in chat
-history (ADR 0010). The retired closed widget catalog (tables, charts, calendars, html-preview)
+The durable `haus.widget.<name>` render envelope that historical `widget` rows use for a Visual or Page in chat
+history (ADR 0010; the Page's row name stays `artifact`). The retired closed widget catalog (tables, charts, calendars, html-preview)
 replays as fallback-text cards.
 _Avoid_: Rich Response, UI block, AG-UI component, ChatKit widget
 
@@ -561,31 +561,40 @@ frame styled with Haus theme tokens.
 _Avoid_: Rich Response, custom widget, raw HTML block
 
 **Visuals skill**:
-The seeded skill that owns rendering guidance for agents: when to render, the visual and artifact
+The seeded skill that owns rendering guidance for agents: when to render, the visual and page
 fence contracts, and the design system (ADR 0012).
 _Avoid_: Prompt design section, page-design skill, per-medium design skills
 
-**Artifact**:
-A durable Runtime-owned output that can be rendered, reopened, and referenced from chat.
-_Avoid_: Preview, attachment, tool result, generated file
+**Workspace**:
+An Agent's own files on its Computer, persisting across its turns. A user opens it full-page from
+the Agent's profile or beside a chat in the Workspace pane; only Server Owners and Admins can
+inspect it, and only while that Computer is online.
+_Avoid_: drive, sandbox, artifacts
 
-**Artifact Panel**:
-The app-owned side surface where users open and inspect Artifact Panel targets beside chat.
-_Avoid_: Workbench, browser shell, output pane, Artifact Space
+**Attachments**:
+Files sent in a conversation, each a copy stored with its message and readable by the
+conversation's members; the chat's Attachments pane lists them.
+_Avoid_: artifacts, uploads (as the product noun)
 
-**Artifact Panel target**:
-A Haus-owned openable target such as a chat Artifact, Wiki page, workspace file, image, or
-generated asset.
-_Avoid_: Local path, browser URL, tool result blob
+**Page**:
+A self-contained HTML file in an Agent's workspace, posted with a `page` fence; chat shows a card
+that opens a live view of that file in the Workspace pane, so the card changes when the file does
+and opens only for those who can inspect the workspace. A page to share with every member or keep
+as a version goes in as an attachment or in Files. The old `artifact` fence is not read.
+_Avoid_: artifact, artifact page, snapshot, document, report (as the noun for this output)
 
-**Artifact pane**:
-One open view inside the Artifact Panel, backed by one Artifact Panel target.
-_Avoid_: Tab content, preview card, drawer
+**Files**:
+The Server-wide tree of shared folders and files every member can read and edit, with retained
+revisions and a stable link per file: the App's Files section and `haus files` in the Agent CLI.
+Wire names keep `artifact` (`artifact_id`, `/artifacts/<id>`, `ARTIFACT_*`).
+_Avoid_: drive, shared drive, shared artifacts (in product prose)
 
-**Artifact open action**:
-A user action that opens an Artifact pane from a chat row, activity row, or linked inspectable
-output. Haus does not auto-open the Artifact Panel when targets are created.
-_Avoid_: Canvas trigger, automatic artifact presentation, artifact launch
+**Workspace pane**:
+The chat's side pane for browsing Agent workspaces, for Server Owners and Admins: Pages, `haus://workspace` links, and files
+picked from its + menu open here as tabs, each tab one workspace target (a file, folder, or root;
+code names it the artifact panel). Haus never auto-opens it; a user opens it from a page card,
+link, or the topbar toggle.
+_Avoid_: Artifacts, Artifact Panel, Artifact pane, output pane, canvas
 
 **Inspectable output**:
 A workspace file, Wiki page, Markdown or HTML doc, image, or generated asset an agent created or

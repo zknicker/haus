@@ -176,9 +176,7 @@ test('session rotation preserves the mounted chat and its unsent draft', async (
     await expect(page.getByText('Live peer message after session rotation')).toBeVisible();
 });
 
-test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane', async ({
-    page,
-}) => {
+test('an Agent-authored page fence in a Thread opens the chat Workspace pane', async ({ page }) => {
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
@@ -188,17 +186,17 @@ test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane'
 
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread).toBeVisible();
-    await expect(thread.getByText('```artifact', { exact: false })).toHaveCount(0);
+    await expect(thread.getByText('```page', { exact: false })).toHaveCount(0);
     await thread.getByRole('textbox', { name: /Message Thread/u }).fill('Preserved draft');
     await thread.getByTestId('artifact-card').press('Enter');
 
-    const artifacts = page.getByRole('complementary', { name: 'Artifacts' });
+    const artifacts = page.getByRole('complementary', { name: 'Workspace' });
     await expect(thread).toHaveCount(0);
     await expect(artifacts).toBeVisible();
     await expect(artifacts.getByRole('tab', { name: 'deterministic.html' })).toBeVisible();
     await expect(artifacts.getByText('Unable to browse this workspace.')).toBeVisible();
 
-    await artifacts.getByRole('button', { name: 'Hide artifacts' }).click();
+    await artifacts.getByRole('button', { name: 'Hide workspace' }).click();
     await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
     await expect(thread.getByRole('textbox', { name: /Message Thread/u })).toHaveText(
         'Preserved draft'
@@ -442,7 +440,7 @@ function seedArtifactThread(input: { chatId: string; databaseUrl: string; server
          ) values (
            'msg_e2e_artifact_reply', '${input.serverId}', 'cht_e2e_artifact_thread', 1,
            'agt_e2e_artifact',
-           E'Here is the audit.\\n\\u0060\\u0060\\u0060artifact\\n{"path":"audits/deterministic.html","title":"Deterministic workspace audit"}\\n\\u0060\\u0060\\u0060',
+           E'Here is the audit.\\n\\u0060\\u0060\\u0060page\\n{"path":"audits/deterministic.html","title":"Deterministic workspace audit"}\\n\\u0060\\u0060\\u0060',
            'e2e-artifact-reply'
          );
          commit;`

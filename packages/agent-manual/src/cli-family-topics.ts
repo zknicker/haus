@@ -5,10 +5,10 @@
  */
 export const cliFamilyTopics = {
     agent: 'agent',
-    artifact: 'artifact',
     attachment: 'attachment',
     channel: 'channel',
     'cloud-agent': 'cloud-agents',
+    files: 'files',
     github: 'github',
     image: 'images',
     inbox: 'inbox',

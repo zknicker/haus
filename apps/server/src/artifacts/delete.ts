@@ -30,7 +30,7 @@ export async function deleteArtifact(
             .where(and(eq(artifacts.serverId, access.serverId), eq(artifacts.id, artifactId)))
             .limit(1);
         if (!artifact || artifact.deletedAt) {
-            throw new ArtifactError('Artifact was not found.', 404, 'NOT_FOUND');
+            throw new ArtifactError('File was not found.', 404, 'NOT_FOUND');
         }
         requireDeleteAccess(access, artifact);
         if (revisionId === artifact.currentRevisionId) {

@@ -1,5 +1,5 @@
 ---
-summary: Normative contract for shared-artifact drive paths, folders, compare-and-set writes, and moves.
+summary: Normative contract for Files (the shared-artifact drive) paths, folders, compare-and-set writes, and moves.
 read_when:
   - changing shared artifact paths, folders, listing, publish, or move behavior
   - changing how the CLI or App reads or writes shared artifacts in bulk
@@ -7,6 +7,9 @@ read_when:
 ---
 
 # Artifact drive
+
+The product noun is **Files** (the App's Files section, `haus files` in the Agent CLI, the `files`
+Manual topic); wire names keep `artifact`. "Drive" in this spec is internal shorthand only.
 
 Shared artifacts stay Server-hosted with explicit reads and writes. There is no sync engine, no
 local mirror, and no background process: clients list, pull, and push on demand. The drive adds
@@ -41,10 +44,15 @@ appears while some live file sits under it and disappears with its last file.
 
 `artifact.list` (and `GET /api/agent/artifacts`) takes `prefix` (`''` is the root). By default it
 returns the folder's immediate child folders (`name`, `path`, `file_count`, `updated_at`; first
-page only) and the folder's own files. `recursive: true` returns every file under the prefix and no
-folders, which is the bulk-pull shape; `order: 'path'` gives it a stable order. `creator`, `kind`,
-and `query` (title or path) filter files, and folder counts follow the same filters. Pages hold up
-to `limit` files (default 50, at most 200) and report `next_offset`, null on the last page.
+page only; newest `updated_at` first, path key breaking ties) and the folder's own files.
+`recursive: true` returns every file under the prefix and no folders, which is the bulk-pull shape;
+`order: 'path'` gives it a stable order. `creator`, `kind`, and `query` (title or path) filter
+files, and folder counts follow the same filters. Pages hold up to `limit` files (default 50, at
+most 200) and report `next_offset`, null on the last page.
+
+Every page carries `summary`, exact totals for the listed folder under the same filters and
+independent of the page: `folders` (child folders), `files_in_folders` (files anywhere under them),
+and `files` (files directly in the folder). `recursive` changes the listed files, not the summary.
 
 ## Writes
 

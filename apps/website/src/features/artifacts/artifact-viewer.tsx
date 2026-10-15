@@ -66,11 +66,7 @@ export function ArtifactViewer({
                             </div>
                         </>
                     ) : (
-                        <section
-                            aria-busy="true"
-                            aria-label="Loading artifact"
-                            className="min-h-32"
-                        />
+                        <section aria-busy="true" aria-label="Loading file" className="min-h-32" />
                     )}
                 </PageColumn>
             </div>
@@ -82,7 +78,7 @@ export function ArtifactViewer({
 function artifactViewerCrumbs(slug: string, path: string): ArtifactsCrumb[] {
     const root = { creator: null, folder: '', kind: 'all' } as const;
     return [
-        { href: libraryHref(slug, root), label: 'Artifacts' },
+        { href: libraryHref(slug, root), label: 'Files' },
         ...artifactFolderCrumbs(artifactPathParent(path)).map((crumb) => ({
             href: libraryHref(slug, { ...root, folder: crumb.path }),
             label: crumb.label,
