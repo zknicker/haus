@@ -25,7 +25,7 @@ test('failure evidence preserves delivery state even when a turn query fails', a
     const report = buildTranscript({
         diagnostics,
         error: new Error('missing summary'),
-        scenario: { name: 'peer-handoff', contract: 'peer then summary' },
+        scenario: { name: 'mention-wakes-only-addressed', contract: 'one reply, bystander silent' },
     });
     expect(report.ok).toBe(false);
     expect(report.diagnostics).toEqual(diagnostics);

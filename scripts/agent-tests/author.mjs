@@ -48,7 +48,12 @@ export function createAgentAuthor({ repositoryRoot = process.cwd(), serverId, se
      * has unseen context; the send is retried once as a draft send, which is
      * exactly what a real Agent does after reading the held context.
      */
-    async function authorAsAgent(agentId, target, content, { chatId, nonce } = {}) {
+    async function authorAsAgent(
+        agentId,
+        target,
+        content,
+        { chatId, nonce, replyToMessageId } = {}
+    ) {
         if (!chatId) {
             throw new Error(
                 'authorAsAgent needs a chatId for the runner mint; pass { chatId } or register the chat with the kit first.'
@@ -57,7 +62,12 @@ export function createAgentAuthor({ repositoryRoot = process.cwd(), serverId, se
         const token = await mint(agentId, chatId);
         const messageNonce = nonce ?? `agenttests_${stamp}_${crypto.randomUUID()}`;
         const holds = [];
-        for (const body of agentSendAttempts({ content, nonce: messageNonce, target })) {
+        for (const body of agentSendAttempts({
+            content,
+            nonce: messageNonce,
+            replyToMessageId,
+            target,
+        })) {
             const result = await send(token, body);
             if (result.state === 'sent') {
                 return result;
@@ -89,11 +99,18 @@ export function createAgentAuthor({ repositoryRoot = process.cwd(), serverId, se
 
 /**
  * The two sends `authorAsAgent` makes: the message itself, then — after a hold
- * saved it as the Agent's draft — a draft send, which carries no content.
+ * saved it as the Agent's draft — a draft send, which carries no content. The
+ * draft keeps the inline-reply parent, so only the first send names it.
  */
-export function agentSendAttempts({ content, nonce, target }) {
+export function agentSendAttempts({ content, nonce, replyToMessageId, target }) {
     return [
-        { content, nonce, sendDraft: false, target },
+        {
+            content,
+            nonce,
+            sendDraft: false,
+            target,
+            ...(replyToMessageId ? { replyToMessageId } : {}),
+        },
         { nonce, sendDraft: true, target },
     ];
 }
@@ -119,6 +136,22 @@ export async function readComputerCredentialHash({ repositoryRoot, serverId }) {
 export function computerAttachmentPath({ repositoryRoot, serverId }) {
     const statePaths = createDevStackStatePaths({ baseEnvironment: process.env, repositoryRoot });
     return path.join(statePaths.computerDataRoot, 'servers', serverId, 'attachment.json');
+}
+
+/**
+ * The dev Computer's workspace directory for one Agent, the directory the
+ * Agent's shell starts in (`apps/computer/src/launch.ts`).
+ */
+export function agentWorkspacePath({ agentId, repositoryRoot, serverId }) {
+    const statePaths = createDevStackStatePaths({ baseEnvironment: process.env, repositoryRoot });
+    return path.join(
+        statePaths.computerDataRoot,
+        'servers',
+        serverId,
+        'agents',
+        agentId,
+        'workspace'
+    );
 }
 
 /** Builds the thread target grammar for an anchor message id. */

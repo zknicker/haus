@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -126,17 +126,15 @@ describe('provisioning', () => {
     test('creates one Agent per request with a kind-shaped identity', async () => {
         const harness = createFakeHarness();
         const created = [];
-        const agents = await provisionAgents(
-            harness,
-            [{ kind: 'worker' }, { kind: 'coordinator' }],
-            { onCreated: (agent) => created.push(agent.id) }
-        );
+        const agents = await provisionAgents(harness, [{ kind: 'worker' }, { kind: 'worker' }], {
+            onCreated: (agent) => created.push(agent.id),
+        });
 
-        expect(agents.map((agent) => agent.kind)).toEqual(['worker', 'coordinator']);
+        expect(agents.map((agent) => agent.kind)).toEqual(['worker', 'worker']);
         expect(agents.map((agent) => agent.dmChatId)).toEqual(['cht_agt_1', 'cht_agt_2']);
         // The ledger learns each id the moment the Server record exists.
         expect(created).toEqual(agents.map((agent) => agent.id));
-        const [worker, coordinator] = harness.inputsFor('agent.create');
+        const [worker, peer] = harness.inputsFor('agent.create');
         expect(worker.displayName).toBe(`Eval Worker ${harness.stamp}-1`);
         expect(worker.handle).toMatch(/^eval-worker1-[a-z2-9]{6}$/u);
         expect(worker.description).toBe(agentKindDescriptions.worker);
@@ -150,8 +148,8 @@ describe('provisioning', () => {
         // Server's own strict schema instead: a retired field (`role`) outlived
         // its removal here and failed every provisioning scenario at run time.
         expect(createAgentInputSchema.safeParse(worker).error?.issues ?? []).toEqual([]);
-        expect(coordinator.handle).toMatch(/^eval-coordinator2-[a-z2-9]{6}$/u);
-        expect(coordinator.description).toBe(agentKindDescriptions.coordinator);
+        expect(peer.handle).toMatch(/^eval-worker2-[a-z2-9]{6}$/u);
+        expect(peer.displayName).toBe(`Eval Worker ${harness.stamp}-2`);
     });
 
     // Concurrent applies race the Computer into a degraded Agent missing its
@@ -194,43 +192,6 @@ describe('provisioning', () => {
 
         expect(result).toEqual({ failures: [], retired: ['agt_absent'] });
         expect(harness.inputsFor('agent.delete')).toEqual([]);
-    });
-});
-
-describe('crash ledger', () => {
-    test('records this run and reads only what earlier runs left', async () => {
-        const repositoryRoot = await mkdtemp(path.join(tmpdir(), 'agent-tests-state-'));
-        const crashed = createRunLedger({ repositoryRoot, stamp: 'run_a' });
-        await crashed.rememberAgent({ displayName: 'Eval Worker run_a-1', id: 'agt_a' });
-        await crashed.rememberChat('cht_a');
-        expect(await crashed.leftovers()).toEqual([]);
-
-        const current = createRunLedger({ repositoryRoot, stamp: 'run_b' });
-        await current.rememberChat('cht_b');
-        expect(await current.leftovers()).toEqual([
-            {
-                agents: [{ displayName: 'Eval Worker run_a-1', handle: null, id: 'agt_a' }],
-                chatIds: ['cht_a'],
-                stamp: 'run_a',
-            },
-        ]);
-
-        // A failed sweep confirms nothing, so the ids survive to the next run.
-        expect(await current.leftovers()).toHaveLength(1);
-        await current.forgetChats(['cht_a']);
-        await current.forgetAgents(['agt_a']);
-        expect(await current.leftovers()).toEqual([]);
-    });
-
-    test('adopts the standing pool ledger so its chats are still swept', async () => {
-        const repositoryRoot = await mkdtemp(path.join(tmpdir(), 'agent-tests-legacy-'));
-        const file = path.join(repositoryRoot, '.context', 'agent-tests', 'state.json');
-        await mkdir(path.dirname(file), { recursive: true });
-        await writeFile(file, JSON.stringify({ chatsByHandle: { 'eval-worker-1': ['cht_old'] } }));
-
-        expect(await createRunLedger({ repositoryRoot, stamp: 'run_a' }).leftovers()).toEqual([
-            { agents: [], chatIds: ['cht_old'], stamp: 'standing-pool' },
-        ]);
     });
 });
 
@@ -338,23 +299,23 @@ describe('cli scenario selection', () => {
     test('keeps opt-in scenarios out unless explicitly included', () => {
         const defaultList = runCli(['--list']);
         expect(defaultList.status).toBe(0);
-        expect(defaultList.stdout).not.toContain('cove-composes-agent-creation');
+        expect(defaultList.stdout).not.toContain('shared-artifact-discovery');
 
         const optInList = runCli(['--list', '--include-opt-in']);
         expect(optInList.status).toBe(0);
-        expect(optInList.stdout).toContain('cove-composes-agent-creation');
+        expect(optInList.stdout).toContain('shared-artifact-discovery');
     });
 
     test('combines repeated scenario filters', () => {
         const listed = runCli([
             '--list',
             '--only',
-            'coordinator-synthesizes-from-lanes',
+            'fyi-silence-dm',
             '--only',
             'reminder-schedule-and-fire',
         ]);
         expect(listed.status).toBe(0);
-        expect(listed.stdout).toContain('coordinator-synthesizes-from-lanes');
+        expect(listed.stdout).toContain('fyi-silence-dm');
         expect(listed.stdout).toContain('reminder-schedule-and-fire');
         expect(listed.stdout).not.toContain('task-thread-routing');
     });

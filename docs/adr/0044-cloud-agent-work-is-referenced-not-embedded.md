@@ -109,6 +109,10 @@ true:
   so preservation means no leaks into other conversations, not required Thread posts. The
   implementation also reruns `eval:prompt`, `test:prompt-contract`, and the Server, Computer,
   App, and iOS suites.
+- Note, 2026-10-15: `cloud-conversation-handoff` became `cloud-launch-and-link` (launch as an
+  inline reply, then the cross-channel link, without the provider round trip), and
+  `inline-reply-followups` and `eval:prompt` retired in favor of `bun run eval` (`tools`,
+  `attention`, `placement`).
 
 ## Amendment, 2026-10-12: a launch never opens a Thread
 

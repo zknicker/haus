@@ -38,6 +38,39 @@ export async function turnCommands(kit, agentId, turn) {
         .filter((command) => typeof command === 'string');
 }
 
+/**
+ * Publishes a shared file as the signed-in human member through the App's raw
+ * write path (`PUT /artifacts/:serverId/publish`), replacing any leftover at
+ * the same path. Needs enabled development artifact storage.
+ */
+export async function publishArtifactAsMember(kit, { content, path, title }) {
+    const query = new URLSearchParams({
+        content_type: 'text/markdown',
+        path,
+        replace: 'true',
+        request_id: `agenttests_${kit.stamp}_${crypto.randomUUID()}`,
+        ...(title ? { title } : {}),
+    });
+    const response = await fetch(
+        `${kit.harness.serverUrl}/artifacts/${kit.serverId}/publish?${query}`,
+        {
+            body: content,
+            headers: {
+                authorization: `Bearer ${await kit.harness.memberToken()}`,
+                'content-type': 'application/octet-stream',
+            },
+            method: 'PUT',
+        }
+    );
+    const payload = await response.json().catch(() => null);
+    if (!(response.ok && payload?.artifact)) {
+        throw new Error(
+            `Publishing ${path} as the member failed (${response.status}): ${JSON.stringify(payload)?.slice(0, 300)}`
+        );
+    }
+    return payload.artifact;
+}
+
 /** Best-effort cleanup for artifacts a scenario caused. */
 export async function deleteArtifacts(kit, artifacts) {
     for (const artifact of artifacts) {
