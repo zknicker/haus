@@ -5,6 +5,8 @@ import { registerAgentArtifactRoutes } from './agent-api/artifact-routes.ts';
 import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { registerArtifactPublicRoutes } from './artifacts/public-route.ts';
 import { registerArtifactPublishRoute } from './artifacts/publish-route.ts';
+import { registerArtifactZipRoute } from './artifacts/zip-route.ts';
+import { artifactZipTickets } from './artifacts/zip-tickets.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
@@ -81,6 +83,11 @@ export async function registerHausServerRoutes(
         db,
         storage: dependencies.artifactStorage,
         thumbnails: dependencies.artifactThumbnails,
+    });
+    registerArtifactZipRoute(app, {
+        db,
+        storage: dependencies.artifactStorage,
+        tickets: artifactZipTickets,
     });
     registerAvatarRoutes(app, { db });
     registerComputerRoutes(app, {

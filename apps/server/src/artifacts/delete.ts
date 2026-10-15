@@ -112,7 +112,7 @@ export async function reconcileArtifacts(db: HausDatabase, storage: ArtifactStor
     return { failedRevisionIds };
 }
 
-async function purgeRevision(
+export async function purgeRevision(
     db: HausDatabase,
     storage: ArtifactStorage,
     row: typeof revisions.$inferSelect
@@ -151,18 +151,24 @@ export async function purgeServerArtifacts(
 }
 
 function requireDeleteAccess(access: ArtifactAccess, artifact: typeof artifacts.$inferSelect) {
-    if (access.isAdmin) {
-        return;
-    }
-    if (access.agentId !== null && artifact.creatorAgentId === access.agentId) {
-        return;
-    }
-    if (access.userId !== null && artifact.creatorUserId === access.userId) {
+    if (mayDeleteArtifact(access, artifact)) {
         return;
     }
     throw new ArtifactError(
         'Only the original author or a human Owner/Admin can delete this artifact.',
         403,
         'FORBIDDEN'
+    );
+}
+
+/** The delete rule: the artifact's creator, or a human Owner/Admin. */
+export function mayDeleteArtifact(
+    access: ArtifactAccess,
+    artifact: Pick<typeof artifacts.$inferSelect, 'creatorAgentId' | 'creatorUserId'>
+): boolean {
+    return (
+        access.isAdmin ||
+        (access.agentId !== null && artifact.creatorAgentId === access.agentId) ||
+        (access.userId !== null && artifact.creatorUserId === access.userId)
     );
 }

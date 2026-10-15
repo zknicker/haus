@@ -26,14 +26,7 @@ export async function moveArtifacts(
 ): Promise<ArtifactMoveResult> {
     const access = await artifactAccess(db, actor);
     const moved = await db.transaction(async (tx) => {
-        const [server] = await tx
-            .select({ id: serversTable.id })
-            .from(serversTable)
-            .where(and(eq(serversTable.id, access.serverId), isNull(serversTable.deletedAt)))
-            .for('update');
-        if (!server) {
-            throw new ArtifactError('Server was deleted.', 404, 'NOT_FOUND');
-        }
+        await lockLiveServer(tx, access.serverId);
         const file = await liveArtifactAtPath(tx, access.serverId, input.from);
         return file
             ? { artifactId: file.id, result: await moveFile(tx, access, origin, file, input) }
@@ -43,7 +36,7 @@ export async function moveArtifacts(
     return moved.result;
 }
 
-async function moveFile(
+export async function moveFile(
     tx: HausDatabase,
     access: ArtifactAccess,
     origin: string,
@@ -66,7 +59,7 @@ async function moveFile(
     return { from: file.path, kind: 'file', moved_count: 1, to };
 }
 
-async function moveFolder(
+export async function moveFolder(
     tx: HausDatabase,
     access: ArtifactAccess,
     input: Omit<ArtifactMoveInput, 'serverId'>
@@ -117,6 +110,18 @@ async function moveFolder(
         })
         .where(and(live(access.serverId), insideFolder(input.from)));
     return { from, kind: 'folder', moved_count: rows.length, to };
+}
+
+/** The Server row lock that serializes every artifact insert, move, and delete. */
+export async function lockLiveServer(tx: HausDatabase, serverId: string) {
+    const [server] = await tx
+        .select({ id: serversTable.id })
+        .from(serversTable)
+        .where(and(eq(serversTable.id, serverId), isNull(serversTable.deletedAt)))
+        .for('update');
+    if (!server) {
+        throw new ArtifactError('Server was deleted.', 404, 'NOT_FOUND');
+    }
 }
 
 /** The destination may hold neither another file nor a folder of files that stay behind. */
