@@ -157,6 +157,25 @@ test('a role revoked between start and callback binds nothing and revokes the to
     expect(fake.revoked.length).toBe(revokedBefore + 1);
 });
 
+test('an Owner removed from the Server between start and callback binds nothing', async () => {
+    const other = await seedAgent(connection.db);
+    fake.codes.set('code-removed', { ...hausApp, organization: { ...acme, id: 'org-removed' } });
+    const attempt = await install(other, 'code-removed');
+    // Removal keeps the row and its role; only `revoked_at` marks it.
+    await connection.db
+        .update(serverMembershipsTable)
+        .set({ revokedAt: new Date() })
+        .where(eq(serverMembershipsTable.serverId, other.serverId));
+    const result = await attempt.callback();
+    expect(result.location).toContain('linear_setup=linear_admin_required');
+    expect(
+        await connection.db
+            .select()
+            .from(linearWorkspacesTable)
+            .where(eq(linearWorkspacesTable.serverId, other.serverId))
+    ).toEqual([]);
+});
+
 test('a reconnect into a different organization is refused', async () => {
     const [workspace] = await connection.db
         .select()

@@ -1,4 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
@@ -12,7 +12,10 @@ import { LinearRefusedError, linearAdminRequired } from './linear-errors.ts';
 // Haus-side authority for the Linear connection: Owner or Admin for binding
 // and identities, membership for reads, and grant checks for Agents.
 
-/** Binding is Server Owner or Admin work; rechecked under the lock at callback. */
+/**
+ * Binding is work for a current Server Owner or Admin; rechecked under the
+ * lock at callback, so a member removed mid-flow cannot finish it.
+ */
 export async function requireAdminRole(
     db: HausDatabase,
     serverId: string,
@@ -24,7 +27,8 @@ export async function requireAdminRole(
         .where(
             and(
                 eq(serverMembershipsTable.serverId, serverId),
-                eq(serverMembershipsTable.userId, userId)
+                eq(serverMembershipsTable.userId, userId),
+                isNull(serverMembershipsTable.revokedAt)
             )
         )
         .limit(1);
