@@ -72,6 +72,11 @@ Haus registers one Linear OAuth app per lifecycle, the same way as its GitHub Ap
 | Callback URL | `https://haus.chat/mcp/oauth/callback` | loopback, as GitHub |
 | Webhook URL | `https://haus.chat/api/linear/webhook` | sink plus development pull, as GitHub |
 
+Haus registers each app once. Haus users never create Linear apps: they press **Connect Linear**,
+and a Linear admin of their workspace approves the install. For that to work, the production app
+has Linear's **Public** setting on ("Allow this application to be installed by other
+workspaces"). The development app stays private to Haus's own workspace.
+
 Scopes are `read`, `write`, `app:assignable`, and `app:mentionable`. One Linear workspace binds to
 one Haus Server, with GitHub's two-sided authority: a Haus Owner or Admin, plus the Linear admin
 completing the install. A Haus Server may connect several workspaces (D6).
@@ -82,8 +87,9 @@ Agents never pass identity, and they cannot forget it. Server knows the invoking
 call (the grant scope's `agentId`), so Server writes the identity into every write:
 
 - **Attributable writes.** On `issueCreate` and `commentCreate`, Server sets `createAsUser` to
-  the Agent's display name and `displayIconUrl` to the Agent's public avatar URL. **Open (Q3):**
-  Haus needs a stable public avatar URL that Linear can fetch.
+  the Agent's display name and `displayIconUrl` to an Agent avatar URL that Linear can fetch.
+  Linear copies the icon to `uploads.linear.app` at write time, so the URL only has to work for
+  that one request. Linear exposes the persona as the entity's `botActor.userDisplayName`.
 - **Other writes.** State moves, labels, and uploads show as "Haus" in Linear. To make them
   readable there, these tools take an optional `note`. When present, Server posts it as an
   attributed comment in the same call ("Juniper (via Haus): moved to Design Review — three
@@ -209,18 +215,16 @@ mark with a dotted underline and no fill, the same as other reference chips.
 - **D6.** Decided: a Haus Server may connect several Linear workspaces, each as its own
   connection, like GitHub installations. A workspace binds to one Haus Server, and deliveries
   route by organization id.
-- **Q1.** Can an app user run the workflow-state mutations with only `read` and `write`? In the
-  UI, editing a team's workflow is a team-admin action.
-- **Q2.** If not, can a workspace admin give the app user team-admin rights?
-  - If both fail, workflow states stay a human step: the Agent writes the checklist and verifies
-    it with `list_workflow_states`.
-  - Using a borrowed admin API key instead would make those changes appear under that admin's
-    name, and needs its own justification.
-- **Q3.** Is there a public Agent avatar URL?
-- **Q4.** Which other inputs accept `createAsUser` (projects, documents, agent activities)? Any
-  that do get native attribution in place of a `note`.
-- **Q5.** Can the app create and apply labels in every granted team, for the `Agent` label
-  group?
+- **Q1.** Closed: yes. With only `read` and `write`, the app user created, renamed, reordered,
+  and archived workflow states. Linear's team access controls are a Business-plan feature, so a
+  restricted team is still untested.
+- **Q2.** Not needed, because Q1 passed.
+- **Q3.** Closed. Any URL Linear can fetch at write time works; Linear rehosts the icon.
+- **Q4.** Closed: only `IssueCreateInput` and `CommentCreateInput` accept `createAsUser`.
+  Projects, documents, labels, issue updates, and agent activities do not, so those writes use
+  `note` and the ledger.
+- **Q5.** Closed: yes. The app created an `Agent` label group, added a child label, and applied it
+  to an issue.
 
 ## Test plan
 
@@ -244,6 +248,31 @@ here.
 
 If 1 and 2 pass, the workflow-state tools ship in phase 2. If 1 and 4 both fail, those tools are
 dropped and workflow states stay a human step.
+
+### Results (2026-10-15)
+
+Run in Haus's own workspace (`haus-chat`), in a throwaway **Haus Test** team (`HTST`). The
+private **Haus Dev** app was installed with `actor=app` through authorization code with PKCE and
+granted only that team. No client secret was needed.
+
+| # | Result |
+| --- | --- |
+| 1 | Pass. `workflowStateCreate` succeeded. |
+| 2 | Pass. Rename, `position`, and archive of an unused state all succeeded. |
+| 3 | Expected error: `INPUT_ERROR` "The state contains active issues…". The tool surfaces Linear's `userPresentableMessage`. |
+| 4 | Not needed. |
+| 5 | Pass. The issue and the comment carry `botActor { name: "Haus Dev", userDisplayName: "Juniper", type: oauthClient }`, with the icon rehosted on `uploads.linear.app`. |
+| 6 | `createAsUser` exists on issue and comment creation only. `delegateId` exists on issue create and update. |
+| 7 | Pass for creating and applying labels. The Issue webhook was not observed (see 10). |
+| 8 | Pass. `/mcp/readonly` accepts the app token and lists 38 read tools with no writes. `/mcp` lists 68 tools, including `save_issue`, `save_comment`, and attachment upload. |
+| 9 | Pass. `fileUpload` plus a server-side `PUT` returned 200, and the image embedded in the issue. The asset returns 401 without auth and 200 with the app token. |
+| 10 | Partly done. Delegating via `issueUpdate(delegateId)` left the assignee empty, made Haus Dev the delegate, and created a `pending` agent session within seconds; `agentActivityCreate` posted a `thought`. Not observed: webhook delivery (no public receiver; the app's webhook points at the not-yet-built Haus endpoint), mention-created sessions, and `prompted` follow-ups. |
+| 11 | Not run. |
+
+What's left before phase 3: catch real deliveries on a reachable endpoint (signature, payload
+shape, `prompted` events, mention text), and revocation. The app user's mention handle is its
+display name (`hausdev` for the dev app), so the production app should be named so that `@haus`
+reads naturally.
 
 ## Not built
 
