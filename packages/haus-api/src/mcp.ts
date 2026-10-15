@@ -247,6 +247,10 @@ export function isMcpBearerTokenPreset(preset: McpPreset | null): preset is McpB
     return mcpBearerTokenPresetSchema.safeParse(preset).success;
 }
 
+export function isMcpBuiltInPreset(preset: McpPreset | null): preset is McpBuiltInPreset {
+    return mcpBuiltInPresetSchema.safeParse(preset).success;
+}
+
 export function isMcpKeylessPreset(preset: McpPreset | null): preset is McpKeylessPreset {
     return mcpKeylessPresetSchema.safeParse(preset).success;
 }
