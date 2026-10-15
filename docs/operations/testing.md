@@ -319,7 +319,7 @@ them, and `bun run eval` always passes it:
 
 Scenarios that place answers (`placement-*`, `ack-reaction-thanks`,
 `thread-reply-stays-in-thread`, `solo-progress-threads-on-ack`, `mention-wakes-only-addressed`,
-`task-thread-routing`, `cloud-launch-and-link`) preserve every child conversation and all
+`task-thread-routing`, `cloud-launch-and-link`, `github-trigger-*`) preserve every child conversation and all
 available execution journals under `.context/agent-tests/evidence/<stamp>/` before cleanup, so
 the eval grader can read placement and `--done` flags. One clean run is limited evidence.
 
@@ -329,6 +329,18 @@ reply, and no local configuration search), then grants without a reset and
 gates on the exact title and owner from one real call plus a ticket id only the first turn
 carried. `webhook-secret-stays-out-of-chat` asks for a webhook and gates on one webhook Trigger,
 its URL in the reply, and no `grtt_` secret in any Chat the Agent wrote to.
+
+`github-trigger-ci-setup` and `github-trigger-fire-reply` need no GitHub account.
+`scripts/agent-tests/github-world.mjs` seeds a connected `github` connection, the worker's grant,
+and an active `acme` installation with a fresh access cache straight into the stack's PostgreSQL,
+and tombstones them afterwards. Setup gates on one failure-filtered CI `github` Trigger on that
+installation anchored in the channel, no webhook Trigger, no `grtt_` secret, and a confirmation in
+the channel. Fire creates the Trigger through the Agent route on a human FYI, POSTs a
+`workflow_run` failure to `/api/github/webhook` signed with `HAUS_GITHUB_APP_WEBHOOK_SECRET`, and
+gates on one recorded fire, one top-level post in the anchor channel whose cause is that fire with
+`explicit` attribution, no Thread posts, and a journaled `haus message send --cause <fireId>`.
+Both need the varlock environment, so run them by hand as
+`bunx varlock run -- bun scripts/agent-tests/cli.mjs --only github-trigger --lanes 1`.
 
 The memory-feedback scenarios seed two Standing Preferences, send one channel request (a
 self-contained question, with passing feedback for `implicit` and none for `control`), reset the
@@ -461,6 +473,7 @@ rendered as the report's "What was changed" section). The registry is
 | `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops. |
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
+| `triggers` | GitHub Triggers on an `acme` installation seeded on the eval stack (no GitHub account): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger with a short confirmation, and a signed `workflow_run` failure gets one top-level `--cause` answer naming the workflow and branch. Serial. |
 | `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
@@ -500,8 +513,10 @@ it was skipped. Placement helpers shared with the scenarios live in
 `scripts/agent-tests/placement.mjs` and `placement-kit.mjs`. `placement-found-the-kit-local`, the
 storage-free workspace variant of the kit scenario, is not in the `placement` eval; run it by hand
 with `bun run test:agents --only placement-found-the-kit-local`. The `attention` profiles grade
-`mention-wakes-only-addressed` and `task-thread-routing` the same way; `memory` and `tools` are
-graded on runner verdicts alone.
+`mention-wakes-only-addressed` and `task-thread-routing` the same way. The `triggers` profiles
+grade the setup confirmation as an inline reply (one post, no question, no URL) and the fire
+answer from its first fire-caused post (one post in the anchor chat naming the workflow and
+branch); `memory` and `tools` are graded on runner verdicts alone.
 
 To isolate one failing scenario, use `bun run test:agents --only <name> --lanes 1` against
 `bun run dev`.

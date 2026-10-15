@@ -129,6 +129,8 @@ Status values:
 | R5 | Schedule, snooze, update, cancel, and retry preserve one logical reminder. | Deterministic | passing |
 | R6 | Cancel and fire races resolve to one authoritative lifecycle outcome. | Deterministic | passing |
 | R7 | Only the owning Agent can manage or receive its reminder. | Deterministic authorization | passing |
+| R8 | Asked to be woken when CI fails on main in a GitHub org it can reach, an Agent creates one failure-filtered CI `github` Trigger anchored in the channel and confirms once, with no secret, URL, or question. | `test:agents github-trigger-ci-setup` (`triggers` eval) | passing |
+| R9 | A `github` Trigger fire is answered once, top level in the anchor chat, with `--cause` naming the fire. | `test:agents github-trigger-fire-reply` (`triggers` eval) | passing |
 
 ### Tranche 7 — Multi-Agent coordination
 

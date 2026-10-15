@@ -348,3 +348,9 @@ missed delivery, overlap dedupe, and the retention gap; envelope snapshot. Fixtu
 Dev deliveries with secrets removed. Until the dev App is live, `apps/server/test/github-delivery-fixtures.ts`
 holds recorded-shape bodies built from GitHub's documented payloads; replacing them with captured
 deliveries is part of the live proof.
+
+Agent behavior is measured by the `triggers` eval (`bun run eval triggers`,
+[Testing](../docs/operations/testing.md#evals)) on an installation seeded on the eval stack, so no
+GitHub account is involved: a plain CI-failure ask becomes one failure-filtered `github` Trigger
+with one short confirmation, and a signed `workflow_run` failure gets one top-level answer sent
+with `--cause`, naming the workflow and branch.
