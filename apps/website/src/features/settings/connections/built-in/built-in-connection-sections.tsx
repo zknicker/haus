@@ -1,19 +1,11 @@
-import type { McpPreset } from '@haus/api';
 import type {
-    BuiltInConnectionDefinition,
     BuiltInConnectionPlacement,
     BuiltInConnectionSectionProps,
 } from './built-in-connection-definition.ts';
-import { githubConnectionDefinition } from './github/github-connection-definition.ts';
-import { linearConnectionDefinition } from './linear/linear-connection-definition.ts';
-
-/** The only lookup from a preset to its built-in connection definition. */
-const builtInConnectionDefinitions: ReadonlyMap<McpPreset, BuiltInConnectionDefinition> = new Map(
-    [githubConnectionDefinition, linearConnectionDefinition].map((definition) => [
-        definition.preset,
-        definition,
-    ])
-);
+import {
+    builtInConnectionDefinition,
+    builtInConnectionDefinitions,
+} from './built-in-connection-registry.ts';
 
 /**
  * The sections a connection's built-in definition places at one spot on its
@@ -24,14 +16,20 @@ export function BuiltInConnectionSections({
     placement,
     serverId,
 }: BuiltInConnectionSectionProps & { placement: BuiltInConnectionPlacement }) {
-    const definition = connection.preset
-        ? builtInConnectionDefinitions.get(connection.preset)
-        : undefined;
-    const sections = definition?.sections.filter((section) => section.placement === placement);
+    const sections = builtInConnectionDefinition(connection.preset)?.sections.filter(
+        (section) => section.placement === placement
+    );
 
     return (
         sections?.map(({ id, Section }) => (
             <Section connection={connection} key={id} serverId={serverId} />
         )) ?? null
+    );
+}
+
+/** Every built-in setup notice, for the connections list a failed first connect returns to. */
+export function BuiltInSetupNotices() {
+    return builtInConnectionDefinitions.map(({ preset, SetupNotice }) =>
+        SetupNotice ? <SetupNotice key={preset} /> : null
     );
 }

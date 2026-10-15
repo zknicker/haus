@@ -651,11 +651,16 @@ Connections → Linear is a built-in connection page. Its definition
 (`apps/website/src/features/settings/connections/built-in/linear/`) adds:
 
 - **Workspace** (after account): organization name and url key, teams, status, **Last delivery
-  received**, default Agent picker, and reconnect.
+  received**, default Agent picker, and reconnect. The workspace menu's **Connect another
+  workspace** runs the definition's connect (a new install, a new connection). The callback's
+  `?linear_setup=<outcome>` shows as a dismissible notice above it, and on the connections list
+  when no connection exists to land on.
 - **Agent identities** (after Agent access): every granted Agent with its identity state ("Posts
   as Juniper via Haus" or "Linear identity: @juniper", plus Inactive or Sign in required chips),
   last delivery per identity, and **Give Linear identity** / **Connect existing app** opening the
-  guided flow. The generic Agent access section stays the only grant switch.
+  guided flow. A draft resumes without offering to create an app once its credentials are saved;
+  **Replace webhook secret** reopens the flow for any installed identity. The generic Agent access
+  section stays the only grant switch.
 - **Triggers** (after Agent access): the Agents' `linear` Triggers, read-only, linking to each
   Agent's Automations tab.
 
@@ -666,8 +671,10 @@ The generic tools section lists the connector's tools.
 The page is built from the general mechanism, not a Linear branch. On the App, a built-in
 connection is one typed definition per service under
 `apps/website/src/features/settings/connections/built-in/<service>/`, listing its sections and
-their placement; a registry keyed by preset is the only lookup, and the page never branches on a
-preset. On the Server, a built-in connection is one module implementing `BuiltInConnection`
+their placement, plus an optional `useConnect` (the preset grid's add when connecting takes the
+service's own flow) and `SetupNotice` (shown on the connections list); a registry keyed by preset
+(`built-in-connection-registry.ts`) is the only lookup, and no page branches on a preset. On the
+Server, a built-in connection is one module implementing `BuiltInConnection`
 (`apps/server/src/built-in-connections/`), registered in `built-in-connections.ts`; generic
 connection code reaches a service only through those hooks. A third built-in connection adds one
 definition on each side.

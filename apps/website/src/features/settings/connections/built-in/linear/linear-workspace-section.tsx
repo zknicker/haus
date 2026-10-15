@@ -16,63 +16,74 @@ import { ConnectionAddRow } from '../../../mcp/mcp-connection-account.tsx';
 import type { McpConnection } from '../../../mcp/mcp-server-shared.ts';
 import type { BuiltInConnectionSectionProps } from '../built-in-connection-definition.ts';
 import { linearWorkspaceStatus } from './linear-identity-model.ts';
+import { LinearSetupNotice } from './linear-setup-notice.tsx';
 
 const noDefaultAgent = 'none';
 
 /**
  * The Linear workspace this connection binds: its organization, teams, when
  * Linear last reached Haus, and the default Agent for unlabelled work. Blank
- * while loading; a connection with no workspace yet offers the install.
+ * while loading; a connection with no workspace yet offers the install. The
+ * install callback lands here, so its outcome sits above the workspace.
  */
 export function LinearWorkspaceSection({ connection, serverId }: BuiltInConnectionSectionProps) {
     const workspace = useLinearWorkspace(serverId, connection.id).data;
     const canManage = useServerContext().server.role !== 'member';
     const install = useLinearStartInstall(serverId, connection.id);
+    // The definition's connect: a new workspace becomes its own connection.
+    const connectAnother = useLinearStartInstall(serverId);
 
+    const notice = <LinearSetupNotice />;
     if (workspace === undefined) {
-        return null;
+        return notice;
     }
 
     return (
-        <ConnectionSection title="Workspace">
-            <ItemCardGroup variant="outline">
-                {workspace ? (
-                    <WorkspaceRows
-                        canManage={canManage}
-                        connection={connection}
-                        onReconnect={() => void install.start()}
-                        serverId={serverId}
-                        workspace={workspace}
-                    />
-                ) : canManage ? (
-                    <ConnectionAddRow
-                        isPending={install.isPending}
-                        onPress={() => void install.start()}
-                        title="Connect a Linear workspace"
-                    />
-                ) : (
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Description>
-                                No Linear workspace is connected yet.
-                            </ItemCard.Description>
-                        </ItemCard.Content>
-                    </ItemCard>
-                )}
-            </ItemCardGroup>
-        </ConnectionSection>
+        <>
+            {notice}
+            <ConnectionSection title="Workspace">
+                <ItemCardGroup variant="outline">
+                    {workspace ? (
+                        <WorkspaceRows
+                            canManage={canManage}
+                            connection={connection}
+                            onConnectAnother={() => void connectAnother.start()}
+                            onReconnect={() => void install.start()}
+                            serverId={serverId}
+                            workspace={workspace}
+                        />
+                    ) : canManage ? (
+                        <ConnectionAddRow
+                            isPending={install.isPending}
+                            onPress={() => void install.start()}
+                            title="Connect a Linear workspace"
+                        />
+                    ) : (
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <ItemCard.Description>
+                                    No Linear workspace is connected yet.
+                                </ItemCard.Description>
+                            </ItemCard.Content>
+                        </ItemCard>
+                    )}
+                </ItemCardGroup>
+            </ConnectionSection>
+        </>
     );
 }
 
 function WorkspaceRows({
     canManage,
     connection,
+    onConnectAnother,
     onReconnect,
     serverId,
     workspace,
 }: {
     canManage: boolean;
     connection: McpConnection;
+    onConnectAnother: () => void;
     onReconnect: () => void;
     serverId: string;
     workspace: LinearWorkspace;
@@ -127,6 +138,15 @@ function WorkspaceRows({
                                         textValue="Reconnect"
                                     >
                                         <Label>Reconnect</Label>
+                                    </Dropdown.Item>
+                                ) : null}
+                                {canManage ? (
+                                    <Dropdown.Item
+                                        id="connect-another"
+                                        onAction={onConnectAnother}
+                                        textValue="Connect another workspace"
+                                    >
+                                        <Label>Connect another workspace</Label>
                                     </Dropdown.Item>
                                 ) : null}
                             </Dropdown.Menu>

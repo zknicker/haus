@@ -1,5 +1,6 @@
 import {
     isMcpBearerTokenPreset,
+    isMcpBuiltInPreset,
     type McpBearerTokenPreset,
     type McpPreset,
     mcpPresetIcons,
@@ -9,11 +10,12 @@ import { ItemCard } from '@heroui-pro/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useLinearStartInstall } from '../../../hooks/linear/use-linear-start-install.ts';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnectionPresetIcons } from '../../../hooks/servers/use-connection-preset-icons.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
+import type { BuiltInConnect } from '../connections/built-in/built-in-connection-definition.ts';
+import { builtInConnectionDefinition } from '../connections/built-in/built-in-connection-registry.ts';
 import { SettingsCardGrid, SettingsGridItem } from '../layout/settings-card-grid.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
@@ -96,8 +98,6 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const [tokenPreset, setTokenPreset] = useState<McpBearerTokenPreset | null>(null);
     const [skoolOpen, setSkoolOpen] = useState(false);
     const skool = useSkoolConnect(serverId);
-    // Linear connects by installing the Haus app; its callback creates the connection.
-    const linearInstall = useLinearStartInstall(serverId);
     const availablePresets = presets.filter(
         (preset) => !connections.data?.some((connection) => connection.preset === preset.id)
     );
@@ -109,11 +109,10 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const add = (preset: McpPreset, name: string) => {
         if (preset === 'skool') {
             setSkoolOpen(true);
-        } else if (preset === 'linear') {
-            void linearInstall.start();
         } else if (isMcpBearerTokenPreset(preset)) {
             setTokenPreset(preset);
-        } else {
+        } else if (!isMcpBuiltInPreset(preset)) {
+            // A built-in preset connects through its definition's own flow instead.
             addPreset.mutate({ name, preset, serverId });
         }
     };
@@ -147,27 +146,16 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                             </ItemCard.Description>
                         </ItemCard.Content>
                         <ItemCard.Action>
-                            <Tooltip delay={0}>
-                                <Button
-                                    aria-label={`Add ${preset.name}`}
-                                    isDisabled={
-                                        addPreset.isPending ||
-                                        skool.connecting ||
-                                        linearInstall.isPending
-                                    }
-                                    isIconOnly
-                                    isPending={
-                                        addPreset.isPending &&
-                                        addPreset.variables?.preset === preset.id
-                                    }
-                                    onPress={() => add(preset.id, preset.name)}
-                                    size="sm"
-                                    variant="ghost"
-                                >
-                                    <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
-                                </Button>
-                                <Tooltip.Content>Add {preset.name}</Tooltip.Content>
-                            </Tooltip>
+                            <PresetAddAction
+                                isDisabled={addPreset.isPending || skool.connecting}
+                                isPending={
+                                    addPreset.isPending && addPreset.variables?.preset === preset.id
+                                }
+                                name={preset.name}
+                                onAdd={() => add(preset.id, preset.name)}
+                                preset={preset.id}
+                                serverId={serverId}
+                            />
                         </ItemCard.Action>
                     </SettingsGridItem>
                 ))}
@@ -199,6 +187,91 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                 />
             ) : null}
         </>
+    );
+}
+
+interface PresetAddButtonProps {
+    isDisabled: boolean;
+    isPending: boolean;
+    name: string;
+    onPress: () => void;
+}
+
+/**
+ * A preset's add button. A built-in connection that connects through its own
+ * flow (an app install) supplies that flow from its definition instead.
+ */
+function PresetAddAction({
+    isDisabled,
+    isPending,
+    name,
+    onAdd,
+    preset,
+    serverId,
+}: Omit<PresetAddButtonProps, 'onPress'> & {
+    onAdd: () => void;
+    preset: McpPreset;
+    serverId: string;
+}) {
+    const useConnect = builtInConnectionDefinition(preset)?.useConnect;
+    if (useConnect) {
+        return (
+            <BuiltInConnectButton
+                isDisabled={isDisabled}
+                name={name}
+                serverId={serverId}
+                useConnect={useConnect}
+            />
+        );
+    }
+    return (
+        <PresetAddButton
+            isDisabled={isDisabled}
+            isPending={isPending}
+            name={name}
+            onPress={onAdd}
+        />
+    );
+}
+
+function BuiltInConnectButton({
+    isDisabled,
+    name,
+    serverId,
+    useConnect,
+}: {
+    isDisabled: boolean;
+    name: string;
+    serverId: string;
+    useConnect: (serverId: string) => BuiltInConnect;
+}) {
+    const connect = useConnect(serverId);
+    return (
+        <PresetAddButton
+            isDisabled={isDisabled || connect.isPending}
+            isPending={connect.isPending}
+            name={name}
+            onPress={connect.start}
+        />
+    );
+}
+
+function PresetAddButton({ isDisabled, isPending, name, onPress }: PresetAddButtonProps) {
+    return (
+        <Tooltip delay={0}>
+            <Button
+                aria-label={`Add ${name}`}
+                isDisabled={isDisabled}
+                isIconOnly
+                isPending={isPending}
+                onPress={onPress}
+                size="sm"
+                variant="ghost"
+            >
+                <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+            </Button>
+            <Tooltip.Content>Add {name}</Tooltip.Content>
+        </Tooltip>
     );
 }
 
