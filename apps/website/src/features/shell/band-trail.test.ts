@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { collapseTrail } from './library-trail.ts';
+import { collapseTrail } from './band-trail.ts';
 
 const crumb = (label: string) => ({ href: `/s/haus/artifacts?folder=${label}`, label });
 
@@ -10,7 +10,7 @@ describe('collapseTrail', () => {
         expect(collapseTrail([])).toEqual({ hidden: [], leading: [], trailing: [] });
     });
 
-    test('folds the middle of a deep trail, keeping Files and the parent', () => {
+    test('folds the middle of a deep trail, keeping the section and the parent', () => {
         const crumbs = ['Files', 'a', 'b', 'c', 'd'].map(crumb);
         expect(collapseTrail(crumbs)).toEqual({
             hidden: ['a', 'b', 'c'].map(crumb),

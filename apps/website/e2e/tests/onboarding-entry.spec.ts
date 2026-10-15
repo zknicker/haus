@@ -113,7 +113,7 @@ for (const role of ['member', 'admin'] as const) {
         await page.reload();
         await expect(page.getByText(waitingCopy)).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Connect a Computer' })).toHaveCount(0);
-        await expect(page.getByRole('heading', { name: 'Tasks', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('navigation', { name: 'Breadcrumb' }).getByText('Tasks', { exact: true })).toHaveCount(0);
         await expect(page.getByText(/install.sh/)).toHaveCount(0);
         await page.getByRole('button', { name: 'Choose another Server' }).click();
         await expect(page.getByRole('heading', { name: 'Choose a Server' })).toBeVisible();
@@ -121,7 +121,7 @@ for (const role of ['member', 'admin'] as const) {
         await expect(page.getByText(waitingCopy)).toBeVisible();
         // Deliberately omit an event: the real Server reconciliation read must unlock the page.
         completeOnboarding(session.databaseUrl, created.id);
-        await expect(page.getByRole('heading', { name: 'Tasks', exact: true })).toBeVisible();
+        await expect(page.getByRole('navigation', { name: 'Breadcrumb' }).getByText('Tasks', { exact: true })).toBeVisible();
         await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks$`, 'u'));
         // No Computer exists even after completion. This must not restart onboarding.
         await page.goto(`/s/${slug}`);

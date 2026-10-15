@@ -84,7 +84,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await expect(folders).toHaveCount(0);
 
     // The band is the folder trail; each folder above is a way back.
-    const trail = page.getByRole('navigation', { name: 'Folder path' });
+    const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(trail).toContainText('Files');
     await expect(trail).toContainText('starter-kit');
     await expect(trail).toContainText('scripts');
@@ -169,7 +169,7 @@ test('a viewer names the file by its path in Files, each folder a way back', asy
     const { server, session } = await createTestServer(page, { displayName: 'Viewer Path', slug });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts/art_${server.id}_tmcheck`);
-    const trail = page.getByRole('navigation', { name: 'Folder path' });
+    const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(page.getByRole('heading', { name: 'tm_check.py', exact: true })).toBeVisible();
     await expect(trail).toContainText('scripts');
     await trail.getByRole('link', { name: 'scripts', exact: true }).click();
