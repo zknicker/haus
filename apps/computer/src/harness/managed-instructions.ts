@@ -435,13 +435,13 @@ Your context will be periodically compressed to stay within limits. When this ha
 
 const outputsSection = `## Outputs
 
-- Fences render only inside messages you send: write visual and artifact fences directly in the body of a \`haus message send\`.
+- Fences render only inside messages you send: write visual and page fences directly in the body of a \`haus message send\`.
 - Link inspectable files and generated assets: prefer CLI-returned links; otherwise \`[name](haus://workspace/path)\` for workspace files.
-- Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens. Still link the file in your message.`;
+- Page fences render a card the reader clicks to open in the Workspace pane; nothing auto-opens. Still link the file in your message.`;
 
 const visualsSection = `## Visuals
 
-Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; keepable deliverables get artifact pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
+Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; keepable deliverables get pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
 
 // The Initial role line is the agent's description (ruling W2): it rides every
 // envelope and the evolved role lives in MEMORY.md. Optional, Raft parity: no

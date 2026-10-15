@@ -26,7 +26,7 @@ the normal `test:agents` set. Deterministic Server coverage separately
 owns the task-Thread idempotency invariant.
 
 Cross-Agent workspace reads are not part of this contract. Workspace files
-remain Agent-owned; canonical Thread content and the rendered artifact card are
+remain Agent-owned; canonical Thread content and the rendered page card are
 the collaboration handoff. A successor should state plainly when it cannot
 inspect another Agent's private workspace bytes and continue from the durable
 evidence available in Chat.

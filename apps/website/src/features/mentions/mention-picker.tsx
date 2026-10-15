@@ -208,10 +208,10 @@ function groupMentionOptions({
     if (
         isPathSearchActive &&
         isPathSearchLoading &&
-        !groups.some((group) => group.label === 'Files')
+        !groups.some((group) => group.label === 'Workspace')
     ) {
         groups.push({
-            label: 'Files',
+            label: 'Workspace',
             options: [],
             status: 'loading',
         });
@@ -246,7 +246,7 @@ function getGroupLabel(option: MentionOption) {
     }
 
     if (option.kind === 'file' || option.kind === 'directory' || option.kind === 'image') {
-        return 'Files';
+        return 'Workspace';
     }
 
     return 'Skills';

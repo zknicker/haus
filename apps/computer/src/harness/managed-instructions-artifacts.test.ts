@@ -20,4 +20,7 @@ test('the Files family entry points at the files Manual topic', () => {
         '6. **Attachments**: `haus attachment upload`, `haus attachment view`.\n7. **Files**: `haus files list`, `haus files pull`, `haus files push`. Read the `files` Manual topic before the first one.\n8. **Profiles**'
     );
     expect(prompt).not.toContain('haus artifact');
+    // Pages are `page` fences opening in the Workspace pane; no artifact wording remains.
+    expect(prompt).not.toMatch(/artifact (fence|page|pane)/iu);
+    expect(prompt).toContain('keepable deliverables get pages.');
 });

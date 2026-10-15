@@ -54,8 +54,8 @@ describe('artifact widget contracts', () => {
         expect(widgetFallbackText('artifact', {})).toBe('Artifact');
     });
 
-    test('the fence label is bare artifact, not widget-prefixed', () => {
-        expect(widgetFenceLabel('artifact')).toBe('artifact');
+    test('the page tier is authored as a bare page fence, not widget-prefixed', () => {
+        expect(widgetFenceLabel('artifact')).toBe('page');
         expect(widgetFenceLabel('visual')).toBe('visual');
     });
 });

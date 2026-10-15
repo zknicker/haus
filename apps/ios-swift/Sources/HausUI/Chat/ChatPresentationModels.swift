@@ -156,7 +156,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let prose: String
     /// The fences this message drew, in the order it wrote them.
     public let visuals: [VisualSegment]
-    /// The workspace pages this message linked with ```artifact fences.
+    /// The workspace pages this message linked with ```page fences.
     public let artifacts: [ArtifactSegment]
     /// The Reminder or Trigger fire this message answers, when it answers one.
     public let cause: MessageCausePresentation?

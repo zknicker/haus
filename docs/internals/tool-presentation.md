@@ -158,7 +158,7 @@ today; a typed generation reference from Computer is a follow-up. A
 video, a host-only path, or a failed read names the file instead. Nothing renders while it
 loads. Pressing the picture (Enter or Space) opens it in a HeroUI Modal at the window's size
 with its file name and prompt, and on desktop an "Open in workspace" action that opens the file
-as an artifact page; the web omits it, since the trace has no Artifact Panel. The harness's reserved
+as a workspace page; the web omits it, since the trace has no Workspace pane. The harness's reserved
 synthetic names get their own kinds so they read as what happened — `Modified <path>`,
 `Compacted the context` — rather than a generic call with empty arguments.
 

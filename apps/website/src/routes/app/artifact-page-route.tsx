@@ -27,13 +27,13 @@ export function ArtifactPageRoute() {
     if (!target) {
         return (
             <WorkspaceArtifactEmpty
-                detail="This artifact address is not one Haus can open."
-                title="Artifact unavailable"
+                detail="This workspace address is not one Haus can open."
+                title="Workspace item unavailable"
             />
         );
     }
     return (
-        <section aria-label="Artifact" className="flex min-h-0 flex-1 flex-col bg-background">
+        <section aria-label="Workspace" className="flex min-h-0 flex-1 flex-col bg-background">
             {target.kind === 'workspaceFile' ? (
                 <ArtifactFile agentId={target.agentId} serverId={server.id} target={target} />
             ) : (
@@ -63,7 +63,7 @@ function ArtifactFile({
         return (
             <WorkspaceArtifactEmpty
                 detail="This file was moved or deleted, or its workspace is offline."
-                title="Artifact unavailable"
+                title="File unavailable"
             />
         );
     }
@@ -71,7 +71,7 @@ function ArtifactFile({
         <>
             <PageToolbar>
                 <p className="min-w-0 flex-1 truncate ps-2 text-muted text-sm">{target.path}</p>
-                <Toolbar aria-label="Artifact actions" className="shrink-0">
+                <Toolbar aria-label="File actions" className="shrink-0">
                     <WorkspaceArtifactControls artifact={artifact} />
                     <ArtifactOptionsMenu target={target} />
                 </Toolbar>

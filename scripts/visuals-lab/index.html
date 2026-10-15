@@ -1619,12 +1619,12 @@
                     block.querySelector('b').textContent = fragment.name;
                     block.querySelector('.name span').textContent = fragment.slug;
                     if (fragment.kind === 'page') {
-                        // An artifact page is a whole document, not a fence body; the visual
+                        // A page is a whole document, not a fence body; the visual
                         // frame is the wrong host for it, so say so instead of faking a render.
                         const note = document.createElement('div');
                         note.className = 'page';
                         note.textContent =
-                            'artifact page — a full document, not rendered in the visual frame';
+                            'page — a full document, not rendered in the visual frame';
                         block.append(note);
                     } else {
                         const ground = document.createElement('div');

@@ -159,7 +159,7 @@ test('keeps every published body faithful to its captured source card', async ()
         );
 
         if (topic.id === 'recipes/technique/html-artifact-discussion') {
-            // Haus adds the artifact fence the captured card predates.
+            // Haus adds the page fence the captured card predates.
             expect(topic.body.split('### In Haus')[0]?.trim()).toBe(adapted);
         } else if (topic.id === 'recipes/decision/when-to-ask-human') {
             // Haus names its medium: an @mention where the work lives (ADR 0037).

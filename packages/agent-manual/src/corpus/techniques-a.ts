@@ -166,13 +166,13 @@ Any discussion about something visual or structural that text keeps failing to p
 A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.
 
 ### In Haus
-Each round is a page rendered in the conversation: an \`artifact\` fence naming a \`workbench/*.html\` file renders a card that opens that round's snapshot in the artifact pane, and the visuals skill carries the fence contract. When the file outlives the discussion, as a spec or design export others will revise or build from, keep it in Files: push the first round with \`haus files push <file> <path>\` and each later round by pushing the same file again. Every version is retained, and the stable link always opens the latest.`,
+Each round is a page rendered in the conversation: a \`page\` fence naming a \`workbench/*.html\` file renders a card that opens that round's snapshot in the Workspace pane, and the visuals skill carries the fence contract. When the file outlives the discussion, as a spec or design export others will revise or build from, keep it in Files: push the first round with \`haus files push <file> <path>\` and each later round by pushing the same file again. Every version is retained, and the stable link always opens the latest.`,
         class: 'technique',
         industries: [
             'universal (anything with a visual/structural shape — UI, docs layout, posters, slides, flows)',
         ],
-        // Haus posts rounds as artifact fences or pushes to Files, not attachment uploads.
-        prereqs: ['artifact fence'],
+        // Haus posts rounds as page fences or pushes to Files, not attachment uploads.
+        prereqs: ['page fence'],
         related: [
             'technique/video-review',
             'technique/attachment-comments',

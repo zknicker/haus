@@ -23,7 +23,7 @@ test('artifact tabs expose selection state and a labelled close control per tab'
     const markup = renderStrip(getArtifactPanelTargetKey(targets[1]));
 
     expect(markup).toContain('role="tablist"');
-    expect(markup).toContain('aria-label="Open artifacts"');
+    expect(markup).toContain('aria-label="Open workspace items"');
     // Two tabs: the workspace tab and the open file, the latter selected.
     expect(markup.match(/role="tab"/gu)).toHaveLength(2);
     expect(markup).toContain('aria-selected="true"');

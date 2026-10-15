@@ -207,7 +207,7 @@ simply not load:
 - **The fetch can fail.** Catch it and render a plate that states the answer in
   words. A visual that renders nothing is worse than one that renders a
   sentence.
-- An artifact page has no network at all, so it draws its data as inline SVG and
+- A page has no network at all, so it draws its data as inline SVG and
   never a map.
 
 ## Before closing the fence

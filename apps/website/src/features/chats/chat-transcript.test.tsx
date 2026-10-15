@@ -435,7 +435,7 @@ test('ChatTranscript renders durable message ```visual fences as visual cards', 
     assert.doesNotMatch(markup, /allow-same-origin/);
 });
 
-test('ChatTranscript renders artifact widgets as compact open-in-pane cards', () => {
+test('ChatTranscript renders legacy artifact widget rows as compact page cards', () => {
     const row = widgetRow('ui-artifact');
 
     if (row.kind !== 'widget') {
@@ -458,9 +458,9 @@ test('ChatTranscript renders artifact widgets as compact open-in-pane cards', ()
     ]);
 
     // A message-object ItemCard with title and kind line, never the page inline;
-    // inert (no open button) outside an Artifact Panel context.
+    // inert (no open button) outside a Workspace pane context.
     assert.match(markup, /item-card--message-object[^>]*>[\s\S]*Fleet status/);
-    assert.match(markup, /HTML · fleet\.html/);
+    assert.match(markup, /Page · fleet\.html/);
     assert.doesNotMatch(markup, /workbench\/pages|data-testid="artifact-card"|<iframe/);
     assert.doesNotMatch(markup, /Widget unavailable/);
 });

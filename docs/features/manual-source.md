@@ -47,7 +47,7 @@ Equivalent means the full substantive body and source metadata match after produ
 | `technique/acceptance-surface` | Equivalent | Full source behavior and metadata retained. |
 | `technique/attachment-comments` | Equivalent | Full source behavior and metadata retained. |
 | `technique/group-chat-debug` | Equivalent | Full source behavior and metadata retained. |
-| `technique/html-artifact-discussion` | Adapted | Haus HTML artifact fence. |
+| `technique/html-artifact-discussion` | Adapted | Haus `page` fence. |
 | `technique/login-with-raft` | Deliberately omitted | No Haus OAuth app registration/agent-login analogue. Latest source retained for audit only; no invented commands or action cards. |
 | `technique/memory-hygiene` | Adapted | Rewritten for Haus hot memory, notes/ topic files and chat-held history; preferences written as terse merged rules; dreaming, a silent consolidation pass for the nightly dreaming turn. |
 | `technique/preview-env` | Equivalent | Full source behavior and metadata retained. |
@@ -65,7 +65,7 @@ Three captured files differed substantively from current upstream before this au
 
 The recurring-recovery adaptation uses actual Haus `reminder list`, `log`, author-owned `snooze`/`update` and Owner/Admin escalation. It does not claim Raft's exact daemon log signature or retry duration. Quiet checks can legitimately post nothing; completed work must be reconciled against execution evidence and saved checkpoints. A missing required deliverable still receives a scoped, labeled backfill. The reminder and patrol cards use the same agreed quiet-reporting contract.
 
-Existing Haus differences remain deliberate: inline replies versus Raft task-thread routing, acknowledgment-thread progress, direct Agent creation, @mention human decisions, artifact fences, Server-owned scheduling and permission-scoped integrations. No Asks, Needs you tier, Wiki, extraction system or Raft-only tool was restored.
+Existing Haus differences remain deliberate: inline replies versus Raft task-thread routing, acknowledgment-thread progress, direct Agent creation, @mention human decisions, page fences, Server-owned scheduling and permission-scoped integrations. No Asks, Needs you tier, Wiki, extraction system or Raft-only tool was restored.
 
 ## Checks and future updates
 

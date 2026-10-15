@@ -34,7 +34,7 @@ Use \`haus image generate\` for any image people will see or that needs a specif
 
 **Sizes and options.** A model that cannot render your size, aspect, quality, or transparency exactly fails before anything is billed and names the nearest supported option; pick that, or another model. Nothing is silently adjusted. Every image card shows its model and cost.
 
-The image card updates in place when the image is ready; a short text follow-up is fine, but never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Files (see files). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or artifact page.`,
+The image card updates in place when the image is ready; a short text follow-up is fine, but never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Files (see files). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or a page.`,
         id: 'images',
         kind: 'overview',
         related: ['attachment', 'files', 'message'],

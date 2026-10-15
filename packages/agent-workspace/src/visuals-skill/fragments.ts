@@ -4,7 +4,6 @@
 /// <reference path="./markdown.d.ts" />
 
 import areaMd from './fragments/area.md' with { type: 'text' };
-import artifactPageMd from './fragments/artifact-page.md' with { type: 'text' };
 import calculatorMd from './fragments/calculator.md' with { type: 'text' };
 import comboBarLineMd from './fragments/combo-bar-line.md' with { type: 'text' };
 import comparisonCardsMd from './fragments/comparison-cards.md' with { type: 'text' };
@@ -20,6 +19,7 @@ import mapUsStatesMd from './fragments/map-us-states.md' with { type: 'text' };
 import mapWorldCountriesMd from './fragments/map-world-countries.md' with { type: 'text' };
 import meterMd from './fragments/meter.md' with { type: 'text' };
 import multiLineMd from './fragments/multi-line.md' with { type: 'text' };
+import pageMd from './fragments/page.md' with { type: 'text' };
 import pairedPanelsMd from './fragments/paired-panels.md' with { type: 'text' };
 import pipelineMd from './fragments/pipeline.md' with { type: 'text' };
 import rankedHorizontalBarMd from './fragments/ranked-horizontal-bar.md' with { type: 'text' };
@@ -39,7 +39,6 @@ import trendLineMd from './fragments/trend-line.md' with { type: 'text' };
 /** Fragment file name → its markdown, seeded under `references/fragments/`. */
 export const visualsSkillFragmentFiles: Record<string, string> = {
     'area.md': areaMd,
-    'artifact-page.md': artifactPageMd,
     'calculator.md': calculatorMd,
     'combo-bar-line.md': comboBarLineMd,
     'comparison-cards.md': comparisonCardsMd,
@@ -55,6 +54,7 @@ export const visualsSkillFragmentFiles: Record<string, string> = {
     'map-world-countries.md': mapWorldCountriesMd,
     'meter.md': meterMd,
     'multi-line.md': multiLineMd,
+    'page.md': pageMd,
     'paired-panels.md': pairedPanelsMd,
     'pipeline.md': pipelineMd,
     'ranked-horizontal-bar.md': rankedHorizontalBarMd,

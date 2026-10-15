@@ -390,7 +390,7 @@ HeroUI tokens.
 ### Agent-visual tokens
 
 `styles/artifact-tokens.css` publishes a second, much smaller vocabulary for
-agent-authored HTML — in-chat visuals and artifact pages, which render in a
+agent-authored HTML — in-chat visuals and pages, which render in a
 sandboxed frame and never see these stylesheets. Most of its names alias the
 HeroUI roles above, so an agent never writes a HeroUI name and a re-pointed
 alias updates every page ever authored.
@@ -806,7 +806,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
   Recalibrate it when those colors change.
   **In-chat column:** every attachment under a message — Action cards (Cloud Agent work), thread
-  previews, artifact cards, the working log, workspace changes — is `w-full` up to one shared cap,
+  previews, page cards, the working log, workspace changes — is `w-full` up to one shared cap,
   `--chat-card-width` (36rem) in `default-theme.css`, on every message whether or not other
   attachments are present, so stacked attachments share both edges. Use `max-w-(--chat-card-width)`;
   never a per-component literal. Inline chips (task and artifact chips) stay content-sized.
@@ -827,7 +827,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
 - **Thread transcript fade:** Task and thread views fade messages over the final 4rem,
   reaching transparency 0.75rem above the composer so content clears its rounded edges.
 - **Workspace tabs:** Desktop only, in the window band. One anatomy for the primary tab and every
-  browser and artifact tab (`WorkspaceTab`, base rules on `.workspace-tab` and Codex's window-tab
+  browser and workspace tab (`WorkspaceTab`, base rules on `.workspace-tab` and Codex's window-tab
   values on `.shell-window-band .workspace-tab…`, tokens `--shell-tab-*`, in `default-theme.css`).
   It copies Codex's window tabs: a 32px box with a 10px corner, a 20px mark slot, a regular-weight
   `text-sm` (13px) title 8px after it, a start inset equal to the slot's vertical inset (6px) and a
@@ -843,7 +843,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   Every tab, the primary one included, holds a 240px basis (`--workspace-tab-width` in the band)
   while there is room, so switching chats never moves the strip, and all tabs shrink evenly together
   down to mark-only when the strip is crowded. The primary tab carries no trailing action and sorts
-  with the other tabs in one draggable list. Browser and artifact tabs
+  with the other tabs in one draggable list. Browser and workspace tabs
   show a 20px ghost close button (14px glyph, 7px from the end) on select, hover, or focus. Tabs
   sit 4px apart; a 1 × 12px divider at 8% foreground centered in each gap (and before the new-tab
   button) keeps adjacent resting tabs apart, and hides beside the selected, multi-selected, hovered, or dragged tab.
@@ -852,7 +852,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   section glyph, the page favicon, or the artifact file glyph. The layout controls sit as
   icon-only ghost `sm` Buttons at the band's end
   (`.workspace-band-end`), outside the window drag region. Settings is not in the band: on the
-  desktop its ghost `sm` gear leads the sidebar footer. Browser and artifact tabs share the
+  desktop its ghost `sm` gear leads the sidebar footer. Browser and workspace tabs share the
   closable-tab rules (`.workspace-tab:not([data-kind="primary"])`).
 - **Settings rows:** Settings pages are stock `ItemCardGroup` lists of `ItemCard` rows, following
   HeroUI Pro's anatomy: a group's `Header` carries its `Title` (and any group-wide
@@ -885,7 +885,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   identity-mark curve `×2.5`, holding a 20px favicon or globe, over one muted `text-sm` label that
   ends in an ellipsis. The tile takes the shell corner. No instruction copy; no history, no tiles.
 - **Page toolbar:** A page's one top bar where the page has no shell band — a browser tab, the
-  new tab page, an artifact page — is `PageToolbar` (`features/shell/page-toolbar.tsx`, `.page-toolbar` in
+  new tab page, a workspace page — is `PageToolbar` (`features/shell/page-toolbar.tsx`, `.page-toolbar` in
   `default-theme.css`): `×2` side padding, `×1.25` block padding, `×1.5` gap, a bottom `--hairline`
   and no other edge. Actions are icon-only ghost `sm` buttons with tooltips (`PageToolbarButton`);
   a `Toolbar` inside the bar tightens to a `×0.5` cluster. Toggles in the bar are ghost `sm`
@@ -994,7 +994,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   (x in percent, y in pixels) so their text stays 12px on a phone; every other plot draws on a 736 viewBox. The app's usage chart and
   agent-authored visuals share the same tokens.
 
-The desktop window band keeps one primary Chat tab and additional browser and artifact tabs in one
+The desktop window band keeps one primary Chat tab and additional browser and workspace tabs in one
 sortable strip; the layout controls follow it at the band's end. A chat's actions live in its sidebar row's context menu (a flat list) and in its tab's context menu (one Channel or DM submenu, so the tab's own commands stay short), not in a band. Browser navigation sits in the browser toolbar below the tabs. Tabs float on the page
 ground without a background tray; their fill, corner, and selected material follow **Workspace tabs**
 above. Each tab's stock HeroUI Button and its trailing Close action are siblings inside the tab, so

@@ -3,8 +3,9 @@ import { widgetArtifactPropsSchema } from './artifact/contracts.ts';
 import { visualFallbackText, widgetVisualPropsSchema } from './visual/contracts.ts';
 
 // The rendering spec is visuals-only (ADR 0012 → PRD-86 catalog retirement):
-// bespoke `visual` fences in chat and the durable `artifact` tier in the
-// pane. Retired catalog widgets (tables, charts, calendars, html-preview,
+// bespoke `visual` fences in chat and the durable page tier (`page` fence) in
+// the Workspace pane. The `artifact` widget name and `haus.widget.artifact`
+// component id stay as the historical row envelope for that page tier. Retired catalog widgets (tables, charts, calendars, html-preview,
 // plugin widgets) no longer parse; their stored activity replays as the
 // fallback text card.
 export const widgetNameSchema = z.enum(['artifact', 'visual']);
@@ -108,10 +109,10 @@ export function widgetDisplayName(name: WidgetName): string {
 }
 
 /**
- * The fence language an agent writes. The artifact tier is a bare `artifact`
- * fence; the visual tier is a bare `visual` fence (parsed separately — its
- * body is raw HTML, not JSON).
+ * The fence language an agent writes. The page tier (widget name `artifact`)
+ * is a bare `page` fence; the visual tier is a bare `visual` fence (parsed
+ * separately — its body is raw HTML, not JSON).
  */
-export function widgetFenceLabel(name: WidgetName): string {
-    return name;
+export function widgetFenceLabel(name: WidgetName): 'page' | 'visual' {
+    return name === 'artifact' ? 'page' : 'visual';
 }

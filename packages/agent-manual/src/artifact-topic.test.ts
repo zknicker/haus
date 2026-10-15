@@ -10,7 +10,7 @@ test('files guidance opens with where files live and derives sharing from it', (
     expect(body).toContain('as a snapshot its members can open');
     expect(body).toContain('every member can read and edit it');
     expect(body).toContain('the message carries its stable link rather than a copy');
-    expect(body).toContain('a page rendered from a workbench `artifact` fence');
+    expect(body).toContain('a page rendered from a workbench `page` fence');
     expect(body).toContain('What someone shared with you in a DM stays in that conversation');
     expect(body).toContain('secrets stay out of Files');
     expect(body).not.toMatch(/\bdrive\b|Shared artifacts/u);
@@ -36,7 +36,7 @@ test('attachment and recipe guidance point to the files model instead of restati
     expect(attachment?.related).toContain('files');
     const recipe = getManualTopic('recipes/technique/html-artifact-discussion');
     expect(recipe?.body).toContain('each later round by pushing the same file again');
-    expect(recipe?.kind === 'recipe' && recipe.prereqs).toEqual(['artifact fence']);
+    expect(recipe?.kind === 'recipe' && recipe.prereqs).toEqual(['page fence']);
     expect(getManualTopic('haus-cli-overview')?.body).toContain('haus files,');
 });
 

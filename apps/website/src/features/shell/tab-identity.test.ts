@@ -114,7 +114,7 @@ test('a shared artifact tab shows its file title once the record loads', () => {
         'Launch plan'
     );
     const workspace = parseTabPage(app('/s/acme/artifacts/workspaceFile%3Aag1%3Aplan.md'));
-    expect(resolveTabIdentity(workspace, records).label).toBe('Artifact');
+    expect(resolveTabIdentity(workspace, records).label).toBe('Workspace');
 });
 
 test('sections wear their glyph; web pages prefer the live title and favicon', () => {

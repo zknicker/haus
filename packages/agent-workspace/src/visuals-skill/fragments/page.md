@@ -1,6 +1,6 @@
 # Page skeleton
 
-The starting shape of an artifact page: its own ground, its own element
+The starting shape of a page: its own ground, its own element
 styles, one `<h1>`, hairline table rows, right-aligned numbers. Change the
 title, the sections, and the rows. Nothing here fetches, so every chart on the
 page is inline SVG and every number is embedded at generation time.

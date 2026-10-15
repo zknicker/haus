@@ -1,12 +1,12 @@
-# Haus visuals — artifact pages
+# Haus visuals — pages
 
-Read [design-system.md](design-system.md) first. An artifact is a durable
-self-contained HTML page, carded in chat and opened in the artifact pane, for a
+Read [design-system.md](design-system.md) first. A page is a durable
+self-contained HTML file, carded in chat and opened in the Workspace pane, for a
 page the user asked to keep, share, or revisit, or content too long for one
 inline visual. A report, comparison, or set of mockups answered in chat is a
 visual, not a page. Everything in the design system
 holds; this module covers what changes. The skeleton is
-[artifact-page](fragments/artifact-page.md).
+[page](fragments/page.md).
 
 ## What changes
 
@@ -16,7 +16,7 @@ holds; this module covers what changes. The skeleton is
 - **No base styles.** A page gets the tokens and nothing else, so it styles its
   own `body`, `table`, and form controls. The inline frame's defaults are not
   there.
-- **No network, ever.** Not even the pinned map atlases: an artifact renders
+- **No network, ever.** Not even the pinned map atlases: a page renders
   offline from a snapshot. `data:` URIs for small images, charts as inline SVG
   drawn the same way as inline visuals, all data embedded at generation time.
 - **Headings come back.** One `<h1>`, then sentence-case section titles at
@@ -24,7 +24,7 @@ holds; this module covers what changes. The skeleton is
 - **Layout.** Prose column about 48rem; tables and dashboards may go full
   width. Operational, not editorial: dense sections, hairline dividers,
   right-aligned numbers, mono for timestamps and ids.
-- Write the file under `workbench/`, then reference it with a bare `artifact`
+- Write the file under `workbench/`, then reference it with a bare `page`
   fence holding exactly one JSON object.
 - The card is a snapshot of the page for that conversation's members; push the
   file to Files (Manual topic `files`) when it needs revisions or a stable link.

@@ -24,7 +24,7 @@ export function SharedArtifactsPage() {
     const { server } = useServerContext();
     const { artifactKey } = useParams();
     const workspacePage = artifactKey ? parseArtifactPageKey(artifactKey) !== null : false;
-    useWindowTitle(workspacePage ? 'Artifact' : 'Files');
+    useWindowTitle(workspacePage ? 'Workspace' : 'Files');
     if (workspacePage) {
         return (
             <Suspense fallback={null}>

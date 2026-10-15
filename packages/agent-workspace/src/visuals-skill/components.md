@@ -111,7 +111,7 @@ a hand-built control looks alien. An interactive visual:
 
 A mockup of a product screen or flow — "show me two or three ways this banner
 could look", "what would the composer look like with X" — is a use for the
-visual fence, not an artifact, when it fits the reply column.
+visual fence, not a page, when it fits the reply column.
 
 - **Build it from the host's tokens**, so it reads as the real app: surfaces
   (`--background` for the screen ground, `--surface`, `--surface-secondary`),

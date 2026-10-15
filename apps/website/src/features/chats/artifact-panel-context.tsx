@@ -80,7 +80,7 @@ export function openDesktopArtifact(
 type DesktopArtifactOpen = (target: ArtifactPageTarget, title?: string) => void;
 
 function showArtifactUnavailable() {
-    toast.danger('Artifact unavailable', {
+    toast.danger('File unavailable', {
         description: 'Only files in an Agent’s workspace open as tabs.',
     });
 }

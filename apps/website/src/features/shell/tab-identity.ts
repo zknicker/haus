@@ -135,7 +135,7 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
         case 'artifact':
             return {
                 // A shared file names itself once its record loads; until then the slot stays empty.
-                label: page.title ?? records.artifactTitle ?? (page.shared ? '' : 'Artifact'),
+                label: page.title ?? records.artifactTitle ?? (page.shared ? '' : 'Workspace'),
                 mark: { kind: 'glyph', glyph: 'artifact' },
                 place: null,
             };

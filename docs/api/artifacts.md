@@ -104,7 +104,7 @@ the file's path in Files (Files and each folder above it link back into the libr
 last); the tab keeps the file's title. The viewer shows a header
 (icon, title, creator, last update, ⋮ menu with Download and both links), the preview, and details
 with revision history beside it, stacking below it in narrow panes. Text files render inline
-exactly as the Artifact Panel renders workspace files (the shared `FileTextPreview` in
+exactly as the Workspace pane renders workspace files (the shared `FileTextPreview` in
 `features/chats/file-text-preview.tsx`): Markdown rendered, HTML as a sandboxed page with host
 theme tokens, and plain text, source, JSON, and CSV/TSV as numbered code. `artifactTextRenderer`
 routes by `artifactFileKind`; Office documents, slides, PDFs, and binary spreadsheets stay
@@ -169,7 +169,7 @@ rerunning a push after `ARTIFACT_PUBLISH_UNCONFIRMED` returns the first attempt'
 id (`DELETED`, `IDEMPOTENCY_KEY_REUSED`, `UPLOAD_CONFLICT`) is retried once with a fresh one.
 
 The managed prompt's Files family names `list`, `pull`, and `push` and points at the `files` Manual topic,
-which carries when to share versus attach or use a workbench `artifact` fence, the pull-merge-push
+which carries when to share versus attach or use a workbench `page` fence, the pull-merge-push
 loop, sharing the `stable_url` in the message (the App renders a same-Server link as a file
 chip and tile), and resolving a pasted `/artifacts/<id>` link with `view`.
 Lists have 50 entries per offset page. Deletion requires the artifact creator or a human Owner/Admin;

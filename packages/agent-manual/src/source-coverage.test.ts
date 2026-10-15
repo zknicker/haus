@@ -90,7 +90,7 @@ test('pinned source inventory accounts for every card, omission and Haus additio
         }
         expect(topic.prereqs).toEqual(
             topic.id === 'recipes/technique/html-artifact-discussion'
-                ? ['artifact fence']
+                ? ['page fence']
                 : metadata.prereqs
         );
         expect(topic.industries).toEqual(

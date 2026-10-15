@@ -24,7 +24,7 @@ function getArtifactLabel(entry: ArtifactRow['artifact']) {
     const contentRef = readString(payload.contentRef);
     const contentText = readString(payload.contentText);
 
-    return title ?? entry.path ?? contentRef ?? contentText ?? 'Stored artifact';
+    return title ?? entry.path ?? contentRef ?? contentText ?? 'Stored output';
 }
 
 function readString(value: unknown) {

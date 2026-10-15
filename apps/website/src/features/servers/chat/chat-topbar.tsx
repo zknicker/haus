@@ -73,7 +73,7 @@ export function ChatTopbar({
             {actions}
             <Tooltip>
                 <Button
-                    aria-label={artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
+                    aria-label={artifactVisible ? 'Hide workspace' : 'Show workspace'}
                     isIconOnly
                     onPress={onToggleArtifacts}
                     size="sm"
@@ -82,7 +82,7 @@ export function ChatTopbar({
                     <Icon aria-hidden="true" icon={SidebarRightIcon} size={shellBandIconSize} />
                 </Button>
                 <Tooltip.Content>
-                    {artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
+                    {artifactVisible ? 'Hide workspace' : 'Show workspace'}
                 </Tooltip.Content>
             </Tooltip>
         </SectionHeader>

@@ -1,8 +1,8 @@
 ---
 name: visuals
 description: >
-  Haus design system for everything you render — inline visuals and artifact
-  pages. Read this BEFORE emitting any visual or artifact fence. Defines when
+  Haus design system for everything you render — inline visuals and
+  pages. Read this BEFORE emitting any visual or page fence. Defines when
   to render and the fence contracts; the full visual style lives in
   references/design-system.md. Reach for it when a reply would be clearer as a
   chart, graph, dashboard, KPI row, stat tile, timeline, calendar, schedule, or
@@ -23,8 +23,8 @@ You render two kinds of visual output in chat:
 - A **visual** — bespoke inline HTML/SVG in a ```` ```visual ```` fence:
   charts, composed reports, diagrams, calculators, comparisons, timelines, state
   machines, small simulations, and mockups of a product screen or flow.
-- An **artifact** — a durable self-contained HTML page carded in chat and
-  opened in the artifact pane, for a page the user asked to keep, share, or come back to.
+- A **page** — a durable self-contained HTML file carded in chat and
+  opened in the Workspace pane, for a page the user asked to keep, share, or come back to.
 
 ## When to render
 
@@ -35,8 +35,8 @@ You render two kinds of visual output in chat:
   machine", "pricing calculator") is a request to render it, not to describe it.
 - Compact: show the essential inline; explain the rest in the reply.
 - Routing: anything answered in chat is a **visual** — a chart, a report, a comparison, mockups
-  to pick from — even when the user calls it a "report", a "view", or a "dashboard". An
-  **artifact** only when the user asks for a page or document to keep, share, or revisit, or
+  to pick from — even when the user calls it a "report", a "view", or a "dashboard". A
+  **page** only when the user asks for a page or document to keep, share, or revisit, or
   the content outgrows one inline visual (long tables, many sections, a doc to edit). When
   unsure between the two, a visual; between a visual and nothing, plain text.
 - Do not put a table in a visual — write it as a Markdown table in the reply. The exception is
@@ -56,12 +56,12 @@ after `visual` on the fence line becomes the title:
 ```
 ````
 
-An artifact is a self-contained `.html` file (inline CSS/JS, no external assets) written under
-`workbench/`, then referenced with a bare `artifact` fence holding exactly one JSON object — no
+A page is a self-contained `.html` file (inline CSS/JS, no external assets) written under
+`workbench/`, then referenced with a bare `page` fence holding exactly one JSON object — no
 comments, no trailing commas:
 
 ````
-```artifact
+```page
 {"path":"workbench/pricing-plan.html","title":"Pricing plan"}
 ```
 ````
@@ -73,7 +73,7 @@ Rules:
 
 - Start the fence on its own line, never glued to the end of a sentence. Haus strips fences from
   your visible reply and renders them in place.
-- Raw HTML belongs only in a `visual` fence body or an artifact file. Never output HTML, JSX, CSS,
+- Raw HTML belongs only in a `visual` fence body or a page file. Never output HTML, JSX, CSS,
   imports, or class names in plain reply text.
 - Text goes in your reply, visuals go in the fence; the fence holds only the visual.
 - **The reply adds only what the visual does not show**: the takeaway in a sentence or two, a
@@ -202,7 +202,7 @@ Hold these even if you read nothing else:
 
 **Unless the user has given you very explicit, precise styling instructions for this
 specific output, you MUST read [references/design-system.md](references/design-system.md)
-before writing visual or artifact markup**, then the ONE module for what you are making,
+before writing visual or page markup**, then the ONE module for what you are making,
 then the ONE fragment its index points at. Nothing is too small for it.
 
 | Making | Also read |
@@ -210,7 +210,7 @@ then the ONE fragment its index points at. Nothing is too small for it.
 | Charts, plots, sparklines, heat maps, maps | [references/charts.md](references/charts.md) |
 | Flows, trees, sequences, timelines, state machines | [references/diagrams.md](references/diagrams.md) |
 | Tiles, cards, status lists, meters, calculators, tables, UI mockups | [references/components.md](references/components.md) |
-| An artifact page | [references/pages.md](references/pages.md) |
+| A page | [references/pages.md](references/pages.md) |
 
 Each module opens with an index mapping what you are making to ONE file under
 `references/fragments/` — two at most; a report reads [report](references/fragments/report.md). Read it and change its data; the fragments are the house

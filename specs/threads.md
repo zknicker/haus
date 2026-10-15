@@ -81,7 +81,7 @@ Mark read on a Thread row is `chat.markRead` on the Thread's id. `chat.markRead`
 
 ## Surfaces (T3/U5)
 
-- On the web, Threads open in the chat's **right side pane** (same slot as the artifact panel;
+- On the web, Threads open in the chat's **right side pane** (same slot as the Workspace pane;
   one pane visible at a time, most recent wins, both reopenable; resizable, shared width). On
   desktop a Thread is a page in its own tab (ADR 0039).
 - Pane anatomy: header (`Thread — #channel` / `Thread — @name`, full target with shortid as the

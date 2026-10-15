@@ -305,11 +305,11 @@ and [Agent Inbox](../../specs/inbox.md).
   numbers. Design guidance lives in the factory-managed `visuals` skill (see
   [Skills](skills.md)); rendering is described in
   [Widgets](../internals/widgets.md).
-* **Artifacts.** Code, images, files, diffs, documents, and longer pages render
+* **Pages and outputs.** Code, images, files, diffs, documents, and longer pages render
   as durable outputs attached to messages; an agent makes one when asked for
-  something to keep, share, or revisit. An Agent's HTML artifact fence becomes
-  a card below its message (kind icon, title, kind and file name) that opens
-  the page in the Artifact Panel, or its own tab on desktop; it keeps its place
+  something to keep, share, or revisit. An Agent's `page` fence (a workspace
+  HTML page) becomes a card below its message (kind icon, title, `Page` and file
+  name) that opens the page in the chat's Workspace pane, or its own tab on desktop; it keeps its place
   in the prose rather than joining the media strip. A link to a file in
   this Server's Files (the `stable_url` `haus files push` prints)
   reads inline as a reference chip (kind icon and title, dotted underline) and
@@ -416,7 +416,7 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Agent profile.** Hovering an Agent's transcript avatar or chip shows its
   hover card; clicking opens the Agent's profile (a tab on desktop, the profile
   page on web) — see [ADR 0038](../adr/0038-destinations-open-as-tabs.md).
-  The chat's right pane holds only artifact, files, and thread panes, which
+  The chat's right pane holds only the Workspace, Attachments, and Thread panes, which
   share one visible slot and width per chat; the latest opener wins without
   clearing another pane's state. Desktop renders no chat side pane: every
   Thread opener (reply counts, Thread cards, Reply in thread, Inbox and
