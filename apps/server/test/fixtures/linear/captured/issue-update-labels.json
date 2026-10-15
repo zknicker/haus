@@ -35,9 +35,7 @@
       "startedAt": "2026-10-15T16:51:01.468Z",
       "slaType": "all",
       "addedToTeamAt": "2026-10-15T16:50:59.779Z",
-      "labelIds": [
-        "704a1876-a9b0-45e5-8675-ebc4e350e72c"
-      ],
+      "labelIds": ["704a1876-a9b0-45e5-8675-ebc4e350e72c"],
       "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
       "previousIdentifiers": [],
       "stateId": "9090cdfc-dd10-42fa-96aa-d71eac198e55",

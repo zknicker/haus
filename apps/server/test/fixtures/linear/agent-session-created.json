@@ -1,52 +1,50 @@
 {
-    "type": "AgentSessionEvent",
-    "action": "created",
-    "createdAt": "2026-10-15T12:00:00.000Z",
-    "organizationId": "org-fixture",
-    "oauthClientId": "client-haus-dev",
-    "appUserId": "app-user-haus",
-    "webhookId": "webhook-fixture",
-    "webhookTimestamp": 1792080000000,
-    "agentSession": {
-        "id": "session-fixture-1",
-        "status": "pending",
-        "creatorId": "user-zach",
-        "creator": {
-            "id": "user-zach",
-            "name": "Zach"
-        },
-        "issueId": "issue-fixture-142",
-        "issue": {
-            "id": "issue-fixture-142",
-            "identifier": "DES-142",
-            "title": "Moth tee",
-            "url": "https://linear.app/haus-chat/issue/DES-142/moth-tee",
-            "teamId": "team-des",
-            "team": {
-                "id": "team-des",
-                "key": "DES",
-                "name": "Design"
-            },
-            "labelIds": [
-                "label-agent-juniper"
-            ],
-            "state": {
-                "name": "Design Review"
-            }
-        },
-        "comment": {
-            "id": "comment-fixture-1",
-            "body": "@haus Juniper can you take this one?"
-        }
+  "type": "AgentSessionEvent",
+  "action": "created",
+  "createdAt": "2026-10-15T12:00:00.000Z",
+  "organizationId": "org-fixture",
+  "oauthClientId": "client-haus-dev",
+  "appUserId": "app-user-haus",
+  "webhookId": "webhook-fixture",
+  "webhookTimestamp": 1792080000000,
+  "agentSession": {
+    "id": "session-fixture-1",
+    "status": "pending",
+    "creatorId": "user-zach",
+    "creator": {
+      "id": "user-zach",
+      "name": "Zach"
     },
-    "promptContext": "<issue identifier=\"DES-142\">\n<title>Moth tee</title>\n<description>Front print, two colors.</description>\n</issue>",
-    "guidance": [
-        {
-            "body": "Keep designs on brand.",
-            "origin": {
-                "type": "workspace"
-            }
-        }
-    ],
-    "previousComments": []
+    "issueId": "issue-fixture-142",
+    "issue": {
+      "id": "issue-fixture-142",
+      "identifier": "DES-142",
+      "title": "Moth tee",
+      "url": "https://linear.app/haus-chat/issue/DES-142/moth-tee",
+      "teamId": "team-des",
+      "team": {
+        "id": "team-des",
+        "key": "DES",
+        "name": "Design"
+      },
+      "labelIds": ["label-agent-juniper"],
+      "state": {
+        "name": "Design Review"
+      }
+    },
+    "comment": {
+      "id": "comment-fixture-1",
+      "body": "@haus Juniper can you take this one?"
+    }
+  },
+  "promptContext": "<issue identifier=\"DES-142\">\n<title>Moth tee</title>\n<description>Front print, two colors.</description>\n</issue>",
+  "guidance": [
+    {
+      "body": "Keep designs on brand.",
+      "origin": {
+        "type": "workspace"
+      }
+    }
+  ],
+  "previousComments": []
 }

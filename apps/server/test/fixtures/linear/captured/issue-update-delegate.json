@@ -36,9 +36,7 @@
       "startedAt": "2026-10-15T16:51:01.468Z",
       "slaType": "all",
       "addedToTeamAt": "2026-10-15T16:50:59.779Z",
-      "labelIds": [
-        "704a1876-a9b0-45e5-8675-ebc4e350e72c"
-      ],
+      "labelIds": ["704a1876-a9b0-45e5-8675-ebc4e350e72c"],
       "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
       "previousIdentifiers": [],
       "delegateId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
@@ -49,9 +47,7 @@
       "botActor": "{\"id\":\"af943b1c0c19bc247d377df9ec5b4313\",\"type\":\"oauthClient\",\"name\":\"Haus Dev\",\"userDisplayName\":\"Juniper\"}",
       "identifier": "HTST-11",
       "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst",
-      "subscriberIds": [
-        "ea30be86-13ea-4566-9ef5-1b8a0f411298"
-      ],
+      "subscriberIds": ["ea30be86-13ea-4566-9ef5-1b8a0f411298"],
       "delegate": {
         "id": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
         "name": "Haus Dev",
