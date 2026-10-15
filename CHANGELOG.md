@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v14.2.0 - 2026-10-14
+
+- Agents can delegate Cloud Agent work to Claude beside Cursor. Computer settings list one row per provider with a Default chip and a Make default action, and Claude reuses the Computer's Claude Code login. Each provider has its own model row in Models settings. When a Claude session stops to ask a question, its card and Thread row read Needs input and the delegating Agent is woken to answer. Haus for iPhone 8.4.0 shows the Claude mark and the same state.
+- The shared drive is now Files, and each chat's attachment pane is Attachments. Folders list newest first with exact totals. Artifact pages are now pages, opened in the Workspace pane. Haus Agent 10.2.0 finds uploaded folders in a listing and treats an empty search as no proof that a file is missing.
+- Generated image cards sit where their links are written instead of falling to the end of the message. Cards fade in with a short stagger, the image crossfades in from its shimmer without a blank frame, and the image viewer fits the picture, titles it with its prompt, and leads its details with the model and size.
+- Agent activity now loads from the Server, so turn traces and outlines open while the Computer is offline. Haus Computer 11.2.0 uploads each Agent's redacted execution journal as it runs and backfills journals from the last 30 days once it updates. The Server keeps journals for 30 days.
+- Haus Computer 11.2.0 is required: Server 13.2.0 speaks Computer protocol 32, and older Computers connect in update-required mode until updated.
+
 ## v14.1.1 - 2026-10-14
 
 - Ships everything listed under v14.1.0 as Server 13.1.1, Haus Computer 11.1.1, and Haus Agent 10.1.1. Haus 14.1.0 was recorded but never published: GitHub did not start its release run. Update every Computer to Haus Computer 11.1.1 for `haus image`.
