@@ -116,5 +116,7 @@ contract are gone; the path is the identity.
 
 ## Out of scope
 
-Sync engines, local mirrors, background watchers, empty folders, folder deletes beyond per-file
-delete, and revision retention thinning.
+Sync engines, local mirrors, background watchers, empty folders, and folder deletes beyond
+per-file delete. Revision retention is a fixed window, not thinning: a replaced revision is deleted
+seven days after a newer revision took its place, and the current revision is always kept
+([Files](../docs/api/artifacts.md)).

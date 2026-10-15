@@ -176,10 +176,19 @@ Lists have 50 entries per offset page. Deletion requires the artifact creator or
 the current revision cannot be deleted separately. Deleted records become inaccessible immediately;
 cloud deletion failures retain their storage reservation and retry during Server startup.
 
+Revisions are kept for a bounded time. Once a newer revision has replaced a revision for seven days
+(`ARTIFACT_REVISION_RETENTION_DAYS` in `@haus/api`), the Server's hourly revision retention sweep
+(`apps/server/src/artifacts/retention.ts`, a boot sweep beside the other retention sweeps) deletes
+its R2 object and its row, freeing its storage. The current revision of a file is never pruned, however
+old. The window counts from the replacement, not from the revision's own age, so every replaced
+revision stays restorable for a full week. A pruned revision's version URL answers not found, like a
+deleted one. A storage failure leaves the row `deleting` for startup cleanup to finish.
+
 The Server reserves the maximum file size before accepting an upload, streams directly to R2 without
 disk staging, and publishes the revision only after storage success. The current pointer advances
 by revision number, so late completion of an older upload cannot replace a newer revision. Default
-limits are 256 MiB per file and 10 GiB of shared storage per Server. Production uploads are
+limits are 256 MiB per file and 100 GiB of shared storage per Server (`HAUS_ARTIFACT_STORAGE_BYTES`;
+the cap is a product guard, not a cost limit). Production uploads are
 limited to 100 MB to match Cloudflare ingress for haus.chat. Larger uploads require direct or chunked transfer before
 promising the full 256 MiB through the Tunnel.
 
