@@ -37,8 +37,9 @@ fixture. A field the fixtures disprove is removed from this spec, not emulated.
 - A fire stores the [projection](#projection) as `payload` with `content_type`
   `application/json` and `dedupe_key` `linear:<Linear-Delivery>`.
 
-No delivery payload is stored for preview. Matching reads the bounded projection from
-`linear_webhook_deliveries` ([Linear app](linear-app.md#durable-ingest)), which expires with that row.
+No delivery payload is stored for preview. Ingest stages the raw verified body on the
+`linear_webhook_deliveries` row ([Linear app](linear-app.md#durable-ingest)); matching builds the
+[projection](#projection) from it, and the body is cleared when the row completes.
 
 ## Events
 
@@ -52,10 +53,11 @@ include filters and do not match exclusions.
 | `issue` | `create`, `update`, `remove` (`create`) | `changed`, `stateFrom`, `stateTo`, `stateTypes` |
 | `comment` | `create`, `update` (`create`) | `onIssueDelegatedTo` |
 | `project` | `create`, `update` (`update`) | `changed`, `projectStatuses` |
-| `issue_label` | `added`, `removed` (`added`) | none (use `labels`) |
 
-`issue_label` is derived from an `Issue` `update` whose `updatedFrom.labelIds` differs; it is not a
-separate Linear event. `changed` lists Haus field names (`state`, `delegate`, `assignee`, `labels`,
+One delivery is one physical event: a Linear `Issue`, `Comment`, or `Project` delivery maps to
+exactly one row above, so one projection and one envelope serve every matching group. There is
+no derived label event; a label change is `issue.update` with `changed: [labels]`, and `labels`
+then matches the issue's labels after the change. `changed` lists Haus field names (`state`, `delegate`, `assignee`, `labels`,
 `priority`, `project`, `title`, `description`, `estimate`, `dueDate`), mapped from
 `updatedFrom` keys; an update whose changed keys are all outside this list (for example only
 `sortOrder`) never matches an `issue.update` group.
@@ -93,21 +95,24 @@ problem message.
 ### Matching
 
 A delivery matches a Trigger only when its team is in the workspace actor's team access
-([team scope](linear-app.md#team-scope)) and, when `teams` is set, in that list.
+([team scope](linear-app.md#team-scope)) and, when `teams` is set, in that list. Every filter
+reads the final projection's stable ids; a `comment` matches `teams`, `projects`, `labels`,
+`delegates`, and `assignees` against its issue.
 
 - **`delegates` / `onIssueDelegatedTo`** match when the issue carries the named Agent's Haus
   `Agent` label ([routing marker](linear-app.md#agent-labels-and-delegation)). The label is the
   marker for every granted Agent, identity or not, so one rule serves both.
-- **`actors` / `actorsIgnore`** with `{ agent }` match when the [write ledger](linear-app.md#write-ledger)
-  correlates the delivery to that Agent: an exact `(entity id, updatedAt)` match against a
-  `succeeded` write. With `{ linearUser }` they match the payload `actor.id`. A delivery with no
-  ledger correlation has no Agent actor; `{ agent }` includes fail and excludes do not match.
-- **Self-suppression** is always on and not configurable: a delivery the ledger correlates to the
+- **`actors` / `actorsIgnore`** with `{ agent }` match the delivery's **Agent actor** from
+  [loop safety](linear-app.md#loop-safety): exact for identity writes and created entities,
+  best-effort for Haus-app updates, and absent when ambiguous. With `{ linearUser }` they match
+  the payload `actor.id`. Without an Agent actor, `{ agent }` includes fail and excludes do not
+  match.
+- **Self-suppression** is always on and not configurable: a delivery whose Agent actor is the
   Trigger's own Agent never fires it and bumps `self_suppressed_count`. A delivery caused by
-  another Agent fires, which is how Agent-to-Agent handoffs work; the chain budget bounds chains.
-- A delivery whose correlation is still `pending` (our mutation is in flight) waits in the
-  delivery inbox up to 30 seconds for the ledger to resolve, then matches with whatever the ledger
-  says.
+  another Agent fires, which is how Agent-to-Agent handoffs work. Because Haus-app correlation
+  fails toward "no actor", an ambiguous self-write fires; the chain budget bounds the loop.
+- A delivery with a `pending` ledger candidate is deferred up to 30 seconds before matching
+  ([loop safety](linear-app.md#loop-safety)).
 
 ## Authoring
 
@@ -141,18 +146,22 @@ check workspace status, Trigger status, rate limits, or chain budget. The App an
 
 ## Projection
 
-The Server stores a trimmed, event-specific projection, never the raw body. Common fields:
-`event`, `action`, `organization.urlKey`, `team.key`, `actor` (`id`, `type`, `name`),
-`url`, `createdAt`, and `haus.agentActor` (the ledger-correlated Agent id or null).
+The projection is built at match time, inside the delivery worker, from the raw staged body plus
+Server state: the ledger (Agent actor) and `linear_agent_labels` (delegate Agent). When a
+`comment` body lacks its issue's team, labels, project, delegate, or assignee, the worker reads
+the issue with the workspace token before the match transaction; a failed read retries the
+delivery. The same projection is the matcher's input and the fire's stored payload. Common
+fields: `event`, `action`, `organization` (id, urlKey), `team` (id, key), `actor` (`id`, `type`,
+`name`), `url`, `createdAt`, and `haus.agentActor` (Agent id or null).
 
-- `issue`: id, identifier, title, url, priority, state (id, name, type), previous state, delegate
-  Agent id (from the label), assignee (id, name), labels (id, name), project (id, name), changed
-  fields, description (4,000 characters).
-- `comment`: id, body (4,000 characters), issue (id, identifier, title, url, state name), parent
-  comment id.
-- `project`: id, name, url, status (id, name), lead name, changed fields, description (2,000
-  characters).
-- `issue_label`: issue (id, identifier, title, url), added and removed labels (id, name).
+- `issue`: id, identifier, title, url, priority, state (id, name, type), previous state (id, name,
+  type), delegate (Linear user id, Agent id from the label), assignee (id, name), labels (id,
+  name), previous label ids, project (id, name), changed fields, description (4,000 characters).
+- `comment`: id, body (4,000 characters), parent comment id, and its issue: id, identifier,
+  title, url, team (id, key), state (id, name, type), labels (id, name), project (id, name),
+  delegate (Linear user id, Agent id), assignee (id, name).
+- `project`: id, name, url, team ids, status (id, name), lead (id, name), changed fields,
+  description (2,000 characters).
 
 Two-space JSON capped at 65,536 bytes: the longest strings halve until it fits. A missing or
 mistyped field projects to null.
@@ -225,9 +234,10 @@ and both suppressed counts. iOS shows `linear` Triggers read-only.
 ## Verification
 
 Server tests over captured fixtures cover: each event row's matching table; `changed` mapping and
-the ignored-field update; stable-id storage and rename immunity; ambiguous-name refusal; the
-26th create refused; self-suppression by exact `(entity id, updatedAt)` while a concurrent human
-edit to the same issue still fires; another Agent's write firing; a `pending` ledger row
-deferring then resolving; `delegates` matching identity and non-identity Agents through the label;
+the ignored-field update; a label change matching only as `issue.update`; stable-id storage and
+rename immunity; ambiguous-name refusal; the 26th create refused; self-suppression of an
+identity write and of an Agent's own create; a Haus-app update with candidates from two Agents
+firing; another Agent's write firing; a `pending` ledger row deferring then resolving; a comment
+matched on its issue's labels after an issue read; `delegates` matching identity and non-identity Agents through the label;
 team access narrowing; each problem transition with one notice; projection caps; suppressed
 counting; envelope snapshot; preview parity with delivery matching.
