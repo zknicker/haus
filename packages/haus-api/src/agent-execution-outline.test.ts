@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import {
-    agentCommandSchema,
     agentExecutionOutlineSchema,
     agentExecutionOutlinesInputSchema,
     EXECUTION_OUTLINE_LABEL_MAX_CHARS,
@@ -9,7 +8,7 @@ import {
 
 const ids = (count: number) => Array.from({ length: count }, (_, index) => `run_${index}`);
 
-test('an outlines request names 1 to 50 distinct runs and rides the Computer command union', () => {
+test('an outlines request names 1 to 50 distinct runs', () => {
     const input = { agentId: 'agt_1', serverId: 'srv_1' };
     expect(agentExecutionOutlinesInputSchema.safeParse({ ...input, runIds: [] }).success).toBe(
         false
@@ -25,13 +24,11 @@ test('an outlines request names 1 to 50 distinct runs and rides the Computer com
         }).success
     ).toBe(false);
     expect(
-        agentCommandSchema.parse({
-            agentId: 'agt_1',
-            requestId: 'req_1',
+        agentExecutionOutlinesInputSchema.safeParse({
+            ...input,
             runIds: ids(EXECUTION_OUTLINES_MAX_RUNS),
-            type: 'agent-execution-outlines-request',
-        }).type
-    ).toBe('agent-execution-outlines-request');
+        }).success
+    ).toBe(true);
 });
 
 test('an outline step carries no free-text body fields', () => {

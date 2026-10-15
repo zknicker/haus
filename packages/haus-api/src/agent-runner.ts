@@ -1,5 +1,5 @@
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
-import { executionEvidenceRequestSchemas } from './agent-execution-outline.ts';
+import { agentExecutionJournalAckSchema } from './agent-execution-journal-upload.ts';
 import { browserRequestSchema } from './browser-frames.ts';
 import {
     cloudAgentCancelCommandSchema,
@@ -166,7 +166,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     agentSkillFileRequestSchema,
     hostSkillFileRequestSchema,
     agentWorkspaceRequestSchema,
-    ...executionEvidenceRequestSchemas,
+    agentExecutionJournalAckSchema,
     browserRequestSchema,
     computerSecretsRequestSchema,
     reminderScriptCommandSchema,

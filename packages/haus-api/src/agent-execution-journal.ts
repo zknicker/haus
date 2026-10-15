@@ -1,25 +1,15 @@
 /**
- * The execution-journal contract: the Computer-local evidence an Owner or Admin
- * may pull for one agent run. The journal never reaches the Server's store; it
- * travels only in the response to an explicit request.
+ * The execution-journal contract: the detailed evidence an Owner or Admin may
+ * read for one agent run. The Computer uploads each run's journal records while
+ * it runs (`agent-execution-journal-upload.ts`); the Server stores them and
+ * serves the replayed document (ADR 0048).
  */
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
-export const agentExecutionJournalRequestSchema = z
-    .object({
-        agentId: idSchema,
-        requestId: idSchema,
-        runId: idSchema,
-        type: z.literal('agent-execution-journal-request'),
-    })
-    .strict();
-
-export type AgentExecutionJournalRequest = z.infer<typeof agentExecutionJournalRequestSchema>;
-
-const executionJournalResultSchema = z
+export const executionJournalResultSchema = z
     .object({
         error: z.unknown().optional(),
         observedAt: timestampSchema,
@@ -52,12 +42,12 @@ export const EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS = 128;
  * the parent tool; the sub-agent's own tool calls are sibling tools that name
  * the parent in `parentToolCallId`.
  */
-const executionJournalSubagentSchema = z
+export const executionJournalSubagentSchema = z
     .object({
         endedAt: timestampSchema.optional(),
         /**
-         * How many of the sub-agent's own tool calls failed. Computer derives it when it
-         * serves the journal; absent only in hand-built evidence.
+         * How many of the sub-agent's own tool calls failed. The Server derives it when
+         * it serves the journal; the Computer never records it.
          */
         failedToolCount: z.number().int().nonnegative().safe().optional(),
         label: z.string().max(EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS),
@@ -78,7 +68,7 @@ const executionJournalSubagentSchema = z
 
 export type AgentExecutionJournalSubagent = z.infer<typeof executionJournalSubagentSchema>;
 
-const executionJournalToolSchema = z
+export const executionJournalToolSchema = z
     .object({
         durationMs: z.number().int().nonnegative().optional(),
         endedAt: timestampSchema.optional(),
@@ -112,29 +102,28 @@ const executionJournalToolSchema = z
     .strict();
 
 /**
- * One model reasoning block observed on the Computer during a turn. Reasoning
- * stays Computer-local and reaches the App only through the explicit
- * Owner/Admin execution-journal request; it is never Server-persisted.
+ * One model reasoning block observed during a turn. It reaches the App only
+ * through the Owner/Admin execution-journal read, never through Activity.
  */
 export const EXECUTION_JOURNAL_REASONING_MAX_CHARS = 64_000;
 
 /**
  * The Computer must stop opening blocks at this count: a journal that carries
- * more fails this schema on Server, and a failed parse costs the whole run's
- * evidence, not just its reasoning.
+ * more fails this schema, and a failed parse costs the whole run's evidence,
+ * not just its reasoning.
  */
 export const EXECUTION_JOURNAL_REASONING_MAX_BLOCKS = 1000;
 
 /**
  * Every string leaf a journalled tool input, output, or error carries is capped
- * here. A single 5 MB stdout would otherwise land in the run's file and in the
- * Computer-to-Server relay frame verbatim. A clipped string keeps its first
+ * here. A single 5 MB stdout would otherwise land in the run's file and in its
+ * upload verbatim. A clipped string keeps its first
  * {@link EXECUTION_JOURNAL_VALUE_MAX_CHARS} characters and says how many it
  * dropped. Reasoning text keeps its own, tighter cap.
  */
 export const EXECUTION_JOURNAL_VALUE_MAX_CHARS = 256_000;
 
-const executionJournalReasoningSchema = z
+export const executionJournalReasoningSchema = z
     .object({
         endedAt: timestampSchema.optional(),
         id: z.string().trim().min(1).max(256),
@@ -166,55 +155,24 @@ export const agentExecutionJournalSchema = z
 
 export type AgentExecutionJournal = z.infer<typeof agentExecutionJournalSchema>;
 
+/** The hosted `agent.executionJournal` answer: the stored journal, or none yet. */
 export const agentExecutionJournalResultSchema = z.discriminatedUnion('status', [
     z
         .object({
             agentId: idSchema,
             journal: agentExecutionJournalSchema,
-            requestId: idSchema,
             runId: idSchema,
             status: z.literal('available'),
-            type: z.literal('agent-execution-journal-result'),
         })
         .strict()
         .refine((value) => value.journal.runId === value.runId, {
             message: 'The execution journal must belong to the requested run.',
             path: ['journal', 'runId'],
         }),
-    z
-        .object({
-            agentId: idSchema,
-            reason: z.enum(['missing', 'offline', 'timeout']),
-            requestId: idSchema,
-            runId: idSchema,
-            status: z.literal('unavailable'),
-            type: z.literal('agent-execution-journal-result'),
-        })
-        .strict(),
+    z.object({ agentId: idSchema, runId: idSchema, status: z.literal('missing') }).strict(),
 ]);
 
 export type AgentExecutionJournalResult = z.infer<typeof agentExecutionJournalResultSchema>;
-
-export const agentTurnDetailRequestSchema = agentExecutionJournalRequestSchema;
-export const agentTurnDetailResultSchema = agentExecutionJournalResultSchema;
-
-/**
- * Computer → Server: a running turn's journal gained evidence (reasoning text, a
- * tool step, a sub-agent patch). It carries no evidence itself, so the journal
- * still travels only in response to an explicit request; an open view re-reads.
- * Computer throttles it to about once a second per run.
- */
-export const agentExecutionJournalChangedFrameSchema = z
-    .object({
-        agentId: idSchema,
-        runId: idSchema,
-        type: z.literal('agent-execution-journal-changed'),
-    })
-    .strict();
-
-export type AgentExecutionJournalChangedFrame = z.infer<
-    typeof agentExecutionJournalChangedFrameSchema
->;
 
 /** What `agent.onExecutionJournal` yields to an open turn view: its run changed. */
 export const agentExecutionJournalChangeSchema = z

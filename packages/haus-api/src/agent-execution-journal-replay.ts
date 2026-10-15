@@ -1,22 +1,27 @@
 /**
- * How one journal record changes a document.
- *
- * The live journal and the log replay share these appliers, so a replayed log
- * reproduces the document the turn held rather than approximating it.
+ * How one journal mutation changes a document. The Computer's live journal, its
+ * local log replay, and the Server's replay of uploaded records share these
+ * appliers, so every reader reproduces the document the turn held.
  */
-import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from '@haus/api';
-import type { JournalMutationRecord } from './execution-journal-records.ts';
-import { applySubagent, settleSubagent } from './execution-journal-subagent.ts';
-import type {
-    ComputerExecutionJournalDocument,
-    ComputerExecutionJournalTool,
-} from './execution-journal-types.ts';
-import { interruptTool } from './execution-journal-values.ts';
 
-/** Applies one record in place and reports whether it changed the document. */
-export function applyJournalRecord(
-    document: ComputerExecutionJournalDocument,
-    record: JournalMutationRecord
+import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from './agent-execution-journal.ts';
+import type {
+    ExecutionJournalDocument,
+    ExecutionJournalInterruptReason,
+    ExecutionJournalMutation,
+    ExecutionJournalStatus,
+    ExecutionJournalTool,
+} from './agent-execution-journal-document.ts';
+
+type Mutation<Type extends ExecutionJournalMutation['type']> = Extract<
+    ExecutionJournalMutation,
+    { type: Type }
+>;
+
+/** Applies one mutation in place and reports whether it changed the document. */
+export function applyExecutionJournalMutation(
+    document: ExecutionJournalDocument,
+    record: ExecutionJournalMutation
 ): boolean {
     switch (record.type) {
         case 'tool-call':
@@ -38,22 +43,41 @@ export function applyJournalRecord(
     }
 }
 
-export function findJournalTool(
-    document: ComputerExecutionJournalDocument,
-    toolCallId: string
-): ComputerExecutionJournalTool | undefined {
-    return document.tools.find((candidate) => candidate.toolCallId === toolCallId);
-}
-
-export function findJournalReasoning(document: ComputerExecutionJournalDocument, id: string) {
+export function findExecutionJournalReasoning(document: ExecutionJournalDocument, id: string) {
     return document.reasoning?.find((candidate) => candidate.id === id);
 }
 
-function applyToolCall(
-    document: ComputerExecutionJournalDocument,
-    record: Extract<JournalMutationRecord, { type: 'tool-call' }>
-): boolean {
-    const existing = findJournalTool(document, record.toolCallId);
+export function interruptExecutionJournalTool(
+    tool: ExecutionJournalTool,
+    now: Date,
+    reason: ExecutionJournalInterruptReason
+) {
+    tool.status = 'interrupted';
+    tool.endedAt = now.toISOString();
+    tool.durationMs = Math.max(0, now.getTime() - Date.parse(tool.startedAt));
+    const interruptions = tool.interruptions ?? [];
+    interruptions.push({ at: tool.endedAt, reason });
+    tool.interruptions = interruptions;
+}
+
+/** Closes a sub-agent still running when its tool or turn settles without saying so. */
+export function settleExecutionJournalSubagent(
+    tool: ExecutionJournalTool,
+    status: Exclude<ExecutionJournalStatus, 'running'>,
+    at: string
+) {
+    if (tool.subagent?.status !== 'running') {
+        return;
+    }
+    tool.subagent = { ...tool.subagent, endedAt: at, status };
+}
+
+function findTool(document: ExecutionJournalDocument, toolCallId: string) {
+    return document.tools.find((candidate) => candidate.toolCallId === toolCallId);
+}
+
+function applyToolCall(document: ExecutionJournalDocument, record: Mutation<'tool-call'>): boolean {
+    const existing = findTool(document, record.toolCallId);
     const tool =
         existing ?? openTool(document, record.toolCallId, record.toolName, record.occurredAt);
     if (existing?.status === 'interrupted') {
@@ -74,11 +98,11 @@ function applyToolCall(
 }
 
 function applyToolResult(
-    document: ComputerExecutionJournalDocument,
-    record: Extract<JournalMutationRecord, { type: 'tool-result' }>
+    document: ExecutionJournalDocument,
+    record: Mutation<'tool-result'>
 ): boolean {
     const tool =
-        findJournalTool(document, record.toolCallId) ??
+        findTool(document, record.toolCallId) ??
         openTool(document, record.toolCallId, record.toolName, record.occurredAt);
     if (tool.final) {
         return false;
@@ -95,7 +119,7 @@ function applyToolResult(
         tool.status = record.isError ? 'failed' : 'completed';
         tool.endedAt = record.occurredAt;
         tool.durationMs = Math.max(0, Date.parse(record.occurredAt) - Date.parse(tool.startedAt));
-        settleSubagent(tool, tool.status, record.occurredAt);
+        settleExecutionJournalSubagent(tool, tool.status, record.occurredAt);
     }
     if (record.isError) {
         tool.error = record.output;
@@ -105,13 +129,36 @@ function applyToolResult(
     return true;
 }
 
+function applySubagent(document: ExecutionJournalDocument, record: Mutation<'subagent'>): boolean {
+    const tool = findTool(document, record.toolCallId);
+    // Only a started sub-agent (which always reports a status) opens the record.
+    if (!tool || (tool.subagent === undefined && record.patch.status === undefined)) {
+        return false;
+    }
+    const { endedAt, ...patch } = record.patch;
+    const subagent = {
+        label: '',
+        startedAt: record.occurredAt,
+        status: 'running' as const,
+        ...tool.subagent,
+        ...patch,
+    };
+    if (endedAt === null) {
+        subagent.endedAt = undefined;
+    } else if (endedAt !== undefined) {
+        subagent.endedAt = endedAt;
+    }
+    tool.subagent = subagent;
+    return true;
+}
+
 function applyReasoningStart(
-    document: ComputerExecutionJournalDocument,
-    record: Extract<JournalMutationRecord, { type: 'reasoning-start' }>
+    document: ExecutionJournalDocument,
+    record: Mutation<'reasoning-start'>
 ): boolean {
     const blocks = document.reasoning ?? [];
     if (
-        findJournalReasoning(document, record.id) ||
+        findExecutionJournalReasoning(document, record.id) ||
         blocks.length >= EXECUTION_JOURNAL_REASONING_MAX_BLOCKS
     ) {
         return false;
@@ -122,10 +169,10 @@ function applyReasoningStart(
 }
 
 function applyReasoningAppend(
-    document: ComputerExecutionJournalDocument,
-    record: Extract<JournalMutationRecord, { type: 'reasoning-append' }>
+    document: ExecutionJournalDocument,
+    record: Mutation<'reasoning-append'>
 ): boolean {
-    const block = findJournalReasoning(document, record.id);
+    const block = findExecutionJournalReasoning(document, record.id);
     if (!block) {
         return false;
     }
@@ -137,10 +184,10 @@ function applyReasoningAppend(
 }
 
 function applyReasoningEnd(
-    document: ComputerExecutionJournalDocument,
-    record: Extract<JournalMutationRecord, { type: 'reasoning-end' }>
+    document: ExecutionJournalDocument,
+    record: Mutation<'reasoning-end'>
 ): boolean {
-    const block = findJournalReasoning(document, record.id);
+    const block = findExecutionJournalReasoning(document, record.id);
     if (!block) {
         return false;
     }
@@ -149,8 +196,8 @@ function applyReasoningEnd(
 }
 
 function applyInterrupt(
-    document: ComputerExecutionJournalDocument,
-    record: Extract<JournalMutationRecord, { type: 'interrupt' }>
+    document: ExecutionJournalDocument,
+    record: Mutation<'interrupt'>
 ): boolean {
     const at = new Date(record.at);
     let changed = false;
@@ -158,9 +205,9 @@ function applyInterrupt(
         if (tool.status !== 'running') {
             continue;
         }
-        settleSubagent(tool, 'interrupted', record.at);
+        settleExecutionJournalSubagent(tool, 'interrupted', record.at);
         if (record.status === 'interrupted') {
-            interruptTool(tool, at, record.reason);
+            interruptExecutionJournalTool(tool, at, record.reason);
         } else {
             tool.status = 'failed';
             tool.endedAt = record.at;
@@ -173,13 +220,10 @@ function applyInterrupt(
     return changed;
 }
 
-function applyFinish(
-    document: ComputerExecutionJournalDocument,
-    record: Extract<JournalMutationRecord, { type: 'finish' }>
-): boolean {
+function applyFinish(document: ExecutionJournalDocument, record: Mutation<'finish'>): boolean {
     const at = Date.parse(record.at);
     for (const tool of document.tools) {
-        settleSubagent(tool, 'interrupted', record.at);
+        settleExecutionJournalSubagent(tool, 'interrupted', record.at);
         if (tool.status !== 'running') {
             continue;
         }
@@ -200,17 +244,12 @@ function applyFinish(
 }
 
 function openTool(
-    document: ComputerExecutionJournalDocument,
+    document: ExecutionJournalDocument,
     toolCallId: string,
     toolName: string,
     startedAt: string
-): ComputerExecutionJournalTool {
-    const tool: ComputerExecutionJournalTool = {
-        startedAt,
-        status: 'running',
-        toolCallId,
-        toolName,
-    };
+): ExecutionJournalTool {
+    const tool: ExecutionJournalTool = { startedAt, status: 'running', toolCallId, toolName };
     document.tools.push(tool);
     return tool;
 }

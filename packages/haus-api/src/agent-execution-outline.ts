@@ -1,13 +1,12 @@
 /**
  * The execution-outline contract: a compact, bounded skeleton of one run's
- * Computer-local execution journal. An outline names each step's kind, a short
- * scrubbed label, its place in the run's tree, and its timing, and never carries
- * command output, message bodies, reports, reasoning text, images, or tool
- * inputs. Like the journal, it travels only in the response to an explicit
- * Owner/Admin request and never reaches the Server's store.
+ * execution journal. An outline names each step's kind, a short scrubbed label,
+ * its place in the run's tree, and its timing, and never carries command output,
+ * message bodies, reports, reasoning text, images, or tool inputs. The Computer
+ * builds it with the classifier its activity projector uses and uploads it with
+ * the run's settling journal records; the Server stores and serves it.
  */
 import * as z from 'zod';
-import { agentExecutionJournalRequestSchema } from './agent-execution-journal.ts';
 import { idSchema } from './chat.ts';
 import { executionToolKindSchema } from './execution-tool-kind.ts';
 
@@ -85,7 +84,7 @@ export const agentExecutionOutlineSchema = z
 
 export type AgentExecutionOutline = z.infer<typeof agentExecutionOutlineSchema>;
 
-/** One requested run's answer: its outline, or why there is none. */
+/** One requested run's answer: its stored outline, or none yet. */
 export const agentExecutionOutlineEntrySchema = z.discriminatedUnion('status', [
     z
         .object({
@@ -98,13 +97,7 @@ export const agentExecutionOutlineEntrySchema = z.discriminatedUnion('status', [
             message: 'The execution outline must belong to its run.',
             path: ['outline', 'runId'],
         }),
-    z
-        .object({
-            reason: z.enum(['missing', 'offline', 'timeout']),
-            runId: idSchema,
-            status: z.literal('unavailable'),
-        })
-        .strict(),
+    z.object({ runId: idSchema, status: z.literal('missing') }).strict(),
 ]);
 
 export type AgentExecutionOutlineEntry = z.infer<typeof agentExecutionOutlineEntrySchema>;
@@ -116,36 +109,6 @@ const outlineRunIdsSchema = z
     .refine((runIds) => new Set(runIds).size === runIds.length, {
         message: 'Run ids must be unique.',
     });
-
-/** Server to Computer: outline these runs of one Agent in one round trip. */
-export const agentExecutionOutlinesRequestSchema = z
-    .object({
-        agentId: idSchema,
-        requestId: idSchema,
-        runIds: outlineRunIdsSchema,
-        type: z.literal('agent-execution-outlines-request'),
-    })
-    .strict();
-
-export type AgentExecutionOutlinesRequest = z.infer<typeof agentExecutionOutlinesRequestSchema>;
-
-/** The Owner/Admin evidence reads a Server sends down a Computer attachment. */
-export const executionEvidenceRequestSchemas = [
-    agentExecutionJournalRequestSchema,
-    agentExecutionOutlinesRequestSchema,
-] as const;
-
-/** Computer to Server: one entry per requested run, in request order. */
-export const agentExecutionOutlinesResultSchema = z
-    .object({
-        agentId: idSchema,
-        outlines: z.array(agentExecutionOutlineEntrySchema).max(EXECUTION_OUTLINES_MAX_RUNS),
-        requestId: idSchema,
-        type: z.literal('agent-execution-outlines-result'),
-    })
-    .strict();
-
-export type AgentExecutionOutlinesResult = z.infer<typeof agentExecutionOutlinesResultSchema>;
 
 /** The hosted `agent.executionOutlines` query: Owner/Admin only, like the journal. */
 export const agentExecutionOutlinesInputSchema = z
