@@ -1,10 +1,11 @@
 import { type EffectRuntime, settle } from '@haus/effect';
-import { Effect, Scope } from 'effect';
+import { Scope } from 'effect';
 import type { BootSweep, SweepTimers } from './boot-sweep.ts';
 import type { GithubDelivery, GithubIngestOutcome } from './github/delivery-ingest.ts';
 import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
 import type { GithubApp } from './github/github-app.ts';
 import { startGithubInstallationSweep } from './github/installation-sweep.ts';
+import type { HausServerShutdown } from './haus-server-shutdown.ts';
 import type { HausDatabase } from './postgres/connection.ts';
 import { startMessagePush } from './push/message-push.ts';
 import type { PushSender } from './push/push-sender.ts';
@@ -45,42 +46,54 @@ interface ServerSweepsInput {
 export async function startServerSweeps(
     runtime: EffectRuntime<never>,
     scope: Scope.Scope,
+    shutdown: Pick<HausServerShutdown, 'step'>,
     input: ServerSweepsInput
 ) {
     const { pushSender } = input;
-    for (const start of [
+    const sweeps: NamedSweep[] = [
         ...githubSweeps(runtime, input),
-        () => startReminderRetentionSweep(input.db, input.clock, input.timers),
-        () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
-        () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
-        () => startStaleTaskSweep(input.db, input.clock, input.timers),
+        [
+            'reminder-retention',
+            () => startReminderRetentionSweep(input.db, input.clock, input.timers),
+        ],
+        [
+            'trigger-retention',
+            () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
+        ],
+        [
+            'execution-journal-retention',
+            () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
+        ],
+        ['stale-tasks', () => startStaleTaskSweep(input.db, input.clock, input.timers)],
         ...(pushSender
             ? [
-                  () =>
-                      startMessagePush(input.db, pushSender, {
-                          appOrigin: input.appOrigin,
-                          readGraceMs: input.pushReadGraceMs,
-                      }),
+                  [
+                      'message-push',
+                      () =>
+                          startMessagePush(input.db, pushSender, {
+                              appOrigin: input.appOrigin,
+                              readGraceMs: input.pushReadGraceMs,
+                          }),
+                  ] satisfies NamedSweep,
               ]
             : []),
-    ]) {
+    ];
+    for (const [name, start] of sweeps) {
+        const started = start();
         await settle(
             runtime,
             Scope.extend(
-                Effect.acquireRelease(Effect.sync(start), (started) =>
-                    Effect.promise(() => started.close())
-                ),
+                shutdown.step(`sweep:${name}`, () => started.close()),
                 scope
             )
         );
     }
 }
 
+type NamedSweep = readonly [name: string, start: () => BootSweep];
+
 /** The hourly installation sweep and the delivery recovery sweep. */
-function githubSweeps(
-    runtime: EffectRuntime<never>,
-    input: ServerSweepsInput
-): (() => BootSweep)[] {
+function githubSweeps(runtime: EffectRuntime<never>, input: ServerSweepsInput): NamedSweep[] {
     const { githubApp } = input;
     if (!githubApp) {
         return [];
@@ -95,7 +108,7 @@ function githubSweeps(
             input.timers
         );
     if (recoveryIntervalMs === null) {
-        return [installations];
+        return [['github-installations', installations]];
     }
     const recovery = () =>
         startGithubDeliveryRecovery(
@@ -108,5 +121,8 @@ function githubSweeps(
             },
             { intervalMs: recoveryIntervalMs, timers: input.timers }
         );
-    return [installations, recovery];
+    return [
+        ['github-installations', installations],
+        ['github-delivery-recovery', recovery],
+    ];
 }

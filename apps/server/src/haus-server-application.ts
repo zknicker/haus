@@ -1,6 +1,6 @@
 import cors from '@fastify/cors';
 import { settle, tracePromise } from '@haus/effect';
-import { Effect, Exit, Scope } from 'effect';
+import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
@@ -79,14 +79,10 @@ export async function createHausServerApplication(
         closeFastify: async () => {
             await app?.close();
         },
+        closeHostedMcps: () => settle(runtime, Scope.close(hostedScope, Exit.succeed(undefined))),
         closeHttpConnections: () => app?.server.closeAllConnections(),
-        closeMcpRuntime: async () => {
-            await settle(
-                runtime,
-                Effect.promise(async () => {
-                    await mcpRuntime?.close();
-                }).pipe(Effect.ensuring(Scope.close(hostedScope, Exit.succeed(undefined))))
-            );
+        closeMcpClients: async () => {
+            await mcpRuntime?.close();
         },
         closePostCommitWork: async () => {
             await postCommitWork?.close();
@@ -221,7 +217,7 @@ export async function createHausServerApplication(
         );
         computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
-        await startServerSweeps(runtime, scope, {
+        await startServerSweeps(runtime, scope, shutdown, {
             appOrigin: options.appOrigin,
             clock: reminderClock,
             db: connectedHaus.db,
