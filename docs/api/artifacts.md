@@ -48,8 +48,8 @@ optional `base_revision_id` for a file).
 
 The native `artifact` tRPC router supplies App reads, moves, and deletion. Computer uses the scoped native
 Agent artifact HTTP routes for authenticated download resolution. All routes call the same product
-logic; no Raft source code is included. Public sharing, comments, GitHub publishing, and JSON/base64
-publication are outside this MVP.
+logic; no Raft source code is included. Comments, GitHub publishing, and JSON/base64 publication
+are outside this MVP. Public links are opt-in per file (below).
 
 Artifact metadata carries `creator`, exactly one of `{ type: 'agent', agent_id }` or
 `{ type: 'user', user_id }`: whoever created the artifact identity, not the author of later
@@ -82,7 +82,7 @@ and creator filter files, and folder counts follow them. The folder, kind, and c
 (`?folder=starter-kit/scripts&kind=images&creator=agent:<id>`) so back, reload, and a desktop tab
 return to the same view; search stays local and the list/grid choice is per device. Rows name the
 file (its path's last segment), with the title first in the meta line when it differs, then kind,
-creator, and relative time, plus size and a ⋮ menu (Open, Rename, Copy link, Download); folder
+creator, and relative time, plus size and a ⋮ menu (Open, Rename, Copy link, Copy public link, Download); folder
 tiles open on press and offer Rename folder on right-click. Rename changes only the last segment
 through `artifact.move` (a file move carries its head as `base_revision_id`). Pages load 50 at a
 time behind Show more. The page is blank until the first read lands; the empty state appears only
@@ -157,6 +157,22 @@ raster image (never retried, kind icon in the App; the publish itself never fail
 error leaves the state empty so the next read retries. Deleting or pruning a revision deletes its
 thumbnail with it. Thumbnails are not counted against the storage cap.
 
+### Public links
+
+A member or Agent who can read a file may give it a public link,
+`https://<app origin>/f/<token>` (192-bit random token), that anyone outside the Server can open
+or embed; the [public links spec](../../specs/artifact-public-links.md) owns the contract. The
+link serves the current revision, survives moves, and answers a bare 404 once disabled or the file
+is deleted; re-enabling issues a new token. Disabling is limited to the link's creator or a human
+Owner/Admin. `GET /f/<token>` streams the bytes through the Server under a safe content-type
+allowlist (never HTML; markup becomes `text/plain`, unknown types download) with a 60-second
+public cache and the revision's SHA-256 as `ETag`; `/f/<token>/thumbnail` streams the WebP
+thumbnail. Image links therefore embed and unfurl as images; there is no OpenGraph page. The
+App's row and viewer ⋮ menus carry Copy public link and Disable public link, a public file shows a
+globe mark in its row or tile and a Public link chip in the viewer, and `artifact.list` pages
+carry `public_links` for their files (`artifact.publicLink`, `artifact.share`, and
+`artifact.unshare` serve one file). The Agent-route `artifact.list` shape is unchanged.
+
 ### Agent CLI
 
 Agents work on Files with explicit pulls and pushes; every command prints JSON.
@@ -169,7 +185,11 @@ haus files mv <from> <to> [--base-revision-id <id>]
 haus files view <id|link|path> [--revision-id <id>] [--output <path>]
 haus files versions <id|link|path> [--offset <n>]
 haus files delete <id|link|path> [--revision-id <id>]
+haus files share <id|link|path> [--disable]
 ```
+
+`share` prints `{ artifact_id, url }` (`POST /api/agent/artifacts/:id/public-link`); `--disable`
+prints `{ artifact_id, disabled: true }` (`…/public-link/disable`).
 
 `list` prints `{ summary, folder, folders, files, next_offset }` over the Agent list route; `--mine` is the
 calling Agent's own files, and Agents get no creator directory (`artifact.creators` stays App-only).
