@@ -45,7 +45,7 @@ ids and small facts, never rows.
 | `member.onUpdated` | `useMemberUpdateStream` | The named member, `member.list`, `chat.list`, the Server detail (the viewer's role) |
 | `invitation.onUpdated` (Owner/Admin) | `useInvitationUpdateStream` | `invitation.list` |
 | `cloudAgentSettings.onUpdated` | `useCloudAgentSettingsStream` | `cloudAgentSettings.get` |
-| `artifact.onUpdated` | `useArtifactUpdateStream` | `artifact.list` (every folder), `artifact.creators`, and the named file's `artifact.get` and `artifact.versions` (every file's for a null id); revision-keyed reads never refresh |
+| `artifact.onUpdated` | `useArtifactUpdateStream` | `artifact.list` (every folder) and `artifact.creators`, throttled to one refresh now and at most one per 300 ms after; the named file's `artifact.get` and `artifact.versions` (every file's for a null id) at once; revision-keyed reads never refresh |
 
 Every invalidation goes through the coalescer (`lib/targeted-read-coalescer.ts`) with
 `refetchType: 'active'`, coalesced per key within one animation frame: a message + read + follow

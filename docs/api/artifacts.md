@@ -123,10 +123,14 @@ original's size; only the viewer and its fullscreen zoom load the original. A re
 (storage disabled, revision gone) or a revision without a thumbnail falls back to the file's icon.
 
 Files changes are live. Every committed publish, move, delete, version delete, and retention prune
-publishes `artifact.onUpdated` (`{ serverId, artifactId }`, a null id for a folder move; see
-[Realtime](realtime.md)), and `useArtifactUpdateStream` invalidates every `artifact.list` read,
-`artifact.creators`, and that file's `artifact.get` and `artifact.versions`, so an open folder,
-grid, or viewer fills in while Agents push. Revision-keyed reads (`download`, `text`,
+publishes `artifact.onUpdated` (`{ serverId, artifactId }`, a null id for a folder move and for
+a retention sweep, which announces once per affected Server; see [Realtime](realtime.md)), and
+`useArtifactUpdateStream` invalidates every `artifact.list` read, `artifact.creators`, and that
+file's `artifact.get` and `artifact.versions`, so an open folder, grid, or viewer fills in while
+Agents push. Listing and creator refreshes are throttled per Server (the first event refreshes at
+once, then at most once per 300 ms with a trailing refresh), so a burst of pushes refetches a
+folder a handful of times rather than once per file; per-file reads refresh on every event.
+Revision-keyed reads (`download`, `text`,
 `thumbnail`) are immutable and never refresh. Reads still recover on mount, focus, and reconnect
 under `syncedSnapshot`.
 
@@ -140,13 +144,18 @@ and never waits for it or fails because of it. `artifact.thumbnail` (required `r
 same membership authorization as `download`) answers `{ status: 'ready', thumbnail_url,
 expires_at }` with a five-minute signed link, or `{ status: 'none' }` for files without one. A
 revision with no thumbnail yet renders on that first read (the read waits for it), which is how
-revisions published before thumbnails existed get one; there is no backfill job. Renders run two at
-a time per Server, and a publish and a read of the same revision share one render.
-`artifact_revisions.thumbnail_state` records the outcome: `ready`, or `failed` when the bytes do
-not decode as a supported raster image (logged, never retried, kind icon in the App). A storage
-error leaves the state empty so the next read retries. Originals over 100 MB are not read back
-and have no thumbnail. Deleting or pruning a revision deletes its thumbnail with it. Thumbnails
-are not counted against the storage cap.
+revisions published before thumbnails existed get one: old revisions get thumbnails lazily, on
+first view, and there is no backfill job. Because renders run two at a time per Server, the first
+grid open of a folder holding many old large images can be slow while its thumbnails render; later
+opens read the stored WebP. A publish and a read of the same revision share one render.
+Two caps bound a render's memory (`thumbnail-render.ts`): originals over 50 MB
+(`artifactThumbnailSourceMaxBytes`) are never read back, and sources over 40 million decoded
+pixels (`artifactThumbnailSourceMaxPixels`, about 160 MB of RGBA; a 4500×5400 print still
+renders) are refused by the decoder. `artifact_revisions.thumbnail_state` records the outcome:
+`ready`, or `failed` when the source is over either cap or the bytes do not decode as a supported
+raster image (never retried, kind icon in the App; the publish itself never fails). A storage
+error leaves the state empty so the next read retries. Deleting or pruning a revision deletes its
+thumbnail with it. Thumbnails are not counted against the storage cap.
 
 ### Agent CLI
 
@@ -202,13 +211,19 @@ Lists have 50 entries per offset page. Deletion requires the artifact creator or
 the current revision cannot be deleted separately. Deleted records become inaccessible immediately;
 cloud deletion failures retain their storage reservation and retry during Server startup.
 
-Revisions are kept for a bounded time. Once a newer revision has replaced a revision for seven days
-(`ARTIFACT_REVISION_RETENTION_DAYS` in `@haus/api`), the Server's hourly revision retention sweep
-(`apps/server/src/artifacts/retention.ts`, a boot sweep beside the other retention sweeps) deletes
-its R2 object and its row, freeing its storage. The current revision of a file is never pruned, however
-old. The window counts from the replacement, not from the revision's own age, so every replaced
-revision stays restorable for a full week. A pruned revision's version URL answers not found, like a
-deleted one. A storage failure leaves the row `deleting` for startup cleanup to finish.
+Revisions are kept for a bounded time. Once a newer ready revision of the same file was created
+seven days ago (`ARTIFACT_REVISION_RETENTION_DAYS` in `@haus/api`), the Server's hourly revision
+retention sweep (`apps/server/src/artifacts/retention.ts`, a boot sweep beside the other retention
+sweeps) deletes the older revision's R2 objects and frees its storage. The clock starts when the
+newer revision was created, not at the older revision's own creation, so every replaced revision
+stays restorable for a full week. The current revision of a file is never pruned, however old.
+A pruned revision ends exactly like a deleted one: its row stays as `deleted` with no reserved
+bytes, so its version URL answers not found, a late `request_id` retry answers `DELETED` instead
+of publishing again, and a push based on it after a move still names the file's new path. The
+sweep claims at most 200 revisions per batch (`for update skip locked`), stops between revisions
+when the Server shuts down (handing unprocessed claims back), and publishes one null-id
+`artifact.onUpdated` per affected Server. A storage failure leaves the row `deleting` for startup
+cleanup to finish.
 
 The Server reserves the maximum file size before accepting an upload, streams directly to R2 without
 disk staging, and publishes the revision only after storage success. The current pointer advances
