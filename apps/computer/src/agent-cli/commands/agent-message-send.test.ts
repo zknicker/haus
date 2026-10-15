@@ -91,6 +91,19 @@ test('inline send preserves the channel and passes its parent reference', async 
     });
 });
 
+test('a top-level send receipt states where it landed and its own thread target', async () => {
+    const outputs: string[] = [];
+    await runSend(sendArgs({ '--target': '#general' }), {
+        ...depsFor(capturingSendClient({}), outputs),
+        readStdin: async () => 'On it.',
+    });
+    expect(outputs.join('')).toBe(
+        'Message sent to #general. Message ID: msg_sent\n' +
+            'Posted at the top of #general; members see it in the channel.\n' +
+            'Thread on this message: #general:sent\n'
+    );
+});
+
 test('saved drafts cannot be retargeted to a different inline parent', async () => {
     const captured: CapturedSend = {};
     await expect(

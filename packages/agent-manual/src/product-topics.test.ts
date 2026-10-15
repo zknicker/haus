@@ -20,19 +20,39 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     expect(topic?.body).toContain('Task completion preserves that participation');
     expect(topic?.body).toContain('haus message unfollow');
     expect(topic?.body).toContain(
-        'Add `--done` to the message that completes your reply in that chat.'
+        'Add `--done` to the message that answers the request where it arrived: an inline reply in a channel or DM, or the thread post when it arrived in a thread.'
     );
     expect(topic?.body).toContain(
-        'Interim posts (your acknowledgment, a question, or a partial result the human needs now) omit it.'
+        'Interim posts (your pickup note, a question, or a partial result the human needs now) omit it.'
+    );
+    // Placement is described as what humans see, and the result never lives only in the thread.
+    expect(topic?.body).toContain(
+        'in the channel it shows only as a one-line preview under that message'
+    );
+    // Notification facts mirror packages/haus-api/src/message-notification.ts.
+    expect(topic?.body).toContain(
+        'the only people notified are the author of the message it hangs off, for every post, and anyone you @mention.'
     );
     expect(topic?.body).toContain(
-        'Step-by-step progress on work you drive alone belongs in a thread on your own acknowledgment'
+        'In a DM every message notifies the other person, thread or not.'
     );
-    expect(topic?.body).toContain('`#channel:<ackShortId>`');
+    expect(topic?.body).not.toContain('nobody is notified');
+    expect(topic?.body).not.toContain('bother nobody');
+    expect(topic?.body).toContain('the Server refuses `--reply-to` inside one');
     expect(topic?.body).toContain(
-        'A cloud agent launch is not progress: its card is your inline reply to the request'
+        'Working notes and progress as steps land, even when someone asked to be kept posted, go in a thread on your own pickup note in a channel'
+    );
+    expect(topic?.body).toContain('its author is notified of every post there.');
+    expect(topic?.body).toContain('`#channel:<noteShortId>`');
+    expect(topic?.body).toContain(
+        'A result that exists only in your working thread is a result the requester has not received'
+    );
+    expect(topic?.body).not.toContain('final answer in order');
+    expect(topic?.body).toContain(
+        'A cloud agent launch is not a working note: its card is your inline reply to the request'
     );
     expect(topic?.body).toContain('One-step work needs no thread');
+    expect(topic?.body).not.toContain('—');
     expect(topic?.body).toContain('Never react and also send a filler reply.');
     expect(topic?.body).toContain('if the message asks for anything, reply normally');
     expect(topic?.body).toContain('Vary your choices instead of repeating one.');

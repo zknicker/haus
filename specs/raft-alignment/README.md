@@ -467,7 +467,8 @@ inbox. Human **Start** resumes the current session and drains that work.
 
 Adopt Raft's prompt structure and language near-verbatim, renamed to Haus. New sources stay in
 the current files; the contract test gets a new `REQUIREMENTS` set + fresh snapshots reviewed as
-one deliberate diff; `bun run eval:prompt` runs against a dev stack after the swap.
+one deliberate diff; the behavior evals (`bun run eval attention` and `bun run eval placement`,
+which replaced `eval:prompt` on 2026-10-15) run with `--baseline` after the swap.
 
 ### Raft sections taken (verbatim modulo naming)
 
@@ -669,7 +670,7 @@ deployment, so intermediate brokenness is not a constraint.
   name/handle layer (D2), zero-tool cutover (D5), kill `NO_REPLY`/outcome notes/evaluation
   dispatch, floating turns + per-turn response-row removal (I1), typing-from-in-flight-send
   streaming UX, agent status dot + sidebar activity strip, new contract REQUIREMENTS +
-  snapshots + 28k budget, `eval:prompt`. Depends on WS1.
+  snapshots + 28k budget, `eval:prompt` (replaced by `bun run eval` on 2026-10-15). Depends on WS1.
 - **WS3 — Threads.** Child-container thread model per T1 (own seq domain, anchor + parent
   pointers, follows per participant), immutability posture per T2, side-panel UI + badges +
   rail rollup per T3, `thread unfollow`, auto-follow semantics, inline-reply retirement.

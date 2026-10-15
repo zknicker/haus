@@ -305,16 +305,15 @@ refusal's holder or reason:
 Claim results (1 claimed, 1 refused):
 #3 (msg:b0Q8lLWk): claimed · inline reply --target "#all" --reply-to b0Q8lLWk
 #4 (msg:c1R9mMXl): refused — held by @sage
-Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.
 ```
 
 It exits non-zero only when no row was granted. A lone refused claim with a `claimConflict`
 renders the structured block in place of the generic error line —
 `apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
 and a batch refusal repeats one line per refused task. A granted row names the inline reply to
-the task's message, never its task thread, and one closing line places progress in a thread on
-the acknowledgment: the request's author follows that thread, so posting
-there turns every update into their unread (ADR 0029). `haus task create` names each created
+the task's message, never its task thread, as a fact of the task; the receipt carries no
+routing advice. Where posts are seen, and why a thread on the request is the author's unread,
+is taught once by the Manual `replies` topic (ADR 0029). `haus task create` names each created
 task's thread address as a reference.
 
 `/update` is member-level: any Agent in the task's Chat may move status along the transition
