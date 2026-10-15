@@ -1,23 +1,17 @@
-import { Breadcrumbs } from '@heroui/react';
-import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
 import { useMember } from '../../../hooks/members/use-member.ts';
 import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { humanDisplayName } from '../../servers/human-identity.ts';
-import {
-    inboxRoute,
-    serverSettingsRoute,
-    serverSettingsSectionRoute,
-} from '../../servers/server-routes.ts';
-import { PageTopbar } from '../../shell/shell-topbar.tsx';
+import { serverSettingsRoute, serverSettingsSectionRoute } from '../../servers/server-routes.ts';
+import type { BandCrumb } from '../../shell/band-trail.ts';
+import { PageBand } from '../../shell/page-band.tsx';
 import { type SettingsRouteTab, settingsNavItems } from './navigation.ts';
 
 /**
  * Where you are, on one line at the top-left of the settings content column.
  *
  * The content column's top band is that line, so the trail fills it through
- * `PageTopbar` (on desktop, the band inside the Settings tab).
+ * `PageBand` (on desktop, the band inside the Settings tab).
  *
  * The trail is the product, then Settings, then the page:
  * "Haus › Settings › Profile". The rail's group headings (Preferences,
@@ -48,44 +42,30 @@ export function SettingsBreadcrumb({
         return null;
     }
 
-    const sectionHref = serverSettingsSectionRoute(slug, crumb.id);
-    const trail = (
-        <div className="flex min-w-0 shrink items-center gap-2">
-            {crumb.icon ? (
-                <Icon
-                    aria-hidden="true"
-                    className="shrink-0 text-muted"
-                    icon={crumb.icon}
-                    size={16}
-                />
-            ) : null}
-            <Breadcrumbs className="min-w-0">
-                {/* The product leads every trail, and it is a destination: the
-                    Inbox is the app's front page, the same place the sidebar's
-                    mark goes. */}
-                <Breadcrumbs.Item href={inboxRoute(slug)}>Haus</Breadcrumbs.Item>
-                <Breadcrumbs.Item href={serverSettingsRoute(slug)}>Settings</Breadcrumbs.Item>
-                <Breadcrumbs.Item href={leaf ? sectionHref : undefined}>
-                    {crumb.label}
-                </Breadcrumbs.Item>
-                {leaf ? (
-                    <Breadcrumbs.Item>
-                        {/* A member leads with their face everywhere else in
-                            the app, so their crumb does too. A connection's
-                            mark is already the page's own header. */}
-                        <span className="flex min-w-0 items-center gap-1.5">
-                            {leaf.kind === 'human' ? (
-                                <EntityAvatar name={leaf.name} size={18} src={leaf.avatarUrl} />
-                            ) : null}
-                            <span className="min-w-0 truncate">{leaf.name}</span>
-                        </span>
-                    </Breadcrumbs.Item>
-                ) : null}
-            </Breadcrumbs>
-        </div>
+    const settings: BandCrumb = { href: serverSettingsRoute(slug), label: 'Settings' };
+    const page: BandCrumb = {
+        href: serverSettingsSectionRoute(slug, crumb.id),
+        label: crumb.label,
+    };
+    return (
+        <PageBand>
+            {/* A page stops being the destination once you are inside one of its records. */}
+            <PageBand.Trail
+                crumbs={leaf ? [settings, page] : [settings]}
+                current={leaf ? leafCrumb(leaf) : crumb.label}
+            />
+        </PageBand>
     );
+}
 
-    return <PageTopbar>{trail}</PageTopbar>;
+/** A member leads with their face; a connection's mark is already the page's own header. */
+function leafCrumb(leaf: LeafCrumb): BandCrumb {
+    return leaf.kind === 'human'
+        ? {
+              label: leaf.name,
+              mark: <EntityAvatar name={leaf.name} size={18} src={leaf.avatarUrl} />,
+          }
+        : { label: leaf.name };
 }
 
 type LeafCrumb =
@@ -133,7 +113,6 @@ function matchRecordId(pathname: string, marker: string): string | undefined {
  * it names its own place in Settings.
  */
 const computersCrumb = {
-    icon: ComputerIcon,
     id: 'computers',
     label: 'Computers',
 } as const;
@@ -148,5 +127,5 @@ function resolveCrumb(section: SettingsRouteTab) {
         return undefined;
     }
 
-    return { icon: item.icon, id: item.id, label: item.label };
+    return { id: item.id, label: item.label };
 }

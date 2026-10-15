@@ -103,7 +103,7 @@ export const SortableChannelRow = React.memo(function SortableChannelRow({
         <ChatNavigationRow
             ariaDescribedBy={attributes['aria-describedby']}
             chat={chat}
-            className="no-drag sortable-channel-row"
+            className="sortable-channel-row"
             isCurrent={isCurrent}
             name={name}
             ref={setRowRef}

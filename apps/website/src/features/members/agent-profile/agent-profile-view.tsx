@@ -46,9 +46,8 @@ const sectionLabels: Record<Exclude<AgentSection, 'home'>, string> = {
 
 /**
  * An Agent's profile body, host-agnostic: the web route and the desktop agent
- * tab both render it. Its trail and controls portal into the page's shell
- * band (`PageTopbar`), as every routed destination's do; the hub's trail is
- * its title, which a desktop tab already shows, so there the band collapses.
+ * tab both render it. Its trail and controls fill the page's shell band
+ * (`PageBand`), as every routed destination's do, on the web and in a tab.
  *
  * It fills a height-bounded parent and scrolls itself, and every width rule is
  * a container query, so it lays out the same in a full window and a 420px
@@ -80,7 +79,7 @@ export function AgentProfileView({
         >
             {section === 'home' ? (
                 <>
-                    <AgentHubBand agent={agent} serverSlug={server.slug} />
+                    <AgentHubBand agent={agent} />
                     <PageColumn>
                         <AgentHub
                             agent={agent}
@@ -175,7 +174,7 @@ function AgentWorkspacePage({
     const menuSections = canAct ? <AgentActionsSections /> : undefined;
     const loaded = useLoadedAgentProfileContent();
     const trail = (
-        <AgentTrail agent={agent} onHome={onHome} serverSlug={server.slug}>
+        <AgentTrail agent={agent} onHome={onHome}>
             <WorkspaceRootCrumb>{sectionLabels.workspace}</WorkspaceRootCrumb>
             <WorkspaceOpenFileCrumb />
         </AgentTrail>

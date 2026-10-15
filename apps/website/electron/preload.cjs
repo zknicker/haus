@@ -128,7 +128,6 @@ const bridge = {
     runEditCommand: (command) => ipcRenderer.invoke('desktop:edit:run', command),
     setDockBadge: (count) => ipcRenderer.invoke('desktop:dock:set-badge', count),
     setTheme: (theme) => ipcRenderer.invoke('desktop:window:set-theme', theme),
-    startWindowDrag: () => ipcRenderer.invoke('desktop:window:start-drag'),
 };
 
 contextBridge.exposeInMainWorld('hausDesktop', bridge);

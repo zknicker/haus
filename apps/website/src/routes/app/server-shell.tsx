@@ -97,7 +97,8 @@ export function ServerShell({
         <AppShell className="w-full">
             <ServerRealtimeListeners server={server} />
             <SyncHumanIdentity serverId={server.id} />
-            <AppShellDragRegion />
+            {/* With a window band, the band is the window's one drag region. */}
+            {topbarInWindow ? null : <AppShellDragRegion />}
             <CommandMenu server={server} />
             {topbarInWindow ? (
                 <WindowBand>

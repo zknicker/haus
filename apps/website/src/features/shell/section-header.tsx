@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { useWorkspaceBandTabLabel } from './workspace-band-tab-label.ts';
 
 /**
  * The band height every top-of-column zone shares: the shell topbar, local
@@ -52,66 +51,25 @@ export function SectionBar({ children }: { children?: ReactNode }) {
 }
 
 /**
- * Topbar content row: optional leading icon, title, meta cluster, muted
- * description, optional centered slot, trailing actions. Carries no band
- * chrome — render it inside the shell band via PageTopbar, or inside a
- * local SectionBar. Title is for content identity (a chat's name); section
- * pages omit it — the rail and the window title already say where you are.
- *
- * Beside the desktop primary workspace tab, the tab is the page's identity:
- * its mark replaces `leading`, and a title repeating its label is dropped, so
- * only content the tab does not carry (a more specific title, actions) shows.
+ * A chat's web band row: its identity (`leading`), a meta cluster, then
+ * trailing actions. Carries no band chrome — render it inside the shell band
+ * via PageTopbar. Every other surface's band is a `PageBand`; a chat is the
+ * one surface whose band names a conversation rather than a place, and on
+ * desktop it has no band at all (its tab names it).
  */
 export function SectionHeader({
-    center,
     children,
-    description,
-    leading: pageLeading,
+    leading,
     meta,
-    title: pageTitle,
 }: {
-    center?: ReactNode;
     children?: ReactNode;
-    description?: ReactNode;
     leading?: ReactNode;
     meta?: ReactNode;
-    title?: ReactNode;
 }) {
-    const tabLabel = useWorkspaceBandTabLabel();
-    const leading = tabLabel === null ? pageLeading : null;
-    const title = tabLabel !== null && pageTitle === tabLabel ? null : pageTitle;
-    if (!(leading || title || meta || description || center || children)) {
-        return null;
-    }
-    if (center) {
-        // Equal flexible side columns anchor the center slot to the band's
-        // true middle, so it does not drift with the title's width.
-        return (
-            <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                    {leading}
-                    {title ? (
-                        <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
-                    ) : null}
-                    {meta}
-                    {description ? (
-                        <p className="truncate text-muted text-xs">{description}</p>
-                    ) : null}
-                </div>
-                <div className="flex min-w-0 items-center justify-center">{center}</div>
-                <div className="flex min-w-0 items-center justify-end gap-2">{children}</div>
-            </div>
-        );
-    }
-
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3">
             {leading}
-            {title ? (
-                <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
-            ) : null}
             {meta}
-            {description ? <p className="truncate text-muted text-xs">{description}</p> : null}
             {children ? (
                 <div className="ms-auto flex min-w-0 items-center gap-2">{children}</div>
             ) : null}

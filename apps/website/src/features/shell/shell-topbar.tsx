@@ -1,14 +1,8 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import {
-    useOptionalDesktopTabs,
-    useOptionalDesktopTabsSelector,
-} from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
-import { currentLocation, type TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { useTabId } from '../../hooks/desktop-tabs/tab-presence.ts';
 import { cn } from '../../lib/utils.ts';
-import { useTabIdentity } from './use-tab-identity.ts';
-import { WorkspaceBandTabLabel } from './workspace-band-tab-label.ts';
+import { WebHistoryButtons } from './history-buttons.tsx';
 
 interface TopbarSlot {
     container: HTMLElement | null;
@@ -28,12 +22,13 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * A page column's top band. Pages fill it through PageTopbar. On the web it
- * tops the main column and keeps its height while a page registers nothing,
- * so chrome never jumps between routes. On desktop each tab frame renders one
- * under the window band's tab rows (DesktopTabBand); the tab already names the
- * page, so a band its page leaves empty collapses and the page starts at the
- * tab's top.
+ * A page column's top band. Pages fill it through PageTopbar (a `PageBand`,
+ * or a chat's identity on the web). On the web it tops the main column, leads
+ * with the shell's Back and Forward on every surface, and keeps its height
+ * while a page registers nothing, so chrome never jumps between routes. On
+ * desktop each tab frame renders one under the window band's tab rows
+ * (DesktopTabBand), and Back and Forward live in the window band's lead instead; a band its
+ * page leaves empty (a chat) collapses and the page starts at the tab's top.
  */
 export function ShellTopbar() {
     const slot = React.use(TopbarContext);
@@ -41,7 +36,7 @@ export function ShellTopbar() {
     return (
         <header
             className={cn(
-                'app-shell-band flex h-[var(--app-shell-band-height)] shrink-0 items-center px-3',
+                'app-shell-band flex h-[var(--app-shell-band-height)] shrink-0 items-center gap-3 px-3',
                 // Read off the slot's DOM, so a portal landing in it shows the
                 // band in the same frame, with no registration effect to lag.
                 // An inactive kept page's (hidden) scope does not count as content.
@@ -50,6 +45,7 @@ export function ShellTopbar() {
             )}
             data-window-drag-region={inTab ? undefined : ''}
         >
+            {inTab ? null : <WebHistoryButtons />}
             <div
                 className="flex min-w-0 flex-1 items-center"
                 data-topbar-slot=""
@@ -95,34 +91,12 @@ export function KeptTopbarScope({
 
 /**
  * Portals its children into the page's topbar band. Render one per routed
- * page; children compose SectionHeader (or any band content) as usual. Inside
- * a desktop tab, band content can drop the title its tab already shows
- * (`useWorkspaceBandTabLabel`).
+ * page; children compose `PageBand` (or a chat's identity) as usual.
  */
 export function PageTopbar({ children }: { children: React.ReactNode }) {
     const slot = React.use(TopbarContext);
-    const tabId = useTabId();
-    // Only this tab's location: another tab's change never re-renders the band.
-    const location = useOptionalDesktopTabsSelector(useOptionalDesktopTabs(), (state) => {
-        const tab = tabId ? state.tabs[tabId] : undefined;
-        return tab ? currentLocation(tab) : null;
-    });
     if (!slot?.container) {
         return null;
     }
-    return createPortal(
-        location ? <TabTitleScope location={location}>{children}</TabTitleScope> : children,
-        slot.container
-    );
-}
-
-function TabTitleScope({
-    children,
-    location,
-}: {
-    children: React.ReactNode;
-    location: TabLocation;
-}) {
-    const { label } = useTabIdentity(location);
-    return <WorkspaceBandTabLabel value={label || null}>{children}</WorkspaceBandTabLabel>;
+    return createPortal(children, slot.container);
 }
