@@ -5,6 +5,7 @@
  * the next connect, which is also how journals written before journal sync
  * reach the Server (backfill).
  */
+import type { Dirent } from 'node:fs';
 import { readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isExecutionJournalRunId, journalDirectoryPath } from '../harness/execution-journal.ts';
@@ -25,9 +26,12 @@ export async function listUnsyncedJournals(input: {
     since: number;
 }): Promise<UnsyncedJournal[]> {
     const agentsDir = join(input.serverRoot, 'agents');
-    const agentIds = await readdir(agentsDir).catch(whenMissing<string[]>([]));
+    const entries = await readdir(agentsDir, { withFileTypes: true }).catch(
+        whenMissing<Dirent[]>([])
+    );
     const found: UnsyncedJournal[] = [];
-    for (const agentId of agentIds) {
+    // A stray file such as `.DS_Store` beside the Agent directories must not abort the pass.
+    for (const agentId of entries.filter((entry) => entry.isDirectory()).map(nameOf)) {
         const agentRoot = join(agentsDir, agentId);
         const directory = journalDirectoryPath(agentRoot);
         const names = await readdir(directory).catch(whenMissing<string[]>([]));
@@ -70,6 +74,10 @@ export async function markJournalSynced(
 
 export async function clearJournalSynced(agentRoot: string, runId: string): Promise<void> {
     await rm(markerPath(agentRoot, runId), { force: true });
+}
+
+function nameOf(entry: Dirent): string {
+    return entry.name;
 }
 
 function markerPath(agentRoot: string, runId: string): string {

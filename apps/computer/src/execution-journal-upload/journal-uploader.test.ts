@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { mkdtemp, rm, utimes } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -249,6 +249,22 @@ test('a later uploader sequences above every earlier one', async () => {
     expect(Math.min(...records(second.sent).map(({ sequence }) => sequence))).toBeGreaterThan(
         highest
     );
+});
+
+test('a stray file beside the Agent directories does not stop the backfill', async () => {
+    const h = await harness();
+    const journal = await createComputerExecutionJournal({
+        agentRoot: h.agentRoot('agt_a'),
+        runId: 'run_kept',
+    });
+    await journal.finish('completed');
+    await mkdir(join(h.dataRoot, 'servers', 'srv_up', 'agents'), { recursive: true });
+    await writeFile(join(h.dataRoot, 'servers', 'srv_up', 'agents', '.DS_Store'), '');
+
+    expect((await h.unsynced()).map((entry) => entry.runId)).toEqual(['run_kept']);
+    h.online();
+    await waitFor(() => h.sent.length > 0);
+    expect(h.sent[0]?.runId).toBe('run_kept');
 });
 
 test('a refused run stops resending and counts as handled', async () => {
