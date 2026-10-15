@@ -41,7 +41,9 @@ export function TranscriptMessageBlock({
             data-from={from}
             {...props}
         >
-            {hasBody ? <ChatMessage.Content>{children}</ChatMessage.Content> : null}
+            {hasBody ? (
+                <ChatMessage.Content data-selectable-text="">{children}</ChatMessage.Content>
+            ) : null}
             {hasAttachments ? <ChatMessage.Media>{attachments}</ChatMessage.Media> : null}
         </div>
     );

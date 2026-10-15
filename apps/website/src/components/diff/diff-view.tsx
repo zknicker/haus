@@ -41,6 +41,7 @@ export function DiffHunks({
                 'card-shell overflow-hidden border border-separator bg-surface font-mono text-sm',
                 className
             )}
+            data-selectable-text=""
         >
             {hunks.map((hunk, hunkIndex) => (
                 <div key={hunk.header}>
