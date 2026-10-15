@@ -6,8 +6,8 @@ import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { PageToolbarButton } from './page-toolbar.tsx';
 
 /**
- * Reload/Stop for one web view. Back and Forward lead the pane's tab row
- * (`PaneHistoryButtons`), walking the page's own history first.
+ * Reload/Stop for one web view. Back and Forward are the window's
+ * (`WindowHistoryButtons`), walking the page's own history first.
  */
 export function BrowserWorkspaceNavigation({ tab }: { tab: BrowserTab }) {
     const workspace = useBrowserViews();

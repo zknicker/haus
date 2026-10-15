@@ -27,7 +27,7 @@ export function TopbarProvider({ children }: { children: React.ReactNode }) {
  * with the shell's Back and Forward on every surface, and keeps its height
  * while a page registers nothing, so chrome never jumps between routes. On
  * desktop each tab frame renders one under the window band's tab rows
- * (DesktopTabBand), whose pane rows carry Back and Forward instead; a band its
+ * (DesktopTabBand), and Back and Forward live in the window band's lead instead; a band its
  * page leaves empty (a chat) collapses and the page starts at the tab's top.
  */
 export function ShellTopbar() {

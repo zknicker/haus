@@ -1,7 +1,7 @@
 import { Toolbar } from '@heroui/react';
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import type { PaneSide } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
+import { useDesktopTabsSelector } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { usePaneHistory } from '../../hooks/desktop-tabs/use-pane-history.ts';
 import { useWebHistory } from '../../hooks/shell/use-web-history.ts';
 import { PageToolbarButton } from './page-toolbar.tsx';
@@ -22,11 +22,13 @@ export function WebHistoryButtons() {
 }
 
 /**
- * One desktop pane's Back and Forward, leading that pane's tab row. They step
- * the pane's shown tab and follow it across tab switches, so they sit in the
- * same place over a chat (which has no band) and every other page.
+ * The desktop window's Back and Forward, in the title bar over the sidebar
+ * beside the traffic lights. They step the focused pane's shown tab and follow
+ * focus and tab switches, so they hold one place over every page, a
+ * full-height chat included.
  */
-export function PaneHistoryButtons({ pane }: { pane: PaneSide }) {
+export function WindowHistoryButtons() {
+    const pane = useDesktopTabsSelector((state) => state.focusedPane);
     return <HistoryButtons history={usePaneHistory(pane)} />;
 }
 

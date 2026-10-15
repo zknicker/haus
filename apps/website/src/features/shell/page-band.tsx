@@ -7,8 +7,8 @@ import { PageTopbar } from './shell-topbar.tsx';
  * The one header band every content surface renders (Inbox, Search, Tasks,
  * Files, Activity, Settings, Agent pages): where you are, then the page's own
  * controls at the far end. Back and Forward are the shell's, not the page's —
- * they lead the band on the web (`ShellTopbar`) and each pane's tab row on
- * desktop — so a band only ever says where you are and what you can do here.
+ * they lead the band on the web (`ShellTopbar`) and sit in the window's title
+ * bar on desktop — so a band only ever says where you are and what you can do here.
  *
  * Compose the slots directly:
  *
