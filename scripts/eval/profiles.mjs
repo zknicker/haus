@@ -76,6 +76,39 @@ export const attentionProfiles = {
     },
 };
 
+/**
+ * GitHub Trigger setup and fire answers (specs/agent-e2e/README.md R8, R9).
+ *
+ * Setup (R8): asked "wake me when CI fails on main in acme", a good teammate
+ * sets it up and says so once, as an inline reply in the channel: one short
+ * confirmation of what will wake it (a failed CI run on main in acme) and where
+ * it will post. No Trigger secret, no URL, no setup narration, and no question
+ * when the ask is already clear. Wrong: a webhook, a question back, a recap of
+ * flags, or an offer to do more.
+ *
+ * Fire (R9): when CI fails, the teammate posts one short top-level message in
+ * the channel it was asked in, naming the failing workflow and the branch, and
+ * stops. Wrong: a Thread, a second post, a recap of the payload, or a tail offer.
+ */
+export const triggerProfiles = {
+    'github-trigger-ci-setup': {
+        cap: 45,
+        channel: [1, 1],
+        maxQuestions: 0,
+        noUrl: true,
+        spec: 'R8',
+    },
+    'github-trigger-fire-reply': {
+        cap: 50,
+        channel: [1, 1],
+        inChat: true,
+        result: (post) => /release gate/iu.test(post.content) && /\bmain\b/u.test(post.content),
+        since: (authored) =>
+            authored.find((message) => message.cause?.kind === 'trigger')?.createdAt,
+        spec: 'R9',
+    },
+};
+
 /** Jev judge question for the placement eval; its yes-probability maps to 1-5 (pass bar 4). */
 export const placementJudge = {
     no: 'The posts add anything beyond the answer, such as a recap, a plan, an offer, or extra questions, or they answer somewhere the human is not looking.',

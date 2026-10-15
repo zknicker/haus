@@ -4,7 +4,12 @@
 // through the harness's substring `--only` filter; evals.test.mjs enforces it.
 
 import { UsageError } from './args.mjs';
-import { attentionProfiles, placementJudge, placementProfiles } from './profiles.mjs';
+import {
+    attentionProfiles,
+    placementJudge,
+    placementProfiles,
+    triggerProfiles,
+} from './profiles.mjs';
 
 export const evals = {
     placement: {
@@ -58,6 +63,17 @@ export const evals = {
         ],
         summary:
             'Agents launch and link cloud work, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
+    },
+    // GitHub Triggers on an installation seeded on the eval stack itself: no
+    // GitHub account. Serial: both scenarios seed an `acme` installation, and
+    // an Agent resolves its Trigger account by login.
+    triggers: {
+        judge: null,
+        lanes: 1,
+        profiles: triggerProfiles,
+        scenarios: ['github-trigger-ci-setup', 'github-trigger-fire-reply'],
+        summary:
+            'Agents set up a GitHub Trigger for CI failures from a plain ask and answer its fire once, top level, with --cause.',
     },
 };
 
