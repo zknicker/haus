@@ -10,8 +10,6 @@
 import { sleep } from '../eval-harness.mjs';
 
 export const agentKindDescriptions = Object.freeze({
-    coordinator:
-        'Temporary agent-test fixture. Coordinate only when explicitly addressed or assigned, and keep replies short.',
     worker: 'Temporary agent-test fixture. Act only when explicitly addressed or assigned.',
 });
 
@@ -210,19 +208,33 @@ function resolveAgentTarget(harness) {
 
 async function readAgentTarget(harness) {
     const deadline = Date.now() + targetTimeoutMs;
+    const preference = requestedTarget();
     for (;;) {
         const computers = await harness.trpc('computer.list', { serverId: harness.serverId });
-        const target = pickAgentTarget(computers);
+        const target = pickAgentTarget(computers, preference);
         if (target) {
             return target;
         }
         if (Date.now() >= deadline) {
             throw new Error(
-                `No attached Computer reports a ${defaultRuntimeId} runtime with a ${defaultModelHint} model, so the agent tests cannot create Agents.`
+                `No attached Computer reports a ${preference.runtimeId} runtime with a ${preference.modelHint} model, so the agent tests cannot create Agents.`
             );
         }
         await sleep(1000);
     }
+}
+
+/**
+ * The runtime and model every test Agent is created on. `bun run eval --model`
+ * sets HAUS_AGENT_TESTS_MODEL=<runtime>/<model>; creating on the target, rather
+ * than reconfiguring afterwards, leaves nothing to restore on a retired Agent.
+ */
+export function requestedTarget(value = process.env.HAUS_AGENT_TESTS_MODEL) {
+    const at = value?.indexOf('/') ?? -1;
+    if (!value || at <= 0) {
+        return { modelHint: defaultModelHint, runtimeId: defaultRuntimeId };
+    }
+    return { modelHint: value.slice(at + 1), runtimeId: value.slice(0, at) };
 }
 
 /** A counting semaphore: a released slot is handed straight to the next waiter. */

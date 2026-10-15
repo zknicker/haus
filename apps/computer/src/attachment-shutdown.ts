@@ -5,38 +5,112 @@ import {
     closeDaemonRuntimeResources,
     type DaemonRuntime,
 } from './daemon-runtime.ts';
+import { replayPendingServerPurges } from './server-partition-purge.ts';
+import {
+    detachServerWorkspaces,
+    reclaimStaleWorkspaces,
+} from './workspace-volumes/computer-volumes.ts';
+import type { WorkspaceDisk } from './workspace-volumes/disk-image.ts';
+import { type DetachPacing, shutdownDetachPacing } from './workspace-volumes/volume-detach.ts';
 
 let drain: (() => Promise<void>) | null = null;
+const workspaceDetachDeadlineMs = 10_000;
 
+export interface AttachmentPartition {
+    dataRoot: string;
+    serverId: string;
+    /** Test seam; production uses the host disk and the 10s workspace detach deadline. */
+    volumes?: { detachDeadlineMs: number; disk: WorkspaceDisk | null; pacing?: DetachPacing };
+}
+
+/**
+ * Owns one attachment daemon's lifetime: finishes interrupted Server purges and reclaims
+ * stale workspace mounts before it runs and, on exit or signal, drains work then detaches
+ * the Server's workspace volumes within a deadline.
+ */
 export async function withAttachmentShutdown<T>(
     work: AttachmentDaemonWork,
     runtime: DaemonRuntime,
-    serverId: string,
+    partition: AttachmentPartition,
     run: () => Promise<T>
 ): Promise<T> {
     const remove = installAttachmentShutdown(() =>
         closeDaemonRuntimeResources(
             () => work.close(),
             async () => {
-                disposeServerLaunchHosts(serverId);
+                disposeServerLaunchHosts(partition.serverId);
                 await closeDaemonRuntimeResources(
+                    // Sessions and sandbox processes are stopped; release this Server's volumes.
+                    () => detachPartitionWorkspaces(partition),
                     () =>
-                        withShutdownDeadline(
-                            () => closeDaemonCoordination(runtime),
-                            3000,
-                            'Computer coordination shutdown timed out.'
-                        ),
-                    // Telemetry finalizers own their bounded flush deadlines.
-                    () => runtime.dispose()
+                        closeDaemonRuntimeResources(
+                            () =>
+                                withShutdownDeadline(
+                                    () => closeDaemonCoordination(runtime),
+                                    3000,
+                                    'Computer coordination shutdown timed out.'
+                                ),
+                            // Telemetry finalizers own their bounded flush deadlines.
+                            () => runtime.dispose()
+                        )
                 );
             }
         )
     );
     try {
+        await reclaimPartitionStorage(partition);
         return await run();
     } finally {
-        await work.close().finally(remove);
+        await work
+            .close()
+            .then(() => detachPartitionWorkspaces(partition))
+            .finally(remove);
     }
+}
+
+/** Never blocks attachment start: a failed sweep only leaves what it names. */
+async function reclaimPartitionStorage(partition: AttachmentPartition) {
+    const volumes = partitionVolumes(partition);
+    await replayPendingServerPurges(volumes).catch((error: unknown) => {
+        console.error(`Interrupted Server purge replay failed: ${errorMessage(error)}`);
+    });
+    await reclaimStaleWorkspaces(volumes).catch((error: unknown) => {
+        console.error(`Stale workspace reclaim failed: ${errorMessage(error)}`);
+    });
+}
+
+/**
+ * Bounded and never throws, so it cannot hold the exit or replace run()'s result. A
+ * volume still busy or unfinished at the deadline stays mounted and reopens next start.
+ */
+async function detachPartitionWorkspaces(partition: AttachmentPartition) {
+    try {
+        await withShutdownDeadline(
+            () =>
+                detachServerWorkspaces({
+                    ...partitionVolumes(partition),
+                    onBusy: 'fail',
+                    pacing: partition.volumes?.pacing ?? shutdownDetachPacing,
+                    serverId: partition.serverId,
+                }).then(() => undefined),
+            partition.volumes?.detachDeadlineMs ?? workspaceDetachDeadlineMs,
+            'Workspace volume detach timed out at shutdown.'
+        );
+    } catch (error) {
+        console.error(`Workspace volumes stay mounted until next start: ${errorMessage(error)}`);
+    }
+}
+
+function partitionVolumes({ dataRoot, volumes }: AttachmentPartition) {
+    return {
+        dataRoot,
+        ...(volumes ? { disk: volumes.disk } : {}),
+        ...(volumes?.pacing ? { pacing: volumes.pacing } : {}),
+    };
+}
+
+function errorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
 }
 
 export async function withShutdownDeadline(

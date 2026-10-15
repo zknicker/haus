@@ -212,7 +212,7 @@ The composed agent system prompt is a guarded contract. Its sources live under
 `managed-instructions.test.ts`.
 
 Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
-reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 33,910
+reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 38,963
 characters). The cap is a ratchet that forces a deliberate decision, not a hard limit, and no
 adapter enforces a prompt length. A justified addition raises the cap to the measured render in
 the same change, with a one-line reason in the register. Never delete, trim, merge, or
@@ -246,6 +246,9 @@ When changing prompt text or that contract test:
 4. Update the [divergence register](specs/raft-alignment/prompt-divergences.md) with a new,
    changed, or removed row, and run `bun run test:prompt-contract`. The register's
    "TODO — no owner" rows are the current debt.
+
+For any Agent behavior change (prompt, Manual, CLI receipts, inbox text) and its baseline eval and
+report, use `.agents/skills/tune-agent-behavior/SKILL.md`.
 
 ## Agent skills
 

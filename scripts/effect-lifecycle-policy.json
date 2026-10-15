@@ -637,6 +637,17 @@
         "timer": 0
       }
     },
+    "apps/server/src/haus-server-stop.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "The process signal handler races the application close against one deadline timer, clears it, and ends the process; the runtime it would use is disposed by that close.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 2
+      }
+    },
     "apps/server/src/postgres/bootstrap.ts": {
       "disposition": "finite-cleanup",
       "reason": "Fresh-schema bootstrap uses one finite administrative connection and closes it before migration continues.",

@@ -1,6 +1,7 @@
 // Shared body of the memory-feedback scenarios: does feedback given in passing
 // become a terse, merged Standing Preferences rule in MEMORY.md, and does the
-// rule hold after a session reset? The scenario gates only structural facts
+// rule hold after a session reset? Each run is one request turn, a session
+// reset, and a probe in a new channel. The scenario gates only structural facts
 // (turns settle, MEMORY.md stays readable, the unrelated seeded rule survives).
 // Rule grammar, merge, and post-reset application are model judgment, so each
 // run writes an evidence file that `memory-feedback-grade.mjs` scores.
@@ -32,13 +33,15 @@ export const seededRules = Object.freeze([
 
 const question =
     'We run a nightly billing cron on 3 app servers and it must run exactly once per night. Should we use a Postgres advisory lock or a Redis lock?';
-const followUp = 'What lock timeout should we use?';
 
-/** Turn-two messages. `control` gives no feedback, as the baseline for the probe. */
-export const feedbackMessages = Object.freeze({
-    control: followUp,
-    explicit: `Feedback for going forward: you cover too much ground, keep replies tighter. And don't ask me before routine next steps; just do them. ${followUp}`,
-    implicit: `Ok, that covered too much ground, tighter please. Also stop asking me before routine next steps, just do them. ${followUp}`,
+/**
+ * The one conversation message per variant: a self-contained question, with
+ * feedback in passing for `implicit`. `control` gives no feedback, as the
+ * baseline for the probe.
+ */
+export const requestMessages = Object.freeze({
+    control: question,
+    implicit: `Your answers in here have been covering too much ground, tighter please. Also stop asking me before routine next steps, just do them. Anyway: ${question}`,
 });
 
 /** Asked after the session reset, in a new channel, so only MEMORY.md carries the rules. */
@@ -61,16 +64,11 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
     const conversation = await kit.createChannel({ agentIds: [worker.id] });
     const replies = {};
     let head = await kit.readHead(conversation.id);
-    await kit.harness.send(conversation.id, `@${worker.handle} ${question}`);
     const runIds = [];
-    await settled(expect, await settleTurn(worker.id), 'question turn', runIds);
-    replies.question = await authoredInChannel(kit, conversation.id, worker.id, head);
-
-    log(`sending ${variant} turn two`);
-    head = await kit.readHead(conversation.id);
-    await kit.harness.send(conversation.id, `@${worker.handle} ${feedbackMessages[variant]}`);
-    await settled(expect, await settleTurn(worker.id), 'feedback turn', runIds);
-    replies.feedback = await authoredInChannel(kit, conversation.id, worker.id, head);
+    log(`sending the ${variant} request`);
+    await kit.harness.send(conversation.id, `@${worker.handle} ${requestMessages[variant]}`);
+    await settled(expect, await settleTurn(worker.id), 'request turn', runIds);
+    replies.request = await authoredInChannel(kit, conversation.id, worker.id, head);
     await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
     const afterFeedback = await readMemory(kit, worker.id);
 
@@ -95,7 +93,7 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
         },
         manualCommands: await manualCommands(kit, worker.id, runIds),
         memory: { afterFeedback, afterProbe, seeded },
-        messages: { feedback: feedbackMessages[variant], probe, question },
+        messages: { probe, request: requestMessages[variant] },
         replies,
         stamp: kit.stamp,
         variant,

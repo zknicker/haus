@@ -28,7 +28,7 @@ export const messageSendSubcommand: SubCommand = {
         {
             name: '--reply-to',
             valueName: '<messageId>',
-            description: 'Reply inline to a message in this channel or DM',
+            description: 'Reply inline in the channel or DM, quoted under the message it answers',
         },
         {
             name: '--attachment-id',
@@ -43,7 +43,7 @@ export const messageSendSubcommand: SubCommand = {
         {
             name: '--done',
             description:
-                'This message completes your reply in this chat; people there stop seeing you work. Omit on interim posts',
+                'This message answers the request where it arrived: an inline reply in a channel or DM, or the thread post when it arrived in a thread. People there stop seeing you work. Omit on interim posts',
         },
         { name: '--send-draft', description: 'Send the saved draft unchanged' },
         { name: '--anyway', description: 'Send a repeatedly held draft despite new activity' },
@@ -105,17 +105,19 @@ export async function runSend(args: ParsedArgs, deps: MessageDeps): Promise<numb
             body: withDone ? { ...body, done: true } : body,
             method: 'POST',
         });
+    let doneSent = done;
     const response = await send(done).catch((error: unknown) => {
         // Computer releases ship before the Server that accepts `done`, and an
         // older Server refuses unknown fields before writing anything. Resend
         // plain; engagement then ends at turn end. Remove once every Server
         // accepts `done`.
         if (done && isInvalidSendRequest(error)) {
+            doneSent = false;
             return send(false);
         }
         throw error;
     });
-    deps.write(renderSendResponse(target, response));
+    deps.write(renderSendResponse(target, response, { done: doneSent, replyToMessageId }));
     return 0;
 }
 

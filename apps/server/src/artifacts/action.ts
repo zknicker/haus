@@ -3,7 +3,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { ArtifactActor } from './access.ts';
 import { deleteArtifact } from './delete.ts';
 import { listArtifactDrive } from './list.ts';
-import { downloadArtifact, getArtifact, listArtifactVersions } from './read.ts';
+import { downloadArtifact, getArtifact, listArtifactVersions, toArtifactMetadata } from './read.ts';
 import { ArtifactError, type ArtifactStorage } from './storage.ts';
 
 export type ArtifactAction = 'list' | 'get' | 'versions' | 'download' | 'delete' | 'deleteVersion';
@@ -28,27 +28,29 @@ export async function runArtifactAction(options: {
 }) {
     const { action, actor, db, input, origin, storage } = options;
     switch (action) {
-        case 'list':
-            return await listArtifactDrive(db, actor, origin, {
+        case 'list': {
+            const page = await listArtifactDrive(db, actor, origin, {
                 ...(input.filters ?? defaultArtifactListFilters),
                 offset: input.offset,
             });
+            return { ...page, artifacts: page.artifacts.map(toArtifactMetadata) };
+        }
         case 'get':
             return {
                 artifact: (
                     await getArtifact(db, actor, origin, input.artifact_id, input.revision_id)
                 ).metadata,
             };
-        case 'versions':
-            return {
-                versions: await listArtifactVersions(
-                    db,
-                    actor,
-                    origin,
-                    input.artifact_id,
-                    input.offset
-                ),
-            };
+        case 'versions': {
+            const versions = await listArtifactVersions(
+                db,
+                actor,
+                origin,
+                input.artifact_id,
+                input.offset
+            );
+            return { versions: versions.map(toArtifactMetadata) };
+        }
         case 'download':
             return await downloadArtifact(
                 db,

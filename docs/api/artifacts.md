@@ -56,12 +56,19 @@ Artifact metadata carries `creator`, exactly one of `{ type: 'agent', agent_id }
 revisions. Storage enforces one creator per artifact; a row without exactly one fails the read rather
 than inventing a creator. `created_at` is when the artifact identity was created. `updated_at` is
 when the described revision was published, so on current metadata it is the latest revision time.
-Library lists sort by `updated_at` descending; version lists sort by revision number.
+Library lists sort by `updated_at` descending unless asked otherwise; version lists sort by
+revision number. App reads (`artifact.list`, `get`, `versions`) return records: the metadata plus
+`author` (who published that revision, same shape as `creator`) and `image` (`width`, `height`,
+and `dpi` from a PNG `pHYs` chunk, or null when unmeasured or not raster). Agent routes keep the
+plain metadata, which deployed CLIs parse strictly. A revision published without its own `title`
+took its file name, so its title follows the file through renames (and a restore of it); a chosen
+title stays as written.
 
 The native list query (`artifact.list`) browses one folder: `prefix` (`''` for the root) returns
 its immediate child folders on the first page and its own files, and `recursive` returns every file
 under it. `query` searches current titles and paths, `kind` (`all`, `images`, `documents`,
-`media`, `other`) and an optional exact `creator` filter files, and filtering happens before
+`media`, `other`) and an optional exact `creator` filter files, `order` (`updated`, `path`,
+`name` in natural order, `size`, `kind`) with `direction` sorts them, and filtering happens before
 offset pagination; results carry `next_offset` and a page-independent `summary` of totals
 (`folders`, `files_in_folders`, `files`, the same with or without `recursive`; see the drive spec). Child folders come newest first. `artifact.creators` returns one entry per creator
 with at least one live artifact on the Server: `creator`, `artifact_count`, `latest_at`, and
@@ -87,20 +94,31 @@ context menu. File and folder actions are defined once (`artifact-actions.ts`) a
 row ⋮ menu, the context menu, and the viewer's menu: files offer Open, Download, Copy link, Copy
 public link (Disable public link when allowed), Rename…, Move to… (a folder picker over
 `artifact.move`), Version history (the viewer's Revisions), and Delete… (confirmed; shown only to
-the creator and human Owners/Admins, the Server's `artifact.delete` rule). Folders offer Open, Copy
-link, Rename…, and Move to…; the empty area offers Upload files… and Upload folder…. Actions a
-member cannot run are hidden, not disabled. There is no folder download.
+the creator and human Owners/Admins, the Server's `artifact.delete` rule), plus Copy path, Open in
+new tab (desktop windows only, ADR 0046), and Show in folder (wherever the item is not in the folder
+on screen: the viewer, a search hit). Folders offer Open, Copy link, Copy path, Rename, and Move
+to…; the empty area offers Upload files… and Upload folder…. Every item carries its verb's icon.
+Actions a member cannot run are hidden, not disabled. There is no folder download. In the library,
+Rename (or F2 on the selected item) edits the name in place: Return or leaving the field commits,
+Escape cancels; the viewer renames through a dialog.
 The column shows the open folder's child folders (`artifact.list` folders: tinted folder icons
-in the list's newest-first order, tints dealt in path-key order, each with its file count and up to three of its newest files peeking out,
+in the viewer's sort, each tint hashed from the folder's own path so it never shifts when a sibling
+appears, names cut in the middle across two lines with the full path on hover, each with its file count and up to three of its newest files peeking out,
 taken from one recursive read of the open folder, never one read per folder), then the files
-directly in it grouped by `updated_at` in the viewer's time zone (Today, Yesterday, weekdays through
-the past week, days this month, months this year, then years). Search reads every file under the
-open folder (`recursive`) and hides folders; a hit names its folder relative to the open one. Kind
+directly in it in the viewer's sort: Name (natural), Modified (the default, newest first, which
+groups files by `updated_at` in the viewer's time zone: Today, Yesterday, weekdays through the
+past week, days this month, months this year, then years), Size, or Kind, either way. The sort is
+per device, set from the band's sort menu or the list's column headers (Name, Kind, Modified, Size,
+each column shown once the library is wide enough). Grid tiles fit the whole image on a neutral
+well. Search reads every file under the open folder (`recursive`) plus the folders whose name
+matches; a hit names its folder relative to the open one as a link there. Kind
 and creator filter files, and folder counts follow them. The folder, kind, and creator ride the URL
 (`?folder=starter-kit/scripts&kind=images&creator=agent:<id>`) so back, reload, and a desktop tab
-return to the same view; search stays local and the list/grid choice is per device. Rows name the
+return to the same view; search stays local to the folder, and the list/grid choice is per
+device. A folder that holds nothing unfiltered does not exist, so its URL shows "Folder not found"
+with the way back up; an address no route matches shows "Page not found". Rows name the
 file (its path's last segment), with the title first in the meta line when it differs, then kind,
-creator, and relative time, plus size and the ⋮ menu. Rename changes only the last segment and Move
+who last published it (the revision author), and relative time, plus size and the ⋮ menu. Rename changes only the last segment and Move
 to… only the folder, both through `artifact.move` (a file move carries its head as
 `base_revision_id`). Pages load 50 at a
 time behind Show more. The page is blank until the first read lands; the empty state appears only
@@ -112,17 +130,29 @@ on the library; dropped folders keep their structure. Uploads land in the open f
 bytes move the App lists the paths under the folder (`recursive`, `order: 'path'`) and plans the
 upload: OS noise (`.DS_Store`, `Thumbs.db`, `._*`, `__MACOSX/`) is skipped, paths that break the
 path rules, collide inside the upload, or would land on a folder or under a file are refused, and
-existing names are gathered into one question ("Replace 3 files?"): Replace sends those with
-`replace=true`, Skip keeps them, and new files upload either way without `replace`. A stock
-progress bar counts files and bytes; refused and failed files stay listed until dismissed, and a
-clean upload ends in a toast. Library reads refresh when the upload finishes.
+files whose bytes match the current revision (SHA-256) are skipped, like `haus files push`. The
+remaining existing names are gathered into one question ("Replace 3 files?", naming the first
+five): Replace sends those with `replace=true`, Skip keeps them, and new files upload either way
+without `replace`. A stock progress bar counts files and bytes beside Cancel, which stops the rest;
+a file whose upload makes no progress for 45 seconds fails with that reason
+(`artifactUploadStallMs`), so a stalled storage backend never leaves Upload stuck. Refused and
+failed files stay listed until dismissed, and a clean upload ends in a toast. Library reads refresh
+when the upload finishes.
 
 The viewer's band shows
 the file's path in Files (Files and each folder above it link back into the library, the file name
 last); the tab keeps the file's title. The viewer shows a header
-(icon, title, creator, last update, and the shared file actions without Open, plus Copy link to
-this revision; deleting returns to the file's folder), the preview, and details
-with revision history beside it, stacking below it in narrow panes. Text files render inline
+(icon, title, the revision author's mark and name, last update, previous/next, and the shared file
+actions without Open, plus Copy link to this revision; deleting returns to the file's folder), the
+preview, and details (with pixel size and DPI for images) with revision history beside it,
+stacking below it in narrow panes. Opened from the library, the viewer URL carries that folder view
+(`?in=<folder>&kind=…&creator=…&q=…`), and previous/next (buttons, ← and →, and the zoom viewer's
+arrows) step through its files in the current sort, replacing the history entry; Back returns to
+the library with the last viewed file selected and focused. Each revision row names its author and
+size; any revision but the current one can be restored (`artifact.restore` publishes its bytes as
+a new revision on the current head, never rewriting history), and the list notes that replaced
+revisions are removed after `ARTIFACT_REVISION_RETENTION_DAYS`. Images show at no more than their
+own pixels, and the zoom viewer's label is the true scale (a fitted print reads 14%, not 100%). Text files render inline
 exactly as the Workspace pane renders workspace files (the shared `FileTextPreview` in
 `features/chats/file-text-preview.tsx`): Markdown rendered, HTML as a sandboxed page with host
 theme tokens, and plain text, source, JSON, and CSV/TSV as numbered code. `artifactTextRenderer`
@@ -157,6 +187,9 @@ under `syncedSnapshot`.
 
 Haus Server renders one WebP thumbnail per raster revision, longest edge 1024 px (never enlarged),
 and stores it in the same private bucket beside the original at `<revision object key>.thumb.webp`.
+The render also records the original's pixel size and PNG density on the revision
+(`image_width`, `image_height`, `image_dpi`); a revision rendered before those existed is
+measured once, in the background, on its next thumbnail read.
 Rendering uses Bun's built-in `Bun.Image` codec (`apps/server/src/artifacts/thumbnail-render.ts`), so
 the compiled Server needs no native addon. A publish starts the render after the revision lands
 and never waits for it or fails because of it. `artifact.thumbnail` (required `revision_id`, the

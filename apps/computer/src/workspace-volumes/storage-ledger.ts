@@ -82,6 +82,31 @@ export async function releaseWorkspace(dataRoot: string, agentRoot: string) {
     await writeJson(file, ledger);
 }
 
+/** Drops reservations whose Agent partition no longer holds a volume; returns their roots. */
+export async function releaseOrphanedWorkspaces(
+    dataRoot: string,
+    holdsVolume: (agentRoot: string) => Promise<boolean>
+): Promise<string[]> {
+    const file = join(dataRoot, 'workspace-storage.json');
+    const ledger = await readJson(file, ledgerSchema);
+    if (!ledger) {
+        return [];
+    }
+    const orphaned: string[] = [];
+    for (const agentRoot of Object.keys(ledger.allocations)) {
+        if (!(await holdsVolume(agentRoot))) {
+            orphaned.push(agentRoot);
+        }
+    }
+    if (orphaned.length > 0) {
+        const allocations = Object.fromEntries(
+            Object.entries(ledger.allocations).filter(([root]) => !orphaned.includes(root))
+        );
+        await writeJson(file, { ...ledger, allocations });
+    }
+    return orphaned;
+}
+
 export async function writeJson(file: string, value: unknown) {
     const temporary = `${file}.${process.pid}.tmp`;
     await writeFile(temporary, `${JSON.stringify(value)}\n`, { mode: 0o600 });

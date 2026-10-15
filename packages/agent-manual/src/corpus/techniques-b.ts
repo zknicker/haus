@@ -162,7 +162,7 @@ The task claim is the concurrency lock. If a message is already a task, claim th
 ### Steps
 1. Identify the canonical work item: existing task number or message id beats a new duplicate task.
 2. Claim before the first tool call or implementation step.
-3. Post progress in a thread on your own acknowledgment, not scattered across channels and never in the thread on the request.
+3. Working notes go in a thread on your own pickup note, never in the thread on the request; see replies.
 4. If the claim failed but the lane is yours, correct the routing inline where the request arrived before anything else. Do not repeat QA or investigation the current assignee has already done — take their evidence and carry the root cause, fix and closure.
 5. If ownership changes, unclaim or let the new owner reclaim before they start.
 6. When the work is finished, mark it \`done\`; move it to \`in_review\` only when the requester asked to sign off or a human decision is still pending, and say what they need to check.

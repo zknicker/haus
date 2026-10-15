@@ -1,17 +1,24 @@
 import type { ArtifactCreator } from '@haus/api';
 import { Button, Description, Dropdown, Header, Label, Separator } from '@heroui/react';
-import { FilterHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
+import {
+    File02Icon,
+    FilterHorizontalIcon,
+    Sorting01Icon,
+    UserIcon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { ArtifactCreatorOptions, useCreatorLabel } from './artifact-creator-menu.tsx';
 import { ArtifactKindOptions, kindTitles } from './artifact-kind-menu.tsx';
 import { libraryLayouts } from './artifact-layout-toggle.tsx';
+import { ArtifactSortOptions } from './artifact-sort-menu.tsx';
 import { setArtifactLibraryLayout, useArtifactLibraryLayout } from './library-layout.ts';
 import type { ArtifactKindFilter } from './library-params.ts';
+import { librarySortKeys, useArtifactLibrarySort } from './library-sort.ts';
 
 /**
  * The band's controls folded for a narrow band: one Filters menu holding the
- * file-type and Created by choices as submenus (each naming its current
- * value) and the list/grid choice, so search keeps its width.
+ * file-type, Created by, and Sort choices as submenus (each naming its
+ * current value) and the list/grid choice, so search keeps its width.
  */
 export function ArtifactFilterMenu({
     creator,
@@ -28,6 +35,7 @@ export function ArtifactFilterMenu({
 }) {
     const creatorLabel = useCreatorLabel(serverId, creator);
     const layout = useArtifactLibraryLayout();
+    const sort = useArtifactLibrarySort();
     const filtered = kind !== 'all' || creator !== null;
     return (
         <Dropdown>
@@ -43,6 +51,7 @@ export function ArtifactFilterMenu({
                 <Dropdown.Menu aria-label="Filters">
                     <Dropdown.SubmenuTrigger>
                         <Dropdown.Item id="kind" textValue="File type">
+                            <Icon aria-hidden="true" icon={File02Icon} size={16} />
                             <Label>File type</Label>
                             <Description>{kindTitles[kind]}</Description>
                             <Dropdown.SubmenuIndicator />
@@ -53,6 +62,7 @@ export function ArtifactFilterMenu({
                     </Dropdown.SubmenuTrigger>
                     <Dropdown.SubmenuTrigger>
                         <Dropdown.Item id="creator" textValue="Created by">
+                            <Icon aria-hidden="true" icon={UserIcon} size={16} />
                             <Label>Created by</Label>
                             <Description>{creatorLabel}</Description>
                             <Dropdown.SubmenuIndicator />
@@ -63,6 +73,19 @@ export function ArtifactFilterMenu({
                                 onCreatorChange={onCreatorChange}
                                 serverId={serverId}
                             />
+                        </Dropdown.Popover>
+                    </Dropdown.SubmenuTrigger>
+                    <Dropdown.SubmenuTrigger>
+                        <Dropdown.Item id="sort" textValue="Sort by">
+                            <Icon aria-hidden="true" icon={Sorting01Icon} size={16} />
+                            <Label>Sort by</Label>
+                            <Description>
+                                {librarySortKeys.find((entry) => entry.id === sort.by)?.label}
+                            </Description>
+                            <Dropdown.SubmenuIndicator />
+                        </Dropdown.Item>
+                        <Dropdown.Popover>
+                            <ArtifactSortOptions />
                         </Dropdown.Popover>
                     </Dropdown.SubmenuTrigger>
                     <Separator />

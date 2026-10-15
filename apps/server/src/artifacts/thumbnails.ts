@@ -1,9 +1,11 @@
+import type { ArtifactImageFacts } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     type ArtifactThumbnailState,
     artifactRevisionsTable as revisions,
 } from '../postgres/schema.ts';
+import { measureArtifactImage } from './image-facts.ts';
 import { type ArtifactStorage, artifactThumbnailKey } from './storage.ts';
 import {
     artifactThumbnailSourceMaxBytes,
@@ -16,6 +18,8 @@ export interface ThumbnailRevision {
     byteSize: number;
     contentType: string;
     id: string;
+    /** Null when the image facts were never measured; absent when the caller did not read them. */
+    imageWidth?: number | null;
     objectKey: string;
     thumbnailState: ArtifactThumbnailState | null;
 }
@@ -25,6 +29,7 @@ export interface ArtifactThumbnailsOptions {
     concurrency?: number;
     /** Reports a revision whose thumbnail failed; never throws into the caller. */
     logFailure(revisionId: string, reason: 'decode' | 'record' | 'storage', cause: unknown): void;
+    measure?: (source: Uint8Array) => Promise<ArtifactImageFacts>;
     render?: (source: Uint8Array) => Promise<Uint8Array>;
 }
 
@@ -40,6 +45,8 @@ export class ArtifactThumbnails {
     readonly #storage: ArtifactStorage;
     readonly #options: ArtifactThumbnailsOptions;
     readonly #inFlight = new Map<string, Promise<boolean>>();
+    /** Revisions whose late measurement already ran without facts; never read back again. */
+    readonly #measured = new Set<string>();
     readonly #waiting: (() => void)[] = [];
     #running = 0;
     #closed = false;
@@ -53,6 +60,10 @@ export class ArtifactThumbnails {
     /** Whether the revision has a thumbnail, generating it first when it has none yet. */
     ensure(revision: ThumbnailRevision): Promise<boolean> {
         if (revision.thumbnailState) {
+            if (revision.thumbnailState === 'ready' && revision.imageWidth === null) {
+                // Rendered before image facts were recorded: measure it once, off the read path.
+                void this.#measureOnce(revision);
+            }
             return Promise.resolve(revision.thumbnailState === 'ready');
         }
         if (this.#closed || !isThumbnailSource(revision.contentType)) {
@@ -104,9 +115,10 @@ export class ArtifactThumbnails {
             return false;
         }
         const key = artifactThumbnailKey(revision.objectKey);
+        const facts = await this.#facts(revision.id, source);
         try {
             await this.#storage.upload(key, chunks(thumbnail), 'image/webp');
-            if (await this.#mark(revision.id, 'ready')) {
+            if (await this.#mark(revision.id, 'ready', facts)) {
                 return true;
             }
             // Deleted or pruned while rendering: its cleanup already ran, so drop the orphan.
@@ -117,11 +129,57 @@ export class ArtifactThumbnails {
         return false;
     }
 
+    /** Measures a revision rendered before image facts existed; one pass per revision. */
+    #measureOnce(revision: ThumbnailRevision) {
+        if (this.#closed || this.#inFlight.has(revision.id) || this.#measured.has(revision.id)) {
+            return;
+        }
+        // Once per revision per process: an original the codec cannot measure, or one over the
+        // read cap, would otherwise be read back in full on every thumbnail read.
+        this.#measured.add(revision.id);
+        const pending = this.#queued(async () => {
+            if (this.#closed || revision.byteSize > artifactThumbnailSourceMaxBytes) {
+                return false;
+            }
+            const source = await this.#storage.read(revision.objectKey, revision.byteSize);
+            const facts = await this.#facts(revision.id, source);
+            if (facts) {
+                await this.#db
+                    .update(revisions)
+                    .set(factColumns(facts))
+                    .where(and(eq(revisions.id, revision.id), eq(revisions.state, 'ready')));
+            }
+            return true;
+        })
+            .catch((cause: unknown) => {
+                this.#options.logFailure(revision.id, 'storage', cause);
+                return false;
+            })
+            .finally(() => {
+                this.#inFlight.delete(revision.id);
+            });
+        this.#inFlight.set(revision.id, pending);
+    }
+
+    /** Image facts never fail a thumbnail: a source the codec cannot measure records none. */
+    async #facts(revisionId: string, source: Uint8Array): Promise<ArtifactImageFacts | null> {
+        try {
+            return await (this.#options.measure ?? measureArtifactImage)(source);
+        } catch (cause) {
+            this.#options.logFailure(revisionId, 'decode', cause);
+            return null;
+        }
+    }
+
     /** Records the outcome only while the revision is still live; false when it is gone. */
-    async #mark(revisionId: string, state: ArtifactThumbnailState) {
+    async #mark(
+        revisionId: string,
+        state: ArtifactThumbnailState,
+        facts: ArtifactImageFacts | null = null
+    ) {
         const updated = await this.#db
             .update(revisions)
-            .set({ thumbnailState: state })
+            .set({ thumbnailState: state, ...(facts ? factColumns(facts) : {}) })
             .where(and(eq(revisions.id, revisionId), eq(revisions.state, 'ready')))
             .returning({ id: revisions.id });
         return updated.length > 0;
@@ -149,4 +207,8 @@ export class ArtifactThumbnails {
 
 async function* chunks(bytes: Uint8Array) {
     yield bytes;
+}
+
+function factColumns(facts: ArtifactImageFacts) {
+    return { imageDpi: facts.dpi, imageHeight: facts.height, imageWidth: facts.width };
 }

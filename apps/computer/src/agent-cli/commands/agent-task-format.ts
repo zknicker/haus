@@ -44,13 +44,11 @@ export function formatTasksCreated(tasks: TaskRow[], fallbackTarget: string): st
         .join('\n')}\n`;
 }
 
-const CLAIM_PLACEMENT =
-    'Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.';
-
 /**
  * One row per requested task. Granted rows name the inline reply to the task's
- * message, never its task thread: the requester follows that thread, so every
- * post there becomes their unread (ADR 0029).
+ * message as a fact of the task, never its task thread and never routing
+ * advice: the requester follows that thread, so every post there becomes
+ * their unread (ADR 0029).
  */
 export function formatTaskClaims(results: TaskClaimResult[], fallbackTarget: string): string {
     const counts = [
@@ -59,9 +57,7 @@ export function formatTaskClaims(results: TaskClaimResult[], fallbackTarget: str
         countLabel(results, 'refused', 'refused'),
     ].filter(Boolean);
     const lines = results.map((row) => claimLine(row, fallbackTarget));
-    const granted = results.some((row) => row.outcome !== 'refused' && row.task);
-    const placement = granted ? `${CLAIM_PLACEMENT}\n` : '';
-    return `Claim results (${counts.join(', ')}):\n${lines.join('\n')}\n${placement}`;
+    return `Claim results (${counts.join(', ')}):\n${lines.join('\n')}\n`;
 }
 
 /**

@@ -90,14 +90,14 @@ function closingParenthesis(source, openIndex) {
 describe('defineScenario', () => {
     test('normalizes agent requests and marks the module shape', () => {
         const scenario = defineScenario({
-            agents: ['worker', { cleanWorkspace: true, kind: 'coordinator' }],
+            agents: ['worker', { cleanWorkspace: true, kind: 'worker' }],
             name: '  demo  ',
             run: () => undefined,
         });
         expect(isScenario(scenario)).toBe(true);
         expect(scenario.name).toBe('demo');
         // A provisioned Agent is new, so only the kind survives normalization.
-        expect(scenario.agents).toEqual([{ kind: 'worker' }, { kind: 'coordinator' }]);
+        expect(scenario.agents).toEqual([{ kind: 'worker' }, { kind: 'worker' }]);
     });
 
     test('rejects unknown agent kinds and missing run functions', () => {

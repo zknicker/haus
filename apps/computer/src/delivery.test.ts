@@ -1,12 +1,11 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { lstat, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseNoticeCommand, parseServerDeleteCommand } from './agent-command-frames.ts';
 import {
     decideStart,
     noticePath,
-    purgeServerPartition,
     type RunMarker,
     readRunMarker,
     writePendingNotice,
@@ -138,20 +137,6 @@ test('a Server deletion command is exact and content-free', () => {
         type: 'server-delete',
     });
     expect(parseServerDeleteCommand({ serverId, type: 'server-delete' })).toBeNull();
-});
-
-test('Server cleanup waits for local writers before removing their partition', async () => {
-    let releaseWriter: () => void = () => {};
-    const writer = new Promise<void>((resolve) => {
-        releaseWriter = resolve;
-    }).then(() => mkdir(join(dataRoot, 'servers', serverId), { recursive: true }));
-    const purge = purgeServerPartition(dataRoot, serverId, [writer]);
-
-    releaseWriter();
-    await purge;
-    await expect(lstat(join(dataRoot, 'servers', serverId))).rejects.toMatchObject({
-        code: 'ENOENT',
-    });
 });
 
 test('parseNoticeCommand fails closed on a malformed frame', () => {

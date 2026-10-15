@@ -18,25 +18,24 @@ export async function startControlledMcp() {
         }
 
         const message = JSON.parse(await readBody(request));
-        if (message.method === 'notifications/initialized') {
+        if (message.id === undefined) {
+            // Notifications get no response body.
             response.writeHead(202).end();
             return;
         }
 
-        const result =
-            message.method === 'initialize'
-                ? {
-                      capabilities: { tools: {} },
-                      protocolVersion: message.params?.protocolVersion,
-                      serverInfo: { name: 'Agent Test Audit Ledger', version: '1.0.0' },
-                  }
-                : message.method === 'tools/list'
-                  ? { tools: [lookupTool] }
-                  : lookupResult(message, records, calls);
-
-        response
-            .writeHead(200, { 'content-type': 'application/json' })
-            .end(JSON.stringify({ id: message.id, jsonrpc: '2.0', result }));
+        const result = respond(message, records, calls);
+        // An unknown method is a JSON-RPC error, never a null result: the Server's
+        // client probes newer protocol methods during version negotiation and
+        // rejects `result: null` as a malformed response.
+        const reply = result
+            ? { id: message.id, jsonrpc: '2.0', result }
+            : {
+                  error: { code: -32_601, message: `Method not found: ${message.method}` },
+                  id: message.id,
+                  jsonrpc: '2.0',
+              };
+        response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(reply));
     });
 
     await new Promise((resolve, reject) => {
@@ -80,11 +79,26 @@ const lookupTool = {
     name: 'lookup_audit_record',
 };
 
-function lookupResult(message, records, calls) {
-    if (message.method !== 'tools/call') {
-        return null;
+function respond(message, records, calls) {
+    switch (message.method) {
+        case 'initialize':
+            return {
+                capabilities: { tools: {} },
+                protocolVersion: message.params?.protocolVersion,
+                serverInfo: { name: 'Agent Test Audit Ledger', version: '1.0.0' },
+            };
+        case 'ping':
+            return {};
+        case 'tools/list':
+            return { tools: [lookupTool] };
+        case 'tools/call':
+            return lookupResult(message, records, calls);
+        default:
+            return null;
     }
+}
 
+function lookupResult(message, records, calls) {
     const key = message.params?.arguments?.key ?? '';
     calls.push({ key });
     const record = records.get(key);

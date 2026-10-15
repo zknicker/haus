@@ -11,6 +11,12 @@ import {
     workspaceDefaults,
     writeJson,
 } from './storage-ledger.ts';
+import {
+    type BusyVolumePolicy,
+    type DetachOutcome,
+    type DetachPacing,
+    detachWorkspaceVolume,
+} from './volume-detach.ts';
 
 export const workspaceVolumeSchema = z.object({
     capacityBytes: z.number().int().positive(),
@@ -99,22 +105,35 @@ export async function resetWorkspaceContents(
     }
 }
 
-export async function detachWorkspaceForRetirement(
-    agentRoot: string,
-    disk: WorkspaceDisk | null = hostWorkspaceDisk
-) {
-    const { manifest, path } = workspaceVolumePaths(agentRoot);
+/**
+ * Detaches an Agent's own capped volume. Rejects, leaving it mounted, when it stays busy
+ * under the `fail` policy or a forced detach fails; callers keep its reservation then.
+ */
+export async function detachAgentWorkspace(input: {
+    agentRoot: string;
+    disk?: WorkspaceDisk | null;
+    onBusy: BusyVolumePolicy;
+    pacing?: DetachPacing;
+}): Promise<DetachOutcome | null> {
+    const { manifest, path } = workspaceVolumePaths(input.agentRoot);
     const record = await readJson(manifest, workspaceVolumeSchema);
     if (!record) {
-        return;
+        return null;
     }
-    const mounted = await mountUuid(requireCappedDisk(disk), path);
+    const disk = requireCappedDisk(input.disk === undefined ? hostWorkspaceDisk : input.disk);
+    const mounted = await mountUuid(disk, path);
     if (mounted && mounted !== record.volumeUuid) {
         throw new Error('Cannot detach a foreign workspace volume.');
     }
-    if (mounted) {
-        await requireCappedDisk(disk).detach(path);
+    if (!mounted) {
+        return null;
     }
+    return await detachWorkspaceVolume({
+        disk,
+        mountpoint: path,
+        onBusy: input.onBusy,
+        ...(input.pacing ? { pacing: input.pacing } : {}),
+    });
 }
 
 export function workspaceVolumePaths(agentRoot: string) {

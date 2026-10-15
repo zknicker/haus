@@ -1,7 +1,7 @@
 import type { ArtifactMetadata } from '@haus/api';
 
-export interface ArtifactDateGroup {
-    artifacts: ArtifactMetadata[];
+export interface ArtifactDateGroup<A = ArtifactMetadata> {
+    artifacts: A[];
     key: string;
     label: string;
 }
@@ -12,13 +12,13 @@ export interface ArtifactDateGroup {
  * ("Oct 3") for the rest of this month, the month ("September") for the rest
  * of this year, and the year before that. Order follows the input.
  */
-export function groupArtifactsByDate(
-    artifacts: readonly ArtifactMetadata[],
+export function groupArtifactsByDate<A extends Pick<ArtifactMetadata, 'updated_at'>>(
+    artifacts: readonly A[],
     now: number,
     timeZone: string
-): ArtifactDateGroup[] {
+): ArtifactDateGroup<A>[] {
     const today = zonedDay(new Date(now), timeZone);
-    const groups = new Map<string, ArtifactDateGroup>();
+    const groups = new Map<string, ArtifactDateGroup<A>>();
     for (const artifact of artifacts) {
         const { key, label } = bucketFor(new Date(artifact.updated_at), today, timeZone);
         const group = groups.get(key);

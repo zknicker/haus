@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 
@@ -21,18 +21,6 @@ export interface StoredNoticeReceipt {
 }
 
 export type StartDecision = { kind: 'replay'; summary: AgentTurnFrame } | { kind: 'run' };
-
-export async function purgeServerPartition(
-    dataRoot: string,
-    serverId: string,
-    pendingWriters: Iterable<Promise<unknown>>
-): Promise<void> {
-    if (!/^srv_[A-Za-z0-9_-]{16}$/u.test(serverId)) {
-        throw new Error('Invalid Server id.');
-    }
-    await Promise.allSettled([...pendingWriters]);
-    await rm(join(dataRoot, 'servers', serverId), { force: true, recursive: true });
-}
 
 /**
  * Decides how a start command should be handled given the durable marker (a

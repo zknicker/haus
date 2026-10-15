@@ -7,6 +7,7 @@ read_when:
   - changing the hosted Server / local sidecar application boundary
   - changing how Clerk authentication maps to a Haus User
   - changing hosted attachment storage, recovery, or inventory
+  - changing Server shutdown order, bounds, or signal handling
 ---
 
 # Haus Server
@@ -36,6 +37,24 @@ over tRPC HTTP and WebSocket.
 Haus App calls the Server. Each Computer opens an outbound attachment socket to the Server. App
 and Computer never connect directly. Retired standalone Runtime procedures are not part of the
 hosted transport.
+
+## Shutdown
+
+`SIGTERM` or `SIGINT` closes the application Scope
+(`apps/server/src/haus-server-shutdown.ts`) in LIFO order: the background
+sweeps, the reconnect broadcast, recurring work (reminders), the WebSocket
+servers, open HTTP connections, the Computer attachment socket, the MCP clients,
+the hosted MCP processes, Fastify, post-commit work, and last the PostgreSQL
+pool. Each step is timed and bounded at 5s (the MCP client close gets 6s over
+its own 5s close timeout), so a stuck client close cannot keep the hosted MCP
+processes from being stopped. A slow step is logged at info when it happens, a
+failed or skipped step at warning, and a `[haus] shutdown steps:` line names
+every step with its duration. The signal handler (`haus-server-stop.ts`) then
+always ends the process, and gives up after 15s with exit code 1, before
+launchd's 20s default ExitTimeOut in production and the dev stack's 30s hard
+kill. A second `SIGTERM` or `SIGINT` during the stop exits 1 at once. The
+explicit exit matters: a signal handler cancels the default exit, and
+`bun --watch` keeps a drained process alive waiting for file changes.
 
 ## Identity
 

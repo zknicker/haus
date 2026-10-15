@@ -46,7 +46,7 @@ export const taskThreadRouting = new Map<string, ReadonlyArray<readonly [string,
             ],
             [
                 'Post progress in the task thread, not scattered across channels.',
-                'Post progress in a thread on your own acknowledgment, not scattered across channels and never in the thread on the request.',
+                'Working notes go in a thread on your own pickup note, never in the thread on the request; see replies.',
             ],
             // Agents finish their own work; `in_review` is for requested sign-off only (2026-10-05).
             [

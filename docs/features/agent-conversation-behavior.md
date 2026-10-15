@@ -29,24 +29,40 @@ it names exactly what is being fetched without narrating a plan; it sounds like 
 seasonal emoji that fits the moment; only the addressed Agent speaks; and structure appears only
 where the content is data. Every section below is one of those properties.
 
-## 1. Acknowledge inline; solo progress threads on the acknowledgment
+## 1. Answer inline where the requester is looking; working notes thread on the pickup note
 
-Acknowledgment, questions, and the final answer are inline replies to the request (`--reply-to`
-in a channel or DM, the thread target when the request arrived in a thread). Work that needs real
-digging gets the Agent's signature-emoji reaction on the request and, when it takes several
-steps, a one-line note that it is on it, with no plan. A question answerable from what the Agent
-has or one quick look-up is simply answered, with no reaction first. Step-by-step progress of
-solo work goes in a thread on the Agent's own acknowledgment, never in a thread on the request
-and never in a task thread. The completing message carries `--done`.
+The prompt teaches placement as what a human sees, not as message categories: an inline reply
+(`--reply-to` in a channel or DM) stays in the channel and notifies the parent's author, while a
+thread shows only as a one-line preview: its followers see it as unread, and only its anchor's
+author (for every post) and anyone @mentioned are notified. Every DM message notifies the other
+person, thread or not. So the requester gets what they asked for where they are looking, an inline
+reply in a channel or DM or a post in the thread it arrived in (no `--reply-to` there), with
+`--done` on the message that answers it. Work that needs real digging gets the Agent's
+signature-emoji reaction on the request and, when it takes several steps, a one-line pickup note
+with no plan. A question answerable from what the Agent has or one quick look-up is simply
+answered, with no reaction first. The Agent's working notes and progress, even when someone asked
+to be kept posted, go in a thread on its own pickup note in a channel, never in a thread on the
+request (that notifies its author for every post) and never in a task thread; in a DM they stay
+private. A result or question left only there
+has not reached the requester. When done, the Agent answers what was asked and stops: no
+obligatory summary or closing offer. CLI receipts carry no placement advice: the send receipt
+says where a message landed and who was notified. The description is paired with a command-shaped
+mechanics paragraph (`--reply-to` and `--done` on the answer, working notes at the pickup note's
+thread target), and every non-thread send receipt states the message's own thread target
+(`Thread on this message: <target>:<shortId>`), because the 2026-10-15 live gate showed the
+description alone lost `--done` and `--reply-to`.
 
-- Owner: [ADR 0029](../adr/0029-inline-replies-preserve-conversation.md) and its 2026-10-02 and
-  2026-10-06 amendments; `sendingMessagesSection` and the pickup bullet of
-  `communicationStyleSection` in `apps/computer/src/harness/managed-instructions.ts`; Manual
-  topic `replies` in `packages/agent-manual/src/product-topics.ts`.
-- Guards: live scenarios `solo-progress-threads-on-ack`, `inline-reply-followups`,
-  `conversation-natural-followups`, `task-conversation-routing` (`scripts/agent-tests/scenarios/`);
-  `thread-instructions.test.ts`, `managed-instructions.test.ts` ("the final reply in a chat
-  carries --done", "task updates follow the requesting conversation"),
+- Owner: [ADR 0029](../adr/0029-inline-replies-preserve-conversation.md) and its 2026-10-02,
+  2026-10-06, and 2026-10-14 amendments; `sendingMessagesSection` (the visibility paragraphs) and
+  the pickup and "When done" bullets of `communicationStyleSection` in
+  `apps/computer/src/harness/managed-instructions.ts`; Manual topic `replies` in
+  `packages/agent-manual/src/product-topics.ts`.
+- Guards: the `placement` eval (`placement-quick-fact`, `placement-recommendation`,
+  `thread-reply-stays-in-thread`, `solo-progress-threads-on-ack`, and the kit scenarios) and
+  `task-thread-routing` in the `attention` eval (`scripts/agent-tests/scenarios/`);
+  `thread-instructions.test.ts` (visibility paragraphs, "When done, answer what was asked, then
+  stop."), `managed-instructions.test.ts` ("the inline reply that answers the request carries
+  --done", "task updates follow the requesting conversation"),
   `personality-instructions.test.ts` ("the pickup bullet replaces the Raft acknowledge-and-outline
   and progress bullets"); `packages/agent-manual/src/product-topics.test.ts`; register rows
   "Sending messages" and "Communication style".
@@ -62,8 +78,8 @@ needs no thread", and the pickup bullet's "one quick look-up, just answer". The 
 runs sent the acknowledgment and the whole computation in one or two shell calls. The failing
 Opus run sent no acknowledgment at all, only `--done` with the answer. Passing terra runs added a
 single thread post before or just after that one command. Sol ran each step as its own command
-and threaded each result. The CLI is not the cause: every send receipt names the
-`#channel:<shortId>` thread target. The scenario was then reshaped so each step's instructions are
+and threaded each result. The CLI was not the cause: at the time every send receipt named the
+`#channel:<shortId>` thread target (it no longer does; see the 2026-10-14 amendment). The scenario was then reshaped so each step's instructions are
 gzip+base64-sealed inside the previous step, forcing one observed shell call per step; after that,
 terra passed 4/4 and Opus 1/2, and the Opus miss ran every step separately yet posted nothing
 before `--done`. That is a real "keep me posted" miss, not a collapsed workload. If it recurs,
@@ -103,9 +119,8 @@ an answer. Silence is deliberate in DMs too.
   `managed-instructions.ts`; `haus message react` help in
   `apps/computer/src/agent-cli/commands/agent-message.ts`; one-grapheme validation in
   `apps/server/src/agent-api/reaction-routes.ts`.
-- Guards: live scenarios `ack-reaction-thanks`, `ack-reaction-variety` (at least two distinct
-  emoji across four acks, catching a single default emoji), `ack-reaction-with-request`,
-  `fyi-silence-channel`, `fyi-silence-dm`, all in `bun run eval:prompt`;
+- Guards: live scenarios `ack-reaction-thanks` (`bun run eval placement`) and `fyi-silence-dm`
+  (`bun run eval attention`);
   `managed-instructions.test.ts` (step 4 text, and no literal emoji elsewhere that would become
   every Agent's default); `agent-message-react.test.ts`; `apps/server/test/agent-reaction-emoji.test.ts`;
   register rows "Startup step 4" and "Conversation etiquette".
@@ -138,8 +153,10 @@ replying.
   `apps/computer/src/thread-context-format.ts` ([Agent Inbox](../../specs/inbox.md));
   [ADR 0034](../adr/0034-addressed-messages-ride-the-wake.md) for which bodies a wake carries;
   Conversation etiquette and @Mentions sections of `managed-instructions.ts`.
-- Guards: live scenarios `mention-wakes-only-addressed` (exactly one reply, bystander silent),
-  `thread-refollow-on-mention`; `apps/server/src/message-routing/mention-scope.test.ts`,
+- Guards: live scenario `mention-wakes-only-addressed` (one inline reply, an unmentioned inline
+  follow-up answered by the same Agent, bystander silent; it logs whether Jev narrowed the
+  follow-up or the bystander chose silence); `apps/server/test/haus-chat-threads.test.ts` (a
+  direct mention restores a Thread unfollow); `apps/server/src/message-routing/mention-scope.test.ts`,
   `jev.test.ts`; `apps/server/test/haus-message-routing-mention.test.ts`,
   `haus-message-routing-sole.test.ts`, `haus-message-routing-mention-offline.test.ts`,
   `haus-message-routing-continuation.test.ts` (the golden two-Agent exchange: a confident Jev
@@ -174,7 +191,7 @@ can steer as an inbox notice, so the settled reply reflects it.
 - Owner: [Prompt divergences](../../specs/raft-alignment/prompt-divergences.md);
   `apps/computer/src/harness/steer-inbox-notice.ts`, `apps/computer/src/inbox-format.ts`.
 - Guards: `bun run test:prompt-contract` (size cap ratchet in `managed-instructions.test.ts`);
-  `steer-inbox-notice.test.ts`; live scenario `mid-turn-freshness`.
+  `steer-inbox-notice.test.ts`; the `freshness` case in `bun run eval:sessions`.
 
 ## Anti-patterns this replaced
 
@@ -182,6 +199,9 @@ can steer as an inbox notice, so the settled reply reflects it.
 - Em dashes and bold-label walls in ordinary chat replies.
 - Acknowledge-and-outline-the-plan messages before starting work.
 - Progress spam in the request's thread or the task thread.
+- A deliverable posted only in the thread on the Agent's own pickup note, where the requester
+  sees a one-line preview and gets no notification.
+- An obligatory recap after finishing.
 - A full reply to "thanks", or the same 👀 on every acknowledgment.
 - Two Agents answering one mention, or a bystander chiming in on someone else's exchange.
 - Tables pushed into a visual frame with a caption-only reply.
@@ -196,8 +216,6 @@ can steer as an inbox notice, so the settled reply reflects it.
   multi-step request; `ack-reaction-*` cover thanks only.
 - The chat register (plain sentences, structure only for data) has a live output check only for
   bold-label walls.
-- `solo-progress-threads-on-ack` and `mid-turn-freshness` run in `test:agents` but not in the
-  `eval:prompt` subset, so a prompt-only change can skip them.
-- When Jev does not narrow, both Agents receive the unmentioned follow-up and the bystander's
-  silence is prompt judgment. No scenario stages that two-Agent shape; only Server routing is
-  guarded.
+- Ack variety (a single default emoji on every thanks) has no live guard since
+  `ack-reaction-variety` retired on 2026-10-15; `managed-instructions.test.ts` keeps literal
+  emoji out of the prompt, which was its cause.

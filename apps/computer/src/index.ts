@@ -67,7 +67,7 @@ import { readComputerName } from './computer-name.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
 import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
-import { decideStart, purgeServerPartition, readRunMarker, writeRunMarker } from './delivery.ts';
+import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
 import {
     doctorComputer,
     formatComputerStatus,
@@ -121,6 +121,7 @@ import { startNightlyDreamCheck } from './nightly-dream.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import { handleComputerSecretsRequest } from './secrets/requests.ts';
+import { deleteServerPartition } from './server-partition-purge.ts';
 import {
     admitActiveRun,
     isNewerVersion,
@@ -403,14 +404,12 @@ async function main(args: string[]) {
         });
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
+                const partition = { dataRoot, serverId: attachment.serverId };
                 const daemonWork = new AttachmentDaemonWork(
                     runtime,
-                    new CloudAgentWorkSupervisor(runtime, {
-                        dataRoot,
-                        serverId: attachment.serverId,
-                    })
+                    new CloudAgentWorkSupervisor(runtime, partition)
                 );
-                return withAttachmentShutdown(daemonWork, runtime, attachment.serverId, () =>
+                return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                     runAttachmentDaemon(runtime, {
                         attachmentExists: async () => (await readAttachment(target)) !== null,
                         connect: () => {
@@ -1057,12 +1056,10 @@ async function connect(
             if (commandFrames.parseServerDeleteCommand(frame)) {
                 deleting = true;
                 disposeServerLaunchHosts(attachment.serverId);
-                agentWork.abortAll();
-                deletionPromise = purgeServerPartition(
+                deletionPromise = deleteServerPartition(daemonWork, {
                     dataRoot,
-                    attachment.serverId,
-                    daemonWork.writerSnapshot()
-                ).catch((error) => {
+                    serverId: attachment.serverId,
+                }).catch((error) => {
                     console.error(error instanceof Error ? error.message : error);
                 });
                 socket.close();

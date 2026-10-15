@@ -26,6 +26,7 @@ export async function captureRoutingEvidence(kit, agents) {
         try {
             let beforeSequence;
             const messages = [];
+            const threads = [];
             do {
                 const page = await kit.trpc('chat.messages', {
                     chatId,
@@ -35,12 +36,13 @@ export async function captureRoutingEvidence(kit, agents) {
                 });
                 messages.push(...page.messages);
                 for (const thread of page.threads) {
+                    threads.push(thread);
                     pending.add(thread.threadChatId);
                     await kit.trackChat(thread.threadChatId);
                 }
                 beforeSequence = page.nextBeforeSequence;
             } while (beforeSequence);
-            chats.push({ chatId, messages });
+            chats.push({ chatId, messages, threads });
         } catch (error) {
             errors.push({ chatId, error: String(error) });
         }

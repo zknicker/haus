@@ -1,16 +1,19 @@
-import { artifactPathBasename, artifactPathParent, parseArtifactPath } from '@haus/api';
+import { artifactPathBasename } from '@haus/api';
 import { Button, FieldError, Form, Input, Label, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useArtifactMove } from '../../hooks/artifacts/use-artifact-move.ts';
-
-/** What is being renamed: one file (guarded by its head revision) or a whole folder. */
-export type ArtifactRenameTarget =
-    | { kind: 'file'; path: string; revisionId: string }
-    | { kind: 'folder'; path: string };
+import {
+    type ArtifactRenameTarget,
+    renameCandidate,
+    renameMove,
+    selectRenameStem,
+} from './artifact-rename.ts';
 
 /**
- * Renames a file or folder in place: the name changes, the folder it sits in
- * does not. Opened from a row's ⋮ menu or a folder tile's context menu.
+ * Renames a file from its viewer: the name changes, the folder it sits in
+ * does not. The library renames inline instead (`ArtifactInlineRename`); the
+ * viewer's heading is the file's title, not its name, so it has no name to
+ * edit in place.
  */
 export function ArtifactRenameDialog({
     onClose,
@@ -51,30 +54,19 @@ function RenameForm({
 }) {
     const move = useArtifactMove(serverId);
     const [name, setName] = React.useState(artifactPathBasename(target.path));
-    const parent = artifactPathParent(target.path);
-    const trimmed = name.trim();
-    const next = parseArtifactPath(parent ? `${parent}/${trimmed}` : trimmed);
-    const issue = trimmed.includes('/')
-        ? 'A name cannot contain "/".'
-        : next.ok || trimmed === ''
-          ? null
-          : next.message;
-    const unchanged = next.ok && next.path === target.path;
-    const canSubmit = next.ok && !issue && !unchanged && !move.isPending;
-    const noun = target.kind === 'file' ? 'file' : 'folder';
+    const candidate = renameCandidate(target, name);
+    const issue = candidate.status === 'invalid' ? candidate.message : null;
+    const canSubmit = candidate.status === 'ready' && !move.isPending;
 
     async function submit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!(canSubmit && next.ok)) {
+        // The Enter that submits must not travel on to whatever regains focus.
+        event.stopPropagation();
+        if (!(canSubmit && candidate.status === 'ready')) {
             return;
         }
         try {
-            await move.move({
-                from: target.path,
-                to: next.path,
-                // A case-only rename is still a rename; the head guard only applies to files.
-                ...(target.kind === 'file' ? { base_revision_id: target.revisionId } : {}),
-            });
+            await move.move(renameMove(target, candidate.to));
             onClose();
         } catch {
             // The message renders below the field.
@@ -84,7 +76,7 @@ function RenameForm({
     return (
         <>
             <Modal.Header>
-                <Modal.Heading>Rename {noun}</Modal.Heading>
+                <Modal.Heading>Rename {target.kind}</Modal.Heading>
             </Modal.Header>
             <Modal.Body>
                 <Form id="artifact-rename-form" onSubmit={submit}>
@@ -101,7 +93,7 @@ function RenameForm({
                         <Label>Name</Label>
                         <Input
                             autoFocus
-                            onFocus={(event) => selectStem(event.currentTarget, target)}
+                            onFocus={(event) => selectRenameStem(event.currentTarget, target.kind)}
                         />
                         {issue || move.error ? (
                             <FieldError>{issue ?? move.error}</FieldError>
@@ -124,11 +116,4 @@ function RenameForm({
             </Modal.Footer>
         </>
     );
-}
-
-/** Like Finder: a file's name is selected up to its extension, a folder's in full. */
-function selectStem(input: HTMLInputElement, target: ArtifactRenameTarget) {
-    const dot = input.value.lastIndexOf('.');
-    const end = target.kind === 'file' && dot > 0 ? dot : input.value.length;
-    input.setSelectionRange(0, end);
 }

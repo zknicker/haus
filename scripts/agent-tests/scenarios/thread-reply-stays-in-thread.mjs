@@ -2,14 +2,15 @@
 // channel must stay clean: a Thread reply that spills into the channel is the
 // failure this scenario exists to catch.
 
+import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An Agent mentioned in a Thread answers in that Thread chat with the requested marker and authors nothing in the parent channel.',
+        'An Agent mentioned in a Thread answers in that Thread chat with exactly one reply carrying the requested marker and authors nothing in the parent channel.',
     name: 'thread-reply-stays-in-thread',
-    async run({ agents, expect, kit, log, marker, settleTurn }) {
+    run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
         const token = marker('THREAD');
 
@@ -39,13 +40,14 @@ export default defineScenario({
         log('checking gates');
         const threadReplies = kit.authoredBy(await kit.readMessages(threadChatId), worker.id);
         expect(threadReplies, 'replies in the Thread').toContain(token);
+        expect(threadReplies, 'replies in the Thread').toHaveLength(1);
 
         const channelMessages = await kit.readMessages(channel.id);
         expect(
             kit.authoredBy(channelMessages, worker.id, channelHead),
             'replies in the parent channel'
         ).toHaveLength(0);
-    },
+    }),
 });
 
 /** Owner send through the same hosted contract the App composer uses. */

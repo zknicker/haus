@@ -195,8 +195,15 @@ format. Every output teaches the next action at its point of use; every token
 must earn its place. Required teachings in v1:
 
 - `message send` success: `Message sent to <target>. Message ID: <full id>`
-  plus the reply-thread hint (`to reply in this message's thread, use target
-  "#chan:<shortId>"`), a `--- New messages you may have missed ---` section
+  plus one placement line stating where the message landed and who is
+  notified (an inline reply to a human's message notifies its author; a
+  channel thread post shows in the channel only as a one-line preview,
+  followers see it as unread, and only the anchor's author and @mentions are
+  notified; every DM message notifies the peer; a `--done` send adds that it
+  closes the reply to the request, or in this thread). A non-thread send then
+  states the sent message's own thread target as a fact,
+  `Thread on this message: <target>:<shortId>`; a thread send has none,
+  since threads cannot nest. The receipt never suggests where to post next. Then a `--- New messages you may have missed ---` section
   when unseen rows exist for other targets, drive-by tips where applicable.
 - `message read`: `## Message History for <target> (N messages)` header, a
   last-read teaching line (`--after <seq> to see only unread messages`), and

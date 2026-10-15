@@ -3,7 +3,7 @@ import { Breadcrumbs, Button, Label, ListBox, Modal } from '@heroui/react';
 import * as React from 'react';
 import { useArtifactFolders } from '../../hooks/artifacts/use-artifact-folders.ts';
 import { useArtifactMove } from '../../hooks/artifacts/use-artifact-move.ts';
-import type { ArtifactRenameTarget } from './artifact-rename-dialog.tsx';
+import type { ArtifactRenameTarget } from './artifact-rename.ts';
 import { artifactFolderCrumbs, artifactMoveTarget } from './drive-folders.ts';
 
 /** What Move to… moves: the same shape as a rename, a file guarded by its head revision. */
