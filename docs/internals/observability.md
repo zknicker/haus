@@ -4,7 +4,7 @@ read_when:
   - adding telemetry, logs, spans, metrics, or operational dashboards
   - changing Server-to-Computer commands or Effect process runtimes
   - configuring an OTLP collector
-  - confirming a run's execution journal reached the Server, or checking a Computer's backfill
+  - confirming a run's execution journal reached the Server, or checking a Computer's journal resend pass
 ---
 
 # Observability
@@ -262,9 +262,9 @@ On the Computer, a fully synced settled run has a `<runId>.uploaded` marker next
 `<dataRoot>/servers/<serverId>/agents/<agentId>/runtime/execution-journal/` (`<dataRoot>` is
 `HAUS_COMPUTER_DATA_ROOT`, default `~/.haus/computer`). A journal without a
 marker is still pending. The Computer resends every unmarked journal younger than 30 days on
-each ordinary connect, newest first and one run at a time. The one-time backfill after an upgrade
-therefore needs no command: it is complete when every recent journal has its marker. The daemon
-logs a refused run, a backfill failure, or a live run that overflowed while offline to stderr with
+each ordinary connect, newest first and one run at a time. The resend pass needs no command: it
+has caught up when every recent journal has its marker. The daemon logs a refused run, a failed
+resend pass, or a live run that overflowed while offline to stderr with
 a `[haus]` prefix. Bulk check per Agent:
 
 ```sql

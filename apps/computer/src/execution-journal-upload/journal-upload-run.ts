@@ -7,7 +7,7 @@ export interface RunUpload {
     agentRoot: string;
     /** `sent` while a frame is in flight on this connection. */
     frames: Array<QueuedFrame & { sent: boolean }>;
-    /** Wakes a backfill waiting on this run: synced, superseded, or offline. */
+    /** Wakes the resend pass (backfill) waiting on this run: synced, superseded, or offline. */
     idle?: () => void;
     live: boolean;
     /** The run's start never reached this uploader, or its queue overflowed. */

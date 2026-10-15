@@ -226,8 +226,9 @@ then reduced to its identity.
 The on-disk journal is the outbox. Unacknowledged frames resend after every reconnect. A settled run
 is marked synced (`<runId>.uploaded` beside its journal) only once the Server stored it; on every
 ordinary connect the Computer resends each unmarked journal younger than 30 days whole, newest
-first, one run at a time with at most two frames in flight, so live runs keep flowing. This is also
-the one-time backfill for journals written before sync; see
+first, one run at a time with at most two frames in flight, so live runs keep flowing. This
+permanent resend pass covers a daemon restart mid-turn, an offline overflow, a lost final ack, and
+a run whose `open` record the uploader never saw; see
 [Observability](../docs/internals/observability.md#execution-journal-sync) for confirming a run
 landed. A live run whose unacknowledged frames pass 16 MiB while offline drops them and resends whole
 once it settles.

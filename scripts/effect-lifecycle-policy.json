@@ -45,7 +45,7 @@
     },
     "apps/computer/src/execution-journal-upload/journal-uploader.ts": {
       "disposition": "finite-cleanup",
-      "reason": "Each run's idle waiter is one manual promise that resolves when the Server acks the run's last frame or the attachment socket closes; backfill and ledger writes are serialized promise chains owned by the daemon-lifetime uploader.",
+      "reason": "Each run's idle waiter is one manual promise that resolves when the Server acks the run's last frame or the attachment socket closes; the on-connect resend pass and ledger writes are serialized promise chains owned by the daemon-lifetime uploader.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,

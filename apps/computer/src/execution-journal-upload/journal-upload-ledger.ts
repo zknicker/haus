@@ -1,9 +1,8 @@
 /**
  * Which local journals the Server already holds. A run is synced once the
  * Server stored every record through its settling one; the uploader then writes
- * `<runId>.uploaded` beside the journal. A run without that mark is uploaded on
- * the next connect, which is also how journals written before journal sync
- * reach the Server (backfill).
+ * `<runId>.uploaded` beside the journal. A run without that mark is resent by
+ * the next connect's resend pass (backfill).
  */
 import type { Dirent } from 'node:fs';
 import { readdir, rm, stat, writeFile } from 'node:fs/promises';

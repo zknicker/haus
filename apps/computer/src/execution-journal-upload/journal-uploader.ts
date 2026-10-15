@@ -4,10 +4,10 @@
  * A live run's records leave as the journal writes them. Each frame waits for
  * the Server's ack and is resent after a reconnect, so the on-disk journal is
  * the outbox and nothing counts as synced before the Server stored it. A run
- * the Computer does not hold in memory (one a crash or restart dropped, one
- * whose queue overflowed while offline, or one written before journal sync) is
- * resent whole from disk on connect, newest first and one run at a time, so a
- * backfill never starves live frames.
+ * still unmarked (one a crash or restart dropped, one whose queue overflowed
+ * while offline, one whose final ack was lost, or one whose `open` record the
+ * uploader never saw) is resent whole from disk on every connect, newest first
+ * and one run at a time, so this resend pass never starves live frames.
  */
 import { join } from 'node:path';
 import {

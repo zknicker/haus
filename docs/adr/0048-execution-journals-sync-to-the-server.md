@@ -5,7 +5,7 @@ read_when:
   - changing execution journal sync, storage, retention, redaction, or reads
   - changing `agent.executionJournal`, `agent.executionOutlines`, or `agent.onExecutionJournal`
   - deciding whether the Server may request anything from a user's Computer
-  - confirming a run's journal reached the Server, or backfilling journals after an upgrade
+  - confirming a run's journal reached the Server, or checking a Computer's on-connect resend pass
 ---
 
 # ADR 0048: Execution journals sync to the Server
@@ -70,8 +70,9 @@ It also relativizes workspace and home paths.
 
 **The on-disk journal is the outbox.** Unacked frames resend after a reconnect. A settled run is
 marked synced only after the Server answered every frame: stored, or refused for good. On every connect the Computer resends each
-unmarked journal younger than 30 days, whole, newest first, one run at a time. That one mechanism
-covers crash recovery and the one-time backfill of journals written before sync.
+unmarked journal younger than 30 days, whole, newest first, one run at a time. That one permanent
+resend pass covers a daemon crash or restart mid-turn, a live run whose upload queue overflowed
+while offline, a run whose final ack was lost, and a run whose `open` record the uploader never saw.
 
 **Outlines ride the upload.** A settled run's outline is still computed by the Computer's
 classifier and stored beside the run, so `agent.executionOutlines` is one Server read.
@@ -87,15 +88,14 @@ runs. Semantic activity and turn summaries keep their own retention.
 - **Evidence now lives in Postgres.** Postgres holds redacted tool inputs, outputs and reasoning.
   Redaction is best effort beyond the known values, and access stays Owner/Admin only.
 - **Older Computers show no detail until they update.** A protocol-31 Computer cannot attach as
-  ordinary, so none of its runs have detail until it updates. After the update, its backfill
-  uploads their journals.
-- **Backfill costs bandwidth once.** A Computer with months of journals uploads up to 30 days of
-  them on its first connect, paced by acks so live runs are not starved. Older journals stay
-  local and are never uploaded.
+  ordinary, so none of its runs have detail until it updates. After the update, the resend pass
+  uploads their journals like any other unmarked journal.
+- **The resend pass is bounded.** It uploads at most 30 days of unmarked journals, paced by acks
+  so live runs are not starved. Older journals stay local and are never uploaded.
 - **Server and Computer ship together.** The attachment protocol matches exactly. A Server on
   protocol 32 keeps a protocol-31 Computer in update-required mode until it installs the
   protocol-32 release, and that release must be published for the Server to deploy
-  (`computers/update.ts`). The upgraded Computer then backfills on its first ordinary connect.
+  (`computers/update.ts`). The upgraded Computer's first ordinary connect runs the resend pass.
 
 ## Rejected alternatives
 

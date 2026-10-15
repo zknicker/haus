@@ -17,7 +17,7 @@ export async function ingestExecutionJournalUpload(
     const parsed = agentExecutionJournalRecordsFrameSchema.safeParse(input.frame);
     if (!parsed.success) {
         // A frame that names its run but breaks the envelope (an invalid outline, say) is
-        // refused for good; left unanswered, it would hold the Computer's backfill forever.
+        // refused for good; left unanswered, it would hold the Computer's resend pass forever.
         const named = namedRecordsFrameSchema.safeParse(input.frame);
         if (!named.success) {
             return false;
