@@ -20,13 +20,13 @@ test('TurnTrace tells a member where execution detail lives', () => {
 test('TurnTrace states why a journal could not be read without hiding the turn', () => {
     const markup = render({
         presentation: {
-            description: 'The assigned Computer is offline. Try again when it is online.',
-            kind: 'offline',
-            title: 'Detailed activity unavailable offline',
+            description: 'The Server did not return detailed activity.',
+            kind: 'unavailable',
+            title: 'Detailed activity unavailable',
         },
     });
 
-    assert.match(markup, /Detailed activity unavailable offline/);
+    assert.match(markup, /Detailed activity unavailable/);
     assert.doesNotMatch(markup, /Started work/);
 });
 

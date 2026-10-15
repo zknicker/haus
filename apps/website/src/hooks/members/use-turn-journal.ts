@@ -57,7 +57,7 @@ export function useTurnJournal(input: {
     }, [allowed, live]);
 
     // Reasoning and sub-agent steps change the journal without a semantic
-    // activity event; the Computer announces each change instead of a poll.
+    // activity event; the Server announces each stored change instead of a poll.
     const restart = useSubscriptionRestart('agent.onExecutionJournal', serverId, undefined, scope);
     const { reset } = hausTrpc.agent.onExecutionJournal.useSubscription(
         { agentId: agentId ?? '', runId: runId ?? '', serverId },

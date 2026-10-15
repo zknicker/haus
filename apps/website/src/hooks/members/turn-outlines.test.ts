@@ -25,8 +25,8 @@ function available(runId: string, status: 'completed' | 'running' = 'completed')
     } satisfies AgentExecutionOutlineEntry;
 }
 
-/** The Computer as the batch sees it: one call per request, with scripted answers. */
-function computer(answer: (runId: string) => AgentExecutionOutlineEntry) {
+/** The Server as the batch sees it: one call per request, with scripted answers. */
+function server(answer: (runId: string) => AgentExecutionOutlineEntry) {
     const calls: string[][] = [];
     return {
         calls,
@@ -52,7 +52,7 @@ async function read(
 
 test('reads a whole day in one request and never asks again for settled runs', async () => {
     const client = new QueryClient();
-    const remote = computer((runId) => available(runId));
+    const remote = server((runId) => available(runId));
     const runIds = Array.from({ length: 12 }, (_, index) => `run_${index}`);
 
     const first = await read(client, runIds, remote.fetch, 'day-1');
@@ -69,25 +69,24 @@ test('reads a whole day in one request and never asks again for settled runs', a
 });
 
 test('splits a large day into sequential requests of at most 50 runs', async () => {
-    const remote = computer((runId) => available(runId));
+    const remote = server((runId) => available(runId));
     const runIds = Array.from({ length: 120 }, (_, index) => `run_${index}`);
     await read(new QueryClient(), runIds, remote.fetch, 'big');
     expect(remote.calls.map((call) => call.length)).toEqual([50, 50, 20]);
 });
 
-test('reads offline, timed-out, and still-running runs again; a missing journal is final', async () => {
+test('reads missing and still-running runs again; a settled outline is final', async () => {
     const client = new QueryClient();
     const answers: Record<string, AgentExecutionOutlineEntry> = {
-        run_missing: { reason: 'missing', runId: 'run_missing', status: 'unavailable' },
-        run_offline: { reason: 'offline', runId: 'run_offline', status: 'unavailable' },
+        run_done: available('run_done', 'completed'),
+        run_missing: { runId: 'run_missing', status: 'missing' },
         run_running: available('run_running', 'running'),
-        run_timeout: { reason: 'timeout', runId: 'run_timeout', status: 'unavailable' },
     };
-    const remote = computer((runId) => answers[runId] as AgentExecutionOutlineEntry);
+    const remote = server((runId) => answers[runId] as AgentExecutionOutlineEntry);
     const runIds = Object.keys(answers);
-    await read(client, runIds, remote.fetch, 'offline');
-    await read(client, runIds, remote.fetch, 'reconnected');
-    expect(remote.calls).toEqual([runIds, ['run_offline', 'run_running', 'run_timeout']]);
+    await read(client, runIds, remote.fetch, 'first');
+    await read(client, runIds, remote.fetch, 'again');
+    expect(remote.calls).toEqual([runIds, ['run_missing', 'run_running']]);
 });
 
 test('the read gate keeps at most its limit in flight and runs the rest in order', async () => {

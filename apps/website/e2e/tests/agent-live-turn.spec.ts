@@ -1,4 +1,4 @@
-import type { AgentExecutionJournal, AgentExecutionJournalRequest } from '@haus/api';
+import type { ExecutionJournalUploadRecord } from '@haus/api';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
 import { assertOpaqueId, attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -64,49 +64,60 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
         `
         );
 
-        let journal: AgentExecutionJournal = {
-            runId,
-            startedAt,
-            status: 'running',
-            reasoning: [{ id: 'thought', startedAt, text: 'Inspecting the active queue.' }],
-            tools: Array.from({ length: 24 }, (_, index) => ({
-                toolCallId: `call_${index}`,
-                toolName: 'bash',
-                startedAt: new Date(now.getTime() - 70_000 + index * 1000).toISOString(),
-                endedAt: new Date(now.getTime() - 69_500 + index * 1000).toISOString(),
-                status: 'completed',
-                // One-line shell calls fold into one row; multi-line scripts keep a row
-                // each, so the log is tall enough to scroll and call_2 stands alone.
-                input: { command: `cd /tmp\necho inspection-${index}` },
-                output: `Evidence ${index}`,
-            })),
-        };
-        let hold = false;
-        let requests = 0;
-        const queued: AgentExecutionJournalRequest[] = [];
-        const reply = (request: AgentExecutionJournalRequest) =>
+        // The fake Computer syncs the run's journal the way a real one does;
+        // the App reads only what the Server stored (ADR 0048).
+        let sequence = 0;
+        const upload = async (records: ExecutionJournalUploadRecord[]) => {
+            const throughSequence = sequence + records.length;
+            const acked = new Promise<void>((resolve) => {
+                const onAck = (event: { data: unknown }) => {
+                    const frame = JSON.parse(String(event.data));
+                    if (
+                        frame.type === 'agent-execution-journal-ack' &&
+                        frame.throughSequence === throughSequence
+                    ) {
+                        expect(frame.status).toBe('stored');
+                        computer.removeEventListener('message', onAck);
+                        resolve();
+                    }
+                };
+                computer.addEventListener('message', onAck);
+            });
             computer.send(
                 JSON.stringify({
-                    type: 'agent-execution-journal-result',
-                    status: 'available',
                     agentId: agent.id,
-                    requestId: request.requestId,
+                    records: records.map((record) => ({ record, sequence: ++sequence })),
                     runId,
-                    journal,
+                    runStartedAt: startedAt,
+                    type: 'agent-execution-journal-records',
                 })
             );
-        computer.addEventListener('message', (event) => {
-            const request = JSON.parse(String(event.data));
-            if (request.type !== 'agent-execution-journal-request') {
-                return;
-            }
-            requests++;
-            if (hold) {
-                queued.push(request);
-            } else {
-                reply(request);
-            }
-        });
+            await acked;
+        };
+        await upload([
+            { document: { runId, startedAt, status: 'running', tools: [] }, type: 'open' },
+            {
+                block: { id: 'thought', startedAt, text: 'Inspecting the active queue.' },
+                type: 'reasoning',
+            },
+            ...Array.from(
+                { length: 24 },
+                (_, index): ExecutionJournalUploadRecord => ({
+                    tool: {
+                        toolCallId: `call_${index}`,
+                        toolName: 'bash',
+                        startedAt: new Date(now.getTime() - 70_000 + index * 1000).toISOString(),
+                        endedAt: new Date(now.getTime() - 69_500 + index * 1000).toISOString(),
+                        status: 'completed',
+                        // One-line shell calls fold into one row; multi-line scripts keep a row
+                        // each, so the log is tall enough to scroll and call_2 stands alone.
+                        input: { command: `cd /tmp\necho inspection-${index}` },
+                        output: `Evidence ${index}`,
+                    },
+                    type: 'tool',
+                })
+            ),
+        ]);
         // The running turn opens on arrival; its header is the Disclosure trigger.
         const turnHeader = page.locator(
             `[data-log-turn="${runId}"] [data-log-header][aria-expanded]`
@@ -127,8 +138,6 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
             element.setAttribute('data-inspected-instance', 'retained');
         });
 
-        hold = true;
-        const previousRequests = requests;
         computer.send(
             JSON.stringify({
                 type: 'agent-activity',
@@ -141,39 +150,34 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
                 occurredAt: now.toISOString(),
             })
         );
-        await expect.poll(() => requests).toBeGreaterThan(previousRequests);
-        await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+        await upload([
+            {
+                input: { command: 'cd /tmp\necho late-arriving-evidence' },
+                occurredAt: new Date(now.getTime() - 70_500).toISOString(),
+                toolCallId: 'call_late',
+                toolName: 'bash',
+                type: 'tool-call',
+            },
+            {
+                isError: false,
+                occurredAt: new Date(now.getTime() - 70_400).toISOString(),
+                output: 'Late evidence',
+                preliminary: false,
+                toolCallId: 'call_late',
+                toolName: 'bash',
+                type: 'tool-result',
+            },
+            {
+                id: 'thought',
+                text:
+                    '\n\n' +
+                    'Additional reasoning arrives above the inspected tool.\n\n'.repeat(12),
+                type: 'reasoning-append',
+            },
+        ]);
         await expect(page.getByText('Loading detailed activity...', { exact: true })).toHaveCount(
             0
         );
-        await expect(inspected).toHaveAttribute('data-inspected-instance', 'retained');
-        journal = {
-            ...journal,
-            tools: [
-                ...journal.tools,
-                {
-                    toolCallId: 'call_late',
-                    toolName: 'bash',
-                    status: 'completed',
-                    startedAt: new Date(now.getTime() - 70_500).toISOString(),
-                    input: { command: 'cd /tmp\necho late-arriving-evidence' },
-                    output: 'Late evidence',
-                },
-            ],
-            reasoning: [
-                {
-                    id: 'thought',
-                    startedAt,
-                    text:
-                        'Inspecting the active queue.\n\n' +
-                        'Additional reasoning arrives above the inspected tool.\n\n'.repeat(12),
-                },
-            ],
-        };
-        hold = false;
-        for (const request of queued.splice(0)) {
-            reply(request);
-        }
         // A collapsed thought previews its paragraphs on one line, so match a substring.
         await expect(
             page.getByText('Additional reasoning arrives above the inspected tool.').first()
@@ -192,31 +196,33 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
             .poll(async () => beforeHumanScroll - (await inspected.boundingBox())!.y)
             .toBeGreaterThan(80);
 
-        // Reasoning changes without a semantic activity event still reach the open view.
-        journal = {
-            ...journal,
-            reasoning: [
-                ...journal.reasoning!,
-                {
-                    id: 'latest',
-                    startedAt: new Date().toISOString(),
-                    text: 'The latest reasoning is now visible.',
-                },
-            ],
-        };
-        // The Computer announces the journal change; the view no longer polls for it.
-        computer.send(
-            JSON.stringify({ agentId: agent.id, runId, type: 'agent-execution-journal-changed' })
-        );
+        // Reasoning changes without a semantic activity event still reach the
+        // open view: the Server announces each stored change.
+        const latestAt = new Date().toISOString();
+        await upload([
+            { id: 'latest', startedAt: latestAt, type: 'reasoning-start' },
+            {
+                id: 'latest',
+                text: 'The latest reasoning is now visible.',
+                type: 'reasoning-append',
+            },
+        ]);
         await expect(
             page.getByText('The latest reasoning is now visible.', { exact: true })
         ).toBeAttached();
         await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+        // A change stored while the App is offline arrives after it reconnects.
         await page.context().setOffline(true);
         await expect(inspected).toHaveAttribute('data-inspected-instance', 'retained');
-        const beforeReconnect = requests;
+        await upload([
+            { id: 'latest', endedAt: new Date().toISOString(), type: 'reasoning-end' },
+            { id: 'offline', startedAt: new Date().toISOString(), type: 'reasoning-start' },
+            { id: 'offline', text: 'Stored while the App was offline.', type: 'reasoning-append' },
+        ]);
         await page.context().setOffline(false);
-        await expect.poll(() => requests).toBeGreaterThan(beforeReconnect);
+        await expect(
+            page.getByText('Stored while the App was offline.', { exact: true })
+        ).toBeAttached();
         await expect(trigger).toHaveAttribute('aria-expanded', 'true');
         await expect(inspected).toHaveAttribute('data-inspected-instance', 'retained');
         await page.screenshot({ path: test.info().outputPath('live-turn.png') });
@@ -225,13 +231,6 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
         await expect(
             page.getByText('The latest reasoning is now visible.', { exact: true })
         ).toBeAttached();
-        // A closed turn stops polling the Computer for its journal.
-        await turnHeader.click();
-        await expect(turnHeader).toHaveAttribute('aria-expanded', 'false');
-        await page.waitForTimeout(1200);
-        const closedRequests = requests;
-        await page.waitForTimeout(1200);
-        expect(requests).toBe(closedRequests);
     } finally {
         computer.close();
     }

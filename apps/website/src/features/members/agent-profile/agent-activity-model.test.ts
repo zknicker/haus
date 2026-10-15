@@ -68,42 +68,7 @@ test('journal presentation preserves available evidence, including interrupted a
 
     expect(
         getTurnJournalPresentation(
-            {
-                agentId: 'agent_one',
-                reason: 'offline',
-                requestId: 'request_one',
-                runId: 'run_one',
-                status: 'unavailable',
-                type: 'agent-execution-journal-result',
-            },
-            'run_one'
-        )
-    ).toMatchObject({ kind: 'offline' });
-
-    expect(
-        getTurnJournalPresentation(
-            {
-                agentId: 'agent_one',
-                reason: 'timeout',
-                requestId: 'request_one',
-                runId: 'run_one',
-                status: 'unavailable',
-                type: 'agent-execution-journal-result',
-            },
-            'run_one'
-        )
-    ).toMatchObject({ kind: 'unavailable', reason: 'timeout' });
-
-    expect(
-        getTurnJournalPresentation(
-            {
-                agentId: 'agent_one',
-                reason: 'missing',
-                requestId: 'request_one',
-                runId: 'run_one',
-                status: 'unavailable',
-                type: 'agent-execution-journal-result',
-            },
+            { agentId: 'agent_one', runId: 'run_one', status: 'missing' },
             'run_one'
         )
     ).toMatchObject({ kind: 'missing' });
@@ -201,9 +166,7 @@ function availableJournal(
             status: journal.status ?? 'completed',
             tools: journal.tools ?? [],
         } as AgentExecutionJournal,
-        requestId: 'request_one',
         runId: 'run_one',
         status: 'available',
-        type: 'agent-execution-journal-result',
     };
 }

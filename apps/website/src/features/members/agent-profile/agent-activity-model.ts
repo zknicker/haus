@@ -153,19 +153,20 @@ export type TurnJournalPresentation =
       }
     | {
           description: string;
-          kind: 'offline';
-          title: string;
-      }
-    | {
-          description: string;
           kind: 'unavailable';
-          reason: 'timeout';
           title: string;
       }
     | {
           journal: Extract<AgentExecutionJournalResult, { status: 'available' }>['journal'];
           kind: 'available';
       };
+
+/** Shown when the Server read itself failed, not when the run has no journal. */
+export const unreadableTurnJournal: TurnJournalPresentation = {
+    description: 'The Server did not return detailed activity.',
+    kind: 'unavailable',
+    title: 'Detailed activity unavailable',
+};
 
 export function getTurnJournalPresentation(
     result: AgentExecutionJournalResult | null,
@@ -179,26 +180,12 @@ export function getTurnJournalPresentation(
         };
     }
 
-    if (result.status === 'unavailable') {
-        if (result.reason === 'missing') {
-            return {
-                description: 'The detailed execution record is no longer available.',
-                kind: 'missing',
-                title: 'Turn details unavailable',
-            };
-        }
-        if (result.reason === 'offline') {
-            return {
-                description: 'The assigned Computer is offline. Try again when it is online.',
-                kind: 'offline',
-                title: 'Detailed activity unavailable offline',
-            };
-        }
+    if (result.status === 'missing') {
         return {
-            description: 'The Computer did not return detailed activity in time.',
-            kind: 'unavailable',
-            reason: 'timeout',
-            title: 'Detailed activity unavailable',
+            description:
+                'The Server has no execution record for this turn yet. Its Computer syncs it when online.',
+            kind: 'missing',
+            title: 'Turn details unavailable',
         };
     }
 

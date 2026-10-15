@@ -2,6 +2,7 @@ import type { AgentExecutionJournalResult } from '@haus/api';
 import {
     getTurnJournalPresentation,
     type TurnJournalPresentation,
+    unreadableTurnJournal,
 } from '../../features/members/agent-profile/agent-activity-model.ts';
 
 export interface TurnJournalSnapshot {
@@ -49,12 +50,7 @@ export function createTurnJournalRelay(input: {
             try {
                 presentation = getTurnJournalPresentation(await input.read(), input.runId);
             } catch {
-                presentation = {
-                    description: 'The Computer did not return detailed activity.',
-                    kind: 'unavailable',
-                    reason: 'timeout',
-                    title: 'Detailed activity unavailable',
-                };
+                presentation = unreadableTurnJournal;
             }
             if (disposed) {
                 return;
@@ -73,7 +69,7 @@ export function createTurnJournalRelay(input: {
 
     return {
         refresh,
-        /** The Computer announced a journal change for this run. */
+        /** The Server stored new journal records for this run. */
         changed() {
             if (isVisible()) {
                 return refresh();

@@ -14,18 +14,16 @@ export function turnOutlinesKey(serverId: string, agentId: string) {
 }
 
 /**
- * A settled turn's outline never changes, and a run with no journal will not
- * grow one; an offline, timed-out, or still-running answer is read again.
+ * A settled turn's outline never changes. A missing or still-running outline
+ * is read again: its Computer may still be syncing the run.
  */
 export function isSettledOutlineEntry(entry: AgentExecutionOutlineEntry): boolean {
-    return entry.status === 'available'
-        ? entry.outline.status !== 'running'
-        : entry.reason === 'missing';
+    return entry.status === 'available' && entry.outline.status !== 'running';
 }
 
 /**
  * Every requested run's outline entry, reusing any settled entry an earlier
- * read of this Agent already holds and asking the Computer only for the rest,
+ * read of this Agent already holds and asking the Server only for the rest,
  * at most {@link EXECUTION_OUTLINES_MAX_RUNS} runs per request, one request at a time.
  */
 export async function readTurnOutlines({
@@ -52,9 +50,7 @@ export async function readTurnOutlines({
         }
     }
     return runIds.map(
-        (runId) =>
-            known.get(runId) ??
-            fetched.get(runId) ?? { reason: 'missing', runId, status: 'unavailable' }
+        (runId) => known.get(runId) ?? fetched.get(runId) ?? { runId, status: 'missing' }
     );
 }
 

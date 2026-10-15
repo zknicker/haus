@@ -6,6 +6,7 @@ import {
     getTurnJournalPresentation,
     type TurnDetailAccess,
     type TurnJournalPresentation,
+    unreadableTurnJournal,
 } from './agent-activity-model.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 
@@ -44,8 +45,8 @@ export function useLogTurnJournal({
         gcTime: settledJournalGcMs,
         refetchOnReconnect: false,
         retry: false,
-        // Only an available journal is final; an offline or timed-out answer
-        // reads again the next time someone opens the turn.
+        // Only an available journal is final; a run whose journal has not
+        // synced yet reads again the next time someone opens the turn.
         staleTime: (query) =>
             query.state.data?.status === 'available' ? Number.POSITIVE_INFINITY : 0,
     });
@@ -65,7 +66,7 @@ export function useLogTurnJournal({
         : settled.data
           ? getTurnJournalPresentation(settled.data, turn.runId)
           : settled.isError
-            ? unavailable
+            ? unreadableTurnJournal
             : null;
     const isSettled = presentation !== null;
     React.useEffect(() => {
@@ -75,10 +76,3 @@ export function useLogTurnJournal({
     }, [isSettled, queue, turn.runId]);
     return presentation;
 }
-
-const unavailable: TurnJournalPresentation = {
-    description: 'The Computer did not return detailed activity.',
-    kind: 'unavailable',
-    reason: 'timeout',
-    title: 'Detailed activity unavailable',
-};

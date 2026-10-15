@@ -3,10 +3,8 @@ import type { AgentExecutionJournalResult } from '@haus/api';
 import { createTurnJournalRelay, type TurnJournalSnapshot } from './turn-journal-relay.ts';
 
 const available: AgentExecutionJournalResult = {
-    type: 'agent-execution-journal-result',
     status: 'available',
     agentId: 'agent_one',
-    requestId: 'request_one',
     runId: 'run_one',
     journal: {
         runId: 'run_one',

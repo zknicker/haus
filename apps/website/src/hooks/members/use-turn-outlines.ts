@@ -1,7 +1,6 @@
 import type { AgentExecutionOutline } from '@haus/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import { useComputers } from '../servers/use-computers.ts';
 import {
     createReadGate,
     indexOutlines,
@@ -19,8 +18,8 @@ const outlineReads = createReadGate(3);
 /**
  * The compact outlines of one Agent's settled turns, read in one batched
  * request (`agent.executionOutlines`) per set of runs. Settled outlines are
- * reused across days and revisits and never read again; runs the Computer could
- * not answer read again when a Computer comes back online.
+ * reused across days and revisits and never read again; runs whose outline has
+ * not synced yet read again whenever the query is next used.
  */
 export function useTurnOutlines({
     agentId,
@@ -35,13 +34,6 @@ export function useTurnOutlines({
 }): ReadonlyMap<string, AgentExecutionOutline> {
     const client = useQueryClient();
     const utils = hausTrpc.useUtils();
-    const computers = useComputers(serverId, { enabled });
-    // A Computer reconnecting changes this, so unanswered runs read again.
-    const online = (computers.data ?? [])
-        .filter((computer) => computer.health !== 'offline')
-        .map((computer) => computer.id)
-        .sort()
-        .join(',');
     const sorted = [...runIds].sort();
 
     const outlines = useQuery({
@@ -64,7 +56,7 @@ export function useTurnOutlines({
                 runIds: sorted,
                 serverId,
             }),
-        queryKey: [...turnOutlinesKey(serverId, agentId), sorted, online],
+        queryKey: [...turnOutlinesKey(serverId, agentId), sorted],
         refetchOnReconnect: false,
         retry: false,
         staleTime: (query) =>
