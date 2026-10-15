@@ -70,11 +70,11 @@ describe('preset icon fallback', () => {
         });
         expect(urls).toEqual([
             'https://mcp.cloudflare.com/mcp',
-            'https://mcp.linear.app/mcp',
             'https://handmade.merchbase.co/mcp',
             'https://atlas.merchbase.co/mcp',
             'https://fulfillment.merchbase.co/mcp/printful',
             'https://tmterminal.merchbase.co/mcp',
+            'https://mcp.linear.app/mcp',
         ]);
         expect(catalog.find((entry) => entry.preset === 'merchbase-atlas')?.icon).toEqual(
             resolvedIcon
