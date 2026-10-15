@@ -41,6 +41,16 @@ describe('linear contracts', () => {
         expect(
             linearIdentitySchema.parse({
                 agentId: 'agt_juniper',
+                credentialsSaved: false,
+                guidedFlow: {
+                    appName: 'Juniper',
+                    avatarUrl: null,
+                    callbackUrl: 'https://haus.chat/linear/oauth/callback',
+                    createAppUrl: 'https://linear.app/settings/api/applications/new',
+                    identityId: 'lni_0123456789abcdef',
+                    webhookEvents: ['agent_session_events'],
+                    webhookUrl: 'https://haus.chat/api/linear/webhook/lni_0123456789abcdef',
+                },
                 handle: null,
                 id: 'lni_0123456789abcdef',
                 lastDeliveryAt: null,

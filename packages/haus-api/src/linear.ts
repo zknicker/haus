@@ -148,20 +148,6 @@ export const linearWorkspaceSchema = z
     .strict();
 export type LinearWorkspace = z.infer<typeof linearWorkspaceSchema>;
 
-/** One Agent's Linear identity: a private Linear app the Owner registered for it. */
-export const linearIdentitySchema = z
-    .object({
-        agentId: idSchema,
-        /** The app user's Linear mention handle, known once installed. */
-        handle: z.string().min(1).nullable(),
-        id: idSchema,
-        lastDeliveryAt: timestampSchema.nullable(),
-        status: linearIdentityStatusSchema,
-        workspaceId: idSchema,
-    })
-    .strict();
-export type LinearIdentity = z.infer<typeof linearIdentitySchema>;
-
 /** Webhook events an identity app ticks in Linear's settings. */
 export const linearIdentityWebhookEventSchema = z.enum([
     'agent_session_events',
@@ -184,6 +170,24 @@ export const linearIdentityDraftSchema = z
     })
     .strict();
 export type LinearIdentityDraft = z.infer<typeof linearIdentityDraftSchema>;
+
+/** One Agent's Linear identity: a private Linear app the Owner registered for it. */
+export const linearIdentitySchema = z
+    .object({
+        agentId: idSchema,
+        /** Whether the client id and webhook signing secret are saved, so install can start. */
+        credentialsSaved: z.boolean(),
+        /** The guided flow's values, readable again for any identity not yet removed. */
+        guidedFlow: linearIdentityDraftSchema,
+        /** The app user's Linear mention handle, known once installed. */
+        handle: z.string().min(1).nullable(),
+        id: idSchema,
+        lastDeliveryAt: timestampSchema.nullable(),
+        status: linearIdentityStatusSchema,
+        workspaceId: idSchema,
+    })
+    .strict();
+export type LinearIdentity = z.infer<typeof linearIdentitySchema>;
 
 const serverInputSchema = z.object({ serverId: idSchema }).strict();
 const connectionInputSchema = z.object({ connectionId: idSchema, serverId: idSchema }).strict();
@@ -212,7 +216,8 @@ export const linearCreateIdentityDraftInputSchema = z
 /** Identity installs use PKCE, so there is no client secret to paste. */
 export const linearSaveIdentityCredentialsInputSchema = z
     .object({
-        clientId: z.string().trim().min(1).max(200),
+        /** Only while `draft`; omitted, the saved client id stays (a secret rotation). */
+        clientId: z.string().trim().min(1).max(200).optional(),
         identityId: idSchema,
         serverId: idSchema,
         webhookSigningSecret: z.string().trim().min(1).max(200),

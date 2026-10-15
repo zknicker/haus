@@ -18,7 +18,6 @@ export const mcpOAuthPresetSchema = z.enum([
     'github',
     'google-calendar',
     'handmade',
-    'linear',
     'merchbase',
     'merchbase-atlas',
     'merchbase-fulfillment',
@@ -28,11 +27,18 @@ export const mcpOAuthPresetSchema = z.enum([
 export const mcpBearerTokenPresetSchema = z.enum(['x']);
 export const mcpDesktopPresetSchema = z.enum(['skool']);
 export const mcpKeylessPresetSchema = z.enum(['coingecko']);
+/**
+ * Built-in connections served by a Server-hosted connector and connected
+ * through their own install flow (`linear.startInstall`), never MCP OAuth or
+ * the preset account form.
+ */
+export const mcpBuiltInPresetSchema = z.enum(['linear']);
 export const mcpPresetSchema = z.enum([
     ...mcpOAuthPresetSchema.options,
     ...mcpBearerTokenPresetSchema.options,
     ...mcpKeylessPresetSchema.options,
     ...mcpDesktopPresetSchema.options,
+    ...mcpBuiltInPresetSchema.options,
 ]);
 
 /** Printable ASCII with no spaces: a header value that cannot smuggle a line break. */
@@ -233,6 +239,7 @@ export type McpBearerTokenPreset = z.infer<typeof mcpBearerTokenPresetSchema>;
 export type McpBearerTokenUpdate = z.infer<typeof mcpBearerTokenUpdateSchema>;
 export type McpOAuthPreset = z.infer<typeof mcpOAuthPresetSchema>;
 export type McpKeylessPreset = z.infer<typeof mcpKeylessPresetSchema>;
+export type McpBuiltInPreset = z.infer<typeof mcpBuiltInPresetSchema>;
 export type McpPreset = z.infer<typeof mcpPresetSchema>;
 export type McpPresetAccountCreate = z.infer<typeof mcpPresetAccountCreateSchema>;
 
