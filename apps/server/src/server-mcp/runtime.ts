@@ -15,6 +15,7 @@ import {
     readGrantedConnections,
     toolNotOffered,
 } from './agent-access.ts';
+import { connectionSearchText } from './catalog-response.ts';
 import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { createConnectionClient } from './connection-client.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
@@ -53,6 +54,10 @@ export interface McpToolDefinition {
     inputSchema: Record<string, unknown>;
     name: string;
     title: string | null;
+}
+/** A catalog tool plus Server-only search text naming its connection and service. */
+export interface McpCatalogTool extends McpToolDefinition {
+    searchText: string;
 }
 interface McpRuntimeOptions {
     clientFactory?: ClientFactory;
@@ -121,7 +126,7 @@ export class McpRuntime {
         agentId: string,
         _traceContext?: TraceCarrier,
         signal?: AbortSignal
-    ): Promise<McpToolDefinition[]> {
+    ): Promise<McpCatalogTool[]> {
         signal?.throwIfAborted();
         const scope = { serverId, agentId };
         const connections = await readGrantedConnections(this.db, scope);
@@ -130,10 +135,12 @@ export class McpRuntime {
                 if (!(await hasConnectionGrant(this.db, scope, connection.id))) {
                     return [];
                 }
+                const searchText = connectionSearchText(connection);
                 return this.inventory.read(connection.id).map((tool) => ({
                     description: `${connection.name}: ${tool.description ?? `Run ${tool.name}.`}`,
                     inputSchema: tool.inputSchema,
                     name: modelToolName(connection.id, tool.name),
+                    searchText,
                     title: tool.annotations?.title ?? null,
                 }));
             })
