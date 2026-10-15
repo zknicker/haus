@@ -24,3 +24,13 @@ export function skoolHostedDefinition(packageRoot: string): HostedMcpDefinition 
         },
     };
 }
+
+/** The stateless Linear connector: one compiled Bun binary, no storage, no credentials. */
+export function linearHostedDefinition(packageRoot: string): HostedMcpDefinition {
+    return {
+        id: 'linear',
+        command: [join(packageRoot, 'bin/hosted-mcp-linear')],
+        cwd: packageRoot,
+        environment: { PATH: '/usr/bin:/bin' },
+    };
+}
