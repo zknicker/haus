@@ -4,7 +4,6 @@ import { Effect, Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
-import { artifactStorageBytes } from './artifacts/storage.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
 import { AvatarImageService, OpenAiAvatarImageProvider } from './avatar-generation/index.ts';
@@ -104,7 +103,8 @@ export async function createHausServerApplication(
         await settle(runtime, Scope.extend(shutdown.register(resources), scope));
         const connectedHaus = await connectHausDatabase(options.databaseUrl);
         haus = connectedHaus;
-        const artifactStorage = await openArtifactStorage(options, connectedHaus.db, runtime);
+        const artifacts = await openArtifactStorage(options, connectedHaus.db, runtime, scope);
+        const { artifactStorage } = artifacts;
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot, runtime);
         await reconcileAttachments(connectedHaus.db, attachmentRoot);
         await purgeDeletedChannels(connectedHaus.db, attachmentRoot);
@@ -145,8 +145,7 @@ export async function createHausServerApplication(
             agentDelivery,
             appOrigin: options.appOrigin,
             attachmentRoot,
-            artifactStorage,
-            artifactStorageBytes: options.artifactStorageBytes ?? artifactStorageBytes,
+            ...artifacts,
             avatarImageService,
             clerkSessions,
             clerkUsers:

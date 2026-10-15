@@ -7,7 +7,12 @@ import {
 } from '../postgres/schema.ts';
 import { type ArtifactAccess, type ArtifactActor, artifactAccess } from './access.ts';
 import { releasePendingPath } from './publish.ts';
-import { ArtifactError, type ArtifactStorage, requireArtifactStorage } from './storage.ts';
+import {
+    ArtifactError,
+    type ArtifactStorage,
+    deleteRevisionObjects,
+    requireArtifactStorage,
+} from './storage.ts';
 
 export async function deleteArtifact(
     db: HausDatabase,
@@ -110,7 +115,7 @@ async function purgeRevision(
     storage: ArtifactStorage,
     row: typeof revisions.$inferSelect
 ) {
-    await storage.delete(row.objectKey);
+    await deleteRevisionObjects(storage, row.objectKey);
     await db
         .update(revisions)
         .set({ reservedBytes: 0, state: row.state === 'deleting' ? 'deleted' : 'failed' })
@@ -139,7 +144,7 @@ export async function purgeServerArtifacts(
     }
     const store = requireArtifactStorage(storage);
     for (const row of rows) {
-        await store.delete(row.objectKey);
+        await deleteRevisionObjects(store, row.objectKey);
     }
 }
 

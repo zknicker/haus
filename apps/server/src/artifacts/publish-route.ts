@@ -8,6 +8,7 @@ import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-
 import { findUserByClerkId } from '../users/haus-user.ts';
 import { publishArtifact } from './publish.ts';
 import { ArtifactError, type ArtifactStorage } from './storage.ts';
+import type { ArtifactThumbnails } from './thumbnails.ts';
 
 const publishQuery = z
     .object({ replace: z.enum(['true', 'false']).optional() })
@@ -36,6 +37,7 @@ export function registerArtifactPublishRoute(
         clerkSessions: ClerkSessions;
         db: HausDatabase;
         storage: ArtifactStorage | null;
+        thumbnails: ArtifactThumbnails | null;
     }
 ) {
     app.put<{ Params: { serverId: string } }>(
@@ -71,6 +73,7 @@ export function registerArtifactPublishRoute(
                         origin: options.appOrigin,
                         storage: options.storage,
                         stream: request.raw,
+                        thumbnails: options.thumbnails,
                     });
                     await reply.send(result);
                 } catch (cause) {

@@ -7,6 +7,7 @@ import { getArtifactProcedure } from './get.ts';
 import { listArtifactProcedure } from './list.ts';
 import { moveArtifactProcedure } from './move.ts';
 import { textArtifactProcedure } from './text.ts';
+import { thumbnailArtifactProcedure } from './thumbnail.ts';
 import { versionsArtifactProcedure } from './versions.ts';
 export const artifactRouter = createRouter({
     list: listArtifactProcedure,
@@ -15,6 +16,7 @@ export const artifactRouter = createRouter({
     versions: versionsArtifactProcedure,
     download: downloadArtifactProcedure,
     text: textArtifactProcedure,
+    thumbnail: thumbnailArtifactProcedure,
     move: moveArtifactProcedure,
     delete: deleteArtifactProcedure,
     deleteVersion: deleteVersionArtifactProcedure,

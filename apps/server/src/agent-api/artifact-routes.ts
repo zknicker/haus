@@ -7,6 +7,7 @@ import { defaultArtifactListFilters, runArtifactAction } from '../artifacts/acti
 import { publishArtifact } from '../artifacts/publish.ts';
 import { publishInputFromQuery } from '../artifacts/publish-route.ts';
 import { ArtifactError, type ArtifactStorage } from '../artifacts/storage.ts';
+import type { ArtifactThumbnails } from '../artifacts/thumbnails.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { registerAgentArtifactActions } from './artifact-actions.ts';
 import { registerAgentArtifactDriveRoutes } from './artifact-drive-routes.ts';
@@ -20,6 +21,7 @@ export function registerAgentArtifactRoutes(
         db: HausDatabase;
         storage: ArtifactStorage | null;
         budget: number;
+        thumbnails: ArtifactThumbnails | null;
     }
 ) {
     registerAgentArtifactActions(app, options);
@@ -64,6 +66,7 @@ export function registerAgentArtifactRoutes(
                             origin: options.appOrigin,
                             storage: options.storage,
                             stream: request.raw,
+                            thumbnails: options.thumbnails,
                         });
                         return await reply.send(result);
                     } catch (cause) {

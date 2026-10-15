@@ -59,6 +59,7 @@ export async function registerHausServerRoutes(
         db,
         storage: dependencies.artifactStorage,
         budget: dependencies.artifactStorageBytes,
+        thumbnails: dependencies.artifactThumbnails,
     });
     registerArtifactPublishRoute(app, {
         appOrigin: dependencies.appOrigin,
@@ -66,6 +67,7 @@ export async function registerHausServerRoutes(
         clerkSessions: dependencies.clerkSessions,
         db,
         storage: dependencies.artifactStorage,
+        thumbnails: dependencies.artifactThumbnails,
     });
     registerAvatarRoutes(app, { db });
     registerComputerRoutes(app, {

@@ -57,6 +57,8 @@ export const artifactsTable = pgTable(
 );
 
 export type ArtifactRevisionState = 'uploading' | 'ready' | 'failed' | 'deleting' | 'deleted';
+/** A raster revision's WebP thumbnail: null until generated (or not a raster image). */
+export type ArtifactThumbnailState = 'ready' | 'failed';
 export const artifactRevisionsTable = pgTable(
     'artifact_revisions',
     {
@@ -76,6 +78,7 @@ export const artifactRevisionsTable = pgTable(
         serverId: text('server_id').notNull(),
         sha256: text('sha256'),
         state: text('state').notNull().$type<ArtifactRevisionState>(),
+        thumbnailState: text('thumbnail_state').$type<ArtifactThumbnailState>(),
         title: text('title').notNull(),
     },
     (table) => [
@@ -114,6 +117,10 @@ export const artifactRevisionsTable = pgTable(
         check(
             'artifact_revision_state',
             sql`${table.state} in ('uploading', 'ready', 'failed', 'deleting', 'deleted')`
+        ),
+        check(
+            'artifact_revision_thumbnail_state',
+            sql`${table.thumbnailState} is null or ${table.thumbnailState} in ('ready', 'failed')`
         ),
         check(
             'artifact_revision_ready',

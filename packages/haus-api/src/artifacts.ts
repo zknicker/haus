@@ -57,6 +57,23 @@ export const artifactTextResultSchema = z.discriminatedUnion('status', [
     z.object({ status: z.literal('binary') }).strict(),
 ]);
 export type ArtifactTextResult = z.infer<typeof artifactTextResultSchema>;
+/** Thumbnails belong to one immutable revision. */
+export const artifactThumbnailInputSchema = artifactTextInputSchema;
+/**
+ * A raster revision's WebP thumbnail (longest edge 1024 px) as a signed link, or `none` for
+ * files without one (not a raster image, too large to read back, or bytes that do not decode).
+ */
+export const artifactThumbnailResultSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            status: z.literal('ready'),
+            thumbnail_url: z.string().url(),
+            expires_at: z.string(),
+        })
+        .strict(),
+    z.object({ status: z.literal('none') }).strict(),
+]);
+export type ArtifactThumbnailResult = z.infer<typeof artifactThumbnailResultSchema>;
 /** Who created the artifact (its first revision). Exactly one Agent or one Server member. */
 export const artifactCreatorSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('agent'), agent_id: id }).strict(),

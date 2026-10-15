@@ -97,6 +97,17 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
     };
 }
 
+/** A revision's WebP thumbnail sits beside its original. */
+export function artifactThumbnailKey(objectKey: string) {
+    return `${objectKey}.thumb.webp`;
+}
+
+/** Deletes a revision's original and its thumbnail; deleting a key that never existed succeeds. */
+export async function deleteRevisionObjects(storage: ArtifactStorage, objectKey: string) {
+    await storage.delete(objectKey);
+    await storage.delete(artifactThumbnailKey(objectKey));
+}
+
 export function requireArtifactStorage(storage: ArtifactStorage | null): ArtifactStorage {
     if (!storage) {
         throw new ArtifactError(

@@ -18,6 +18,7 @@ import {
     artifactStorageBytes,
     requireArtifactStorage,
 } from './storage.ts';
+import type { ArtifactThumbnails } from './thumbnails.ts';
 
 export async function publishArtifact(options: {
     db: HausDatabase;
@@ -27,6 +28,8 @@ export async function publishArtifact(options: {
     budget?: number;
     input: ArtifactPublishInput;
     stream: AsyncIterable<Uint8Array>;
+    /** Renders the new revision's thumbnail after it lands; never fails the publish. */
+    thumbnails?: ArtifactThumbnails | null;
 }) {
     const { db, actor, input, origin } = options;
     const storage = requireArtifactStorage(options.storage);
@@ -100,6 +103,13 @@ export async function publishArtifact(options: {
                         path: artifact.path,
                     })
                 );
+            });
+            void options.thumbnails?.ensure({
+                byteSize: uploaded.size,
+                contentType: input.content_type,
+                id: reserved.revision.id,
+                objectKey: reserved.revision.objectKey,
+                thumbnailState: null,
             });
         } catch (cause) {
             await db

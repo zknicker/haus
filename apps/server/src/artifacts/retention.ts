@@ -7,7 +7,7 @@ import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
 } from '../postgres/schema.ts';
-import type { ArtifactStorage } from './storage.ts';
+import { type ArtifactStorage, deleteRevisionObjects } from './storage.ts';
 
 const sweepIntervalMs = 60 * 60 * 1000;
 const retentionMs = ARTIFACT_REVISION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -65,7 +65,7 @@ export async function deleteExpiredArtifactRevisions(
     const failedRevisionIds: string[] = [];
     for (const row of claimed) {
         try {
-            await storage.delete(row.objectKey);
+            await deleteRevisionObjects(storage, row.objectKey);
             await db.delete(revisions).where(eq(revisions.id, row.id));
             deleted.push(row);
         } catch {

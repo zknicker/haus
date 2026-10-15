@@ -1,0 +1,2 @@
+ALTER TABLE "artifact_revisions" ADD COLUMN "thumbnail_state" text;--> statement-breakpoint
+ALTER TABLE "artifact_revisions" ADD CONSTRAINT "artifact_revision_thumbnail_state" CHECK ("artifact_revisions"."thumbnail_state" is null or "artifact_revisions"."thumbnail_state" in ('ready', 'failed'));
