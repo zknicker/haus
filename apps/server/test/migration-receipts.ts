@@ -33,4 +33,5 @@ export const migrationsSince0060 = [
     '0090_agent-execution-journals',
     '0091_linear-app',
     '0092_linear-ingest-outbox',
+    '0093_linear-identity-hand-back',
 ];
