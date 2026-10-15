@@ -3,7 +3,7 @@ import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import { useState } from 'react';
 import { ListBox, ListBoxItem } from 'react-aria-components';
-import { useArtifactDownloadUrls } from '../../hooks/artifacts/use-artifact-download-urls.ts';
+import { useArtifactThumbnailUrls } from '../../hooks/artifacts/use-artifact-thumbnails.ts';
 import { hasLibraryPreview } from './artifact-format.ts';
 import { ArtifactRenameDialog, type ArtifactRenameTarget } from './artifact-rename-dialog.tsx';
 import { artifactFolderToneMap } from './drive-folders.ts';
@@ -94,7 +94,7 @@ function ArtifactFolderTile({
     tone: ArtifactFolderTone;
 }) {
     const photos = previews.filter(hasLibraryPreview);
-    const urls = useArtifactDownloadUrls(
+    const urls = useArtifactThumbnailUrls(
         serverId,
         photos.map((artifact) => ({
             artifactId: artifact.artifact_id,
