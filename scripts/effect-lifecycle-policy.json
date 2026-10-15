@@ -186,6 +186,17 @@
         "timer": 0
       }
     },
+    "apps/server/src/artifacts/retention.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One awaited sweep run drains bounded claim batches and announces each affected Server once in lexical finally. It owns no timer or background task; the boot sweep's closing signal stops it between revisions.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/server/src/artifacts/thumbnails.ts": {
       "disposition": "external-adapter",
       "reason": "Bounded thumbnail render queue: the manual promise parks a render until a slot frees and the finally hands that slot on. Server acquires the queue in its Effect Scope; close stops admission and joins renders in flight before database teardown.",
@@ -199,9 +210,9 @@
     },
     "apps/server/src/boot-sweep.ts": {
       "disposition": "external-adapter",
-      "reason": "Upstream fixed-interval maintenance adapter retains its deterministic timer seam. Server acquires each sweep in its Effect Scope; close stops admission and joins the in-flight database write before database teardown.",
+      "reason": "Upstream fixed-interval maintenance adapter retains its deterministic timer seam. Server acquires each sweep in its Effect Scope; close stops admission, aborts the closing signal a long run checks between steps, and joins the in-flight database write before database teardown.",
       "risks": {
-        "abortController": 0,
+        "abortController": 1,
         "catchAndIgnore": 0,
         "finallyBlock": 0,
         "manualPromise": 0,

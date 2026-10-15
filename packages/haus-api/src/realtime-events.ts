@@ -96,7 +96,8 @@ export type CloudAgentSettingsUpdatedEvent = z.infer<typeof cloudAgentSettingsUp
 
 /**
  * `artifact.onUpdated`: a file in Files was published, moved, or deleted, or one of its revisions
- * was deleted or pruned by retention. A null id means many files changed at once (a folder move).
+ * was deleted or pruned by retention. A null id means many files changed at once (a folder move, or a retention
+ * sweep, which announces once per Server).
  */
 export const artifactUpdatedEventSchema = z
     .object({
