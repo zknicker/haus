@@ -13,8 +13,8 @@ import {
     useFilter,
 } from '@heroui/react';
 import { useGithubRepositories } from '../../../hooks/github/use-github-repositories.ts';
+import { githubRepositoryScopeLabel } from '../../settings/connections/built-in/github/github-installation-model.ts';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
-import { githubRepositoryScopeLabel } from '../../settings/mcp/github-installation-model.ts';
 import { refusalText } from './agent-trigger-model.ts';
 import { TriggerGithubEvents } from './trigger-github-events.tsx';
 import {

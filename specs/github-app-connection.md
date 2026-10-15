@@ -295,7 +295,9 @@ permissions missing, repositories unavailable) and runs it wherever installation
 bind, reconcile, repository-access refresh, sign-in completion, and the hourly sweep, which
 re-derives from stored state when GitHub cannot answer so a stale cache still degrades. A Trigger
 scoped to repositories is `repositories_unavailable` while any selected repository is outside the
-cache. Deletion lives in `server-mcp/delete-connection.ts` and `github/installation-removal.ts`;
+cache. Deletion lives in `server-mcp/delete-connection.ts`, which reaches GitHub only through
+its built-in connection module (`github/github-connection.ts`, looked up in
+`built-in-connections/built-in-connections.ts`), and `github/installation-removal.ts`;
 the user token in `github/user-token.ts`; Haus-side checks and reads in
 `github/installation-access.ts`; App-JWT and user installation reads in
 `github/installation-facts.ts`. The Agent route is `GET /api/agent/github/installations`
@@ -323,7 +325,8 @@ test harness); `github/deliveries.ts` binding ingest to the running Server; and
 `triggers/retention-sweep.ts` (seven-day delivery expiry). New authoring refusal codes live in
 `triggerRequestRefusalSchema`; `github_triggers_unavailable` is gone.
 
-**Slice D: App UI.** Owns `apps/website/src/features/settings/mcp/*` (installations section),
+**Slice D: App UI.** Owns `apps/website/src/features/settings/connections/built-in/github/*`
+(the GitHub built-in connection definition and its installations section),
 `apps/website/src/hooks/github/*`, `features/members/agent-profile/trigger-*` and
 `agent-triggers.tsx`, `hooks/members/use-trigger-*.ts`, and iOS
 `HausModels/AutomationModels.swift`, `HausModels/AutomationFormatting.swift`, and

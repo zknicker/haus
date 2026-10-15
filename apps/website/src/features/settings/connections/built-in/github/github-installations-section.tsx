@@ -3,13 +3,15 @@ import { Button, Chip, Dropdown, Label, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment, useState } from 'react';
-import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { useGithubBindInstallation } from '../../../hooks/github/use-github-bind-installation.ts';
-import { useGithubInstallCandidates } from '../../../hooks/github/use-github-install-candidates.ts';
-import { useGithubInstallations } from '../../../hooks/github/use-github-installations.ts';
-import { useGithubStartInstall } from '../../../hooks/github/use-github-start-install.ts';
-import { ConnectionSection } from './connection-section.tsx';
+import { EntityAvatar } from '../../../../../components/ui/entity-avatar.tsx';
+import { Icon } from '../../../../../components/ui/icon.tsx';
+import { useGithubBindInstallation } from '../../../../../hooks/github/use-github-bind-installation.ts';
+import { useGithubInstallCandidates } from '../../../../../hooks/github/use-github-install-candidates.ts';
+import { useGithubInstallations } from '../../../../../hooks/github/use-github-installations.ts';
+import { useGithubStartInstall } from '../../../../../hooks/github/use-github-start-install.ts';
+import { ConnectionSection } from '../../../mcp/connection-section.tsx';
+import { ConnectionAddRow } from '../../../mcp/mcp-connection-account.tsx';
+import type { BuiltInConnectionSectionProps } from '../built-in-connection-definition.ts';
 import {
     githubCandidateDescription,
     githubInstallationSettingsUrl,
@@ -18,21 +20,6 @@ import {
 } from './github-installation-model.ts';
 import { GithubInstallationRemoveDialog } from './github-installation-remove-dialog.tsx';
 import { GithubSetupNotice } from './github-setup-notice.tsx';
-import { ConnectionAddRow } from './mcp-connection-account.tsx';
-import type { McpConnection } from './mcp-server-shared.ts';
-
-/** Only the built-in GitHub connection has installations; every other page renders nothing. */
-export function GithubInstallationsSection({
-    connection,
-    serverId,
-}: {
-    connection: McpConnection;
-    serverId: string;
-}) {
-    return connection.preset === 'github' ? (
-        <InstallationsSection connection={connection} serverId={serverId} />
-    ) : null;
-}
 
 /**
  * The GitHub accounts this connection reaches through the Haus App, one row
@@ -40,13 +27,10 @@ export function GithubInstallationsSection({
  * those actions appear only while it is connected; existing rows stay listed
  * either way, because disconnecting keeps installations.
  */
-function InstallationsSection({
+export function GithubInstallationsSection({
     connection,
     serverId,
-}: {
-    connection: McpConnection;
-    serverId: string;
-}) {
+}: BuiltInConnectionSectionProps) {
     const installations = useGithubInstallations(serverId, connection.id);
     const candidates = useGithubInstallCandidates(serverId, connection.id, connection.connected);
     const [removing, setRemoving] = useState<GithubInstallation | null>(null);

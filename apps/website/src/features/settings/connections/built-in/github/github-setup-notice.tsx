@@ -1,5 +1,5 @@
 import { Alert, CloseButton } from '@heroui/react';
-import { useGithubSetupOutcome } from '../../../hooks/github/use-github-setup-outcome.ts';
+import { useGithubSetupOutcome } from '../../../../../hooks/github/use-github-setup-outcome.ts';
 import { githubSetupNotice } from './github-installation-model.ts';
 
 /** What GitHub's install redirect brought back, until the reader dismisses it. */

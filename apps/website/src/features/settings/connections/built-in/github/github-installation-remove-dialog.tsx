@@ -1,8 +1,8 @@
 import type { GithubInstallation } from '@haus/api';
 import { AlertDialog, Button } from '@heroui/react';
 import { useRef } from 'react';
-import { useGithubUnbindInstallation } from '../../../hooks/github/use-github-unbind-installation.ts';
-import { useInstallationTriggers } from '../../../hooks/github/use-installation-triggers.ts';
+import { useGithubUnbindInstallation } from '../../../../../hooks/github/use-github-unbind-installation.ts';
+import { useInstallationTriggers } from '../../../../../hooks/github/use-installation-triggers.ts';
 import { githubRemovalBody, triggersOnInstallation } from './github-installation-model.ts';
 
 /**
