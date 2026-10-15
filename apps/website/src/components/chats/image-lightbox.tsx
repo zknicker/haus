@@ -10,6 +10,7 @@ import * as React from 'react';
 import { Dialog, Modal, ModalOverlay } from 'react-aria-components';
 import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
+import { type ImageSize, useLightboxZoom } from './image-lightbox-zoom.ts';
 
 interface ImageLightboxProps {
     dataUrl: string;
@@ -47,25 +48,17 @@ export function ImageLightbox({
     title = filename,
     width,
 }: ImageLightboxProps) {
-    const [zoom, setZoom] = React.useState(1);
-    const [intrinsicSize, setIntrinsicSize] = React.useState<{
-        height: number;
-        width: number;
-    } | null>(null);
+    const [intrinsicSize, setIntrinsicSize] = React.useState<ImageSize | null>(null);
     const renderWidth = width ?? intrinsicSize?.width;
     const renderHeight = height ?? intrinsicSize?.height;
-    const isFitZoom = zoom === 1;
-    const zoomPercent = `${Math.round(zoom * 100)}%`;
-    const scaledHeight = renderHeight ? Math.round(renderHeight * zoom) : undefined;
-    const scaledWidth = renderWidth ? Math.round(renderWidth * zoom) : undefined;
-
     // Each image opens at fit, including one reached by stepping.
-    // biome-ignore lint/correctness/useExhaustiveDependencies: dataUrl names the image shown.
-    React.useEffect(() => {
-        if (open) {
-            setZoom(1);
-        }
-    }, [dataUrl, open]);
+    const zoom = useLightboxZoom(
+        renderWidth && renderHeight ? { height: renderHeight, width: renderWidth } : null,
+        open ? dataUrl : null
+    );
+    const isFitZoom = zoom.isFit;
+    const scaledHeight = renderHeight ? Math.round(renderHeight * zoom.scale) : undefined;
+    const scaledWidth = renderWidth ? Math.round(renderWidth * zoom.scale) : undefined;
 
     useArrowKeySteps(open ? navigation : undefined);
 
@@ -107,7 +100,10 @@ export function ImageLightbox({
                     </div>
                     <div className="flex min-h-0 flex-1 flex-col md:flex-row">
                         <div className="relative flex min-h-0 min-w-0 flex-1">
-                            <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-24 md:px-20">
+                            <div
+                                className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-24 md:px-20"
+                                ref={zoom.stageRef}
+                            >
                                 <div
                                     className={cn(
                                         'relative flex items-center justify-center',
@@ -139,10 +135,11 @@ export function ImageLightbox({
                             </div>
                             {navigation ? <ImageLightboxSteps navigation={navigation} /> : null}
                             <ImageZoomControls
-                                onZoomIn={() => setZoom((value) => Math.min(4, value + 0.25))}
-                                onZoomOut={() => setZoom((value) => Math.max(1, value - 0.25))}
-                                zoom={zoom}
-                                zoomLabel={zoomPercent}
+                                canZoomIn={zoom.canZoomIn}
+                                canZoomOut={zoom.canZoomOut}
+                                onZoomIn={zoom.zoomIn}
+                                onZoomOut={zoom.zoomOut}
+                                zoomLabel={zoom.label}
                             />
                         </div>
                         {details ? (
@@ -258,14 +255,16 @@ const imageViewerActionButtonClassName =
     'inline-flex shrink-0 size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-default disabled:opacity-40 aria-disabled:cursor-default aria-disabled:opacity-40';
 
 function ImageZoomControls({
+    canZoomIn,
+    canZoomOut,
     onZoomIn,
     onZoomOut,
-    zoom,
     zoomLabel,
 }: {
+    canZoomIn: boolean;
+    canZoomOut: boolean;
     onZoomIn: () => void;
     onZoomOut: () => void;
-    zoom: number;
     zoomLabel: string;
 }) {
     return (
@@ -273,7 +272,7 @@ function ImageZoomControls({
             <button
                 aria-label="Zoom out"
                 className="inline-flex size-10 items-center justify-center rounded-l-full hover:bg-neutral-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
-                disabled={zoom <= 1}
+                disabled={!canZoomOut}
                 onClick={onZoomOut}
                 type="button"
             >
@@ -285,7 +284,7 @@ function ImageZoomControls({
             <button
                 aria-label="Zoom in"
                 className="inline-flex size-10 items-center justify-center rounded-r-full hover:bg-neutral-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
-                disabled={zoom >= 4}
+                disabled={!canZoomIn}
                 onClick={onZoomIn}
                 type="button"
             >
