@@ -69,7 +69,7 @@ attachment protocol moves to 32.
 It also relativizes workspace and home paths.
 
 **The on-disk journal is the outbox.** Unacked frames resend after a reconnect. A settled run is
-marked synced only after the Server stored it. On every connect the Computer resends each
+marked synced only after the Server answered every frame: stored, or refused for good. On every connect the Computer resends each
 unmarked journal younger than 30 days, whole, newest first, one run at a time. That one mechanism
 covers crash recovery and the one-time backfill of journals written before sync.
 

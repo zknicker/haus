@@ -183,8 +183,9 @@ export type AgentExecutionJournalRecordsFrame = Omit<
 
 /**
  * Server → Computer: the frame ending at `throughSequence` was stored, or
- * refused for good (the Agent is not assigned to this Computer, or a record is
- * malformed). Only `stored` lets the Computer count the records as synced.
+ * refused for good (the Agent is not assigned to this Computer, or the frame or
+ * a record is malformed). Either answer settles the frame: a refused one is
+ * never resent, so it cannot hold up the rest of the run or the backfill.
  */
 export const agentExecutionJournalAckSchema = z
     .object({
