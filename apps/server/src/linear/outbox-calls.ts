@@ -1,3 +1,4 @@
+import * as z from 'zod';
 import type { LinearOutboxKind } from '../postgres/schema.ts';
 import { revokeLinearToken } from './linear-api.ts';
 import type { LinearOutboxInput } from './outbox.ts';
@@ -136,6 +137,15 @@ export async function runLinearOutboxCall(
             });
             return;
         }
+        case 'identity_hand_back': {
+            const input = call.input as LinearOutboxInput<'identity_hand_back'>;
+            // Absolute values: a retry re-lists and re-delegates only what is still open.
+            const issueIds = await delegatedOpenIssueIds(transport, token, input.identityUserId);
+            for (const issueId of issueIds) {
+                await run(issueUpdate, { id: issueId, input: { delegateId: input.delegateId } });
+            }
+            return;
+        }
         default:
             throw new LinearOutboxCallError(`unknown outbox kind ${call.kind}`);
     }
@@ -207,6 +217,24 @@ async function mutate(
     throw new LinearOutboxCallError(joined, isNameCollision(joined));
 }
 
+/** Open issues (not completed or canceled) delegated to one Linear user. */
+async function delegatedOpenIssueIds(
+    transport: LinearOutboxTransport,
+    token: string,
+    delegateId: string
+): Promise<string[]> {
+    const answer = await transport.graphql(token, delegatedIssuesQuery, { delegate: delegateId });
+    if ((answer.errors ?? []).length > 0) {
+        const messages = (answer.errors ?? []).map((error) => error.message ?? 'error');
+        throw new LinearOutboxCallError(messages.join('; '));
+    }
+    const parsed = delegatedIssuesSchema.safeParse(answer.data);
+    if (!parsed.success) {
+        throw new LinearOutboxCallError('Linear answered delegated issues in an unknown shape');
+    }
+    return parsed.data.issues.nodes.map((node) => node.id);
+}
+
 /** Linear refusing a label name another label in the team already has. */
 function isNameCollision(message: string): boolean {
     return /name/iu.test(message) && /(already exists|taken|duplicate|in use)/iu.test(message);
@@ -233,3 +261,12 @@ const labelArchive = `mutation HausLabelArchive($id: String!) {
 const issueUpdate = `mutation HausIssueRoute($id: String!, $input: IssueUpdateInput!) {
   issueUpdate(id: $id, input: $input) { success }
 }`;
+const delegatedIssuesQuery = `query HausDelegatedIssues($delegate: ID!) {
+  issues(first: 250, filter: {
+    delegate: { id: { eq: $delegate } },
+    state: { type: { nin: ["completed", "canceled"] } }
+  }) { nodes { id } }
+}`;
+const delegatedIssuesSchema = z.object({
+    issues: z.object({ nodes: z.array(z.object({ id: z.string().min(1) })) }),
+});

@@ -1,11 +1,9 @@
 import type { LinearCallMeta } from '@haus/api/linear-actor-meta';
 import { and, eq } from 'drizzle-orm';
-import * as z from 'zod';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { linearAgentLabelsTable, linearLabelGroupsTable } from '../postgres/schema.ts';
 import { loadActorContext } from './actor-selection.ts';
 import { holdsGrant } from './authority.ts';
-import { linearGraphql } from './linear-api.ts';
 import { effectiveIdentityTeams } from './team-access.ts';
 import type { LinearToolRefusal } from './tool-results.ts';
 
@@ -78,29 +76,4 @@ export async function resolveDelegation(
             labelId: label?.id ?? null,
         },
     };
-}
-
-const delegatedIssuesSchema = z.object({
-    issues: z.object({ nodes: z.array(z.object({ id: z.string().min(1) })) }),
-});
-
-/**
- * Open issues (state type not `completed` or `canceled`) delegated to one
- * identity's app user, read with the workspace token before its removal.
- */
-export async function listDelegatedOpenIssueIds(
-    transport: typeof fetch,
-    workspaceToken: string,
-    appUserId: string
-): Promise<string[]> {
-    const result = await linearGraphql(
-        transport,
-        workspaceToken,
-        {
-            query: 'query HausDelegatedIssues($delegate: ID!) { issues(first: 250, filter: { delegate: { id: { eq: $delegate } }, state: { type: { nin: ["completed", "canceled"] } } }) { nodes { id } } }',
-            variables: { delegate: appUserId },
-        },
-        delegatedIssuesSchema
-    );
-    return result.issues.nodes.map((issue) => issue.id);
 }

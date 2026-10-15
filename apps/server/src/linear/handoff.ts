@@ -93,37 +93,30 @@ export async function detectLinearHandoff(
 
 /**
  * Identity removal hands each open issue delegated to that identity back to
- * its Agent through the Haus app. The caller lists the issues with the
- * workspace token before its transaction; the `Agent` label already names
- * the Agent, so only the delegate changes.
+ * its Agent through the Haus app. The removal transaction cannot read Linear,
+ * so the outbox worker lists the issues with the workspace token; the `Agent`
+ * label already names the Agent, so only the delegate changes.
  */
 export async function handBackIdentityIssues(
     tx: HausDatabase,
-    input: { issueIds: readonly string[]; now: Date; workspaceId: string }
+    input: { identityUserId: string; now: Date; workspaceId: string }
 ): Promise<void> {
     const workspace = await readSessionWorkspace(tx, input.workspaceId);
     const credentialId = workspace ? await workspaceCredentialId(tx, workspace.id) : null;
     if (!(workspace && credentialId)) {
         return;
     }
-    for (const issueId of input.issueIds) {
-        await enqueueLinearOutbox(
-            tx,
-            {
-                credentialId,
-                input: {
-                    delegateId: workspace.appUserId,
-                    issueId,
-                    labelId: null,
-                    removeLabelIds: [],
-                },
-                kind: 'issue_route',
-                serverId: workspace.serverId,
-                workspaceId: workspace.id,
-            },
-            input.now
-        );
-    }
+    await enqueueLinearOutbox(
+        tx,
+        {
+            credentialId,
+            input: { delegateId: workspace.appUserId, identityUserId: input.identityUserId },
+            kind: 'identity_hand_back',
+            serverId: workspace.serverId,
+            workspaceId: workspace.id,
+        },
+        input.now
+    );
 }
 
 /** B, and whether a person moved B's label onto the issue or delegated to B's identity. */

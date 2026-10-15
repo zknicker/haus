@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import { linearDataChangeHandler } from '../src/linear/data-change.ts';
 import type { LinearDeliveryRow } from '../src/linear/delivery-handler.ts';
 import { handBackIdentityIssues } from '../src/linear/handoff.ts';
+import type { LinearOutboxTransport } from '../src/linear/outbox-calls.ts';
+import { runLinearOutboxBatch } from '../src/linear/outbox-worker.ts';
 import { linearSessionHandler } from '../src/linear/session-routing.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -12,6 +14,7 @@ import {
     desTeamId,
     inboxRows,
     type LinearSessionWorld,
+    linearTestRuntime,
     outboxRows,
     seedLinearIdentity,
     seedLinearSessionWorld,
@@ -203,28 +206,46 @@ test('a change touching neither label nor delegate is no handoff', async () => {
     expect(await outboxRows(connection.db, world.workspaceId)).toEqual([]);
 });
 
-test('identity removal hands open issues back to the Haus app', async () => {
+test('identity removal hands open issues back to the Haus app through the outbox', async () => {
     const world = await seedLinearSessionWorld(connection.db);
     await connection.db.transaction((tx) =>
         handBackIdentityIssues(tx, {
-            issueIds: ['issue-1', 'issue-2'],
+            identityUserId: 'identity-user',
             now,
             workspaceId: world.workspaceId,
         })
     );
-    const rows = await outboxRows(connection.db, world.workspaceId);
-    expect(rows.map((row) => row.input)).toEqual([
-        {
-            delegateId: world.workspaceAppUserId,
-            issueId: 'issue-1',
-            labelId: null,
-            removeLabelIds: [],
+    const calls: { query: string; variables: Record<string, unknown> }[] = [];
+    const transport: LinearOutboxTransport = {
+        graphql: (_token, query, variables) => {
+            calls.push({ query, variables });
+            return Promise.resolve(
+                query.includes('HausDelegatedIssues')
+                    ? { data: { issues: { nodes: [{ id: 'issue-1' }, { id: 'issue-2' }] } } }
+                    : { data: { issueUpdate: { success: true } } }
+            );
         },
-        {
-            delegateId: world.workspaceAppUserId,
-            issueId: 'issue-2',
-            labelId: null,
-            removeLabelIds: [],
-        },
+        revoke: () => Promise.reject(new Error('no revoke for a hand-back')),
+    };
+    await runLinearOutboxBatch({
+        clock: { now: () => now },
+        credentials: { accessToken: (id) => Promise.resolve(`token-for-${id}`) },
+        db: connection.db,
+        runtime: linearTestRuntime,
+        transport,
+    });
+    const [row] = await outboxRows(connection.db, world.workspaceId);
+    expect(row).toMatchObject({ kind: 'identity_hand_back', state: 'done' });
+    // Other tests' worlds share the queue; only this world's calls name its app user.
+    const mine = calls.filter(
+        (call) =>
+            call.variables.delegate === 'identity-user' ||
+            (call.variables.input as { delegateId?: string } | undefined)?.delegateId ===
+                world.workspaceAppUserId
+    );
+    expect(mine.map((call) => call.variables)).toEqual([
+        { delegate: 'identity-user' },
+        { id: 'issue-1', input: { delegateId: world.workspaceAppUserId } },
+        { id: 'issue-2', input: { delegateId: world.workspaceAppUserId } },
     ]);
 });

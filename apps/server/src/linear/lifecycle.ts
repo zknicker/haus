@@ -112,7 +112,7 @@ export async function removeLinearWorkspace(
             )
         );
     for (const identity of identities) {
-        await removeLinearIdentity(tx, identity.id, input.now);
+        await removeLinearIdentity(tx, identity.id, input.now, { handBack: false });
     }
     await orphanLinearSessions(tx, {
         now: input.now,
@@ -134,14 +134,15 @@ export async function removeLinearWorkspace(
 
 /**
  * Any live identity → `removed`: credential revoked, secrets deleted, open
- * sessions orphaned. `handBackIssueIds` are its open delegated issues, listed
- * from Linear before the transaction; they return to the Haus app.
+ * sessions orphaned. With `handBack`, its open delegated issues return to the
+ * Haus app through the outbox; a workspace being removed has no actor left to
+ * make that call, so it passes false.
  */
 export async function removeLinearIdentity(
     tx: HausDatabase,
     identityId: string,
     now: Date,
-    handBackIssueIds: readonly string[] = []
+    options: { handBack: boolean }
 ): Promise<void> {
     const [identity] = await tx
         .select()
@@ -152,9 +153,10 @@ export async function removeLinearIdentity(
         return;
     }
     await orphanLinearSessions(tx, { identityId, now, serverId: identity.serverId });
-    if (handBackIssueIds.length > 0) {
+    // A draft never installed, so nothing was ever delegated to it.
+    if (options.handBack && identity.appUserId) {
         await handBackIdentityIssues(tx, {
-            issueIds: handBackIssueIds,
+            identityUserId: identity.appUserId,
             now,
             workspaceId: identity.workspaceId,
         });
@@ -236,7 +238,7 @@ export async function linearAgentRetired(
             )
         );
     for (const identity of identities) {
-        await removeLinearIdentity(tx, identity.id, now);
+        await removeLinearIdentity(tx, identity.id, now, { handBack: true });
     }
     await tx
         .update(linearWorkspacesTable)

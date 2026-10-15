@@ -14,6 +14,19 @@ const externalUrlSchema = z.object({ label: z.string().min(1), url: z.url() }).s
 
 /** Each kind's input, keyed by kind. */
 export const linearOutboxInputSchemas = {
+    /**
+     * A removed identity's open delegated issues go back to the Haus app. The
+     * worker lists them with the workspace token, since a removal transaction
+     * cannot read Linear.
+     */
+    identity_hand_back: z
+        .object({
+            /** The Haus app's Linear user in this workspace: the new delegate. */
+            delegateId: linearId,
+            /** The removed identity's Linear app user. */
+            identityUserId: linearId,
+        })
+        .strict(),
     issue_route: z
         .object({
             /** The Linear user the issue is delegated to; null leaves the delegate alone. */

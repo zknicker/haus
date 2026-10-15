@@ -24,6 +24,7 @@ export const linearOutboxKinds = [
     'label_archive',
     'issue_route',
     'token_revoke',
+    'identity_hand_back',
 ] as const;
 export type LinearOutboxKind = (typeof linearOutboxKinds)[number];
 
@@ -67,7 +68,8 @@ export const linearOutboxTable = pgTable(
             'linear_outbox_kind',
             sql`${table.kind} in (
                 'session_ack', 'session_activity', 'session_create', 'label_group_create',
-                'label_create', 'label_rename', 'label_archive', 'issue_route', 'token_revoke'
+                'label_create', 'label_rename', 'label_archive', 'issue_route', 'token_revoke',
+                'identity_hand_back'
             )`
         ),
         check('linear_outbox_state', sql`${table.state} in ('queued', 'done', 'dead')`),
