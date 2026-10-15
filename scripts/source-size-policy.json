@@ -82,7 +82,7 @@
     "apps/website/src/features/mentions/mention-editor.tsx": 419,
     "apps/website/src/features/mentions/mention-text.test.ts": 474,
     "apps/website/src/features/mentions/use-mention-composer.tsx": 366,
-    "apps/website/src/features/servers/chat/chat-search.tsx": 338,
+    "apps/website/src/features/servers/chat/chat-search.tsx": 333,
     "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
     "packages/haus-api/src/agent-runner.ts": 432,
     "packages/haus-api/src/agent.ts": 304,

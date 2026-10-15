@@ -3,18 +3,17 @@ import { useDeferredValue, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useArtifactLibrary } from '../../hooks/artifacts/use-artifact-library.ts';
 import { useArtifactUpload } from '../../hooks/artifacts/use-artifact-upload.ts';
+import type { BandCrumb } from '../shell/band-trail.ts';
+import { PageBand } from '../shell/page-band.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
-import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { ArtifactLibraryContent } from './artifact-library-content.tsx';
 import { ArtifactLibraryContextMenu } from './artifact-library-context-menu.tsx';
 import { ArtifactLibraryControls } from './artifact-library-controls.tsx';
 import { ArtifactUploadConfirm, ArtifactUploadStatus } from './artifact-upload-feedback.tsx';
 import { ArtifactUploadMenu } from './artifact-upload-menu.tsx';
-import { type ArtifactsCrumb, ArtifactsTopbar } from './artifacts-topbar.tsx';
 import { artifactFolderCrumbs } from './drive-folders.ts';
 import { rememberLibraryItem } from './library-focus.ts';
-import { LibraryHistoryButtons } from './library-history-buttons.tsx';
 import {
     type ArtifactLibraryView,
     type ArtifactViewerContext,
@@ -82,13 +81,12 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
 
     return (
         <ArtifactActionsContext value={actions}>
-            <PageTopbar>
-                <ArtifactsTopbar
+            <PageBand>
+                <PageBand.Trail
                     crumbs={trailCrumbs(slug, filters)}
                     current={crumbs.at(-1)?.label ?? 'Files'}
-                    history={<LibraryHistoryButtons slug={slug} />}
-                    slug={slug}
-                >
+                />
+                <PageBand.Controls>
                     <ArtifactLibraryControls
                         creator={params.creator}
                         folderName={params.folder ? artifactPathBasename(params.folder) : null}
@@ -106,8 +104,8 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                             />
                         }
                     />
-                </ArtifactsTopbar>
-            </PageTopbar>
+                </PageBand.Controls>
+            </PageBand>
             <ArtifactLibraryContextMenu
                 actions={actions}
                 className="artifact-library-drop block min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
@@ -168,7 +166,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
 }
 
 /** Files, then each folder above the open one; the open folder is the trail's unlinked end. */
-function trailCrumbs(slug: string, view: ArtifactLibraryView): ArtifactsCrumb[] {
+function trailCrumbs(slug: string, view: ArtifactLibraryView): BandCrumb[] {
     const crumbs = artifactFolderCrumbs(view.folder);
     if (crumbs.length === 0) {
         return [];

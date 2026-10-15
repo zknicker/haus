@@ -3,8 +3,7 @@ import { useServerContext } from '../../features/servers/server-context.ts';
 import { TaskControls } from '../../features/servers/tasks/task-controls.tsx';
 import { TaskFilterRow } from '../../features/servers/tasks/task-filter-row.tsx';
 import { useTaskFilterFields } from '../../features/servers/tasks/task-filters.tsx';
-import { SectionHeader } from '../../features/shell/section-header.tsx';
-import { PageTopbar } from '../../features/shell/shell-topbar.tsx';
+import { PageBand } from '../../features/shell/page-band.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 import { serverRouteModules } from './server-route-modules.ts';
@@ -22,16 +21,14 @@ export function TasksPage() {
 
     return (
         <section aria-label="Tasks" className="flex min-h-0 flex-1 flex-col">
-            <PageTopbar>
-                {/* Applied filters lead the band: after the title on the web,
-                    first on desktop, where the tab already names the page. */}
-                <SectionHeader
-                    meta={hasFilters ? <TaskFilterRow fields={fields} /> : null}
-                    title="Tasks"
-                >
+            <PageBand>
+                <PageBand.Trail current="Tasks" />
+                {/* Applied filters follow the trail, beside the controls that set them. */}
+                {hasFilters ? <TaskFilterRow fields={fields} /> : null}
+                <PageBand.Controls>
                     <TaskControls canManage={canManage} fields={fields} />
-                </SectionHeader>
-            </PageTopbar>
+                </PageBand.Controls>
+            </PageBand>
             <React.Suspense fallback={<div aria-busy="true" className="min-h-0 flex-1" />}>
                 <TasksPageContent />
             </React.Suspense>
