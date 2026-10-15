@@ -58,6 +58,32 @@ final class AutomationFormattingTests: XCTestCase {
         XCTAssertEqual(decoded.github, .init(installationLogin: "acme", problem: "permissions_missing"))
     }
 
+    func testALinearTriggerReadsAsLinearAndNamesItsProblem() throws {
+        XCTAssertEqual(AutomationFormatting.triggerKindLabel("linear"), "Linear trigger")
+        XCTAssertFalse(AutomationFormatting.triggerFooter("linear").contains("secret"))
+        let degraded = Trigger(
+            anchorChatID: "chat_1", createdAt: now, id: "trg_1", kind: "linear",
+            linear: .init(workspaceName: "Haus", problem: "teams_unavailable"), title: "Review"
+        )
+        XCTAssertEqual(AutomationFormatting.triggerRowStatus(degraded), "Teams unavailable")
+        XCTAssertEqual(AutomationFormatting.linearProblemTitle("something_new"), "Not firing")
+        let json = """
+        {"anchorChatId":"chat_1","anchorMessageId":null,"createdAt":"2026-10-08T16:00:00.000Z",
+         "createdByHandle":null,"createdByUserId":null,"disabledAt":null,"fireCount":0,"id":"trg_1",
+         "instruction":null,"kind":"linear","lastFiredAt":null,"ownerAgentId":"agent_1",
+         "ownerHandle":"blippy","status":"armed","title":"Review","updatedAt":"2026-10-08T16:00:00.000Z",
+         "version":1,"linear":{"connectionId":"mcp_1","display":{},"groups":[{"event":"issue",
+         "actions":["create"]}],"problem":null,"problemSince":null,"selfSuppressedCount":0,
+         "suppressedCount":0,"workspaceName":"Haus"}}
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            try iso(decoder.singleValueContainer().decode(String.self))
+        }
+        let decoded = try decoder.decode(Trigger.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.linear, .init(workspaceName: "Haus"))
+    }
+
     private func trigger(
         github: Trigger.GitHub? = nil,
         kind: String = "webhook",

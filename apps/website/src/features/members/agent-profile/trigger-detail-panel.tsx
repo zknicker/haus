@@ -22,6 +22,7 @@ import { AutomationConfirmDialog } from './automation-confirm-dialog.tsx';
 import { TriggerFireHistory } from './trigger-fire-history.tsx';
 import { TriggerGithubConfigGroup } from './trigger-github-config-group.tsx';
 import { TriggerGithubEventEditor } from './trigger-github-event-editor.tsx';
+import { TriggerLinearConfigGroup } from './trigger-linear-config-group.tsx';
 import { TriggerManageGroup } from './trigger-manage-group.tsx';
 import { TriggerSummaryGroup } from './trigger-summary-group.tsx';
 import { type TriggerMintedSecret, TriggerWebhookCard } from './trigger-webhook-card.tsx';
@@ -134,8 +135,8 @@ export function TriggerDetailPanel({
                         trigger={trigger}
                     />
                     {/* A GitHub Trigger has no URL and no secret; it shows what
-                        it listens to instead. A Linear Trigger is read-only
-                        until its configuration view lands. */}
+                        it listens to instead, and so does a Linear Trigger,
+                        read-only until its authoring lands. */}
                     {trigger.kind === 'webhook' ? (
                         <TriggerWhenToRun
                             kind={triggerKindOption(trigger.kind)}
@@ -150,6 +151,13 @@ export function TriggerDetailPanel({
                             />
                             <TriggerGithubEventEditor serverId={serverId} trigger={trigger} />
                         </>
+                    ) : null}
+                    {trigger.kind === 'linear' ? (
+                        <TriggerLinearConfigGroup
+                            agentName={agent.displayName}
+                            serverId={serverId}
+                            trigger={trigger}
+                        />
                     ) : null}
                     <TriggerManageGroup
                         canTest={canTestTrigger(trigger)}
