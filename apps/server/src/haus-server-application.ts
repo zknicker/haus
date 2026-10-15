@@ -97,12 +97,16 @@ export async function createHausServerApplication(
         const hostedMcps = options.hostedMcps
             ? await startHostedMcps({ ...options.hostedMcps, runtime, scope: hostedScope })
             : undefined;
+        // One inbound budget per trigger, shared by the public route, Linear fires,
+        // and the operator's test fire: a test costs exactly what a real delivery does.
+        const triggerRateLimiter = new TriggerRateLimiter();
         // One refresh owner per process: tools, chips, ingest, and the outbox share it.
         const linearServices = createLinearServices(options, {
             agentDelivery,
             db: connectedHaus.db,
             postCommitWork: startedPostCommitWork,
             runtime,
+            triggerRateLimiter,
         });
         const { linear } = linearServices;
         const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, {
@@ -122,9 +126,6 @@ export async function createHausServerApplication(
             undefined,
             githubSignedInHook(options.githubApp ?? null, connectedHaus.db, wakeAgents)
         );
-        // One inbound budget per trigger, shared by the public route and the
-        // operator's test fire: a test costs exactly what a real delivery does.
-        const triggerRateLimiter = new TriggerRateLimiter();
         const contextDependencies = {
             messageRouter: options.messageRouter,
             agentDelivery,

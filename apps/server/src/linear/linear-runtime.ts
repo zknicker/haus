@@ -1,6 +1,9 @@
 import type { BootSweep, SweepTimers } from '../boot-sweep.ts';
+import type { AgentWake } from '../built-in-connections/built-in-connection.ts';
 import type { HausServerApplicationOptions } from '../haus-server-options.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
+import { linearIssueChanged } from './issue-changed.ts';
 import type { LinearApp } from './linear-api.ts';
 import { LinearSignInRequiredError } from './linear-errors.ts';
 import { createLinearPipeline, type LinearPipelineDependencies } from './linear-pipeline.ts';
@@ -9,6 +12,7 @@ import { LinearTeamCache } from './target-teams.ts';
 import { startLinearSweep } from './team-sync.ts';
 import { LinearTokenRefresher } from './token-refresh.ts';
 import { LinearToolTransport } from './tool-transport.ts';
+import { linearTriggerHandler } from './trigger-delivery.ts';
 import { createLinearWriteLedgerHooks } from './write-ledger.ts';
 
 /**
@@ -40,7 +44,10 @@ export function createLinearServices(
     dependencies: Pick<
         LinearPipelineDependencies,
         'agentDelivery' | 'db' | 'postCommitWork' | 'runtime'
-    >
+    > & {
+        /** The per-Trigger inbound budget the webhook route and test fires share. */
+        triggerRateLimiter: TriggerRateLimiter;
+    }
 ) {
     const app = options.linearApp ?? null;
     const appWebhookSecrets = options.linearWebhookSecrets ?? [];
@@ -56,9 +63,27 @@ export function createLinearServices(
         }
         return (await refresher.fresh(credentialId, 60_000)).accessToken;
     };
+    const { agentDelivery, db, postCommitWork, runtime, triggerRateLimiter } = dependencies;
+    const linearFetch = app?.fetch ?? fetch;
+    const wake = (wakes: AgentWake[]) => {
+        void postCommitWork.wakeAgents(agentDelivery, wakes);
+    };
     const pipeline = createLinearPipeline({
-        ...dependencies,
         accessToken,
+        agentDelivery,
+        db,
+        hooks: {
+            issueChanged: linearIssueChanged,
+            triggers: linearTriggerHandler({
+                accessToken,
+                db,
+                delivery: agentDelivery,
+                fetch: linearFetch,
+                limiter: triggerRateLimiter,
+            }),
+        },
+        postCommitWork,
+        runtime,
         appClientId: app?.clientId ?? null,
         appOrigin: options.appOrigin,
         appWebhookSecrets,
@@ -72,8 +97,9 @@ export function createLinearServices(
             const sweepDependencies = {
                 accessToken,
                 clock: { now: () => new Date() },
-                db: dependencies.db,
+                db,
                 fetch: app.fetch,
+                wake,
             };
             started.push(startLinearSweep(sweepDependencies, timers));
         }
