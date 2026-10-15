@@ -145,7 +145,8 @@ export async function revokeLinearCredentials(
             };
             await tx.insert(linearOutboxTable).values({
                 createdAt: input.now,
-                credentialId: credential.id,
+                // The credential row is deleted below; the worker must not look it up.
+                credentialId: null,
                 id: createOpaqueId('lnx'),
                 input: { ...revoke },
                 kind: 'token_revoke',

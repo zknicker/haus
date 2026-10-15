@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import { revokeLinearCredentials } from '../src/linear/credentials.ts';
 import { labelLifecycle } from '../src/linear/label-lifecycle.ts';
 import { enqueueLinearOutbox } from '../src/linear/outbox.ts';
 import type { LinearOutboxTransport } from '../src/linear/outbox-calls.ts';
@@ -9,8 +10,8 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import {
     agentMcpConnectionGrantsTable,
     linearAgentLabelsTable,
+    linearCredentialsTable,
     linearLabelGroupsTable,
-    linearOutboxTable,
 } from '../src/postgres/schema.ts';
 import {
     type LinearSessionWorld,
@@ -269,26 +270,35 @@ test('a label whose grant went away while it was being created is archived once 
     expect(rows[2]?.input).toEqual({ labelId: create?.clientId });
 });
 
-test('token revokes carry their own token and need no credential', async () => {
+test('a revoked credential’s token_revoke lands without its deleted credential', async () => {
     const world = await seed();
+    const [credential] = await connection.db
+        .select({ refreshToken: linearCredentialsTable.refreshToken })
+        .from(linearCredentialsTable)
+        .where(eq(linearCredentialsTable.id, world.credentialId));
+    await connection.db.transaction((tx) =>
+        revokeLinearCredentials(tx, { credentialIds: [world.credentialId], now })
+    );
     const revoked: unknown[] = [];
-    await connection.db.insert(linearOutboxTable).values({
-        createdAt: now,
-        credentialId: null,
-        id: 'lnx_revokerevoke0001',
-        input: { clientId: null, token: 'refresh-gone' },
-        kind: 'token_revoke',
-        nextAttemptAt: now,
-        serverId: world.serverId,
-        state: 'queued',
-        workspaceId: world.workspaceId,
-    });
-    await run({
-        graphql: () => Promise.reject(new Error('no GraphQL for a revoke')),
-        revoke: (input) => {
-            revoked.push(input);
-            return Promise.resolve();
+    await runLinearOutboxBatch({
+        clock: { now: () => now },
+        // As in production: the credential row is gone, so any token lookup fails.
+        credentials: {
+            accessToken: (id) => Promise.reject(new Error(`Linear credential ${id} not found`)),
+        },
+        db: connection.db,
+        runtime: linearTestRuntime,
+        transport: {
+            graphql: () => Promise.reject(new Error('no GraphQL for a revoke')),
+            revoke: (input) => {
+                revoked.push(input);
+                return Promise.resolve();
+            },
         },
     });
-    expect(revoked).toEqual([{ clientId: null, token: 'refresh-gone' }]);
+    expect(revoked).toEqual([{ clientId: null, token: credential?.refreshToken }]);
+    const rows = await outboxRows(connection.db, world.workspaceId);
+    expect(rows.map((row) => [row.kind, row.state, row.credentialId])).toEqual([
+        ['token_revoke', 'done', null],
+    ]);
 });
