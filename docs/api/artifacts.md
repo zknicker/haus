@@ -76,15 +76,14 @@ with at least one live artifact on the Server: `creator`, `artifact_count`, `lat
 procedure uses the same membership authorization as `list`.
 
 The App's Files section (`features/artifacts/`) is a Finder-style browser in the ordinary page
-column. The band leads with Back and Forward, then carries the folder trail (Haus › Files ›
+column. Its band is the shared page band: the folder trail (Haus › Files ›
 `starter-kit` › `scripts`, each folder above the open one a link; past three folders the middle
 folds into an ellipsis menu, keeping Files and the parent) and every control: search (fixed width,
 placeholder "Search"), a file-type menu, a Created by menu (Anyone, You, Agents, then other people
 with live files, from `artifact.creators`), list/grid, and Upload. When the band is narrower than
-58rem the two menus and list/grid fold into one Filters menu. Back and Forward step the router's own
-history (a desktop tab's, or the browser's), so ⌘[ / ⌘], swipes, and mouse buttons agree with them;
-each is enabled only while the neighboring entry is the library itself. Opening a folder pushes an
-entry; a filter change replaces it. The trail stays beside a desktop tab too.
+58rem the two menus and list/grid fold into one Filters menu. Back and Forward are the shell's,
+not Files' own ([React → Shell](../internals/react.md#shell)): opening a folder pushes an entry
+and a filter change replaces it, so they walk folders as part of the tab's ordinary history.
 
 Selection follows Finder: a click selects a folder or file (one selection across folders and every
 date group), a double click or Return opens it, arrow keys move it, and a touch tap opens at once.
