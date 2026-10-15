@@ -4,7 +4,6 @@ read_when:
   - changing MCP Server tRPC procedures
   - changing connection, secret, discovery, runner, or grant schemas
   - changing the `github` tRPC router, `/github/setup`, or `GET /api/agent/github/installations`
-  - changing `GET /api/agent/linear/workspaces`
 ---
 
 # Connections API
@@ -199,16 +198,6 @@ Server-side GitHub reads use the connection's user token (`mcp_secrets`) and ref
 Agents list usable installations with `GET /api/agent/github/installations[?repos=true]`: live
 installations on connected GitHub connections the Agent holds the grant on, with accessible
 repositories on request (`502 GITHUB_UNAVAILABLE` when GitHub cannot list them).
-
-## Linear Workspaces
-
-Agents list usable Linear workspaces with `GET /api/agent/linear/workspaces` (`haus linear
-workspaces`; `agentLinearWorkspacesSchema` in `@haus/api` `linear.ts`). It answers the bound workspaces on
-Linear connections the calling Agent holds the grant on: connection id, workspace id, name,
-`urlKey`, status, the workspace actor's teams as of the last sync, and `hasIdentity` when the
-Agent has its own Linear identity there. The runner credential fixes the Agent and Server; a
-missing one is `401 MISSING_TOKEN`. It reads stored state only and never calls Linear
-([Linear app](../../specs/linear-app.md)).
 
 ## Connection Icons
 
