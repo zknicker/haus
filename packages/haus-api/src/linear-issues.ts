@@ -53,3 +53,50 @@ export const linearIssueResultSchema = z.discriminatedUnion('status', [
         .strict(),
 ]);
 export type LinearIssueResult = z.infer<typeof linearIssueResultSchema>;
+
+/** One Linear issue URL reduced to what selects the workspace and the issue. */
+export interface LinearIssueUrl {
+    /** The issue key, such as `DES-142`, with the team key upper-cased. */
+    identifier: string;
+    /** `https://linear.app/<urlKey>/issue/<identifier>`: no slug, query, or hash. */
+    url: string;
+    urlKey: string;
+}
+
+const linearUrlKeyPattern = /^[a-z0-9][a-z0-9-]{0,63}$/u;
+const linearIdentifierPattern = /^([A-Za-z0-9]{1,16})-([1-9][0-9]{0,8})$/u;
+
+/**
+ * Parses `https://linear.app/<urlKey>/issue/<KEY>-<n>[/<slug>]`. Anything else,
+ * including another host, a port, credentials, or extra path segments, is not
+ * an issue reference. The normalized URL is the chip's cache identity, so two
+ * links to one issue that differ only by slug share one read.
+ */
+export function parseLinearIssueUrl(href: string): LinearIssueUrl | null {
+    let url: URL;
+    try {
+        url = new URL(href);
+    } catch {
+        return null;
+    }
+    if (
+        url.protocol !== 'https:' ||
+        url.hostname !== 'linear.app' ||
+        url.port !== '' ||
+        url.username !== '' ||
+        url.password !== ''
+    ) {
+        return null;
+    }
+    const segments = url.pathname.split('/').filter((segment) => segment.length > 0);
+    if (segments.length < 3 || segments.length > 4 || segments[1] !== 'issue') {
+        return null;
+    }
+    const urlKey = segments[0]?.toLowerCase() ?? '';
+    const match = linearIdentifierPattern.exec(segments[2] ?? '');
+    if (!(linearUrlKeyPattern.test(urlKey) && match)) {
+        return null;
+    }
+    const identifier = `${match[1]?.toUpperCase()}-${match[2]}`;
+    return { identifier, url: `https://linear.app/${urlKey}/issue/${identifier}`, urlKey };
+}
