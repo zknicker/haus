@@ -24,6 +24,8 @@ interface ImageLightboxProps {
     navigation?: { onNext?: () => void; onPrevious?: () => void };
     onOpenChange: (open: boolean) => void;
     open: boolean;
+    /** The header's words and the dialog's name when the file name means little to a person; defaults to `filename`. */
+    title?: string;
     width?: number | null;
 }
 
@@ -42,6 +44,7 @@ export function ImageLightbox({
     navigation,
     onOpenChange,
     open,
+    title = filename,
     width,
 }: ImageLightboxProps) {
     const [zoom, setZoom] = React.useState(1);
@@ -84,11 +87,10 @@ export function ImageLightbox({
             onOpenChange={onOpenChange}
         >
             <Modal className="data-entering:fade-in data-exiting:fade-out data-entering:zoom-in-95 data-exiting:zoom-out-95 fixed inset-0 z-50 data-entering:animate-in data-exiting:animate-out">
-                <Dialog
-                    aria-label={filename}
-                    className="flex min-h-dvh flex-col text-white outline-none"
-                >
-                    <div className="pointer-events-none absolute top-4 right-4 z-20 flex items-center gap-3">
+                <Dialog aria-label={title} className="flex h-dvh flex-col text-white outline-none">
+                    {/* The header owns the actions, so nothing below ever tucks under them. */}
+                    <div className="flex h-16 shrink-0 items-center gap-3 pr-4 pl-24">
+                        <p className="min-w-0 flex-1 truncate text-sm text-white/75">{title}</p>
                         <ImageLightboxDownload
                             dataUrl={dataUrl}
                             download={download}
@@ -103,49 +105,52 @@ export function ImageLightbox({
                             <Icon icon={Cancel01Icon} size={24} strokeWidth={2} />
                         </button>
                     </div>
-                    <div className="flex h-14 shrink-0 items-center gap-3 pr-32 pl-24">
-                        <p className="min-w-0 flex-1 truncate text-sm text-white/75">{filename}</p>
-                    </div>
                     <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-                        <div className="min-h-0 flex-1 overflow-auto px-6 pt-2 pb-8 md:px-12 md:pb-12">
-                            <div className="relative flex min-h-full min-w-full items-center justify-center">
-                                <button
-                                    aria-hidden="true"
-                                    className="absolute inset-0 cursor-zoom-out"
-                                    onClick={() => onOpenChange(false)}
-                                    tabIndex={-1}
-                                    type="button"
-                                />
-                                <img
-                                    alt=""
+                        <div className="relative flex min-h-0 min-w-0 flex-1">
+                            <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-24 md:px-20">
+                                <div
                                     className={cn(
-                                        'relative z-10 cursor-default rounded-md object-contain shadow-2xl shadow-black/55',
-                                        isFitZoom ? 'max-h-full max-w-full' : 'max-w-none'
+                                        'relative flex items-center justify-center',
+                                        isFitZoom ? 'size-full' : 'min-h-full min-w-full'
                                     )}
-                                    height={scaledHeight}
-                                    src={dataUrl}
-                                    width={scaledWidth}
-                                />
+                                >
+                                    <button
+                                        aria-hidden="true"
+                                        className="absolute inset-0 cursor-zoom-out"
+                                        onClick={() => onOpenChange(false)}
+                                        tabIndex={-1}
+                                        type="button"
+                                    />
+                                    {/* At fit the picture scales down to the stage, whole and
+                                        undistorted; zoomed, it takes its scaled pixel size and scrolls. */}
+                                    <img
+                                        alt=""
+                                        className={cn(
+                                            'relative z-10 cursor-default rounded-md object-contain shadow-2xl shadow-black/55',
+                                            isFitZoom
+                                                ? 'h-auto max-h-full w-auto max-w-full'
+                                                : 'max-w-none'
+                                        )}
+                                        height={isFitZoom ? undefined : scaledHeight}
+                                        src={dataUrl}
+                                        width={isFitZoom ? undefined : scaledWidth}
+                                    />
+                                </div>
                             </div>
+                            {navigation ? <ImageLightboxSteps navigation={navigation} /> : null}
+                            <ImageZoomControls
+                                onZoomIn={() => setZoom((value) => Math.min(4, value + 0.25))}
+                                onZoomOut={() => setZoom((value) => Math.max(1, value - 0.25))}
+                                zoom={zoom}
+                                zoomLabel={zoomPercent}
+                            />
                         </div>
                         {details ? (
-                            <aside className="z-20 max-h-[45%] shrink-0 overflow-auto rounded-2xl bg-surface p-4 text-foreground md:m-4 md:mt-2 md:max-h-none md:w-72">
+                            <aside className="z-20 mx-4 mb-4 max-h-[40%] shrink-0 overflow-auto rounded-2xl bg-surface p-5 text-foreground md:mt-2 md:mb-6 md:max-h-none md:w-80 md:self-start">
                                 {details}
                             </aside>
                         ) : null}
                     </div>
-                    {navigation ? (
-                        <ImageLightboxSteps
-                            navigation={navigation}
-                            reserveDetails={Boolean(details)}
-                        />
-                    ) : null}
-                    <ImageZoomControls
-                        onZoomIn={() => setZoom((value) => Math.min(4, value + 0.25))}
-                        onZoomOut={() => setZoom((value) => Math.max(1, value - 0.25))}
-                        zoom={zoom}
-                        zoomLabel={zoomPercent}
-                    />
                 </Dialog>
             </Modal>
         </ModalOverlay>
@@ -211,13 +216,11 @@ function useArrowKeySteps(navigation: ImageLightboxProps['navigation']) {
     }, [onNext, onPrevious]);
 }
 
+/** Previous and Next sit on the stage's edges, clear of the details panel beside it. */
 function ImageLightboxSteps({
     navigation,
-    reserveDetails,
 }: {
     navigation: NonNullable<ImageLightboxProps['navigation']>;
-    /** Keeps Next clear of the details panel that owns the right edge on a wide screen. */
-    reserveDetails: boolean;
 }) {
     // aria-disabled, not disabled: stepping onto the last image must not drop
     // focus from the button the user just pressed, or Escape stops reaching the dialog.
@@ -240,8 +243,7 @@ function ImageLightboxSteps({
                 aria-label="Next image"
                 className={cn(
                     imageViewerActionButtonClassName,
-                    'absolute top-1/2 right-4 z-20 -translate-y-1/2',
-                    reserveDetails && 'md:right-80'
+                    'absolute top-1/2 right-4 z-20 -translate-y-1/2'
                 )}
                 onClick={navigation.onNext}
                 type="button"
@@ -253,7 +255,7 @@ function ImageLightboxSteps({
 }
 
 const imageViewerActionButtonClassName =
-    'pointer-events-auto inline-flex size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-default disabled:opacity-40 aria-disabled:cursor-default aria-disabled:opacity-40';
+    'inline-flex shrink-0 size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-default disabled:opacity-40 aria-disabled:cursor-default aria-disabled:opacity-40';
 
 function ImageZoomControls({
     onZoomIn,
@@ -267,7 +269,7 @@ function ImageZoomControls({
     zoomLabel: string;
 }) {
     return (
-        <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center rounded-full border border-white/15 bg-white text-neutral-950 shadow-black/20 shadow-lg">
+        <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center rounded-full border border-white/15 bg-white text-neutral-950 shadow-black/20 shadow-lg">
             <button
                 aria-label="Zoom out"
                 className="inline-flex size-10 items-center justify-center rounded-l-full hover:bg-neutral-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"

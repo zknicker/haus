@@ -62,6 +62,7 @@ export function ImageGenerationLightbox({
                 }
             }}
             open
+            title={generation.prompt}
             width={loaded.image.width}
         />
     );

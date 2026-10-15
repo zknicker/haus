@@ -12,7 +12,10 @@ import {
 import { MessageRoutingDebug } from '../../chats/routing/message-routing-debug.tsx';
 import { cloudAgentWorkDisplayContent } from '../../cloud-agents/message-cloud-agent-work.ts';
 import { ImageGenerationStrip } from '../../image-generation/image-generation-strip.tsx';
-import { splitImageGenerationContent } from '../../image-generation/message-image-generations.ts';
+import {
+    type MessageImageSegment,
+    splitImageGenerationContent,
+} from '../../image-generation/message-image-generations.ts';
 import {
     applyAgentMentionAppearance,
     applyChatMentionAppearance,
@@ -51,29 +54,32 @@ export function ServerChatMessageContent({
     // backed image links becomes a card (or a strip of them) in place, so the
     // raw link text is never shown beside its card.
     const segments = splitImageGenerationContent(content, message.imageGenerations ?? []);
+    const firstCardIndex = firstCardIndexes(segments);
 
     const Wrapper = segments.length > 1 ? SegmentColumn : React.Fragment;
     const body = (
         <>
             <Wrapper>
-                {segments.map((segment) =>
+                {segments.map((segment, index) =>
                     segment.kind === 'images' ? (
                         <ImageGenerationStrip
+                            firstIndex={firstCardIndex[index]}
                             generations={segment.generations}
                             key={segment.key}
                             serverId={serverId}
                         />
                     ) : (
-                        <MessageTextBody
-                            agentsById={agentsById}
-                            chatsById={chatsById}
-                            content={segment.text}
-                            hausAgentId={message.hausAgentId ?? null}
-                            humans={humans}
-                            key={segment.key}
-                            onOpenArtifact={onOpenArtifact}
-                            onReferenceActivate={onReferenceActivate}
-                        />
+                        <SectionGap key={segment.key} open={opensSection(segments, index)}>
+                            <MessageTextBody
+                                agentsById={agentsById}
+                                chatsById={chatsById}
+                                content={segment.text}
+                                hausAgentId={message.hausAgentId ?? null}
+                                humans={humans}
+                                onOpenArtifact={onOpenArtifact}
+                                onReferenceActivate={onReferenceActivate}
+                            />
+                        </SectionGap>
                     )
                 )}
             </Wrapper>
@@ -88,6 +94,34 @@ export function ServerChatMessageContent({
     ) : (
         body
     );
+}
+
+/** Per segment, how many image cards come before it in the Message. */
+function firstCardIndexes(segments: readonly MessageImageSegment[]): number[] {
+    let count = 0;
+    return segments.map((segment) => {
+        const first = count;
+        count += segment.kind === 'images' ? segment.generations.length : 0;
+        return first;
+    });
+}
+
+/**
+ * A heading after a strip opens the next group, so it takes a second block gap
+ * above it and reads as the title of the strip below rather than equidistant.
+ */
+function opensSection(segments: readonly MessageImageSegment[], index: number): boolean {
+    const segment = segments[index];
+    return (
+        segments[index - 1]?.kind === 'images' &&
+        segment?.kind === 'text' &&
+        /^\s*#{1,6}\s/u.test(segment.text)
+    );
+}
+
+/** Wraps only a section-opening segment, so every other text segment keeps its DOM. */
+function SectionGap({ children, open }: { children: React.ReactNode; open: boolean }) {
+    return open ? <div className="mt-(--chat-block-gap)">{children}</div> : children;
 }
 
 /** Text and image cards stack one block-gap apart, like the other in-chat cards. */

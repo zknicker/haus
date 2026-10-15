@@ -2,12 +2,14 @@ import type { ImageGeneration } from '@haus/api';
 import { Chip, Label, Skeleton, Tooltip } from '@heroui/react';
 import { ContextMenu, TextShimmer } from '@heroui-pro/react';
 import { Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { useReducedMotion } from 'framer-motion';
-import { useRelativeNow } from '../../components/time/relative-time.tsx';
+import { motion, useReducedMotion } from 'motion/react';
+import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAttachmentImage } from '../../hooks/servers/use-attachment-image.ts';
 import { useImageGenerationDownload } from '../../hooks/servers/use-image-generation-download.ts';
+import { useSecondClock } from '../../hooks/time/use-second-clock.ts';
 import { cn } from '../../lib/utils.ts';
+import { imageGenerationEntranceDelay, imageGenerationReveal } from './image-generation-motion.ts';
 import {
     type ImageGenerationFooter,
     imageGenerationFooter,
@@ -24,27 +26,47 @@ import {
  */
 export function ImageGenerationCard({
     generation,
+    index = 0,
     onOpen,
     serverId,
 }: {
     generation: ImageGeneration;
+    /** Position among the Message's cards, across strips; staggers the entrance. */
+    index?: number;
     /** Opens the viewer; only a ready card has a picture to open. */
     onOpen: () => void;
     serverId: string;
 }) {
+    const { state } = generation.result;
+    const live = state === 'pending' || state === 'generating';
+    // Only a card for a running job arrives with motion; history and chat
+    // switches render settled cards in place.
+    const [arrivedLive] = React.useState(live);
+    // One shimmer instance spans pending, generating, and the decode after
+    // ready, so its sweep never restarts or blinks out before the image shows.
+    const [revealed, setRevealed] = React.useState(false);
+    const reveal = React.useCallback(() => setRevealed(true), []);
+    const shimmer = live || (state === 'ready' && !revealed);
+
     return (
         <figure
             aria-label={imageGenerationLabel(generation)}
-            className="m-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-nested-surface"
+            className={cn(
+                'm-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-nested-surface',
+                arrivedLive && 'image-generation-enter'
+            )}
             data-slot="image-generation-card"
-            data-state={generation.result.state}
+            data-state={state}
+            style={arrivedLive ? imageGenerationEntranceDelay(index) : undefined}
         >
-            <div
-                className={cn(
-                    'relative h-(--chat-media-tile-height) w-full overflow-hidden bg-surface-secondary'
-                )}
-            >
-                <GenerationPicture generation={generation} onOpen={onOpen} serverId={serverId} />
+            <div className="relative h-(--chat-media-tile-height) w-full overflow-hidden bg-surface-secondary">
+                {shimmer ? <PendingPicture announce={live} /> : null}
+                <GenerationPicture
+                    generation={generation}
+                    onOpen={onOpen}
+                    onRevealed={reveal}
+                    serverId={serverId}
+                />
             </div>
             <GenerationFooter generation={generation} />
         </figure>
@@ -54,23 +76,26 @@ export function ImageGenerationCard({
 function GenerationPicture({
     generation,
     onOpen,
+    onRevealed,
     serverId,
 }: {
     generation: ImageGeneration;
     onOpen: () => void;
+    onRevealed: () => void;
     serverId: string;
 }) {
     const { result } = generation;
     switch (result.state) {
         case 'pending':
         case 'generating':
-            return <PendingPicture />;
+            return null;
         case 'ready':
             return (
                 <ReadyPicture
                     attachmentId={result.attachmentId}
                     generation={generation}
                     onOpen={onOpen}
+                    onRevealed={onRevealed}
                     serverId={serverId}
                 />
             );
@@ -82,7 +107,7 @@ function GenerationPicture({
 }
 
 /** The neutral box with a slow sweep; motion yields to reduced motion. */
-function PendingPicture() {
+function PendingPicture({ announce }: { announce: boolean }) {
     const reduceMotion = useReducedMotion();
     return (
         <>
@@ -90,7 +115,7 @@ function PendingPicture() {
                 animationType={reduceMotion ? 'none' : 'shimmer'}
                 className="absolute inset-0 rounded-none"
             />
-            <span className="sr-only">Generating image</span>
+            {announce ? <span className="sr-only">Generating image</span> : null}
         </>
     );
 }
@@ -121,19 +146,35 @@ function FailedPicture({ prompt, reason }: { prompt: string; reason: string }) {
     );
 }
 
+/**
+ * The decoded image over the card's shimmer. Bytes that land after mount fade
+ * in, then the shimmer under them goes; bytes already decoded (a revisit)
+ * show at once, before the first paint.
+ */
 function ReadyPicture({
     attachmentId,
     generation,
     onOpen,
+    onRevealed,
     serverId,
 }: {
     attachmentId: string;
     generation: ImageGeneration;
     onOpen: () => void;
+    onRevealed: () => void;
     serverId: string;
 }) {
     const loaded = useAttachmentImage({ attachmentId, kind: 'hosted', serverId });
     const download = useImageGenerationDownload(serverId);
+    const reduceMotion = useReducedMotion();
+    const [decodedAtMount] = React.useState(loaded.image !== null);
+    const settled = decodedAtMount || loaded.failed;
+
+    React.useLayoutEffect(() => {
+        if (settled) {
+            onRevealed();
+        }
+    }, [onRevealed, settled]);
 
     if (loaded.failed) {
         return (
@@ -154,12 +195,16 @@ function ReadyPicture({
                     onClick={onOpen}
                     type="button"
                 >
-                    <img
+                    <motion.img
                         alt=""
                         className="size-full object-cover"
                         height={loaded.image.height}
+                        onAnimationComplete={onRevealed}
                         src={loaded.image.url}
                         width={loaded.image.width}
+                        {...(decodedAtMount
+                            ? { initial: false }
+                            : imageGenerationReveal(reduceMotion))}
                     />
                 </button>
             </ContextMenu.Trigger>
@@ -188,9 +233,9 @@ function GenerationFooter({ generation }: { generation: ImageGeneration }) {
     );
 }
 
-/** Ticks once a second while the generation runs, and only then. */
+/** Ticks once a second while the generation runs, and only then, on the clock every card shares. */
 function LiveFooter({ generation }: { generation: ImageGeneration }) {
-    const now = useRelativeNow(1000);
+    const now = useSecondClock();
     return <FooterLines footer={imageGenerationFooter(generation, now)} />;
 }
 

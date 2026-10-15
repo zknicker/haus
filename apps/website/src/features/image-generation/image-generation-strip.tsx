@@ -12,9 +12,12 @@ import { ImageGenerationLightbox } from './image-generation-lightbox.tsx';
  * the ready images of this strip only. There is no total or summary.
  */
 export function ImageGenerationStrip({
+    firstIndex = 0,
     generations,
     serverId,
 }: {
+    /** How many cards earlier strips of the same Message hold, so the entrance staggers across them. */
+    firstIndex?: number;
     generations: readonly ImageGeneration[];
     serverId: string;
 }) {
@@ -25,11 +28,13 @@ export function ImageGenerationStrip({
     return (
         // `mt-1.5` is the step ActionCard (Cloud Agent work) takes below the
         // author line, so a body that opens with a card clears it the same way.
-        <div className="mt-1.5 min-w-0">
+        // After text, the segment gap alone separates them.
+        <div className="min-w-0 first:mt-1.5">
             <MessageMediaStrip>
-                {generations.map((generation) => (
+                {generations.map((generation, index) => (
                     <ImageGenerationCard
                         generation={generation}
+                        index={firstIndex + index}
                         key={generation.id}
                         onOpen={() => setViewingId(generation.id)}
                         serverId={serverId}
