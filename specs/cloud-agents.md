@@ -194,7 +194,7 @@ hierarchy):
    minutes (an observation from any of the work's Runs advances `updatedAt`, so an earlier Run
    still reporting while a follow-up waits keeps the work fresh); `Stopping · requested <relative>` while a cancel is pending; the follow-up note
    `<Agent> asked for changes · waiting <d>` or `· running <d>`; otherwise the latest `activity`
-   or `Updated <relative>` while working, `Waiting for <Agent> to answer` (warning) when the job
+   or `Updated <relative>` while working, `Updated <relative>` (muted, `settledAt` else `updatedAt`) when the job
    needs input, `Finished <relative>` when done, and
    `Cancelled · <relative>` or `Expired · <relative>` when the job was cancelled or expired.
 4. **Actions**, always present — **View PR** first once there is a pull request URL, then a split
@@ -210,7 +210,7 @@ muted for CANCELLED or EXPIRED, and `Needs input` in the warning tone for a Run 
 ask a question (Claude only; see [Claude provider](#claude-provider)). The card never shows the
 question: it is for the delegating Agent, which the inbox wakes to answer it, and a person who
 wants it opens the session in the provider. Once that answer is sent, the follow-up note replaces
-`Waiting for <Agent> to answer`, so the card keeps the same rows across every state. A follow-up still in Haus's local queue is not a provider Run yet:
+the `Updated <relative>` line, so the card keeps the same rows across every state. A follow-up still in Haus's local queue is not a provider Run yet:
 it never moves the headline and only shows as the follow-up note, so one cancelled before delivery
 leaves a done job Done, while one cancelled after delivery reads Cancelled. `Queued` is never a
 headline: a first Run not yet received or still queued reads working.

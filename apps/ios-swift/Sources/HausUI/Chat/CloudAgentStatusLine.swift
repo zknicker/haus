@@ -15,9 +15,10 @@ public struct CloudAgentStatusLine: Hashable, Sendable {
 extension CloudAgentPresentation {
     /// The most urgent fact wins: why the job failed, that a live Run has gone
     /// quiet, that a stop was requested, that the delegating Agent sent a
-    /// follow-up (including its answer), otherwise the latest activity, who
-    /// must answer, or when the job settled. A job that needs input never
-    /// shows its question: that is for the delegating Agent, not the card.
+    /// follow-up (including its answer), otherwise the latest activity, or when
+    /// the job last updated or settled. A job that needs input never
+    /// shows its question: that is for the delegating Agent, not the card, which
+    /// shows only the badge and when it last updated.
     public func statusLine(agentName: String, at now: Date) -> CloudAgentStatusLine {
         let job = work.job
         if case .failed(let errorCode, let summary, _, _) = job {
@@ -41,11 +42,11 @@ extension CloudAgentPresentation {
         case .done:
             "Finished \(relative(settledAt, now))"
         case .pendingInput:
-            "Waiting for \(agentName) to answer"
+            "Updated \(relative(settledAt, now))"
         case .cancelled, .expired, .failed:
             "\(Self.jobLabel(job.state)) · \(relative(settledAt, now))"
         }
-        return CloudAgentStatusLine(text: text, tone: job.state == .pendingInput ? .warning : .muted)
+        return CloudAgentStatusLine(text: text, tone: .muted)
     }
 
     /// The provider's own report, else its error code, as one readable line.

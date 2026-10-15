@@ -128,8 +128,8 @@ and [Agent Inbox](../../specs/inbox.md).
   that follow-up is cancelled before Cursor receives it. The status line is always one line and shows
   the most urgent fact: the failure reason, `No update in <d>` once a live Run
   has been quiet for ten minutes, a pending stop, `<Agent> asked for changes ·
-  waiting <d>` (or `· running <d>`), else the latest activity, `Waiting for
-  <Agent> to answer` (never the question itself), or when the job settled. Because that line never appears or disappears, the card changes
+  waiting <d>` (or `· running <d>`), else the latest activity, or when the job last updated or settled (a
+  job that needs input shows only `Updated <relative>`, never the question). Because that line never appears or disappears, the card changes
   height only when its pull request row first appears. The launch Message's
   author line above the card says who delegated it and when, so the card
   carries no receipt. The Run report is not on the card. Every card for the
