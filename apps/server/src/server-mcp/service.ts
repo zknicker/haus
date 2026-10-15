@@ -7,6 +7,7 @@ import {
     type McpPreset,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+import { builtInConnection } from '../built-in-connections/built-in-connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -134,6 +135,10 @@ export async function disconnectMcpConnection(
         await tx
             .delete(agentMcpConnectionGrantsTable)
             .where(eq(agentMcpConnectionGrantsTable.connectionId, input.connectionId));
+        await builtInConnection(connection.preset)?.connectionDisconnected?.(tx, {
+            connectionId: input.connectionId,
+            serverId: input.serverId,
+        });
         await tx
             .update(mcpSecretsTable)
             .set({

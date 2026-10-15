@@ -11,7 +11,7 @@ import { shapeMcpConnection } from './state.ts';
 
 /**
  * Deletes a connection and, with it, its secret and Agent grants. A built-in
- * connection first runs its `beforeDelete` in the same transaction; `wake`
+ * connection first runs its `connectionDeleted` in the same transaction; `wake`
  * dispatches the Agents it returns after commit.
  */
 export async function deleteMcpConnection(
@@ -26,13 +26,12 @@ export async function deleteMcpConnection(
     const builtIn = builtInConnection(connection.preset);
     const wakes = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
-        const removed = builtIn
-            ? await builtIn.beforeDelete(tx, {
-                  connectionId: input.connectionId,
-                  now: new Date(),
-                  serverId: input.serverId,
-              })
-            : [];
+        const removed =
+            (await builtIn?.connectionDeleted?.(tx, {
+                connectionId: input.connectionId,
+                now: new Date(),
+                serverId: input.serverId,
+            })) ?? [];
         await tx
             .delete(mcpConnectionsTable)
             .where(
