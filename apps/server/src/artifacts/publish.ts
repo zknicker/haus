@@ -7,6 +7,7 @@ import {
     artifactRevisionsTable as revisions,
     serversTable,
 } from '../postgres/schema.ts';
+import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';
 import { revisionConflict } from './conflict.ts';
 import { getArtifact } from './read.ts';
@@ -103,6 +104,10 @@ export async function publishArtifact(options: {
                         path: artifact.path,
                     })
                 );
+            });
+            artifactUpdatedTopic.announce({
+                artifactId: reserved.artifact.id,
+                serverId: access.serverId,
             });
             void options.thumbnails?.ensure({
                 byteSize: uploaded.size,

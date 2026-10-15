@@ -5,6 +5,7 @@ import {
     artifactRevisionsTable as revisions,
     serversTable,
 } from '../postgres/schema.ts';
+import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { type ArtifactAccess, type ArtifactActor, artifactAccess } from './access.ts';
 import { releasePendingPath } from './publish.ts';
 import {
@@ -77,6 +78,7 @@ export async function deleteArtifact(
         }
         return selected.filter((row) => row.state !== 'deleted');
     });
+    artifactUpdatedTopic.announce({ artifactId, serverId: access.serverId });
     for (const row of keys) {
         await purgeRevision(db, store, row);
     }

@@ -7,6 +7,7 @@ import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
 } from '../postgres/schema.ts';
+import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { type ArtifactStorage, deleteRevisionObjects } from './storage.ts';
 
 const sweepIntervalMs = 60 * 60 * 1000;
@@ -71,6 +72,12 @@ export async function deleteExpiredArtifactRevisions(
         } catch {
             failedRevisionIds.push(row.id);
         }
+    }
+    // The claim already hid every claimed revision, so each touched file changed even on failure.
+    for (const [artifactId, serverId] of new Map(
+        claimed.map((row) => [row.artifactId, row.serverId])
+    )) {
+        artifactUpdatedTopic.announce({ artifactId, serverId });
     }
     if (failedRevisionIds.length) {
         throw new Error(
