@@ -80,6 +80,8 @@ function filePage(
 /** The file name, ordered naturally (`2` before `10`) by migration 0093's ICU collation. */
 const naturalName = sql`regexp_replace(${artifacts.path}, '^.*/', '') collate "artifact_natural"`;
 
+const naturalPath = sql`${artifacts.path} collate "artifact_natural"`;
+
 /** Every order ends on the artifact id, so offset pages never repeat or skip a file. */
 function fileOrder(filters: Pick<ArtifactListFilters, 'direction' | 'order'>): SQL[] {
     if (filters.order === 'path') {
@@ -92,7 +94,8 @@ function fileOrder(filters: Pick<ArtifactListFilters, 'direction' | 'order'>): S
         case 'updated':
             return [by(revisions.createdAt), by(artifacts.id)];
         case 'name':
-            return [by(naturalName), by(artifacts.id)];
+            // Search hits can share a name; their folders then decide, naturally too.
+            return [by(naturalName), by(naturalPath), by(artifacts.id)];
         case 'size':
             return [by(revisions.byteSize), asc(naturalName), asc(artifacts.id)];
         case 'kind':

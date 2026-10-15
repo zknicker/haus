@@ -45,6 +45,8 @@ export class ArtifactThumbnails {
     readonly #storage: ArtifactStorage;
     readonly #options: ArtifactThumbnailsOptions;
     readonly #inFlight = new Map<string, Promise<boolean>>();
+    /** Revisions whose late measurement already ran without facts; never read back again. */
+    readonly #measured = new Set<string>();
     readonly #waiting: (() => void)[] = [];
     #running = 0;
     #closed = false;
@@ -129,9 +131,12 @@ export class ArtifactThumbnails {
 
     /** Measures a revision rendered before image facts existed; one pass per revision. */
     #measureOnce(revision: ThumbnailRevision) {
-        if (this.#closed || this.#inFlight.has(revision.id)) {
+        if (this.#closed || this.#inFlight.has(revision.id) || this.#measured.has(revision.id)) {
             return;
         }
+        // Once per revision per process: an original the codec cannot measure, or one over the
+        // read cap, would otherwise be read back in full on every thumbnail read.
+        this.#measured.add(revision.id);
         const pending = this.#queued(async () => {
             if (this.#closed || revision.byteSize > artifactThumbnailSourceMaxBytes) {
                 return false;

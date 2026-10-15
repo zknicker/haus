@@ -47,9 +47,17 @@ export async function restoreArtifactRevision(options: {
         },
         origin,
         storage,
-        stream: storage.stream(old.objectKey),
+        stream: chunksOf(storage.stream(old.objectKey)),
         thumbnails: options.thumbnails,
     });
     return (await getArtifact(db, actor, origin, artifactId, published.artifact.revision_id))
         .record;
+}
+
+/** The stored bytes as the publish path reads them; an abandoned read is collected with the stream. */
+async function* chunksOf(stream: ReadableStream<Uint8Array>) {
+    const reader = stream.getReader();
+    for (let read = await reader.read(); !read.done; read = await reader.read()) {
+        yield read.value;
+    }
 }
