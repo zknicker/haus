@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
-import {
-    createDesktopDevEnvironment,
-    DevStackController,
-    signalChildProcessGroup,
-    waitForChildShutdown,
-} from './dev-stack-controller.mjs';
+import { createDesktopDevEnvironment, DevStackController } from './dev-stack-controller.mjs';
+import { signalChildProcessGroup, waitForChildShutdown } from './dev-stack-processes.mjs';
 
 test('App development inherits the schema-resolved Clerk issuer from the dev stack', () => {
     assert.deepEqual(

@@ -1,6 +1,12 @@
-export function createDevServerEnvironment(startupEnvironment, ports, databaseUrl) {
+export function createDevServerEnvironment(
+    startupEnvironment,
+    ports,
+    databaseUrl,
+    objectStorageEndpoint = null
+) {
     return {
         ...startupEnvironment,
+        ...(objectStorageEndpoint ? { HAUS_ARTIFACT_R2_ENDPOINT: objectStorageEndpoint } : {}),
         HAUS_APP_ORIGIN:
             startupEnvironment.HAUS_APP_ORIGIN ?? `http://localhost:${ports.websitePort}`,
         HAUS_DATABASE_URL: databaseUrl,

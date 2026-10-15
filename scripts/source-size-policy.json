@@ -89,8 +89,8 @@
     "packages/haus-sdk/src/client.ts": 431,
     "scripts/agent-tests/kit.mjs": 309,
     "scripts/agent-tests/kit.test.mjs": 498,
-    "scripts/dev-stack-controller.mjs": 576,
-    "scripts/dev-stack-shared.mjs": 345,
+    "scripts/dev-stack-controller.mjs": 533,
+    "scripts/dev-stack-shared.mjs": 342,
     "scripts/env-contract-check.ts": 327,
     "scripts/eval-harness.mjs": 482
   }

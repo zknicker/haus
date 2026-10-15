@@ -3,6 +3,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { resolveDevPorts } from './dev-ports.mjs';
+import { readProcessCommand } from './dev-stack-processes.mjs';
 import { postgresServerPath } from './postgres-server-account.mjs';
 
 export const startupEventPrefix = 'HAUS_STARTUP_EVENT ';
@@ -28,6 +29,8 @@ export function createDevStackEnvironment({
         HAUS_ATTACHMENT_ROOT: baseEnvironment.HAUS_ATTACHMENT_ROOT ?? statePaths.attachmentRoot,
         HAUS_COMPUTER_DATA_ROOT:
             baseEnvironment.HAUS_COMPUTER_DATA_ROOT ?? statePaths.computerDataRoot,
+        HAUS_OBJECT_STORAGE_ROOT:
+            baseEnvironment.HAUS_OBJECT_STORAGE_ROOT ?? statePaths.objectStorageRoot,
         HAUS_POSTGRES_DATA_ROOT:
             baseEnvironment.HAUS_POSTGRES_DATA_ROOT ?? statePaths.postgresDataRoot,
         HAUS_POSTGRES_SOCKET_ROOT:
@@ -52,6 +55,7 @@ export function createDevStackConfig({
         appOrigin: devEnvironment.HAUS_APP_ORIGIN ?? `http://localhost:${ports.websitePort}`,
         desktopEnabled: isDesktop,
         hausServerUrl: `http://localhost:${ports.hausPort}`,
+        objectStoragePath: shortenHomePath(devEnvironment.HAUS_OBJECT_STORAGE_ROOT),
         postgresDataPath: shortenHomePath(devEnvironment.HAUS_POSTGRES_DATA_ROOT),
         websiteUrl: `http://localhost:${ports.websitePort}`,
         wsUrl: `ws://localhost:${ports.hausPort}/trpc`,
@@ -235,6 +239,7 @@ export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
         appStateRoot,
         computerDataRoot: path.join(appStateRoot, 'computer'),
         attachmentRoot: path.join(appStateRoot, 'server', 'attachments'),
+        objectStorageRoot: path.join(appStateRoot, 'object-storage'),
         postgresDataRoot: postgresServerPath(path.join(appStateRoot, 'postgres')),
         postgresSocketRoot: postgresServerPath(path.join(appStateRoot, 'postgres-socket')),
     };
@@ -293,14 +298,6 @@ function readProcessWorkingDirectory(pid) {
             .find((line) => line.startsWith('n'))
             ?.slice(1) ?? null
     );
-}
-
-function readProcessCommand(pid) {
-    const result = spawnSync('ps', ['-p', String(pid), '-o', 'command='], {
-        encoding: 'utf8',
-    });
-
-    return typeof result.stdout === 'string' ? result.stdout.trim() : '';
 }
 
 function waitForProcessExit(processIds) {
