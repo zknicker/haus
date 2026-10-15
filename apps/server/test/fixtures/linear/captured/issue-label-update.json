@@ -1,0 +1,39 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "65cf6c3d-a22b-4448-a391-39dc1d83a3cb",
+    "linear-event": "IssueLabel",
+    "linear-signature": "ad3160ac7001e8cfc5cc9a30c24ad7a6e103bcef7472662158396627594a621c",
+    "linear-timestamp": "1792083063862"
+  },
+  "body": {
+    "action": "update",
+    "actor": {
+      "id": "c639344c-21df-41e2-9777-8dc93d249999",
+      "name": "Haus Dev",
+      "type": "oauthClient"
+    },
+    "createdAt": "2026-10-15T16:51:03.523Z",
+    "updatedFrom": {
+      "lastAppliedAt": "2026-10-15T16:05:18.521Z"
+    },
+    "url": "https://linear.app/haus-chat/team/HTST/issue-label/agent",
+    "type": "IssueLabel",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "data": {
+      "id": "42d01b03-8b7a-4118-8003-8223278a806a",
+      "createdAt": "2026-10-15T14:57:29.956Z",
+      "updatedAt": "2026-10-15T14:57:29.956Z",
+      "name": "Agent",
+      "color": "#5e6ad2",
+      "isGroup": true,
+      "lastAppliedAt": "2026-10-15T16:51:03.305Z",
+      "groupType": "singleSelect",
+      "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+      "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+      "creatorId": "ea30be86-13ea-4566-9ef5-1b8a0f411298"
+    },
+    "webhookTimestamp": 1792083063862,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "d35edc83-470c-4c32-a51d-18af7283604d",
+    "linear-event": "AgentSessionEvent",
+    "linear-signature": "2f4d8a87a265ecf7f5e8889647ee9c577b1314a9194f37dad8ae039ecd19a707",
+    "linear-timestamp": "1792083070694"
+  },
+  "body": {
+    "type": "AgentSessionEvent",
+    "action": "created",
+    "createdAt": "2026-10-15T16:51:10.649Z",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "oauthClientId": "af943b1c0c19bc247d377df9ec5b4313",
+    "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+    "agentSession": {
+      "id": "c9cd6666-ac6b-4c78-a10f-239c88acc409",
+      "createdAt": "2026-10-15T16:51:10.226Z",
+      "updatedAt": "2026-10-15T16:51:10.226Z",
+      "archivedAt": null,
+      "creatorId": null,
+      "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "commentId": "bd383e86-63fd-49ef-81f9-aecb8b6e8aa2",
+      "sourceCommentId": null,
+      "issueId": "a371d92c-9451-46ff-a32c-ba335e5e378a",
+      "pullRequestId": null,
+      "slugId": "cae54332a478f",
+      "status": "active",
+      "startedAt": null,
+      "endedAt": null,
+      "dismissedAt": null,
+      "dismissedById": null,
+      "externalLink": null,
+      "summary": null,
+      "sourceMetadata": null,
+      "modelSelection": null,
+      "plan": null,
+      "workspaceDiff": null,
+      "context": [],
+      "url": "https://linear.app/haus-chat/agent-session/c9cd6666-ac6b-4c78-a10f-239c88acc409",
+      "externalUrls": [],
+      "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+      "comment": {
+        "id": "bd383e86-63fd-49ef-81f9-aecb8b6e8aa2",
+        "body": "This thread is for an agent session with hausdev.",
+        "issueId": "a371d92c-9451-46ff-a32c-ba335e5e378a"
+      },
+      "issue": {
+        "id": "a371d92c-9451-46ff-a32c-ba335e5e378a",
+        "title": "Fixture: proactive session",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-12",
+        "url": "https://linear.app/haus-chat/issue/HTST-12/fixture-proactive-session"
+      }
+    },
+    "previousComments": null,
+    "guidance": null,
+    "promptContext": "<issue identifier=\"HTST-12\">\n<title>Fixture: proactive session</title>\n<team name=\"Haus Test\"/>\n</issue>",
+    "webhookTimestamp": 1792083070694,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

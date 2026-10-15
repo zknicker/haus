@@ -1,0 +1,92 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "b1fd57ca-1d1e-412f-b792-af2306a7974e",
+    "linear-event": "AgentSessionEvent",
+    "linear-signature": "0eaf05a8e67f3376b7bca2b5b87b61b79728c1ad0c9c5ea6ac58854197b0387b",
+    "linear-timestamp": "1792083188228"
+  },
+  "body": {
+    "type": "AgentSessionEvent",
+    "action": "prompted",
+    "createdAt": "2026-10-15T16:53:08.161Z",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "oauthClientId": "af943b1c0c19bc247d377df9ec5b4313",
+    "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+    "agentSession": {
+      "id": "c9cd6666-ac6b-4c78-a10f-239c88acc409",
+      "createdAt": "2026-10-15T16:51:10.226Z",
+      "updatedAt": "2026-10-15T16:53:01.842Z",
+      "archivedAt": null,
+      "creatorId": null,
+      "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "commentId": "bd383e86-63fd-49ef-81f9-aecb8b6e8aa2",
+      "sourceCommentId": null,
+      "issueId": "a371d92c-9451-46ff-a32c-ba335e5e378a",
+      "pullRequestId": null,
+      "slugId": "cae54332a478f",
+      "status": "pending",
+      "startedAt": null,
+      "endedAt": null,
+      "dismissedAt": null,
+      "dismissedById": null,
+      "externalLink": null,
+      "summary": "Fixture proactive session",
+      "sourceMetadata": null,
+      "modelSelection": null,
+      "plan": null,
+      "workspaceDiff": null,
+      "context": [],
+      "url": "https://linear.app/haus-chat/agent-session/c9cd6666-ac6b-4c78-a10f-239c88acc409",
+      "externalUrls": [],
+      "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+      "comment": {
+        "id": "bd383e86-63fd-49ef-81f9-aecb8b6e8aa2",
+        "body": "This thread is for an agent session with hausdev.",
+        "issueId": "a371d92c-9451-46ff-a32c-ba335e5e378a"
+      },
+      "issue": {
+        "id": "a371d92c-9451-46ff-a32c-ba335e5e378a",
+        "title": "Fixture: proactive session",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-12",
+        "url": "https://linear.app/haus-chat/issue/HTST-12/fixture-proactive-session"
+      }
+    },
+    "agentActivity": {
+      "id": "258ea176-b231-4386-9e5e-8465c63e7f23",
+      "createdAt": "2026-10-15T16:52:59.664Z",
+      "updatedAt": "2026-10-15T16:52:59.664Z",
+      "archivedAt": null,
+      "agentSessionId": "c9cd6666-ac6b-4c78-a10f-239c88acc409",
+      "sourceCommentId": "de7195d4-8c3d-4f5f-8be4-04d65e5f694f",
+      "userId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+      "sourceMetadata": null,
+      "executionSkippedReason": null,
+      "signal": null,
+      "ephemeral": false,
+      "pushSummary": null,
+      "queued": false,
+      "sentAt": null,
+      "signalMetadata": null,
+      "content": {
+        "type": "prompt",
+        "body": "Start with the sunset colourway."
+      },
+      "user": {
+        "id": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "name": "Zach Knickerbocker",
+        "email": "zknicker@gmail.com",
+        "avatarUrl": "https://public.linear.app/e007ac3a-dfb1-4742-8476-59a5e053fb35/c58722ed-a263-4fa6-9412-5a198424c57f",
+        "url": "https://linear.app/haus-chat/profiles/zknicker"
+      }
+    },
+    "webhookTimestamp": 1792083188228,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

@@ -782,16 +782,36 @@ webhook answers `503`.
   "Entity Issue with id … already exists". The connector derives the id from the ledger request
   id. It treats that error as success after reading the entity back, so retried creates are
   idempotent.
-- **Q7.** Open: do Linear's retries carry a fresh `webhookTimestamp`? Probe 13. If not, a retry
-  past 60 seconds is refused and missed deliveries are not replayed; team and reference sweeps
-  repair access state, and a missed session shows in Linear as unresponsive.
+- **Q7.** Closed (2026-10-15, probe 13): yes. After a `500`, Linear retried 60 s later with the same
+  `Linear-Delivery` id and a fresh `webhookTimestamp` (also sent as the `Linear-Timestamp` header).
+  The 60-second freshness window therefore admits retries, and dedupe on `Linear-Delivery` absorbs
+  them. Fixtures: `comment-create-original.json`, `comment-create-retry.json`.
 - **Q8.** Closed (2026-10-15): yes. `agentSessionCreateOnIssue({ issueId })` succeeds while Haus
   Dev is already a delegate in the workspace, and returns an `active` session. The input also
   takes `externalUrls`. A label-only handoff therefore opens a fresh session for the new Agent.
-  Still to observe through Funnel: the webhook that this creates (probe 15).
-- **Q9.** Open: the shape of Linear's stop signal for a session. Probe 12. Until captured, an
-  unrecognised session event is recorded `ignored` with `unsupported_event` and the session stays
-  `active`.
+  Linear then sends `AgentSessionEvent` `created` for it (`agent-session-created-proactive.json`).
+- **Q9.** Closed (2026-10-15, probe 12): a stop is an `AgentSessionEvent` with action `prompted`,
+  `agentActivity.signal: "stop"`, `agentActivity.content: { type: "prompt", body: "stop" }`, and
+  session status `stopping` (`agent-session-prompted-stop.json`). Haus marks the session `stopped`
+  and cancels any queued `linear_session` row for it. A plain `prompted` without a signal is a
+  follow-up (`agent-session-prompted.json`).
+
+Further observations from the captures, in `apps/server/test/fixtures/linear/captured/`:
+
+- **Data change events.** These carry `actor` (the app user id for app-actor writes) and
+  `updatedFrom`, which holds the previous values of every changed field. The webhook's
+  `data.updatedAt` equals the `updatedAt` the mutation returned, so ledger correlation on
+  `(entity id, updatedAt)` is exact.
+- **Session events.** `AgentSessionEvent` carries `appUserId`, `oauthClientId`, `promptContext`
+  (XML, with the issue, team, and labels), `guidance`, and `previousComments`.
+- **Pending follow-ups.** Linear holds a human follow-up while a session is working, and the UI
+  says it is queued. A `prompted` event arrives once the session awaits input, for example after
+  an `elicitation`.
+- **Unresponsive sessions.** A session with no activity shows "Agent didn't start" after about a
+  minute.
+- **Extra events.** Applying labels also emits `IssueLabel` `update` events, which change only
+  `lastAppliedAt`. Mentions and subscriptions emit `AppUserNotification` events
+  (`issueCommentMention`, `issueSubscribed`). Haus ignores both kinds.
 
 ## Test plan
 
