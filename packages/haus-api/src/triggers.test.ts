@@ -217,7 +217,10 @@ describe('trigger contracts', () => {
         };
         const schemas = document.components.schemas;
 
-        expect(schemas.TriggerKind).toEqual({ enum: ['webhook', 'github'], type: 'string' });
+        expect(schemas.TriggerKind).toEqual({
+            enum: ['webhook', 'github', 'linear'],
+            type: 'string',
+        });
         expect(schemas.WebhookTrigger.required).toEqual(Object.keys(trigger).sort());
         expect(schemas.GithubTrigger.required).toEqual(
             [...Object.keys(trigger).filter((key) => key !== 'url'), 'github'].sort()

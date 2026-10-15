@@ -1003,6 +1003,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/linear/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Linear workspaces on connections the calling agent is granted. */
+        get: operations["listAgentLinearWorkspaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/attachments/upload": {
         parameters: {
             query?: never;
@@ -1933,6 +1950,26 @@ export interface components {
         };
         AgentGithubInstallationsResponse: {
             installations: components["schemas"]["AgentGithubInstallation"][];
+        };
+        AgentLinearWorkspace: {
+            /** @description The Linear connection a `linear` Trigger names. */
+            connectionId: string;
+            /** @description Whether the agent has an active Linear identity here. */
+            hasIdentity: boolean;
+            /** @description The Haus workspace row id (`lnw_…`). */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            status: "active" | "refresh_required" | "revoked" | "disconnected" | "removed";
+            teams: {
+                id: string;
+                key: string;
+                name: string;
+            }[];
+            urlKey: string;
+        };
+        AgentLinearWorkspacesResponse: {
+            workspaces: components["schemas"]["AgentLinearWorkspace"][];
         };
         AgentTriggerListResponse: {
             triggers: components["schemas"]["AgentTrigger"][];
@@ -4334,6 +4371,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentGithubInstallationsResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    listAgentLinearWorkspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usable Linear workspaces with the workspace actor's teams. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentLinearWorkspacesResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

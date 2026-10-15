@@ -262,6 +262,8 @@ export const linearReferencesSchema = z.array(linearReferenceSchema);
 /** One workspace an Agent can use (`haus linear workspaces`). */
 export const agentLinearWorkspaceSchema = z
     .object({
+        /** The Linear connection a `linear` Trigger names as `connectionId`. */
+        connectionId: idSchema,
         /** Whether the Agent has an `active` Linear identity in this workspace. */
         hasIdentity: z.boolean(),
         id: idSchema,
