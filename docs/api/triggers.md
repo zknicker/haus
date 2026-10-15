@@ -149,9 +149,12 @@ alone; `rotate` on a `github` Trigger is `400 INVALID_ARG`
 whose message leads with its code (`github_installation_unavailable`,
 `github_access_required`, `github_permissions_missing`,
 `github_repositories_unavailable`, `github_trigger_limit`). A `linear` create takes
-`linear: { connectionId, groups }`, where groups carry names, keys, URLs,
-emails, and `@self` / `@agent:<handle>` selectors that the Server resolves to
-stable ids; its refusals lead with `linear_workspace_unavailable`,
+`linear: { workspace?, groups }`: `workspace` is a url key (or name) among the
+Agent's granted workspaces, optional with exactly one and on update (keeping
+the current one), and groups carry names, keys, URLs, emails, and `@self` /
+`@agent:<handle>` selectors that the Server resolves to stable ids; its
+refusals lead with `linear_workspace_unavailable`, `linear_workspace_ambiguous`
+(both listing the url keys the Agent can use),
 `linear_access_required`, `linear_reference_unavailable`,
 `linear_reference_ambiguous` (listing candidates), `linear_team_outside_access`,
 or `linear_trigger_limit`. `messageId` is the asking

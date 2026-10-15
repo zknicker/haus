@@ -127,6 +127,19 @@ export const linearTriggerConfigInputSchema = z
     .strict();
 export type LinearTriggerConfigInput = z.input<typeof linearTriggerConfigInputSchema>;
 
+/**
+ * What an Agent sends: the workspace by url key, which the Server resolves to
+ * the connection. Omitted, the Server picks the Agent's only granted
+ * workspace, or on update keeps the Trigger's current one.
+ */
+export const agentLinearTriggerConfigInputSchema = z
+    .object({
+        groups: linearTriggerGroupsInputSchema,
+        workspace: z.string().trim().min(1).optional(),
+    })
+    .strict();
+export type AgentLinearTriggerConfigInput = z.input<typeof agentLinearTriggerConfigInputSchema>;
+
 /** A name snapshot per referenced Linear id, used only for rendering. */
 export const linearTriggerDisplaySchema = z.record(linearIdSchema, z.string());
 export type LinearTriggerDisplay = z.infer<typeof linearTriggerDisplaySchema>;

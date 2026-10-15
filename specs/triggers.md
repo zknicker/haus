@@ -360,7 +360,7 @@ Trigger for real.
   [--limit <n>]`. `--kind` defaults to `webhook`, and an unknown value is an
   invalid argument naming the supported kinds; `github` flags are in
   [GitHub Triggers](github-triggers.md#agent-cli-and-manual), `linear` flags in
-  [Linear Triggers](linear-triggers.md#agent-cli-and-manual). `list` and `show` print the kind
+  [Linear Triggers](linear-triggers.md#agent-cli). `list` and `show` print the kind
   alongside the status. `create` and `rotate` print the secret once together with
   a ready-made `curl` line, the warning that rotation replaces it, and the rule
   never to post the secret in any Chat. `log`

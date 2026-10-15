@@ -5,7 +5,7 @@ import type {
     LinearTriggerProblem,
 } from '@haus/api';
 
-// How `haus trigger` prints a `linear` Trigger (specs/linear-triggers.md#agent-cli-and-manual):
+// How `haus trigger` prints a `linear` Trigger (specs/linear-triggers.md#agent-cli):
 // groups by display name, both suppressed counts. It has no URL and no secret.
 
 type LinearAgentTrigger = Extract<AgentTrigger, { kind: 'linear' }>;

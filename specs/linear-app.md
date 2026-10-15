@@ -151,9 +151,16 @@ treat it like any connection. The grant is one switch per Agent.
 | Sessions | `reply` |
 | Self | `whoami` |
 
-- **`delegate_issue(issue, agent)`** takes a Haus Agent id (handles resolve to ids in the CLI
-  and Manual, never in storage). It runs a [handoff](#handoff): the target Agent's `Agent` label
-  plus the delegate set to the target's actor. The target must hold the grant.
+A connection, even a built-in one, gets no top-level `haus` CLI family and no Manual topic.
+Usage guidance lives in these tool descriptions, where the Agent meets it: handing off and
+noting why, answering the session named in the event input, frozen image snapshots, and
+`whoami` for identity and the workspace url key a `linear` Trigger takes
+([Agent CLI](linear-triggers.md#agent-cli)).
+
+- **`delegate_issue(issue, agent)`** takes a Haus Agent id, never stored as a name. It runs a
+  [handoff](#handoff): the target Agent's `Agent` label plus the delegate set to the target's
+  actor. The target must hold the grant. Its description sends the reason through
+  `update_issue`'s `note` or `create_comment`, since the handoff carries no message.
 - **`upload_image(issue, artifactId, revisionId?, alt?)`** takes a Haus Files id
   ([Files](../docs/api/artifacts.md)), never a path. Server checks the artifact belongs to the
   invoking Agent's Server and is not deleted, its media type is `image/png`, `image/jpeg`,
@@ -164,8 +171,8 @@ treat it like any connection. The grant is one switch per Agent.
 - **`reply(session, type, body)`** posts an agent activity (`thought`, `action`, `response`,
   `elicitation`, `error`) to one Linear session by its Haus handle `lss_…`. There is no implicit
   current session.
-- **`whoami()`** returns the workspace name, whether the Agent has an identity, and its Linear
-  handle.
+- **`whoami()`** returns the workspace name and url key, whether the Agent has an identity, its
+  Linear handle, and how its writes appear.
 
 ### Per-request actor transport
 
@@ -733,8 +740,8 @@ Realtime, per the one-subscription-per-event rule, with payload schemas in
 | `linear.onUpdated` | `{ serverId, connectionId }` | `linear.workspaces`, `linear.identities` for that connection |
 | `linear.onIssueChanged` | `{ serverId, connectionId, issueId, identifier }` | the matching `linear.issue` key |
 
-Trigger changes use the existing Trigger events. Agent routes add
-`GET /api/agent/linear/workspaces` (`agentLinearWorkspacesSchema`).
+Trigger changes use the existing Trigger events. Agents add no Linear-specific route: the Agent
+Trigger routes resolve a workspace url key ([Agent CLI](linear-triggers.md#agent-cli)).
 
 ## Environment
 
@@ -990,10 +997,10 @@ thumbnail route, `features/members/agent-profile/trigger-*` for `linear`, and iO
 Trigger rendering. Uses `architect-react-features`, the HeroUI catalog, and `DESIGN.md`. Proof:
 website gate, Browser pane walkthrough of install, guided identity flow, and a chip.
 
-**Slice F: Agent CLI and Manual** (after D). Owns
-`apps/computer/src/agent-cli/commands/agent-trigger*.ts`, new `agent-linear.ts`,
-`agent-api/linear-routes.ts`, `packages/agent-manual/src/corpus/*` (a `linear` topic and the
-`trigger-linear` recipe), `specs/haus-cli.md`. Proof: computer gate, agent-manual tests,
+**Slice F: Agent CLI** (after D). Owns
+`apps/computer/src/agent-cli/commands/agent-trigger*.ts`, the Agent Trigger route's workspace
+resolution, the connector tool descriptions, and `specs/haus-cli.md`; no `haus linear` family or
+Linear Manual topic. Proof: computer gate, agent-manual tests,
 `test:agents` scenarios "work the design review queue in Linear" and "wake me when a design
 needs changes".
 

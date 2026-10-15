@@ -44,7 +44,6 @@ const recipeIds = [
     'recipes/technique/trigger-webhook',
     'recipes/technique/video-review',
     'recipes/technique/trigger-github',
-    'recipes/technique/trigger-linear',
 ] as const;
 
 // Cards written for Haus itself, with no captured source card behind them.
@@ -79,11 +78,11 @@ test('publishes the complete adapted corpus with source metadata', () => {
     const published = recipes();
 
     expect(published.map((topic) => topic.id)).toEqual([...recipeIds]);
-    expect(new Set(published.map((topic) => topic.id)).size).toBe(35);
+    expect(new Set(published.map((topic) => topic.id)).size).toBe(34);
     expect(published.filter((topic) => topic.tier === 'seeded').map((topic) => topic.id)).toEqual([
         ...seededIds,
     ]);
-    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(23);
+    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(22);
     expect(published.filter((topic) => topic.class === 'archetype')).toHaveLength(7);
     expect(
         published

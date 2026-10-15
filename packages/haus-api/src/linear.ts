@@ -258,24 +258,3 @@ export const linearReferenceSchema = z
 export type LinearReference = z.infer<typeof linearReferenceSchema>;
 
 export const linearReferencesSchema = z.array(linearReferenceSchema);
-
-/** One workspace an Agent can use (`haus linear workspaces`). */
-export const agentLinearWorkspaceSchema = z
-    .object({
-        /** The Linear connection a `linear` Trigger names as `connectionId`. */
-        connectionId: idSchema,
-        /** Whether the Agent has an `active` Linear identity in this workspace. */
-        hasIdentity: z.boolean(),
-        id: idSchema,
-        name: z.string().min(1),
-        status: linearWorkspaceStatusSchema,
-        teams: z.array(linearTeamSchema),
-        urlKey: z.string().min(1),
-    })
-    .strict();
-export type AgentLinearWorkspace = z.infer<typeof agentLinearWorkspaceSchema>;
-
-export const agentLinearWorkspacesSchema = z
-    .object({ workspaces: z.array(agentLinearWorkspaceSchema) })
-    .strict();
-export type AgentLinearWorkspaces = z.infer<typeof agentLinearWorkspacesSchema>;

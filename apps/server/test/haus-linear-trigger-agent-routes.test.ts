@@ -11,7 +11,14 @@ import { ensureAgentDmRecord } from '../src/chats/ensure-agent-dm.ts';
 import { mintRunnerCredential } from '../src/computers/runner-credentials.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { chatMessagesTable, computersTable } from '../src/postgres/schema.ts';
+import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import {
+    agentMcpConnectionGrantsTable,
+    chatMessagesTable,
+    computersTable,
+    linearWorkspacesTable,
+    mcpConnectionsTable,
+} from '../src/postgres/schema.ts';
 import { desTeamId } from './linear-session-seed.ts';
 import { issueDelivery } from './linear-trigger-deliveries.ts';
 import {
@@ -93,7 +100,7 @@ test('create, edit, preview, and list a Linear Trigger through the Agent routes'
     const created = await call('POST', '/api/agent/triggers', {
         kind: 'linear',
         linear: {
-            connectionId: world.connectionId,
+            workspace: 'Haus',
             groups: [
                 {
                     actions: ['update'],
@@ -121,7 +128,6 @@ test('create, edit, preview, and list a Linear Trigger through the Agent routes'
 
     const edited = await call('PATCH', `/api/agent/triggers/${trigger.id}`, {
         linear: {
-            connectionId: world.connectionId,
             groups: [
                 { event: 'comment', onIssueDelegatedTo: ['@self'] },
                 {
@@ -156,7 +162,6 @@ test('refusals are INVALID_ARG with the stable code first', async () => {
     const ambiguous = await call('POST', '/api/agent/triggers', {
         kind: 'linear',
         linear: {
-            connectionId: world.connectionId,
             groups: [{ event: 'issue', stateTo: ['Design Review'] }],
         },
         messageId,
@@ -180,9 +185,77 @@ test('refusals are INVALID_ARG with the stable code first', async () => {
 
     const malformed = await call('POST', '/api/agent/triggers', {
         kind: 'linear',
-        linear: { connectionId: world.connectionId, groups: [{ event: 'issue_label' }] },
+        linear: { groups: [{ event: 'issue_label' }] },
         messageId,
         title: 'No such event',
     });
     expect(malformed).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
+});
+
+test('the workspace url key resolves Server-side; several workspaces need one named', async () => {
+    const db = connection.db;
+    const [first] = await db
+        .select({ urlKey: linearWorkspacesTable.urlKey })
+        .from(linearWorkspacesTable)
+        .where(eq(linearWorkspacesTable.id, world.workspaceId));
+    const firstKey = first?.urlKey ?? '';
+    const secondConnection = createOpaqueId('mcp');
+    await db.insert(mcpConnectionsTable).values({
+        auth: 'none',
+        connected: true,
+        headerNames: [],
+        id: secondConnection,
+        name: 'Globex',
+        preset: 'linear',
+        serverId: world.serverId,
+        tools: [],
+        url: 'https://hosted-mcp.haus.invalid/linear/mcp',
+    });
+    await db.insert(agentMcpConnectionGrantsTable).values({
+        agentId: world.agents.juniper,
+        connectionId: secondConnection,
+        serverId: world.serverId,
+    });
+    await db.insert(linearWorkspacesTable).values({
+        appUserId: 'app-user-globex',
+        boundByUserId: world.binderUserId,
+        connectionId: secondConnection,
+        id: createOpaqueId('lnw'),
+        name: 'Globex',
+        organizationId: 'org-globex',
+        serverId: world.serverId,
+        status: 'active',
+        urlKey: 'globex',
+    });
+    const groups = [{ actions: ['update'], event: 'issue', teams: ['DES'] }];
+    const create = (linear: Record<string, unknown>) =>
+        call('POST', '/api/agent/triggers', {
+            kind: 'linear',
+            linear: { groups, ...linear },
+            messageId,
+            title: 'Workspace choice',
+        });
+
+    const ambiguous = await create({});
+    expect(ambiguous).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
+    expect(String(ambiguous.body.message)).toStartWith('linear_workspace_ambiguous:');
+    expect(String(ambiguous.body.message)).toContain([firstKey, 'globex'].sort().join(', '));
+
+    const unknown = await create({ workspace: 'initech' });
+    expect(String(unknown.body.message)).toStartWith('linear_workspace_unavailable:');
+    expect(String(unknown.body.message)).toContain('globex');
+
+    const named = await create({ workspace: firstKey.toUpperCase() });
+    expect(named.status).toBe(200);
+    const trigger = agentTriggerResultSchema.parse(named.body).trigger;
+    expect(trigger).toMatchObject({ linear: { connectionId: world.connectionId } });
+
+    // An edit naming no workspace keeps the Trigger's own, however many the Agent holds.
+    const edited = await call('PATCH', `/api/agent/triggers/${trigger.id}`, {
+        linear: { groups },
+    });
+    expect(edited.status).toBe(200);
+    expect(agentTriggerResultSchema.parse(edited.body).trigger).toMatchObject({
+        linear: { connectionId: world.connectionId },
+    });
 });

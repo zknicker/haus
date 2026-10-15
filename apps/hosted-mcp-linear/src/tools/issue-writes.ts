@@ -30,7 +30,9 @@ const noteArg = z
     .trim()
     .min(1)
     .max(10_000)
-    .describe('Posted as your comment on the issue, explaining the change.');
+    .describe(
+        'Why you made the change, posted under your name as a comment. Use it on every handoff: the next Agent starts from it.'
+    );
 
 export const createIssue = defineTool({
     name: 'create_issue',
@@ -174,7 +176,7 @@ export const createCommentTool = defineTool({
 export const delegateIssue = defineTool({
     name: 'delegate_issue',
     description:
-        "Hand an issue to another Haus Agent: sets its Agent label and makes it the issue's delegate.",
+        'Hand an issue to another Haus Agent by its Agent id (agt_…; haus server info --agents --query <name>). Haus sets its Agent label, the delegate, and who it posts as. The handoff carries no message: say why with update_issue note or create_comment.',
     input: z
         .object({
             agent: z

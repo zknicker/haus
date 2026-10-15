@@ -179,7 +179,12 @@ export async function updateAgentOwnedTrigger(
     db: HausDatabase,
     services: TriggerAuthoringServices,
     agentId: string,
-    input: AgentTriggerUpdateInput & { origin: string; serverId: string; triggerId: string },
+    input: Omit<AgentTriggerUpdateInput, 'linear'> & {
+        linear?: LinearTriggerConfigAuthoring;
+        origin: string;
+        serverId: string;
+        triggerId: string;
+    },
     clock: TriggerClock
 ): Promise<Trigger> {
     const authorize = ownedBy(agentId, input);

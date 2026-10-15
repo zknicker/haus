@@ -179,7 +179,7 @@ describe('linear triggers on the wire', () => {
         expect(
             agentTriggerCreateInputSchema.parse({
                 kind: 'linear',
-                linear,
+                linear: { groups: linear.groups, workspace: 'acme' },
                 messageId: 'msg_ask',
                 title: 'New issues',
             }).kind

@@ -11,7 +11,7 @@ type Upload = NonNullable<LinearCallMeta['upload']>;
 export const uploadImage = defineTool({
     name: 'upload_image',
     description:
-        'Post a Haus Files image (PNG, JPEG, GIF, or WebP, up to 10 MiB) on a Linear issue as a comment. Takes a file id, never a path.',
+        'Post a Haus Files image (PNG, JPEG, GIF, or WebP, up to 10 MiB) on a Linear issue as a comment, by file id and optional revision, never a path. Linear keeps a frozen review snapshot: upload again after a change and say which revision is current. Print masters stay in Haus Files.',
     input: z
         .object({
             alt: z.string().trim().min(1).max(200).optional(),

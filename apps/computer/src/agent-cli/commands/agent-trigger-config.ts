@@ -1,7 +1,7 @@
 import {
+    type AgentLinearTriggerConfigInput,
     agentTriggerResultSchema,
     type GithubTriggerConfigInput,
-    type LinearTriggerConfigInput,
     type TriggerKind,
     triggerKindSchema,
 } from '@haus/api';
@@ -17,7 +17,7 @@ import { linearFlags, linearOnlyFlags, readLinearTriggerConfig } from './agent-t
 export type TriggerConfig =
     | { kind: 'webhook' }
     | { github: GithubTriggerConfigInput; kind: 'github' }
-    | { kind: 'linear'; linear: LinearTriggerConfigInput };
+    | { kind: 'linear'; linear: AgentLinearTriggerConfigInput };
 
 const flagsByKind: Record<TriggerKind, readonly string[]> = {
     github: githubOnlyFlags,
@@ -59,7 +59,7 @@ export async function readTriggerConfig(
         case 'github':
             return { github: await readGithubTriggerConfig(args, client), kind };
         case 'linear':
-            return { kind, linear: await readLinearTriggerConfig(args, client) };
+            return { kind, linear: readLinearTriggerConfig(args) };
         default:
             return kind satisfies never;
     }

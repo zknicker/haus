@@ -29,6 +29,7 @@ import {
     readTriggerFire,
 } from '../triggers/trigger-queries.ts';
 import { publicOrigin, triggerCurlCommand } from '../triggers/trigger-url.ts';
+import { resolveAgentLinearConfig } from './linear-trigger-workspace.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { targetForChat } from './message-view.ts';
 
@@ -66,11 +67,26 @@ export async function updateAgentTrigger(
     input: AgentTriggerUpdateInput & { triggerId: string },
     services: TriggerAuthoringServices
 ) {
+    const origin = publicOrigin(request);
+    const { linear, ...edit } = input;
+    const resolved = linear
+        ? {
+              linear: await resolveAgentLinearConfig(db, runner, linear, async () => {
+                  const owned = await readOwnedTrigger(db, {
+                      agentId: runner.agentId,
+                      origin,
+                      serverId: runner.serverId,
+                      triggerId: input.triggerId,
+                  });
+                  return owned.kind === 'linear' ? owned.linear.connectionId : null;
+              }),
+          }
+        : {};
     const trigger = await updateAgentOwnedTrigger(
         db,
         services,
         runner.agentId,
-        { ...input, origin: publicOrigin(request), serverId: runner.serverId },
+        { ...edit, ...resolved, origin, serverId: runner.serverId },
         clock
     );
     return { trigger: await toAgentTrigger(db, runner.serverId, trigger) };
@@ -92,7 +108,7 @@ export async function createAgentTrigger(
                 anchorChatId: anchor.chat_id,
                 anchorMessageId: anchor.id,
                 instruction: input.instruction ?? null,
-                linear: input.linear,
+                linear: await resolveAgentLinearConfig(db, runner, input.linear),
                 origin: publicOrigin(request),
                 serverId: runner.serverId,
                 title: input.title,

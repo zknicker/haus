@@ -71,6 +71,8 @@ export const triggerRequestRefusalSchema = z.enum([
     'linear_trigger_limit',
     /** The Linear workspace is not `active` on this Server. */
     'linear_workspace_unavailable',
+    /** The Agent named no workspace and holds several; the message lists the url keys. */
+    'linear_workspace_ambiguous',
     /** The owning Agent lacks the Linear connection grant. */
     'linear_access_required',
     /** A referenced Linear object cannot be resolved now. */

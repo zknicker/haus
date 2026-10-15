@@ -1432,20 +1432,6 @@ paths:
                 $ref: '#/components/schemas/AgentGithubInstallationsResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/linear/workspaces:
-    get:
-      operationId: listAgentLinearWorkspaces
-      tags: [Agent CLI]
-      summary: List Linear workspaces on connections the calling agent is granted.
-      responses:
-        '200':
-          description: Usable Linear workspaces with the workspace actor's teams.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentLinearWorkspacesResponse'
-        default:
-          $ref: '#/components/responses/AgentError'
   /api/agent/attachments/upload:
     post:
       operationId: uploadAgentAttachment
@@ -2641,9 +2627,9 @@ components:
     LinearTriggerConfigInput:
       type: object
       additionalProperties: false
-      required: [connectionId, groups]
+      required: [groups]
       properties:
-        connectionId: { type: string, minLength: 1, description: The Linear connection (workspace) id. }
+        workspace: { type: string, minLength: 1, description: "The Linear workspace url key; optional when the Agent has exactly one granted workspace, and on update when keeping the current one." }
         groups:
           type: array
           minItems: 1
@@ -2961,36 +2947,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AgentGithubInstallation'
-    AgentLinearWorkspace:
-      type: object
-      additionalProperties: false
-      required: [connectionId, hasIdentity, id, name, status, teams, urlKey]
-      properties:
-        connectionId: { type: string, description: The Linear connection a `linear` Trigger names. }
-        hasIdentity: { type: boolean, description: Whether the agent has an active Linear identity here. }
-        id: { type: string, description: The Haus workspace row id (`lnw_…`). }
-        name: { type: string }
-        status: { type: string, enum: [active, refresh_required, revoked, disconnected, removed] }
-        teams:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required: [id, key, name]
-            properties:
-              id: { type: string }
-              key: { type: string }
-              name: { type: string }
-        urlKey: { type: string }
-    AgentLinearWorkspacesResponse:
-      type: object
-      additionalProperties: false
-      required: [workspaces]
-      properties:
-        workspaces:
-          type: array
-          items:
-            $ref: '#/components/schemas/AgentLinearWorkspace'
     AgentTriggerListResponse:
       type: object
       additionalProperties: false

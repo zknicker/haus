@@ -7,8 +7,7 @@
   "omittedRecipeIds": ["recipes/technique/login-with-raft"],
   "hausNativeRecipeIds": [
     "recipes/technique/trigger-webhook",
-    "recipes/technique/trigger-github",
-    "recipes/technique/trigger-linear"
+    "recipes/technique/trigger-github"
   ],
   "files": [
     {

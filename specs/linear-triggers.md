@@ -123,7 +123,8 @@ reads the final projection's stable ids; a `comment` matches `teams`, `projects`
 
 - Creating or updating a `linear` Trigger requires an `active` workspace, an owning Agent that
   holds the grant on its connection, and every referenced id resolvable now. Failures are
-  `BAD_REQUEST` with a leading code: `linear_workspace_unavailable`, `linear_access_required`
+  `BAD_REQUEST` with a leading code: `linear_workspace_unavailable`,
+  `linear_workspace_ambiguous` (Agent API only, [Agent CLI](#agent-cli)), `linear_access_required`
   (no grant), `linear_reference_unavailable`, `linear_reference_ambiguous`, `linear_team_outside_access`,
   `linear_trigger_limit`, and `trigger_kind_mismatch`. A valid update clears `problem`.
 - A workspace connection holds at most **25** undeleted `linear` Triggers; the 26th create is
@@ -226,22 +227,30 @@ filters with pickers fed by `linear.references`), and Instruction. Agent pickers
 Agents by name and store ids. The detail panel shows groups by display name, the problem banner,
 and both suppressed counts. iOS shows `linear` Triggers read-only.
 
-## Agent CLI and Manual
+## Agent CLI
 
-- `haus trigger create --kind linear --title <t> --message-id <id> --workspace <urlKey>
+A connection, even a built-in one, gets no top-level CLI family and no Manual topic of its own.
+Agents learn their workspace from the Linear connection's `whoami` tool, and the match-group
+vocabulary lives in `haus trigger create --help`.
+
+- `haus trigger create --kind linear --title <t> --message-id <id> [--workspace <urlKey>]
   --event <name> [--action ...] [--changed ...] [--state-from <name>] [--state-to <name>]
   [--state-type ...] [--team <key>...] [--project <name>...] [--label <name>...]
   [--exclude-label <name>...] [--delegate @self|@agent:<handle>] [--assignee <email>]
   [--actor ...] [--exclude-actor ...] [--instruction <text>]` builds one group;
-  `--groups-json` supplies the complete group array instead. A flag no listed event supports is
-  an invalid argument.
+  `--groups-json` supplies the complete group array instead. A flag or JSON key the event does
+  not take is an invalid argument whose next action lists the flags or keys it does take.
+- The CLI sends `--workspace` as typed. The Agent API (`POST`/`PATCH /api/agent/triggers`)
+  takes `linear: { workspace?, groups }` and resolves the url key (or workspace name,
+  case-insensitively) among the `active` workspaces on connections the Agent holds the grant on.
+  Omitted on create, the Agent's only workspace is used; several are
+  `linear_workspace_ambiguous` and none, an unknown key, or a non-`active` workspace are
+  `linear_workspace_unavailable`, each message listing the url keys the Agent can use. Omitted
+  on update, the Trigger keeps its current workspace.
 - `haus trigger preview --id <id> --payload-file <path>` as GitHub.
-- `haus linear workspaces` lists the Agent's granted workspaces with url keys and teams.
 - `list` and `show` print `[linear · armed · degraded: teams unavailable]`, groups by display
   name, and both suppressed counts.
-- A new `trigger-linear` Manual recipe: check `haus linear workspaces`, create with
-  `--kind linear`, prefer `--state-to` and `--delegate @self`, and never add an actor filter just
-  to avoid self-wakes (self-suppression is automatic).
+- The `trigger` Manual topic names the `linear` kind and points at `haus trigger create --help`.
 
 ## Verification
 

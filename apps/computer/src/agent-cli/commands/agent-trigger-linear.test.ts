@@ -5,29 +5,18 @@ import { runTriggerPreview, runTriggerUpdate } from './agent-trigger-edit.ts';
 
 import { args, githubTrigger, linearTrigger, requester } from './agent-trigger-test-fixtures.ts';
 
-const workspace = {
-    connectionId: 'mcp_linear',
-    hasIdentity: false,
-    id: 'lnw_0123456789abcdef',
-    name: 'Acme',
-    status: 'active',
-    teams: [{ id: 'team-des', key: 'DES', name: 'Design' }],
-    urlKey: 'acme',
-};
-const workspaces = { workspaces: [workspace] };
-
 function recording(respond: (route: string) => unknown = () => ({ trigger: linearTrigger })) {
     const calls: { input: AgentApiRequest; route: string }[] = [];
     const client = requester((route, input) => {
         calls.push({ input, route });
-        return route === '/api/agent/linear/workspaces' ? workspaces : respond(route);
+        return respond(route);
     });
     return { calls, client };
 }
 
 const base = { '--kind': 'linear', '--message-id': 'msg_test', '--title': 'Design needs changes' };
 
-test('flags build one group and resolve the workspace to its connection', async () => {
+test('flags build one group and send the workspace url key as typed', async () => {
     const { calls, client } = recording();
     const written: string[] = [];
     await runTriggerCreate(
@@ -42,33 +31,35 @@ test('flags build one group and resolve the workspace to its connection', async 
         ),
         { client, write: (text) => written.push(text) }
     );
-    expect(calls.at(-1)).toEqual({
-        input: {
-            body: {
-                kind: 'linear',
-                linear: {
-                    connectionId: 'mcp_linear',
-                    groups: [
-                        {
-                            actions: ['update'],
-                            delegates: ['@self'],
-                            event: 'issue',
-                            stateFrom: ['Design Review'],
-                            stateTo: ['Changes Requested'],
-                        },
-                    ],
+    expect(calls).toEqual([
+        {
+            input: {
+                body: {
+                    kind: 'linear',
+                    linear: {
+                        workspace: 'acme',
+                        groups: [
+                            {
+                                actions: ['update'],
+                                delegates: ['@self'],
+                                event: 'issue',
+                                stateFrom: ['Design Review'],
+                                stateTo: ['Changes Requested'],
+                            },
+                        ],
+                    },
+                    messageId: 'msg_test',
+                    title: 'Design needs changes',
                 },
-                messageId: 'msg_test',
-                title: 'Design needs changes',
+                method: 'POST',
             },
-            method: 'POST',
+            route: '/api/agent/triggers',
         },
-        route: '/api/agent/triggers',
-    });
+    ]);
     expect(written.join('')).toContain('No URL or secret: Linear deliveries reach you directly.');
 });
 
-test('enumerated flags split on commas and the only workspace needs no --workspace', async () => {
+test('enumerated flags split on commas; no --workspace leaves the choice to the Server', async () => {
     const { calls, client } = recording();
     await runTriggerCreate(
         args({ ...base, '--event': 'issue' }, { '--action': ['create,update'], '--team': ['DES'] }),
@@ -77,6 +68,26 @@ test('enumerated flags split on commas and the only workspace needs no --workspa
     expect(calls.at(-1)?.input.body).toMatchObject({
         linear: { groups: [{ actions: ['create', 'update'], event: 'issue', teams: ['DES'] }] },
     });
+    expect(calls.at(-1)?.input.body).not.toHaveProperty('linear.workspace');
+});
+
+test('an unknown --groups-json key fails naming the keys the event allows', async () => {
+    const { calls, client } = recording();
+    await expect(
+        runTriggerCreate(
+            args({
+                ...base,
+                '--groups-json': JSON.stringify([{ event: 'comment', state: ['x'] }]),
+            }),
+            { client, write: () => undefined }
+        )
+    ).rejects.toMatchObject({
+        message: '--groups-json 0.state does not apply to comment events.',
+        options: {
+            nextAction: expect.stringContaining('onIssueDelegatedTo') as unknown as string,
+        },
+    });
+    expect(calls).toEqual([]);
 });
 
 test('--groups-json supplies every group and refuses mixed filter flags', async () => {
@@ -126,28 +137,6 @@ test('a webhook create refuses linear-only flags and names the kind', async () =
     ).rejects.toThrow('--state-to needs --kind linear.');
 });
 
-test('an unknown or inactive workspace is refused with the keys you can use', async () => {
-    const { client } = recording();
-    await expect(
-        runTriggerCreate(args({ ...base, '--event': 'issue', '--workspace': 'globex' }), {
-            client,
-            write: () => undefined,
-        })
-    ).rejects.toMatchObject({
-        code: 'INVALID_TARGET',
-        options: { nextAction: 'You can use: acme.' },
-    });
-    const inactive = requester(() => ({
-        workspaces: [{ ...workspace, status: 'refresh_required' }],
-    }));
-    await expect(
-        runTriggerCreate(args({ ...base, '--event': 'issue' }), {
-            client: inactive,
-            write: () => undefined,
-        })
-    ).rejects.toThrow('The Acme Linear workspace is refresh required.');
-});
-
 test('update reads the trigger kind, then replaces the Linear groups', async () => {
     const { calls, client } = recording();
     await runTriggerUpdate(
@@ -156,12 +145,10 @@ test('update reads the trigger kind, then replaces the Linear groups', async () 
     );
     expect(calls.map((call) => `${call.input.method} ${call.route}`)).toEqual([
         'GET /api/agent/triggers/trg_ln',
-        'GET /api/agent/linear/workspaces',
         'PATCH /api/agent/triggers/trg_ln',
     ]);
     expect(calls.at(-1)?.input.body).toEqual({
         linear: {
-            connectionId: 'mcp_linear',
             groups: [{ actions: ['create'], event: 'issue', stateTo: ['Changes Requested'] }],
         },
     });

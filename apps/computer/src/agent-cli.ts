@@ -7,7 +7,6 @@ import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/ag
 import { GITHUB_SUBCOMMANDS } from './agent-cli/commands/agent-github.ts';
 import { IMAGE_SUBCOMMANDS } from './agent-cli/commands/agent-image.ts';
 import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
-import { LINEAR_SUBCOMMANDS } from './agent-cli/commands/agent-linear.ts';
 import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
 import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
@@ -29,7 +28,6 @@ export const commandGroups = {
     github: GITHUB_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,
-    linear: LINEAR_SUBCOMMANDS,
     manual: MANUAL_SUBCOMMANDS,
     message: MESSAGE_SUBCOMMANDS,
     profile: PROFILE_SUBCOMMANDS,

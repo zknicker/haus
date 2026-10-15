@@ -11,7 +11,7 @@ interface ActivityEntity {
 export const reply = defineTool({
     name: 'reply',
     description:
-        'Post to one Linear session by its Haus handle (lss_…): a thought, action, response, elicitation, or error. A response completes the session.',
+        'Answer the Linear session named in your event input (session=lss_…); never guess a current one. Post a thought or action while working, a response when done (it completes the session), or an elicitation to ask.',
     input: z
         .object({
             body: z
@@ -71,7 +71,8 @@ export const reply = defineTool({
 
 export const whoami = defineTool({
     name: 'whoami',
-    description: 'Which Linear workspace this is and how you appear in it.',
+    description:
+        'Your Linear identity here: how your writes appear (your own identity, or your name via Haus) and the workspace url key, which haus trigger create --workspace takes.',
     input: z.object({}).strict(),
     readOnly: true,
     async run(context) {

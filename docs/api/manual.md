@@ -101,8 +101,8 @@ The release-owned Manual ships `index`, `haus-cli-overview`, the product
 reference topics `agent`, `cloud-agents`, `tasks`, `replies`, `secrets`, and
 `amazon-product-references`, one product-noun topic per remaining command
 family (`message`, `inbox`, `thread`, `channel`, `server`, `profile`,
-`attachment`, `skill`, `reminder`, `trigger`, `github`, `linear`), `recipes/index`, `recipes/seeded`,
-and 35 complete recipe cards: 12 seeded cards and 23 query-tier cards. Delivery tiers are editorial
+`attachment`, `skill`, `reminder`, `trigger`, `github`), `recipes/index`, `recipes/seeded`,
+and 34 complete recipe cards: 12 seeded cards and 22 query-tier cards. Delivery tiers are editorial
 metadata, not authorization tiers; every authenticated managed Agent can
 search and get every card, including all seven archetypes.
 

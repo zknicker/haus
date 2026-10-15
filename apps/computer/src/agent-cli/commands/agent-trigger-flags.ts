@@ -63,7 +63,7 @@ export const GITHUB_CREATE_FLAGS: CliFlag[] = [
 /** `linear` flags; `--event`, `--action`, `--label`, `--actor`, `--exclude-actor` are shared above. */
 export const LINEAR_CREATE_FLAGS: CliFlag[] = [
     {
-        description: 'linear: workspace url key from haus linear workspaces',
+        description: 'linear: workspace url key (whoami shows it); optional with one workspace',
         name: '--workspace',
         valueName: '<urlKey>',
     },

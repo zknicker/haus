@@ -4,7 +4,7 @@ import {
     githubTriggerConfigInputSchema,
     githubTriggerEventNameSchema,
 } from './github-trigger-events.ts';
-import { linearTriggerConfigInputSchema } from './linear-trigger-events.ts';
+import { agentLinearTriggerConfigInputSchema } from './linear-trigger-events.ts';
 import {
     githubTriggerSchema,
     linearTriggerSchema,
@@ -56,7 +56,7 @@ export const agentTriggerCreateInputSchema = z.union([
         .object({
             instruction: triggerInstructionSchema.min(1).optional(),
             kind: z.literal('linear'),
-            linear: linearTriggerConfigInputSchema,
+            linear: agentLinearTriggerConfigInputSchema,
             messageId: idSchema,
             title: triggerTitleInputSchema,
         })
@@ -68,7 +68,7 @@ export const agentTriggerUpdateInputSchema = z
     .object({
         github: githubTriggerConfigInputSchema.optional(),
         instruction: triggerInstructionSchema.nullable().optional(),
-        linear: linearTriggerConfigInputSchema.optional(),
+        linear: agentLinearTriggerConfigInputSchema.optional(),
         title: triggerTitleInputSchema.optional(),
     })
     .strict()

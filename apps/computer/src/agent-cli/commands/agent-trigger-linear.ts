@@ -1,19 +1,17 @@
 import {
-    type AgentLinearWorkspace,
-    agentLinearWorkspacesSchema,
-    type LinearTriggerConfigInput,
+    type AgentLinearTriggerConfigInput,
     type LinearTriggerGroupsInput,
     linearTriggerEventNameSchema,
+    linearTriggerGroupInputSchema,
     linearTriggerGroupsInputSchema,
 } from '@haus/api';
-import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 
 // Turns `haus trigger create --kind linear` flags into the wire config
-// (specs/linear-triggers.md#agent-cli-and-manual). Flags build one match group;
-// `--groups-json` supplies the whole array. Names, keys, and Agent selectors
-// go to the Server as typed: it resolves them to stable ids before storing.
+// (specs/linear-triggers.md#agent-cli). Flags build one match group;
+// `--groups-json` supplies the whole array. The workspace url key, names, and
+// Agent selectors go to the Server as typed: it resolves them to stable ids.
 
 /** Group flags and the group field each one fills. */
 const groupFlags = {
@@ -54,13 +52,10 @@ export const linearOnlyFlags = [
 /** Every flag a `linear` Trigger takes, including the names it shares with `github`. */
 export const linearFlags = [...linearOnlyFlags, '--event', ...Object.keys(groupFlags)];
 
-export async function readLinearTriggerConfig(
-    args: ParsedArgs,
-    client: AgentApiRequester
-): Promise<LinearTriggerConfigInput> {
+export function readLinearTriggerConfig(args: ParsedArgs): AgentLinearTriggerConfigInput {
     const groups = readLinearTriggerGroups(args);
-    const workspace = await resolveWorkspace(client, args.values['--workspace']?.trim());
-    return { connectionId: workspace.connectionId, groups };
+    const workspace = args.values['--workspace']?.trim();
+    return workspace ? { groups, workspace } : { groups };
 }
 
 export function readLinearTriggerGroups(args: ParsedArgs): LinearTriggerGroupsInput {
@@ -83,7 +78,7 @@ export function readLinearTriggerGroups(args: ParsedArgs): LinearTriggerGroupsIn
                 '--groups-json must be a JSON array of match groups.'
             );
         }
-        return validateGroups(value, (path) => `--groups-json ${path}`);
+        return validateGroups(value, (path) => `--groups-json ${path}`, 'keys');
     }
     const events = listValues(args, '--event', false);
     if (events.length !== 1) {
@@ -104,13 +99,14 @@ export function readLinearTriggerGroups(args: ParsedArgs): LinearTriggerGroupsIn
             group[groupFlags[flag]] = values;
         }
     }
-    return validateGroups([group], (path) => flagFor(path));
+    return validateGroups([group], (path) => flagFor(path), 'flags');
 }
 
 /** Validates against the wire schema, naming the flag or JSON path at fault. */
 function validateGroups(
     value: unknown,
-    locate: (path: string) => string
+    locate: (path: string) => string,
+    vocabulary: 'flags' | 'keys'
 ): LinearTriggerGroupsInput {
     const parsed = linearTriggerGroupsInputSchema.safeParse(value);
     if (parsed.success) {
@@ -123,9 +119,9 @@ function validateGroups(
     const event = eventAt(value, issue.path[0]);
     if (issue.code === 'unrecognized_keys') {
         const where = issue.keys.map((key) => locate([...issue.path, key].join('.'))).join(', ');
+        const allowed = allowedFor(event, vocabulary);
         throw new AgentCliError('INVALID_ARG', `${where} does not apply to ${event} events.`, {
-            nextAction:
-                'haus manual get recipes/technique/trigger-linear lists each event’s filters.',
+            nextAction: `${event} ${vocabulary === 'flags' ? 'flags' : 'group keys'}: ${allowed}.`,
         });
     }
     if (issue.path[1] === 'event' || (issue.path.length <= 1 && issue.code === 'invalid_union')) {
@@ -142,51 +138,19 @@ function validateGroups(
     });
 }
 
-async function resolveWorkspace(
-    client: AgentApiRequester,
-    key: string | undefined
-): Promise<AgentLinearWorkspace> {
-    const { workspaces } = await client.request(
-        '/api/agent/linear/workspaces',
-        agentLinearWorkspacesSchema,
-        { method: 'GET' }
+/** The group keys (or their flags) an event's schema accepts. */
+function allowedFor(event: string | undefined, vocabulary: 'flags' | 'keys'): string {
+    const option = linearTriggerGroupInputSchema.options.find(
+        (candidate) => candidate.shape.event.value === event
     );
-    if (workspaces.length === 0) {
-        throw new AgentCliError('INVALID_TARGET', 'No Linear workspace you can use.', {
-            nextAction:
-                'Ask a Haus Owner or Admin to connect Linear under Settings → Connections → Linear and grant you the connection.',
-        });
+    const keys = Object.keys(option?.shape ?? {});
+    if (vocabulary === 'keys') {
+        return keys.join(', ');
     }
-    const keys = workspaces.map((workspace) => workspace.urlKey).join(', ');
-    const match = key
-        ? workspaces.find((workspace) =>
-              [workspace.urlKey, workspace.name].some(
-                  (name) => name.toLowerCase() === key.toLowerCase()
-              )
-          )
-        : workspaces.length === 1
-          ? workspaces[0]
-          : undefined;
-    if (!match) {
-        throw new AgentCliError(
-            key ? 'INVALID_TARGET' : 'INVALID_ARG',
-            key
-                ? `No Linear workspace you can use is ${key}.`
-                : 'Provide --workspace with the workspace url key.',
-            { nextAction: `You can use: ${keys}.` }
-        );
-    }
-    if (match.status !== 'active') {
-        throw new AgentCliError(
-            'INVALID_TARGET',
-            `The ${match.name} Linear workspace is ${match.status.replaceAll('_', ' ')}.`,
-            {
-                nextAction:
-                    'Ask a Haus Owner or Admin to reconnect Linear under Settings → Connections → Linear.',
-            }
-        );
-    }
-    return match;
+    const flags = Object.entries(groupFlags)
+        .filter(([, key]) => keys.includes(key))
+        .map(([flag]) => flag);
+    return flags.join(', ');
 }
 
 /** `0.stateTo.1` → `--state-to`. */

@@ -35,7 +35,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
             'haus trigger update --id trg_456 --event issue --action update --state-to "Changes Requested" --delegate @self',
         ],
         notes: [
-            'Configuration flags replace the trigger’s entire GitHub or Linear configuration. Include the scope (--org/--repo, or --workspace when you have several) and all desired groups.',
+            'Configuration flags replace the trigger’s entire GitHub or Linear configuration. Include the GitHub scope (--org/--repo) and all desired groups; a Linear trigger keeps its workspace unless --workspace names another.',
             'An empty --instruction clears it. Omitted fields stay unchanged.',
         ],
         flags: [
@@ -91,7 +91,13 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         notes: [
             'A webhook prints its URL and secret once. Never post the secret in any chat.',
             'A github Trigger has no URL or secret. Run haus github installations first; comment events are not available.',
-            'A linear Trigger has no URL or secret. Run haus linear workspaces first; flags build one group (--event issue, comment, or project), --groups-json up to 10. Your own Linear changes do not wake you. Details: haus manual get recipes/technique/trigger-linear.',
+            'A linear Trigger has no URL or secret. --workspace takes the url key (Linear whoami shows it); omit it when you have one workspace. Your own Linear changes do not wake you.',
+            '  Events (actions, default first): issue (create, update, remove), comment (create, update), project (update, create)',
+            '  Every event: --team, --project, --label, --exclude-label, --delegate, --assignee, --actor, --exclude-actor',
+            '  issue: --changed (state, labels, assignee, delegate, priority, ...), --state-from, --state-to, --state-type   project: --changed',
+            '  Agents are @self or @agent:<handle>. A label change is --event issue --changed labels.',
+            '  Flags build one group; --groups-json takes up to 10 OR groups with keys actions, teams, projects, labels, labelsIgnore, delegates, assignees, actors, actorsIgnore, changed, stateFrom, stateTo, stateTypes (issue), onIssueDelegatedTo (comment), projectStatuses (project).',
+            '  Design review: --event issue --action update --state-from "Design Review" --state-to "Changes Requested" --delegate @self',
             'Filter flags apply to every listed event that takes them and repeat or take commas:',
             '  --action: every event but push and deployment_status (default per event, e.g. completed, opened)',
             '  --conclusion: workflow_run, workflow_job, check_suite, check_run',

@@ -78,7 +78,6 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/triggers/{id}/rotate',
             '/api/agent/triggers/{id}/log',
             '/api/agent/github/installations',
-            '/api/agent/linear/workspaces',
             '/api/agent/attachments/upload',
             '/api/agent/attachments/{id}',
             '/api/agent/profile',
