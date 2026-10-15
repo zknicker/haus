@@ -5,7 +5,11 @@ import {
     artifactRevisionsTable as revisions,
 } from '../postgres/schema.ts';
 import { type ArtifactStorage, artifactThumbnailKey } from './storage.ts';
-import { isThumbnailSource, renderArtifactThumbnail } from './thumbnail-render.ts';
+import {
+    artifactThumbnailSourceMaxBytes,
+    isThumbnailSource,
+    renderArtifactThumbnail,
+} from './thumbnail-render.ts';
 
 /** The revision facts thumbnail generation reads. */
 export interface ThumbnailRevision {
@@ -27,8 +31,9 @@ export interface ArtifactThumbnailsOptions {
 /**
  * Generates each raster revision's WebP thumbnail once: eagerly after a publish, and lazily on
  * the first thumbnail read for revisions published before thumbnails existed. One render per
- * revision runs at a time across both paths. A source that does not decode is marked `failed`
- * and keeps its kind icon; a storage error stays retryable on the next read.
+ * revision runs at a time across both paths. A source over the byte or pixel cap
+ * (`thumbnail-render.ts`), or one that does not decode, is marked `failed` and keeps its kind
+ * icon; a storage error stays retryable on the next read.
  */
 export class ArtifactThumbnails {
     readonly #db: HausDatabase;
@@ -50,7 +55,7 @@ export class ArtifactThumbnails {
         if (revision.thumbnailState) {
             return Promise.resolve(revision.thumbnailState === 'ready');
         }
-        if (this.#closed || !isThumbnailSource(revision.contentType, revision.byteSize)) {
+        if (this.#closed || !isThumbnailSource(revision.contentType)) {
             return Promise.resolve(false);
         }
         let pending = this.#inFlight.get(revision.id);
@@ -76,6 +81,11 @@ export class ArtifactThumbnails {
 
     async #generate(revision: ThumbnailRevision): Promise<boolean> {
         if (this.#closed) {
+            return false;
+        }
+        if (revision.byteSize > artifactThumbnailSourceMaxBytes) {
+            // Too large to buffer for a render: record it so no read retries, and keep the icon.
+            await this.#mark(revision.id, 'failed');
             return false;
         }
         let source: Uint8Array;
