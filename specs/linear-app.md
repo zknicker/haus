@@ -101,6 +101,12 @@ for one Agent, using a guided flow from the [Linear page](#the-linear-page):
 4. **Install** runs OAuth with `actor=app`, limited to the teams the Haus app can reach. Server
    stores the token and the app user's id.
 
+The flow also supports **connecting an existing app**. If the Owner already registered an app for
+this Agent, they choose that option. Haus skips steps 1–2, shows the callback and webhook values to
+check against the app's settings, and continues from step 3. Install is idempotent: re-authorizing
+an app that is already installed returns the same app user. Haus refuses to bind an app user that is
+already another Agent's identity on this Server, or that is the Haus app itself.
+
 An identity belongs to its connection and to exactly one Agent. Removing the Agent's grant, or the
 identity itself, stops it from being used. The page offers to uninstall it in Linear.
 
