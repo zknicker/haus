@@ -3,7 +3,7 @@ import { TRPCError } from '@trpc/server';
 import type { HausDatabase } from '../../postgres/connection.ts';
 import {
     AgentExecutionJournalAccessError,
-    requireExecutionEvidenceComputer,
+    requireExecutionEvidenceAccess,
 } from '../../server-agents/agent-execution-journal.ts';
 import { subscribeToExecutionJournalChanges } from '../../server-agents/execution-journal-changes.ts';
 import type { HausUser } from '../../users/haus-user.ts';
@@ -42,7 +42,7 @@ async function authorize(
     input: { agentId: string; serverId: string }
 ) {
     try {
-        await requireExecutionEvidenceComputer(db, member, input);
+        await requireExecutionEvidenceAccess(db, member, input);
     } catch (cause) {
         if (cause instanceof AgentExecutionJournalAccessError) {
             throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

@@ -5,6 +5,7 @@ export * from './schema/agent-attention.ts';
 export * from './schema/agent-chat-reads.ts';
 export * from './schema/agent-delivery.ts';
 export * from './schema/agent-dreams.ts';
+export * from './schema/agent-execution-journals.ts';
 export * from './schema/agent-inbox.ts';
 export * from './schema/agent-manual-audit.ts';
 export * from './schema/agent-message-follows.ts';

@@ -17,8 +17,8 @@ import { serversTable } from './servers.ts';
 
 /**
  * Compact turn activity reported by a Computer after a launch settles. Durable
- * collaboration and this summary live Server-side; the raw transcript, logs,
- * and workspace stay Computer-local behind the authorized live relay.
+ * collaboration, this summary, and the synced execution journal live
+ * Server-side; raw transcripts, logs, and the workspace stay Computer-local.
  */
 export const agentTurnsTable = pgTable(
     'agent_turns',

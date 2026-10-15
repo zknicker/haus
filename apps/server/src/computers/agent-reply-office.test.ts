@@ -1,18 +1,11 @@
 import { afterAll, expect, test } from 'bun:test';
-import type {
-    AgentExecutionJournalResult,
-    AgentSkillFileResult,
-    AgentSkillImportResult,
-    AgentWorkspaceResult,
-} from '@haus/api';
+import type { AgentSkillFileResult, AgentSkillImportResult, AgentWorkspaceResult } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 
 const agentId = 'agt_1234567890123456';
 const computerId = 'cmp_1234567890123456';
 const otherComputerId = 'cmp_0000000000000000';
-const serverId = 'srv_1234567890123456';
-const runId = 'run_1234567890123456';
 const runtime = makeTestRuntime();
 
 afterAll(() => runtime.dispose());
@@ -59,12 +52,6 @@ test('settles each Agent reply only after its matching Computer and Agent prove 
     const workspaceRequestId = requestId(frames);
     expect(office.acceptWorkspace(computerId, workspaceResult(workspaceRequestId))).toBe(true);
     await expect(workspace).resolves.toMatchObject({ kind: 'list' });
-
-    const journal = office.requestExecutionJournal(computerId, { agentId, runId, serverId });
-    const journalRequestId = requestId(frames);
-    const result = journalResult(journalRequestId);
-    expect(office.acceptExecutionJournal(computerId, serverId, result)).toBe(true);
-    await expect(journal).resolves.toEqual(result);
 });
 
 test('times out bounded replies, leaves imports unbounded, and rejects late replies', async () => {
@@ -128,27 +115,6 @@ test('disconnect and send failures clean up only the affected Computer', async (
     ).rejects.toThrow('socket closed');
 });
 
-test('returns unavailable journals for offline, timeout, and disconnect outcomes', async () => {
-    const offlineOffice = createOffice(() => false);
-    await expect(
-        offlineOffice.requestExecutionJournal(computerId, { agentId, runId, serverId })
-    ).resolves.toMatchObject({ reason: 'offline', status: 'unavailable' });
-
-    const timeoutOffice = createOffice(() => true, 0);
-    await expect(
-        timeoutOffice.requestExecutionJournal(computerId, { agentId, runId, serverId })
-    ).resolves.toMatchObject({ reason: 'timeout', status: 'unavailable' });
-
-    const disconnectOffice = createOffice(() => true);
-    const journal = disconnectOffice.requestExecutionJournal(computerId, {
-        agentId,
-        runId,
-        serverId,
-    });
-    disconnectOffice.disconnect(computerId);
-    await expect(journal).resolves.toMatchObject({ reason: 'offline', status: 'unavailable' });
-});
-
 function createOffice(
     send: (computerId: string, frame: unknown) => boolean,
     timeoutMs?: number
@@ -207,16 +173,5 @@ function workspaceResult(requestId: string): AgentWorkspaceResult {
             value: { entries: [], path: '', workspaceRoot: '/computer/agent/workspace' },
         },
         type: 'agent-workspace-result',
-    };
-}
-
-function journalResult(requestId: string): AgentExecutionJournalResult {
-    return {
-        agentId,
-        journal: { runId, startedAt: '2026-08-11T00:00:00.000Z', status: 'completed', tools: [] },
-        requestId,
-        runId,
-        status: 'available',
-        type: 'agent-execution-journal-result',
     };
 }

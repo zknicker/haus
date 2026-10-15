@@ -14,8 +14,8 @@ import { agentsTable } from './agents.ts';
 import { serversTable } from './servers.ts';
 
 /**
- * Safe semantic activity only. Evidence stays on the Computer; this table is
- * the durable, Server-ordered projection that clients may show to members.
+ * Safe semantic activity only. Execution journals live in their own tables;
+ * this is the durable, Server-ordered projection that clients may show to members.
  */
 export const agentActivityTable = pgTable(
     'agent_activity',

@@ -30,4 +30,5 @@ export const migrationsSince0060 = [
     '0087_artifact-paths',
     '0088_image-generation',
     '0089_cloud-agent-claude',
+    '0090_agent-execution-journals',
 ];

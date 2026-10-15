@@ -1,8 +1,4 @@
-import type {
-    AgentExecutionJournalResult,
-    AgentSkillFileResult,
-    AgentWorkspaceResult,
-} from '@haus/api';
+import type { AgentSkillFileResult, AgentWorkspaceResult } from '@haus/api';
 import type { Deferred } from 'effect';
 
 export type SkillFileValue = NonNullable<AgentSkillFileResult['result']>;
@@ -30,25 +26,4 @@ export interface WorkspaceReply extends ReplyIdentity {
     kind: 'workspace';
 }
 
-export interface ExecutionJournalReply extends ReplyIdentity {
-    deferred: Deferred.Deferred<AgentExecutionJournalResult, Error>;
-    kind: 'execution-journal';
-    runId: string;
-    serverId: string;
-}
-
-export type AgentReply = SkillImportReply | SkillFileReply | WorkspaceReply | ExecutionJournalReply;
-
-export function unavailableJournal(
-    reply: Pick<ExecutionJournalReply, 'agentId' | 'requestId' | 'runId'>,
-    reason: 'offline' | 'timeout'
-): AgentExecutionJournalResult {
-    return {
-        agentId: reply.agentId,
-        reason,
-        requestId: reply.requestId,
-        runId: reply.runId,
-        status: 'unavailable',
-        type: 'agent-execution-journal-result',
-    };
-}
+export type AgentReply = SkillImportReply | SkillFileReply | WorkspaceReply;

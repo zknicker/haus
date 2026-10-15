@@ -43,6 +43,17 @@
         "timer": 0
       }
     },
+    "apps/computer/src/execution-journal-upload/journal-uploader.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each run's idle waiter is one manual promise that resolves when the Server acks the run's last frame or the attachment socket closes; backfill and ledger writes are serialized promise chains owned by the daemon-lifetime uploader.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
     "apps/computer/src/pid-lock.ts": {
       "disposition": "finite-cleanup",
       "reason": "One awaited operation acquires an exclusive pid lock file with a bounded acquisition deadline and removes it in lexical finally; acquisition closes its file handle in lexical finally. The awaited retry delay owns no detached timer or background task.",
@@ -52,6 +63,17 @@
         "finallyBlock": 2,
         "manualPromise": 0,
         "timer": 2
+      }
+    },
+    "apps/server/src/server-agents/execution-journal-changes.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each run holds at most one trailing notice timer and one forget timer, each firing once within a second of its schedule; the process-lifetime emitter owns no other resource.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
       }
     },
     "apps/server/src/voice/voice-call.ts": {
@@ -283,17 +305,6 @@
         "finallyBlock": 0,
         "manualPromise": 1,
         "timer": 1
-      }
-    },
-    "apps/computer/src/agent-run-frames.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each run holds at most one unref'd trailing journal-change timer that fires once within a second and sends a dropped-if-disconnected presentation frame.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 2
       }
     },
     "apps/computer/src/harness/thought-narrator.ts": {

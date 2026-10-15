@@ -1,51 +1,91 @@
-import type {
-    AgentExecutionJournalInput,
-    AgentExecutionJournalResult,
-    AgentExecutionOutlines,
-    AgentExecutionOutlinesInput,
+import {
+    type AgentExecutionJournalInput,
+    type AgentExecutionJournalResult,
+    type AgentExecutionOutlines,
+    type AgentExecutionOutlinesInput,
+    type ExecutionJournalUploadRecord,
+    presentExecutionJournal,
+    replayExecutionJournalUpload,
 } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
-import type { ComputerConnections } from '../computers/connections.ts';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable } from '../postgres/schema.ts';
+import {
+    agentExecutionJournalRecordsTable,
+    agentExecutionJournalsTable,
+    agentsTable,
+} from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 
-export async function requestAgentExecutionJournal(
+/** One run's stored journal, replayed from its synced records. */
+export async function readAgentExecutionJournal(
     db: HausDatabase,
-    connections: ComputerConnections,
     member: HausUser | null,
     input: AgentExecutionJournalInput
 ): Promise<AgentExecutionJournalResult> {
-    const computerId = await requireExecutionEvidenceComputer(db, member, input);
-    return await connections.requestExecutionJournal(computerId, {
-        agentId: input.agentId,
-        runId: input.runId,
-        serverId: input.serverId,
-    });
+    await requireExecutionEvidenceAccess(db, member, input);
+    const rows = await db
+        .select({ record: agentExecutionJournalRecordsTable.record })
+        .from(agentExecutionJournalRecordsTable)
+        .where(
+            and(
+                eq(agentExecutionJournalRecordsTable.serverId, input.serverId),
+                eq(agentExecutionJournalRecordsTable.agentId, input.agentId),
+                eq(agentExecutionJournalRecordsTable.runId, input.runId)
+            )
+        )
+        .orderBy(asc(agentExecutionJournalRecordsTable.sequence));
+    // Every row was validated against the upload contract when it was stored.
+    const document = replayExecutionJournalUpload(
+        rows.map((row) => row.record as ExecutionJournalUploadRecord)
+    );
+    return document?.runId === input.runId
+        ? {
+              agentId: input.agentId,
+              journal: presentExecutionJournal(document),
+              runId: input.runId,
+              status: 'available',
+          }
+        : { agentId: input.agentId, runId: input.runId, status: 'missing' };
 }
 
-/** Outlines of many runs in one Computer round trip, under the journal's authorization. */
-export async function requestAgentExecutionOutlines(
+/** The stored outlines of many runs, in request order, under the journal's authorization. */
+export async function readAgentExecutionOutlines(
     db: HausDatabase,
-    connections: ComputerConnections,
     member: HausUser | null,
     input: AgentExecutionOutlinesInput
 ): Promise<AgentExecutionOutlines> {
-    const computerId = await requireExecutionEvidenceComputer(db, member, input);
-    return await connections.executionOutlines.request(computerId, {
-        agentId: input.agentId,
-        runIds: input.runIds,
-        serverId: input.serverId,
-    });
+    await requireExecutionEvidenceAccess(db, member, input);
+    const rows = await db
+        .select({
+            outline: agentExecutionJournalsTable.outline,
+            runId: agentExecutionJournalsTable.runId,
+        })
+        .from(agentExecutionJournalsTable)
+        .where(
+            and(
+                eq(agentExecutionJournalsTable.serverId, input.serverId),
+                eq(agentExecutionJournalsTable.agentId, input.agentId),
+                inArray(agentExecutionJournalsTable.runId, input.runIds)
+            )
+        );
+    const outlines = new Map(rows.map((row) => [row.runId, row.outline]));
+    return {
+        outlines: input.runIds.map((runId) => {
+            const outline = outlines.get(runId);
+            return outline?.runId === runId
+                ? { outline, runId, status: 'available' }
+                : { runId, status: 'missing' };
+        }),
+    };
 }
 
-/** Owners and Admins only; the Agent's assigned Computer holds the evidence. */
-export async function requireExecutionEvidenceComputer(
+/** Owners and Admins only, for an Agent of this Server. */
+export async function requireExecutionEvidenceAccess(
     db: HausDatabase,
     member: HausUser | null,
     input: { agentId: string; serverId: string }
-): Promise<string> {
+): Promise<void> {
     const server = await requireServerMembership(db, member, input.serverId);
     if (!member || (server.role !== 'owner' && server.role !== 'admin')) {
         throw new AgentExecutionJournalAccessError(
@@ -53,14 +93,13 @@ export async function requireExecutionEvidenceComputer(
         );
     }
     const [agent] = await db
-        .select({ computerId: agentsTable.computerId })
+        .select({ id: agentsTable.id })
         .from(agentsTable)
         .where(and(eq(agentsTable.id, input.agentId), eq(agentsTable.serverId, input.serverId)))
         .limit(1);
-    if (!agent?.computerId) {
+    if (!agent) {
         throw new AgentExecutionJournalAccessError('No Agent exists with that id.');
     }
-    return agent.computerId;
 }
 
 export class AgentExecutionJournalAccessError extends Error {}

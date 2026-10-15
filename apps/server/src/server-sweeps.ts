@@ -10,6 +10,7 @@ import { startMessagePush } from './push/message-push.ts';
 import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
+import { startExecutionJournalRetentionSweep } from './server-agents/execution-journal-retention.ts';
 import { startStaleTaskSweep } from './tasks/close-stale-tasks.ts';
 import { startTriggerRetentionSweep } from './triggers/retention-sweep.ts';
 
@@ -51,6 +52,7 @@ export async function startServerSweeps(
         ...githubSweeps(runtime, input),
         () => startReminderRetentionSweep(input.db, input.clock, input.timers),
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
+        () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
         () => startStaleTaskSweep(input.db, input.clock, input.timers),
         ...(pushSender
             ? [

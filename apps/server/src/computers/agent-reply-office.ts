@@ -1,6 +1,5 @@
 import type {
     AgentCommand,
-    AgentExecutionJournalResult,
     AgentSkillFileRequest,
     AgentSkillFileResult,
     AgentSkillImportResult,
@@ -10,15 +9,13 @@ import type {
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Deferred, Effect } from 'effect';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    type AgentReply,
-    type ExecutionJournalReply,
-    type SkillFileReply,
-    type SkillFileValue,
-    type SkillImportReply,
-    unavailableJournal,
-    type WorkspaceReply,
-    type WorkspaceValue,
+import type {
+    AgentReply,
+    SkillFileReply,
+    SkillFileValue,
+    SkillImportReply,
+    WorkspaceReply,
+    WorkspaceValue,
 } from './agent-reply-model.ts';
 
 interface AgentReplyOfficeOptions {
@@ -88,28 +85,6 @@ export class AgentReplyOffice {
             () => new Error('The Computer did not answer the workspace request.')
         );
     }
-    requestExecutionJournal(
-        computerId: string,
-        input: { agentId: string; runId: string; serverId: string }
-    ): Promise<AgentExecutionJournalResult> {
-        const reply: ExecutionJournalReply = {
-            ...input,
-            computerId,
-            deferred: this.options.runtime.runSync(Deferred.make()),
-            kind: 'execution-journal',
-            requestId: createOpaqueId('req'),
-        };
-        return this.start(
-            reply,
-            {
-                agentId: input.agentId,
-                requestId: reply.requestId,
-                runId: input.runId,
-                type: 'agent-execution-journal-request',
-            },
-            () => unavailableJournal(reply, 'timeout')
-        );
-    }
     acceptSkillImport(computerId: string, result: AgentSkillImportResult): boolean {
         const reply = this.pending.get(result.requestId);
         if (
@@ -146,31 +121,12 @@ export class AgentReplyOffice {
         }
         return this.reject(reply, new Error(result.error ?? 'The workspace request failed.'));
     }
-    acceptExecutionJournal(
-        computerId: string,
-        attachedServerId: string | undefined,
-        result: AgentExecutionJournalResult
-    ): boolean {
-        const reply = this.pending.get(result.requestId);
-        if (
-            !this.matches(reply, 'execution-journal', computerId, result.agentId) ||
-            reply.runId !== result.runId ||
-            reply.serverId !== attachedServerId
-        ) {
-            return false;
-        }
-        return this.resolve(reply, reply.deferred, result);
-    }
     disconnect(computerId: string): void {
         for (const reply of this.pending.values()) {
             if (reply.computerId !== computerId) {
                 continue;
             }
-            if (reply.kind === 'execution-journal') {
-                this.resolve(reply, reply.deferred, unavailableJournal(reply, 'offline'));
-            } else {
-                this.reject(reply, new Error('The selected Computer went offline.'));
-            }
+            this.reject(reply, new Error('The selected Computer went offline.'));
         }
     }
     private await<A>(
@@ -220,17 +176,10 @@ export class AgentReplyOffice {
         onTimeout?: () => A | Error
     ): Promise<A> {
         this.pending.set(reply.requestId, reply);
-        if (reply.kind === 'execution-journal') {
-            this.sendOrUnavailable(reply, frame);
-        } else {
-            this.sendOrFail(reply, frame);
-        }
+        this.sendOrFail(reply, frame);
         return this.await(reply, reply.deferred, onTimeout);
     }
-    private sendOrFail(
-        reply: Exclude<AgentReply, ExecutionJournalReply>,
-        frame: AgentCommand
-    ): void {
+    private sendOrFail(reply: AgentReply, frame: AgentCommand): void {
         try {
             if (!this.options.send(reply.computerId, frame)) {
                 this.reject(reply, new Error('The selected Computer is offline.'));
@@ -239,15 +188,7 @@ export class AgentReplyOffice {
             this.reject(reply, asError(cause));
         }
     }
-    private sendOrUnavailable(reply: ExecutionJournalReply, frame: AgentCommand): void {
-        try {
-            if (this.options.send(reply.computerId, frame)) {
-                return;
-            }
-        } catch {}
-        this.resolve(reply, reply.deferred, unavailableJournal(reply, 'offline'));
-    }
-    private reject(reply: Exclude<AgentReply, ExecutionJournalReply>, error: Error): boolean {
+    private reject(reply: AgentReply, error: Error): boolean {
         if (!this.take(reply)) {
             return false;
         }

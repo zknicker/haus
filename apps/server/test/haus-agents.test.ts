@@ -212,9 +212,9 @@ test('restricts one-run execution detail to Server Owners and Admins', async () 
             await expect(journal).rejects.toThrow(/Owner or Admin/i);
             await expect(outline).rejects.toThrow(/Owner or Admin/i);
         } else {
-            await expect(journal).resolves.toMatchObject({ reason: 'offline' });
+            await expect(journal).resolves.toMatchObject({ status: 'missing' });
             await expect(outline).resolves.toEqual({
-                outlines: [{ reason: 'offline', runId: 'run_detail', status: 'unavailable' }],
+                outlines: [{ runId: 'run_detail', status: 'missing' }],
             });
         }
     }

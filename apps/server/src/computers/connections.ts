@@ -1,6 +1,5 @@
 import type {
     AgentCommand,
-    AgentExecutionJournalResult,
     AgentSkillFileRequest,
     AgentSkillFileResult,
     AgentSkillImportResult,
@@ -15,11 +14,9 @@ import type {
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 import { BrowserReplyOffice } from './browser-reply-office.ts';
 import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
-import { ExecutionOutlineReplies } from './execution-outline-replies.ts';
 import { HostSkillFileReplies } from './host-skill-file-replies.ts';
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
 import { SecretsReplyOffice } from './secrets-reply-office.ts';
@@ -46,7 +43,6 @@ interface AttachedComputer {
 export class ComputerConnections implements DeliveryTransport {
     readonly hostSkillFiles: HostSkillFileReplies;
     readonly inventoryRefresh: InventoryRefreshReplies;
-    readonly executionOutlines: ExecutionOutlineReplies;
     readonly secrets: SecretsReplyOffice;
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly agentReplies: AgentReplyOffice;
@@ -59,12 +55,6 @@ export class ComputerConnections implements DeliveryTransport {
             send: (computerId, frame) => this.send(computerId, frame),
         });
         this.inventoryRefresh = new InventoryRefreshReplies({
-            runtime,
-            send: (computerId, frame) => this.send(computerId, frame),
-        });
-        this.executionOutlines = new ExecutionOutlineReplies({
-            isAttached: (computerId, serverId) =>
-                this.attached.get(computerId)?.serverId === serverId && this.isOnline(computerId),
             runtime,
             send: (computerId, frame) => this.send(computerId, frame),
         });
@@ -93,7 +83,6 @@ export class ComputerConnections implements DeliveryTransport {
     unregister(computerId: string): void {
         this.hostSkillFiles.disconnect(computerId);
         this.inventoryRefresh.disconnect(computerId);
-        this.executionOutlines.disconnect(computerId);
         this.attached.delete(computerId);
         this.agentReplies.disconnect(computerId);
         this.browserReplies.disconnect(computerId);
@@ -244,33 +233,6 @@ export class ComputerConnections implements DeliveryTransport {
         result: CloudAgentCapabilityResult
     ): boolean {
         return this.cloudAgentCapabilityReplies.accept(computerId, result);
-    }
-
-    requestExecutionJournal(
-        computerId: string,
-        input: { agentId: string; runId: string; serverId: string }
-    ): Promise<AgentExecutionJournalResult> {
-        const requestId = createOpaqueId('req');
-        const computer = this.attached.get(computerId);
-        if (!(computer?.serverId === input.serverId && this.isOnline(computerId))) {
-            return Promise.resolve({
-                agentId: input.agentId,
-                reason: 'offline',
-                requestId,
-                runId: input.runId,
-                status: 'unavailable',
-                type: 'agent-execution-journal-result',
-            });
-        }
-        return this.agentReplies.requestExecutionJournal(computerId, input);
-    }
-
-    acceptExecutionJournalResult(computerId: string, result: AgentExecutionJournalResult): boolean {
-        return this.agentReplies.acceptExecutionJournal(
-            computerId,
-            this.attached.get(computerId)?.serverId,
-            result
-        );
     }
 
     setUpdatePhase(computerId: string, updatePhase: ComputerUpdatePhase): void {

@@ -3,8 +3,6 @@ import {
     agentDreamRecordSchema,
     agentDreamRequestSchema,
     agentEffectiveStateSchema,
-    agentExecutionJournalResultSchema,
-    agentExecutionOutlinesResultSchema,
     agentNoticeAckSchema,
     agentSkillFileResultSchema,
     agentSkillImportResultSchema,
@@ -37,6 +35,7 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
+import { ingestExecutionJournalUpload } from './ingest-execution-journal.ts';
 import { recordComputerInventory, recordInvalidComputerInventory } from './record-inventory.ts';
 import { recordComputerManagementEvents, reportComputerUpdateProgress } from './service.ts';
 
@@ -81,7 +80,7 @@ export async function ingestReport(
     }
 
     if (
-        await ingestCloudAgentReport({
+        (await ingestCloudAgentReport({
             db,
             connections,
             delivery,
@@ -89,12 +88,10 @@ export async function ingestReport(
             serverId,
             frame,
             postCommitWork,
-        })
+        })) ||
+        (await ingestExecutionJournalUpload(db, connections, { computerId, frame, serverId })) ||
+        (await ingestAgentRunFrame(db, { computerId, frame, serverId }, thoughts, postCommitWork))
     ) {
-        return;
-    }
-
-    if (await ingestAgentRunFrame(db, { computerId, frame, serverId }, thoughts, postCommitWork)) {
         return;
     }
 
@@ -250,18 +247,6 @@ function acceptComputerReply(connections: ComputerConnections, computerId: strin
     const workspace = agentWorkspaceResultSchema.safeParse(frame);
     if (workspace.success) {
         connections.acceptWorkspaceResult(computerId, workspace.data);
-        return true;
-    }
-
-    const executionJournal = agentExecutionJournalResultSchema.safeParse(frame);
-    if (executionJournal.success) {
-        connections.acceptExecutionJournalResult(computerId, executionJournal.data);
-        return true;
-    }
-
-    const executionOutlines = agentExecutionOutlinesResultSchema.safeParse(frame);
-    if (executionOutlines.success) {
-        connections.executionOutlines.accept(computerId, executionOutlines.data);
         return true;
     }
 
