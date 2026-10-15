@@ -88,6 +88,7 @@ export async function registerHausServerRoutes(
         db,
         githubApp: dependencies.githubApp,
         imageGeneration,
+        linear: dependencies.linear,
         mcpRuntime: dependencies.mcpRuntime,
         postCommitWork: dependencies.postCommitWork,
     });
