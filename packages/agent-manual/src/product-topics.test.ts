@@ -235,7 +235,9 @@ test('image guidance teaches haus image, links, and stays runtime-neutral', () =
     expect(topic?.body).toContain('Wait only when your next step needs the file');
     expect(topic?.body).toContain('`haus image wait <generation id>');
     expect(topic?.body).toContain('names the nearest supported option');
-    expect(topic?.body).toContain('Every image card shows its model and cost');
+    expect(topic?.body).toContain('its model, and its cost; that is the result');
+    expect(topic?.body).not.toContain('checking quality');
+    expect(topic?.body).not.toContain('follow-up');
     expect(topic?.body).toContain('an attachment or in Files (see files)');
     expect(topic?.related).toContain('files');
     expect(topic?.body).toContain('--attachment-id <id>');
