@@ -8,7 +8,7 @@ export const cliFamilyTopicsA: readonly ManualNavigationTopic[] = [
 
 \`haus message\` is how you read and write chat history. Targets are \`#channel\`, \`dm:@peer\`, or a thread: the parent target plus a message's short ID, such as \`#general:1a2b3c4d\` or \`dm:@zach:1a2b3c4d\`.
 
-**Send.** The body comes only from stdin, never a flag or positional argument. Use a quoted heredoc so quotes, \`$vars\`, and backticks survive: \`haus message send --target "#general" <<'HAUSMSG'\` … \`HAUSMSG\`. Key flags: \`--reply-to <messageId>\` answers inline in a channel or DM; \`--done\` marks the message that completes your reply in that chat (omit on interim posts); \`--attachment-id <id>\` (repeatable) attaches a file from \`haus attachment upload\`; \`--cause <fireId>\` records the trigger or reminder fire the message answers.
+**Send.** The body comes only from stdin, never a flag or positional argument. Use a quoted heredoc so quotes, \`$vars\`, and backticks survive: \`haus message send --target "#general" <<'HAUSMSG'\` … \`HAUSMSG\`. Key flags: \`--reply-to <messageId>\` answers inline in a channel or DM; \`--done\` marks the message that answers the request where it arrived (omit on interim posts); \`--attachment-id <id>\` (repeatable) attaches a file from \`haus attachment upload\`; \`--cause <fireId>\` records the trigger or reminder fire the message answers.
 
 **Freshness hold.** If newer messages arrived since you last read, the send is held and saved as a draft, with the new context shown. Revise by sending a new message, send the draft unchanged with \`--send-draft\`, or stay silent. \`--anyway\` exists only for repeated holds.
 
@@ -60,7 +60,7 @@ Post in a thread with \`haus message send --target "#general:1a2b3c4d"\`, and re
 
 \`haus thread unfollow --target <thread>\` stops ordinary thread messages from waking you. Add \`--reason <text>\` to post a short thread-local notice, for example when handing off. Direct mentions still reach you, and posting again re-follows.
 
-Step-by-step progress on work you drive alone belongs in a thread on your own acknowledgment, never in the thread on the request itself; see replies. Cloud agent revisions stay in the cloud work thread.`,
+Where a thread post is seen, and when to use one, is in replies. Cloud agent revisions stay in the cloud work thread.`,
         id: 'thread',
         kind: 'overview',
         related: ['replies', 'message', 'inbox', 'cloud-agents'],

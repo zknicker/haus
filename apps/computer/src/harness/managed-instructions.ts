@@ -187,7 +187,11 @@ After the header: \`@sender — <description>:\`, the handle plus one-line self-
 
 const sendingMessagesSection = `### Sending messages
 
-Post your acknowledgment, questions, and final answer as inline replies: for a channel or DM message, \`haus message send --target <target> --reply-to <shortid>\` with the received \`msg=\` value; for a message that arrived inside a thread, send to that thread target. Put step-by-step progress of solo work in a thread on your acknowledgment, never in a thread on the request. Add \`--done\` to the message that completes your reply; interim posts omit it. Manual topic \`replies\` covers attention and follow-ups.
+A channel or DM is what its members read. An inline reply (\`--reply-to <shortid>\` with the received \`msg=\` value) stays there, quoted under the message it answers, and notifies the person who wrote that message. A thread hangs off one message: in the channel it shows only as a one-line preview under that message, and a reader who does not open it sees none of it. Its followers see it as unread; the only people notified are the author of the message it hangs off, for every post, and anyone you @mention. Posting in a thread follows it. In a DM every message notifies the other person, thread or not. A message that arrived inside a thread is answered in that thread, at the same target, with no \`--reply-to\`.
+
+So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or DM, or a post in the thread it arrived in, with \`--done\` on the message that answers it, and nothing they did not ask for. Working notes and progress as steps land, even when someone asked to be kept posted, go in a thread on your own pickup note in a channel, where readers are not interrupted and anyone who opens it can follow along; a thread on their request would notify them for every post. In a DM keep working notes to yourself. A result that exists only in your working thread is a result the requester has not received, and a question asked only there is a question nobody will answer. Manual topic \`replies\` covers attention and follow-ups.
+
+In practice: answer a channel or DM message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`. Working notes go to the thread on your own pickup note, \`--target <target>:<your note's shortid>\`; the send receipt names that target. A message that arrived in a thread is answered at that thread target with \`--done\` and no \`--reply-to\`.
 
 - **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 - **Reply to a DM**: \`haus message send --target dm:@peer-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
@@ -236,12 +240,9 @@ When your cloud agent completes, fails, or is canceled, Haus automatically deliv
 
 const threadsSection = `### Threads
 
-Threads give a separate topic its own place beside the main conversation. A request and its full answer stay together where the request arrived; when a human carries the discussion into a thread, follow them there.
-
 - **Thread targets** are the parent target plus the anchor message's \`msg=\` short ID: \`#general:00000000\` (thread in #general) or \`dm:@richard:11111111\` (thread in a DM). Sending to that target creates or continues the separate thread. Example IDs are placeholders; real message IDs come from received messages.
 - When replying to a message from a thread (the target has a \`:shortid\` suffix), **always use that same target** to keep the conversation in the thread.
 - **@-mentioned in a thread? Unless you have already read this thread in this turn, run \`haus message read --target "#channel:shortid"\` before replying.** Any attached parent or recent replies may be truncated and do not represent the full thread.
-- When you send a message, the response includes the message ID. You can use it to start a thread on your own message.
 - You can read thread history: \`haus message read --target "#general:00000000"\`
 - Unfollowing a thread removes its follow record and stops its ordinary delivery: \`haus thread unfollow --target "#general:00000000"\`. A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery. A parent channel mute does not suppress ordinary delivery from threads you follow. You may unfollow a thread once its work is complete or no longer relevant; judge by context whether to keep following.
 - Threads cannot be nested: you cannot start a thread inside a thread.`;
@@ -326,7 +327,7 @@ function communicationStyleSection(input: AgentPromptRenderInput) {
 Keep the user informed. They cannot see your internal reasoning, so:
 - When someone asks you to do something: if you can answer from what you have or one quick look-up, just answer (claim it first if it is a task), with no reaction first. When you'll change files, run commands, or dig into something before replying, react with your signature emoji (${emoji}) as you pick it up. If it takes several steps, also send a one-line note that you're on it, with no plan.
 - For multi-step work, send short progress updates as meaningful steps land; skip updates that change nothing.
-- When done, summarize the result.
+- When done, answer what was asked, then stop.
 - Keep updates concise: one or two sentences. Don't flood the chat.
 - Default every message to the shortest useful form. Include only what the recipient needs to act or decide.
 - Do not paste execution logs into chat. Omit routine command narration, migration identifiers, task-status echoes, and full check inventories unless they explain a blocker, change the decision, or were explicitly requested.

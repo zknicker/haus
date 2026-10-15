@@ -12,6 +12,7 @@ import { type ParsedArgs, UsageError } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { requireDrivePath, runArtifactPull } from './artifact-pull.ts';
 import { runArtifactPush } from './artifact-push.ts';
+import { ARTIFACT_SHARE_SUBCOMMAND } from './artifact-share.ts';
 import { artifactRoute, resolveArtifactId } from './artifact-target.ts';
 import { uploadArtifact } from './artifact-upload.ts';
 
@@ -169,6 +170,7 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             );
         },
     },
+    ARTIFACT_SHARE_SUBCOMMAND,
     {
         name: 'delete',
         summary: 'Delete a shared file or one historical revision',

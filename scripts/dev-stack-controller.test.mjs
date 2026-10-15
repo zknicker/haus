@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
-import {
-    createDesktopDevEnvironment,
-    DevStackController,
-    signalChildProcessGroup,
-    waitForChildShutdown,
-} from './dev-stack-controller.mjs';
+import { createDesktopDevEnvironment, DevStackController } from './dev-stack-controller.mjs';
+import { signalChildProcessGroup, waitForChildShutdown } from './dev-stack-processes.mjs';
 
 test('App development inherits the schema-resolved Clerk issuer from the dev stack', () => {
     assert.deepEqual(
@@ -70,6 +66,44 @@ test('dev stack shutdown forwards the operator signal to managed processes', asy
 
     assert.deepEqual(website.signals, ['SIGINT']);
     assert.deepEqual(computer.signals, ['SIGINT']);
+});
+
+test('dev stack shutdown signals postgres only after the Server and Computer exit', async () => {
+    const { controller, computer, haus, log, postgres } = createPostgresStackStub();
+
+    const stopPromise = controller.stop(130, { signal: 'SIGINT' });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.deepEqual(log, ['computer:SIGINT', 'haus:SIGINT']);
+    exitChild(computer, log, 'computer');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(postgres.signals, []);
+
+    exitChild(haus, log, 'haus');
+    await stopPromise;
+
+    assert.deepEqual(log, [
+        'computer:SIGINT',
+        'haus:SIGINT',
+        'computer:exit',
+        'haus:exit',
+        'postgres:SIGINT',
+    ]);
+});
+
+test('forced dev stack shutdown signals postgres without waiting for the Server', async () => {
+    const { controller, computer, haus, log, postgres } = createPostgresStackStub();
+
+    const stopPromise = controller.stop(130, { signal: 'SIGINT' });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(postgres.signals, []);
+
+    controller.stop(130, { force: true, signal: 'SIGINT' });
+    assert.deepEqual(log.slice(2).sort(), ['computer:SIGTERM', 'haus:SIGTERM', 'postgres:SIGINT']);
+
+    exitChild(computer, log, 'computer');
+    exitChild(haus, log, 'haus');
+    await stopPromise;
 });
 
 test('waitForChildShutdown waits after the shell exits until the process group is gone', async () => {
@@ -175,11 +209,37 @@ function createChildProcessStub() {
     return child;
 }
 
+function createPostgresStackStub() {
+    const log = [];
+    const controller = new DevStackController({
+        mode: 'web',
+        ports: { hausPort: 31_003, websitePort: 31_000 },
+        repositoryRoot: process.cwd(),
+    });
+    const stub = (pid, name, autoExit) =>
+        createManagedChildProcessStub(pid, { autoExit, log, name });
+    const computer = stub(2_147_483_643, 'computer', false);
+    const haus = stub(2_147_483_644, 'haus', false);
+    const postgres = stub(2_147_483_640, 'postgres', true);
+
+    controller.processes.set('postgres', postgres);
+    controller.processes.set('computer', computer);
+    controller.processes.set('haus', haus);
+    return { controller, computer, haus, log, postgres };
+}
+
+function exitChild(child, log, name) {
+    log.push(`${name}:exit`);
+    child.exitCode = 0;
+    child.emit('exit', 0, null);
+}
+
 function createManagedChildProcessStub(pid, options = {}) {
     const child = new EventEmitter();
     child.exitCode = null;
     child.kill = (signal) => {
         child.signals.push(signal);
+        options.log?.push(`${options.name}:${signal}`);
         if (options.autoExit !== false) {
             child.signalCode = signal;
             child.emit('exit', null, signal);

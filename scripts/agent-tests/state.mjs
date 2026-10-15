@@ -8,11 +8,25 @@ import path from 'node:path';
 
 export const agentTestsStateDirectory = path.join('.context', 'agent-tests');
 
-export function createRunLedger({ repositoryRoot = process.cwd(), stamp } = {}) {
+/**
+ * One ledger per dev stack: two stacks in one checkout (an eval build beside
+ * the worktree's own stack) have different Servers, so neither may sweep ids
+ * the other recorded.
+ */
+export function ledgerFileName(stackId) {
+    const id = typeof stackId === 'string' ? stackId.trim() : '';
+    return id ? `state.${id.replace(/[^\w.-]/gu, '_')}.json` : 'state.json';
+}
+
+export function createRunLedger({
+    repositoryRoot = process.cwd(),
+    stackId = process.env.HAUS_DEV_STACK_ID,
+    stamp,
+} = {}) {
     if (typeof stamp !== 'string' || stamp.trim().length === 0) {
         throw new Error('The agent-test ledger needs the run stamp it records under.');
     }
-    const file = path.join(repositoryRoot, agentTestsStateDirectory, 'state.json');
+    const file = path.join(repositoryRoot, agentTestsStateDirectory, ledgerFileName(stackId));
     let cache = null;
     let queue = Promise.resolve();
 

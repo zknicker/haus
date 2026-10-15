@@ -1,10 +1,13 @@
 import { type EffectRuntime, settle } from '@haus/effect';
-import { Effect, Scope } from 'effect';
+import { Scope } from 'effect';
+import { startArtifactRetentionSweep } from './artifacts/retention.ts';
+import type { ArtifactStorage } from './artifacts/storage.ts';
 import type { BootSweep, SweepTimers } from './boot-sweep.ts';
 import type { GithubDelivery, GithubIngestOutcome } from './github/delivery-ingest.ts';
 import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
 import type { GithubApp } from './github/github-app.ts';
 import { startGithubInstallationSweep } from './github/installation-sweep.ts';
+import type { HausServerShutdown } from './haus-server-shutdown.ts';
 import { startLinearRetentionSweep } from './linear/retention.ts';
 import type { HausDatabase } from './postgres/connection.ts';
 import { startMessagePush } from './push/message-push.ts';
@@ -21,6 +24,8 @@ const githubRecoveryDefaultIntervalMs = 10 * 60_000;
 interface ServerSweepsInput {
     /** The App origin iPhone push builds absolute avatar URLs against. */
     appOrigin: string;
+    /** Private R2; revision retention runs only when it is configured. */
+    artifactStorage: ArtifactStorage | null;
     clock: ReminderClock;
     db: HausDatabase;
     /** The Haus GitHub App; its sweeps run only when configured. */
@@ -48,50 +53,76 @@ interface ServerSweepsInput {
 export async function startServerSweeps(
     runtime: EffectRuntime<never>,
     scope: Scope.Scope,
+    shutdown: Pick<HausServerShutdown, 'step'>,
     input: ServerSweepsInput
 ) {
-    const { pushSender } = input;
-    for (const start of [
+    const { artifactStorage, pushSender } = input;
+    const sweeps: NamedSweep[] = [
         ...githubSweeps(runtime, input),
         ...linearSweeps(input),
-        () => startReminderRetentionSweep(input.db, input.clock, input.timers),
-        () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
-        () => startLinearRetentionSweep(input.db, input.clock, input.timers),
-        () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
-        () => startStaleTaskSweep(input.db, input.clock, input.timers),
-        ...(pushSender
+        ...(artifactStorage
             ? [
-                  () =>
-                      startMessagePush(input.db, pushSender, {
-                          appOrigin: input.appOrigin,
-                          readGraceMs: input.pushReadGraceMs,
-                      }),
+                  [
+                      'artifact-retention',
+                      () =>
+                          startArtifactRetentionSweep(
+                              input.db,
+                              artifactStorage,
+                              input.clock,
+                              input.timers
+                          ),
+                  ] satisfies NamedSweep,
               ]
             : []),
-    ]) {
+        [
+            'reminder-retention',
+            () => startReminderRetentionSweep(input.db, input.clock, input.timers),
+        ],
+        [
+            'trigger-retention',
+            () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
+        ],
+        ['linear-retention', () => startLinearRetentionSweep(input.db, input.clock, input.timers)],
+        [
+            'execution-journal-retention',
+            () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
+        ],
+        ['stale-tasks', () => startStaleTaskSweep(input.db, input.clock, input.timers)],
+        ...(pushSender
+            ? [
+                  [
+                      'message-push',
+                      () =>
+                          startMessagePush(input.db, pushSender, {
+                              appOrigin: input.appOrigin,
+                              readGraceMs: input.pushReadGraceMs,
+                          }),
+                  ] satisfies NamedSweep,
+              ]
+            : []),
+    ];
+    for (const [name, start] of sweeps) {
+        const started = start();
         await settle(
             runtime,
             Scope.extend(
-                Effect.acquireRelease(Effect.sync(start), (started) =>
-                    Effect.promise(() => started.close())
-                ),
+                shutdown.step(`sweep:${name}`, () => started.close()),
                 scope
             )
         );
     }
 }
 
+type NamedSweep = readonly [name: string, start: () => BootSweep];
+
 /** Linear's workers and hourly sweep, when the Haus Linear app is configured. */
-function linearSweeps(input: ServerSweepsInput): (() => BootSweep)[] {
+function linearSweeps(input: ServerSweepsInput): NamedSweep[] {
     const { linearWorkers } = input;
-    return linearWorkers ? [() => linearWorkers(input.timers)] : [];
+    return linearWorkers ? [['linear-workers', () => linearWorkers(input.timers)]] : [];
 }
 
 /** The hourly installation sweep and the delivery recovery sweep. */
-function githubSweeps(
-    runtime: EffectRuntime<never>,
-    input: ServerSweepsInput
-): (() => BootSweep)[] {
+function githubSweeps(runtime: EffectRuntime<never>, input: ServerSweepsInput): NamedSweep[] {
     const { githubApp } = input;
     if (!githubApp) {
         return [];
@@ -106,7 +137,7 @@ function githubSweeps(
             input.timers
         );
     if (recoveryIntervalMs === null) {
-        return [installations];
+        return [['github-installations', installations]];
     }
     const recovery = () =>
         startGithubDeliveryRecovery(
@@ -119,5 +150,8 @@ function githubSweeps(
             },
             { intervalMs: recoveryIntervalMs, timers: input.timers }
         );
-    return [installations, recovery];
+    return [
+        ['github-installations', installations],
+        ['github-delivery-recovery', recovery],
+    ];
 }

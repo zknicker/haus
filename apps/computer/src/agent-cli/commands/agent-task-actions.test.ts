@@ -13,8 +13,7 @@ test('a claim names the inline reply for each granted task, never its task threa
     );
 
     expect(outputs.join('')).toBe(
-        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
-            'Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.\n'
+        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · inline reply --target "#general" --reply-to 1a2b3c4d\n'
     );
     expect(outputs.join('')).not.toContain('#general:1a2b3c4d');
 });
@@ -46,8 +45,7 @@ test('a partial batch claim prints every row and still succeeds', async () => {
         'Claim results (1 claimed, 1 already yours, 1 refused):\n' +
             '#7 (msg:1a2b3c4d): claimed · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
             '#8 (msg:1a2b3c4d): already yours · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
-            '#9 (msg:1a2b3c4d): refused — held by @sage\n' +
-            'Acknowledge and answer with that inline reply; put step-by-step progress in a thread on your acknowledgment.\n'
+            '#9 (msg:1a2b3c4d): refused — held by @sage\n'
     );
 });
 

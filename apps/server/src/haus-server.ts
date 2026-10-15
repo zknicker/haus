@@ -8,6 +8,7 @@ import {
     createHausServerApplication,
     type HausServerApplication,
 } from './haus-server-application.ts';
+import { handleStopSignals } from './haus-server-stop.ts';
 import { linearHostedDefinition, skoolHostedDefinition } from './hosted-mcp/catalog.ts';
 import { linearAppFromEnvironment } from './linear/linear-api.ts';
 import { createJevRouter } from './message-routing/jev-client.ts';
@@ -170,10 +171,13 @@ function createAvatarImageProvider() {
 }
 
 function registerShutdown(application: HausServerApplication) {
-    process.once('SIGTERM', () => {
-        void application.close().catch((error) => {
+    handleStopSignals(process, {
+        close: () => application.close(),
+        exit: (code) => process.exit(code),
+        log: (line) => console.log(line),
+        reportFailure: (error) => {
             console.error('[haus] failed to close the Haus Server', error);
-        });
+        },
     });
 }
 

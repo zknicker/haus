@@ -29,6 +29,11 @@ export const artifactsTable = pgTable(
         path: text('path').notNull(),
         /** `artifactPathKey(path)`: the case- and normalization-folded uniqueness key. */
         pathKey: text('path_key').notNull(),
+        /** Public link (specs/artifact-public-links.md): all four columns are null together. */
+        publicLinkCreatedAt: timestamp('public_link_created_at', { withTimezone: true }),
+        publicLinkCreatorAgentId: text('public_link_creator_agent_id'),
+        publicLinkCreatorUserId: text('public_link_creator_user_id'),
+        publicToken: text('public_token'),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -45,6 +50,13 @@ export const artifactsTable = pgTable(
             'artifacts_creator_shape',
             sql`num_nonnulls(${table.creatorAgentId}, ${table.creatorUserId}) = 1`
         ),
+        uniqueIndex('artifacts_public_token_key')
+            .on(table.publicToken)
+            .where(sql`${table.publicToken} is not null`),
+        check(
+            'artifacts_public_link_shape',
+            sql`(${table.publicToken} is null and ${table.publicLinkCreatedAt} is null and num_nonnulls(${table.publicLinkCreatorAgentId}, ${table.publicLinkCreatorUserId}) = 0) or (${table.publicToken} is not null and ${table.publicLinkCreatedAt} is not null and num_nonnulls(${table.publicLinkCreatorAgentId}, ${table.publicLinkCreatorUserId}) = 1)`
+        ),
         foreignKey({
             columns: [table.serverId, table.creatorAgentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
@@ -57,6 +69,8 @@ export const artifactsTable = pgTable(
 );
 
 export type ArtifactRevisionState = 'uploading' | 'ready' | 'failed' | 'deleting' | 'deleted';
+/** A raster revision's WebP thumbnail: null until generated (or not a raster image). */
+export type ArtifactThumbnailState = 'ready' | 'failed';
 export const artifactRevisionsTable = pgTable(
     'artifact_revisions',
     {
@@ -69,6 +83,10 @@ export const artifactRevisionsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         filename: text('filename').notNull(),
         id: text('id').primaryKey(),
+        /** Raster pixel size and PNG print density, recorded when the thumbnail renders. */
+        imageDpi: integer('image_dpi'),
+        imageHeight: integer('image_height'),
+        imageWidth: integer('image_width'),
         objectKey: text('object_key').notNull(),
         requestId: text('request_id').notNull(),
         reservedBytes: bigint('reserved_bytes', { mode: 'number' }).notNull(),
@@ -76,6 +94,7 @@ export const artifactRevisionsTable = pgTable(
         serverId: text('server_id').notNull(),
         sha256: text('sha256'),
         state: text('state').notNull().$type<ArtifactRevisionState>(),
+        thumbnailState: text('thumbnail_state').$type<ArtifactThumbnailState>(),
         title: text('title').notNull(),
     },
     (table) => [
@@ -114,6 +133,10 @@ export const artifactRevisionsTable = pgTable(
         check(
             'artifact_revision_state',
             sql`${table.state} in ('uploading', 'ready', 'failed', 'deleting', 'deleted')`
+        ),
+        check(
+            'artifact_revision_thumbnail_state',
+            sql`${table.thumbnailState} is null or ${table.thumbnailState} in ('ready', 'failed')`
         ),
         check(
             'artifact_revision_ready',

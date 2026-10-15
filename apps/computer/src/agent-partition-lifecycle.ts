@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { disposeAgentLaunchHost } from './agent-launch-host.ts';
 import { resetAgentState } from './agent-reset.ts';
-import { purgeRetiredAgent } from './agent-retirement.ts';
+import { purgeRetiredAgent, reportRetirementError } from './agent-retirement.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
 import { ensureAgentWorkspace } from './workspace-volumes/workspace-volume.ts';
@@ -18,9 +18,14 @@ export async function resetOwnedAgentState(input: Location & { kind: 'full' | 's
     await resetAgentState(input);
 }
 
+/** A stuck purge is logged against the Agent; the Server's retirement tombstone replays it. */
 export async function retireOwnedAgentState(input: Location) {
-    await stopOwnedSession(input);
-    await purgeRetiredAgent(input);
+    try {
+        await stopOwnedSession(input);
+        await purgeRetiredAgent(input);
+    } catch (error) {
+        reportRetirementError(input.agentId, error);
+    }
 }
 
 export function agentWorkspacePreparation(dataRoot: string, runtimeId: string | null) {

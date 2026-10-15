@@ -26,18 +26,22 @@ export function artifactFolderCrumbs(folder: string): ArtifactFolderCrumb[] {
     }));
 }
 
+const tintedTones = artifactFolderTones.filter((tone) => tone !== 'neutral');
+
 /**
- * Tints dealt in path-key order, so a set of sibling folders keeps its colors
- * across reads and no two share a tint until there are more folders than
- * tints. Neutral stays unused: every folder is a real place.
+ * A folder's tint, from a hash of its folded path alone, so it never changes
+ * when a sibling appears or leaves and the same folder reads the same color
+ * everywhere. Siblings may share a tint. Neutral stays unused: every folder
+ * is a real place.
  */
-export function artifactFolderToneMap(paths: readonly string[]): Map<string, ArtifactFolderTone> {
-    const tinted = artifactFolderTones.filter((tone) => tone !== 'neutral');
-    const keys = [...new Set(paths.map(artifactPathKey))].sort();
-    const toneByKey = new Map(keys.map((key, index) => [key, tinted[index % tinted.length]]));
-    return new Map(
-        paths.map((path) => [path, toneByKey.get(artifactPathKey(path)) ?? 'blue'] as const)
-    );
+export function artifactFolderTone(path: string): ArtifactFolderTone {
+    // FNV-1a: tiny, stable across sessions, and well spread for short keys.
+    let hash = 0x81_1c_9d_c5;
+    for (const char of artifactPathKey(path)) {
+        hash ^= char.codePointAt(0) ?? 0;
+        hash = Math.imul(hash, 0x01_00_01_93);
+    }
+    return tintedTones[(hash >>> 0) % tintedTones.length] ?? 'blue';
 }
 
 /**
@@ -61,6 +65,25 @@ export function artifactFolderPreviews(
     return previews;
 }
 
+/**
+ * Where Move to… lands `path` (a file or folder) inside `folder`, keeping its
+ * name; null when that is no move (it is already there) or impossible (a
+ * folder into itself or one of its own subfolders).
+ */
+export function artifactMoveTarget(path: string, folder: string): string | null {
+    if (artifactPathKey(artifactPathParent(path)) === artifactPathKey(folder)) {
+        return null;
+    }
+    if (
+        folder !== '' &&
+        (artifactPathKey(folder) === artifactPathKey(path) || artifactPathIsInside(folder, path))
+    ) {
+        return null;
+    }
+    const name = artifactPathBasename(path);
+    return folder ? `${folder}/${name}` : name;
+}
+
 /** Where a search hit lives, relative to the folder being searched; `''` when directly in it. */
 export function artifactFolderWithin(path: string, folder: string): string {
     const parent = artifactPathParent(path);
@@ -68,4 +91,18 @@ export function artifactFolderWithin(path: string, folder: string): string {
         return folder === '' ? parent : '';
     }
     return artifactPathIsInside(parent, folder) ? parent.slice(folder.length + 1) : parent;
+}
+
+/**
+ * A long name shortened in the middle, Finder's way, so the tail that tells
+ * print folders apart (`…design-02`) survives: `KEY-100-ca…design-02`. Two tile lines hold about 20.
+ */
+export function middleTruncatedName(name: string, max = 20): string {
+    const characters = [...name];
+    if (characters.length <= max) {
+        return name;
+    }
+    const head = Math.ceil((max - 1) / 2);
+    const tail = max - 1 - head;
+    return `${characters.slice(0, head).join('')}…${characters.slice(-tail).join('')}`;
 }

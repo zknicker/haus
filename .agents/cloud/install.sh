@@ -54,6 +54,18 @@ for pg_bin in postgres initdb pg_ctl pg_isready psql createdb; do
     fi
 done
 
+# The dev stack serves Files from a per-worktree versitygw S3 gateway
+# (scripts/dev-object-storage.mjs). Pinned to the version Homebrew ships.
+VERSITYGW_VERSION="1.9.0"
+echo "==> Ensuring versitygw ${VERSITYGW_VERSION} is installed (Files storage for the dev stack)"
+if ! versitygw --version 2>/dev/null | grep -q "${VERSITYGW_VERSION}"; then
+    VERSITYGW_DEB="$(mktemp --suffix=.deb)"
+    curl -fsSL -o "${VERSITYGW_DEB}" \
+        "https://github.com/versity/versitygw/releases/download/v${VERSITYGW_VERSION}/versitygw_${VERSITYGW_VERSION}_linux_$(dpkg --print-architecture).deb"
+    sudo dpkg -i "${VERSITYGW_DEB}"
+    rm "${VERSITYGW_DEB}"
+fi
+
 echo "==> Installing project dependencies and HeroUI Pro artifacts"
 # setup:worktree runs `bun install --frozen-lockfile` then downloads the pinned
 # HeroUI Pro artifacts. Both licensed credentials it needs are @internal schema

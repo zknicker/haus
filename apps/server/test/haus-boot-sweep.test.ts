@@ -61,6 +61,25 @@ test('close resolves after a failing run, which is logged by name', async () => 
     expect(logged).toEqual([['[haus] the test sweep failed', 'Error']]);
 });
 
+test('close aborts the signal the run in flight receives', async () => {
+    const gate = deferred();
+    const seen: AbortSignal[] = [];
+    const sweep = startBootSweep({
+        intervalMs: 60_000,
+        name: 'test sweep',
+        run: async (closing) => {
+            seen.push(closing);
+            await gate.promise;
+        },
+        timers: inertTimers(),
+    });
+    expect(seen.map((signal) => signal.aborted)).toEqual([false]);
+    const closed = sweep.close();
+    expect(seen.map((signal) => signal.aborted)).toEqual([true]);
+    gate.resolve();
+    await closed;
+});
+
 test('a scheduled tick after close starts nothing', async () => {
     const timers = inertTimers();
     let runs = 0;

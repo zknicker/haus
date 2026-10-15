@@ -2,6 +2,7 @@
 // lands inline in the channel where the request arrived. Agents never post into
 // the task Thread on the human's request (ADR 0029).
 
+import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
@@ -9,7 +10,7 @@ export default defineScenario({
     contract:
         'An explicitly created task is claimed by that Agent before it replies, answered inline in the channel where it arrived with the requested marker, and its task Thread stays empty.',
     name: 'task-thread-routing',
-    async run({ agents, expect, kit, log, marker, settleTurn }) {
+    run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
         const token = marker();
 
@@ -55,5 +56,5 @@ export default defineScenario({
             await turn.authoredMessagesIn(created.threadChatId),
             'replies in the task Thread'
         ).toHaveLength(0);
-    },
+    }),
 });

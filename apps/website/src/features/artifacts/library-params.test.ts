@@ -1,5 +1,11 @@
 import { expect, test } from 'bun:test';
-import { libraryHref, librarySearch, parseLibrarySearch } from './library-params.ts';
+import {
+    artifactViewerHref,
+    libraryHref,
+    librarySearch,
+    parseLibrarySearch,
+    parseViewerContext,
+} from './library-params.ts';
 
 test('the open folder and filters round-trip through the URL', () => {
     const view = {
@@ -34,4 +40,13 @@ test('a folder is NFC-normalized like every drive path', () => {
     const decomposed = 'cafe'.concat(String.fromCharCode(769));
     const composed = 'caf'.concat(String.fromCharCode(233));
     expect(parseLibrarySearch(new URLSearchParams({ folder: decomposed })).folder).toBe(composed);
+});
+
+test('a viewer carries the library context it was opened from, even at the root', () => {
+    const context = { creator: null, folder: '', kind: 'images' as const, query: 'cat' };
+    const href = artifactViewerHref('acme', 'art_1', context);
+    expect(href).toBe('/s/acme/artifacts/art_1?kind=images&in=&q=cat');
+    expect(parseViewerContext(new URL(href, 'https://x.test').searchParams)).toEqual(context);
+    expect(artifactViewerHref('acme', 'art_1', null)).toBe('/s/acme/artifacts/art_1');
+    expect(parseViewerContext(new URLSearchParams('revision=rev_1'))).toBeNull();
 });

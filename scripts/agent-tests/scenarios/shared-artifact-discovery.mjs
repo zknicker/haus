@@ -1,4 +1,4 @@
-// No-hint variant of shared-artifact-handoff: the request never names Files,
+// Sharing without a hint: the request never names Files,
 // so the Agent must find `haus files` from its prompt's family entry and the
 // Manual, keep the file's real extension, and link it.
 
@@ -12,7 +12,6 @@ import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
-    optIn: true,
     contract:
         'Asked to share a file with the team so anyone can find it later, without naming Files, an Agent pushes it once to Files with a .md filename and links its stable URL in its reply instead of attaching the file.',
     name: 'shared-artifact-discovery',

@@ -4,6 +4,7 @@ read_when:
   - adding tests, changing execution-runtime contracts, or choosing a verification lane
   - changing OpenAPI, Server stores, SDK, App e2e, or Computer execution behavior
   - adding or changing an agent-behavior scenario under scripts/agent-tests/
+  - running or changing an eval (`bun run eval`, scripts/eval/), or comparing a change against a baseline commit
   - changing lint rules, source-size policy, or Quality CI gates
   - changing the visuals lab, its battery, or how rendered visuals are judged
   - measuring or changing App interaction performance (chat switch, profile open, pop-in)
@@ -94,7 +95,7 @@ that matches multiple rows, run the union of their required proof.
 | Computer execution, delivery, or local capability behavior | Focused regression plus computer gate | Add a scoped `test:agents` scenario when deterministic proof cannot cover the observable model-driven behavior. |
 | Computer execution-runtime mapping, delivery semantics, or agent behavior | Focused regression plus Computer gate | Add provider smoke or a `test:agents` scenario for executor/provider-boundary changes. |
 | API or SDK contract | API or SDK gate plus affected consumer typechecks | Add Server, Computer, or App coverage when behavior changed behind the contract. |
-| Agent prompt or managed instructions | Prompt contract and snapshot review plus owning package gate | Run `eval:prompt` after meaningful prompt-text changes, as required by AGENTS.md. |
+| Agent prompt or managed instructions | Prompt contract and snapshot review plus owning package gate | Run the affected [eval](#evals) (`bun run eval attention`, `bun run eval placement`) with `--baseline` after meaningful prompt-text changes, as required by AGENTS.md. |
 | Live Agent behavior, agent-test kit, or eval harness | Run the affected scenario with `bun run test:agents --only <name>` after deterministic support tests | Run the full `test:agents` set when shared kit or prompt behavior can affect several scenarios or for release confidence. |
 | App-to-Computer-to-model path through the real browser | `bun run test:tracer` | Nothing else escalates here; behavior belongs in `test:agents`. |
 
@@ -303,71 +304,44 @@ bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes
 
 Repeat `--only` to run a small named subset in one process.
 
-Shared file discovery and handoff are opt-in and require enabled development R2 storage:
-`bun run test:agents --include-opt-in --only shared-artifact-handoff --lanes 1`.
-Two fresh Agents share a folder in Files from natural-language requests. The publisher pushes
-a two-file folder and links one file; the peer pulls the folder, reports an undisclosed marker,
-edits one file, and pushes (`haus files pull`/`push` in its execution journal) while the other
-file stays at revision 1; then the publisher edits its stale copy of the same file and must pull,
-merge, and push without `--replace`, so the final revision carries both edits. The scenario
-deletes the folder's files. Two more opt-in scenarios cover the choice without hints:
-`shared-artifact-discovery` asks to share a markdown file with the team without naming Files
-and gates on a `haus files push` and exactly one `.md` file whose stable URL is linked, not
-attached; `one-off-chart-stays-in-chat`
-asks for a quick chart and gates on a fence or attachment with nothing pushed to Files.
+Most scenarios belong to one of the [evals](#evals), which is the usual way to run them. A few
+are opt-in because they need something the default dev stack lacks; `--include-opt-in` adds
+them, and `bun run eval` always passes it:
 
-Conversation routing has a natural-language lane: `--only conversation-natural-followups`
-checks a basic question, a planning request, and a human Thread follow-up without routing
-instructions in the requests. `--only solo-progress-threads-on-ack` checks that solo multi-step
-work narrates progress in a Thread on the Agent's acknowledgment, not in the Channel. `--include-opt-in --only cloud-conversation-handoff` spends
-a real Cursor Cloud Agent run on a read-only Haus README review and checks the completion
-wake and outcome in the requesting Chat. It requires connected Cursor access to `zknicker/haus`.
-Both scenarios preserve every child conversation and all available execution journals,
-including resumed cloud turns, under `.context/agent-tests/evidence/<stamp>/` before cleanup.
-Repeat them with fresh Agents when evaluating routing changes; one clean run is limited evidence.
+* `cloud-launch-and-link` spends a real Cursor Cloud Agent run on a read-only Haus README review
+  and needs connected Cursor access to `zknicker/haus`. It gates on one work item launched as an
+  inline reply to the request, with at most a pickup note before it and nothing else from the
+  launch turn, cancels it, and then gates on the Agent linking the same work
+  from a second channel. The completion wake is Server plumbing and is not re-proved live.
+* `memory-feedback-implicit` and `memory-feedback-control` overwrite a test Agent's `MEMORY.md`
+  on the stack's own Computer.
+* `cove-composes-agent-creation` is a standalone Cove smoke outside every eval (below).
 
-Trigger setup has two scenarios. `--only webhook-secret-stays-out-of-chat` asks for a webhook
-and gates on one webhook Trigger, its URL in the reply, and no `grtt_` secret in any Chat the
-Agent wrote to. `--include-opt-in --only github-trigger-ci-failure` needs a connected GitHub
-connection with an active installation bound on the dev stack; it grants the worker that
-connection, asks to be woken when CI fails, and gates on one `github` Trigger with every CI
-event filtered to `failure`, no webhook, and no secret in chat.
+Scenarios that place answers (`placement-*`, `ack-reaction-thanks`,
+`thread-reply-stays-in-thread`, `solo-progress-threads-on-ack`, `mention-wakes-only-addressed`,
+`task-thread-routing`, `cloud-launch-and-link`) preserve every child conversation and all
+available execution journals under `.context/agent-tests/evidence/<stamp>/` before cleanup, so
+the eval grader can read placement and `--done` flags. One clean run is limited evidence.
 
-Memory-refresh and response-efficiency probes are opt-in. They check same-session context
-retention with a current MEMORY.md read and bounded discovery for an unavailable MCP, using
-Computer execution journals rather than a flaky wall-clock threshold:
+`mcp-granted-lookup` asks for a private Audit Ledger record before any grant (no call, an honest
+reply, at most four discovery tools beyond turn bookkeeping such as the claim, reaction, and
+reply, and no local configuration search), then grants without a reset and
+gates on the exact title and owner from one real call plus a ticket id only the first turn
+carried. `webhook-secret-stays-out-of-chat` asks for a webhook and gates on one webhook Trigger,
+its URL in the reply, and no `grtt_` secret in any Chat the Agent wrote to.
+
+The memory-feedback scenarios seed two Standing Preferences, send one channel request (a
+self-contained question, with passing feedback for `implicit` and none for `control`), reset the
+session, and ask a probe question in a new channel. They gate only structure; rule grammar,
+merge, and post-reset application are scored from evidence under
+`.context/agent-tests/memory-feedback/` by a separate, rerunnable grader:
 
 ```sh
-bun run test:agents --include-opt-in --only warm-dm-memory-refresh --only response-efficiency --lanes 1
-```
-
-They log durations for comparison; a single model run is not a latency guarantee.
-
-The memory-feedback probes are opt-in because they overwrite a test Agent's `MEMORY.md` on the
-dev Computer's disk. Each seeds two Standing Preferences, gives passing feedback (`implicit`,
-`explicit`) or none (`control`), resets the session, and asks a probe question in a new channel.
-The scenario gates only structure; rule grammar, merge, and post-reset application are scored
-from evidence under `.context/agent-tests/memory-feedback/` by a separate, rerunnable grader:
-
-```sh
-bun run test:agents --include-opt-in --only memory-feedback --lanes 3
 bun scripts/agent-tests/memory-feedback-grade.mjs [--since <stamp>] [--json]
 ```
 
 Run agent-test commands serially against one dev stack, because startup cleanup sweeps prior run
 records.
-
-The managed-skill update probe is opt-in because it rewrites one test Agent's skill library and
-`runtime/managed-skills.json` on the dev Computer's disk, so the Computer must be this checkout's
-local dev stack. It installs a legacy visuals skill with a literal `Share %` second axis, has the
-Agent chart and save `notes/sales-chart-recipe.md`, marks the record stale and reapplies the
-Agent's configuration so Computer reseeds the current skill and queues the update notice, then
-asks for the next chart. It gates on the notice being queued and consumed, the second chart and
-the rebuilt recipe dropping `Share %`, and the recipe naming its visuals origin:
-
-```sh
-bun run test:agents --include-opt-in --only managed-skill-update-rebuilds-recipe --lanes 1
-```
 
 The Cove creation scenario is opt-in because it needs a real active Cove on an
 attached healthy Computer plus the local deterministic avatar fixture. Start
@@ -411,7 +385,7 @@ A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
 `run` that receives the kit. Keep a scenario to one to three live turns; a
 longer story belongs in several scenarios or in a deterministic lane.
 
-A scenario declares the Agents it needs by kind (`worker`, `coordinator`), and
+A scenario declares the Agents it needs by kind (`worker`), and
 the lane creates them for that scenario and retires them after the verdict.
 Isolation is by construction: a fresh Agent has a fresh session, a fresh
 workspace, and a fresh implicit Agent-DM selection, so nothing carries over between scenarios. No
@@ -421,7 +395,8 @@ the Computer into an Agent missing its session. Lanes default to three, capped
 by scenario count; `--lanes` overrides it without a clamp.
 
 Every created Agent and chat id is recorded in `.context/agent-tests/state.json`
-under the run stamp before it is used. Teardown deletes chats by exact id and
+(`state.<HAUS_DEV_STACK_ID>.json` when a stack id is set, so an eval stack never sweeps the
+worktree stack's records) under the run stamp before it is used. Teardown deletes chats by exact id and
 then retires the Agents, and the ledger forgets only what a delete confirmed, so
 a crashed run's leftovers are swept — by exact recorded id, never by name or age
 — at the start of the next run.
@@ -446,10 +421,14 @@ Failed scenarios also capture each Agent's current delivery state, recent turns,
 and retained delivery rows before cleanup. Query failures are recorded beside
 the available evidence rather than replacing the original scenario failure.
 
-Like `eval:prompt`, the lane needs `bun run dev` and configured development
-Clerk keys, plus one attached Computer whose reported inventory carries a
-`codex` runtime with a `terra` model — that is what every test Agent is built
-on.
+The lane needs `bun run dev` and configured development Clerk keys, plus one
+attached Computer whose reported inventory carries a `codex` runtime with a
+`terra` model — that is what every test Agent is built on, unless
+`HAUS_AGENT_TESTS_MODEL=<runtime>/<model>` names another.
+
+To measure behavior rather than check one scenario, run an [eval](#evals): it
+repeats a named set of these scenarios on its own stack, grades them, and can
+compare against a baseline commit.
 
 ## Full-Stack Tracer
 
@@ -459,25 +438,88 @@ browser against the real Server, Computer, and model
 App composer reaches the Agent and its reply renders in the chat. It proves the
 wire end to end, nothing more. Agent behavior belongs in `test:agents`.
 
-## Prompt Behavior Evals
+## Evals
 
-During development prompt iteration, reset the test Agent's **session only** before the live
-behavioral test, preserving workspace memory and Chat history. Verify that the fresh native session
-received the revised instructions. Creating a new Channel does not reset the Agent's global session.
-The managed Agent prompt-version bump belongs to release, not each local prompt edit. Capture any
-failing-session evidence before resetting; a fresh-session test does not prove hot instruction refresh.
+An eval measures Agent behavior as a rate. It is a named set of `test:agents` scenarios plus the
+grader profiles applied to their runs, run several times on a stack of its own:
+
+```sh
+bun run eval --list                               # registered evals
+bun run eval placement                            # 3 passes against this checkout
+bun run eval placement --baseline origin/main     # the same passes against that commit too
+bun run eval attention --passes 5 --model claude-code/opus --notes notes.md
+```
+
+Options: `--baseline <rev>`, `--passes <n>` (default 3), `--lanes <n>` (the eval's default, else
+3), `--model <runtime>/<model>` (every test Agent is created on it), and `--notes <file>` (Markdown
+rendered as the report's "What was changed" section). The registry is
+`scripts/eval/evals.mjs`; grader profiles (caps, tails, judge question) are data in
+`scripts/eval/profiles.mjs`.
+
+| Eval | Measures |
+| --- | --- |
+| `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops. |
+| `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; a reminder fires once. Serial. |
+| `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
+| `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
+
+The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
+`shared-artifact-discovery` in `tools`) run on the eval stack's own local Files storage gateway, so
+the only prerequisite is the `versitygw` binary (`brew install versitygw`; see
+[Development](development.md)).
+
+Each build boots its own isolated dev stack (`HAUS_DEV_STACK_ID=eval-<name>-change`, then
+`eval-<name>-base`), runs the passes serially through `scripts/agent-tests/cli.mjs`, and stops it,
+checking that no workspace image stays mounted and nothing still listens. The two stacks run one
+after the other, never together. A running `bun run dev` in this checkout is unaffected. With
+`--baseline`, the eval creates or reuses a detached worktree at
+`.claude/worktrees/eval-baseline-<sha>` beside the main checkout, runs `bun run setup:worktree`
+there when `node_modules` is missing, and replaces its `scripts/agent-tests` and `scripts/eval`
+with exact copies of this checkout's (scenarios the change retired are removed), so both builds
+run identical scenarios and grader and differ only in the product code.
+
+The terminal shows one line per scenario as it settles (`✓`, `✗`, or `⚠` for infra), then a
+scenario × build table of runner pass, grader spec pass, mean words, and judge, a one-line verdict
+(change versus baseline in points), and the report path. Everything lands under
+`.context/evals/<eval>/<stamp>/`: `report.html` (headline tiles, pass-rate bars, grader detail,
+representative transcripts with placement and `--done` badges, caveats), `report.json` with every
+grade underneath, and the stack and per-pass logs. Raw runs stay in each build's
+`.context/agent-tests/`.
+
+Evals are rates, not gates. The command exits 0 whenever the runs complete, whatever the pass
+rate, and 1 only on infrastructure failure: a stack that never boots or a pass that leaves no run
+report. A scenario that fails on infrastructure (provisioning, an unreachable Server, a journal
+that never syncs) is marked `⚠`, listed in caveats, and left out of the rate. Session variance
+swamps one run, so compare at least three passes per build.
+
+The scenarios gate structure only. A grader profile adds what its spec says about length, tail
+phrases ("want me to", "happy to", …), question counts, placement of the result post, and the
+`--done` and reply-to flags read from the execution journal. The Jev judge score runs only with
+`HAUS_TYPESAFE_API_KEY`, which `bun run eval` resolves through varlock; otherwise the report says
+it was skipped. Placement helpers shared with the scenarios live in
+`scripts/agent-tests/placement.mjs` and `placement-kit.mjs`. `placement-found-the-kit-local`, the
+storage-free workspace variant of the kit scenario, is not in the `placement` eval; run it by hand
+with `bun run test:agents --only placement-found-the-kit-local`. The `attention` profiles grade
+`mention-wakes-only-addressed` and `task-thread-routing` the same way; `memory` and `tools` are
+graded on runner verdicts alone.
+
+To isolate one failing scenario, use `bun run test:agents --only <name> --lanes 1` against
+`bun run dev`.
+
+### Prompt-text changes
 
 The composed Agent system prompt has two guard layers. Text loss and the reviewed size budget are
-caught in CI by `bun run test:prompt-contract`. Behavior loss is caught on demand by `bun run
-eval:prompt`. That command is a stable, serial subset of `test:agents`: addressed-only
-mention handoff, explicit silence in Channels and DMs, concise DM reply, multi-Chat drain,
-instruction-injection resistance, and a human's reply to an Agent's @mention waking that Agent.
+caught in CI by `bun run test:prompt-contract`. Behavior loss is measured on demand by the evals
+above, run with `--baseline` against the commit before the prompt change. See AGENTS.md ("Agent
+System Prompt Changes").
 
-The lane provisions fresh isolated Agents and exact cleanup-tracked Chats through the same Server
-→ Computer → model path as the full Agent suite; it never depends on seeded Agents or shared demo
-conversations. Run it after prompt-text edits and before releases. Use
-`bun run test:agents --only <substring> --lanes 1` to isolate one failing scenario. See AGENTS.md
-("Agent System Prompt Changes").
+During development prompt iteration on a standing Agent, reset its **session only** before the
+live behavioral test, preserving workspace memory and Chat history. Verify that the fresh native
+session received the revised instructions. Creating a new Channel does not reset the Agent's global
+session. The managed Agent prompt-version bump belongs to release, not each local prompt edit.
+Capture any failing-session evidence before resetting; a fresh-session test does not prove hot
+instruction refresh. Eval and `test:agents` Agents are created fresh per scenario, so they need no
+reset.
 
 ## Session Behavior Evals
 
@@ -489,10 +531,10 @@ It restores changed Agent configuration afterward. Internal generation and
 resume bookkeeping remain covered by deterministic Computer tests; this live
 lane asserts only behavior exposed by the hosted product contract.
 
-Both evals require `bun run dev` and configured development Clerk keys. Prompt eval provisions its
-own Agents and Chats; session eval still requires two applied online Agents and the seeded Channels.
-Authentication uses a localhost development sign-in ticket and Clerk's headless session refresh;
-it does not use an auth bypass. Both lanes share `scripts/eval-harness.mjs`.
+It requires `bun run dev`, configured development Clerk keys, two applied online Agents, and the
+seeded Channels. Authentication uses a localhost development sign-in ticket and Clerk's headless
+session refresh; it does not use an auth bypass. It shares `scripts/eval-harness.mjs` with
+`test:agents` and `bun run eval`.
 
 ## Design Battery
 

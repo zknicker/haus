@@ -53,9 +53,34 @@ root and only when absent from the source. Source entries with those names remai
 Offline compaction detaches normally, returns unused image blocks to the host,
 and restores a previously mounted workspace. It requires the Computer stopped;
 busy-volume failures are reported rather than forced. Session reset preserves
-the volume. Full reset clears its contents without removing the mounted root;
-retirement detaches before deleting the Agent partition and releases the
-reservation only after deletion succeeds.
+the volume. Full reset clears its contents without removing the mounted root.
+
+A volume is mounted only while its Computer attachment runs. Retirement stops the
+Agent's runtime session, waits for the processes still holding the volume (a
+stopped runtime's process tree can outlive the stop call by a moment), then
+retries a plain detach with backoff. Only a retired Agent's volume is forced as a
+last resort, with a warning naming its holders. Holder waits and detach retries
+run outside the storage lock, which guards only ledger writes. Retirement also
+detaches any mount left in the Agent partition without a manifest, deletes the
+partition only once nothing in it is mounted, and releases the reservation only
+after deletion succeeds; a replay whose partition is already gone still releases a
+reservation an earlier attempt leaked. A volume that still will not detach keeps
+both, the failure is logged against the Agent, and the Server's retirement
+tombstone replays the purge on the next connection.
+
+Server deletion stops the attachment's sessions and sandbox processes the way
+shutdown does, then writes a `pending-purge` marker holding its pid into the
+Server partition, force-detaches every mount under the partition (manifest or
+not), deletes the partition with the marker last, and releases the reservations
+it held. A purge that fails or is killed midway keeps its marker; every
+attachment start replays the purge of a marked partition whose purging process
+is no longer running. Attachment shutdown detaches the Server's volumes after its
+sessions stop, never forcing, within a 10-second deadline; a volume still busy or
+unfinished at the deadline stays mounted and is reused on the next start, and a
+detach failure is logged without changing the daemon's exit. At start the
+Computer detaches any mounted workspace whose Agent partition has no volume
+manifest and releases reservations whose partition holds no image, manifest, or
+migration receipt, logging each reclaim.
 
 ### Existing-workspace migration
 

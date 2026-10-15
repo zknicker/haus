@@ -1,5 +1,11 @@
 import { gzipSync } from 'node:zlib';
 
+import {
+    expectDoneToRequest,
+    isThreadTarget,
+    journalCommands,
+    parseDoneSends,
+} from '../placement.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
@@ -26,7 +32,7 @@ const step1 = seal(
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'Solo multi-step work keeps at most an acknowledgment and the final answer in the channel, with step-by-step progress in a thread on the Agent’s own acknowledgment.',
+        'Solo multi-step work keeps at most a pickup note and the final answer in the channel, with working notes in a thread on the Agent’s own pickup note and the final answer (and its --done) never in that thread.',
     name: 'solo-progress-threads-on-ack',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
@@ -49,18 +55,33 @@ export default defineScenario({
         const ownAnchors = new Set(channelPosts.map((message) => message.id));
         let progressPosts = 0;
         let requestThreadPosts = 0;
+        const threadPosts = [];
+        const workingThreadMarkerPosts = [];
         for (const thread of threads) {
             await kit.trackChat(thread.threadChatId);
             const posts = (await turn.authoredMessagesIn(thread.threadChatId)).filter(
                 (message) => message.chatId === thread.threadChatId
             );
             log(`thread on ${thread.anchorMessageId}: ${posts.length} worker posts`);
+            threadPosts.push(...posts);
             if (ownAnchors.has(thread.anchorMessageId)) {
                 progressPosts += posts.length;
+                workingThreadMarkerPosts.push(
+                    ...posts.filter((message) => message.content.includes(token))
+                );
             } else if (thread.anchorMessageId === request.message.id) {
                 requestThreadPosts += posts.length;
             }
         }
+        // The `--done` flag is stored Server-side but not on the wire message, so
+        // read the turn's own `haus message send --done` commands from its journal.
+        const doneSends = parseDoneSends(await journalCommands(kit, worker.id, turn));
+        log(`--done sends: ${doneSends.map((send) => send.target).join(', ') || 'none seen'}`);
+        const threadBodies = new Set(threadPosts.map((message) => message.content.trim()));
+        const doneInThread = doneSends.filter(
+            (send) =>
+                isThreadTarget(send.target) || (send.body !== '' && threadBodies.has(send.body))
+        );
 
         expect(turn.status, 'turn completed').toBe('completed');
         expect(channelPosts.length <= 2, 'at most acknowledgment and answer in channel').toBe(true);
@@ -74,5 +95,14 @@ export default defineScenario({
         expect(answer.reply?.rootMessageId, 'answer links to the request').toBe(request.message.id);
         expect(progressPosts > 0, 'progress in a thread on own acknowledgment').toBe(true);
         expect(requestThreadPosts, 'request thread stays empty').toBe(0);
+        expect(
+            workingThreadMarkerPosts.length,
+            'final answer landed in the working thread (marker posted in a thread on own post)'
+        ).toBe(0);
+        expect(
+            doneInThread.length,
+            'final answer landed in the working thread (--done send went to a thread)'
+        ).toBe(0);
+        expectDoneToRequest(expect, { doneSends }, { requestIds: [request.message.id] });
     }),
 });

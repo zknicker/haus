@@ -64,6 +64,8 @@ const timerFetchAllowlist: Record<string, string> = {
         'one-shot 150 ms debounce of the composition draft publish',
     'features/updates/use-haus-update-run.ts':
         'deadlines and step waits inside a human-pressed update run',
+    'hooks/realtime/use-artifact-update-stream.ts':
+        'leading and trailing 300 ms throttle of Files listing refreshes during an Agent push burst; a window with no event closes for good',
     'hooks/servers/use-chat-message-navigation.ts': 'one-shot jump highlight removal',
     'hooks/servers/use-chat-read.ts': 'one-shot settle after a read receipt lands',
     'hooks/servers/use-idle-chat-warming.ts': 'one idle warm pass, bounded to 2 concurrent reads',

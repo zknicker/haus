@@ -37,7 +37,11 @@ function args(flags: Record<string, boolean> = {}): ParsedArgs {
 }
 
 /** Answers each request with the next response, recording every body. */
-function scriptedClient(bodies: unknown[], responses: Array<'sent' | AgentCliError>) {
+function scriptedClient(
+    bodies: unknown[],
+    responses: Array<'sent' | AgentCliError>,
+    outputs: string[] = []
+) {
     const client: AgentApiRequester = {
         request: async <T>(_route: string, schema: z.ZodType<T>, input?: { body?: unknown }) => {
             bodies.push(input?.body);
@@ -53,7 +57,9 @@ function scriptedClient(bodies: unknown[], responses: Array<'sent' | AgentCliErr
         mintNonce: () => 'nonce',
         readStdin: async () => 'The deploy is green.',
         stdinIsTty: false,
-        write: () => undefined,
+        write: (text: string) => {
+            outputs.push(text);
+        },
     };
 }
 
@@ -87,6 +93,23 @@ test('--done resends plain, same nonce, when an older Server refuses the unknown
     expect(bodies[1]?.nonce).toBe(bodies[0]?.nonce);
 });
 
+test('a --done receipt states that it closes the reply', async () => {
+    const outputs: string[] = [];
+    await runSend(args({ '--done': true }), scriptedClient([], ['sent'], outputs));
+    expect(outputs.join('')).toBe(
+        'Message sent to #general. Message ID: msg_sent\n' +
+            'Posted in #general as an inline reply, quoted under message 1234abcd. This closes your reply to that request.\n' +
+            'Thread on this message: #general:sent\n'
+    );
+});
+
+test('a --done receipt never claims closure after the plain resend', async () => {
+    const outputs: string[] = [];
+    const refusal = new AgentCliError('INVALID_ARG', 'The message send request was invalid.');
+    await runSend(args({ '--done': true }), scriptedClient([], [refusal, 'sent'], outputs));
+    expect(outputs.join('')).not.toContain('closes your reply');
+});
+
 test('--done never retries any other refusal', async () => {
     const bodies: unknown[] = [];
     const refusal = new AgentCliError('INVALID_ARG', 'That reply parent is not in this chat.');
@@ -99,6 +122,8 @@ test('--done never retries any other refusal', async () => {
 test('--done is a documented boolean flag on haus message send', () => {
     const flag = messageSendSubcommand.flags.find((candidate) => candidate.name === '--done');
     expect(flag?.valueName).toBeUndefined();
-    expect(flag?.description).toContain('completes your reply');
+    expect(flag?.description).toContain(
+        'an inline reply in a channel or DM, or the thread post when it arrived in a thread'
+    );
     expect(messageSendSubcommand.usage).toContain('[--done]');
 });

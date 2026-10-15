@@ -1,19 +1,17 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
-import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
-import { hasLibraryPreview } from './artifact-format.ts';
 import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
-import { useDecodedImage } from './use-decoded-image.ts';
+import { useArtifactPhoto } from './use-artifact-photo.ts';
 
 type ThumbnailArtifact = Pick<
     ArtifactMetadata,
-    'artifact_id' | 'content_type' | 'filename' | 'revision_id' | 'size_bytes'
+    'artifact_id' | 'content_type' | 'filename' | 'revision_id'
 >;
 
 /**
- * A file at a fixed size: a rounded photo for small raster images once its
- * pixels decode, else (and until then) its kind's sheet. The photo's corner
+ * A file at a fixed size: a rounded photo for raster images once its thumbnail
+ * decodes, else (and until then) its kind's sheet. The photo's corner
  * follows its box (`identityMarkRadius`).
  */
 export function ArtifactThumbnail({
@@ -40,7 +38,7 @@ export function ArtifactThumbnail({
 }
 
 /**
- * A file filling a grid tile's well: the photo cropped to the well for small
+ * A file filling a grid tile's well: the thumbnail cropped to the well for
  * raster images once it decodes, else (and until then) its kind's sheet
  * centered at `iconSize`.
  */
@@ -58,17 +56,4 @@ export function ArtifactCover({
         return <ArtifactFileIcon kind={artifactFileKind(artifact)} size={iconSize} />;
     }
     return <img alt="" className="artifact-cover" height={240} src={src} width={320} />;
-}
-
-/**
- * The photo's signed link once decoded; null for files without a photo, while
- * loading, and when the link is refused (storage off, revision gone) or broken.
- */
-function useArtifactPhoto(artifact: ThumbnailArtifact, serverId: string) {
-    const previewable = hasLibraryPreview(artifact);
-    const download = useArtifactDownload(serverId, artifact.artifact_id, artifact.revision_id, {
-        enabled: previewable,
-    });
-    const src = useDecodedImage(previewable ? download.data?.download_url : undefined);
-    return previewable ? src : null;
 }

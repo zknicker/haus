@@ -6,7 +6,7 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
-test('migration 0091 keeps hosted Linear sign-ins as custom MCP connections', async () => {
+test('migration 0094 keeps hosted Linear sign-ins as custom MCP connections', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-linear-app-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -14,12 +14,12 @@ test('migration 0091 keeps hosted Linear sign-ins as custom MCP connections', as
         await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
         const journalPath = join(folder, 'meta/_journal.json');
         const journal = JSON.parse(await readFile(journalPath, 'utf8'));
-        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 91);
+        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 94);
         await writeFile(
             journalPath,
             JSON.stringify({
                 ...journal,
-                entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= 90),
+                entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= 93),
             })
         );
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
@@ -44,7 +44,7 @@ test('migration 0091 keeps hosted Linear sign-ins as custom MCP connections', as
 
         await writeFile(journalPath, JSON.stringify(journal));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0091_linear-app',
+            '0094_linear-app',
         ]);
         expect(await database`SELECT * FROM mcp_connections ORDER BY id`).toEqual(
             connections.map((connection) => ({

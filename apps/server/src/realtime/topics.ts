@@ -1,5 +1,6 @@
 import {
     agentUpdatedEventSchema,
+    artifactUpdatedEventSchema,
     chatLifecycleEventSchema,
     chatReadEventSchema,
     cloudAgentSettingsUpdatedEventSchema,
@@ -55,6 +56,7 @@ export const reminderUpdatedTopic = createTopic('reminder.updated', reminderUpda
 
 // Server-level streams.
 export const agentUpdatedTopic = createTopic('agent.updated', agentUpdatedEventSchema);
+export const artifactUpdatedTopic = createTopic('artifact.updated', artifactUpdatedEventSchema);
 export const computerUpdatedTopic = createTopic('computer.updated', computerUpdatedEventSchema);
 export const mcpUpdatedTopic = createTopic('mcp.updated', mcpUpdatedEventSchema);
 export const linearUpdatedTopic = createTopic('linear.updated', linearUpdatedEventSchema);

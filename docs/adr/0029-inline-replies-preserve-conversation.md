@@ -1,5 +1,5 @@
 ---
-summary: Inline replies keep conversation in its channel while scoped subscriptions control Agent attention independently of task ownership; solo step-by-step progress goes in a thread on the Agent's acknowledgment (amended 2026-10-02); the acknowledgment is a signature-emoji pickup reaction plus a one-line note (amended 2026-10-06).
+summary: Inline replies keep conversation in its channel while scoped subscriptions control Agent attention independently of task ownership; solo step-by-step progress goes in a thread on the Agent's acknowledgment (amended 2026-10-02); the acknowledgment is a signature-emoji pickup reaction plus a one-line note (amended 2026-10-06); placement is taught as what humans see of inline replies versus threads (amended 2026-10-14).
 read_when:
   - changing inline replies, Agent inbox recipients, or task conversation placement
   - changing where Agents post acknowledgments, progress, questions, or cloud review rounds
@@ -9,7 +9,7 @@ read_when:
 
 ## Status
 
-Accepted, 2026-09-16; amended 2026-10-02 (progress threads) and 2026-10-06 (pickup acknowledgment), below. Implemented in the worktree; release remains gated by
+Accepted, 2026-09-16; amended 2026-10-02 (progress threads), 2026-10-06 (pickup acknowledgment), and 2026-10-14 (placement as visibility), below. Implemented in the worktree; release remains gated by
 [the implementation plan](../plans/inline-replies.md).
 
 Amends ADR 0013's removal of inline replies and ADR 0015's task completion and
@@ -88,6 +88,9 @@ solo-progress-threads-on-ack` (new), with `task-conversation-routing` and
 `conversation-natural-followups` guarding that one-step work and ordinary answers create no
 thread.
 
+Note, 2026-10-15: `task-conversation-routing` and `conversation-natural-followups` retired; the
+`placement` eval (`bun run eval placement`) and `task-thread-routing` now guard both.
+
 ## Amendment, 2026-10-06: the acknowledgment is a pickup reaction
 
 Operator-approved. For a request that needs real work before the Agent can answer (changing
@@ -100,3 +103,24 @@ with no reaction first.
 The managed prompt's pickup bullet carries the rule; see
 [Agents](../features/agents.md#identity-and-instructions) for the signature emoji.
 [Agent conversation behavior](../features/agent-conversation-behavior.md) lists the guards that keep this placement from regressing.
+
+## Amendment, 2026-10-14: placement is taught as what humans see
+
+Operator-approved, after an Agent posted its deliverable in the thread on its own pickup note.
+The prompt no longer lists message categories; it says what humans see and who is notified, the
+rule of `packages/haus-api/src/message-notification.ts`: an inline reply stays in the channel and
+notifies the parent's author; a thread shows only as a one-line preview, its followers see it as
+unread, and only its anchor's author (for every post) and anyone @mentioned are notified; every DM
+message notifies the other person, thread or not. So working notes and progress, even when asked
+for, go in a thread on the Agent's own pickup note in a channel, because a thread on the request
+would notify its author for every post; in a DM they stay private. A request that arrived inside a
+thread is answered in that thread with no `--reply-to`, which the Server refuses there. `--done`
+goes on the message that answers the request where it arrived: an inline reply in a channel or DM,
+or the thread post when it arrived in a thread. The send receipt states where a message landed and who was notified
+instead of suggesting the self-thread target; the claim receipt drops its placement line. The live
+gate `solo-progress-threads-on-ack` also asserts the pickup-note thread holds no final answer.
+Less verbosity: done means answering what was asked, with no obligatory summary or closing offer.
+On 2026-10-15 the description was paired with a command-shaped mechanics paragraph, and every
+non-thread send receipt came to state the message's own thread target as a fact, after the live
+gate showed the description alone lost `--done` and `--reply-to` and, knowing only the request's
+thread id, twice put progress in a thread on the request.

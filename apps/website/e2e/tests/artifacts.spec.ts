@@ -28,6 +28,7 @@ test('a Server member opens the shared library and reloads its stable address', 
         artifacts: [],
         folders: [],
         next_offset: null,
+        public_links: {},
         summary: { folders: 0, files_in_folders: 0, files: 0 },
     });
     expect(await client.artifact.creators.query({ serverId: server.id })).toEqual({
@@ -61,7 +62,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     const today = page.getByRole('grid', { name: 'Today' });
     await expect(today.getByRole('row')).toHaveCount(7);
     await expect(today.getByRole('row', { name: 'concept.png' })).toContainText(
-        'Concept render · Image · You · just now'
+        'Concept render · You · Image · just now'
     );
     const folders = page.getByRole('listbox', { name: 'Folders' });
     await expect(folders.getByRole('option')).toHaveText([
@@ -69,7 +70,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
         /starter-kit\s*4 files/u,
     ]);
 
-    await folders.getByRole('option', { name: 'starter-kit' }).click();
+    await folders.getByRole('option', { name: 'starter-kit' }).dblclick();
     await expect(page).toHaveURL(/folder=starter-kit$/u);
     // Newest first: the seed writes scripts after assets.
     await expect(folders.getByRole('option')).toHaveText([
@@ -77,7 +78,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
         /assets\s*1 file/u,
     ]);
     await expect(today.getByRole('row')).toHaveText([/README\.md/u]);
-    await folders.getByRole('option', { name: 'scripts' }).click();
+    await folders.getByRole('option', { name: 'scripts' }).dblclick();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
     await expect(today.getByRole('row')).toHaveCount(2);
     await expect(folders).toHaveCount(0);
@@ -127,19 +128,20 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await page.getByRole('searchbox').fill('');
     await page.screenshot({ path: '/tmp/haus-artifacts-library.png', animations: 'disabled' });
 
-    await tile.click();
+    await tile.dblclick();
     await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
     await expect(trail).toContainText('concept.png');
     await expect(page.getByRole('img', { name: 'Concept render', exact: true })).toBeVisible();
     const details = page.getByRole('complementary', { name: 'File details' });
     await expect(details).toContainText('Created by');
     await details.getByRole('button', { name: 'View revision 1', exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?revision=.*_r1$`, 'u'));
+    // The pinned revision keeps the folder view it was opened from.
+    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?.*&revision=.*_r1$`, 'u'));
     await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
     await page.reload();
     await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
     await page.getByRole('link', { name: 'Open latest', exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`${conceptId}$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?kind=images&in=$`, 'u'));
     await expect(details.getByText('Viewing')).toBeVisible();
     await page.screenshot({ path: '/tmp/haus-artifacts-viewer.png' });
 
@@ -157,9 +159,9 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await page.goBack();
     await page.goBack();
     await expect(page).toHaveURL(/kind=images/u);
-    await expect(
-        page.getByRole('button', { name: 'File type: Images', exact: true })
-    ).toBeVisible();
+    // A narrow band folds the filter menus into one Filters menu that names the open choice.
+    await page.getByRole('button', { name: 'Filters (on)', exact: true }).click();
+    await expect(page.getByRole('menuitem', { name: /File type\s*Images/u })).toBeVisible();
 });
 
 test('a viewer names the file by its path in Files, each folder a way back', async ({ page }) => {
@@ -212,6 +214,7 @@ test('members upload files and folders into the open folder, replace, and rename
     const confirm = page.getByRole('alertdialog');
     await expect(confirm).toContainText('Replace 1 file?');
     await expect(confirm).toContainText('1 new file will be added either way.');
+    await expect(confirm.getByRole('list', { name: 'Files to replace' })).toHaveText('setup.sh');
     await confirm.getByRole('button', { name: 'Replace', exact: true }).click();
     await expect(page.getByText('Uploaded 2 files')).toBeVisible();
     await expect(today.getByRole('row')).toHaveCount(3);
@@ -221,18 +224,22 @@ test('members upload files and folders into the open folder, replace, and rename
     );
     expect(setupRevisions).toBe('4');
 
+    // Rename edits the name in place; Return commits without opening the file.
     await today.getByRole('button', { name: 'Actions for new.txt', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
-    const rename = page.getByRole('dialog');
-    await rename.getByRole('textbox', { name: 'Name' }).fill('renamed.txt');
-    await rename.getByRole('button', { name: 'Rename', exact: true }).click();
+    const inline = page.getByRole('textbox', { name: 'Rename new.txt' });
+    await inline.fill('renamed.txt');
+    await inline.press('Enter');
     await expect(today.getByRole('row', { name: 'renamed.txt' })).toBeVisible();
     await expect(today.getByRole('row', { name: 'new.txt' })).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts\\?folder=`, 'u'));
 
-    await folders.getByRole('option', { name: 'tools' }).click({ button: 'right' });
-    await page.getByRole('menuitem', { name: 'Rename folder', exact: true }).click();
-    await page.getByRole('dialog').getByRole('textbox', { name: 'Name' }).fill('utilities');
-    await page.getByRole('dialog').getByRole('button', { name: 'Rename', exact: true }).click();
+    // F2 renames the selected folder in place.
+    await folders.getByRole('option', { name: 'tools' }).click();
+    await page.keyboard.press('F2');
+    const folderName = page.getByRole('textbox', { name: 'Rename tools' });
+    await folderName.fill('utilities');
+    await folderName.press('Enter');
     await expect(folders.getByRole('option')).toHaveText([/utilities\s*2 files/u]);
 });
 
@@ -250,16 +257,16 @@ test('text artifacts render inline like workspace files, and oversize text offer
     const today = page.getByRole('grid', { name: 'Today' });
     const preview = page.getByRole('region', { name: 'File preview' });
 
-    await today.getByRole('row', { name: 'readme.md' }).click();
+    await today.getByRole('row', { name: 'readme.md' }).dblclick();
     await expect(preview.getByRole('heading', { name: 'Release notes' })).toBeVisible();
     await expect(preview.locator('strong')).toHaveText('inline text previews');
 
     await page.goBack();
-    await today.getByRole('row', { name: 'notes.txt' }).click();
+    await today.getByRole('row', { name: 'notes.txt' }).dblclick();
     await expect(preview.locator('pre')).toContainText(seededArtifactText.notes);
 
     await page.goBack();
-    await today.getByRole('row', { name: 'server.log' }).click();
+    await today.getByRole('row', { name: 'server.log' }).dblclick();
     await expect(preview).toContainText('Too large to preview.');
     await expect(preview.getByRole('button', { name: 'Download' })).toBeVisible();
 });

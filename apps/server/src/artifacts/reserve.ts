@@ -52,6 +52,13 @@ export async function reserveArtifact(
                 .where(eq(artifacts.id, existing.artifactId))
                 .limit(1);
             const verifiedArtifact = verifyRetry(artifact, existing, input);
+            if (existing.state === 'deleted' || existing.state === 'deleting') {
+                throw new ArtifactError(
+                    'That publication landed earlier and its revision was since deleted or pruned. Read the file for its current head.',
+                    409,
+                    'DELETED'
+                );
+            }
             if (existing.state !== 'ready') {
                 throw new ArtifactError(
                     'That publication is in progress or failed. Use a new request_id after a failed upload.',

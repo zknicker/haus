@@ -1,10 +1,9 @@
 import cors from '@fastify/cors';
 import { settle, tracePromise } from '@haus/effect';
-import { Effect, Exit, Scope } from 'effect';
+import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
-import { artifactStorageBytes } from './artifacts/storage.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
 import { AvatarImageService, OpenAiAvatarImageProvider } from './avatar-generation/index.ts';
@@ -65,20 +64,16 @@ export async function createHausServerApplication(
     const shutdown = await settle(runtime, makeHausServerShutdown());
     const handles = emptyHausServerHandles();
     const hostedScope = await settle(runtime, Scope.make());
-    const resources = hausServerShutdownResources(handles, async (closeMcpRuntime) => {
-        await settle(
-            runtime,
-            Effect.promise(closeMcpRuntime).pipe(
-                Effect.ensuring(Scope.close(hostedScope, Exit.succeed(undefined)))
-            )
-        );
-    });
+    const resources = hausServerShutdownResources(handles, () =>
+        settle(runtime, Scope.close(hostedScope, Exit.succeed(undefined)))
+    );
 
     try {
         await settle(runtime, Scope.extend(shutdown.register(resources), scope));
         const connectedHaus = await connectHausDatabase(options.databaseUrl);
         handles.haus = connectedHaus;
-        const artifactStorage = await openArtifactStorage(options, connectedHaus.db, runtime);
+        const artifacts = await openArtifactStorage(options, connectedHaus.db, runtime, scope);
+        const { artifactStorage } = artifacts;
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot, runtime);
         await reconcileAttachments(connectedHaus.db, attachmentRoot);
         await purgeDeletedChannels(connectedHaus.db, attachmentRoot);
@@ -131,8 +126,7 @@ export async function createHausServerApplication(
             agentDelivery,
             appOrigin: options.appOrigin,
             attachmentRoot,
-            artifactStorage,
-            artifactStorageBytes: options.artifactStorageBytes ?? artifactStorageBytes,
+            ...artifacts,
             avatarImageService,
             clerkSessions,
             clerkUsers:
@@ -209,8 +203,9 @@ export async function createHausServerApplication(
         );
         handles.computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
-        await startServerSweeps(runtime, scope, {
+        await startServerSweeps(runtime, scope, shutdown, {
             appOrigin: options.appOrigin,
+            artifactStorage,
             clock: reminderClock,
             db: connectedHaus.db,
             githubApp: options.githubApp ?? null,

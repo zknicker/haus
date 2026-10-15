@@ -6,6 +6,7 @@ import {
     runRestarts,
 } from '../../test-support/realtime-stream-harness.tsx';
 import { useAgentUpdateStream } from './use-agent-update-stream.ts';
+import { artifactListingRefreshMs, useArtifactUpdateStream } from './use-artifact-update-stream.ts';
 import { useCloudAgentSettingsStream } from './use-cloud-agent-settings-stream.ts';
 import { useComputerUpdateStream } from './use-computer-update-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
@@ -103,6 +104,55 @@ describe('Server-level stream hooks', () => {
         ];
         expect(onEvent).toEqual(reads);
         expect(onRecovery).toEqual(reads);
+    });
+
+    test('artifact.onUpdated with a file refreshes every listing and that file', async () => {
+        const { onEvent, onRecovery } = await drive(
+            'artifact.onUpdated',
+            () => useArtifactUpdateStream(serverId),
+            { artifactId: 'art_1', serverId }
+        );
+        const file = { artifact_id: 'art_1', serverId };
+        expect(onEvent).toEqual([
+            read('artifact.list', { serverId }),
+            read('artifact.creators', { serverId }),
+            read('artifact.get', file),
+            read('artifact.versions', file),
+            read('artifact.publicLink', file),
+        ]);
+        // Recovery (and a folder move's null id) refreshes every file's reads.
+        expect(onRecovery).toEqual([
+            read('artifact.list', { serverId }),
+            read('artifact.creators', { serverId }),
+            read('artifact.get', { serverId }),
+            read('artifact.versions', { serverId }),
+            read('artifact.publicLink', { serverId }),
+        ]);
+    });
+
+    test('an artifact.onUpdated burst refreshes listings once now and once after the window', async () => {
+        const harness = createRealtimeHarness();
+        function Stream() {
+            useArtifactUpdateStream(serverId);
+            return null;
+        }
+        const mounted = await harness.mount(<Stream />);
+        harness.start('artifact.onUpdated');
+        harness.ops.splice(0);
+        const listings = () =>
+            invalidated(harness.ops).filter((op) => op.path === 'artifact.list').length;
+        for (const artifactId of ['art_1', 'art_2', 'art_3', 'art_4', 'art_5']) {
+            harness.emit('artifact.onUpdated', { artifactId, serverId });
+        }
+        expect(listings()).toBe(1);
+        // Per-file reads never wait.
+        expect(invalidated(harness.ops).filter((op) => op.path === 'artifact.get')).toHaveLength(5);
+        await Bun.sleep(artifactListingRefreshMs + 50);
+        expect(listings()).toBe(2);
+        // The trailing refresh opened one more window that closes with nothing pending.
+        await Bun.sleep(artifactListingRefreshMs + 50);
+        expect(listings()).toBe(2);
+        await mounted.unmount();
     });
 
     test('server.onUpdated refreshes this Server detail and the Server list', async () => {

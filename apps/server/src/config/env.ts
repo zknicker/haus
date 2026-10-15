@@ -1,6 +1,7 @@
 import os from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { artifactStorageBytes } from '../artifacts/storage.ts';
 
 // There is no env-file loading here on purpose. The committed root
 // `.env.schema` is the environment contract and Varlock is the only loader:
@@ -61,7 +62,11 @@ const envSchema = z
         HAUS_ARTIFACT_R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
         HAUS_ARTIFACT_R2_SESSION_TOKEN: z.string().min(1).optional(),
         HAUS_ARTIFACT_MAX_BYTES: z.coerce.number().int().positive().default(268_435_456),
-        HAUS_ARTIFACT_STORAGE_BYTES: z.coerce.number().int().positive().default(10_737_418_240),
+        HAUS_ARTIFACT_STORAGE_BYTES: z.coerce
+            .number()
+            .int()
+            .positive()
+            .default(artifactStorageBytes),
         HAUS_ENABLE_ARTIFACT_STORAGE: z
             .enum(['false', 'true'])
             .default('false')

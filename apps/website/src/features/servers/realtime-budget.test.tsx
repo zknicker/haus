@@ -88,6 +88,7 @@ function expectedStreams(role: 'admin' | 'member') {
     const perServer = ['member.onUpdated', 'server.onUpdated'];
     const active = [
         'agent.onUpdated',
+        'artifact.onUpdated',
         'chat.onLifecycle',
         'chat.onMessageCreated',
         'chat.onMessageReactionUpdated',
@@ -118,13 +119,13 @@ function expectedStreams(role: 'admin' | 'member') {
 
 /**
  * The per-window subscription budget (specs/realtime-events.md, "Topology"):
- * 2 × accessible Servers, 15 active-Server streams, 2 role-gated streams for
+ * 2 × accessible Servers, 16 active-Server streams, 2 role-gated streams for
  * Owners and Admins, the 2 hoisted Agent streams, and 3 per mounted Chat view.
  */
 describe('realtime subscription budget', () => {
     for (const [role, expected] of [
-        ['member', 29],
-        ['admin', 31],
+        ['member', 30],
+        ['admin', 32],
     ] as const) {
         test(`three Servers, one shown and one kept Chat view, as ${role}: ${expected} streams`, async () => {
             const harness = createRealtimeHarness(answer);

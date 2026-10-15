@@ -2,6 +2,7 @@ import { useLinearIssueStream } from '../../hooks/linear/use-linear-issue-stream
 import { useLinearUpdateStream } from '../../hooks/linear/use-linear-update-stream.ts';
 import type { RealtimeServer } from '../../hooks/realtime/realtime-server.ts';
 import { useAgentUpdateStream } from '../../hooks/realtime/use-agent-update-stream.ts';
+import { useArtifactUpdateStream } from '../../hooks/realtime/use-artifact-update-stream.ts';
 import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-stream.ts';
 import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agent-settings-stream.ts';
 import { useCloudAgentWorkStream } from '../../hooks/realtime/use-cloud-agent-work-stream.ts';
@@ -44,6 +45,7 @@ export function ServerRealtimeListeners({
             <AgentUpdateStream server={server} />
             <ComputerUpdateStream server={server} />
             <McpUpdateStream serverId={serverId} />
+            <ArtifactUpdateStream serverId={serverId} />
             <LinearUpdateStream serverId={serverId} />
             <LinearIssueStream serverId={serverId} />
             <CloudAgentSettingsStream serverId={serverId} />
@@ -104,6 +106,11 @@ function ComputerUpdateStream({ server }: { server: RealtimeServer }) {
 
 function McpUpdateStream({ serverId }: StreamProps) {
     useMcpUpdateStream(serverId);
+    return null;
+}
+
+function ArtifactUpdateStream({ serverId }: StreamProps) {
+    useArtifactUpdateStream(serverId);
     return null;
 }
 

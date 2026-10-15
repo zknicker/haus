@@ -23,6 +23,7 @@ for (const scenario of ['volume metadata', 'unexpected file', 'source metadata d
                 detach: async (path) => {
                     mounted.delete(path);
                 },
+                holders: async () => [],
                 mount: async (_image, path) => {
                     await mkdir(path, { recursive: true });
                     await chmod(path, 0o700);
@@ -39,6 +40,7 @@ for (const scenario of ['volume metadata', 'unexpected file', 'source metadata d
                     return uuid;
                 },
                 mountedUuid: async (path) => (mounted.has(path) ? uuid : null),
+                mounts: async () => [...mounted],
             };
             try {
                 await mkdir(workspace, { recursive: true });

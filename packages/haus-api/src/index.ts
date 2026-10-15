@@ -85,6 +85,7 @@ export * from './agent-workspace-files.ts';
 export * from './app-protocol.ts';
 export * from './artifact-drive.ts';
 export * from './artifact-path.ts';
+export * from './artifact-public-link.ts';
 export * from './artifacts.ts';
 export * from './attachment-media-type.ts';
 export * from './attachments.ts';

@@ -114,13 +114,22 @@ Run the managed development stack:
 bun run dev
 ```
 
-This starts an isolated PostgreSQL cluster, Haus Server,
+This starts an isolated PostgreSQL cluster, a local Files storage gateway, Haus Server,
 Haus Computer, and the website dev server. `bun run dev-app` runs the same
-stack inside the Electron desktop shell. Install the PostgreSQL 16 binaries once:
+stack inside the Electron desktop shell. Install the PostgreSQL 16 and versitygw binaries once:
 
 ```bash
-brew install postgresql@16
+brew install postgresql@16 versitygw
 ```
+
+Files bytes go to a per-worktree [versitygw](https://github.com/versity/versitygw) S3 gateway
+instead of R2, so uploads, thumbnails, and `haus files` work in every worktree with no cloud
+credential. The stack starts it on a private loopback port over
+`~/.haus/dev/<worktree-id>/object-storage`, creates the `haus-artifacts-development` bucket
+directory, and points Server at it with the fixed development key pair from `.env.schema`. The
+ready banner shows it as **Files**; it stops with the stack. To exercise a real bucket instead, set
+`HAUS_ARTIFACT_R2_ENDPOINT` and its credentials before `bun run dev`, and the stack skips the
+gateway.
 
 Do not start a Homebrew PostgreSQL service. The dev stack owns its direct child,
 chooses a private loopback port, bootstraps a fresh schema, and preserves that
@@ -185,6 +194,7 @@ The dev stack uses worktree-isolated development state by default:
 
 ```txt
 ~/.haus/dev/<worktree-id>/computer
+~/.haus/dev/<worktree-id>/object-storage
 ~/.haus/dev/<worktree-id>/postgres
 ~/.haus/dev/<worktree-id>/server/attachments
 ```
@@ -271,6 +281,9 @@ Computer keeps its macOS-only pieces behind platform seams:
   connecting a vault fails on Linux. Turns without Secrets are unaffected.
 - Browser discovers Chrome or Chromium binaries; the browser must still be
   started externally (see [Browser](../internals/browser.md)).
+- Files storage needs `versitygw` on `PATH` (or `HAUS_VERSITYGW_BIN`). The cloud install
+  installs the pinned release `.deb` from GitHub releases (network access to `github.com` and its
+  release-asset host); elsewhere install a release package by hand.
 
 Turns need a signed-in runtime CLI on the host, exactly as on a Mac. The dev
 seed puts Cove, Blippy, and Tiny on Codex. Cloud sessions handle this
@@ -378,8 +391,11 @@ preview message after showing its pending state.
 ## Shutdown
 
 From the terminal, stop the dev stack with `Ctrl+C` or `kill -TERM <dev-stack-pid>`.
-The stack forwards that signal to every directly managed child process immediately, then waits
-for each process group to exit before returning control to the shell.
+The stack forwards that signal to every directly managed child process except PostgreSQL
+immediately, then waits for each process group to exit in order (desktop, website, Computer,
+Server) before returning control to the shell. PostgreSQL gets its fast-shutdown `SIGINT` last,
+after the Server and Computer exit, so their teardown can still write; a second `Ctrl+C` signals
+everything at once.
 
 In desktop mode, quitting the app with `Cmd+Q` also lets the stack unwind. The
 desktop process exits first, then the stack signals the remaining website,

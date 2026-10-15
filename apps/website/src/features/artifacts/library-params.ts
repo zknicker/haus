@@ -56,17 +56,61 @@ export function libraryHref(slug: string, view: ArtifactLibraryView): string {
     return `${serverRoute(slug)}/artifacts${librarySearch(view)}`;
 }
 
-/** The URL view plus moves: opening a folder keeps the filters, as Finder does. */
+/**
+ * The library view a file was opened from, carried in the viewer's URL
+ * (`?in=designs&kind=images&q=cat`) so previous and next step through the same
+ * files in the same order. `in` marks a context even at the root (`?in=`);
+ * a file opened from anywhere else (a chat, a link) has none.
+ */
+export interface ArtifactViewerContext extends ArtifactLibraryView {
+    query: string;
+}
+
+export function viewerContextParams(context: ArtifactViewerContext): URLSearchParams {
+    const params = new URLSearchParams(librarySearch(context));
+    params.delete('folder');
+    params.set('in', context.folder);
+    if (context.query.trim()) {
+        params.set('q', context.query.trim());
+    }
+    return params;
+}
+
+export function parseViewerContext(params: URLSearchParams): ArtifactViewerContext | null {
+    const folder = params.get('in');
+    if (folder === null) {
+        return null;
+    }
+    const view = parseLibrarySearch(new URLSearchParams({ ...Object.fromEntries(params), folder }));
+    return { ...view, query: params.get('q') ?? '' };
+}
+
+/** A file's viewer, keeping the library context it was opened from. */
+export function artifactViewerHref(
+    slug: string,
+    artifactId: string,
+    context: ArtifactViewerContext | null
+): string {
+    const path = `${serverRoute(slug)}/artifacts/${encodeURIComponent(artifactId)}`;
+    return context ? `${path}?${viewerContextParams(context).toString()}` : path;
+}
+
+/**
+ * The URL view plus moves: opening a folder keeps the filters, as Finder does.
+ * Only a folder change is a history step (Back and Forward walk folders); a
+ * filter change replaces the current entry.
+ */
 export function useArtifactLibraryParams() {
     const [params] = useSearchParams();
     const navigate = useNavigate();
     const view = parseLibrarySearch(params);
-    const go = (next: ArtifactLibraryView) => navigate({ search: librarySearch(next) });
+    const go = (next: ArtifactLibraryView, replace: boolean) =>
+        navigate({ search: librarySearch(next) }, { replace });
 
     return {
         ...view,
-        openFolder: (folder: string) => go({ ...view, folder }),
-        selectCreator: (creator: ArtifactCreator | null) => go({ ...view, creator }),
-        selectKind: (kind: ArtifactKindFilter) => go({ ...view, kind }),
+        openFolder: (folder: string) => go({ ...view, folder }, false),
+        selectCreator: (creator: ArtifactCreator | null) => go({ ...view, creator }, true),
+        selectKind: (kind: ArtifactKindFilter) => go({ ...view, kind }, true),
     };
 }

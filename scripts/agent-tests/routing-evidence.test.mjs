@@ -30,8 +30,12 @@ test('captures paginated parent messages, child destinations and every resumed j
     };
     const evidence = await captureRoutingEvidence(kit, [{ id: 'agent' }]);
     expect(evidence.chats).toEqual([
-        { chatId: 'parent', messages: [{ id: 'launch' }, { id: 'request' }] },
-        { chatId: 'child', messages: [{ id: 'outcome' }] },
+        {
+            chatId: 'parent',
+            messages: [{ id: 'launch' }, { id: 'request' }],
+            threads: [{ threadChatId: 'child' }],
+        },
+        { chatId: 'child', messages: [{ id: 'outcome' }], threads: [] },
     ]);
     expect(evidence.journals.map((entry) => entry.runId)).toEqual(['completion', 'launch']);
     expect(tracked).toEqual(['child']);

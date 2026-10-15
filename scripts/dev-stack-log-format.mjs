@@ -15,13 +15,14 @@ export const theme = {
     warning: ansi.yellow,
 };
 
-const processOrder = ['postgres', 'haus', 'computer', 'website', 'desktop'];
+const processOrder = ['postgres', 'storage', 'haus', 'computer', 'website', 'desktop'];
 
 const sourceMeta = {
     desktop: { color: theme.accent, icon: '🪟', label: 'desktop' },
     computer: { color: theme.warning, icon: '🖥️', label: 'computer' },
     haus: { color: theme.warning, icon: '🏠', label: 'server' },
     postgres: { color: theme.warning, icon: '🐘', label: 'postgres' },
+    storage: { color: theme.warning, icon: '🪣', label: 'files' },
     website: { color: theme.accent, icon: '🌐', label: 'website' },
 };
 
@@ -114,6 +115,7 @@ export function formatReadyBlock(snapshot, { colorize = false } = {}) {
         readyServiceLine('Server', snapshot.config.hausServerUrl, colorize),
         readyServiceLine('Computer', 'running', colorize),
         readyServiceLine('Website', snapshot.config.websiteUrl, colorize),
+        readyServiceLine('Files', snapshot.config.objectStorageUrl ?? 'disabled', colorize),
         readyServiceLine(
             'Desktop',
             snapshot.config.desktopEnabled ? 'running' : 'disabled',
@@ -121,6 +123,7 @@ export function formatReadyBlock(snapshot, { colorize = false } = {}) {
         ),
         colorizeText('├─ Data', theme.accent, colorize),
         `${dim('│', colorize)}  ${dim('PG', colorize)}   ${snapshot.config.postgresDataPath}`,
+        `${dim('│', colorize)}  ${dim('S3', colorize)}   ${snapshot.config.objectStoragePath}`,
         colorizeText('╰─', theme.accent, colorize),
     ];
 
@@ -175,6 +178,9 @@ function getProcessValue(source, snapshot) {
     }
     if (source === 'postgres') {
         return snapshot.config.postgresDataPath;
+    }
+    if (source === 'storage') {
+        return snapshot.config.objectStorageUrl ?? '';
     }
 
     return '';

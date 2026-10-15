@@ -38,6 +38,7 @@ const storage: ArtifactStorage = {
         `https://private-r2.test/${key}?signature=temporary${saveAs ? `&save-as=${saveAs}` : ''}`,
     read: (key, maxBytes) =>
         Promise.resolve((objects.get(key) ?? new Uint8Array()).slice(0, maxBytes)),
+    stream: () => new ReadableStream(),
     upload: async (key, stream) => {
         if (failUpload) {
             throw new Error('R2 upload unavailable');

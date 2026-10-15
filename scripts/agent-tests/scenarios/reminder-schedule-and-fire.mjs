@@ -8,7 +8,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An Agent asked for a one-minute follow-up schedules one non-repeating reminder anchored to the conversation, ends its turn, and reports the status line that arrived while it was away in exactly one reminder-caused message.',
+        'An Agent asked for a 30-second follow-up schedules one non-repeating reminder anchored to the conversation, ends its turn, and reports the status line that arrived while it was away in exactly one reminder-caused message.',
     name: 'reminder-schedule-and-fire',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
@@ -24,7 +24,7 @@ export default defineScenario({
             );
             await kit.harness.send(
                 channel.id,
-                `@${worker.handle} In one minute, revisit this channel and report the most recent "Deployment status:" line verbatim. Schedule the follow-up; do not keep this turn alive while waiting.`
+                `@${worker.handle} In 30 seconds, revisit this channel and report the most recent "Deployment status:" line verbatim. Schedule the follow-up; do not keep this turn alive while waiting.`
             );
 
             const scheduling = await settleTurn(worker.id);

@@ -7,6 +7,16 @@ const moveMessages: Partial<Record<string, string>> = {
     REVISION_CONFLICT: 'The file changed while you were renaming it. Try again.',
 };
 
+/** A refused move in words: the drive's reason when it names one, else the error's message. */
+export function artifactMoveMessage(error: unknown): string {
+    const data = (error as { data?: { artifact?: unknown } } | null)?.data;
+    const code = artifactErrorDataSchema.safeParse(data?.artifact);
+    return (
+        (code.success ? moveMessages[code.data.code] : undefined) ??
+        (error instanceof Error ? error.message : 'The move failed.')
+    );
+}
+
 /**
  * Renames or moves a drive file or folder (`artifact.move`); only paths
  * change. Refreshes the library and any open file once the move lands.
@@ -18,14 +28,8 @@ export function useArtifactMove(serverId: string) {
             await Promise.all([utils.artifact.list.invalidate(), utils.artifact.get.invalidate()]);
         },
     });
-    const code = artifactErrorDataSchema.safeParse(
-        (move.error?.data as { artifact?: unknown } | undefined)?.artifact
-    );
-
     return {
-        error: move.error
-            ? ((code.success ? moveMessages[code.data.code] : undefined) ?? move.error.message)
-            : null,
+        error: move.error ? artifactMoveMessage(move.error) : null,
         isPending: move.isPending,
         move: (input: { base_revision_id?: string; from: string; to: string }) =>
             move.mutateAsync({ ...input, serverId }),

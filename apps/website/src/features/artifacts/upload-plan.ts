@@ -18,14 +18,17 @@ export interface RejectedUpload {
 
 /**
  * What an upload into one folder will do: files at free paths, files that
- * would replace an existing one (asked once, all together), files refused
- * before any bytes move, and how many OS noise files were dropped silently.
+ * would replace an existing one (asked once, all together), files whose bytes
+ * already are the current revision (skipped, like `haus files push`), files
+ * refused before any bytes move, and how many OS noise files were dropped
+ * silently.
  */
 export interface UploadPlan<F> {
     additions: PlannedUpload<F>[];
     rejected: RejectedUpload[];
     replacements: PlannedUpload<F>[];
     skippedNoise: number;
+    unchanged: PlannedUpload<F>[];
 }
 
 /**
@@ -43,7 +46,13 @@ export function planArtifactUpload<F>(
     const existingFolders = new Set(
         existingPaths.flatMap((path) => artifactPathAncestors(path).map(artifactPathKey))
     );
-    const plan: UploadPlan<F> = { additions: [], rejected: [], replacements: [], skippedNoise: 0 };
+    const plan: UploadPlan<F> = {
+        additions: [],
+        rejected: [],
+        replacements: [],
+        skippedNoise: 0,
+        unchanged: [],
+    };
     const accepted: PlannedUpload<F>[] = [];
     const acceptedKeys = new Set<string>();
 
@@ -84,6 +93,28 @@ export function planArtifactUpload<F>(
         }
     }
     return plan;
+}
+
+/**
+ * Moves replacements whose bytes match the current revision (by SHA-256) out
+ * of the question: re-uploading them would only add an identical revision.
+ * `digests` holds each replacement's local hash; `current` the drive's, by
+ * path key.
+ */
+export function skipUnchangedReplacements<F>(
+    plan: UploadPlan<F>,
+    digests: ReadonlyMap<string, string>,
+    current: ReadonlyMap<string, string>
+): UploadPlan<F> {
+    const same = (upload: PlannedUpload<F>) => {
+        const digest = digests.get(upload.path);
+        return digest !== undefined && digest === current.get(artifactPathKey(upload.path));
+    };
+    return {
+        ...plan,
+        replacements: plan.replacements.filter((upload) => !same(upload)),
+        unchanged: [...plan.unchanged, ...plan.replacements.filter(same)],
+    };
 }
 
 const noiseNames = new Set(['.ds_store', 'thumbs.db', 'desktop.ini', 'icon\r']);

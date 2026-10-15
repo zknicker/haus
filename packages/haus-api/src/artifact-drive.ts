@@ -5,12 +5,15 @@ import { artifactCreatorSchema, artifactMetadataSchema } from './artifacts.ts';
 /** Drive browsing, bulk listing, and moves over shared-artifact paths (specs/artifact-drive.md). */
 const id = z.string().trim().min(1).max(128);
 export const artifactListPageMax = 200;
+export const artifactListOrderSchema = z.enum(['updated', 'path', 'name', 'size', 'kind']);
+export type ArtifactListOrder = z.infer<typeof artifactListOrderSchema>;
 
 /**
  * Lists one folder (`prefix`, `''` for the root). By default it returns the folder's immediate
  * child folders (first page only) and its own files; `recursive` returns every file under the
- * prefix instead, with no folders. `creator`, `kind`, and `query` filter files, and folder counts
- * reflect the same filters.
+ * prefix instead, with no folders, except that a recursive search (`query`) also returns the
+ * folders under the prefix whose name matches (first page only). `creator`, `kind`, and `query`
+ * filter files, and folder counts reflect the same filters.
  */
 export const artifactListInputSchema = z
     .object({
@@ -18,8 +21,13 @@ export const artifactListInputSchema = z
         kind: z.enum(['all', 'images', 'documents', 'media', 'other']).default('all'),
         limit: z.number().int().min(1).max(artifactListPageMax).default(50),
         offset: z.number().int().min(0).max(100_000).default(0),
-        /** `updated`: newest revision first. `path`: stable path order for bulk pulls. */
-        order: z.enum(['updated', 'path']).default('updated'),
+        /**
+         * `updated`: revision time. `path`: stable path order for bulk pulls. `name`: the file
+         * name in natural order (`2` before `10`). `size`: bytes. `kind`: content type, then name.
+         */
+        order: artifactListOrderSchema.default('updated'),
+        /** Defaults to newest first for `updated` and ascending for every other order. */
+        direction: z.enum(['asc', 'desc']).optional(),
         prefix: artifactFolderSchema.default(''),
         query: z.string().trim().max(200).default(''),
         recursive: z.boolean().default(false),

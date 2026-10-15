@@ -1,84 +1,72 @@
 import type { ArtifactFolderEntry, ArtifactMetadata } from '@haus/api';
-import { Label } from '@heroui/react';
-import { ContextMenu } from '@heroui-pro/react';
-import { useState } from 'react';
+import { Tooltip } from '@heroui/react';
 import { ListBox, ListBoxItem } from 'react-aria-components';
-import { useArtifactDownloadUrls } from '../../hooks/artifacts/use-artifact-download-urls.ts';
+import { useArtifactThumbnailUrls } from '../../hooks/artifacts/use-artifact-thumbnails.ts';
+import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { hasLibraryPreview } from './artifact-format.ts';
-import { ArtifactRenameDialog, type ArtifactRenameTarget } from './artifact-rename-dialog.tsx';
-import { artifactFolderToneMap } from './drive-folders.ts';
+import { ArtifactInlineRename } from './artifact-inline-rename.tsx';
+import { artifactFolderTone, artifactFolderWithin, middleTruncatedName } from './drive-folders.ts';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
-import { ArtifactFolderIcon, type ArtifactFolderTone } from './icons/artifact-folder-icon.tsx';
+import { ArtifactFolderIcon } from './icons/artifact-folder-icon.tsx';
+import {
+    type LibrarySelection,
+    librarySelectionProps,
+    useOpenInTabPress,
+} from './library-selection.ts';
 import { useDecodedImages } from './use-decoded-image.ts';
 
 /**
- * The open folder's child folders, Finder's icon view: each tile peeks a few
- * of its newest files and counts what is inside under the current filters.
- * Pressing a tile opens the folder; right-clicking it offers Rename folder.
+ * The open folder's child folders (or a search's matching folders), Finder's
+ * icon view: each tile peeks a few of its newest files and counts what is
+ * inside under the current filters. A click selects a tile and a double click
+ * or Return opens it (a touch tap opens at once); right-clicking it opens the
+ * library's folder menu, and a tile being renamed shows its name as a field.
  */
 export function ArtifactFolderRow({
+    folder,
     folders,
     onOpen,
     previews,
+    selection,
     serverId,
 }: {
+    /** The open folder, so a search hit deeper down names where it sits. */
+    folder: string;
     folders: readonly ArtifactFolderEntry[];
     onOpen: (path: string) => void;
     previews: ReadonlyMap<string, ArtifactMetadata[]>;
+    selection: LibrarySelection;
     serverId: string;
 }) {
-    const [renaming, setRenaming] = useState<ArtifactRenameTarget | null>(null);
-    const tones = artifactFolderToneMap(folders.map((folder) => folder.path));
+    const openInTabPress = useOpenInTabPress();
     return (
-        <>
-            <ListBox
-                aria-label="Folders"
-                className="artifact-folder-row"
-                items={folders.map((folder) => ({ ...folder, id: folder.path }))}
-                onAction={(key) => onOpen(String(key))}
-                orientation="horizontal"
-            >
-                {(folder) => (
-                    <ListBoxItem
-                        className="artifact-tile artifact-tile--folder artifact-folder-trigger"
-                        id={folder.path}
-                        textValue={folder.name}
-                    >
-                        <ContextMenu>
-                            <ContextMenu.Trigger className="artifact-tile__body">
-                                <ArtifactFolderTile
-                                    folder={folder}
-                                    previews={previews.get(folder.path) ?? []}
-                                    serverId={serverId}
-                                    tone={tones.get(folder.path) ?? 'blue'}
-                                />
-                            </ContextMenu.Trigger>
-                            <ContextMenu.Popover>
-                                <ContextMenu.Menu
-                                    onAction={(key) =>
-                                        key === 'open'
-                                            ? onOpen(folder.path)
-                                            : setRenaming({ kind: 'folder', path: folder.path })
-                                    }
-                                >
-                                    <ContextMenu.Item id="open" textValue="Open">
-                                        <Label>Open</Label>
-                                    </ContextMenu.Item>
-                                    <ContextMenu.Item id="rename" textValue="Rename folder">
-                                        <Label>Rename folder</Label>
-                                    </ContextMenu.Item>
-                                </ContextMenu.Menu>
-                            </ContextMenu.Popover>
-                        </ContextMenu>
-                    </ListBoxItem>
-                )}
-            </ListBox>
-            <ArtifactRenameDialog
-                onClose={() => setRenaming(null)}
-                serverId={serverId}
-                target={renaming}
-            />
-        </>
+        <ListBox
+            aria-label="Folders"
+            className="artifact-folder-row"
+            items={folders.map((entry) => ({ ...entry, id: entry.path }))}
+            onAction={(key) => onOpen(String(key))}
+            orientation="horizontal"
+            {...librarySelectionProps(
+                selection,
+                folders.map((entry) => entry.path)
+            )}
+        >
+            {(entry) => (
+                <ListBoxItem
+                    className="artifact-tile artifact-tile--folder artifact-folder-trigger"
+                    id={entry.path}
+                    onPress={openInTabPress(() => onOpen(entry.path))}
+                    textValue={entry.name}
+                >
+                    <ArtifactFolderTile
+                        folder={entry}
+                        previews={previews.get(entry.path) ?? []}
+                        serverId={serverId}
+                        within={artifactFolderWithin(entry.path, folder)}
+                    />
+                </ListBoxItem>
+            )}
+        </ListBox>
     );
 }
 
@@ -86,15 +74,17 @@ function ArtifactFolderTile({
     folder,
     previews,
     serverId,
-    tone,
+    within,
 }: {
     folder: ArtifactFolderEntry;
     previews: readonly ArtifactMetadata[];
     serverId: string;
-    tone: ArtifactFolderTone;
+    /** Where a search hit sits relative to the open folder; `''` when directly in it. */
+    within: string;
 }) {
+    const actions = useArtifactActionsContext();
     const photos = previews.filter(hasLibraryPreview);
-    const urls = useArtifactDownloadUrls(
+    const urls = useArtifactThumbnailUrls(
         serverId,
         photos.map((artifact) => ({
             artifactId: artifact.artifact_id,
@@ -109,17 +99,36 @@ function ArtifactFolderTile({
         imageUrl: hasLibraryPreview(artifact) ? decoded.get(artifact.artifact_id) : undefined,
         kind: artifactFileKind(artifact),
     }));
+    const count = folder.file_count === 1 ? '1 file' : `${folder.file_count} files`;
+    const renaming = actions.renaming?.kind === 'folder' && actions.renaming.path === folder.path;
     return (
         <>
             <span className="artifact-tile__well">
-                <ArtifactFolderIcon previews={peeks} size={56} tone={tone} />
+                <ArtifactFolderIcon
+                    previews={peeks}
+                    size={56}
+                    tone={artifactFolderTone(folder.path)}
+                />
             </span>
-            <span className="artifact-tile__title">
-                <span className="truncate">{folder.name}</span>
-            </span>
-            <span className="artifact-tile__meta">
-                {folder.file_count === 1 ? '1 file' : `${folder.file_count} files`}
-            </span>
+            {renaming && actions.renaming ? (
+                <ArtifactInlineRename
+                    onDone={actions.endRename}
+                    serverId={serverId}
+                    target={actions.renaming}
+                />
+            ) : (
+                // Long print names share a prefix: two lines, a middle cut that keeps the tail, and
+                // the full path on hover tell them apart.
+                <Tooltip closeDelay={0} delay={600}>
+                    <Tooltip.Trigger role="presentation" tabIndex={-1}>
+                        <span className="artifact-tile__title artifact-tile__title--wrap">
+                            {middleTruncatedName(folder.name)}
+                        </span>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>{folder.path}</Tooltip.Content>
+                </Tooltip>
+            )}
+            <span className="artifact-tile__meta">{within ? `${within} · ${count}` : count}</span>
         </>
     );
 }
