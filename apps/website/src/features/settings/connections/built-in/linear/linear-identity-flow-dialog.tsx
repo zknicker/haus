@@ -119,7 +119,9 @@ function FlowBody({
 
     return (
         <>
-            <Modal.Body className="grid gap-6">
+            {/* `grid-cols-1` is `minmax(0, 1fr)`: an auto track grows to the
+                longest URL, so the body scrolled sideways instead of truncating. */}
+            <Modal.Body className="grid grid-cols-1 gap-6">
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header>
                         <ItemCardGroup.Title>1. {register?.title}</ItemCardGroup.Title>
@@ -129,7 +131,10 @@ function FlowBody({
                             <ItemCard key={entry.label}>
                                 <ItemCard.Content>
                                     <ItemCard.Title>{entry.label}</ItemCard.Title>
-                                    <ItemCard.Description className="max-w-full truncate font-mono">
+                                    <ItemCard.Description
+                                        className="max-w-full truncate font-mono"
+                                        title={entry.value}
+                                    >
                                         {entry.value}
                                     </ItemCard.Description>
                                 </ItemCard.Content>

@@ -1,5 +1,6 @@
 import {
     isMcpBearerTokenPreset,
+    isMcpBuiltInPreset,
     type McpConnection,
     type McpConnectionCreate,
     type McpOAuthStart,
@@ -280,7 +281,10 @@ async function refreshInventory(
     const [updated] = await db
         .update(mcpConnectionsTable)
         .set({
-            accountLabel: discovery.accountLabel,
+            // A built-in connection's account comes from its install flow.
+            accountLabel: isMcpBuiltInPreset(connection.preset)
+                ? connection.accountLabel
+                : discovery.accountLabel,
             connected: true,
             icon,
             summary: summarizeInstructions(discovery.instructions),

@@ -14,7 +14,7 @@ import {
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireOperableConnection } from './connection-access.ts';
-import { resolveMcpConnectionIcon } from './connection-branding.ts';
+import { mcpBuiltInPresetBrandUrls, resolveMcpConnectionIcon } from './connection-branding.ts';
 import { McpDeniedError } from './errors.ts';
 import type { McpIconResolver } from './icons.ts';
 import type { McpRuntime } from './runtime.ts';
@@ -109,9 +109,9 @@ const keylessPresets: Record<McpKeylessPreset, PresetDefinition<{ kind: 'none' }
  * Built-in connections install through their own flow (`linear.startInstall`);
  * the service's public site only supplies their Recommended icon.
  */
-const builtInPresetIcons: Record<McpBuiltInPreset, { url: string }> = {
-    linear: { url: 'https://mcp.linear.app/mcp' },
-};
+const builtInPresetIcons = Object.fromEntries(
+    Object.entries(mcpBuiltInPresetBrandUrls).map(([preset, url]) => [preset, { url }])
+) as Record<McpBuiltInPreset, { url: string }>;
 
 /** Recommended rows resolve service-owned favicons before OAuth sign-in. */
 export async function resolveMcpPresetIcons(resolveIcon: McpIconResolver) {

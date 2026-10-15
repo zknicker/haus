@@ -83,13 +83,13 @@ async function bindNewWorkspace(
     }
     const connectionId = createOpaqueId('mcp');
     await tx.insert(mcpConnectionsTable).values({
-        accountLabel: facts.organization.name,
+        accountLabel: facts.organization.urlKey,
         auth: 'none',
         connected: true,
         headerNames: [],
         icon: null,
         id: connectionId,
-        name: facts.organization.name,
+        name: linearName,
         preset: 'linear',
         serverId: attempt.serverId,
         tools: [],
@@ -146,7 +146,7 @@ async function rebindWorkspace(
         .where(eq(linearWorkspacesTable.id, workspace.id));
     await tx
         .update(mcpConnectionsTable)
-        .set({ accountLabel: facts.organization.name, connected: true })
+        .set({ accountLabel: facts.organization.urlKey, connected: true, name: linearName })
         .where(eq(mcpConnectionsTable.id, workspace.connectionId));
     await storeActor(tx, { ...input, identityId: null, workspaceId: workspace.id });
     await labelLifecycle.teamsChanged(tx, {
@@ -292,3 +292,6 @@ function identityBoundElsewhere() {
         'This Linear app is already a Haus Agent identity.'
     );
 }
+
+// Named for the service like every preset; the unique URL key is the account.
+const linearName = 'Linear';

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { mcpIconSchema, mcpPresetIcons, mcpPresetSchema } from '@haus/api';
 import type { mcpConnectionsTable } from '../postgres/schema.ts';
+import { resolveMcpConnectionIcon } from './connection-branding.ts';
 import { resolveMcpPresetIcons } from './presets.ts';
 import { shapeMcpConnection } from './state.ts';
 
@@ -93,6 +94,19 @@ describe('preset icon fallback', () => {
             unavailable.find((entry) => entry.preset === 'merchbase-fulfillment')?.icon
         ).toBeNull();
     });
+    test('a bound built-in connection resolves its icon from the service, not its hosted URL', async () => {
+        const urls: string[] = [];
+        const icon = await resolveMcpConnectionIcon(
+            async (input) => {
+                urls.push(input.connectionUrl);
+                return resolvedIcon;
+            },
+            { icon: null, preset: 'linear', url: 'https://hosted-mcp.haus.invalid/linear/mcp' }
+        );
+        expect(icon).toEqual(resolvedIcon);
+        expect(urls).toEqual(['https://mcp.linear.app/mcp']);
+    });
+
     test('a preset with no resolved icon reports its bundled mark', () => {
         const shaped = shapeMcpConnection(row({ preset: 'merchbase' }));
 

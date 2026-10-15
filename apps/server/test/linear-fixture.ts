@@ -163,11 +163,12 @@ export async function seedWorkspace(
     const workspaceId = createOpaqueId('lnw');
     const credentialId = createOpaqueId('lna');
     await db.insert(mcpConnectionsTable).values({
+        accountLabel: 'acme',
         auth: 'none',
         connected: true,
         headerNames: [],
         id: connectionId,
-        name: 'Acme',
+        name: 'Linear',
         preset: 'linear',
         serverId: seed.serverId,
         tools: [],

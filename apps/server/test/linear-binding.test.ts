@@ -133,9 +133,11 @@ test('an Owner binds a new workspace once; a replayed state binds nothing', asyn
         .from(mcpConnectionsTable)
         .where(eq(mcpConnectionsTable.id, workspace?.connectionId ?? ''));
     expect(connectionRow).toMatchObject({
+        // Named for the service; the workspace's URL key tells workspaces apart.
+        accountLabel: 'acme',
         auth: 'none',
         connected: true,
-        name: 'Acme',
+        name: 'Linear',
         preset: 'linear',
         tools: ['list_issues', 'save_issue'],
     });
