@@ -8,6 +8,8 @@ import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { HostedMcpDefinition } from './hosted-mcp/catalog.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
 import type { ImageProviderAdapters } from './image-generation/run-image-generation.ts';
+import type { LinearApp } from './linear/linear-api.ts';
+import type { LinearOutboxTransport } from './linear/outbox-calls.ts';
 import type { MessageRouter } from './message-routing/jev.ts';
 import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
@@ -52,6 +54,14 @@ export interface HausServerApplicationOptions {
     hostedMcps?: { definitions: readonly HostedMcpDefinition[]; storageRoot: string };
     /** Test seam: replaces the OpenAI and Gemini image adapters outright. */
     imageGenerationAdapters?: ImageProviderAdapters;
+    /** The Haus Linear app; absent or null when its client id is not configured. */
+    linearApp?: LinearApp | null;
+    /** Test seam: Linear for the outbox worker. */
+    linearOutboxTransport?: LinearOutboxTransport;
+    /** `HAUS_LINEAR_URL_SIGNING_KEY`: signs avatar and upload-source URLs; absent disables them. */
+    linearUrlSigningKey?: string | null;
+    /** The Haus Linear app's webhook secrets, current first; empty answers `503`. */
+    linearWebhookSecrets?: readonly string[];
     messageRouter?: MessageRouter;
     /** Server-owned OpenAI key for avatar generation and GPT-Live calls. */
     openAiApiKey?: string;

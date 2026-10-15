@@ -28,6 +28,8 @@ interface ServerSweepsInput {
     githubIngest(delivery: GithubDelivery): Promise<GithubIngestOutcome>;
     /** Delivery recovery cadence; `null` turns recovery off (the test harness). */
     githubRecoveryIntervalMs?: number | null;
+    /** Linear's delivery and outbox workers (`linear/linear-pipeline.ts`). */
+    linearWorkers?: () => BootSweep;
     /** How long a push waits for its human to read the message elsewhere; tests shorten it. */
     pushReadGraceMs?: number;
     /** iPhone push; absent when no APNs key is configured. */
@@ -50,6 +52,7 @@ export async function startServerSweeps(
     const { pushSender } = input;
     for (const start of [
         ...githubSweeps(runtime, input),
+        ...(input.linearWorkers ? [input.linearWorkers] : []),
         () => startReminderRetentionSweep(input.db, input.clock, input.timers),
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
         () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),

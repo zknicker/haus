@@ -3,6 +3,7 @@ import {
     isMcpKeylessPreset,
     type McpBearerTokenPreset,
     type McpBearerTokenUpdate,
+    type McpBuiltInPreset,
     type McpConnection,
     type McpKeylessPreset,
     type McpOAuthPreset,
@@ -43,11 +44,6 @@ const oauthPresets: Record<
         auth: { kind: 'oauth', scopes: [] },
         name: 'Cloudflare',
         url: 'https://mcp.cloudflare.com/mcp',
-    },
-    linear: {
-        auth: { kind: 'oauth', scopes: [] },
-        name: 'Linear',
-        url: 'https://mcp.linear.app/mcp',
     },
     // Signs in through the Haus GitHub App's client (oauth-clients.ts); a GitHub
     // App has permissions, not scopes. Installations are github/ state.
@@ -109,9 +105,22 @@ const keylessPresets: Record<McpKeylessPreset, PresetDefinition<{ kind: 'none' }
     },
 };
 
+/**
+ * Built-in connections install through their own flow (`linear.startInstall`);
+ * the service's public site only supplies their Recommended icon.
+ */
+const builtInPresetIcons: Record<McpBuiltInPreset, { url: string }> = {
+    linear: { url: 'https://mcp.linear.app/mcp' },
+};
+
 /** Recommended rows resolve service-owned favicons before OAuth sign-in. */
 export async function resolveMcpPresetIcons(resolveIcon: McpIconResolver) {
-    const presets = { ...oauthPresets, ...bearerTokenPresets, ...keylessPresets };
+    const presets = {
+        ...oauthPresets,
+        ...builtInPresetIcons,
+        ...bearerTokenPresets,
+        ...keylessPresets,
+    };
     return await Promise.all(
         Object.entries(presets).map(async ([id, preset]) => {
             const presetId = mcpPresetSchema.parse(id);

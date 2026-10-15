@@ -9,6 +9,7 @@ import {
     type HausServerApplication,
 } from './haus-server-application.ts';
 import { skoolHostedDefinition } from './hosted-mcp/catalog.ts';
+import { linearAppFromEnvironment } from './linear/linear-api.ts';
 import { createJevRouter } from './message-routing/jev-client.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
 import { createPushSender } from './push/push-configuration.ts';
@@ -76,6 +77,17 @@ async function start() {
         avatarImageProvider: createAvatarImageProvider(),
         githubApp,
         githubRecoveryIntervalMs: githubRecoveryInterval(),
+        linearApp: linearAppFromEnvironment(env),
+        linearUrlSigningKey: env.HAUS_LINEAR_URL_SIGNING_KEY ?? null,
+        // The previous secret is honored only beside a current one.
+        linearWebhookSecrets: env.HAUS_LINEAR_APP_WEBHOOK_SECRET
+            ? [
+                  env.HAUS_LINEAR_APP_WEBHOOK_SECRET,
+                  ...(env.HAUS_LINEAR_APP_WEBHOOK_SECRET_PREVIOUS
+                      ? [env.HAUS_LINEAR_APP_WEBHOOK_SECRET_PREVIOUS]
+                      : []),
+              ]
+            : [],
         openAiApiKey: env.HAUS_OPENAI_API_KEY,
         messageRouter: env.HAUS_TYPESAFE_API_KEY
             ? createJevRouter(env.HAUS_TYPESAFE_API_KEY)

@@ -20,7 +20,8 @@ import {
     type ImageProviderAdapters,
 } from './image-generation/run-image-generation.ts';
 import { chipConnectionToken } from './linear/issue-chip-tokens.ts';
-import { registerLinearRoutes } from './linear/routes.ts';
+import { type LinearRouteOptions, registerLinearRoutes } from './linear/routes.ts';
+import { registerLinearSignedUrlRoutes } from './linear/signed-url-routes.ts';
 import { registerLinearThumbnailRoute } from './linear/thumbnail-route.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
@@ -31,6 +32,8 @@ export interface HausServerRouteDependencies extends HausContextDependencies {
     githubIngest: GithubRouteOptions['ingest'];
     /** Test seam: replaces the OpenAI and Gemini image adapters outright. */
     imageGenerationAdapters?: ImageProviderAdapters;
+    /** Linear's webhook verification and durable ingest (`linear/linear-pipeline.ts`). */
+    linearWebhook: LinearRouteOptions['webhook'];
     releaseIdentity?: HausReleaseIdentity | null;
 }
 
@@ -101,7 +104,20 @@ export async function registerHausServerRoutes(
         githubApp: dependencies.githubApp,
         ingest: dependencies.githubIngest,
     });
-    await registerLinearRoutes(app);
+    await registerLinearRoutes(app, {
+        oauthCallback: {
+            appOrigin: dependencies.appOrigin,
+            db,
+            linearApp: dependencies.linear.app,
+            mcpRuntime: dependencies.mcpRuntime,
+        },
+        webhook: dependencies.linearWebhook,
+    });
+    registerLinearSignedUrlRoutes(app, {
+        db,
+        signingKey: env.HAUS_LINEAR_URL_SIGNING_KEY ?? null,
+        storage: dependencies.artifactStorage,
+    });
     registerLinearThumbnailRoute(app, {
         connectionAccessToken: (connectionId) => chipConnectionToken(db, connectionId),
         signingKey: env.HAUS_LINEAR_URL_SIGNING_KEY ?? null,

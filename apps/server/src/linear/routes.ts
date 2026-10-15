@@ -1,36 +1,34 @@
 import type { FastifyInstance } from 'fastify';
+import {
+    type LinearCallbackDependencies,
+    registerLinearOauthCallback,
+} from './oauth-callback-route.ts';
+import {
+    type LinearWebhookRouteOptions,
+    linearWebhookPaths,
+    registerLinearWebhookRoutes,
+} from './webhook-route.ts';
 
 /** The public Linear edges (specs/linear-app.md#webhooks, #binding-and-authority). */
 export const linearRoutePaths = {
     /** One Agent identity's webhook. */
-    identityWebhook: '/api/linear/webhook/:identityId',
+    identityWebhook: linearWebhookPaths.identity,
     /** Every install's OAuth redirect: workspace and identity installs alike. */
     oauthCallback: '/linear/oauth/callback',
     /** The Haus app's workspace webhook. */
-    webhook: '/api/linear/webhook',
+    webhook: linearWebhookPaths.workspace,
 } as const;
 
+export interface LinearRouteOptions {
+    oauthCallback: LinearCallbackDependencies;
+    webhook: LinearWebhookRouteOptions;
+}
+
 /**
- * Registers the Linear edges ahead of tRPC, without Clerk. Until ingest and
- * binding land, each answers `501` and reads nothing: bodies are drained
- * unparsed so no payload can turn into a different error.
+ * Registers the Linear edges ahead of tRPC, without Clerk: both webhooks
+ * (`webhook-route.ts`) and the OAuth callback (`oauth-callback-route.ts`).
  */
-export function registerLinearRoutes(app: FastifyInstance) {
-    return app.register(async (scope) => {
-        scope.removeAllContentTypeParsers();
-        scope.addContentTypeParser('*', (_request, payload, done) => {
-            payload.resume();
-            done(null, undefined);
-        });
-        const notImplemented = { code: 'linear_not_implemented' } as const;
-        scope.post(linearRoutePaths.webhook, (_request, reply) =>
-            reply.code(501).send(notImplemented)
-        );
-        scope.post(linearRoutePaths.identityWebhook, (_request, reply) =>
-            reply.code(501).send(notImplemented)
-        );
-        scope.get(linearRoutePaths.oauthCallback, (_request, reply) =>
-            reply.code(501).send(notImplemented)
-        );
-    });
+export async function registerLinearRoutes(app: FastifyInstance, options: LinearRouteOptions) {
+    await registerLinearWebhookRoutes(app, options.webhook);
+    registerLinearOauthCallback(app, options.oauthCallback);
 }

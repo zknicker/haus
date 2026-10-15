@@ -29,6 +29,7 @@ import { registerHausStaticApp } from './haus-static-app.ts';
 import { startHostedMcps } from './hosted-mcp/supervisor.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { createClerkUsers } from './identity/clerk-users.ts';
+import { createLinearServices } from './linear/linear-runtime.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
 import { type ServerRecurringWork, startServerRecurringWork } from './recurring-work.ts';
@@ -123,7 +124,18 @@ export async function createHausServerApplication(
         const hostedMcps = options.hostedMcps
             ? await startHostedMcps({ ...options.hostedMcps, runtime, scope: hostedScope })
             : undefined;
-        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, { hostedMcps });
+        // One refresh owner per process: tools, chips, ingest, and the outbox share it.
+        const linearServices = createLinearServices(options, {
+            agentDelivery,
+            db: connectedHaus.db,
+            postCommitWork: startedPostCommitWork,
+            runtime,
+        });
+        const { linear } = linearServices;
+        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, {
+            hostedMcps,
+            toolCallTransports: new Map([['linear', linear.transport]]),
+        });
         mcpRuntime = startedMcpRuntime;
         void startedMcpRuntime.start();
         const mcpIconResolver = makeMcpIconResolver(runtime);
@@ -160,6 +172,7 @@ export async function createHausServerApplication(
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             githubApp: options.githubApp ?? null,
             hausDb: connectedHaus.db,
+            linear,
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,
@@ -195,6 +208,7 @@ export async function createHausServerApplication(
             createContext,
             githubIngest,
             imageGenerationAdapters: options.imageGenerationAdapters,
+            linearWebhook: linearServices.webhook,
             releaseIdentity: options.releaseIdentity,
         });
 
@@ -228,6 +242,7 @@ export async function createHausServerApplication(
             githubApp: options.githubApp ?? null,
             githubIngest,
             githubRecoveryIntervalMs: options.githubRecoveryIntervalMs,
+            linearWorkers: linearServices.workers,
             pushReadGraceMs: options.pushReadGraceMs,
             pushSender: options.pushSender ?? null,
             timers: options.sweepTimers,

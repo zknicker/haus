@@ -19,7 +19,14 @@ import { type ClientFactory, McpClientCache } from './client-cache.ts';
 import { createConnectionClient } from './connection-client.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { McpInventory } from './inventory.ts';
-import { callMcpTool, listAllTools, modelToolName } from './tool-catalog.ts';
+import {
+    callMcpTool,
+    callModelTool,
+    findModelTool,
+    listAllTools,
+    type McpToolCallTransport,
+    modelToolName,
+} from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
 import { classifyMcpUpstreamError } from './upstream-failure.ts';
 import { runMcpUpstream } from './upstream-operation.ts';
@@ -54,10 +61,13 @@ interface McpRuntimeOptions {
     hostedMcps?: HostedMcpAccess;
     inventoryIntervalMs?: number;
     invocationTimeoutMs?: number;
+    /** Per-call `_meta` and retry for built-in connections served by a stateless connector. */
+    toolCallTransports?: ReadonlyMap<McpPreset | null, McpToolCallTransport>;
 }
 export class McpRuntime {
     readonly inventory: McpInventory;
     readonly hostedMcps: HostedMcpAccess | undefined;
+    private readonly toolCallTransports: ReadonlyMap<McpPreset | null, McpToolCallTransport>;
     private readonly clients: McpClientCache;
     private readonly closeTimeoutMs: number;
     private readonly discoveryTimeoutMs: number;
@@ -68,6 +78,7 @@ export class McpRuntime {
         options: McpRuntimeOptions = {}
     ) {
         this.hostedMcps = options.hostedMcps;
+        this.toolCallTransports = options.toolCallTransports ?? new Map();
         this.closeTimeoutMs = options.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
         this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
         this.invocationTimeoutMs = options.invocationTimeoutMs ?? DEFAULT_INVOCATION_TIMEOUT_MS;
@@ -132,6 +143,7 @@ export class McpRuntime {
     async invoke(input: {
         agentId: string;
         args: unknown;
+        requestId?: string;
         serverId: string;
         toolName: string;
         traceContext?: TraceCarrier;
@@ -140,29 +152,16 @@ export class McpRuntime {
         const args = asMcpArguments(input.args);
         const scope = { serverId: input.serverId, agentId: input.agentId };
         const connection = await authorizeToolConnection(this.db, scope, input.toolName);
+        const transport =
+            this.toolCallTransports.size > 0
+                ? this.toolCallTransports.get((await this.readConnection(connection.id)).preset)
+                : undefined;
         const outcome = await this.runUpstream(
             connection.id,
             'invocation',
             async (client, signal) => {
-                let tools = await listAllTools(client, {
-                    signal,
-                    timeout: this.invocationTimeoutMs,
-                });
-                let tool = tools.find(
-                    (item) => modelToolName(connection.id, item.name) === input.toolName
-                );
-                if (!tool) {
-                    tools = (
-                        await client.listTools(undefined, {
-                            signal,
-                            timeout: this.invocationTimeoutMs,
-                            cacheMode: 'refresh',
-                        })
-                    ).tools;
-                    tool = tools.find(
-                        (item) => modelToolName(connection.id, item.name) === input.toolName
-                    );
-                }
+                const options = { signal, timeout: this.invocationTimeoutMs };
+                const tool = await findModelTool(client, connection.id, input.toolName, options);
                 if (!tool) {
                     return { kind: 'absent' } as const;
                 }
@@ -170,14 +169,17 @@ export class McpRuntime {
                     return { kind: 'revoked' } as const;
                 }
                 signal.throwIfAborted();
+                const call = {
+                    ...scope,
+                    arguments: args,
+                    connectionId: connection.id,
+                    deadlineMs: this.invocationTimeoutMs,
+                    requestId: input.requestId,
+                    toolName: tool.name,
+                };
                 return {
                     kind: 'called',
-                    result: await callMcpTool(client, {
-                        arguments: args,
-                        name: tool.name,
-                        definition: tool,
-                        options: { signal, timeout: this.invocationTimeoutMs },
-                    }),
+                    result: await callModelTool(client, tool, call, options, transport),
                 } as const;
             },
             input.traceContext,

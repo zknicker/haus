@@ -5,7 +5,7 @@ import {
     StreamableHTTPClientTransport,
 } from '@modelcontextprotocol/client';
 import type { Scope } from 'effect';
-import { skoolHostedUrl } from '../hosted-mcp/catalog.ts';
+import { hostedConnectorId } from '../hosted-mcp/catalog.ts';
 import { hostedMcpFetch } from '../hosted-mcp/transport.ts';
 import { McpReconnectRequiredError } from './errors.ts';
 import { createMcpOAuthProvider } from './oauth.ts';
@@ -69,16 +69,16 @@ export async function createConnectionClient(
             },
         }
     );
+    const hostedConnector = hostedConnectorId(connection);
     const options = {
         authProvider: provider,
         requestInit: {
             headers: mcpRequestHeaders(connection.preset, secret.headers),
             redirect: 'error' as const,
         },
-        fetch:
-            connection.preset === 'skool' && connection.url === skoolHostedUrl
-                ? hostedMcpFetch(runtime.hostedMcps, 'skool')
-                : (provider?.fetch ?? secureMcpFetch),
+        fetch: hostedConnector
+            ? hostedMcpFetch(runtime.hostedMcps, hostedConnector)
+            : (provider?.fetch ?? secureMcpFetch),
     };
     const url = new URL(connection.url);
     const transport =
