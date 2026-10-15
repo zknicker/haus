@@ -37,6 +37,7 @@ async function ledgerWrite(input: {
     clientEntityId?: string;
     createdAt: Date;
     credentialId?: string;
+    result?: { entityId: string; updatedAt: Date };
     status: 'pending' | 'succeeded';
     targetId?: string;
 }) {
@@ -51,6 +52,8 @@ async function ledgerWrite(input: {
         opIndex: 0,
         requestId: randomUUID(),
         result: input.status === 'succeeded' ? { ok: true } : null,
+        resultEntityId: input.result?.entityId ?? null,
+        resultUpdatedAt: input.result?.updatedAt ?? null,
         serverId: world.serverId,
         status: input.status,
         targetId: input.targetId ?? null,
@@ -62,6 +65,7 @@ async function ledgerWrite(input: {
 
 function correlate(input: {
     actorId: string | null;
+    created?: boolean;
     entityId: string;
     now?: Date;
     deferredSince?: Date;
@@ -69,6 +73,7 @@ function correlate(input: {
     return correlateLinearDelivery(connection.db, {
         actorId: input.actorId,
         changedAt,
+        created: input.created ?? false,
         deferredSince: input.deferredSince ?? null,
         entityId: input.entityId,
         now: input.now ?? changedAt,
@@ -85,7 +90,7 @@ test('an identity’s own write is exactly its Agent’s', async () => {
     });
 });
 
-test('an entity a ledger create derived is exactly its Agent’s, even pending', async () => {
+test('the create delivery of a ledger-created entity is exactly its Agent’s, even pending', async () => {
     const entityId = randomUUID();
     await ledgerWrite({
         agentId: world.agents.juniper,
@@ -93,8 +98,33 @@ test('an entity a ledger create derived is exactly its Agent’s, even pending',
         createdAt: new Date(changedAt.getTime() - 10 * 60_000),
         status: 'pending',
     });
-    expect(await correlate({ actorId: 'human-1', entityId })).toEqual({
+    expect(await correlate({ actorId: 'human-1', created: true, entityId })).toEqual({
         agentId: world.agents.juniper,
+        exact: true,
+        kind: 'agent',
+    });
+    // A later change to that entity is not the creator's.
+    expect(await correlate({ actorId: 'human-1', entityId })).toEqual({ kind: 'none' });
+});
+
+test('another Agent’s Haus-app update to a created entity is exactly that Agent’s', async () => {
+    const entityId = randomUUID();
+    await ledgerWrite({
+        agentId: world.agents.juniper,
+        clientEntityId: entityId,
+        createdAt: new Date(changedAt.getTime() - 20_000),
+        result: { entityId, updatedAt: new Date(changedAt.getTime() - 20_000) },
+        status: 'succeeded',
+    });
+    await ledgerWrite({
+        agentId: world.agents.beacon,
+        createdAt: new Date(changedAt.getTime() - 1000),
+        result: { entityId, updatedAt: changedAt },
+        status: 'succeeded',
+        targetId: entityId,
+    });
+    expect(await correlate({ actorId: world.workspaceAppUserId, entityId })).toEqual({
+        agentId: world.agents.beacon,
         exact: true,
         kind: 'agent',
     });

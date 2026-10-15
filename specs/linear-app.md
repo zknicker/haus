@@ -332,9 +332,12 @@ Correlation tells the Trigger matcher and session classification which Agent cau
 
 - **Identity writes are exact.** A delivery whose payload `actor.id` is an identity's app user was
   caused by that identity's Agent; nothing else writes as that user.
-- **Created entities are exact.** A delivery for an entity whose id a ledger create derived
-  (pending or succeeded) was caused by that row's Agent.
-- **Haus-app updates are best-effort.** For a delivery whose actor is the Haus app user, the
+- **Created entities are exact.** The `create` delivery for an entity whose id a ledger create
+  derived (pending or succeeded) was caused by that row's Agent. Later changes to that entity are
+  not attributed to its creator.
+- **Matching updates are exact.** A Haus-app delivery whose `(entity id, updatedAt)` equals a
+  succeeded workspace-actor ledger row's mutation result was caused by that row's Agent.
+- **Other Haus-app updates are best-effort.** For a delivery whose actor is the Haus app user, the
   candidates are ledger rows for the same entity, same workspace, `actor_kind = 'workspace'`,
   created within 60 seconds before the delivery's `updatedAt`, `pending` rows included. If every
   candidate belongs to one Agent, the delivery is that Agent's. If candidates belong to several

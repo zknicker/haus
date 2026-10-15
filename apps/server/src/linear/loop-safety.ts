@@ -28,6 +28,11 @@ export interface LinearDeliveryFacts {
     actorId: string | null;
     /** When the change happened: `data.updatedAt`, else the webhook timestamp. */
     changedAt: Date;
+    /**
+     * The delivery creates `entityId` (data action `create`). Only then does a
+     * ledger create attribute it; later changes to that entity are not the creator's.
+     */
+    created: boolean;
     /** When a pending candidate first deferred this delivery; null when it has not. */
     deferredSince: Date | null;
     /** The entity the delivery is about (issue, comment, project, ...). */
@@ -37,9 +42,10 @@ export interface LinearDeliveryFacts {
 }
 
 /**
- * Correlates one delivery with the write ledger. Identity writes and created
- * entities are exact. A Haus-app update is best-effort: the Agent is named
- * only when every workspace-actor candidate on the entity inside the window
+ * Correlates one delivery with the write ledger. Identity writes, the create
+ * delivery of a ledger-created entity, and a Haus-app write matching the
+ * delivery's (entity, `updatedAt`) are exact. Otherwise a Haus-app update is
+ * best-effort: the Agent is named only when every workspace-actor candidate on the entity inside the window
  * belongs to it; several Agents or none mean no Agent actor, so the delivery
  * fires rather than being suppressed.
  */
@@ -61,12 +67,16 @@ export async function correlateLinearDelivery(
             return { agentId: identityAgent, exact: true, kind: 'agent' };
         }
     }
-    const creator = await createdEntityAgent(db, facts);
+    const creator = facts.created ? await createdEntityAgent(db, facts) : null;
     if (creator) {
         return { agentId: creator, exact: true, kind: 'agent' };
     }
     if (facts.actorId !== workspace.appUserId) {
         return { kind: 'none' };
+    }
+    const updater = await updatedEntityAgent(db, facts);
+    if (updater) {
+        return { agentId: updater, exact: true, kind: 'agent' };
     }
     return await hausAppCandidates(db, facts);
 }
@@ -108,11 +118,32 @@ async function createdEntityAgent(
     return created?.agentId ?? null;
 }
 
-async function hausAppCandidates(
+/**
+ * A Haus-app write whose mutation returned exactly this entity and `updatedAt`
+ * (Linear's delivery echoes it), so the change is that write's Agent's.
+ */
+async function updatedEntityAgent(
     db: HausDatabase,
     facts: LinearDeliveryFacts
-): Promise<LinearDeliveryCause> {
-    const workspaceCredentials = db
+): Promise<string | null> {
+    const [write] = await db
+        .select({ agentId: linearWritesTable.agentId })
+        .from(linearWritesTable)
+        .where(
+            and(
+                eq(linearWritesTable.workspaceId, facts.workspaceId),
+                eq(linearWritesTable.resultEntityId, facts.entityId),
+                eq(linearWritesTable.resultUpdatedAt, facts.changedAt),
+                inArray(linearWritesTable.credentialId, workspaceCredentials(db, facts)),
+                eq(linearWritesTable.status, 'succeeded')
+            )
+        )
+        .limit(1);
+    return write?.agentId ?? null;
+}
+
+function workspaceCredentials(db: HausDatabase, facts: LinearDeliveryFacts) {
+    return db
         .select({ id: linearCredentialsTable.id })
         .from(linearCredentialsTable)
         .where(
@@ -121,6 +152,12 @@ async function hausAppCandidates(
                 isNull(linearCredentialsTable.identityId)
             )
         );
+}
+
+async function hausAppCandidates(
+    db: HausDatabase,
+    facts: LinearDeliveryFacts
+): Promise<LinearDeliveryCause> {
     const candidates = await db
         .select({ agentId: linearWritesTable.agentId, status: linearWritesTable.status })
         .from(linearWritesTable)
@@ -131,7 +168,7 @@ async function hausAppCandidates(
                     eq(linearWritesTable.targetId, facts.entityId),
                     eq(linearWritesTable.resultEntityId, facts.entityId)
                 ),
-                inArray(linearWritesTable.credentialId, workspaceCredentials),
+                inArray(linearWritesTable.credentialId, workspaceCredentials(db, facts)),
                 ne(linearWritesTable.status, 'failed'),
                 gte(
                     linearWritesTable.createdAt,

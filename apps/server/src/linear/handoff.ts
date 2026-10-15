@@ -58,6 +58,7 @@ export async function detectLinearHandoff(
     const cause = await correlateLinearDelivery(tx, {
         actorId: change.actorId,
         changedAt: change.updatedAt ?? row.webhookTimestamp,
+        created: false,
         deferredSince: row.deferredSince,
         entityId: change.entityId,
         now,

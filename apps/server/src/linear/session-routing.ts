@@ -52,6 +52,7 @@ async function routeSessionEvent(
     const cause = await correlateLinearDelivery(tx, {
         actorId: facts.causedBy,
         changedAt: row.webhookTimestamp,
+        created: false,
         deferredSince: row.deferredSince,
         entityId: facts.issue.id,
         now,

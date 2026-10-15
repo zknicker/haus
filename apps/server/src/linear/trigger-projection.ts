@@ -120,6 +120,7 @@ export async function projectForMatching(
     const cause = await correlateLinearDelivery(tx, {
         actorId: text(field(input.body, 'actor'), 'id'),
         changedAt: Number.isNaN(changedAt.getTime()) ? input.webhookTimestamp : changedAt,
+        created: text(input.body, 'action') === 'create',
         deferredSince: input.forceDecision
             ? new Date(input.now.getTime() - linearDeferralLimitMs)
             : input.deferredSince,

@@ -153,7 +153,7 @@ test('an identity’s own write never fires its Trigger; another Agent’s write
 
 test('an Agent’s own create is suppressed exactly through the ledger', async () => {
     const trigger = await createLinearTrigger(connection.db, world, {
-        groups: [{ event: 'issue', teams: ['DES'] }],
+        groups: [{ actions: ['create', 'update'], event: 'issue', teams: ['DES'] }],
     });
     const at = new Date();
     await ledgerWrite(connection.db, world, {
@@ -173,6 +173,11 @@ test('an Agent’s own create is suppressed exactly through the ledger', async (
     );
     expect(await fires(trigger.id)).toHaveLength(0);
     expect(await counts(trigger.id)).toMatchObject({ self: 1 });
+    // A person's later update to Juniper's issue is not hers: it fires her Trigger.
+    const updatedAt = new Date(at.getTime() + 1000);
+    const issueId = '0b4c1e9e-8d6f-5a52-9a77-3c0b1f2e4d55';
+    await deliver(issueDelivery(world, { issueId, updatedAt }));
+    expect(await fires(trigger.id)).toHaveLength(1);
 });
 
 test('Haus-app writes from two Agents inside the window have no actor and fire', async () => {
