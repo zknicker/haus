@@ -10,7 +10,7 @@ import { ingestLinearDelivery, linearWebhookReceivers } from './delivery-ingest.
 import { runLinearDeliveryBatch } from './delivery-worker.ts';
 import { linearLifecycleHandler } from './lifecycle-deliveries.ts';
 import { type LinearOutboxTransport, linearHttpOutboxTransport } from './outbox-calls.ts';
-import { runLinearOutboxBatch } from './outbox-worker.ts';
+import { type LinearOutboxLane, runLinearOutboxBatch } from './outbox-worker.ts';
 import { type LinearPoller, startLinearPoller } from './poller.ts';
 import { linearSessionIssueLabels } from './session-issue-labels.ts';
 import { linearSessionHandler } from './session-routing.ts';
@@ -55,6 +55,7 @@ export function createLinearPipeline(dependencies: LinearPipelineDependencies): 
     const [appSecret, appSecretPrevious] = dependencies.appWebhookSecrets;
     let deliveries: LinearPoller | null = null;
     let outbox: LinearPoller | null = null;
+    let handBacks: LinearPoller | null = null;
 
     const webhook: LinearWebhookRouteOptions = {
         clock,
@@ -117,6 +118,7 @@ export function createLinearPipeline(dependencies: LinearPipelineDependencies): 
                         onCommitted: (effects) => {
                             publishRealtime(effects.announce);
                             outbox?.kick();
+                            handBacks?.kick();
                             if (effects.wakes.length > 0) {
                                 void dependencies.postCommitWork.wakeAgents(
                                     dependencies.agentDelivery,
@@ -129,24 +131,28 @@ export function createLinearPipeline(dependencies: LinearPipelineDependencies): 
                 intervalMs: pollIntervalMs,
                 name: 'Linear delivery worker',
             });
-            outbox = startLinearPoller({
-                batch: () =>
-                    runLinearOutboxBatch({
-                        clock,
-                        credentials: { accessToken: dependencies.accessToken },
-                        db: dependencies.db,
-                        runtime: dependencies.runtime,
-                        transport:
-                            dependencies.outboxTransport ??
-                            linearHttpOutboxTransport(dependencies.appClientId, fetchImpl),
-                    }),
-                intervalMs: pollIntervalMs,
-                name: 'Linear outbox worker',
-            });
-            const started = { deliveries, outbox };
+            const outboxLane = (lane: LinearOutboxLane, name: string) =>
+                startLinearPoller({
+                    batch: () =>
+                        runLinearOutboxBatch({
+                            clock,
+                            credentials: { accessToken: dependencies.accessToken },
+                            db: dependencies.db,
+                            lane,
+                            runtime: dependencies.runtime,
+                            transport:
+                                dependencies.outboxTransport ??
+                                linearHttpOutboxTransport(dependencies.appClientId, fetchImpl),
+                        }),
+                    intervalMs: pollIntervalMs,
+                    name,
+                });
+            outbox = outboxLane('calls', 'Linear outbox worker');
+            handBacks = outboxLane('hand_back', 'Linear hand-back worker');
+            const started = [deliveries, outbox, handBacks];
             return {
                 close: async () => {
-                    await Promise.all([started.deliveries.close(), started.outbox.close()]);
+                    await Promise.all(started.map((poller) => poller.close()));
                 },
             };
         },

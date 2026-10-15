@@ -458,11 +458,18 @@ transaction that decided it:
 | `identity_hand_back` | lists a removed identity's open delegated issues with the workspace token, then `issueUpdate` setting `delegateId` to the Haus app per issue | absolute values; a retry re-lists only what is still open |
 
 Each row names its credential, its input, and a client id derived from the row id where the call
-creates something. A worker claims due rows, kicked after commit: `session_ack` rows are claimed
-first and attempted immediately, so the 10-second acknowledgment holds with the Computer offline.
-Failures back off from 2 seconds to one hour; after eight attempts the row is `dead` and logged as
-`linear.outbox_dead` at error level. "Already exists" and equivalent duplicates are success. Rows
-expire seven days after `done` or `dead`.
+creates something. Two worker lanes claim due rows one at a time, kicked after commit: the call
+lane claims `session_ack` rows first and attempts them immediately, so the 10-second
+acknowledgment holds with the Computer offline; the hand-back lane runs `identity_hand_back`, which
+can take minutes, so it never holds an acknowledgment back. A claim leases the row (60 seconds, 15
+minutes for a hand-back), and a run records its outcome only while it still holds that lease, so a
+run that outlived it never overwrites the run that reclaimed the row. A mutation answering
+`success: false` is a failure. Failures back off from 2 seconds to one hour; after eight attempts
+the row is `dead` and logged as `linear.outbox_dead` at error level. "Already exists" and
+equivalent duplicates are success; a `session_create` whose session has already arrived (an open
+session on the issue for the same actor, with an event since the row was queued) is done without a
+call. Reads that list (teams, delegated issues) follow every page up to a bound and fail rather
+than act on a partial list. Rows expire seven days after `done` or `dead`.
 
 ## Linear sessions
 

@@ -1,7 +1,18 @@
-import * as z from 'zod';
 import type { LinearOutboxKind } from '../postgres/schema.ts';
 import { revokeLinearToken } from './linear-api.ts';
 import type { LinearOutboxInput } from './outbox.ts';
+import {
+    activityCreate,
+    delegatedOpenIssueIds,
+    issueUpdate,
+    LinearOutboxCallError,
+    labelArchive,
+    labelCreate,
+    labelUpdate,
+    mutate,
+    sessionCreateOnIssue,
+    sessionUpdate,
+} from './outbox-graphql.ts';
 
 const graphqlUrl = 'https://api.linear.app/graphql';
 const callTimeoutMs = 10_000;
@@ -24,16 +35,6 @@ export interface LinearOutboxCall<Kind extends LinearOutboxKind> {
     groupLabelId: string | null;
     input: LinearOutboxInput<Kind>;
     kind: Kind;
-}
-
-/** A Linear refusal; "already exists" never reaches here (it is success). */
-export class LinearOutboxCallError extends Error {
-    readonly nameCollision: boolean;
-    constructor(message: string, nameCollision = false) {
-        super(message);
-        this.nameCollision = nameCollision;
-        this.name = 'LinearOutboxCallError';
-    }
 }
 
 /**
@@ -196,77 +197,3 @@ export function linearHttpOutboxTransport(
         },
     };
 }
-
-async function mutate(
-    transport: LinearOutboxTransport,
-    token: string,
-    query: string,
-    variables: Record<string, unknown>
-): Promise<void> {
-    const answer = await transport.graphql(token, query, variables);
-    const errors = answer.errors ?? [];
-    if (errors.length === 0) {
-        return;
-    }
-    const messages = errors.map((error) => error.message ?? 'error');
-    // A client id Linear already holds means an earlier attempt landed.
-    if (messages.every((message) => /with id .* already exists/iu.test(message))) {
-        return;
-    }
-    const joined = messages.join('; ');
-    throw new LinearOutboxCallError(joined, isNameCollision(joined));
-}
-
-/** Open issues (not completed or canceled) delegated to one Linear user. */
-async function delegatedOpenIssueIds(
-    transport: LinearOutboxTransport,
-    token: string,
-    delegateId: string
-): Promise<string[]> {
-    const answer = await transport.graphql(token, delegatedIssuesQuery, { delegate: delegateId });
-    if ((answer.errors ?? []).length > 0) {
-        const messages = (answer.errors ?? []).map((error) => error.message ?? 'error');
-        throw new LinearOutboxCallError(messages.join('; '));
-    }
-    const parsed = delegatedIssuesSchema.safeParse(answer.data);
-    if (!parsed.success) {
-        throw new LinearOutboxCallError('Linear answered delegated issues in an unknown shape');
-    }
-    return parsed.data.issues.nodes.map((node) => node.id);
-}
-
-/** Linear refusing a label name another label in the team already has. */
-function isNameCollision(message: string): boolean {
-    return /name/iu.test(message) && /(already exists|taken|duplicate|in use)/iu.test(message);
-}
-
-const activityCreate = `mutation HausActivity($input: AgentActivityCreateInput!) {
-  agentActivityCreate(input: $input) { success }
-}`;
-const sessionUpdate = `mutation HausSessionUrls($id: String!, $input: AgentSessionUpdateInput!) {
-  agentSessionUpdate(id: $id, input: $input) { success }
-}`;
-const sessionCreateOnIssue = `mutation HausSessionCreate($input: AgentSessionCreateOnIssue!) {
-  agentSessionCreateOnIssue(input: $input) { success }
-}`;
-const labelCreate = `mutation HausLabelCreate($input: IssueLabelCreateInput!) {
-  issueLabelCreate(input: $input) { success }
-}`;
-const labelUpdate = `mutation HausLabelRename($id: String!, $input: IssueLabelUpdateInput!) {
-  issueLabelUpdate(id: $id, input: $input) { success }
-}`;
-const labelArchive = `mutation HausLabelArchive($id: String!) {
-  issueLabelArchive(id: $id) { success }
-}`;
-const issueUpdate = `mutation HausIssueRoute($id: String!, $input: IssueUpdateInput!) {
-  issueUpdate(id: $id, input: $input) { success }
-}`;
-const delegatedIssuesQuery = `query HausDelegatedIssues($delegate: ID!) {
-  issues(first: 250, filter: {
-    delegate: { id: { eq: $delegate } },
-    state: { type: { nin: ["completed", "canceled"] } }
-  }) { nodes { id } }
-}`;
-const delegatedIssuesSchema = z.object({
-    issues: z.object({ nodes: z.array(z.object({ id: z.string().min(1) })) }),
-});

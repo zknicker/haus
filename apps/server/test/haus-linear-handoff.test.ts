@@ -223,11 +223,19 @@ test('identity removal hands open issues back to the Haus app through the outbox
     const transport: LinearOutboxTransport = {
         graphql: (_token, query, variables) => {
             calls.push({ query, variables });
-            return Promise.resolve(
-                query.includes('HausDelegatedIssues')
-                    ? { data: { issues: { nodes: [{ id: 'issue-1' }, { id: 'issue-2' }] } } }
-                    : { data: { issueUpdate: { success: true } } }
-            );
+            if (!query.includes('HausDelegatedIssues')) {
+                return Promise.resolve({ data: { issueUpdate: { success: true } } });
+            }
+            // Two pages: the hand-back follows the cursor rather than stopping at the first.
+            const first = variables.after === null;
+            return Promise.resolve({
+                data: {
+                    issues: {
+                        nodes: [{ id: first ? 'issue-1' : 'issue-2' }],
+                        pageInfo: { endCursor: first ? 'cursor-1' : null, hasNextPage: first },
+                    },
+                },
+            });
         },
         revoke: () => Promise.reject(new Error('no revoke for a hand-back')),
     };
@@ -235,6 +243,7 @@ test('identity removal hands open issues back to the Haus app through the outbox
         clock: { now: () => now },
         credentials: { accessToken: (id) => Promise.resolve(`token-for-${id}`) },
         db: connection.db,
+        lane: 'hand_back',
         runtime: linearTestRuntime,
         transport,
     });
@@ -248,7 +257,8 @@ test('identity removal hands open issues back to the Haus app through the outbox
                 world.workspaceAppUserId
     );
     expect(mine.map((call) => call.variables)).toEqual([
-        { delegate: 'identity-user' },
+        { after: null, delegate: 'identity-user', first: 100 },
+        { after: 'cursor-1', delegate: 'identity-user', first: 100 },
         { id: 'issue-1', input: { delegateId: world.workspaceAppUserId } },
         { id: 'issue-2', input: { delegateId: world.workspaceAppUserId } },
     ]);

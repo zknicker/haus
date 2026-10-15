@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { LinearOutboxCallError, linearHttpOutboxTransport } from './outbox-calls.ts';
+import { linearHttpOutboxTransport } from './outbox-calls.ts';
+import { LinearOutboxCallError } from './outbox-graphql.ts';
 
 // `token_revoke` rows carry `{ token, clientId | null }`: null is the Haus
 // app's own client (HAUS_LINEAR_APP_CLIENT_ID), any other value an identity's.
