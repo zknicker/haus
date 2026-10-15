@@ -9,6 +9,7 @@ import { ItemCard } from '@heroui-pro/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { useLinearStartInstall } from '../../../hooks/linear/use-linear-start-install.ts';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnectionPresetIcons } from '../../../hooks/servers/use-connection-preset-icons.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
@@ -95,6 +96,8 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const [tokenPreset, setTokenPreset] = useState<McpBearerTokenPreset | null>(null);
     const [skoolOpen, setSkoolOpen] = useState(false);
     const skool = useSkoolConnect(serverId);
+    // Linear connects by installing the Haus app; its callback creates the connection.
+    const linearInstall = useLinearStartInstall(serverId);
     const availablePresets = presets.filter(
         (preset) => !connections.data?.some((connection) => connection.preset === preset.id)
     );
@@ -106,6 +109,8 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const add = (preset: McpPreset, name: string) => {
         if (preset === 'skool') {
             setSkoolOpen(true);
+        } else if (preset === 'linear') {
+            void linearInstall.start();
         } else if (isMcpBearerTokenPreset(preset)) {
             setTokenPreset(preset);
         } else {
@@ -145,7 +150,11 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                             <Tooltip delay={0}>
                                 <Button
                                     aria-label={`Add ${preset.name}`}
-                                    isDisabled={addPreset.isPending || skool.connecting}
+                                    isDisabled={
+                                        addPreset.isPending ||
+                                        skool.connecting ||
+                                        linearInstall.isPending
+                                    }
                                     isIconOnly
                                     isPending={
                                         addPreset.isPending &&

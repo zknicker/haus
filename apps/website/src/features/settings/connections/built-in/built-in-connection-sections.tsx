@@ -5,10 +5,14 @@ import type {
     BuiltInConnectionSectionProps,
 } from './built-in-connection-definition.ts';
 import { githubConnectionDefinition } from './github/github-connection-definition.ts';
+import { linearConnectionDefinition } from './linear/linear-connection-definition.ts';
 
 /** The only lookup from a preset to its built-in connection definition. */
 const builtInConnectionDefinitions: ReadonlyMap<McpPreset, BuiltInConnectionDefinition> = new Map(
-    [githubConnectionDefinition].map((definition) => [definition.preset, definition])
+    [githubConnectionDefinition, linearConnectionDefinition].map((definition) => [
+        definition.preset,
+        definition,
+    ])
 );
 
 /**
