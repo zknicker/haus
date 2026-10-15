@@ -67,26 +67,20 @@
         opacity: 0.55;
     }
 
+    /*
+     * The one window-drag contract (desktop-window-layout.md → Window drag):
+     * a top bar is a single `drag` region, and only the controls on it opt
+     * out, each on itself. No wrapper, row, or container sets `no-drag` and
+     * no inner layout box sets `drag` — Electron subtracts every `no-drag`
+     * box from the drag area, so a wrapper silently swallows the empty space
+     * around its controls. `window-drag-regions.spec.ts` guards it.
+     */
     html.macos-electron [data-window-drag-region] {
         app-region: drag;
         -webkit-app-region: drag;
     }
 
-    .no-drag {
-        app-region: no-drag;
-        -webkit-app-region: no-drag;
-    }
-
-    [data-window-drag-disabled],
-    [data-window-drag-disabled] *,
-    [data-window-drag-disabled]::before,
-    [data-window-drag-disabled]::after,
-    [data-window-drag-disabled] *::before,
-    [data-window-drag-disabled] *::after {
-        app-region: no-drag;
-        -webkit-app-region: no-drag;
-    }
-
+    /* A tab's whole box is a control: its padding must not drag the window, and tab reorder needs it. */
     html.macos-electron
         :is(
             button,
@@ -94,27 +88,15 @@
             input,
             textarea,
             select,
-            option,
             summary,
-            label,
             [role='button'],
             [role='tab'],
+            .workspace-tab,
             [contenteditable='true'],
             [contenteditable='plaintext-only'],
             [data-slot='input-control'],
-            [data-slot='textarea-control'],
-            [data-window-drag-disabled]
+            [data-slot='textarea-control']
         ) {
-        app-region: no-drag;
-        -webkit-app-region: no-drag;
-    }
-
-    html.macos-electron .no-drag,
-    html.macos-electron .no-drag::before,
-    html.macos-electron .no-drag::after,
-    html.macos-electron .no-drag *,
-    html.macos-electron .no-drag *::before,
-    html.macos-electron .no-drag *::after {
         app-region: no-drag;
         -webkit-app-region: no-drag;
     }

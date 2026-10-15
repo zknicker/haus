@@ -23,6 +23,7 @@ export function WindowBand({
     children?: React.ReactNode;
 }) {
     const desktop = useOptionalDesktopTabs() !== null;
+    // The window's one drag region; its controls opt out on themselves (shell.css).
     return (
         <div className="shell-window-band" data-window-drag-region="">
             <WindowBandLead>{desktop ? <WindowHistoryButtons /> : null}</WindowBandLead>
@@ -44,7 +45,6 @@ function DesktopTabBand() {
         <header
             className="workspace-titlebar app-shell-band"
             data-split={twoRows || undefined}
-            data-window-drag-region=""
             ref={band}
         >
             <TabRowsDrag band={band}>
