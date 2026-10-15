@@ -119,13 +119,13 @@ test('composes the CLI-only Haus collaboration contract', () => {
     );
     expect(instructions).toContain('### Triggers');
     expect(instructions).toContain(
-        'A trigger wakes you when an outside system POSTs to a private URL; it never has a schedule. Use reminders for anything time-based.'
+        'A trigger wakes you on an outside event: a `webhook` trigger is a private URL an outside system POSTs to, and a `github` trigger fires on GitHub deliveries with no URL. It never has a schedule. Use reminders for anything time-based.'
     );
     expect(instructions).toContain(
         'Create one when someone wants an outside event (a webhook, CI, an alert, a form, a sensor) to reach you; anchor it to the message where they asked (`--message-id`).'
     );
     expect(instructions).toContain(
-        'Before creating or managing a trigger, read Manual topic `recipes/technique/trigger-webhook` for setup, secret handling, and fire history.'
+        'Before creating or managing a trigger, read Manual topic `trigger`; for a `webhook` trigger, also read `recipes/technique/trigger-webhook` for secret handling and testing.'
     );
     // Computer Secrets: `haus-secrets` is no `haus` family, so only this pointer reveals it.
     expect(instructions).toContain(
