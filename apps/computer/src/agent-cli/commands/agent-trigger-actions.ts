@@ -8,16 +8,15 @@ import {
     type TriggerFire,
     type TriggerFireDetail,
     triggerInstructionMaxBytes,
-    triggerKindSchema,
     triggerLogLimitMax,
     triggerTitleMaxLength,
 } from '@haus/api';
-import type * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { githubOnlyFlags, readGithubTriggerConfig } from './agent-trigger-github.ts';
+import { readKind, readTriggerConfig } from './agent-trigger-config.ts';
+import { linearProblemFix } from './agent-trigger-linear-view.ts';
 import { describeTrigger, problemFix } from './agent-trigger-view.ts';
 
 // Request and render logic behind `haus trigger`. Trigger mutations are
@@ -38,30 +37,25 @@ export async function runTriggerCreate(args: ParsedArgs, deps: TriggerDeps): Pro
         });
     }
     const instruction = readInstruction(args);
-    const kind = readKind(args);
-    const base = { messageId, title, ...(instruction ? { instruction } : {}) };
-    if (kind === 'github') {
-        const github = await readGithubTriggerConfig(args, deps.client);
+    const config = await readTriggerConfig(args, readKind(args), deps.client, 'create');
+    const body = { messageId, title, ...(instruction ? { instruction } : {}), ...config };
+    if (config.kind === 'webhook') {
         const response = await deps.client.request(
             '/api/agent/triggers',
-            agentTriggerResultSchema,
-            { body: { ...base, github, kind }, method: 'POST' }
+            agentTriggerSecretResultSchema,
+            { body, method: 'POST' }
         );
-        deps.write(
-            `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: GitHub deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
-        );
+        deps.write(renderSecret(response));
         return 0;
     }
-    const githubFlag = githubOnlyFlags.find((flag) => args.values[flag] !== undefined);
-    if (githubFlag) {
-        throw new AgentCliError('INVALID_ARG', `${githubFlag} needs --kind github.`);
-    }
-    const response = await deps.client.request(
-        '/api/agent/triggers',
-        agentTriggerSecretResultSchema,
-        { body: { ...base, kind }, method: 'POST' }
+    const response = await deps.client.request('/api/agent/triggers', agentTriggerResultSchema, {
+        body,
+        method: 'POST',
+    });
+    const source = config.kind === 'github' ? 'GitHub' : 'Linear';
+    deps.write(
+        `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: ${source} deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
     );
-    deps.write(renderSecret(response));
     return 0;
 }
 
@@ -93,6 +87,9 @@ export async function runTriggerShow(args: ParsedArgs, deps: TriggerDeps): Promi
     }
     if (trigger.kind === 'github' && trigger.github.problem) {
         lines.push(`Not firing. ${problemFix(trigger.github.problem)}`);
+    }
+    if (trigger.kind === 'linear' && trigger.linear.problem) {
+        lines.push(`Not firing. ${linearProblemFix(trigger.linear.problem)}`);
     }
     deps.write(`${lines.join('\n')}\n`);
     return 0;
@@ -209,25 +206,6 @@ function requireTitle(args: ParsedArgs): string {
     }
     return title;
 }
-
-/** `--kind` names the outside stimulus; absent means webhook. */
-function readKind(args: ParsedArgs): CreatableTriggerKind {
-    const raw = args.values['--kind']?.trim();
-    if (!raw) {
-        return 'webhook';
-    }
-    const parsed = creatableTriggerKindSchema.safeParse(raw);
-    if (!parsed.success) {
-        throw new AgentCliError('INVALID_ARG', `--kind ${raw} is not a trigger kind.`, {
-            nextAction: `Supported kinds: ${creatableTriggerKindSchema.options.join(', ')}.`,
-        });
-    }
-    return parsed.data;
-}
-
-/** `linear` Triggers are listed and shown, not yet created from the CLI. */
-const creatableTriggerKindSchema = triggerKindSchema.exclude(['linear']);
-type CreatableTriggerKind = z.infer<typeof creatableTriggerKindSchema>;
 
 function readInstruction(args: ParsedArgs): string | undefined {
     const instruction = args.values['--instruction']?.trim();

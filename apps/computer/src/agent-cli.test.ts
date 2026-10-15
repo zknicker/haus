@@ -9,6 +9,7 @@ const families = [
     'files',
     'github',
     'inbox',
+    'linear',
     'message',
     'profile',
     'reminder',

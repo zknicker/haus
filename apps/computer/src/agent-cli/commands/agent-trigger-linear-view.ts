@@ -1,10 +1,32 @@
-import type { AgentTrigger, LinearTriggerDisplay, LinearTriggerGroup } from '@haus/api';
+import type {
+    AgentTrigger,
+    LinearTriggerDisplay,
+    LinearTriggerGroup,
+    LinearTriggerProblem,
+} from '@haus/api';
 
 // How `haus trigger` prints a `linear` Trigger (specs/linear-triggers.md#agent-cli-and-manual):
-// read-only, groups by display name, both suppressed counts. It has no URL and
-// no secret.
+// groups by display name, both suppressed counts. It has no URL and no secret.
 
 type LinearAgentTrigger = Extract<AgentTrigger, { kind: 'linear' }>;
+
+/** What the human has to do about a problem; the Agent cannot fix any of them itself. */
+export function linearProblemFix(problem: LinearTriggerProblem): string {
+    switch (problem) {
+        case 'workspace_removed':
+            return 'The Linear workspace was disconnected from Haus. A Haus Owner or Admin connects it again under Settings → Connections → Linear, then recreate the trigger.';
+        case 'sign_in_required':
+            return 'The Linear connection needs to sign in again. A Haus Owner or Admin reconnects it under Settings → Connections → Linear.';
+        case 'agent_access_revoked':
+            return 'You lost access to the Linear connection. A Haus Owner or Admin grants it again under the connection’s Agent Access.';
+        case 'teams_unavailable':
+            return 'A team this trigger watches left the Haus app’s team access. A Linear admin adds the team back to the Haus app, or update the trigger without it.';
+        case 'references_unavailable':
+            return 'A label, state, project, or project status this trigger names was deleted or archived in Linear. Update the trigger with current names.';
+        default:
+            return problem satisfies never;
+    }
+}
 
 export function describeLinearTrigger(trigger: LinearAgentTrigger, fired: string): string {
     const { linear } = trigger;
