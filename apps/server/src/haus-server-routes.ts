@@ -7,6 +7,7 @@ import { registerArtifactPublishRoute } from './artifacts/publish-route.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
+import { env } from './config/env.ts';
 import { type GithubRouteOptions, registerGithubRoutes } from './github/routes.ts';
 import { registerGithubSetupRoute } from './github/setup-route.ts';
 import type { createHausContextFactory, HausContextDependencies } from './haus-api/context.ts';
@@ -18,7 +19,9 @@ import {
     failInterruptedImageGenerations,
     type ImageProviderAdapters,
 } from './image-generation/run-image-generation.ts';
+import { chipConnectionToken } from './linear/issue-chip-tokens.ts';
 import { registerLinearRoutes } from './linear/routes.ts';
+import { registerLinearThumbnailRoute } from './linear/thumbnail-route.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
@@ -99,6 +102,11 @@ export async function registerHausServerRoutes(
         ingest: dependencies.githubIngest,
     });
     await registerLinearRoutes(app);
+    registerLinearThumbnailRoute(app, {
+        connectionAccessToken: (connectionId) => chipConnectionToken(db, connectionId),
+        signingKey: env.HAUS_LINEAR_URL_SIGNING_KEY ?? null,
+        transport: fetch,
+    });
     await registerTriggerRoutes(app, {
         db,
         delivery: dependencies.agentDelivery,
