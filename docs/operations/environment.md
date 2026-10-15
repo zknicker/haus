@@ -196,11 +196,14 @@ would resolve the schema again at boot, under the development lifecycle.
 
 ## Commands
 
-Files (shared artifacts) are opt-in through `HAUS_ENABLE_ARTIFACT_STORAGE`. When enabled,
-Server requires the private R2 endpoint, bucket, access key ID, and secret in
-`.env.schema`; the key pair resolves from `Cloudflare R2 - Haus` in the matching
-Development or Production vault. `HAUS_ARTIFACT_R2_SESSION_TOKEN` additionally
-supports temporary R2 credentials. Computer and App receive no R2 credentials.
+Files (shared artifacts) are on in production and development through
+`HAUS_ENABLE_ARTIFACT_STORAGE`; tests and release builds leave them off. When enabled, Server
+requires the S3 endpoint, bucket, access key ID, and secret. Production resolves the private R2
+endpoint and the key pair from `Cloudflare R2 - Haus` in the Production vault. Development has no
+vault item: the dev stack supplies its local gateway's endpoint, and the key pair is a fixed,
+non-secret local credential written in `.env.schema` (see
+[Development](development.md#local-stack)). `HAUS_ARTIFACT_R2_SESSION_TOKEN` additionally
+supports temporary R2 credentials. Computer and App receive no storage credentials.
 See [Artifacts](../api/artifacts.md) for limits and deployment requirements.
 
 | Command | Does |

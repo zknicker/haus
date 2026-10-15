@@ -242,11 +242,18 @@ loss cannot retract bytes or links already delivered.
 
 ## Provisioning
 
-Enable `HAUS_ENABLE_ARTIFACT_STORAGE` only after the lifecycle's private bucket and bucket-scoped
-Object Read & Write credential exist. `.env.schema` resolves `Cloudflare R2 - Haus` from the matching
-1Password vault: `username` is its S3 access key ID and `credential` its secret access key. Development
-uses `haus-artifacts-development`; production uses `haus-artifacts-production`. Both lifecycle buckets are private. Production enables storage by default; development remains
-opt-in. No public bucket endpoint or CDN is required.
+Production stores Files in the private `haus-artifacts-production` R2 bucket. `.env.schema` resolves
+`Cloudflare R2 - Haus` from the Production vault: `username` is its bucket-scoped Object Read & Write
+S3 access key ID and `credential` its secret access key. No public bucket endpoint or CDN is
+required.
+
+Development stores Files in a per-worktree local S3 gateway (versitygw) that `bun run dev` starts
+with a `haus-artifacts-development` bucket and a fixed local key pair, so storage is on in every
+worktree with no cloud credential (see [Development](../operations/development.md#local-stack)).
+The Server's S3 client is unchanged: path-style requests signed for region `auto`, and signed
+`GET` links served by the gateway like R2's. The gateway sets no CORS policy either. Tests and App
+e2e leave storage off; e2e seeds Files rows and intercepts the publish route and storage-backed
+`artifact` responses, so it needs no gateway.
 
 Without storage configuration, metadata reads remain available and file transfer fails explicitly.
 See [workspace capacity and migration](../../specs/workspace.md) for Computer-local storage.
