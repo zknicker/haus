@@ -1120,6 +1120,15 @@
         margin-bottom: calc(var(--spacing, 0.25rem) * 2);
     }
 
+    /*
+     * HeroUI keeps a heading's bottom margin even as the last child, so a
+     * heading that ends a text segment (an image strip follows) would add it
+     * on top of the segment gap.
+     */
+    .chat-markdown > .markdown__block:last-child > :is(h1, h2, h3, h4):last-child {
+        margin-bottom: 0;
+    }
+
     /* Text opens with its own half-leading under the author row; a filled block has none, so it takes it here. */
     .chat-markdown > .markdown__block:first-child > .code-block:first-child {
         margin-top: calc(var(--spacing, 0.25rem) * 1.5);

@@ -28,7 +28,8 @@ export function ImageGenerationStrip({
     return (
         // `mt-1.5` is the step ActionCard (Cloud Agent work) takes below the
         // author line, so a body that opens with a card clears it the same way.
-        <div className="mt-1.5 min-w-0">
+        // After text, the segment gap alone separates them.
+        <div className="min-w-0 first:mt-1.5">
             <MessageMediaStrip>
                 {generations.map((generation, index) => (
                     <ImageGenerationCard
