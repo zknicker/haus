@@ -63,6 +63,7 @@ export async function publishArtifact(options: {
             );
         }
     } else {
+        let published: { size: number };
         try {
             const uploaded = await storage.upload(
                 reserved.revision.objectKey,
@@ -72,6 +73,7 @@ export async function publishArtifact(options: {
             if (uploaded.size > artifactMaxBytes) {
                 throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
             }
+            published = uploaded;
             await db.transaction(async (tx) => {
                 const [server] = await tx
                     .select({ id: serversTable.id })
@@ -105,17 +107,6 @@ export async function publishArtifact(options: {
                     })
                 );
             });
-            artifactUpdatedTopic.announce({
-                artifactId: reserved.artifact.id,
-                serverId: access.serverId,
-            });
-            void options.thumbnails?.ensure({
-                byteSize: uploaded.size,
-                contentType: input.content_type,
-                id: reserved.revision.id,
-                objectKey: reserved.revision.objectKey,
-                thumbnailState: null,
-            });
         } catch (cause) {
             await db
                 .update(revisions)
@@ -136,6 +127,18 @@ export async function publishArtifact(options: {
             }
             throw cause;
         }
+        // Committed: nothing below may fail the publish or reach its cleanup above.
+        artifactUpdatedTopic.announce({
+            artifactId: reserved.artifact.id,
+            serverId: access.serverId,
+        });
+        void options.thumbnails?.ensure({
+            byteSize: published.size,
+            contentType: input.content_type,
+            id: reserved.revision.id,
+            objectKey: reserved.revision.objectKey,
+            thumbnailState: null,
+        });
     }
     return {
         artifact: (await getArtifact(db, actor, origin, reserved.artifact.id, reserved.revision.id))
