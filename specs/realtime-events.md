@@ -103,6 +103,7 @@ These replace `server.onUpdate` and its `scope` enum. All payloads live in
 | `member.onUpdated` | `{ serverId, memberId }` | Every member | `member.get` (memberId), `member.list`, `chat.list` (rows name human authors and participants), `server.bySlug` |
 | `invitation.onUpdated` | `{ serverId }` | Owner/Admin, the same authority as `invitation.list` | `invitation.list` |
 | `cloudAgentSettings.onUpdated` | `{ serverId }` | Every member | `cloudAgentSettings.get` |
+| `artifact.onUpdated` | `{ serverId, artifactId \| null }` | Every member | `artifact.list` (every folder), `artifact.creators`, `artifact.get` + `artifact.versions` (artifactId, else all). Published after a Files publish, move (null for a folder move), delete, version delete, and retention prune |
 
 **`server.onUpdated` is the membership sentinel.** A stream rechecks membership only when its own
 topic delivers, so streams do not end independently on a membership loss. Every publish that can
@@ -232,6 +233,7 @@ prepares the focused event before commit and publishes it after.
 | `invitation/create`, `invitation/revoke` | `invitation.updated` |
 | `invitation/accept` | `invitation.updated` and `member.updated` (the new member) |
 | `cloud-agent-settings/set-model` | `cloudAgentSettings.updated` |
+| `artifacts/` publish, move, delete, retention | `artifact.updated` (new; never part of `server.onUpdate`) |
 
 The "announce only real changes" rule for Computer reports and identity sync stays: an idle App
 receives no realtime traffic.
@@ -252,7 +254,7 @@ receives no realtime traffic.
   | Group | Streams | Count |
   | --- | --- | --- |
   | Every accessible Server | `server.onUpdated`, `member.onUpdated` | 2 × accessible Servers |
-  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`, `chat.onLifecycle`, `task.onChanged`, `taskLabel.onUpdated`, `cloudAgentWork.onUpdated`, `imageGeneration.onUpdated` | 13 |
+  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`, `chat.onLifecycle`, `task.onChanged`, `taskLabel.onUpdated`, `cloudAgentWork.onUpdated`, `imageGeneration.onUpdated` | 14 |
   | Active Server, Owner/Admin only | `reminder.onUpdated`, `invitation.onUpdated` | 2 |
   | Active Server, kept Server-rooted | `agent.onLifecycle`, `agent.onActivity` (one mount each per window; the slice hoists duplicates) | 2 |
   | Per mounted Chat view (shown or kept, at most 5 kept) | `chat.onEngagement`, `chat.onThought`, `chat.onComposition` | 3 × mounted Chat views |
@@ -264,7 +266,7 @@ receives no realtime traffic.
   hold zero active entity observers (`subscribed: false`, below).
 
   A unit test mounts the shell with three Servers, one shown and one kept Chat view, as a member
-  and as an Admin, and asserts the exact stream count (6 + 14 + 6 = 26 as a member; 28 as an
+  and as an Admin, and asserts the exact stream count (6 + 16 + 6 = 28 as a member; 30 as an
   Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
   reconnect's starts reconcile owned reads through the coalescer only (no `chat.message`, no
   direct reads beyond the volatile projections).
@@ -277,7 +279,7 @@ that owns its subscription and its exact cache response: `useMessageCreatedStrea
 `useChatLifecycleStream`, `useTaskChangeStream`, `useTaskLabelStream`, `useCloudAgentWorkStream`,
 `useReminderStream`, `useAgentUpdateStream`, `useComputerUpdateStream`, `useMcpUpdateStream`,
 `useServerUpdateStream`, `useMemberUpdateStream`, `useInvitationUpdateStream`,
-`useCloudAgentSettingsStream`.
+`useCloudAgentSettingsStream`, `useArtifactUpdateStream`.
 
 Desktop and web message notifications consume `chat.onMessageCreated` and `chat.onRead` through
 the same single subscriptions: those hooks take an optional `onEvent` callback that

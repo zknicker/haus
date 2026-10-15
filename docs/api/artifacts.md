@@ -120,8 +120,15 @@ the fullscreen zoom viewer; supported audio/video use native controls; other for
 icon with a Download action. Library rows and grid tiles, folder-tile previews, and chat file
 tiles show raster images (PNG, JPEG, GIF, WebP, AVIF) through their thumbnail, whatever the
 original's size; only the viewer and its fullscreen zoom load the original. A refused link
-(storage disabled, revision gone) or a revision without a thumbnail falls back to the file's icon. The App has no
-artifact realtime events: lists refresh on mount, focus, and reconnect under `syncedSnapshot`.
+(storage disabled, revision gone) or a revision without a thumbnail falls back to the file's icon.
+
+Files changes are live. Every committed publish, move, delete, version delete, and retention prune
+publishes `artifact.onUpdated` (`{ serverId, artifactId }`, a null id for a folder move; see
+[Realtime](realtime.md)), and `useArtifactUpdateStream` invalidates every `artifact.list` read,
+`artifact.creators`, and that file's `artifact.get` and `artifact.versions`, so an open folder,
+grid, or viewer fills in while Agents push. Revision-keyed reads (`download`, `text`,
+`thumbnail`) are immutable and never refresh. Reads still recover on mount, focus, and reconnect
+under `syncedSnapshot`.
 
 ### Thumbnails
 

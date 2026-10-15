@@ -45,6 +45,7 @@ ids and small facts, never rows.
 | `member.onUpdated` | `useMemberUpdateStream` | The named member, `member.list`, `chat.list`, the Server detail (the viewer's role) |
 | `invitation.onUpdated` (Owner/Admin) | `useInvitationUpdateStream` | `invitation.list` |
 | `cloudAgentSettings.onUpdated` | `useCloudAgentSettingsStream` | `cloudAgentSettings.get` |
+| `artifact.onUpdated` | `useArtifactUpdateStream` | `artifact.list` (every folder), `artifact.creators`, and the named file's `artifact.get` and `artifact.versions` (every file's for a null id); revision-keyed reads never refresh |
 
 Every invalidation goes through the coalescer (`lib/targeted-read-coalescer.ts`) with
 `refetchType: 'active'`, coalesced per key within one animation frame: a message + read + follow
@@ -66,7 +67,7 @@ for the active Server (`features/servers/server-realtime-listeners.tsx`, one tin
 hook); `reminder.onUpdated` and `invitation.onUpdated` mount only for Owners and Admins. The
 Server shell hoists the one `agent.onLifecycle` and `agent.onActivity`. Each mounted Chat view
 adds `chat.onEngagement`, `chat.onThought`, and `chat.onComposition`. With three Servers and two
-mounted Chat views that is 26 streams for a member and 28 for an Admin, pinned by
+mounted Chat views that is 28 streams for a member and 30 for an Admin, pinned by
 `features/servers/realtime-budget.test.tsx`.
 
 ### Transcript cache
