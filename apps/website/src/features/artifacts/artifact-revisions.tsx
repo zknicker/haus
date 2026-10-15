@@ -22,7 +22,7 @@ export function ArtifactRevisions({
     const revisions = useArtifactVersions(serverId, artifactId);
     const versions = revisions.versions;
     return (
-        <ItemCardGroup variant="transparent">
+        <ItemCardGroup id="revisions" variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Revisions</ItemCardGroup.Title>
             </ItemCardGroup.Header>

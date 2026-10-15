@@ -1,18 +1,18 @@
 import type { ArtifactMetadata, ArtifactPublicLink } from '@haus/api';
-import { Button, Dropdown, Label } from '@heroui/react';
+import { Button, Dropdown } from '@heroui/react';
 import { MoreVerticalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link } from 'react-router-dom';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useArtifactPublicLink } from '../../hooks/artifacts/use-artifact-public-link.ts';
-import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
+import { artifactActionItems } from './artifact-action-items.tsx';
+import type { FileActionId } from './artifact-actions.ts';
+import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { artifactKindLabel, artifactPath, artifactTimeLabel } from './artifact-format.ts';
-import { copyArtifactLink } from './artifact-link.ts';
 import { PublicLinkChip } from './artifact-public-link-mark.tsx';
 import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
-import { usePublicLinkActions } from './use-public-link-actions.ts';
 
 /** Who made the file and when it last changed, with its actions behind one ⋮ button. */
 export function ArtifactViewerHeader({
@@ -55,73 +55,31 @@ export function ArtifactViewerHeader({
                 </p>
             </div>
             {publicLink ? <PublicLinkChip /> : null}
-            <ArtifactViewerMenu artifact={artifact} publicLink={publicLink} serverId={serverId} />
+            <ArtifactViewerMenu artifact={artifact} publicLink={publicLink} />
         </header>
     );
 }
 
+/** The viewer's ⋮ menu: the library's file actions for its own surface. */
 function ArtifactViewerMenu({
     artifact,
     publicLink,
-    serverId,
 }: {
     artifact: ArtifactMetadata;
     publicLink: ArtifactPublicLink | null;
-    serverId: string;
 }) {
-    const { saveFile } = useArtifactSave(serverId);
-    const publicLinks = usePublicLinkActions(serverId);
+    const actions = useArtifactActionsContext();
     return (
         <Dropdown>
             <Button aria-label="File actions" isIconOnly variant="ghost">
                 <Icon icon={MoreVerticalIcon} size={18} />
             </Button>
             <Dropdown.Popover placement="bottom end">
-                <Dropdown.Menu>
-                    <Dropdown.Item
-                        id="download"
-                        onAction={() =>
-                            void saveFile({
-                                artifactId: artifact.artifact_id,
-                                revisionId: artifact.revision_id,
-                            })
-                        }
-                        textValue="Download"
-                    >
-                        <Label>Download</Label>
-                    </Dropdown.Item>
-                    <Dropdown.Item
-                        id="copy"
-                        onAction={() => void copyArtifactLink(artifact.stable_url)}
-                        textValue="Copy link"
-                    >
-                        <Label>Copy link</Label>
-                    </Dropdown.Item>
-                    <Dropdown.Item
-                        id="copy-revision"
-                        onAction={() =>
-                            void copyArtifactLink(artifact.version_url, 'Revision link copied')
-                        }
-                        textValue="Copy link to this revision"
-                    >
-                        <Label>Copy link to this revision</Label>
-                    </Dropdown.Item>
-                    <Dropdown.Item
-                        id="copy-public"
-                        onAction={() => void publicLinks.copy(artifact.artifact_id)}
-                        textValue="Copy public link"
-                    >
-                        <Label>Copy public link</Label>
-                    </Dropdown.Item>
-                    {publicLink?.can_disable ? (
-                        <Dropdown.Item
-                            id="disable-public"
-                            onAction={() => void publicLinks.disable(artifact.artifact_id)}
-                            textValue="Disable public link"
-                        >
-                            <Label>Disable public link</Label>
-                        </Dropdown.Item>
-                    ) : null}
+                <Dropdown.Menu
+                    aria-label="File actions"
+                    onAction={(key) => actions.runFile(key as FileActionId, artifact)}
+                >
+                    {artifactActionItems(actions.fileActions(artifact, publicLink))}
                 </Dropdown.Menu>
             </Dropdown.Popover>
         </Dropdown>

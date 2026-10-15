@@ -9,26 +9,19 @@ import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts
 
 const anyoneKey = 'anyone';
 
+interface CreatorFilterProps {
+    creator: ArtifactCreator | null;
+    onCreatorChange: (creator: ArtifactCreator | null) => void;
+    serverId: string;
+}
+
 /**
  * "Created by", beside the file-type menu and in its shape: Anyone, then You,
  * Agents, and other people who have live files. It narrows the open folder
  * (or the search) to one creator's files; folders count only those files.
  */
-export function ArtifactCreatorMenu({
-    creator,
-    onCreatorChange,
-    serverId,
-}: {
-    creator: ArtifactCreator | null;
-    onCreatorChange: (creator: ArtifactCreator | null) => void;
-    serverId: string;
-}) {
-    const creators = useArtifactCreators(serverId);
-    const directory = useArtifactCreatorDirectory(serverId);
-    const options = artifactCreatorOptions(creators.data?.creators ?? [], directory, creator);
-    const selectedKey = creator ? creatorKey(creator) : anyoneKey;
-    const label = creator ? directory.name(creator) : 'Anyone';
-
+export function ArtifactCreatorMenu(props: CreatorFilterProps) {
+    const label = useCreatorLabel(props.serverId, props.creator);
     return (
         <Dropdown>
             <Button aria-label={`Created by: ${label}`} size="sm" variant="ghost">
@@ -36,44 +29,58 @@ export function ArtifactCreatorMenu({
                 <Icon aria-hidden="true" icon={ArrowDown01Icon} size={16} />
             </Button>
             <Dropdown.Popover placement="bottom end">
-                <Dropdown.Menu
-                    aria-label="Created by"
-                    disallowEmptySelection
-                    onSelectionChange={(keys) => {
-                        const [key] = keys === 'all' ? [] : [...keys];
-                        if (key === anyoneKey) {
-                            onCreatorChange(null);
-                            return;
-                        }
-                        const next = options.find((option) => option.key === key);
-                        if (next) {
-                            onCreatorChange(next.creator);
-                        }
-                    }}
-                    selectedKeys={new Set([selectedKey])}
-                    selectionMode="single"
-                >
-                    <Dropdown.Item id={anyoneKey} textValue="Anyone">
-                        <Label>Anyone</Label>
-                        <Dropdown.ItemIndicator />
-                    </Dropdown.Item>
-                    {options.length > 0 ? <Separator /> : null}
-                    {options.map((option) => {
-                        const avatar = directory.avatar(option.creator);
-                        return (
-                            <Dropdown.Item
-                                id={option.key}
-                                key={option.key}
-                                textValue={option.label}
-                            >
-                                <EntityAvatar name={avatar.name} size={16} src={avatar.src} />
-                                <Label>{option.label}</Label>
-                                <Dropdown.ItemIndicator />
-                            </Dropdown.Item>
-                        );
-                    })}
-                </Dropdown.Menu>
+                <ArtifactCreatorOptions {...props} />
             </Dropdown.Popover>
         </Dropdown>
+    );
+}
+
+/** The open creator filter's name: "Anyone", "You", or the creator's display name. */
+export function useCreatorLabel(serverId: string, creator: ArtifactCreator | null): string {
+    const directory = useArtifactCreatorDirectory(serverId);
+    return creator ? directory.name(creator) : 'Anyone';
+}
+
+/** The creator choices, shared by the band's menu and the compact Filters submenu. */
+export function ArtifactCreatorOptions({ creator, onCreatorChange, serverId }: CreatorFilterProps) {
+    const creators = useArtifactCreators(serverId);
+    const directory = useArtifactCreatorDirectory(serverId);
+    const options = artifactCreatorOptions(creators.data?.creators ?? [], directory, creator);
+    const selectedKey = creator ? creatorKey(creator) : anyoneKey;
+
+    return (
+        <Dropdown.Menu
+            aria-label="Created by"
+            disallowEmptySelection
+            onSelectionChange={(keys) => {
+                const [key] = keys === 'all' ? [] : [...keys];
+                if (key === anyoneKey) {
+                    onCreatorChange(null);
+                    return;
+                }
+                const next = options.find((option) => option.key === key);
+                if (next) {
+                    onCreatorChange(next.creator);
+                }
+            }}
+            selectedKeys={new Set([selectedKey])}
+            selectionMode="single"
+        >
+            <Dropdown.Item id={anyoneKey} textValue="Anyone">
+                <Label>Anyone</Label>
+                <Dropdown.ItemIndicator />
+            </Dropdown.Item>
+            {options.length > 0 ? <Separator /> : null}
+            {options.map((option) => {
+                const avatar = directory.avatar(option.creator);
+                return (
+                    <Dropdown.Item id={option.key} key={option.key} textValue={option.label}>
+                        <EntityAvatar name={avatar.name} size={16} src={avatar.src} />
+                        <Label>{option.label}</Label>
+                        <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                );
+            })}
+        </Dropdown.Menu>
     );
 }

@@ -7,11 +7,13 @@ import { ArtifactFiles } from './artifact-files.tsx';
 import { ArtifactFolderRow } from './artifact-folder-row.tsx';
 import { ArtifactLibraryEmpty } from './artifact-library-empty.tsx';
 import { useArtifactLibraryLayout } from './library-layout.ts';
+import type { LibrarySelection } from './library-selection.ts';
 
 /**
  * The column under the band: blank until the first read lands, the empty
  * state only for a real zero, otherwise child folders (never while
- * searching, which reads the whole subtree) and then files.
+ * searching, which reads the whole subtree) and then files, sharing the
+ * library's one Finder-style selection.
  */
 export function ArtifactLibraryContent({
     filtered,
@@ -20,8 +22,8 @@ export function ArtifactLibraryContent({
     onOpenFolder,
     onUpload,
     searching,
+    selection,
     serverId,
-    slug,
 }: {
     filtered: boolean;
     filters: Omit<ArtifactLibraryFilters, 'query'>;
@@ -29,8 +31,8 @@ export function ArtifactLibraryContent({
     onOpenFolder: (path: string) => void;
     onUpload: () => void;
     searching: boolean;
+    selection: LibrarySelection;
     serverId: string;
-    slug: string;
 }) {
     const layout = useArtifactLibraryLayout();
     const folders = searching ? [] : library.folders;
@@ -59,6 +61,7 @@ export function ArtifactLibraryContent({
                     folders={folders}
                     onOpen={onOpenFolder}
                     previews={previews}
+                    selection={selection}
                     serverId={serverId}
                 />
             ) : null}
@@ -68,8 +71,8 @@ export function ArtifactLibraryContent({
                     folder={filters.folder}
                     layout={layout}
                     library={library}
+                    selection={selection}
                     serverId={serverId}
-                    slug={slug}
                 />
             ) : null}
         </>

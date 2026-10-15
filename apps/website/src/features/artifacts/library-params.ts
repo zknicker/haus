@@ -56,17 +56,22 @@ export function libraryHref(slug: string, view: ArtifactLibraryView): string {
     return `${serverRoute(slug)}/artifacts${librarySearch(view)}`;
 }
 
-/** The URL view plus moves: opening a folder keeps the filters, as Finder does. */
+/**
+ * The URL view plus moves: opening a folder keeps the filters, as Finder does.
+ * Only a folder change is a history step (Back and Forward walk folders); a
+ * filter change replaces the current entry.
+ */
 export function useArtifactLibraryParams() {
     const [params] = useSearchParams();
     const navigate = useNavigate();
     const view = parseLibrarySearch(params);
-    const go = (next: ArtifactLibraryView) => navigate({ search: librarySearch(next) });
+    const go = (next: ArtifactLibraryView, replace: boolean) =>
+        navigate({ search: librarySearch(next) }, { replace });
 
     return {
         ...view,
-        openFolder: (folder: string) => go({ ...view, folder }),
-        selectCreator: (creator: ArtifactCreator | null) => go({ ...view, creator }),
-        selectKind: (kind: ArtifactKindFilter) => go({ ...view, kind }),
+        openFolder: (folder: string) => go({ ...view, folder }, false),
+        selectCreator: (creator: ArtifactCreator | null) => go({ ...view, creator }, true),
+        selectKind: (kind: ArtifactKindFilter) => go({ ...view, kind }, true),
     };
 }

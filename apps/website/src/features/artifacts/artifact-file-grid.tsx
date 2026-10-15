@@ -6,19 +6,27 @@ import type { ArtifactRow } from './artifact-file-list.tsx';
 import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { ArtifactCover } from './artifact-thumbnail.tsx';
+import {
+    type LibrarySelection,
+    librarySelectionProps,
+    useOpenInTabPress,
+} from './library-selection.ts';
 
 /** One date group's files as stock Cards: a preview well, then file name, meta, and the ⋮ menu. */
 export function ArtifactFileGrid({
     label,
     onOpen,
     rows,
+    selection,
     serverId,
 }: {
     label: string;
     onOpen: (artifact: ArtifactMetadata) => void;
     rows: readonly ArtifactRow[];
+    selection: LibrarySelection;
     serverId: string;
 }) {
+    const openInTabPress = useOpenInTabPress();
     return (
         <GridList
             aria-label={label}
@@ -31,12 +39,17 @@ export function ArtifactFileGrid({
                     onOpen(row.artifact);
                 }
             }}
+            {...librarySelectionProps(
+                selection,
+                rows.map((row) => row.artifact.artifact_id)
+            )}
         >
             {({ artifact, meta, publicLink }) => (
                 <GridListItem
                     {...opensPlace}
                     className="artifact-file-tile artifact-file-trigger"
                     id={artifact.artifact_id}
+                    onPress={openInTabPress(() => onOpen(artifact))}
                     textValue={artifact.filename}
                 >
                     <Card>
@@ -51,12 +64,7 @@ export function ArtifactFileGrid({
                                 </span>
                                 <span className="artifact-tile__meta">{meta}</span>
                             </span>
-                            <ArtifactRowMenu
-                                artifact={artifact}
-                                onOpen={() => onOpen(artifact)}
-                                publicLink={publicLink}
-                                serverId={serverId}
-                            />
+                            <ArtifactRowMenu artifact={artifact} publicLink={publicLink} />
                         </span>
                     </Card>
                 </GridListItem>

@@ -5,6 +5,11 @@ import { formatArtifactBytes } from './artifact-format.ts';
 import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { ArtifactThumbnail } from './artifact-thumbnail.tsx';
+import {
+    type LibrarySelection,
+    librarySelectionProps,
+    useOpenInTabPress,
+} from './library-selection.ts';
 
 export interface ArtifactRow {
     artifact: ArtifactMetadata;
@@ -22,13 +27,16 @@ export function ArtifactFileList({
     label,
     onOpen,
     rows,
+    selection,
     serverId,
 }: {
     label: string;
     onOpen: (artifact: ArtifactMetadata) => void;
     rows: readonly ArtifactRow[];
+    selection: LibrarySelection;
     serverId: string;
 }) {
+    const openInTabPress = useOpenInTabPress();
     return (
         <ListView
             aria-label={label}
@@ -40,6 +48,10 @@ export function ArtifactFileList({
                     onOpen(row.artifact);
                 }
             }}
+            {...librarySelectionProps(
+                selection,
+                rows.map((row) => row.artifact.artifact_id)
+            )}
             variant="secondary"
         >
             {({ artifact, meta, publicLink }) => (
@@ -47,6 +59,7 @@ export function ArtifactFileList({
                     {...opensPlace}
                     className="artifact-file-trigger"
                     id={artifact.artifact_id}
+                    onPress={openInTabPress(() => onOpen(artifact))}
                     textValue={artifact.filename}
                 >
                     <ListView.ItemContent>
@@ -62,12 +75,7 @@ export function ArtifactFileList({
                             <span className="@md:inline hidden text-muted text-sm tabular-nums">
                                 {formatArtifactBytes(artifact.size_bytes)}
                             </span>
-                            <ArtifactRowMenu
-                                artifact={artifact}
-                                onOpen={() => onOpen(artifact)}
-                                publicLink={publicLink}
-                                serverId={serverId}
-                            />
+                            <ArtifactRowMenu artifact={artifact} publicLink={publicLink} />
                         </div>
                     </ListView.ItemAction>
                 </ListView.Item>
