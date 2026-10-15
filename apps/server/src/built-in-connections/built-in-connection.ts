@@ -18,6 +18,11 @@ export interface AgentWake {
  * reacts to.
  */
 export interface BuiltInConnection {
+    /** The Agent newly holds a grant on this service's connection. */
+    agentGrantAdded?: (
+        tx: HausDatabase,
+        input: { agentId: string; connectionId: string; serverId: string }
+    ) => Promise<void>;
     /** One of the Agent's grants on this service's connection was revoked. */
     agentGrantRemoved?: (
         tx: HausDatabase,

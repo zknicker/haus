@@ -61,6 +61,29 @@ export const mcpUpdatedEventSchema = z.object({ serverId: idSchema }).strict();
 
 export type McpUpdatedEvent = z.infer<typeof mcpUpdatedEventSchema>;
 
+/** `linear.onUpdated`: one Linear connection's workspace or Agent identities changed. */
+export const linearUpdatedEventSchema = z
+    .object({
+        connectionId: idSchema,
+        serverId: idSchema,
+    })
+    .strict();
+
+export type LinearUpdatedEvent = z.infer<typeof linearUpdatedEventSchema>;
+
+/** `linear.onIssueChanged`: a delivery changed one Linear issue a chip may show. */
+export const linearIssueChangedEventSchema = z
+    .object({
+        connectionId: idSchema,
+        /** The issue key, such as `DES-142`. */
+        identifier: z.string().min(1),
+        issueId: z.string().min(1),
+        serverId: idSchema,
+    })
+    .strict();
+
+export type LinearIssueChangedEvent = z.infer<typeof linearIssueChangedEventSchema>;
+
 /**
  * `server.onUpdated`: the Server record changed (a rename). Deletion publishes
  * the same notice, but it never reaches a subscriber: deletion revokes every

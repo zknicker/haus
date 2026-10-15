@@ -7,12 +7,12 @@ import {
     agentTriggerSecretResultSchema,
     type TriggerFire,
     type TriggerFireDetail,
-    type TriggerKind,
     triggerInstructionMaxBytes,
     triggerKindSchema,
     triggerLogLimitMax,
     triggerTitleMaxLength,
 } from '@haus/api';
+import type * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { formatUtcTime } from '../agent-format.ts';
@@ -211,19 +211,23 @@ function requireTitle(args: ParsedArgs): string {
 }
 
 /** `--kind` names the outside stimulus; absent means webhook. */
-function readKind(args: ParsedArgs): TriggerKind {
+function readKind(args: ParsedArgs): CreatableTriggerKind {
     const raw = args.values['--kind']?.trim();
     if (!raw) {
         return 'webhook';
     }
-    const parsed = triggerKindSchema.safeParse(raw);
+    const parsed = creatableTriggerKindSchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `--kind ${raw} is not a trigger kind.`, {
-            nextAction: `Supported kinds: ${triggerKindSchema.options.join(', ')}.`,
+            nextAction: `Supported kinds: ${creatableTriggerKindSchema.options.join(', ')}.`,
         });
     }
     return parsed.data;
 }
+
+/** `linear` Triggers are listed and shown, not yet created from the CLI. */
+const creatableTriggerKindSchema = triggerKindSchema.exclude(['linear']);
+type CreatableTriggerKind = z.infer<typeof creatableTriggerKindSchema>;
 
 function readInstruction(args: ParsedArgs): string | undefined {
     const instruction = args.values['--instruction']?.trim();

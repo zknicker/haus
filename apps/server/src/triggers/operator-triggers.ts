@@ -1,5 +1,6 @@
 import type {
     GithubTriggerConfigInput,
+    LinearTriggerConfigInput,
     Trigger,
     TriggerFire,
     TriggerStatus,
@@ -13,7 +14,11 @@ import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { updateGithubTriggerRow } from './github-trigger-writes.ts';
-import { TriggerAccessDeniedError, type TriggerClock } from './trigger-model.ts';
+import {
+    refuseLinearTriggers,
+    TriggerAccessDeniedError,
+    type TriggerClock,
+} from './trigger-model.ts';
 import { listTriggerFires, readTrigger, triggerRows, viewTrigger } from './trigger-queries.ts';
 import {
     deleteTriggerRow,
@@ -122,11 +127,16 @@ export async function updateOperatorTrigger(
     input: OperatorTriggerInput & {
         github?: GithubTriggerConfigInput;
         instruction?: string | null;
+        linear?: LinearTriggerConfigInput;
         title?: string;
     },
     clock: TriggerClock,
     githubTransport: GithubApiTransport = {}
 ): Promise<{ trigger: Trigger }> {
+    if (input.linear !== undefined) {
+        await requireTriggerOperator(db, member, input.serverId);
+        refuseLinearTriggers();
+    }
     if (input.github !== undefined) {
         await requireTriggerOperator(db, member, input.serverId);
         return {

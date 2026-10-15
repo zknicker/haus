@@ -134,13 +134,15 @@ export function TriggerDetailPanel({
                         trigger={trigger}
                     />
                     {/* A GitHub Trigger has no URL and no secret; it shows what
-                        it listens to instead. */}
+                        it listens to instead. A Linear Trigger is read-only
+                        until its configuration view lands. */}
                     {trigger.kind === 'webhook' ? (
                         <TriggerWhenToRun
                             kind={triggerKindOption(trigger.kind)}
                             url={trigger.url}
                         />
-                    ) : (
+                    ) : null}
+                    {trigger.kind === 'github' ? (
                         <>
                             <TriggerGithubConfigGroup
                                 agentName={agent.displayName}
@@ -148,7 +150,7 @@ export function TriggerDetailPanel({
                             />
                             <TriggerGithubEventEditor serverId={serverId} trigger={trigger} />
                         </>
-                    )}
+                    ) : null}
                     <TriggerManageGroup
                         canTest={canTestTrigger(trigger)}
                         isRotating={rotate.isPending}

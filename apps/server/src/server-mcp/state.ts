@@ -83,7 +83,14 @@ export async function setMcpGrant(
             serverId: input.serverId,
         };
         if (input.enabled) {
-            await tx.insert(agentMcpConnectionGrantsTable).values(key).onConflictDoNothing();
+            const added = await tx
+                .insert(agentMcpConnectionGrantsTable)
+                .values(key)
+                .onConflictDoNothing()
+                .returning({ agentId: agentMcpConnectionGrantsTable.agentId });
+            if (added.length > 0) {
+                await builtInConnection(scope.preset)?.agentGrantAdded?.(tx, key);
+            }
         } else {
             await tx
                 .delete(agentMcpConnectionGrantsTable)

@@ -52,7 +52,7 @@ describe('trigger contracts', () => {
         });
         expect(() => triggerSchema.parse({ ...trigger, secret: 'grtt_leak' })).toThrow();
         expect(() => triggerSchema.parse({ ...trigger, kind: 'schedule' })).toThrow();
-        expect(triggerKindSchema.options).toEqual(['webhook', 'github']);
+        expect(triggerKindSchema.options).toEqual(['webhook', 'github', 'linear']);
     });
 
     test('an Agent-created trigger has no creator, and the Agent view inherits the URL', () => {

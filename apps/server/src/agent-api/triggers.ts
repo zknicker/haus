@@ -11,6 +11,7 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { previewGithubTrigger } from '../triggers/github-trigger-preview.ts';
+import { refuseLinearTriggers } from '../triggers/trigger-model.ts';
 import {
     createAgentGithubTrigger,
     createTrigger,
@@ -69,6 +70,9 @@ export async function createAgentTrigger(
     input: AgentTriggerCreateInput,
     githubTransport: GithubApiTransport = {}
 ) {
+    if (input.kind === 'linear') {
+        refuseLinearTriggers();
+    }
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
     if (input.kind === 'github') {
         const created = await createAgentGithubTrigger(

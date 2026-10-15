@@ -11,7 +11,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
 import type { GithubAuthoringDependencies } from './github-trigger-config.ts';
 import { createGithubTriggerRow, updateGithubTriggerRow } from './github-trigger-writes.ts';
-import type { TriggerClock } from './trigger-model.ts';
+import { refuseLinearTriggers, type TriggerClock } from './trigger-model.ts';
 import { readOwnedTrigger } from './trigger-queries.ts';
 import {
     createTriggerRow,
@@ -151,6 +151,9 @@ export async function updateAgentOwnedTrigger(
 ): Promise<Trigger> {
     const authorize = ownedBy(agentId, input);
     await authorize(dependencies.db);
+    if (input.linear) {
+        refuseLinearTriggers();
+    }
     if (input.github) {
         return await updateGithubTriggerRow(
             dependencies,

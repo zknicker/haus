@@ -84,6 +84,14 @@ export class TriggerRequestRefusedError extends Error {
     }
 }
 
+/** Linear Triggers are refused until the `linear` kind's authoring lands. */
+export function refuseLinearTriggers(): never {
+    throw new TriggerRequestRefusedError(
+        'linear_triggers_unavailable',
+        'Linear Triggers are not available on this Server yet.'
+    );
+}
+
 export interface TriggerViewContext {
     createdByHandle: string | null;
     /** The `github` configuration; required exactly when the Trigger is `github`. */
@@ -121,6 +129,10 @@ export function toTrigger(
     if (trigger.kind === 'webhook') {
         return { ...base, kind: 'webhook', url: triggerUrl(context.origin, trigger.id) };
     }
+    if (trigger.kind === 'linear') {
+        // Unreachable until the `linear` kind lands: create refuses it.
+        throw new Error(`Linear Trigger ${trigger.id} cannot be read yet.`);
+    }
     if (!context.github) {
         throw new Error(`GitHub Trigger ${trigger.id} has no stored configuration.`);
     }
@@ -132,7 +144,7 @@ export function requireWebhookTrigger(trigger: Trigger): WebhookTrigger {
     if (trigger.kind !== 'webhook') {
         throw new TriggerRequestRefusedError(
             'trigger_has_no_secret',
-            'A GitHub Trigger has no URL and no secret to rotate.'
+            `A ${trigger.kind === 'github' ? 'GitHub' : 'Linear'} Trigger has no URL and no secret to rotate.`
         );
     }
     return trigger;

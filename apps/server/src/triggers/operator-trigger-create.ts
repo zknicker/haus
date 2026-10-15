@@ -9,7 +9,7 @@ import { requireActiveAgent } from '../reminders/reminder-model.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { createGithubTriggerRow } from './github-trigger-writes.ts';
 import { requireTriggerOperator } from './operator-triggers.ts';
-import type { TriggerClock } from './trigger-model.ts';
+import { refuseLinearTriggers, type TriggerClock } from './trigger-model.ts';
 import { triggerCurlCommand } from './trigger-url.ts';
 import { createTriggerRow, type TriggerAnchor } from './trigger-writes.ts';
 
@@ -31,6 +31,9 @@ export async function createOperatorTrigger(
     githubTransport: GithubApiTransport = {}
 ): Promise<TriggerCreateResult> {
     const operator = await requireTriggerOperator(db, member, input.serverId);
+    if (input.kind === 'linear') {
+        refuseLinearTriggers();
+    }
     const row = {
         createdByUserId: operator.id,
         instruction: input.instruction?.trim() || null,

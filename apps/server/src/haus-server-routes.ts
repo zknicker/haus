@@ -18,6 +18,7 @@ import {
     failInterruptedImageGenerations,
     type ImageProviderAdapters,
 } from './image-generation/run-image-generation.ts';
+import { registerLinearRoutes } from './linear/routes.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
@@ -97,6 +98,7 @@ export async function registerHausServerRoutes(
         githubApp: dependencies.githubApp,
         ingest: dependencies.githubIngest,
     });
+    await registerLinearRoutes(app);
     await registerTriggerRoutes(app, {
         db,
         delivery: dependencies.agentDelivery,

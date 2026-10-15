@@ -81,7 +81,7 @@ export const triggersTable = pgTable(
             ],
             name: 'triggers_anchor_message_fk',
         }),
-        check('triggers_kind', sql`${table.kind} in ('webhook', 'github')`),
+        check('triggers_kind', sql`${table.kind} in ('webhook', 'github', 'linear')`),
         check(
             'triggers_secret_kind',
             sql`(${table.kind} = 'webhook') = (${table.secretHash} is not null)`
