@@ -39,8 +39,8 @@ rows at all.
 - Summarized turn evidence anchors to the Agent's real `runId` and surfaces in Agent Activity
   History. Agent-authored messages retain that run identity so their Turn Details drawer can show
   the same access-safe summary.
-- Server Owners and Admins may explicitly request the detailed Computer-local execution journal
-  from Turn Details while Computer is online. Opening a Chat never performs that read.
+- Server Owners and Admins may explicitly request the run's synced execution journal from Turn
+  Details. Opening a Chat never performs that read.
 - Execution rows never become transcript units. The drawer is inspection UI attached to a durable
   message, not part of the conversation projection.
 - Live agent state (busy dot, current activity text) is presence

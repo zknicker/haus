@@ -385,8 +385,8 @@ activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, fi
 bootstrap errors.
 
 Computer separately records a detailed execution journal keyed by run, including tool outputs,
-tool errors, and model reasoning blocks. Owner/Admin inspection uses an authorized live relay;
-Server never persists that response. Chat does not project run-attached inbox work as typing;
+tool errors, and model reasoning blocks, and syncs each write to the Server, which stores it for
+Owner/Admin inspection ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)). Chat does not project run-attached inbox work as typing;
 typing is chat engagement, derived from the run's exact visibility of unanswered human messages
 and ended by a committed send into that Chat or by terminal turn proof
 ([ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md)). The composed receipt, mid-turn pulls,

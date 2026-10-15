@@ -604,10 +604,12 @@ and `apps/server/src/haus-api/agent/`; Computer proxy and launch behavior live i
 `apps/computer/src/`.
 
 Hosted Agent execution detail is a separate, explicit `agent.executionJournal` query. It accepts
-one `serverId`, `agentId`, and `runId`; Server authorizes only Owners/Admins, resolves the Agent's
-assigned Computer, and relays the request over that authenticated attachment. The response is
-either the Computer-local journal or an explicit `unavailable` result (`offline`, `missing`, or
-`timeout`). Server does not persist the journal, and ordinary members never receive it.
+one `serverId`, `agentId`, and `runId`; Server authorizes only Owners/Admins and answers from the
+journal the Agent's Computer synced
+([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)): `{ status: 'available',
+agentId, runId, journal }`, or `{ status: 'missing', agentId, runId }` when nothing is stored yet
+or the run is past the 30-day retention. The Server never asks a Computer for evidence, so the
+answer does not depend on the Computer being online. Ordinary members never receive it.
 
 An available journal carries `runId`, `status`, timestamps, a `tools` array (tool-call id, observed
 identity, input, `output`, `error`, `preliminary`, `final`, interruptions, and timings), and an
@@ -623,9 +625,11 @@ with failures can read as a warning. Sub-agent token
 totals live only here; they are not yet part of turn token usage or daily usage. Reasoning exists only in this response. Every
 other string leaf the journal carries is capped at 256,000 characters and ends with
 `…[truncated N more characters]` when clipped, so one oversized tool output cannot dominate the
-relayed response.
+response.
 
-Computer shapes the stored journal as it serves it; the file on disk stays raw. Paths
+Computer shapes each record as it uploads it; the file on disk stays raw. It redacts known
+secret values, token shapes, credentials, and secret-named keys first (see
+[Agent Activity](../../specs/agent-activity.md#computer-projection-and-execution-journal)). Paths
 under the Agent workspace read workspace-relative (the workspace itself reads
 `<workspace>`) and paths under the Agent home read `~/…`, in tool inputs, outputs,
 errors, sub-agent progress lines, and reasoning, so host usernames and Server and Agent
@@ -638,10 +642,10 @@ failed before any tool ran still says why. Raw provider error text stays out of 
 Server turn record; only `failureKind` crosses there.
 
 `agent.executionOutlines` is the batched, compact companion: one `serverId` and `agentId`, and
-1–50 distinct `runIds`, under the same Owner/Admin authorization and relay. Computer answers
-every run in one round trip, in request order, each as `available` with its outline or
-`unavailable` with `missing`, `offline`, or `timeout` (Server fills the last two when the Computer
-never answers). An outline is `{ runId, status, startedAt, durationMs, steps, omittedSteps? }`:
+1–50 distinct `runIds`, under the same Owner/Admin authorization. Server answers every run from
+its store, in request order, each as `{ status: 'available', runId, outline }` or
+`{ status: 'missing', runId }`. The Computer computes a run's outline when the run settles (or when
+it resends the run whole) and uploads it with the run's last frame. An outline is `{ runId, status, startedAt, durationMs, steps, omittedSteps? }`:
 each step is `{ id, kind, label, depth, parentId?, startOffsetMs, durationMs?, status, subagent?, toolKind? }`
 with `kind` one of `tool`, `bookkeeping`, `reasoning`, or `subagent`, `subagent` as
 `{ label, failedToolCount }`, and offsets from the outline's `startedAt`, its earliest evidence.
@@ -654,10 +658,12 @@ characters; a shell call's label stops before any heredoc. An outline never carr
 or outputs, errors, reports, reasoning text, message bodies, or images. It keeps at most 200
 steps, top-level first, and counts the rest in `omittedSteps`.
 
-A running turn is answered from the Computer's append-only `<runId>.ndjson` log and a settled one
-from the consolidated `<runId>.json` snapshot; both live under the Agent's
-`runtime/execution-journal/` directory and neither reaches the Server's store.
+On the Computer a running turn writes an append-only `<runId>.ndjson` log and a settled one a
+consolidated `<runId>.json` snapshot under the Agent's `runtime/execution-journal/` directory; a
+`<runId>.uploaded` marker beside them records that the Server stored the settled run. The upload
+frames (`agent-execution-journal-records`) and acks (`agent-execution-journal-ack`) are defined in
+`packages/haus-api/src/agent-execution-journal-upload.ts`.
 
 Computer flushes ongoing reasoning at most every 250 ms as deltas arrive, in addition to block,
-tool, and turn boundaries. An authorized open activity view can therefore inspect reasoning before
-the first tool call or completed reasoning block.
+tool, and turn boundaries, and each flush uploads. An authorized open activity view can therefore
+inspect reasoning before the first tool call or completed reasoning block.

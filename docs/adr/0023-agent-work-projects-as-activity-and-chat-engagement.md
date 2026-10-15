@@ -1,5 +1,5 @@
 ---
-summary: Decision to project Agent work as durable semantic Server activity and Computer-local detailed execution evidence; its no-typing decision is superseded by ADR 0035.
+summary: Decision to project Agent work as durable semantic Server activity and Computer-local detailed execution evidence; its no-typing decision is superseded by ADR 0035 and its Computer-local evidence by ADR 0048.
 read_when:
   - changing Agent activity or status presentation
   - revisiting why typing was once rejected (current typing contract is ADR 0035)
@@ -30,6 +30,10 @@ path words and secrets, tokens, and emails removed, a file's basename, or a tool
 scrubbed argument summary. The Server phrases it through Google and discards it. Raw tool arguments
 and output still never leave the Computer, and no description enters the activity journal, any
 Activity event, or Server persistence.
+
+Partly superseded 2026-10-15 by [ADR 0048](0048-execution-journals-sync-to-the-server.md): the
+execution journal is synced to and stored on the Server, the live relay is deleted, and detail no
+longer depends on the Computer being online. The two-projection split stands.
 
 ## Context
 

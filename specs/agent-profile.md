@@ -73,8 +73,8 @@ activity, and compact usage.
 
 - The Server owns Agent identity, membership, configuration intent, Chats, semantic activity
   history, reminders, MCP connections, and access grants.
-- The Computer owns execution, the detailed execution journal, workspace files, credentials, and
-  effective runtime state.
+- The Computer owns execution, writes the detailed execution journal (and syncs a redacted copy to
+  the Server), and owns workspace files, credentials, and effective runtime state.
 - The browser talks only to the Server through typed tRPC procedures. It
   never invokes a Computer directly.
 - Reads never start, resume, rotate, or otherwise mutate Agent execution.

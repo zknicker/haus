@@ -4,6 +4,7 @@ read_when:
   - adding telemetry, logs, spans, metrics, or operational dashboards
   - changing Server-to-Computer commands or Effect process runtimes
   - configuring an OTLP collector
+  - confirming a run's execution journal reached the Server, or checking a Computer's backfill
 ---
 
 # Observability
@@ -147,7 +148,7 @@ unobserved boundaries, not zero duration. Phase durations overlap the cumulative
 must not be summed together. Neither a first send nor a last send proves that an answer is complete:
 acknowledgments are ordinary sends. Held, refused, and ambiguous transport-failure sends do not
 produce confirmed-send timings. These timings do not measure App rendering or provider-internal
-queueing/reasoning. Local journals remain the detailed tool evidence.
+queueing/reasoning. Synced execution journals remain the detailed tool evidence.
 
 `haus.reasoning.effort` is the applied Computer setting passed to the adapter, not proof of
 provider execution policy. `haus.tokens.input`, `output`, `cache_read`, and `cache_write` carry
@@ -237,6 +238,39 @@ for the same work. Scheduler coordination uses `Effect.fnUntraced`, retaining
 Effect concurrency and cleanup without exporting helper-function spans.
 Use `tracePromise` only at an actual Promise boundary; composing a span inside
 an existing program avoids launching a second runtime execution just to trace it.
+
+## Execution journal sync
+
+Every run's execution journal lands in Postgres
+([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)). To confirm that a given run
+landed, query the Server database:
+
+```sql
+select j.run_id, j.run_started_at, j.updated_at,
+       j.outline is not null as outlined,
+       (select count(*) from agent_execution_journal_records r
+         where r.server_id = j.server_id and r.agent_id = j.agent_id
+           and r.run_id = j.run_id) as records
+from agent_execution_journals j
+where j.run_id = '<runId>';
+```
+
+The row is present with `outlined = true` once the run has settled and fully synced. A run that is
+still running has records but no outline yet.
+
+On the Computer, a fully synced settled run has a `<runId>.uploaded` marker next to its journal in
+`<dataRoot>/servers/<serverId>/agents/<agentId>/runtime/execution-journal/` (`<dataRoot>` is
+`HAUS_COMPUTER_DATA_ROOT`, default `~/.haus/computer`). A journal without a
+marker is still pending. The Computer resends every unmarked journal younger than 30 days on
+each ordinary connect, newest first and one run at a time. The one-time backfill after an upgrade
+therefore needs no command: it is complete when every recent journal has its marker. The daemon
+logs a refused run, a backfill failure, or a live run that overflowed while offline to stderr with
+a `[haus]` prefix. Bulk check per Agent:
+
+```sql
+select agent_id, count(*) as runs, min(run_started_at) as oldest, max(updated_at) as last_sync
+from agent_execution_journals where server_id = '<serverId>' group by agent_id;
+```
 
 ## Hosted MCP processes
 

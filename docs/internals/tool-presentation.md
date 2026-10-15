@@ -20,11 +20,11 @@ projected by `features/servers/chat/` into
 `features/chats/transcript-contract.ts`. Transcript components render only that
 presentation contract.
 
-Detailed execution is optional, ephemeral evidence. `hooks/members/use-turn-journal.ts`
-is its one owner: while a detail surface is open and the viewer's role allows it,
-`use-agent-execution-journal.ts` asks Haus Server for one run, and Server relays the
-request to the Agent's assigned Computer. A live run re-asks on the run's own
-`agent.onActivity` events — never on a timer. The result deliberately bypasses React
+Detailed execution is optional evidence the Computer syncs to the Server (ADR 0048).
+`hooks/members/use-turn-journal.ts` is its one owner: while a detail surface is open and the
+viewer's role allows it, it asks Haus Server for one run, which the Server answers from its
+store. A live run re-asks on the run's own `agent.onActivity` events and on
+`agent.onExecutionJournal` notices — never on a timer. The result deliberately bypasses React
 Query: it is neither canonical collaboration state nor a durable App cache entry.
 
 ## Summary and detail
@@ -218,10 +218,10 @@ disclosure, closed until opened, failed or not; plain rows still take the hover 
 since pointing at one lights its span in the overview. Shared, high-churn log state
 — the linked hover between strip and rows, each turn's step marks, and the journal read queue
 (at most three in flight) — lives in small external stores (`agent-activity-log-stores.ts`) so a
-hover re-renders only the rows that read it. The strip's marks for unread turns come from Computer
+hover re-renders only the rows that read it. The strip's marks for unread turns come from synced
 outlines (`use-turn-outlines.ts`): one `agent.executionOutlines` read per Agent per day page,
-settled outlines reused across days and revisits and never read again, unanswered runs read again
-when a Computer comes back online. An opened turn's journal marks replace its outline's.
+settled outlines reused across days and revisits and never read again, missing or running ones
+read again the next time the query runs. An opened turn's journal marks replace its outline's.
 
 Row labels stay in sentence case. Body sections are named on the one micro-label tier
 (`DESIGN.md` → Turn trace); `default-theme.css` moves stock `ChatTool`'s own section labels
@@ -257,7 +257,7 @@ from an off-scale 10px onto that tier's `xs` step.
   (Haus's `@ai-sdk/harness` patch; upstream wrote `.`, which turned
   `cwd is /…/workspace.` into `cwd is ..`). The journal stores that display text.
   The patch only reaches the top-level Agent, so Computer applies the same rule (plus
-  `~/` for the Agent home) to every string it serves from the journal, sub-agent
+  `~/` for the Agent home) to every string it uploads from the journal, sub-agent
   calls included, and adds a normalized `failure: { message, exitCode? }` beside each
   raw tool `error` and on a failed turn; prefer it over parsing `error`.
 - A step whose start and end arrived together shows no duration. Codex reports a

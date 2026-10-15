@@ -44,8 +44,10 @@ instruction or bootstrap fingerprints. Server compares the receipt with its rele
 version when projecting an Agent. Computer remains authoritative for whether a successful turn has
 actually applied that version.
 
-Semantic Agent activity is durable Server metadata. Detailed execution journals remain
-Computer-local and are read only through an authorized live relay.
+Semantic Agent activity is durable Server metadata. Detailed execution journals are synced by the
+Computer into `agent_execution_journals` (one row per run, with its outline) and
+`agent_execution_journal_records` (one redacted record per sequence), kept 30 days after the run
+started ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)).
 
 `chat_messages.body_kind` is the Message body discriminator (ADR 0025). It is `text` (the default)
 or `agent-created`, which remains for historical reads; optional feature columns never define a

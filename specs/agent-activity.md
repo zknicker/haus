@@ -1,5 +1,5 @@
 ---
-summary: Agent activity — Server-persisted semantic work history, the live current-activity projection on the Inbox, avatar status dots, and Computer-local detailed execution evidence.
+summary: Agent activity — Server-persisted semantic work history, the live current-activity projection on the Inbox, avatar status dots, and detailed execution journals the Computer syncs to the Server.
 read_when:
   - changing Agent activity events, presence dots, or the Inbox's live Agent rows
   - changing the Agent profile Activity tab, the Server Activity page, or Turn Details drawer
@@ -168,7 +168,7 @@ One raw Harness event fans into two deliberately separate products:
 
 ```text
 Harness tool call/result
-  -> Computer-local execution journal (detailed)
+  -> Computer execution journal (detailed) -> redacted journal sync -> Server execution journal
   -> Computer activity projector (semantic) -> Server activity journal
 ```
 
@@ -203,17 +203,43 @@ input, output, or error carries is capped at 256,000 characters per leaf — nes
 `{ stdout, stderr }` payload keeps its shape with each field clipped — and a clipped string ends
 with `…[truncated N more characters]`. Reasoning text keeps its own 64,000-character cap.
 
-The journal stays on Computer; Server Owners and Admins may inspect it through an authorized live
-Server-to-Computer relay. Server does not persist the response, and reasoning never reaches the
-Server activity journal or any Activity event. The thought bubble
+The Computer syncs each run's journal to the Server while the run is written, and the Server is the
+only place anyone reads it ([ADR 0048](../docs/adr/0048-execution-journals-sync-to-the-server.md)).
+The Server never asks a Computer for evidence. Each durable journal write leaves as
+`agent-execution-journal-records` frames (at most 1 MiB and 2,000 records each) under a per-run
+sequence that only grows; an `open` record (the run's state, then one record per tool and reasoning
+block) replaces everything before it, so a resumed or resent run never mixes with an older copy.
+The Server checks that the Agent is assigned to the uploading Computer, stores the records
+idempotently in `agent_execution_journal_records`, answers each frame with an
+`agent-execution-journal-ack`, and announces `agent.onExecutionJournal` to open views at most once a
+second per run. `agent.executionJournal` replays the stored records into the served journal; a run
+with nothing stored reads `{ status: 'missing' }`. A settled run's outline is computed on the
+Computer and stored beside it, so `agent.executionOutlines` is one Postgres read.
+
+Before upload the Computer redacts every record: exact values of the attachment credential, secret-
+named environment variables, and the Agent's proxy token; token-shaped strings; bearer and basic
+credentials, URL userinfo, and secret query parameters; secret-named JSON keys, assignments, flags,
+and headers. Absolute paths become `<workspace>/…` or `~/…`. Strings PostgreSQL `jsonb` rejects
+(NUL, lone surrogates) are stripped. A record too large for one frame is clipped string by string,
+then reduced to its identity.
+
+The on-disk journal is the outbox. Unacknowledged frames resend after every reconnect. A settled run
+is marked synced (`<runId>.uploaded` beside its journal) only once the Server stored it; on every
+ordinary connect the Computer resends each unmarked journal younger than 30 days whole, newest
+first, one run at a time with at most two frames in flight, so live runs keep flowing. This is also
+the one-time backfill for journals written before sync; see
+[Observability](../docs/internals/observability.md#execution-journal-sync) for confirming a run
+landed. A live run whose unacknowledged frames pass 16 MiB while offline drops them and resends whole
+once it settles.
+
+Reasoning never reaches the Server activity journal or any Activity event. The thought bubble
 ([ADR 0036](../docs/adr/0036-agent-thoughts-surface-as-condensed-phrases.md)) is a separate,
 volatile `agent-thought` frame carrying a title phrase, a scrubbed reasoning excerpt, or a
 scrubbed description of a tool action (with a scrubbed excerpt of a finished command, search,
-page, or tool's output) that the Server summarizes and discards; it is not activity. When Computer is offline, detailed evidence is
-unavailable.
+page, or tool's output) that the Server summarizes and discards; it is not activity.
 
-This workstream assigns no retention or cleanup policy to the execution journal. Holistic cleanup
-is owned by Linear PRD-216.
+The Server keeps a run's journal for 30 days after the run started; an hourly sweep deletes older
+runs with their records. The Computer's local files are unchanged by that sweep.
 
 ## Surfaces
 
@@ -280,7 +306,7 @@ open on arrival; everything older waits for a click. Journals are read through a
 three in flight; a settled journal is read once and kept, so collapsing, reopening, or revisiting
 costs nothing. The overview draws a closed turn's steps from its execution outline instead: the
 day's settled turns are outlined in one batched `agent.executionOutlines` read, a settled outline
-is never read again, and a turn whose Computer is offline stays a plain block until it reconnects. Viewers without execution access, and turns whose Computer did not answer, see one
+is never read again, and a turn whose outline has not synced yet stays a plain block and is read again. Viewers without execution access, and turns with no stored outline, see one
 muted line instead of steps. A running turn has not settled into
 `agent.turns`, so its row takes its trigger from the `runTriggers` its Activity History page
 carries, or through `agent.runTrigger` when it started after that page was read, and is titled
@@ -314,7 +340,7 @@ titles and journals read as in the Agent tab. Outlines are still one batched
 most three outline reads in flight, so a day with many Agents never bursts the Server.
 
 Every Server member may see the summarized history. Complete execution evidence is restricted to
-Server Owners and Admins and remains Computer-local. Agent creation provenance grants no additional
+Server Owners and Admins and is stored on the Server for 30 days. Agent creation provenance grants no additional
 access.
 
 This workstream adds no expiry or pruning to Server activity history. Any holistic retention change
@@ -324,8 +350,8 @@ belongs to PRD-216.
 
 An Agent-authored Chat message stores the real `runId` that produced it. Its Turn Details drawer
 shows the same turn summary and Server-persisted semantic timeline to members who can access that
-message. Owners and Admins may additionally request the run's detailed execution journal while
-Computer is online.
+message. Owners and Admins may additionally read the run's synced execution journal, whether or
+not its Computer is online.
 
 A global turn may touch several private Chats. Ordinary members never receive global raw evidence
 through one Chat message. Opening a Chat never fetches detailed evidence until the user explicitly
@@ -353,7 +379,7 @@ the run's latest steps: settled steps in past tense, and a start only while it i
 stale `…ing` lines never pile up. While idle, it shows the last two turns, each titled by its
 trigger with what it did in words, duration over relative time in the same column, repeated failures folded as in Activity History.
 The preview reads Server history and remains useful while Computer is offline;
-it never requests Computer-local execution evidence. Clicking the avatar or
+it never requests detailed execution evidence. Clicking the avatar or
 reference still opens the full Agent profile.
 
 ## Failure behavior

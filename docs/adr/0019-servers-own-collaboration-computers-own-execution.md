@@ -15,7 +15,9 @@ Accepted 2026-07-25 for WS6 of the Raft-alignment program. ADR 0021 supersedes
 only this ADR's statements that first-Agent setup is optional and that Cove
 uses a normal Owner-to-Cove DM; the Server/Computer ownership boundary remains
 accepted. ADR 0022 supersedes this ADR's inline approval and no-human-session
-Computer setup decision while preserving the same execution boundary.
+Computer setup decision while preserving the same execution boundary. ADR 0048
+moves a redacted copy of each run's execution journal to the Server, which no
+longer sends any evidence request to a Computer; the Computer still owns execution.
 
 ## Decision
 
@@ -357,7 +359,7 @@ the full envelope remains in the Computer inbox until the Agent drains it
 through `haus message check`, whose localhost proxy answers from the local
 inbox before falling through to the hosted Server. Configuration is sent as a
 current snapshot on connect, while status updates remain best-effort socket signals.
-ADR 0023 adds durable semantic activity metadata while keeping detailed execution journals local.
+ADR 0023 adds durable semantic activity metadata; ADR 0048 syncs detailed execution journals to the Server.
 No generic reliability framework is added.
 
 Deleting an Agent is permanent and requires a destructive confirmation dialog
