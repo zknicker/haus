@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { resolveDelegation } from '../src/linear/delegation.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
@@ -83,7 +84,8 @@ test('an unknown, ungranted, or ambiguous name refuses with the names it may use
     const twinId = createOpaqueId('agt');
     await connection.db.insert(agentsTable).values({
         ...(beacon as typeof agentsTable.$inferInsert),
-        handle: `beacon-twin-${twinId.slice(-6).toLowerCase()}`,
+        // Hex, not the base64url id tail: `_` breaks agents_handle_grammar.
+        handle: `beacon-twin-${randomBytes(3).toString('hex')}`,
         id: twinId,
     });
     await connection.db
