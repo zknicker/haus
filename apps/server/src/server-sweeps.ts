@@ -1,5 +1,7 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect, Scope } from 'effect';
+import { startArtifactRetentionSweep } from './artifacts/retention.ts';
+import type { ArtifactStorage } from './artifacts/storage.ts';
 import type { BootSweep, SweepTimers } from './boot-sweep.ts';
 import type { GithubDelivery, GithubIngestOutcome } from './github/delivery-ingest.ts';
 import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
@@ -20,6 +22,8 @@ const githubRecoveryDefaultIntervalMs = 10 * 60_000;
 interface ServerSweepsInput {
     /** The App origin iPhone push builds absolute avatar URLs against. */
     appOrigin: string;
+    /** Private R2; revision retention runs only when it is configured. */
+    artifactStorage: ArtifactStorage | null;
     clock: ReminderClock;
     db: HausDatabase;
     /** The Haus GitHub App; its sweeps run only when configured. */
@@ -47,9 +51,20 @@ export async function startServerSweeps(
     scope: Scope.Scope,
     input: ServerSweepsInput
 ) {
-    const { pushSender } = input;
+    const { artifactStorage, pushSender } = input;
     for (const start of [
         ...githubSweeps(runtime, input),
+        ...(artifactStorage
+            ? [
+                  () =>
+                      startArtifactRetentionSweep(
+                          input.db,
+                          artifactStorage,
+                          input.clock,
+                          input.timers
+                      ),
+              ]
+            : []),
         () => startReminderRetentionSweep(input.db, input.clock, input.timers),
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
         () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),

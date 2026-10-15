@@ -223,6 +223,7 @@ export async function createHausServerApplication(
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, {
             appOrigin: options.appOrigin,
+            artifactStorage,
             clock: reminderClock,
             db: connectedHaus.db,
             githubApp: options.githubApp ?? null,

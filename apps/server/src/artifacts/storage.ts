@@ -35,7 +35,8 @@ export class ArtifactError extends Error {
     }
 }
 export const artifactMaxBytes = 268_435_456;
-export const artifactStorageBytes = 10_737_418_240;
+/** Per-Server shared-file cap: a product guard, not a cost limit. */
+export const artifactStorageBytes = 107_374_182_400;
 
 export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStorage {
     const client = new S3Client({ ...config, region: 'auto' });

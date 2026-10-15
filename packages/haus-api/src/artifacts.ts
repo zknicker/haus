@@ -39,6 +39,11 @@ export const artifactTargetInputSchema = z
 export const artifactDownloadInputSchema = artifactTargetInputSchema.extend({
     save: z.boolean().default(false),
 });
+/**
+ * Days a replaced revision stays readable after a newer revision took its place. The current
+ * revision of a file is always kept.
+ */
+export const ARTIFACT_REVISION_RETENTION_DAYS = 7;
 /** Largest revision `artifact.text` decodes for an inline preview. */
 export const artifactTextMaxBytes = 1_048_576;
 /** Revisions are immutable, so a text read always names one. */
