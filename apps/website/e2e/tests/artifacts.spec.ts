@@ -2,6 +2,8 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+    libraryRows,
+    librarySection,
     routeArtifactUploads,
     seedArtifactLibrary,
     seededArtifactAgent,
@@ -23,7 +25,7 @@ test('a Server member opens the shared library and reloads its stable address', 
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Upload files' })).toBeVisible();
-    await expect(page.getByRole('listbox', { name: 'Folders' })).toHaveCount(0);
+    await expect(librarySection(page, 'Folders')).toHaveCount(0);
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({
         artifacts: [],
         folders: [],
@@ -59,28 +61,22 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await openSection(page, 'Files');
 
     // The root holds its child folders, then only the files directly in it.
-    const today = page.getByRole('grid', { name: 'Today' });
-    await expect(today.getByRole('row')).toHaveCount(7);
+    const today = librarySection(page, 'Today');
+    await expect(libraryRows(today)).toHaveCount(7);
     await expect(today.getByRole('row', { name: 'concept.png' })).toContainText(
         'Concept render · You · Image · just now'
     );
-    const folders = page.getByRole('listbox', { name: 'Folders' });
-    await expect(folders.getByRole('option')).toHaveText([
-        /docs\s*1 file/u,
-        /starter-kit\s*4 files/u,
-    ]);
+    const folders = librarySection(page, 'Folders');
+    await expect(folders.getByRole('row')).toHaveText([/docs\s*1 file/u, /starter-kit\s*4 files/u]);
 
-    await folders.getByRole('option', { name: 'starter-kit' }).dblclick();
+    await folders.getByRole('row', { name: 'starter-kit' }).dblclick();
     await expect(page).toHaveURL(/folder=starter-kit$/u);
     // Newest first: the seed writes scripts after assets.
-    await expect(folders.getByRole('option')).toHaveText([
-        /scripts\s*2 files/u,
-        /assets\s*1 file/u,
-    ]);
-    await expect(today.getByRole('row')).toHaveText([/README\.md/u]);
-    await folders.getByRole('option', { name: 'scripts' }).dblclick();
+    await expect(folders.getByRole('row')).toHaveText([/scripts\s*2 files/u, /assets\s*1 file/u]);
+    await expect(libraryRows(today)).toHaveText([/README\.md/u]);
+    await folders.getByRole('row', { name: 'scripts' }).dblclick();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
-    await expect(today.getByRole('row')).toHaveCount(2);
+    await expect(libraryRows(today)).toHaveCount(2);
     await expect(folders).toHaveCount(0);
 
     // The band is the folder trail; each folder above is a way back.
@@ -92,12 +88,12 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await page.getByRole('button', { name: 'Created by: Anyone', exact: true }).click();
     await page.getByRole('menuitemradio', { name: seededArtifactAgent }).click();
     await expect(page).toHaveURL(/creator=agent%3A/u);
-    await expect(today.getByRole('row')).toHaveText([/tm_check\.py/u]);
+    await expect(libraryRows(today)).toHaveText([/tm_check\.py/u]);
     await page.reload();
-    await expect(today.getByRole('row')).toHaveText([/tm_check\.py/u]);
+    await expect(libraryRows(today)).toHaveText([/tm_check\.py/u]);
     await page.getByRole('button', { name: `Created by: ${seededArtifactAgent}` }).click();
     await page.getByRole('menuitemradio', { name: 'Anyone', exact: true }).click();
-    await expect(today.getByRole('row')).toHaveCount(2);
+    await expect(libraryRows(today)).toHaveCount(2);
 
     await trail.getByRole('link', { name: 'starter-kit', exact: true }).click();
     await expect(page).toHaveURL(/folder=starter-kit$/u);
@@ -108,19 +104,19 @@ test('members browse folders in Files, filter by kind and creator, search, and o
 
     // Search covers the whole subtree and names where each hit lives.
     await page.getByRole('searchbox').fill('logo');
-    await expect(today.getByRole('row')).toHaveCount(1);
+    await expect(libraryRows(today)).toHaveCount(1);
     await expect(today.getByRole('row', { name: 'logo.png' })).toContainText('starter-kit/assets');
     await expect(folders).toHaveCount(0);
     await page.getByRole('searchbox').fill('');
 
     await page.getByRole('button', { name: 'File type: All types', exact: true }).click();
     await page.getByRole('menuitemradio', { name: 'Images', exact: true }).click();
-    await expect(today.getByRole('row')).toHaveCount(2);
+    await expect(libraryRows(today)).toHaveCount(2);
     await expect(page).toHaveURL(/kind=images/u);
     // Folder counts follow the filters; folders without a match disappear.
-    await expect(folders.getByRole('option')).toHaveText([/starter-kit\s*1 file/u]);
+    await expect(folders.getByRole('row')).toHaveText([/starter-kit\s*1 file/u]);
     await page.getByRole('searchbox').fill('Concept');
-    await expect(today.getByRole('row')).toHaveCount(1);
+    await expect(libraryRows(today)).toHaveCount(1);
 
     await page.getByRole('radio', { name: 'Grid', exact: true }).click();
     const tile = today.getByRole('row', { name: 'concept.png' });
@@ -174,7 +170,7 @@ test('a viewer names the file by its path in Files, each folder a way back', asy
     await expect(trail).toContainText('scripts');
     await trail.getByRole('link', { name: 'scripts', exact: true }).click();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
-    await expect(page.getByRole('grid', { name: 'Today' }).getByRole('row')).toHaveCount(2);
+    await expect(libraryRows(librarySection(page, 'Today'))).toHaveCount(2);
 });
 
 test('members upload files and folders into the open folder, replace, and rename', async ({
@@ -186,8 +182,8 @@ test('members upload files and folders into the open folder, replace, and rename
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await routeArtifactUploads(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts?folder=starter-kit%2Fscripts`);
-    const today = page.getByRole('grid', { name: 'Today' });
-    await expect(today.getByRole('row')).toHaveCount(2);
+    const today = librarySection(page, 'Today');
+    await expect(libraryRows(today)).toHaveCount(2);
 
     // A picked folder keeps its structure; OS noise never uploads.
     const folder = mkdtempSync(join(tmpdir(), 'haus-artifact-upload-'));
@@ -200,8 +196,8 @@ test('members upload files and folders into the open folder, replace, and rename
     await page.getByRole('menuitem', { name: 'Folder…', exact: true }).click();
     await (await folderPick).setFiles(join(folder, 'tools'));
     await expect(page.getByText('Uploaded 2 files')).toBeVisible();
-    const folders = page.getByRole('listbox', { name: 'Folders' });
-    await expect(folders.getByRole('option')).toHaveText([/tools\s*2 files/u]);
+    const folders = librarySection(page, 'Folders');
+    await expect(folders.getByRole('row')).toHaveText([/tools\s*2 files/u]);
 
     // An existing name asks once; Replace overwrites it, new files land either way.
     const filesPick = page.waitForEvent('filechooser');
@@ -217,7 +213,7 @@ test('members upload files and folders into the open folder, replace, and rename
     await expect(confirm.getByRole('list', { name: 'Files to replace' })).toHaveText('setup.sh');
     await confirm.getByRole('button', { name: 'Replace', exact: true }).click();
     await expect(page.getByText('Uploaded 2 files')).toBeVisible();
-    await expect(today.getByRole('row')).toHaveCount(3);
+    await expect(libraryRows(today)).toHaveCount(3);
     const setupRevisions = runPsql(
         session.databaseUrl,
         `select next_revision from artifacts where id = 'art_${server.id}_setup'`
@@ -235,12 +231,12 @@ test('members upload files and folders into the open folder, replace, and rename
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts\\?folder=`, 'u'));
 
     // F2 renames the selected folder in place.
-    await folders.getByRole('option', { name: 'tools' }).click();
+    await folders.getByRole('row', { name: 'tools' }).click();
     await page.keyboard.press('F2');
     const folderName = page.getByRole('textbox', { name: 'Rename tools' });
     await folderName.fill('utilities');
     await folderName.press('Enter');
-    await expect(folders.getByRole('option')).toHaveText([/utilities\s*2 files/u]);
+    await expect(folders.getByRole('row')).toHaveText([/utilities\s*2 files/u]);
 });
 
 test('text artifacts render inline like workspace files, and oversize text offers a download', async ({
@@ -254,7 +250,7 @@ test('text artifacts render inline like workspace files, and oversize text offer
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await openSection(page, 'Files');
-    const today = page.getByRole('grid', { name: 'Today' });
+    const today = librarySection(page, 'Today');
     const preview = page.getByRole('region', { name: 'File preview' });
 
     await today.getByRole('row', { name: 'readme.md' }).dblclick();

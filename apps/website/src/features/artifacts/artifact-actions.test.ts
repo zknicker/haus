@@ -5,6 +5,7 @@ import {
     fileActions,
     folderActions,
     libraryAreaActions,
+    selectionActions,
 } from './artifact-actions.ts';
 
 const ids = (actions: readonly { id: string }[]) => actions.map((action) => action.id);
@@ -64,9 +65,10 @@ describe('fileActions', () => {
 });
 
 describe('folder and empty-area actions', () => {
-    test('folders open, copy a link or path, rename, and move', () => {
+    test('folders open, download as a zip, copy a link or path, rename, and move', () => {
         expect(ids(folderActions(web))).toEqual([
             'open',
+            'download',
             'copy-link',
             'copy-path',
             'rename',
@@ -79,6 +81,19 @@ describe('folder and empty-area actions', () => {
 
     test('the empty area uploads into the open folder', () => {
         expect(ids(libraryAreaActions)).toEqual(['upload-files', 'upload-folder']);
+    });
+});
+
+describe('selectionActions', () => {
+    test('a selection downloads, copies links, and moves; single-item actions drop out', () => {
+        expect(ids(selectionActions({ deletable: 0 }))).toEqual(['download', 'copy-links', 'move']);
+    });
+
+    test('Delete appears once any selected file may be deleted, every item with an icon', () => {
+        const all = selectionActions({ deletable: 2 });
+        expect(ids(all)).toEqual(['download', 'copy-links', 'move', 'delete']);
+        expect(all.find((action) => action.id === 'delete')?.danger).toBeTrue();
+        expect(all.every((action) => action.icon !== undefined)).toBeTrue();
     });
 });
 

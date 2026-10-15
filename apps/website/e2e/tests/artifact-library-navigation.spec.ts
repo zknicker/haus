@@ -1,4 +1,4 @@
-import { seedArtifactLibrary } from '../support/artifacts.ts';
+import { libraryRows, librarySection, seedArtifactLibrary } from '../support/artifacts.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -19,7 +19,7 @@ test('Files selects on click, opens on double click or Return, and Back walks th
         to: 'starter-kit/scripts/a/b/c/setup.sh',
     });
     await page.goto(`/s/${slug}/artifacts`);
-    const folders = page.getByRole('listbox', { name: 'Folders' });
+    const folders = librarySection(page, 'Folders');
     const back = page.getByRole('button', { name: 'Back', exact: true });
     const forward = page.getByRole('button', { name: 'Forward', exact: true });
     // Back is the shell's: it steps to the Server page before Files, not just folders.
@@ -27,7 +27,7 @@ test('Files selects on click, opens on double click or Return, and Back walks th
     await expect(forward).toBeDisabled();
 
     // A click selects a folder without opening it; Return opens the selection.
-    const starterKit = folders.getByRole('option', { name: 'starter-kit' });
+    const starterKit = folders.getByRole('row', { name: 'starter-kit' });
     await starterKit.click();
     await expect(starterKit).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
@@ -43,7 +43,7 @@ test('Files selects on click, opens on double click or Return, and Back walks th
     await page.getByRole('menuitemradio', { name: 'All types', exact: true }).click();
 
     for (const name of ['scripts', 'a', 'b', 'c']) {
-        await folders.getByRole('option', { name }).dblclick();
+        await folders.getByRole('row', { name }).dblclick();
     }
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts%2Fa%2Fb%2Fc$/u);
 
@@ -69,7 +69,7 @@ test('Files selects on click, opens on double click or Return, and Back walks th
 
     // Files follow Finder too: click selects, arrows move, Return opens the viewer.
     await page.goto(`/s/${slug}/artifacts`);
-    const rows = page.getByRole('grid', { name: 'Today' }).getByRole('row');
+    const rows = libraryRows(librarySection(page, 'Today'));
     await rows.nth(0).click();
     await expect(rows.nth(0)).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
@@ -88,7 +88,7 @@ test('right-clicking an item selects it and offers only the actions this member 
     const { server, session } = await createTestServer(page, { displayName: 'Context', slug });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts?folder=starter-kit%2Fscripts`);
-    const today = page.getByRole('grid', { name: 'Today' });
+    const today = librarySection(page, 'Today');
     const agentFile = today.getByRole('row', { name: /tm_check\.py/u });
 
     await agentFile.click({ button: 'right' });
@@ -160,10 +160,7 @@ test.describe('on a touch screen', () => {
         const { server, session } = await createTestServer(page, { displayName: 'Touch', slug });
         await seedArtifactLibrary(page, session.databaseUrl, server.id);
         await page.goto(`/s/${slug}/artifacts`);
-        await page
-            .getByRole('listbox', { name: 'Folders' })
-            .getByRole('option', { name: 'docs' })
-            .tap();
+        await librarySection(page, 'Folders').getByRole('row', { name: 'docs' }).tap();
         await expect(page).toHaveURL(/folder=docs$/u);
     });
 });

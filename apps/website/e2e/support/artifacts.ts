@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { assertOpaqueId, runPsql } from './server.ts';
 
 interface SeededFile {
@@ -60,6 +60,19 @@ const seededFiles: readonly SeededFile[] = [
 
 /** The seeded Agent that created `starter-kit/scripts/tm_check.py`. */
 export const seededArtifactAgent = 'Drive Helper';
+
+/**
+ * The library is one grid ("Files") whose sections are row groups: "Folders", then each date
+ * group ("Today") or, for other sorts, "All files".
+ */
+export function librarySection(page: Page, name: string): Locator {
+    return page.getByRole('rowgroup', { name, exact: true });
+}
+
+/** A section's item rows; a date group's label is a header row and is left out. */
+export function libraryRows(section: Locator): Locator {
+    return section.getByRole('row').filter({ has: section.page().getByRole('gridcell') });
+}
 
 export async function seedArtifactLibrary(page: Page, databaseUrl: string, serverId: string) {
     assertOpaqueId(serverId);
