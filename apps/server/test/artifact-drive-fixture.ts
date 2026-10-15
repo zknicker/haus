@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { artifactPublishInputSchema } from '@haus/api';
 import { publishArtifact } from '../src/artifacts/publish.ts';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
+import type { ArtifactThumbnails } from '../src/artifacts/thumbnails.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { findUserByClerkId } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
@@ -38,13 +39,14 @@ export class MemoryArtifactStorage implements ArtifactStorage {
 
 export interface DrivePublish {
     base?: string;
-    body?: string;
+    body?: string | Uint8Array;
     contentType?: string;
     /** Resolves when the upload may finish; lets two writers hold uploads open together. */
     gate?: Promise<void>;
     path: string;
     replace?: boolean;
     requestId?: string;
+    thumbnails?: ArtifactThumbnails;
 }
 
 /** One Server with an owner member, shared by the drive test files. */
@@ -97,12 +99,13 @@ export function artifactDriveFixture(slug: string) {
             origin: state.harness.appOrigin,
             storage,
             stream: bytes(write.body ?? write.path, write.gate),
+            thumbnails: write.thumbnails,
         });
     }
     return { publish, state, storage };
 }
 
-async function* bytes(value: string, gate?: Promise<void>) {
-    yield new TextEncoder().encode(value);
+async function* bytes(value: string | Uint8Array, gate?: Promise<void>) {
+    yield typeof value === 'string' ? new TextEncoder().encode(value) : value;
     await gate;
 }
