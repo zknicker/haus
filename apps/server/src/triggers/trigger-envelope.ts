@@ -1,17 +1,27 @@
 import { triggerPayloadExcerptMaxChars } from '@haus/api';
 import { automationReplyLine } from '../automations/automation-envelope.ts';
-import type { GithubEnvelopeLines } from '../github/trigger-envelope.ts';
-import type { LinearEnvelopeLines } from '../linear/trigger-envelope.ts';
+/**
+ * The Server-built lines a connection-backed fire (`github`, `linear`) adds
+ * to the envelope. Each connection builds them; this module only renders them.
+ */
+export interface TriggerSourceLines {
+    /** `delivery=<id>` provenance segment value. */
+    delivery: string;
+    /** `<source>-event=<event>.<action>` provenance segment value. */
+    eventAction: string;
+    /** The source's summary line, without its label. */
+    summary: string;
+}
 
 export interface TriggerEnvelopeInput {
     contentType: string | null;
     fireId: string;
     /** A `github` fire's Server-built summary line and provenance segments. */
-    github?: GithubEnvelopeLines;
+    github?: TriggerSourceLines;
     /** The trigger's standing instruction; omitted from the envelope when null. */
     instruction: string | null;
     /** A `linear` fire's Server-built summary line and provenance segments. */
-    linear?: LinearEnvelopeLines;
+    linear?: TriggerSourceLines;
     payload: string;
     payloadBytes: number;
     title: string;

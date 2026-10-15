@@ -1,3 +1,4 @@
+import type { TriggerSourceLines } from '../triggers/trigger-envelope.ts';
 import { deliveryToken } from './event-projection/fields.ts';
 import type { LinearProjection } from './event-projection/types.ts';
 
@@ -10,20 +11,10 @@ const summaryMaxChars = 200;
 const separator = ' · ';
 const identifierPattern = /^[A-Z][A-Z0-9]{0,9}-\d{1,9}$/u;
 
-/** What `triggerEnvelope` adds for a `linear` fire. */
-export interface LinearEnvelopeLines {
-    /** `delivery=<id>` provenance segment value. */
-    delivery: string;
-    /** `linear-event=<event>.<action>` provenance segment value. */
-    eventAction: string;
-    /** The `Linear:` line, without its label. */
-    summary: string;
-}
-
 export function linearEnvelopeLines(input: {
     deliveryId: string;
     projection: LinearProjection;
-}): LinearEnvelopeLines {
+}): TriggerSourceLines {
     const action = enumerated(input.projection.action);
     const event = input.projection.event;
     return {

@@ -326,7 +326,7 @@ entity it touched.
   result. An `unknown` row resends with the same `id_seed`; Linear's "already exists" on a create
   is success after reading the entity back. The Computer reuses `x-haus-mcp-request-id` when it
   retries one invocation; a new model-issued call is a new write by design.
-- **Retention.** 30 days, in the hourly retention sweep.
+- **Retention.** 30 days, in the hourly Linear retention sweep (`linear/retention.ts`).
 
 ### Loop safety
 
@@ -1004,7 +1004,7 @@ unit tests per tool against recorded GraphQL, ledger idempotency tests, live cal
 **Slice C: webhooks, outbox, sessions, labels.** Owns `linear/{webhook-route,webhook-signature,
 delivery-ingest,delivery-worker,loop-safety,outbox,outbox-worker,sessions,session-routing,
 session-anchor,session-envelope,agent-labels,handoff}.ts`, the inbox-row writer for
-`linear_session*`, `triggers/retention-sweep.ts`, and `docs/internals/agent-daemon-delivery.md`.
+`linear_session*`, `linear/retention.ts` (its own hourly sweep), and `docs/internals/agent-daemon-delivery.md`.
 Must not touch `agent-delivery/{delivery,drain-selection,inbox-items}.ts`, `triggers/` matching,
 or A's files. Proof: webhook, ingest, outbox, session, label, and handoff tests; live Funnel
 sessions.

@@ -5,6 +5,7 @@ import type { GithubDelivery, GithubIngestOutcome } from './github/delivery-inge
 import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
 import type { GithubApp } from './github/github-app.ts';
 import { startGithubInstallationSweep } from './github/installation-sweep.ts';
+import { startLinearRetentionSweep } from './linear/retention.ts';
 import type { HausDatabase } from './postgres/connection.ts';
 import { startMessagePush } from './push/message-push.ts';
 import type { PushSender } from './push/push-sender.ts';
@@ -55,6 +56,7 @@ export async function startServerSweeps(
         ...linearSweeps(input),
         () => startReminderRetentionSweep(input.db, input.clock, input.timers),
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
+        () => startLinearRetentionSweep(input.db, input.clock, input.timers),
         () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
         () => startStaleTaskSweep(input.db, input.clock, input.timers),
         ...(pushSender
