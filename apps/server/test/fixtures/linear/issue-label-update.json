@@ -1,0 +1,32 @@
+{
+    "type": "Issue",
+    "action": "update",
+    "createdAt": "2026-10-15T12:00:00.000Z",
+    "organizationId": "org-fixture",
+    "webhookId": "webhook-fixture",
+    "webhookTimestamp": 1792080000000,
+    "url": "https://linear.app/haus-chat/issue/DES-142/moth-tee",
+    "actor": {
+        "id": "user-zach",
+        "name": "Zach",
+        "type": "user"
+    },
+    "data": {
+        "id": "issue-fixture-142",
+        "identifier": "DES-142",
+        "title": "Moth tee",
+        "teamId": "team-des",
+        "labelIds": [
+            "label-agent-beacon"
+        ],
+        "delegateId": "app-user-haus",
+        "stateId": "state-review",
+        "updatedAt": "2026-10-15T11:59:59.000Z"
+    },
+    "updatedFrom": {
+        "labelIds": [
+            "label-agent-juniper"
+        ],
+        "updatedAt": "2026-10-15T11:00:00.000Z"
+    }
+}
