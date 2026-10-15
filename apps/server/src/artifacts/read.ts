@@ -170,10 +170,26 @@ export function artifactMetadata(row: ArtifactRow, origin: string, slug: string)
         sha256: row.revision.sha256,
         size_bytes: row.revision.byteSize,
         stable_url: stableUrl,
-        title: row.revision.title,
+        title: artifactTitle(row),
         updated_at: row.revision.createdAt.toISOString(),
         version_url: `${stableUrl}?revision=${row.revision.id}`,
     };
+}
+
+/**
+ * A revision published without its own title took its file name, so that title follows the file
+ * through renames; a title someone chose stays as written.
+ */
+export function artifactTitle(row: ArtifactRow) {
+    return hasDefaultTitle(row.revision)
+        ? artifactPathBasename(row.artifact.path)
+        : row.revision.title;
+}
+
+export function hasDefaultTitle(
+    revision: Pick<typeof revisions.$inferSelect, 'filename' | 'title'>
+) {
+    return revision.title === revision.filename;
 }
 
 interface ArtifactRow {

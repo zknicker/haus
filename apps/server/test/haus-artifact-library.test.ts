@@ -97,6 +97,29 @@ test('PNG density comes from pHYs in pixels per metre', () => {
     expect(pngDpi(new Uint8Array([1, 2, 3]))).toBeNull();
 });
 
+test('a default title follows a rename; a chosen title stays', async () => {
+    const plain = await publish({ path: 'rename/old.md' });
+    await state.owner.trpc.artifact.move.mutate({
+        from: 'rename/old.md',
+        serverId: state.serverId,
+        to: 'rename/new.md',
+    });
+    const renamed = await state.owner.trpc.artifact.get.query({
+        artifact_id: plain.artifact.artifact_id,
+        serverId: state.serverId,
+    });
+    expect(renamed.artifact.title).toBe('new.md');
+    await state.harness.sql`
+        update artifact_revisions set title = 'Quarterly notes'
+        where id = ${plain.artifact.revision_id}
+    `;
+    const chosen = await state.owner.trpc.artifact.get.query({
+        artifact_id: plain.artifact.artifact_id,
+        serverId: state.serverId,
+    });
+    expect(chosen.artifact.title).toBe('Quarterly notes');
+});
+
 test('Restore publishes the old bytes as a new revision on top of the head', async () => {
     const first = await publish({ body: 'first', path: 'restore/notes.md' });
     const second = await publish({

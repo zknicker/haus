@@ -2,7 +2,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import type { ArtifactActor } from './access.ts';
 import { publishArtifact } from './publish.ts';
-import { getArtifact } from './read.ts';
+import { getArtifact, hasDefaultTitle } from './read.ts';
 import { ArtifactError, type ArtifactStorage, requireArtifactStorage } from './storage.ts';
 import type { ArtifactThumbnails } from './thumbnails.ts';
 
@@ -42,7 +42,8 @@ export async function restoreArtifactRevision(options: {
             path: current.metadata.path,
             replace: false,
             request_id: createOpaqueId('rst'),
-            title: old.metadata.title,
+            // A default title is the file's name, so the restored revision takes today's name.
+            ...(hasDefaultTitle(old.revision) ? {} : { title: old.revision.title }),
         },
         origin,
         storage,
