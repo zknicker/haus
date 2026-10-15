@@ -11,6 +11,6 @@ test('the window band leads with a sidebar-width traffic-light segment, then the
 
     expect(markup).toContain('data-window-drag-region=""');
     expect(markup).toMatch(
-        /<div class="shell-window-band__lead" style="--app-sidebar-width:\d+px"><\/div><header class="workspace-titlebar">/u
+        /<div class="shell-window-band__lead app-shell-band" style="--app-sidebar-width:\d+px"><\/div><header class="workspace-titlebar">/u
     );
 });
