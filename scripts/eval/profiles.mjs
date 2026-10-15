@@ -93,7 +93,8 @@ export const attentionProfiles = {
 export const githubTriggerProfiles = {
     'github-trigger-ci-setup': {
         cap: 45,
-        channel: [1, 1],
+        // Setup is multi-step work: a pickup note plus the result is the placement rule.
+        channel: [1, 2],
         maxQuestions: 0,
         noUrl: true,
         spec: 'R8',
@@ -126,7 +127,8 @@ export const githubTriggerProfiles = {
 export const linearTriggerProfiles = {
     'linear-trigger-setup': {
         cap: 45,
-        channel: [1, 1],
+        // Setup is multi-step work: a pickup note plus the result is the placement rule.
+        channel: [1, 2],
         maxQuestions: 0,
         noUrl: true,
         spec: 'L1',
