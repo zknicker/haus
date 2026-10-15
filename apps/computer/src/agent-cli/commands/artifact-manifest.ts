@@ -145,7 +145,7 @@ async function readManifest(file: string): Promise<ArtifactManifestData> {
 }
 
 function corrupt(file: string) {
-    return new AgentCliError('INVALID_ARG', `${file} is not a readable artifact manifest.`, {
+    return new AgentCliError('INVALID_ARG', `${file} is not a readable pull manifest.`, {
         nextAction:
             'Pull the folder again into a fresh directory; do not edit .haus-artifacts.json by hand.',
     });

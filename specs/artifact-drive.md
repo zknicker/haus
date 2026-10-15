@@ -52,8 +52,7 @@ most 200) and report `next_offset`, null on the last page.
 
 Every page carries `summary`, exact totals for the listed folder under the same filters and
 independent of the page: `folders` (child folders), `files_in_folders` (files anywhere under them),
-and `files` (files directly in the folder). A recursive list reports `folders: 0`,
-`files_in_folders: 0`, and every file under the prefix in `files`.
+and `files` (files directly in the folder). `recursive` changes the listed files, not the summary.
 
 ## Writes
 

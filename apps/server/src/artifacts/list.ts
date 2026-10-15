@@ -37,7 +37,7 @@ export async function listArtifactDrive(
     const [rows, folders, summary] = await Promise.all([
         filePage(db, scope, depth, filters),
         listsFolders ? childFolders(db, scope, depth) : [],
-        listSummary(db, scope, depth, filters.recursive),
+        listSummary(db, scope, depth),
     ]);
     const page = rows.slice(0, filters.limit);
     return {
@@ -100,12 +100,11 @@ async function childFolders(
     }));
 }
 
-/** Exact totals over the whole scope, one aggregate pass; recursive counts every file under it. */
+/** Exact totals for the listed folder, one aggregate pass, the same with or without `recursive`. */
 async function listSummary(
     db: HausDatabase,
     scope: SQL | undefined,
-    depth: number,
-    recursive: boolean
+    depth: number
 ): Promise<ArtifactListSummary> {
     const index = sql.raw(String(depth + 1));
     const nested = sql`${segmentCount} > ${index}`;
@@ -124,9 +123,7 @@ async function listSummary(
     if (!row) {
         throw new Error('Artifact list summary returned no row.');
     }
-    return recursive
-        ? { folders: 0, files_in_folders: 0, files: row.all }
-        : { folders: row.folders, files_in_folders: row.nested, files: row.all - row.nested };
+    return { folders: row.folders, files_in_folders: row.nested, files: row.all - row.nested };
 }
 
 function currentRevision() {

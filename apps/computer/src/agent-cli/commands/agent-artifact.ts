@@ -31,14 +31,14 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             'haus files list --recursive --query roadmap',
         ],
         flags: [
-            { name: '--recursive', description: 'Every file under the folder, without subfolders' },
+            { name: '--recursive', description: 'Every file at any depth under the folder' },
             { name: '--query', valueName: '<text>', description: 'Match titles and paths' },
             { name: '--mine', description: 'Only files you created' },
             { name: '--offset', valueName: '<n>', description: 'File page offset (next_offset)' },
         ],
         notes: [
             '50 files per page. Without a folder, lists the top of Files.',
-            'Output opens with a summary of totals; folders and files each come newest first.',
+            'Output opens with summary, the folder’s totals (also under --recursive); folders and files each come newest first.',
         ],
         run: (args) => runArtifactList(args),
     },
@@ -214,8 +214,8 @@ export async function runArtifactList(
         },
     });
     return print({
-        folder: prefix,
         summary: result.summary,
+        folder: prefix,
         folders: result.folders,
         files: result.artifacts.map((artifact) => ({
             path: artifact.path,

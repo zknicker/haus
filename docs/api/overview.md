@@ -96,9 +96,12 @@ Computer protocol 30 adds the Owner-only `computer-secrets-request` and `-result
 behind `computerSecrets.connect`, `refreshItems`, and `disconnect`, and the inventory `secrets`
 field, which a protocol-29 Server's strict inventory schema would reject
 ([Computer Secrets](../features/computer-secrets.md)).
+Computer protocol 31 renames the Agent CLI's shared drive family to `haus files` and adds the
+required `summary` to the Agent list result, which a protocol-30 Computer's strict list schema
+would reject.
 Server and Computer therefore ship each in the same release, and
 the release requires an exact match: Server accepts ordinary work only from a Computer that reports
-protocol 30. A protocol-29 or older Computer
+protocol 31. A protocol-30 or older Computer
 connects in bootstrap mode, which keeps update control but cannot execute ordinary work, so the
 Computer artifact must publish before the Server is promoted
 ([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you

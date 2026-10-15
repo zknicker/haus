@@ -98,14 +98,10 @@ export function widgetFallbackText(name: WidgetName, props: unknown): string {
 
     if (name === 'artifact') {
         const path = typeof record.path === 'string' ? record.path.trim() : '';
-        return path ? `Artifact: ${path}`.slice(0, 500) : 'Artifact';
+        return path ? `Page: ${path}`.slice(0, 500) : 'Page';
     }
 
     return visualFallbackText(record);
-}
-
-export function widgetDisplayName(name: WidgetName): string {
-    return name === 'artifact' ? 'Artifact' : 'Visual';
 }
 
 /**

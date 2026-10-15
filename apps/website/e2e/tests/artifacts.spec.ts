@@ -271,10 +271,10 @@ test('an unavailable fixed revision reports an error within the persistent Serve
     await createTestServer(page, { displayName: 'Artifact Revision Smoke', slug });
 
     await page.goto(`/s/${slug}/artifacts/art_missing?revision=rev_missing`);
-    await expect(page.getByRole('alert')).toContainText('Artifact or revision was not found.');
+    await expect(page.getByRole('alert')).toContainText('File or revision was not found.');
     await expect(page.getByRole('row', { name: 'Inbox', exact: true })).toBeVisible();
     await page.reload();
-    await expect(page.getByRole('alert')).toContainText('Artifact or revision was not found.');
+    await expect(page.getByRole('alert')).toContainText('File or revision was not found.');
     await openSection(page, 'Files');
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
 });

@@ -112,7 +112,7 @@ test('child folders come newest first, with ties broken by path', async () => {
     }
 });
 
-test('the summary counts every matching file, whatever the page', async () => {
+test('the summary counts every matching file, whatever the page or recursion', async () => {
     const first = await list({ limit: 1 });
     expect(first.artifacts).toHaveLength(1);
     expect(first.next_offset).toBe(1);
@@ -128,7 +128,7 @@ test('the summary counts every matching file, whatever the page', async () => {
     expect(query.summary).toEqual({ folders: 1, files_in_folders: 2, files: 0 });
     const recursive = await list({ limit: 2, prefix: 'starter-kit', recursive: true });
     expect(recursive.artifacts).toHaveLength(2);
-    expect(recursive.summary).toEqual({ folders: 0, files_in_folders: 0, files: 4 });
+    expect(recursive.summary).toEqual({ folders: 2, files_in_folders: 3, files: 1 });
 });
 
 test('recursive listing pages every file under a prefix in stable path order', async () => {

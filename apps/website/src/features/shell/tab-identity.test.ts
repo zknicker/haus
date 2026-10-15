@@ -123,6 +123,11 @@ test('sections wear their glyph; web pages prefer the live title and favicon', (
         mark: { glyph: 'tasks', kind: 'glyph' },
         place: null,
     });
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme/artifacts')), records)).toEqual({
+        label: 'Files',
+        mark: { glyph: 'artifacts', kind: 'glyph' },
+        place: null,
+    });
     const web = { kind: 'browser', title: 'Old', url: 'https://x.dev', viewId: 'v1' } as const;
     expect(resolveTabIdentity(parseTabPage(web), records)).toEqual({
         label: 'Old',

@@ -42,8 +42,8 @@ export const artifactFolderEntrySchema = z
     .strict();
 export type ArtifactFolderEntry = z.infer<typeof artifactFolderEntrySchema>;
 /**
- * Exact totals for the listed folder under the same filters, independent of the page. A
- * recursive list reports every file under the folder in `files` and no folders.
+ * Exact totals for the listed folder under the same filters, independent of the page and the
+ * same with or without `recursive`.
  */
 export const artifactListSummarySchema = z
     .object({
@@ -51,7 +51,7 @@ export const artifactListSummarySchema = z
         folders: z.number().int().nonnegative(),
         /** Files anywhere under those child folders. */
         files_in_folders: z.number().int().nonnegative(),
-        /** Files directly in the folder (recursive: under it), across every page. */
+        /** Files directly in the folder, across every page. */
         files: z.number().int().nonnegative(),
     })
     .strict();

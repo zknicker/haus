@@ -46,12 +46,12 @@ describe('artifact widget contracts', () => {
         expect(parsed.name).toBe('artifact');
         expect(parsed.render.component).toBe('haus.widget.artifact');
         expect(parsed.render.target).toBe('chat.inline');
-        expect(parsed.fallbackText).toBe('Artifact: workbench/pages/report.html');
+        expect(parsed.fallbackText).toBe('Page: workbench/pages/report.html');
     });
 
     test('fallback text prefers title over the path summary', () => {
         expect(widgetFallbackText('artifact', { path: 'a.html', title: 'Report' })).toBe('Report');
-        expect(widgetFallbackText('artifact', {})).toBe('Artifact');
+        expect(widgetFallbackText('artifact', {})).toBe('Page');
     });
 
     test('the page tier is authored as a bare page fence, not widget-prefixed', () => {

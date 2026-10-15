@@ -97,7 +97,7 @@ public struct SharedArtifactLinkTarget: Hashable, Sendable {
             || trimmed.hasPrefix("http://")
             || trimmed.hasPrefix("https://")
             || trimmed.hasPrefix("/")
-        return isAddress ? "Artifact" : nil
+        return isAddress ? "File" : nil
     }
 
     static func origin(of url: URL) -> String? {

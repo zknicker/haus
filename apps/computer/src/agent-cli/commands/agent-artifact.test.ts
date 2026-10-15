@@ -76,13 +76,13 @@ test('list without a folder reads the drive root and prints the summary, folders
     });
     const printed = JSON.parse(String(stdout.mock.calls[0]?.[0]));
     expect(printed).toEqual({
-        folder: '',
         summary,
+        folder: '',
         folders: [folder],
         files: [],
         next_offset: null,
     });
-    expect(Object.keys(printed)).toEqual(['folder', 'summary', 'folders', 'files', 'next_offset']);
+    expect(Object.keys(printed)).toEqual(['summary', 'folder', 'folders', 'files', 'next_offset']);
 });
 
 test('list rejects invalid folders and extra arguments', async () => {

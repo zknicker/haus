@@ -63,7 +63,7 @@ its immediate child folders on the first page and its own files, and `recursive`
 under it. `query` searches current titles and paths, `kind` (`all`, `images`, `documents`,
 `media`, `other`) and an optional exact `creator` filter files, and filtering happens before
 offset pagination; results carry `next_offset` and a page-independent `summary` of totals
-(`folders`, `files_in_folders`, `files`; see the drive spec). Child folders come newest first. `artifact.creators` returns one entry per creator
+(`folders`, `files_in_folders`, `files`, the same with or without `recursive`; see the drive spec). Child folders come newest first. `artifact.creators` returns one entry per creator
 with at least one live artifact on the Server: `creator`, `artifact_count`, `latest_at`, and
 `previews`, the creator's three most recently updated artifacts of any kind. Entries sort by `latest_at` descending, and the
 procedure uses the same membership authorization as `list`.
@@ -136,7 +136,7 @@ haus files versions <id|link|path> [--offset <n>]
 haus files delete <id|link|path> [--revision-id <id>]
 ```
 
-`list` prints `{ folder, summary, folders, files, next_offset }` over the Agent list route; `--mine` is the
+`list` prints `{ summary, folder, folders, files, next_offset }` over the Agent list route; `--mine` is the
 calling Agent's own files, and Agents get no creator directory (`artifact.creators` stays App-only).
 `pull` resolves a file with `by-path`, otherwise pages a recursive `order=path` listing of the
 folder, and copies each revision out of the Computer's verified cache (the `view` route) into the

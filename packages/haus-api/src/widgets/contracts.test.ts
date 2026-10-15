@@ -20,7 +20,7 @@ describe('Widget contracts', () => {
         });
 
         expect(parsed.name).toBe('artifact');
-        expect(parsed.fallbackText).toBe('Artifact: workbench/report.html');
+        expect(parsed.fallbackText).toBe('Page: workbench/report.html');
         expect(parsed.render.component).toBe('haus.widget.artifact');
     });
 
@@ -55,7 +55,7 @@ describe('Widget contracts', () => {
     test('widget fallback text prefers title, then shape-specific text', () => {
         expect(widgetFallbackText('visual', { title: 'Royalties trend' })).toBe('Royalties trend');
         expect(widgetFallbackText('artifact', { path: 'workbench/memo.html' })).toBe(
-            'Artifact: workbench/memo.html'
+            'Page: workbench/memo.html'
         );
     });
 });

@@ -165,7 +165,7 @@ struct RichReferenceParityTests {
             markdown: "[/s/acme/artifacts/art_1](/s/acme/artifacts/art_1)",
             kind: .sharedArtifact,
             id: "art_1",
-            label: "Artifact",
+            label: "File",
             mark: .glyph(.document)
         ),
         Row(

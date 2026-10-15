@@ -17,10 +17,10 @@ export const replyToHtml = (markdown) =>
 // everything from the opener rather than leaking raw markup into the page.
 export const stripVisualFences = (markdown) => {
     const stripped = markdown.replaceAll(
-        /^[ \t]*```(?:visual|artifact)\b[^\n]*\n[\s\S]*?^[ \t]*```[ \t]*(?:\n|$)/gmu,
+        /^[ \t]*```(?:visual|page)\b[^\n]*\n[\s\S]*?^[ \t]*```[ \t]*(?:\n|$)/gmu,
         ''
     );
-    const dangling = stripped.search(/^[ \t]*```(?:visual|artifact)\b/mu);
+    const dangling = stripped.search(/^[ \t]*```(?:visual|page)\b/mu);
     return dangling === -1 ? stripped : stripped.slice(0, dangling);
 };
 

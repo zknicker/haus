@@ -1,5 +1,5 @@
 // Counterweight to shared-artifact-discovery: a chart someone wants to see
-// right now is one-off delivery, so it belongs in chat (a visual or artifact
+// right now is one-off delivery, so it belongs in chat (a visual or page
 // fence, or an attachment), never in the Server-wide shared library.
 
 import { agentMessages, artifactsCreatedBy, deleteArtifacts } from '../artifact-evidence.mjs';
@@ -29,7 +29,7 @@ export default defineScenario({
             const replies = await agentMessages(kit, worker.id, worker.dmChatId, head);
             const text = replies.map((message) => message.content).join('\n');
             const attached = replies.flatMap((message) => message.attachments ?? []);
-            const fenced = /```(?:visual|artifact)\b/u.test(text);
+            const fenced = /```(?:visual|page)\b/u.test(text);
             log(`fence: ${fenced}, attachments: ${attached.length}`);
             expect(fenced || attached.length > 0, 'chart delivered as a fence or attachment').toBe(
                 true

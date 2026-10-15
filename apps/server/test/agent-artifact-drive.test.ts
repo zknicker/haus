@@ -19,7 +19,7 @@ test('Agents browse folders, pull a prefix recursively, resolve paths, and move'
     );
     expect(pull.artifacts.map((item) => item.path)).toEqual(['kit/a.md', 'kit/scripts/b.sh']);
     expect(pull.next_offset).toBe(2);
-    expect(pull.summary).toEqual({ folders: 0, files_in_folders: 0, files: 3 });
+    expect(pull.summary).toEqual({ folders: 1, files_in_folders: 2, files: 1 });
     const resolved = artifactPublishResultSchema.parse(
         await get(runner.token, '/api/agent/artifacts/by-path?path=KIT/A.md')
     );
