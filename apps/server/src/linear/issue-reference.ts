@@ -21,8 +21,8 @@ const cacheTtlMs = 5 * 60_000;
 const urlKeyRefreshMs = 5 * 60_000;
 
 export interface LinearIssueReferenceDeps {
-    /** The workspace actor's live access token, or null when it has none. */
-    accessToken: (workspaceId: string) => Promise<string | null>;
+    /** The workspace actor's access token for a connection, or null when it cannot sign in. */
+    accessToken: (connectionId: string) => Promise<string | null>;
     /** The App origin a thumbnail URL is built on. */
     appOrigin: string;
     now?: () => number;
@@ -63,8 +63,10 @@ export async function readLinearIssueReference(
     if (!workspace) {
         return { reason: 'workspace_not_connected', status: 'unavailable' };
     }
-    const token = workspace.status === 'active' ? await deps.accessToken(workspace.id) : null;
-    if (!(token && workspace.connectionId)) {
+    const { connectionId } = workspace;
+    const token =
+        workspace.status === 'active' && connectionId ? await deps.accessToken(connectionId) : null;
+    if (!(token && connectionId)) {
         return { reason: 'workspace_unavailable', status: 'unavailable' };
     }
     const record = await cachedIssue(deps, workspace.id, token, parsed.identifier, now);
@@ -73,7 +75,7 @@ export async function readLinearIssueReference(
     }
     return {
         issue: await toView(db, deps, {
-            connectionId: workspace.connectionId,
+            connectionId,
             now,
             record,
             workspaceId: workspace.id,
@@ -175,7 +177,11 @@ async function refreshUrlKeys(
     }
     urlKeyRefreshedAt.set(serverId, now);
     const live = await db
-        .select({ id: linearWorkspacesTable.id, urlKey: linearWorkspacesTable.urlKey })
+        .select({
+            connectionId: linearWorkspacesTable.connectionId,
+            id: linearWorkspacesTable.id,
+            urlKey: linearWorkspacesTable.urlKey,
+        })
         .from(linearWorkspacesTable)
         .where(
             and(
@@ -185,7 +191,9 @@ async function refreshUrlKeys(
         );
     let changed = false;
     for (const workspace of live) {
-        const token = await deps.accessToken(workspace.id);
+        const token = workspace.connectionId
+            ? await deps.accessToken(workspace.connectionId)
+            : null;
         const urlKey = token
             ? await readLinearOrganizationUrlKey(deps.transport, token).catch(() => null)
             : null;

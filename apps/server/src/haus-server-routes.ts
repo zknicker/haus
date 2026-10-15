@@ -19,7 +19,7 @@ import {
     failInterruptedImageGenerations,
     type ImageProviderAdapters,
 } from './image-generation/run-image-generation.ts';
-import { chipConnectionToken } from './linear/issue-chip-tokens.ts';
+import { linearChipToken } from './linear/issue-chip-tokens.ts';
 import { type LinearRouteOptions, registerLinearRoutes } from './linear/routes.ts';
 import { registerLinearSignedUrlRoutes } from './linear/signed-url-routes.ts';
 import { registerLinearThumbnailRoute } from './linear/thumbnail-route.ts';
@@ -119,7 +119,7 @@ export async function registerHausServerRoutes(
         storage: dependencies.artifactStorage,
     });
     registerLinearThumbnailRoute(app, {
-        connectionAccessToken: (connectionId) => chipConnectionToken(db, connectionId),
+        connectionAccessToken: linearChipToken(dependencies.linear.refresher),
         signingKey: env.HAUS_LINEAR_URL_SIGNING_KEY ?? null,
         transport: fetch,
     });
