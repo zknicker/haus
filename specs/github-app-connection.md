@@ -280,7 +280,7 @@ fills them), and `github/routes.ts` answers `501 not_implemented` on `/api/githu
 presets,service}.ts` and tests (App client, OAuth App deletion, GitHub-aware delete),
 `github/{install-state,setup-route,installation-binding,owner-authority,repository-access,
 installation-reconcile,trigger-problems,problem-notice}.ts`, `haus-api/github/*`,
-`agent-api/github-routes.ts`, `agent-delivery/inbox-lanes.ts` (the `trigger_problem` source),
+`agent-delivery/inbox-lanes.ts` (the `trigger_problem` source),
 `docs/features/connections.md`, `docs/api/connections.md`, `specs/mcp.md`,
 `docs/features/rich-references.md`, `specs/cloud-agents.md`. Must not touch `triggers/`,
 webhook or recovery files, `agent-delivery/{chain-budget,delivery}.ts`, `apps/website`,
@@ -298,8 +298,9 @@ scoped to repositories is `repositories_unavailable` while any selected reposito
 cache. Deletion lives in `server-mcp/delete-connection.ts` and `github/installation-removal.ts`;
 the user token in `github/user-token.ts`; Haus-side checks and reads in
 `github/installation-access.ts`; App-JWT and user installation reads in
-`github/installation-facts.ts`. The Agent route is `GET /api/agent/github/installations`
-(`agentGithubInstallationsSchema`).
+`github/installation-facts.ts`. Agents have no installation-listing route: an Agent's `github`
+Trigger names a GitHub account login and the Server resolves the installation
+(`triggers/github-trigger-account.ts`; [Authoring](github-triggers.md#authoring)).
 
 **Slice C: deliveries and the `github` kind.** Owns `github/{webhook-route,webhook-signature,sink-route,
 delivery-ingest,delivery-recovery,delivery-cursor,trigger-matching,trigger-envelope}.ts`,
@@ -333,8 +334,9 @@ test harness); `github/deliveries.ts` binding ingest to the running Server; and
 GitHub Trigger creation, `swift test` and a Simulator build.
 
 **Slice E: Agent CLI and Manual.** Owns `apps/computer/src/agent-cli/commands/agent-trigger*.ts`,
-new `agent-github.ts`, `packages/agent-manual/src/corpus/*` (rewrite `trigger-webhook` in
-`techniques-b.ts`, add `trigger-github`), `specs/haus-cli.md`. Proof: computer gate,
+`packages/agent-manual/src/corpus/*` (rewrite `trigger-webhook` in `techniques-b.ts`),
+`specs/haus-cli.md`. GitHub adds no CLI family, Manual topic, or recipe; its Trigger vocabulary
+lives in `haus trigger create --help`. Proof: computer gate,
 agent-manual tests, `test:agents` scenarios "wake me when CI fails" (creates a `github` Trigger,
 posts no secret) and "set up a webhook for my service" (posts no secret in any Chat).
 

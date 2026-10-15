@@ -135,8 +135,11 @@ recent fire rows remain available through the operator's Agent-wide
 `trigger.history` procedure until the retention sweep removes them.
 
 `kind` defaults to `webhook`. A `github` create takes
-`github: { installationId, repositories, events }` and answers the Trigger
-alone; `rotate` on a `github` Trigger is `400 INVALID_ARG`
+`github: { account, repositories, events }` and answers the Trigger alone;
+`account` is the GitHub org or user login, which the Server resolves without
+case to its live installation on that account (`PATCH` takes the same block).
+The operator `trigger.create` and `trigger.update` take `installationId`
+instead. `rotate` on a `github` Trigger is `400 INVALID_ARG`
 (`trigger_has_no_secret: …`). A GitHub authoring refusal is `400 INVALID_ARG`
 whose message leads with its code (`github_installation_unavailable`,
 `github_access_required`, `github_permissions_missing`,

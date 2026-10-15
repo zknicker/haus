@@ -3,7 +3,7 @@ summary: Server tRPC and runner contracts for remote MCP connections, GitHub ins
 read_when:
   - changing MCP Server tRPC procedures
   - changing connection, secret, discovery, runner, or grant schemas
-  - changing the `github` tRPC router, `/github/setup`, or `GET /api/agent/github/installations`
+  - changing the `github` tRPC router or `/github/setup`
 ---
 
 # Connections API
@@ -195,9 +195,8 @@ Install state is Server memory, like MCP OAuth state; a restart forgets it, and
 
 Server-side GitHub reads use the connection's user token (`mcp_secrets`) and refresh it once on a
 401 (`apps/server/src/github/user-token.ts`); a rejected refresh is `github_sign_in_required`.
-Agents list usable installations with `GET /api/agent/github/installations[?repos=true]`: live
-installations on connected GitHub connections the Agent holds the grant on, with accessible
-repositories on request (`502 GITHUB_UNAVAILABLE` when GitHub cannot list them).
+Agents have no GitHub installation route; they reach repositories through GitHub's hosted MCP
+tools and name a GitHub account on their Triggers ([Triggers API](triggers.md)).
 
 ## Connection Icons
 

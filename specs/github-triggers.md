@@ -193,8 +193,14 @@ Agent `update` replaces the whole GitHub configuration, preserving ownership, an
 - `github.repositories({ serverId, installationId, query? })` feeds the picker and refreshes the
   access cache on the way. It names private repositories, so it is Owner or Admin only
   (`FORBIDDEN github_admin_required`), like Trigger authoring; `github.installations` stays
-  member-readable because it carries counts, not names. Agents list repositories through their own
-  granted route.
+  member-readable because it carries counts, not names.
+- The Agent routes (`POST /api/agent/triggers`, `PATCH /api/agent/triggers/:id`) take
+  `github: { account, repositories, events }`, where `account` is the GitHub org or user login.
+  The Server resolves it without case to its live installation on that account, then runs the
+  checks above. No covering installation is `github_installation_unavailable` naming the logins
+  the Agent's grant does reach and who installs the App. `github_repositories_unavailable` lists
+  up to 10 repositories the installation does reach. Agents discover repositories through
+  GitHub's hosted MCP tools; Haus has no Agent route that lists installations or repositories.
 
 ## Projection
 
@@ -314,18 +320,20 @@ rotate, or curl. iOS shows `github` Triggers read-only with the GitHub label and
 - `haus trigger update --id <id> [--title <text>] [--instruction <text>]` edits metadata. With GitHub flags, supply the complete desired scope and groups; the configuration is replaced.
 - `--match-repo`, `--exclude-repo`, `--actor`, `--exclude-actor`, and event-specific `--exclude-branch`, `--exclude-workflow`, `--exclude-check-name`, `--exclude-environment`, and `--workflow-event` narrow each group. `--events-json` supplies the complete typed OR-group array instead of event/filter flags.
 - `haus trigger preview --id <id> --event <name> --payload-file <path>` checks selection with the Server matcher and cached repository scope without firing. Raw webhook JSON under 60,000 bytes; status/readiness are separate.
-- `haus github installations [--repos]` lists installations and accessible repositories the Agent
-  can use.
+- The CLI sends the repository owner or `--org` login as `account` and looks nothing up; the
+  Server's refusals carry the fix.
+- `haus trigger create --help` owns the GitHub vocabulary: the events, which filter flags apply
+  to which events, name globbing, exclusions, and `--events-json` (camelCase keys, one example).
+  An `--events-json` group with an unknown key fails naming the event's allowed keys; an unknown
+  event name fails as not a GitHub Trigger event. There is no `github` CLI family, Manual topic,
+  or recipe.
 - `list` and `show` print `[github · armed · degraded: repositories unavailable]`, scope, events,
   and the suppressed count.
-- The `trigger-webhook` recipe in `packages/agent-manual/src/corpus/techniques-b.ts` drops "hand
-  the URL and the secret to the requester". The Agent never posts a secret in any Chat, including
-  a DM. It shares the URL and tells the requester to reveal a fresh secret in the App (Agent
-  profile → Automations → Rotate), or installs the secret at the destination with a tool when one
-  exists. Its own curl test stays local to its run. For GitHub events it points to a new
-  `trigger-github` recipe: check `haus github installations`, ask a GitHub org owner to install
-  the App when missing, create with `--kind github`, and prefer filters such as
-  `--conclusion failure`.
+- The `trigger-webhook` recipe in `packages/agent-manual/src/corpus/techniques-b.ts`: the Agent
+  never posts a secret in any Chat, including a DM. It shares the URL and tells the requester to
+  reveal a fresh secret in the App (Agent profile → Automations → Rotate), or installs the secret
+  at the destination with a tool when one exists. Its own curl test stays local to its run. For
+  GitHub events it sends the Agent to a `github` Trigger and `haus trigger create --help`.
 
 ## Verification
 
