@@ -1,4 +1,11 @@
-export const shutdownProcessOrder = ['desktop', 'website', 'computer', 'haus', 'storage', 'postgres'];
+export const shutdownProcessOrder = [
+    'desktop',
+    'website',
+    'computer',
+    'haus',
+    'storage',
+    'postgres',
+];
 
 // PostgreSQL is signaled only when its turn comes, so Server and Computer teardown can still
 // write (for example marking a closed Computer offline) before the database goes down.
