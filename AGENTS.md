@@ -317,6 +317,3 @@ Cursor from `bootstrap.sh cursor-install` and `bootstrap.sh cursor`.
  `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` as an environment variable, and its Setup script is the
  `zknicker/agents` `cloud/setup-script.sh`, which loads the fleet in every session, including
  sessions with several repositories.
-- Network access must allow the default package managers plus `downloads.1password.com`,
- `knickerbockerventures.1password.com`, `npm.hugeicons.com`, `api.heroui.pro`, and
- `raw.githubusercontent.com`.
