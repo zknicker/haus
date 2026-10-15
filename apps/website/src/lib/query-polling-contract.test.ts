@@ -21,6 +21,8 @@ const refetchIntervalAllowlist: Record<string, string> = {
         'Amazon product retry, only while the preview is open after bounded retries gave up',
     'features/updates/use-haus-update.ts':
         'Desktop release check every 10 min; releases are published outside Haus Server',
+    'hooks/linear/use-linear-issue.ts':
+        'Linear issue chip, every 8 min only while its read carries a thumbnail; the signed URL expires on a clock (10 min), which no Server event can announce',
     'hooks/servers/use-cloud-agent-capability.ts':
         'Cloud Agent sign-in, 1 s only while sign-in is waiting; volatile Computer state',
     'hooks/servers/use-server.ts':
