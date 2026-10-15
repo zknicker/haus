@@ -70,7 +70,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
         /starter-kit\s*4 files/u,
     ]);
 
-    await folders.getByRole('option', { name: 'starter-kit' }).click();
+    await folders.getByRole('option', { name: 'starter-kit' }).dblclick();
     await expect(page).toHaveURL(/folder=starter-kit$/u);
     // Newest first: the seed writes scripts after assets.
     await expect(folders.getByRole('option')).toHaveText([
@@ -78,7 +78,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
         /assets\s*1 file/u,
     ]);
     await expect(today.getByRole('row')).toHaveText([/README\.md/u]);
-    await folders.getByRole('option', { name: 'scripts' }).click();
+    await folders.getByRole('option', { name: 'scripts' }).dblclick();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
     await expect(today.getByRole('row')).toHaveCount(2);
     await expect(folders).toHaveCount(0);
@@ -128,7 +128,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await page.getByRole('searchbox').fill('');
     await page.screenshot({ path: '/tmp/haus-artifacts-library.png', animations: 'disabled' });
 
-    await tile.click();
+    await tile.dblclick();
     await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
     await expect(trail).toContainText('concept.png');
     await expect(page.getByRole('img', { name: 'Concept render', exact: true })).toBeVisible();
@@ -158,9 +158,9 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await page.goBack();
     await page.goBack();
     await expect(page).toHaveURL(/kind=images/u);
-    await expect(
-        page.getByRole('button', { name: 'File type: Images', exact: true })
-    ).toBeVisible();
+    // A narrow band folds the filter menus into one Filters menu that names the open choice.
+    await page.getByRole('button', { name: 'Filters (on)', exact: true }).click();
+    await expect(page.getByRole('menuitem', { name: /File type\s*Images/u })).toBeVisible();
 });
 
 test('a viewer names the file by its path in Files, each folder a way back', async ({ page }) => {
@@ -223,7 +223,7 @@ test('members upload files and folders into the open folder, replace, and rename
     expect(setupRevisions).toBe('4');
 
     await today.getByRole('button', { name: 'Actions for new.txt', exact: true }).click();
-    await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Rename…', exact: true }).click();
     const rename = page.getByRole('dialog');
     await rename.getByRole('textbox', { name: 'Name' }).fill('renamed.txt');
     await rename.getByRole('button', { name: 'Rename', exact: true }).click();
@@ -231,7 +231,7 @@ test('members upload files and folders into the open folder, replace, and rename
     await expect(today.getByRole('row', { name: 'new.txt' })).toHaveCount(0);
 
     await folders.getByRole('option', { name: 'tools' }).click({ button: 'right' });
-    await page.getByRole('menuitem', { name: 'Rename folder', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Rename…', exact: true }).click();
     await page.getByRole('dialog').getByRole('textbox', { name: 'Name' }).fill('utilities');
     await page.getByRole('dialog').getByRole('button', { name: 'Rename', exact: true }).click();
     await expect(folders.getByRole('option')).toHaveText([/utilities\s*2 files/u]);
@@ -251,16 +251,16 @@ test('text artifacts render inline like workspace files, and oversize text offer
     const today = page.getByRole('grid', { name: 'Today' });
     const preview = page.getByRole('region', { name: 'File preview' });
 
-    await today.getByRole('row', { name: 'readme.md' }).click();
+    await today.getByRole('row', { name: 'readme.md' }).dblclick();
     await expect(preview.getByRole('heading', { name: 'Release notes' })).toBeVisible();
     await expect(preview.locator('strong')).toHaveText('inline text previews');
 
     await page.goBack();
-    await today.getByRole('row', { name: 'notes.txt' }).click();
+    await today.getByRole('row', { name: 'notes.txt' }).dblclick();
     await expect(preview.locator('pre')).toContainText(seededArtifactText.notes);
 
     await page.goBack();
-    await today.getByRole('row', { name: 'server.log' }).click();
+    await today.getByRole('row', { name: 'server.log' }).dblclick();
     await expect(preview).toContainText('Too large to preview.');
     await expect(preview.getByRole('button', { name: 'Download' })).toBeVisible();
 });
