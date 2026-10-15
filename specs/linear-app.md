@@ -1,11 +1,12 @@
 ---
-summary: Draft contract for Linear as a built-in connection — one shared Haus Linear app (`actor=app`) for every Haus Server, Server-enforced per-Agent attribution, Haus-side routing of Linear work to the right Agent, workflow-setup and image-upload tools beyond Linear's hosted MCP, the `linear` Trigger kind with agent sessions, and Linear issue chips in chat. Includes open decisions and the test plan that closes them.
+summary: Draft contract for Linear as a built-in connection — a shared Haus Linear app (`actor=app`) that connects each workspace, optional per-Agent Linear identities onboarded from a first-party Linear page, Server-chosen actors behind one Agent tool surface, the `linear` Trigger kind with GitHub-style match groups, Linear issue chips, and the built-in connection definition mechanism. Includes decisions, test plan, and probe results.
 read_when:
   - changing the Linear connection, its sign-in, or the tools Agents use against Linear
   - deciding how Agents appear, are mentioned, or are delegated work inside Linear
   - changing how Linear events are routed to Agents
   - adding Linear events as Triggers, or Linear issue references in chat
   - implementing or verifying any slice of the Linear work
+  - adding a built-in connection or changing how built-in connection pages are composed
 ---
 
 # Linear app
@@ -32,8 +33,9 @@ The gaps:
 
 The goal is that the Haus integration does the work. An Owner connects Linear once and grants
 Agents, as with any connection. From then on, Agents show up in Linear under their own names and
-faces, and Linear work reaches the right Agent. No Agent has to remember anything, and no per-Agent
-setup happens in Linear. Haus Tasks stay separate from Linear.
+faces, and Linear work reaches the right Agent. No Agent has to remember anything. Per-Agent setup
+in Linear is optional, for the Agents an Owner wants as first-class Linear teammates. Haus Tasks
+stay separate from Linear.
 
 ## What Linear offers
 
@@ -53,15 +55,22 @@ activities.
 
 ## Identity
 
-**Decided (2026-10-15): one shared Haus app. No per-Agent Linear apps.** Linear models one app as
-one actor, and apps can only be registered by hand, so per-Agent apps do not scale. Haus makes up
-the difference itself, in two ways:
+**Decided (2026-10-15): the Haus app connects the workspace; a Linear identity per Agent is an
+optional upgrade.**
 
-- **Enforced attribution.** Agents appear under their own names.
-- **Haus-side routing.** Work in Linear reaches the right Agent even though Linear sees only
-  "Haus".
+- **The Haus app.** One install connects a Linear workspace to a Haus Server. It carries reads,
+  workspace webhooks, issue chips, and workflow setup. Every granted Agent can work in Linear
+  through it from the start, posting as "Juniper (via Haus)".
+- **Agent identities.** An Owner can give any granted Agent its own Linear app. That Agent then
+  becomes a real Linear teammate, with its own name, avatar, delegate slot, @-handle, and status
+  history. Agents not onboarded keep working through the Haus app.
 
-### The app
+Linear models one app as one actor. Ownership on a multi-Agent board changes at every stage, and
+Linear's own UI keys that ownership on the delegate: its fields, filters, mention menu, and agent
+session panel. That is why identity is per Agent rather than per workspace. Agents and their tools
+never see which path a write took.
+
+### The Haus app
 
 Haus registers one Linear OAuth app per lifecycle, the same way as its GitHub App
 ([GitHub App connection](github-app-connection.md)):
@@ -72,115 +81,202 @@ Haus registers one Linear OAuth app per lifecycle, the same way as its GitHub Ap
 | Callback URL | `https://haus.chat/mcp/oauth/callback` | loopback, as GitHub |
 | Webhook URL | `https://haus.chat/api/linear/webhook` | sink plus development pull, as GitHub |
 
-Haus registers each app once. Haus users never create Linear apps: they press **Connect Linear**,
-and a Linear admin of their workspace approves the install. For that to work, the production app
-has Linear's **Public** setting on ("Allow this application to be installed by other
-workspaces"). The development app stays private to Haus's own workspace.
+Haus users never create this app. They press **Connect Linear**, and a Linear admin of their
+workspace approves the install. To allow that, the production app has Linear's **Public** setting
+on. Scopes are `read`, `write`, `app:assignable`, and `app:mentionable`. One Linear workspace binds
+to one Haus Server, with GitHub's two-sided authority: a Haus Owner or Admin, plus the Linear admin
+who completes the install. A Haus Server may connect several workspaces (D6).
 
-Scopes are `read`, `write`, `app:assignable`, and `app:mentionable`. One Linear workspace binds to
-one Haus Server, with GitHub's two-sided authority: a Haus Owner or Admin, plus the Linear admin
-completing the install. A Haus Server may connect several workspaces (D6).
+### Agent identities
 
-### Enforced attribution
+An Agent identity is a private Linear OAuth app that the Owner registers in their own workspace
+for one Agent, using a guided flow from the [Linear page](#the-linear-page):
 
-Agents never pass identity, and they cannot forget it. Server knows the invoking Agent on every
-call (the grant scope's `agentId`), so Server writes the identity into every write:
+1. Haus shows every value pre-filled, each with a copy button: app name and avatar (the Agent's),
+   callback URL, webhook URL `https://haus.chat/api/linear/webhook/<identity id>`, and the webhook
+   events to tick (agent session events, permission changes, inbox notifications).
+2. The Owner creates the app in Linear's settings, with a deep link to the right page.
+3. The Owner pastes the client id, client secret, and webhook signing secret into Haus. Server
+   stores them as connection secrets. They never reach Computer or an Agent.
+4. **Install** runs OAuth with `actor=app`, limited to the teams the Haus app can reach. Server
+   stores the token and the app user's id.
 
-- **Attributable writes.** On `issueCreate` and `commentCreate`, Server sets `createAsUser` to
-  the Agent's display name and `displayIconUrl` to an Agent avatar URL that Linear can fetch.
-  Linear copies the icon to `uploads.linear.app` at write time, so the URL only has to work for
-  that one request. Linear exposes the persona as the entity's `botActor.userDisplayName`.
-- **Other writes.** State moves, labels, and uploads show as "Haus" in Linear. To make them
-  readable there, these tools take an optional `note`. When present, Server posts it as an
-  attributed comment in the same call ("Juniper (via Haus): moved to Design Review — three
-  colourways attached"). The Manual teaches Agents to add a note on handoffs.
-- **The write ledger.** Server records every Agent write: issue, Agent, action, and Linear
-  entity id. The ledger drives routing, loop safety, and the "by Juniper" label in hovercards.
+An identity belongs to its connection and to exactly one Agent. Removing the Agent's grant, or the
+identity itself, stops it from being used. The page offers to uninstall it in Linear.
 
-All Agent writes therefore go through Haus tools. The hosted MCP is mounted at its read-only
-endpoint `/mcp/readonly`, so no write path skips attribution. That also closes the old duplicate
-create-tools question.
+### Choosing the actor
 
-### Haus-side routing
+On every Agent write, Server picks the actor without the Agent's input:
 
-Server keeps an **issue owner**: the one Agent responsible for each Linear issue it has seen. An
-issue gets an owner, and its owner changes, in these cases (later ones win):
+- **The Agent has an identity.** The write uses the identity's token. Linear attributes the write
+  natively, including state moves, labels, and uploads.
+- **It does not.** The write uses the Haus app token. Server sets `createAsUser` to the Agent's
+  display name and `displayIconUrl` to its avatar on `issueCreate` and `commentCreate`, the only
+  inputs that accept them. Linear rehosts the icon, so the URL only has to work once. Other writes
+  show "Haus". For those, an optional `note` on the tool is posted as an attributed comment.
 
-1. An Agent creates the issue through Haus.
-2. A team or project in connection settings maps to a default Agent.
-3. An **Agent label** is applied. Haus keeps a single-select `Agent` label group in each granted
-   team, with one label per granted Agent, synced as grants change. Applying "Juniper" hands the
-   issue to Juniper. Owners stay visible and filterable in Linear.
-4. A comment names an Agent ("@Haus Juniper, take this").
+Server records every Agent write in a **write ledger**: issue, Agent, actor used, action, and
+Linear entity id. The ledger drives loop safety and the "Juniper moved this" line in hovercards.
 
-When Haus changes an owner from a comment, it sets the matching Agent label, so Linear and Haus
-always agree.
+### Delegation between Agents
 
-An event goes to one Agent, chosen in this order:
+Agents name each other by Haus name, never by Linear user id. `delegate_issue(issue, agent:
+"Beacon")` resolves to Beacon's identity app user when Beacon has one. If Beacon has none, it
+resolves to the Haus app as delegate plus Beacon's `Agent` label (below), so the handoff stays
+visible in Linear. A human can also delegate or @-mention an identity directly in Linear.
 
-1. The Agent named in the triggering comment.
-2. The Agent already bound to that Linear agent session; follow-up prompts stay with it.
-3. The issue owner.
-4. The team or project mapping.
-5. The connection's default Agent.
-
-If nothing resolves, the event goes to the default Agent with the ambiguity stated in its event
-input.
+For Agents without an identity, Haus keeps a single-select `Agent` label group in each granted
+team, with one label per granted Agent that has no identity. Applying a label, or writing
+"@haus Beacon …", hands the issue to that Agent. Agents with an identity get no label, because the
+delegate field already names them.
 
 ## Tools
 
-The connection has one grant, which covers two tool sources:
+An Agent's Linear tools are the same whether or not it has an identity, and the grant is the same
+too: one switch per Agent on the Linear connection. The identity changes only who Linear shows as
+the author.
 
-1. **Linear's hosted MCP, read-only, with the app token.** Linear accepts an app-actor token as
-   `Authorization: Bearer`. It handles search and reads.
-2. **A Server-hosted Haus Linear connector**
-   ([ADR 0042](../docs/adr/0042-server-owns-hosted-mcp-processes.md)) for every write. It uses the
-   same token. Server passes it the invoking Agent's identity on each request, and the token never
-   enters Computer.
+1. **Reads: Linear's hosted MCP, read-only, on the Haus app token.** Linear accepts an app-actor
+   token as `Authorization: Bearer` at `/mcp/readonly` (38 read tools). Reads look the same to
+   every Agent, so one shared upstream session serves them all.
+2. **Writes: a Server-hosted Haus Linear connector**
+   ([ADR 0042](../docs/adr/0042-server-owns-hosted-mcp-processes.md)). Server passes it the
+   invoking Agent and the chosen actor's token on each request; tokens never enter Computer.
    - `create_issue`, `update_issue` (state, labels, priority, project, and an optional `note`),
-     `create_comment`, `set_owner`
+     `create_comment`, `delegate_issue`
    - `create_project`, `create_document`, `create_label`
-   - Workflow states: `list_workflow_states`, `create_workflow_state`, `update_workflow_state`
-     (name, color, description, position), `archive_workflow_state`. These ship only if Q1 passes.
-   - `upload_image`: takes a Haus file and an issue key, runs Linear's `fileUpload` and the
-     server-side `PUT`, and embeds the result in the issue or a comment. Review-size images live
-     in Linear, and print masters stay in Haus Files.
+   - workflow states: `list_workflow_states`, `create_workflow_state`, `update_workflow_state`
+     (name, color, description, position), and `archive_workflow_state`
+   - `upload_image`: takes a Haus file and an issue key, runs Linear's `fileUpload` with the
+     server-side `PUT`, and embeds the result. Review-size images live in Linear; print masters
+     stay in Haus Files.
+   - `reply`: posts an agent activity to the Agent's current Linear agent session.
+   - `whoami`: reports whether the Agent has an identity, and its Linear handle.
 
-The write set copies Linear's own surface on purpose, and it grows only when an Agent workflow
-needs another write.
+Writes are routed only through Haus, never through the hosted MCP's write tools. That keeps a
+single attribution path. The write set grows only when an Agent workflow needs another write.
 
 ## Triggers
 
-Linear becomes the third Trigger kind, `linear`, modelled on [GitHub Triggers](github-triggers.md).
+Linear becomes the third Trigger kind, `linear`, with the same authoring model, match groups,
+preview, caps, and rate limits as [GitHub Triggers](github-triggers.md). An Agent does not need an
+identity to create one.
 
-- **Delivery.** Linear auto-creates one webhook per installing workspace, all posting to the
-  shared endpoint. Server routes each delivery by organization id to the bound Haus Server.
-- **Verification.**
-  - Server checks the `Linear-Signature` header: a hex HMAC-SHA256 of the raw body, compared in
-    constant time.
-  - It rejects a `webhookTimestamp` more than 60 s from now, dedupes on the delivery id, and
-    answers within 5 s.
-  - Linear retries three times (after 1 min, 1 h, and 6 h) and may disable a webhook that keeps
-    failing.
-- **Agent sessions.**
-  - Mentioning or delegating to Haus sends `AgentSessionEvent`. That event always wakes the
-    routed Agent; no Trigger has to be configured.
-  - Linear marks the session unresponsive unless an activity or external URL arrives within
-    10 s. Server therefore posts a `thought` itself ("Juniper is on it"), and sets `externalUrls`
-    to the Haus destination, before any Agent turn. This works even when the Computer is offline.
-  - Agent replies go back as agent activities through a connector tool. Activities cannot carry a
-    persona, so Server prefixes the Agent's name to their content.
-- **Configured Triggers.**
-  - Filters: team, project, label, owner, `stateFrom`/`stateTo` (for example, Design Review →
-    Approved or Changes requested), and comment creation.
-  - Events reach the routed Agent's inbox as event input, the same way as other Triggers.
-- **Loop safety.**
-  - Server drops an event only when the ledger shows the routed Agent itself caused it.
-  - When one Agent moves an issue, a Trigger can still wake a different Agent, which is how
-    handoffs between Agents work.
-  - The existing chain budget bounds Agent-to-Agent chains.
+### Two ways an Agent is woken
+
+| | Addressed | Configured |
+| --- | --- | --- |
+| Source | someone mentions or delegates to the Agent | a `linear` Trigger the Agent created |
+| Webhook | the Agent identity's app (agent session events), or the Haus app for "@haus Beacon" and labels | the Haus app's workspace webhook (data change events) |
+| Needs a Trigger | no | yes |
+| Lands | the Agent's inbox, with no chat anchor; the Agent answers in Linear | the chat the Trigger is anchored to |
+
+Data change events arrive once per workspace, through the Haus app, and are matched against every
+armed `linear` Trigger in that Haus Server. Identity apps subscribe only to their own agent
+session, inbox, and permission events, so no event is ingested twice.
+
+### Addressed events
+
+When someone mentions or delegates to an Agent, Linear sends an `AgentSessionEvent`. Linear marks
+the session unresponsive unless an activity or external URL arrives within 10 s. Server answers it
+itself, before any Agent turn:
+
+- It posts a `thought` ("Juniper is on it").
+- It sets `externalUrls` to the Haus destination.
+
+This works even when the Computer is offline. `prompted` follow-ups in the same session reach the
+same Agent. An identity's events go to its Agent. For the Haus app, routing uses these rules in
+order:
+
+1. The Agent named in the comment ("@haus Beacon").
+2. The Agent bound to the session.
+3. The issue's `Agent` label.
+4. The connection's default Agent.
+
+### Configured Triggers: match groups
+
+Each Trigger has 1 to 10 match groups, combined the same way as GitHub's. Values are ORed within a
+list, filters are ANDed within a group, and groups are ORed with each other. An absent list
+matches anything.
+
+| Event | Actions | Filters |
+| --- | --- | --- |
+| `issue` | `create`, `update`, `remove` | `changed` (fields such as `state`, `delegate`, `labels`, `priority`, `project`), `stateFrom`, `stateTo`, `stateTypes` |
+| `comment` | `create`, `update` | `onIssueDelegatedTo` |
+| `project` | `create`, `update` | `changed`, `projectStatus` |
+| `label` | `create` (on an issue: `added`, `removed`) | `labels` |
+
+Every group also accepts:
+
+- `teams`
+- `projects`
+- `labels` and `labelsIgnore`
+- `delegate` and `assignee`
+- `actors` and `actorsIgnore`
+
+Workflow-state values take names or ids. The Agent-relative selectors `@self` and `@agent:<name>`
+resolve to an Agent's identity app user, or to the Haus app plus that Agent's label when it has no
+identity. Some examples:
+
+- **Changes requested on my designs:** `issue.update`, `changed: [state]`,
+  `stateFrom: Design Review`, `stateTo: Changes Requested`, `delegate: @self`.
+- **New comments where I'm the delegate:** `comment.create`, `onIssueDelegatedTo: @self`,
+  `actorsIgnore: [@self]`.
+- **Anything entering Print-ready in the Design team:** `issue.update`, `teams: [Design]`,
+  `stateTo: Print-ready`.
+
+An Agent hears only what its groups describe. The **preview** endpoint runs the matcher against
+recent events without firing. The App and CLI show suppressed counts, so a noisy Trigger can be
+narrowed.
+
+### Loop safety
+
+Server drops a match when the ledger shows that the Trigger's own Agent caused the event. An event
+caused by a different Agent still fires, which is how handoffs between Agents work. The existing
+chain budget bounds Agent-to-Agent chains.
+
+### Verification and revocation
+
+- **Signature.** Server checks the `Linear-Signature` header, a hex HMAC-SHA256 of the raw body,
+  in constant time. The Haus app and each identity have their own signing secrets.
+- **Freshness.** Server rejects a `webhookTimestamp` more than 60 s from now, dedupes on the
+  delivery id, and answers within 5 s.
+- **Retries.** Linear retries three times (after 1 min, 1 h, and 6 h), and it may disable a
+  webhook that keeps failing.
 - **Revocation.** Revocation, or a `PermissionChange` that removes access, degrades the affected
-  Triggers, with one notice to each owning Agent.
+  Triggers or identity. Each owning Agent gets one notice.
+
+## The Linear page
+
+Connections → Linear opens a first-party page, not the generic connection detail. It has four
+sections:
+
+- **Workspace.** The install, its teams, and reconnect.
+- **Agents.** The roster: every Agent on the Server, each with its grant switch and its identity
+  state ("Posts as Juniper via Haus" / "Linear identity: @juniper"). A **Give Linear identity**
+  button opens the guided flow for that Agent.
+- **Triggers.** The Agents' `linear` Triggers, read-only, linking to each Agent's Automations tab.
+- **Tools.** The generic tools list.
+
+### Built-in connection pages
+
+The page is built from a general mechanism, not a Linear branch. Today GitHub's installations
+section checks `connection.preset === 'github'` inside a section mounted on every connection page.
+That pattern does not extend to a second built-in connection. It is replaced as follows:
+
+- **App.** A built-in connection is described by one typed definition per service, kept under
+  `apps/website/src/features/settings/connections/built-in/<service>/`. The definition lists the
+  sections the service adds and where each sits among the generic sections (account, Agent access,
+  tools). The connection page renders the generic sections plus whatever the definition declares.
+  It never branches on a preset. A small registry keyed by preset is the only lookup. GitHub moves
+  its installations section into its own definition as part of this work.
+- **Server.** Each built-in connection likewise has one module under
+  `apps/server/src/<service>/` that declares what it adds beyond the MCP connection model: install
+  or binding state, webhook routes, Trigger kind, hosted connector, and its tRPC feature. The
+  generic connection code never imports a service.
+
+A third built-in connection then means adding one definition on each side, with no edits to the
+generic page.
 
 ## Issue references in chat
 
@@ -191,19 +287,19 @@ mark with a dotted underline and no fill, the same as other reference chips.
   `mcp.amazonProduct`.
 - Server caches issues for 5 minutes and evicts them on Issue webhooks. A
   `linear.onIssueChanged` subscription invalidates the App's React Query cache.
-- The hovercard shows the title, the state with its color, the owner Agent's avatar, the
-  assignee, labels, the last change (attributed from the ledger, for example "Juniper moved this
+- The hovercard shows the title, the state with its color, the delegate (an Agent identity's
+  avatar, or the labelled Agent's for the Haus app), the assignee, labels, the last change (attributed from the ledger, for example "Juniper moved this
   to Design Review"), and a cover thumbnail.
 - `uploads.linear.app` assets need auth. Thumbnails go through a member-checked Server proxy that
   only fetches from that host.
 
 ## Open decisions and questions
 
-- **D1.** Decided: one shared Haus app, with enforced attribution and Haus-side routing.
+- **D1.** Decided: the Haus app connects the workspace; per-Agent Linear identities are an
+  optional upgrade, onboarded Agent by Agent from the Linear page.
 - **D2.** Decided: delegate, not assignee. Linear never lets any app be an issue's assignee, so
-  a person stays the assignee and Haus is the delegate. Per-Agent apps would not change this;
-  the delegate would only read "Juniper" instead of "Haus". The `Agent` label names the
-  responsible Agent.
+  a person stays the assignee and the Agent is the delegate: its identity, or the Haus app plus
+  its `Agent` label.
 - **D3.** Dropped. Which states gate a pipeline is an Agent's configuration — it chooses the
   `stateFrom`/`stateTo` filters when creating a Trigger. It is not a product decision.
 - **D4.** Decided: the Agent decides where to talk. A configured `linear` Trigger is
@@ -276,35 +372,43 @@ reads naturally.
 
 ## Not built
 
-- **Per-Agent Linear apps.** Each would need manual registration in Linear for every Agent, so
-  they do not scale. Routing and attribution cover the need.
+- **Automated identity registration.** Linear has no API to create apps, so the Owner registers
+  each identity by hand through the guided flow. A Haus Agent completing that flow in the Owner's
+  browser is a possible later step.
 - **Admin operations in Linear** beyond workflow states.
 
 ## ADRs to write
 
 When this spec is accepted, a new ADR records Linear as a built-in connection. It amends:
 
-- **ADR 0017.** A built-in connection may own Haus tools that wrap the service's writes,
-  including Server-enforced attribution.
-- **ADR 0027.** Adds a third Trigger kind, routed by Haus, with ledger-based loop safety.
+- **ADR 0017.** A built-in connection may own Haus tools that wrap the service's writes, with the
+  actor chosen by Server per Agent.
+- **ADR 0027.** Adds a third Trigger kind with Agent-relative selectors and ledger-based loop
+  safety.
+- **ADR 0045.** Built-in connections are declared through per-service definitions on App and
+  Server, and may hold operator-entered per-Agent credentials (Agent identities).
 - **[Raft alignment](raft-alignment/README.md) D9.** Linear is the first per-service downstream
-  identity: one shared app, with per-Agent attribution and routing done by Haus.
+  identity: a workspace app, plus optional per-Agent apps.
 
 ## Implementation plan
 
-1. **Identity.**
-   - Register the apps, add env items, and add the built-in connection with install, binding, and
-     the read-only hosted MCP on the app token.
+1. **Built-in connection definitions.** Introduce the App and Server definition mechanism and move
+   GitHub onto it, with no behaviour change. This step comes first so Linear never adds a branch.
+2. **Workspace connection.**
+   - Register the Haus apps, add env items, and add the Linear definition with install, binding,
+     and the read-only hosted MCP on the app token.
    - Existing DCR connections become custom MCP connections, as Vercel did.
    - Update [Connections](../docs/features/connections.md) and [MCP](mcp.md).
-2. **Connector.**
-   - Write tools with enforced attribution, `note`, the write ledger, and `upload_image`.
-   - Workflow-state tools, if Q1 passes.
+3. **Connector.**
+   - Write tools with actor choice, `note`, the write ledger, `upload_image`, and the
+     workflow-state tools.
    - A Manual topic for Linear.
-3. **Routing and Triggers.**
-   - Issue owners, the `Agent` label group, and team and project mappings.
-   - Webhook endpoint and verification.
-   - Agent-session acknowledgment and replies.
-   - Configured `linear` Triggers, and degradation on revocation.
-4. **Chips.** URL recognition, `linear.issue`, the cache and subscription, the hovercard, and the
+4. **Agent identities.** The Linear page roster, the guided flow, identity install, and per-Agent
+   actor selection.
+5. **Triggers.**
+   - The webhook endpoints and verification.
+   - Addressed-event acknowledgment and routing, with the `Agent` label group for Agents that have
+     no identity.
+   - The `linear` Trigger kind: match groups, preview, and degradation on revocation.
+6. **Chips.** URL recognition, `linear.issue`, the cache and subscription, the hovercard, and the
    thumbnail proxy.
