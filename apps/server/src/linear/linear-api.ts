@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { linearTransport } from './linear-api-origin.ts';
 
 // Linear's OAuth and GraphQL endpoints as the Server calls them
 // (specs/linear-app.md#tokens). Only the Server holds Linear tokens; no
@@ -26,6 +27,7 @@ export interface LinearApp {
 
 export function linearAppFromEnvironment(environment: {
     HAUS_APP_ORIGIN: string;
+    HAUS_LINEAR_API_ORIGIN?: string;
     HAUS_LINEAR_APP_CLIENT_ID?: string;
     HAUS_LINEAR_PUBLIC_ORIGIN?: string;
 }): LinearApp | null {
@@ -34,7 +36,7 @@ export function linearAppFromEnvironment(environment: {
     }
     return {
         clientId: environment.HAUS_LINEAR_APP_CLIENT_ID,
-        fetch,
+        fetch: linearTransport(environment.HAUS_LINEAR_API_ORIGIN),
         publicOrigin: (
             environment.HAUS_LINEAR_PUBLIC_ORIGIN ?? environment.HAUS_APP_ORIGIN
         ).replace(/\/$/u, ''),

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { gradeBuild, isInfraFailure } from './grade.mjs';
-import { placementProfiles } from './profiles.mjs';
+import { linearTriggerProfiles, placementProfiles } from './profiles.mjs';
 import { summarizeEval } from './summary.mjs';
 import { quickFactEvidence, temporaryRoot, writeRun } from './test-fixtures.mjs';
 
@@ -66,6 +66,35 @@ test('infra failures are flagged, and unprofiled scenarios grade on the runner v
     const summary = summarizeEval({ grades: { change: grades }, scenarios: names });
     expect(summary.totals.change).toEqual({ graded: 1, infra: 1, passed: 1, runs: 2 });
     expect(summary.verdict.delta).toBeNull();
+});
+
+test('a Linear fire answer grades from the first caused post in the anchor chat', async () => {
+    const evidence = quickFactEvidence();
+    const [chat] = evidence.chats;
+    chat.messages = [
+        chat.messages[0],
+        { ...chat.messages[2], content: 'Noted, thanks.', id: 'msg_ack44444', reply: undefined },
+        {
+            ...chat.messages[2],
+            cause: { fireId: 'tfi_one', kind: 'trigger' },
+            content: 'DES-142 just moved to Changes Requested.',
+            createdAt: '2026-10-15T10:00:30.000Z',
+            id: 'msg_fire5555',
+            reply: undefined,
+        },
+    ];
+    const root = await temporaryRoot();
+    await writeRun(root, '20261015T120000', [
+        { evidence, name: 'linear-trigger-fire-reply', ok: true },
+    ]);
+    const [grade] = await gradeBuild({
+        names: ['linear-trigger-fire-reply'],
+        profiles: linearTriggerProfiles,
+        root,
+        runs: [{ pass: 1, stamp: '20261015T120000' }],
+    });
+    expect(grade.checks.filter((check) => !check.ok)).toEqual([]);
+    expect(grade.posts.map((post) => post.id)).toEqual(['msg_fire5555']);
 });
 
 test('a run missing its summary is skipped rather than invented', async () => {

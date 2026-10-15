@@ -98,6 +98,8 @@ const envSchema = z
         HAUS_GITHUB_APP_WEBHOOK_SECRET: z.string().min(32).optional(),
         // The Haus Linear app (specs/linear-app.md#environment). Each is
         // optional: without them Linear reports unavailable.
+        // Development and evals only: a loopback fake Linear (linear-api-origin.ts).
+        HAUS_LINEAR_API_ORIGIN: z.string().url().optional(),
         HAUS_LINEAR_APP_CLIENT_ID: z.string().min(1).optional(),
         HAUS_LINEAR_APP_WEBHOOK_SECRET: z.string().min(1).optional(),
         HAUS_LINEAR_APP_WEBHOOK_SECRET_PREVIOUS: z.string().min(1).optional(),

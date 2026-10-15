@@ -4,7 +4,12 @@
 // through the harness's substring `--only` filter; evals.test.mjs enforces it.
 
 import { UsageError } from './args.mjs';
-import { attentionProfiles, placementJudge, placementProfiles } from './profiles.mjs';
+import {
+    attentionProfiles,
+    linearTriggerProfiles,
+    placementJudge,
+    placementProfiles,
+} from './profiles.mjs';
 
 export const evals = {
     placement: {
@@ -58,6 +63,18 @@ export const evals = {
         ],
         summary:
             'Agents launch and link cloud work, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
+    },
+    // Linear Triggers on a workspace seeded on the eval stack, with names
+    // resolved by the fake Linear the eval stack points HAUS_LINEAR_API_ORIGIN
+    // at: no Linear account, no call to api.linear.app. Serial: the scenarios
+    // share the fake's one port.
+    triggers: {
+        judge: null,
+        lanes: 1,
+        profiles: linearTriggerProfiles,
+        scenarios: ['linear-trigger-setup', 'linear-trigger-fire-reply'],
+        summary:
+            'Agents set up a Linear state-transition Trigger from a plain ask and answer its fire once, top level, with --cause.',
     },
 };
 

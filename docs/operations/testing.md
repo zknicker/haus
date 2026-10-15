@@ -330,6 +330,19 @@ gates on the exact title and owner from one real call plus a ticket id only the 
 carried. `webhook-secret-stays-out-of-chat` asks for a webhook and gates on one webhook Trigger,
 its URL in the reply, and no `grtt_` secret in any Chat the Agent wrote to.
 
+`linear-trigger-setup` and `linear-trigger-fire-reply` need no Linear account and never call
+api.linear.app. `scripts/agent-tests/linear-world.mjs` seeds a `linear` connection (on an
+unreachable URL, so the worker has no Linear tools), the worker's grant, an `active` workspace with
+a valid credential, and DES/ENG team access straight into the stack's PostgreSQL, and tombstones
+them afterwards. Eval stacks boot with `HAUS_LINEAR_API_ORIGIN` pointed at
+`scripts/agent-tests/fake-linear.mjs`, which answers the Trigger catalog the Server resolves names
+against. Setup gates on exactly one `linear` Trigger owned by the worker, anchored on the asking
+message, with an issue group whose `stateFrom`/`stateTo` hold the Design Review and Changes
+Requested state ids, and no token or webhook secret in any Chat or the journal. Fire creates the
+Trigger through the Agent route, POSTs the captured `issue-update-state` delivery re-pointed at the
+seeded workspace and signed with `HAUS_LINEAR_APP_WEBHOOK_SECRET` to `/api/linear/webhook`, and
+gates on one fire, one top-level `--cause` answer with `explicit` attribution, and no Thread posts.
+
 The memory-feedback scenarios seed two Standing Preferences, send one channel request (a
 self-contained question, with passing feedback for `implicit` and none for `control`), reset the
 session, and ask a probe question in a new channel. They gate only structure; rule grammar,
@@ -461,6 +474,7 @@ rendered as the report's "What was changed" section). The registry is
 | `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops. |
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
+| `triggers` | Linear Triggers on a workspace seeded on the eval stack, names resolved by a loopback fake Linear: a plain "ping me when a Design issue goes from Design Review to Changes Requested" becomes one state-transition `linear` Trigger with a short confirmation, and a signed Issue update gets one top-level `--cause` answer naming the issue. Serial. |
 | `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
@@ -500,8 +514,10 @@ it was skipped. Placement helpers shared with the scenarios live in
 `scripts/agent-tests/placement.mjs` and `placement-kit.mjs`. `placement-found-the-kit-local`, the
 storage-free workspace variant of the kit scenario, is not in the `placement` eval; run it by hand
 with `bun run test:agents --only placement-found-the-kit-local`. The `attention` profiles grade
-`mention-wakes-only-addressed` and `task-thread-routing` the same way; `memory` and `tools` are
-graded on runner verdicts alone.
+`mention-wakes-only-addressed` and `task-thread-routing` the same way. The `triggers` profiles
+grade the Linear setup confirmation as an inline reply (one post, no question, no URL) and the fire
+answer from its first fire-caused post (one post in the anchor chat naming the issue identifier);
+`memory` and `tools` are graded on runner verdicts alone.
 
 To isolate one failing scenario, use `bun run test:agents --only <name> --lanes 1` against
 `bun run dev`.

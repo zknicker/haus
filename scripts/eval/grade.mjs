@@ -115,8 +115,10 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
         threads: evidence.chats.flatMap((chat) => chat.threads ?? []),
     };
     const authored = messages.filter((message) => isAgent(message) && !seeded(message));
+    // A fire-answer profile grades from the first post the fire caused, not the human's anchor.
+    const since = profile.since?.(authored) ?? wake.createdAt;
     const posts = authored
-        .filter((message) => Date.parse(message.createdAt) >= Date.parse(wake.createdAt))
+        .filter((message) => Date.parse(message.createdAt) >= Date.parse(since))
         .map((message) => ({
             chatId: message.chatId,
             content: message.content,
@@ -177,6 +179,9 @@ function gradeResult({ candidates, check, doneSends, grade, ownReactions, profil
     if (profile.inThread) {
         check('result in the asked Thread', result.chatId === wake.chatId);
         check('one Thread post', candidates.length === 1);
+    } else if (profile.inChat) {
+        // A fire answer has no request to reply to: it only has to land in the anchor chat.
+        check('result in the anchor chat', result.chatId === wake.chatId);
     } else {
         check('result is an inline reply', result.label === 'inline-reply');
     }
@@ -191,6 +196,9 @@ function gradeResult({ candidates, check, doneSends, grade, ownReactions, profil
     grade.questions = (result.content.match(/\?/gu) ?? []).length;
     if (profile.maxQuestions !== undefined) {
         check(`questions <= ${profile.maxQuestions}`, grade.questions <= profile.maxQuestions);
+    }
+    if (profile.noUrl) {
+        check('no URL in the result', !/https?:\/\//iu.test(result.content));
     }
     if (profile.noReactions) {
         check('no reaction on the question', ownReactions.length === 0);
