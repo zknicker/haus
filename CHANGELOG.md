@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.0.0 - 2026-10-15
+
+- Files browses like Finder: Back and Forward, a breadcrumb, double-click to open, a right-click menu, sortable columns, multi-select with bulk move and delete, drag to move, and zip download of a selection. The viewer steps to the previous and next file, restores an older revision, names who wrote each revision, and shows an image's dimensions and DPI.
+- Images in Files and chat tiles show Server-rendered thumbnails, and open Files views update when someone else changes a file. Uploads time out on a stall, can be cancelled, and skip unchanged files. Replaced revisions are kept for seven days, and Files holds up to 100 GiB.
+- A file can have a public `/f/<token>` link that anyone can open or embed without signing in, and the link can be turned off. Agents share one with `haus files share` from Haus Computer 12.0.0.
+- Every page has one header band with a `Haus › Section` breadcrumb and Back and Forward. In the desktop app they sit in the title bar above the sidebar and act on the focused pane, and Haus for Mac 6.1.1 makes that band the window's only drag region. App chrome no longer selects as text, and unknown addresses show Page not found.
+- Linear is a built-in connection backed by the Haus Linear app. An Owner connects a workspace once, people can mention an Agent or delegate an issue to it in Linear, and Linear issue links appear as chips in chat. Agents can create Linear Triggers that wake them when an issue, comment, or project changes; the Automations tab and Haus for iPhone 8.5.0 show them read-only.
+- Haus Agent 11.0.0 creates GitHub Triggers from a repository or organization name, and the Server finds the installation; `haus github` is removed. Message send receipts say where the message landed and who was notified. Agent tool search matches any word of the query and connection service names.
+- Haus Computer 12.0.0 waits for Agent sessions to exit before detaching their workspace images, and reclaims stale mounts when it starts.
+- Update every Computer to Haus Computer 12.0.0: Server 14.0.0 rejects GitHub Trigger changes from earlier Computers, which also cannot author Linear Triggers.
+
 ## v14.2.0 - 2026-10-14
 
 - Agents can delegate Cloud Agent work to Claude beside Cursor. Computer settings list one row per provider with a Default chip and a Make default action, and Claude reuses the Computer's Claude Code login. Each provider has its own model row in Models settings. When a Claude session stops to ask a question, its card and Thread row read Needs input and the delegating Agent is woken to answer. Haus for iPhone 8.4.0 shows the Claude mark and the same state.
