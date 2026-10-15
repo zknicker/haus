@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { artifactListResultSchema } from './artifact-drive.ts';
-import { artifactCreatorSchema } from './artifacts.ts';
+import { artifactCreatorSchema, artifactRecordSchema } from './artifacts.ts';
 
 /**
  * Public links (specs/artifact-public-links.md): an opt-in, unguessable `/f/<token>` URL that
@@ -29,8 +29,14 @@ export const artifactPublicLinkResultSchema = z
     .strict();
 export type ArtifactPublicLinkResult = z.infer<typeof artifactPublicLinkResultSchema>;
 
-/** The App's library page: `artifact.list` plus the public links of the page's files. */
+/**
+ * The App's library page: `artifact.list` with App records (revision author, image facts) plus
+ * the public links of the page's files.
+ */
 export const artifactLibraryPageSchema = artifactListResultSchema
-    .extend({ public_links: z.record(z.string(), artifactPublicLinkSchema) })
+    .extend({
+        artifacts: z.array(artifactRecordSchema),
+        public_links: z.record(z.string(), artifactPublicLinkSchema),
+    })
     .strict();
 export type ArtifactLibraryPage = z.infer<typeof artifactLibraryPageSchema>;

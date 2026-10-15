@@ -1,4 +1,9 @@
-import { type ArtifactCreator, type ArtifactMetadata, artifactPathBasename } from '@haus/api';
+import {
+    type ArtifactCreator,
+    type ArtifactMetadata,
+    type ArtifactRecord,
+    artifactPathBasename,
+} from '@haus/api';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -41,6 +46,7 @@ export async function getArtifact(
     }
     return {
         metadata: artifactMetadata(row, origin, access.slug),
+        record: artifactRecord(row, origin, access.slug),
         objectKey: row.revision.objectKey,
         revision: row.revision,
     };
@@ -92,7 +98,7 @@ export async function listArtifactVersions(
         .orderBy(desc(revisions.revisionNumber))
         .limit(50)
         .offset(offset);
-    return rows.map((row) => artifactMetadata(row, origin, access.slug));
+    return rows.map((row) => artifactRecord(row, origin, access.slug));
 }
 
 /** The live head of an artifact, or null while its first publish is still in flight. */
@@ -146,11 +152,7 @@ export async function downloadArtifact(
     };
 }
 
-export function artifactMetadata(
-    row: { artifact: typeof artifacts.$inferSelect; revision: typeof revisions.$inferSelect },
-    origin: string,
-    slug: string
-): ArtifactMetadata {
+export function artifactMetadata(row: ArtifactRow, origin: string, slug: string): ArtifactMetadata {
     const stableUrl = new URL(`/s/${encodeURIComponent(slug)}/artifacts/${row.artifact.id}`, origin)
         .href;
     if (!row.revision.sha256) {
@@ -172,6 +174,40 @@ export function artifactMetadata(
         updated_at: row.revision.createdAt.toISOString(),
         version_url: `${stableUrl}?revision=${row.revision.id}`,
     };
+}
+
+interface ArtifactRow {
+    artifact: typeof artifacts.$inferSelect;
+    revision: typeof revisions.$inferSelect;
+}
+
+/** The App's view of a revision: its metadata plus the revision's author and image facts. */
+export function artifactRecord(row: ArtifactRow, origin: string, slug: string): ArtifactRecord {
+    const { imageDpi, imageHeight, imageWidth } = row.revision;
+    return {
+        ...artifactMetadata(row, origin, slug),
+        author: revisionAuthor(row.revision),
+        image:
+            imageWidth && imageHeight
+                ? { dpi: imageDpi, height: imageHeight, width: imageWidth }
+                : null,
+    };
+}
+
+/** The Agent-route shape: deployed CLIs parse metadata strictly, so App-only fields drop. */
+export function toArtifactMetadata(record: ArtifactRecord): ArtifactMetadata {
+    const { author: _author, image: _image, ...metadata } = record;
+    return metadata;
+}
+
+/** `artifact_revision_author_shape` guarantees exactly one author column. */
+function revisionAuthor(
+    revision: Pick<typeof revisions.$inferSelect, 'authorAgentId' | 'authorUserId'>
+): ArtifactCreator {
+    return artifactCreator({
+        creatorAgentId: revision.authorAgentId,
+        creatorUserId: revision.authorUserId,
+    });
 }
 
 export function artifactCreatorFilter(creator: ArtifactCreator | undefined) {

@@ -103,6 +103,36 @@ export const artifactMetadataSchema = z
     })
     .strict();
 export type ArtifactMetadata = z.infer<typeof artifactMetadataSchema>;
+/** A raster revision's pixel size, and its print density when the file records one (PNG `pHYs`). */
+export const artifactImageFactsSchema = z
+    .object({
+        dpi: z.number().int().positive().nullable(),
+        height: z.number().int().positive(),
+        width: z.number().int().positive(),
+    })
+    .strict();
+export type ArtifactImageFacts = z.infer<typeof artifactImageFactsSchema>;
+/**
+ * The App's view of one revision: the shared metadata plus who published this revision
+ * (`author`, unlike `creator`, which made the file) and its image facts, null until measured or
+ * for non-raster files. Agent routes keep `artifactMetadataSchema`, which deployed CLIs parse
+ * strictly.
+ */
+export const artifactRecordSchema = artifactMetadataSchema
+    .extend({ author: artifactCreatorSchema, image: artifactImageFactsSchema.nullable() })
+    .strict();
+export type ArtifactRecord = z.infer<typeof artifactRecordSchema>;
+export const artifactRecordResultSchema = z.object({ artifact: artifactRecordSchema }).strict();
+export const artifactRecordVersionsResultSchema = z
+    .object({ versions: z.array(artifactRecordSchema) })
+    .strict();
+/**
+ * Restores an older revision by publishing its bytes, title, and content type as a new revision
+ * on top of the current head. History is never rewritten.
+ */
+export const artifactRestoreInputSchema = z
+    .object({ artifact_id: id, revision_id: id, serverId: id })
+    .strict();
 export const artifactCreatorsInputSchema = z.object({ serverId: id }).strict();
 export const artifactCreatorSummarySchema = z
     .object({
