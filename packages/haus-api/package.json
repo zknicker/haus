@@ -16,6 +16,7 @@
     "./development-chat-demos": "./src/development-chat-demos.ts",
     "./execution-bookkeeping-fixtures": "./src/execution-bookkeeping-fixtures.ts",
     "./computer-runtime": "./src/computer-runtime.ts",
+    "./linear-actor-meta": "./src/linear-actor-meta.ts",
     "./membership": "./src/membership.ts",
     "./participant-handle": "./src/participant-handle.ts",
     "./pane-links": "./src/runtime/pane-links.ts",
