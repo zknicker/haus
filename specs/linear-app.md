@@ -664,16 +664,19 @@ webhook answers `503`.
 - **D8.** Decided (review): every granted Agent keeps a Haus `Agent` label; identities add
   native delegation only.
 - **Q1–Q5.** Closed by the 2026-10-15 probe; see [results](#results-2026-10-15).
-- **Q6.** Open: does Linear accept a client-supplied `id` on `issueCreate`, `commentCreate`,
-  `projectCreate`, `documentCreate`, and `issueLabelCreate`? Probe 14. If not, an `unknown`
-  create is reported to the Agent as possibly applied and is not retried.
+- **Q6.** Closed (2026-10-15, probe 14): yes. `IssueCreateInput`, `CommentCreateInput`,
+  `ProjectCreateInput`, `DocumentCreateInput`, `IssueLabelCreateInput`, and
+  `AgentActivityCreateInput` all accept `id`. A second create with the same id fails with
+  "Entity Issue with id … already exists". The connector derives the id from the ledger request
+  id. It treats that error as success after reading the entity back, so retried creates are
+  idempotent.
 - **Q7.** Open: do Linear's retries carry a fresh `webhookTimestamp`? Probe 13. If not, a retry
   past 60 seconds is refused and recovery for missed deliveries is the hourly team and reference
   sweep only.
-- **Q8.** Open: does `agentSessionCreateOnIssue` start a session for an app that is already the
-  delegate? Probe 15. If not, a label-only handoff wakes the new Agent through a
-  `linear_session` row whose session record has no Linear session id (the column becomes
-  nullable), and `reply` on it posts a comment instead of an activity.
+- **Q8.** Closed (2026-10-15): yes. `agentSessionCreateOnIssue({ issueId })` succeeds while Haus
+  Dev is already a delegate in the workspace, and returns an `active` session. The input also
+  takes `externalUrls`. A label-only handoff therefore opens a fresh session for the new Agent.
+  Still to observe through Funnel: the webhook that this creates (probe 15).
 - **Q9.** Open: the shape of Linear's stop signal for a session. Probe 12.
 
 ## Test plan
