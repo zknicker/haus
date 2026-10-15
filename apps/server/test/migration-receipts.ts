@@ -34,4 +34,7 @@ export const migrationsSince0060 = [
     '0091_artifact-thumbnails',
     '0092_artifact-public-links',
     '0093_artifact-image-facts',
+    '0094_linear-app',
+    '0095_linear-ingest-outbox',
+    '0096_linear-identity-hand-back',
 ];

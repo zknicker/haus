@@ -1,4 +1,4 @@
-import { Button, Toolbar, toast } from '@heroui/react';
+import { Button, toast } from '@heroui/react';
 import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -11,7 +11,6 @@ import { cn } from '../../lib/utils.ts';
 import { resolveBrowserAddress } from './browser-address.ts';
 import { type BrowserRecentSite, selectRecentSites } from './browser-recent-sites.ts';
 import { BrowserWorkspaceAddress } from './browser-workspace-address.tsx';
-import { PageHistoryButtons } from './browser-workspace-navigation.tsx';
 import { pageToolbarClassName } from './page-toolbar.tsx';
 
 /**
@@ -53,12 +52,9 @@ export function NewTabPage({ className, tabId }: { className?: string; tabId: st
             className={cn('flex min-h-0 flex-col bg-background', className)}
         >
             <form
-                className={`${pageToolbarClassName} browser-toolbar grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center`}
+                className={`${pageToolbarClassName} browser-toolbar grid shrink-0 grid-cols-[minmax(0,1fr)] items-center`}
                 onSubmit={(event) => event.preventDefault()}
             >
-                <Toolbar aria-label="Page navigation">
-                    <PageHistoryButtons view={null} />
-                </Toolbar>
                 <BrowserWorkspaceAddress
                     address={draft ?? ''}
                     editing={draft !== null}

@@ -1,0 +1,56 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "d736f3d2-e845-411b-8e25-001e670e11b0",
+    "linear-event": "Comment",
+    "linear-signature": "d01edefa25637c8274f8e2c0e218e0fb7ee260bd47bf540b773eaef05a945a4b",
+    "linear-timestamp": "1792083116424"
+  },
+  "body": {
+    "action": "create",
+    "actor": {
+      "id": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+      "name": "Zach Knickerbocker",
+      "email": "zknicker@gmail.com",
+      "avatarUrl": "https://public.linear.app/e007ac3a-dfb1-4742-8476-59a5e053fb35/c58722ed-a263-4fa6-9412-5a198424c57f",
+      "url": "https://linear.app/haus-chat/profiles/zknicker",
+      "type": "user"
+    },
+    "createdAt": "2026-10-15T16:51:56.187Z",
+    "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst#comment-e303cda0",
+    "type": "Comment",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "data": {
+      "id": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+      "createdAt": "2026-10-15T16:51:56.187Z",
+      "updatedAt": "2026-10-15T16:51:56.154Z",
+      "body": "@hausdev  Juniper, please draft three colourway prompts for this design.",
+      "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "userId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+      "reactionData": [],
+      "isArtificialAgentSessionRoot": false,
+      "botActor": null,
+      "user": {
+        "id": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "name": "Zach Knickerbocker",
+        "email": "zknicker@gmail.com",
+        "avatarUrl": "https://public.linear.app/e007ac3a-dfb1-4742-8476-59a5e053fb35/c58722ed-a263-4fa6-9412-5a198424c57f",
+        "url": "https://linear.app/haus-chat/profiles/zknicker"
+      },
+      "issue": {
+        "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+        "title": "Fixture: design HTST",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-11",
+        "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst"
+      }
+    },
+    "webhookTimestamp": 1792083116424,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

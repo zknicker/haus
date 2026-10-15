@@ -59,10 +59,31 @@ export async function packageHostedMcp(destination) {
     );
 }
 
+const linearSource = fileURLToPath(new URL('../apps/hosted-mcp-linear/', import.meta.url));
+
+/** The Linear connector compiles to one self-contained Bun binary; hosts install nothing. */
+export async function packageLinearHostedMcp(destination) {
+    const binary = path.join(destination, 'bin/hosted-mcp-linear');
+    await fs.rm(path.join(destination, 'bin'), { recursive: true, force: true });
+    await fs.mkdir(path.join(destination, 'bin'), { recursive: true });
+    execFileSync(
+        'bun',
+        ['build', path.join(linearSource, 'src/main.ts'), '--compile', '--outfile', binary],
+        { cwd: linearSource, stdio: 'inherit' }
+    );
+    execFileSync(
+        'bun',
+        [fileURLToPath(new URL('./verify-hosted-mcp-linear.ts', import.meta.url)), destination],
+        { stdio: 'inherit', env: { PATH: process.env.PATH } }
+    );
+}
+
 if (import.meta.main || process.argv[1] === fileURLToPath(import.meta.url)) {
-    const destination = process.argv[2];
+    const [first, second] = process.argv.slice(2);
+    const linear = first === 'linear';
+    const destination = linear ? second : first;
     if (!destination) {
-        throw new Error('Usage: package-hosted-mcp OUTPUT_DIRECTORY');
+        throw new Error('Usage: package-hosted-mcp [linear] OUTPUT_DIRECTORY');
     }
-    await packageHostedMcp(path.resolve(destination));
+    await (linear ? packageLinearHostedMcp : packageHostedMcp)(path.resolve(destination));
 }

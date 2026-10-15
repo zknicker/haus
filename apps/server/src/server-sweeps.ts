@@ -8,6 +8,7 @@ import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
 import type { GithubApp } from './github/github-app.ts';
 import { startGithubInstallationSweep } from './github/installation-sweep.ts';
 import type { HausServerShutdown } from './haus-server-shutdown.ts';
+import { startLinearRetentionSweep } from './linear/retention.ts';
 import type { HausDatabase } from './postgres/connection.ts';
 import { startMessagePush } from './push/message-push.ts';
 import type { PushSender } from './push/push-sender.ts';
@@ -33,6 +34,8 @@ interface ServerSweepsInput {
     githubIngest(delivery: GithubDelivery): Promise<GithubIngestOutcome>;
     /** Delivery recovery cadence; `null` turns recovery off (the test harness). */
     githubRecoveryIntervalMs?: number | null;
+    /** Linear's delivery and outbox workers and its hourly sweep (`linear/linear-runtime.ts`). */
+    linearWorkers?: (timers?: SweepTimers) => BootSweep;
     /** How long a push waits for its human to read the message elsewhere; tests shorten it. */
     pushReadGraceMs?: number;
     /** iPhone push; absent when no APNs key is configured. */
@@ -56,6 +59,7 @@ export async function startServerSweeps(
     const { artifactStorage, pushSender } = input;
     const sweeps: NamedSweep[] = [
         ...githubSweeps(runtime, input),
+        ...linearSweeps(input),
         ...(artifactStorage
             ? [
                   [
@@ -78,6 +82,7 @@ export async function startServerSweeps(
             'trigger-retention',
             () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
         ],
+        ['linear-retention', () => startLinearRetentionSweep(input.db, input.clock, input.timers)],
         [
             'execution-journal-retention',
             () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
@@ -109,6 +114,12 @@ export async function startServerSweeps(
 }
 
 type NamedSweep = readonly [name: string, start: () => BootSweep];
+
+/** Linear's workers and hourly sweep, when the Haus Linear app is configured. */
+function linearSweeps(input: ServerSweepsInput): NamedSweep[] {
+    const { linearWorkers } = input;
+    return linearWorkers ? [['linear-workers', () => linearWorkers(input.timers)]] : [];
+}
 
 /** The hourly installation sweep and the delivery recovery sweep. */
 function githubSweeps(runtime: EffectRuntime<never>, input: ServerSweepsInput): NamedSweep[] {

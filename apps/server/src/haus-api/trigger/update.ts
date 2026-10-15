@@ -1,6 +1,6 @@
 import { triggerResultSchema, triggerUpdateInputSchema } from '@haus/api';
 import { updateOperatorTrigger } from '../../triggers/operator-triggers.ts';
-import { triggerClock, triggerProcedure } from './procedure.ts';
+import { triggerAuthoring, triggerClock, triggerProcedure } from './procedure.ts';
 
 export const updateTriggerProcedure = triggerProcedure
     .input(triggerUpdateInputSchema)
@@ -11,6 +11,6 @@ export const updateTriggerProcedure = triggerProcedure
             ctx.member,
             { ...input, origin: ctx.requestOrigin },
             triggerClock,
-            ctx.githubApp?.transport
+            triggerAuthoring(ctx)
         )
     );

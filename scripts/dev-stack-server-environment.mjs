@@ -21,14 +21,14 @@ export function createDesktopDevEnvironment({ devStackEnvironment, ports }) {
     };
 }
 
+/** Builds every Server-owned connector the Server's catalog starts (`apps/server/src/haus-server.ts`). */
 export async function prepareHostedMcps(spawnBackground, environment) {
-    if (
-        !(await spawnBackground(
-            'haus',
-            'node scripts/package-hosted-mcp.mjs .context/hosted-mcp/skool',
-            environment
-        ))
-    ) {
-        throw new Error('Failed to prepare Server-owned hosted MCPs.');
+    for (const command of [
+        'node scripts/package-hosted-mcp.mjs .context/hosted-mcp/skool',
+        'node scripts/package-hosted-mcp.mjs linear .context/hosted-mcp/linear',
+    ]) {
+        if (!(await spawnBackground('haus', command, environment))) {
+            throw new Error('Failed to prepare Server-owned hosted MCPs.');
+        }
     }
 }

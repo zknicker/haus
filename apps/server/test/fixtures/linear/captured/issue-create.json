@@ -1,0 +1,61 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "04b68f44-7a3d-4f06-90b0-eec4b744f814",
+    "linear-event": "Issue",
+    "linear-signature": "184e753687bb75bc3c0b7dba21531b4dab5b3d794684a6c08fabf8c9d90bb047",
+    "linear-timestamp": "1792083060003"
+  },
+  "body": {
+    "action": "create",
+    "actor": {
+      "id": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "name": "Haus Dev",
+      "email": "c639344c-21df-41e2-9777-8dc93d249999@oauthapp.linear.app",
+      "url": "https://linear.app/haus-chat/profiles/hausdev",
+      "type": "user"
+    },
+    "createdAt": "2026-10-15T16:50:59.741Z",
+    "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst",
+    "type": "Issue",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "data": {
+      "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "createdAt": "2026-10-15T16:50:59.741Z",
+      "updatedAt": "2026-10-15T16:50:59.741Z",
+      "number": 11,
+      "title": "Fixture: design HTST",
+      "priority": 0,
+      "sortOrder": -7108,
+      "prioritySortOrder": -7045,
+      "slaType": "all",
+      "addedToTeamAt": "2026-10-15T16:50:59.779Z",
+      "labelIds": [],
+      "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+      "previousIdentifiers": [],
+      "stateId": "340d058a-af9f-4acf-91b9-0df552ef20bf",
+      "reactionData": [],
+      "priorityLabel": "No priority",
+      "inheritsSharedAccess": false,
+      "botActor": "{\"id\":\"af943b1c0c19bc247d377df9ec5b4313\",\"type\":\"oauthClient\",\"name\":\"Haus Dev\",\"userDisplayName\":\"Juniper\"}",
+      "identifier": "HTST-11",
+      "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst",
+      "subscriberIds": [],
+      "state": {
+        "id": "340d058a-af9f-4acf-91b9-0df552ef20bf",
+        "color": "#bec2c8",
+        "name": "Backlog",
+        "type": "backlog"
+      },
+      "team": {
+        "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "key": "HTST",
+        "name": "Haus Test"
+      },
+      "labels": [],
+      "releases": []
+    },
+    "webhookTimestamp": 1792083060003,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

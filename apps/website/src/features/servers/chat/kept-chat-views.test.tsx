@@ -87,18 +87,21 @@ test('a hidden kept view takes its band (a portal) off screen in the same commit
     const show = (chatId: string) =>
         act(() =>
             root.render(
-                <TopbarProvider>
-                    <ShellTopbar />
-                    <KeptChatViews
-                        chatId={chatId}
-                        renderChat={(id) => (
-                            <PageTopbar>
-                                <h1>{id}</h1>
-                            </PageTopbar>
-                        )}
-                        serverId="s"
-                    />
-                </TopbarProvider>
+                // Inside a desktop tab, where kept chat views run (and the band has no chevrons).
+                <TabIdContext value="tab">
+                    <TopbarProvider>
+                        <ShellTopbar />
+                        <KeptChatViews
+                            chatId={chatId}
+                            renderChat={(id) => (
+                                <PageTopbar>
+                                    <h1>{id}</h1>
+                                </PageTopbar>
+                            )}
+                            serverId="s"
+                        />
+                    </TopbarProvider>
+                </TabIdContext>
             )
         );
 

@@ -6,7 +6,7 @@ import { type InboxItemRow, inboxItemColumns, inboxOrder, queuedFor } from './st
 
 // The automation chain budget (specs/github-triggers.md#automation-chain-budget).
 // A drain made only of automation-authored work (Agent messages, Trigger fires,
-// Trigger problem notices) spends one turn; any other work (a human message, a
+// Trigger problem notices, Haus-caused Linear session events) spends one turn; any other work (a human message, a
 // Reminder, a task assignment) resets the chain. At the ceiling the drain
 // holds until a human speaks. A chain that has sat idle for half an hour below
 // the ceiling restarts, so spaced, legitimate fires never accumulate.
@@ -25,12 +25,22 @@ export interface AgentChain {
     agentChainTurns: number;
 }
 
+/**
+ * Automation-authored typed sources. Agent messages (`agent:*`) are the rest.
+ * A Linear session event caused by a Haus write is automation; one caused by
+ * a person (`linear_session`) resets the chain like a human message.
+ */
+const automationInboxSources = [
+    'trigger',
+    'trigger_problem',
+    'image_generation_failed',
+    'linear_session_automated',
+] as const;
+
 export function isAutomationAuthored(row: AuthoredWork): boolean {
     return (
         row.source.startsWith('agent:') ||
-        row.source === 'trigger' ||
-        row.source === 'trigger_problem' ||
-        row.source === 'image_generation_failed'
+        (automationInboxSources as readonly string[]).includes(row.source)
     );
 }
 
@@ -174,11 +184,7 @@ async function findOldestQueuedChainResetItem(
             and(
                 queuedFor(agentId),
                 notLike(agentInboxTable.source, 'agent:%'),
-                notInArray(agentInboxTable.source, [
-                    'trigger',
-                    'trigger_problem',
-                    'image_generation_failed',
-                ]),
+                notInArray(agentInboxTable.source, [...automationInboxSources]),
                 or(
                     inArray(agentInboxTable.source, [...concreteInboxSources]),
                     isNull(agentInboxTable.noticeRunId)

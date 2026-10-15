@@ -1,0 +1,87 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "1494fca3-b85f-46b2-bbb3-b5ab12f1eb04",
+    "linear-event": "AgentSessionEvent",
+    "linear-signature": "ab2011a2af904f3aec9dfd4231144e8544cfd635f944803a116a748b990836c6",
+    "linear-timestamp": "1792083116920"
+  },
+  "body": {
+    "type": "AgentSessionEvent",
+    "action": "created",
+    "createdAt": "2026-10-15T16:51:56.876Z",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "oauthClientId": "af943b1c0c19bc247d377df9ec5b4313",
+    "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+    "agentSession": {
+      "id": "e516dcd3-24bf-46cd-a928-112bffcb36d5",
+      "createdAt": "2026-10-15T16:51:56.377Z",
+      "updatedAt": "2026-10-15T16:51:56.377Z",
+      "archivedAt": null,
+      "creatorId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+      "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "commentId": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+      "sourceCommentId": null,
+      "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "pullRequestId": null,
+      "slugId": "5e56b26d0ead4",
+      "status": "pending",
+      "startedAt": null,
+      "endedAt": null,
+      "dismissedAt": null,
+      "dismissedById": null,
+      "externalLink": null,
+      "summary": null,
+      "sourceMetadata": {
+        "type": "comment",
+        "agentSessionMetadata": {
+          "sourceCommentId": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7"
+        }
+      },
+      "modelSelection": null,
+      "plan": null,
+      "workspaceDiff": null,
+      "context": [],
+      "url": "https://linear.app/haus-chat/agent-session/e516dcd3-24bf-46cd-a928-112bffcb36d5",
+      "externalUrls": [],
+      "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+      "creator": {
+        "id": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "name": "Zach Knickerbocker",
+        "email": "zknicker@gmail.com",
+        "avatarUrl": "https://public.linear.app/e007ac3a-dfb1-4742-8476-59a5e053fb35/c58722ed-a263-4fa6-9412-5a198424c57f",
+        "url": "https://linear.app/haus-chat/profiles/zknicker"
+      },
+      "comment": {
+        "id": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+        "body": "@hausdev  Juniper, please draft three colourway prompts for this design.",
+        "userId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643"
+      },
+      "issue": {
+        "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+        "title": "Fixture: design HTST",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-11",
+        "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst"
+      }
+    },
+    "previousComments": [
+      {
+        "id": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+        "body": "@hausdev  Juniper, please draft three colourway prompts for this design.",
+        "userId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643"
+      }
+    ],
+    "guidance": null,
+    "promptContext": "<issue identifier=\"HTST-11\">\n<title>Fixture: design HTST</title>\n<team name=\"Haus Test\"/>\n<label>Agent \u203a Juniper</label>\n</issue>\n\n<primary-directive-thread comment-id=\"e303cda0-ae96-4e1d-bde5-fa6f2a2624a7\"><comment author=\"Zach Knickerbocker\" created-at=\"2026-10-15T16:51:56.187Z\"><user id=\"ea30be86-13ea-4566-9ef5-1b8a0f411298\" notify>hausdev</user>  Juniper, please draft three colourway prompts for this design.</comment></primary-directive-thread>\n\n<other-thread comment-id=\"d5975934-78e1-470d-a31e-fdbf1cac23b4\"><comment created-at=\"2026-10-15T16:51:05.036Z\">Fixture comment</comment></other-thread>",
+    "webhookTimestamp": 1792083116920,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

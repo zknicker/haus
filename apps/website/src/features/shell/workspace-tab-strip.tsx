@@ -8,16 +8,20 @@ import { SortableTabList } from './sortable-tab-list.tsx';
 
 /**
  * One pane's tab row in the window band (ADR 0039): its sortable tabs, then
- * New tab (the new tab page, in this pane). The row always shows, even with one tab.
+ * New tab (the new tab page, in this pane). With two panes the focused one's
+ * row is marked (`data-focused`), so it is clear which pane the window's Back
+ * and Forward, ⌘T, and ⌘W act on. The row always shows, even with one tab.
  * Pressing anywhere on it makes its pane the focused one. A dragged tab finds
  * the row by `data-tab-row` (`tab-drag/`).
  */
 export function WorkspaceTabStrip({ label, pane }: { label: string; pane: PaneSide }) {
     const tabs = useDesktopTabs();
     const focusRow = () => tabs.focusPane(pane);
+    const split = tabs.state.secondary !== null;
     return (
         <div
             className="workspace-tabs"
+            data-focused={(split && tabs.state.focusedPane === pane) || undefined}
             data-pane={pane}
             data-tab-row={pane}
             onFocusCapture={focusRow}

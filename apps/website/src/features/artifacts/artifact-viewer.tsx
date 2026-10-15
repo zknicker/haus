@@ -2,13 +2,13 @@ import { artifactPathParent } from '@haus/api';
 import * as React from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
+import type { BandCrumb } from '../shell/band-trail.ts';
+import { PageBand } from '../shell/page-band.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
-import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { ArtifactInspector } from './artifact-inspector.tsx';
 import { ArtifactPreview } from './artifact-preview.tsx';
 import { ArtifactViewerHeader } from './artifact-viewer-header.tsx';
-import { type ArtifactsCrumb, ArtifactsTopbar } from './artifacts-topbar.tsx';
 import { artifactFolderCrumbs } from './drive-folders.ts';
 import { rememberLibraryItem } from './library-focus.ts';
 import {
@@ -68,13 +68,12 @@ export function ArtifactViewer({
 
     return (
         <ArtifactActionsContext value={actions}>
-            <PageTopbar>
-                <ArtifactsTopbar
+            <PageBand>
+                <PageBand.Trail
                     crumbs={artifact ? artifactViewerCrumbs(slug, artifact.path) : []}
                     current={artifact?.filename ?? ''}
-                    slug={slug}
                 />
-            </PageTopbar>
+            </PageBand>
             <div
                 className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
                 ref={scrollRef}
@@ -149,7 +148,7 @@ function useRevisionsAnchor(page: React.RefObject<HTMLElement | null>, ready: bo
 }
 
 /** Artifacts, then each folder above the file, every one opening that place in the library. */
-function artifactViewerCrumbs(slug: string, path: string): ArtifactsCrumb[] {
+function artifactViewerCrumbs(slug: string, path: string): BandCrumb[] {
     const root = { creator: null, folder: '', kind: 'all' } as const;
     return [
         { href: libraryHref(slug, root), label: 'Files' },

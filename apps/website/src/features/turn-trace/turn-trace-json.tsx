@@ -115,7 +115,10 @@ function TraceJsonRow({
                         ) : (
                             <span aria-hidden className="w-4 shrink-0" />
                         )}
-                        <span className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                        <span
+                            className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                            data-selectable-text=""
+                        >
                             <TraceJsonKey node={node} />
                             {'summary' in node ? (
                                 isExpanded ? null : (

@@ -22,8 +22,8 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4552,
-      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, conversation-style, create signature-emoji, human-timezone, Agent sender-timezone, linked Cloud Agent work, webhook-or-GitHub Trigger union, Agent GitHub installations, trigger edits, selection preview, and Agent send failed-image-generation contracts."
+      "maxLines": 4723,
+      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, conversation-style, create signature-emoji, human-timezone, Agent sender-timezone, linked Cloud Agent work, webhook-or-GitHub Trigger union, Agent GitHub installations, trigger edits, selection preview, Agent send failed-image-generation, linear Trigger, and Agent Linear workspaces contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
       "maxLines": 2300,
@@ -82,7 +82,7 @@
     "apps/website/src/features/mentions/mention-editor.tsx": 419,
     "apps/website/src/features/mentions/mention-text.test.ts": 474,
     "apps/website/src/features/mentions/use-mention-composer.tsx": 366,
-    "apps/website/src/features/servers/chat/chat-search.tsx": 338,
+    "apps/website/src/features/servers/chat/chat-search.tsx": 333,
     "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
     "packages/haus-api/src/agent-runner.ts": 432,
     "packages/haus-api/src/agent.ts": 304,

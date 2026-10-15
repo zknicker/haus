@@ -12,7 +12,8 @@ import type { TriggerClock } from './trigger-model.ts';
 
 const sweepIntervalMs = 60 * 60 * 1000;
 const retentionMs = TRIGGER_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-const githubDeliveryRetentionMs = 7 * 24 * 60 * 60 * 1000;
+const dayMs = 24 * 60 * 60 * 1000;
+const githubDeliveryRetentionMs = 7 * dayMs;
 
 /**
  * Deletes expired Trigger history without deleting an Agent's unfinished work.

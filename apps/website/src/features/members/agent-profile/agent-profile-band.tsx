@@ -1,64 +1,55 @@
 import type { Agent } from '@haus/api';
-import { Breadcrumbs } from '@heroui/react';
 import type * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { inboxRoute } from '../../servers/server-routes.ts';
-import { SectionHeader } from '../../shell/section-header.tsx';
-import { PageTopbar } from '../../shell/shell-topbar.tsx';
+import { BandBreadcrumbs } from '../../shell/band-breadcrumbs.tsx';
+import type { BandCrumb } from '../../shell/band-trail.ts';
+import { PageBand } from '../../shell/page-band.tsx';
 import { AgentActionsMenu } from './agent-actions-menu.tsx';
 import { canRunAgentActions } from './agent-actions-model.ts';
 
-/** Matches the 16px glyph Settings and the Inbox lead their band trails with. */
-const trailMarkSize = 16;
+/**
+ * The Agent's crumb: its face and name. An Agent is a first-class record with
+ * no list page above it, so it stands where a section does: Haus › Juniper.
+ * It returns to the hub while a section is open; on the hub it is the current
+ * crumb.
+ */
+function agentCrumb(agent: Agent, onHome?: () => void): BandCrumb {
+    return {
+        label: agent.displayName,
+        mark: <EntityAvatar name={agent.displayName} size={16} src={agent.avatarUrl} />,
+        onPress: onHome,
+    };
+}
 
 /**
- * The Agent profile's band trail, in Settings' band shape: the Agent's face,
- * then Haus › Juniper › section crumbs. The Agent crumb returns to the hub
- * while a section is open; on the hub it is the current crumb.
+ * The Agent Workspace's trail, for a bar the Workspace draws itself:
+ * Haus › Juniper › `children` (its root and open-file crumbs).
  */
 export function AgentTrail({
     agent,
     children,
     onHome,
-    serverSlug,
 }: {
     agent: Agent;
-    /** Section crumbs after the Agent's; none on the hub. */
-    children?: React.ReactNode;
-    onHome?: () => void;
-    serverSlug: string;
+    children: React.ReactNode;
+    onHome: () => void;
 }) {
-    return (
-        <div className="flex min-w-0 shrink items-center gap-2">
-            <EntityAvatar name={agent.displayName} size={trailMarkSize} src={agent.avatarUrl} />
-            <Breadcrumbs className="min-w-0">
-                <Breadcrumbs.Item href={inboxRoute(serverSlug)}>Haus</Breadcrumbs.Item>
-                <Breadcrumbs.Item onPress={onHome}>{agent.displayName}</Breadcrumbs.Item>
-                {children}
-            </Breadcrumbs>
-        </div>
-    );
+    return <BandBreadcrumbs crumbs={[agentCrumb(agent, onHome)]}>{children}</BandBreadcrumbs>;
 }
 
-/**
- * The hub's band: the trail's root, which titles the page on the web like
- * every other routed destination. It is SectionHeader's `leading`, so inside a
- * desktop tab — which already names the Agent — it drops and the band
- * collapses.
- */
-export function AgentHubBand({ agent, serverSlug }: { agent: Agent; serverSlug: string }) {
+/** The hub's band: Haus › Juniper. */
+export function AgentHubBand({ agent }: { agent: Agent }) {
     return (
-        <PageTopbar>
-            <SectionHeader leading={<AgentTrail agent={agent} serverSlug={serverSlug} />} />
-        </PageTopbar>
+        <PageBand>
+            <PageBand.Trail current={agentCrumb(agent)} />
+        </PageBand>
     );
 }
 
 /**
  * A drill-down section's band: the trail back to the hub, with the lifecycle
- * menu at its far end so every section reaches it. A section's trail is more
- * specific than its tab, so it shows on desktop too.
+ * menu at its far end so every section reaches it.
  */
 export function AgentSectionBand({
     agent,
@@ -74,20 +65,18 @@ export function AgentSectionBand({
     server: ServerDetail;
 }) {
     return (
-        <PageTopbar>
-            <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                <AgentTrail agent={agent} onHome={onHome} serverSlug={server.slug}>
-                    <Breadcrumbs.Item>{label}</Breadcrumbs.Item>
-                </AgentTrail>
-                {canRunAgentActions(server.role) ? (
+        <PageBand>
+            <PageBand.Trail crumbs={[agentCrumb(agent, onHome)]} current={label} />
+            {canRunAgentActions(server.role) ? (
+                <PageBand.Controls>
                     <AgentActionsMenu
                         agent={agent}
                         onDeleted={onDeleted}
                         server={server}
                         variant="ghost"
                     />
-                ) : null}
-            </div>
-        </PageTopbar>
+                </PageBand.Controls>
+            ) : null}
+        </PageBand>
     );
 }

@@ -7,13 +7,20 @@ import type {
 } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { GithubApiTransport } from '../github/github-api.ts';
-import type { GithubTriggerProblemEntered } from '../github/trigger-problems.ts';
+import type { LinearTriggerConfigAuthoring } from '../linear/trigger-references.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { updateGithubTriggerRow } from './github-trigger-writes.ts';
-import { TriggerAccessDeniedError, type TriggerClock } from './trigger-model.ts';
+import type { LinearAuthoringDependencies } from './linear-trigger-config.ts';
+import { updateLinearTriggerRow } from './linear-trigger-writes.ts';
+import {
+    TriggerAccessDeniedError,
+    type TriggerClock,
+    TriggerRequestRefusedError,
+} from './trigger-model.ts';
+import type { TriggerProblemEntered } from './trigger-problem-arm.ts';
 import { listTriggerFires, readTrigger, triggerRows, viewTrigger } from './trigger-queries.ts';
 import {
     deleteTriggerRow,
@@ -27,6 +34,12 @@ import {
  * only a Server Owner or Admin may read or change them, and the row work is the
  * same core the Agent path uses.
  */
+
+/** What `github` and `linear` authoring reach outside Haus with. */
+export interface TriggerAuthoringServices {
+    githubTransport: GithubApiTransport;
+    linear: LinearAuthoringDependencies;
+}
 
 export interface OperatorTriggerInput {
     origin: string;
@@ -108,7 +121,7 @@ export async function setOperatorTriggerStatus(
     member: HausUser | null,
     input: OperatorTriggerInput & { status: TriggerStatus },
     clock: TriggerClock
-): Promise<{ entered: GithubTriggerProblemEntered[]; trigger: Trigger }> {
+): Promise<{ entered: TriggerProblemEntered[]; trigger: Trigger }> {
     return await setTriggerStatusRow(db, input, operatorCheck(member, input), clock);
 }
 
@@ -122,16 +135,34 @@ export async function updateOperatorTrigger(
     input: OperatorTriggerInput & {
         github?: GithubTriggerConfigInput;
         instruction?: string | null;
+        linear?: LinearTriggerConfigAuthoring;
         title?: string;
     },
     clock: TriggerClock,
-    githubTransport: GithubApiTransport = {}
+    services: TriggerAuthoringServices
 ): Promise<{ trigger: Trigger }> {
+    if (input.github !== undefined && input.linear !== undefined) {
+        throw new TriggerRequestRefusedError(
+            'trigger_kind_mismatch',
+            'A Trigger is either GitHub or Linear; send one configuration.'
+        );
+    }
+    if (input.linear !== undefined) {
+        await requireTriggerOperator(db, member, input.serverId);
+        return {
+            trigger: await updateLinearTriggerRow(
+                services.linear,
+                { ...input, linear: input.linear },
+                operatorCheck(member, input),
+                clock
+            ),
+        };
+    }
     if (input.github !== undefined) {
         await requireTriggerOperator(db, member, input.serverId);
         return {
             trigger: await updateGithubTriggerRow(
-                { db, transport: githubTransport },
+                { db, transport: services.githubTransport },
                 { ...input, github: input.github },
                 operatorCheck(member, input),
                 clock

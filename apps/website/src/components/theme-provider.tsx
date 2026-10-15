@@ -7,7 +7,7 @@ import {
     useMemo,
     useState,
 } from 'react';
-import { setCurrentWindowTheme } from '../lib/window-drag.ts';
+import { getDesktopBridge } from '../lib/desktop-bridge.ts';
 
 export type ThemePreference = 'dark' | 'light' | 'system';
 export type ResolvedTheme = Exclude<ThemePreference, 'system'>;
@@ -61,7 +61,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
             document.documentElement.classList.toggle('dark', nextResolvedTheme === 'dark');
             window.localStorage.setItem(storageKey, theme);
             setResolvedTheme(nextResolvedTheme);
-            void setCurrentWindowTheme(theme === 'system' ? null : theme);
+            void getDesktopBridge()?.setTheme(theme === 'system' ? null : theme);
         };
 
         applyTheme();

@@ -1,0 +1,13 @@
+{
+  "type": "PermissionChange",
+  "action": "teamAccessChanged",
+  "createdAt": "2026-10-15T12:00:00.000Z",
+  "organizationId": "org-fixture",
+  "oauthClientId": "client-haus-dev",
+  "appUserId": "app-user-haus",
+  "addedTeamIds": ["team-ops"],
+  "removedTeamIds": [],
+  "canAccessAllPublicTeams": false,
+  "webhookId": "webhook-fixture",
+  "webhookTimestamp": 1792080000000
+}

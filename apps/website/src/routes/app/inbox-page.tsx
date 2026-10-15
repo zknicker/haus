@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { InboxHeader } from '../../features/servers/inbox/inbox-header.tsx';
 import { InboxSection, InboxSectionPending } from '../../features/servers/inbox/inbox-section.tsx';
-import { InboxTopbar } from '../../features/servers/inbox/inbox-topbar.tsx';
+import { PageBand } from '../../features/shell/page-band.tsx';
 import { PageColumn } from '../../features/shell/page-column.tsx';
-import { PageTopbar } from '../../features/shell/shell-topbar.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { serverRouteModules } from './server-route-modules.ts';
 
@@ -37,7 +36,8 @@ const CloudAgentWorkDialog = React.lazy(async () => ({
  * three at once.
  *
  * The page fills the shell band like every other routed destination
- * (`InboxTopbar`): the route's glyph and a single "Inbox" crumb where you are.
+ * (`PageBand`): "Haus › Inbox", and nothing at the trailing end — the day was
+ * tried there and read as a fact torn from the greeting it belongs to.
  * That is what lets the column stay stock — the greeting opens the page at the
  * ordinary top inset rather than rising into an empty band and measuring its
  * own offset off the frame's edge.
@@ -47,9 +47,9 @@ export function InboxPage() {
 
     return (
         <>
-            <PageTopbar>
-                <InboxTopbar />
-            </PageTopbar>
+            <PageBand>
+                <PageBand.Trail current="Inbox" />
+            </PageBand>
             {/* The page's own scroller: the shell frame clips, and every routed
                 page that outgrows it scrolls itself (Tasks, Settings, Agent profile). */}
             <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">

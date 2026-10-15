@@ -83,7 +83,8 @@ Cloudflare requires sign-in and an explicit Agent access grant.
 Linear connects to its [official MCP](https://linear.app/docs/mcp) at
 `https://mcp.linear.app/mcp` through OAuth with dynamic client registration. It exposes issue,
 project, and comment tools. Adding it requires sign-in and an explicit Agent access grant;
-no Server OAuth client credentials are required.
+no Server OAuth client credentials are required. A Haus Linear app with Agent identity and
+workflow-setup tools is drafted in [Linear app](../../specs/linear-app.md).
 
 Vercel is not a built-in connection. Previously saved Vercel accounts remain custom MCP
 connections, retaining their credentials and Agent grants. Its official MCP requires approval of

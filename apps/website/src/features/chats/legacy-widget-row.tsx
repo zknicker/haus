@@ -62,7 +62,10 @@ function WidgetFallback({ error, text }: { error: string | null; text: string })
             )}
             role="note"
         >
-            <p className="whitespace-pre-wrap break-words text-foreground [overflow-wrap:anywhere]">
+            <p
+                className="whitespace-pre-wrap break-words text-foreground [overflow-wrap:anywhere]"
+                data-selectable-text=""
+            >
                 {text}
             </p>
             {error ? <p className="mt-1 text-muted text-sm">Widget unavailable.</p> : null}

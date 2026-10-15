@@ -121,7 +121,6 @@ export interface HausDesktopBridge {
     setDockBadge?: (count: number) => Promise<void>;
     setTheme: (theme: 'dark' | 'light' | null) => Promise<void>;
     skoolLogin?: (viewId: string) => Promise<unknown>;
-    startWindowDrag: () => Promise<void>;
     /**
      * Tab drag between windows (ADR 0039, `lib/desktop-tab-drag.ts`). A torn-off window claims
      * the tabs it opened with (a `TabBundle`), synchronously, before its first render; null when

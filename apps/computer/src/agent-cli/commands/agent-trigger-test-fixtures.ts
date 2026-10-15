@@ -39,6 +39,34 @@ export const githubTrigger = {
     version: 1,
 };
 
+const { github: _github, ...triggerBase } = githubTrigger;
+
+export const linearTrigger = {
+    ...triggerBase,
+    id: 'trg_ln',
+    kind: 'linear',
+    linear: {
+        connectionId: 'mcp_linear',
+        display: { 'state-review': 'Design Review', 'team-des': 'Design' },
+        groups: [
+            {
+                actions: ['update'],
+                changed: ['state'],
+                delegates: [{ agent: 'agt_test' }],
+                event: 'issue',
+                stateTo: ['state-review'],
+                teams: ['team-des'],
+            },
+        ],
+        problem: 'teams_unavailable',
+        problemSince: '2026-10-15T11:00:00.000Z',
+        selfSuppressedCount: 3,
+        suppressedCount: 1,
+        workspaceName: 'Haus',
+    },
+    title: 'Design needs review',
+};
+
 export function args(
     values: Record<string, string>,
     lists: Record<string, string[]> = {}

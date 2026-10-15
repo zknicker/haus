@@ -1,4 +1,12 @@
 import { Duration, Effect, type Exit, Option, Ref, Scope } from 'effect';
+import type { FastifyInstance } from 'fastify';
+import type { startComputerAttachmentSocket } from './computers/socket.ts';
+import type { startHausWebSocketServer } from './haus-api/ws.ts';
+import type { HausConnection } from './postgres/connection.ts';
+import type { ServerRecurringWork } from './recurring-work.ts';
+import type { McpRuntime } from './server-mcp/runtime.ts';
+import type { ServerPostCommitWork } from './server-post-commit-work.ts';
+import type { startVoiceSocket } from './voice/voice-socket.ts';
 
 export interface HausServerShutdownResources {
     broadcastReconnectNotification(): void;
@@ -11,6 +19,70 @@ export interface HausServerShutdownResources {
     closePostCommitWork(): Promise<void>;
     closeRecurringWork(): Promise<void>;
     closeWebSocketServer(): Promise<void> | void;
+}
+
+/**
+ * What the application has started so far. Startup fills these in order; a
+ * failure part way tears down only what exists.
+ */
+export interface HausServerHandles {
+    app: FastifyInstance | null;
+    computerSocket: ReturnType<typeof startComputerAttachmentSocket> | null;
+    haus: HausConnection | null;
+    mcpRuntime: McpRuntime | null;
+    postCommitWork: ServerPostCommitWork | null;
+    recurringWork: ServerRecurringWork | null;
+    voiceSocket: ReturnType<typeof startVoiceSocket> | null;
+    webSocketServer: ReturnType<typeof startHausWebSocketServer> | null;
+}
+
+export function emptyHausServerHandles(): HausServerHandles {
+    return {
+        app: null,
+        computerSocket: null,
+        haus: null,
+        mcpRuntime: null,
+        postCommitWork: null,
+        recurringWork: null,
+        voiceSocket: null,
+        webSocketServer: null,
+    };
+}
+
+/**
+ * Teardown over whatever `handles` holds when it runs. `closeHostedMcps`
+ * ends hosted MCP processes in their own bounded step.
+ */
+export function hausServerShutdownResources(
+    handles: HausServerHandles,
+    closeHostedMcps: () => Promise<void>
+): HausServerShutdownResources {
+    return {
+        broadcastReconnectNotification: () =>
+            handles.webSocketServer?.broadcastReconnectNotification(),
+        closeComputerSocket: () => handles.computerSocket?.close(),
+        closeDatabase: async () => {
+            await handles.haus?.close();
+        },
+        closeFastify: async () => {
+            await handles.app?.close();
+        },
+        closeHostedMcps,
+        closeHttpConnections: () => handles.app?.server.closeAllConnections(),
+        closeMcpClients: async () => {
+            await handles.mcpRuntime?.close();
+        },
+        closePostCommitWork: async () => {
+            await handles.postCommitWork?.close();
+        },
+        closeRecurringWork: async () => {
+            await handles.recurringWork?.close();
+        },
+        closeWebSocketServer: async () => {
+            await handles.voiceSocket?.close();
+            handles.webSocketServer?.close();
+        },
+    };
 }
 
 export interface HausServerShutdownOptions {

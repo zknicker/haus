@@ -64,7 +64,7 @@ export const ReferenceMarkdown = React.memo(
 
         return (
             <ReferenceLinksContext value={links}>
-                <Markdown className={className} components={components}>
+                <Markdown className={className} components={components} data-selectable-text="">
                     {escapeBareOrderedMarkers(prepared.content)}
                 </Markdown>
             </ReferenceLinksContext>

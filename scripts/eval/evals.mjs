@@ -6,9 +6,10 @@
 import { UsageError } from './args.mjs';
 import {
     attentionProfiles,
+    githubTriggerProfiles,
+    linearTriggerProfiles,
     placementJudge,
     placementProfiles,
-    triggerProfiles,
 } from './profiles.mjs';
 
 export const evals = {
@@ -64,16 +65,22 @@ export const evals = {
         summary:
             'Agents launch and link cloud work, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
     },
-    // GitHub Triggers on an installation seeded on the eval stack itself: no
-    // GitHub account. Serial: both scenarios seed an `acme` installation, and
-    // an Agent resolves its Trigger account by login.
+    // GitHub and Linear Triggers on a GitHub installation and a Linear workspace
+    // seeded on the eval stack itself: no GitHub or Linear account. The Linear
+    // fake behind HAUS_LINEAR_API_ORIGIN resolves names. Serial: the GitHub
+    // scenarios share an `acme` installation and the Linear ones the fake's port.
     triggers: {
         judge: null,
         lanes: 1,
-        profiles: triggerProfiles,
-        scenarios: ['github-trigger-ci-setup', 'github-trigger-fire-reply'],
+        profiles: { ...githubTriggerProfiles, ...linearTriggerProfiles },
+        scenarios: [
+            'github-trigger-ci-setup',
+            'github-trigger-fire-reply',
+            'linear-trigger-setup',
+            'linear-trigger-fire-reply',
+        ],
         summary:
-            'Agents set up a GitHub Trigger for CI failures from a plain ask and answer its fire once, top level, with --cause.',
+            'Agents set up a GitHub CI-failure or Linear state-transition Trigger from a plain ask and answer its fire once, top level, with --cause.',
     },
 };
 

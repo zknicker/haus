@@ -1,0 +1,56 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "d47985b6-ce2c-4a0d-a376-c702f5479718",
+    "linear-event": "AppUserNotification",
+    "linear-signature": "d6b538ad83c99270cd0d96c1c55c669e32a1fef0a93c9f9d7e93e166ebc608f9",
+    "linear-timestamp": "1792083116660"
+  },
+  "body": {
+    "type": "AppUserNotification",
+    "action": "issueCommentMention",
+    "createdAt": "2026-10-15T16:51:56.613Z",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "oauthClientId": "af943b1c0c19bc247d377df9ec5b4313",
+    "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+    "notification": {
+      "id": "2dad045f-3597-4cf3-bd0b-9d066af492c7",
+      "createdAt": "2026-10-15T16:51:56.489Z",
+      "updatedAt": "2026-10-15T16:51:56.489Z",
+      "archivedAt": null,
+      "type": "issueCommentMention",
+      "actorId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+      "externalUserActorId": null,
+      "userId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "issue": {
+        "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+        "title": "Fixture: design HTST",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-11",
+        "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst"
+      },
+      "commentId": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+      "comment": {
+        "id": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+        "body": "@hausdev  Juniper, please draft three colourway prompts for this design.",
+        "userId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643"
+      },
+      "actor": {
+        "id": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "name": "Zach Knickerbocker",
+        "email": "zknicker@gmail.com",
+        "avatarUrl": "https://public.linear.app/e007ac3a-dfb1-4742-8476-59a5e053fb35/c58722ed-a263-4fa6-9412-5a198424c57f",
+        "url": "https://linear.app/haus-chat/profiles/zknicker"
+      }
+    },
+    "webhookTimestamp": 1792083116660,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

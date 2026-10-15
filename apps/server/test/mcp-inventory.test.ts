@@ -8,7 +8,8 @@ import {
     mcpConnectionsTable,
     serversTable,
 } from '../src/postgres/schema.ts';
-import { emptySecret, McpRuntime } from '../src/server-mcp/runtime.ts';
+import { emptySecret } from '../src/server-mcp/connection-secret.ts';
+import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
 import { startControlledToolMcp } from './controlled-tool-mcp.ts';

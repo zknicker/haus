@@ -70,10 +70,10 @@ test('renders an active Agent as an implicit DM without a Chat row', () => {
     expect(markup.match(/Blippy/g)?.length).toBeGreaterThan(0);
 });
 
-test('keeps a draggable channel row out of native window dragging without a handle', () => {
+test('renders a draggable channel row without a handle', () => {
     const markup = renderNavigation({ chats: [channel()] });
 
-    expect(markup).toContain('no-drag sortable-channel-row');
+    expect(markup).toContain('sortable-channel-row');
     expect(markup).not.toContain('Reorder');
     expect(markup).toContain('--channel-color-light:#7c3aed');
     expect(markup).toContain('--channel-color-dark:#a78bfa');

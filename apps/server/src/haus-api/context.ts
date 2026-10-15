@@ -9,6 +9,7 @@ import type { ComputerConnections } from '../computers/connections.ts';
 import type { GithubApp } from '../github/github-app.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
+import type { LinearRuntime } from '../linear/linear-runtime.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { McpIconResolver } from '../server-mcp/icons.ts';
@@ -51,6 +52,8 @@ export interface HausContext {
     /** The Haus GitHub App, or null when its credentials are not configured. */
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
+    /** The Linear app (or null), its single refresh owner, and the tool transport. */
+    linear: LinearRuntime;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
@@ -91,6 +94,8 @@ export interface HausContextDependencies {
     computerReleaseManifestUrl: string;
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
+    /** The Linear app (or null), its single refresh owner, and the tool transport. */
+    linear: LinearRuntime;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;

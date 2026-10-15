@@ -1,0 +1,42 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "b40a7cbf-526c-4624-88cb-a0b06a7ffadf",
+    "linear-event": "AppUserNotification",
+    "linear-signature": "e533b839dd07c00fce9cb289a885873ec23a06e59e4d5dd3e8b3bb66d5083a5d",
+    "linear-timestamp": "1792083067413"
+  },
+  "body": {
+    "type": "AppUserNotification",
+    "action": "issueSubscribed",
+    "createdAt": "2026-10-15T16:51:07.310Z",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "oauthClientId": "af943b1c0c19bc247d377df9ec5b4313",
+    "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+    "notification": {
+      "id": "903f2a56-1902-4e9e-80d4-08f1387ae399",
+      "createdAt": "2026-10-15T16:51:07.147Z",
+      "updatedAt": "2026-10-15T16:51:07.147Z",
+      "archivedAt": null,
+      "type": "issueSubscribed",
+      "actorId": null,
+      "externalUserActorId": null,
+      "userId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "issue": {
+        "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+        "title": "Fixture: design HTST",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-11",
+        "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst"
+      }
+    },
+    "webhookTimestamp": 1792083067413,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

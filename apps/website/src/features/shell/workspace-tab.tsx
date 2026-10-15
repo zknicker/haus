@@ -29,7 +29,7 @@ export function WorkspaceTab({
     return (
         <div
             {...rest}
-            className={cn('workspace-tab no-drag', className)}
+            className={cn('workspace-tab', className)}
             data-active={active}
             data-kind={kind}
             ref={ref}

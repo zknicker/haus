@@ -18,10 +18,11 @@ public enum AutomationFormatting {
     }
 
     /// Armed is the norm and carries no badge; disabled is a state a row speaks
-    /// up about, and so is an armed GitHub Trigger whose problem stops it firing.
+    /// up about, and so is an armed GitHub or Linear Trigger whose problem stops it firing.
     public static func triggerRowStatus(_ trigger: Trigger) -> String? {
         if trigger.status == .disabled { return "Disabled" }
-        return trigger.github?.problem.map(githubProblemTitle)
+        if let problem = trigger.github?.problem { return githubProblemTitle(problem) }
+        return trigger.linear?.problem.map(linearProblemTitle)
     }
 
     /// The detail header's kind line.
@@ -29,6 +30,7 @@ public enum AutomationFormatting {
         switch kind {
         case "webhook": "Webhook trigger"
         case "github": "GitHub trigger"
+        case "linear": "Linear trigger"
         default: "Trigger"
         }
     }
@@ -49,6 +51,18 @@ public enum AutomationFormatting {
         case "permissions_missing": "Permissions missing"
         case "agent_access_revoked": "Agent access revoked"
         case "sign_in_required": "Sign in required"
+        default: "Not firing"
+        }
+    }
+
+    /// Why an armed Linear Trigger is not firing, as the App names it.
+    public static func linearProblemTitle(_ problem: String) -> String {
+        switch problem {
+        case "workspace_removed": "Workspace removed"
+        case "sign_in_required": "Sign in required"
+        case "agent_access_revoked": "Agent access revoked"
+        case "teams_unavailable": "Teams unavailable"
+        case "references_unavailable": "References unavailable"
         default: "Not firing"
         }
     }

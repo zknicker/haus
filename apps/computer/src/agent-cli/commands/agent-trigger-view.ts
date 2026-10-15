@@ -1,5 +1,6 @@
 import type { AgentTrigger, GithubTriggerEvent, GithubTriggerProblem } from '@haus/api';
 import { formatUtcTime } from '../agent-format.ts';
+import { describeLinearTrigger } from './agent-trigger-linear-view.ts';
 
 // How `haus trigger` prints a Trigger. A webhook is reached at its URL; a
 // GitHub Trigger has none, so it prints its installation, scope, events, and
@@ -14,6 +15,9 @@ export function describeTrigger(trigger: AgentTrigger): string {
         : 'never fired';
     if (trigger.kind === 'webhook') {
         return `${trigger.id} [webhook · ${trigger.status}] "${trigger.title}" — ${fired}, anchored in ${trigger.anchorTarget} — ${trigger.url}`;
+    }
+    if (trigger.kind === 'linear') {
+        return describeLinearTrigger(trigger, fired);
     }
     const problem = trigger.github.problem
         ? ` · degraded: ${problemLabel(trigger.github.problem)}`

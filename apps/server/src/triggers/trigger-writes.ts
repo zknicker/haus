@@ -1,8 +1,6 @@
 import type { Trigger, TriggerStatus, WebhookTrigger } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
-import { syncArmedGithubTrigger } from '../github/trigger-problem-sync.ts';
-import type { GithubTriggerProblemEntered } from '../github/trigger-problems.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
@@ -15,6 +13,7 @@ import {
     type TriggerClock,
     TriggerNotFoundError,
 } from './trigger-model.ts';
+import { deriveProblemOnArm, type TriggerProblemEntered } from './trigger-problem-arm.ts';
 import { readTrigger } from './trigger-queries.ts';
 
 /**
@@ -103,16 +102,16 @@ export async function createTriggerRow(
 /**
  * Arms or disables one trigger. Setting the status it already has changes
  * nothing, so a kill switch pressed twice does not churn the version. Arming
- * a `github` Trigger re-derives its problem, because problems only follow
- * armed Triggers; `entered` names any notice the caller should wake for.
+ * a `github` or `linear` Trigger re-derives its problem (only armed Triggers
+ * carry problems); `entered` names any notice the caller should wake for.
  */
 export async function setTriggerStatusRow(
     db: HausDatabase,
     input: { origin: string; serverId: string; status: TriggerStatus; triggerId: string },
     authorize: TriggerAuthorization,
     clock: TriggerClock
-): Promise<{ entered: GithubTriggerProblemEntered[]; trigger: Trigger }> {
-    let entered: GithubTriggerProblemEntered[] = [];
+): Promise<{ entered: TriggerProblemEntered[]; trigger: Trigger }> {
+    let entered: TriggerProblemEntered[] = [];
     const trigger = await writeTrigger(
         db,
         input,
@@ -126,12 +125,8 @@ export async function setTriggerStatusRow(
                   },
         clock,
         async (tx, current, now) => {
-            if (current.kind === 'github' && input.status === 'armed') {
-                entered = await syncArmedGithubTrigger(tx, {
-                    now,
-                    serverId: input.serverId,
-                    triggerId: input.triggerId,
-                });
+            if (input.status === 'armed') {
+                entered = await deriveProblemOnArm(tx, current, { now, serverId: input.serverId });
             }
         }
     );

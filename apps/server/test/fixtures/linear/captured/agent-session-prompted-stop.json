@@ -1,0 +1,105 @@
+{
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "linear-delivery": "8a07e6b1-8c63-455f-9441-8ca106210ce4",
+    "linear-event": "AgentSessionEvent",
+    "linear-signature": "9d743f5c67eced9821819a5cb6cc5e1c360e134eaad578e9f0c9d7c3edee3d1e",
+    "linear-timestamp": "1792083137160"
+  },
+  "body": {
+    "type": "AgentSessionEvent",
+    "action": "prompted",
+    "createdAt": "2026-10-15T16:52:17.095Z",
+    "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+    "oauthClientId": "af943b1c0c19bc247d377df9ec5b4313",
+    "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+    "agentSession": {
+      "id": "e516dcd3-24bf-46cd-a928-112bffcb36d5",
+      "createdAt": "2026-10-15T16:51:56.377Z",
+      "updatedAt": "2026-10-15T16:52:16.854Z",
+      "archivedAt": null,
+      "creatorId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+      "appUserId": "ea30be86-13ea-4566-9ef5-1b8a0f411298",
+      "commentId": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+      "sourceCommentId": null,
+      "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+      "pullRequestId": null,
+      "slugId": "5e56b26d0ead4",
+      "status": "stopping",
+      "startedAt": null,
+      "endedAt": null,
+      "dismissedAt": null,
+      "dismissedById": null,
+      "externalLink": null,
+      "summary": "Draft Three Colourway Prompts for HTST Fixture",
+      "sourceMetadata": {
+        "type": "comment",
+        "agentSessionMetadata": {
+          "sourceCommentId": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7"
+        }
+      },
+      "modelSelection": null,
+      "plan": null,
+      "workspaceDiff": null,
+      "context": [],
+      "url": "https://linear.app/haus-chat/agent-session/e516dcd3-24bf-46cd-a928-112bffcb36d5",
+      "externalUrls": [],
+      "organizationId": "4f2b8cf3-eabc-4220-b885-e84c4d0ef29c",
+      "creator": {
+        "id": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "name": "Zach Knickerbocker",
+        "email": "zknicker@gmail.com",
+        "avatarUrl": "https://public.linear.app/e007ac3a-dfb1-4742-8476-59a5e053fb35/c58722ed-a263-4fa6-9412-5a198424c57f",
+        "url": "https://linear.app/haus-chat/profiles/zknicker"
+      },
+      "comment": {
+        "id": "e303cda0-ae96-4e1d-bde5-fa6f2a2624a7",
+        "body": "@hausdev  Juniper, please draft three colourway prompts for this design.",
+        "userId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "issueId": "504fbafc-ae10-46e7-a8c7-abec6c3a8643"
+      },
+      "issue": {
+        "id": "504fbafc-ae10-46e7-a8c7-abec6c3a8643",
+        "title": "Fixture: design HTST",
+        "teamId": "2227a3da-2fc4-4664-a722-5d178d44f312",
+        "team": {
+          "id": "2227a3da-2fc4-4664-a722-5d178d44f312",
+          "key": "HTST",
+          "name": "Haus Test"
+        },
+        "identifier": "HTST-11",
+        "url": "https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst"
+      }
+    },
+    "agentActivity": {
+      "id": "cde1ac30-3c75-46e7-b502-28bedfeec375",
+      "createdAt": "2026-10-15T16:52:16.823Z",
+      "updatedAt": "2026-10-15T16:52:16.823Z",
+      "archivedAt": null,
+      "agentSessionId": "e516dcd3-24bf-46cd-a928-112bffcb36d5",
+      "sourceCommentId": null,
+      "userId": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+      "sourceMetadata": null,
+      "executionSkippedReason": null,
+      "signal": "stop",
+      "ephemeral": false,
+      "pushSummary": null,
+      "queued": false,
+      "sentAt": null,
+      "signalMetadata": null,
+      "content": {
+        "type": "prompt",
+        "body": "stop"
+      },
+      "user": {
+        "id": "e007ac3a-dfb1-4742-8476-59a5e053fb35",
+        "name": "Zach Knickerbocker",
+        "email": "zknicker@gmail.com",
+        "avatarUrl": "https://public.linear.app/e007ac3a-dfb1-4742-8476-59a5e053fb35/c58722ed-a263-4fa6-9412-5a198424c57f",
+        "url": "https://linear.app/haus-chat/profiles/zknicker"
+      }
+    },
+    "webhookTimestamp": 1792083137160,
+    "webhookId": "1182cdae-b858-44b0-85fa-60ecf16be969"
+  }
+}

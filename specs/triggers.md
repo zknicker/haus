@@ -11,10 +11,12 @@ A fire writes nothing to the Chat transcript. The owning Agent's own message is
 the transcript row, and it carries the fire as its cause (ADR 0026).
 
 Every Trigger names its `kind`: `webhook` (a POST to a private URL with a bearer
-secret) or `github` (a matching delivery from the Haus GitHub App, with no URL
-and no secret). This document is the `webhook` contract and the shared row,
-fire, envelope, and lifecycle contract; [GitHub Triggers](github-triggers.md)
-owns the `github` kind's endpoint, routing, matching, projection, and problems.
+secret), `github` (a matching delivery from the Haus GitHub App), or `linear` (a
+matching data-change delivery on the Haus Linear app's workspace webhook). Only a
+`webhook` has a URL and a secret. This document is the `webhook` contract and the
+shared row, fire, envelope, and lifecycle contract; [GitHub Triggers](github-triggers.md)
+owns the `github` kind's endpoint, routing, matching, projection, and problems, and
+[Linear Triggers](linear-triggers.md) owns the same for `linear`.
 
 A Server Owner or Admin authors a Trigger from the Agent profile's Automations
 tab; an Agent authors its own with the `haus` CLI. Both write the same rows and
@@ -38,9 +40,11 @@ the owning Agent is always the one woken.
   `updated_at`, `disabled_at`, `last_fired_at`, and `fire_count` lifecycle
   fields. A non-null `deleted_at` requires `status = 'disabled'`.
   `(server_id, owner_agent_id)` is indexed.
-- `kind` is `NOT NULL` and checked against `('webhook', 'github')`. It has no
-  default; every writer states it. A `github` Trigger's configuration lives in
-  `github_trigger_configs` ([GitHub Triggers](github-triggers.md#data-model)).
+- `kind` is `NOT NULL` and checked against `('webhook', 'github', 'linear')`. It
+  has no default; every writer states it. A `github` Trigger's configuration lives
+  in `github_trigger_configs` ([GitHub Triggers](github-triggers.md#data-model)), a
+  `linear` Trigger's in `linear_trigger_configs`
+  ([Linear Triggers](linear-triggers.md#data-model)).
 - `created_by_user_id` is the human who created the Trigger from the App, a plain
   foreign key to the global `users` table that clears to null if that human is
   removed. Null is the Agent-created case, which is what distinguishes the two
@@ -78,7 +82,7 @@ Both authoring paths write the same row through one core: the caller supplies th
 authorization, not a separate implementation.
 
 - An Agent creates a Trigger with `haus trigger create --title <t>
-  --message-id <id> [--instruction <text>] [--kind webhook|github]`. The anchor is the
+  --message-id <id> [--instruction <text>] [--kind webhook|github|linear]`. The anchor is the
   message the Agent named, which is the message where someone asked for the
   Trigger. `created_by_user_id` stays null.
 - A Server Owner or Admin creates one from the Agent profile's Automations tab
@@ -149,7 +153,9 @@ An accepted request performs one transaction and then dispatches outside it. An
 operator test fire enters at the same step 1, so everything below describes both.
 Steps 1–4 are `recordTriggerFire`, which runs inside a caller's transaction: one
 GitHub delivery records every matching `github` Trigger this way in a single
-transaction ([ingest](github-triggers.md#ingest)).
+transaction ([ingest](github-triggers.md#ingest)), and one Linear delivery does the
+same for every matching `linear` Trigger inside its routing transaction
+([matching](linear-triggers.md#matching)).
 
 1. Lock the Server row and load the already-authenticated Trigger `FOR UPDATE` —
    the only read of that row inside the fire — then verify that it is still
@@ -194,7 +200,10 @@ alongside `human`, `agent`, and `system`. The `Instruction:` line is omitted whe
 the Trigger has no instruction. The `GitHub:` line and the `github-event=` and
 `delivery=` segments appear only on a `github` fire; that line is Server-built
 from enumerated values, refs, repository names, and numbers only
-([envelope](github-triggers.md#envelope)). The `content-type=` segment is omitted when the
+([envelope](github-triggers.md#envelope)). A `linear` fire carries a `Linear:` line
+and `linear-event=` and `delivery=` segments instead, built from enumerated values,
+state names, and the issue identifier ([envelope](linear-triggers.md#envelope)).
+The `content-type=` segment is omitted when the
 request carried none, and is otherwise reduced to media-type characters and 128
 characters so caller text cannot break out of the line. The truncation line
 appears only when the payload exceeded 8,192 characters, and it carries the same
@@ -222,7 +231,7 @@ Trigger-specific facts are:
 
 - The `cause` a Trigger-caused message carries reports `kind` `trigger`, the
   Trigger id and fire id, the title, the armed or disabled status, the last fired
-  time, the fire count, the kind label (`Webhook` or `GitHub`) as its summary, and a bounded
+  time, the fire count, the kind label (`Webhook`, `GitHub`, or `Linear`) as its summary, and a bounded
   snippet of the Trigger's instruction.
 - `automation.fireContext` adds, for a Trigger, the bounded `payload` excerpt,
   `payloadBytes`, `contentType`, `firedAt`, and the fire's ordinal among that
@@ -279,7 +288,9 @@ Trigger with `CONFLICT`, and a malformed input with `BAD_REQUEST`.
 | `trigger.history` | `{ serverId, agentId, limit? }` | retained `TriggerHistoryEntry[]`, newest first |
 | `trigger.create` | `{ serverId, agentId, kind: 'webhook', title, instruction? }` | `{ trigger, secret, url, curl }` |
 | `trigger.create` | `{ serverId, agentId, kind: 'github', title, instruction?, github }` | `{ trigger }` |
-| `trigger.update` | `{ serverId, triggerId, title?, instruction?, github? }` | `{ trigger }` |
+| `trigger.create` | `{ serverId, agentId, kind: 'linear', title, instruction?, linear }` | `{ trigger }` |
+| `trigger.update` | `{ serverId, triggerId, title?, instruction?, github?, linear? }` | `{ trigger }` |
+| `trigger.preview` | `{ serverId, triggerId, event, payload }` (`github`) or `{ serverId, triggerId, payload }` (`linear`) | the kind's preview result |
 | `trigger.setStatus` | `{ serverId, triggerId, status: 'armed' \| 'disabled' }` | `{ trigger }` |
 | `trigger.rotate` | `{ serverId, triggerId }` | `{ trigger, secret, url, curl }` |
 | `trigger.delete` | `{ serverId, triggerId }` | `{ deleted: true, id }` |
@@ -288,20 +299,24 @@ Trigger with `CONFLICT`, and a malformed input with `BAD_REQUEST`.
 `trigger.setStatus` is the only status mutation; it arms and disables, and it
 replaces the one-way `trigger.disable`, which no longer exists.
 
-`trigger.update` requires at least one of `title`, `instruction`, and `github`;
-an input carrying none is `BAD_REQUEST`. An `instruction` of null or an empty
-string clears it; omitting it leaves it alone. `github` replaces a `github`
-Trigger's whole configuration after the same authoring checks as create, and
-clears any standing problem; on a webhook it is `BAD_REQUEST`
-`trigger_kind_mismatch`. The update writes only the named fields and leaves the
-kind, anchor, owner, and secret untouched.
+`trigger.update` requires at least one of `title`, `instruction`, `github`, and
+`linear`; an input carrying none is `BAD_REQUEST`. An `instruction` of null or an
+empty string clears it; omitting it leaves it alone. `github` (or `linear`)
+replaces that kind's whole configuration after the same authoring checks as
+create, and clears any standing problem; on another kind, or sent together, it is
+`BAD_REQUEST` `trigger_kind_mismatch`. The update writes only the named fields and
+leaves the kind, anchor, owner, and secret untouched.
 
 A well-formed request the Server will not do is `BAD_REQUEST` (Agent API
 `INVALID_ARG`) whose message leads with a stable code: `trigger_has_no_secret`
-(rotate on `github`), `trigger_kind_mismatch`, and the GitHub authoring codes
-`github_installation_unavailable`, `github_access_required`,
+(rotate on `github` or `linear`), `trigger_kind_mismatch`, the GitHub authoring
+codes `github_installation_unavailable`, `github_access_required`,
 `github_permissions_missing`, `github_repositories_unavailable`, and
-`github_trigger_limit` ([authoring](github-triggers.md#authoring)).
+`github_trigger_limit` ([authoring](github-triggers.md#authoring)), and the Linear
+authoring codes `linear_workspace_unavailable`, `linear_access_required`,
+`linear_reference_unavailable`, `linear_reference_ambiguous`,
+`linear_team_outside_access`, and `linear_trigger_limit`
+([authoring](linear-triggers.md#authoring)).
 
 `version` is a monotonic change counter, not an optimistic-concurrency token: it
 is bumped by every mutation and by every fire, and no mutation accepts an
@@ -329,8 +344,9 @@ so a test consumes real fire budget and can answer `rate_limited`. It carries th
 type `application/json` and no dedupe key, and it returns the new `fireId`. A
 `github` Trigger's test fire instead carries a sample projection of its first
 event marked `"test": true`, under the same `GitHub:` line and provenance
-segments a real delivery gets (`delivery=test`). A
-disabled Trigger answers `CONFLICT` with code `trigger_disabled`.
+segments a real delivery gets (`delivery=test`); a `linear` Trigger's test fire
+does the same with a sample projection of its first group under the `Linear:`
+line. A disabled Trigger answers `CONFLICT` with code `trigger_disabled`.
 
 A test fire deliberately carries no bearer secret. Only an Owner or Admin can
 call it, and anyone who can call it can also rotate the secret and fire the
@@ -339,11 +355,12 @@ Trigger for real.
 ## Surfaces and lifecycle
 
 - Agent verbs are `haus trigger create --title <t> --message-id <id>
-  [--instruction <text>] [--kind webhook|github]`, `list`, `show --id`, `disable --id`,
+  [--instruction <text>] [--kind webhook|github|linear]`, `list`, `show --id`, `disable --id`,
   `enable --id`, `rotate --id`, `delete --id`, and `log --id [--fire <fireId>]
   [--limit <n>]`. `--kind` defaults to `webhook`, and an unknown value is an
   invalid argument naming the supported kinds; `github` flags are in
-  [GitHub Triggers](github-triggers.md#agent-cli-and-manual). `list` and `show` print the kind
+  [GitHub Triggers](github-triggers.md#agent-cli-and-manual), `linear` flags in
+  [Linear Triggers](linear-triggers.md#agent-cli). `list` and `show` print the kind
   alongside the status. `create` and `rotate` print the secret once together with
   a ready-made `curl` line, the warning that rotation replaces it, and the rule
   never to post the secret in any Chat. `log`
@@ -364,8 +381,9 @@ Trigger for real.
 
 ## Not built
 
-Any provider registry beyond the built-in `github` kind; a payload predicate or
-filter engine for webhooks (`github` filters are a closed per-event list);
+Any provider registry beyond the built-in `github` and `linear` kinds; a payload
+predicate or filter engine for webhooks (`github` and `linear` filters are closed
+per-event lists);
 script payloads; more than one endpoint per webhook Trigger; a durable
 `trigger.changed` event; and a Trigger command idempotency ledger. Each is a
 future extension, not an extension point left open today.

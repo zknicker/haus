@@ -2468,15 +2468,36 @@
     /*
      * The traffic lights' segment: exactly the sidebar's width, so the topbar
      * after it starts at the card's left edge (canvas) or the divider (band).
+     * The window's Back and Forward sit at its end, one gutter short of that
+     * edge. With the sidebar hidden they move up beside the traffic lights,
+     * and the segment grows only if its hidden width cannot hold them, so the
+     * tabs never run under them.
      */
     .shell-window-band__lead {
+        display: flex;
         width: var(--app-sidebar-width, 240px);
         height: 100%;
         flex-shrink: 0;
+        align-items: center;
+        justify-content: flex-end;
+        padding-inline-end: calc(var(--spacing) * 2);
     }
 
     .shell-window-band__lead[data-sidebar-hidden] {
         width: var(--app-shell-traffic-lights-width);
+        min-width: max-content;
+        justify-content: flex-start;
+        padding-inline-start: var(--app-shell-traffic-lights-width);
+    }
+
+    /*
+     * With two panes, the selected tab of the pane the window's commands do
+     * not act on reads muted, so the focused pane is always evident.
+     */
+    .shell-window-band .workspace-titlebar[data-split]
+        .workspace-tabs:not([data-focused])
+        .workspace-tab[data-active="true"] {
+        color: var(--muted);
     }
 
     /*

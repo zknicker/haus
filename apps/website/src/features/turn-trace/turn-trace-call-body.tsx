@@ -46,7 +46,7 @@ export function TraceErrorSection({ failure }: { failure: TurnTraceError }) {
 /** A failure in one line: its readable message, never its transport payload, and any exit code. */
 export function TraceFailure({ failure }: { failure: TurnTraceError }) {
     return (
-        <p className="whitespace-pre-wrap break-words text-danger text-sm">
+        <p className="whitespace-pre-wrap break-words text-danger text-sm" data-selectable-text="">
             {clampTraceText(failure.message).text}
             {failure.exitCode === null ? null : (
                 <span className="text-muted tabular-nums">{` · exit code ${failure.exitCode}`}</span>

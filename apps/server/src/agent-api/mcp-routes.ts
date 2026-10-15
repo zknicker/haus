@@ -1,4 +1,8 @@
-import { agentMcpCatalogQuerySchema, agentMcpInvocationSchema } from '@haus/api';
+import {
+    agentMcpCatalogQuerySchema,
+    agentMcpInvocationSchema,
+    agentMcpRequestIdSchema,
+} from '@haus/api';
 import { parseTraceCarrier } from '@haus/effect';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -84,6 +88,10 @@ export function registerAgentMcpRoutes(
                     agentId: runner.agentId,
                     signal: cancellation.signal,
                     args: parsed.data.args,
+                    // beginRequest validated it; built-in connections key idempotency on it.
+                    requestId: agentMcpRequestIdSchema.parse(
+                        request.headers['x-haus-mcp-request-id']
+                    ),
                     serverId: runner.serverId,
                     toolName: parsed.data.toolName,
                     traceContext: readTraceContext(request.headers.traceparent),

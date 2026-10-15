@@ -1,8 +1,9 @@
 ---
-summary: Agent-owned Triggers — secret-authenticated webhook wakes and GitHub App event wakes anchored to a Chat, created from the Agent profile's Automations tab or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
+summary: Agent-owned Triggers — secret-authenticated webhook wakes, GitHub App event wakes, and Linear workspace event wakes anchored to a Chat, created from the Agent profile's Automations tab or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
 read_when:
   - changing Trigger creation, secrets, firing, payload bounds, or fire history
   - changing what a GitHub Trigger listens to, its cap, or how its fires read
+  - changing what a Linear Trigger listens to, its cap, or how its fires read
   - changing the Automations tab's Trigger walkthrough, detail view, or controls
   - changing how a Trigger fire appears in a conversation
   - deciding whether new work is a Reminder (time) or a Trigger (outside event)
@@ -186,11 +187,41 @@ Server routes each delivery to the Server that bound the installation.
   back-to-back automation-only turns hold further wakes until a person speaks,
   and a chain quiet for half an hour starts over.
 
-Webhook and GitHub are the kinds Haus ships. Other provider verifiers, payload
-filtering for webhooks, and Computer-executed scripts are not part of it.
+## Linear Triggers
+
+A **Linear** Trigger wakes its Agent when an issue, comment, or project changes
+in a Linear workspace the Server's Linear connection binds ([Connections](connections.md)).
+Work addressed to an Agent — a mention or a delegation — needs no Trigger; it
+arrives as a Linear session. A Linear Trigger is for watching: "wake me when a
+design moves to Changes Requested", "tell me when someone comments on my issues".
+
+- **What it listens to.** One to ten match groups, each an event (`issue`,
+  `comment`, `project`), its actions, and filters: teams, projects, labels,
+  workflow states (from, to, and type), changed fields, the Agent the issue is
+  delegated to, assignees, and who made the change. People and Agents type
+  names; Haus stores Linear's stable ids, so a rename in Linear never breaks a
+  Trigger. An ambiguous name is refused with its candidates.
+- **One event, one wake.** A label change is an issue update that changed
+  `labels`, never a separate event; a delivery that matches several groups
+  wakes the Agent once, with a Server-built `Linear:` line such as
+  `Linear: issue update · state · → Changes Requested · DES-142`.
+- **Never woken by itself.** A change the Agent made itself never fires its own
+  Trigger. A change another Agent made does — that is how one Agent hands work
+  to the next. The Trigger counts both kinds of skip so a noisy one can be
+  narrowed.
+- **Twenty-five per workspace.** A workspace connection holds at most 25 Linear
+  Triggers, and the owning Agent must hold the Linear connection grant.
+- **Problems, not silence.** A Linear Trigger whose workspace, sign-in, grant,
+  teams, or referenced labels and states break stays armed, stops firing, and
+  tells its Agent once why
+  ([Linear Triggers](../../specs/linear-triggers.md#failure-modes)).
+
+Webhook, GitHub, and Linear are the kinds Haus ships. Other provider verifiers,
+payload filtering for webhooks, and Computer-executed scripts are not part of it.
 
 See `specs/triggers.md` for the normative persistence, route, firing, and secret
 contract, `specs/github-triggers.md` for the `github` kind,
+`specs/linear-triggers.md` for the `linear` kind,
 `specs/automation-provenance.md` for how a fire reaches the transcript,
 and [Triggers API](../api/triggers.md) for the wire surface.
 
