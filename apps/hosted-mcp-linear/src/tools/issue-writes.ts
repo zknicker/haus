@@ -176,13 +176,16 @@ export const createCommentTool = defineTool({
 export const delegateIssue = defineTool({
     name: 'delegate_issue',
     description:
-        'Hand an issue to another Haus Agent by its Agent id (agt_…; haus server info --agents --query <name>). Haus sets its Agent label, the delegate, and who it posts as. The handoff carries no message: say why with update_issue note or create_comment.',
+        'Hand an issue to another Haus Agent, named by its display name or handle (an Agent id also works). Haus sets its Agent label, the delegate, and who it posts as. An unknown or ambiguous name fails with linear_agent_unknown listing the Agents you can name. The handoff carries no message: say why with update_issue note or create_comment.',
     input: z
         .object({
             agent: z
                 .string()
-                .regex(/^agt_[A-Za-z0-9_-]{16}$/u)
-                .describe('Haus Agent id.'),
+                .trim()
+                .min(1)
+                .describe(
+                    'The Haus Agent: display name (Juniper), handle (@juniper), or Agent id.'
+                ),
             issue: issueArg,
         })
         .strict(),

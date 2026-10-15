@@ -102,7 +102,7 @@ export const linearToolPolicies: Record<LinearToolName, LinearToolPolicy> = {
 export const linearToolErrorCodeSchema = z.enum([
     'linear_input_error',
     'linear_team_outside_access',
-    'linear_agent_not_granted',
+    'linear_agent_unknown',
     'linear_artifact_unavailable',
     'linear_session_not_yours',
     'linear_session_closed',

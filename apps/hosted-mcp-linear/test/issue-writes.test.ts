@@ -182,7 +182,7 @@ describe('delegate_issue', () => {
         const { report } = await callTool(
             linear,
             'delegate_issue',
-            { agent: 'agt_BBBBBBBBBBBBBBBB', issue: 'DES-142' },
+            { agent: 'Beacon', issue: 'DES-142' },
             { delegation }
         );
         const fields = {

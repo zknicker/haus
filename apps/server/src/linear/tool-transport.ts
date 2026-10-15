@@ -147,7 +147,7 @@ export class LinearToolTransport implements McpToolCallTransport {
                           issueTeamId: choice.targetTeams?.[0]?.id ?? null,
                           now: this.dependencies.clock.now(),
                           serverId: call.serverId,
-                          targetAgentId: call.arguments.agent,
+                          target: call.arguments.agent,
                           workspace,
                       })
                     : {};

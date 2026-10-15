@@ -157,9 +157,11 @@ noting why, answering the session named in the event input, frozen image snapsho
 `whoami` for identity and the workspace url key a `linear` Trigger takes
 ([Agent CLI](linear-triggers.md#agent-cli)).
 
-- **`delegate_issue(issue, agent)`** takes a Haus Agent id, never stored as a name. It runs a
-  [handoff](#handoff): the target Agent's `Agent` label plus the delegate set to the target's
-  actor. The target must hold the grant. Its description sends the reason through
+- **`delegate_issue(issue, agent)`** takes a Haus Agent's display name or handle (an Agent id
+  also works). The Server resolves it, ignoring case, among the active Agents granted the
+  connection; none or several refuse with `linear_agent_unknown`, listing the names the Agent may
+  use. It runs a [handoff](#handoff): the target Agent's `Agent` label plus the delegate set to
+  the target's actor. Its description sends the reason through
   `update_issue`'s `note` or `create_comment`, since the handoff carries no message.
 - **`upload_image(issue, artifactId, revisionId?, alt?)`** takes a Haus Files id
   ([Files](../docs/api/artifacts.md)), never a path. Server checks the artifact belongs to the
@@ -220,7 +222,7 @@ Tool errors carry a leading code. `retryable` follows the Agent API's existing f
 | --- | --- | --- |
 | `linear_input_error` | Linear refused the input; message is Linear's `userPresentableMessage` | no |
 | `linear_team_outside_access` | a target team is outside workspace team access | no |
-| `linear_agent_not_granted` | `delegate_issue` target lacks the grant | no |
+| `linear_agent_unknown` | `delegate_issue` names no single granted, active Agent; lists valid names | no |
 | `linear_artifact_unavailable` | `upload_image` artifact missing, deleted, wrong type, or too large | no |
 | `linear_session_not_yours`, `linear_session_closed`, `linear_session_actor_unavailable` | `reply` refusals ([sessions](#linear-sessions)) | no |
 | `linear_sign_in_required` | the chosen credential is `refresh_required` or `revoked` | no |

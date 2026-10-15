@@ -9,7 +9,7 @@ import { LinearArtifactUnavailableError } from './signed-urls.ts';
 // result or error ever carries a credential.
 
 export type LinearToolRefusalCode =
-    | 'linear_agent_not_granted'
+    | 'linear_agent_unknown'
     | 'linear_input_error'
     | 'linear_session_actor_unavailable'
     | 'linear_session_closed'
@@ -24,7 +24,7 @@ export interface LinearToolRefusal {
 }
 
 const refusalMessages: Record<LinearToolRefusalCode, string> = {
-    linear_agent_not_granted: 'That Agent does not hold the Linear connection grant.',
+    linear_agent_unknown: 'That names no single Haus Agent granted Linear.',
     linear_input_error: 'Linear refused the input.',
     linear_session_actor_unavailable:
         "This session's Linear identity cannot post on its issue's team.",
