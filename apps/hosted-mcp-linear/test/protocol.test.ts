@@ -100,6 +100,14 @@ describe('client ids', () => {
         const seed = '3f0a3d6e-5d0c-5b5e-8f43-0b1b6f1c2a90';
         expect(linearClientEntityId(seed, 0)).toBe(linearClientEntityId(seed, 0));
         expect(linearClientEntityId(seed, 0)).not.toBe(linearClientEntityId(seed, 1));
-        expect(linearClientEntityId(seed, 0)).toMatch(/^[0-9a-f-]{36}$/u);
+    });
+
+    test('op ids are UUID version 4, the only version Linear accepts as an id', () => {
+        const seed = '3f0a3d6e-5d0c-5b5e-8f43-0b1b6f1c2a90';
+        for (const opIndex of [0, 1, 31]) {
+            expect(linearClientEntityId(seed, opIndex)).toMatch(
+                /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
+            );
+        }
     });
 });

@@ -7,7 +7,7 @@ import { linearWriteTargetTypeSchema } from './linear.ts';
 // resolves the actor and sends its token in `tools/call` `_meta`; the connector
 // reports every Linear mutation back in the result `_meta`. Both are
 // credentials or ledger evidence: never logged, echoed, or forwarded to
-// Computer. Node-only (UUIDv5 hashing), so this module is a subpath export.
+// Computer. Node-only (SHA-1 id hashing), so this module is a subpath export.
 
 /** The `_meta` key both directions use. */
 export const linearMetaKey = 'chat.haus/linear';
@@ -149,7 +149,7 @@ export const linearCallMetaSchema = z
             })
             .strict()
             .optional(),
-        /** UUIDv5 namespace; op `n` creates carry `linearClientEntityId(idSeed, n)`. */
+        /** Hash namespace; op `n` creates carry `linearClientEntityId(idSeed, n)`. */
         idSeed: z.uuid(),
         requestId: z.string().min(1).max(200),
         /** `whoami` only: the invoking Agent's identity handle, null without one. */
@@ -202,18 +202,27 @@ export const linearCallResultMetaSchema = z
     .strict();
 export type LinearCallResultMeta = z.infer<typeof linearCallResultMetaSchema>;
 
-/** The Linear `id` op `opIndex` of a request passes on create; `idSeed` is stable per request id. */
+/**
+ * The Linear `id` op `opIndex` of a request passes on create; `idSeed` is
+ * stable per request id. Linear rejects any `id` that is not UUID version 4,
+ * so this is a name-based hash shaped as v4 rather than a true UUIDv5.
+ */
 export function linearClientEntityId(idSeed: string, opIndex: number): string {
-    return uuidV5(String(opIndex), idSeed);
+    return hashedUuid(String(opIndex), idSeed, 0x40);
 }
 
+/** RFC 4122 UUIDv5: SHA-1 of `namespace` + `name`. */
 export function uuidV5(name: string, namespace: string): string {
+    return hashedUuid(name, namespace, 0x50);
+}
+
+function hashedUuid(name: string, namespace: string, version: 0x40 | 0x50): string {
     const namespaceBytes = Buffer.from(namespace.replaceAll('-', ''), 'hex');
     if (namespaceBytes.length !== 16) {
-        throw new Error('UUIDv5 namespace must be a UUID.');
+        throw new Error('UUID namespace must be a UUID.');
     }
     const bytes = createHash('sha1').update(namespaceBytes).update(name, 'utf8').digest();
-    bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x50;
+    bytes[6] = ((bytes[6] ?? 0) & 0x0f) | version;
     bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
     const hex = bytes.subarray(0, 16).toString('hex');
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
