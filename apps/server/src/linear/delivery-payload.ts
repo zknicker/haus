@@ -1,6 +1,5 @@
-// Readers over staged Linear webhook bodies. Shapes follow Linear's documented
-// payloads (https://linear.app/developers/webhooks, /agent-interaction) and are
-// provisional until real deliveries are captured (apps/server/test/fixtures/linear/).
+// Readers over staged Linear webhook bodies, checked against real deliveries in
+// apps/server/test/fixtures/linear/captured/.
 
 export type Payload = Record<string, unknown>;
 
@@ -39,17 +38,27 @@ export interface LinearSessionEventFacts {
         delegateId: string | null;
         id: string;
         identifier: string;
-        labelIds: string[];
         state: string | null;
         teamId: string | null;
         title: string | null;
         url: string | null;
     };
+    /**
+     * Label names Linear lists for the issue in `promptContext`
+     * (`<label>Agent › Juniper</label>`). Session events carry no label ids.
+     */
+    issueLabelNames: string[];
     linearSessionId: string;
-    /** A session started from a comment is a mention; otherwise a delegation. */
+    /**
+     * A comment mention (`sourceMetadata.type: "comment"`); otherwise a delegation or
+     * proactive session, whose `comment` is only Linear's placeholder thread.
+     */
     mentioned: boolean;
+    /** The person's words: the mention comment, or a follow-up's body; never the placeholder. */
     prompt: string | null;
     promptContext: string | null;
+    /** `stop` when a person stopped the session (Q9); null for a plain prompt. */
+    signal: string | null;
 }
 
 /** The facts session routing needs from an `AgentSessionEvent`, or null when malformed. */
@@ -62,9 +71,10 @@ export function readSessionEvent(body: Payload): LinearSessionEventFacts | null 
     if (!(session && linearSessionId && issueId && action)) {
         return null;
     }
-    const comment = field(session, 'comment');
+    const mentioned = text(field(session, 'sourceMetadata'), 'type') === 'comment';
     const activity = field(body, 'agentActivity');
     const activityBody = text(activity, 'body') ?? text(field(activity, 'content'), 'body');
+    const promptContext = text(body, 'promptContext');
     return {
         action,
         appUserId: text(body, 'appUserId'),
@@ -77,17 +87,41 @@ export function readSessionEvent(body: Payload): LinearSessionEventFacts | null 
             delegateId: text(issue, 'delegateId') ?? text(field(issue, 'delegate'), 'id'),
             id: issueId,
             identifier: text(issue, 'identifier') ?? issueId,
-            labelIds: strings(issue, 'labelIds'),
             state: text(field(issue, 'state'), 'name'),
             teamId: text(issue, 'teamId') ?? text(field(issue, 'team'), 'id'),
             title: text(issue, 'title'),
             url: text(issue, 'url'),
         },
+        issueLabelNames: promptContext ? promptContextLabels(promptContext) : [],
         linearSessionId,
-        mentioned: comment !== null,
-        prompt: action === 'prompted' ? activityBody : text(comment, 'body'),
-        promptContext: text(body, 'promptContext'),
+        mentioned,
+        prompt:
+            action === 'prompted'
+                ? activityBody
+                : mentioned
+                  ? text(field(session, 'comment'), 'body')
+                  : null,
+        promptContext,
+        signal: text(activity, 'signal'),
     };
+}
+
+/** The `<label>` names inside `promptContext`'s `<issue>` element. */
+function promptContextLabels(promptContext: string): string[] {
+    const issue = /<issue\b[^>]*>([\s\S]*?)<\/issue>/u.exec(promptContext)?.[1] ?? '';
+    return [...issue.matchAll(/<label>([^<]*)<\/label>/gu)].flatMap((match) => {
+        const name = decodeXml(match[1] ?? '').trim();
+        return name ? [name] : [];
+    });
+}
+
+function decodeXml(value: string): string {
+    return value
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&amp;', '&');
 }
 
 /** Linear sends guidance as text or as a list of `{ body }` rules. */

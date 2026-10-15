@@ -9,6 +9,7 @@ import { linearSessionHandler } from '../src/linear/session-routing.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { linearAgentSessionsTable, linearOutboxTable } from '../src/postgres/schema.ts';
+import { unreadIssueLabels } from './linear-session-events.ts';
 import {
     deliveryRow,
     desTeamId,
@@ -28,7 +29,7 @@ let cluster: PostgresCluster;
 let connection: HausConnection;
 const appOrigin = 'https://app.haus.test';
 const dataChange = linearDataChangeHandler({ appOrigin, hooks: {} });
-const sessions = linearSessionHandler({ appOrigin });
+const sessions = linearSessionHandler({ appOrigin, readIssueLabels: unreadIssueLabels });
 const now = new Date('2026-10-15T12:00:00.000Z');
 
 beforeAll(async () => {
@@ -46,10 +47,13 @@ async function apply(handler: typeof dataChange, row: LinearDeliveryRow) {
     return await connection.db.transaction((tx) => handler.apply(tx, row, now, undefined));
 }
 
+async function applySession(row: LinearDeliveryRow, labelIds: string[]) {
+    return await connection.db.transaction((tx) => sessions.apply(tx, row, now, { labelIds }));
+}
+
 /** Juniper holds an open session on DES-142, with a queued row for it. */
 async function juniperWorking(world: LinearSessionWorld) {
-    await apply(
-        sessions,
+    await applySession(
         deliveryRow(world, {
             at: now,
             body: {
@@ -60,7 +64,6 @@ async function juniperWorking(world: LinearSessionWorld) {
                     issue: {
                         id: 'issue-142',
                         identifier: 'DES-142',
-                        labelIds: [world.labels.juniper],
                         teamId: desTeamId,
                     },
                 },
@@ -69,7 +72,8 @@ async function juniperWorking(world: LinearSessionWorld) {
                 webhookTimestamp: now.getTime(),
             },
             event: 'AgentSessionEvent',
-        })
+        }),
+        [world.labels.juniper]
     );
     await connection.db
         .delete(linearOutboxTable)

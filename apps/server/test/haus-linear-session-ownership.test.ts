@@ -6,7 +6,12 @@ import { orphanLinearSessions } from '../src/linear/sessions.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentMcpConnectionGrantsTable, linearWorkspacesTable } from '../src/postgres/schema.ts';
-import { linearSessionEventAt as now, sessionEvent, sessionFor } from './linear-session-events.ts';
+import {
+    linearSessionEventAt as now,
+    sessionEvent,
+    sessionFor,
+    unreadIssueLabels,
+} from './linear-session-events.ts';
 import {
     deliveryRow,
     inboxRows,
@@ -21,7 +26,10 @@ import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.t
 
 let cluster: PostgresCluster;
 let connection: HausConnection;
-const handler = linearSessionHandler({ appOrigin: 'https://app.haus.test' });
+const handler = linearSessionHandler({
+    appOrigin: 'https://app.haus.test',
+    readIssueLabels: unreadIssueLabels,
+});
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
@@ -34,8 +42,9 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-async function route(row: LinearDeliveryRow) {
-    return await connection.db.transaction((tx) => handler.apply(tx, row, now, undefined));
+/** Routes as the worker does after `prepare` read the issue's label ids. */
+async function route(row: LinearDeliveryRow, labelIds: string[] = []) {
+    return await connection.db.transaction((tx) => handler.apply(tx, row, now, { labelIds }));
 }
 
 test('an identity session belongs to its Agent and acks as the identity', async () => {
@@ -64,12 +73,10 @@ test('a session another Agent’s write started is automated', async () => {
     const identity = await seedLinearIdentity(connection.db, world, world.agents.beacon);
     await route(
         deliveryRow(world, {
-            body: sessionEvent(world, {
-                creatorId: identity.appUserId,
-                labelIds: [world.labels.juniper],
-            }),
+            body: sessionEvent(world, { creatorId: identity.appUserId }),
             event: 'AgentSessionEvent',
-        })
+        }),
+        [world.labels.juniper]
     );
     const [item] = await inboxRows(connection.db, world.serverId);
     expect(item?.source).toBe('linear_session_automated');
@@ -87,9 +94,10 @@ test('an Agent without the grant gets no row; an orphaned session answers with a
         .where(eq(linearWorkspacesTable.id, world.workspaceId));
     await route(
         deliveryRow(world, {
-            body: sessionEvent(world, { labelIds: [world.labels.juniper] }),
+            body: sessionEvent(world),
             event: 'AgentSessionEvent',
-        })
+        }),
+        [world.labels.juniper]
     );
     expect(await inboxRows(connection.db, world.serverId)).toEqual([]);
     const [refusal] = await outboxRows(connection.db, world.workspaceId);
@@ -99,9 +107,10 @@ test('an Agent without the grant gets no row; an orphaned session answers with a
     const linearSessionId = crypto.randomUUID();
     await route(
         deliveryRow(orphaned, {
-            body: sessionEvent(orphaned, { labelIds: [orphaned.labels.beacon], linearSessionId }),
+            body: sessionEvent(orphaned, { linearSessionId }),
             event: 'AgentSessionEvent',
-        })
+        }),
+        [orphaned.labels.beacon]
     );
     await connection.db.transaction((tx) =>
         orphanLinearSessions(tx, {
@@ -124,7 +133,7 @@ test('an Agent without the grant gets no row; an orphaned session answers with a
     expect(String((last?.input as { body: string }).body)).toContain('no longer available in Haus');
 });
 
-test('an unrecognised session action is ignored until the stop signal is known', async () => {
+test('an unrecognised session action is ignored', async () => {
     const world = await seedLinearSessionWorld(connection.db);
     const body = { ...sessionEvent(world), action: 'stopped' };
     expect(await route(deliveryRow(world, { body, event: 'AgentSessionEvent' }))).toEqual({

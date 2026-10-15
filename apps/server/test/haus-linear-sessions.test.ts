@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import type { LinearDeliveryRow } from '../src/linear/delivery-handler.ts';
-import { linearSessionHandler, noAgentElicitation } from '../src/linear/session-routing.ts';
+import { noAgentElicitation } from '../src/linear/session-activities.ts';
+import { linearSessionHandler } from '../src/linear/session-routing.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
@@ -15,6 +16,7 @@ import {
     linearSessionEventAt,
     sessionEvent,
     sessionFor,
+    unreadIssueLabels,
 } from './linear-session-events.ts';
 import {
     deliveryRow,
@@ -30,7 +32,7 @@ import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.t
 let cluster: PostgresCluster;
 let connection: HausConnection;
 const appOrigin = 'https://app.haus.test';
-const handler = linearSessionHandler({ appOrigin });
+const handler = linearSessionHandler({ appOrigin, readIssueLabels: unreadIssueLabels });
 const now = linearSessionEventAt;
 
 beforeAll(async () => {
@@ -44,8 +46,9 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-async function route(row: LinearDeliveryRow) {
-    return await connection.db.transaction((tx) => handler.apply(tx, row, now, undefined));
+/** Routes as the worker does after `prepare` read the issue's label ids. */
+async function route(row: LinearDeliveryRow, labelIds: string[] = []) {
+    return await connection.db.transaction((tx) => handler.apply(tx, row, now, { labelIds }));
 }
 
 test('a mention naming an Agent anchors on its DM with the binder, acks, and queues the envelope', async () => {
@@ -105,9 +108,10 @@ test('without a name the issue’s Agent label routes, then the default Agent, t
     const world = await seedLinearSessionWorld(connection.db);
     await route(
         deliveryRow(world, {
-            body: sessionEvent(world, { labelIds: [world.labels.juniper, 'label-other'] }),
+            body: sessionEvent(world),
             event: 'AgentSessionEvent',
-        })
+        }),
+        [world.labels.juniper, 'label-other']
     );
     expect((await sessionFor(connection.db, world))?.agentId).toBe(world.agents.juniper);
 
@@ -141,9 +145,10 @@ test('a binder who left falls back to the longest-standing Owner', async () => {
         .where(eq(serverMembershipsTable.userId, world.binderUserId));
     await route(
         deliveryRow(world, {
-            body: sessionEvent(world, { labelIds: [world.labels.juniper] }),
+            body: sessionEvent(world),
             event: 'AgentSessionEvent',
-        })
+        }),
+        [world.labels.juniper]
     );
     const session = await sessionFor(connection.db, world);
     const [dm] = await connection.db
@@ -158,9 +163,10 @@ test('a follow-up routed to another Agent rebinds the session and retires the ol
     const linearSessionId = crypto.randomUUID();
     await route(
         deliveryRow(world, {
-            body: sessionEvent(world, { labelIds: [world.labels.juniper], linearSessionId }),
+            body: sessionEvent(world, { linearSessionId }),
             event: 'AgentSessionEvent',
-        })
+        }),
+        [world.labels.juniper]
     );
     const beaconHandle = await agentHandle(connection.db, world.agents.beacon);
     await route(

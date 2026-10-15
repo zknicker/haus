@@ -474,8 +474,13 @@ pointing at the anchor DM in Haus) before any Agent turn.
 
 - **Identity sessions** belong to the identity's Agent, always.
 - **Haus app sessions** route at event time, in order: the Agent named in the prompt
-  ("@haus Beacon", matched against granted Agents' handles), the issue's current `Agent` label,
-  then the workspace's default Agent. The session's `agent_id` is rewritten on each event; when
+  ("@haus Beacon", matched against granted Agents' handles in the person's comment or follow-up,
+  never Linear's placeholder thread comment), the issue's current `Agent` label, then the
+  workspace's default Agent. Session events carry no label ids, so the worker reads the issue's
+  labels with the workspace token before the routing transaction; without a workspace credential
+  it matches the `<label>Agent › Name</label>` entries in `promptContext` against granted Agents'
+  names. A session is a mention when `agentSession.sourceMetadata.type` is `comment`; otherwise
+  it is a delegation (or proactive). The session's `agent_id` is rewritten on each event; when
   it changes, the old Agent's queued, unserved rows for that session retire. No match enqueues an
   `elicitation`: "No Agent is assigned. Add an Agent label or mention @haus with an Agent's name."
 - A routed Agent without the grant, retired, or (for identity sessions) without an active
@@ -540,7 +545,8 @@ status:
 
 A `prompted` event reopens `complete` to `active`. Events for an `orphaned` session enqueue an
 `error` activity ("This Agent is no longer available in Haus") from the actor that can still post,
-or nothing when none can. `reply` refuses a session that is not the invoking Agent's
+or nothing when none can. Prompts to a `stopped` session, or a `handed_off` one (naming the Agent
+that now holds the issue), get an `elicitation` instead; none queues a row or wakes an Agent. `reply` refuses a session that is not the invoking Agent's
 (`linear_session_not_yours`), one that is `stopped`, `handed_off`, or `orphaned`
 (`linear_session_closed`), and an identity session whose identity cannot post on that team
 (`linear_session_actor_unavailable`). Terminal rows are kept 90 days.

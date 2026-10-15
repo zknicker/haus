@@ -12,6 +12,7 @@ import { linearLifecycleHandler } from './lifecycle-deliveries.ts';
 import { type LinearOutboxTransport, linearHttpOutboxTransport } from './outbox-calls.ts';
 import { runLinearOutboxBatch } from './outbox-worker.ts';
 import { type LinearPoller, startLinearPoller } from './poller.ts';
+import { linearSessionIssueLabels } from './session-issue-labels.ts';
 import { linearSessionHandler } from './session-routing.ts';
 import type { LinearWebhookRouteOptions } from './webhook-route.ts';
 
@@ -104,7 +105,14 @@ export function createLinearPipeline(dependencies: LinearPipelineDependencies): 
                                 db: dependencies.db,
                                 fetch: fetchImpl,
                             }),
-                            session: linearSessionHandler({ appOrigin: dependencies.appOrigin }),
+                            session: linearSessionHandler({
+                                appOrigin: dependencies.appOrigin,
+                                readIssueLabels: linearSessionIssueLabels({
+                                    accessToken: dependencies.accessToken,
+                                    db: dependencies.db,
+                                    fetch: fetchImpl,
+                                }),
+                            }),
                         },
                         onCommitted: (effects) => {
                             publishRealtime(effects.announce);

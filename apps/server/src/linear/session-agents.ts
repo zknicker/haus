@@ -49,25 +49,66 @@ export async function readSessionWorkspace(
 }
 
 /**
- * The Haus app's routing order: the Agent the prompt names, then the issue's
- * current `Agent` label, then the workspace default. Only granted, active
- * Agents are candidates for the first two; the default is taken as set.
+ * The Haus app's routing order: the Agent the person's words name, then the
+ * issue's current `Agent` label, then the workspace default. Only granted,
+ * active Agents are candidates for the first two; the default is taken as set.
+ * Label ids come from reading the issue; when no read was possible, the label
+ * names Linear lists in `promptContext` match granted Agents' names instead.
  */
 export async function routeHausAppSession(
     tx: HausDatabase,
     workspace: SessionWorkspace,
-    input: { labelIds: readonly string[]; prompt: string | null }
+    input: {
+        labelIds: readonly string[] | null;
+        labelNames: readonly string[];
+        prompt: string | null;
+    }
 ): Promise<string | null> {
     const granted = await grantedAgents(tx, workspace);
     const named = input.prompt ? namedAgent(granted, input.prompt) : null;
     if (named) {
         return named;
     }
-    const labelled = await agentLabelsByLinearId(tx, workspace.id, input.labelIds);
-    const labelledAgent = labelled.find((label) =>
-        granted.some((agent) => agent.id === label.agentId)
+    const labelled =
+        input.labelIds === null
+            ? labelNamedAgent(granted, input.labelNames)
+            : await labelledAgent(tx, workspace, granted, input.labelIds);
+    return labelled ?? workspace.defaultAgentId;
+}
+
+async function labelledAgent(
+    tx: HausDatabase,
+    workspace: SessionWorkspace,
+    granted: readonly { id: string }[],
+    labelIds: readonly string[]
+): Promise<string | null> {
+    const labelled = await agentLabelsByLinearId(tx, workspace.id, labelIds);
+    return (
+        labelled.find((label) => granted.some((agent) => agent.id === label.agentId))?.agentId ??
+        null
     );
-    return labelledAgent?.agentId ?? workspace.defaultAgentId;
+}
+
+/** `Agent › Juniper` (or Haus's collision name `Juniper (Haus)`) names a granted Agent. */
+function labelNamedAgent(
+    granted: readonly { displayName: string; id: string }[],
+    labelNames: readonly string[]
+): string | null {
+    for (const label of labelNames) {
+        const [group, name] = label.split(' › ');
+        if (group?.trim().toLowerCase() !== 'agent' || !name) {
+            continue;
+        }
+        const wanted = name
+            .replace(/ \(Haus\)$/u, '')
+            .trim()
+            .toLowerCase();
+        const matches = granted.filter((agent) => agent.displayName.toLowerCase() === wanted);
+        if (matches.length === 1 && matches[0]) {
+            return matches[0].id;
+        }
+    }
+    return null;
 }
 
 /** One Agent with the facts that decide whether it may take the session. */
@@ -151,7 +192,11 @@ async function grantedAgents(tx: HausDatabase, workspace: SessionWorkspace) {
         return [];
     }
     return await tx
-        .select({ handle: agentsTable.handle, id: agentsTable.id })
+        .select({
+            displayName: agentsTable.displayName,
+            handle: agentsTable.handle,
+            id: agentsTable.id,
+        })
         .from(agentMcpConnectionGrantsTable)
         .innerJoin(
             agentsTable,

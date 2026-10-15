@@ -3,43 +3,70 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type Payload, readDataChange, readSessionEvent } from './delivery-payload.ts';
 
-// The readers against the provisional fixtures (apps/server/test/fixtures/linear/README.md).
+// The readers against provisional fixtures and real captures
+// (apps/server/test/fixtures/linear/captured/).
 
 function fixture(name: string): Payload {
     const path = join(import.meta.dir, '../../test/fixtures/linear', `${name}.json`);
     return JSON.parse(readFileSync(path, 'utf8')) as Payload;
 }
 
-test('a mention-created session reads its issue, prompt, context, and guidance', () => {
-    expect(readSessionEvent(fixture('agent-session-created'))).toEqual({
+function captured(name: string): Payload {
+    return (fixture(`captured/${name}`) as { body: Payload }).body;
+}
+
+test('a captured mention reads its issue, the person’s comment, and the issue’s label names', () => {
+    expect(readSessionEvent(captured('agent-session-created-mention'))).toEqual({
         action: 'created',
-        appUserId: 'app-user-haus',
-        causedBy: 'user-zach',
-        guidance: 'Keep designs on brand.',
+        appUserId: 'ea30be86-13ea-4566-9ef5-1b8a0f411298',
+        causedBy: 'e007ac3a-dfb1-4742-8476-59a5e053fb35',
+        guidance: null,
         issue: {
             delegateId: null,
-            id: 'issue-fixture-142',
-            identifier: 'DES-142',
-            labelIds: ['label-agent-juniper'],
-            state: 'Design Review',
-            teamId: 'team-des',
-            title: 'Moth tee',
-            url: 'https://linear.app/haus-chat/issue/DES-142/moth-tee',
+            id: '504fbafc-ae10-46e7-a8c7-abec6c3a8643',
+            identifier: 'HTST-11',
+            state: null,
+            teamId: '2227a3da-2fc4-4664-a722-5d178d44f312',
+            title: 'Fixture: design HTST',
+            url: 'https://linear.app/haus-chat/issue/HTST-11/fixture-design-htst',
         },
-        linearSessionId: 'session-fixture-1',
+        issueLabelNames: ['Agent › Juniper'],
+        linearSessionId: 'e516dcd3-24bf-46cd-a928-112bffcb36d5',
         mentioned: true,
-        prompt: '@haus Juniper can you take this one?',
-        promptContext: expect.stringContaining('<title>Moth tee</title>'),
+        prompt: '@hausdev  Juniper, please draft three colourway prompts for this design.',
+        promptContext: expect.stringContaining('<title>Fixture: design HTST</title>'),
+        signal: null,
     });
 });
 
-test('a follow-up reads the new prompt and who sent it', () => {
-    const facts = readSessionEvent(fixture('agent-session-prompted'));
-    expect(facts).toMatchObject({
+test('delegated and proactive sessions are not mentions and ignore Linear’s placeholder comment', () => {
+    for (const name of ['agent-session-created-delegation', 'agent-session-created-proactive']) {
+        expect(readSessionEvent(captured(name))).toMatchObject({
+            action: 'created',
+            mentioned: false,
+            prompt: null,
+            signal: null,
+        });
+    }
+    expect(readSessionEvent(captured('agent-session-created-delegation'))?.issueLabelNames).toEqual(
+        ['Agent › Juniper']
+    );
+    expect(readSessionEvent(captured('agent-session-created-proactive'))?.issueLabelNames).toEqual(
+        []
+    );
+});
+
+test('a captured follow-up reads the new prompt and who sent it; a stop reads its signal', () => {
+    expect(readSessionEvent(captured('agent-session-prompted'))).toMatchObject({
         action: 'prompted',
-        causedBy: 'user-zach',
-        mentioned: false,
-        prompt: 'Also try a navy version.',
+        causedBy: 'e007ac3a-dfb1-4742-8476-59a5e053fb35',
+        prompt: 'Start with the sunset colourway.',
+        signal: null,
+    });
+    expect(readSessionEvent(captured('agent-session-prompted-stop'))).toMatchObject({
+        action: 'prompted',
+        prompt: 'stop',
+        signal: 'stop',
     });
 });
 

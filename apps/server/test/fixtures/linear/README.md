@@ -15,11 +15,9 @@ this README and re-check the readers in `src/linear/delivery-payload.ts` against
 
 | File | Linear-Event | Notes |
 | --- | --- | --- |
-| `agent-session-created.json` | `AgentSessionEvent` | mention-created session with `promptContext` and `guidance` |
-| `agent-session-prompted.json` | `AgentSessionEvent` | follow-up prompt; `agentActivity.body` shape unconfirmed |
 | `issue-label-update.json` | `Issue` | `Agent` label moved; `updatedFrom.labelIds` shape unconfirmed |
 | `permission-change.json` | `PermissionChange` | team access changed |
 | `oauth-app-revoked.json` | `OAuthApp` | app uninstalled |
 
-The stop signal (Q9) has no fixture: its shape is unknown, and an unrecognised session action is
-recorded `ignored` with `unsupported_event`.
+Session events are real captures in `captured/` (`agent-session-*.json`), including the stop
+signal (Q9, `agent-session-prompted-stop.json`).
