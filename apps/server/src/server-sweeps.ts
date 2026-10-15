@@ -28,8 +28,8 @@ interface ServerSweepsInput {
     githubIngest(delivery: GithubDelivery): Promise<GithubIngestOutcome>;
     /** Delivery recovery cadence; `null` turns recovery off (the test harness). */
     githubRecoveryIntervalMs?: number | null;
-    /** Linear's delivery and outbox workers (`linear/linear-pipeline.ts`). */
-    linearWorkers?: () => BootSweep;
+    /** Linear's delivery and outbox workers and its hourly sweep (`linear/linear-runtime.ts`). */
+    linearWorkers?: (timers?: SweepTimers) => BootSweep;
     /** How long a push waits for its human to read the message elsewhere; tests shorten it. */
     pushReadGraceMs?: number;
     /** iPhone push; absent when no APNs key is configured. */
@@ -52,7 +52,7 @@ export async function startServerSweeps(
     const { pushSender } = input;
     for (const start of [
         ...githubSweeps(runtime, input),
-        ...(input.linearWorkers ? [input.linearWorkers] : []),
+        ...linearSweeps(input),
         () => startReminderRetentionSweep(input.db, input.clock, input.timers),
         () => startTriggerRetentionSweep(input.db, input.clock, input.timers),
         () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
@@ -77,6 +77,12 @@ export async function startServerSweeps(
             )
         );
     }
+}
+
+/** Linear's workers and hourly sweep, when the Haus Linear app is configured. */
+function linearSweeps(input: ServerSweepsInput): (() => BootSweep)[] {
+    const { linearWorkers } = input;
+    return linearWorkers ? [() => linearWorkers(input.timers)] : [];
 }
 
 /** The hourly installation sweep and the delivery recovery sweep. */

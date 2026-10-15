@@ -1,3 +1,4 @@
+import type { BootSweep, SweepTimers } from '../boot-sweep.ts';
 import type { HausServerApplicationOptions } from '../haus-server-options.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { LinearApp } from './linear-api.ts';
@@ -5,6 +6,7 @@ import { LinearSignInRequiredError } from './linear-errors.ts';
 import { createLinearPipeline, type LinearPipelineDependencies } from './linear-pipeline.ts';
 import { linearUploadMeta, mintLinearAvatarUrl } from './signed-urls.ts';
 import { LinearTeamCache } from './target-teams.ts';
+import { startLinearSweep } from './team-sync.ts';
 import { LinearTokenRefresher } from './token-refresh.ts';
 import { LinearToolTransport } from './tool-transport.ts';
 import { createLinearWriteLedgerHooks } from './write-ledger.ts';
@@ -48,14 +50,15 @@ export function createLinearServices(
         signingKey: options.linearUrlSigningKey ?? null,
     });
     const { refresher } = linear;
+    const accessToken = async (credentialId: string) => {
+        if (!refresher) {
+            throw new LinearSignInRequiredError();
+        }
+        return (await refresher.fresh(credentialId, 60_000)).accessToken;
+    };
     const pipeline = createLinearPipeline({
         ...dependencies,
-        accessToken: async (credentialId) => {
-            if (!refresher) {
-                throw new LinearSignInRequiredError();
-            }
-            return (await refresher.fresh(credentialId, 60_000)).accessToken;
-        },
+        accessToken,
         appClientId: app?.clientId ?? null,
         appOrigin: options.appOrigin,
         appWebhookSecrets,
@@ -63,7 +66,24 @@ export function createLinearServices(
     });
     // Without the Haus Linear app nothing can bind, so nothing is queued to route.
     const configured = app !== null || appWebhookSecrets.length > 0;
-    return { linear, webhook: pipeline.webhook, workers: configured ? pipeline.start : undefined };
+    const workers = (timers?: SweepTimers): BootSweep => {
+        const started = [pipeline.start()];
+        if (app) {
+            const sweepDependencies = {
+                accessToken,
+                clock: { now: () => new Date() },
+                db: dependencies.db,
+                fetch: app.fetch,
+            };
+            started.push(startLinearSweep(sweepDependencies, timers));
+        }
+        return {
+            close: async () => {
+                await Promise.all(started.map((sweep) => sweep.close()));
+            },
+        };
+    };
+    return { linear, webhook: pipeline.webhook, workers: configured ? workers : undefined };
 }
 
 export function createLinearRuntime(input: {

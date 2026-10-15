@@ -6,11 +6,10 @@ import {
     readActorCredential,
 } from './credentials.ts';
 import type { LinearDeliveryHandler, LinearDeliveryRow } from './delivery-handler.ts';
-import { labelLifecycle } from './label-lifecycle.ts';
 import { credentialFailed } from './lifecycle.ts';
 import { readLinearTeams } from './linear-api.ts';
 import { orphanLinearSessions } from './sessions.ts';
-import { replaceTeamAccess } from './team-access.ts';
+import { applyLinearTeamAccess } from './team-sync.ts';
 
 export interface LinearLifecycleDeliveryDependencies {
     /** A valid access token for the credential (the binding slice's refresher). */
@@ -47,18 +46,7 @@ export function linearLifecycleHandler(
             if (!teams) {
                 return { kind: 'ignored', reason: 'unsupported_event' };
             }
-            await replaceTeamAccess(tx, {
-                credentialId: credential.id,
-                now,
-                serverId: row.serverId,
-                teams,
-            });
-            if (!credential.identityId) {
-                await labelLifecycle.teamsChanged(tx, {
-                    serverId: row.serverId,
-                    workspaceId: row.workspaceId,
-                });
-            }
+            await applyLinearTeamAccess(tx, credential, teams, now);
             return { announce: [], kind: 'done', routed: 0, wakes: [] };
         },
         prepare: async (row) => {
