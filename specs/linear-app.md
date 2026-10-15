@@ -287,7 +287,8 @@ refresh owner (`linear/token-refresh.ts`):
 ## Team scope
 
 Team access is persisted per credential (`linear_team_access`) and synced at install, on every
-`PermissionChange` delivery, and hourly. A failed sync keeps the last set; a set older than 24
+`PermissionChange` delivery, and hourly (`linear/team-sync.ts`, which also drops expired OAuth
+attempts). A failed sync keeps the last set; a set older than 24
 hours is treated as empty for writes.
 
 - **Workspace access** is the workspace credential's teams. Every write's target teams must be in
@@ -441,7 +442,8 @@ transaction that decided it:
 | `label_group_create`, `label_create` | `issueLabelCreate` | client label id |
 | `label_rename`, `label_archive` | `issueLabelUpdate`, `issueLabelArchive` | absolute values |
 | `issue_route` | `issueUpdate` setting `labelIds` (Agent group member) and `delegateId` | absolute values |
-| `token_revoke` | `POST /oauth/revoke` | revoking a revoked token succeeds |
+| `token_revoke` | `POST /oauth/revoke` with the row's client id, or the Haus app's (`HAUS_LINEAR_APP_CLIENT_ID`) when null | revoking a revoked token succeeds |
+| `identity_hand_back` | lists a removed identity's open delegated issues with the workspace token, then `issueUpdate` setting `delegateId` to the Haus app per issue | absolute values; a retry re-lists only what is still open |
 
 Each row names its credential, its input, and a client id derived from the row id where the call
 creates something. A worker claims due rows, kicked after commit: `session_ack` rows are claimed
@@ -598,7 +600,7 @@ one hook with a real caller: `agentGrantAdded` (Agent labels). Linear calls go t
 | `active`, `inactive` | refresh rejected at current generation | `refresh_required` |
 | any live but `draft` | `OAuthApp revoked` on its URL | `revoked` |
 | `refresh_required`, `revoked` | install callback with the same app user | `active` (from `revoked` only when the Agent still holds the grant; otherwise `inactive`) |
-| any live | `removeIdentity`, `agentRetired`, workspace removed | `removed`: credential and secrets deleted, `token_revoke` enqueued, open delegated issues handed back to the Haus app |
+| any live | `removeIdentity`, `agentRetired`, workspace removed | `removed`: credential and secrets deleted, `token_revoke` enqueued; for `removeIdentity` and `agentRetired`, `identity_hand_back` enqueued (a removed workspace has no actor left to hand back with) |
 
 Leaving `active` orphans the identity's open sessions. Rotating the webhook secret
 (`saveIdentityCredentials` with a new secret) keeps the previous one valid for 24 hours. The
