@@ -10,6 +10,7 @@ import { triggerSecretPrefix } from '@haus/api';
 import { hashComputerSecret } from '../computers/service.ts';
 import { type GithubTriggerRow, toGithubTriggerView } from '../github/github-trigger-view.ts';
 import type { triggersTable } from '../postgres/schema.ts';
+import { type LinearTriggerRow, toLinearTriggerView } from './linear-trigger-view.ts';
 import { triggerUrl } from './trigger-url.ts';
 
 export interface TriggerClock {
@@ -84,18 +85,12 @@ export class TriggerRequestRefusedError extends Error {
     }
 }
 
-/** Linear Triggers are refused until the `linear` kind's authoring lands. */
-export function refuseLinearTriggers(): never {
-    throw new TriggerRequestRefusedError(
-        'linear_triggers_unavailable',
-        'Linear Triggers are not available on this Server yet.'
-    );
-}
-
 export interface TriggerViewContext {
     createdByHandle: string | null;
     /** The `github` configuration; required exactly when the Trigger is `github`. */
     github: GithubTriggerRow | null;
+    /** The `linear` configuration; required exactly when the Trigger is `linear`. */
+    linear: LinearTriggerRow | null;
     origin: string;
     ownerHandle: string;
 }
@@ -130,8 +125,10 @@ export function toTrigger(
         return { ...base, kind: 'webhook', url: triggerUrl(context.origin, trigger.id) };
     }
     if (trigger.kind === 'linear') {
-        // Unreachable until the `linear` kind lands: create refuses it.
-        throw new Error(`Linear Trigger ${trigger.id} cannot be read yet.`);
+        if (!context.linear) {
+            throw new Error(`Linear Trigger ${trigger.id} has no stored configuration.`);
+        }
+        return { ...base, kind: 'linear', linear: toLinearTriggerView(context.linear) };
     }
     if (!context.github) {
         throw new Error(`GitHub Trigger ${trigger.id} has no stored configuration.`);

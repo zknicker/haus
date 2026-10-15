@@ -4,6 +4,7 @@ import { linearIdentities } from './identities.ts';
 import { linearIssue } from './issue.ts';
 import { onLinearIssueChanged } from './on-issue-changed.ts';
 import { onLinearUpdated } from './on-updated.ts';
+import { linearReferences } from './references.ts';
 import { linearRemoveIdentity } from './remove-identity.ts';
 import { linearSaveIdentityCredentials } from './save-identity-credentials.ts';
 import { linearSetDefaultAgent } from './set-default-agent.ts';
@@ -22,6 +23,7 @@ export const linearRouter = createRouter({
     issue: linearIssue,
     onIssueChanged: onLinearIssueChanged,
     onUpdated: onLinearUpdated,
+    references: linearReferences,
     removeIdentity: linearRemoveIdentity,
     saveIdentityCredentials: linearSaveIdentityCredentials,
     setDefaultAgent: linearSetDefaultAgent,

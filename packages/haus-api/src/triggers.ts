@@ -79,8 +79,6 @@ export const triggerRequestRefusalSchema = z.enum([
     'linear_reference_ambiguous',
     /** A team is outside the workspace actor's team access. */
     'linear_team_outside_access',
-    /** Linear Triggers are not available on this Server yet. */
-    'linear_triggers_unavailable',
     /** The request names a field the Trigger's kind does not have. */
     'trigger_kind_mismatch',
     'trigger_has_no_secret',

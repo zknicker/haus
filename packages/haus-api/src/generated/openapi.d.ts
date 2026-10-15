@@ -910,7 +910,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Preview GitHub selection without recording a fire or waking the Agent. */
+        /** Preview GitHub or Linear selection without recording a fire or waking the Agent. */
         post: operations["previewAgentTrigger"];
         delete?: never;
         options?: never;
@@ -1624,8 +1624,8 @@ export interface components {
             target: string;
         };
         /** @enum {string} */
-        TriggerKind: "webhook" | "github";
-        Trigger: components["schemas"]["WebhookTrigger"] | components["schemas"]["GithubTrigger"];
+        TriggerKind: "webhook" | "github" | "linear";
+        Trigger: components["schemas"]["WebhookTrigger"] | components["schemas"]["GithubTrigger"] | components["schemas"]["LinearTrigger"];
         WebhookTrigger: {
             anchorChatId: string;
             anchorMessageId: string | null;
@@ -1683,6 +1683,116 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             version: number;
+        };
+        LinearTrigger: {
+            anchorChatId: string;
+            anchorMessageId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdByHandle: string | null;
+            createdByUserId: string | null;
+            /** Format: date-time */
+            disabledAt: string | null;
+            fireCount: number;
+            id: string;
+            instruction: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "linear";
+            /** Format: date-time */
+            lastFiredAt: string | null;
+            linear: components["schemas"]["LinearTriggerView"];
+            ownerAgentId: string;
+            ownerHandle: string;
+            /** @enum {string} */
+            status: "armed" | "disabled";
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: number;
+        };
+        LinearTriggerView: {
+            /** @description Null once the workspace is removed. */
+            connectionId: string | null;
+            /** @description A name snapshot per stored id (Linear ids and Haus Agent ids), for rendering only. */
+            display: {
+                [key: string]: string;
+            };
+            groups: components["schemas"]["LinearTriggerGroup"][];
+            /** @enum {string|null} */
+            problem: "workspace_removed" | "sign_in_required" | "agent_access_revoked" | "teams_unavailable" | "references_unavailable" | null;
+            /** Format: date-time */
+            problemSince: string | null;
+            selfSuppressedCount: number;
+            suppressedCount: number;
+            workspaceName: string;
+        };
+        LinearAgentRef: {
+            /** @description A Haus Agent id. */
+            agent: string;
+        };
+        /** @description One stored AND group of stable ids, ORed with other groups; see specs/linear-triggers.md#events. Event filters apply only to their event (issue changed/stateFrom/stateTo/stateTypes, comment onIssueDelegatedTo, project changed/projectStatuses). */
+        LinearTriggerGroup: {
+            /** @enum {string} */
+            event: "issue" | "comment" | "project";
+            actions: ("create" | "update" | "remove")[];
+            teams?: string[];
+            projects?: string[];
+            labels?: string[];
+            labelsIgnore?: string[];
+            assignees?: string[];
+            delegates?: components["schemas"]["LinearAgentRef"][];
+            onIssueDelegatedTo?: components["schemas"]["LinearAgentRef"][];
+            actors?: (components["schemas"]["LinearAgentRef"] | {
+                linearUser: string;
+            })[];
+            actorsIgnore?: (components["schemas"]["LinearAgentRef"] | {
+                linearUser: string;
+            })[];
+            changed?: string[];
+            stateFrom?: string[];
+            stateTo?: string[];
+            stateTypes?: ("triage" | "backlog" | "unstarted" | "started" | "completed" | "canceled")[];
+            projectStatuses?: string[];
+        };
+        /** @description One authoring group. Values are names, team keys, project names or URLs, emails, and Agent selectors (@self, @agent:<handle>) that the Server resolves to stable ids; each list holds 1 to 20 values. An absent actions list takes the event's default (issue and comment create, project update). */
+        LinearTriggerGroupInput: {
+            /** @enum {string} */
+            event: "issue" | "comment" | "project";
+            actions?: ("create" | "update" | "remove")[];
+            teams?: string[];
+            projects?: string[];
+            labels?: string[];
+            labelsIgnore?: string[];
+            assignees?: string[];
+            delegates?: string[];
+            onIssueDelegatedTo?: string[];
+            actors?: string[];
+            actorsIgnore?: string[];
+            changed?: string[];
+            stateFrom?: string[];
+            stateTo?: string[];
+            stateTypes?: ("triage" | "backlog" | "unstarted" | "started" | "completed" | "canceled")[];
+            projectStatuses?: string[];
+        };
+        LinearTriggerConfigInput: {
+            /** @description The Linear connection (workspace) id. */
+            connectionId: string;
+            groups: components["schemas"]["LinearTriggerGroupInput"][];
+        };
+        LinearTriggerPreviewRequest: {
+            /** @description A raw Linear webhook body under 60 */
+            payload: {
+                [key: string]: unknown;
+            };
+        };
+        LinearTriggerPreviewResponse: {
+            groups: number[];
+            matched: boolean;
+            /** @description unsupported_event, unreadable_payload, team_outside_access, no_group_matched, or own_change. */
+            reason?: string;
         };
         /** @description One AND group, ORed with other groups. Event names may repeat. Name patterns accept *, **, and ?; branch @default follows the repository default branch. Exclusions override includes inside the group. Each event takes its own actions and filters; see specs/github-triggers.md#events. */
         GithubTriggerEvent: {
@@ -1770,6 +1880,8 @@ export interface components {
             kind?: components["schemas"]["TriggerKind"];
             /** @description Required exactly when kind is github. */
             github?: components["schemas"]["GithubTriggerConfigInput"];
+            /** @description Required exactly when kind is linear. */
+            linear?: components["schemas"]["LinearTriggerConfigInput"];
             messageId: string;
             title: string;
         };
@@ -1778,6 +1890,7 @@ export interface components {
             /** @description Null or empty clears it; at most 4096 UTF-8 bytes. */
             instruction?: string | null;
             github?: components["schemas"]["GithubTriggerConfigInput"];
+            linear?: components["schemas"]["LinearTriggerConfigInput"];
         };
         GithubTriggerPreviewRequest: {
             /** @enum {string} */
@@ -4091,17 +4204,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GithubTriggerPreviewRequest"];
+                "application/json": components["schemas"]["GithubTriggerPreviewRequest"] | components["schemas"]["LinearTriggerPreviewRequest"];
             };
         };
         responses: {
-            /** @description Match groups and current cached repository scope; ignores runtime readiness. */
+            /** @description Matching groups for the Trigger's kind; ignores runtime readiness. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GithubTriggerPreviewResponse"];
+                    "application/json": components["schemas"]["GithubTriggerPreviewResponse"] | components["schemas"]["LinearTriggerPreviewResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

@@ -5,6 +5,7 @@ import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { ChatArchivedError, ChatNotFoundError, requireChatWritable } from '../chats/chat-access.ts';
 import type { GithubEnvelopeLines } from '../github/trigger-envelope.ts';
+import type { LinearEnvelopeLines } from '../linear/trigger-envelope.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
@@ -32,6 +33,8 @@ export interface TriggerFireRequest {
     dedupeKey: string | null;
     /** A `github` fire's summary line and provenance segments. */
     github?: GithubEnvelopeLines;
+    /** A `linear` fire's summary line and provenance segments. */
+    linear?: LinearEnvelopeLines;
     payload: string;
     trigger: AuthenticatedTrigger;
 }
@@ -193,6 +196,7 @@ export async function recordTriggerFire(
             fireId,
             github: request.github,
             instruction: locked.instruction,
+            linear: request.linear,
             payload: request.payload,
             payloadBytes,
             title: locked.title,

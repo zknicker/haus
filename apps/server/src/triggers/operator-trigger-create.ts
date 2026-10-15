@@ -2,14 +2,14 @@ import type { TriggerCreateInput, TriggerCreateResult } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
-import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { requireActiveAgent } from '../reminders/reminder-model.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { createGithubTriggerRow } from './github-trigger-writes.ts';
-import { requireTriggerOperator } from './operator-triggers.ts';
-import { refuseLinearTriggers, type TriggerClock } from './trigger-model.ts';
+import { createLinearTriggerRow } from './linear-trigger-writes.ts';
+import { requireTriggerOperator, type TriggerAuthoringServices } from './operator-triggers.ts';
+import type { TriggerClock } from './trigger-model.ts';
 import { triggerCurlCommand } from './trigger-url.ts';
 import { createTriggerRow, type TriggerAnchor } from './trigger-writes.ts';
 
@@ -21,19 +21,17 @@ export type CreateOperatorTriggerInput = TriggerCreateInput & { origin: string }
  * creator and the owning Agent and carries no anchor message at all: nothing is
  * written to the transcript. Every later fire lands in that DM, which is
  * exactly where the person who wired it will look. A webhook answers with its
- * one readable secret; a `github` Trigger has none and answers with itself.
+ * one readable secret; a `github` or `linear` Trigger has none and answers
+ * with itself.
  */
 export async function createOperatorTrigger(
     db: HausDatabase,
     member: HausUser | null,
     input: CreateOperatorTriggerInput,
     clock: TriggerClock,
-    githubTransport: GithubApiTransport = {}
+    services: TriggerAuthoringServices
 ): Promise<TriggerCreateResult> {
     const operator = await requireTriggerOperator(db, member, input.serverId);
-    if (input.kind === 'linear') {
-        refuseLinearTriggers();
-    }
     const row = {
         createdByUserId: operator.id,
         instruction: input.instruction?.trim() || null,
@@ -46,8 +44,20 @@ export async function createOperatorTrigger(
         anchorOnOperatorDm(tx, member, { ...input, userId: operator.id });
     if (input.kind === 'github') {
         const created = await createGithubTriggerRow(
-            { db, transport: githubTransport },
+            { db, transport: services.githubTransport },
             { ...row, github: input.github },
+            resolveAnchor,
+            clock
+        );
+        if (created.event) {
+            publishRealtime(created.event);
+        }
+        return { trigger: created.trigger };
+    }
+    if (input.kind === 'linear') {
+        const created = await createLinearTriggerRow(
+            services.linear,
+            { ...row, linear: input.linear },
             resolveAnchor,
             clock
         );
