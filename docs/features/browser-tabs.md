@@ -33,10 +33,11 @@ or Attachments page's chat mark (the tooltip adds `#name › thread`, or `DM ›
 record in Files loads), or a web page's favicon (a spinner while it loads, a globe when it has none). A tab whose
 record is still loading keeps an empty mark slot and title.
 
-Each pane's row sits in the band directly over its pane and always shows, even with one tab. It
-leads with the pane's Back and Forward: they step that pane's selected tab (a web page's own
-history first, then the tab's), follow it when the pane switches tabs, and sit in the same place
-over every page, a chat included, so they never move. A row never scrolls: every tab holds one
+Each pane's row sits in the band directly over its pane and always shows, even with one tab. The
+window's one Back and Forward sit over the sidebar beside the traffic lights: they step the focused
+pane's selected tab (a web page's own history first, then the tab's), follow focus and tab
+switches, and sit in the same place over every page, a chat included. With two panes the unfocused
+row's selected tab reads muted, so the focused pane is always evident. A row never scrolls: every tab holds one
 width basis and shrinks evenly down to mark-only tabs, the selected tab keeps its close button, and
 the row's plus button stays pinned after the last tab. Each page keeps its own band at the top of
 its pane, under the rows: the same page band the web shows (Haus › section › … › page, then the
@@ -208,7 +209,7 @@ elsewhere; on macOS other Control combos stay with the page's text bindings.
 | Command-Shift-W | Close the window |
 | Command-1 … Command-9 | Select a tab in the focused pane's row; 9 selects its last |
 | Control-Tab / Control-Shift-Tab, Command-Shift-] / [, Command-Option-Right / Left | Next / previous tab in the focused pane |
-| Command-[ / Command-], swipe between pages, mouse back / forward buttons, the row's chevrons | Back / forward in the focused pane (a chevron: its own pane): a web page's own history first, then the tab's (mouse buttons act only over App pages) |
+| Command-[ / Command-], swipe between pages, mouse back / forward buttons, the title bar's chevrons | Back / forward in the focused pane: a web page's own history first, then the tab's (mouse buttons act only over App pages) |
 | Command-L | Focus and select a web page's address |
 | Command-R | Reload the web page; refetch an App page's data |
 | Command-Shift-R | Reload bypassing the cache (web page only) |
@@ -231,13 +232,13 @@ field, which takes focus whenever the page is shown in the focused pane; up to
 eight recently visited sites (one tile per site, reopening its latest page) sit a third of the way
 down. Enter commits the field by the address rules below; Escape clears it; leaving it rests it.
 Choosing an address or a site turns that same tab into the web page, so Back (Command-[ or the
-row's chevron) returns to the start page. The page shows nothing chat-related: the sidebar and
+title bar's chevron) returns to the start page. The page shows nothing chat-related: the sidebar and
 Command-K cover chats, and navigate a new tab page in the left pane in place like any other tab. It persists,
 closes, and reopens like any tab.
 
 ## Web pages
 
-Each web page has one compact toolbar row (Back and Forward lead the pane's tab row): Reload (Stop while loading, with a thin
+Each web page has one compact toolbar row (Back and Forward are the title bar's): Reload (Stop while loading, with a thin
 fading loading line), an address field, and Open in default browser. At rest the address shows a
 condensed label (host and path, without scheme, `www.`, query, or trailing slash; IDN hosts stay in
 punycode). Focusing it shows the full URL, selected, over up to eight recent pages. Typing replaces

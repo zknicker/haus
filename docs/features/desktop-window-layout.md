@@ -12,8 +12,9 @@ sidebar-width segment, then — starting at the content's edge — the tab rows 
 one row holds every tab; with two, each pane's row spans exactly its pane, so the right row starts
 over the pane divider (see [Desktop tabs → One pane or two](browser-tabs.md#one-pane-or-two)).
 
-The band is for tabs, not for what a page says about itself. Each pane's row leads with that pane's
-Back and Forward, then its tabs. Each page keeps its own band at the top of its pane, under the
+The band is for tabs, not for what a page says about itself. The window's Back and Forward sit over
+the sidebar, right of the traffic lights and just short of the sidebar's edge (beside the traffic
+lights while the sidebar is hidden); they act on the focused pane. Each page keeps its own band at the top of its pane, under the
 rows: its breadcrumb (Settings' Haus › Settings › Connections › GitHub) and actions, where the web
 shows them too.
 

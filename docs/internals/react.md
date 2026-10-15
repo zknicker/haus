@@ -207,11 +207,15 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   the web they lead `ShellTopbar` on every surface, chat included, and step the browser's
   history (`useWebHistory`): each is enabled while the neighboring entry is an App page
   (`/s/…`, `appHistorySteps`; Navigation API, else React Router's entry index for Back). On
-  desktop they lead each pane's tab row (`WorkspaceTabStrip`), not the page band, so they hold
-  one place over a full-height chat and every other page; they step that pane's selected tab
-  through `stepPageHistory` (a web page's own history first, then the tab's) and re-read when the
-  pane switches tabs (`usePaneHistory`, `paneHistorySteps`). Web pages and the new tab page
-  carry no Back or Forward of their own.
+  desktop one pair serves the window: it sits in the window band's lead over the sidebar, right
+  of the traffic lights and just short of the sidebar's edge (beside the traffic lights when the
+  sidebar is hidden), so it holds one place over a full-height chat and every other page and the
+  tab rows keep their position. It steps the focused pane's selected tab through
+  `stepPageHistory` (a web page's own history first, then the tab's) and re-reads on focus and
+  tab switches (`WindowHistoryButtons`, `usePaneHistory`, `paneHistorySteps`). With two panes
+  the unfocused row's selected tab reads muted (`data-focused` on `WorkspaceTabStrip`), so it is
+  clear which pane they act on. Web pages and the new tab page carry no Back or Forward of their
+  own.
 * **Desktop tabs route per tab** ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.md)).
   The window's hash router keeps only the Server shell (`/s/:slug`). Each tab's history lives in
   the tabs reducer (`hooks/desktop-tabs/`, owned by `DesktopTabsProvider` and its controller,
