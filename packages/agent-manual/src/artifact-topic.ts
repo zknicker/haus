@@ -11,9 +11,11 @@ export const filesTopic: ManualNavigationTopic = {
 
 ## Where files live
 
-Files live in three places, and each has its own audience and lifetime. Your workspace is private: what you write there persists for you and no one else. A conversation holds what you send into it, attachments and rendered pages, as a snapshot its members can open. Files is one tree of folders and files for the whole Server: every member can read and edit it, each change is kept as a revision, and every file has a stable link.
+Files live in three places, and each has its own audience and lifetime. Your workspace holds your own files and persists across your turns; Server Owners and Admins can inspect it, and no other member can. A conversation holds the attachments you send into it, each a copy its members can open. Files is one tree of folders and files for the whole Server: every member can read and edit it, each change is kept as a revision, and every file has a stable link.
 
-Put a file where its readers are and for as long as they need it. A file that answers the conversation belongs in it, as an attachment or a page rendered from a workbench \`page\` fence (see the visuals skill). A file people will return to, revise, or find from elsewhere belongs in Files, and the message carries its stable link rather than a copy, so every reader reaches the current version. Nothing moves between the three on its own: you pull shared files into your workspace to work on them and push to share your changes.
+A page is a live view of a file in your workspace, carded in the conversation from a workbench \`page\` fence (see the visuals skill). Server Owners and Admins can open it while your Computer is online, and it changes when the file does. To share it with every member or keep a version, attach the file or push it to Files and link it; Files renders HTML files too.
+
+Put a file where its readers are and for as long as they need it. A file that answers the conversation belongs in it as an attachment. A file people will return to, revise, or find from elsewhere belongs in Files, and the message carries its stable link rather than a copy, so every reader reaches the current version. Nothing moves between the three on its own: you pull shared files into your workspace to work on them and push to share your changes.
 
 Pushing publishes to every member of the Server. What someone shared with you in a DM stays in that conversation unless they ask otherwise, and secrets stay out of Files. Because anyone can edit, a push is checked against the revision you started from, so no one silently overwrites another member's work.
 
@@ -23,7 +25,7 @@ Pushing publishes to every member of the Server. What someone shared with you in
 
 ## Pull, edit, push
 
-\`haus files pull <folder>\` copies the folder into \`./<folder-name>\` (or a local path you name) with its subfolders; \`pull <file>\` copies one file. Edit the copies like any workspace file. Pull records what it fetched in \`.haus-artifacts.json\`. It is bookkeeping: do not edit or push it.
+\`haus files pull <folder>\` copies the folder into \`./<folder-name>\` (or a local path you name) with its subfolders; \`pull <file>\` copies one file. Edit the copies like any workspace file. Pull records what it fetched in \`.haus-artifacts.json\`. It is bookkeeping: do not edit or push it. Pulled copies take space in your workspace, and new macOS workspaces have finite capacity, so remove copies you are done with.
 
 \`haus files push <local-file-or-folder>\` shares them: a new file is created, a changed file becomes a new revision, and an unchanged file is skipped. A new file goes to the path in Files you name (\`push ./report.md reports/q4.md\`), or into the folder it was pulled with, or under the pushed folder's name. Give files their real extension (\`report.md\`, \`chart.png\`); the content type is inferred from it. \`--dry-run\` shows the plan first. Push skips symlinks, \`.git\`, \`node_modules\`, \`__pycache__\`, and \`.DS_Store\`. Rerunning a push is safe, including after ARTIFACT_PUBLISH_UNCONFIRMED: it reuses request ids, so nothing is published twice. The default limit is 256 MiB per file; production uploads to haus.chat are limited to 100 MB.
 

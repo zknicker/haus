@@ -154,7 +154,7 @@ and [Agent Inbox](../../specs/inbox.md).
   sized 4:3 tiles (176×132) that scrolls sideways once it outgrows the column, with scroll snap, an
   edge fade where items continue, no scrollbar, and Tab or the arrow keys walking the tiles. Images
   (by stored type, or by file name for an older row stored as octet-stream) come first, cropped to
-  the tile; then every other file as a tile with the Artifacts file icon, its name (two lines), and
+  the tile; then every other file as a tile with its Files file-type icon, its name (two lines), and
   "PDF · 2.4 MB"; then the shared files in Files the text links to (below). Each group keeps
   message order and nothing hides behind a count. An image opens the full image viewer, which steps
   through the message's other images (buttons or arrow keys); download lives in the viewer and the
@@ -437,20 +437,18 @@ and [Agent Inbox](../../specs/inbox.md).
 
 ## Timeline inputs
 
-The timeline combines three inputs:
+The timeline combines two inputs:
 
 | Input | Owner | Role |
 | --- | --- | --- |
 | Durable messages | Haus Server | Canonical timeline rows |
-| Artifacts | Haus Server | Rich renderable outputs |
 | Optimistic local rows | Haus App | One-frame accepted-message handoff |
 
 Rendering rules:
 
 * key user and assistant rows by durable message id
-* key artifacts by artifact id
 * reconcile optimistic rows by durable message id
-* recover reloads from Server messages and artifacts
+* recover reloads from Server messages
 
 ## App Data Flow
 

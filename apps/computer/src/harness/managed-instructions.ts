@@ -441,7 +441,7 @@ const outputsSection = `## Outputs
 
 const visualsSection = `## Visuals
 
-Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; keepable deliverables get pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
+Numbers over time or across categories get an inline visual (bespoke HTML/SVG) by default; full documents get pages. Before emitting either fence, read the visuals skill: it says when not to render, the fence contracts, and the design system. Never output HTML, JSX, CSS, imports, or class names in plain message text.`;
 
 // The Initial role line is the agent's description (ruling W2): it rides every
 // envelope and the evolved role lives in MEMORY.md. Optional, Raft parity: no

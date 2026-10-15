@@ -12,7 +12,7 @@ This file is the core. Read it, then read the one module for what you are making
 | Any chart, plot, sparkline, heat map, or map | [charts.md](charts.md), then [marks-and-anatomy.md](marks-and-anatomy.md), [interaction.md](interaction.md), and [anti-patterns.md](anti-patterns.md) |
 | A flow, tree, sequence, timeline, or state machine | [diagrams.md](diagrams.md) |
 | Tiles, cards, status lists, meters, calculators, tables, UI mockups | [components.md](components.md) |
-| A durable page | [pages.md](pages.md) |
+| A page | [pages.md](pages.md) |
 | Anything with an icon-shaped spot | [icons.md](icons.md) |
 
 ## Philosophy

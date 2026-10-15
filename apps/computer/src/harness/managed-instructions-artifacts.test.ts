@@ -22,5 +22,6 @@ test('the Files family entry points at the files Manual topic', () => {
     expect(prompt).not.toContain('haus artifact');
     // Pages are `page` fences opening in the Workspace pane; no artifact wording remains.
     expect(prompt).not.toMatch(/artifact (fence|page|pane)/iu);
-    expect(prompt).toContain('keepable deliverables get pages.');
+    expect(prompt).toContain('full documents get pages.');
+    expect(prompt).not.toContain('keepable');
 });

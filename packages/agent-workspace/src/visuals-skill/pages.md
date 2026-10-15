@@ -1,9 +1,9 @@
 # Haus visuals — pages
 
-Read [design-system.md](design-system.md) first. A page is a durable
-self-contained HTML file, carded in chat and opened in the Workspace pane, for a
-page the user asked to keep, share, or revisit, or content too long for one
-inline visual. A report, comparison, or set of mockups answered in chat is a
+Read [design-system.md](design-system.md) first. A page is a self-contained
+HTML file in your workspace, carded in chat and opened in the Workspace pane as
+a live view of that file, for a page the user asked for or content too long for
+one inline visual. A report, comparison, or set of mockups answered in chat is a
 visual, not a page. Everything in the design system
 holds; this module covers what changes. The skeleton is
 [page](fragments/page.md).
@@ -17,7 +17,7 @@ holds; this module covers what changes. The skeleton is
   own `body`, `table`, and form controls. The inline frame's defaults are not
   there.
 - **No network, ever.** Not even the pinned map atlases: a page renders
-  offline from a snapshot. `data:` URIs for small images, charts as inline SVG
+  offline from its own file. `data:` URIs for small images, charts as inline SVG
   drawn the same way as inline visuals, all data embedded at generation time.
 - **Headings come back.** One `<h1>`, then sentence-case section titles at
   15–16px weight 500. The no-headings rule is about inline visuals.
@@ -26,8 +26,9 @@ holds; this module covers what changes. The skeleton is
   right-aligned numbers, mono for timestamps and ids.
 - Write the file under `workbench/`, then reference it with a bare `page`
   fence holding exactly one JSON object.
-- The card is a snapshot of the page for that conversation's members; push the
-  file to Files (Manual topic `files`) when it needs revisions or a stable link.
+- The card opens the file live, so it changes when the file does. The Manual
+  topic `files` says who can open a page and how to share it with every member
+  or keep a version.
 
 ## Before shipping the page
 

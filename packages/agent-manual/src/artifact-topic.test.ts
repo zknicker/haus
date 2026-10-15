@@ -6,11 +6,15 @@ const body = getManualTopic('files')?.body ?? '';
 test('files guidance opens with where files live and derives sharing from it', () => {
     expect(body.indexOf('## Where files live')).toBeLessThan(body.indexOf('## Browse'));
     expect(body).toContain('Files live in three places');
-    expect(body).toContain('Your workspace is private');
-    expect(body).toContain('as a snapshot its members can open');
+    expect(body).toContain('Server Owners and Admins can inspect it');
+    expect(body).toContain('each a copy its members can open');
+    expect(body).toContain('A page is a live view of a file in your workspace');
+    expect(body).toContain('while your Computer is online, and it changes when the file does');
+    expect(body).toContain('attach the file or push it to Files and link it');
+    expect(body).not.toMatch(/workspace is private|snapshot/u);
     expect(body).toContain('every member can read and edit it');
     expect(body).toContain('the message carries its stable link rather than a copy');
-    expect(body).toContain('a page rendered from a workbench `page` fence');
+    expect(body).toContain('carded in the conversation from a workbench `page` fence');
     expect(body).toContain('What someone shared with you in a DM stays in that conversation');
     expect(body).toContain('secrets stay out of Files');
     expect(body).not.toMatch(/\bdrive\b|Shared artifacts/u);
@@ -19,7 +23,9 @@ test('files guidance opens with where files live and derives sharing from it', (
     expect(body).not.toContain('a search that finds nothing does not mean it is missing');
     expect(body).not.toContain('When someone says they just added something');
     expect(body).not.toContain('route around the size limit');
-    expect(body).not.toMatch(/disk-full|macOS/u);
+    // Capacity is a fact beside pulling, not a disk-full recovery rule.
+    expect(body).toContain('new macOS workspaces have finite capacity');
+    expect(body).not.toContain('disk-full');
     expect(getManualTopic('files')?.related).toContain('attachment');
     expect(
         searchManualTopics('share file stable link versions', { limit: 5, scope: 'all' }).map(
@@ -35,7 +41,11 @@ test('attachment and recipe guidance point to the files model instead of restati
     expect(attachment?.body).not.toContain('Haus has two forms of file sharing.');
     expect(attachment?.related).toContain('files');
     const recipe = getManualTopic('recipes/technique/html-artifact-discussion');
-    expect(recipe?.body).toContain('each later round by pushing the same file again');
+    expect(recipe?.body).toContain(
+        'A page is a live view of its file, so write each round to a new file'
+    );
+    expect(recipe?.body).toContain('Pushing the same path again adds a revision');
+    expect(recipe?.body).not.toContain('snapshot');
     expect(recipe?.kind === 'recipe' && recipe.prereqs).toEqual(['page fence']);
     expect(getManualTopic('haus-cli-overview')?.body).toContain('haus files,');
 });

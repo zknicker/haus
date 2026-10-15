@@ -40,7 +40,7 @@ Received messages list their attachments. \`haus attachment view <id> [--output 
 
 An attachment is a snapshot that lives in the conversation it was sent to. The \`files\` topic covers where else files live and when sharing in Files (\`haus files push\`) fits better.
 
-To share an image you generated, see images. For feedback anchored to a file or artifact, see recipes/technique/attachment-comments and recipes/technique/html-artifact-discussion.`,
+To share an image you generated, see images. For feedback anchored to a file or page, see recipes/technique/attachment-comments and recipes/technique/html-artifact-discussion.`,
         id: 'attachment',
         kind: 'overview',
         related: [

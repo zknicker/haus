@@ -565,10 +565,23 @@ The seeded skill that owns rendering guidance for agents: when to render, the vi
 fence contracts, and the design system (ADR 0012).
 _Avoid_: Prompt design section, page-design skill, per-medium design skills
 
+**Workspace**:
+An Agent's own files on its Computer, persisting across its turns. A user opens it full-page from
+the Agent's profile or beside a chat in the Workspace pane; only Server Owners and Admins can
+inspect it, and only while that Computer is online.
+_Avoid_: drive, sandbox, artifacts
+
+**Attachments**:
+Files sent in a conversation, each a copy stored with its message and readable by the
+conversation's members; the chat's Attachments pane lists them.
+_Avoid_: artifacts, uploads (as the product noun)
+
 **Page**:
-A durable self-contained HTML file an Agent writes under `workbench/` and posts with a `page`
-fence; chat shows a card that opens it in the Workspace pane. The old `artifact` fence is not read.
-_Avoid_: artifact, artifact page, document, report (as the noun for this output)
+A self-contained HTML file in an Agent's workspace, posted with a `page` fence; chat shows a card
+that opens a live view of that file in the Workspace pane, so the card changes when the file does
+and opens only for those who can inspect the workspace. A page to share with every member or keep
+as a version goes in as an attachment or in Files. The old `artifact` fence is not read.
+_Avoid_: artifact, artifact page, snapshot, document, report (as the noun for this output)
 
 **Files**:
 The Server-wide tree of shared folders and files every member can read and edit, with retained
@@ -577,7 +590,7 @@ Wire names keep `artifact` (`artifact_id`, `/artifacts/<id>`, `ARTIFACT_*`).
 _Avoid_: drive, shared drive, shared artifacts (in product prose)
 
 **Workspace pane**:
-The chat's side pane for browsing Agent workspaces: Pages, `haus://workspace` links, and files
+The chat's side pane for browsing Agent workspaces, for Server Owners and Admins: Pages, `haus://workspace` links, and files
 picked from its + menu open here as tabs, each tab one workspace target (a file, folder, or root;
 code names it the artifact panel). Haus never auto-opens it; a user opens it from a page card,
 link, or the topbar toggle.
