@@ -69,9 +69,27 @@ with at least one live artifact on the Server: `creator`, `artifact_count`, `lat
 procedure uses the same membership authorization as `list`.
 
 The App's Files section (`features/artifacts/`) is a Finder-style browser in the ordinary page
-column. The band carries the folder trail (Haus › Files › `starter-kit` › `scripts`, each folder
-above the open one a link) and every control: search, a file-type menu, a Created by menu (Anyone,
-You, Agents, then other people with live files, from `artifact.creators`), list/grid, and Upload.
+column. The band leads with Back and Forward, then carries the folder trail (Haus › Files ›
+`starter-kit` › `scripts`, each folder above the open one a link; past three folders the middle
+folds into an ellipsis menu, keeping Files and the parent) and every control: search (fixed width,
+placeholder "Search"), a file-type menu, a Created by menu (Anyone, You, Agents, then other people
+with live files, from `artifact.creators`), list/grid, and Upload. When the band is narrower than
+58rem the two menus and list/grid fold into one Filters menu. Back and Forward step the router's own
+history (a desktop tab's, or the browser's), so ⌘[ / ⌘], swipes, and mouse buttons agree with them;
+each is enabled only while the neighboring entry is the library itself. Opening a folder pushes an
+entry; a filter change replaces it. The trail stays beside a desktop tab too.
+
+Selection follows Finder: a click selects a folder or file (one selection across folders and every
+date group), a double click or Return opens it, arrow keys move it, and a touch tap opens at once.
+On desktop, Command-, Shift-, or middle-click still opens in a new tab. Right-clicking a row, tile,
+or the empty area (or Shift+F10 / the Menu key on the focused item) selects it and opens one
+context menu. File and folder actions are defined once (`artifact-actions.ts`) and rendered by the
+row ⋮ menu, the context menu, and the viewer's menu: files offer Open, Download, Copy link, Copy
+public link (Disable public link when allowed), Rename…, Move to… (a folder picker over
+`artifact.move`), Version history (the viewer's Revisions), and Delete… (confirmed; shown only to
+the creator and human Owners/Admins, the Server's `artifact.delete` rule). Folders offer Open, Copy
+link, Rename…, and Move to…; the empty area offers Upload files… and Upload folder…. Actions a
+member cannot run are hidden, not disabled. There is no folder download.
 The column shows the open folder's child folders (`artifact.list` folders: tinted folder icons
 in the list's newest-first order, tints dealt in path-key order, each with its file count and up to three of its newest files peeking out,
 taken from one recursive read of the open folder, never one read per folder), then the files
@@ -82,9 +100,9 @@ and creator filter files, and folder counts follow them. The folder, kind, and c
 (`?folder=starter-kit/scripts&kind=images&creator=agent:<id>`) so back, reload, and a desktop tab
 return to the same view; search stays local and the list/grid choice is per device. Rows name the
 file (its path's last segment), with the title first in the meta line when it differs, then kind,
-creator, and relative time, plus size and a ⋮ menu (Open, Rename, Copy link, Copy public link, Download); folder
-tiles open on press and offer Rename folder on right-click. Rename changes only the last segment
-through `artifact.move` (a file move carries its head as `base_revision_id`). Pages load 50 at a
+creator, and relative time, plus size and the ⋮ menu. Rename changes only the last segment and Move
+to… only the folder, both through `artifact.move` (a file move carries its head as
+`base_revision_id`). Pages load 50 at a
 time behind Show more. The page is blank until the first read lands; the empty state appears only
 when the folder truly holds nothing, with an Upload files button.
 
@@ -102,7 +120,8 @@ clean upload ends in a toast. Library reads refresh when the upload finishes.
 The viewer's band shows
 the file's path in Files (Files and each folder above it link back into the library, the file name
 last); the tab keeps the file's title. The viewer shows a header
-(icon, title, creator, last update, ⋮ menu with Download and both links), the preview, and details
+(icon, title, creator, last update, and the shared file actions without Open, plus Copy link to
+this revision; deleting returns to the file's folder), the preview, and details
 with revision history beside it, stacking below it in narrow panes. Text files render inline
 exactly as the Workspace pane renders workspace files (the shared `FileTextPreview` in
 `features/chats/file-text-preview.tsx`): Markdown rendered, HTML as a sandboxed page with host
