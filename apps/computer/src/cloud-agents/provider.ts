@@ -1,5 +1,6 @@
 import type {
     CloudAgentBranch,
+    CloudAgentProvider as CloudAgentProviderId,
     CloudAgentRunModel,
     CloudAgentStatus,
     CloudAgentUnreadyReason,
@@ -12,8 +13,13 @@ export type CloudAgentReadiness =
     | { account: { email: string | null; expiresAt: string | null }; ready: true }
     | { ready: false; reason: CloudAgentUnreadyReason };
 
-/** Everything a provider needs to address one Run it is already hosting. */
+/**
+ * Everything a provider needs to address one Run it is already hosting. A
+ * provider that acknowledges a prompt before naming its execution (Claude)
+ * leaves `providerRunId` null until a reading finds it.
+ */
 export interface CloudAgentRunRef {
+    provider: CloudAgentProviderId;
     providerAgentId: string | null;
     providerRunId: string | null;
     runId: string;
@@ -58,11 +64,14 @@ export interface CloudAgentStartInput {
     ref: string | null;
     repository: string;
     title: string;
+    /** Haus's work id; a provider without Run ids tags its prompt with it. */
+    workId: string;
 }
 
 export interface CloudAgentLaunch {
     providerAgentId: string;
-    providerRunId: string;
+    /** Null when the provider acknowledges delivery before naming the execution. */
+    providerRunId: string | null;
     providerUrl: string | null;
     status: CloudAgentStatus;
 }
@@ -73,6 +82,7 @@ export interface CloudAgentSendInput {
     /** The model Server resolved for this Run (`default` is Auto); `null` sends none. */
     model: CloudAgentModelSelection | null;
     providerAgentId: string;
+    workId: string;
 }
 
 /** One bounded provider reading, before Haus's own work and Run identities. */
@@ -115,7 +125,7 @@ export interface CloudAgentProvider {
     disconnect(): Promise<CloudAgentReadiness>;
     /** The provider's raw model catalog for the connected account. */
     listModels(): Promise<CloudAgentModelListing[]>;
-    readonly provider: 'cursor';
+    readonly provider: CloudAgentProviderId;
     read(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
     send(input: CloudAgentSendInput): Promise<CloudAgentLaunch>;
@@ -182,7 +192,9 @@ export function cloudAgentModelSelectionOf(
  * The provider a Computer reports until a real adapter is installed. It is
  * truthfully not ready, so a launch fails before any Message is created.
  */
-export function unavailableCloudAgentProvider(): CloudAgentProvider {
+export function unavailableCloudAgentProvider(
+    provider: CloudAgentProviderId = 'cursor'
+): CloudAgentProvider {
     const unavailable = () => {
         throw new CloudAgentProviderUnavailableError('provider-unavailable');
     };
@@ -194,7 +206,7 @@ export function unavailableCloudAgentProvider(): CloudAgentProvider {
             Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
         listModels: () =>
             Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
-        provider: 'cursor',
+        provider,
         read: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         readiness: () => Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
         send: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),

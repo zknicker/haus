@@ -1,4 +1,4 @@
-import { type ChatPaneTarget, chatPaneTargetKey } from './contracts.js';
+import { type ChatPaneTarget, chatPaneTargetKey } from './contracts.ts';
 
 // The haus:// link scheme for chat pane targets. This is the one shared
 // parser for every consumer of the scheme — app link clicks and the Runtime

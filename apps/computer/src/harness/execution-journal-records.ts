@@ -8,13 +8,13 @@
  * the journal performs goes through the shared appliers, so replaying a log
  * reproduces the in-memory document exactly.
  */
-import { applyJournalRecord } from './execution-journal-mutations';
+import { applyJournalRecord } from './execution-journal-mutations.ts';
 import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalStatus,
     ComputerExecutionJournalSubagentPatch,
     JournalValue,
-} from './execution-journal-types';
+} from './execution-journal-types.ts';
 
 export type JournalInterruptReason = 'computer_restart' | 'stream_abort' | 'stream_error';
 

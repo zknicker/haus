@@ -62,6 +62,16 @@ pointed the same way.
 
 `specs/cloud-agents.md` carries the full card, row, and delivery contract.
 
+## Amendment 2026-10-14
+
+Claude (Claude Code's cloud sessions) is now a second Cloud Agent provider. The same card renders
+its work, with **Open in Claude** in place of **Open in Cursor**, and the chip mirrors the provider's
+own status the same way. A Run that stopped to ask a question settles as `pending_input`, which the
+chip shows as `Needs input` in the warning tone. The status line says only `Updated <relative>`,
+never the question: the card is a status card, the delegating Agent answers, and a person
+who wants the question opens the session in Claude. The decision
+above is unchanged. See [Cloud Agents](../../specs/cloud-agents.md#claude-provider).
+
 ## Considered and rejected
 
 - **A Haus "Stopped" catch-all status.** It hides which of Cursor's terminal states happened and

@@ -10,6 +10,7 @@ import { cloudAgentSignInView } from './cloud-agent-sign-in-model.ts';
 const connected = {
     accountEmail: 'delegate@example.com',
     expiresAt: '2026-12-03T21:03:33.000Z',
+    isDefault: true,
     provider: 'cursor',
     ready: true,
     reason: null,
@@ -19,6 +20,7 @@ function unready(reason: 'expired' | 'not-connected' | 'provider-unavailable') {
     return {
         accountEmail: null,
         expiresAt: null,
+        isDefault: true,
         provider: 'cursor',
         ready: false,
         reason,
@@ -28,9 +30,10 @@ function unready(reason: 'expired' | 'not-connected' | 'provider-unavailable') {
 function render(view: ReturnType<typeof cloudAgentCapabilityView>) {
     return renderToStaticMarkup(
         <CloudAgentCapabilityRow
-            isDisconnecting={false}
+            isBusy={false}
             onConnect={() => undefined}
             onDisconnect={() => undefined}
+            onMakeDefault={() => undefined}
             view={view}
         />
     );
@@ -40,6 +43,7 @@ test('an unconnected Computer offers Connect and no disconnect', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
+        provider: 'cursor',
         state: unready('not-connected'),
     });
     expect(view).toMatchObject({ canConnect: true, canDisconnect: false, status: 'not-connected' });
@@ -55,6 +59,7 @@ test('a connected Computer names its account and hides Disconnect behind the row
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
+        provider: 'cursor',
         state: connected,
     });
     expect(view).toMatchObject({ canConnect: false, canDisconnect: true, status: 'ready' });
@@ -73,6 +78,7 @@ test('an expired key reads as expired and still offers a reconnect', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
+        provider: 'cursor',
         state: unready('expired'),
     });
     expect(view).toMatchObject({ canConnect: true, canDisconnect: true, statusLabel: 'Expired' });
@@ -81,7 +87,12 @@ test('an expired key reads as expired and still offers a reconnect', () => {
 
 test('a Computer that cannot reach Cursor offers nothing to press', () => {
     for (const state of [unready('provider-unavailable'), null]) {
-        const view = cloudAgentCapabilityView({ isConnecting: false, isOffline: false, state });
+        const view = cloudAgentCapabilityView({
+            isConnecting: false,
+            isOffline: false,
+            provider: 'cursor',
+            state,
+        });
         expect(view).toMatchObject({
             canConnect: false,
             canDisconnect: false,
@@ -95,6 +106,7 @@ test('an offline Computer says so instead of claiming a readiness it cannot read
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: true,
+        provider: 'cursor',
         state: connected,
     });
     expect(view.status).toBe('unavailable');
@@ -105,6 +117,7 @@ test('the row reads as connecting while the Computer runs Cursor’s browser sig
     const view = cloudAgentCapabilityView({
         isConnecting: true,
         isOffline: false,
+        provider: 'cursor',
         state: unready('not-connected'),
     });
     expect(view.statusLabel).toBe('Connecting');
@@ -114,21 +127,31 @@ test('the row reads as connecting while the Computer runs Cursor’s browser sig
 
 test('the Computer report renders the row before the settings read answers', () => {
     expect(
-        reportedCloudAgentCapability({
-            cloudAgentProviders: [
-                { models: null, provider: 'cursor', ready: false, reason: 'expired' },
-            ],
-            runtimes: [],
-        })
+        reportedCloudAgentCapability(
+            {
+                cloudAgentProviders: [
+                    {
+                        isDefault: true,
+                        models: null,
+                        provider: 'cursor',
+                        ready: false,
+                        reason: 'expired',
+                    },
+                ],
+                runtimes: [],
+            },
+            'cursor'
+        )
     ).toEqual(unready('expired'));
-    expect(reportedCloudAgentCapability({ runtimes: [] })).toBeNull();
-    expect(reportedCloudAgentCapability(null)).toBeNull();
+    expect(reportedCloudAgentCapability({ runtimes: [] }, 'cursor')).toBeNull();
+    expect(reportedCloudAgentCapability(null, 'claude')).toBeNull();
 });
 
 test('a pending sign-in can be resumed after closing or reloading settings', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
+        provider: 'cursor',
         state: {
             ...unready('not-connected'),
             signIn: {
@@ -148,12 +171,14 @@ test('offline wins over an in-flight sign-in and failures explain recovery', () 
         cloudAgentCapabilityView({
             isConnecting: true,
             isOffline: true,
+            provider: 'cursor',
             state: unready('not-connected'),
         }).status
     ).toBe('unavailable');
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
+        provider: 'cursor',
         state: {
             ...unready('not-connected'),
             signIn: {
@@ -164,6 +189,38 @@ test('offline wins over an in-flight sign-in and failures explain recovery', () 
     });
     expect(view.canConnect).toBe(true);
     expect(view.description).toContain('expired');
+});
+
+test('Claude reuses the Computer’s Claude Code login: it checks again and never disconnects', () => {
+    const signedOut = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        provider: 'claude',
+        state: { ...unready('not-connected'), isDefault: false, provider: 'claude' },
+    });
+    expect(signedOut).toMatchObject({ canConnect: true, connectLabel: 'Check again' });
+    expect(signedOut.description).toContain('Claude Code');
+    expect(render(signedOut)).toContain('Claude Cloud Agents');
+
+    const ready = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        provider: 'claude',
+        state: { ...connected, expiresAt: null, isDefault: false, provider: 'claude' },
+    });
+    expect(ready).toMatchObject({ canDisconnect: false, canMakeDefault: true, isDefault: false });
+    expect(render(ready)).toContain('aria-label="Claude Cloud Agents actions"');
+});
+
+test('the default provider wears a Default chip and cannot be made default again', () => {
+    const view = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        provider: 'cursor',
+        state: connected,
+    });
+    expect(view).toMatchObject({ canMakeDefault: false, isDefault: true });
+    expect(render(view)).toContain('Default');
 });
 
 test('recovered Computer state supersedes a lost connect response', () => {

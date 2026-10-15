@@ -83,6 +83,7 @@ test('send persists the private prompt before starting its monitor and keeps it 
     expect(f.watched).toHaveLength(1);
     expect(
         await new CloudLaunchJournal(f.input.dataRoot).read(f.input.serverId, {
+            provider: 'cursor',
             runId: receipt.runId,
             workId: work.id,
             providerAgentId: work.providerAgentId,
@@ -94,6 +95,7 @@ test('send persists the private prompt before starting its monitor and keeps it 
 test('a send retried after its monitor settled the Run unsent reports why, not success', async () => {
     const f = await fixture();
     const ref = {
+        provider: 'cursor' as const,
         runId: 'car_followup12345678',
         workId: work.id,
         providerAgentId: work.providerAgentId,

@@ -82,6 +82,7 @@ export async function sendCloudAgentWork(
         if (!existing) {
             const model = await resolveRunModel(tx, {
                 computerId: runner.computerId,
+                provider: row.work.provider,
                 serverId: runner.serverId,
             });
             await tx.insert(cloudAgentRunsTable).values({

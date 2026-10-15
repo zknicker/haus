@@ -8,6 +8,7 @@ import {
     SearchField,
 } from '@heroui/react';
 import * as React from 'react';
+import { cloudAgentProviderName } from '../../cloud-agents/cloud-agent-provider-presentation.ts';
 import type { CloudAgentModelOption, CloudAgentModelView } from './cloud-agent-model.ts';
 
 /**
@@ -38,7 +39,7 @@ export function CloudAgentModelPicker({
 
     return (
         <Autocomplete
-            aria-label="Cloud Agent model"
+            aria-label={`${cloudAgentProviderName(view.provider)} cloud agent model`}
             className="w-60"
             disabledKeys={view.options
                 .filter((option) => option.unavailable)
@@ -59,7 +60,7 @@ export function CloudAgentModelPicker({
             <Autocomplete.Popover>
                 <Autocomplete.Filter filter={filter}>
                     <SearchField
-                        aria-label="Search Cloud Agent models"
+                        aria-label={`Search ${cloudAgentProviderName(view.provider)} cloud agent models`}
                         autoFocus
                         name="search"
                         variant="secondary"

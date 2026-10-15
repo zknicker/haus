@@ -1,4 +1,7 @@
-import { isTerminalCloudAgentStatus } from '@haus/api';
+import {
+    type CloudAgentProvider as CloudAgentProviderId,
+    isTerminalCloudAgentStatus,
+} from '@haus/api';
 import { Clock, Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { foreign } from './foreign-operation.ts';
@@ -14,7 +17,7 @@ export class CloudAgentSendQueue {
         runtime: DaemonRuntime,
         private readonly journal: CloudLaunchJournal,
         private readonly serverId: string,
-        private readonly provider: () => CloudAgentProvider
+        private readonly provider: (id: CloudAgentProviderId) => CloudAgentProvider
     ) {
         this.permit = runtime.runSync(Effect.makeSemaphore(1));
     }
@@ -54,11 +57,12 @@ export class CloudAgentSendQueue {
         return Effect.gen(function* () {
             const sent = yield* Effect.either(
                 foreign(() =>
-                    self.provider().send({
+                    self.provider(ref.provider).send({
                         idempotencyKey: ref.runId,
                         instructions: pending.instructions,
                         model: pending.model,
                         providerAgentId: pending.providerAgentId,
+                        workId: ref.workId,
                     })
                 )
             );
@@ -112,16 +116,19 @@ export class CloudAgentSendQueue {
                 }
                 return stop;
             }
-            const ref = record?.phase === 'launched' ? { ...previous, ...record.launch } : previous;
-            if (!(ref.providerAgentId && ref.providerRunId)) {
+            const launched = record?.phase === 'launched';
+            const ref = launched ? { ...previous, ...record.launch } : previous;
+            // A launched record is addressed even before its provider names the execution.
+            if (!(ref.providerAgentId && (launched || ref.providerRunId))) {
                 return yield* self.unaddressedReady(previous, record === null && stop);
             }
-            const observation = yield* foreign((signal) => self.provider().read(ref, signal));
+            const provider = self.provider(ref.provider);
+            const observation = yield* foreign((signal) => provider.read(ref, signal));
             if (isTerminalCloudAgentStatus(observation.status)) {
                 return true;
             }
             if (stop) {
-                yield* foreign((signal) => self.provider().cancel(ref, signal));
+                yield* foreign((signal) => provider.cancel(ref, signal));
             }
             return false;
         });

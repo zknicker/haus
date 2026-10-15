@@ -624,6 +624,13 @@
       "when": 1791940000000,
       "tag": "0088_image-generation",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1791995398648,
+      "tag": "0089_cloud-agent-claude",
+      "breakpoints": true
     }
   ]
 }

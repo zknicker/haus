@@ -26,7 +26,11 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     public var providerName: String { Self.providerName(work.provider) }
 
     public static func providerName(_ provider: String) -> String {
-        provider == "cursor" ? "Cursor" : provider
+        switch provider {
+        case "cursor": "Cursor"
+        case "claude": "Claude"
+        default: provider
+        }
     }
 
     /// The headline: the job's state, never its newest Run's. A working job
@@ -40,7 +44,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         case .done(let startedAt, let settledAt, _):
             guard let startedAt, let settledAt else { return label }
             return "\(label) · \(Self.duration(from: startedAt, to: settledAt))"
-        case .failed, .cancelled, .expired:
+        case .failed, .cancelled, .expired, .pendingInput:
             return label
         }
     }
@@ -52,6 +56,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         case .failed: "Failed"
         case .cancelled: "Cancelled"
         case .expired: "Expired"
+        case .pendingInput: "Needs input"
         }
     }
 

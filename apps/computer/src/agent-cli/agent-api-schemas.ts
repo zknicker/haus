@@ -9,6 +9,7 @@ import {
     taskOrigins,
 } from '@haus/api';
 import * as z from 'zod';
+import { messageCloudAgentWorkSchema } from './message-cloud-agent-work-schema.ts';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 
@@ -43,32 +44,6 @@ const messageTaskSchema = z.object({
     priority: z.enum(['none', 'urgent', 'high', 'medium', 'low']),
     status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
     updated_at: z.string(),
-});
-
-const messageCloudAgentWorkSchema = z.object({
-    activity: z.string().nullable(),
-    id: z.string(),
-    latest_run: z
-        .object({
-            branches: z.array(
-                z.object({
-                    branch: z.string(),
-                    pull_request_url: z.string().nullable(),
-                    repository: z.string(),
-                })
-            ),
-            error_code: z.string().nullable(),
-            run_id: z.string(),
-            status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
-            summary: z.string().nullable(),
-        })
-        .nullable(),
-    provider: z.literal('cursor'),
-    provider_url: z.string().nullable(),
-    repository: z.string(),
-    starting_ref: z.string().nullable(),
-    status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
-    title: z.string(),
 });
 
 /** The Agent one Agent created, as the creating Message carries it. */

@@ -41,8 +41,10 @@ while you read it.
   ledgers are not shown on this surface.
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
-  Cloud Agents** row, with **Connect** on the row and **Disconnect** behind its overflow menu
-  once connected. Connect opens a compact dialog with **Continue in Cursor** and **Copy sign-in
+  Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses which
+  provider `haus cloud-agent start` uses on this Computer when the Agent names none (Cursor until
+  changed). Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The
+  Cursor row has **Connect** and **Disconnect** behind its overflow menu once connected. Connect opens a compact dialog with **Continue in Cursor** and **Copy sign-in
   link**. Sign-in happens in the user's local browser while Computer waits for approval and
   stores the credential. Haus updates automatically when connected; no code needs to be pasted.
   Closing the dialog preserves the pending flow, and **Continue sign-in** reopens it. **Cancel
@@ -51,8 +53,9 @@ while you read it.
   reaches Server. Cloud Agent access is separate from the Cursor runtime because the
   Cursor CLI and the Cursor SDK use different credential stores even for one account.
 
-* **Cloud Agent model.** Settings → Models carries a Server-wide **Model** row under **Cloud
-  Agents**. Owners and Admins pick **Auto** (the default: Cursor picks a model for each run, whatever
+* **Cloud Agent model.** Settings → Models carries a Server-wide **Model** row for each provider
+  under **Cloud Agents**; the rest of this entry describes Cursor's (Claude's row reads **Default** when no model is saved, which sends no model so
+  the account default applies, and its catalog offers Sonnet, Opus, and Haiku). Owners and Admins pick **Auto** (the default: Cursor picks a model for each run, whatever
   the account's own default model is) or a model from Cursor's catalog, as the
   freshest Computer report lists it, with "Updated … ago" dating that read. The picker searches
   inside its popover, matching a model's name or Cursor id, and groups models into Claude, GPT,

@@ -3,6 +3,8 @@ import type {
     AgentThreadContext,
     ChatMessageReply,
     CloudAgentBranch,
+    CloudAgentProvider,
+    CloudAgentStatus,
 } from '@haus/api';
 
 export interface AgentInboxItem {
@@ -40,11 +42,11 @@ export interface AgentInboxItem {
 export interface AgentCloudAgentWorkAttention {
     branches: CloudAgentBranch[];
     errorCode: string | null;
-    provider: 'cursor';
+    provider: CloudAgentProvider;
     providerUrl: string | null;
     repository: string;
     runId: string;
-    status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
+    status: CloudAgentStatus;
     summary: string | null;
     title: string;
     workId: string;

@@ -1,12 +1,12 @@
 import { join } from 'node:path';
-import { FileExecutionJournal } from './execution-journal-file';
+import { FileExecutionJournal } from './execution-journal-file.ts';
 import {
     readExecutionJournalLog,
     readExecutionJournalSnapshot,
     startExecutionJournalLog,
-} from './execution-journal-store';
-import { settleSubagent } from './execution-journal-subagent';
-import { interruptTool, isJournalDocument } from './execution-journal-values';
+} from './execution-journal-store.ts';
+import { settleSubagent } from './execution-journal-subagent.ts';
+import { interruptTool, isJournalDocument } from './execution-journal-values.ts';
 
 export type {
     ComputerExecutionJournal,
@@ -18,12 +18,12 @@ export type {
     ComputerExecutionJournalSubagentPatch,
     ComputerExecutionJournalTool,
     JournalValue,
-} from './execution-journal-types';
+} from './execution-journal-types.ts';
 
 import type {
     ComputerExecutionJournal,
     ComputerExecutionJournalDocument,
-} from './execution-journal-types';
+} from './execution-journal-types.ts';
 
 const journalDirectory = 'execution-journal';
 const runIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/u;

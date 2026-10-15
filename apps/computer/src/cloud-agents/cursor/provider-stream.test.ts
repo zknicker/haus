@@ -10,6 +10,7 @@ import {
 } from './recorded-transport.ts';
 
 const ref = {
+    provider: 'cursor' as const,
     providerAgentId: recordedAgentId,
     providerRunId: recordedRunId,
     runId: 'car_1234567890abcdef',

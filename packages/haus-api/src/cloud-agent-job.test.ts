@@ -10,7 +10,9 @@ function run(
     status: CloudAgentStatus,
     overrides: Partial<Parameters<typeof deriveCloudAgentJob>[0]['runs'][number]> = {}
 ) {
-    const settled = ['completed', 'failed', 'cancelled', 'expired'].includes(status);
+    const settled = ['pending_input', 'completed', 'failed', 'cancelled', 'expired'].includes(
+        status
+    );
     return {
         createdAt: '2026-09-04T12:00:00.000Z',
         errorCode: null,
@@ -37,6 +39,37 @@ function job(...runs: ReturnType<typeof run>[]) {
 describe('deriveCloudAgentJob', () => {
     test('a first Run still in the queue is working, never queued', () => {
         expect(job(run('queued'))).toEqual({ followUp: null, startedAt: null, state: 'working' });
+    });
+
+    test('a Run that stopped to ask reads pending input with its question', () => {
+        expect(job(run('pending_input', { summary: 'Which database should I use?' }))).toEqual({
+            followUp: null,
+            question: 'Which database should I use?',
+            settledAt,
+            startedAt,
+            state: 'pending-input',
+        });
+    });
+
+    test('an answer the provider has not received yet leaves the question standing', () => {
+        expect(
+            job(
+                run('queued', { createdAt: queuedAt }),
+                run('pending_input', { summary: 'Which database should I use?' })
+            )
+        ).toMatchObject({
+            followUp: { since: queuedAt, state: 'waiting' },
+            state: 'pending-input',
+        });
+    });
+
+    test('an answer the provider picked up reads working again', () => {
+        expect(
+            job(
+                run('running', { createdAt: queuedAt, providerRunId: 'prompt-2' }),
+                run('pending_input', { summary: 'Which database should I use?' })
+            )
+        ).toMatchObject({ state: 'working' });
     });
 
     test('a running first Run is working since it started', () => {

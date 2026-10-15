@@ -1,4 +1,4 @@
-import type { CloudAgentCapabilityRequest } from '@haus/api';
+import type { CloudAgentCapabilityRequest, CloudAgentProvider } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import {
     CloudAgentCapabilityDeniedError,
@@ -17,19 +17,21 @@ import {
 /**
  * Cloud Agent provider access on one Computer. `connect` runs the provider's
  * sign-in on that Computer and returns its browser link; Server never
- * sees, stores, or forwards the credential it mints.
+ * sees, stores, or forwards the credential it mints. `makeDefault` names the
+ * provider an Agent's `start` uses on that Computer when it names none.
  */
 export const cloudAgentProviderRouter = createRouter({
     cancelSignIn: actionProcedure('cancel-sign-in'),
     connect: actionProcedure('connect'),
     disconnect: actionProcedure('disconnect'),
+    makeDefault: actionProcedure('make-default'),
     get: memberProcedure
         .input(cloudAgentProviderGetInputSchema)
         .output(cloudAgentProviderOutputSchema)
         .query(({ ctx, input }) => relay(ctx, input, { kind: 'get' })),
 });
 
-function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in') {
+function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in' | 'make-default') {
     return memberProcedure
         .input(cloudAgentProviderActionInputSchema)
         .output(cloudAgentProviderOutputSchema)
@@ -38,7 +40,7 @@ function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in') {
 
 async function relay(
     ctx: HausContext & { member: HausUser | null },
-    input: { computerId: string; provider: 'cursor'; serverId: string },
+    input: { computerId: string; provider: CloudAgentProvider; serverId: string },
     operation: CloudAgentCapabilityRequest['operation']
 ) {
     try {

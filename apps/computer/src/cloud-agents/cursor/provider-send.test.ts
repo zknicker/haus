@@ -24,6 +24,7 @@ const input = {
     instructions: 'Address the review feedback.',
     model: null,
     providerAgentId: 'existing-agent',
+    workId: 'caw_1234567890abcdef',
 };
 
 test('follow-up preserves the hosted Agent and returns the new Run', async () => {

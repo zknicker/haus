@@ -3,12 +3,12 @@
  * the record; its settlement, the turn's interruption, and the turn's finish
  * each close a sub-agent the runtime left running.
  */
-import type { JournalMutationRecord } from './execution-journal-records';
+import type { JournalMutationRecord } from './execution-journal-records.ts';
 import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalStatus,
     ComputerExecutionJournalTool,
-} from './execution-journal-types';
+} from './execution-journal-types.ts';
 
 export function applySubagent(
     document: ComputerExecutionJournalDocument,

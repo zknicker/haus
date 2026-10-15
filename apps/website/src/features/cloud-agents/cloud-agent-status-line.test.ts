@@ -122,3 +122,35 @@ test('every job state has a status line', () => {
         expect(line(work({ status, updatedAt: minutesAgo(1) })).text.length).toBeGreaterThan(0);
     }
 });
+
+test('a job that needs input says when it updated and never shows the question', () => {
+    const asked = work({
+        runs: [
+            run({
+                status: 'pending_input',
+                summary: 'Should the reminder default to **9am** or 10am?',
+                terminalAt: minutesAgo(2),
+            }),
+        ],
+        status: 'pending_input',
+        terminalAt: minutesAgo(2),
+        updatedAt: minutesAgo(2),
+    });
+
+    expect(asked.job.state).toBe('pending-input');
+    expect(line(asked)).toEqual({ text: 'Updated 2m ago', tone: 'muted' });
+    expect(line(asked).text).not.toContain('9am');
+});
+
+test('an answer on its way reads as the follow-up note, not as waiting', () => {
+    const answered = followedUp(
+        { status: 'pending_input', summary: 'Which default?' },
+        { status: 'pending_input' }
+    );
+
+    expect(answered.job.state).toBe('pending-input');
+    expect(line(answered)).toEqual({
+        text: 'Blippy asked for changes · waiting 3m',
+        tone: 'muted',
+    });
+});

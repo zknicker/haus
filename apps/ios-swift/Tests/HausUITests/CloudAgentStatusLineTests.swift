@@ -95,10 +95,18 @@ private typealias Job = CloudAgentWorkFixture.Job
             .text == "Expired · 30m ago")
     }
 
+    @Test func needsInputSaysWhenItUpdatedAndNeverShowsTheQuestion() throws {
+        let asked = try Fixture.work(status: "pending_input", job: Job.pendingInput(question: "Which branch\nshould I use?", settledAt: minutesAgo(2)))
+        #expect(line(asked) == CloudAgentStatusLine(text: "Updated 2m ago", tone: .muted))
+        let blank = try Fixture.work(status: "pending_input", job: Job.pendingInput(question: nil, settledAt: minutesAgo(2)))
+        #expect(line(blank) == line(asked))
+    }
+
     @Test func everyJobStateHasAStatusLine() throws {
         let jobs = [
             Job.working(startedAt: nil), Job.done(startedAt: nil, settledAt: nil), Job.failed(),
-            Job.ended("cancelled", settledAt: nil), Job.ended("expired", settledAt: nil)
+            Job.ended("cancelled", settledAt: nil), Job.ended("expired", settledAt: nil),
+            Job.pendingInput(question: nil)
         ]
         for job in jobs {
             #expect(try !line(Fixture.work(job: job, updatedAt: minutesAgo(1))).text.isEmpty)

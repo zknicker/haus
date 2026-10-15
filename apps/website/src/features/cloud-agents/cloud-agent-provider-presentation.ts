@@ -10,8 +10,11 @@ import { openExternalLink } from '../../lib/open-external-link.ts';
  */
 export interface CloudAgentProviderPresentation {
     color: string;
-    /** The provider desktop app's deeplink to one run. Desktop main allowlists each one. */
-    desktopAppUrl: (providerAgentId: string) => string;
+    /**
+     * The provider desktop app's deeplink to one run, or `null` when the
+     * provider has no app to open. Desktop main allowlists each one.
+     */
+    desktopAppUrl: ((providerAgentId: string) => string) | null;
     logo: ModelProviderLogoSource;
     name: string;
 }
@@ -30,6 +33,15 @@ export const cloudAgentProviderPresentation: Record<
     CloudAgentProvider,
     CloudAgentProviderPresentation
 > = {
+    claude: {
+        color: '#D97757',
+        desktopAppUrl: null,
+        logo: {
+            dark: 'https://svgl.app/library/anthropic_white.svg',
+            light: 'https://svgl.app/library/anthropic_black.svg',
+        },
+        name: 'Claude',
+    },
     cursor: {
         color: '#111827',
         desktopAppUrl: (providerAgentId) =>
@@ -62,7 +74,8 @@ export function canOpenCloudAgentProvider(
     target: CloudAgentProviderTarget,
     bridge: HausDesktopBridge | null = getDesktopBridge()
 ): boolean {
-    return Boolean(target.providerUrl || (bridge && target.providerAgentId));
+    const hasApp = cloudAgentProviderPresentation[target.provider].desktopAppUrl !== null;
+    return Boolean(target.providerUrl || (hasApp && bridge && target.providerAgentId));
 }
 
 /**
@@ -86,11 +99,10 @@ export async function openCloudAgentProviderTarget(
     openWebPage: (url: string) => Promise<void>
 ): Promise<void> {
     const { providerAgentId, providerUrl } = target;
-    if (bridge && providerAgentId) {
-        const appUrl =
-            cloudAgentProviderPresentation[target.provider].desktopAppUrl(providerAgentId);
+    const desktopAppUrl = cloudAgentProviderPresentation[target.provider].desktopAppUrl;
+    if (bridge && providerAgentId && desktopAppUrl) {
         try {
-            await bridge.openExternal(appUrl);
+            await bridge.openExternal(desktopAppUrl(providerAgentId));
             return;
         } catch (error) {
             if (!providerUrl) {

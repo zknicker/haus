@@ -60,6 +60,22 @@ describe('opening a Cloud Agent run in its provider', () => {
             false
         );
     });
+
+    test('a provider without a desktop app opens its web page even in the desktop shell', async () => {
+        const { bridge, opened } = desktop();
+        const claude = {
+            provider: 'claude' as const,
+            providerAgentId: 'session_01Work',
+            providerUrl: 'https://claude.ai/code/session_01Work',
+        };
+        const web: string[] = [];
+        await openCloudAgentProviderTarget(claude, bridge, async (url) => {
+            web.push(url);
+        });
+        expect(opened).toEqual([]);
+        expect(web).toEqual([claude.providerUrl]);
+        expect(canOpenCloudAgentProvider({ ...claude, providerUrl: null }, bridge)).toBe(false);
+    });
 });
 
 function desktop({ rejects = false } = {}) {

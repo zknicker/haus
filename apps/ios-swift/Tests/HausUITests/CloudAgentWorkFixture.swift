@@ -75,6 +75,10 @@ enum CloudAgentWorkFixture {
             #"{"errorCode":\#(optional(errorCode)),"followUp":\#(followUp ?? "null"),"settledAt":"\#(start)","state":"failed","summary":\#(summary.map(quoted) ?? "null")}"#
         }
 
+        static func pendingInput(question: String?, startedAt: String? = start, settledAt: String? = nil) -> String {
+            #"{"followUp":null,"question":\#(question.map(quoted) ?? "null"),"settledAt":\#(optional(settledAt)),"startedAt":\#(optional(startedAt)),"state":"pending-input"}"#
+        }
+
         static func ended(_ state: String, settledAt: String?) -> String {
             #"{"followUp":null,"settledAt":\#(optional(settledAt)),"state":"\#(state)"}"#
         }

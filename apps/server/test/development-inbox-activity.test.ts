@@ -86,9 +86,10 @@ test('Unread holds Tiny’s DM question; the claim is on Tasks', async () => {
 // against the provider every minute and wedge the Server's connection pool.
 test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
     const active = await owner.trpc.cloudAgentWork.listActive.query({ serverId });
-    // Five gallery samples, three gallery follow-ups, and the seven running
+    // Six Cursor gallery samples (one needs input), three gallery follow-ups,
+    // two Claude samples (working, needs input), and the seven running
     // #repo-health fan-out rows.
-    expect(active).toHaveLength(15);
+    expect(active).toHaveLength(18);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
     const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';
@@ -187,12 +188,12 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     expect(gallery).toBeDefined();
     const chatId = gallery?.id ?? '';
     const transcript = await owner.trpc.chat.messages.query({ serverId, chatId });
-    expect(transcript.messages).toHaveLength(27);
+    expect(transcript.messages).toHaveLength(33);
     expect(
         transcript.messages.filter((message) => message.content.includes('user://'))
     ).toHaveLength(4);
     const works = await owner.trpc.cloudAgentWork.listForChat.query({ serverId, chatId });
-    expect(works).toHaveLength(14);
+    expect(works).toHaveLength(20);
     // Follow-ups read as the job they follow, never as queued.
     const followUps = works
         .filter((entry) => entry.work.job.followUp !== null)
@@ -207,6 +208,7 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
         'completed',
         'expired',
         'failed',
+        'pending_input',
         'queued',
         'running',
     ]);
@@ -221,7 +223,7 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     const active = works.filter(
         (entry) => entry.work.status === 'running' || entry.work.status === 'queued'
     );
-    expect(active).toHaveLength(8);
+    expect(active).toHaveLength(9);
     expect(active.every((entry) => entry.work.computerId !== onboarding.computer_id)).toBe(true);
     expect(works.every((entry) => entry.work.providerUrl === null)).toBe(true);
 });

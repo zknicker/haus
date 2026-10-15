@@ -31,6 +31,7 @@ test('Auto is the first option and selected by default', () => {
     const view = cloudAgentModelView({
         catalog,
         model: { kind: 'auto' },
+        provider: 'cursor',
         savedModelUnavailable: false,
     });
 
@@ -49,6 +50,7 @@ test('a listed saved model reads by its display name', () => {
     const view = cloudAgentModelView({
         catalog,
         model: { id: 'gpt-5.6', kind: 'model', params: {} },
+        provider: 'cursor',
         savedModelUnavailable: false,
     });
 
@@ -62,6 +64,7 @@ test('an unlisted saved model shows by raw id and cannot be picked again', () =>
     const view = cloudAgentModelView({
         catalog,
         model: { id: 'retired-model', kind: 'model', params: {} },
+        provider: 'cursor',
         savedModelUnavailable: true,
     });
 
@@ -87,6 +90,7 @@ test('without a catalog only Auto exists, so the picker has nothing to offer', (
     const view = cloudAgentModelView({
         catalog: null,
         model: { kind: 'auto' },
+        provider: 'cursor',
         savedModelUnavailable: false,
     });
 
@@ -100,6 +104,7 @@ test('a saved model with no catalog can still be switched back to Auto', () => {
     const view = cloudAgentModelView({
         catalog: null,
         model: { id: 'composer-2', kind: 'model', params: {} },
+        provider: 'cursor',
         savedModelUnavailable: true,
     });
 
@@ -112,6 +117,7 @@ test('an unknown key maps to no setting', () => {
     const view = cloudAgentModelView({
         catalog,
         model: { kind: 'auto' },
+        provider: 'cursor',
         savedModelUnavailable: false,
     });
 
@@ -143,6 +149,7 @@ test('sections follow family order, Cursor order within a family, GLM and Kimi u
             refreshedAt: '2026-10-02T12:00:00.000Z',
         },
         model: { kind: 'auto' },
+        provider: 'cursor',
         savedModelUnavailable: false,
     });
 
@@ -162,10 +169,23 @@ test('a listed saved model carries its params view', () => {
     const view = cloudAgentModelView({
         catalog,
         model: { id: 'gpt-5.6', kind: 'model', params: {} },
+        provider: 'cursor',
         savedModelUnavailable: false,
     });
 
     expect(view.params?.model.id).toBe('gpt-5.6');
     expect(view.params?.effort).toBeNull();
     expect(view.params?.fast).toBeNull();
+});
+
+test('Claude’s unsaved choice reads as the account default', () => {
+    const view = cloudAgentModelView({
+        catalog: null,
+        model: { kind: 'auto' },
+        provider: 'claude',
+        savedModelUnavailable: false,
+    });
+
+    expect(view.selectedLabel).toBe('Default');
+    expect(view.options[0]?.description).toContain('account');
 });

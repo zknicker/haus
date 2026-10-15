@@ -101,7 +101,9 @@ A durable `message.created` is planned once by Server delivery
   human's representation of that fact is the task chip on the message.
 - A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
   keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
-  summary, error code, and reported branches ([Cloud Agents](cloud-agents.md)). It settles like the
+  summary, error code, and reported branches ([Cloud Agents](cloud-agents.md)). A Run that stopped to
+  ask a question (`pending_input`) settles the same way, with the question as its summary and a
+  pointer to answer with `haus cloud-agent send`. It settles like the
   other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
   decides to post.
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the

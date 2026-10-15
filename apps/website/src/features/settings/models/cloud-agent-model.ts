@@ -2,6 +2,7 @@ import type {
     CloudAgentModel,
     CloudAgentModelFamily,
     CloudAgentModelSetting,
+    CloudAgentProvider,
     CloudAgentSettings,
 } from '@haus/api';
 import { findCloudAgentModel } from '@haus/api';
@@ -30,7 +31,8 @@ export interface CloudAgentModelSection {
 /**
  * What the Model row shows for one settings read.
  *
- * - `auto`: nothing saved; Runs use Cursor's Auto, which picks a model for each Run.
+ * - `auto`: nothing saved; Cursor Runs use Cursor's Auto, which picks a model
+ *   for each Run, and Claude Runs use the Claude account's default model.
  * - `model`: a listed model is saved.
  * - `unavailable`: a saved model the freshest catalog does not list, so
  *   launches fall back to Auto.
@@ -44,6 +46,7 @@ export interface CloudAgentModelView {
     params: CloudAgentModelParamsView | null;
     /** False only when there is nothing to pick between: Auto and no catalog. */
     pickable: boolean;
+    provider: CloudAgentProvider;
     refreshedAt: string | null;
     sections: CloudAgentModelSection[];
     selectedKey: string;
@@ -55,6 +58,7 @@ export function cloudAgentModelView(settings: CloudAgentSettings): CloudAgentMod
     const catalog = settings.catalog;
     const state = modelState(settings);
     const saved = settings.model.kind === 'model' ? settings.model : null;
+    const autoOption = autoOptions[settings.provider];
     const leading: CloudAgentModelOption[] =
         state === 'unavailable' && saved
             ? [autoOption, { ...optionOf(saved.id, saved.id, null), unavailable: true }]
@@ -71,6 +75,7 @@ export function cloudAgentModelView(settings: CloudAgentSettings): CloudAgentMod
         catalogMissing: catalog === null,
         options,
         params: saved && savedModel ? cloudAgentModelParamsView(savedModel, saved.params) : null,
+        provider: settings.provider,
         pickable: options.length > 1,
         refreshedAt: catalog?.refreshedAt ?? null,
         sections,
@@ -125,8 +130,14 @@ function optionOf(id: string, label: string, description: string | null): CloudA
     };
 }
 
-/** Cursor's own Auto router, sent as its `default` catalog id. */
-const autoOption = optionOf(autoModelKey, 'Auto', 'Cursor picks a model for each run.');
+/**
+ * What no saved model means per provider: Cursor's own Auto router, sent as
+ * its `default` catalog id, or the Claude account's default model.
+ */
+const autoOptions: Record<CloudAgentProvider, CloudAgentModelOption> = {
+    claude: optionOf(autoModelKey, 'Default', 'Claude uses your account’s default model.'),
+    cursor: optionOf(autoModelKey, 'Auto', 'Cursor picks a model for each run.'),
+};
 
 function modelState(settings: CloudAgentSettings): CloudAgentModelView['state'] {
     if (settings.model.kind === 'auto') {

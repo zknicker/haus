@@ -22,8 +22,12 @@ export interface CloudAgentStatusLine {
  * 1. why the job failed,
  * 2. that a live Run has gone quiet,
  * 3. that a stop was requested,
- * 4. that the delegating Agent sent a follow-up,
- * 5. otherwise the latest activity, or when the job settled.
+ * 4. that the delegating Agent sent a follow-up (including its answer),
+ * 5. otherwise the latest activity, or when the job last updated or settled.
+ *
+ * A job that needs input never shows its question: that is for the delegating
+ * Agent, which the inbox wakes. The card shows only the "Needs input" badge and
+ * when the job last updated.
  */
 export function cloudAgentStatusLine(
     work: CloudAgentWorkPresentationInput,
@@ -54,6 +58,11 @@ export function cloudAgentStatusLine(
                 text:
                     oneLine(work.activity?.summary ?? null) ??
                     `Updated ${formatRelativeTime(work.updatedAt, input.now)}`,
+                tone: 'muted',
+            };
+        case 'pending-input':
+            return {
+                text: `Updated ${formatRelativeTime(job.settledAt ?? work.updatedAt, input.now)}`,
                 tone: 'muted',
             };
         case 'done':

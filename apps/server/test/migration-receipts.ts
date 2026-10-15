@@ -29,4 +29,5 @@ export const migrationsSince0060 = [
     '0086_linear-preset',
     '0087_artifact-paths',
     '0088_image-generation',
+    '0089_cloud-agent-claude',
 ];

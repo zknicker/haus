@@ -12,9 +12,9 @@ import {
     type JournalMutationRecord,
     replayJournalRecords,
     serializeJournalRecord,
-} from './execution-journal-records';
-import type { ComputerExecutionJournalDocument } from './execution-journal-types';
-import { isMissingFile } from './execution-journal-values';
+} from './execution-journal-records.ts';
+import type { ComputerExecutionJournalDocument } from './execution-journal-types.ts';
+import { isMissingFile } from './execution-journal-values.ts';
 
 const fileMode = 0o600;
 const directoryMode = 0o700;

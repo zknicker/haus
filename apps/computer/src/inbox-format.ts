@@ -162,6 +162,11 @@ function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, targe
         `errorCode=${work.errorCode ?? '-'}`,
         `branches=${branches.length > 0 ? branches.join(', ') : '-'}`,
         `url=${work.providerUrl ?? '-'}`,
+        ...(work.status === 'pending_input'
+            ? [
+                  `The cloud agent stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus cloud-agent send --work ${work.workId}`,
+              ]
+            : []),
     ].join('\n');
 }
 

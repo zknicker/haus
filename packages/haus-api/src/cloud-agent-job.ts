@@ -13,9 +13,11 @@ export const cloudAgentFollowUpSchema = z.discriminatedUnion('state', [
 ]);
 
 /**
- * How the whole job reads: Cursor's own status for the newest Run Cursor has
+ * How the whole job reads: the provider's own status for the newest Run it has
  * received, in Cursor's vocabulary (`done` is FINISHED, `failed` ERROR,
- * `cancelled` CANCELLED, `expired` EXPIRED). A follow-up still in Haus's local
+ * `cancelled` CANCELLED, `expired` EXPIRED). `pending-input` is a hosted agent
+ * that stopped to ask the delegating Agent something; `question` is what it
+ * asked. A follow-up still in Haus's local
  * queue is not a Cursor Run yet, so it never moves the job, and `queued` is
  * never a job state: a job whose first Run has not started yet is `working`.
  * `startedAt` and `settledAt` belong to the Run the state comes from. A
@@ -49,6 +51,15 @@ export const cloudAgentJobSchema = z.discriminatedUnion('state', [
     z
         .object({
             followUp: cloudAgentFollowUpSchema.nullable(),
+            question: z.string().trim().min(1).max(2000).nullable(),
+            settledAt: timestampSchema.nullable(),
+            startedAt: timestampSchema.nullable(),
+            state: z.literal('pending-input'),
+        })
+        .strict(),
+    z
+        .object({
+            followUp: cloudAgentFollowUpSchema.nullable(),
             settledAt: timestampSchema.nullable(),
             state: z.literal('cancelled'),
         })
@@ -69,7 +80,7 @@ export type CloudAgentJobState = CloudAgentJob['state'];
 interface JobRun {
     createdAt: string;
     errorCode: null | string;
-    /** Set once Cursor has received the Run; null while it sits in Haus's local queue. */
+    /** Set once the provider has received the Run; null while it sits in Haus's local queue. */
     providerRunId: null | string;
     startedAt: null | string;
     status: CloudAgentStatus;
@@ -79,9 +90,9 @@ interface JobRun {
 
 /**
  * Derives the job from its Runs, newest first. The state comes from the newest
- * Run Cursor has received (it carries a `providerRunId`): a follow-up still in
+ * Run the provider has received (it carries a `providerRunId`): a follow-up still in
  * Haus's local queue — or cancelled there before delivery — leaves the job as
- * that earlier Run reads. Until Cursor has received any Run, the job reads from
+ * that earlier Run reads. Until the provider has received any Run, the job reads from
  * its first. A waiting or live newest Run that is not the job's first is the
  * follow-up. A work with no Run recorded reads from its own lifecycle fields.
  */
@@ -142,6 +153,14 @@ function jobFrom(
                 settledAt: run.terminalAt,
                 state: 'failed',
                 summary: run.summary,
+            };
+        case 'pending_input':
+            return {
+                followUp,
+                question: run.summary,
+                settledAt: run.terminalAt,
+                startedAt: run.startedAt,
+                state: 'pending-input',
             };
         case 'cancelled':
         case 'expired':
