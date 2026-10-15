@@ -13,6 +13,7 @@ const reads: number[] = [];
 const storage: ArtifactStorage = {
     delete: () => Promise.resolve(),
     downloadUrl: (key) => `https://private-r2.test/${key}`,
+    stream: () => new ReadableStream(),
     read: (key, maxBytes) => {
         reads.push(maxBytes);
         return Promise.resolve((objects.get(key) ?? new Uint8Array()).slice(0, maxBytes));

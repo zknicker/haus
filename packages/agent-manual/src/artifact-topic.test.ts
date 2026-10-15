@@ -59,9 +59,12 @@ test('files guidance teaches Files: list, pull, push, conflicts, links, and dele
         'haus files view <id>',
         'versions <id-or-path>',
         'haus files delete <id-or-path>',
+        'haus files share <id-or-path>',
     ]) {
         expect(body).toContain(command);
     }
+    expect(body).toContain('Share only when asked or when the destination is outside Haus');
+    expect(body).toContain('`--disable` turns it off');
     expect(body).toContain('It opens with `summary`');
     expect(body).toContain('`files_in_folders`');
     expect(body).toContain('both newest first');

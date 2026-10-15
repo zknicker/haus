@@ -118,6 +118,7 @@ describe('Server-level stream hooks', () => {
             read('artifact.creators', { serverId }),
             read('artifact.get', file),
             read('artifact.versions', file),
+            read('artifact.publicLink', file),
         ]);
         // Recovery (and a folder move's null id) refreshes every file's reads.
         expect(onRecovery).toEqual([
@@ -125,6 +126,7 @@ describe('Server-level stream hooks', () => {
             read('artifact.creators', { serverId }),
             read('artifact.get', { serverId }),
             read('artifact.versions', { serverId }),
+            read('artifact.publicLink', { serverId }),
         ]);
     });
 

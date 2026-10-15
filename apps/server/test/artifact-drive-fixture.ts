@@ -23,6 +23,19 @@ export class MemoryArtifactStorage implements ArtifactStorage {
     read(key: string, maxBytes: number) {
         return Promise.resolve((this.objects.get(key) ?? new Uint8Array()).slice(0, maxBytes));
     }
+    stream(key: string) {
+        const bytes = this.objects.get(key);
+        return new ReadableStream<Uint8Array>({
+            start(controller) {
+                if (bytes) {
+                    controller.enqueue(bytes);
+                    controller.close();
+                } else {
+                    controller.error(new Error(`No object at ${key}`));
+                }
+            },
+        });
+    }
     async upload(key: string, stream: AsyncIterable<Uint8Array>) {
         if (this.failUploads) {
             throw new Error('R2 upload unavailable');

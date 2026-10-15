@@ -28,6 +28,7 @@ test('a Server member opens the shared library and reloads its stable address', 
         artifacts: [],
         folders: [],
         next_offset: null,
+        public_links: {},
         summary: { folders: 0, files_in_folders: 0, files: 0 },
     });
     expect(await client.artifact.creators.query({ serverId: server.id })).toEqual({

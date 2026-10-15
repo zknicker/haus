@@ -112,7 +112,7 @@ test('view targets resolve ids, pasted links, and drive paths', async () => {
     });
 });
 
-test('the artifact family is list, pull, push, mv, view, versions, delete, always JSON', () => {
+test('the artifact family is list, pull, push, mv, view, versions, share, delete, always JSON', () => {
     expect(ARTIFACT_SUBCOMMANDS.map((sub) => sub.name)).toEqual([
         'list',
         'pull',
@@ -120,6 +120,7 @@ test('the artifact family is list, pull, push, mv, view, versions, delete, alway
         'mv',
         'view',
         'versions',
+        'share',
         'delete',
     ]);
     for (const sub of ARTIFACT_SUBCOMMANDS) {

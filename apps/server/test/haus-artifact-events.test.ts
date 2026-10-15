@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import type { ArtifactUpdatedEvent } from '@haus/api';
 import { deleteArtifact } from '../src/artifacts/delete.ts';
 import { moveArtifacts } from '../src/artifacts/move.ts';
+import { shareArtifact, unshareArtifact } from '../src/artifacts/public-link.ts';
 import { deleteExpiredArtifactRevisions } from '../src/artifacts/retention.ts';
 import { artifactUpdatedTopic } from '../src/realtime/topics.ts';
 import { artifactDriveFixture } from './artifact-drive-fixture.ts';
@@ -75,6 +76,21 @@ test('a retention prune is one broad event per Server', async () => {
     await deleteExpiredArtifactRevisions(state.connection.db, storage, new Date());
     await delivered();
     expect(events).toEqual([{ artifactId: null, serverId: state.serverId }]);
+});
+
+test('enabling and disabling a public link name the file; a no-op publishes nothing', async () => {
+    const created = await publish({ path: 'events/public.txt' });
+    const artifactId = created.artifact.artifact_id;
+    await delivered();
+    events = [];
+    const { db } = state.connection;
+    await shareArtifact(db, state.actor, state.harness.appOrigin, artifactId);
+    await shareArtifact(db, state.actor, state.harness.appOrigin, artifactId);
+    await unshareArtifact(db, state.actor, artifactId);
+    await unshareArtifact(db, state.actor, artifactId);
+    await delivered();
+    const named = { artifactId, serverId: state.serverId };
+    expect(events).toEqual([named, named]);
 });
 
 /** Topic deliveries reach the async iterator a few ticks after the write returns. */
