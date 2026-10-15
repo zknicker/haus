@@ -18,6 +18,7 @@ import type { LinearInstallFacts, LinearTokenPair } from './linear-api.ts';
 import { LinearRefusedError } from './linear-errors.ts';
 import type { LinearAttempt } from './oauth-attempts.ts';
 import { replaceTeamAccess } from './team-access.ts';
+import { rederiveLinearTriggerProblems } from './trigger-problem-wakes.ts';
 
 // Binding authority (specs/linear-app.md#binding-and-authority). Linear facts
 // are read with the new token before this runs; here, under the Server row
@@ -150,6 +151,12 @@ async function rebindWorkspace(
     await labelLifecycle.teamsChanged(tx, {
         serverId: attempt.serverId,
         workspaceId: workspace.id,
+    });
+    // Reconnecting clears sign-in problems; clearing notifies nobody.
+    await rederiveLinearTriggerProblems(tx, {
+        now,
+        scope: { workspaceId: workspace.id },
+        serverId: attempt.serverId,
     });
     return { connectionId: workspace.connectionId, kind: 'workspace_reconnected' };
 }

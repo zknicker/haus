@@ -287,8 +287,8 @@ refresh owner (`linear/token-refresh.ts`):
 ## Team scope
 
 Team access is persisted per credential (`linear_team_access`) and synced at install, on every
-`PermissionChange` delivery, and hourly (`linear/team-sync.ts`, which also drops expired OAuth
-attempts). A failed sync keeps the last set; a set older than 24
+`PermissionChange` delivery, and hourly (`linear/team-sync.ts`, which then runs the `linear`
+Trigger reference sweep in `linear/reference-sweep.ts` and drops expired OAuth attempts). A failed sync keeps the last set; a set older than 24
 hours is treated as empty for writes.
 
 - **Workspace access** is the workspace credential's teams. Every write's target teams must be in

@@ -1,6 +1,7 @@
 import type { LinearTeam } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
+import type { AgentWake } from '../built-in-connections/built-in-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { linearCredentialsTable, linearWorkspacesTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -9,7 +10,9 @@ import { labelLifecycle } from './label-lifecycle.ts';
 import { readLinearTeams } from './linear-api.ts';
 import { LinearSignInRequiredError } from './linear-errors.ts';
 import { sweepLinearAttempts } from './oauth-attempts.ts';
+import { sweepLinearTriggerReferences } from './reference-sweep.ts';
 import { replaceTeamAccess } from './team-access.ts';
+import { rederiveLinearTriggerProblems } from './trigger-problem-wakes.ts';
 
 // Team scope (specs/linear-app.md#team-scope): access is synced at install, on
 // every PermissionChange, and hourly. A failed sync keeps the last set; the
@@ -23,6 +26,8 @@ export interface LinearTeamSyncDependencies {
     clock: { now(): Date };
     db: HausDatabase;
     fetch: typeof fetch;
+    /** Wakes owners whose Triggers entered a problem, after each commit. */
+    wake?(wakes: AgentWake[]): void;
 }
 
 export interface LinearTeamSyncOutcome {
@@ -33,26 +38,34 @@ export interface LinearTeamSyncOutcome {
 /**
  * Replaces one credential's team access with what Linear reported, inside the
  * caller's Server-locked transaction. The workspace actor's newly accessible
- * teams get pending Agent label rows.
+ * teams get pending Agent label rows, and its `linear` Triggers re-derive
+ * their problems; answers the owners to wake after commit.
  */
 export async function applyLinearTeamAccess(
     tx: HausDatabase,
     credential: Pick<LinearCredential, 'id' | 'identityId' | 'serverId' | 'workspaceId'>,
     teams: LinearTeam[],
     now: Date
-): Promise<void> {
+): Promise<AgentWake[]> {
     await replaceTeamAccess(tx, {
         credentialId: credential.id,
         now,
         serverId: credential.serverId,
         teams,
     });
-    if (!credential.identityId) {
-        await labelLifecycle.teamsChanged(tx, {
-            serverId: credential.serverId,
-            workspaceId: credential.workspaceId,
-        });
+    // Trigger problems follow the workspace actor's teams only.
+    if (credential.identityId) {
+        return [];
     }
+    await labelLifecycle.teamsChanged(tx, {
+        serverId: credential.serverId,
+        workspaceId: credential.workspaceId,
+    });
+    return await rederiveLinearTriggerProblems(tx, {
+        now,
+        scope: { workspaceId: credential.workspaceId },
+        serverId: credential.serverId,
+    });
 }
 
 /**
@@ -86,15 +99,17 @@ export async function syncLinearTeams(
         try {
             const token = await dependencies.accessToken(credential.id);
             const teams = await readLinearTeams(dependencies.fetch, token);
-            const applied = await db.transaction(async (tx) => {
+            const wakes = await db.transaction(async (tx) => {
                 await lockServerRow(tx, credential.serverId);
                 if (!(await stillValid(tx, credential.id))) {
-                    return false;
+                    return null;
                 }
-                await applyLinearTeamAccess(tx, credential, teams, dependencies.clock.now());
-                return true;
+                return await applyLinearTeamAccess(tx, credential, teams, dependencies.clock.now());
             });
-            outcome.synced += applied ? 1 : 0;
+            outcome.synced += wakes ? 1 : 0;
+            if (wakes && wakes.length > 0) {
+                dependencies.wake?.(wakes);
+            }
         } catch (error) {
             // A credential that left `valid` mid-sweep is not a failure.
             if (!(error instanceof LinearSignInRequiredError)) {
@@ -110,8 +125,9 @@ export async function syncLinearTeams(
 }
 
 /**
- * The hourly Linear sweep: team access for every live actor, then expired
- * OAuth attempts (specs/linear-app.md#binding-and-authority).
+ * The hourly Linear sweep: team access for every live actor, then `linear`
+ * Trigger references, then expired OAuth attempts
+ * (specs/linear-app.md#binding-and-authority).
  */
 export function startLinearSweep(
     dependencies: LinearTeamSyncDependencies,
@@ -122,6 +138,7 @@ export function startLinearSweep(
         name: 'Linear sweep',
         run: async () => {
             await syncLinearTeams(dependencies);
+            await sweepLinearTriggerReferences(dependencies);
             await sweepLinearAttempts(dependencies.db, dependencies.clock.now());
         },
         timers,

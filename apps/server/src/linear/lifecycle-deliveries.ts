@@ -1,4 +1,5 @@
 import type { LinearTeam } from '@haus/api';
+import type { AgentWake } from '../built-in-connections/built-in-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     type LinearCredential,
@@ -40,14 +41,14 @@ export function linearLifecycleHandler(
                 if (row.action !== 'revoked') {
                     return { kind: 'ignored', reason: 'unsupported_event' };
                 }
-                await revoke(tx, credential, now);
-                return { announce: [], kind: 'done', routed: 0, wakes: [] };
+                const wakes = await revoke(tx, credential, now);
+                return { announce: [], kind: 'done', routed: 0, wakes };
             }
             if (!teams) {
                 return { kind: 'ignored', reason: 'unsupported_event' };
             }
-            await applyLinearTeamAccess(tx, credential, teams, now);
-            return { announce: [], kind: 'done', routed: 0, wakes: [] };
+            const wakes = await applyLinearTeamAccess(tx, credential, teams, now);
+            return { announce: [], kind: 'done', routed: 0, wakes };
         },
         prepare: async (row) => {
             if (row.event !== 'PermissionChange') {
@@ -75,9 +76,13 @@ export function linearLifecycleHandler(
     }
 }
 
-async function revoke(tx: HausDatabase, credential: LinearCredential, now: Date) {
+async function revoke(
+    tx: HausDatabase,
+    credential: LinearCredential,
+    now: Date
+): Promise<AgentWake[]> {
     if (credential.state === 'revoked') {
-        return;
+        return [];
     }
     const revoked = await markCredentialAtGeneration(tx, {
         credentialId: credential.id,
@@ -86,9 +91,9 @@ async function revoke(tx: HausDatabase, credential: LinearCredential, now: Date)
         state: 'revoked',
     });
     if (!revoked) {
-        return;
+        return [];
     }
-    await credentialFailed(tx, revoked, now);
+    const wakes = await credentialFailed(tx, revoked, now);
     if (revoked.identityId) {
         await orphanLinearSessions(tx, {
             identityId: revoked.identityId,
@@ -96,4 +101,5 @@ async function revoke(tx: HausDatabase, credential: LinearCredential, now: Date)
             serverId: revoked.serverId,
         });
     }
+    return wakes;
 }

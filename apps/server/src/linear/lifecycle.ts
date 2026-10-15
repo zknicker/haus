@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
+import type { AgentWake } from '../built-in-connections/built-in-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     linearCredentialsTable,
@@ -12,6 +13,7 @@ import { type LinearCredential, revokeLinearCredentials } from './credentials.ts
 import { handBackIdentityIssues } from './handoff.ts';
 import { labelLifecycle } from './label-lifecycle.ts';
 import { orphanLinearSessions } from './sessions.ts';
+import { rederiveLinearTriggerProblems } from './trigger-problem-wakes.ts';
 
 // Workspace, identity, and Agent state machines (specs/linear-app.md#lifecycle).
 // Every function runs inside the caller's transaction, under the Server row
@@ -26,9 +28,9 @@ export async function credentialFailed(
     tx: HausDatabase,
     credential: LinearCredential,
     now: Date
-): Promise<void> {
+): Promise<AgentWake[]> {
     if (credential.state === 'valid') {
-        return;
+        return [];
     }
     if (credential.identityId) {
         const from =
@@ -50,7 +52,7 @@ export async function credentialFailed(
             now,
             serverId: credential.serverId,
         });
-        return;
+        return [];
     }
     const from =
         credential.state === 'revoked'
@@ -72,6 +74,11 @@ export async function credentialFailed(
             .set({ connected: false })
             .where(eq(mcpConnectionsTable.id, workspace.connectionId));
     }
+    return await rederiveLinearTriggerProblems(tx, {
+        now,
+        scope: { workspaceId: credential.workspaceId },
+        serverId: credential.serverId,
+    });
 }
 
 /** Sign-out: the credential goes and is revoked; grants are cleared by generic code; the binding stays. */

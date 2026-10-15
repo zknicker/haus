@@ -139,6 +139,7 @@ export class LinearTokenRefresher {
                 state: 'refresh_required',
             });
             if (marked) {
+                // No wake path here: problem notices wait for the owner's next delivery.
                 await credentialFailed(tx, marked, now);
             }
             return marked;
