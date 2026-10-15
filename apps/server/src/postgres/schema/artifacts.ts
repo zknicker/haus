@@ -83,6 +83,10 @@ export const artifactRevisionsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         filename: text('filename').notNull(),
         id: text('id').primaryKey(),
+        /** Raster pixel size and PNG print density, recorded when the thumbnail renders. */
+        imageDpi: integer('image_dpi'),
+        imageHeight: integer('image_height'),
+        imageWidth: integer('image_width'),
         objectKey: text('object_key').notNull(),
         requestId: text('request_id').notNull(),
         reservedBytes: bigint('reserved_bytes', { mode: 'number' }).notNull(),

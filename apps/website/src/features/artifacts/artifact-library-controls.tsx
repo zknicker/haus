@@ -5,11 +5,12 @@ import { ArtifactCreatorMenu } from './artifact-creator-menu.tsx';
 import { ArtifactFilterMenu } from './artifact-filter-menu.tsx';
 import { ArtifactKindMenu } from './artifact-kind-menu.tsx';
 import { ArtifactLayoutToggle } from './artifact-layout-toggle.tsx';
+import { ArtifactSortMenu } from './artifact-sort-menu.tsx';
 import type { ArtifactKindFilter } from './library-params.ts';
 
 /**
  * The library's band controls: search, the file-type and Created by menus,
- * list or grid, then Upload. They trail the drive trail in the shell band, so
+ * sort, list or grid, then Upload. They trail the drive trail in the shell band, so
  * the page below is all content. Search keeps a fixed width and a short
  * placeholder, so it never squeezes or clips; when the band (the `files-band`
  * container) is too narrow for every control, the menus and the layout switch
@@ -59,6 +60,7 @@ export function ArtifactLibraryControls({
                     onCreatorChange={onCreatorChange}
                     serverId={serverId}
                 />
+                <ArtifactSortMenu />
                 <ArtifactLayoutToggle />
             </span>
             <span className="contents @min-[58rem]/files-band:hidden">

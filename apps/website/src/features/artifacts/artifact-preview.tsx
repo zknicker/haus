@@ -1,4 +1,4 @@
-import type { ArtifactMetadata } from '@haus/api';
+import type { ArtifactRecord } from '@haus/api';
 import { useState } from 'react';
 import { ImageLightbox } from '../../components/chats/image-lightbox.tsx';
 import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
@@ -7,36 +7,54 @@ import { ArtifactFileCard } from './artifact-file-card.tsx';
 import { isPreviewImage } from './artifact-format.ts';
 import { artifactTextRenderer } from './artifact-text.ts';
 import { ArtifactTextPreview } from './artifact-text-preview.tsx';
+import type { ViewerStepper } from './artifact-viewer-header.tsx';
 
 const playableVideo = ['video/mp4', 'video/webm'];
 const playableAudio = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg', 'audio/webm'];
 
 /**
  * The file itself: text files as the Artifact Panel draws them, raster images
- * (press to zoom), native video and audio players, and for everything else
- * the file's sheet with a way to download it.
+ * (press to zoom; never enlarged past their own pixels), native video and
+ * audio players, and for everything else the file's sheet with a way to
+ * download it. The zoom viewer steps through the folder like the viewer.
  */
 export function ArtifactPreview({
     artifact,
     serverId,
+    startZoomed = false,
+    stepper = null,
 }: {
-    artifact: ArtifactMetadata;
+    artifact: ArtifactRecord;
     serverId: string;
+    /** Reached by stepping inside the zoom viewer: open zoomed again. */
+    startZoomed?: boolean;
+    stepper?: ViewerStepper | null;
 }) {
     const renderer = artifactTextRenderer(artifact);
     if (renderer) {
         return <ArtifactTextPreview artifact={artifact} renderer={renderer} serverId={serverId} />;
     }
-    return <ArtifactMediaPreview artifact={artifact} serverId={serverId} />;
+    return (
+        <ArtifactMediaPreview
+            artifact={artifact}
+            serverId={serverId}
+            startZoomed={startZoomed}
+            stepper={stepper}
+        />
+    );
 }
 
 /** Only previewable media fetch a signed link up front. */
 function ArtifactMediaPreview({
     artifact,
     serverId,
+    startZoomed,
+    stepper,
 }: {
-    artifact: ArtifactMetadata;
+    artifact: ArtifactRecord;
     serverId: string;
+    startZoomed: boolean;
+    stepper: ViewerStepper | null;
 }) {
     const type = artifact.content_type;
     const previewable =
@@ -57,6 +75,8 @@ function ArtifactMediaPreview({
                     artifact={artifact}
                     onError={() => setFailed(true)}
                     serverId={serverId}
+                    startZoomed={startZoomed}
+                    stepper={stepper}
                     url={url}
                 />
             ) : playableVideo.includes(type) ? (
@@ -76,14 +96,18 @@ function ArtifactImage({
     artifact,
     onError,
     serverId,
+    startZoomed,
+    stepper,
     url,
 }: {
-    artifact: ArtifactMetadata;
+    artifact: ArtifactRecord;
     onError: () => void;
     serverId: string;
+    startZoomed: boolean;
+    stepper: ViewerStepper | null;
     url: string;
 }) {
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(startZoomed);
     const { saveFile, saving } = useArtifactSave(serverId);
     return (
         <>
@@ -93,8 +117,15 @@ function ArtifactImage({
                 onClick={() => setExpanded(true)}
                 type="button"
             >
+                {/* Sized by its own pixels (once measured), so CSS can only shrink it. */}
                 {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures are not user interaction. */}
-                <img alt={artifact.title} height={600} onError={onError} src={url} width={800} />
+                <img
+                    alt={artifact.title}
+                    height={artifact.image?.height}
+                    onError={onError}
+                    src={url}
+                    width={artifact.image?.width}
+                />
             </button>
             <ImageLightbox
                 dataUrl={url}
@@ -108,8 +139,11 @@ function ArtifactImage({
                         }),
                 }}
                 filename={artifact.filename}
+                height={artifact.image?.height}
+                navigation={stepper ?? undefined}
                 onOpenChange={setExpanded}
                 open={expanded}
+                width={artifact.image?.width}
             />
         </>
     );

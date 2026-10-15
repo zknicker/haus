@@ -13,6 +13,11 @@ const ServerErrorPage = React.lazy(async () => {
     return { default: module.ServerErrorPage };
 });
 
+const AppRouteError = React.lazy(async () => {
+    const module = await import('./routes/app/app-route-error.tsx');
+    return { default: module.AppRouteError };
+});
+
 const loadServerShells = cachedRouteModule(async () => {
     const shells = await import('./routes/app/server-route-shells.tsx');
     registerServerRouteShells(shells);
@@ -40,6 +45,12 @@ export function createAppRouter() {
     return createRouter([
         {
             element: <AppFrame />,
+            // An address no route matches lands here instead of React Router's raw 404.
+            errorElement: (
+                <React.Suspense fallback={null}>
+                    <AppRouteError />
+                </React.Suspense>
+            ),
             hydrateFallbackElement: <ActivationLoading />,
             children: [
                 ...(import.meta.env.DEV

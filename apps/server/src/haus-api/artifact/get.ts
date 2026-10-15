@@ -1,10 +1,10 @@
-import { artifactPublishResultSchema, artifactTargetInputSchema } from '@haus/api';
+import { artifactRecordResultSchema, artifactTargetInputSchema } from '@haus/api';
 import { getArtifact } from '../../artifacts/read.ts';
 import { artifactProcedure } from './procedure.ts';
 
 export const getArtifactProcedure = artifactProcedure
     .input(artifactTargetInputSchema)
-    .output(artifactPublishResultSchema)
+    .output(artifactRecordResultSchema)
     .query(async ({ ctx, input }) => {
         const actor = { kind: 'human', member: ctx.member, serverId: input.serverId } as const;
         return {
@@ -16,6 +16,6 @@ export const getArtifactProcedure = artifactProcedure
                     input.artifact_id,
                     input.revision_id
                 )
-            ).metadata,
+            ).record,
         };
     });
