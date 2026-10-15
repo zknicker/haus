@@ -127,6 +127,10 @@ async function handle(
     ) {
         return send(reply, invalidSignature);
     }
+    // Route on the signed `type`; the unsigned `Linear-Event` header must agree with it.
+    if (payload.type !== headers.event) {
+        return send(reply, { code: 'invalid_linear_headers', status: 400 });
+    }
     const outcome = await options.ingest({
         deliveryId: headers.deliveryId,
         event: headers.event,

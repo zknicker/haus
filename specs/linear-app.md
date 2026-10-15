@@ -362,7 +362,7 @@ in this order:
 | Status | Body | When |
 | --- | --- | --- |
 | `503` | `{ code: 'linear_app_unconfigured' }` | Haus app endpoint with no webhook secret configured |
-| `400` | `{ code: 'invalid_linear_headers' }` | missing `Linear-Signature`, `Linear-Event`, or `Linear-Delivery` (≤ 64 chars, `[A-Za-z0-9-]`) |
+| `400` | `{ code: 'invalid_linear_headers' }` | missing `Linear-Signature`, `Linear-Event`, or `Linear-Delivery` (≤ 64 chars, `[A-Za-z0-9-]`), or a `Linear-Event` that differs from the signed body's `type` (routing reads `type`) |
 | `413` | `{ code: 'payload_too_large' }` | body over 1 MiB |
 | `401` | `{ code: 'invalid_signature' }` | HMAC mismatch, unknown or removed identity, stale timestamp, or receiver/payload mismatch |
 | `415` | `{ code: 'unsupported_media_type' }` | body is not a JSON object |

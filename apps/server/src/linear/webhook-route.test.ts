@@ -58,9 +58,16 @@ function payload(overrides: Record<string, unknown> = {}) {
     };
 }
 
+/** The header Linear sends: the body's own `type`, or Issue for bodies without one. */
+function signedType(body: string): string {
+    const parsed = JSON.parse(body) as { type?: unknown };
+    return typeof parsed.type === 'string' ? parsed.type : 'Issue';
+}
+
 async function post(input: {
     body?: string;
     delivery?: string;
+    event?: string;
     path?: string;
     secret?: string;
     signature?: string | null;
@@ -75,7 +82,7 @@ async function post(input: {
         headers: {
             'content-type': 'application/json',
             'linear-delivery': input.delivery ?? crypto.randomUUID(),
-            'linear-event': 'Issue',
+            'linear-event': input.event ?? signedType(body),
             ...(signature === null ? {} : { 'linear-signature': signature }),
         },
         method: 'POST',
@@ -102,6 +109,18 @@ test('missing or malformed headers answer 400', async () => {
         body: { code: 'invalid_linear_headers' },
         status: 400,
     });
+});
+
+test('a Linear-Event header that disagrees with the signed type answers 400 and ingests nothing', async () => {
+    const before = ingested.length;
+    for (const type of ['AgentSessionEvent', undefined]) {
+        const body = JSON.stringify(payload({ type }));
+        expect(await post({ body, event: 'Issue' })).toEqual({
+            body: { code: 'invalid_linear_headers' },
+            status: 400,
+        });
+    }
+    expect(ingested).toHaveLength(before);
 });
 
 test('a body over 1 MiB answers 413', async () => {
