@@ -53,6 +53,8 @@ test('sharing creates one unguessable link that follows the current revision acr
     const head = await fetch(new URL(`/f/${token}`, state.harness.url), { method: 'HEAD' });
     expect(head.status).toBe(200);
     expect(head.headers.get('content-type')).toBe('image/png');
+    // HEAD reports the object's real size, not Fastify's empty-body zero.
+    expect(head.headers.get('content-length')).toBe(String((await favicon()).byteLength));
 
     const thumbnail = await get(`${token}/thumbnail`);
     expect(thumbnail.status).toBe(200);

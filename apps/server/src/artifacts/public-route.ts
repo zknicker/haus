@@ -119,8 +119,9 @@ async function sendObject(
     if (object.size !== null) {
         reply.header('content-length', object.size);
     }
-    // HEAD (Fastify answers it with this handler) needs the headers, not a storage read.
-    return await reply.send(request.method === 'HEAD' ? undefined : object.body());
+    // HEAD (Fastify answers it with this handler) needs the headers, not a storage read. An empty
+    // stream, not `undefined`: Fastify's HEAD hook rewrites an undefined body to content-length 0.
+    return await reply.send(request.method === 'HEAD' ? new ReadableStream() : object.body());
 }
 
 async function notFound(reply: FastifyReply) {
