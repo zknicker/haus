@@ -1,7 +1,6 @@
-// Placement eval S1 ("found the kit"), storage-free variant: the kit is a
-// file the human dropped into the Agent's workspace on the dev Computer. See
-// placement-kit.mjs for the shared flow; placement-found-the-kit is the Files
-// (R2) variant.
+// Storage-free fallback for placement S1 ("found the kit"), outside the eval:
+// the kit is a file dropped into the Agent's workspace on the dev Computer.
+// placement-found-the-kit-files is the graded variant; see placement-kit.mjs.
 
 import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';

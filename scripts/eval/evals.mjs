@@ -11,7 +11,7 @@ export const evals = {
         judge: placementJudge,
         profiles: placementProfiles,
         scenarios: [
-            'placement-found-the-kit-local',
+            'placement-found-the-kit-files',
             'placement-quick-fact',
             'ack-reaction-thanks',
             'thread-reply-stays-in-thread',
@@ -45,8 +45,8 @@ export const evals = {
         summary:
             'Feedback in passing becomes a Standing Preference that survives a session reset; no feedback, no rule change.',
     },
-    // Work that leaves the chat: Cloud Agents, MCP connections, and Triggers.
-    // cloud-launch-and-link needs Cursor access. Files scenarios need R2 and stay opt-in.
+    // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
+    // cloud-launch-and-link needs Cursor access.
     tools: {
         judge: null,
         profiles: {},
@@ -54,9 +54,10 @@ export const evals = {
             'cloud-launch-and-link',
             'mcp-granted-lookup',
             'webhook-secret-stays-out-of-chat',
+            'shared-artifact-discovery',
         ],
         summary:
-            'Agents launch and link cloud work, use only granted MCP connections, and keep Trigger secrets out of chat.',
+            'Agents launch and link cloud work, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
     },
 };
 

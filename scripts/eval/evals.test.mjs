@@ -28,10 +28,7 @@ test.each(
 
 test.each(Object.entries(evals))('%s profiles only scenarios it runs', (_name, entry) => {
     for (const profiled of Object.keys(entry.profiles)) {
-        if (!entry.scenarios.includes(profiled)) {
-            // The Files variant of S1 is profiled but needs R2, so the eval leaves it out.
-            expect(profiled).toBe('placement-found-the-kit-files');
-        }
+        expect(entry.scenarios).toContain(profiled);
     }
 });
 

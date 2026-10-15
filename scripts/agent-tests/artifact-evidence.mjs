@@ -1,11 +1,13 @@
 // Shared evidence readers for the shared-artifact scenarios: what an Agent
 // published, what it wrote in chat, and which shell commands its turn ran.
 
-/** Live shared artifacts the Agent created, newest first. */
+/** Live shared artifacts the Agent created in any folder, newest first. */
 export async function artifactsCreatedBy(kit, agentId) {
     const listed = await kit.trpc('artifact.list', {
         serverId: kit.serverId,
         creator: { type: 'agent', agent_id: agentId },
+        // The drive lists one folder level by default; Agents often push into a folder.
+        recursive: true,
     });
     return listed.artifacts;
 }

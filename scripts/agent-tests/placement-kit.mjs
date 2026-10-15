@@ -1,4 +1,4 @@
-// Placement eval S1 ("found the kit"), shared by its Files (R2) and workspace
+// Placement eval S1 ("found the kit"), shared by its Files and workspace
 // variants: an earlier "Not yet" about a missing starter kit, then "check
 // now!". The Agent should answer inline with what the kit changes: at most a
 // pickup note plus one inline `--done` reply naming the seeded rules. Length,

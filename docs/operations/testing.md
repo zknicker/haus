@@ -308,10 +308,6 @@ Most scenarios belong to one of the [evals](#evals), which is the usual way to r
 are opt-in because they need something the default dev stack lacks; `--include-opt-in` adds
 them, and `bun run eval` always passes it:
 
-* `shared-artifact-discovery` and `placement-found-the-kit-files` need enabled development R2
-  storage (`HAUS_ENABLE_ARTIFACT_STORAGE=true`). The first asks to share a markdown file with the
-  team without naming Files and gates on a `haus files push` and exactly one `.md` file whose
-  stable URL is linked, not attached.
 * `cloud-launch-and-link` spends a real Cursor Cloud Agent run on a read-only Haus README review
   and needs connected Cursor access to `zknicker/haus`. It gates on one work item launched as an
   inline reply to the request, with at most a pickup note before it and nothing else from the
@@ -465,7 +461,12 @@ rendered as the report's "What was changed" section). The registry is
 | `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops. |
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
-| `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, and a webhook Trigger whose secret stays out of chat. The Files-backed scenarios (`shared-artifact-discovery`, `placement-found-the-kit-files`) need development R2 storage and are opt-in; run one by hand with `bun run test:agents --include-opt-in --only <name>` against a stack booted with `HAUS_ENABLE_ARTIFACT_STORAGE=true`. |
+| `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
+
+The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
+`shared-artifact-discovery` in `tools`) run on the eval stack's own local Files storage gateway, so
+the only prerequisite is the `versitygw` binary (`brew install versitygw`; see
+[Development](development.md)).
 
 Each build boots its own isolated dev stack (`HAUS_DEV_STACK_ID=eval-<name>-change`, then
 `eval-<name>-base`), runs the passes serially through `scripts/agent-tests/cli.mjs`, and stops it,
@@ -496,10 +497,9 @@ phrases ("want me to", "happy to", …), question counts, placement of the resul
 `--done` and reply-to flags read from the execution journal. The Jev judge score runs only with
 `HAUS_TYPESAFE_API_KEY`, which `bun run eval` resolves through varlock; otherwise the report says
 it was skipped. Placement helpers shared with the scenarios live in
-`scripts/agent-tests/placement.mjs` and `placement-kit.mjs`. `placement-found-the-kit-files`, the
-Files variant of the kit scenario, needs development R2 storage and is not in the `placement`
-eval; run it by hand with `bun run test:agents --include-opt-in --only placement-found-the-kit-files`
-against a stack booted with `HAUS_ENABLE_ARTIFACT_STORAGE=true`. The `attention` profiles grade
+`scripts/agent-tests/placement.mjs` and `placement-kit.mjs`. `placement-found-the-kit-local`, the
+storage-free workspace variant of the kit scenario, is not in the `placement` eval; run it by hand
+with `bun run test:agents --only placement-found-the-kit-local`. The `attention` profiles grade
 `mention-wakes-only-addressed` and `task-thread-routing` the same way; `memory` and `tools` are
 graded on runner verdicts alone.
 

@@ -9,8 +9,6 @@ import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
-    // Seeding a Server file needs enabled development artifact storage (R2).
-    optIn: true,
     contract: foundTheKitContract,
     name: 'placement-found-the-kit-files',
     run: withRoutingEvidence(async (context) => {

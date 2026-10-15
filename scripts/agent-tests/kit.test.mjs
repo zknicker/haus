@@ -299,11 +299,11 @@ describe('cli scenario selection', () => {
     test('keeps opt-in scenarios out unless explicitly included', () => {
         const defaultList = runCli(['--list']);
         expect(defaultList.status).toBe(0);
-        expect(defaultList.stdout).not.toContain('shared-artifact-discovery');
+        expect(defaultList.stdout).not.toContain('memory-feedback-control');
 
         const optInList = runCli(['--list', '--include-opt-in']);
         expect(optInList.status).toBe(0);
-        expect(optInList.stdout).toContain('shared-artifact-discovery');
+        expect(optInList.stdout).toContain('memory-feedback-control');
     });
 
     test('combines repeated scenario filters', () => {

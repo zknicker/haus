@@ -18,21 +18,19 @@ export const tailPhrases = [
 
 export const recommendationOptions = [/\bdog[\s-]?moms?\b/iu, /\bteachers?\b/iu];
 
-const foundTheKit = {
-    cap: 180,
-    channel: [1, 2],
-    maxQuestions: 1,
-    requests: 'channel-humans',
-    result: (post) => namesKitRules(post.content),
-};
-
 /**
  * Placement spec: answer where the asker looks, only what was asked, stop.
  * `channel` bounds channel posts as [min, max]; `cap` bounds the result post's words.
  */
 export const placementProfiles = {
-    'placement-found-the-kit-files': { ...foundTheKit, spec: 'S1' },
-    'placement-found-the-kit-local': { ...foundTheKit, spec: 'S1-local' },
+    'placement-found-the-kit-files': {
+        cap: 180,
+        channel: [1, 2],
+        maxQuestions: 1,
+        requests: 'channel-humans',
+        result: (post) => namesKitRules(post.content),
+        spec: 'S1',
+    },
     'placement-quick-fact': {
         cap: 25,
         channel: [1, 1],
