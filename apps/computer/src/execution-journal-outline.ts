@@ -4,6 +4,8 @@ import {
     type AgentExecutionOutlineStepKind,
     EXECUTION_OUTLINE_LABEL_MAX_CHARS,
     EXECUTION_OUTLINE_MAX_STEPS,
+    type ExecutionJournalDocument,
+    type ExecutionJournalTool,
     type ExecutionToolKind,
     isExecutionBookkeeping,
     readExecutionToolKind,
@@ -15,10 +17,6 @@ import {
     isMcpName,
     knownToolCategory,
 } from './harness/activity-tool-fixtures.ts';
-import type {
-    ComputerExecutionJournalDocument,
-    ComputerExecutionJournalTool,
-} from './harness/execution-journal.ts';
 import { classifyShellCall, readShellCommand, unwrapShell } from './harness/haus-cli-command.ts';
 import { describeToolAction } from './harness/thought-action.ts';
 import { scrubCommandLine, scrubPhrase } from './harness/thought-action-scrub.ts';
@@ -32,9 +30,7 @@ const maxDepth = 16;
  * 0036), so no tool input, output, report, or reasoning text leaves here.
  * Top-level steps are kept first when a run has more than the cap.
  */
-export function outlineExecutionJournal(
-    document: ComputerExecutionJournalDocument
-): AgentExecutionOutline {
+export function outlineExecutionJournal(document: ExecutionJournalDocument): AgentExecutionOutline {
     const tree = readTree(document.tools);
     const drafts = [
         ...document.tools.map((tool) => draftTool(tool, tree)),
@@ -89,7 +85,7 @@ interface Tree {
     readonly parents: ReadonlyMap<string, string>;
 }
 
-function draftTool(tool: ComputerExecutionJournalTool, tree: Tree): Draft {
+function draftTool(tool: ExecutionJournalTool, tree: Tree): Draft {
     const startMs = readTime(tool.startedAt) ?? Number.NaN;
     const endMs =
         readTime(tool.endedAt) ??
@@ -149,7 +145,7 @@ function toStep(draft: Draft, origin: number): AgentExecutionOutlineStep {
  * mutes. A failed or interrupted bookkeeping call stays a tool, as in the trace.
  */
 function isBookkeeping(
-    tool: ComputerExecutionJournalTool,
+    tool: ExecutionJournalTool,
     classification: ComputerToolClassification
 ): boolean {
     if (classification.outcome === 'skip' && isSyntheticTool(tool.toolName)) {
@@ -169,7 +165,7 @@ function isSyntheticTool(toolName: string): boolean {
  * The journal records no runtime id, so a builtin's category comes from the
  * first runtime that names it; the runtimes agree on every shared name.
  */
-function classifyJournalTool(tool: ComputerExecutionJournalTool): ComputerToolClassification {
+function classifyJournalTool(tool: ExecutionJournalTool): ComputerToolClassification {
     const synthetic =
         computerSyntheticHarnessToolFixtures[
             tool.toolName as keyof typeof computerSyntheticHarnessToolFixtures
@@ -197,7 +193,7 @@ function classifyJournalTool(tool: ComputerExecutionJournalTool): ComputerToolCl
  * its scrubbed action description, or its bare tool name.
  */
 function describeJournalTool(
-    tool: ComputerExecutionJournalTool,
+    tool: ExecutionJournalTool,
     classification: ComputerToolClassification
 ): string {
     const command = readShellCommand(tool.input);
@@ -221,7 +217,7 @@ function describeJournalTool(
     return clip(described ?? scrubPhrase(name));
 }
 
-function readTree(tools: readonly ComputerExecutionJournalTool[]): Tree {
+function readTree(tools: readonly ExecutionJournalTool[]): Tree {
     const failedChildren = new Map<string, number>();
     const parents = new Map<string, string>();
     for (const tool of tools) {

@@ -1,11 +1,15 @@
 import { afterEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { agentExecutionJournalSchema } from '@haus/api';
-import { toolFailure, turnFailure } from './execution-journal-failure.ts';
-import { pathRelativizer, presentExecutionJournal } from './execution-journal-presentation.ts';
-import type { ComputerExecutionJournalDocument } from './harness/execution-journal.ts';
+import {
+    agentExecutionJournalSchema,
+    type ExecutionJournalDocument,
+    executionJournalUploadRecordSchema,
+    presentExecutionJournal,
+    replayExecutionJournalUpload,
+} from '@haus/api';
+import { createJournalRecordPresenter, pathRelativizer } from './journal-record-presentation.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -18,11 +22,12 @@ async function agentRoot() {
     const agent = join(root, 'servers', 'srv_present', 'agents', 'agt_present');
     await mkdir(join(agent, 'workspace'), { recursive: true });
     await mkdir(join(agent, 'home'), { recursive: true });
+    await mkdir(join(agent, 'runtime'), { recursive: true });
     return agent;
 }
 
 /** Shaped after a real Claude Code turn: three sub-agents, failed Glob/Grep children. */
-function claudeDelegationJournal(agent: string): ComputerExecutionJournalDocument {
+function claudeDelegationJournal(agent: string): ExecutionJournalDocument {
     const workspace = join(agent, 'workspace');
     return {
         endedAt: '2026-10-06T17:41:50.838Z',
@@ -72,11 +77,21 @@ function claudeDelegationJournal(agent: string): ComputerExecutionJournalDocumen
     };
 }
 
-test('serves workspace-relative paths, child failure counts, and readable tool errors', async () => {
+async function upload(agent: string, document: ExecutionJournalDocument, secrets: string[] = []) {
+    const present = await createJournalRecordPresenter({ agentRoot: agent, knownSecrets: secrets });
+    const records = present({ document, type: 'open' });
+    for (const record of records) {
+        expect(executionJournalUploadRecordSchema.safeParse(record).success).toBe(true);
+    }
+    return { present, records };
+}
+
+test('uploads workspace-relative paths the Server serves with child failures and readable errors', async () => {
     const agent = await agentRoot();
-    const served = agentExecutionJournalSchema.parse(
-        await presentExecutionJournal(claudeDelegationJournal(agent), agent)
-    );
+    const { records } = await upload(agent, claudeDelegationJournal(agent));
+    expect(records.map((record) => record.type)).toEqual(['open', 'tool', 'tool', 'tool', 'tool']);
+    const replayed = replayExecutionJournalUpload(records);
+    const served = agentExecutionJournalSchema.parse(presentExecutionJournal(replayed!));
 
     const [parent, glob, read, bash] = served.tools;
     expect(parent?.subagent).toMatchObject({
@@ -92,51 +107,50 @@ test('serves workspace-relative paths, child failure counts, and readable tool e
     expect(glob?.error).toStartWith('<tool_use_error>');
     expect(read?.input).toEqual({ file_path: 'projects/tinylink/src/shorten.ts' });
     expect(read?.output).toBe('1\texport function shorten() {}\n(see <workspace>)');
-    expect(read?.failure).toBeUndefined();
     expect(bash?.input).toEqual({ command: 'cat ~/.claude/settings.json' });
-    expect(JSON.stringify(served)).not.toContain(agent);
+    expect(JSON.stringify(records)).not.toContain(agent);
 });
 
-test('names a failed turn by its terminal error line, not its stack', async () => {
+test('masks the Agent token, Computer secrets, and secret-named fields in every record kind', async () => {
     const agent = await agentRoot();
-    const served = await presentExecutionJournal(
-        {
-            endedAt: '2026-10-06T17:46:01.000Z',
-            error: 'Error: Harness session agt_present-1 has an unfinished turn and must be continued before accepting a new prompt.\n    at requirePromptableTurn (/repo/node_modules/@ai-sdk/harness/dist/agent/index.js:3244:15)',
-            runId: 'run_failed',
-            startedAt: '2026-10-06T17:46:00.000Z',
+    const proxyToken = `grta_${'a'.repeat(43)}`;
+    await writeFile(join(agent, 'runtime', 'proxy-token'), `${proxyToken}\n`);
+    const { present } = await upload(agent, claudeDelegationJournal(agent), ['hunter2-computer']);
+    const presented = [
+        ...present({
+            input: { command: `curl -H "Authorization: Bearer ${proxyToken}" x`, apiKey: 'k-123' },
+            occurredAt: '2026-10-06T17:40:00.000Z',
+            toolCallId: 'call_curl',
+            toolName: 'bash',
+            type: 'tool-call',
+        }),
+        ...present({
+            isError: false,
+            occurredAt: '2026-10-06T17:40:01.000Z',
+            output: { stderr: 'ok\u0000done', stdout: 'HAUS_SECRET=hunter2-computer' },
+            preliminary: false,
+            toolCallId: 'call_curl',
+            toolName: 'bash',
+            type: 'tool-result',
+        }),
+        ...present({ id: 'think', text: `token is ${proxyToken}`, type: 'reasoning-append' }),
+        ...present({
+            at: '2026-10-06T17:40:02.000Z',
+            error: 'auth failed for hunter2-computer',
             status: 'failed',
-            tools: [],
-        },
-        agent
-    );
-    expect(agentExecutionJournalSchema.parse(served).failure).toEqual({
-        message:
-            'Harness session agt_present-1 has an unfinished turn and must be continued before accepting a new prompt.',
+            type: 'finish',
+        }),
+    ];
+    const serialized = JSON.stringify(presented);
+    expect(serialized).not.toContain(proxyToken);
+    expect(serialized).not.toContain('hunter2-computer');
+    expect(serialized).not.toContain('k-123');
+    expect(serialized).not.toContain('\\u0000');
+    expect(presented[0]).toMatchObject({ input: { apiKey: '[redacted]' } });
+    expect(presented[1]).toMatchObject({
+        output: { stderr: 'okdone', stdout: 'HAUS_SECRET=[redacted]' },
     });
-});
-
-test('normalizes Codex shell failures, Claude exit lines, and Computer codes', () => {
-    expect(
-        toolFailure({
-            exit_code: 1,
-            formatted_output: 'ls: /definitely/not/here: No such file or directory\n',
-        })
-    ).toEqual({ exitCode: 1, message: 'ls: /definitely/not/here: No such file or directory' });
-    expect(toolFailure('{"formatted_output":"","exit_code":2}')).toEqual({
-        exitCode: 2,
-        message: 'Exited with code 2.',
-    });
-    expect(toolFailure('Exit code 127\nsh: nope: command not found')).toEqual({
-        exitCode: 127,
-        message: 'sh: nope: command not found',
-    });
-    expect(toolFailure({ code: 'missing_result' })).toEqual({
-        message: 'The runtime never reported a result for this tool.',
-    });
-    expect(toolFailure({ details: [1, 2] })).toBeUndefined();
-    expect(toolFailure(null)).toBeUndefined();
-    expect(turnFailure(undefined)).toBeUndefined();
+    expect(presented[2]).toMatchObject({ text: 'token is [redacted]' });
 });
 
 test('relativizes only the Agent roots, never a sibling directory', () => {

@@ -1,22 +1,8 @@
-import { EXECUTION_JOURNAL_VALUE_MAX_CHARS } from '@haus/api';
-import type {
-    ComputerExecutionJournalDocument,
-    ComputerExecutionJournalTool,
-    JournalValue,
-} from './execution-journal-types.ts';
-
-export function interruptTool(
-    tool: ComputerExecutionJournalTool,
-    now: Date,
-    reason: 'computer_restart' | 'stream_abort' | 'stream_error'
-) {
-    tool.status = 'interrupted';
-    tool.endedAt = now.toISOString();
-    tool.durationMs = Math.max(0, now.getTime() - Date.parse(tool.startedAt));
-    const interruptions = tool.interruptions ?? [];
-    interruptions.push({ at: tool.endedAt, reason });
-    tool.interruptions = interruptions;
-}
+import {
+    EXECUTION_JOURNAL_VALUE_MAX_CHARS,
+    type ExecutionJournalDocument,
+    type ExecutionJournalValue,
+} from '@haus/api';
 
 /**
  * Clips one string leaf to the journal's per-value ceiling. The suffix keeps the
@@ -36,7 +22,7 @@ export function capJournalString(value: string): string {
  * capping every string leaf so a payload shape such as `{ stdout, stderr }`
  * survives with each field clipped rather than the whole value discarded.
  */
-export function journalValue(value: unknown, seen = new WeakSet<object>()): JournalValue {
+export function journalValue(value: unknown, seen = new WeakSet<object>()): ExecutionJournalValue {
     if (value === null || typeof value === 'boolean') {
         return value;
     }
@@ -73,7 +59,7 @@ export function journalValue(value: unknown, seen = new WeakSet<object>()): Jour
 export function isJournalDocument(
     value: unknown,
     runId: string
-): value is ComputerExecutionJournalDocument {
+): value is ExecutionJournalDocument {
     if (
         !isRecord(value) ||
         value.runId !== runId ||

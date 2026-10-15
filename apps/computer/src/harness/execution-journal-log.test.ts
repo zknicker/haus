@@ -1,8 +1,9 @@
 import { afterEach, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { EXECUTION_JOURNAL_VALUE_MAX_CHARS } from '@haus/api';
+import { EXECUTION_JOURNAL_VALUE_MAX_CHARS, type ExecutionJournalDocument } from '@haus/api';
 import {
     createComputerExecutionJournal,
     executionJournalPath,
@@ -10,7 +11,6 @@ import {
 } from './execution-journal.ts';
 import { type JournalRecord, replayJournalRecords } from './execution-journal-records.ts';
 import { executionJournalLogPath } from './execution-journal-store.ts';
-import type { ComputerExecutionJournalDocument } from './execution-journal-types.ts';
 
 const roots: string[] = [];
 
@@ -179,7 +179,7 @@ test('finishing writes one snapshot and drops the log', async () => {
 
     const snapshot = JSON.parse(
         await readFile(executionJournalPath(agentRoot, 'run_snapshot'), 'utf8')
-    ) as ComputerExecutionJournalDocument;
+    ) as ExecutionJournalDocument;
     expect(snapshot).toEqual(journal.snapshot());
     expect(snapshot.status).toBe('completed');
     await expect(readFile(logPath(agentRoot, 'run_snapshot'), 'utf8')).rejects.toMatchObject({
@@ -245,4 +245,36 @@ test('caps every string leaf so a huge nested payload keeps its shape', async ()
     expect(output.stdout).toHaveLength(EXECUTION_JOURNAL_VALUE_MAX_CHARS + 32);
     expect(output.stdout.endsWith('\n…[truncated 25 more characters]')).toBe(true);
     expect(output.nested[0]?.stderr).toBe(output.stdout);
+});
+
+test('the upload sink hears the open and each batch only after it is on disk', async () => {
+    const agentRoot = await root('haus-journal-sink-');
+    const heard: Array<{ lastLogged: string; types: string[] }> = [];
+    const journal = await createComputerExecutionJournal(
+        { agentRoot, runId: 'run_sink' },
+        {
+            written: (records) => {
+                const logged = readFileSync(logPath(agentRoot, 'run_sink'), 'utf8')
+                    .split('\n')
+                    .filter((line) => line.length > 0);
+                heard.push({
+                    lastLogged: (JSON.parse(logged.at(-1) ?? '{}') as JournalRecord).type,
+                    types: records.map((record) => record.type),
+                });
+            },
+        }
+    );
+    journal.recordReasoningStart({ id: 'thought' });
+    journal.appendReasoning({ id: 'thought', text: 'Checking the queue.' });
+    expect(heard).toHaveLength(1);
+    await journal.flushReasoning();
+    await journal.flushReasoning();
+    await journal.recordToolCall({ toolCallId: 'call_1', toolName: 'bash' });
+    await journal.finish('completed');
+    expect(heard).toEqual([
+        { lastLogged: 'open', types: ['open'] },
+        { lastLogged: 'reasoning-append', types: ['reasoning-start', 'reasoning-append'] },
+        { lastLogged: 'tool-call', types: ['tool-call'] },
+        { lastLogged: 'finish', types: ['finish'] },
+    ]);
 });

@@ -8,12 +8,8 @@
  */
 import { appendFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import {
-    type JournalMutationRecord,
-    replayJournalRecords,
-    serializeJournalRecord,
-} from './execution-journal-records.ts';
-import type { ComputerExecutionJournalDocument } from './execution-journal-types.ts';
+import type { ExecutionJournalDocument, ExecutionJournalMutation } from '@haus/api';
+import { replayJournalRecords, serializeJournalRecord } from './execution-journal-records.ts';
 import { isMissingFile } from './execution-journal-values.ts';
 
 const fileMode = 0o600;
@@ -29,7 +25,7 @@ export function executionJournalLogPath(snapshotPath: string): string {
  */
 export async function startExecutionJournalLog(
     snapshotPath: string,
-    document: ComputerExecutionJournalDocument
+    document: ExecutionJournalDocument
 ): Promise<void> {
     await mkdir(dirname(snapshotPath), { mode: directoryMode, recursive: true });
     await writeFile(
@@ -42,7 +38,7 @@ export async function startExecutionJournalLog(
 
 export async function appendExecutionJournalRecords(
     snapshotPath: string,
-    records: JournalMutationRecord[]
+    records: ExecutionJournalMutation[]
 ): Promise<void> {
     if (records.length === 0) {
         return;
@@ -81,7 +77,7 @@ export async function readExecutionJournalSnapshot(snapshotPath: string): Promis
 /** The document a running or crashed turn's log describes, or `null`. */
 export async function readExecutionJournalLog(
     snapshotPath: string
-): Promise<ComputerExecutionJournalDocument | null> {
+): Promise<ExecutionJournalDocument | null> {
     const raw = await readOptionalFile(executionJournalLogPath(snapshotPath));
     return raw === null ? null : replayJournalRecords(raw.split('\n'));
 }

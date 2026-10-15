@@ -54,8 +54,6 @@ const aggregateCategorySet = new Set<string>(aggregateCategories);
 export interface AgentActivityRunOptions {
     /** Called with the turn totals after every settled operation. */
     readonly onCounts?: (summary: AgentTurnActivitySummary) => void;
-    /** Called when the run's execution journal gains evidence, until the run closes. */
-    readonly onJournalChange?: () => void;
     /** Totals an earlier launch of the same run already settled. */
     readonly seed?: AgentTurnActivitySummary;
 }
@@ -122,13 +120,6 @@ export class AgentActivityRun {
                 discard: true,
             })
         );
-    }
-
-    /** The run's journal changed; an open activity view re-reads it. */
-    journalChanged(): void {
-        if (!this.closed) {
-            this.options.onJournalChange?.();
-        }
     }
 
     isActive(key: string): boolean {

@@ -5,69 +5,22 @@
  * Rewriting the whole journal on every tool call costs O(turn²) bytes once tool
  * outputs are real, so a running turn appends one small record per mutation and
  * only the finished turn is written as a consolidated snapshot. Every mutation
- * the journal performs goes through the shared appliers, so replaying a log
- * reproduces the in-memory document exactly.
+ * goes through the shared `@haus/api` appliers, so replaying a log here or the
+ * uploaded records on the Server reproduces the in-memory document exactly.
  */
-import { applyJournalRecord } from './execution-journal-mutations.ts';
-import type {
-    ComputerExecutionJournalDocument,
-    ComputerExecutionJournalStatus,
-    ComputerExecutionJournalSubagentPatch,
-    JournalValue,
-} from './execution-journal-types.ts';
-
-export type JournalInterruptReason = 'computer_restart' | 'stream_abort' | 'stream_error';
-
-export type JournalMutationRecord =
-    | {
-          input?: JournalValue;
-          nativeName?: string;
-          occurredAt: string;
-          parentToolCallId?: string;
-          toolCallId: string;
-          toolName: string;
-          type: 'tool-call';
-      }
-    | {
-          occurredAt: string;
-          patch: ComputerExecutionJournalSubagentPatch;
-          toolCallId: string;
-          type: 'subagent';
-      }
-    | {
-          isError: boolean;
-          nativeName?: string;
-          occurredAt: string;
-          output?: JournalValue;
-          preliminary: boolean;
-          toolCallId: string;
-          toolName: string;
-          type: 'tool-result';
-      }
-    | { id: string; startedAt: string; type: 'reasoning-start' }
-    | { id: string; text: string; truncated?: boolean; type: 'reasoning-append' }
-    | { endedAt: string; id: string; type: 'reasoning-end' }
-    | {
-          at: string;
-          error?: JournalValue;
-          reason: JournalInterruptReason;
-          status: 'failed' | 'interrupted';
-          type: 'interrupt';
-      }
-    | {
-          at: string;
-          error?: JournalValue;
-          status: Exclude<ComputerExecutionJournalStatus, 'running'>;
-          type: 'finish';
-      };
+import {
+    applyExecutionJournalMutation,
+    type ExecutionJournalDocument,
+    type ExecutionJournalMutation,
+} from '@haus/api';
 
 /** The log's first record: the document state the turn resumed or started from. */
 export interface JournalOpenRecord {
-    document: ComputerExecutionJournalDocument;
+    document: ExecutionJournalDocument;
     type: 'open';
 }
 
-export type JournalRecord = JournalMutationRecord | JournalOpenRecord;
+export type JournalRecord = ExecutionJournalMutation | JournalOpenRecord;
 
 export function serializeJournalRecord(record: JournalRecord): string {
     return JSON.stringify(record);
@@ -78,7 +31,7 @@ export function serializeJournalRecord(record: JournalRecord): string {
  * a torn final append and is ignored; a corrupt line anywhere earlier is a real
  * defect and is raised rather than silently dropping later evidence.
  */
-export function replayJournalRecords(lines: string[]): ComputerExecutionJournalDocument | null {
+export function replayJournalRecords(lines: string[]): ExecutionJournalDocument | null {
     const records = parseJournalRecords(lines);
     const [first, ...rest] = records;
     if (first?.type !== 'open') {
@@ -87,7 +40,7 @@ export function replayJournalRecords(lines: string[]): ComputerExecutionJournalD
     const document = first.document;
     for (const record of rest) {
         if (record.type !== 'open') {
-            applyJournalRecord(document, record);
+            applyExecutionJournalMutation(document, record);
         }
     }
     return document;

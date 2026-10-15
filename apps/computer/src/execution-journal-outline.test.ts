@@ -3,22 +3,19 @@ import {
     agentExecutionOutlineSchema,
     EXECUTION_OUTLINE_LABEL_MAX_CHARS,
     EXECUTION_OUTLINE_MAX_STEPS,
+    type ExecutionJournalDocument,
+    type ExecutionJournalTool,
 } from '@haus/api';
 import { executionBookkeepingCases } from '@haus/api/execution-bookkeeping-fixtures';
 import { outlineExecutionJournal } from './execution-journal-outline.ts';
-import type {
-    ComputerExecutionJournalDocument,
-    ComputerExecutionJournalTool,
-} from './harness/execution-journal.ts';
 
 const secretOutput = 'SECRET-OUTPUT-BODY';
 const secretReport = 'SECRET-SUBAGENT-REPORT';
 const secretReasoning = 'SECRET-REASONING-TEXT';
 
 function tool(
-    overrides: Partial<ComputerExecutionJournalTool> &
-        Pick<ComputerExecutionJournalTool, 'toolCallId'>
-): ComputerExecutionJournalTool {
+    overrides: Partial<ExecutionJournalTool> & Pick<ExecutionJournalTool, 'toolCallId'>
+): ExecutionJournalTool {
     return {
         startedAt: '2026-10-01T10:00:01.000Z',
         status: 'completed',
@@ -27,7 +24,7 @@ function tool(
     };
 }
 
-const document: ComputerExecutionJournalDocument = {
+const document: ExecutionJournalDocument = {
     endedAt: '2026-10-01T10:00:20.000Z',
     reasoning: [
         {
@@ -198,7 +195,7 @@ test('files a call as bookkeeping exactly when the turn trace mutes it', () => {
         tools: executionBookkeepingCases.map((fixture, index) =>
             tool({
                 // The fixtures are plain JSON, which every journal input is.
-                input: fixture.input as ComputerExecutionJournalTool['input'],
+                input: fixture.input as ExecutionJournalTool['input'],
                 toolCallId: `call_${index}`,
                 toolName: fixture.toolName,
             })

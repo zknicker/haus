@@ -1,32 +1,34 @@
-import { EXECUTION_JOURNAL_REASONING_MAX_CHARS } from '@haus/api';
-import { applyJournalRecord, findJournalReasoning } from './execution-journal-mutations.ts';
-import type { JournalMutationRecord } from './execution-journal-records.ts';
+import {
+    applyExecutionJournalMutation,
+    EXECUTION_JOURNAL_REASONING_MAX_CHARS,
+    type ExecutionJournalDocument,
+    type ExecutionJournalMutation,
+    type ExecutionJournalStatus,
+    type ExecutionJournalSubagentPatch,
+    findExecutionJournalReasoning,
+} from '@haus/api';
 import {
     appendExecutionJournalRecords,
     writeExecutionJournalSnapshot,
 } from './execution-journal-store.ts';
-import type {
-    ComputerExecutionJournal,
-    ComputerExecutionJournalDocument,
-    ComputerExecutionJournalStatus,
-    ComputerExecutionJournalSubagentPatch,
-} from './execution-journal-types.ts';
+import type { ComputerExecutionJournal, ExecutionJournalSink } from './execution-journal-types.ts';
 import { journalValue } from './execution-journal-values.ts';
 
 /**
  * The in-memory document stays the source of truth for the live turn; each
  * mutation also queues one log record, so a crash mid-turn loses nothing and no
- * write is larger than the mutation that caused it.
+ * write is larger than the mutation that caused it. The sink hears each batch
+ * inside the write chain, right after it reached disk.
  */
 export class FileExecutionJournal implements ComputerExecutionJournal {
     private writeChain = Promise.resolve();
-    private pending: JournalMutationRecord[] = [];
+    private pending: ExecutionJournalMutation[] = [];
 
     constructor(
         readonly path: string,
-        private readonly document: ComputerExecutionJournalDocument,
+        private readonly document: ExecutionJournalDocument,
         private readonly now: () => Date,
-        private readonly onWritten: () => void = () => undefined
+        private readonly sink?: ExecutionJournalSink
     ) {}
 
     async recordToolCall(input: {
@@ -79,7 +81,7 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
 
     async recordSubagent(input: {
         occurredAt?: string;
-        patch: ComputerExecutionJournalSubagentPatch;
+        patch: ExecutionJournalSubagentPatch;
         toolCallId: string;
     }): Promise<void> {
         this.push({
@@ -111,7 +113,8 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
         if (!(input.id && input.text)) {
             return;
         }
-        const block = findJournalReasoning(this.document, input.id) ?? this.openReasoning(input.id);
+        const block =
+            findExecutionJournalReasoning(this.document, input.id) ?? this.openReasoning(input.id);
         if (!block) {
             return;
         }
@@ -138,7 +141,7 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
     }
 
     async finishPending(
-        status: Exclude<ComputerExecutionJournalStatus, 'completed' | 'running'>,
+        status: Exclude<ExecutionJournalStatus, 'completed' | 'running'>,
         reason: 'stream_abort' | 'stream_error',
         error?: unknown
     ): Promise<void> {
@@ -154,7 +157,7 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
     }
 
     /** Settles the turn: the log is closed out and replaced by one snapshot. */
-    async finish(status: Exclude<ComputerExecutionJournalStatus, 'running'>, error?: unknown) {
+    async finish(status: Exclude<ExecutionJournalStatus, 'running'>, error?: unknown) {
         this.push({
             at: this.now().toISOString(),
             error: error === undefined ? undefined : journalValue(error),
@@ -165,7 +168,7 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
         await this.writeSnapshot();
     }
 
-    snapshot(): ComputerExecutionJournalDocument {
+    snapshot(): ExecutionJournalDocument {
         return structuredClone(this.document);
     }
 
@@ -174,8 +177,8 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
      * Consecutive reasoning deltas for one block coalesce, so a flush writes one
      * record per block rather than one per streamed token.
      */
-    private push(record: JournalMutationRecord): void {
-        if (!applyJournalRecord(this.document, record)) {
+    private push(record: ExecutionJournalMutation): void {
+        if (!applyExecutionJournalMutation(this.document, record)) {
             return;
         }
         const last = this.pending.at(-1);
@@ -193,7 +196,7 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
 
     private openReasoning(id: string) {
         this.recordReasoningStart({ id });
-        return findJournalReasoning(this.document, id);
+        return findExecutionJournalReasoning(this.document, id);
     }
 
     private async flush(): Promise<void> {
@@ -202,9 +205,10 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
         }
         const records = this.pending;
         this.pending = [];
-        await this.enqueueWrite(() => appendExecutionJournalRecords(this.path, records));
-        // Only after the write: a reader the notice wakes must find these records.
-        this.onWritten();
+        await this.enqueueWrite(async () => {
+            await appendExecutionJournalRecords(this.path, records);
+            this.sink?.written(records, this.document);
+        });
     }
 
     private writeSnapshot(): Promise<void> {

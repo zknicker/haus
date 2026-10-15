@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS } from '@haus/api';
-import type {
-    ComputerExecutionJournal,
-    ComputerExecutionJournalStatus,
-    ComputerExecutionJournalSubagent,
-    ComputerExecutionJournalSubagentPatch,
-} from './execution-journal.ts';
+import {
+    EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS,
+    type ExecutionJournalStatus,
+    type ExecutionJournalSubagent,
+    type ExecutionJournalSubagentPatch,
+} from '@haus/api';
+import type { ComputerExecutionJournal } from './execution-journal.ts';
 
 /**
  * Claude Code runs a sub-agent inside its `Agent` tool call and reports it only
@@ -189,7 +189,7 @@ async function recordChildBlocks(
 function record(
     journal: ComputerExecutionJournal,
     toolCallId: string,
-    patch: ComputerExecutionJournalSubagentPatch
+    patch: ExecutionJournalSubagentPatch
 ) {
     return Object.keys(patch).length > 0
         ? journal.recordSubagent({ patch, toolCallId })
@@ -197,7 +197,7 @@ function record(
 }
 
 /** Claude Code task states; `killed` and `stopped` are the runtime ending it early. */
-const taskStatuses: Record<string, ComputerExecutionJournalStatus> = {
+const taskStatuses: Record<string, ExecutionJournalStatus> = {
     completed: 'completed',
     failed: 'failed',
     killed: 'interrupted',
@@ -206,7 +206,7 @@ const taskStatuses: Record<string, ComputerExecutionJournalStatus> = {
     stopped: 'interrupted',
 };
 
-function taskUsage(value: unknown): ComputerExecutionJournalSubagent['usage'] {
+function taskUsage(value: unknown): ExecutionJournalSubagent['usage'] {
     if (!isRecord(value)) {
         return;
     }
@@ -220,7 +220,7 @@ function taskUsage(value: unknown): ComputerExecutionJournalSubagent['usage'] {
         : { durationMs, toolUses, totalTokens };
 }
 
-function resultUsage(output: unknown): ComputerExecutionJournalSubagent['usage'] {
+function resultUsage(output: unknown): ExecutionJournalSubagent['usage'] {
     if (!isRecord(output)) {
         return;
     }

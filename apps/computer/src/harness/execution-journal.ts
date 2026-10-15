@@ -1,44 +1,32 @@
 import { join } from 'node:path';
+import {
+    type ExecutionJournalDocument,
+    interruptExecutionJournalTool,
+    settleExecutionJournalSubagent,
+} from '@haus/api';
 import { FileExecutionJournal } from './execution-journal-file.ts';
 import {
     readExecutionJournalLog,
     readExecutionJournalSnapshot,
     startExecutionJournalLog,
 } from './execution-journal-store.ts';
-import { settleSubagent } from './execution-journal-subagent.ts';
-import { interruptTool, isJournalDocument } from './execution-journal-values.ts';
+import type { ComputerExecutionJournal, ExecutionJournalSink } from './execution-journal-types.ts';
+import { isJournalDocument } from './execution-journal-values.ts';
 
-export type {
-    ComputerExecutionJournal,
-    ComputerExecutionJournalDocument,
-    ComputerExecutionJournalReasoning,
-    ComputerExecutionJournalResult,
-    ComputerExecutionJournalStatus,
-    ComputerExecutionJournalSubagent,
-    ComputerExecutionJournalSubagentPatch,
-    ComputerExecutionJournalTool,
-    JournalValue,
-} from './execution-journal-types.ts';
-
-import type {
-    ComputerExecutionJournal,
-    ComputerExecutionJournalDocument,
-} from './execution-journal-types.ts';
+export type { ComputerExecutionJournal, ExecutionJournalSink } from './execution-journal-types.ts';
 
 const journalDirectory = 'execution-journal';
 const runIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/u;
 
-export async function createComputerExecutionJournal(input: {
-    /** Told after every write, so an open activity view re-reads instead of polling. */
-    activity?: { journalChanged(): void };
-    agentRoot: string;
-    now?: () => Date;
-    runId: string;
-}): Promise<ComputerExecutionJournal> {
+/** `upload` hears every durable write, starting with the log's `open` record. */
+export async function createComputerExecutionJournal(
+    input: { agentRoot: string; now?: () => Date; runId: string },
+    upload?: ExecutionJournalSink
+): Promise<ComputerExecutionJournal> {
     const path = executionJournalPath(input.agentRoot, input.runId);
     const now = input.now ?? (() => new Date());
     const existing = await readComputerExecutionJournal(input.agentRoot, input.runId);
-    const document: ComputerExecutionJournalDocument = existing ?? {
+    const document: ExecutionJournalDocument = existing ?? {
         runId: input.runId,
         startedAt: now().toISOString(),
         status: 'running',
@@ -49,15 +37,16 @@ export async function createComputerExecutionJournal(input: {
             if (tool.status !== 'running') {
                 continue;
             }
-            settleSubagent(tool, 'interrupted', now().toISOString());
-            interruptTool(tool, now(), 'computer_restart');
+            settleExecutionJournalSubagent(tool, 'interrupted', now().toISOString());
+            interruptExecutionJournalTool(tool, now(), 'computer_restart');
         }
         document.status = 'running';
         document.endedAt = undefined;
         document.error = undefined;
     }
     await startExecutionJournalLog(path, document);
-    return new FileExecutionJournal(path, document, now, () => input.activity?.journalChanged());
+    upload?.written([{ document, type: 'open' }], document);
+    return new FileExecutionJournal(path, document, now, upload);
 }
 
 /**
@@ -67,7 +56,7 @@ export async function createComputerExecutionJournal(input: {
 export async function readComputerExecutionJournal(
     agentRoot: string,
     runId: string
-): Promise<ComputerExecutionJournalDocument | null> {
+): Promise<ExecutionJournalDocument | null> {
     const path = executionJournalPath(agentRoot, runId);
     const value =
         (await readExecutionJournalSnapshot(path)) ?? (await readExecutionJournalLog(path));
@@ -85,6 +74,6 @@ export function isExecutionJournalRunId(runId: string): boolean {
     return runIdPattern.test(runId);
 }
 
-function journalDirectoryPath(agentRoot: string) {
+export function journalDirectoryPath(agentRoot: string) {
     return join(agentRoot, 'runtime', journalDirectory);
 }

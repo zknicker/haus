@@ -15,6 +15,7 @@ import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
+import { journalSinkFor } from '../execution-journal-upload/attachment-journal-uploads.ts';
 import {
     clearManagedSkillChangeNotice,
     readManagedSkillChangeNotice,
@@ -104,8 +105,7 @@ export { HarnessTurnFailedError } from './turn-stream.ts';
 
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
     input.turnTimings?.setReasoningEffort(input.reasoningEffort);
-    // The run's activity relays journal changes to an open view.
-    const journal = await createComputerExecutionJournal(input);
+    const journal = await createComputerExecutionJournal(input, await journalSinkFor(input));
     const operation = Effect.tryPromise({
         catch: (cause) => new HarnessStreamForeignError({ cause }),
         try: async () => {

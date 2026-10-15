@@ -75,7 +75,7 @@ import {
     readComputerLogs,
     readComputerStatus,
 } from './diagnostics.ts';
-import { readExecutionEvidenceFrame } from './execution-journal-relay.ts';
+import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
@@ -896,6 +896,7 @@ async function connect(
     ]);
     const connectionWork = await AttachmentConnectionWork.make(runtime);
     const socket = new WebSocket(socketUrl);
+    const journalUploads = attachmentJournalUploads(dataRoot, attachment, daemonWork, socket);
     const { agentWork, noticeSinks, resettingAgents, retiredAgents } = daemonWork;
     let deleting = false;
     let deletionPromise: Promise<void> | null = null;
@@ -1074,6 +1075,7 @@ async function connect(
             if (bootstrap) {
                 sendFrame({ type: 'heartbeat-negotiate' });
                 if (bootstrap.mode === 'ordinary') {
+                    journalUploads.connected();
                     // Reattach observations for provider work that outlived the socket.
                     daemonWork.cloudAgents?.attach((observation) => {
                         sendFrame({ observation, type: 'cloud-agent-observation' });
@@ -1297,9 +1299,7 @@ async function connect(
             ) {
                 return;
             }
-            const evidence = readExecutionEvidenceFrame(frame, dataRoot, attachment.serverId);
-            if (evidence) {
-                void trackWriter(evidence.then((result) => sendFrame(result)));
+            if (journalUploads.receive(frame)) {
                 return;
             }
             const reset = commandFrames.parseResetCommand(frame);
