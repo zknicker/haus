@@ -7,7 +7,8 @@ export type LinearIdentityAction =
     | 'continue'
     | 'give'
     | 'reinstall'
-    | 'remove';
+    | 'remove'
+    | 'rotate-secret';
 
 export interface LinearIdentityRow {
     actions: readonly LinearIdentityAction[];
@@ -23,7 +24,10 @@ export interface LinearIdentityRow {
  */
 export function linearIdentityRow(
     agentName: string,
-    identity: Pick<LinearIdentity, 'handle' | 'lastDeliveryAt' | 'status'> | null,
+    identity: Pick<
+        LinearIdentity,
+        'credentialsSaved' | 'handle' | 'lastDeliveryAt' | 'status'
+    > | null,
     now = Date.now()
 ): LinearIdentityRow {
     const viaHaus = `Posts as ${agentName} via Haus`;
@@ -31,8 +35,11 @@ export function linearIdentityRow(
         return { actions: ['give', 'connect-existing'], description: viaHaus, status: null };
     }
     if (identity.status === 'draft') {
+        // Saved credentials mean the app exists; before that, either path may resume.
         return {
-            actions: ['continue', 'remove'],
+            actions: identity.credentialsSaved
+                ? ['continue', 'remove']
+                : ['continue', 'connect-existing', 'remove'],
             description: viaHaus,
             status: { color: 'default', label: 'Setup not finished' },
         };
@@ -43,22 +50,22 @@ export function linearIdentityRow(
         : named;
     switch (identity.status) {
         case 'active':
-            return { actions: ['remove'], description, status: null };
+            return { actions: ['rotate-secret', 'remove'], description, status: null };
         case 'inactive':
             return {
-                actions: ['remove'],
+                actions: ['rotate-secret', 'remove'],
                 description,
                 status: { color: 'default', label: 'Inactive' },
             };
         case 'refresh_required':
             return {
-                actions: ['reinstall', 'remove'],
+                actions: ['reinstall', 'rotate-secret', 'remove'],
                 description,
                 status: { color: 'warning', label: 'Sign in required' },
             };
         default:
             return {
-                actions: ['reinstall', 'remove'],
+                actions: ['reinstall', 'rotate-secret', 'remove'],
                 description,
                 status: { color: 'danger', label: 'Revoked' },
             };

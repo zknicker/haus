@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import type { LinearIdentity, LinearIdentityDraft } from '@haus/api';
 import {
-    linearIdentityCredentialsReady,
+    linearIdentityClientIdEditable,
+    linearIdentityCredentialsInput,
+    linearIdentityFlowMode,
     linearIdentityFlowSteps,
     linearIdentityFlowValues,
 } from './linear-identity-flow-model.ts';
@@ -55,6 +57,12 @@ describe('linearIdentityRow', () => {
         expect(row.description).toBe('Posts as Juniper via Haus');
         expect(row.status?.label).toBe('Setup not finished');
         expect(row.actions).toEqual(['continue', 'remove']);
+        const unsaved = identity({ credentialsSaved: false, handle: null, status: 'draft' });
+        expect(linearIdentityRow('Juniper', unsaved).actions).toEqual([
+            'continue',
+            'connect-existing',
+            'remove',
+        ]);
     });
 
     test('an active identity names its handle and last delivery with no chip', () => {
@@ -64,7 +72,7 @@ describe('linearIdentityRow', () => {
             now
         );
         expect(row).toEqual({
-            actions: ['remove'],
+            actions: ['rotate-secret', 'remove'],
             description: 'Linear identity: @juniper · Last delivery 3h ago',
             status: null,
         });
@@ -76,7 +84,7 @@ describe('linearIdentityRow', () => {
         );
         const signIn = linearIdentityRow('J', identity({ status: 'refresh_required' }));
         expect(signIn.status).toEqual({ color: 'warning', label: 'Sign in required' });
-        expect(signIn.actions).toEqual(['reinstall', 'remove']);
+        expect(signIn.actions).toEqual(['reinstall', 'rotate-secret', 'remove']);
         expect(linearIdentityRow('J', identity({ status: 'revoked' })).status?.color).toBe(
             'danger'
         );
@@ -140,8 +148,61 @@ describe('linear identity flow', () => {
     });
 
     test('both pasted values are required and bounded', () => {
-        expect(linearIdentityCredentialsReady('client', 'secret')).toBe(true);
-        expect(linearIdentityCredentialsReady('  ', 'secret')).toBe(false);
-        expect(linearIdentityCredentialsReady('client', 'x'.repeat(201))).toBe(false);
+        const fresh = { credentialsSaved: false, status: 'draft' } as const;
+        expect(
+            linearIdentityCredentialsInput(fresh, {
+                clientId: ' client ',
+                webhookSigningSecret: 'secret',
+            })
+        ).toEqual({ clientId: 'client', webhookSigningSecret: 'secret' });
+        expect(
+            linearIdentityCredentialsInput(fresh, { clientId: '  ', webhookSigningSecret: 's' })
+        ).toBeNull();
+        expect(
+            linearIdentityCredentialsInput(fresh, {
+                clientId: 'client',
+                webhookSigningSecret: 'x'.repeat(201),
+            })
+        ).toBeNull();
+    });
+
+    test('saved credentials stay editable: a draft takes a new client id, any secret rotates', () => {
+        const savedDraft = { credentialsSaved: true, status: 'draft' } as const;
+        expect(
+            linearIdentityCredentialsInput(savedDraft, {
+                clientId: 'other',
+                webhookSigningSecret: 'secret',
+            })
+        ).toEqual({ clientId: 'other', webhookSigningSecret: 'secret' });
+        expect(
+            linearIdentityCredentialsInput(savedDraft, {
+                clientId: '',
+                webhookSigningSecret: 'rotated',
+            })
+        ).toEqual({ webhookSigningSecret: 'rotated' });
+        const installed = { credentialsSaved: true, status: 'active' } as const;
+        expect(linearIdentityClientIdEditable(installed)).toBe(false);
+        expect(
+            linearIdentityCredentialsInput(installed, {
+                clientId: '',
+                webhookSigningSecret: 'rotated',
+            })
+        ).toEqual({ webhookSigningSecret: 'rotated' });
+        expect(
+            linearIdentityCredentialsInput(installed, {
+                clientId: 'other',
+                webhookSigningSecret: 'rotated',
+            })
+        ).toBeNull();
+    });
+
+    test('resuming never offers to create an app that already has saved credentials', () => {
+        expect(linearIdentityFlowMode('continue', { credentialsSaved: false })).toBe('create');
+        expect(linearIdentityFlowMode('continue', { credentialsSaved: true })).toBe('existing');
+        expect(linearIdentityFlowMode('connect-existing', null)).toBe('existing');
+        expect(linearIdentityFlowMode('rotate-secret', { credentialsSaved: true })).toBe(
+            'existing'
+        );
+        expect(linearIdentityFlowMode('give', null)).toBe('create');
     });
 });

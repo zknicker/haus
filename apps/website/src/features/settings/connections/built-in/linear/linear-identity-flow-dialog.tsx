@@ -8,7 +8,8 @@ import { useLinearStartIdentityInstall } from '../../../../../hooks/linear/use-l
 import { SettingsRowError } from '../../../layout/settings-text.tsx';
 import {
     type LinearIdentityFlowMode,
-    linearIdentityCredentialsReady,
+    linearIdentityClientIdEditable,
+    linearIdentityCredentialsInput,
     linearIdentityFlowSteps,
     linearIdentityFlowValues,
 } from './linear-identity-flow-model.ts';
@@ -50,11 +51,7 @@ export function LinearIdentityFlowDialog({
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Heading>
-                            {mode === 'existing'
-                                ? `Connect ${agentName}'s Linear app`
-                                : `Give ${agentName} a Linear identity`}
-                        </Modal.Heading>
+                        <Modal.Heading>{flowHeading(agentName, mode, identity)}</Modal.Heading>
                     </Modal.Header>
                     {mode && identity ? (
                         <FlowBody
@@ -73,6 +70,19 @@ export function LinearIdentityFlowDialog({
             </Modal.Container>
         </Modal.Backdrop>
     );
+}
+
+function flowHeading(
+    agentName: string,
+    mode: LinearIdentityFlowMode | null,
+    identity: LinearIdentity | null
+) {
+    if (identity && identity.status !== 'draft') {
+        return `${agentName}'s Linear app`;
+    }
+    return mode === 'existing'
+        ? `Connect ${agentName}'s Linear app`
+        : `Give ${agentName} a Linear identity`;
 }
 
 function FlowBody({
@@ -98,7 +108,14 @@ function FlowBody({
         draftReady: true,
         mode,
     });
-    const ready = linearIdentityCredentialsReady(clientId, secret);
+    const input = linearIdentityCredentialsInput(identity, {
+        clientId,
+        webhookSigningSecret: secret,
+    });
+    // Saved values stay editable: typing anything brings Save back over Install.
+    const edited = clientId.length > 0 || secret.length > 0;
+    const canInstall = !edited && installStep?.status === 'current' && identity.status === 'draft';
+    const placeholder = identity.credentialsSaved ? 'Saved' : undefined;
 
     return (
         <>
@@ -144,35 +161,34 @@ function FlowBody({
                         id={formId}
                         onSubmit={(event) => {
                             event.preventDefault();
-                            if (ready) {
-                                save.save({
-                                    clientId: clientId.trim(),
-                                    identityId: draft.identityId,
-                                    webhookSigningSecret: secret.trim(),
+                            if (input) {
+                                save.save({ ...input, identityId: draft.identityId }, () => {
+                                    setClientId('');
+                                    setSecret('');
                                 });
                             }
                         }}
                     >
                         <TextField
                             fullWidth
-                            isDisabled={save.isPending || identity.credentialsSaved}
+                            isDisabled={save.isPending || !linearIdentityClientIdEditable(identity)}
                             onChange={setClientId}
                             value={clientId}
                             variant="secondary"
                         >
                             <Label>Client ID</Label>
-                            <Input autoComplete="off" />
+                            <Input autoComplete="off" placeholder={placeholder} />
                         </TextField>
                         <TextField
                             fullWidth
-                            isDisabled={save.isPending || identity.credentialsSaved}
+                            isDisabled={save.isPending}
                             onChange={setSecret}
                             type="password"
                             value={secret}
                             variant="secondary"
                         >
                             <Label>Webhook signing secret</Label>
-                            <Input autoComplete="off" />
+                            <Input autoComplete="off" placeholder={placeholder} />
                         </TextField>
                         <SettingsRowError>{save.error?.message}</SettingsRowError>
                     </Form>
@@ -182,7 +198,7 @@ function FlowBody({
                 <Button onPress={onClose} slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
-                {installStep?.status === 'current' ? (
+                {canInstall ? (
                     <Button
                         isPending={install.isPending}
                         onPress={() => void install.start(draft.identityId).then(onClose)}
@@ -192,7 +208,7 @@ function FlowBody({
                 ) : (
                     <Button
                         form={formId}
-                        isDisabled={!ready}
+                        isDisabled={input === null}
                         isPending={save.isPending}
                         type="submit"
                     >

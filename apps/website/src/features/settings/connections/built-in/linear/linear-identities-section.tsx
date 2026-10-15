@@ -13,7 +13,10 @@ import { useServerContext } from '../../../../servers/server-context.ts';
 import { ConnectionSection } from '../../../mcp/connection-section.tsx';
 import type { BuiltInConnectionSectionProps } from '../built-in-connection-definition.ts';
 import { LinearIdentityFlowDialog } from './linear-identity-flow-dialog.tsx';
-import type { LinearIdentityFlowMode } from './linear-identity-flow-model.ts';
+import {
+    type LinearIdentityFlowMode,
+    linearIdentityFlowMode,
+} from './linear-identity-flow-model.ts';
 import {
     identityForAgent,
     type LinearIdentityAction,
@@ -27,6 +30,7 @@ const actionLabels: Record<LinearIdentityAction, string> = {
     give: 'Give Linear identity',
     reinstall: 'Install again',
     remove: 'Remove identity',
+    'rotate-secret': 'Replace webhook secret',
 };
 
 /**
@@ -52,14 +56,23 @@ export function LinearIdentitiesSection({ connection, serverId }: BuiltInConnect
     }
 
     const act = (agent: Agent, identity: LinearIdentity | null, action: LinearIdentityAction) => {
-        if (action === 'remove' && identity) {
-            setRemoving({ agent, identity });
-        } else if (action === 'reinstall' && identity) {
-            void install.start(identity.id);
-        } else {
-            draft.prepare(agent.id);
-            setFlow({ agent, mode: action === 'connect-existing' ? 'existing' : 'create' });
+        if (action === 'remove') {
+            if (identity) {
+                setRemoving({ agent, identity });
+            }
+            return;
         }
+        if (action === 'reinstall') {
+            if (identity) {
+                void install.start(identity.id);
+            }
+            return;
+        }
+        // An installed identity already carries its flow values; only setup prepares a draft.
+        if (action !== 'rotate-secret') {
+            draft.prepare(agent.id);
+        }
+        setFlow({ agent, mode: linearIdentityFlowMode(action, identity) });
     };
 
     return (
