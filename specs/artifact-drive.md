@@ -103,6 +103,26 @@ gets `REVISION_CONFLICT` naming each file's new path, so per-file checks add not
 who can publish can move. Deletion stays per artifact, limited to the creator or a human
 Owner/Admin.
 
+## Batches
+
+A selection acts in one request per action, at most `artifactBatchMaxItems` (1,000) items
+(`packages/haus-api/src/artifact-batch.ts`):
+
+- `artifact.moveMany` (`{ items: [{ path, base_revision_id? }], to_folder }`) moves every item into
+  one folder, keeping its name, in one transaction under the Server row lock: each item follows the
+  single-move rules above, and the first refusal rolls the whole batch back. An item already in
+  `to_folder` stays put; an item inside another selected folder travels with it; two items with
+  one name are `PATH_TAKEN` before anything moves. The result lists each item's `from` and `to`
+  plus `moved_count` (files whose path changed).
+- `artifact.deleteMany` (`{ artifact_ids }`) deletes, in one transaction, every named file the
+  caller may delete (creator, or human Owner/Admin) and reports `deleted`, `forbidden` (left in
+  place), and `missing` (already gone or never here). A file still taking an upload refuses the
+  batch (`UPLOAD_CONFLICT`). Storage objects are purged after the commit; a purge failure leaves
+  the revision `deleting` for startup cleanup rather than failing a committed delete.
+- `artifact.zip` plans a zip download of paths under one root ([Files](../docs/api/artifacts.md#zip-downloads)).
+
+Each committed move or delete batch announces one `artifact.onUpdated` with a null id.
+
 ## Errors
 
 Agent routes answer `{ code, message }`, plus `current` for `REVISION_CONFLICT`. tRPC errors carry

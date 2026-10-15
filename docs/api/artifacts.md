@@ -46,7 +46,7 @@ Path routes beside the actions: `GET /api/agent/artifacts` lists a folder (`pref
 resolves one file, and `POST /api/agent/artifacts/move` moves a file or folder (`from`, `to`,
 optional `base_revision_id` for a file).
 
-The native `artifact` tRPC router supplies App reads, moves, and deletion. Computer uses the scoped native
+The native `artifact` tRPC router supplies App reads, moves, deletion, their batches (`moveMany`, `deleteMany`), and zip links (`zip`, below). Computer uses the scoped native
 Agent artifact HTTP routes for authenticated download resolution. All routes call the same product
 logic; no Raft source code is included. Comments, GitHub publishing, and JSON/base64 publication
 are outside this MVP. Public links are opt-in per file (below).
@@ -85,21 +85,48 @@ with live files, from `artifact.creators`), list/grid, and Upload. When the band
 not Files' own ([React → Shell](../internals/react.md#shell)): opening a folder pushes an entry
 and a filter change replaces it, so they walk folders as part of the tab's ordinary history.
 
-Selection follows Finder: a click selects a folder or file (one selection across folders and every
-date group), a double click or Return opens it, arrow keys move it, and a touch tap opens at once.
-On desktop, Command-, Shift-, or middle-click still opens in a new tab. Right-clicking a row, tile,
-or the empty area (or Shift+F10 / the Menu key on the focused item) selects it and opens one
-context menu. File and folder actions are defined once (`artifact-actions.ts`) and rendered by the
-row ⋮ menu, the context menu, and the viewer's menu: files offer Open, Download, Copy link, Copy
-public link (Disable public link when allowed), Rename…, Move to… (a folder picker over
-`artifact.move`), Version history (the viewer's Revisions), and Delete… (confirmed; shown only to
-the creator and human Owners/Admins, the Server's `artifact.delete` rule), plus Copy path, Open in
-new tab (desktop windows only, ADR 0046), and Show in folder (wherever the item is not in the folder
-on screen: the viewer, a search hit). Folders offer Open, Copy link, Copy path, Rename, and Move
-to…; the empty area offers Upload files… and Upload folder…. Every item carries its verb's icon.
-Actions a member cannot run are hidden, not disabled. There is no folder download. In the library,
-Rename (or F2 on the selected item) edits the name in place: Return or leaving the field commits,
-Escape cancels; the viewer renames through a dialog.
+Selection follows Finder. The open folder's tiles and every date group of files are one React Aria
+collection (`artifact-library-collection.tsx`, sections of one grid) with stock multiple selection
+in `replace` behavior, so one selection spans folders and files in visual order: a click selects
+one item, Command-click toggles, Shift-click and Shift+Arrow extend a range (across folders and
+date groups, in the current sort and filters), Command-A selects every loaded item and loads the
+rest of the folder up to `artifactBatchMaxItems` (past that the summary says "loaded files only"),
+Escape or a click on empty space clears, a double click or Return opens, and a touch tap opens at
+once while a long press starts selecting. On desktop a middle click still opens in a new tab;
+Command- and Shift-click shape the selection instead. The selection belongs to the open folder:
+opening another starts empty, and live updates keep every selected item that still exists.
+
+While two or more items are selected, the band's controls give way to a stock `Toolbar`
+(`artifact-selection-bar.tsx`): the summary ("4 selected · 120 MB", naming folders apart), the
+selection's actions, and Clear; clearing brings the controls back, so the column never moves.
+Right-clicking inside a selection of several opens the same actions for all of it; right-clicking
+any other item selects it first; the empty area clears the selection. Keys: F2 renames the one
+selected item, Delete or Backspace deletes the selection, Command-Shift-M moves it, and Shift+F10
+or the Menu key opens the menu at the focused item.
+
+File and folder actions are defined once (`artifact-actions.ts`) and rendered by the row ⋮ menu,
+the context menu, and the viewer's menu: files offer Open, Download, Copy link, Copy public link
+(Disable public link when allowed), Rename…, Move to… (a folder picker), Version history (the
+viewer's Revisions), and Delete… (confirmed; shown only to the creator and human Owners/Admins,
+the Server's `artifact.delete` rule), plus Copy path, Open in new tab (desktop windows only, ADR
+0046), and Show in folder (wherever the item is not in the folder on screen: the viewer, a search
+hit). Folders offer Open, Download as zip, Copy link, Copy path, Rename, and Move to…; the empty
+area offers Upload files… and Upload folder…. A selection of several offers Download as zip, Copy
+links (one per line), Move to…, and Delete… (only when some selected file may be deleted). Every
+item carries its verb's icon. Actions a member cannot run are hidden, not disabled. In the
+library, Rename (or F2) edits the name in place: Return or leaving the field commits, Escape
+cancels; the viewer renames through a dialog.
+
+Bulk actions are one request each, however many items are selected. Move to… walks folders and
+sends `artifact.moveMany` (each file guarded by its head revision; a selected folder never lists
+itself). Delete… confirms with `artifact.deleteMany`, sending only the files this member may
+delete; when the selection holds others, or folders, the dialog says so ("3 of 5 selected items
+can be deleted") and the rest stay. Dragging items (a selected item drags the whole selection,
+React Aria's stock draggable collection) onto a folder tile or a linked trail crumb moves them
+there; the target lights up only when the move can land, so a folder into itself or items onto
+their own folder is a no-op. Files dragged in from the system still upload anywhere on the
+library, rows and tiles included. Download as zip asks `artifact.zip` for a short-lived link and
+hands it to the browser's download manager (the desktop's system browser), as single downloads do.
 The column shows the open folder's child folders (`artifact.list` folders: tinted folder icons
 in the viewer's sort, each tint hashed from the folder's own path so it never shifts when a sibling
 appears, names cut in the middle across two lines with the full path on hover, each with its file count and up to three of its newest files peeking out,
@@ -171,8 +198,9 @@ original's size; only the viewer and its fullscreen zoom load the original. A re
 (storage disabled, revision gone) or a revision without a thumbnail falls back to the file's icon.
 
 Files changes are live. Every committed publish, move, delete, version delete, and retention prune
-publishes `artifact.onUpdated` (`{ serverId, artifactId }`, a null id for a folder move and for
-a retention sweep, which announces once per affected Server; see [Realtime](realtime.md)), and
+publishes `artifact.onUpdated` (`{ serverId, artifactId }`, a null id for a folder move, for a
+batched move or delete, which announces once per batch, and for a retention sweep, which announces
+once per affected Server; see [Realtime](realtime.md)), and
 `useArtifactUpdateStream` invalidates every `artifact.list` read, `artifact.creators`, and that
 file's `artifact.get` and `artifact.versions`, so an open folder, grid, or viewer fills in while
 Agents push. Listing and creator refreshes are throttled per Server (the first event refreshes at
@@ -223,6 +251,32 @@ App's row and viewer ⋮ menus carry Copy public link and Disable public link, a
 globe mark in its row or tile and a Public link chip in the viewer, and `artifact.list` pages
 carry `public_links` for their files (`artifact.publicLink`, `artifact.share`, and
 `artifact.unshare` serve one file). The Agent-route `artifact.list` shape is unchanged.
+
+### Zip downloads
+
+`artifact.zip` (`{ serverId, root, paths }`, member authorization) plans a zip of files and folders
+under one `root` folder and returns `{ zip_path, filename, file_count, total_bytes, expires_at }`.
+Planning reads every current ready revision the paths name (a folder path takes every live file
+under it, each file once) and refuses the request before any bytes move: a path outside `root` is
+`BAD_REQUEST`, and more than `artifactZipMaxFiles` (10,000) files or `artifactZipMaxBytes` (4 GB)
+is `PAYLOAD_TOO_LARGE` with `SIZE_LIMIT` and a message naming the cap and the selection's size.
+`zip_path` (`/artifacts/zip/<token>`, 192 random bits) is a short-lived link
+(`artifactZipLinkSeconds`, five minutes) that works as a plain GET, so the browser's download
+manager (or the desktop's system browser) saves it, retries it, and cancels it. Links live in the
+Server process only, like its realtime topics; a restart expires them. Opening one checks the
+issuing member's access again and re-reads the selection, so a file deleted since is left out.
+
+`GET /artifacts/zip/:token` streams `application/zip` with `Content-Disposition: attachment`
+(`<folder>.zip` for a lone folder, otherwise the root folder's name) and no `Content-Length`.
+Entries are named by their path relative to `root`, so a folder unzips as itself with its
+structure, and every entry is stored (STORE, no deflate): shared files are mostly PNG, JPEG, and
+WebP, which deflate cannot shrink, and the archive's bytes are the originals. The archive is
+written with `fflate`'s streaming `Zip` and `ZipPassThrough` (`apps/server/src/artifacts/zip-stream.ts`),
+pull-driven: it reads the next storage chunk only when the client takes more, one object open at
+a time, so a slow download never buffers whole files; cancelling the download cancels the open
+storage read. Without ZIP64 an archive must stay under 4 GiB, which the 4 GB cap guarantees. A
+stored object whose length no longer matches its revision errors the stream. Expired or unknown
+links answer a plain-text 404.
 
 ### Agent CLI
 
