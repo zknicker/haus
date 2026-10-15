@@ -16,9 +16,12 @@ ship in the Server release. The process contract lives in
 [ADR 0042](../adr/0042-server-owns-hosted-mcp-processes.md).
 
 Skool's Python package is `apps/hosted-mcp`; Server supervision is under
-`apps/server/src/hosted-mcp`. `bun run dev` prepares the frozen Python runtime
-and starts Skool through Haus Server. No separate service command, endpoint,
-or provisioning token is needed for desktop onboarding.
+`apps/server/src/hosted-mcp`. Haus Server starts every connector in its catalog
+(`apps/server/src/haus-server.ts`): Skool and Linear. `bun run dev` packages both
+into `.context/hosted-mcp/<id>` before Server starts (the frozen Python runtime
+and the compiled Linear binary), and `scripts/build-haus-server-artifact.mjs`
+packages both into `share/haus-server/hosted-mcp/<id>`. No separate service
+command, endpoint, or provisioning token is needed for desktop onboarding.
 
 ## Sign in
 

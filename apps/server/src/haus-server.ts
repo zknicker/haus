@@ -8,7 +8,7 @@ import {
     createHausServerApplication,
     type HausServerApplication,
 } from './haus-server-application.ts';
-import { skoolHostedDefinition } from './hosted-mcp/catalog.ts';
+import { linearHostedDefinition, skoolHostedDefinition } from './hosted-mcp/catalog.ts';
 import { linearAppFromEnvironment } from './linear/linear-api.ts';
 import { createJevRouter } from './message-routing/jev-client.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
@@ -61,16 +61,8 @@ async function start() {
         databaseUrl: env.HAUS_DATABASE_URL,
         hostedMcps: {
             definitions: [
-                skoolHostedDefinition(
-                    release
-                        ? join(
-                              dirname(env.HAUS_RELEASE_MANIFEST ?? ''),
-                              'share/haus-server/hosted-mcp/skool'
-                          )
-                        : fileURLToPath(
-                              new URL('../../../.context/hosted-mcp/skool/', import.meta.url)
-                          )
-                ),
+                skoolHostedDefinition(hostedMcpPackageRoot('skool', release !== null)),
+                linearHostedDefinition(hostedMcpPackageRoot('linear', release !== null)),
             ],
             storageRoot: join(env.HAUS_ATTACHMENT_ROOT, '.hosted-mcp'),
         },
@@ -150,6 +142,16 @@ async function start() {
  */
 function githubRecoveryInterval() {
     return process.env.HAUS_DEV_STACK === '1' ? 10_000 : 10 * 60_000;
+}
+
+/**
+ * Where a connector package lives: beside the release manifest in a release,
+ * or where the dev stack packages it (`scripts/dev-stack-server-environment.mjs`).
+ */
+function hostedMcpPackageRoot(id: 'linear' | 'skool', release: boolean): string {
+    return release
+        ? join(dirname(env.HAUS_RELEASE_MANIFEST ?? ''), `share/haus-server/hosted-mcp/${id}`)
+        : fileURLToPath(new URL(`../../../.context/hosted-mcp/${id}/`, import.meta.url));
 }
 
 function createAvatarImageProvider() {
