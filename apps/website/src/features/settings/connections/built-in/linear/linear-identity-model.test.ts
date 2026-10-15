@@ -13,9 +13,21 @@ import {
 
 const now = Date.parse('2026-10-15T12:00:00.000Z');
 
+const draft: LinearIdentityDraft = {
+    appName: 'Juniper',
+    avatarUrl: 'https://haus.chat/api/avatars/av_1',
+    callbackUrl: 'https://haus.chat/linear/oauth/callback',
+    createAppUrl: 'https://linear.app/settings/api/applications/new',
+    identityId: 'lni_0123456789abcdef',
+    webhookEvents: ['agent_session_events', 'permission_changes', 'oauth_app_revoked'],
+    webhookUrl: 'https://haus.chat/api/linear/webhook/lni_0123456789abcdef',
+};
+
 function identity(overrides: Partial<LinearIdentity> = {}): LinearIdentity {
     return {
         agentId: 'agent_juniper',
+        credentialsSaved: true,
+        guidedFlow: draft,
         handle: 'juniper',
         id: 'lni_0123456789abcdef',
         lastDeliveryAt: null,
@@ -82,16 +94,6 @@ describe('linearIdentityRow', () => {
         expect(linearWorkspaceStatus('refresh_required')?.label).toBe('Sign in required');
     });
 });
-
-const draft: LinearIdentityDraft = {
-    appName: 'Juniper',
-    avatarUrl: 'https://haus.chat/api/avatars/av_1',
-    callbackUrl: 'https://haus.chat/linear/oauth/callback',
-    createAppUrl: 'https://linear.app/settings/api/applications/new',
-    identityId: 'lni_0123456789abcdef',
-    webhookEvents: ['agent_session_events', 'permission_changes', 'oauth_app_revoked'],
-    webhookUrl: 'https://haus.chat/api/linear/webhook/lni_0123456789abcdef',
-};
 
 describe('linear identity flow', () => {
     test('copy and paste are current together until the save lands, then install', () => {

@@ -10,7 +10,6 @@ export function useLinearSaveIdentityCredentials(serverId: string, connectionId:
     return {
         error: mutation.error,
         isPending: mutation.isPending,
-        isSaved: mutation.isSuccess,
         save: (input: { clientId: string; identityId: string; webhookSigningSecret: string }) =>
             mutation.mutate({ ...input, serverId }),
     };

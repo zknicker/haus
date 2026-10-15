@@ -80,8 +80,8 @@ export function LinearIdentitiesSection({ connection, serverId }: BuiltInConnect
             <LinearIdentityFlowDialog
                 agentName={flow?.agent.displayName ?? ''}
                 connectionId={connection.id}
-                draft={draft.draft}
                 draftError={draft.error?.message ?? null}
+                identity={flow ? identityForAgent(identities, flow.agent.id) : null}
                 mode={flow?.mode ?? null}
                 onClose={() => {
                     setFlow(null);

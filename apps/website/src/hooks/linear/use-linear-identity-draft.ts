@@ -2,7 +2,8 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
  * Starts (or resumes) one Agent's guided identity flow: the Server creates the
- * `draft` identity and answers every value the Owner copies into Linear.
+ * `draft` identity, and the refreshed identity list carries every value the
+ * Owner copies into Linear (`LinearIdentity.guidedFlow`).
  */
 export function useLinearIdentityDraft(serverId: string, connectionId: string) {
     const utils = hausTrpc.useUtils();
@@ -11,7 +12,6 @@ export function useLinearIdentityDraft(serverId: string, connectionId: string) {
     });
 
     return {
-        draft: mutation.data ?? null,
         error: mutation.error,
         isPending: mutation.isPending,
         prepare: (agentId: string) => mutation.mutate({ agentId, connectionId, serverId }),

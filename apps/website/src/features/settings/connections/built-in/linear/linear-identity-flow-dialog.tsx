@@ -1,4 +1,4 @@
-import type { LinearIdentityDraft } from '@haus/api';
+import type { LinearIdentity } from '@haus/api';
 import { Button, Form, Input, Label, Modal, TextField } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { useState } from 'react';
@@ -18,13 +18,15 @@ const formId = 'linear-identity-credentials';
 /**
  * The guided flow for one Agent's own Linear app, as one dialog: the values to
  * copy into Linear with a deep link to its new-app page, the two values to
- * paste back, then the install. Opened while the draft is being prepared, so
- * it reads blank until the Server answers.
+ * paste back, then the install. Every value and whether the credentials are
+ * saved come from the Server's identity, so a resumed flow picks up where it
+ * stopped. Opened while the draft is being prepared, so it reads blank until
+ * the identity list answers.
  */
 export function LinearIdentityFlowDialog({
     agentName,
     connectionId,
-    draft,
+    identity,
     draftError,
     mode,
     onClose,
@@ -32,7 +34,7 @@ export function LinearIdentityFlowDialog({
 }: {
     agentName: string;
     connectionId: string;
-    draft: LinearIdentityDraft | null;
+    identity: LinearIdentity | null;
     draftError: string | null;
     mode: LinearIdentityFlowMode | null;
     onClose: () => void;
@@ -54,10 +56,10 @@ export function LinearIdentityFlowDialog({
                                 : `Give ${agentName} a Linear identity`}
                         </Modal.Heading>
                     </Modal.Header>
-                    {mode && draft ? (
+                    {mode && identity ? (
                         <FlowBody
                             connectionId={connectionId}
-                            draft={draft}
+                            identity={identity}
                             mode={mode}
                             onClose={onClose}
                             serverId={serverId}
@@ -75,23 +77,24 @@ export function LinearIdentityFlowDialog({
 
 function FlowBody({
     connectionId,
-    draft,
+    identity,
     mode,
     onClose,
     serverId,
 }: {
     connectionId: string;
-    draft: LinearIdentityDraft;
+    identity: LinearIdentity;
     mode: LinearIdentityFlowMode;
     onClose: () => void;
     serverId: string;
 }) {
+    const draft = identity.guidedFlow;
     const save = useLinearSaveIdentityCredentials(serverId, connectionId);
     const install = useLinearStartIdentityInstall(serverId);
     const [clientId, setClientId] = useState('');
     const [secret, setSecret] = useState('');
     const [register, credentials, installStep] = linearIdentityFlowSteps({
-        credentialsSaved: save.isSaved,
+        credentialsSaved: identity.credentialsSaved,
         draftReady: true,
         mode,
     });
@@ -152,7 +155,7 @@ function FlowBody({
                     >
                         <TextField
                             fullWidth
-                            isDisabled={save.isPending || save.isSaved}
+                            isDisabled={save.isPending || identity.credentialsSaved}
                             onChange={setClientId}
                             value={clientId}
                             variant="secondary"
@@ -162,7 +165,7 @@ function FlowBody({
                         </TextField>
                         <TextField
                             fullWidth
-                            isDisabled={save.isPending || save.isSaved}
+                            isDisabled={save.isPending || identity.credentialsSaved}
                             onChange={setSecret}
                             type="password"
                             value={secret}
