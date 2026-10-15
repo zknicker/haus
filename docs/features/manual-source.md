@@ -19,7 +19,7 @@ Following every archetype's related-card graph covers 28 upstream cards, all car
 
 ## Complete inventory
 
-Equivalent means the full substantive body and source metadata match after product-name substitution. Adapted means named behavior or routing differences, not a shortened summary. Source has 33 cards, 13 seeded and 20 query. Haus carries 32 source cards, deliberately omits login-with-raft and adds two query-tier cards, trigger-webhook and trigger-github: 34 total, 12 seeded and 22 query. All seven archetypes remain query-tier, available to every authorized managed Agent.
+Equivalent means the full substantive body and source metadata match after product-name substitution. Adapted means named behavior or routing differences, not a shortened summary. Source has 33 cards, 13 seeded and 20 query. Haus carries 32 source cards, deliberately omits login-with-raft and adds three query-tier cards, trigger-webhook, trigger-github, and trigger-linear: 35 total, 12 seeded and 23 query. All seven archetypes remain query-tier, available to every authorized managed Agent.
 
 | Source card | Haus status | Difference |
 | --- | --- | --- |
@@ -58,6 +58,7 @@ Equivalent means the full substantive body and source metadata match after produ
 | `technique/video-review` | Equivalent | Full source behavior and metadata retained. |
 | `technique/trigger-webhook` | Haus-native addition | Existing outside-event setup and recovery under Haus API and permissions; the webhook secret never goes through a Chat. |
 | `technique/trigger-github` | Haus-native addition | GitHub Triggers: installations, event and filter choice, no comment events, chain budget, and the human fix for each problem. |
+| `technique/trigger-linear` | Haus-native addition | Linear Triggers: workspaces, match groups with design review examples, self-suppression, preview, and the human fix for each problem. |
 
 ## Gaps corrected
 

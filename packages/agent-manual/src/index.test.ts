@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import sourceManifest from '../../../specs/raft-alignment/manual-source.json' with { type: 'json' };
 import {
     getManualTopic,
     type ManualRecipeTopic,
@@ -43,15 +44,13 @@ const recipeIds = [
     'recipes/technique/trigger-webhook',
     'recipes/technique/video-review',
     'recipes/technique/trigger-github',
+    'recipes/technique/trigger-linear',
 ] as const;
 
 // Cards written for Haus itself, with no captured source card behind them.
 // The fidelity test below asserts each really has no source file, so this list
 // cannot quietly become an escape hatch for a drifted adapted card.
-const hausNativeIds = new Set<string>([
-    'recipes/technique/trigger-webhook',
-    'recipes/technique/trigger-github',
-]);
+const hausNativeIds = new Set<string>(sourceManifest.hausNativeRecipeIds);
 
 // Cards Haus rewrote on purpose. The captured source card stays the record of
 // what was adapted; each rewrite owns a row in specs/raft-alignment/prompt-divergences.md.
@@ -80,11 +79,11 @@ test('publishes the complete adapted corpus with source metadata', () => {
     const published = recipes();
 
     expect(published.map((topic) => topic.id)).toEqual([...recipeIds]);
-    expect(new Set(published.map((topic) => topic.id)).size).toBe(34);
+    expect(new Set(published.map((topic) => topic.id)).size).toBe(35);
     expect(published.filter((topic) => topic.tier === 'seeded').map((topic) => topic.id)).toEqual([
         ...seededIds,
     ]);
-    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(22);
+    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(23);
     expect(published.filter((topic) => topic.class === 'archetype')).toHaveLength(7);
     expect(
         published

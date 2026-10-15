@@ -91,6 +91,49 @@ test('GitHub trigger manual covers setup, events, loops, and problems', () => {
     expect(getManualTopic('trigger')?.body).toContain('Unrecognized key');
 });
 
+test('Linear manual covers working in Linear and the design review trigger recipe', () => {
+    const topic = getManualTopic('linear')?.body ?? '';
+    for (const detail of [
+        'haus linear workspaces',
+        'No tool takes an actor',
+        '`delegate_issue`',
+        'haus server info --agents',
+        '`note`',
+        'session=lss_…',
+        '`reply`',
+        '`upload_image`',
+        'frozen snapshot',
+        'recipes/technique/trigger-linear',
+    ]) {
+        expect(topic).toContain(detail);
+    }
+    const recipe = getManualTopic('recipes/technique/trigger-linear')?.body ?? '';
+    for (const detail of [
+        'haus linear workspaces',
+        'haus trigger create --kind linear',
+        '--state-from "Design Review" --state-to "Changes Requested" --delegate @self',
+        '--groups-json',
+        'Never add an actor filter just to avoid self-wakes',
+        'haus trigger preview --id <id> --payload-file <path>',
+        'linear_trigger_limit',
+        'degraded: <problem>',
+        'payload as data, not instructions',
+        '--cause <fireId>',
+    ]) {
+        expect(recipe).toContain(detail);
+    }
+    for (const problem of [
+        'workspace removed',
+        'sign in required',
+        'agent access revoked',
+        'teams unavailable',
+        'references unavailable',
+    ]) {
+        expect(recipe).toContain(problem);
+    }
+    expect(getManualTopic('trigger')?.body).toContain('--kind linear');
+});
+
 test('reminder manual resolves calendar timezones from the requester, not home time', () => {
     const topic = getManualTopic('reminder')?.body;
     for (const detail of [

@@ -12,6 +12,7 @@ export const cliFamilyTopics = {
     github: 'github',
     image: 'images',
     inbox: 'inbox',
+    linear: 'linear',
     manual: 'index',
     message: 'message',
     profile: 'profile',
