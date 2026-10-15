@@ -70,7 +70,13 @@ export const linearDeliveryIgnoredReasonSchema = z.enum([
 ]);
 export type LinearDeliveryIgnoredReason = z.infer<typeof linearDeliveryIgnoredReasonSchema>;
 
-export const linearSessionStatusSchema = z.enum(['active', 'complete', 'stopped', 'orphaned']);
+export const linearSessionStatusSchema = z.enum([
+    'active',
+    'complete',
+    'stopped',
+    'handed_off',
+    'orphaned',
+]);
 export type LinearSessionStatus = z.infer<typeof linearSessionStatusSchema>;
 
 export const linearAgentLabelStateSchema = z.enum(['pending', 'active', 'archived']);

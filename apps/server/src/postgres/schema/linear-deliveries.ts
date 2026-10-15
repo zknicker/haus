@@ -16,6 +16,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
+import { chatsTable } from './chats.ts';
 import { linearIdentitiesTable, linearWorkspacesTable } from './linear.ts';
 import { serversTable } from './servers.ts';
 
@@ -33,6 +34,10 @@ export const linearWebhookDeliveriesTable = pgTable(
     {
         action: text('action'),
         attempts: integer('attempts').notNull().default(0),
+        /** The raw verified body, staged until the row completes; a `failed` row keeps it. */
+        body: bunJsonb('body').$type<Record<string, unknown> | null>(),
+        /** When a pending ledger candidate first deferred this delivery (loop safety). */
+        deferredSince: timestamp('deferred_since', { withTimezone: true }),
         deliveryId: text('delivery_id').notNull(),
         event: text('event').notNull(),
         id: text('id').primaryKey(),
@@ -40,7 +45,6 @@ export const linearWebhookDeliveriesTable = pgTable(
         nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull(),
         organizationId: text('organization_id'),
         processedAt: timestamp('processed_at', { withTimezone: true }),
-        projection: bunJsonb('projection').notNull().$type<Record<string, unknown>>(),
         receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
         receiver: text('receiver').notNull(),
         routedCount: integer('routed_count').notNull().default(0),
@@ -88,8 +92,9 @@ export const linearWebhookDeliveriesTable = pgTable(
             sql`(${table.state} in ('done', 'ignored', 'failed')) = (${table.processedAt} is not null)`
         ),
         check(
-            'linear_webhook_deliveries_projection_size',
-            sql`octet_length(${table.projection}::text) <= 65536`
+            'linear_webhook_deliveries_body',
+            sql`(${table.body} is null or octet_length(${table.body}::text) <= 2097152)
+                and (${table.state} not in ('done', 'ignored') or ${table.body} is null)`
         ),
         check(
             'linear_webhook_deliveries_nonnegative',
@@ -101,13 +106,16 @@ export const linearWebhookDeliveriesTable = pgTable(
 /**
  * One Linear agent session, under its Haus handle. `identity_id` names the
  * receiving identity; null means the Haus app received it. `agent_id` is the
- * routed Agent, rewritten on each Haus app event.
+ * routed Agent, rewritten on each Haus app event. `anchor_chat_id` is the DM
+ * between that Agent and the workspace's binder (or an Owner) where its
+ * inbox rows land.
  */
 export const linearAgentSessionsTable = pgTable(
     'linear_agent_sessions',
     {
         ackedAt: timestamp('acked_at', { withTimezone: true }),
         agentId: text('agent_id'),
+        anchorChatId: text('anchor_chat_id').notNull(),
         closedAt: timestamp('closed_at', { withTimezone: true }),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
@@ -147,10 +155,15 @@ export const linearAgentSessionsTable = pgTable(
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'linear_agent_sessions_agent_fk',
         }),
+        foreignKey({
+            columns: [table.serverId, table.anchorChatId],
+            foreignColumns: [chatsTable.serverId, chatsTable.id],
+            name: 'linear_agent_sessions_anchor_chat_fk',
+        }).onDelete('cascade'),
         check('linear_agent_sessions_id_shape', sql`${table.id} ~ '^lss_[A-Za-z0-9_-]{16}$'`),
         check(
             'linear_agent_sessions_status',
-            sql`${table.status} in ('active', 'complete', 'stopped', 'orphaned')`
+            sql`${table.status} in ('active', 'complete', 'stopped', 'handed_off', 'orphaned')`
         ),
         check(
             'linear_agent_sessions_closed',

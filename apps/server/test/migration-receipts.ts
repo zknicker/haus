@@ -32,4 +32,5 @@ export const migrationsSince0060 = [
     '0089_cloud-agent-claude',
     '0090_agent-execution-journals',
     '0091_linear-app',
+    '0092_linear-ingest-outbox',
 ];

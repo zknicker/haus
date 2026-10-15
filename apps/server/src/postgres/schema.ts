@@ -36,6 +36,7 @@ export * from './schema/linear.ts';
 export * from './schema/linear-activity.ts';
 export * from './schema/linear-credentials.ts';
 export * from './schema/linear-deliveries.ts';
+export * from './schema/linear-outbox.ts';
 export * from './schema/mcp.ts';
 export * from './schema/message-causes.ts';
 export * from './schema/message-reactions.ts';
