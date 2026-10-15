@@ -406,7 +406,9 @@ latency, and outcome; never bodies. `linear_workspaces.last_delivery_at` and
 ### Disabled webhooks
 
 Linear retries a failed delivery after 1 minute, 1 hour, and 6 hours, and may disable a webhook
-that keeps failing; re-enabling is manual. Haus cannot detect a disabled webhook. The Linear page
+that keeps failing; re-enabling is manual. Observed (2026-10-15): Linear disabled the Haus Dev
+app's webhook after about 15 failed (404 and DNS) deliveries, and the app's settings page keeps
+a "Webhook delivery failures" log. Haus cannot detect a disabled webhook. The Linear page
 shows **Last delivery received** for the workspace and each identity, with the remediation: "If
 this stopped updating, open the app's webhook settings in Linear and re-enable it." For the
 shared Haus app, an Axiom monitor alerts the operator when production receives no
@@ -690,10 +692,10 @@ Server purge cascade. Ids are prefix + 16 of `[A-Za-z0-9_-]`.
 | `linear_credentials` | `id` (`lna_`), `workspace_id`, `identity_id` nullable, `access_token`, `refresh_token`, `access_expires_at`, `scopes` text[], `state` (`valid`, `refresh_required`, `revoked`), `generation`, `updated_at`; unique `workspace_id` where `identity_id is null`; unique `identity_id` |
 | `linear_team_access` | PK `(credential_id, team_id)` (cascade), `team_key`, `team_name`, `synced_at` |
 | `linear_oauth_attempts` | `id` (`lno_`), `state_hash` unique, `purpose` (`workspace_install`, `workspace_reconnect`, `identity_install`), `connection_id`, `identity_id`, `initiated_by_user_id`, `code_verifier`, `expires_at`, `consumed_at`; purpose-shape check; expired rows swept hourly |
-| `linear_webhook_deliveries` | `id` (`lnd_`), `receiver` (`app` or identity id), `delivery_id`, unique `(receiver, delivery_id)`, `organization_id`, `server_id` and `workspace_id` nullable, `event`, `action`, `webhook_timestamp`, `body` jsonb nullable (raw staging, cleared on `done`/`ignored`), `state` (`queued`, `processing`, `done`, `ignored`, `failed`), `ignored_reason`, `attempts`, `next_attempt_at`, `deferred_until`, `routed_count`, `received_at`, `processed_at`; index on `(state, next_attempt_at)` |
+| `linear_webhook_deliveries` | `id` (`lnd_`), `receiver` (`app` or identity id), `delivery_id`, unique `(receiver, delivery_id)`, `organization_id`, `server_id` and `workspace_id` nullable, `event`, `action`, `webhook_timestamp`, `body` jsonb nullable (raw staging, cleared on `done`/`ignored`), `state` (`queued`, `processing`, `done`, `ignored`, `failed`), `ignored_reason`, `attempts`, `next_attempt_at` (also the claim lease while `processing`), `deferred_since`, `routed_count`, `received_at`, `processed_at`; index on `(state, next_attempt_at)` |
 | `linear_outbox` | `id` (`lnx_`), `workspace_id`, `credential_id`, `kind`, `input` jsonb, `client_id` uuid nullable, `state` (`queued`, `done`, `dead`), `attempts`, `next_attempt_at`, `last_error`, `created_at`, `done_at`; index on `(state, next_attempt_at)` |
 | `linear_agent_sessions` | `id` (`lss_`), `workspace_id`, `linear_session_id` unique per workspace, `identity_id` nullable, `agent_id` nullable, `anchor_chat_id` FK → chats, `issue_id`, `issue_identifier`, `status` (`active`, `complete`, `stopped`, `handed_off`, `orphaned`), `acked_at`, `last_event_at`, `closed_at` |
-| `linear_label_groups` | PK `(workspace_id, team_id)`, `group_label_id` unique nullable while pending |
+| `linear_label_groups` | PK `(workspace_id, team_id)`, `group_label_id` unique; inserted when the outbox's group create lands |
 | `linear_agent_labels` | `id` (`lnb_`), `workspace_id`, `team_id`, `agent_id`, `label_id` unique nullable while `pending`, `state` (`pending`, `active`, `archived`); unique `(workspace_id, team_id, agent_id)` where `state <> 'archived'` |
 | `linear_writes` | `id` (`lnl_`), `workspace_id`, `request_id`, unique `(workspace_id, request_id)`, `agent_id`, `credential_id`, `actor_kind`, `tool`, `target_entity_id`, `id_seed`, `status` (`pending`, `succeeded`, `failed`, `unknown`), `result` jsonb, `created_at`, `completed_at` |
 | `linear_write_entities` | PK `(write_id, entity_id)`, `workspace_id`, `entity_type`, `updated_at` nullable, `created` boolean, `field_fingerprint`; index `(workspace_id, entity_id, created_at)` |
