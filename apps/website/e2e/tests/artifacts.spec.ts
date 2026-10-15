@@ -62,7 +62,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     const today = page.getByRole('grid', { name: 'Today' });
     await expect(today.getByRole('row')).toHaveCount(7);
     await expect(today.getByRole('row', { name: 'concept.png' })).toContainText(
-        'Concept render · Image · You · just now'
+        'Concept render · You · Image · just now'
     );
     const folders = page.getByRole('listbox', { name: 'Folders' });
     await expect(folders.getByRole('option')).toHaveText([
@@ -135,12 +135,13 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     const details = page.getByRole('complementary', { name: 'File details' });
     await expect(details).toContainText('Created by');
     await details.getByRole('button', { name: 'View revision 1', exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?revision=.*_r1$`, 'u'));
+    // The pinned revision keeps the folder view it was opened from.
+    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?.*&revision=.*_r1$`, 'u'));
     await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
     await page.reload();
     await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
     await page.getByRole('link', { name: 'Open latest', exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`${conceptId}$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?kind=images&in=$`, 'u'));
     await expect(details.getByText('Viewing')).toBeVisible();
     await page.screenshot({ path: '/tmp/haus-artifacts-viewer.png' });
 
@@ -213,6 +214,7 @@ test('members upload files and folders into the open folder, replace, and rename
     const confirm = page.getByRole('alertdialog');
     await expect(confirm).toContainText('Replace 1 file?');
     await expect(confirm).toContainText('1 new file will be added either way.');
+    await expect(confirm.getByRole('list', { name: 'Files to replace' })).toHaveText('setup.sh');
     await confirm.getByRole('button', { name: 'Replace', exact: true }).click();
     await expect(page.getByText('Uploaded 2 files')).toBeVisible();
     await expect(today.getByRole('row')).toHaveCount(3);
@@ -222,18 +224,22 @@ test('members upload files and folders into the open folder, replace, and rename
     );
     expect(setupRevisions).toBe('4');
 
+    // Rename edits the name in place; Return commits without opening the file.
     await today.getByRole('button', { name: 'Actions for new.txt', exact: true }).click();
-    await page.getByRole('menuitem', { name: 'Rename…', exact: true }).click();
-    const rename = page.getByRole('dialog');
-    await rename.getByRole('textbox', { name: 'Name' }).fill('renamed.txt');
-    await rename.getByRole('button', { name: 'Rename', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+    const inline = page.getByRole('textbox', { name: 'Rename new.txt' });
+    await inline.fill('renamed.txt');
+    await inline.press('Enter');
     await expect(today.getByRole('row', { name: 'renamed.txt' })).toBeVisible();
     await expect(today.getByRole('row', { name: 'new.txt' })).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts\\?folder=`, 'u'));
 
-    await folders.getByRole('option', { name: 'tools' }).click({ button: 'right' });
-    await page.getByRole('menuitem', { name: 'Rename…', exact: true }).click();
-    await page.getByRole('dialog').getByRole('textbox', { name: 'Name' }).fill('utilities');
-    await page.getByRole('dialog').getByRole('button', { name: 'Rename', exact: true }).click();
+    // F2 renames the selected folder in place.
+    await folders.getByRole('option', { name: 'tools' }).click();
+    await page.keyboard.press('F2');
+    const folderName = page.getByRole('textbox', { name: 'Rename tools' });
+    await folderName.fill('utilities');
+    await folderName.press('Enter');
     await expect(folders.getByRole('option')).toHaveText([/utilities\s*2 files/u]);
 });
 

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { isNoisePath, planArtifactUpload } from './upload-plan.ts';
+import { isNoisePath, planArtifactUpload, skipUnchangedReplacements } from './upload-plan.ts';
 
 const sources = (...paths: string[]) =>
     paths.map((relativePath) => ({ file: relativePath, relativePath }));
@@ -55,4 +55,25 @@ test('a file cannot land where a folder is, under a file, or twice in one upload
         { message: '"pack" is also uploaded as a file.', path: 'pack/inner.txt' },
     ]);
     expect(paths(plan.additions)).toEqual(['a.txt', 'pack']);
+});
+
+test('replacements whose bytes already are the current revision are skipped', () => {
+    const plan = planArtifactUpload(sources('a.png', 'b.png', 'c.png'), 'prints', [
+        'prints/A.png',
+        'prints/b.png',
+    ]);
+    const next = skipUnchangedReplacements(
+        plan,
+        new Map([
+            ['prints/a.png', 'same'],
+            ['prints/b.png', 'edited'],
+        ]),
+        new Map([
+            ['prints/a.png', 'same'],
+            ['prints/b.png', 'older'],
+        ])
+    );
+    expect(paths(next.unchanged)).toEqual(['prints/a.png']);
+    expect(paths(next.replacements)).toEqual(['prints/b.png']);
+    expect(paths(next.additions)).toEqual(['prints/c.png']);
 });

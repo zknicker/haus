@@ -8,7 +8,8 @@ import {
 } from './artifact-actions.ts';
 
 const ids = (actions: readonly { id: string }[]) => actions.map((action) => action.id);
-const open = { canDelete: false, canDisablePublicLink: false };
+const web = { canOpenInTab: false, canShowInFolder: false };
+const open = { ...web, canDelete: false, canDisablePublicLink: false };
 
 describe('fileActions', () => {
     test('the library offers every file action a member may run', () => {
@@ -17,6 +18,7 @@ describe('fileActions', () => {
             'download',
             'copy-link',
             'copy-public-link',
+            'copy-path',
             'rename',
             'move',
             'history',
@@ -24,29 +26,55 @@ describe('fileActions', () => {
     });
 
     test('Delete and Disable public link appear only when this viewer may run them', () => {
-        const all = fileActions('library', { canDelete: true, canDisablePublicLink: true });
+        const all = fileActions('library', {
+            ...open,
+            canDelete: true,
+            canDisablePublicLink: true,
+        });
         expect(ids(all)).toContain('delete');
         expect(ids(all)).toContain('disable-public-link');
         expect(all.find((action) => action.id === 'delete')?.danger).toBeTrue();
     });
 
-    test('the viewer drops Open and adds the revision link', () => {
-        const viewer = ids(fileActions('viewer', open));
-        expect(viewer).not.toContain('open');
-        expect(viewer).toContain('copy-revision-link');
+    test('a desktop window opens in a new tab; a search hit or viewer shows its folder', () => {
+        const desktop = ids(
+            fileActions('library', { ...open, canOpenInTab: true, canShowInFolder: true })
+        );
+        expect(desktop.slice(0, 3)).toEqual(['open', 'open-new-tab', 'show-in-folder']);
     });
 
-    test('groups run in order so separators fall between them', () => {
-        const groups = fileActions('library', { canDelete: true, canDisablePublicLink: true }).map(
-            (action) => action.group
-        );
+    test('the viewer drops Open, adds the revision link, and renames through a dialog', () => {
+        const viewer = fileActions('viewer', open);
+        expect(ids(viewer)).not.toContain('open');
+        expect(ids(viewer)).toContain('copy-revision-link');
+        expect(viewer.find((action) => action.id === 'rename')?.label).toBe('Rename…');
+    });
+
+    test('every action carries an icon, and groups run in order', () => {
+        const all = fileActions('viewer', {
+            canDelete: true,
+            canDisablePublicLink: true,
+            canOpenInTab: true,
+            canShowInFolder: true,
+        });
+        expect(all.every((action) => action.icon !== undefined)).toBeTrue();
+        const groups = all.map((action) => action.group);
         expect(groups).toEqual([...groups].sort((a, b) => a - b));
     });
 });
 
 describe('folder and empty-area actions', () => {
-    test('folders open, copy a link, rename, and move', () => {
-        expect(ids(folderActions)).toEqual(['open', 'copy-link', 'rename', 'move']);
+    test('folders open, copy a link or path, rename, and move', () => {
+        expect(ids(folderActions(web))).toEqual([
+            'open',
+            'copy-link',
+            'copy-path',
+            'rename',
+            'move',
+        ]);
+        expect(ids(folderActions({ canOpenInTab: true, canShowInFolder: true }))).toContain(
+            'show-in-folder'
+        );
     });
 
     test('the empty area uploads into the open folder', () => {
