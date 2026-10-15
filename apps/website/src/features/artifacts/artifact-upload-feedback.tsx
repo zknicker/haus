@@ -1,12 +1,17 @@
+import { artifactPathBasename } from '@haus/api';
 import { Alert, AlertDialog, Button, CloseButton, Label, ProgressBar } from '@heroui/react';
 import type { ArtifactUploadState } from '../../hooks/artifacts/use-artifact-upload.ts';
 import { formatArtifactBytes } from './artifact-format.ts';
 import type { UploadPlan } from './upload-plan.ts';
 
+/** How many replaced files the question names before summarizing the rest. */
+const namedReplacements = 5;
+
 /**
- * The one question an upload can ask: some picked files already exist. Replace
- * overwrites them, Skip keeps them and uploads only the new ones, and closing
- * the dialog uploads nothing.
+ * The one question an upload can ask: some picked files already exist (and
+ * differ from what is there; identical ones were skipped). It names them.
+ * Replace overwrites them, Skip keeps them and uploads only the new ones, and
+ * closing the dialog uploads nothing.
  */
 export function ArtifactUploadConfirm({
     onCancel,
@@ -19,6 +24,7 @@ export function ArtifactUploadConfirm({
 }) {
     const replacing = plan?.replacements.length ?? 0;
     const adding = plan?.additions.length ?? 0;
+    const named = plan?.replacements.slice(0, namedReplacements) ?? [];
     return (
         <AlertDialog.Backdrop
             isDismissable
@@ -42,6 +48,16 @@ export function ArtifactUploadConfirm({
                                 ? 'No new files will be added.'
                                 : `${adding === 1 ? '1 new file' : `${adding} new files`} will be added either way.`}
                         </p>
+                        <ul aria-label="Files to replace" className="mt-3 flex flex-col gap-1">
+                            {named.map((upload) => (
+                                <li className="truncate font-medium" key={upload.path}>
+                                    {artifactPathBasename(upload.path)}
+                                </li>
+                            ))}
+                            {replacing > named.length ? (
+                                <li className="text-muted">and {replacing - named.length} more</li>
+                            ) : null}
+                        </ul>
                     </AlertDialog.Body>
                     <AlertDialog.Footer>
                         <Button onPress={() => onConfirm(false)} variant="secondary">
@@ -57,13 +73,15 @@ export function ArtifactUploadConfirm({
 
 /**
  * Upload progress at the top of the library: files and bytes while it runs,
- * then every refused or failed file until dismissed. A clean upload ends in a
- * toast instead and leaves nothing here.
+ * with Cancel, then every refused or failed file until dismissed. A clean
+ * upload ends in a toast instead and leaves nothing here.
  */
 export function ArtifactUploadStatus({
+    onCancel,
     onDismiss,
     state,
 }: {
+    onCancel: () => void;
     onDismiss: () => void;
     state: ArtifactUploadState;
 }) {
@@ -74,6 +92,7 @@ export function ArtifactUploadStatus({
             <div className="artifact-upload-status">
                 <ProgressBar
                     aria-label="Upload progress"
+                    className="min-w-0 flex-1"
                     maxValue={Math.max(totalBytes, 1)}
                     size="sm"
                     value={Math.min(sentBytes, totalBytes)}
@@ -87,6 +106,9 @@ export function ArtifactUploadStatus({
                         <ProgressBar.Fill />
                     </ProgressBar.Track>
                 </ProgressBar>
+                <Button onPress={onCancel} size="sm" variant="ghost">
+                    Cancel
+                </Button>
             </div>
         );
     }
