@@ -1,30 +1,25 @@
 import type { LinearWorkspace } from '@haus/api';
-import { Button, Chip, Dropdown, Label, ListBox, Separator } from '@heroui/react';
-import { InlineSelect, ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Chip, Dropdown, Label, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../../../components/ui/icon.tsx';
-import { useLinearSetDefaultAgent } from '../../../../../hooks/linear/use-linear-set-default-agent.ts';
 import { useLinearStartInstall } from '../../../../../hooks/linear/use-linear-start-install.ts';
 import { useLinearWorkspace } from '../../../../../hooks/linear/use-linear-workspace.ts';
-import { formatRelativeTime } from '../../../../../lib/format.ts';
-import { AutomationFactRow } from '../../../../members/agent-profile/automation-fact-row.tsx';
 import { useServerContext } from '../../../../servers/server-context.ts';
-import { SettingsRowTitle } from '../../../layout/settings-row-title.tsx';
 import { ConnectionSection } from '../../../mcp/connection-section.tsx';
 import { ConnectionAddRow } from '../../../mcp/mcp-connection-account.tsx';
-import type { McpConnection } from '../../../mcp/mcp-server-shared.ts';
 import type { BuiltInConnectionSectionProps } from '../built-in-connection-definition.ts';
 import { linearWorkspaceStatus } from './linear-identity-model.ts';
 import { LinearSetupNotice } from './linear-setup-notice.tsx';
-
-const noDefaultAgent = 'none';
+import { LinearWorkspaceHealthRows } from './linear-workspace-health-rows.tsx';
 
 /**
- * The Linear workspace this connection binds: its organization, teams, when
- * Linear last reached Haus, and the default Agent for unlabelled work. Blank
- * while loading; a connection with no workspace yet offers the install. The
- * install callback lands here, so its outcome sits above the workspace.
+ * The Linear workspace this connection binds: its organization and the teams
+ * the Haus app reaches, plus when Linear last reached Haus only while that is
+ * worth a look. Blank while loading; a connection with no workspace yet
+ * offers the install. The install callback lands here, so its outcome sits
+ * above the workspace.
  */
 export function LinearWorkspaceSection({ connection, serverId }: BuiltInConnectionSectionProps) {
     const workspace = useLinearWorkspace(serverId, connection.id).data;
@@ -46,10 +41,8 @@ export function LinearWorkspaceSection({ connection, serverId }: BuiltInConnecti
                     {workspace ? (
                         <WorkspaceRows
                             canManage={canManage}
-                            connection={connection}
                             onConnectAnother={() => void connectAnother.start()}
                             onReconnect={() => void install.start()}
-                            serverId={serverId}
                             workspace={workspace}
                         />
                     ) : canManage ? (
@@ -75,21 +68,16 @@ export function LinearWorkspaceSection({ connection, serverId }: BuiltInConnecti
 
 function WorkspaceRows({
     canManage,
-    connection,
     onConnectAnother,
     onReconnect,
-    serverId,
     workspace,
 }: {
     canManage: boolean;
-    connection: McpConnection;
     onConnectAnother: () => void;
     onReconnect: () => void;
-    serverId: string;
     workspace: LinearWorkspace;
 }) {
     const status = linearWorkspaceStatus(workspace.status);
-    const teams = workspace.teams.map((team) => team.key).join(', ');
 
     return (
         <>
@@ -155,73 +143,11 @@ function WorkspaceRows({
                 </ItemCard.Action>
             </ItemCard>
             <Separator />
-            <AutomationFactRow title="Teams">{teams || 'None'}</AutomationFactRow>
-            <Separator />
-            <AutomationFactRow title="Last delivery received">
-                {workspace.lastDeliveryAt ? formatRelativeTime(workspace.lastDeliveryAt) : 'Never'}
-            </AutomationFactRow>
-            <Separator />
-            <DefaultAgentRow
-                canManage={canManage}
-                connection={connection}
-                serverId={serverId}
+            <LinearWorkspaceHealthRows
+                canManage={canManage && workspace.status !== 'removed'}
+                onChangeTeams={onReconnect}
                 workspace={workspace}
             />
         </>
-    );
-}
-
-function DefaultAgentRow({
-    canManage,
-    connection,
-    serverId,
-    workspace,
-}: {
-    canManage: boolean;
-    connection: McpConnection;
-    serverId: string;
-    workspace: LinearWorkspace;
-}) {
-    const setDefault = useLinearSetDefaultAgent(serverId, connection.id);
-    const options = [
-        { id: noDefaultAgent, label: 'None' },
-        ...connection.affectedAgents.map((agent) => ({ id: agent.id, label: agent.name })),
-    ];
-
-    return (
-        <ItemCard>
-            <ItemCard.Content>
-                <SettingsRowTitle info="Answers a mention or delegation of the Haus app in Linear when no Agent label names an Agent. Only Agents with access can be chosen.">
-                    Default Agent
-                </SettingsRowTitle>
-            </ItemCard.Content>
-            <ItemCard.Action>
-                <InlineSelect
-                    aria-label="Default Agent"
-                    isDisabled={!canManage || setDefault.isPending}
-                    onChange={(key) => {
-                        if (typeof key === 'string') {
-                            setDefault.setDefaultAgent(key === noDefaultAgent ? null : key);
-                        }
-                    }}
-                    value={workspace.defaultAgentId ?? noDefaultAgent}
-                >
-                    <InlineSelect.Trigger>
-                        <InlineSelect.Value />
-                        <InlineSelect.Indicator />
-                    </InlineSelect.Trigger>
-                    <InlineSelect.Popover>
-                        <ListBox items={options}>
-                            {(option) => (
-                                <ListBox.Item id={option.id} textValue={option.label}>
-                                    {option.label}
-                                    <ListBox.ItemIndicator />
-                                </ListBox.Item>
-                            )}
-                        </ListBox>
-                    </InlineSelect.Popover>
-                </InlineSelect>
-            </ItemCard.Action>
-        </ItemCard>
     );
 }

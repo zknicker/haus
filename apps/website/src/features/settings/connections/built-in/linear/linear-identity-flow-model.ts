@@ -33,39 +33,65 @@ export type LinearIdentityFlowStepStatus = 'current' | 'done' | 'upcoming';
 export interface LinearIdentityFlowStep {
     id: LinearIdentityFlowStepId;
     status: LinearIdentityFlowStepStatus;
+    /** The step's title in its status: a done step names what is done. */
     title: string;
 }
 
-/** Copying and pasting happen together, so both are current until the save lands. */
+/**
+ * The flow's steps, exactly one of them current. Registering is done once
+ * the Owner has been to Linear (`registered`) or the credentials are saved;
+ * the credentials are done once saved, for a draft that still installs. A
+ * secret rotation (`installing` false) has no install step and always lands
+ * on the credentials. `editing` reopens a done step, and every step after
+ * it waits again.
+ */
 export function linearIdentityFlowSteps(input: {
     credentialsSaved: boolean;
-    draftReady: boolean;
+    editing: LinearIdentityFlowStepId | null;
+    installing: boolean;
     mode: LinearIdentityFlowMode;
+    registered: boolean;
 }): LinearIdentityFlowStep[] {
-    const before: LinearIdentityFlowStepStatus = input.credentialsSaved
-        ? 'done'
-        : input.draftReady
-          ? 'current'
-          : 'upcoming';
-    return [
-        {
-            id: 'register',
-            status: before,
-            title:
-                input.mode === 'create' ? 'Create the app in Linear' : "Check the app's settings",
-        },
-        { id: 'credentials', status: before, title: 'Paste its credentials' },
-        {
-            id: 'install',
-            status: input.credentialsSaved ? 'current' : 'upcoming',
-            title: 'Install it',
-        },
-    ];
+    const ids: LinearIdentityFlowStepId[] = input.installing
+        ? ['register', 'credentials', 'install']
+        : ['register', 'credentials'];
+    const done: Record<LinearIdentityFlowStepId, boolean> = {
+        credentials: input.installing && input.credentialsSaved,
+        install: false,
+        register: input.registered || input.credentialsSaved,
+    };
+    const current = input.editing ?? ids.find((id) => !done[id]) ?? 'credentials';
+    const currentIndex = ids.indexOf(current);
+
+    return ids.map((id, index) => {
+        const status: LinearIdentityFlowStepStatus =
+            index === currentIndex ? 'current' : index < currentIndex ? 'done' : 'upcoming';
+        return { id, status, title: stepTitle(id, status, input.mode) };
+    });
+}
+
+function stepTitle(
+    id: LinearIdentityFlowStepId,
+    status: LinearIdentityFlowStepStatus,
+    mode: LinearIdentityFlowMode
+) {
+    const doneStatus = status === 'done';
+    switch (id) {
+        case 'register':
+            if (mode === 'create') {
+                return doneStatus ? 'Created in Linear' : 'Create the app in Linear';
+            }
+            return doneStatus ? 'App settings checked' : "Check the app's settings";
+        case 'credentials':
+            return doneStatus ? 'Credentials saved' : 'Paste its client ID and webhook secret';
+        default:
+            return 'Install it in Linear';
+    }
 }
 
 /**
  * What the register step says. Creating opens Linear's page pre-filled from
- * the Server's manifest; the values below stay as a fallback to check or copy.
+ * the Server's manifest; the values stay as a fallback to check or copy.
  * Linear issues the client id and webhook secret only on its page.
  */
 export function linearIdentityRegisterHint(
@@ -76,8 +102,20 @@ export function linearIdentityRegisterHint(
         return "Make sure the app's callback URL, webhook URL, and events match these.";
     }
     return draft.createAppPrefillsWebhook
-        ? 'Linear opens with everything below filled in. Create the app, then copy its client ID and webhook signing secret back here.'
-        : 'Linear opens with the name and callback URL filled in. This Server has no public HTTPS address, so add the webhook URL and events yourself, then copy the client ID and webhook signing secret back here.';
+        ? 'Linear opens with the app filled in. Create it, then come back for its client ID and webhook secret.'
+        : 'Linear opens with the name and callback URL filled in. This Server has no public HTTPS address, so add the app icon and webhook below yourself.';
+}
+
+/**
+ * Whether the values to copy start shown. A pre-filled create needs them only
+ * as a fallback, so they wait behind a toggle; every other path copies or
+ * checks them by hand.
+ */
+export function linearIdentityValuesShown(
+    draft: Pick<LinearIdentityDraft, 'createAppPrefillsWebhook'>,
+    mode: LinearIdentityFlowMode
+): boolean {
+    return mode === 'existing' || !draft.createAppPrefillsWebhook;
 }
 
 const credentialMaxLength = 200;
@@ -120,32 +158,42 @@ const webhookEventLabels: Record<LinearIdentityWebhookEvent, string> = {
     permission_changes: 'Permission changes',
 };
 
-export interface LinearIdentityFlowValue {
-    label: string;
-    value: string;
-}
+/**
+ * One value for Linear's new-app form: text to copy, checkboxes to tick
+ * (named, nothing to copy), or the app icon (the Agent's avatar), which
+ * Linear's form takes as an upload and so is saved as an image.
+ */
+export type LinearIdentityFlowValue =
+    | { kind: 'copy'; label: string; value: string }
+    | { kind: 'download'; label: string; url: string }
+    | { kind: 'labels'; label: string; values: string[] };
 
 /**
- * The values to copy into Linear, in the order its form asks for them. A
+ * The values to enter in Linear, in the order its form asks for them. A
  * check of an existing app needs only the URLs and events; its name and
- * avatar are already the Owner's choice.
+ * avatar are already the Owner's choice. The manifest pre-fills the avatar
+ * whenever it pre-fills the webhook, so the avatar is listed only when the
+ * Owner adds both by hand.
  */
 export function linearIdentityFlowValues(
     draft: LinearIdentityDraft,
     mode: LinearIdentityFlowMode
 ): LinearIdentityFlowValue[] {
-    const events = draft.webhookEvents.map((event) => webhookEventLabels[event]).join(', ');
-    const urls = [
-        { label: 'Callback URL', value: draft.callbackUrl },
-        { label: 'Webhook URL', value: draft.webhookUrl },
-        { label: 'Webhook events', value: events },
+    const urls: LinearIdentityFlowValue[] = [
+        { kind: 'copy', label: 'Callback URL', value: draft.callbackUrl },
+        { kind: 'copy', label: 'Webhook URL', value: draft.webhookUrl },
+        {
+            kind: 'labels',
+            label: 'Webhook events',
+            values: draft.webhookEvents.map((event) => webhookEventLabels[event]),
+        },
     ];
     if (mode === 'existing') {
         return urls;
     }
-    return [
-        { label: 'App name', value: draft.appName },
-        ...(draft.avatarUrl ? [{ label: 'Avatar', value: draft.avatarUrl }] : []),
-        ...urls,
-    ];
+    const avatar: LinearIdentityFlowValue[] =
+        draft.avatarUrl && !draft.createAppPrefillsWebhook
+            ? [{ kind: 'download', label: 'App icon', url: draft.avatarUrl }]
+            : [];
+    return [{ kind: 'copy', label: 'App name', value: draft.appName }, ...avatar, ...urls];
 }

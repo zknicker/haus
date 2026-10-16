@@ -41,7 +41,7 @@ export function ConnectionListSection({
             action={
                 <Tooltip delay={0}>
                     <Button
-                        aria-label="Add MCP Server"
+                        aria-label="Add connection"
                         isIconOnly
                         onPress={onAdd}
                         size="sm"
@@ -49,12 +49,12 @@ export function ConnectionListSection({
                     >
                         <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
                     </Button>
-                    <Tooltip.Content>Add MCP Server</Tooltip.Content>
+                    <Tooltip.Content>Add connection</Tooltip.Content>
                 </Tooltip>
             }
             count={connections.data ? items.length : undefined}
             status={connectionsStatus(connections, items.length)}
-            title="Added MCPs"
+            title="Added"
         >
             {items.map((connection) => (
                 <SettingsGridCard key={connection.id} onPress={() => onSelect(connection.id)}>
@@ -93,7 +93,7 @@ function connectionsStatus(
         // Blank while loading: no skeleton, no flash of empty.
         return (
             <div aria-busy="true" className="min-h-32">
-                <span className="sr-only">Loading MCP connections</span>
+                <span className="sr-only">Loading connections</span>
             </div>
         );
     }

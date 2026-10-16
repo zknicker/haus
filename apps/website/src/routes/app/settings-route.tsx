@@ -163,7 +163,7 @@ export function SettingsConnectionRoute() {
 
     return (
         <RequireOperator
-            description="MCP connections are managed by Server operators."
+            description="Connections are managed by Server operators."
             role={server.role}
         >
             <ConnectionPage

@@ -34,11 +34,11 @@ export function ConnectionDestructiveDialog({
                         </AlertDialog.Header>
                         <AlertDialog.Body>
                             {action === 'delete'
-                                ? 'Removes this MCP entry and its saved credentials from this Haus Server. '
+                                ? 'Removes this connection and its saved credentials from this Haus Server. '
                                 : null}
                             {connection.affectedAgents.length === 0
                                 ? 'No Agents currently use this connection.'
-                                : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this MCP server.`}
+                                : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this connection.`}
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button slot="close" variant="secondary">

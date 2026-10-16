@@ -6,11 +6,13 @@ export interface LinearSetupNotice {
 
 type NoticeCopy = Omit<LinearSetupNotice, 'status'>;
 
+/**
+ * An identity install's success shows on the Agent's own row instead
+ * (`use-linear-identity-arrival.ts`), so it has no page-level notice.
+ */
+export const identityInstalledOutcome = 'identity_installed';
+
 const successNotices: Record<string, NoticeCopy> = {
-    identity_installed: {
-        description: 'The Agent now acts in Linear as its own app.',
-        title: 'Linear identity installed',
-    },
     workspace_connected: {
         description: 'Agents with access to this connection can use it now.',
         title: 'Linear connected',
@@ -58,8 +60,14 @@ const refusalNotices: Record<string, NoticeCopy> = {
     },
 };
 
-/** What the install callback's outcome means, in the Linear page's words. */
-export function linearSetupNotice(outcome: string): LinearSetupNotice {
+/**
+ * What the install callback's outcome means, in the Linear page's words, or
+ * null for an outcome the page shows elsewhere.
+ */
+export function linearSetupNotice(outcome: string): LinearSetupNotice | null {
+    if (outcome === identityInstalledOutcome) {
+        return null;
+    }
     const success = successNotices[outcome];
     if (success) {
         return { ...success, status: 'success' };

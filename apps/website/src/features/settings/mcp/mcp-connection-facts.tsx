@@ -3,17 +3,12 @@ import { ConnectionSection } from './connection-section.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
 
 /**
- * What the Server records about this connection that the header does not
+ * What the Server records about a custom connection that the header does not
  * already say: a muted label column and a value column, one fact per row.
+ * Built-in connections have no such section; their address and sign-in are
+ * Haus's, not the reader's.
  */
-export function McpConnectionFacts({
-    connection,
-    usesToken,
-}: {
-    connection: McpConnection;
-    /** A bearer-token preset stores its token as a header, but reads as a token. */
-    usesToken: boolean;
-}) {
+export function McpConnectionFacts({ connection }: { connection: McpConnection }) {
     return (
         <ConnectionSection title="Information">
             <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
@@ -22,14 +17,7 @@ export function McpConnectionFacts({
                         {connection.url}
                     </span>
                 </Fact>
-                <Fact label="Sign-in">
-                    {connection.preset === 'skool'
-                        ? 'Desktop browser sign-in'
-                        : usesToken
-                          ? 'Bearer token'
-                          : signInLabels[connection.auth]}
-                </Fact>
-                <Fact label="Type">{connection.builtIn ? 'Built in' : 'Custom'}</Fact>
+                <Fact label="Sign-in">{signInLabels[connection.auth]}</Fact>
             </dl>
         </ConnectionSection>
     );

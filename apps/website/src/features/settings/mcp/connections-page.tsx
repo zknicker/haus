@@ -18,7 +18,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
 
     return (
         <RequireOperator
-            description="MCP connections are managed by Server operators."
+            description="Connections are managed by Server operators."
             role={server.role}
         >
             <PageColumn>
@@ -31,7 +31,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     </Link>
                 )}
                 <SettingsPageHeader
-                    description="Add an MCP to Haus, authorize access if needed, then choose which Agents can use its tools."
+                    description="Connect the services your Agents work in, then choose which Agents can use each one."
                     title="Connections"
                 />
                 <BuiltInSetupNotices />

@@ -2,13 +2,16 @@ import { Alert, CloseButton } from '@heroui/react';
 import { useLinearSetupOutcome } from '../../../../../hooks/linear/use-linear-setup-outcome.ts';
 import { linearSetupNotice } from './linear-setup-notice-model.ts';
 
-/** What Linear's install callback brought back, until the reader dismisses it. */
+/**
+ * What Linear's install callback brought back, until the reader dismisses
+ * it. An identity install shows on its Agent's row instead.
+ */
 export function LinearSetupNotice() {
     const { dismiss, outcome } = useLinearSetupOutcome();
-    if (!outcome) {
+    const notice = outcome ? linearSetupNotice(outcome) : null;
+    if (!notice) {
         return null;
     }
-    const notice = linearSetupNotice(outcome);
 
     return (
         <Alert status={notice.status}>

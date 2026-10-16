@@ -46,7 +46,7 @@ export function McpConnectionFormDrawer({
                 <Drawer.Dialog>
                     <Drawer.CloseTrigger />
                     <Drawer.Header>
-                        <Drawer.Heading>Add MCP Server</Drawer.Heading>
+                        <Drawer.Heading>Add connection</Drawer.Heading>
                         <p className="mt-1.5 text-muted text-sm leading-5">
                             Point Haus at an MCP server, then authorize it if it asks for
                             credentials.
@@ -71,7 +71,7 @@ export function McpConnectionFormDrawer({
                                 onChange={(name) => update(setDraft, { name })}
                                 value={draft.name}
                             >
-                                <Input placeholder="My MCP Server" />
+                                <Input placeholder="My connection" />
                             </LabeledField>
                             <HttpConnectionFields draft={draft} setDraft={setDraft} />
                         </Form>
@@ -86,7 +86,7 @@ export function McpConnectionFormDrawer({
                             isPending={saving}
                             type="submit"
                         >
-                            Add MCP
+                            Add connection
                         </Button>
                     </Drawer.Footer>
                 </Drawer.Dialog>

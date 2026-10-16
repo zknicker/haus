@@ -30,7 +30,8 @@ import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 /**
  * One connection's settings page, read like a product page: identity and setup
  * action, the account it signs in as, which Agents may use it, then reference
- * material — what it exposes and the facts the Server keeps. Confirmations and
+ * material — what it exposes and, for a custom connection, the facts the
+ * Server keeps. Confirmations and
  * the credentials form stay dialogs over the page.
  *
  * Blank until the connection list has loaded; the route sends a removed or
@@ -127,7 +128,8 @@ export function ConnectionPage({
                     placement="after-tools"
                     serverId={serverId}
                 />
-                <McpConnectionFacts connection={connection} usesToken={tokenPreset !== null} />
+                {/* A built-in's address and sign-in are Haus's to know, not the reader's. */}
+                {connection.builtIn ? null : <McpConnectionFacts connection={connection} />}
             </div>
             <ConnectionDestructiveDialog
                 action={destructiveAction}

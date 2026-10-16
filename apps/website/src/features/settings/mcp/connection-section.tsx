@@ -10,11 +10,14 @@ import type { ReactNode } from 'react';
 export function ConnectionSection({
     children,
     count,
+    description,
     title,
     trailing,
 }: {
     children: ReactNode;
     count?: number;
+    /** One line under the title, for a section that needs explaining once. */
+    description?: ReactNode;
     title: string;
     /** A status beside the title, such as a refresh spinner. */
     trailing?: ReactNode;
@@ -29,6 +32,9 @@ export function ConnectionSection({
                     ) : null}
                     {trailing}
                 </ItemCardGroup.Title>
+                {description ? (
+                    <ItemCardGroup.Description>{description}</ItemCardGroup.Description>
+                ) : null}
             </ItemCardGroup.Header>
             {children}
         </ItemCardGroup>

@@ -1027,6 +1027,21 @@
         margin-top: 0;
     }
 
+    /* A name/attribution pair beside a 32px avatar (Linear identity preview).
+       Row leading stacks taller than the mark, so the lines meet its edges;
+       tight leading keeps the pair inside it. */
+    /* Doubled block class: the subline leading rule below
+       (`.item-card__description:not(.whitespace-normal)`) has the same
+       specificity and comes later, so a single class lost to it. */
+    .item-card.item-card--attribution .item-card__title,
+    .item-card.item-card--attribution .item-card__description {
+        line-height: 1.15;
+    }
+
+    .item-card.item-card--attribution .item-card__description {
+        margin-top: 0;
+    }
+
     /*
      * A row in an Inbox list rides a motion wrapper — it arrives, leaves, and
      * reorders — so it is no longer the group's direct child, and HeroUI's own
