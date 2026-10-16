@@ -81,6 +81,57 @@ test('web links open browser tabs on the right, and the sidebar keeps to the lef
     await expect(tabRow(page, 'Tabs').locator('.workspace-tab')).toHaveCount(2);
 });
 
+test("Linear's install return closes its browser tab and shows the outcome in Settings", async ({
+    page,
+}) => {
+    await installDesktopBrowserStub(page);
+    const { server } = await createTestServer(page, {
+        displayName: 'Linear return',
+        slug: 'linear-return',
+    });
+    await openDesktopWindow(page, `/s/${server.slug}/settings/connections`);
+    const left = tabRow(page, 'Tabs').locator('.workspace-tab');
+    await expect(left).toHaveCount(1);
+
+    await page.getByRole('button', { exact: true, name: 'Add Linear' }).click();
+    const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
+    await expect(right).toHaveCount(1);
+    await expect(right.first()).toContainText('linear.app');
+    const viewId = await page.evaluate(async () => {
+        const bridge = (
+            window as {
+                hausDesktop?: {
+                    browserSnapshot: () => Promise<{ tabs: { id: string; url: string }[] }>;
+                };
+            }
+        ).hausDesktop;
+        const snapshot = await bridge?.browserSnapshot();
+        return snapshot?.tabs.find((tab) => tab.url.startsWith('https://linear.app/'))?.id ?? null;
+    });
+    expect(viewId).not.toBeNull();
+
+    // Linear's callback redirects that tab back to this Server's Settings with the outcome.
+    await page.evaluate(
+        async ({ id, slug }) => {
+            const bridge = (
+                window as { hausDesktop?: { browserCommand: (input: unknown) => Promise<unknown> } }
+            ).hausDesktop;
+            await bridge?.browserCommand({
+                action: 'url',
+                id,
+                kind: 'navigate',
+                url: `${location.origin}/s/${slug}/settings/connections?linear_setup=linear_denied`,
+            });
+        },
+        { id: viewId, slug: server.slug }
+    );
+
+    // The provider tab closes; the one Settings tab shows the notice.
+    await expect(tabRow(page, 'Right pane tabs')).toHaveCount(0);
+    await expect(left).toHaveCount(1);
+    await expect(page.getByText('Install canceled')).toBeVisible();
+});
+
 function tabRow(page: Page, name: string) {
     return page.getByRole('navigation', { exact: true, name });
 }

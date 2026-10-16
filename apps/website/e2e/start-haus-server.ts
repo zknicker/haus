@@ -97,6 +97,8 @@ const serverEnv = {
     HAUS_CLERK_SECRET_KEY: 'sk_test_haus_e2e',
     HAUS_COMPUTER_RELEASE_MANIFEST_URL: `http://127.0.0.1:${computerReleaseServer.port}/latest.json`,
     HAUS_DATABASE_URL: cluster.databaseUrl,
+    // Install flows mint a Linear authorize URL; nothing here ever reaches Linear.
+    HAUS_LINEAR_APP_CLIENT_ID: 'haus-e2e-linear-app-client',
     NODE_ENV: 'test',
 };
 const serverPort = process.env.HAUS_SERVER_PORT ?? '8091';
