@@ -268,6 +268,7 @@ struct AuthenticatedHausView: View {
                     Task { await openPushNotification(payload) }
                 }
                 .preferredColorScheme(preferredColorScheme)
+                .seasonalIconOffer()
                 }
             } else {
                 ContentUnavailableView(

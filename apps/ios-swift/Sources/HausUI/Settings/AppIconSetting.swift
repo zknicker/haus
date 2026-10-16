@@ -57,6 +57,8 @@ public struct AppIconRow: View {
 
     private func select(_ next: AppIconChoice) {
         guard next != choice else { return }
+        // A choice made here is the user's own; no seasonal offer nags it back.
+        SeasonalIconOfferStore.forgetOfferSwitch()
         Task {
             choice = await AppIconSwitcher.set(next)
         }
