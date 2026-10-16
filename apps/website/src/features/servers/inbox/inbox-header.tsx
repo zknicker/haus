@@ -1,8 +1,10 @@
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
+import { useColorThemeDefinition } from '../../../hooks/shell/use-color-theme.ts';
 import { useServerContext } from '../server-context.ts';
-import { greetingLine, todayLabel } from './inbox-today.ts';
+import { greetingLine } from './inbox-greeting.ts';
+import { todayLabel } from './inbox-today.ts';
 
 /**
  * The page's opening line: who is reading, and what day it is. It is the one
@@ -29,11 +31,13 @@ export function InboxHeader() {
     // greeting from staying "Good morning" into the afternoon.
     const now = useRelativeNow(60_000);
     const viewerUserId = members.data?.viewerUserId ?? null;
+    // A theme's costume is in the words alone; the sidebar's mascot already marks the theme.
+    const { greetings } = useColorThemeDefinition();
 
     return (
         <header className="flex flex-col gap-1.5">
             <h1 className="min-h-[1lh] font-semibold text-2xl text-foreground tracking-tight">
-                {viewerUserId ? greetingLine(now, humans.name(viewerUserId)) : null}
+                {viewerUserId ? greetingLine(now, humans.name(viewerUserId), greetings) : null}
             </h1>
             <p className="text-muted text-sm">{todayLabel(now)}</p>
         </header>
