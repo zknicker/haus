@@ -110,7 +110,7 @@ struct SeasonalIconOfferSheet: View {
                     .foregroundStyle(.secondary)
             }
             .multilineTextAlignment(.center)
-            VStack(spacing: 4) {
+            VStack(spacing: 16) {
                 Button(action: onAccept) {
                     Text(copy.accept).frame(maxWidth: .infinity)
                 }
