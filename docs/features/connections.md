@@ -85,8 +85,13 @@ Linear connects by installing the Haus app in a Linear workspace; the install ca
 one connection per workspace, served by Haus Server's own Linear connector
 ([Linear app](../../specs/linear-app.md)). Its page reads in setup order. The **Workspace** card
 names the workspace and **Agents can work in** (the teams the Haus app was granted, where Agents
-may write), with **Change in Linear** to reinstall and pick teams again; with none it warns **No
-teams — Agents can't write**. **Last delivery** shows only once Linear has been silent a week or
+may write), with **Change in Linear**, which opens Linear's installed-applications settings where
+a workspace admin changes the Haus app's team access (a reconnect never asks again); with none it
+warns **No teams — Agents can't write**. Linear's permission-change webhook refreshes the teams on
+the open page, the workspace menu's **Refresh teams** re-reads them on demand, and an hourly sync
+backs both up. Every install Haus starts (connect, reconnect, an Agent's own app) opens Linear in a
+tab beside Settings; when Linear sends the browser back, that tab closes and the Settings tab that
+started the install shows the outcome, or the tab itself does when Settings has since closed. **Last delivery** shows only once Linear has been silent a week or
 the workspace is failing. **Agent Access** is one list, each row's trailing side the switch alone;
 a granted Agent's description line says how it posts and carries its controls: "Posts via Haus ·
 Give own identity", "Posts via Haus · Finish setup", or "Posts as @handle" (which opens Replace

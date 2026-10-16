@@ -5,7 +5,7 @@ read_when:
   - changing what the sidebar, command menu, a chip, an in-app link, Command-, Shift-, or middle-click (background versus selected new tabs), a notification, or a web link does on desktop
   - changing how desktop Settings, Inbox, Search, or Activity rows open
   - changing desktop Thread, Attachments, workspace, or Agent pages, or the chat side panel versus desktop pages
-  - changing desktop browser tabs, the new tab page, external-link opening, or browser session storage
+  - changing desktop browser tabs, provider tabs that return to the App, the new tab page, external-link opening, or browser session storage
   - changing tab identity, favicons, or tab row overflow
   - changing tab shortcuts, find in page, page zoom, reopening closed tabs, or the page context menu
   - changing the tab right-click menu, the App menu's Tab menu, Reload Page, or Show/Hide Sidebar
@@ -263,6 +263,14 @@ in New Tab and Copy Image on an image; Copy and Search Google on a selection; ed
 field; Back, Forward, and Reload on a bare page. Development builds add Inspect Element.
 
 Website-only clients open links in the system browser, as do authentication flows that ask for it.
+
+A provider tab is a web tab an App flow opens for an install or sign-in page whose callback
+returns to Haus (today Linear's installs, `hooks/provider-return/`). The App watches that tab's
+view; once the page lands on the App origin inside this Server, the web tab closes and the tab
+that started the flow shows the landed page, query included. If that tab has closed since, the
+web tab turns into the landed page in place. Closing the provider tab, or dragging it to another
+window, ends the watch. Pages that only open somewhere (Open in Linear, a website chip) are plain
+web links.
 
 ## Desktop ownership
 

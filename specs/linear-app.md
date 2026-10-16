@@ -319,9 +319,12 @@ hours is treated as empty for writes.
   it; otherwise `linear_team_outside_access`, whatever identity the Agent has.
 - **Effective identity access** is identity teams ∩ workspace teams. Writes outside it fall back
   to the workspace actor. Session activities for an identity-owned session never fall back.
-- A `PermissionChange` recomputes both sets in one transaction, creates pending label rows for
-  newly accessible teams, re-derives [Trigger problems](linear-triggers.md#failure-modes), and
-  marks identity sessions whose issue team left effective access `orphaned`.
+- A `PermissionChange` (`teamAccessChanged`, with `addedTeamIds` and `removedTeamIds`; Haus
+  re-reads the full set rather than applying the delta) recomputes both sets in one transaction,
+  creates pending label rows for newly accessible teams, re-derives
+  [Trigger problems](linear-triggers.md#failure-modes), and marks identity sessions whose issue
+  team left effective access `orphaned`. It, an `OAuthApp` revocation, and every team sync commit
+  announce `linear.onUpdated` for the workspace, so an open Linear page shows the change.
 
 ## Write ledger
 
@@ -684,11 +687,16 @@ Connections → Linear is a built-in connection page. Its definition
 - **Workspace** (after account): organization name and url key, status, and **Agents can work
   in**: the team names of workspace access, or a **No teams — Agents can't write** warning while
   there are none (or the set is older than the 24 hours writes trust, [team scope](#team-scope)),
-  since every write is then refused. Its **Change in Linear** runs Reconnect, the install where
-  Linear asks which teams the app may reach.
+  since every write is then refused. A workspace admin changes the app's team access in Linear,
+  on the app's details page under the workspace's installed applications; reinstalling an
+  installed app skips Linear's team choice, so a reconnect cannot change teams. **Change in
+  Linear** opens `linear.app/<url key>/settings/applications` as a web link, and the page follows
+  through `PermissionChange` ([team scope](#team-scope)); the workspace menu's **Refresh teams**
+  (`linear.syncTeams`) re-reads team access at once for when the delivery lags.
   **Last delivery** shows only while it is worth a look: the workspace is failing, or no delivery
   arrived for a week ([disabled webhooks](#disabled-webhooks)); its info tooltip carries the
-  re-enable remediation. The workspace menu has Open in Linear, Reconnect, and **Connect another
+  re-enable remediation. The workspace menu has Open in Linear, Refresh teams (an `active`
+  workspace), Reconnect, and **Connect another
   workspace**, which runs the definition's connect (a new install, a new connection). The
   callback's `?linear_setup=<outcome>` shows as a dismissible notice above it, and on the
   connections list when no connection exists to land on, except `identity_installed`, which
@@ -717,6 +725,13 @@ Connections → Linear is a built-in connection page. Its definition
   with **Save image**, since Linear's form takes an upload) is listed only when the manifest cannot
   pre-fill it. A draft resumes without offering to create an app once its credentials are saved;
   a secret rotation lands on the credentials and closes on save.
+- **Install tab**: every install the page starts (workspace install, reconnect, identity install)
+  opens Linear in a provider tab (`hooks/provider-return/`). On desktop it is a web tab beside
+  Settings that the App watches; once it commits a URL on the App origin inside this Server, it
+  closes and the starting tab navigates to that URL (`?linear_setup=` included), or, with the
+  starting tab gone, the web tab turns into that page. On the web the landing tab offers its URL
+  over a same-origin `BroadcastChannel`; a starting tab still waiting claims and shows it, and the
+  landing closes itself, else it stays and shows the outcome in place.
 - **Install return**: when an identity turns `active`, or the page is the callback's landing for
   the install this browser remembered (a per-viewer `localStorage` hint), that Agent's row
   scrolls into view and its "Posts as @handle" takes the success ink for a moment.
@@ -799,6 +814,7 @@ Admin means Server Owner or Admin (`FORBIDDEN linear_admin_required`).
 | `linear.saveIdentityCredentials` | admin | `{ serverId, identityId, clientId?, webhookSigningSecret }`; `clientId` only while `draft` |
 | `linear.startIdentityInstall` | admin | `{ serverId, identityId }` → `{ authorizeUrl }` |
 | `linear.removeIdentity` | admin | `{ serverId, identityId }` |
+| `linear.syncTeams` | admin | `{ serverId, connectionId }`; re-reads the workspace's team access now (Refresh teams); `BAD_GATEWAY linear_unavailable` when Linear fails |
 | `linear.references` | admin | `{ serverId, connectionId, kind, query? }` → teams, projects, labels, states, users, project statuses for Trigger pickers |
 | `linear.issue` | member | `{ serverId, url }` → issue view or `unavailable` |
 
