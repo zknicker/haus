@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useLinearIssueStream } from '../../hooks/linear/use-linear-issue-stream.ts';
 import { useLinearUpdateStream } from '../../hooks/linear/use-linear-update-stream.ts';
 import type { RealtimeServer } from '../../hooks/realtime/realtime-server.ts';
@@ -23,9 +24,10 @@ import { MessageNotifications } from '../notifications/message-notifications.tsx
  * owning its subscription and its cache response; nothing here dispatches or
  * maps events. `server.onUpdated` and `member.onUpdated` mount for every
  * accessible Server instead (`ServerEventListeners`), and the Agent lifecycle
- * and activity streams mount with their providers.
+ * and activity streams mount with their providers. Memoized: the shell
+ * re-renders on every navigation, and none of these streams depend on it.
  */
-export function ServerRealtimeListeners({
+export const ServerRealtimeListeners = React.memo(function ServerRealtimeListeners({
     server,
 }: {
     server: RealtimeServer & { role: 'admin' | 'member' | 'owner' };
@@ -53,7 +55,7 @@ export function ServerRealtimeListeners({
             {canOperate ? <InvitationUpdateStream serverId={serverId} /> : null}
         </>
     );
-}
+});
 
 interface StreamProps {
     serverId: string;
