@@ -5,6 +5,7 @@ import {
     appSidebarWidthLimits,
     useAppSidebarWidth,
 } from '../../hooks/shell/use-app-sidebar-width.ts';
+import { HalloweenSky } from './halloween-sky.tsx';
 import { SidebarTitlebarStrip } from './sidebar-titlebar-strip.tsx';
 
 /**
@@ -105,6 +106,9 @@ export function ShellSidebar({
                     title="Resize sidebar"
                     width={sidebarWidth.width}
                 />
+                {/* The web has no window band, so the Halloween sky lives
+                    behind its titlebar strip instead. */}
+                {surface === 'web' ? <HalloweenSky placement="sidebar" /> : null}
                 {/* Every surface reserves the strip; only the web puts the Haus
                     mark in it. On the macOS desktop the traffic lights already
                     lead that line, so the mark stays down on the Inbox row and

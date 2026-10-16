@@ -1,0 +1,67 @@
+/* Halloween color theme: decorative layers, shown only under :root[data-color-theme="halloween"]. */
+
+/*
+ * One decoration, discovered rather than announced: a moonlit sky at the top
+ * of the sidebar. It is art, not UI color, so nothing here reads or overrides
+ * a HeroUI token.
+ *
+ * The sky is a WebGL canvas (`features/shell/halloween-sky.tsx`), mounted only
+ * under this theme. These rules only place it.
+ *
+ * Drag contract (desktop-window-layout.md → Window drag): the sky takes no
+ * pointer events and has no `app-region`, and it stacks behind the band's
+ * controls. It adds no drag or no-drag box.
+ */
+@layer components {
+    /* A canvas is a replaced element: absolute insets alone leave it at its intrinsic 300px. */
+    :root[data-color-theme="halloween"] .halloween-sky {
+        position: absolute;
+        display: block;
+        inset-block-start: 0;
+        inset-inline-start: 0;
+        width: 100%;
+        pointer-events: none;
+    }
+
+    /*
+     * Desktop (Band and Canvas): behind the window band's lead, the segment
+     * that is exactly the sidebar's width. The sky fades out by the band's
+     * bottom edge, so Canvas's transparent sidebar continues the same ground
+     * and Band's card starts under an edge that is already clear. With the
+     * sidebar hidden the lead is only the traffic lights' room: no sky.
+     */
+    :root[data-color-theme="halloween"] .shell-window-band__lead {
+        position: relative;
+        isolation: isolate;
+    }
+
+    :root[data-color-theme="halloween"] .halloween-sky--band {
+        z-index: -1;
+        height: 100%;
+    }
+
+    :root[data-color-theme="halloween"] .shell-window-band__lead[data-sidebar-hidden] > .halloween-sky {
+        display: none;
+    }
+
+    /* Mute with the sidebar when the window loses focus, as native chrome does. */
+    html.macos-electron.window-blurred[data-color-theme="halloween"] .halloween-sky {
+        opacity: 0.55;
+    }
+
+    /*
+     * Web: no window band, so the sky sits over the titlebar strip's mask
+     * (shell.css) and under the strip's contents. The mask still paints the
+     * sidebar's surface beneath it, so scrolled navigation stays hidden under
+     * the strip; the sky reaches a little past the strip and fades out over
+     * the first row's top air.
+     */
+    :root[data-color-theme="halloween"] .app-shell [data-slot="sidebar"] > .halloween-sky--sidebar {
+        z-index: 1;
+        height: calc(var(--app-shell-titlebar-inset) + 0.875rem);
+    }
+
+    :root[data-color-theme="halloween"] .app-shell [data-slot="sidebar"].sidebar--default > .halloween-sky--sidebar {
+        width: calc(100% - 1px);
+    }
+}

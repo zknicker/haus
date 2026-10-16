@@ -5,6 +5,7 @@ import {
 } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { useAppSidebarOpen } from '../../hooks/shell/use-app-sidebar-open.ts';
 import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
+import { HalloweenSky } from './halloween-sky.tsx';
 import { WindowHistoryButtons } from './history-buttons.tsx';
 import { TabRowsDrag } from './tab-drag/tab-rows-drag.tsx';
 import { useSplitRowGeometry } from './use-split-row-geometry.ts';
@@ -72,6 +73,7 @@ function WindowBandLead({ children }: { children: React.ReactNode }) {
             data-sidebar-hidden={sidebarOpen ? undefined : ''}
             style={{ '--app-sidebar-width': `${sidebarWidth.width}px` } as React.CSSProperties}
         >
+            <HalloweenSky placement="band" />
             {children}
         </div>
     );
