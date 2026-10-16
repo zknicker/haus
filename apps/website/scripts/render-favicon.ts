@@ -1,7 +1,9 @@
 /**
- * Renders the browser favicon set in `apps/website/public/` from the real
- * `HausGhost` component, so the tab mark is the same ghost the sidebar and
- * the app icon draw rather than a separately maintained raster.
+ * Renders the browser favicon sets in `apps/website/public/` from the real
+ * mark components, so the tab mark is the same figure the sidebar and the app
+ * icon draw rather than a separately maintained raster. One set per app icon
+ * a color theme can pick: `HausGhost` at the root, `HausPumpkin` (Halloween)
+ * under `app-icons/pumpkin/` with the same file names.
  *
  * The component is server-rendered to SVG markup, the static half of
  * `haus-ghost.css` is inlined into the file, and the drift keyframes and the
@@ -29,9 +31,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { createElement } from 'react';
+import { type ComponentType, createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HausGhost } from '../src/components/haus-ghost.tsx';
+import type { HausMarkProps } from '../src/components/haus-ghost-mark.tsx';
+import { HausPumpkin } from '../src/components/haus-pumpkin.tsx';
+import { faviconDir } from '../src/hooks/shell/use-theme-app-icon.ts';
+import type { AppIcon } from '../src/lib/color-themes.ts';
 
 /** The raster sizes the HTML links, each rendered at its own scale. */
 export const PNG_TARGETS: readonly { name: string; size: number }[] = [
@@ -40,25 +46,34 @@ export const PNG_TARGETS: readonly { name: string; size: number }[] = [
     { name: 'apple-touch-icon.png', size: 180 },
 ];
 
+/** The mark each app icon's favicon set draws. */
+const FAVICON_MARKS: Readonly<Record<AppIcon, ComponentType<HausMarkProps>>> = {
+    ghost: HausGhost,
+    pumpkin: HausPumpkin,
+};
+
 export async function renderFavicon({
+    icon = 'ghost',
     outDir = DEFAULT_OUT_DIR,
 }: {
+    icon?: AppIcon;
     outDir?: string;
 } = {}): Promise<readonly string[]> {
-    const css = staticGhostCss(await readFile(GHOST_CSS_PATH, 'utf8'));
-    const markup = ghostMarkup();
+    const mark = markMarkup(FAVICON_MARKS[icon]);
+    const css = staticMarkCss(await readFile(GHOST_CSS_PATH, 'utf8'), mark);
+    const setDir = path.join(outDir, faviconDir(icon));
     const browser = await chromium.launch();
 
     try {
         const page = await browser.newPage({ viewport: { height: 512, width: 512 } });
-        const svg = faviconSvg(markup, css, await measureBody(page, markup, css));
-        await mkdir(outDir, { recursive: true });
+        const svg = faviconSvg(mark, css, await measureBody(page, mark, css));
+        await mkdir(setDir, { recursive: true });
 
-        const written = [path.join(outDir, 'favicon.svg')];
+        const written = [path.join(setDir, 'favicon.svg')];
         await writeFile(written[0] as string, svg);
 
         for (const target of PNG_TARGETS) {
-            const file = path.join(outDir, target.name);
+            const file = path.join(setDir, target.name);
             await writeFile(file, await rasterize(page, svg, target.size));
             written.push(file);
         }
@@ -69,35 +84,39 @@ export async function renderFavicon({
     }
 }
 
-/** The component's own markup, with `useId`'s def names pinned to one stable
-    instance so a re-render is byte-identical. */
-function ghostMarkup(): string {
-    const markup = renderToStaticMarkup(createElement(HausGhost, { fill: 'iridescent' }));
+/** The component's own markup and root classes, with `useId`'s def names
+    pinned to one stable instance so a re-render is byte-identical. */
+function markMarkup(Mark: ComponentType<HausMarkProps>): Markup {
+    const markup = renderToStaticMarkup(createElement(Mark, { fill: 'iridescent' }));
+    const rootClass = markup.match(/^<svg[^>]*\bclass="([^"]*)"/)?.[1];
+    if (!rootClass) {
+        throw new Error('The mark rendered without a root class.');
+    }
     const body = markup.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
 
-    return body.replaceAll(/(haus-ghost-[a-z-]+?)-_R_[^"')]*_/g, '$1-fav');
+    return { body: body.replaceAll(/(haus-ghost-[a-z-]+?)-_R_[^"')]*_/g, '$1-fav'), rootClass };
 }
 
 /** The file itself: the component's markup, the theme it needs, and a viewBox
     cropped to the silhouette. */
-function faviconSvg(markup: string, css: string, body: Box): string {
+function faviconSvg(mark: Markup, css: string, body: Box): string {
     const pad = round(Math.max(body.width, body.height) * PAD_RATIO);
     const side = round(Math.max(body.width, body.height) + 2 * pad);
     const minX = round(body.x + body.width / 2 - side / 2);
     const minY = round(body.y + body.height / 2 - side / 2);
 
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${side} ${side}" width="${side}" height="${side}" class="haus-ghost haus-ghost--iridescent" role="img">
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${side} ${side}" width="${side}" height="${side}" class="${mark.rootClass}" role="img">
 <style>${css}</style>
-${markup}
+${mark.body}
 </svg>
 `;
 }
 
 /** The silhouette's own bounds, so the crop follows the artwork rather than
     the component's layout viewBox. */
-async function measureBody(page: Page, markup: string, css: string): Promise<Box> {
+async function measureBody(page: Page, mark: Markup, css: string): Promise<Box> {
     await page.setContent(
-        `<svg id="probe" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 204" class="haus-ghost haus-ghost--iridescent"><style>${css}</style>${markup}</svg>`
+        `<svg id="probe" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 204" class="${mark.rootClass}"><style>${css}</style>${mark.body}</svg>`
     );
     const box = await page.evaluate(() => {
         const edge = document.querySelector('.haus-ghost__edge') as unknown as SVGGraphicsElement;
@@ -126,12 +145,16 @@ async function rasterize(page: Page, svg: string, size: number): Promise<Buffer>
 /**
  * The static half of `haus-ghost.css`: the custom properties, the stroke
  * weights and the layer opacities, with the drift keyframes, the `--animated`
- * rules, the tempo switch and the ground-dependent theme blocks dropped.
+ * rules, the tempo switch and the ground-dependent theme blocks dropped, and
+ * every rule naming a class the mark does not draw — another costume's
+ * modifier, or a layer only another figure has — left out, so each file
+ * carries only its own figure's styles.
  *
  * Read from the stylesheet rather than restated here, so a change to a stroke
  * weight or a layer opacity reaches the favicon on the next render.
  */
-function staticGhostCss(source: string): string {
+function staticMarkCss(source: string, mark: Markup): string {
+    const drawn = drawnClasses(mark);
     const css = source.replaceAll(/\/\*[\s\S]*?\*\//g, '');
     const kept: string[] = [];
     let depth = 0;
@@ -152,12 +175,25 @@ function staticGhostCss(source: string): string {
         const rule = css.slice(start, index + 1).trim();
         start = index + 1;
         const selector = rule.slice(0, rule.indexOf('{')).trim();
-        if (selector && !SKIPPED_SELECTOR.test(selector)) {
+        if (selector && !SKIPPED_SELECTOR.test(selector) && selectsDrawn(selector, drawn)) {
             kept.push(collapse(rule));
         }
     }
 
     return `\n${kept.join('\n')}\n${collapse(FAVICON_THEME)}\n`;
+}
+
+function drawnClasses(mark: Markup): ReadonlySet<string> {
+    const attributes = [
+        mark.rootClass,
+        ...[...mark.body.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]),
+    ];
+
+    return new Set(attributes.flatMap((value) => (value ?? '').split(/\s+/).filter(Boolean)));
+}
+
+function selectsDrawn(selector: string, drawn: ReadonlySet<string>): boolean {
+    return [...selector.matchAll(/\.([\w-]+)/g)].every((match) => drawn.has(match[1] as string));
 }
 
 function collapse(rule: string): string {
@@ -166,6 +202,11 @@ function collapse(rule: string): string {
 
 function round(value: number): number {
     return Math.round(value * 100) / 100;
+}
+
+interface Markup {
+    body: string;
+    rootClass: string;
 }
 
 interface Box {
@@ -204,8 +245,9 @@ const GHOST_CSS_PATH = fileURLToPath(new URL('../src/components/haus-ghost.css',
 const DEFAULT_OUT_DIR = fileURLToPath(new URL('../public', import.meta.url));
 
 if (import.meta.main) {
-    const written = await renderFavicon();
-    for (const file of written) {
-        console.log(`[haus] favicon rendered to ${file}`);
+    for (const icon of Object.keys(FAVICON_MARKS) as AppIcon[]) {
+        for (const file of await renderFavicon({ icon })) {
+            console.log(`[haus] ${icon} favicon rendered to ${file}`);
+        }
     }
 }
