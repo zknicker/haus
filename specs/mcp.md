@@ -30,8 +30,9 @@ read_when:
 - Multiple connections may target the same MCP server or preset.
 - Service branding is independent of account identity. Presets resolve their icons before sign-in
   through the same policy used after adding an account. Disconnect and sign-in preserve branding;
-  failed artwork refreshes retain the last valid image. Existing presets with missing icons recover
-  branding on authorized reads.
+  failed artwork refreshes retain the last valid image. Icons resolve at write time; connection
+  reads never fetch. Existing presets with missing icons recover branding through a background
+  repair after Server startup.
 - Recommended lists only presets with no existing account, connected or disconnected. Additional
   accounts are added from a connection's detail; deleting the last account restores its preset.
 - Disconnect clears the active identity, tokens, inventory, and Agent grants. It preserves

@@ -231,8 +231,8 @@ One icon serving both themes is stored in `light` alone and the App falls back t
 connection never carries the same bytes twice on a query that returns every row inline.
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
-Handmade, Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation, legacy
-connection reads, and authenticated discovery share the Server's connection-branding resolver.
+Handmade, Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation,
+Linear binding, the startup repair, and authenticated discovery share the Server's connection-branding resolver.
 Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.
 Authenticated discovery first uses standard MCP icon metadata. Failed resolution retains the last
@@ -241,9 +241,15 @@ in a bounded five-minute cache, including unavailable artwork; authenticated ico
 that cache. The App also caches the catalog for five minutes and makes no upstream image requests.
 Missing artwork falls back to a monogram when no valid image has been resolved.
 
-Preset creation stores branding before sign-in. Icons refresh on connect and tool refresh.
-Existing preset connections with missing or malformed icons resolve branding on authorized reads,
-without requiring another sign-in. Those read-time fallbacks do not rewrite PostgreSQL records.
+Icons resolve at write time and are stored on the connection; `mcp.list` is a pure PostgreSQL read
+and never fetches. Preset creation stores branding before sign-in. Icons refresh on connect and
+tool refresh. A Linear install resolves Linear's brand icon before its binding transaction (never
+under the Server lock) and stores it on the new connection; a reconnect fills a missing icon. A
+failed lookup stores `null` and never fails the install. Preset connections stored with a missing
+or malformed icon, and no bundled mark, recover through a bounded background repair after Server
+startup, which stores each resolved icon and announces `mcp.onUpdated` for its Server.
+`mcp.presetIcons` (the Recommended catalog) still resolves on read behind the five-minute cache;
+the App loads it beside the list and falls back to bundled marks or monograms until it arrives.
 
 ## Connection Summary
 

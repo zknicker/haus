@@ -115,7 +115,7 @@ for one Agent, using a guided flow from the [Linear page](#the-linear-page):
    that text, appends " (Haus)" to a name left too short, truncates at 80, and shows the same name
    as the copyable app name. When the public origin is not HTTPS on a public host (a dev stack
    without a Funnel), Linear could neither deliver webhooks nor fetch the icon, so the manifest
-   omits both, `createAppPrefillsWebhook` is false, and the dialog asks the Owner to add the
+   omits both, `createAppPrefillsWebhook` is false, and the flow asks the Owner to add the
    webhook by hand. The copyable values stay listed as a fallback. A test validates the manifest
    against a vendored copy of Linear's published schema
    (`apps/server/test/fixtures/linear/oauth-app-manifest.schema.json`).
@@ -437,8 +437,9 @@ Linear retries a failed delivery after 1 minute, 1 hour, and 6 hours, and may di
 that keeps failing; re-enabling is manual. Observed (2026-10-15): Linear disabled the Haus Dev
 app's webhook after about 15 failed (404 and DNS) deliveries, and the app's settings page keeps
 a "Webhook delivery failures" log. Haus cannot detect a disabled webhook. The Linear page
-shows **Last delivery received** for the workspace and each identity, with the remediation: "If
-this stopped updating, open the app's webhook settings in Linear and re-enable it." For the
+shows each identity's last delivery, and the workspace's **Last delivery** once no delivery arrived
+for a week or the workspace is failing, with the remediation: "If this stopped updating, open the
+app's webhook settings in Linear and re-enable it." For the
 shared Haus app, an Axiom monitor alerts the operator when production receives no
 `linear.delivery_received` for six hours.
 
@@ -680,21 +681,50 @@ path and expiry:
 Connections → Linear is a built-in connection page. Its definition
 (`apps/website/src/features/settings/connections/built-in/linear/`) adds:
 
-- **Workspace** (after account): organization name and url key, teams, status, **Last delivery
-  received**, default Agent picker, and reconnect. The workspace menu's **Connect another
-  workspace** runs the definition's connect (a new install, a new connection). The callback's
-  `?linear_setup=<outcome>` shows as a dismissible notice above it, and on the connections list
-  when no connection exists to land on.
-- **Agent identities** (after Agent access): every granted Agent with its identity state ("Posts
-  as Juniper via Haus" or "Linear identity: @juniper", plus Inactive or Sign in required chips),
-  last delivery per identity, and **Give Linear identity** / **Connect existing app** opening the
-  guided flow. A draft resumes without offering to create an app once its credentials are saved;
-  **Replace webhook secret** reopens the flow for any installed identity. The generic Agent access
-  section stays the only grant switch.
+- **Workspace** (after account): organization name and url key, status, and **Agents can work
+  in**: the team names of workspace access, or a **No teams — Agents can't write** warning while
+  there are none (or the set is older than the 24 hours writes trust, [team scope](#team-scope)),
+  since every write is then refused. Its **Change in Linear** runs Reconnect, the install where
+  Linear asks which teams the app may reach.
+  **Last delivery** shows only while it is worth a look: the workspace is failing, or no delivery
+  arrived for a week ([disabled webhooks](#disabled-webhooks)); its info tooltip carries the
+  re-enable remediation. The workspace menu has Open in Linear, Reconnect, and **Connect another
+  workspace**, which runs the definition's connect (a new install, a new connection). The
+  callback's `?linear_setup=<outcome>` shows as a dismissible notice above it, and on the
+  connections list when no connection exists to land on, except `identity_installed`, which
+  shows on the Agent's row instead.
+- **Agent access** (the definition's `AgentAccess` extends the generic list, so each Agent appears
+  once): one line under the title says Agents post via Haus and an own app makes one assignable
+  and @mentionable. Every row's trailing side is its switch alone. A granted Agent's description
+  line carries its identity state and controls: "Posts via Haus · **Give own identity**", "Posts
+  via Haus · **Finish setup**" for a draft, or "Posts as @juniper" (a menu trigger for **Replace
+  webhook secret** and **Remove identity**) with last delivery, and Inactive, Sign in required
+  (with **Install again**), or Revoked. Agents without access show no line. The **Default
+  Agent** picker is the list's last row once any Agent is granted.
+- **Identity setup** expands under the row that started it, never in a modal, so Linear's new-app
+  page stays usable in a browser tab beside Settings. Its header has the Agent's avatar, "Give
+  Juniper its own Linear app", and Cancel; the row's inline step hides while it is open. A create
+  opens with a before-and-after of the Agent's attribution ("via Haus" → "@juniper"). Only the
+  current step is expanded and carries the one primary button: **Create in Linear** (with
+  **Already made one in Linear?** switching to checking an existing app, then **Next**), then the
+  client ID and webhook secret with **Save**, then **Install in Linear**. A done step is one ticked
+  line ("Credentials saved") with **Edit**; later steps show their title only. The panel opens and
+  closes on a short no-bounce height spring, its height follows every step change on the same
+  spring while the new step's controls fade in, and reduced motion places it at once. Pressing
+  Create in Linear moves on to the credentials, which take focus when the window is focused again.
+  The values to enter by hand sit behind a toggle when the manifest pre-fills everything; the
+  webhook events are plain labels to tick, and the **App icon** row (the Agent's avatar thumbnail
+  with **Save image**, since Linear's form takes an upload) is listed only when the manifest cannot
+  pre-fill it. A draft resumes without offering to create an app once its credentials are saved;
+  a secret rotation lands on the credentials and closes on save.
+- **Install return**: when an identity turns `active`, or the page is the callback's landing for
+  the install this browser remembered (a per-viewer `localStorage` hint), that Agent's row
+  scrolls into view and its "Posts as @handle" takes the success ink for a moment.
 - **Triggers** (after Agent access): the Agents' `linear` Triggers, read-only, linking to each
   Agent's Automations tab.
 
-The generic tools section lists the connector's tools.
+The generic tools section lists the connector's tools. Built-in connections show no
+Information section.
 
 ### Built-in connection pages
 

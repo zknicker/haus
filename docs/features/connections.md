@@ -12,13 +12,14 @@ read_when:
 Server Settings -> Connections manages remote MCP server accounts. It shares Settings -> Skills'
 catalog layout: titled sections of borderless two-column rows, each an icon tile, name, one-line
 description, and a trailing control. **Recommended** lists presets not yet added, each with a **+**
-button that adds it; **Added MCPs** lists saved connections with their status, opens a connection's
-page on press, and carries the **+** that opens the add drawer. Adding a preset or a custom MCP
-keeps you on the list.
+button that adds it; **Added** lists saved connections with their status, opens a connection's
+page on press, and carries the **+** (**Add connection**) that opens the add drawer. Adding a
+preset or a custom connection keeps you on the list. Product copy says "connection"; "MCP" appears
+only where the custom form asks for an MCP server's address.
 
-**Add MCP** saves an MCP entry in Haus. For OAuth MCPs, **Sign in** then opens the remote
+**Add connection** saves a custom MCP entry in Haus. For OAuth MCPs, **Sign in** then opens the remote
 account's authorization flow; until that completes, the entry says **Sign in required**. Header
-authentication uses **Add credentials** instead. Adding an MCP does not grant Agents access.
+authentication uses **Add credentials** instead. Adding a connection does not grant Agents access.
 
 The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no auth, headers, or
 OAuth, complete authentication in a browser window, and inspect the connected identity and
@@ -80,11 +81,24 @@ Cloudflare connects to its [official MCP](https://github.com/cloudflare/mcp) at
 It exposes Cloudflare API and documentation tools, including DNS and Workers operations.
 Cloudflare requires sign-in and an explicit Agent access grant.
 
-Linear connects to its [official MCP](https://linear.app/docs/mcp) at
-`https://mcp.linear.app/mcp` through OAuth with dynamic client registration. It exposes issue,
-project, and comment tools. Adding it requires sign-in and an explicit Agent access grant;
-no Server OAuth client credentials are required. A Haus Linear app with Agent identity and
-workflow-setup tools is drafted in [Linear app](../../specs/linear-app.md).
+Linear connects by installing the Haus app in a Linear workspace; the install callback creates
+one connection per workspace, served by Haus Server's own Linear connector
+([Linear app](../../specs/linear-app.md)). Its page reads in setup order. The **Workspace** card
+names the workspace and **Agents can work in** (the teams the Haus app was granted, where Agents
+may write), with **Change in Linear** to reinstall and pick teams again; with none it warns **No
+teams — Agents can't write**. **Last delivery** shows only once Linear has been silent a week or
+the workspace is failing. **Agent Access** is one list, each row's trailing side the switch alone;
+a granted Agent's description line says how it posts and carries its controls: "Posts via Haus ·
+Give own identity", "Posts via Haus · Finish setup", or "Posts as @handle" (which opens Replace
+webhook secret and Remove identity). The **Default Agent** that answers the Haus app closes the
+list, and one line under the title says what an identity is for. Giving an identity expands under
+that Agent's row, not in a dialog, so Linear's new-app page can sit in a browser tab beside
+Settings. It opens with a small before-and-after of how the Agent signs its work, then one step at
+a time (create the app in Linear, or **Already made one in Linear?**; paste its client ID and
+webhook secret; install); a done step collapses to one ticked line with **Edit**, and the panel's
+height follows each change on one short spring. When the install returns, the Agent's row scrolls
+into view and marks its new handle instead of a page notice. The Agents' Linear **Triggers**
+follow.
 
 Vercel is not a built-in connection. Previously saved Vercel accounts remain custom MCP
 connections, retaining their credentials and Agent grants. Its official MCP requires approval of
@@ -112,8 +126,9 @@ monogram otherwise. Haus Server resolves and stores the image during discovery, 
 page makes no third-party image requests. Legacy curated presets show bundled marks. Handmade, Cloudflare, MerchBase Atlas, and Fulfillment use their service-owned
 MCP icon metadata or favicon. Presets share one branding lookup across Recommended and Added,
 preferring homepage icon links before legacy favicons. Adding, signing in, or disconnecting an
-account does not discard its service branding. Existing presets with missing artwork recover it
-when the connection list is read. See [Connections API](../api/connections.md#connection-icons).
+account does not discard its service branding. Icons are stored when a connection is added,
+connected, or refreshed, so opening Connections never waits on a third-party site; existing presets
+with missing artwork recover it in the background after Haus Server starts. See [Connections API](../api/connections.md#connection-icons).
 
 A connection has its own settings page at `settings/connections/<connectionId>`; the Settings rail
 keeps Connections active, and the top bar reads `Haus › Settings › Connections › <name>` with
@@ -125,8 +140,10 @@ ruled sections, actionable first: **Connected Account** (a card with the account
 `···` menu for Sign in again or Replace credentials and Disconnect account, plus **Add another
 account** for a built-in service; hidden for servers that take no credentials), for GitHub
 **Installations** (see [GitHub App connection](../../specs/github-app-connection.md#app-ui)), **Agent Access**
-(one switch per Agent; a new grant waits for sign-in), then the reference material: **Tools** (name
-chips with a count, collapsed to the first few behind **Show all N**, expanding inline) and
-**Information** (Server address, sign-in kind, built in or custom). The credentials form, the
+(one switch per Agent; a new grant waits for sign-in; a built-in definition may add a line under
+the title, per-Agent state and actions on each row, a panel expanding under a row, and footer
+rows), then the reference material: **Tools** (name chips with a count, collapsed to the first few
+behind **Show all N**, expanding inline) and, for a custom connection only, **Information** (Server
+address and sign-in kind). The credentials form, the
 sign-in trust prompt, and the destructive confirmations stay dialogs over the page; the
 confirmations name the Agents that lose access.
