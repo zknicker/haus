@@ -197,6 +197,19 @@ describe('desktop browser workspace', () => {
         contents.emit('did-fail-load', {}, -105, 'Name not resolved', 'https://example.com', true);
         expect(workspace.snapshot().tabs[0].error).toBe('Name not resolved');
     });
+    test('an App-window link keeps its query and hash through the request and the load', () => {
+        const url =
+            'https://linear.app/oauth/authorize?actor=app&response_type=code&scope=read%2Cwrite#section';
+        const { workspace, window } = fixture();
+        window.webContents.sent = [];
+        workspace.open(url);
+        expect(window.webContents.sent).toEqual([
+            ['desktop:browser:open-request', { url, openerId: null, background: false }],
+        ]);
+        workspace.command({ kind: 'open', url, viewId: 'oauth' });
+        expect([...window.children][0].webContents.loads).toEqual([url]);
+        expect(workspace.snapshot().tabs[0].url).toBe(url);
+    });
     test('views carry the page favicon, only as a web or inline image, until the next document', () => {
         const { workspace, window } = fixture();
         open(workspace, 'https://example.com', 'one');

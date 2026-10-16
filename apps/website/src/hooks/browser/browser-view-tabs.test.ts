@@ -61,8 +61,9 @@ test('the focused pane’s web page takes page actions', () => {
 });
 
 test('a new web location gets its own view and a host title', () => {
-    const location = newBrowserLocation('https://docs.example/a');
-    expect(location).toMatchObject({ kind: 'browser', title: 'docs.example' });
+    const url = 'https://docs.example/a?response_type=code&scope=read%2Cwrite#section';
+    const location = newBrowserLocation(url);
+    expect(location).toMatchObject({ kind: 'browser', title: 'docs.example', url });
     expect(location.viewId).not.toBe(newBrowserLocation('https://docs.example/a').viewId);
 });
 

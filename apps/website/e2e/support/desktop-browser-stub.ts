@@ -52,6 +52,15 @@ export async function installDesktopBrowserStub(page: Page) {
                 listener({ url, openerId: null, background: false });
             }
         };
+        // Mirrors electron/external-link-handlers.cjs: Electron denies every App-window popup,
+        // and a web address becomes an open request for a tab.
+        window.open = (target?: string | URL) => {
+            const url = target === undefined ? null : URL.parse(String(target), location.href);
+            if (url && ['http:', 'https:'].includes(url.protocol)) {
+                requestOpen(url.href);
+            }
+            return null;
+        };
         const navigate = (input: Extract<BrowserCommand, { kind: 'navigate' }>) => {
             if (input.action === 'back') {
                 document.documentElement.dataset.browserHistory = 'back';
