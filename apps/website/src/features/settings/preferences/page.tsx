@@ -1,11 +1,12 @@
-import { Label, ListBox, Select, Switch } from '@heroui/react';
+import { Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { type ThemePreference, useTheme } from '../../../components/theme-provider.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { setShowTasksInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
 import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { ColorThemeRow } from './color-theme-row.tsx';
+import { ModeRow } from './mode-row.tsx';
 import { NotificationsSection } from './notifications-section.tsx';
 import { WindowLayoutRow } from './window-layout-row.tsx';
 
@@ -26,47 +27,14 @@ export function PreferencesSettings() {
 }
 
 function AppearanceSection() {
-    const { setTheme, theme } = useTheme();
-
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Appearance</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
-                <ItemCard>
-                    <ItemCard.Content>
-                        <ItemCard.Title>Theme</ItemCard.Title>
-                    </ItemCard.Content>
-                    <ItemCard.Action>
-                        <Select
-                            aria-label="Theme"
-                            className="w-40"
-                            onChange={(value) => setTheme(value as ThemePreference)}
-                            value={theme}
-                            variant="secondary"
-                        >
-                            <Select.Trigger>
-                                <Select.Value />
-                                <Select.Indicator />
-                            </Select.Trigger>
-                            <Select.Popover>
-                                <ListBox>
-                                    {themeOptions.map((option) => (
-                                        <ListBox.Item
-                                            id={option.id}
-                                            key={option.id}
-                                            textValue={option.label}
-                                        >
-                                            <Label>{option.label}</Label>
-                                            <ListBox.ItemIndicator />
-                                        </ListBox.Item>
-                                    ))}
-                                </ListBox>
-                            </Select.Popover>
-                        </Select>
-                    </ItemCard.Action>
-                </ItemCard>
+                <ModeRow />
+                <ColorThemeRow />
                 <WindowLayoutRow />
             </ItemCardGroup>
         </ItemCardGroup>
@@ -107,9 +75,3 @@ function ChatSection() {
         </ItemCardGroup>
     );
 }
-
-const themeOptions: Array<{ id: ThemePreference; label: string }> = [
-    { id: 'light', label: 'Light' },
-    { id: 'dark', label: 'Dark' },
-    { id: 'system', label: 'System' },
-];

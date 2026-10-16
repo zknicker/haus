@@ -88,14 +88,14 @@ function useThrottledValue<Value>(value: Value, delayMs: number): Value {
 
 // Snapshot synchronously on first render — an effect-time srcdoc update can
 // race the iframe's initial navigation and leave a tokenless document — and
-// again when the app theme flips, so visuals follow the active scheme.
+// again when the mode or color theme flips, so visuals follow the active look.
 function useVisualTokens() {
     const [tokens, setTokens] = React.useState(() => agentHtmlTokenDeclarations());
 
     React.useEffect(() => {
         const observer = new MutationObserver(() => setTokens(agentHtmlTokenDeclarations()));
         observer.observe(document.documentElement, {
-            attributeFilter: ['data-theme'],
+            attributeFilter: ['data-theme', 'data-color-theme'],
             attributes: true,
         });
         return () => observer.disconnect();

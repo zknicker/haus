@@ -18,7 +18,8 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { pathname } = useLocation();
     const navigateRoute = useNavigate();
     const { devMode, setDevMode } = useDevMode();
-    const { setTheme } = useTheme();
+    const { forcedTheme, setTheme } = useTheme();
+    const modeLocked = forcedTheme !== null;
     const showTasksInChat = useShowTasksInChat();
     const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(server.id);
@@ -45,12 +46,13 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
                 setDevMode,
             }),
             buildTaskCommandGroup({ setShowTasksInChat, showTasksInChat }),
-            buildThemeCommandGroup(setTheme),
+            buildThemeCommandGroup({ modeLocked, setTheme }),
         ],
         [
             agentItems,
             chatItems,
             devMode,
+            modeLocked,
             navigate,
             openAgentProfile,
             pathname,

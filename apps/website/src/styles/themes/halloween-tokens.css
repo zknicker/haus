@@ -1,0 +1,31 @@
+/*
+ * Halloween color theme: token overrides only (DESIGN.md "Color themes").
+ * Decorations live in `halloween-decorations.css`.
+ *
+ * Dark only: `ThemeProvider` pins the mode to dark while Halloween is active,
+ * so these are dark values with no mode qualifier. `:root[data-color-theme]`
+ * is (0,2,0) and outranks the default theme's `[data-theme]`/`.dark` blocks
+ * (0,1,0) without relying on order.
+ */
+:root[data-color-theme="halloween"] {
+    /*
+     * Pumpkin accent. Mid-light orange carries dark ink (about 7:1 against
+     * `--eclipse`); snow on it would sit near 2.5:1. Soft, hover, focus and the
+     * reply highlight derive from `--accent` and follow on their own.
+     */
+    --accent: oklch(71% 0.17 50);
+    --accent-foreground: var(--eclipse);
+    --focus: var(--accent);
+
+    /*
+     * The default dark lightness ramp, shifted from a neutral cool trace (hue
+     * 286, chroma ≤ 0.006) toward midnight indigo. Each step keeps its
+     * lightness so the canvas → sidebar → card → shown tab ladder is intact.
+     * Raised surfaces, fields and overlays stay neutral so they match each other.
+     */
+    --background: oklch(12% 0.014 272);
+    --shell-canvas: oklch(10.5% 0.013 272);
+    --shell-card: oklch(16.5% 0.014 272);
+    --shell-band-sidebar: oklch(14% 0.013 272);
+    --shell-tab-active-background: oklch(21% 0.014 272);
+}

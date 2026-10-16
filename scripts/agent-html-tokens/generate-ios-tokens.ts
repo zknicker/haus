@@ -28,6 +28,10 @@ const WEB = `${REPO}apps/website`;
  * name in the published contract (`apps/website/src/agent-html/tokens.ts`), so
  * reading them could only change a resolved value by accident. Adding a
  * published token to one of them is what would make it belong here.
+ *
+ * The color-theme layers under `styles/themes/` are left out too, and on purpose:
+ * they do override published tokens, but only under `data-color-theme`, and iOS
+ * bakes the Default theme (DESIGN.md → Color themes).
  */
 const SOURCES = [
     `${WEB}/node_modules/tailwindcss/theme.css`,

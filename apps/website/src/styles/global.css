@@ -7,6 +7,8 @@
 @import "./product-tokens.css";
 @import "./artifact-tokens.css" layer(theme);
 @import "./default-theme.css";
+@import "./themes/halloween-tokens.css";
+@import "./themes/halloween-decorations.css";
 @import "../features/chats/chat.css";
 @import "../features/chats/reactions/reaction-stickers.css";
 @import "../features/shell/shell.css";
