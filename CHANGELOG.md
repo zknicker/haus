@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.1.0 - 2026-10-16
+
+- Settings → Connections opens without waiting on remote icons. It no longer stalls when a connection, such as Linear, was saved without its icon; those connections get their icons back when the Server starts.
+- The Linear connection page lists each Agent once, with its access and its own Linear identity. Identity setup opens under that Agent's row instead of a dialog, so a Linear tab open beside Haus stays usable. The workspace card names the teams Agents can work in and warns when there are none.
+
 ## v15.0.1 - 2026-10-16
 
 - When an Owner gives an Agent its own Linear app, Create in Linear opens Linear's new-app page filled in with the app name, icon, callback URL, webhook URL, and webhook events. The Owner creates the app and copies back only the client id and webhook signing secret.
