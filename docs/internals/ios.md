@@ -120,7 +120,12 @@ sheet, single-line identity values edit inline, and long-form values use a dedic
 opens on a centered identity header that pushes the viewer's profile. Rows carry a short title and
 show a single-line current value trailing, dropping it under the title only when it cannot fit;
 long-form values such as descriptions preview as a subtitle. An up/down chevron marks an in-place
-picker and a right chevron marks navigation. Explanations live in section footers. All
+picker and a right chevron marks navigation. Explanations live in section footers. Preferences'
+App icon picker (`AppIconRow`: Ghost or Pumpkin) is a per-device choice with no Server or theme
+coupling; iOS has no color themes. It reads `UIApplication.alternateIconName` each time rather than
+mirroring it into `@AppStorage`, calls `setAlternateIconName` (`nil` for the ghost,
+`halloween-icon` for the pumpkin), and on failure logs and shows the icon the system still reports.
+iOS's own "You have changed the icon" alert is expected. All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
 state. On startup, iOS reports the signed-in Clerk name and email through `member.syncIdentity` before
 reading the member list, matching the web app's default-handle bootstrap. The sync runs beside the

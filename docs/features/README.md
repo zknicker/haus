@@ -29,6 +29,7 @@ implementation ownership, and runtime details live under
 | Connections | [Connections](connections.md) |
 | Usage | [Usage](usage.md) |
 | Pets and rewards | [Pets and rewards](pets.md) |
+| Appearance | [Appearance](appearance.md) |
 
 Memory, Wiki, cron automations, and the first task tracker were retired; see
 [ADR 0014](../adr/0014-cli-is-the-agents-only-output-channel.md). Agents

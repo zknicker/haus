@@ -351,8 +351,8 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   The Agent tile and Computer detail build filtered links with `usageRoute`;
   the rail and command palette reach it as an ordinary settings section.
   There is no shell-level `/s/:slug/usage` route.
-* A preference is a row with a control, not a page. Theme is a `Select` in
-  Preferences, not three window mockups on a route of its own — a value with
+* A preference is a row with a control, not a page. Mode and Theme are `Select`s in
+  Preferences, not window mockups on a route of its own — a value with
   three options does not earn a destination, and it has to survive that list
   growing. Give a preference its own page only when it has state to show beyond
   its own value.
@@ -420,8 +420,9 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   to the shell components, not feature pages.
 * Global command definitions live under `src/commands`; the shell only renders
   their groups.
-  Cmd+K includes Light, Dark, and System theme commands using the same device-local
-  theme preference as Settings.
+  Cmd+K includes Light, Dark, and System mode commands and one command per color theme
+  (`lib/color-theme.ts`), using the same device-local preferences as Settings. The mode
+  commands are hidden while the color theme pins the mode.
 
 ## Hooks
 

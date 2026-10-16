@@ -18,6 +18,18 @@ lights while the sidebar is hidden); they act on the focused pane. Each page kee
 rows: its breadcrumb (Settings' Haus › Settings › Connections › GitHub) and actions, where the web
 shows them too.
 
+Under the Halloween color theme the band's sidebar-width segment carries a moonlit sky: a dim moon
+just left of Back and Forward, veiled by clouds that drift a few px a minute, on an indigo night that
+is calm behind the traffic lights and fades out above the sidebar; the web paints it behind the
+sidebar's titlebar strip. It is a WebGL canvas mounted only under Halloween, with no pointer events
+and no drag box (`features/shell/halloween-sky.tsx`); it pauses while the window is unfocused,
+hidden, or the sky is off screen, and holds one still frame under reduced motion.
+
+The macOS Dock icon follows the theme while the App runs: `desktop:dock:set-app-icon` (`ghost` or
+`pumpkin`, `electron/dock-app-icon.cjs`) swaps in the compiled pumpkin tile, and `ghost` restores
+the bundle icon (`app.dock.setIcon(null)`; the compiled dev icon in development). The closed App's
+Finder icon stays the ghost.
+
 Settings is not in the band: a gear leads the sidebar footer, before the update and offline Computer
 marks, its tooltip naming ⌘,. The macOS App menu's Haus › Settings… (⌘,) opens it too, including
 while a browser page has focus.

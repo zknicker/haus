@@ -447,6 +447,50 @@ the base names in `@layer base` for solid chips), and `--radius` reads the
 artifact-owned `--radius-control` so publishing a corner cannot reshape
 Tailwind's own scale. That remapping lives in `agent-html/tokens.ts`.
 
+### Color themes
+
+A color theme is a palette family, picked per device in Settings > Preferences >
+Appearance > **Theme** (`lib/color-theme.ts`), and orthogonal to the Light/Dark/System
+**Mode**. `Default` is the system above; every other theme is a thin layer over it,
+stamped as `data-color-theme` on the document root by `ThemeProvider`, on every route.
+
+Each theme is one `ColorThemeDefinition` in `lib/color-themes.ts`:
+
+| Field | Values | Read by |
+| --- | --- | --- |
+| `id`, `label` | `ColorTheme`, display name | Settings Theme row, Cmd+K |
+| `forcedMode` | `'dark' \| null` | `ThemeProvider` (resolved mode, desktop window) |
+| `mascot` | `'ghost' \| 'pumpkin'` | `HausMascot` |
+| `scene` | `'none' \| 'moonlit-sky'` | `HalloweenSky` mounts on `moonlit-sky` |
+| `greetings` | `GreetingSet \| null` | Inbox greeting; `null` is the standard line |
+
+Consumers read the live definition (`useColorThemeDefinition()`), never compare theme ids.
+Adding a theme is one definition plus its token CSS; a new mascot or scene is a new union
+member and the one component that renders it.
+
+- **Tokens only.** A theme's colors live in `styles/themes/<name>-tokens.css` under
+  `:root[data-color-theme="<name>"]`, and for one mode under
+  `:root[data-color-theme="<name>"]:is([data-theme="dark"], .dark)` (or the light
+  equivalent). Those selectors outrank the default theme's `[data-theme]`/`.dark` blocks
+  by specificity, not import order. No BEM overrides and no component restyling: a theme
+  that needs a rule the tokens cannot express gets the token first.
+- **Either mode, or dark only.** A theme may override in both modes or only one. Keep the
+  default ramp's lightness ladder and move hue and chroma, so depth still comes from
+  position. A theme that only reads in one mode declares it as the definition's
+  `forcedMode`: while it is active `ThemeProvider` resolves that mode everywhere
+  (`data-theme`, `.dark`, `colorScheme`, the desktop window, agent visuals), Settings shows
+  the Mode row disabled on it, Cmd+K hides the mode commands, and the stored Mode
+  preference is untouched for when the theme changes back. Its tokens then need no mode
+  qualifier.
+- **Decorations are separate.** Ornament that is not a color (art, illustrations) lives
+  in `styles/themes/<name>-decorations.css`, keyed on the same attribute.
+- **Web only.** Agent visuals on the web read the host's computed tokens, so they follow
+  the theme. iOS bakes the Default theme: `gen:ios-tokens` reads an explicit stylesheet
+  list that leaves `styles/themes/` out.
+
+Halloween is dark only: a pumpkin `--accent` (`oklch(71% 0.17 50)`, dark ink on it) and a
+faint midnight-indigo trace on the page and shell grounds.
+
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.
 | Token | Font family | Font size | Line height | HeroUI variable | Tailwind equivalent |

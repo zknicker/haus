@@ -27,7 +27,14 @@ delivery ledger that wakes Agents. Say "Agent inbox" wherever the two could be c
 ## Layout
 
 The page opens on a header with no card: the greeting that names the reader, set at the same
-page-title step every settings page opens with, and the weekday and date beneath it. Under that sits the **Active this week** strip, and under that two full-width sections stacked in reading order —
+page-title step every settings page opens with, and the weekday and date beneath it. The greeting
+follows the reader's clock in three buckets (morning before noon, afternoon before 6 pm, evening
+after) and reads "Good morning, Zach" by default. A color theme may bring its own line pools
+per bucket (`ColorThemeDefinition.greetings` in `lib/color-themes.ts`); Halloween's are a
+haunted-house host's welcomes. A pool line is picked by hashing the local date and bucket, so it
+holds through the bucket and across reloads and changes day to day; `{name}` becomes the first
+name (`inbox-greeting.ts`). The costume is in the words alone: the header adds no mark, since the
+sidebar's Inbox row already wears the theme's mascot. Under that sits the **Active this week** strip, and under that two full-width sections stacked in reading order —
 **Unread**, **Happening now** — in the page column's own rhythm.
 
 The page fills the shell band the way Settings does: every band's trail leads with a **Haus**
