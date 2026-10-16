@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.0.1 - 2026-10-16
+
+- When an Owner gives an Agent its own Linear app, Create in Linear opens Linear's new-app page filled in with the app name, icon, callback URL, webhook URL, and webhook events. The Owner creates the app and copies back only the client id and webhook signing secret.
+
 ## v15.0.0 - 2026-10-15
 
 - Files browses like Finder: Back and Forward, a breadcrumb, double-click to open, a right-click menu, sortable columns, multi-select with bulk move and delete, drag to move, and zip download of a selection. The viewer steps to the previous and next file, restores an older revision, names who wrote each revision, and shows an image's dimensions and DPI.
