@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.3.0 - 2026-10-16
+
+- Settings → Preferences → Appearance has a Theme row beside Mode, also under Appearance in Cmd+K. The Halloween theme is dark only: a pumpkin-orange accent, a midnight-indigo window, a moonlit cloud sky at the top of the sidebar, a haunted-host Inbox greeting that changes daily, and a glass pumpkin in place of the ghost mascot. Switching back to Default restores the saved Mode.
+- Under Halloween, the browser tab icon becomes the pumpkin, and Haus for Mac 6.2.0 shows the pumpkin app icon in the Dock from launch.
+- Haus for iPhone 8.6.0 adds the pumpkin as an alternate app icon in Settings. In October it offers the pumpkin once, and after October it offers the ghost back if the offer chose the pumpkin.
+- Linear identity setup groups Create in Linear, Use an existing app, and Enter values by hand in one row. Use an existing app opens the workspace's Linear app list, where an existing app's client id and webhook signing secret live.
+
 ## v15.2.0 - 2026-10-16
 
 - An open Linear connection page shows team access changes made in Linear, and the workspace menu has Refresh teams to re-read them on demand. Change in Linear opens the workspace's installed applications, where an admin changes which teams Haus can use.
