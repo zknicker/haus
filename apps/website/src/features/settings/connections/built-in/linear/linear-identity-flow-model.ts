@@ -63,6 +63,23 @@ export function linearIdentityFlowSteps(input: {
     ];
 }
 
+/**
+ * What the register step says. Creating opens Linear's page pre-filled from
+ * the Server's manifest; the values below stay as a fallback to check or copy.
+ * Linear issues the client id and webhook secret only on its page.
+ */
+export function linearIdentityRegisterHint(
+    draft: Pick<LinearIdentityDraft, 'createAppPrefillsWebhook'>,
+    mode: LinearIdentityFlowMode
+): string {
+    if (mode === 'existing') {
+        return "Make sure the app's callback URL, webhook URL, and events match these.";
+    }
+    return draft.createAppPrefillsWebhook
+        ? 'Linear opens with everything below filled in. Create the app, then copy its client ID and webhook signing secret back here.'
+        : 'Linear opens with the name and callback URL filled in. This Server has no public HTTPS address, so add the webhook URL and events yourself, then copy the client ID and webhook signing secret back here.';
+}
+
 const credentialMaxLength = 200;
 
 /** The client id field is editable only while the identity is a `draft`. */

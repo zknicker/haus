@@ -1,6 +1,10 @@
 import type { LinearIdentity, LinearIdentityDraft } from '@haus/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { absoluteAvatarUrlFor } from '../../avatars/avatar-url.ts';
+import {
+    linearCreateAppUrl,
+    linearIdentityAppManifest,
+} from '../../linear/identity-app-manifest.ts';
 import type { LinearApp } from '../../linear/linear-api.ts';
 import { linearOauthCallbackPath } from '../../linear/oauth-callback-route.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
@@ -62,19 +66,34 @@ export async function listLinearIdentities(
     }));
 }
 
-/** Every value the Owner copies into Linear's new-application form. */
+/**
+ * Every value the Owner copies into Linear's new-application form, and the
+ * deep link that opens that form pre-filled with them.
+ */
 export function identityGuidedFlow(
     app: Pick<LinearApp, 'publicOrigin'>,
     workspace: { urlKey: string },
     identity: { avatarId: string | null; displayName: string; identityId: string }
 ): LinearIdentityDraft {
+    const avatarUrl = absoluteAvatarUrlFor(identity.avatarId, app.publicOrigin);
+    const callbackUrl = `${app.publicOrigin}${linearOauthCallbackPath}`;
+    const webhookUrl = `${app.publicOrigin}/api/linear/webhook/${encodeURIComponent(identity.identityId)}`;
+    const manifest = linearIdentityAppManifest({
+        agentName: identity.displayName,
+        avatarUrl,
+        callbackUrl,
+        publicOrigin: app.publicOrigin,
+        webhookEvents: identityWebhookEvents,
+        webhookUrl,
+    });
     return {
-        appName: identity.displayName,
-        avatarUrl: absoluteAvatarUrlFor(identity.avatarId, app.publicOrigin),
-        callbackUrl: `${app.publicOrigin}${linearOauthCallbackPath}`,
-        createAppUrl: `https://linear.app/${encodeURIComponent(workspace.urlKey)}/settings/api/applications/new`,
+        appName: manifest.oauth.client_name,
+        avatarUrl,
+        callbackUrl,
+        createAppPrefillsWebhook: manifest.webhook !== undefined,
+        createAppUrl: linearCreateAppUrl(workspace.urlKey, manifest),
         identityId: identity.identityId,
         webhookEvents: identityWebhookEvents,
-        webhookUrl: `${app.publicOrigin}/api/linear/webhook/${encodeURIComponent(identity.identityId)}`,
+        webhookUrl,
     };
 }

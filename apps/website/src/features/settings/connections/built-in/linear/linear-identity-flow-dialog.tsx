@@ -12,17 +12,18 @@ import {
     linearIdentityCredentialsInput,
     linearIdentityFlowSteps,
     linearIdentityFlowValues,
+    linearIdentityRegisterHint,
 } from './linear-identity-flow-model.ts';
 
 const formId = 'linear-identity-credentials';
 
 /**
- * The guided flow for one Agent's own Linear app, as one dialog: the values to
- * copy into Linear with a deep link to its new-app page, the two values to
- * paste back, then the install. Every value and whether the credentials are
- * saved come from the Server's identity, so a resumed flow picks up where it
- * stopped. Opened while the draft is being prepared, so it reads blank until
- * the identity list answers.
+ * The guided flow for one Agent's own Linear app, as one dialog: a link that
+ * opens Linear's new-app page pre-filled (the values stay listed to check or
+ * copy), the two values to paste back, then the install. Every value and
+ * whether the credentials are saved come from the Server's identity, so a
+ * resumed flow picks up where it stopped. Opened while the draft is being
+ * prepared, so it reads blank until the identity list answers.
  */
 export function LinearIdentityFlowDialog({
     agentName,
@@ -125,6 +126,9 @@ function FlowBody({
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header>
                         <ItemCardGroup.Title>1. {register?.title}</ItemCardGroup.Title>
+                        <ItemCardGroup.Description>
+                            {linearIdentityRegisterHint(draft, mode)}
+                        </ItemCardGroup.Description>
                     </ItemCardGroup.Header>
                     <ItemCardGroup variant="outline">
                         {linearIdentityFlowValues(draft, mode).map((entry) => (
@@ -153,7 +157,7 @@ function FlowBody({
                             size="sm"
                             variant="secondary"
                         >
-                            Open Linear settings
+                            Create in Linear
                         </Button>
                     ) : null}
                 </ItemCardGroup>

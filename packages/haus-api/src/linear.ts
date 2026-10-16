@@ -162,8 +162,17 @@ export const linearIdentityDraftSchema = z
         appName: z.string().min(1),
         avatarUrl: z.url().nullable(),
         callbackUrl: z.url(),
-        /** Deep link to Linear's new-application settings page. */
+        /**
+         * Linear's new-application page, pre-filled through Linear's OAuth app
+         * manifest (https://linear.app/developers/oauth-app-manifests).
+         */
         createAppUrl: z.url(),
+        /**
+         * Whether that page arrives with the webhook URL and events filled in.
+         * False when the public origin is not HTTPS on a public host, so Linear
+         * could not deliver to it; the Owner fills the webhook in by hand.
+         */
+        createAppPrefillsWebhook: z.boolean(),
         identityId: idSchema,
         webhookEvents: z.array(linearIdentityWebhookEventSchema).min(1),
         webhookUrl: z.url(),
