@@ -19,5 +19,10 @@ this README and re-check the readers in `src/linear/delivery-payload.ts` against
 | `permission-change.json` | `PermissionChange` | team access changed |
 | `oauth-app-revoked.json` | `OAuthApp` | app uninstalled |
 
+`oauth-app-manifest.schema.json` is a verbatim copy of Linear's published
+[OAuth app manifest schema](https://linear.app/.well-known/oauth-app-manifest.schema.json),
+which `linear-identity-manifest.test.ts` validates identity manifests against. Re-download it when
+Linear bumps `schemaVersion`.
+
 Session events are real captures in `captured/` (`agent-session-*.json`), including the stop
 signal (Q9, `agent-session-prompted-stop.json`).

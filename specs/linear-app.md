@@ -103,7 +103,22 @@ for one Agent, using a guided flow from the [Linear page](#the-linear-page):
    `<public origin>/linear/oauth/callback`, webhook URL
    `<public origin>/api/linear/webhook/<identity id>`, and the webhook events to tick (Agent
    session events, Permission changes, OAuth app revoked).
-2. The Owner creates the app in Linear's settings, with a deep link to the right page.
+2. The Owner creates the app in Linear's settings. **Create in Linear** opens the workspace's
+   new-application page pre-filled through Linear's
+   [OAuth app manifest](https://linear.app/developers/oauth-app-manifests): one `manifest` query
+   parameter holding JSON (`linear/identity-app-manifest.ts`) with `distribution: private`,
+   developer `Haus`, the Agent's name as `client_name`, the public origin as `client_uri`, the
+   callback URL as the only redirect URI, grant type `authorization_code`, the Agent's public
+   avatar as the icon, and a webhook block with the webhook URL and the events as Linear resource
+   types (`AgentSessionEvent`, `PermissionChange`, `OAuthAuthorization`). Linear rejects a
+   `client_name` outside 2–80 characters or containing "Linear" or a URL scheme, so Haus removes
+   that text, appends " (Haus)" to a name left too short, truncates at 80, and shows the same name
+   as the copyable app name. When the public origin is not HTTPS on a public host (a dev stack
+   without a Funnel), Linear could neither deliver webhooks nor fetch the icon, so the manifest
+   omits both, `createAppPrefillsWebhook` is false, and the dialog asks the Owner to add the
+   webhook by hand. The copyable values stay listed as a fallback. A test validates the manifest
+   against a vendored copy of Linear's published schema
+   (`apps/server/test/fixtures/linear/oauth-app-manifest.schema.json`).
 3. The Owner pastes the **client id** and **webhook signing secret** into Haus
    (`linear.saveIdentityCredentials`). There is no client secret: identity installs use PKCE.
 4. **Install** (`linear.startIdentityInstall`) runs OAuth with `actor=app`. The callback binds the
@@ -943,8 +958,9 @@ reads naturally.
 ## Not built
 
 - **Automated identity registration.** Linear has no API to create apps, so the Owner registers
-  each identity by hand through the guided flow. A Haus Agent completing that flow in the Owner's
-  browser is a possible later step.
+  each identity by hand through the guided flow. The manifest pre-fills Linear's form, but Linear
+  shows the client id and webhook signing secret only on its page, so the Owner copies those two
+  back. A Haus Agent completing that flow in the Owner's browser is a possible later step.
 - **Admin operations in Linear** beyond workflow states.
 - **Delivery recovery.** Linear has no delivery log; missed deliveries are not replayed.
 
