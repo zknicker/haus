@@ -17,13 +17,15 @@ export { iconRequestInit } from './icon-fetch.ts';
 export type { McpIconFetch } from './icon-loader.ts';
 
 /**
- * Resolving a connection's icon to inline bytes, at discovery time.
+ * Resolving a connection's icon to inline bytes, at write time.
  *
  * Three sources, in order: the icons an MCP server advertises in `serverInfo`
  * (SEP-973), then the `/favicon.ico` of the site behind its host, then the
  * icon `<link>`s on that site's home page — for SPAs whose `/favicon.ico` is
- * an HTML fallback rather than an image. All are fetched
- * here, by Haus Server, once per refresh — never by the App. An `img` in the
+ * an HTML fallback rather than an image. All are fetched here, by Haus
+ * Server, when a connection is created, connected, or refreshed and by the
+ * startup repair (`icon-repair.ts`) — never on a connection read, and never by
+ * the App. An `img` in the
  * App pointed at a connection's own host would report the viewer's IP and page
  * views back to that operator, which is exactly the tracking channel this
  * module exists to close.

@@ -1,9 +1,13 @@
+import type { McpIcon } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as z from 'zod';
+import { linearHostedUrl } from '../hosted-mcp/catalog.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { linearIdentitiesTable, serversTable } from '../postgres/schema.ts';
 import { linearUpdatedTopic } from '../realtime/topics.ts';
+import { resolveMcpConnectionIcon } from '../server-mcp/connection-branding.ts';
+import type { McpIconResolver } from '../server-mcp/icons.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
 import { bindLinearInstall } from './binding.ts';
 import {
@@ -24,6 +28,7 @@ export interface LinearCallbackDependencies {
     clock?: { now(): Date };
     db: HausDatabase;
     linearApp: LinearApp | null;
+    mcpIconResolver: McpIconResolver;
     mcpRuntime: Pick<McpRuntime, 'closeConnection' | 'inventory'>;
 }
 
@@ -98,9 +103,15 @@ async function install(
             redirectUri: linearCallbackUrl(linearApp),
         });
         const facts = await readLinearInstallFacts(linearApp.fetch, tokens.accessToken);
+        // Resolved before the binding transaction: no network work under the Server lock.
+        const icon =
+            attempt.purpose === 'identity_install'
+                ? null
+                : await resolveLinearIcon(dependencies.mcpIconResolver);
         const bound = await bindLinearInstall(db, {
             attempt,
             facts,
+            icon,
             now: dependencies.clock.now(),
             tokens,
         });
@@ -121,6 +132,23 @@ async function install(
             return { connectionId: attempt.connectionId, outcome: 'linear_unavailable' };
         }
         throw cause;
+    }
+}
+
+/** Linear's service branding; a failed lookup stores no icon and never fails the install. */
+async function resolveLinearIcon(resolveIcon: McpIconResolver): Promise<McpIcon | null> {
+    try {
+        return await resolveMcpConnectionIcon(resolveIcon, {
+            icon: null,
+            preset: 'linear',
+            url: linearHostedUrl,
+        });
+    } catch (cause) {
+        console.error(
+            '[haus] Linear icon lookup during install failed',
+            cause instanceof Error ? cause.name : 'unknown'
+        );
+        return null;
     }
 }
 

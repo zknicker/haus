@@ -1,6 +1,6 @@
 import type { McpIconResolver } from './icons.ts';
 
-/** Share anonymous branding between Recommended, creation, and legacy reads. */
+/** Share anonymous branding between Recommended, creation, and the startup repair. */
 export function cacheAnonymousMcpIcons(
     resolveIcon: McpIconResolver,
     now: () => number = Date.now

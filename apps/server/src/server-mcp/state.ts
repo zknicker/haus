@@ -10,13 +10,11 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { readMcpConnectionIcon, resolveMcpConnectionIcon } from './connection-branding.ts';
+import { readMcpConnectionIcon } from './connection-branding.ts';
 import { McpDeniedError } from './errors.ts';
-import type { McpIconResolver } from './icons.ts';
 
 export async function listMcpConnections(
     db: HausDatabase,
-    resolveIcon: McpIconResolver,
     member: HausUser | null,
     serverId: string
 ): Promise<McpConnection[]> {
@@ -33,12 +31,11 @@ export async function listMcpConnections(
         })
         .from(agentMcpConnectionGrantsTable)
         .where(eq(agentMcpConnectionGrantsTable.serverId, serverId));
-    return await Promise.all(
-        rows.map(async (row) =>
-            shapeMcpConnection(
-                { ...row, icon: await resolveMcpConnectionIcon(resolveIcon, row) },
-                grants.filter((grant) => grant.connectionId === row.id)
-            )
+    // A pure read: icons resolve at write time and by startup repair, never here.
+    return rows.map((row) =>
+        shapeMcpConnection(
+            row,
+            grants.filter((grant) => grant.connectionId === row.id)
         )
     );
 }

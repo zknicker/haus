@@ -34,6 +34,7 @@ import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
 import { startServerRecurringWork } from './recurring-work.ts';
 import { tickReminders } from './reminders/scheduler.ts';
+import { startMcpConnectionIconRepair } from './server-mcp/icon-repair.ts';
 import { makeMcpIconResolver } from './server-mcp/icons.ts';
 import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
 import { McpRuntime } from './server-mcp/runtime.ts';
@@ -111,6 +112,8 @@ export async function createHausServerApplication(
         handles.mcpRuntime = startedMcpRuntime;
         void startedMcpRuntime.start();
         const mcpIconResolver = makeMcpIconResolver(runtime);
+        // Background: reads never fetch icons, so stored rows missing branding recover here.
+        startMcpConnectionIconRepair(connectedHaus.db, mcpIconResolver);
         const wakeAgents = (wakes: { agentId: string; serverId: string }[]) => {
             void startedPostCommitWork.wakeAgents(agentDelivery, wakes);
         };

@@ -125,6 +125,7 @@ export async function registerHausServerRoutes(
             appOrigin: dependencies.appOrigin,
             db,
             linearApp: dependencies.linear.app,
+            mcpIconResolver: dependencies.mcpIconResolver,
             mcpRuntime: dependencies.mcpRuntime,
         },
         webhook: dependencies.linearWebhook,

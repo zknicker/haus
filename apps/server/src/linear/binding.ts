@@ -1,15 +1,9 @@
+import type { McpIcon } from '@haus/api';
 import { and, eq, ne } from 'drizzle-orm';
-import { linearHostedUrl } from '../hosted-mcp/catalog.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    linearIdentitiesTable,
-    linearWorkspacesTable,
-    mcpConnectionsTable,
-    mcpSecretsTable,
-} from '../postgres/schema.ts';
-import { emptySecret } from '../server-mcp/connection-secret.ts';
+import { linearIdentitiesTable, linearWorkspacesTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { holdsGrant, requireAdminRole } from './authority.ts';
 import { storeLinearCredential } from './credentials.ts';
@@ -20,6 +14,7 @@ import type { LinearInstallFacts } from './linear-install-reads.ts';
 import type { LinearAttempt } from './oauth-attempts.ts';
 import { replaceTeamAccess } from './team-access.ts';
 import { rederiveLinearTriggerProblems } from './trigger-problem-wakes.ts';
+import { insertLinearConnection, reconnectLinearConnection } from './workspace-connection.ts';
 
 // Binding authority (specs/linear-app.md#binding-and-authority). Linear facts
 // are read with the new token before this runs; here, under the Server row
@@ -30,9 +25,18 @@ export type LinearBindResult =
     | { connectionId: string; kind: 'workspace_connected' | 'workspace_reconnected' }
     | { connectionId: string; kind: 'identity_installed' };
 
+export interface LinearBindInput {
+    attempt: LinearAttempt;
+    facts: LinearInstallFacts;
+    /** Linear's brand icon, resolved before the transaction; null when the lookup failed. */
+    icon: McpIcon | null;
+    now: Date;
+    tokens: LinearTokenPair;
+}
+
 export async function bindLinearInstall(
     db: HausDatabase,
-    input: { attempt: LinearAttempt; facts: LinearInstallFacts; now: Date; tokens: LinearTokenPair }
+    input: LinearBindInput
 ): Promise<LinearBindResult> {
     try {
         return await db.transaction(async (tx) => {
@@ -65,7 +69,7 @@ export async function bindLinearInstall(
 
 async function bindNewWorkspace(
     tx: HausDatabase,
-    input: { attempt: LinearAttempt; facts: LinearInstallFacts; now: Date; tokens: LinearTokenPair }
+    input: LinearBindInput
 ): Promise<LinearBindResult> {
     const { attempt, facts, now } = input;
     const [bound] = await tx
@@ -81,23 +85,10 @@ async function bindNewWorkspace(
     if (bound) {
         throw workspaceBoundElsewhere();
     }
-    const connectionId = createOpaqueId('mcp');
-    await tx.insert(mcpConnectionsTable).values({
+    const connectionId = await insertLinearConnection(tx, {
         accountLabel: facts.organization.urlKey,
-        auth: 'none',
-        connected: true,
-        headerNames: [],
-        icon: null,
-        id: connectionId,
-        name: linearName,
-        preset: 'linear',
+        icon: input.icon,
         serverId: attempt.serverId,
-        tools: [],
-        url: linearHostedUrl,
-    });
-    await tx.insert(mcpSecretsTable).values({
-        connectionId,
-        secret: emptySecret() as unknown as Record<string, unknown>,
     });
     const workspaceId = createOpaqueId('lnw');
     await tx.insert(linearWorkspacesTable).values({
@@ -121,7 +112,7 @@ async function bindNewWorkspace(
 
 async function rebindWorkspace(
     tx: HausDatabase,
-    input: { attempt: LinearAttempt; facts: LinearInstallFacts; now: Date; tokens: LinearTokenPair }
+    input: LinearBindInput
 ): Promise<LinearBindResult> {
     const { attempt, facts, now } = input;
     const workspace = await attemptWorkspace(tx, attempt);
@@ -144,10 +135,11 @@ async function rebindWorkspace(
             urlKey: facts.organization.urlKey,
         })
         .where(eq(linearWorkspacesTable.id, workspace.id));
-    await tx
-        .update(mcpConnectionsTable)
-        .set({ accountLabel: facts.organization.urlKey, connected: true, name: linearName })
-        .where(eq(mcpConnectionsTable.id, workspace.connectionId));
+    await reconnectLinearConnection(tx, {
+        accountLabel: facts.organization.urlKey,
+        connectionId: workspace.connectionId,
+        icon: input.icon,
+    });
     await storeActor(tx, { ...input, identityId: null, workspaceId: workspace.id });
     await labelLifecycle.teamsChanged(tx, {
         serverId: attempt.serverId,
@@ -162,10 +154,7 @@ async function rebindWorkspace(
     return { connectionId: workspace.connectionId, kind: 'workspace_reconnected' };
 }
 
-async function bindIdentity(
-    tx: HausDatabase,
-    input: { attempt: LinearAttempt; facts: LinearInstallFacts; now: Date; tokens: LinearTokenPair }
-): Promise<LinearBindResult> {
+async function bindIdentity(tx: HausDatabase, input: LinearBindInput): Promise<LinearBindResult> {
     const { attempt, facts, now } = input;
     const workspace = await attemptWorkspace(tx, attempt);
     const [identity] = await tx
@@ -292,6 +281,3 @@ function identityBoundElsewhere() {
         'This Linear app is already a Haus Agent identity.'
     );
 }
-
-// Named for the service like every preset; the unique URL key is the account.
-const linearName = 'Linear';
