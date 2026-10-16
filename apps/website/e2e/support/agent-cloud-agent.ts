@@ -115,27 +115,40 @@ export async function startCloudAgentWork(input: {
         chatId: input.chatId,
         credential: input.computerCredential,
     });
-    const response = await fetch(`${hausOrigin()}/api/agent/cloud-agents`, {
-        body: JSON.stringify({
-            content: input.content,
-            nonce: `cloud-agent-${input.agentId}-${input.target}`,
-            provider: 'cursor',
-            repository: input.repository,
-            startingRef: input.startingRef ?? null,
-            target: input.target,
-            title: input.title,
-        }),
-        headers: { authorization: `Bearer ${runnerToken}`, 'content-type': 'application/json' },
-        method: 'POST',
-    });
-    const receipt = (await response.json()) as {
-        messageId?: string;
-        runId?: string;
-        work?: { id: string };
+    const launch = async () => {
+        const response = await fetch(`${hausOrigin()}/api/agent/cloud-agents`, {
+            body: JSON.stringify({
+                content: input.content,
+                nonce: `cloud-agent-${input.agentId}-${input.target}`,
+                provider: 'cursor',
+                repository: input.repository,
+                startingRef: input.startingRef ?? null,
+                target: input.target,
+                title: input.title,
+            }),
+            headers: {
+                authorization: `Bearer ${runnerToken}`,
+                'content-type': 'application/json',
+            },
+            method: 'POST',
+        });
+        const receipt = (await response.json()) as {
+            messageId?: string;
+            runId?: string;
+            state?: string;
+            work?: { id: string };
+        };
+        return { receipt, status: response.status };
     };
-    if (response.status !== 200 || !(receipt.work && receipt.messageId && receipt.runId)) {
+    // A target with messages the Agent has not read holds the launch and shows
+    // them; like an Agent, the fixture has now read them and launches again.
+    let { receipt, status } = await launch();
+    if (status === 200 && receipt.state === 'held') {
+        ({ receipt, status } = await launch());
+    }
+    if (status !== 200 || !(receipt.work && receipt.messageId && receipt.runId)) {
         throw new Error(
-            `The Cloud Agent fixture could not start its work: ${response.status} ${JSON.stringify(receipt)}`
+            `The Cloud Agent fixture could not start its work: ${status} ${JSON.stringify(receipt)}`
         );
     }
 

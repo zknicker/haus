@@ -14,7 +14,7 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
     page,
 }, testInfo) => {
     test.setTimeout(90_000);
-    const { server, session } = await createTestServer(page, {
+    const { client, server, session } = await createTestServer(page, {
         displayName: 'Cloud Agent Work',
         slug: 'cloud-agent-work',
     });
@@ -156,7 +156,15 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
 
     // Work delegated inside somebody else's Thread hoists its status onto that
     // Thread's own surface in the Chat, so a reader scanning back sees that
-    // something is still running under it without opening anything.
+    // something is still running under it without opening anything. A launch
+    // never opens a Thread, so somebody replies there first.
+    await client.chat.send.mutate({
+        serverId: server.id,
+        chatId: seeded.chatId,
+        nonce: 'cloud-agent-thread-reply',
+        content: 'Can a Cloud Agent backfill the test too?',
+        thread: { anchorMessageId: seeded.messageId },
+    });
     const nested = await startCloudAgentWork({
         agentId: seeded.agentId,
         chatId: seeded.chatId,

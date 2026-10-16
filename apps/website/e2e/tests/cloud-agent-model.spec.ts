@@ -62,10 +62,12 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     await page.goto(`/s/${slug}/settings/models`);
     const group = page.getByRole('main', { name: 'Scrollable main content' });
     // The Autocomplete's labelled button is visually hidden; its group is the trigger.
-    const pickerButton = group.getByRole('button', { name: /^(?!About ).*Cloud Agent model$/u });
+    const pickerButton = group.getByRole('button', {
+        name: /^(?!About ).*Cursor cloud agent model$/u,
+    });
     const picker = pickerButton.locator('xpath=..');
-    const effort = group.getByRole('button', { name: /Cloud Agent effort$/u });
-    const fast = group.getByRole('switch', { name: 'Cloud Agent fast mode' });
+    const effort = group.getByRole('button', { name: /Cursor cloud agent effort$/u });
+    const fast = group.getByRole('switch', { name: 'Cursor cloud agent fast mode' });
 
     // No Computer has reported a catalog yet: Auto is all there is.
     await expect(picker).toContainText('Auto');
@@ -76,7 +78,7 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     sendCatalog(computer, [composer, gpt, opus]);
     await expect(pickerButton).toBeEnabled();
     // Catalog freshness is the Model row's tooltip, not a row description.
-    await group.getByRole('button', { name: 'About Model' }).focus();
+    await group.getByRole('button', { name: 'About Cursor model' }).focus();
     await expect(page.getByRole('tooltip')).toContainText('Model list updated just now.');
     await page.keyboard.press('Escape');
     await picker.click();
@@ -89,7 +91,9 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
         /Composer 2\s*Fast agentic coding/u,
     ]);
     // Search matches the Cursor id as well as the name.
-    await page.getByRole('searchbox', { name: 'Search Cloud Agent models' }).fill('claude-opus');
+    await page
+        .getByRole('searchbox', { name: 'Search Cursor cloud agent models' })
+        .fill('claude-opus');
     await expect(listbox.getByRole('option')).toHaveText(['Claude Opus 5.5']);
     await listbox.getByRole('option', { name: 'Claude Opus 5.5' }).click();
     await expect(picker).toContainText('Claude Opus 5.5');
@@ -98,12 +102,13 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     // The model's own defaults show until a param is chosen; each choice saves at once.
     await expect(effort).toContainText('Medium');
     await expect(fast).not.toBeChecked();
-    // Model, Effort, and Fast rows share one height whatever their control.
+    // Cursor's Model, Effort, and Fast rows and Claude's Model row share one
+    // height whatever their control.
     const rowHeights = await page
         .locator('.item-card-group', { has: page.getByRole('heading', { name: 'Cloud Agents' }) })
         .locator('.item-card')
         .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
-    expect(rowHeights).toHaveLength(3);
+    expect(rowHeights).toHaveLength(4);
     expect(new Set(rowHeights).size).toBe(1);
     await effort.click();
     await page.getByRole('option', { name: 'High' }).click();

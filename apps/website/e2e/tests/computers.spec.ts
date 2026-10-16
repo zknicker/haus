@@ -99,7 +99,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
         page.getByRole('gridcell', { name: /Update required Mac Computer/u })
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Check' }).click();
+    await page.getByRole('button', { name: 'Check', exact: true }).click();
     await expect(page.getByText('Update available')).toBeVisible();
     const updateButton = page.getByRole('button', { name: 'Update to v1.1.0' });
     await expect(updateButton).toBeEnabled();
@@ -142,7 +142,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     expect(await reconnected).toMatchObject({ mode: 'ordinary' });
     await expect(page.getByRole('gridcell', { name: /Online Mac Computer v1.1.0/u })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Check' }).click();
+    await page.getByRole('button', { name: 'Check', exact: true }).click();
     await expect(page.getByText('Haus Computer is up to date', { exact: true })).toBeVisible();
     await expect(page.getByText('Version 1.1.0 is the latest production release.')).toBeVisible();
     await expect(page.getByRole('button', { name: /Update to/u })).toHaveCount(0);

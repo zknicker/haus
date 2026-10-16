@@ -25,9 +25,11 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     await page.goto('/s/cloud-agent-hq/computers');
     const detail = page.getByRole('main', { name: 'Scrollable main content' });
     await expect(detail.getByText('Cursor Cloud Agents')).toBeVisible();
-    await expect(detail.getByText('Not connected')).toBeVisible();
+    // Each provider has its own row; this test drives Cursor's.
+    const cursorRow = detail.locator('.item-card', { hasText: 'Cursor Cloud Agents' });
+    await expect(cursorRow.getByText('Not connected')).toBeVisible();
 
-    await detail.getByRole('button', { name: 'Connect', exact: true }).click();
+    await cursorRow.getByRole('button', { name: 'Connect', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Sign in to Cursor', exact: true });
     await expect(dialog.getByText('Waiting for you to sign in')).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Continue in Cursor' })).toBeEnabled();
@@ -46,14 +48,14 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     await popup.close();
     await dialog.getByRole('button', { name: 'Cancel sign-in' }).click();
     await expect(dialog).toHaveCount(0);
-    await expect(detail.getByText('Not connected')).toBeVisible();
+    await expect(cursorRow.getByText('Not connected')).toBeVisible();
 
-    await detail.getByRole('button', { name: 'Connect', exact: true }).click();
+    await cursorRow.getByRole('button', { name: 'Connect', exact: true }).click();
     await expect(dialog.getByText('Waiting for you to sign in')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await page.reload();
-    await detail.getByRole('button', { name: 'Continue sign-in' }).click();
+    await cursorRow.getByRole('button', { name: 'Continue sign-in' }).click();
     await expect(dialog.getByText('Waiting for you to sign in')).toBeVisible();
     signIn.expire();
     await expect(
@@ -75,9 +77,11 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     signIn.approve();
     await expect(page.getByRole('dialog', { name: 'Cursor connected' })).toBeVisible();
     await page.getByRole('button', { name: 'Done', exact: true }).click();
-    await expect(detail.getByText('Ready', { exact: true })).toBeVisible();
-    await expect(detail.getByText(/Connected as delegate@example.com/u)).toBeVisible();
-    await expect(detail.getByRole('button', { name: 'Cursor Cloud Agents actions' })).toBeVisible();
+    await expect(cursorRow.getByText('Ready', { exact: true })).toBeVisible();
+    await expect(cursorRow.getByText(/Connected as delegate@example.com/u)).toBeVisible();
+    await expect(
+        cursorRow.getByRole('button', { name: 'Cursor Cloud Agents actions' })
+    ).toBeVisible();
     computer.close();
 });
 
