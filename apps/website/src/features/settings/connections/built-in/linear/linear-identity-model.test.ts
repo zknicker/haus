@@ -7,6 +7,7 @@ import {
     linearIdentityFlowSteps,
     linearIdentityFlowValues,
     linearIdentityRegisterHint,
+    linearIdentityValuesShown,
 } from './linear-identity-flow-model.ts';
 import {
     identityForAgent,
@@ -42,54 +43,45 @@ function identity(overrides: Partial<LinearIdentity> = {}): LinearIdentity {
 }
 
 describe('linearIdentityRow', () => {
-    test('an Agent without an identity posts via Haus and can be given one', () => {
-        expect(linearIdentityRow('Juniper', null)).toEqual({
-            actions: ['give', 'connect-existing'],
-            description: 'Posts as Juniper via Haus',
-            status: null,
+    test('an Agent without an identity posts via Haus, offers its own, and has no menu', () => {
+        expect(linearIdentityRow(null)).toEqual({
+            details: [],
+            fact: 'Posts via Haus',
+            menu: [],
+            step: 'give',
         });
-        expect(linearIdentityRow('Juniper', identity({ status: 'removed' })).actions).toEqual([
-            'give',
-            'connect-existing',
-        ]);
+        expect(linearIdentityRow(identity({ status: 'removed' })).step).toBe('give');
     });
 
-    test('a draft still posts via Haus and resumes its setup', () => {
-        const row = linearIdentityRow('Juniper', identity({ handle: null, status: 'draft' }));
-        expect(row.description).toBe('Posts as Juniper via Haus');
-        expect(row.status?.label).toBe('Setup not finished');
-        expect(row.actions).toEqual(['continue', 'remove']);
-        const unsaved = identity({ credentialsSaved: false, handle: null, status: 'draft' });
-        expect(linearIdentityRow('Juniper', unsaved).actions).toEqual([
-            'continue',
-            'connect-existing',
-            'remove',
-        ]);
+    test('a draft still posts via Haus and its line offers to finish setup', () => {
+        expect(linearIdentityRow(identity({ handle: null, status: 'draft' }))).toEqual({
+            details: [],
+            fact: 'Posts via Haus',
+            menu: [],
+            step: 'continue',
+        });
     });
 
-    test('an active identity names its handle and last delivery with no chip', () => {
+    test('an active identity names its handle, which opens its menu, and its last delivery', () => {
         const row = linearIdentityRow(
-            'Juniper',
             identity({ lastDeliveryAt: '2026-10-15T09:00:00.000Z' }),
             now
         );
         expect(row).toEqual({
-            actions: ['rotate-secret', 'remove'],
-            description: 'Linear identity: @juniper · Last delivery 3h ago',
-            status: null,
+            details: ['Last delivery 3h ago'],
+            fact: 'Posts as @juniper',
+            menu: ['rotate-secret', 'remove'],
+            step: null,
         });
     });
 
-    test('degraded identities name their state and offer the fix', () => {
-        expect(linearIdentityRow('J', identity({ status: 'inactive' })).status?.label).toBe(
-            'Inactive'
-        );
-        const signIn = linearIdentityRow('J', identity({ status: 'refresh_required' }));
-        expect(signIn.status).toEqual({ color: 'warning', label: 'Sign in required' });
-        expect(signIn.actions).toEqual(['reinstall', 'rotate-secret', 'remove']);
-        expect(linearIdentityRow('J', identity({ status: 'revoked' })).status?.color).toBe(
-            'danger'
-        );
+    test('degraded identities name their state on the line and offer the fix', () => {
+        expect(linearIdentityRow(identity({ status: 'inactive' })).details).toContain('Inactive');
+        const signIn = linearIdentityRow(identity({ status: 'refresh_required' }));
+        expect(signIn.details).toEqual(['Sign in required']);
+        expect(signIn.step).toBe('reinstall');
+        expect(signIn.menu).toEqual(['rotate-secret', 'remove']);
+        expect(linearIdentityRow(identity({ status: 'revoked' })).details).toEqual(['Revoked']);
     });
 
     test('a removed identity never shadows a live one', () => {
@@ -106,59 +98,93 @@ describe('linearIdentityRow', () => {
 });
 
 describe('linear identity flow', () => {
-    test('copy and paste are current together until the save lands, then install', () => {
-        const before = linearIdentityFlowSteps({
+    const stepsOf = (overrides: Partial<Parameters<typeof linearIdentityFlowSteps>[0]> = {}) =>
+        linearIdentityFlowSteps({
             credentialsSaved: false,
-            draftReady: true,
+            editing: null,
+            installing: true,
             mode: 'create',
+            registered: false,
+            ...overrides,
         });
-        expect(before.map((step) => step.status)).toEqual(['current', 'current', 'upcoming']);
-        expect(before[0]?.title).toBe('Create the app in Linear');
-        const after = linearIdentityFlowSteps({
-            credentialsSaved: true,
-            draftReady: true,
-            mode: 'existing',
-        });
-        expect(after.map((step) => step.status)).toEqual(['done', 'done', 'current']);
-        expect(after[0]?.title).toBe("Check the app's settings");
-        expect(
-            linearIdentityFlowSteps({
-                credentialsSaved: false,
-                draftReady: false,
-                mode: 'create',
-            })[0]?.status
-        ).toBe('upcoming');
+    const statuses = (steps: ReturnType<typeof linearIdentityFlowSteps>) =>
+        steps.map((step) => step.status);
+
+    test('exactly one step is current, advancing as each lands', () => {
+        const fresh = stepsOf();
+        expect(statuses(fresh)).toEqual(['current', 'upcoming', 'upcoming']);
+        expect(fresh[0]?.title).toBe('Create the app in Linear');
+        const returned = stepsOf({ registered: true });
+        expect(statuses(returned)).toEqual(['done', 'current', 'upcoming']);
+        expect(returned[0]?.title).toBe('Created in Linear');
+        const saved = stepsOf({ credentialsSaved: true });
+        expect(statuses(saved)).toEqual(['done', 'done', 'current']);
+        expect(saved[1]?.title).toBe('Credentials saved');
     });
 
-    test('creating lists every value; checking an existing app lists only URLs and events', () => {
+    test('editing reopens a done step and every later step waits again', () => {
+        const edited = stepsOf({ credentialsSaved: true, editing: 'credentials' });
+        expect(statuses(edited)).toEqual(['done', 'current', 'upcoming']);
+        const back = stepsOf({ credentialsSaved: true, editing: 'register', mode: 'existing' });
+        expect(statuses(back)).toEqual(['current', 'upcoming', 'upcoming']);
+        expect(back[0]?.title).toBe("Check the app's settings");
+    });
+
+    test('a secret rotation has no install step and lands on the credentials', () => {
+        const rotation = stepsOf({ credentialsSaved: true, installing: false, mode: 'existing' });
+        expect(rotation.map((step) => step.id)).toEqual(['register', 'credentials']);
+        expect(statuses(rotation)).toEqual(['done', 'current']);
+    });
+
+    test('creating by hand lists the app icon to save and the events as labels', () => {
+        const byHand = linearIdentityFlowValues(
+            { ...draft, createAppPrefillsWebhook: false },
+            'create'
+        );
+        expect(byHand.map((value) => `${value.kind}:${value.label}`)).toEqual([
+            'copy:App name',
+            'download:App icon',
+            'copy:Callback URL',
+            'copy:Webhook URL',
+            'labels:Webhook events',
+        ]);
+        expect(byHand[4]).toEqual({
+            kind: 'labels',
+            label: 'Webhook events',
+            values: ['Agent session events', 'Permission changes', 'OAuth app revoked'],
+        });
+    });
+
+    test('a pre-filled create drops the icon; an existing app lists only URLs and events', () => {
         expect(linearIdentityFlowValues(draft, 'create').map((value) => value.label)).toEqual([
             'App name',
-            'Avatar',
             'Callback URL',
             'Webhook URL',
             'Webhook events',
         ]);
-        const existing = linearIdentityFlowValues(draft, 'existing');
-        expect(existing.map((value) => value.label)).toEqual([
+        expect(linearIdentityFlowValues(draft, 'existing').map((value) => value.label)).toEqual([
             'Callback URL',
             'Webhook URL',
             'Webhook events',
         ]);
-        expect(existing[2]?.value).toBe(
-            'Agent session events, Permission changes, OAuth app revoked'
-        );
     });
 
     test('creating says Linear opens pre-filled and only the two credentials come back', () => {
         const full = linearIdentityRegisterHint(draft, 'create');
-        expect(full).toContain('everything below filled in');
-        expect(full).toContain('client ID and webhook signing secret');
-        const local = linearIdentityRegisterHint(
-            { ...draft, createAppPrefillsWebhook: false },
-            'create'
-        );
-        expect(local).toContain('add the webhook URL and events yourself');
+        expect(full).toContain('app filled in');
+        expect(full).toContain('client ID and webhook secret');
+        const localDraft = { ...draft, createAppPrefillsWebhook: false };
+        const local = linearIdentityRegisterHint(localDraft, 'create');
+        expect(local).toContain('add the app icon and webhook below yourself');
         expect(linearIdentityRegisterHint(draft, 'existing')).toContain('match these');
+    });
+
+    test('values wait behind a toggle only when Linear pre-fills them all', () => {
+        expect(linearIdentityValuesShown(draft, 'create')).toBe(false);
+        expect(
+            linearIdentityValuesShown({ ...draft, createAppPrefillsWebhook: false }, 'create')
+        ).toBe(true);
+        expect(linearIdentityValuesShown(draft, 'existing')).toBe(true);
     });
 
     test('both pasted values are required and bounded', () => {

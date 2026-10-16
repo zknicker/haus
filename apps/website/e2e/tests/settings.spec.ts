@@ -191,13 +191,13 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await signInAsClerkHuman(page);
     await page.goto(`/s/${slug}/settings/connections`);
 
-    await page.getByRole('button', { name: 'Add MCP Server' }).click();
-    const drawer = page.getByRole('dialog', { name: 'Add MCP Server' });
+    await page.getByRole('button', { name: 'Add connection' }).click();
+    const drawer = page.getByRole('dialog', { name: 'Add connection' });
     await drawer.getByLabel('Name').fill(name);
     await drawer.getByLabel('URL').fill('https://example.com/mcp');
     await drawer.getByLabel('Authentication').click();
     await page.getByRole('option', { name: 'OAuth' }).click();
-    await drawer.getByRole('button', { name: 'Add MCP' }).click();
+    await drawer.getByRole('button', { name: 'Add connection' }).click();
 
     // The Added grid renders each connection as a card button, not a row.
     const connection = page.getByRole('button', { name: new RegExp(name, 'u') });
@@ -233,7 +233,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     // Drain the remaining one-press presets; X (token) and Skool (sign-in) are not.
     const addPreset = page
         .locator('.item-card')
-        .getByRole('button', { name: /^Add (?!(?:X|Skool)$)/u });
+        .getByRole('button', { name: /^Add (?!(?:X|Skool|Linear)$)/u });
     for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
         await addPreset.first().click();
         await expect(addPreset).toHaveCount(remaining - 1);
@@ -253,7 +253,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await expect(page.getByRole('button', { exact: true, name: 'Sign in' })).toBeVisible();
     await expect(page.getByText('Sign in required', { exact: true })).toBeVisible();
     await expect(
-        page.getByText('This MCP is added to Haus. Sign in to your account', { exact: false })
+        page.getByText('This connection is added to Haus. Sign in', { exact: false })
     ).toBeVisible();
     // One press opens the sign-in tab, adds the account, and lands on its page.
     const signInTab = page.context().waitForEvent('page');
