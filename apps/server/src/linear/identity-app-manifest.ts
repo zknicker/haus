@@ -72,11 +72,14 @@ export function linearIdentityAppManifest(input: {
     };
 }
 
+/** Linear's list of a workspace's own applications, each with its credentials. */
+export function linearAppsUrl(urlKey: string): string {
+    return `https://linear.app/${encodeURIComponent(urlKey)}/settings/api/applications`;
+}
+
 /** Linear's new-application page for a workspace, pre-filled from the manifest. */
 export function linearCreateAppUrl(urlKey: string, manifest: LinearAppManifest): string {
-    const url = new URL(
-        `https://linear.app/${encodeURIComponent(urlKey)}/settings/api/applications/new`
-    );
+    const url = new URL(`${linearAppsUrl(urlKey)}/new`);
     url.searchParams.set('manifest', JSON.stringify(manifest));
     return url.toString();
 }

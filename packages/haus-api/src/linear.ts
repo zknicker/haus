@@ -160,6 +160,11 @@ export type LinearIdentityWebhookEvent = z.infer<typeof linearIdentityWebhookEve
 export const linearIdentityDraftSchema = z
     .object({
         appName: z.string().min(1),
+        /**
+         * Linear's list of the workspace's own applications, where an app
+         * already made shows its client id and webhook signing secret.
+         */
+        appsUrl: z.url(),
         avatarUrl: z.url().nullable(),
         callbackUrl: z.url(),
         /**

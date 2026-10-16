@@ -2,6 +2,7 @@ import type { LinearIdentity, LinearIdentityDraft } from '@haus/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { absoluteAvatarUrlFor } from '../../avatars/avatar-url.ts';
 import {
+    linearAppsUrl,
     linearCreateAppUrl,
     linearIdentityAppManifest,
 } from '../../linear/identity-app-manifest.ts';
@@ -88,6 +89,7 @@ export function identityGuidedFlow(
     });
     return {
         appName: manifest.oauth.client_name,
+        appsUrl: linearAppsUrl(workspace.urlKey),
         avatarUrl,
         callbackUrl,
         createAppPrefillsWebhook: manifest.webhook !== undefined,

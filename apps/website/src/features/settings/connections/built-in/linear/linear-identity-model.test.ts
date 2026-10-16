@@ -21,6 +21,7 @@ const draft: LinearIdentityDraft = {
     appName: 'Juniper',
     avatarUrl: 'https://haus.chat/api/avatars/av_1',
     callbackUrl: 'https://haus.chat/linear/oauth/callback',
+    appsUrl: 'https://linear.app/settings/api/applications',
     createAppPrefillsWebhook: true,
     createAppUrl: 'https://linear.app/settings/api/applications/new',
     identityId: 'lni_0123456789abcdef',
