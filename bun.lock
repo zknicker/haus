@@ -289,6 +289,7 @@
     "@shadcn/react@0.1.0": "patches/@shadcn%2Freact@0.1.0.patch",
     "react-stately@3.50.0": "patches/react-stately@3.50.0.patch",
     "@ai-sdk/harness-pi@1.0.151": "patches/@ai-sdk%2Fharness-pi@1.0.151.patch",
+    "react-aria@3.52.1": "patches/react-aria@3.52.1.patch",
     "react-aria-components@1.21.1": "patches/react-aria-components@1.21.1.patch",
     "@radix-ui/react-avatar@1.2.6": "patches/@radix-ui%2Freact-avatar@1.2.6.patch",
     "@ai-sdk/harness-acp@1.0.88": "patches/@ai-sdk%2Fharness-acp@1.0.88.patch",

@@ -1,0 +1,54 @@
+diff --git a/dist/private/interactions/useLongPress.cjs b/dist/private/interactions/useLongPress.cjs
+index fc2e35f90ff095ec4b99536bd299bcf47ffb3fe7..914d18af4171c65b7f2d06a18c665daa06d8072f 100644
+--- a/dist/private/interactions/useLongPress.cjs
++++ b/dist/private/interactions/useLongPress.cjs
+@@ -77,7 +77,13 @@ function $8615756fee3bdacc$export$c24ed0104d07eab9(props) {
+                 });
+             }
+         },
++        onPressUp (e) {
++            // A long press only watches presses; a plain click (a link inside a
++            // PreviewTrigger) keeps propagating to document listeners.
++            e.continuePropagation();
++        },
+         onPressEnd (e) {
++            e.continuePropagation();
+             if (timeRef.current) clearTimeout(timeRef.current);
+             if (onLongPressEnd && isAcceptedPointerType(e)) onLongPressEnd({
+                 ...e,
+diff --git a/dist/private/interactions/useLongPress.js b/dist/private/interactions/useLongPress.js
+index 44447db667f4ce3bf7cdd30c7df297dc1215d239..02c83f383fb7a5e989153eea7180df118e8cf0d7 100644
+--- a/dist/private/interactions/useLongPress.js
++++ b/dist/private/interactions/useLongPress.js
+@@ -71,7 +71,13 @@ function $4a63d38d4cd3f004$export$c24ed0104d07eab9(props) {
+                 });
+             }
+         },
++        onPressUp (e) {
++            // A long press only watches presses; a plain click (a link inside a
++            // PreviewTrigger) keeps propagating to document listeners.
++            e.continuePropagation();
++        },
+         onPressEnd (e) {
++            e.continuePropagation();
+             if (timeRef.current) clearTimeout(timeRef.current);
+             if (onLongPressEnd && isAcceptedPointerType(e)) onLongPressEnd({
+                 ...e,
+diff --git a/dist/private/interactions/useLongPress.mjs b/dist/private/interactions/useLongPress.mjs
+index a93d148b1ae1ec7ae502a6100966cf99f530bf80..b77ace875964e6bb22ea93cd4223df9618d5691f 100644
+--- a/dist/private/interactions/useLongPress.mjs
++++ b/dist/private/interactions/useLongPress.mjs
+@@ -71,7 +71,13 @@ function $7b01448eaad0fe7c$export$c24ed0104d07eab9(props) {
+                 });
+             }
+         },
++        onPressUp (e) {
++            // A long press only watches presses; a plain click (a link inside a
++            // PreviewTrigger) keeps propagating to document listeners.
++            e.continuePropagation();
++        },
+         onPressEnd (e) {
++            e.continuePropagation();
+             if (timeRef.current) clearTimeout(timeRef.current);
+             if (onLongPressEnd && isAcceptedPointerType(e)) onLongPressEnd({
+                 ...e,
