@@ -46,3 +46,14 @@ export function linearWorkspaceHealth(
         teamAccess: workspace.teams.length === 0 || syncedTooLongAgo ? 'none' : 'ok',
     };
 }
+
+/**
+ * Linear's settings page for the workspace's installed applications, where an
+ * admin opens the Haus app and changes which teams it can reach
+ * (linear.app/developers/oauth-2-0-authentication, "app details page").
+ * A reconnect of the installed app skips Linear's team choice, so it is not
+ * the way to change teams.
+ */
+export function linearApplicationsSettingsUrl(urlKey: string): string {
+    return `https://linear.app/${encodeURIComponent(urlKey)}/settings/applications`;
+}

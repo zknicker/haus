@@ -3,22 +3,21 @@ import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { SettingsRowTitle } from '../../../layout/settings-row-title.tsx';
 import { SettingsFact } from '../../../layout/settings-text.tsx';
-import { linearWorkspaceHealth } from './linear-workspace-health.ts';
+import { linearApplicationsSettingsUrl, linearWorkspaceHealth } from './linear-workspace-health.ts';
 
 /**
  * The workspace card's fact rows. The teams the Haus app was granted are
- * where Agents can write, so the row says that; the grant is chosen in
- * Linear when the app is installed, so its one control reinstalls it there.
- * The last delivery shows only while it is worth a look.
+ * where Agents can write, so the row says that. A workspace admin changes
+ * that grant on the Haus app's page in Linear's settings, so its one control
+ * opens Linear's installed applications; Linear's `PermissionChange` delivery
+ * then refreshes the row. The last delivery shows only while it is worth a
+ * look.
  */
 export function LinearWorkspaceHealthRows({
     canManage,
-    onChangeTeams,
     workspace,
 }: {
     canManage: boolean;
-    /** Reinstalls the Haus app, where Linear asks which teams it may reach. */
-    onChangeTeams: () => void;
     workspace: LinearWorkspace;
 }) {
     const health = linearWorkspaceHealth(workspace);
@@ -42,7 +41,17 @@ export function LinearWorkspaceHealthRows({
                         </Chip>
                     ) : null}
                     {canManage ? (
-                        <Button onPress={onChangeTeams} size="sm" variant="ghost">
+                        <Button
+                            onPress={() =>
+                                window.open(
+                                    linearApplicationsSettingsUrl(workspace.urlKey),
+                                    '_blank',
+                                    'noopener,noreferrer'
+                                )
+                            }
+                            size="sm"
+                            variant="ghost"
+                        >
                             Change in Linear
                         </Button>
                     ) : null}

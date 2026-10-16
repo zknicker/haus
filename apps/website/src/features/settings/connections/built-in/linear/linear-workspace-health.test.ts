@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { LinearWorkspace } from '@haus/api';
-import { linearWorkspaceHealth } from './linear-workspace-health.ts';
+import { linearApplicationsSettingsUrl, linearWorkspaceHealth } from './linear-workspace-health.ts';
 import { linearIdentityArrival } from './use-linear-identity-arrival.ts';
 
 const now = Date.parse('2026-10-16T12:00:00.000Z');
@@ -68,4 +68,10 @@ describe('linearIdentityArrival', () => {
         );
         expect(linearIdentityArrival(null, [active], null)).toBeNull();
     });
+});
+
+test("Change in Linear opens the workspace's installed applications, not a reinstall", () => {
+    expect(linearApplicationsSettingsUrl('haus-chat')).toBe(
+        'https://linear.app/haus-chat/settings/applications'
+    );
 });

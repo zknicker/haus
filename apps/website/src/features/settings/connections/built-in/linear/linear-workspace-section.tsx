@@ -5,6 +5,7 @@ import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../../../components/ui/icon.tsx';
 import { useLinearStartInstall } from '../../../../../hooks/linear/use-linear-start-install.ts';
+import { useLinearSyncTeams } from '../../../../../hooks/linear/use-linear-sync-teams.ts';
 import { useLinearWorkspace } from '../../../../../hooks/linear/use-linear-workspace.ts';
 import { useServerContext } from '../../../../servers/server-context.ts';
 import { ConnectionSection } from '../../../mcp/connection-section.tsx';
@@ -27,6 +28,7 @@ export function LinearWorkspaceSection({ connection, serverId }: BuiltInConnecti
     const install = useLinearStartInstall(serverId, connection.id);
     // The definition's connect: a new workspace becomes its own connection.
     const connectAnother = useLinearStartInstall(serverId);
+    const syncTeams = useLinearSyncTeams(serverId, connection.id);
 
     const notice = <LinearSetupNotice />;
     if (workspace === undefined) {
@@ -43,6 +45,7 @@ export function LinearWorkspaceSection({ connection, serverId }: BuiltInConnecti
                             canManage={canManage}
                             onConnectAnother={() => void connectAnother.start()}
                             onReconnect={() => void install.start()}
+                            onRefreshTeams={syncTeams.syncTeams}
                             workspace={workspace}
                         />
                     ) : canManage ? (
@@ -70,11 +73,14 @@ function WorkspaceRows({
     canManage,
     onConnectAnother,
     onReconnect,
+    onRefreshTeams,
     workspace,
 }: {
     canManage: boolean;
     onConnectAnother: () => void;
     onReconnect: () => void;
+    /** Re-reads the teams the Haus app reaches, after an admin changed them in Linear. */
+    onRefreshTeams: () => void;
     workspace: LinearWorkspace;
 }) {
     const status = linearWorkspaceStatus(workspace.status);
@@ -119,6 +125,15 @@ function WorkspaceRows({
                                 >
                                     <Label>Open in Linear</Label>
                                 </Dropdown.Item>
+                                {canManage && workspace.status === 'active' ? (
+                                    <Dropdown.Item
+                                        id="refresh-teams"
+                                        onAction={onRefreshTeams}
+                                        textValue="Refresh teams"
+                                    >
+                                        <Label>Refresh teams</Label>
+                                    </Dropdown.Item>
+                                ) : null}
                                 {canManage && workspace.status !== 'removed' ? (
                                     <Dropdown.Item
                                         id="reconnect"
@@ -145,7 +160,6 @@ function WorkspaceRows({
             <Separator />
             <LinearWorkspaceHealthRows
                 canManage={canManage && workspace.status !== 'removed'}
-                onChangeTeams={onReconnect}
                 workspace={workspace}
             />
         </>
