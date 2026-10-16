@@ -38,6 +38,8 @@ const linearTools: Tool[] = ['list_issues', 'save_issue'].map((name) => ({
     name,
 }));
 const appOrigin = 'https://app.haus.test';
+const brandIcon = { dark: null, light: 'data:image/png;base64,iVBORw0KGgo=' };
+let linearIcon: typeof brandIcon | null = brandIcon; // null: linear.app is unreachable
 const linearApp = () => ({ clientId: 'haus-client', fetch: fake.fetch, publicOrigin: appOrigin });
 
 beforeAll(async () => {
@@ -58,6 +60,8 @@ beforeAll(async () => {
         appOrigin,
         db: connection.db,
         linearApp: linearApp(),
+        mcpIconResolver: () =>
+            linearIcon ? Promise.resolve(linearIcon) : Promise.reject(new Error('offline')),
         // Real inventory: closeConnection forgets (pauses) the id like McpRuntime does,
         // so the callback must resume before its post-install discovery.
         mcpRuntime: {
@@ -137,6 +141,8 @@ test('an Owner binds a new workspace once; a replayed state binds nothing', asyn
         accountLabel: 'acme',
         auth: 'none',
         connected: true,
+        // Branding is stored at bind time so connection reads never fetch it.
+        icon: brandIcon,
         name: 'Linear',
         preset: 'linear',
         tools: ['list_issues', 'save_issue'],
@@ -212,6 +218,28 @@ test('a reconnect into a different organization is refused', async () => {
         })
     ).callback();
     expect(result.location).toContain('linear_setup=linear_organization_mismatch');
+});
+
+test('a failed icon lookup still binds, and a reconnect fills the missing icon', async () => {
+    const seed = await seedAgent(connection.db);
+    const facts = { ...hausApp, organization: { ...acme, id: 'org-iconless' } };
+    fake.codes.set('code-iconless', facts).set('code-iconless-again', facts);
+    linearIcon = null;
+    const first = await (await install(seed, 'code-iconless')).callback();
+    expect(first.location).toContain('linear_setup=workspace_connected');
+    const row = async () =>
+        (await connection.db.select().from(mcpConnectionsTable)).find(
+            (candidate) => candidate.serverId === seed.serverId
+        );
+    expect((await row())?.icon).toBeNull();
+    linearIcon = brandIcon;
+    const target: LinearAttemptTarget = {
+        connectionId: (await row())?.id ?? '',
+        purpose: 'workspace_reconnect',
+    };
+    const again = await (await install(seed, 'code-iconless-again', target)).callback();
+    expect(again.location).toContain('linear_setup=workspace_reconnected');
+    expect((await row())?.icon).toEqual(brandIcon);
 });
 
 test('an identity installs as its own app user, and a reinstall must keep that user', async () => {

@@ -1,7 +1,9 @@
-import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { afterAll, beforeAll, expect, spyOn, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { mcpUpdatedTopic } from '../src/realtime/topics.ts';
 import { clearMcpIdentity } from '../src/server-mcp/connection-identity.ts';
 import { cacheAnonymousMcpIcons } from '../src/server-mcp/icon-cache.ts';
+import { repairMcpConnectionIcons } from '../src/server-mcp/icon-repair.ts';
 import { createMcpPresetAccount, resolveMcpPresetIcons } from '../src/server-mcp/presets.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
@@ -86,10 +88,50 @@ test.each([
     );
     expect(refreshed.icon).toEqual(recommended);
 
+    // A row stored without branding stays a pure read: no lookup, no recovery on list.
     await harness.sql`update mcp_connections set icon = null, connected = false where id = ${added.id}`;
-    const recovered = await listMcpConnections(database.db, resolveIcon, member, serverId);
-    expect(recovered).toContainEqual(
+    const beforeList = resolutions;
+    expect(await listMcpConnections(database.db, member, serverId)).toContainEqual(
+        expect.objectContaining({ id: added.id, icon: null, connected: false })
+    );
+    expect(resolutions).toBe(beforeList);
+
+    // The startup repair restores it and tells the App's update stream.
+    const updates = mcpUpdatedTopic.subscribe();
+    const announced = updates.next();
+    expect((await repairMcpConnectionIcons(database.db, resolveIcon)).repaired).toBe(1);
+    expect((await announced).value?.event).toEqual({ serverId });
+    await updates.return(undefined);
+    expect(await listMcpConnections(database.db, member, serverId)).toContainEqual(
         expect.objectContaining({ id: added.id, icon: recommended, connected: false })
     );
     await owner.trpc.mcp.delete.mutate(input);
+});
+
+test('listing connections never resolves icons, even for rows missing branding', async () => {
+    const added = await createMcpPresetAccount(database.db, runtime, resolveIcon, member, {
+        name: 'Cloudflare',
+        preset: 'cloudflare',
+        serverId,
+    });
+    await harness.sql`update mcp_connections set icon = '{"light":"not-an-image"}'::jsonb where id = ${added.id}`;
+    // The harness Server resolves through the real fetch; any branding lookup lands here.
+    const realFetch = globalThis.fetch;
+    const brandingFetches: string[] = [];
+    const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation((request, init) => {
+        const url = request instanceof Request ? request.url : String(request);
+        if (new URL(url).hostname.endsWith('cloudflare.com')) {
+            brandingFetches.push(url);
+            return Promise.resolve(new Response(null, { status: 404 }));
+        }
+        return realFetch(request, init);
+    });
+    try {
+        const listed = await owner.trpc.mcp.list.query({ serverId });
+        expect(listed.find((row) => row.id === added.id)?.icon).toBeNull();
+    } finally {
+        fetchSpy.mockRestore();
+    }
+    expect(brandingFetches).toEqual([]);
+    await owner.trpc.mcp.delete.mutate({ connectionId: added.id, serverId });
 });
