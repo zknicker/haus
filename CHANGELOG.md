@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.1.1 - 2026-10-16
+
+- In the desktop app, links inside hover cards, such as product chips in chat, open in a browser tab again.
+- Switching channels or desktop tabs does less rendering work: a warm channel switch on the web drops from 987 to 876 component renders, and a warm desktop tab switch from 850 to 759.
+- Screen readers announce an Agent or member breadcrumb by name alone, without the avatar's initials.
+
 ## v15.1.0 - 2026-10-16
 
 - Settings → Connections opens without waiting on remote icons. It no longer stalls when a connection, such as Linear, was saved without its icon; those connections get their icons back when the Server starts.
