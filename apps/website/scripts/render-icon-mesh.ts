@@ -21,6 +21,12 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { GLASS, RIM_MASK_FLOOR, SIDE_FADE } from '../src/components/haus-ghost-palette.ts';
 import { BODY_PATH } from '../src/components/haus-ghost-paths.ts';
+import {
+    figureDefs,
+    figureOverlays,
+    type MeshFigure,
+    type MeshFootprint,
+} from './render-icon-mesh-figure.ts';
 
 export interface MeshBlob {
     color: string;
@@ -55,6 +61,9 @@ export interface IconProfile {
     readonly core: MeshBlob | null;
     /** The thickness cue: white pooled along the lit-away edge. */
     readonly edgeVeil: EdgeVeil | null;
+    /** A different figure than the ghost, with its own silhouette, color field
+        and layer footprint. Unset paints the ghost. */
+    readonly figure?: MeshFigure;
     /** The colored rim's opacity. The sidebar mark paints it at 0.55. */
     readonly rimOpacity: number;
     /** Where each color lands along the rim run. */
@@ -114,15 +123,16 @@ export async function renderIconMesh({
     outPath?: string;
     profile?: IconProfile;
 } = {}): Promise<string> {
+    const { canvas, content } = profile.figure?.footprint ?? GHOST_FOOTPRINT;
     const browser = await chromium.launch();
     try {
         const page = await browser.newPage({
-            viewport: { width: CANVAS.width, height: CANVAS.height },
+            viewport: { width: canvas.width, height: canvas.height },
         });
         await page.setContent(
             `<style>html,body{margin:0;padding:0;background:transparent}</style>${meshSvg(profile)}`
         );
-        await page.evaluate(fitBodyToFootprint, CONTENT);
+        await page.evaluate(fitBodyToFootprint, content);
         const png = await page.locator('#mesh-canvas').screenshot({ omitBackground: true });
         await mkdir(path.dirname(outPath), { recursive: true });
         await writeFile(outPath, png);
@@ -137,10 +147,13 @@ export async function renderIconMesh({
    below is the number the component uses. */
 function meshSvg(profile: IconProfile): string {
     const blobs = iconBlobs(profile);
+    const { figure } = profile;
+    const body = figure?.body ?? BODY_PATH;
+    const { canvas } = figure?.footprint ?? GHOST_FOOTPRINT;
 
-    return `<svg id="mesh-canvas" xmlns="http://www.w3.org/2000/svg" width="${CANVAS.width}" height="${CANVAS.height}" viewBox="0 0 ${CANVAS.width} ${CANVAS.height}">
+    return `<svg id="mesh-canvas" xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}">
   <defs>
-    <clipPath id="body"><path d="${BODY_PATH}"/></clipPath>
+    <clipPath id="body"><path d="${body}"/></clipPath>
     <filter id="mesh-blur" filterUnits="userSpaceOnUse" x="${-FILTER_MARGIN}" y="${-FILTER_MARGIN}" width="${FILTER_SPAN}" height="${FILTER_SPAN}"><feGaussianBlur stdDeviation="${MESH_BLUR}"/></filter>
     <filter id="rim-blur" filterUnits="userSpaceOnUse" x="${-FILTER_MARGIN}" y="${-FILTER_MARGIN}" width="${FILTER_SPAN}" height="${FILTER_SPAN}"><feGaussianBlur stdDeviation="${RIM_BLUR}"/></filter>
     <linearGradient id="rim-color" gradientUnits="userSpaceOnUse" x1="158" y1="16" x2="86" y2="200">
@@ -154,22 +167,22 @@ function meshSvg(profile: IconProfile): string {
     </mask>
     <mask id="rim-mask" maskUnits="userSpaceOnUse" x="${-MASK_MARGIN}" y="${-MASK_MARGIN}" width="${MASK_SPAN}" height="${MASK_SPAN}">
       <rect x="${-MASK_MARGIN}" y="${-MASK_MARGIN}" width="${MASK_SPAN}" height="${MASK_SPAN}" fill="${RIM_MASK_FLOOR}"/>
-      <path d="${BODY_PATH}" fill="none" stroke="${GLASS.highlight}" stroke-width="${RIM_MASK_WIDTH}" filter="url(#rim-blur)"/>
+      <path d="${body}" fill="none" stroke="${GLASS.highlight}" stroke-width="${RIM_MASK_WIDTH}" filter="url(#rim-blur)"/>
     </mask>
-    ${profile.edgeVeil ? veilDefs(profile.edgeVeil) : ''}
+    ${profile.edgeVeil ? veilDefs(profile.edgeVeil) : ''}${figure ? figureDefs(figure, FILTER_REGION) : ''}
   </defs>
   <g id="mesh">
-    <path id="body-metric" d="${BODY_PATH}" fill="none" stroke="none"/>
+    <path id="body-metric" d="${body}" fill="none" stroke="none"/>
     <g clip-path="url(#body)">
-      <rect x="${-MASK_MARGIN}" y="${-MASK_MARGIN}" width="${MASK_SPAN}" height="${MASK_SPAN}" fill="${GLASS.highlight}"/>
-      ${profile.core ? blobField([profile.core]) : ''}
+      <rect x="${-MASK_MARGIN}" y="${-MASK_MARGIN}" width="${MASK_SPAN}" height="${MASK_SPAN}" fill="${figure ? 'url(#figure-base)' : GLASS.highlight}"/>
+      ${profile.core ? blobField([profile.core]) : ''}${figure ? blobField(figure.patches) : ''}
       <g mask="url(#side-mask)">
         <g mask="url(#rim-mask)">
           ${blobField(blobs)}
         </g>
-        <path d="${BODY_PATH}" fill="none" stroke="url(#rim-color)" stroke-width="${RIM_STROKE_WIDTH}" opacity="${profile.rimOpacity}" filter="url(#rim-blur)"/>
+        <path d="${body}" fill="none" stroke="url(#rim-color)" stroke-width="${RIM_STROKE_WIDTH}" opacity="${profile.rimOpacity}" filter="url(#rim-blur)"/>
       </g>
-      ${profile.edgeVeil ? veilStroke(profile.edgeVeil) : ''}
+      ${profile.edgeVeil ? veilStroke(profile.edgeVeil, body) : ''}${figure ? figureOverlays(figure) : ''}
     </g>
   </g>
 </svg>`;
@@ -190,8 +203,8 @@ function veilDefs(veil: EdgeVeil): string {
 
 /* A stroke on the silhouette, so the body clip keeps only its inner half: the
    white thickens inward from the contour instead of haloing outside it. */
-function veilStroke(veil: EdgeVeil): string {
-    return `<g mask="url(#veil-mask)"><path d="${BODY_PATH}" fill="none" stroke="${GLASS.highlight}" stroke-width="${veil.width}" opacity="${veil.opacity}" filter="url(#veil-blur)"/></g>`;
+function veilStroke(veil: EdgeVeil, body: string): string {
+    return `<g mask="url(#veil-mask)"><path d="${body}" fill="none" stroke="${GLASS.highlight}" stroke-width="${veil.width}" opacity="${veil.opacity}" filter="url(#veil-blur)"/></g>`;
 }
 
 /* Two blurred passes of the same slightly grown blobs. A single pass of a blob
@@ -211,7 +224,10 @@ function blobField(blobs: readonly MeshBlob[]): string {
 }
 
 function iconBlobs(profile: IconProfile): readonly MeshBlob[] {
-    return MESH_BLOBS.map((blob) => ({ ...blob, ...profile.blobOverrides[blob.id] }));
+    return (profile.figure?.blobs ?? MESH_BLOBS).map((blob) => ({
+        ...blob,
+        ...profile.blobOverrides[blob.id],
+    }));
 }
 
 /* Runs in the page: measures the silhouette and lays it on the exact rectangle
@@ -250,8 +266,10 @@ const VEIL_FADE: readonly { gray: string; offset: number }[] = [
 
 /** The committed layer's footprint: Icon Composer positions this exact canvas,
     with the silhouette on this exact rectangle. */
-const CANVAS = { height: 2464, width: 1805 } as const;
-const CONTENT = { bottom: 2031, left: 113, right: 1640, top: 410 } as const;
+const GHOST_FOOTPRINT: MeshFootprint = {
+    canvas: { height: 2464, width: 1805 },
+    content: { bottom: 2031, left: 113, right: 1640, top: 410 },
+};
 
 /* Every number below is the component's, in its own user space:
    `haus-ghost-glass-defs.tsx` for the blurs, margins and mask width,
@@ -262,6 +280,7 @@ const RIM_MASK_WIDTH = 40;
 const RIM_STROKE_WIDTH = 29;
 const FILTER_MARGIN = 120;
 const FILTER_SPAN = 204 + 2 * FILTER_MARGIN;
+const FILTER_REGION = `filterUnits="userSpaceOnUse" x="${-FILTER_MARGIN}" y="${-FILTER_MARGIN}" width="${FILTER_SPAN}" height="${FILTER_SPAN}"`;
 const MASK_MARGIN = 60;
 const MASK_SPAN = 204 + 2 * MASK_MARGIN;
 const BLOB_GROW = 2;

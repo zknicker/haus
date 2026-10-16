@@ -1,0 +1,158 @@
+{
+  "features": [
+    "refractivity"
+  ],
+  "fill": {
+    "linear-gradient": [
+      "display-p3:0.11125,0.11071,0.11180,1.00000",
+      "display-p3:0.07147,0.07147,0.07147,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "blur-material": null,
+      "hidden": false,
+      "layers": [
+        {
+          "glass-specializations": [
+            {
+              "value": true
+            },
+            {
+              "appearance": "tinted",
+              "value": false
+            }
+          ],
+          "image-name": "eyes.png",
+          "name": "eyes",
+          "position": {
+            "scale": 0.4611,
+            "translation-in-points": [
+              83.05,
+              -19.52
+            ]
+          }
+        }
+      ],
+      "refractivity": {
+        "depth": 0.968828125,
+        "enabled": false,
+        "strength": 0.4397265625
+      },
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.88
+      },
+      "translucency-specializations": [
+        {
+          "value": {
+            "enabled": true,
+            "value": 0.39
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "enabled": false,
+            "value": 0.39
+          }
+        }
+      ]
+    },
+    {
+      "blend-mode-specializations": [
+        {
+          "value": "soft-light"
+        },
+        {
+          "appearance": "tinted",
+          "value": "normal"
+        }
+      ],
+      "blur-material": null,
+      "layers": [
+        {
+          "glass": false,
+          "hidden": false,
+          "image-name": "pumpkin-shell.png",
+          "name": "pumpkin-shell",
+          "position": {
+            "scale": 0.5019,
+            "translation-in-points": [
+              7.61,
+              -33.69
+            ]
+          }
+        }
+      ],
+      "opacity": 1,
+      "refractivity": {
+        "depth": 0.05,
+        "enabled": true,
+        "strength": 0.6
+      },
+      "shadow": {
+        "kind": "none",
+        "opacity": 2
+      },
+      "translucency-specializations": [
+        {
+          "value": {
+            "enabled": true,
+            "value": 0
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "enabled": true,
+            "value": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "blur-material": null,
+      "layers": [
+        {
+          "hidden": false,
+          "image-name": "mesh-gradient.png",
+          "name": "mesh-gradient",
+          "position": {
+            "scale": 0.5019,
+            "translation-in-points": [
+              7.61,
+              -33.69
+            ]
+          }
+        }
+      ],
+      "opacity-specializations": [
+        {
+          "appearance": "tinted",
+          "value": 0
+        }
+      ],
+      "refractivity": {
+        "depth": 0,
+        "enabled": true,
+        "strength": 0.3
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.8
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

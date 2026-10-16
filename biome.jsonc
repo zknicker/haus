@@ -23,6 +23,9 @@
       "!apps/website/dist",
       "!apps/website/src-tauri/gen/schemas",
       "!apps/website/src/components/charts",
+      "!assets/halloween-icon.icon",
+      // Written by `bun run ios:prepare-icon` with JSON.stringify.
+      "!assets/ios-icon/manifest.json",
       "!assets/mac-icon.icon",
       "!**/*.css",
       "!**/*.grit"
