@@ -57,11 +57,17 @@ function linkedCrumb(crumb: BandCrumb) {
     );
 }
 
-/** A member or Agent leads with their face everywhere else in the app, so their crumb does too. */
+/**
+ * A member or Agent leads with their face everywhere else in the app, so their
+ * crumb does too. The face is decorative beside the name, so it stays out of
+ * the crumb's accessible name.
+ */
 function CrumbLabel({ crumb }: { crumb: BandCrumb }) {
     const label = crumb.mark ? (
         <span className="flex min-w-0 items-center gap-1.5">
-            {crumb.mark}
+            <span aria-hidden="true" className="contents">
+                {crumb.mark}
+            </span>
             <span className="min-w-0 truncate">{crumb.label}</span>
         </span>
     ) : (
