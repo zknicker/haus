@@ -6,6 +6,7 @@ import {
     linearIdentityFlowMode,
     linearIdentityFlowSteps,
     linearIdentityFlowValues,
+    linearIdentityRegisterHint,
 } from './linear-identity-flow-model.ts';
 import {
     identityForAgent,
@@ -19,6 +20,7 @@ const draft: LinearIdentityDraft = {
     appName: 'Juniper',
     avatarUrl: 'https://haus.chat/api/avatars/av_1',
     callbackUrl: 'https://haus.chat/linear/oauth/callback',
+    createAppPrefillsWebhook: true,
     createAppUrl: 'https://linear.app/settings/api/applications/new',
     identityId: 'lni_0123456789abcdef',
     webhookEvents: ['agent_session_events', 'permission_changes', 'oauth_app_revoked'],
@@ -145,6 +147,18 @@ describe('linear identity flow', () => {
         expect(existing[2]?.value).toBe(
             'Agent session events, Permission changes, OAuth app revoked'
         );
+    });
+
+    test('creating says Linear opens pre-filled and only the two credentials come back', () => {
+        const full = linearIdentityRegisterHint(draft, 'create');
+        expect(full).toContain('everything below filled in');
+        expect(full).toContain('client ID and webhook signing secret');
+        const local = linearIdentityRegisterHint(
+            { ...draft, createAppPrefillsWebhook: false },
+            'create'
+        );
+        expect(local).toContain('add the webhook URL and events yourself');
+        expect(linearIdentityRegisterHint(draft, 'existing')).toContain('match these');
     });
 
     test('both pasted values are required and bounded', () => {

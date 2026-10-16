@@ -46,6 +46,7 @@ describe('linear contracts', () => {
                     appName: 'Juniper',
                     avatarUrl: null,
                     callbackUrl: 'https://haus.chat/linear/oauth/callback',
+                    createAppPrefillsWebhook: true,
                     createAppUrl: 'https://linear.app/settings/api/applications/new',
                     identityId: 'lni_0123456789abcdef',
                     webhookEvents: ['agent_session_events'],
