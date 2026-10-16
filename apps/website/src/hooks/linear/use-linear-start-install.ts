@@ -1,4 +1,5 @@
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { useProviderTab } from '../provider-return/use-provider-tab.ts';
 import { openLinearAuthorize } from './open-linear-authorize.ts';
 
 /**
@@ -7,11 +8,13 @@ import { openLinearAuthorize } from './open-linear-authorize.ts';
  */
 export function useLinearStartInstall(serverId: string, connectionId?: string) {
     const mutation = hausTrpc.linear.startInstall.useMutation();
+    const beginTab = useProviderTab();
 
     return {
         isPending: mutation.isPending,
         start: () =>
             openLinearAuthorize(
+                beginTab('Linear'),
                 () =>
                     mutation.mutateAsync(
                         connectionId === undefined ? { serverId } : { connectionId, serverId }
