@@ -61,8 +61,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(agents).toHaveLength(3);
     // Base workspace, the UI gallery channel and its threads, #automations,
     // and #repo-health with its Cloud Agent fan-out Thread. The gallery's three
-    // follow-up works each carry a Thread.
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(31);
+    // follow-up works, its pending-input sample, and its five Claude provider
+    // samples each carry a Thread.
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(37);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -73,8 +74,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
         },
     ]);
     // #repo-health adds its anchor and nine Cloud Agent work Messages; the
-    // gallery's three follow-up works add one Message each.
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(80);
+    // gallery's three follow-up works, pending-input sample, and five Claude
+    // provider samples add one Message each.
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(86);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -183,8 +185,9 @@ test('seeds a demo workspace an operator can actually look at', async () => {
         (chat) => chat.isAll
     )?.id;
     // Threads are anchored to real channel messages, and one is followed.
-    // Includes the #repo-health fan-out Thread and the gallery's follow-up works.
-    expect(threads).toHaveLength(22);
+    // Includes the #repo-health fan-out Thread, the gallery's follow-up works,
+    // its pending-input sample, and its five Claude provider samples.
+    expect(threads).toHaveLength(28);
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(1);
 
