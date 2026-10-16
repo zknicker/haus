@@ -16,7 +16,7 @@ test('desktop builds package every browser module and the extracted dock setup',
     for (const name of modules) {
         expect(desktopBuild.files).toContain(`electron/${name}`);
     }
-    expect(desktopBuild.files).toContain('electron/development-dock-icon.cjs');
+    expect(desktopBuild.files).toContain('electron/dock-app-icon.cjs');
 });
 
 describe('desktop browser workspace', () => {

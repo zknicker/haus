@@ -20,18 +20,21 @@ const main = async () => {
     const latestYamlPath = path.join(bundleRoot, 'latest-mac.yml');
     const sidecarPath = path.join(appPath, 'Contents', 'Resources', 'bin', 'haus-server');
     const packagedIconPath = path.join(appPath, 'Contents', 'Resources', 'icon.icns');
-    const buildIconPath = path.join(
-        repoRoot,
-        'apps',
-        'website',
-        'electron',
-        'icons',
-        'AppIcon.icns'
+    const buildIconsDir = path.join(repoRoot, 'apps', 'website', 'electron', 'icons');
+    const buildIconPath = path.join(buildIconsDir, 'AppIcon.icns');
+    const packagedPumpkinPath = path.join(
+        appPath,
+        'Contents',
+        'Resources',
+        'app-icons',
+        'AppIcon-pumpkin.png'
     );
+    const buildPumpkinPath = path.join(buildIconsDir, 'AppIcon-pumpkin.png');
 
     await assertDirectory(appPath, 'Haus.app');
     await assertDoesNotExist(sidecarPath, 'retired haus-server sidecar');
     await assertMatchingFiles(packagedIconPath, buildIconPath, 'packaged app icon');
+    await assertMatchingFiles(packagedPumpkinPath, buildPumpkinPath, 'packaged pumpkin Dock icon');
     await assertFileHasContent(dmgPath, path.basename(dmgPath));
     await assertFileHasContent(zipPath, path.basename(zipPath));
 

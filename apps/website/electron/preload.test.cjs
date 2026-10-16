@@ -68,6 +68,7 @@ describe('desktop preload bridge', () => {
         expect(typeof bridge.onBrowserOpenRequest).toBe('function');
         expect(bridge.onBrowserReveal).toBeUndefined();
         expect(typeof bridge.focusWindow).toBe('function');
+        expect(typeof bridge.setAppIcon).toBe('function');
         expect(typeof bridge.prepareSsoCallback).toBe('function');
         for (const name of ['tabDragClaim', 'tabDragDetach', 'tabDragEnd', 'tabDragStart']) {
             expect(typeof bridge[name]).toBe('function');

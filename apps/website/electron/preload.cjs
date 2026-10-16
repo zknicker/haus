@@ -126,6 +126,7 @@ const bridge = {
     },
     restartForUpdate: () => ipcRenderer.invoke('desktop:update:restart'),
     runEditCommand: (command) => ipcRenderer.invoke('desktop:edit:run', command),
+    setAppIcon: (icon) => ipcRenderer.invoke('desktop:dock:set-app-icon', icon),
     setDockBadge: (count) => ipcRenderer.invoke('desktop:dock:set-badge', count),
     setTheme: (theme) => ipcRenderer.invoke('desktop:window:set-theme', theme),
 };

@@ -33,7 +33,6 @@ const { registerDesktopShellIpc } = require('./desktop-shell-ipc.cjs');
 const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
 const { hideLastWindowOnClose, markQuitting, showWindow } = require('./window-lifecycle.cjs');
 const { forwardWindowSignals } = require('./window-signals.cjs');
-const { installDevelopmentDockIcon } = require('./development-dock-icon.cjs');
 const { cleanupDevPorts } = require('./dev-ports.cjs');
 
 // A broken stdout/stderr pipe (e.g. the dev launcher's reader went away, or a logging
@@ -59,6 +58,7 @@ const clerkAuthOrigins = resolveClerkAuthOrigins({
     clerkIssuerUrl: process.env.HAUS_CLERK_ISSUER_URL,
     isPackaged: app.isPackaged,
 });
+const dockAppIcon = require('./dock-app-icon.cjs').createDockAppIcon({ app });
 
 const windows = new Set();
 let mainWindow = null;
@@ -265,7 +265,7 @@ function registerIpcHandlers() {
     });
     registerEditContextMenuHandlers({ appUrl, ipcMain });
     registerOnePassword({ appUrl, BrowserWindow, ipcMain });
-    registerDesktopShellIpc({ app, appUrl, ipcMain, nativeTheme });
+    registerDesktopShellIpc({ app, appUrl, dockAppIcon, ipcMain, nativeTheme });
 
     ({ queryCache: queryCacheHandoff } = registerWindowIpc({
         app,
@@ -426,7 +426,7 @@ function getErrorMessage(error) {
 }
 
 app.whenReady().then(() => {
-    installDevelopmentDockIcon(app);
+    dockAppIcon.install();
     registerNativeClerkRequestHeaders(
         session.defaultSession.webRequest,
         clerkAuthOrigins.clerkOrigin,

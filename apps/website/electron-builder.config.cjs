@@ -43,7 +43,7 @@ module.exports = {
         'electron/clerk-native-requests.cjs',
         'electron/desktop-shell-ipc.cjs',
         'electron/edit-context-menu.cjs',
-        'electron/development-dock-icon.cjs',
+        'electron/dock-app-icon.cjs',
         'electron/dev-ports.cjs',
         'electron/external-link-handlers.cjs',
         'electron/main.cjs',
