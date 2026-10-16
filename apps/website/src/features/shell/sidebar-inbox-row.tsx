@@ -1,6 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
-import { HausGhost } from '../../components/haus-ghost.tsx';
+import { HausMascot } from '../../components/haus-mascot.tsx';
 import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
@@ -67,7 +67,7 @@ export function SidebarInboxRow({
         >
             <Sidebar.MenuIcon>
                 {mark === 'ghost' ? (
-                    <HausGhost
+                    <HausMascot
                         animated
                         aria-hidden="true"
                         fill="iridescent"

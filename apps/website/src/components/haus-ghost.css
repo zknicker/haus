@@ -84,6 +84,52 @@
     opacity: var(--haus-ghost-specular);
 }
 
+/* The pumpkin's costume layers: its rib grooves, a soft blurred stroke that
+   only shades the flesh, and its stem's green glaze, which the shoulder rims
+   and dome light still paint over so the stem stays glass. */
+
+.haus-ghost__ribs {
+    stroke-width: 12;
+    opacity: 0.65;
+}
+
+.haus-ghost__tint {
+    opacity: 0.92;
+}
+
+/* The pumpkin is a solid, satin-glazed gourd, not see-through glass: ghosts
+   are transparent, pumpkins are not. Its interior is opaque on every ground,
+   its glow stays close, and the white rim narrows to a crisp glaze line while
+   the specular spots carry the polish. Doubled class so it outranks the dark
+   ground's rule above, which would otherwise hand it the ghost's scatter and
+   halo. The drift runs slower so the mesh breathes rather than swims. */
+.haus-ghost.haus-ghost--pumpkin {
+    --haus-ghost-tempo: 1.6;
+    --haus-ghost-scatter: 1;
+    --haus-ghost-scatter-peak: 1;
+    --haus-ghost-scatter-mid: 1;
+    --haus-ghost-scatter-outer: 1;
+    --haus-ghost-specular: 0.9;
+    --haus-ghost-halo: 0.1;
+}
+
+.haus-ghost.haus-ghost--pumpkin.haus-ghost--lively {
+    --haus-ghost-tempo: 0.64;
+}
+
+.haus-ghost--pumpkin .haus-ghost__rim-color {
+    opacity: 0.6;
+}
+
+.haus-ghost--pumpkin .haus-ghost__rim-light {
+    opacity: 0.1;
+}
+
+.haus-ghost--pumpkin .haus-ghost__rim-core {
+    stroke-width: 7;
+    opacity: 0.7;
+}
+
 /* Wide enough to be a glow, tight enough to stay a glow: at 22px this is well
    under a pixel of spread, so it lifts the mark without fogging the row. */
 

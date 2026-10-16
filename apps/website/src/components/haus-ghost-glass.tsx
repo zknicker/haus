@@ -1,5 +1,7 @@
 /**
- * The faux-glass stack that fills the iridescent ghost.
+ * The faux-glass stack that fills the iridescent mark — the ghost, or the
+ * pumpkin it wears for Halloween. The stack is one; the figure supplies the
+ * silhouette, the eyes, and the colors tuned to them (`haus-ghost-figure.ts`).
  *
  * The mark is a piece of thick, translucent glass, not a painted sticker. What
  * draws the shape is the rim: light entering a thick body piles up where the
@@ -10,17 +12,21 @@
  * in the app icon — on a dark tile the body reads pale and luminous, not as a
  * hole cut in the sidebar. On a light page that scatter is a whisper over a
  * body the page has already filled; on a near-black one it *is* the body, so
- * it turns into a near-solid, near-flat white. The CSS owns both the strength
+ * it turns into a near-solid, near-flat fill. The CSS owns both the strength
  * and the falloff, in `--haus-ghost-scatter` and its three stops.
  *
  * A soft colored halo sits outside the silhouette, then four layers clipped to
  * the body, painted back to front:
  *
- *   1. the interior scatter, a white radial the theme scales;
+ *   1. the interior scatter, a radial in the figure's interior color that the
+ *      theme scales — white for the ghost, pale flesh for the pumpkin — with
+ *      a solid figure's drifting color patches, any tinted region (the
+ *      pumpkin's stem) and rib grooves glazed over it;
  *   2. the drifting color mesh, weighted to the right and bottom and pushed
  *      toward the edge, so the upper left stays nearly clear;
  *   3. a colored inner glow tracing the whole silhouette — the layer that
- *      keeps the mark legible on a light ground, where white cannot;
+ *      keeps the mark legible on a light ground, where white cannot — then a
+ *      solid figure's form shading (`haus-ghost-form.tsx`);
  *   4. a white inner glow over the upper-left dome only — a soft bloom, a hot
  *      line inside it, and two specular spots: the highlight that sells the
  *      curvature on a dark ground.
@@ -31,27 +37,30 @@
  *
  * The outline and the eyes are drawn last and outside the clip, on purpose.
  * The outline is a non-scaling hairline in a gradient that walks the same
- * colors the mesh does — lavender-gray under the highlight into azure, violet
- * and rose down the right and bottom, never ink and never one color — and a
- * stroke clipped to its own path keeps only its inner half, which is a hairline
- * of half the weight sitting inside the silhouette rather than on it. The eyes
- * are opaque marks on top of the glass, not something it tints.
+ * colors the mesh does — never ink and never one color — and a stroke clipped
+ * to its own path keeps only its inner half, which is a hairline of half the
+ * weight sitting inside the silhouette rather than on it. The eyes are opaque
+ * marks on top of the glass, not something it tints.
  */
 
+import type { GlassFigure } from './haus-ghost-figure.ts';
+import { GlassForm, GlassPatches } from './haus-ghost-form.tsx';
 import { type GhostGlassIds, GlassDefs } from './haus-ghost-glass-defs.tsx';
 import { GLASS } from './haus-ghost-palette.ts';
-import { BODY_PATH, EYES_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
+import { VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
 
-export function HausGhostGlass({ ids }: { ids: GhostGlassIds }) {
+export function HausGhostGlass({ figure, ids }: { figure: GlassFigure; ids: GhostGlassIds }) {
+    const body = figure.body;
+
     return (
         <>
-            <GlassDefs ids={ids} />
+            <GlassDefs figure={figure} ids={ids} />
             {/* Outside the clip, under everything: the ground picking up the
                 mark's own color, which is what lifts it off both a white page
                 and a near-black sidebar. */}
             <path
                 className="haus-ghost__halo"
-                d={BODY_PATH}
+                d={body}
                 fill="none"
                 filter={`url(#${ids.haloBlur})`}
                 stroke={`url(#${ids.rimColor})`}
@@ -65,12 +74,33 @@ export function HausGhostGlass({ ids }: { ids: GhostGlassIds }) {
                     x="0"
                     y="0"
                 />
+                <GlassPatches figure={figure} ids={ids} />
+                {figure.ribs ? (
+                    <path
+                        className="haus-ghost__ribs"
+                        d={figure.ribs.path}
+                        fill="none"
+                        filter={`url(#${ids.lightBlur})`}
+                        stroke={figure.ribs.color}
+                    />
+                ) : null}
+                {figure.tint ? (
+                    <rect
+                        className="haus-ghost__tint"
+                        clipPath={`url(#${ids.tintClip})`}
+                        fill={`url(#${ids.tint})`}
+                        height={VIEWBOX_HEIGHT}
+                        width={VIEWBOX_WIDTH}
+                        x="0"
+                        y="0"
+                    />
+                ) : null}
                 <g mask={`url(#${ids.sideMask})`}>
                     <g mask={`url(#${ids.rimMask})`}>
                         <g filter={`url(#${ids.meshBlur})`}>
-                            {MESH_BLOBS.map((blob) => (
+                            {figure.blobs.map((blob) => (
                                 <circle
-                                    className={`haus-ghost__blob haus-ghost__blob--${blob.id}`}
+                                    className={`haus-ghost__blob haus-ghost__blob--${blob.drift}`}
                                     cx={blob.cx}
                                     cy={blob.cy}
                                     fill={blob.color}
@@ -83,16 +113,17 @@ export function HausGhostGlass({ ids }: { ids: GhostGlassIds }) {
                     </g>
                     <path
                         className="haus-ghost__rim-color"
-                        d={BODY_PATH}
+                        d={body}
                         fill="none"
                         filter={`url(#${ids.rimBlur})`}
                         stroke={`url(#${ids.rimColor})`}
                     />
                 </g>
+                <GlassForm figure={figure} ids={ids} />
                 <g mask={`url(#${ids.domeMask})`}>
                     <path
                         className="haus-ghost__rim-light"
-                        d={BODY_PATH}
+                        d={body}
                         fill="none"
                         filter={`url(#${ids.lightBlur})`}
                         stroke={GLASS.highlight}
@@ -102,13 +133,13 @@ export function HausGhostGlass({ ids }: { ids: GhostGlassIds }) {
                         soft glow alone just fogs the interior. */}
                     <path
                         className="haus-ghost__rim-core"
-                        d={BODY_PATH}
+                        d={body}
                         fill="none"
                         filter={`url(#${ids.coreBlur})`}
                         stroke={GLASS.highlight}
                     />
                 </g>
-                {SPECULARS.map((spot) => (
+                {figure.speculars.map((spot) => (
                     <ellipse
                         className="haus-ghost__specular"
                         cx={spot.cx}
@@ -125,45 +156,8 @@ export function HausGhostGlass({ ids }: { ids: GhostGlassIds }) {
                     />
                 ))}
             </g>
-            <path
-                className="haus-ghost__edge"
-                d={BODY_PATH}
-                fill="none"
-                stroke={`url(#${ids.edge})`}
-            />
-            <path className="haus-ghost__eyes" d={EYES_PATH} fill={GLASS.eye} />
+            <path className="haus-ghost__edge" d={body} fill="none" stroke={`url(#${ids.edge})`} />
+            <path className="haus-ghost__eyes" d={figure.eyes} fill={figure.eye} />
         </>
     );
 }
-
-interface MeshBlob {
-    color: string;
-    cx: number;
-    cy: number;
-    id: string;
-    opacity: number;
-    r: number;
-}
-
-/* Azure at the upper right, rose along the lower-right contour, and only a
-   soft violet where the two would otherwise mix to gray — the icon's
-   arrangement. Each blob is wide enough to cross the silhouette so its color
-   wraps the edge rather than stopping short of it, and the rose sits far
-   enough out that the body keeps its inner falloff and the edge keeps the
-   rest: on the icon the red hugs the lower-right silhouette, it does not pool
-   in the middle. Violet is the quietest of the three on purpose; raising it
-   is what turned the mark purple. */
-const MESH_BLOBS: readonly MeshBlob[] = [
-    { id: 'azure', color: GLASS.meshAzure, cx: 154, cy: 68, r: 50, opacity: 0.78 },
-    { id: 'violet', color: GLASS.meshViolet, cx: 110, cy: 142, r: 39, opacity: 0.66 },
-    { id: 'rose', color: GLASS.meshRose, cx: 163, cy: 187, r: 42, opacity: 0.74 },
-];
-
-/** Measured off the icon: a long streak about a third across and a sixth down
-    the body, lying along the dome's upper-left arc, with a shorter one trailing
-    below it. Two spots, at different angles, are what stop the dome from
-    reading as an evenly lit ball. */
-const SPECULARS = [
-    { cx: 62, cy: 40, rx: 24, ry: 7.5, angle: -40, weight: 1 },
-    { cx: 44, cy: 74, rx: 11, ry: 5, angle: -66, weight: 0.6 },
-] as const;

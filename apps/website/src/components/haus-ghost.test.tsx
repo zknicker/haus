@@ -59,7 +59,10 @@ describe('Haus ghost', () => {
     });
 
     test("fills the body with white on the app's own dark selector", () => {
-        const dark = ghostCss.slice(ghostCss.indexOf("[data-theme='dark'] .haus-ghost"));
+        // Only the dark-ground rule itself: the pumpkin's own overrides further
+        // down set the specular on purpose and are not about the ground.
+        const darkStart = ghostCss.indexOf("[data-theme='dark'] .haus-ghost");
+        const dark = ghostCss.slice(darkStart, ghostCss.indexOf('}', darkStart) + 1);
         const read = (css: string, variable: string) =>
             Number(css.match(new RegExp(`--haus-ghost-${variable}:\\s*([\\d.]+)`))?.[1]);
 

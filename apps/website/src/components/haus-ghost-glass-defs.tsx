@@ -1,23 +1,22 @@
 /**
  * Every def the glass stack paints with: the blur radii, the gradients, and
  * the masks that decide how much of each layer lands where. The colors and the
- * stop tables they read live in `haus-ghost-palette.ts`.
+ * stop tables they read live in the figure (`haus-ghost-figure.ts`) and the
+ * shared fades in `haus-ghost-palette.ts`.
  *
  * The two fade masks are the shape of the whole idea. `sideMask` leans the
  * color right and down; `domeMask` leans the white highlight up and left.
  */
 
+import type { GlassFigure } from './haus-ghost-figure.ts';
 import {
     DOME_FADE,
-    EDGE_STOPS,
     type FadeStop,
-    GLASS,
-    RIM_COLOR_STOPS,
     RIM_MASK_FLOOR,
     SCATTER_PROFILE,
     SIDE_FADE,
 } from './haus-ghost-palette.ts';
-import { BODY_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
+import { VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
 
 export interface GhostGlassIds {
     clip: string;
@@ -32,6 +31,8 @@ export interface GhostGlassIds {
     rimColor: string;
     rimMask: string;
     sideMask: string;
+    tint: string;
+    tintClip: string;
 }
 
 /** One `useId`-unique name per def, so two marks on a page never collide. */
@@ -51,15 +52,36 @@ export function ghostGlassIds(instanceId: string): GhostGlassIds {
         rimColor: name('rim-color'),
         rimMask: name('rim-mask'),
         sideMask: name('side-mask'),
+        tint: name('tint'),
+        tintClip: name('tint-clip'),
     };
 }
 
-export function GlassDefs({ ids }: { ids: GhostGlassIds }) {
+export function GlassDefs({ figure, ids }: { figure: GlassFigure; ids: GhostGlassIds }) {
     return (
         <defs>
             <clipPath id={ids.clip}>
-                <path d={BODY_PATH} />
+                <path d={figure.body} />
             </clipPath>
+            {figure.tint ? (
+                <>
+                    <clipPath id={ids.tintClip}>
+                        <path d={figure.tint.path} />
+                    </clipPath>
+                    <linearGradient
+                        gradientUnits="userSpaceOnUse"
+                        id={ids.tint}
+                        x1="0"
+                        x2="0"
+                        y1={figure.tint.y1}
+                        y2={figure.tint.y2}
+                    >
+                        {figure.tint.stops.map((stop) => (
+                            <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+                        ))}
+                    </linearGradient>
+                </>
+            ) : null}
             {BLURS.map((blur) => (
                 <filter
                     filterUnits="userSpaceOnUse"
@@ -74,17 +96,17 @@ export function GlassDefs({ ids }: { ids: GhostGlassIds }) {
                 </filter>
             ))}
             <radialGradient
-                cx="70"
-                cy="76"
+                cx={figure.scatter.cx}
+                cy={figure.scatter.cy}
                 gradientUnits="userSpaceOnUse"
                 id={ids.interior}
-                r="140"
+                r={figure.scatter.r}
             >
-                {SCATTER_PROFILE.map((stop) => (
+                {SCATTER_PROFILE.map((stop, index) => (
                     <stop
                         key={stop.offset}
                         offset={stop.offset}
-                        stopColor={GLASS.highlight}
+                        stopColor={figure.scatter.colors[index]}
                         // `var()` substitutes in a declaration, never in an attribute.
                         style={{ stopOpacity: `var(${stop.falloff})` }}
                     />
@@ -98,7 +120,7 @@ export function GlassDefs({ ids }: { ids: GhostGlassIds }) {
                 y1="16"
                 y2="200"
             >
-                {RIM_COLOR_STOPS.map((stop) => (
+                {figure.rimStops.map((stop) => (
                     <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
                 ))}
             </linearGradient>
@@ -110,7 +132,7 @@ export function GlassDefs({ ids }: { ids: GhostGlassIds }) {
                 y1="16"
                 y2="192"
             >
-                {EDGE_STOPS.map((stop) => (
+                {figure.edgeStops.map((stop) => (
                     <stop
                         key={stop.offset}
                         offset={stop.offset}
@@ -143,7 +165,7 @@ export function GlassDefs({ ids }: { ids: GhostGlassIds }) {
                     y={-MASK_MARGIN}
                 />
                 <path
-                    d={BODY_PATH}
+                    d={figure.body}
                     fill="none"
                     filter={`url(#${ids.rimBlur})`}
                     stroke="#fff"
