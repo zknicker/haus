@@ -4,6 +4,7 @@ import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.
 import type { AgentWake } from '../built-in-connections/built-in-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { linearCredentialsTable, linearWorkspacesTable } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { LinearCredential } from './credentials.ts';
 import { labelLifecycle } from './label-lifecycle.ts';
@@ -14,6 +15,7 @@ import { sweepLinearTriggerReferences } from './reference-sweep.ts';
 import { replaceTeamAccess } from './team-access.ts';
 import { orphanSessionsOutsideTeamScope } from './team-session-scope.ts';
 import { rederiveLinearTriggerProblems } from './trigger-problem-wakes.ts';
+import { prepareLinearWorkspaceUpdated } from './workspace-updated.ts';
 
 // Team scope (specs/linear-app.md#team-scope): access is synced at install, on
 // every PermissionChange, and hourly. A failed sync keeps the last set; the
@@ -74,11 +76,14 @@ export async function applyLinearTeamAccess(
 }
 
 /**
- * Re-reads the teams of every `valid` credential on an `active` workspace.
- * One credential's failure never stops the rest; it keeps its last set.
+ * Re-reads the teams of every `valid` credential on an `active` workspace, or
+ * on one workspace (`workspaceId`: the Linear page's Refresh teams). One
+ * credential's failure never stops the rest; it keeps its last set. Each
+ * commit announces `linear.onUpdated` for its workspace.
  */
 export async function syncLinearTeams(
-    dependencies: LinearTeamSyncDependencies
+    dependencies: LinearTeamSyncDependencies,
+    scope: { workspaceId?: string } = {}
 ): Promise<LinearTeamSyncOutcome> {
     const { db } = dependencies;
     const credentials = await db
@@ -96,7 +101,8 @@ export async function syncLinearTeams(
         .where(
             and(
                 eq(linearCredentialsTable.state, 'valid'),
-                eq(linearWorkspacesTable.status, 'active')
+                eq(linearWorkspacesTable.status, 'active'),
+                scope.workspaceId ? eq(linearWorkspacesTable.id, scope.workspaceId) : undefined
             )
         );
     const outcome: LinearTeamSyncOutcome = { failed: 0, synced: 0 };
@@ -104,16 +110,21 @@ export async function syncLinearTeams(
         try {
             const token = await dependencies.accessToken(credential.id);
             const teams = await readLinearTeams(dependencies.fetch, token);
-            const wakes = await db.transaction(async (tx) => {
+            const committed = await db.transaction(async (tx) => {
                 await lockServerRow(tx, credential.serverId);
                 if (!(await stillValid(tx, credential.id))) {
                     return null;
                 }
-                return await applyLinearTeamAccess(tx, credential, teams, dependencies.clock.now());
+                const now = dependencies.clock.now();
+                return {
+                    updated: await prepareLinearWorkspaceUpdated(tx, credential),
+                    wakes: await applyLinearTeamAccess(tx, credential, teams, now),
+                };
             });
-            outcome.synced += wakes ? 1 : 0;
-            if (wakes && wakes.length > 0) {
-                dependencies.wake?.(wakes);
+            outcome.synced += committed ? 1 : 0;
+            publishRealtime(committed?.updated);
+            if (committed && committed.wakes.length > 0) {
+                dependencies.wake?.(committed.wakes);
             }
         } catch (error) {
             // A credential that left `valid` mid-sweep is not a failure.

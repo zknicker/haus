@@ -10,6 +10,7 @@ import { linearSaveIdentityCredentials } from './save-identity-credentials.ts';
 import { linearSetDefaultAgent } from './set-default-agent.ts';
 import { linearStartIdentityInstall } from './start-identity-install.ts';
 import { linearStartInstall } from './start-install.ts';
+import { linearSyncTeams } from './sync-teams.ts';
 import { linearWorkspaces } from './workspaces.ts';
 
 /**
@@ -29,5 +30,6 @@ export const linearRouter = createRouter({
     setDefaultAgent: linearSetDefaultAgent,
     startIdentityInstall: linearStartIdentityInstall,
     startInstall: linearStartInstall,
+    syncTeams: linearSyncTeams,
     workspaces: linearWorkspaces,
 });

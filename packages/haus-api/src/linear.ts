@@ -215,6 +215,9 @@ export const linearSetDefaultAgentInputSchema = z
     .object({ agentId: idSchema.nullable(), connectionId: idSchema, serverId: idSchema })
     .strict();
 
+/** Refresh teams: re-reads the workspace's team access from Linear now. */
+export const linearSyncTeamsInputSchema = connectionInputSchema;
+
 export const linearIdentitiesInputSchema = connectionInputSchema;
 export const linearIdentitiesSchema = z.array(linearIdentitySchema);
 

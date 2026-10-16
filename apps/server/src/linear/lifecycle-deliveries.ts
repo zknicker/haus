@@ -11,6 +11,7 @@ import { credentialFailed } from './lifecycle.ts';
 import { readLinearTeams } from './linear-install-reads.ts';
 import { orphanLinearSessions } from './sessions.ts';
 import { applyLinearTeamAccess } from './team-sync.ts';
+import { prepareLinearWorkspaceUpdated } from './workspace-updated.ts';
 
 export interface LinearLifecycleDeliveryDependencies {
     /** A valid access token for the credential (the binding slice's refresher). */
@@ -26,7 +27,8 @@ export interface LinearLifecycleDeliveryDependencies {
  * to `revoked` and its workspace or identity with it; an identity leaving
  * `active` orphans its sessions. A permission change re-reads the receiver's
  * teams before the transaction, replaces its access, and gives newly
- * accessible teams pending Agent labels.
+ * accessible teams pending Agent labels. Both announce `linear.onUpdated`
+ * after commit, so an open Linear page shows the new teams or status.
  */
 export function linearLifecycleHandler(
     dependencies: LinearLifecycleDeliveryDependencies
@@ -42,13 +44,13 @@ export function linearLifecycleHandler(
                     return { kind: 'ignored', reason: 'unsupported_event' };
                 }
                 const wakes = await revoke(tx, credential, now);
-                return { announce: [], kind: 'done', routed: 0, wakes };
+                return { announce: await announced(tx, row), kind: 'done', routed: 0, wakes };
             }
             if (!teams) {
                 return { kind: 'ignored', reason: 'unsupported_event' };
             }
             const wakes = await applyLinearTeamAccess(tx, credential, teams, now);
-            return { announce: [], kind: 'done', routed: 0, wakes };
+            return { announce: await announced(tx, row), kind: 'done', routed: 0, wakes };
         },
         prepare: async (row) => {
             if (row.event !== 'PermissionChange') {
@@ -74,6 +76,11 @@ export function linearLifecycleHandler(
             workspaceId: row.workspaceId,
         });
     }
+}
+
+async function announced(tx: HausDatabase, row: LinearDeliveryRow) {
+    const event = await prepareLinearWorkspaceUpdated(tx, row);
+    return event ? [event] : [];
 }
 
 async function revoke(
