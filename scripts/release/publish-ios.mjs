@@ -10,7 +10,11 @@ import {
     writeIOSBuildStatusErrorSummary,
     writeIOSBuildStatusSummary,
 } from './ios-build-status.mjs';
-import { assertInstalledIOSIcon, inspectIOSIconArtifact } from './ios-icon-artifact.mjs';
+import {
+    assertInstalledIOSIcon,
+    inspectIOSIconArtifact,
+    iosCatalogSourceFileNames,
+} from './ios-icon-artifact.mjs';
 import {
     IOS_RELEASE_PROFILES,
     installIOSProvisioningProfile,
@@ -101,8 +105,8 @@ async function main(input) {
         `MARKETING_VERSION=${input.version}`,
         `CURRENT_PROJECT_VERSION=${input.buildNumber}`,
         'ENABLE_USER_SCRIPT_SANDBOXING=NO',
-        // Both catalog sources ship precompiled in HAUS_PRECOMPILED_IOS_ICON_DIR.
-        'EXCLUDED_SOURCE_FILE_NAMES=mac-icon.icon Launch.xcassets',
+        // Every catalog source ships precompiled in HAUS_PRECOMPILED_IOS_ICON_DIR.
+        `EXCLUDED_SOURCE_FILE_NAMES=${iosCatalogSourceFileNames.join(' ')}`,
         `HAUS_PRECOMPILED_IOS_ICON_DIR=${iconArtifactDirectory}`,
     ]);
     assertInstalledIOSIcon({

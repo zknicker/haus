@@ -1,18 +1,24 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "xcodeBuild": "27A5237l",
   "compilation": {
     "appIcon": "mac-icon",
+    "alternateAppIcons": [
+      "halloween-icon"
+    ],
     "minimumDeploymentTarget": "18.0",
     "platform": "iphoneos",
     "targetDevice": "iphone"
   },
-  "sourceSha256": "13f73a135d42c008edcd1dd56da9f24936641f2e9bd0261fc5e0ece6219c061d",
+  "sourceSha256": {
+    "mac-icon": "13f73a135d42c008edcd1dd56da9f24936641f2e9bd0261fc5e0ece6219c061d",
+    "halloween-icon": "084fafd389fe2d03f8a6ea604d7eef86093315bddc645bf3453ad720a924456d"
+  },
   "launchCatalogSha256": "7bb26869a7423b58327050a2a75611740afb0d2ed6a44ecb2418ac2a2c3e7426",
   "files": {
-    "Assets.car": "c35dddf868a2c47c17d2184435638e5916e159818bcf71f4e9138b147b3d8e58",
-    "assetcatalog_generated_info.plist": "7c3481276e5d05be982a7a7fa484b89690339920b4d3d0d2b31396b3d49335dc",
+    "Assets.car": "32565f057f19a64b8a60ec1ba3c284f3733a74d9f36d7da08c32aa86f4cf950b",
     "mac-icon60x60@2x.png": "e2442e1ce775d9dfb26423f6c920cdef6dfccbce05147e05fd5ec0f8226a8f30",
-    "mac-icon76x76@2x~ipad.png": "aa32717ab0a0d6c9d064f4e84fbc25e0182b7d619f118a95adf4d008ea10c1d9"
+    "mac-icon76x76@2x~ipad.png": "aa32717ab0a0d6c9d064f4e84fbc25e0182b7d619f118a95adf4d008ea10c1d9",
+    "assetcatalog_generated_info.plist": "1866024f84cd5b43e2c78dd77b695addb73abd9336ae492d48ad762ba31edff3"
   }
 }

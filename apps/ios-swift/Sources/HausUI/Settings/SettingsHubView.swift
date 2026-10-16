@@ -73,6 +73,7 @@ struct SettingsHubView: View {
                             options: AppearancePreference.allCases.map { ($0, $0.title) },
                             onChange: { appearance = $0 }
                         )
+                        AppIconRow()
                         ShowTasksInChatRow()
                     }
                 }

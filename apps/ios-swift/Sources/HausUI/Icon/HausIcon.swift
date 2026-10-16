@@ -14,6 +14,9 @@ public enum HausIconName: String, CaseIterable, Sendable {
     case agents = "CpuIcon"
     case alert = "AlertCircleIcon"
     case appearance = "Sun03Icon"
+    /// The Home Screen icon picker; the App draws a channel's "Icon & color"
+    /// action with the same brush.
+    case appIcon = "PaintBrush03Icon"
     case archive = "ArchiveIcon"
     case arrowDown = "ArrowDown01Icon"
     case attachment = "Attachment01Icon"

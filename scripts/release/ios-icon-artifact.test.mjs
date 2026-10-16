@@ -8,10 +8,14 @@ import { fileURLToPath } from 'node:url';
 import {
     assertInstalledIOSIcon,
     assertIOSIconArtifact,
+    assertIOSIconBundleMetadata,
     assertIOSIconRenditions,
     assertIOSIconSourceEffects,
     assertIOSLaunchRenditions,
+    iosCatalogSourceFileNames,
     iosIconArtifactDirectory,
+    iosIconNames,
+    iosInstalledIconFiles,
     requiredIOSIconXcodeBuild,
     writeIOSIconArtifactManifest,
 } from './ios-icon-artifact.mjs';
@@ -19,25 +23,40 @@ import {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 test('accepts an icon stack when stable Xcode omits preview refraction metadata', () => {
-    const stacks = ['UIAppearanceLight', 'UIAppearanceDark', 'ISAppearanceTintable'].map(
-        (Appearance) => ({
-            Appearance,
-            AssetType: 'IconImageStack',
-            Layers: [{ LayerHasSpecular: true }],
-            Name: 'mac-icon',
+    assert.doesNotThrow(() => assertIOSIconRenditions(iosIconNames.flatMap(fullIconRenditions)));
+});
+
+test('requires the full glass stack for every alternate icon', () => {
+    assert.throws(
+        () => assertIOSIconRenditions(fullIconRenditions('mac-icon')),
+        /halloween-icon is missing its UIAppearanceLight icon stack/
+    );
+});
+
+test('the release archive excludes every catalog source it installs precompiled', () => {
+    assert.deepEqual(iosCatalogSourceFileNames, [
+        'mac-icon.icon',
+        'halloween-icon.icon',
+        'Launch.xcassets',
+    ]);
+});
+
+test('requires primary and alternate icon metadata in the archived app', () => {
+    const primary = { CFBundleIconName: 'mac-icon' };
+    assert.doesNotThrow(() =>
+        assertIOSIconBundleMetadata({
+            CFBundleIcons: {
+                CFBundleAlternateIcons: {
+                    'halloween-icon': { CFBundleIconName: 'halloween-icon' },
+                },
+                CFBundlePrimaryIcon: primary,
+            },
         })
     );
-    const icons = ['UIAppearanceAny', 'UIAppearanceDark', 'ISAppearanceTintable'].map(
-        (Appearance) => ({
-            Appearance,
-            AssetType: 'Icon Image',
-            Idiom: 'phone',
-            Name: 'mac-icon',
-            PixelHeight: 1024,
-            PixelWidth: 1024,
-        })
+    assert.throws(
+        () => assertIOSIconBundleMetadata({ CFBundleIcons: { CFBundlePrimaryIcon: primary } }),
+        /missing the halloween-icon alternate icon metadata/
     );
-    assert.doesNotThrow(() => assertIOSIconRenditions([...stacks, ...icons]));
 });
 
 test('requires active refractivity in the canonical Icon Composer source', () => {
@@ -69,7 +88,7 @@ test('rejects a flattened icon without the authored glass stack', () => {
                     PixelWidth: 1024,
                 },
             ]),
-        /missing its UIAppearanceLight icon stack/
+        /mac-icon is missing its UIAppearanceLight icon stack/
     );
 });
 
@@ -95,7 +114,7 @@ test('installs the compiled catalog before signing', () => {
     const app = path.join(product, 'Haus.app');
     mkdirSync(artifact, { recursive: true });
     mkdirSync(app, { recursive: true });
-    for (const file of ['Assets.car', 'mac-icon60x60@2x.png', 'mac-icon76x76@2x~ipad.png']) {
+    for (const file of iosInstalledIconFiles) {
         writeFileSync(path.join(artifact, file), file);
     }
     writeFileSync(
@@ -105,7 +124,7 @@ test('installs the compiled catalog before signing', () => {
     writeIOSIconArtifactManifest(artifact, requiredIOSIconXcodeBuild);
     writeFileSync(
         path.join(app, 'Info.plist'),
-        '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Haus</string><key>CFBundleIcons</key><dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'
+        '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Haus</string><key>CFBundleIcons</key><dict><key>CFBundleAlternateIcons</key><dict><key>halloween-icon</key><dict><key>CFBundleIconName</key><string>halloween-icon</string></dict></dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'
     );
 
     const result = spawnSync(
@@ -129,3 +148,25 @@ test('installs the compiled catalog before signing', () => {
         );
     }
 });
+
+function fullIconRenditions(Name) {
+    const stacks = ['UIAppearanceLight', 'UIAppearanceDark', 'ISAppearanceTintable'].map(
+        (Appearance) => ({
+            Appearance,
+            AssetType: 'IconImageStack',
+            Layers: [{ LayerHasSpecular: true }],
+            Name,
+        })
+    );
+    const icons = ['UIAppearanceAny', 'UIAppearanceDark', 'ISAppearanceTintable'].map(
+        (Appearance) => ({
+            Appearance,
+            AssetType: 'Icon Image',
+            Idiom: 'phone',
+            Name,
+            PixelHeight: 1024,
+            PixelWidth: 1024,
+        })
+    );
+    return [...stacks, ...icons];
+}

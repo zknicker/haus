@@ -11,6 +11,8 @@ import {
     iosIconArtifactFiles,
     iosIconArtifactManifestFile,
     iosIconCompilationOptions,
+    iosIconNames,
+    iosIconSourceDirectories,
     iosLaunchCatalogSourceDirectory,
     requiredIOSIconXcodeBuild,
     writeIOSIconArtifactManifest,
@@ -27,12 +29,14 @@ if (!force && artifactMatchesSource(outputDirectory)) {
 }
 
 const stagedDirectory = mkdtempSync(path.join(tmpdir(), 'haus-ios-icon-'));
-const stagedIcon = path.join(stagedDirectory, 'mac-icon.icon');
+const stagedIcons = iosIconNames.map((name) => path.join(stagedDirectory, `${name}.icon`));
 const stagedLaunchCatalog = path.join(stagedDirectory, 'Launch.xcassets');
 const stagedOutput = path.join(stagedDirectory, 'output');
 
 mkdirSync(stagedOutput, { recursive: true });
-cpSync(path.join(repoRoot, 'assets', 'mac-icon.icon'), stagedIcon, { recursive: true });
+for (const [index, name] of iosIconNames.entries()) {
+    cpSync(iosIconSourceDirectories[name], stagedIcons[index], { recursive: true });
+}
 cpSync(iosLaunchCatalogSourceDirectory, stagedLaunchCatalog, { recursive: true });
 
 const xcodeVersion = run('xcodebuild', ['-version'], { captureOutput: true });
@@ -44,10 +48,14 @@ if (!xcodeVersion.includes(`Build version ${requiredIOSIconXcodeBuild}`)) {
 console.log(xcodeVersion.trim());
 run('xcrun', [
     'actool',
-    stagedIcon,
+    ...stagedIcons,
     stagedLaunchCatalog,
     '--app-icon',
     iosIconCompilationOptions.appIcon,
+    ...iosIconCompilationOptions.alternateAppIcons.flatMap((name) => [
+        '--alternate-app-icon',
+        name,
+    ]),
     '--compile',
     stagedOutput,
     '--output-partial-info-plist',

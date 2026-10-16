@@ -5,7 +5,14 @@ import path from 'node:path';
 import { repoRoot } from './release-utils.mjs';
 
 export const iosIconArtifactDirectory = path.join(repoRoot, 'assets', 'ios-icon');
-export const iosIconSourceDirectory = path.join(repoRoot, 'assets', 'mac-icon.icon');
+export const iosPrimaryIconName = 'mac-icon';
+// Alternate icons the user picks in Settings > App icon. actool emits no loose PNGs for
+// them; they ship only inside Assets.car plus the CFBundleAlternateIcons entry.
+export const iosAlternateIconNames = ['halloween-icon'];
+export const iosIconNames = [iosPrimaryIconName, ...iosAlternateIconNames];
+export const iosIconSourceDirectories = Object.fromEntries(
+    iosIconNames.map((name) => [name, path.join(repoRoot, 'assets', `${name}.icon`)])
+);
 // The launch screen image ships in the same compiled catalog: the release archive excludes
 // every catalog source and installs this one Assets.car, so anything left out never ships.
 export const iosLaunchCatalogSourceDirectory = path.join(
@@ -17,19 +24,25 @@ export const iosLaunchCatalogSourceDirectory = path.join(
     'Launch.xcassets'
 );
 export const iosLaunchImageName = 'LaunchGhost';
+// The release archive excludes every catalog source and installs the precompiled catalog instead.
+export const iosCatalogSourceFileNames = [
+    ...iosIconNames.map((name) => `${name}.icon`),
+    'Launch.xcassets',
+];
 export const requiredIOSIconXcodeBuild = '27A5237l';
 export const iosIconCompilationOptions = {
-    appIcon: 'mac-icon',
+    appIcon: iosPrimaryIconName,
+    alternateAppIcons: iosAlternateIconNames,
     minimumDeploymentTarget: '18.0',
     platform: 'iphoneos',
     targetDevice: 'iphone',
 };
-export const iosIconArtifactFiles = [
+export const iosInstalledIconFiles = [
     'Assets.car',
-    'assetcatalog_generated_info.plist',
-    'mac-icon60x60@2x.png',
-    'mac-icon76x76@2x~ipad.png',
+    `${iosPrimaryIconName}60x60@2x.png`,
+    `${iosPrimaryIconName}76x76@2x~ipad.png`,
 ];
+export const iosIconArtifactFiles = [...iosInstalledIconFiles, 'assetcatalog_generated_info.plist'];
 export const iosIconArtifactManifestFile = 'manifest.json';
 
 export function assertIOSIconArtifact(directory) {
@@ -44,7 +57,7 @@ export function assertIOSIconArtifact(directory) {
         throw new Error(`compiled iOS icon artifact is missing ${iosIconArtifactManifestFile}`);
     }
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-    if (manifest.schemaVersion !== 2) {
+    if (manifest.schemaVersion !== 3) {
         throw new Error('compiled iOS icon artifact has an unsupported manifest schema');
     }
     if (manifest.xcodeBuild !== requiredIOSIconXcodeBuild) {
@@ -55,8 +68,10 @@ export function assertIOSIconArtifact(directory) {
     if (JSON.stringify(manifest.compilation) !== JSON.stringify(iosIconCompilationOptions)) {
         throw new Error('compiled iOS icon artifact does not match the current actool recipe');
     }
-    if (manifest.sourceSha256 !== hashDirectory(iosIconSourceDirectory)) {
-        throw new Error('compiled iOS icon artifact does not match assets/mac-icon.icon');
+    for (const name of iosIconNames) {
+        if (manifest.sourceSha256?.[name] !== hashDirectory(iosIconSourceDirectories[name])) {
+            throw new Error(`compiled iOS icon artifact does not match assets/${name}.icon`);
+        }
     }
     if (manifest.launchCatalogSha256 !== hashDirectory(iosLaunchCatalogSourceDirectory)) {
         throw new Error('compiled iOS icon artifact does not match Launch.xcassets');
@@ -70,10 +85,12 @@ export function assertIOSIconArtifact(directory) {
 
 export function writeIOSIconArtifactManifest(directory, xcodeBuild) {
     const manifest = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         xcodeBuild,
         compilation: iosIconCompilationOptions,
-        sourceSha256: hashDirectory(iosIconSourceDirectory),
+        sourceSha256: Object.fromEntries(
+            iosIconNames.map((name) => [name, hashDirectory(iosIconSourceDirectories[name])])
+        ),
         launchCatalogSha256: hashDirectory(iosLaunchCatalogSourceDirectory),
         files: Object.fromEntries(
             iosIconArtifactFiles.map((file) => [file, hashFile(path.join(directory, file))])
@@ -88,9 +105,14 @@ export function writeIOSIconArtifactManifest(directory, xcodeBuild) {
 
 export function inspectIOSIconArtifact(directory) {
     assertIOSIconArtifact(directory);
-    assertIOSIconSourceEffects(
-        JSON.parse(readFileSync(path.join(iosIconSourceDirectory, 'icon.json'), 'utf8'))
-    );
+    for (const name of iosIconNames) {
+        assertIOSIconSourceEffects(
+            JSON.parse(
+                readFileSync(path.join(iosIconSourceDirectories[name], 'icon.json'), 'utf8')
+            ),
+            name
+        );
+    }
     const result = spawnSync('xcrun', ['assetutil', '--info', path.join(directory, 'Assets.car')], {
         encoding: 'utf8',
     });
@@ -106,7 +128,7 @@ export function inspectIOSIconArtifact(directory) {
 
 export function assertInstalledIOSIcon({ appDirectory, artifactDirectory }) {
     assertIOSIconArtifact(artifactDirectory);
-    for (const file of ['Assets.car', 'mac-icon60x60@2x.png', 'mac-icon76x76@2x~ipad.png']) {
+    for (const file of iosInstalledIconFiles) {
         const installedPath = path.join(appDirectory, file);
         if (!existsSync(installedPath)) {
             throw new Error(`archived iOS app is missing ${file}`);
@@ -124,9 +146,18 @@ export function assertInstalledIOSIcon({ appDirectory, artifactDirectory }) {
     if (plist.status !== 0) {
         throw new Error(`plutil failed to inspect the archived app: ${plist.stderr.trim()}`);
     }
-    const info = JSON.parse(plist.stdout);
-    if (info.CFBundleIcons?.CFBundlePrimaryIcon?.CFBundleIconName !== 'mac-icon') {
-        throw new Error('archived iOS app is missing the mac-icon bundle metadata');
+    assertIOSIconBundleMetadata(JSON.parse(plist.stdout));
+}
+
+export function assertIOSIconBundleMetadata(info) {
+    const icons = info.CFBundleIcons;
+    if (icons?.CFBundlePrimaryIcon?.CFBundleIconName !== iosPrimaryIconName) {
+        throw new Error(`archived iOS app is missing the ${iosPrimaryIconName} bundle metadata`);
+    }
+    for (const name of iosAlternateIconNames) {
+        if (icons?.CFBundleAlternateIcons?.[name]?.CFBundleIconName !== name) {
+            throw new Error(`archived iOS app is missing the ${name} alternate icon metadata`);
+        }
     }
 }
 
@@ -134,26 +165,31 @@ export function assertIOSIconRenditions(renditions) {
     if (!Array.isArray(renditions)) {
         throw new Error('compiled iOS icon metadata must be an array');
     }
+    for (const name of iosIconNames) {
+        assertIconRenditions(renditions, name);
+    }
+}
 
+function assertIconRenditions(renditions, name) {
     const stacks = renditions.filter(
-        (rendition) => rendition.AssetType === 'IconImageStack' && rendition.Name === 'mac-icon'
+        (rendition) => rendition.AssetType === 'IconImageStack' && rendition.Name === name
     );
     const appearances = new Set(stacks.map((rendition) => rendition.Appearance));
     for (const appearance of ['UIAppearanceLight', 'UIAppearanceDark', 'ISAppearanceTintable']) {
         if (!appearances.has(appearance)) {
-            throw new Error(`compiled iOS icon is missing its ${appearance} icon stack`);
+            throw new Error(`compiled iOS icon ${name} is missing its ${appearance} icon stack`);
         }
     }
 
     const layers = stacks.flatMap((rendition) => rendition.Layers ?? []);
     if (!layers.some((layer) => layer.LayerHasSpecular === true)) {
-        throw new Error('compiled iOS icon lost its specular layers');
+        throw new Error(`compiled iOS icon ${name} lost its specular layers`);
     }
 
     const marketingIcons = renditions.filter(
         (rendition) =>
             rendition.AssetType === 'Icon Image' &&
-            rendition.Name === 'mac-icon' &&
+            rendition.Name === name &&
             rendition.Idiom === 'phone' &&
             rendition.PixelWidth === 1024 &&
             rendition.PixelHeight === 1024
@@ -163,7 +199,9 @@ export function assertIOSIconRenditions(renditions) {
     );
     for (const appearance of ['UIAppearanceAny', 'UIAppearanceDark', 'ISAppearanceTintable']) {
         if (!marketingAppearances.has(appearance)) {
-            throw new Error(`compiled iOS icon is missing its ${appearance} 1024px rendition`);
+            throw new Error(
+                `compiled iOS icon ${name} is missing its ${appearance} 1024px rendition`
+            );
         }
     }
 }
@@ -182,9 +220,9 @@ export function assertIOSLaunchRenditions(renditions) {
     }
 }
 
-export function assertIOSIconSourceEffects(icon) {
+export function assertIOSIconSourceEffects(icon, name = iosPrimaryIconName) {
     if (!(Array.isArray(icon?.features) && icon.features.includes('refractivity'))) {
-        throw new Error('canonical iOS icon source does not enable refractivity');
+        throw new Error(`iOS icon source ${name} does not enable refractivity`);
     }
     if (
         !icon.groups?.some(
@@ -192,7 +230,7 @@ export function assertIOSIconSourceEffects(icon) {
                 group.refractivity?.enabled === true && Number(group.refractivity.strength) > 0
         )
     ) {
-        throw new Error('canonical iOS icon source has no active refractive layer');
+        throw new Error(`iOS icon source ${name} has no active refractive layer`);
     }
 }
 

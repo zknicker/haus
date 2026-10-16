@@ -10,6 +10,14 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIcons</key>
 	<dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>halloween-icon</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>halloween-icon</string>
+			</dict>
+		</dict>
 		<key>CFBundlePrimaryIcon</key>
 		<dict>
 			<key>CFBundleIconFiles</key>

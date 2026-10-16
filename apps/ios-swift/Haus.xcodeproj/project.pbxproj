@@ -31,6 +31,7 @@
 		3C7596C63D050A5AD2F99480 /* HausStoreMessageBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98180CA66F0FB2C45C041767 /* HausStoreMessageBodies.swift */; };
 		3DF2040138423821D77FC199 /* HausStoreArtifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C52F0B1DA203DF7B2F7F315D /* HausStoreArtifacts.swift */; };
 		3EC31C6D2A9BC16BEBB57141 /* ChatPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */; };
+		41B04BD7EABE5C585B663283 /* halloween-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9E9E1387FDC4B811FF25DD22 /* halloween-icon.icon */; };
 		44B50B0FDF5AD409888415AE /* HausStoreMentions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D58A2E06B71FDA6ABF4D58 /* HausStoreMentions.swift */; };
 		486715E59C541662E4EA3377 /* AuthenticatedHausView+References.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8397321F27C0C2610051B5AE /* AuthenticatedHausView+References.swift */; };
 		4DB1FFCA73D4632113FDD0E6 /* HausStoreReactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB87577C6DF7147FA7C8E74D /* HausStoreReactions.swift */; };
@@ -176,6 +177,7 @@
 		96BB68F6F082C2FCA690C04A /* HausStoreThreadReferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreThreadReferences.swift; sourceTree = "<group>"; };
 		98180CA66F0FB2C45C041767 /* HausStoreMessageBodies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMessageBodies.swift; sourceTree = "<group>"; };
 		99F461CB50C4296185DBCD6F /* CommunicationNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationNotification.swift; sourceTree = "<group>"; };
+		9E9E1387FDC4B811FF25DD22 /* halloween-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "halloween-icon.icon"; sourceTree = "<group>"; };
 		A25C9CB2C17FDE37245B3CE1 /* LongTranscriptPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongTranscriptPerformanceTests.swift; sourceTree = "<group>"; };
 		A36840BDE2C8BF0E48A3D72E /* AgentCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCallView.swift; sourceTree = "<group>"; };
 		A36E0B52EFEAC490DDCC5888 /* HausStoreMessaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMessaging.swift; sourceTree = "<group>"; };
@@ -241,6 +243,7 @@
 		33F3121261C3A50761185022 /* assets */ = {
 			isa = PBXGroup;
 			children = (
+				9E9E1387FDC4B811FF25DD22 /* halloween-icon.icon */,
 				AA24DB188EBB52388C52CF86 /* mac-icon.icon */,
 			);
 			name = assets;
@@ -510,6 +513,7 @@
 			files = (
 				15E90AF3E7B18D5CE4BC24F1 /* Launch.xcassets in Resources */,
 				72468F6096B648799300F613 /* PrivacyInfo.xcprivacy in Resources */,
+				41B04BD7EABE5C585B663283 /* halloween-icon.icon in Resources */,
 				6AE65D0A2CDE609CE0252838 /* mac-icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -750,6 +754,7 @@
 		5E966CB8943ADCF3B9145EF7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "halloween-icon";
 				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Haus.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -805,6 +810,7 @@
 		84EB82F08D8D7829513B2A73 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "halloween-icon";
 				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Haus.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
