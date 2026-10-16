@@ -99,7 +99,7 @@ webhook secret and Remove identity). The **Default Agent** that answers the Haus
 list, and one line under the title says what an identity is for. Giving an identity expands under
 that Agent's row, not in a dialog, so Linear's new-app page can sit in a browser tab beside
 Settings. It opens with a small before-and-after of how the Agent signs its work, then one step at
-a time (create the app in Linear, or **Already made one in Linear?**; paste its client ID and
+a time (create the app in Linear, or **Use an existing app**, which opens Linear's app list; paste its client ID and
 webhook secret; install); a done step collapses to one ticked line with **Edit**, and the panel's
 height follows each change on one short spring. When the install returns, the Agent's row scrolls
 into view and marks its new handle instead of a page notice. The Agents' Linear **Triggers**

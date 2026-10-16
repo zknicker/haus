@@ -1,5 +1,5 @@
 import type { Agent, LinearIdentity } from '@haus/api';
-import { Button, Link } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { useState } from 'react';
 import { EntityAvatar } from '../../../../../components/ui/entity-avatar.tsx';
@@ -44,7 +44,7 @@ export function LinearIdentityFlowPanel({
     identity: LinearIdentity | null;
     mode: LinearIdentityFlowMode;
     onClose: () => void;
-    /** Switches to checking an app the Owner already made in Linear. */
+    /** Switches to checking an app the Owner already made in Linear; Linear's app list opens beside it. */
     onConnectExisting: () => void;
     serverId: string;
 }) {
@@ -114,7 +114,9 @@ function FlowSteps({
     const [registered, setRegistered] = useState(false);
     const [editing, setEditing] = useState<LinearIdentityFlowStepId | null>(null);
     const [awaitingReturn, setAwaitingReturn] = useState(false);
-    const [valuesShown, setValuesShown] = useState(() => linearIdentityValuesShown(draft, mode));
+    // Switching to an existing app keeps this state, so its values show by mode.
+    const [valuesRevealed, setValuesRevealed] = useState(false);
+    const valuesShown = valuesRevealed || linearIdentityValuesShown(draft, mode);
     const steps = linearIdentityFlowSteps({
         credentialsSaved: identity.credentialsSaved,
         editing,
@@ -122,6 +124,10 @@ function FlowSteps({
         mode,
         registered,
     });
+    const openInLinear = (url: string) => {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setAwaitingReturn(true);
+    };
     const finishRegister = () => {
         setRegistered(true);
         setEditing(null);
@@ -137,39 +143,56 @@ function FlowSteps({
         >
             {step.id === 'register' ? (
                 <>
-                    {mode === 'create' ? (
-                        <div className="flex flex-wrap items-center gap-4">
-                            <Button
-                                onPress={() => {
-                                    window.open(
-                                        draft.createAppUrl,
-                                        '_blank',
-                                        'noopener,noreferrer'
-                                    );
-                                    setAwaitingReturn(true);
-                                    finishRegister();
-                                }}
-                                size="sm"
-                            >
-                                Create in Linear
-                            </Button>
-                            {/* Link inherits the type size; row text is body size. */}
-                            <span className="text-sm">
-                                <Link onPress={onConnectExisting}>Already made one in Linear?</Link>
-                            </span>
-                        </div>
-                    ) : (
-                        <Button onPress={finishRegister} size="sm">
-                            Next
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {mode === 'create' ? (
+                            <>
+                                <Button
+                                    onPress={() => {
+                                        openInLinear(draft.createAppUrl);
+                                        finishRegister();
+                                    }}
+                                    size="sm"
+                                >
+                                    Create in Linear
+                                </Button>
+                                <Button
+                                    onPress={() => {
+                                        openInLinear(draft.appsUrl);
+                                        onConnectExisting();
+                                    }}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Use an existing app
+                                </Button>
+                                {valuesShown ? null : (
+                                    <Button
+                                        onPress={() => setValuesRevealed(true)}
+                                        size="sm"
+                                        variant="ghost"
+                                    >
+                                        Enter values by hand
+                                    </Button>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <Button onPress={finishRegister} size="sm">
+                                    Next
+                                </Button>
+                                <Button
+                                    onPress={() => openInLinear(draft.appsUrl)}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Open apps in Linear
+                                </Button>
+                            </>
+                        )}
+                    </div>
                     {valuesShown ? (
                         <LinearIdentityValues values={linearIdentityFlowValues(draft, mode)} />
-                    ) : (
-                        <Button onPress={() => setValuesShown(true)} size="sm" variant="ghost">
-                            Show values to enter by hand
-                        </Button>
-                    )}
+                    ) : null}
                 </>
             ) : null}
             {step.id === 'credentials' ? (

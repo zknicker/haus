@@ -99,7 +99,7 @@ export function linearIdentityRegisterHint(
     mode: LinearIdentityFlowMode
 ): string {
     if (mode === 'existing') {
-        return "Make sure the app's callback URL, webhook URL, and events match these.";
+        return 'Open the app in Linear and make sure its callback URL, webhook URL, and events match these. Its client ID and webhook secret are there too.';
     }
     return draft.createAppPrefillsWebhook
         ? 'Linear opens with the app filled in. Create it, then come back for its client ID and webhook secret.'

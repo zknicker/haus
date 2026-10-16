@@ -713,8 +713,10 @@ Connections → Linear is a built-in connection page. Its definition
   page stays usable in a browser tab beside Settings. Its header has the Agent's avatar, "Give
   Juniper its own Linear app", and Cancel; the row's inline step hides while it is open. A create
   opens with a before-and-after of the Agent's attribution ("via Haus" → "@juniper"). Only the
-  current step is expanded and carries the one primary button: **Create in Linear** (with
-  **Already made one in Linear?** switching to checking an existing app, then **Next**), then the
+  current step is expanded and carries the one primary button: **Create in Linear** (beside it,
+  secondary **Use an existing app** opens the workspace's applications list in Linear and switches
+  to checking that app, then **Next** with **Open apps in Linear**; ghost **Enter values by hand**
+  reveals the values), then the
   client ID and webhook secret with **Save**, then **Install in Linear**. A done step is one ticked
   line ("Credentials saved") with **Edit**; later steps show their title only. The panel opens and
   closes on a short no-bounce height spring, its height follows every step change on the same
