@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.2.0 - 2026-10-16
+
+- An open Linear connection page shows team access changes made in Linear, and the workspace menu has Refresh teams to re-read them on demand. Change in Linear opens the workspace's installed applications, where an admin changes which teams Haus can use.
+- Connecting Linear, reconnecting it, or installing an Agent's Linear identity closes Linear's tab when it finishes and shows the result in the Settings tab that started it, in the desktop app and on the web.
+
 ## v15.1.1 - 2026-10-16
 
 - In the desktop app, links inside hover cards, such as product chips in chat, open in a browser tab again.
