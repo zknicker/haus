@@ -12,11 +12,11 @@
   },
   "sourceSha256": {
     "mac-icon": "13f73a135d42c008edcd1dd56da9f24936641f2e9bd0261fc5e0ece6219c061d",
-    "halloween-icon": "084fafd389fe2d03f8a6ea604d7eef86093315bddc645bf3453ad720a924456d"
+    "halloween-icon": "0fe0a4b2f52705d48a1e4c917e21bf64956c1b75d888cc685b41979040f5c920"
   },
   "launchCatalogSha256": "7bb26869a7423b58327050a2a75611740afb0d2ed6a44ecb2418ac2a2c3e7426",
   "files": {
-    "Assets.car": "32565f057f19a64b8a60ec1ba3c284f3733a74d9f36d7da08c32aa86f4cf950b",
+    "Assets.car": "ed68cfe55eb1174f3d344b1b8ea176c6c5abc53a67e0a88de4d967fb21a62b9a",
     "mac-icon60x60@2x.png": "e2442e1ce775d9dfb26423f6c920cdef6dfccbce05147e05fd5ec0f8226a8f30",
     "mac-icon76x76@2x~ipad.png": "aa32717ab0a0d6c9d064f4e84fbc25e0182b7d619f118a95adf4d008ea10c1d9",
     "assetcatalog_generated_info.plist": "1866024f84cd5b43e2c78dd77b695addb73abd9336ae492d48ad762ba31edff3"
