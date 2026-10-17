@@ -9,6 +9,21 @@
  */
 :root[data-color-theme="halloween"] {
     /*
+     * The night tint: one hue and one chroma for every dark neutral ground, so
+     * the page, the shell, the sidebar, surfaces, fields, overlays and fills
+     * all move together. Each ground keeps the default dark lightness exactly,
+     * so the ramp and every surface edge stay where they are; only hue and
+     * chroma change. Chroma 0 is the plain grey ladder (HeroUI's own dark
+     * greys carry a ≤ 0.006 cool trace at hue 286, one sRGB step of blue).
+     * Pick a setting by swapping in its line:
+     *
+     *   neutral      --halloween-night-chroma: 0;
+     *   midnight     --halloween-night-hue: 265; --halloween-night-chroma: 0.010;
+     *   aubergine    --halloween-night-hue: 312; --halloween-night-chroma: 0.012;
+     */
+    --halloween-night-hue: 265; --halloween-night-chroma: 0.010;
+
+    /*
      * Pumpkin accent. Mid-light orange carries dark ink (about 7:1 against
      * `--eclipse`); snow on it would sit near 2.5:1. Soft, hover, focus and the
      * reply highlight derive from `--accent` and follow on their own.
@@ -17,15 +32,30 @@
     --accent-foreground: var(--eclipse);
     --focus: var(--accent);
 
+    /* The page and the desktop shell ladder: canvas → sidebar → card → shown tab. */
+    --background: oklch(12% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --shell-canvas: oklch(10.5% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --shell-band-sidebar: oklch(14% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --shell-card: oklch(16.5% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --shell-tab-active-background: oklch(21% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --shell-field-background: oklch(21% var(--halloween-night-chroma) var(--halloween-night-hue));
+
+    /* HeroUI's raised grounds: cards, popovers and menus, fields, nested panels, fills. */
+    --surface: oklch(21.03% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --overlay: oklch(21.03% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --field-background: oklch(21.03% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --surface-secondary: oklch(25.7% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --surface-tertiary: oklch(27.21% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --default: oklch(27.4% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --tooltip: oklch(29% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --segment: oklch(39.64% var(--halloween-night-chroma) var(--halloween-night-hue));
+
     /*
-     * The default dark lightness ramp, shifted from a neutral cool trace (hue
-     * 286, chroma ≤ 0.006) toward midnight indigo. Each step keeps its
-     * lightness so the canvas → sidebar → card → shown tab ladder is intact.
-     * Raised surfaces, fields and overlays stay neutral so they match each other.
+     * The nested-box wash, recalibrated to the tinted grounds: 10% of it over
+     * the page reads as `--surface` at rest. Its chroma is about 2.7× the
+     * night chroma because a 10% wash carries a tenth of the difference.
      */
-    --background: oklch(12% 0.014 272);
-    --shell-canvas: oklch(10.5% 0.013 272);
-    --shell-card: oklch(16.5% 0.014 272);
-    --shell-band-sidebar: oklch(14% 0.013 272);
-    --shell-tab-active-background: oklch(21% 0.014 272);
+    --nested-surface: oklch(
+        80.6% calc(var(--halloween-night-chroma) * 2.7) var(--halloween-night-hue) / 10%
+    );
 }

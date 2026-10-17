@@ -2441,6 +2441,8 @@
      * step above the card (the field's 21%), and resting titles read at 62%.
      */
     --shell-tab-active-background: oklch(21% 0.005 286);
+    /* A field inside the lifted card takes the same step (see the shell card rules below). */
+    --shell-field-background: oklch(21% 0.005 286);
     --shell-tab-active-border: color-mix(in oklab, var(--foreground) 10%, transparent);
     --shell-tab-foreground-muted: color-mix(in oklab, var(--foreground) 62%, transparent);
 }
@@ -2738,7 +2740,7 @@
     /* Dark lifts the card itself, so a field needs its own step and a hairline to read on it. */
     :root:is([data-theme="dark"], .dark)[data-shell-variant="canvas"] .app-shell .app-shell-main,
     :root:is([data-theme="dark"], .dark)[data-shell-variant="band"] .app-shell [data-app-layout] {
-        --field-background: oklch(21% 0.005 286);
+        --field-background: var(--shell-field-background);
         --field-border: color-mix(in oklab, var(--foreground) 7%, transparent);
         --border-width-field: 0.5px;
     }
