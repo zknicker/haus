@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.4.1 - 2026-10-17
+
+- Under Halloween, the desktop sidebar and content card sit darker, close to the web page's near-black instead of a lit blue-grey.
+
 ## v15.4.0 - 2026-10-17
 
 - Agents change a Linear team's statuses and labels only as a member of that team, which Linear requires. An Agent's own Linear identity joins the teams the Haus app is a member of by itself, and an Agent with its own identity always acts as it: when its app can't reach a team or isn't a member, the Agent is told which Linear setting to change instead of Linear refusing the write.
