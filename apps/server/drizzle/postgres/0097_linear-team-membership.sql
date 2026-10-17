@@ -1,0 +1,1 @@
+ALTER TABLE "linear_team_access" ADD COLUMN "member" boolean DEFAULT false NOT NULL;

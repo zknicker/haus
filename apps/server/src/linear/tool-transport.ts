@@ -6,9 +6,10 @@ import type {
     McpToolResult,
 } from '../server-mcp/tool-catalog.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { chooseLinearActor, type LinearActor, loadActorContext } from './actor-selection.ts';
+import { chooseLinearActor, loadActorContext } from './actor-selection.ts';
 import { liveWorkspace } from './authority.ts';
 import { resolveDelegation } from './delegation.ts';
+import type { LinearActor } from './linear-actor.ts';
 import type { LinearApp } from './linear-api.ts';
 import { LinearSignInRequiredError } from './linear-errors.ts';
 import { completeLinearSession } from './sessions.ts';

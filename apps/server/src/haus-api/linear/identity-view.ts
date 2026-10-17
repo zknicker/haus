@@ -1,5 +1,5 @@
 import type { LinearIdentity, LinearIdentityDraft } from '@haus/api';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, isNotNull, ne } from 'drizzle-orm';
 import { absoluteAvatarUrlFor } from '../../avatars/avatar-url.ts';
 import {
     linearAppsUrl,
@@ -11,8 +11,10 @@ import { linearOauthCallbackPath } from '../../linear/oauth-callback-route.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
 import {
     agentsTable,
+    linearCredentialsTable,
     linearIdentitiesTable,
     linearIdentitySecretsTable,
+    linearTeamAccessTable,
 } from '../../postgres/schema.ts';
 
 // The Linear page's identity read model: state plus the guided flow's
@@ -55,6 +57,7 @@ export async function listLinearIdentities(
             )
         )
         .orderBy(linearIdentitiesTable.createdAt);
+    const memberTeamIds = await identityMemberTeamIds(db, workspace.id);
     return rows.map(({ agent, identity, secretSaved }) => ({
         agentId: identity.agentId,
         credentialsSaved: identity.oauthClientId !== null && secretSaved !== null,
@@ -62,6 +65,7 @@ export async function listLinearIdentities(
         handle: identity.handle,
         id: identity.id,
         lastDeliveryAt: identity.lastDeliveryAt?.toISOString() ?? null,
+        memberTeamIds: memberTeamIds.get(identity.id) ?? [],
         status: identity.status,
         workspaceId: identity.workspaceId,
     }));
@@ -98,4 +102,36 @@ export function identityGuidedFlow(
         webhookEvents: identityWebhookEvents,
         webhookUrl,
     };
+}
+
+/** Identity id → the teams its credential's app user is a member of, as of the last sync. */
+async function identityMemberTeamIds(
+    db: HausDatabase,
+    workspaceId: string
+): Promise<Map<string, string[]>> {
+    const rows = await db
+        .select({
+            identityId: linearCredentialsTable.identityId,
+            teamId: linearTeamAccessTable.teamId,
+        })
+        .from(linearTeamAccessTable)
+        .innerJoin(
+            linearCredentialsTable,
+            eq(linearCredentialsTable.id, linearTeamAccessTable.credentialId)
+        )
+        .where(
+            and(
+                eq(linearCredentialsTable.workspaceId, workspaceId),
+                isNotNull(linearCredentialsTable.identityId),
+                eq(linearTeamAccessTable.member, true)
+            )
+        )
+        .orderBy(linearTeamAccessTable.teamName);
+    const byIdentity = new Map<string, string[]>();
+    for (const row of rows) {
+        if (row.identityId) {
+            byIdentity.set(row.identityId, [...(byIdentity.get(row.identityId) ?? []), row.teamId]);
+        }
+    }
+    return byIdentity;
 }

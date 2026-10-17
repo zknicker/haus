@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.4.0 - 2026-10-17
+
+- Agents change a Linear team's statuses and labels only as a member of that team, which Linear requires. An Agent's own Linear identity joins the teams the Haus app is a member of by itself, and an Agent with its own identity always acts as it: when its app can't reach a team or isn't a member, the Agent is told which Linear setting to change instead of Linear refusing the write.
+- The Linear connection page names the teams the Haus app isn't a member of, and an Agent's identity line names the member teams it lacks, with Change teams in Linear.
+- The pumpkin mascot and app icon carry a centre crease like their sides on the web, in Haus for Mac 6.3.0, and in Haus for iPhone 8.6.1, whose seasonal icon offer gives its actions room. Halloween's dark surfaces share one night tint.
+
 ## v15.3.0 - 2026-10-16
 
 - Settings → Preferences → Appearance has a Theme row beside Mode, also under Appearance in Cmd+K. The Halloween theme is dark only: a pumpkin-orange accent, a midnight-indigo window, a moonlit cloud sky at the top of the sidebar, a haunted-host Inbox greeting that changes daily, and a glass pumpkin in place of the ghost mascot. Switching back to Default restores the saved Mode.

@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import type { LinearWorkspace } from '@haus/api';
-import { linearApplicationsSettingsUrl, linearWorkspaceHealth } from './linear-workspace-health.ts';
+import {
+    linearApplicationsSettingsUrl,
+    linearTeamSettingsWarning,
+    linearWorkspaceHealth,
+} from './linear-workspace-health.ts';
 import { linearIdentityArrival } from './use-linear-identity-arrival.ts';
 
 const now = Date.parse('2026-10-16T12:00:00.000Z');
@@ -8,11 +12,15 @@ const hoursAgo = (hours: number) => new Date(now - hours * 60 * 60 * 1000).toISO
 
 function workspace(
     overrides: Partial<
-        Pick<LinearWorkspace, 'lastDeliveryAt' | 'status' | 'teams' | 'teamsSyncedAt'>
+        Pick<
+            LinearWorkspace,
+            'lastDeliveryAt' | 'memberTeamIds' | 'status' | 'teams' | 'teamsSyncedAt'
+        >
     > = {}
 ) {
     return {
         lastDeliveryAt: hoursAgo(2),
+        memberTeamIds: ['team_1'],
         status: 'active' as const,
         teams: [{ id: 'team_1', key: 'ENG', name: 'Engineering' }],
         teamsSyncedAt: hoursAgo(1),
@@ -24,6 +32,7 @@ describe('linearWorkspaceHealth', () => {
     test('a healthy workspace shows teams and hides its last delivery', () => {
         expect(linearWorkspaceHealth(workspace(), now)).toEqual({
             lastDelivery: null,
+            missingMemberTeams: [],
             teamAccess: 'ok',
         });
         // A new workspace that never heard from Linear is not stale.
@@ -37,6 +46,60 @@ describe('linearWorkspaceHealth', () => {
         expect(
             linearWorkspaceHealth(workspace({ teamsSyncedAt: hoursAgo(25) }), now).teamAccess
         ).toBe('none');
+    });
+
+    describe('team settings', () => {
+        const design = { id: 'team_design', key: 'DES', name: 'Design' };
+        const ops = { id: 'team_ops', key: 'OPS', name: 'Ops' };
+        const sales = { id: 'team_sales', key: 'SAL', name: 'Sales' };
+        const support = { id: 'team_support', key: 'SUP', name: 'Support' };
+        const teams = [design, ops, sales, support];
+        const missingFor = (memberTeamIds: string[]) => {
+            const health = linearWorkspaceHealth(workspace({ memberTeamIds, teams }), now);
+            return {
+                missing: health.missingMemberTeams,
+                warning: linearTeamSettingsWarning(health.missingMemberTeams, teams),
+            };
+        };
+
+        test('no membership at all says so once', () => {
+            expect(missingFor([])).toEqual({
+                missing: teams,
+                warning: "Haus isn't a member of any team",
+            });
+        });
+
+        test('partial membership names the missing teams, two then +N', () => {
+            expect(missingFor([design.id, sales.id, support.id])).toEqual({
+                missing: [ops],
+                warning: 'Not a member of Ops',
+            });
+            expect(missingFor([design.id, support.id])).toEqual({
+                missing: [ops, sales],
+                warning: 'Not a member of Ops, Sales',
+            });
+            expect(missingFor([design.id])).toEqual({
+                missing: [ops, sales, support],
+                warning: 'Not a member of Ops, Sales +1',
+            });
+        });
+
+        test('membership in every reachable team leaves nothing missing', () => {
+            expect(missingFor(teams.map((team) => team.id)).missing).toEqual([]);
+        });
+
+        test('no team access already says no write lands, so team settings stay quiet', () => {
+            expect(
+                linearWorkspaceHealth(workspace({ memberTeamIds: [], teams: [] }), now)
+                    .missingMemberTeams
+            ).toEqual([]);
+            expect(
+                linearWorkspaceHealth(
+                    workspace({ memberTeamIds: [], teams, teamsSyncedAt: hoursAgo(25) }),
+                    now
+                ).missingMemberTeams
+            ).toEqual([]);
+        });
     });
 
     test('the last delivery shows once Linear is silent a week or the workspace fails', () => {

@@ -14,6 +14,7 @@ import {
     mcpConnectionsTable,
 } from '../src/postgres/schema.ts';
 import type { Seed } from './agent-inbox-harness.ts';
+import { fakeTeamJoin, fakeTeamsPage } from './linear-fake-teams.ts';
 
 // A fake Linear (OAuth token, revoke, and GraphQL endpoints) and seeds for a
 // bound workspace, so binding, refresh, and transport tests run against real
@@ -22,6 +23,10 @@ import type { Seed } from './agent-inbox-harness.ts';
 export interface FakeActor {
     appUserId: string;
     displayName: string;
+    /** Teams the app user may add itself to (`viewerCanJoin`). */
+    joinableTeamIds?: string[];
+    /** Teams the app user is a member of (`viewerMembership`); a join adds to it. */
+    memberTeamIds?: string[];
     organization: { id: string; name: string; urlKey: string };
     teams: LinearTeam[];
 }
@@ -32,6 +37,10 @@ export interface FakeLinear {
     /** Entity id → its team ids, for target-team reads. */
     entityTeams: Map<string, string[]>;
     fetch: typeof fetch;
+    /** Team ids whose `teamMembershipCreate` Linear refuses. */
+    joinFailures: Set<string>;
+    /** Every `teamMembershipCreate`: who asked (the token's app user) and its input. */
+    joins: { actorAppUserId: string; teamId: string; userId: string }[];
     refreshCalls: number;
     /** Refresh-call gates: the n-th refresh (0-based) waits for its promise. */
     refreshGates: Map<number, Promise<void>>;
@@ -58,6 +67,8 @@ export function createFakeLinear(): FakeLinear {
             }
             return graphql(init);
         }) as typeof fetch,
+        joinFailures: new Set(),
+        joins: [],
         refreshCalls: 0,
         refreshGates: new Map(),
         refreshTokens: new Map(),
@@ -106,8 +117,16 @@ export function createFakeLinear(): FakeLinear {
         }
         const body = JSON.parse(String(init?.body)) as {
             query: string;
-            variables?: { after?: string | null; first?: number; id?: string };
+            variables?: {
+                after?: string | null;
+                first?: number;
+                id?: string;
+                input?: { teamId: string; userId: string };
+            };
         };
+        if (body.query.includes('HausJoinTeam')) {
+            return fakeTeamJoin(fake, actor, body.variables?.input ?? { teamId: '', userId: '' });
+        }
         if (body.query.includes('HausInstall')) {
             return Response.json({
                 data: {
@@ -117,7 +136,7 @@ export function createFakeLinear(): FakeLinear {
             });
         }
         if (body.query.includes('HausTeams')) {
-            return Response.json({ data: { teams: teamsPage(actor.teams, body.variables) } });
+            return Response.json({ data: { teams: fakeTeamsPage(actor, body.variables) } });
         }
         const teamIds = fake.entityTeams.get(body.variables?.id ?? '');
         const entity = teamIds
@@ -128,20 +147,6 @@ export function createFakeLinear(): FakeLinear {
         return Response.json({ data: { entity } });
     };
     return fake;
-}
-
-/** Pages as Linear does: `first` per page, the cursor is the next offset. */
-function teamsPage(
-    teams: readonly LinearTeam[],
-    variables: { after?: string | null; first?: number } = {}
-) {
-    const start = Number(variables.after ?? 0);
-    const end = start + (variables.first ?? 50);
-    const hasNextPage = end < teams.length;
-    return {
-        nodes: teams.slice(start, end),
-        pageInfo: { endCursor: hasNextPage ? String(end) : null, hasNextPage },
-    };
 }
 
 export const teamDesign: LinearTeam = { id: 'team-design', key: 'DES', name: 'Design' };
@@ -155,6 +160,7 @@ export async function seedWorkspace(
     input: {
         accessToken: string;
         expiresAt?: Date;
+        memberTeamIds?: string[];
         refreshToken?: string;
         teams: LinearTeam[];
     }
@@ -203,6 +209,7 @@ export async function seedIdentity(
         accessToken: string;
         agentId: string;
         appUserId: string;
+        memberTeamIds?: string[];
         teams: LinearTeam[];
         workspaceId: string;
     }
@@ -260,6 +267,7 @@ async function insertCredential(
         credentialId: string;
         expiresAt?: Date;
         identityId: string | null;
+        memberTeamIds?: string[];
         refreshToken?: string;
         teams: LinearTeam[];
         workspaceId: string;
@@ -279,6 +287,7 @@ async function insertCredential(
     for (const team of input.teams) {
         await db.insert(linearTeamAccessTable).values({
             credentialId: input.credentialId,
+            member: input.memberTeamIds?.includes(team.id) ?? false,
             serverId,
             syncedAt: new Date(),
             teamId: team.id,

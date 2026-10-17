@@ -28,8 +28,8 @@ const handler = linearSessionHandler({
     appOrigin: 'https://app.haus.test',
     readIssueLabels: unreadIssueLabels,
 });
-const des = { id: desTeamId, key: 'DES', name: 'Design' };
-const ops = { id: 'team-ops', key: 'OPS', name: 'Ops' };
+const des = { id: desTeamId, key: 'DES', member: false, name: 'Design' };
+const ops = { id: 'team-ops', key: 'OPS', member: false, name: 'Ops' };
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();

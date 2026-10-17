@@ -20,6 +20,7 @@ import {
 import { LinearRefusedError } from './linear-errors.ts';
 import { readLinearInstallFacts } from './linear-install-reads.ts';
 import { consumeLinearAttempt, type LinearAttempt } from './oauth-attempts.ts';
+import { joinTeamsAfterIdentityInstall } from './team-membership.ts';
 
 export const linearOauthCallbackPath = '/linear/oauth/callback';
 
@@ -115,6 +116,19 @@ async function install(
             now: dependencies.clock.now(),
             tokens,
         });
+        if (bound.kind === 'identity_installed') {
+            // After commit, never under the Server lock: the identity joins the Haus app's member teams.
+            await joinTeamsAfterIdentityInstall({
+                appUserId: facts.appUser.id,
+                credentialId: bound.credentialId,
+                db,
+                fetch: linearApp.fetch,
+                now: dependencies.clock.now(),
+                reach: facts.teams,
+                token: tokens.accessToken,
+                workspaceId: bound.workspaceId,
+            });
+        }
         linearUpdatedTopic.announce({
             connectionId: bound.connectionId,
             serverId: attempt.serverId,

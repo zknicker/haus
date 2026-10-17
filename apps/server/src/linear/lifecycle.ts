@@ -196,7 +196,7 @@ export async function linearGrantAdded(
     input: { agentId: string; connectionId: string; serverId: string },
     now: Date
 ): Promise<void> {
-    await labelLifecycle.agentGrantAdded(tx, input);
+    await labelLifecycle.agentGrantAdded(tx, input, now);
     const workspace = await liveWorkspace(tx, input);
     if (workspace) {
         await setAgentIdentityStatus(tx, workspace.id, input.agentId, 'inactive', 'active', now);
@@ -225,7 +225,7 @@ export async function linearGrantRemoved(
             workspaceId: workspace.id,
         });
     }
-    await labelLifecycle.agentGrantRemoved(tx, input);
+    await labelLifecycle.agentGrantRemoved(tx, input, now);
 }
 
 /** A retiring Agent: every identity removed, labels archived, default Agent cleared. */
@@ -257,7 +257,7 @@ export async function linearAgentRetired(
             )
         );
     await orphanLinearSessions(tx, { agentId: input.agentId, now, serverId: input.serverId });
-    await labelLifecycle.agentRetired(tx, input);
+    await labelLifecycle.agentRetired(tx, input, now);
 }
 
 async function revokeWorkspaceActor(tx: HausDatabase, workspaceId: string, now: Date) {

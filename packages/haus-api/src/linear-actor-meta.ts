@@ -102,6 +102,8 @@ export const linearToolPolicies: Record<LinearToolName, LinearToolPolicy> = {
 export const linearToolErrorCodeSchema = z.enum([
     'linear_input_error',
     'linear_team_outside_access',
+    /** A team settings write where no actor is a member of every target team. */
+    'linear_team_membership_required',
     'linear_agent_unknown',
     'linear_artifact_unavailable',
     'linear_session_not_yours',

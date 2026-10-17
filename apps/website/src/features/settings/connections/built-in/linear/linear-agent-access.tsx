@@ -16,10 +16,15 @@ import {
     linearIdentityFlowMode,
 } from './linear-identity-flow-model.ts';
 import { LinearIdentityFlowPanel } from './linear-identity-flow-panel.tsx';
-import { identityForAgent, type LinearIdentityAction } from './linear-identity-model.ts';
+import {
+    identityForAgent,
+    type LinearIdentityAction,
+    linearMemberTeams,
+} from './linear-identity-model.ts';
 import { LinearIdentityRemoveDialog } from './linear-identity-remove-dialog.tsx';
 import { LinearIdentityLine } from './linear-identity-row.tsx';
 import { LinearSetupDisclosure } from './linear-setup-motion.tsx';
+import { linearApplicationsSettingsUrl } from './linear-workspace-health.ts';
 import {
     rememberLinearIdentityInstall,
     useLinearIdentityArrival,
@@ -54,7 +59,17 @@ export const LinearAgentAccess: AgentAccessExtender = ({ children, connection, s
         return children(null);
     }
 
+    const memberTeams = linearMemberTeams(workspace);
     const act = (agent: Agent, action: LinearIdentityAction) => {
+        if (action === 'change-teams') {
+            // An admin grants the Agent's own app its teams there, as for the Haus app.
+            window.open(
+                linearApplicationsSettingsUrl(workspace.urlKey),
+                '_blank',
+                'noopener,noreferrer'
+            );
+            return;
+        }
         const identity = identityForAgent(identities, agent.id);
         if (action === 'remove' || action === 'reinstall') {
             if (identity && action === 'remove') {
@@ -100,6 +115,7 @@ export const LinearAgentAccess: AgentAccessExtender = ({ children, connection, s
                         arrived={arrived === agent.id}
                         canManage={canManage}
                         identity={identity}
+                        memberTeams={memberTeams}
                         onAction={(action) => act(agent, action)}
                         setupOpen={open !== null}
                     />

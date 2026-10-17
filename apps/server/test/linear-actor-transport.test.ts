@@ -124,7 +124,7 @@ test('reads go through the workspace actor and result _meta never reaches Comput
     expect(result).not.toHaveProperty('_meta');
 });
 
-test('a write inside the identity teams uses the identity; one outside falls back with createAsUser', async () => {
+test('a write inside the identity teams uses the identity; one outside is refused, never the Haus app', async () => {
     const inside = recorder();
     await transport.call(call('create_comment', { issue: 'DES-1' }), inside.send);
     expect(inside.sent[0]).toMatchObject({
@@ -132,16 +132,32 @@ test('a write inside the identity teams uses the identity; one outside falls bac
         actor: { appUserId: 'app-ada', createAsUser: null, kind: 'identity' },
     });
     const outside = recorder();
-    await transport.call(call('create_comment', { issue: 'OPS-1' }), outside.send);
-    expect(outside.sent[0]).toMatchObject({
+    const refused = await transport.call(call('create_comment', { issue: 'OPS-1' }), outside.send);
+    expect(text(refused)).toBe(
+        "linear_team_outside_access: Ada's Linear app can't reach Ops. A workspace admin can change its team access under Linear → Settings → Applications → Ada → Team access."
+    );
+    expect(outside.sent).toHaveLength(0);
+});
+
+test('an Agent without an identity writes through the Haus app with createAsUser', async () => {
+    const { send, sent } = recorder();
+    await transport.call(call('create_comment', { issue: 'OPS-1' }, beaconId), send);
+    expect(sent[0]).toMatchObject({
         accessToken: workspaceToken,
-        actor: { createAsUser: 'Ada', kind: 'workspace' },
+        actor: { createAsUser: 'Beacon', kind: 'workspace' },
     });
 });
 
 test('a multi-team write never splits actors', async () => {
+    const identity = recorder();
+    const refused = await transport.call(
+        call('create_project', { teams: ['DES', 'OPS'] }),
+        identity.send
+    );
+    expect(text(refused)).toStartWith('linear_team_outside_access:');
+    expect(identity.sent).toHaveLength(0);
     const { send, sent } = recorder();
-    await transport.call(call('create_project', { teams: ['DES', 'OPS'] }), send);
+    await transport.call(call('create_project', { teams: ['DES', 'OPS'] }, beaconId), send);
     expect(sent).toHaveLength(1);
     expect(sent[0]?.actor.kind).toBe('workspace');
 });

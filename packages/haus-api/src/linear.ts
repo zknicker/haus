@@ -118,6 +118,7 @@ export const linearRefusalSchema = z.enum([
     'linear_session_closed',
     'linear_session_not_yours',
     'linear_sign_in_required',
+    'linear_team_membership_required',
     'linear_team_outside_access',
     'linear_workspace_already_bound',
 ]);
@@ -136,6 +137,8 @@ export const linearWorkspaceSchema = z
         defaultAgentId: idSchema.nullable(),
         id: idSchema,
         lastDeliveryAt: timestampSchema.nullable(),
+        /** Teams the Haus app user is a member of; team settings writes need membership. */
+        memberTeamIds: z.array(linearObjectIdSchema),
         name: z.string().min(1),
         organizationId: linearObjectIdSchema,
         removedAt: timestampSchema.nullable(),
@@ -197,6 +200,8 @@ export const linearIdentitySchema = z
         handle: z.string().min(1).nullable(),
         id: idSchema,
         lastDeliveryAt: timestampSchema.nullable(),
+        /** Teams the identity's app user is a member of; empty until installed and synced. */
+        memberTeamIds: z.array(linearObjectIdSchema),
         status: linearIdentityStatusSchema,
         workspaceId: idSchema,
     })

@@ -23,7 +23,13 @@ import { insertLinearConnection, reconnectLinearConnection } from './workspace-c
 
 export type LinearBindResult =
     | { connectionId: string; kind: 'workspace_connected' | 'workspace_reconnected' }
-    | { connectionId: string; kind: 'identity_installed' };
+    | {
+          connectionId: string;
+          /** The identity's credential, whose team memberships the install joins after commit. */
+          credentialId: string;
+          kind: 'identity_installed';
+          workspaceId: string;
+      };
 
 export interface LinearBindInput {
     attempt: LinearAttempt;
@@ -106,7 +112,7 @@ async function bindNewWorkspace(
         urlKey: facts.organization.urlKey,
     });
     await storeActor(tx, { ...input, identityId: null, workspaceId });
-    await labelLifecycle.teamsChanged(tx, { serverId: attempt.serverId, workspaceId });
+    await labelLifecycle.teamsChanged(tx, { serverId: attempt.serverId, workspaceId }, now);
     return { connectionId, kind: 'workspace_connected' };
 }
 
@@ -141,10 +147,11 @@ async function rebindWorkspace(
         icon: input.icon,
     });
     await storeActor(tx, { ...input, identityId: null, workspaceId: workspace.id });
-    await labelLifecycle.teamsChanged(tx, {
-        serverId: attempt.serverId,
-        workspaceId: workspace.id,
-    });
+    await labelLifecycle.teamsChanged(
+        tx,
+        { serverId: attempt.serverId, workspaceId: workspace.id },
+        now
+    );
     // Reconnecting clears sign-in problems; clearing notifies nobody.
     await rederiveLinearTriggerProblems(tx, {
         now,
@@ -212,8 +219,17 @@ async function bindIdentity(tx: HausDatabase, input: LinearBindInput): Promise<L
             updatedAt: now,
         })
         .where(eq(linearIdentitiesTable.id, identity.id));
-    await storeActor(tx, { ...input, identityId: identity.id, workspaceId: workspace.id });
-    return { connectionId: workspace.connectionId, kind: 'identity_installed' };
+    const credentialId = await storeActor(tx, {
+        ...input,
+        identityId: identity.id,
+        workspaceId: workspace.id,
+    });
+    return {
+        connectionId: workspace.connectionId,
+        credentialId,
+        kind: 'identity_installed',
+        workspaceId: workspace.id,
+    };
 }
 
 async function storeActor(
@@ -226,7 +242,7 @@ async function storeActor(
         tokens: LinearTokenPair;
         workspaceId: string;
     }
-) {
+): Promise<string> {
     const credential = await storeLinearCredential(tx, {
         identityId: input.identityId,
         now: input.now,
@@ -240,6 +256,7 @@ async function storeActor(
         serverId: input.attempt.serverId,
         teams: input.facts.teams,
     });
+    return credential.id;
 }
 
 /** The live workspace an attempt names through its connection. */

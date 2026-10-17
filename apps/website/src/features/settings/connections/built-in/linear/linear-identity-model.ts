@@ -1,11 +1,17 @@
 import type { LinearIdentity, LinearWorkspace } from '@haus/api';
 import { formatRelativeTime } from '../../../../../lib/format.ts';
+import { notMemberOfTeams } from './linear-team-names.ts';
 
 /** The next step a row's identity line offers, as an inline link. */
 export type LinearIdentityStep = 'continue' | 'give' | 'reinstall';
 /** What an installed identity's menu (opened from its handle) does. */
-export type LinearIdentityMenuAction = 'remove' | 'rotate-secret';
+export type LinearIdentityMenuAction = 'change-teams' | 'remove' | 'rotate-secret';
 export type LinearIdentityAction = LinearIdentityMenuAction | LinearIdentityStep;
+/** A team the Haus app is a member of, named for the identity line. */
+export interface LinearMemberTeam {
+    id: string;
+    name: string;
+}
 
 /**
  * A granted Agent's identity line: `fact` · `details` · `step`. Every
@@ -28,10 +34,14 @@ export interface LinearIdentityRow {
  * one) it posts through the Haus app and its next step is giving it its own;
  * a draft's next step is finishing that. Connecting an app made earlier is
  * the setup's own alternate path, not a row action. A live identity names
- * its handle, which opens its menu, and when Linear last reached it.
+ * its handle, which opens its menu, and when Linear last reached it. Team
+ * settings writes need membership, and the Server joins an identity to the
+ * Haus app's member teams when Linear allows; an active identity still
+ * missing some of them names them and offers Change teams in Linear.
  */
 export function linearIdentityRow(
-    identity: Pick<LinearIdentity, 'handle' | 'lastDeliveryAt' | 'status'> | null,
+    identity: Pick<LinearIdentity, 'handle' | 'lastDeliveryAt' | 'memberTeamIds' | 'status'> | null,
+    memberTeams: readonly LinearMemberTeam[],
     now = Date.now()
 ): LinearIdentityRow {
     const viaHaus = 'Posts via Haus';
@@ -47,8 +57,17 @@ export function linearIdentityRow(
         : [];
     const menu = ['rotate-secret', 'remove'] as const;
     switch (identity.status) {
-        case 'active':
-            return { details: delivery, fact, menu, step: null };
+        case 'active': {
+            const missing = missingTeamsDetail(identity.memberTeamIds, memberTeams);
+            return missing
+                ? {
+                      details: [...delivery, missing],
+                      fact,
+                      menu: ['change-teams', ...menu],
+                      step: null,
+                  }
+                : { details: delivery, fact, menu, step: null };
+        }
         case 'inactive':
             return { details: [...delivery, 'Inactive'], fact, menu, step: null };
         case 'refresh_required':
@@ -56,6 +75,15 @@ export function linearIdentityRow(
         default:
             return { details: ['Revoked'], fact, menu, step: 'reinstall' };
     }
+}
+
+/** The reachable teams the Haus app is a member of, by name. */
+export function linearMemberTeams(
+    workspace: Pick<LinearWorkspace, 'memberTeamIds' | 'teams'>
+): LinearMemberTeam[] {
+    return workspace.teams
+        .filter((team) => workspace.memberTeamIds.includes(team.id))
+        .map((team) => ({ id: team.id, name: team.name || team.key }));
 }
 
 /** The live identity an Agent holds in this workspace, if any. */
@@ -83,4 +111,13 @@ export function linearWorkspaceStatus(
         default:
             return { color: 'default', label: 'Removed' };
     }
+}
+
+/** "Not a member of Design, Products +1", or null when every team is covered. */
+function missingTeamsDetail(
+    identityTeamIds: readonly string[],
+    memberTeams: readonly LinearMemberTeam[]
+): string | null {
+    const missing = memberTeams.filter((team) => !identityTeamIds.includes(team.id));
+    return missing.length === 0 ? null : notMemberOfTeams(missing.map((team) => team.name));
 }

@@ -22,22 +22,40 @@ export type LinearToolAccess =
     | { kind: 'read' }
     | { kind: 'self' }
     | { kind: 'session'; arg: 'session' }
-    | { kind: 'write'; targets: readonly TargetArgument[] };
+    | {
+          kind: 'write';
+          /**
+           * A team settings write: the actor must be a member of every target
+           * team, not only reach it (specs/linear-app.md#choosing-the-actor).
+           */
+          membership?: true;
+          targets: readonly TargetArgument[];
+      };
 
 const read = { kind: 'read' } as const;
 const issue = { arg: 'issue', kind: 'issue' } as const;
+const state = { arg: 'state', kind: 'state' } as const;
 
 export const linearToolAccess: Readonly<Record<string, LinearToolAccess>> = {
-    archive_workflow_state: { kind: 'write', targets: [{ arg: 'state', kind: 'state' }] },
+    archive_workflow_state: { kind: 'write', membership: true, targets: [state] },
     create_comment: { kind: 'write', targets: [issue] },
     create_document: {
         kind: 'write',
         targets: [{ arg: 'project', kind: 'project', optional: true }],
     },
     create_issue: { kind: 'write', targets: [{ arg: 'team', kind: 'team' }] },
-    create_label: { kind: 'write', targets: [{ arg: 'team', kind: 'team', optional: true }] },
+    // A workspace label (no team) touches no team, so it needs no membership.
+    create_label: {
+        kind: 'write',
+        membership: true,
+        targets: [{ arg: 'team', kind: 'team', optional: true }],
+    },
     create_project: { kind: 'write', targets: [{ arg: 'teams', kind: 'team' }] },
-    create_workflow_state: { kind: 'write', targets: [{ arg: 'team', kind: 'team' }] },
+    create_workflow_state: {
+        kind: 'write',
+        membership: true,
+        targets: [{ arg: 'team', kind: 'team' }],
+    },
     delegate_issue: { kind: 'write', targets: [issue] },
     get_document: read,
     get_issue: read,
@@ -57,7 +75,7 @@ export const linearToolAccess: Readonly<Record<string, LinearToolAccess>> = {
         kind: 'write',
         targets: [issue, { arg: 'team', kind: 'team', optional: true }],
     },
-    update_workflow_state: { kind: 'write', targets: [{ arg: 'state', kind: 'state' }] },
+    update_workflow_state: { kind: 'write', membership: true, targets: [state] },
     upload_image: { kind: 'write', targets: [issue] },
     whoami: { kind: 'self' },
 };

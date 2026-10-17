@@ -1,4 +1,3 @@
-import type { LinearTeam } from '@haus/api';
 import type { AgentWake } from '../built-in-connections/built-in-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -8,7 +7,7 @@ import {
 } from './credentials.ts';
 import type { LinearDeliveryHandler, LinearDeliveryRow } from './delivery-handler.ts';
 import { credentialFailed } from './lifecycle.ts';
-import { readLinearTeams } from './linear-install-reads.ts';
+import { type LinearTeamReach, readLinearTeams } from './linear-install-reads.ts';
 import { orphanLinearSessions } from './sessions.ts';
 import { applyLinearTeamAccess } from './team-sync.ts';
 import { prepareLinearWorkspaceUpdated } from './workspace-updated.ts';
@@ -32,7 +31,7 @@ export interface LinearLifecycleDeliveryDependencies {
  */
 export function linearLifecycleHandler(
     dependencies: LinearLifecycleDeliveryDependencies
-): LinearDeliveryHandler<LinearTeam[] | null> {
+): LinearDeliveryHandler<LinearTeamReach[] | null> {
     return {
         apply: async (tx, row, now, teams) => {
             const credential = await receiverCredential(tx, row);

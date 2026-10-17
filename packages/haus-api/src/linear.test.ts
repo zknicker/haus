@@ -13,6 +13,7 @@ const workspace = {
     defaultAgentId: null,
     id: 'lnw_0123456789abcdef',
     lastDeliveryAt: null,
+    memberTeamIds: ['team-1'],
     name: 'Haus',
     organizationId: 'org-1',
     removedAt: null,
@@ -42,6 +43,7 @@ describe('linear contracts', () => {
             linearIdentitySchema.parse({
                 agentId: 'agt_juniper',
                 credentialsSaved: false,
+                memberTeamIds: [],
                 guidedFlow: {
                     appName: 'Juniper',
                     avatarUrl: null,

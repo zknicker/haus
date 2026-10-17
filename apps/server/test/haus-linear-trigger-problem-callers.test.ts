@@ -96,7 +96,7 @@ test('a team sync that loses a Trigger team enters teams_unavailable and wakes i
         applyLinearTeamAccess(
             tx,
             credential,
-            [{ id: desTeamId, key: 'DES', name: 'Design' }],
+            [{ id: desTeamId, key: 'DES', member: false, name: 'Design' }],
             new Date()
         )
     );
