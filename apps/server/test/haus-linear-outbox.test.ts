@@ -196,8 +196,8 @@ test('a granted Agent gets its group and label once; regrant after removal is a 
         connectionId: world.connectionId,
         serverId: world.serverId,
     };
-    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant));
-    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant));
+    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant, now));
+    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant, now));
     const kinds = (await outboxRows(connection.db, world.workspaceId)).map((row) => row.kind);
     expect(kinds).toEqual(['label_group_create', 'label_create']);
     const linear = fakeLinear({ nameTaken: ['Juniper'] });
@@ -226,11 +226,11 @@ test('a granted Agent gets its group and label once; regrant after removal is a 
     await connection.db
         .delete(agentMcpConnectionGrantsTable)
         .where(eq(agentMcpConnectionGrantsTable.agentId, world.agents.juniper));
-    await connection.db.transaction((tx) => labelLifecycle.agentGrantRemoved(tx, grant));
+    await connection.db.transaction((tx) => labelLifecycle.agentGrantRemoved(tx, grant, now));
     const archive = (await outboxRows(connection.db, world.workspaceId)).at(-1);
     expect(archive).toMatchObject({ input: { labelId: label?.labelId }, kind: 'label_archive' });
     await connection.db.insert(agentMcpConnectionGrantsTable).values(grant);
-    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant));
+    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant, now));
     const rows = await connection.db
         .select({ state: linearAgentLabelsTable.state })
         .from(linearAgentLabelsTable)
@@ -248,8 +248,8 @@ test('a label whose grant went away while it was being created is archived once 
         connectionId: world.connectionId,
         serverId: world.serverId,
     };
-    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant));
-    await connection.db.transaction((tx) => labelLifecycle.agentGrantRemoved(tx, grant));
+    await connection.db.transaction((tx) => labelLifecycle.agentGrantAdded(tx, grant, now));
+    await connection.db.transaction((tx) => labelLifecycle.agentGrantRemoved(tx, grant, now));
     // Nothing was created yet, so nothing is archived in Linear yet.
     expect((await outboxRows(connection.db, world.workspaceId)).map((row) => row.kind)).toEqual([
         'label_group_create',
@@ -260,11 +260,13 @@ test('a label whose grant went away while it was being created is archived once 
     await run(linear.transport);
     await run(linear.transport);
     const rows = await outboxRows(connection.db, world.workspaceId);
+    // The group and label share one enqueue time; only the archive comes after.
+    const [archive, ...creates] = rows.toReversed();
     const create = rows.find((row) => row.kind === 'label_create');
-    expect(rows.map((row) => [row.kind, row.state])).toEqual([
-        ['label_group_create', 'done'],
+    expect(archive).toMatchObject({ kind: 'label_archive', state: 'done' });
+    expect(creates.map((row) => [row.kind, row.state]).sort()).toEqual([
         ['label_create', 'done'],
-        ['label_archive', 'done'],
+        ['label_group_create', 'done'],
     ]);
-    expect(rows[2]?.input).toEqual({ labelId: create?.clientId });
+    expect(archive?.input).toEqual({ labelId: create?.clientId });
 });
