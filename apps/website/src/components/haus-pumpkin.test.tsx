@@ -3,9 +3,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { HausGhost } from './haus-ghost.tsx';
 import { EYES_PATH } from './haus-ghost-paths.ts';
 import { HausPumpkin } from './haus-pumpkin.tsx';
-import { PUMPKIN_FORM, PUMPKIN_PATCHES } from './haus-pumpkin-form.ts';
+import { MARK_RIB, PUMPKIN_FORM, PUMPKIN_PATCHES } from './haus-pumpkin-form.ts';
 import { PUMPKIN_GLASS } from './haus-pumpkin-palette.ts';
-import { PUMPKIN_EYES_PATH, PUMPKIN_EYES_SCALE, PUMPKIN_FRAME } from './haus-pumpkin-paths.ts';
+import {
+    PUMPKIN_BODY_PATH,
+    PUMPKIN_CENTRE_RIB_PATH,
+    PUMPKIN_EYES_PATH,
+    PUMPKIN_EYES_SCALE,
+    PUMPKIN_FRAME,
+} from './haus-pumpkin-paths.ts';
 
 const iridescent = (props: { animated?: boolean } = {}) =>
     renderToStaticMarkup(<HausPumpkin fill="iridescent" {...props} />);
@@ -83,6 +89,28 @@ describe('Haus pumpkin', () => {
         const ghost = renderToStaticMarkup(<HausGhost fill="iridescent" />);
         expect(ghost).not.toContain('haus-ghost__form');
         expect(ghost).not.toContain('haus-ghost__patches');
+    });
+
+    test('shades the centre crease like the outer creases', () => {
+        const paint = (id: string) => PUMPKIN_FORM.find((p) => p.id === id);
+        const outer = paint('crease-recess');
+        const centre = paint('centre-recess');
+        const rib = paint('centre-rib');
+
+        expect(centre?.d).toBe(PUMPKIN_CENTRE_RIB_PATH);
+        expect([centre?.width, centre?.blur, centre?.opacity]).toEqual([
+            outer?.width,
+            outer?.blur,
+            outer?.opacity,
+        ]);
+        expect([rib?.width, rib?.blur, rib?.opacity]).toEqual([
+            MARK_RIB.width,
+            MARK_RIB.blur,
+            MARK_RIB.opacity,
+        ]);
+        // It runs from the stem socket to the belly's centre dip.
+        expect(PUMPKIN_BODY_PATH).toContain('98 180');
+        expect(PUMPKIN_CENTRE_RIB_PATH.endsWith('98 180')).toBe(true);
     });
 
     test('retunes the mesh warm and glazes the stem green inside the glass', () => {
