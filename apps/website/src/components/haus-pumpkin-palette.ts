@@ -9,7 +9,7 @@
 
 import type { GlassFigure } from './haus-ghost-figure.ts';
 import { GLASS } from './haus-ghost-palette.ts';
-import { PUMPKIN_FORM, PUMPKIN_PATCHES } from './haus-pumpkin-form.ts';
+import { PUMPKIN_FORM, PUMPKIN_PATCHES, PUMPKIN_RIB } from './haus-pumpkin-form.ts';
 import {
     PUMPKIN_BODY_PATH,
     PUMPKIN_EYES_PATH,
@@ -30,9 +30,7 @@ export const PUMPKIN_GLASS = {
     meshPeach: '#ffc640',
     meshOrange: '#ff5a2a',
     meshRose: '#ff3f78',
-    /* A step deeper than the orange flesh, so the lobe creases still read on
-       an opaque body. */
-    rib: '#e2531a',
+    rib: PUMPKIN_RIB,
     stemGreen: '#86c043',
     stemOlive: '#5f7f22',
 } as const;

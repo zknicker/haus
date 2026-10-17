@@ -9,7 +9,11 @@
 
 import { fileURLToPath } from 'node:url';
 import type { FormPaint } from '../src/components/haus-ghost-figure.ts';
-import { PUMPKIN_FORM, PUMPKIN_PATCHES } from '../src/components/haus-pumpkin-form.ts';
+import {
+    PUMPKIN_PATCHES,
+    pumpkinForm,
+    type RibStroke,
+} from '../src/components/haus-pumpkin-form.ts';
 import { PUMPKIN_FIGURE, PUMPKIN_GLASS } from '../src/components/haus-pumpkin-palette.ts';
 import { PUMPKIN_BODY_PATH, PUMPKIN_RIBS_PATH } from '../src/components/haus-pumpkin-paths.ts';
 import { type IconProfile, type MeshBlob, renderIconMesh } from './render-icon-mesh.ts';
@@ -63,6 +67,9 @@ const BASE_AMBER = '#ffa040';
 const BASE_ORANGE = '#ff6a1a';
 const BASE_EMBER = '#ee4c0c';
 
+/* Deep creases where the lobes meet, the outer two and the centre one alike. */
+const ICON_RIB: RibStroke = { blur: 5, opacity: 0.95, width: 11 };
+
 const ICON_TERMINATOR: FormPaint = {
     id: 'icon-terminator',
     d: 'M-40 -40H240V250H-40z',
@@ -110,19 +117,16 @@ export const PUMPKIN_ICON_PROFILE: IconProfile = {
         },
         blobs: PUMPKIN_BLOBS,
         body: PUMPKIN_ICON_BODY_PATH,
-        creases: {
-            path: PUMPKIN_RIBS_PATH,
-            color: PUMPKIN_GLASS.rib,
-            width: 11,
-            blur: 5,
-            opacity: 0.95,
-        },
+        creases: { path: PUMPKIN_RIBS_PATH, color: PUMPKIN_GLASS.rib, ...ICON_RIB },
         footprint: PUMPKIN_FOOTPRINT,
         /* The mark's own volume and interior color, so the tile and the
-           sidebar shade the same gourd, plus a terminator: the tile's
-           soft-light shell lifts shadows the sidebar mark keeps, so the
-           icon deepens its right third and belly once more. */
-        form: [PUMPKIN_FORM[0], ICON_TERMINATOR, ...PUMPKIN_FORM.slice(1)],
+           sidebar shade the same gourd, with the centre crease at the icon's
+           own rib stroke, plus a terminator: the tile's soft-light shell lifts
+           shadows the sidebar mark keeps, so the icon deepens its right third
+           and belly once more. */
+        form: pumpkinForm(ICON_RIB).flatMap((paint) =>
+            paint.id === 'core-shadow' ? [paint, ICON_TERMINATOR] : [paint]
+        ),
         patches: PUMPKIN_PATCHES.map(({ color, cx, cy, id, opacity, r }) => ({
             color,
             cx,

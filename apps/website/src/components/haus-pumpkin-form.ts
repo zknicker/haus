@@ -9,8 +9,52 @@
  * (146–189). The crown meets the stem around y 48–55.
  */
 
-import { FORM_BODY, type FormPaint, type FormStop, type MeshBlob } from './haus-ghost-figure.ts';
-import { PUMPKIN_RIBS_PATH, PUMPKIN_STEM_PATH } from './haus-pumpkin-paths.ts';
+import {
+    FORM_BODY,
+    type FormGradient,
+    type FormPaint,
+    type FormStop,
+    type MeshBlob,
+} from './haus-ghost-figure.ts';
+import {
+    PUMPKIN_CENTRE_RIB_PATH,
+    PUMPKIN_RIBS_PATH,
+    PUMPKIN_STEM_PATH,
+} from './haus-pumpkin-paths.ts';
+
+/** A step deeper than the orange flesh, so the lobe creases still read on an
+    opaque body. */
+export const PUMPKIN_RIB = '#e2531a';
+
+/**
+ * How much the centre crease eases where it runs behind the left eye, from 0
+ * to 1. At 0 it matches the outer creases end to end; at 0.3 it keeps 70% of
+ * their strength behind the eyes, so the face keeps a little clean ground.
+ */
+export const CENTRE_CREASE_EYE_EASE = 0;
+
+/** Where the ease sits, in y: the left eye spans y 82–126 over the crease, so
+    the ease holds across it and ramps back to full strength over 12 units
+    either side. Offsets are along a vertical ramp from `y1` to `y2`. */
+export const CENTRE_CREASE_EASE_SPAN = {
+    y1: 50,
+    top: 74,
+    holdTop: 86,
+    holdBottom: 124,
+    bottom: 136,
+    y2: 185,
+} as const;
+
+/** How one surface strokes its outer ribs, so the centre crease can match. */
+export interface RibStroke {
+    readonly blur: number;
+    readonly opacity: number;
+    readonly width: number;
+}
+
+/** The mark's outer ribs: `.haus-ghost__ribs` in `haus-ghost.css` (width 12,
+    opacity 0.65) under the glass's light blur (5). */
+export const MARK_RIB: RibStroke = { blur: 5, opacity: 0.65, width: 12 };
 
 const EMBER = '#b8340a';
 const UMBER = '#6e2406';
@@ -34,7 +78,48 @@ export const PUMPKIN_PATCHES: readonly MeshBlob[] = [
     { id: 'magenta', drift: 'azure', color: '#ff3f8a', cx: 166, cy: 150, r: 24, opacity: 0.45 },
 ];
 
-export const PUMPKIN_FORM: readonly FormPaint[] = [
+/**
+ * The form for a surface whose outer ribs are stroked as `rib`. The centre
+ * crease repeats both layers the outer creases get: that surface's rib stroke
+ * first, under the light, then the same ember recess.
+ */
+export function pumpkinForm(rib: RibStroke): readonly FormPaint[] {
+    return [
+        {
+            id: 'centre-rib',
+            d: PUMPKIN_CENTRE_RIB_PATH,
+            mode: 'stroke',
+            width: rib.width,
+            blur: rib.blur,
+            opacity: rib.opacity,
+            paint: easedBehindEyes(PUMPKIN_RIB),
+        },
+        ...FORM_UNDER_RECESS,
+        {
+            id: 'centre-recess',
+            d: PUMPKIN_CENTRE_RIB_PATH,
+            mode: 'stroke',
+            width: CREASE_RECESS.width,
+            blur: CREASE_RECESS.blur,
+            opacity: CREASE_RECESS.opacity,
+            paint: easedBehindEyes(EMBER),
+        },
+        ...FORM_OVER_RECESS,
+    ];
+}
+
+/** Recess at the outer creases, where the lobes press together. */
+const CREASE_RECESS = {
+    id: 'crease-recess',
+    d: PUMPKIN_RIBS_PATH,
+    mode: 'stroke',
+    width: 16,
+    blur: 6,
+    opacity: 0.36,
+    paint: EMBER,
+} as const satisfies FormPaint;
+
+const FORM_UNDER_RECESS: readonly FormPaint[] = [
     /* Core shadow: the body turning away from an upper-left light. Clear over
        the lit half, rolling off to ember across the right third and the
        belly. */
@@ -63,41 +148,10 @@ export const PUMPKIN_FORM: readonly FormPaint[] = [
     crown('crown-left', 24, 98, 26, 0.5),
     crown('crown-centre', 80, 86, 40, 0.42),
     crown('crown-right', 160, 96, 22, 0.24),
-    /* Recess at the outer creases, where the lobes press together. */
-    {
-        id: 'crease-recess',
-        d: PUMPKIN_RIBS_PATH,
-        mode: 'stroke',
-        width: 16,
-        blur: 6,
-        opacity: 0.36,
-        paint: EMBER,
-    },
-    /* The centre lobe's own two creases: lower contrast, and faded out where
-       they pass behind the eyes so the face stays the focal point. */
-    {
-        id: 'centre-creases',
-        d: 'M78 54C68 92 68 140 76 182M118 54C128 92 128 140 120 182',
-        mode: 'stroke',
-        width: 10,
-        blur: 5,
-        opacity: 0.22,
-        paint: {
-            kind: 'linear',
-            x1: 0,
-            y1: 50,
-            x2: 0,
-            y2: 185,
-            stops: ramp(EMBER, [
-                [0, 1],
-                [0.16, 1],
-                [0.25, 0],
-                [0.58, 0],
-                [0.68, 1],
-                [1, 1],
-            ]),
-        },
-    },
+    CREASE_RECESS,
+];
+
+const FORM_OVER_RECESS: readonly FormPaint[] = [
     /* Contact shadow under the crown, where the stem sinks into it. */
     {
         id: 'crown-occlusion',
@@ -164,6 +218,34 @@ export const PUMPKIN_FORM: readonly FormPaint[] = [
         paint: UMBER,
     },
 ];
+
+/** The in-app mark's form. The icon mesh builds its own from `pumpkinForm`
+    with its stronger crease stroke. */
+export const PUMPKIN_FORM = pumpkinForm(MARK_RIB);
+
+function easedBehindEyes(color: string): FormGradient | string {
+    if (CENTRE_CREASE_EYE_EASE === 0) {
+        return color;
+    }
+    const span = CENTRE_CREASE_EASE_SPAN;
+    const at = (y: number) => Math.round(((y - span.y1) / (span.y2 - span.y1)) * 1000) / 1000;
+    const eased = 1 - CENTRE_CREASE_EYE_EASE;
+    return {
+        kind: 'linear',
+        x1: 0,
+        y1: span.y1,
+        x2: 0,
+        y2: span.y2,
+        stops: ramp(color, [
+            [0, 1],
+            [at(span.top), 1],
+            [at(span.holdTop), eased],
+            [at(span.holdBottom), eased],
+            [at(span.bottom), 1],
+            [1, 1],
+        ]),
+    };
+}
 
 function crown(id: string, cx: number, cy: number, r: number, strength: number): FormPaint {
     return {

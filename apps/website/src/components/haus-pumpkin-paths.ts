@@ -48,6 +48,11 @@ export const PUMPKIN_STEM_PATH = `${STEM.join(' ')}C108 56 88 56 79 52z`;
 /** The creases where the center lobe meets the outer lobes, bowing out with it. */
 export const PUMPKIN_RIBS_PATH = 'M137 52C152 90 154 140 147 173M55 52C42 90 40 140 49 173';
 
+/** The center lobe's one crease, where its two halves meet: from the stem
+    socket straight down to the soft dip in the belly at x 98. It passes behind
+    the left eye. */
+export const PUMPKIN_CENTRE_RIB_PATH = 'M98 56C97 94 97 142 98 180';
+
 /** Where the pumpkin's viewBox starts: it moves the artwork 1.7 right and 10.6
     up inside the unchanged 192×204 box, which puts the silhouette's centroid
     (body minus eyes, measured by area) on the box center. */
