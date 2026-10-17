@@ -48,6 +48,17 @@ creates one app user per Linear workspace. That user is not a billable seat
 mention target, one delegate. Installing needs a Linear workspace admin, and the admin picks which
 teams the app can reach. App actors cannot hold `admin` scope.
 
+An app user's team access has two levels. **Access** lets it see a team and write the team's
+issues, comments, and projects; an admin can grant it per team or as "All public teams". **Membership**
+makes it a member of the team. Changing a team's settings (workflow states, team labels) needs
+membership: an app user with access only gets Linear's "You are not allowed to create/update
+workflow states for this team." An admin grants membership at install or under Settings →
+Applications → the app → Team access. The GraphQL API exposes both: `Team.viewerMembership { id }`
+is null when the viewer is not a member, `Team.viewerCanJoin` is true when the viewer may add
+itself (false when the viewer is an app user the team does not accept; it runs the same checks as
+a self-join through `teamMembershipCreate`), and `teamMembershipCreate(input: { teamId, userId })`
+adds a member.
+
 On `issueCreate` and `commentCreate` only, an app token may pass `createAsUser` and
 `displayIconUrl`. Linear then shows "Juniper (via Haus)". Every other write shows the bare app
 user: state changes, labels, attachments, projects, documents, workflow states, and agent
@@ -137,13 +148,39 @@ call. **Target teams** are the teams the operation touches: an issue's team (and
 move, both teams), a project's `teamIds`, a workflow state's team, a label's team. Workspace-level
 labels and documents without a project touch no team.
 
+**An Agent with an identity always writes as it** (decided 2026-10-17). An Agent with an
+`active` identity never falls back to the Haus app: a write its identity's app cannot make is
+refused, naming the Agent's app and the Linear setting a workspace admin changes. Agents without
+an identity write through the Haus app posting as themselves. Reads, session replies, and Haus's
+own label bookkeeping are unaffected by this rule.
+
 | Operation | Actor |
 | --- | --- |
 | Any read | the workspace actor (reads look the same to every Agent) |
-| Write, any target team outside workspace team access | refused: `linear_team_outside_access` |
+| Write, any target team outside workspace team access | refused: `linear_team_outside_access`, whatever identity the Agent has |
 | Write, Agent has an `active` identity and every target team is in its effective access (or the write touches no team) | the identity |
-| Write, otherwise | the workspace actor, with `createAsUser` and `displayIconUrl` on `issueCreate`/`commentCreate` |
+| Write, Agent has an `active` identity and a target team is outside its effective access | refused: `linear_team_outside_access`, naming the Agent's app and the teams |
+| Write, Agent has no identity | the workspace actor, with `createAsUser` and `displayIconUrl` on `issueCreate`/`commentCreate` |
+| Membership write, Agent has an `active` identity, every target team is in its effective access, and the identity is a member of each | the identity |
+| Membership write, Agent has an `active` identity that is not a member of every target team | refused: `linear_team_membership_required`, naming the Agent's app and the teams |
+| Membership write, Agent has no identity, and the workspace actor is a member of every target team | the workspace actor, with `createAsUser` |
+| Membership write, Agent has no identity, otherwise | refused: `linear_team_membership_required`, naming Haus and the teams |
 | Session activity (`reply`) | the actor that owns the session; never a fallback ([sessions](#linear-sessions)) |
+
+An identity's refusals read, for example: "Juniper's Linear app can't reach Products. A workspace
+admin can change its team access under Linear → Settings → Applications → Juniper → Team
+access." and "Juniper's Linear app isn't a member of Design, so it can't change that team's
+settings. A workspace admin can add it under Linear → Settings → Applications → Juniper → Team
+access." The rule lives in `linear/identity-write-actor.ts`.
+
+A **membership write** changes a team's settings, which Linear allows only to team members:
+`create_workflow_state`, `update_workflow_state`, `archive_workflow_state`, and `create_label` on
+a team (`membership: true` in `linear/target-teams.ts`). A workspace label touches no team and
+needs no membership. Membership sets follow the same 24-hour staleness rule as access, and the
+rule lives in `linear/membership-actor.ts`. The refusal for an Agent without an identity reads,
+for example: "Haus isn't a member of Design in Linear, so it can't change that team's settings. A
+workspace admin can add it under Linear → Settings → Applications → Haus → Team access." Every
+other write ignores membership.
 
 A multi-team write never splits across actors. `createAsUser` is the Agent's display name;
 `displayIconUrl` is a short-lived [signed avatar URL](#signed-urls). Other workspace-actor writes
@@ -236,7 +273,8 @@ Tool errors carry a leading code. `retryable` follows the Agent API's existing f
 | Code | Meaning | Retryable |
 | --- | --- | --- |
 | `linear_input_error` | Linear refused the input; message is Linear's `userPresentableMessage` | no |
-| `linear_team_outside_access` | a target team is outside workspace team access | no |
+| `linear_team_outside_access` | a target team is outside workspace team access, or, for an Agent with an identity, outside the identity's effective access; the identity case names the Agent's app, the teams, and where an admin changes its team access | no |
+| `linear_team_membership_required` | a membership write where the chosen actor is not a member of every target team: the identity for an Agent that has one, otherwise the Haus app; names that app, the teams, and how an admin adds it | no |
 | `linear_agent_unknown` | `delegate_issue` names no single granted, active Agent; lists valid names | no |
 | `linear_artifact_unavailable` | `upload_image` artifact missing, deleted, wrong type, or too large | no |
 | `linear_session_not_yours`, `linear_session_closed`, `linear_session_actor_unavailable` | `reply` refusals ([sessions](#linear-sessions)) | no |
@@ -313,12 +351,31 @@ refresh owner (`linear/token-refresh.ts`):
 Team access is persisted per credential (`linear_team_access`) and synced at install, on every
 `PermissionChange` delivery, and hourly (`linear/team-sync.ts`, which then runs the `linear`
 Trigger reference sweep in `linear/reference-sweep.ts` and drops expired OAuth attempts). A failed sync keeps the last set; a set older than 24
-hours is treated as empty for writes.
+hours is treated as empty for writes. One credential's syncs, and an identity install's join,
+run one at a time within the Server process (`linear/credential-sync-queue.ts`), so a read taken
+before another sync's join never overwrites it.
 
 - **Workspace access** is the workspace credential's teams. Every write's target teams must be in
   it; otherwise `linear_team_outside_access`, whatever identity the Agent has.
-- **Effective identity access** is identity teams ∩ workspace teams. Writes outside it fall back
-  to the workspace actor. Session activities for an identity-owned session never fall back.
+- **Effective identity access** is identity teams ∩ workspace teams. An identity holder's writes
+  outside it are refused with `linear_team_outside_access` naming the Agent's app; they never
+  fall back to the workspace actor (decided 2026-10-17). Session activities for an
+  identity-owned session never fall back either.
+- **Member set.** Each synced team row records whether the actor's app user is a member of it
+  (`viewerMembership`). [Membership writes](#choosing-the-actor) need the chosen actor to be a
+  member of every target team; a stale set holds no members for writes.
+- **Identities join the Haus app's teams.** An identity joins exactly the teams the Haus app is a
+  member of, never more: the admin chooses which teams' settings Haus may change by adding the
+  Haus app, and each identity follows that choice (`linear/team-membership.ts`). A sync reads
+  workspace actors before identities. For an identity it then calls `teamMembershipCreate` with
+  the identity's own token and app user id for every team the Haus app is a member of (fresh rows)
+  that the identity reaches, is not yet a member of, and may join (`viewerCanJoin`). Each team is
+  tried at most once per sync. A success marks the team member before the sync persists; a
+  refused join is logged per team and never fails the sync. An identity install runs the same
+  join right after its bind commits, against the team access the bind stored. A
+  `PermissionChange` delivery stores what Linear reports and leaves joins to the next sync.
+- **Views.** `linear.workspaces` returns the Haus app's `memberTeamIds` beside `teams`;
+  `linear.identities` returns each identity's `memberTeamIds`. Both are as of the last sync.
 - A `PermissionChange` (`teamAccessChanged`, with `addedTeamIds` and `removedTeamIds`; Haus
   re-reads the full set rather than applying the delta) recomputes both sets in one transaction,
   creates pending label rows for newly accessible teams, re-derives
@@ -786,7 +843,7 @@ Server purge cascade. Ids are prefix + 16 of `[A-Za-z0-9_-]`.
 | `linear_identities` | `id` (`lni_`), `workspace_id`, `organization_id`, `agent_id`, `oauth_client_id`, `app_user_id` nullable until installed, `handle`, `status` (`draft`, `active`, `inactive`, `refresh_required`, `revoked`, `removed`), `last_delivery_at`, `created_by_user_id`, `removed_at`; unique `(workspace_id, agent_id)`, `oauth_client_id`, and `(organization_id, app_user_id)`, each where `status <> 'removed'` |
 | `linear_identity_secrets` | `identity_id` PK (cascade), `webhook_secret`, `previous_webhook_secret`, `previous_expires_at` |
 | `linear_credentials` | `id` (`lna_`), `workspace_id`, `identity_id` nullable, `access_token`, `refresh_token`, `access_expires_at`, `scopes` text[], `state` (`valid`, `refresh_required`, `revoked`), `generation`, `updated_at`; unique `workspace_id` where `identity_id is null`; unique `identity_id` |
-| `linear_team_access` | PK `(credential_id, team_id)` (cascade), `team_key`, `team_name`, `synced_at` |
+| `linear_team_access` | PK `(credential_id, team_id)` (cascade), `team_key`, `team_name`, `member` boolean (default false; the actor's app user is a team member), `synced_at` |
 | `linear_oauth_attempts` | `id` (`lno_`), `state_hash` unique, `purpose` (`workspace_install`, `workspace_reconnect`, `identity_install`), `connection_id`, `identity_id`, `initiated_by_user_id`, `code_verifier`, `expires_at`, `consumed_at`; purpose-shape check; expired rows swept hourly |
 | `linear_webhook_deliveries` | `id` (`lnd_`), `receiver` (`app` or identity id), `delivery_id`, unique `(receiver, delivery_id)`, `organization_id`, `server_id` and `workspace_id` nullable, `event`, `action`, `webhook_timestamp`, `body` jsonb nullable (raw staging, cleared on `done`/`ignored`), `state` (`queued`, `processing`, `done`, `ignored`, `failed`), `ignored_reason`, `attempts`, `next_attempt_at` (also the claim lease while `processing`), `deferred_since`, `routed_count`, `received_at`, `processed_at`; index on `(state, next_attempt_at)` |
 | `linear_outbox` | `id` (`lnx_`), `workspace_id`, `credential_id`, `kind`, `input` jsonb, `client_id` uuid nullable, `state` (`queued`, `done`, `dead`), `attempts`, `next_attempt_at`, `last_error`, `created_at`, `done_at`; index on `(state, next_attempt_at)` |
@@ -808,10 +865,10 @@ Admin means Server Owner or Admin (`FORBIDDEN linear_admin_required`).
 
 | Procedure | Access | Shape |
 | --- | --- | --- |
-| `linear.workspaces` | member | `{ serverId }` → workspaces with status, url key, teams, last delivery, default Agent id |
+| `linear.workspaces` | member | `{ serverId }` → workspaces with status, url key, teams, the Haus app's member team ids, last delivery, default Agent id |
 | `linear.startInstall` | admin | `{ serverId, connectionId? }` → `{ authorizeUrl }` (connection id = reconnect) |
 | `linear.setDefaultAgent` | admin | `{ serverId, connectionId, agentId \| null }`; the Agent must hold the grant |
-| `linear.identities` | member | `{ serverId, connectionId }` → identities with Agent id, status, handle, last delivery |
+| `linear.identities` | member | `{ serverId, connectionId }` → identities with Agent id, status, handle, member team ids, last delivery |
 | `linear.createIdentityDraft` | admin | `{ serverId, connectionId, agentId }` → identity id plus the guided-flow values |
 | `linear.saveIdentityCredentials` | admin | `{ serverId, identityId, clientId?, webhookSigningSecret }`; `clientId` only while `draft` |
 | `linear.startIdentityInstall` | admin | `{ serverId, identityId }` → `{ authorizeUrl }` |
@@ -959,9 +1016,14 @@ Beyond each slice's unit tests, the Server suite covers:
 - **Actor transport.** Two Agents invoking concurrently on one connection each carry their own
   token; a multi-team write never splits actors; `_meta` absent from errors, logs, telemetry,
   journals, and Computer-bound results; `401` retry reuses the request id.
-- **Team scope.** Write outside workspace teams refused; identity outside its teams falls back to
-  the workspace actor; identity session reply never falls back; `PermissionChange` orphaning and
-  new-team label rows.
+- **Team scope.** Write outside workspace teams refused; identity outside its teams refused,
+  naming the Agent's app; an Agent without an identity writes through the Haus app with
+  `createAsUser`; identity session reply never falls back; `PermissionChange` orphaning and
+  new-team label rows; a membership write from an identity that reaches but is not a member is
+  refused naming the Agent's app, and one from an Agent without an identity is refused naming
+  Haus when the Haus app is not a member; the member flag persists; an identity
+  joins the Haus app's member teams it may join and no others; a refused join keeps the sync
+  succeeding; two overlapping syncs for one identity join once and keep the member.
 - **Ledger and loop safety.** Retried request id returns the recorded result; `unknown` create
   resolved by client id; identity write attributed exactly; created entity attributed exactly;
   two Agents' Haus-app writes to one issue inside the window fire rather than suppress; a pending
@@ -1005,8 +1067,10 @@ reads naturally.
 
 ## Not built
 
-- **Automated identity registration.** Linear has no API to create apps, so the Owner registers
-  each identity by hand through the guided flow. The manifest pre-fills Linear's form, but Linear
+- **Automated identity registration.** Linear's schema has an alpha `oauthApplicationCreate`
+  family gated behind an undocumented `oauth:create` eligibility that Linear enables per app; a
+  probe on 2026-10-16 got "Access denied", so the guided flow stays and the Owner registers each
+  identity by hand. The manifest pre-fills Linear's form, but Linear
   shows the client id and webhook signing secret only on its page, so the Owner copies those two
   back. A Haus Agent completing that flow in the Owner's browser is a possible later step.
 - **Admin operations in Linear** beyond workflow states.

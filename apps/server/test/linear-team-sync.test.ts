@@ -56,9 +56,9 @@ function fakeLinear(failing: ReadonlySet<string>) {
             return Promise.resolve(new Response('unavailable', { status: 503 }));
         }
         const teams = [
-            { id: 'team-des', key: 'DES', name: 'Design' },
-            { id: 'team-ops', key: 'OPS', name: 'Operations' },
-        ];
+            { id: 'team-des', key: 'DES', name: 'Design', viewerMembership: { id: 'mem-des' } },
+            { id: 'team-ops', key: 'OPS', name: 'Operations', viewerMembership: null },
+        ].map((team) => ({ ...team, viewerCanJoin: false }));
         // One team per page, so the sync must follow the cursor to see them all.
         const { variables } = JSON.parse(String(init?.body)) as {
             variables: { after: string | null };

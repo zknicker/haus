@@ -945,6 +945,17 @@
         "timer": 0
       }
     },
+    "apps/server/src/linear/credential-sync-queue.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "A per-credential chain of in-flight team syncs; the finally drops the credential's entry once its own sequence settles, so the map holds only syncs still running.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/server/src/linear/poller.ts": {
       "disposition": "external-adapter",
       "reason": "Linear's delivery and outbox worker loop keeps a fixed interval plus post-commit kicks. Server acquires both workers in its Effect Scope; close stops admission and joins the batch in flight before database teardown.",

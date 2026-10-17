@@ -15,6 +15,7 @@ export type LinearToolRefusalCode =
     | 'linear_session_closed'
     | 'linear_session_not_yours'
     | 'linear_sign_in_required'
+    | 'linear_team_membership_required'
     | 'linear_team_outside_access';
 
 /** Why the Server refused a call before it reached the connector. */
@@ -31,6 +32,8 @@ const refusalMessages: Record<LinearToolRefusalCode, string> = {
     linear_session_closed: 'That Linear session is closed.',
     linear_session_not_yours: 'That Linear session is not yours.',
     linear_sign_in_required: 'Linear needs an Owner to reconnect it in Haus.',
+    linear_team_membership_required:
+        "Haus isn't a member of a team this write changes in Linear, so it can't change that team's settings. A workspace admin can add it under Linear → Settings → Applications → Haus → Team access.",
     linear_team_outside_access:
         "A team this write touches is outside the Haus app's Linear access.",
 };

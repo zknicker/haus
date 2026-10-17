@@ -1,6 +1,7 @@
 import type { LinearCredentialState } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     foreignKey,
     integer,
@@ -97,11 +98,16 @@ export const linearCredentialsTable = pgTable(
     ]
 );
 
-/** The teams one credential's actor can reach, synced at install, on change, and hourly. */
+/**
+ * The teams one credential's actor can reach, synced at install, on change, and
+ * hourly. `member` marks a team the actor's app user is a member of: team
+ * settings writes (workflow states, team labels) need membership, not just access.
+ */
 export const linearTeamAccessTable = pgTable(
     'linear_team_access',
     {
         credentialId: text('credential_id').notNull(),
+        member: boolean('member').notNull().default(false),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),

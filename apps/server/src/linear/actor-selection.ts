@@ -7,35 +7,31 @@ import {
     linearCredentialsTable,
     linearIdentitiesTable,
 } from '../postgres/schema.ts';
-import { type LinearTeamCache, type LinearToolAccess, resolveTargetTeams } from './target-teams.ts';
-import { effectiveIdentityTeams, readTeamAccess, writeTeams } from './team-access.ts';
+import { identityWriteActor } from './identity-write-actor.ts';
+import {
+    identityActor,
+    type LinearActor,
+    type LinearActorContext,
+    workspaceActor,
+} from './linear-actor.ts';
+import { membershipWriteActor } from './membership-actor.ts';
+import {
+    type LinearTeamCache,
+    type LinearToolAccess,
+    resolveTargetTeams,
+    type TargetTeams,
+} from './target-teams.ts';
+import {
+    effectiveIdentityTeams,
+    readTeamAccess,
+    writeMemberTeamIds,
+    writeTeams,
+} from './team-access.ts';
 import type { LinearToolRefusal } from './tool-results.ts';
 
 // Choosing the actor (specs/linear-app.md#choosing-the-actor). The Agent never
 // names one: the Server resolves (connection, Agent, target teams) per call.
 // A multi-team write never splits across actors.
-
-export interface LinearActor {
-    appUserId: string;
-    /** The Agent's display name on a workspace-actor write; Linear honours it on creates. */
-    createAsUser: string | null;
-    credentialId: string;
-    kind: 'identity' | 'workspace';
-}
-
-/** What one Agent can act as in one workspace, loaded once per call. */
-export interface LinearActorContext {
-    agentName: string;
-    /** The Agent's `active` identity with a `valid` credential, if any. */
-    identity: {
-        appUserId: string;
-        credentialId: string;
-        handle: string;
-        id: string;
-        teams: LinearTeam[];
-    } | null;
-    workspace: { appUserId: string; credentialId: string; teams: LinearTeam[] };
-}
 
 /** The chosen actor plus what only `whoami` and `reply` carry in `_meta`. */
 export interface LinearActorChoice {
@@ -107,19 +103,8 @@ export async function chooseLinearActor(
                 ? actor
                 : { actor, session: { linearSessionId: session.linearSessionId } };
         }
-        case 'write': {
-            const targets = await resolve(access, input.args);
-            if (targets.kind === 'outside_access') {
-                return { refused: 'linear_team_outside_access' };
-            }
-            if (targets.kind === 'not_found') {
-                return {
-                    detail: `Name the ${targets.arg} this tool should act on.`,
-                    refused: 'linear_input_error',
-                };
-            }
-            return { actor: writeActor(context, targets.teams), targetTeams: targets.teams };
-        }
+        case 'write':
+            return writeChoice(context, access, await resolve(access, input.args));
         default:
             throw new Error('Unknown Linear tool access.');
     }
@@ -131,22 +116,19 @@ export function readActor(context: LinearActorContext): LinearActor {
 }
 
 /**
- * A write whose target teams are all inside workspace access: the identity
- * when every target team is in its effective access (or none is touched),
- * otherwise the workspace actor posting as the Agent.
+ * A write whose target teams are all inside workspace access. An Agent with
+ * an identity writes as it, or is refused when a target team is outside its
+ * effective access; it never falls back to the Haus app. An Agent without one
+ * writes through the workspace actor posting as the Agent. Team settings
+ * writes also need membership (`membershipWriteActor`).
  */
 export function writeActor(
     context: LinearActorContext,
     targetTeams: readonly LinearTeam[]
-): LinearActor {
+): LinearActor | LinearToolRefusal {
     const { identity } = context;
     if (identity) {
-        const effective = new Set(
-            effectiveIdentityTeams(identity.teams, context.workspace.teams).map((team) => team.id)
-        );
-        if (targetTeams.every((team) => effective.has(team.id))) {
-            return identityActor(identity);
-        }
+        return identityWriteActor(context, identity, targetTeams, { membership: false });
     }
     return workspaceActor(context, context.agentName);
 }
@@ -240,24 +222,28 @@ export async function loadActorContext(
             )
         )
         .limit(1);
-    const workspaceTeams = writeTeams(await readTeamAccess(db, workspace.id, input.now));
+    const workspaceAccess = await readTeamAccess(db, workspace.id, input.now);
     const usable =
         identity?.appUserId && identity.handle && identity.credentialState === 'valid'
             ? { ...identity, appUserId: identity.appUserId, handle: identity.handle }
             : null;
+    const identityAccess = usable ? await readTeamAccess(db, usable.credentialId, input.now) : null;
     return {
         agentName: agent.displayName,
-        identity: usable && {
-            appUserId: usable.appUserId,
-            credentialId: usable.credentialId,
-            handle: usable.handle,
-            id: usable.id,
-            teams: writeTeams(await readTeamAccess(db, usable.credentialId, input.now)),
-        },
+        identity: usable &&
+            identityAccess && {
+                appUserId: usable.appUserId,
+                credentialId: usable.credentialId,
+                handle: usable.handle,
+                id: usable.id,
+                memberTeamIds: writeMemberTeamIds(identityAccess),
+                teams: writeTeams(identityAccess),
+            },
         workspace: {
             appUserId: input.workspaceAppUserId,
             credentialId: workspace.id,
-            teams: workspaceTeams,
+            memberTeamIds: writeMemberTeamIds(workspaceAccess),
+            teams: writeTeams(workspaceAccess),
         },
     };
 }
@@ -277,20 +263,23 @@ export async function readSession(db: HausDatabase, workspaceId: string, handle:
     return session ?? null;
 }
 
-function workspaceActor(context: LinearActorContext, createAsUser: string | null): LinearActor {
-    return {
-        appUserId: context.workspace.appUserId,
-        createAsUser,
-        credentialId: context.workspace.credentialId,
-        kind: 'workspace',
-    };
-}
-
-function identityActor(identity: NonNullable<LinearActorContext['identity']>): LinearActor {
-    return {
-        appUserId: identity.appUserId,
-        createAsUser: null,
-        credentialId: identity.credentialId,
-        kind: 'identity',
-    };
+/** A write's actor once its target teams are resolved; membership writes need a member. */
+function writeChoice(
+    context: LinearActorContext,
+    access: LinearToolAccess & { kind: 'write' },
+    targets: TargetTeams
+): LinearActorChoice | LinearToolRefusal {
+    if (targets.kind === 'outside_access') {
+        return { refused: 'linear_team_outside_access' };
+    }
+    if (targets.kind === 'not_found') {
+        return {
+            detail: `Name the ${targets.arg} this tool should act on.`,
+            refused: 'linear_input_error',
+        };
+    }
+    const actor = access.membership
+        ? membershipWriteActor(context, targets.teams)
+        : writeActor(context, targets.teams);
+    return 'refused' in actor ? actor : { actor, targetTeams: targets.teams };
 }

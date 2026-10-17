@@ -1,18 +1,23 @@
-import type { LinearTeam } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { AgentWake } from '../built-in-connections/built-in-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { linearCredentialsTable, linearWorkspacesTable } from '../postgres/schema.ts';
+import {
+    linearCredentialsTable,
+    linearIdentitiesTable,
+    linearWorkspacesTable,
+} from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { serializeCredentialSync } from './credential-sync-queue.ts';
 import type { LinearCredential } from './credentials.ts';
 import { labelLifecycle } from './label-lifecycle.ts';
 import { LinearSignInRequiredError } from './linear-errors.ts';
 import { readLinearTeams } from './linear-install-reads.ts';
 import { sweepLinearAttempts } from './oauth-attempts.ts';
 import { sweepLinearTriggerReferences } from './reference-sweep.ts';
-import { replaceTeamAccess } from './team-access.ts';
+import { type LinearTeamMembership, replaceTeamAccess } from './team-access.ts';
+import { joinHausMemberTeams } from './team-membership.ts';
 import { orphanSessionsOutsideTeamScope } from './team-session-scope.ts';
 import { rederiveLinearTriggerProblems } from './trigger-problem-wakes.ts';
 import { prepareLinearWorkspaceUpdated } from './workspace-updated.ts';
@@ -20,6 +25,7 @@ import { prepareLinearWorkspaceUpdated } from './workspace-updated.ts';
 // Team scope (specs/linear-app.md#team-scope): access is synced at install, on
 // every PermissionChange, and hourly. A failed sync keeps the last set; the
 // 24-hour staleness rule in team-access.ts covers a Linear that stays down.
+// One credential's read → join → persist runs one at a time in this process.
 
 const sweepIntervalMs = 60 * 60_000;
 
@@ -48,7 +54,7 @@ export interface LinearTeamSyncOutcome {
 export async function applyLinearTeamAccess(
     tx: HausDatabase,
     credential: Pick<LinearCredential, 'id' | 'identityId' | 'serverId' | 'workspaceId'>,
-    teams: LinearTeam[],
+    teams: LinearTeamMembership[],
     now: Date
 ): Promise<AgentWake[]> {
     await replaceTeamAccess(tx, {
@@ -63,10 +69,11 @@ export async function applyLinearTeamAccess(
         workspaceId: credential.workspaceId,
     });
     if (!credential.identityId) {
-        await labelLifecycle.teamsChanged(tx, {
-            serverId: credential.serverId,
-            workspaceId: credential.workspaceId,
-        });
+        await labelLifecycle.teamsChanged(
+            tx,
+            { serverId: credential.serverId, workspaceId: credential.workspaceId },
+            now
+        );
     }
     return await rederiveLinearTriggerProblems(tx, {
         now,
@@ -77,18 +84,20 @@ export async function applyLinearTeamAccess(
 
 /**
  * Re-reads the teams of every `valid` credential on an `active` workspace, or
- * on one workspace (`workspaceId`: the Linear page's Refresh teams). One
- * credential's failure never stops the rest; it keeps its last set. Each
- * commit announces `linear.onUpdated` for its workspace.
+ * on one workspace (`workspaceId`: the Linear page's Refresh teams). Workspace
+ * actors go first, so an identity then joins the Haus app's member teams as
+ * this sync just read them. One credential's failure never stops the rest; it
+ * keeps its last set. Each commit announces `linear.onUpdated` for its workspace.
  */
 export async function syncLinearTeams(
     dependencies: LinearTeamSyncDependencies,
     scope: { workspaceId?: string } = {}
 ): Promise<LinearTeamSyncOutcome> {
     const { db } = dependencies;
-    const credentials = await db
+    const rows = await db
         .select({
             id: linearCredentialsTable.id,
+            identityAppUserId: linearIdentitiesTable.appUserId,
             identityId: linearCredentialsTable.identityId,
             serverId: linearCredentialsTable.serverId,
             workspaceId: linearCredentialsTable.workspaceId,
@@ -98,6 +107,10 @@ export async function syncLinearTeams(
             linearWorkspacesTable,
             eq(linearWorkspacesTable.id, linearCredentialsTable.workspaceId)
         )
+        .leftJoin(
+            linearIdentitiesTable,
+            eq(linearIdentitiesTable.id, linearCredentialsTable.identityId)
+        )
         .where(
             and(
                 eq(linearCredentialsTable.state, 'valid'),
@@ -105,21 +118,38 @@ export async function syncLinearTeams(
                 scope.workspaceId ? eq(linearWorkspacesTable.id, scope.workspaceId) : undefined
             )
         );
+    const credentials = [
+        ...rows.filter((row) => row.identityId === null),
+        ...rows.filter((row) => row.identityId !== null),
+    ];
     const outcome: LinearTeamSyncOutcome = { failed: 0, synced: 0 };
     for (const credential of credentials) {
         try {
-            const token = await dependencies.accessToken(credential.id);
-            const teams = await readLinearTeams(dependencies.fetch, token);
-            const committed = await db.transaction(async (tx) => {
-                await lockServerRow(tx, credential.serverId);
-                if (!(await stillValid(tx, credential.id))) {
-                    return null;
-                }
-                const now = dependencies.clock.now();
-                return {
-                    updated: await prepareLinearWorkspaceUpdated(tx, credential),
-                    wakes: await applyLinearTeamAccess(tx, credential, teams, now),
-                };
+            const committed = await serializeCredentialSync(credential.id, async () => {
+                const token = await dependencies.accessToken(credential.id);
+                const reach = await readLinearTeams(dependencies.fetch, token);
+                const teams = credential.identityAppUserId
+                    ? await joinHausMemberTeams({
+                          appUserId: credential.identityAppUserId,
+                          db,
+                          fetch: dependencies.fetch,
+                          now: dependencies.clock.now(),
+                          reach,
+                          token,
+                          workspaceId: credential.workspaceId,
+                      })
+                    : reach;
+                return await db.transaction(async (tx) => {
+                    await lockServerRow(tx, credential.serverId);
+                    if (!(await stillValid(tx, credential.id))) {
+                        return null;
+                    }
+                    const now = dependencies.clock.now();
+                    return {
+                        updated: await prepareLinearWorkspaceUpdated(tx, credential),
+                        wakes: await applyLinearTeamAccess(tx, credential, teams, now),
+                    };
+                });
             });
             outcome.synced += committed ? 1 : 0;
             publishRealtime(committed?.updated);
