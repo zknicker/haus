@@ -283,7 +283,7 @@ leaning entirely on its shadow.
 card is the exception: it keeps the same ladder in dark's own lightness range —
 `--shell-canvas` 10.5% under the tabs, `--shell-band-sidebar` 14%, `--shell-card`
 16.5% — and sets `--sidebar-surface` itself. Because the card is lifted, dark
-fields inside it take their own step (`--field-background` 21%) and a 0.5px
+fields inside it take their own step (`--field-background` from `--shell-field-background`, 21%) and a 0.5px
 `--field-border` hairline. Shadows vanish on near-black, so the shown tab lifts by
 fill (21%, a step above the card) rather than by shadow. See "Shell variants" in `default-theme.css`.
 
@@ -489,7 +489,16 @@ member and the one component that renders it.
   list that leaves `styles/themes/` out.
 
 Halloween is dark only: a pumpkin `--accent` (`oklch(71% 0.17 50)`, dark ink on it) and a
-faint midnight-indigo trace on the page and shell grounds.
+**night tint** on every dark neutral ground. Two knobs at the top of `halloween-tokens.css`,
+`--halloween-night-hue` and `--halloween-night-chroma`, feed each ground as
+`oklch(<default dark lightness> var(--halloween-night-chroma) var(--halloween-night-hue))`:
+the page, the shell ladder (`--shell-canvas`, `--shell-band-sidebar`, `--shell-card`,
+`--shell-tab-active-background`, `--shell-field-background`), `--surface*`, `--overlay`,
+`--field-background`, `--default`, `--tooltip`, `--segment`, and the recalibrated
+`--nested-surface` wash, so they move as one and the ladder's lightness never changes.
+Lines (`--border`, `--separator`) and text stay HeroUI's. Chroma `0` is the plain grey
+ladder; the file ships midnight blue (hue 265, chroma 0.010) with aubergine (312, 0.012) as
+the one-line alternative.
 
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.
