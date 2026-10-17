@@ -32,11 +32,16 @@
     --accent-foreground: var(--eclipse);
     --focus: var(--accent);
 
-    /* The page and the desktop shell ladder: canvas → sidebar → card → shown tab. */
+    /*
+     * The page and the desktop shell ladder: canvas → sidebar → card → shown tab.
+     * Night sits deeper than Default: sidebar and card each drop 2–2.5 L so the
+     * desktop card stays close to the web page's near-black instead of reading
+     * as a lit blue-grey; the canvas → sidebar → card steps are kept.
+     */
     --background: oklch(12% var(--halloween-night-chroma) var(--halloween-night-hue));
     --shell-canvas: oklch(10.5% var(--halloween-night-chroma) var(--halloween-night-hue));
-    --shell-band-sidebar: oklch(14% var(--halloween-night-chroma) var(--halloween-night-hue));
-    --shell-card: oklch(16.5% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --shell-band-sidebar: oklch(12% var(--halloween-night-chroma) var(--halloween-night-hue));
+    --shell-card: oklch(14% var(--halloween-night-chroma) var(--halloween-night-hue));
     --shell-tab-active-background: oklch(21% var(--halloween-night-chroma) var(--halloween-night-hue));
     --shell-field-background: oklch(21% var(--halloween-night-chroma) var(--halloween-night-hue));
 
