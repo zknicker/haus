@@ -92,7 +92,15 @@ the open page, the workspace menu's **Refresh teams** re-reads them on demand, a
 backs both up. Every install Haus starts (connect, reconnect, an Agent's own app) opens Linear in a
 tab beside Settings; when Linear sends the browser back, that tab closes and the Settings tab that
 started the install shows the outcome, or the tab itself does when Settings has since closed. **Last delivery** shows only once Linear has been silent a week or
-the workspace is failing. **Agent Access** is one list, each row's trailing side the switch alone;
+the workspace is failing. Changing a team's statuses or labels needs team membership, not just
+access: an Agent with its own identity sends those writes as that identity, which must be a member
+(it never falls back to the Haus app), an Agent without one sends them through the Haus app, and
+the Server joins an Agent's own identity to the teams the Haus app is a member of when Linear
+allows it. While the Haus app is
+not a member of some of its teams, the card's **Team settings** row says so with **Change in
+Linear**: "Haus isn't a member of any team", or "Not a member of Design" naming the missing ones;
+an identity still missing one of those teams says "Not a member of Design" on its line, and its
+handle's menu offers **Change teams in Linear**. **Agent Access** is one list, each row's trailing side the switch alone;
 a granted Agent's description line says how it posts and carries its controls: "Posts via Haus ·
 Give own identity", "Posts via Haus · Finish setup", or "Posts as @handle" (which opens Replace
 webhook secret and Remove identity). The **Default Agent** that answers the Haus app closes the

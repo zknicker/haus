@@ -1,5 +1,6 @@
-import type { LinearWorkspace } from '@haus/api';
+import type { LinearTeam, LinearWorkspace } from '@haus/api';
 import { formatRelativeTime } from '../../../../../lib/format.ts';
+import { notMemberOfTeams } from './linear-team-names.ts';
 
 const hourMs = 60 * 60 * 1000;
 /** The Server treats a team set older than this as empty for writes. */
@@ -14,6 +15,12 @@ export interface LinearWorkspaceHealth {
      * disabled. Null while healthy.
      */
     lastDelivery: string | null;
+    /**
+     * Team settings writes (statuses, labels) need membership: the reachable
+     * teams the Haus app is not a member of, in `teams` order. Empty without
+     * team access, which already says no write lands.
+     */
+    missingMemberTeams: LinearTeam[];
     /** Every write is refused while the Haus app reaches no team. */
     teamAccess: 'none' | 'ok';
 }
@@ -25,7 +32,10 @@ export interface LinearWorkspaceHealth {
  * stale, unless it is also failing.
  */
 export function linearWorkspaceHealth(
-    workspace: Pick<LinearWorkspace, 'lastDeliveryAt' | 'status' | 'teams' | 'teamsSyncedAt'>,
+    workspace: Pick<
+        LinearWorkspace,
+        'lastDeliveryAt' | 'memberTeamIds' | 'status' | 'teams' | 'teamsSyncedAt'
+    >,
     now = Date.now()
 ): LinearWorkspaceHealth {
     const syncedTooLongAgo =
@@ -36,6 +46,8 @@ export function linearWorkspaceHealth(
         workspace.lastDeliveryAt !== null &&
         now - Date.parse(workspace.lastDeliveryAt) > staleDeliveryMs;
 
+    const teamAccess = workspace.teams.length === 0 || syncedTooLongAgo ? 'none' : 'ok';
+
     return {
         lastDelivery:
             failing || stale
@@ -43,8 +55,26 @@ export function linearWorkspaceHealth(
                     ? formatRelativeTime(workspace.lastDeliveryAt, now)
                     : 'Never'
                 : null,
-        teamAccess: workspace.teams.length === 0 || syncedTooLongAgo ? 'none' : 'ok',
+        // Without team access the card already says no write lands; one warning per fact.
+        missingMemberTeams:
+            teamAccess === 'ok'
+                ? workspace.teams.filter((team) => !workspace.memberTeamIds.includes(team.id))
+                : [],
+        teamAccess,
     };
+}
+
+/**
+ * The Team settings warning for a non-empty `missing` list: no membership at
+ * all, or the teams still missing it ("Not a member of Design, Ops +1").
+ */
+export function linearTeamSettingsWarning(
+    missing: readonly LinearTeam[],
+    teams: readonly LinearTeam[]
+): string {
+    return missing.length === teams.length
+        ? "Haus isn't a member of any team"
+        : notMemberOfTeams(missing.map((team) => team.name || team.key));
 }
 
 /**
