@@ -37,4 +37,5 @@ export const migrationsSince0060 = [
     '0094_linear-app',
     '0095_linear-ingest-outbox',
     '0096_linear-identity-hand-back',
+    '0097_factory-preset',
 ];
