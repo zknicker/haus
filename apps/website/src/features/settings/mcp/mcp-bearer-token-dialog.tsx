@@ -21,6 +21,12 @@ const tokenGuides: Record<
     McpBearerTokenPreset,
     { name: string; portalLabel: string; portalUrl: string; summary: string }
 > = {
+    factory: {
+        name: 'Factory',
+        portalLabel: 'Create an agent API key in Factory under Settings, Agents',
+        portalUrl: 'https://factory.merchbase.co',
+        summary: "Acts in Factory as the agent that owns this key, within the key's scope.",
+    },
     x: {
         name: 'X',
         portalLabel: 'Get a Bearer token from the X Developer Portal',
