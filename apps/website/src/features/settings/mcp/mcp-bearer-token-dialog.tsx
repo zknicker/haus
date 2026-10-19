@@ -23,9 +23,10 @@ const tokenGuides: Record<
 > = {
     factory: {
         name: 'Factory',
-        portalLabel: 'Create an agent API key in Factory under Settings, Agents',
-        portalUrl: 'https://factory.merchbase.co',
-        summary: "Acts in Factory as the agent that owns this key, within the key's scope.",
+        portalLabel: 'Create a Merchbase API Key in your Account Center',
+        portalUrl: 'https://merchbase.co/account/api-keys',
+        summary:
+            'Paste a Merchbase API Key from your Account Center at merchbase.co/account/api-keys. Factory records this agent under that key.',
     },
     x: {
         name: 'X',
@@ -150,12 +151,12 @@ function BearerTokenForm({
                         <Input autoComplete="off" />
                         <FieldError>{error}</FieldError>
                     </TextField>
-                    {/* System browser: the portal needs the human's own X session, and the
-                        dialog stays open for the token they bring back. */}
+                    {/* System browser: the portal needs the human's own signed-in session, and
+                        the dialog stays open for the token they bring back. */}
                     <Link
                         onPress={() => {
                             openSystemBrowserLink(guide.portalUrl).catch(() =>
-                                toast.danger(`Could not open the ${guide.name} Developer Portal`)
+                                toast.danger(`Could not open ${guide.portalUrl}`)
                             );
                         }}
                     >

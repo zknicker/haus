@@ -43,8 +43,9 @@ the user account itself), and an installation belongs to one Haus Server only. I
 `github` Triggers ([GitHub Triggers](../../specs/github-triggers.md)); removing one from Haus pauses
 its Triggers and tells their Agents, and it stays installed on GitHub. X takes a token instead of a sign-in: pressing **+** asks
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
-public posts on that app's credits. Factory also takes a token: an agent API key created in
-Factory, which acts as the agent that owns it within the key's scope. Skool opens an isolated browser tab in the Haus desktop app.
+public posts on that app's credits. Factory also takes a token: a Merchbase API Key from the owner's
+Account Center at merchbase.co/account/api-keys. Factory issues no keys of its own and records the
+agent under that key. Skool opens an isolated browser tab in the Haus desktop app.
 Sign in directly to Skool; Haus captures the resulting session and provisions the hosted connection
 without showing internal tokens. Haus Server starts and supervises the bundled Skool connector; no separate service setup is required. Web users receive a desktop-required notice. After setup the
 connection works from web and mobile while the desktop app is closed. Reconnect and additional

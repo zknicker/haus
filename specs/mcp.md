@@ -89,9 +89,10 @@ connection state before reading the account-scoped cache.
 - X's hosted MCP (`https://api.x.com/mcp`) offers no OAuth discovery. Its preset uses an app-only
   Bearer token from the owner's X developer app: read-only, billed to that app's credits. Haus
   ships no X app or credentials of its own.
-- Factory (`https://factory.merchbase.co/mcp`) authenticates each caller by an agent API key that
-  Factory issues, sent as `Authorization: Bearer <key>` over Streamable HTTP. The key's owner and
-  scope (`read` or `write`) live in Factory; Haus stores only the header.
+- Factory (`https://factory.merchbase.co/mcp`) issues no keys. Under MerchBase Auth, each caller
+  authenticates with the owner's Merchbase API Key, created in the Account Center at
+  `https://merchbase.co/account/api-keys` and sent as `Authorization: Bearer <key>` over
+  Streamable HTTP. Factory records the agent under that key; Haus stores only the header.
 - Public reads expose header names, never values.
 
 ## Operations
