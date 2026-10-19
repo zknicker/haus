@@ -24,7 +24,7 @@ export const mcpOAuthPresetSchema = z.enum([
     'rankwrangler',
     'tmterminal',
 ]);
-export const mcpBearerTokenPresetSchema = z.enum(['x']);
+export const mcpBearerTokenPresetSchema = z.enum(['factory', 'x']);
 export const mcpDesktopPresetSchema = z.enum(['skool']);
 export const mcpKeylessPresetSchema = z.enum(['coingecko']);
 /**

@@ -50,11 +50,14 @@ afterAll(async () => {
     await harness?.close();
 });
 
-test('X stores its token as a Server-only Authorization header', async () => {
+test.each([
+    ['x', 'X', 'https://api.x.com/mcp'],
+    ['factory', 'Factory', 'https://factory.merchbase.co/mcp'],
+] as const)('%s stores its token as a Server-only Authorization header', async (preset, name, url) => {
     const created = await createMcpPresetAccount(connection.db, runtime, noIcon, member, {
         bearerToken: token,
-        name: 'X',
-        preset: 'x',
+        name,
+        preset,
         serverId,
     });
 
@@ -62,9 +65,9 @@ test('X stores its token as a Server-only Authorization header', async () => {
         auth: 'headers',
         connected: true,
         headerNames: ['Authorization'],
-        preset: 'x',
+        preset,
         tools: ['echo'],
-        url: 'https://api.x.com/mcp',
+        url,
     });
     const [secret] = (await harness.sql`
         select secret from mcp_secrets where connection_id = ${created.id}

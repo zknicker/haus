@@ -18,76 +18,9 @@ import type { BuiltInConnect } from '../connections/built-in/built-in-connection
 import { builtInConnectionDefinition } from '../connections/built-in/built-in-connection-registry.ts';
 import { SettingsCardGrid, SettingsGridItem } from '../layout/settings-card-grid.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
+import { connectionPresets, recommendedPresets } from './connection-presets.ts';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
 import { SkoolConnectDialog } from './skool-connect-dialog.tsx';
-
-const presets: Array<{ description: string; id: McpPreset; name: string }> = [
-    {
-        description: 'Explore crypto prices, DEX pools, and token charts. Free, no API key.',
-        id: 'coingecko',
-        name: 'CoinGecko',
-    },
-    {
-        description: 'Look up Amazon products and preview ASINs in messages.',
-        id: 'rankwrangler',
-        name: 'RankWrangler',
-    },
-    {
-        description: 'Read and schedule events on your Google calendars.',
-        id: 'google-calendar',
-        name: 'Google Calendar',
-    },
-    {
-        description: 'Query the MerchBase product catalog, designs, and sales.',
-        id: 'merchbase',
-        name: 'MerchBase',
-    },
-    {
-        description: 'Search your artwork library, manage assets, and export designs.',
-        id: 'merchbase-atlas',
-        name: 'MerchBase Atlas',
-    },
-    {
-        description: 'Manage Etsy listings, look up orders, and create product mockups.',
-        id: 'handmade',
-        name: 'Handmade',
-    },
-    {
-        description: 'Review and fulfill Printful orders through your MerchBase account.',
-        id: 'merchbase-fulfillment',
-        name: 'MerchBase Fulfillment',
-    },
-    {
-        description: 'Search trademarks, look up registrations, and screen listing text.',
-        id: 'tmterminal',
-        name: 'Trademark Terminal',
-    },
-    {
-        description: 'Work with repositories, issues, and pull requests.',
-        id: 'github',
-        name: 'GitHub',
-    },
-    {
-        description: 'Find, create, and update issues, projects, and comments.',
-        id: 'linear',
-        name: 'Linear',
-    },
-    {
-        description: 'Manage DNS, Workers, and other Cloudflare services.',
-        id: 'cloudflare',
-        name: 'Cloudflare',
-    },
-    {
-        description: 'Search and read public posts on X.',
-        id: 'x',
-        name: 'X',
-    },
-    {
-        description: 'Read your Skool communities, posts, and classroom courses.',
-        id: 'skool',
-        name: 'Skool',
-    },
-];
 
 /** Presets not yet added, each one press away from being an Added MCP. */
 export function ConnectionPresetSection({ serverId }: { serverId: string }) {
@@ -98,9 +31,7 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const [tokenPreset, setTokenPreset] = useState<McpBearerTokenPreset | null>(null);
     const [skoolOpen, setSkoolOpen] = useState(false);
     const skool = useSkoolConnect(serverId);
-    const availablePresets = presets.filter(
-        (preset) => !connections.data?.some((connection) => connection.preset === preset.id)
-    );
+    const availablePresets = recommendedPresets(connections.data ?? []);
 
     if (!connections.data || availablePresets.length === 0) {
         return null;
@@ -276,5 +207,5 @@ function PresetAddButton({ isDisabled, isPending, name, onPress }: PresetAddButt
 }
 
 function tokenPresetName(preset: McpBearerTokenPreset) {
-    return presets.find((entry) => entry.id === preset)?.name ?? preset;
+    return connectionPresets.find((entry) => entry.id === preset)?.name ?? preset;
 }

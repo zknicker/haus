@@ -12,7 +12,7 @@ describe('preset account auth', () => {
     });
 
     test('every preset is exactly one auth kind', () => {
-        expect(mcpPresetSchema.options.filter(isMcpBearerTokenPreset)).toEqual(['x']);
+        expect(mcpPresetSchema.options.filter(isMcpBearerTokenPreset)).toEqual(['factory', 'x']);
     });
 
     test('an OAuth preset cannot carry a token', () => {
@@ -64,9 +64,9 @@ describe('preset account auth', () => {
         ).toBe(false);
     });
 
-    test('a bearer-token preset requires a single header-safe token', () => {
+    test.each(['factory', 'x'] as const)('%s requires a single header-safe token', (preset) => {
         const parse = (bearerToken?: string) =>
-            mcpPresetAccountCreateSchema.safeParse({ ...base, bearerToken, preset: 'x' });
+            mcpPresetAccountCreateSchema.safeParse({ ...base, bearerToken, preset });
 
         expect(parse().success).toBe(false);
         expect(parse('   ').success).toBe(false);

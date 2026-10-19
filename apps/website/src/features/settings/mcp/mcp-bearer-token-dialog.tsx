@@ -21,6 +21,13 @@ const tokenGuides: Record<
     McpBearerTokenPreset,
     { name: string; portalLabel: string; portalUrl: string; summary: string }
 > = {
+    factory: {
+        name: 'Factory',
+        portalLabel: 'Create a Merchbase API Key in your Account Center',
+        portalUrl: 'https://merchbase.co/account/api-keys',
+        summary:
+            'Paste a Merchbase API Key from your Account Center at merchbase.co/account/api-keys. Factory records this agent under that key.',
+    },
     x: {
         name: 'X',
         portalLabel: 'Get a Bearer token from the X Developer Portal',
@@ -144,12 +151,12 @@ function BearerTokenForm({
                         <Input autoComplete="off" />
                         <FieldError>{error}</FieldError>
                     </TextField>
-                    {/* System browser: the portal needs the human's own X session, and the
-                        dialog stays open for the token they bring back. */}
+                    {/* System browser: the portal needs the human's own signed-in session, and
+                        the dialog stays open for the token they bring back. */}
                     <Link
                         onPress={() => {
                             openSystemBrowserLink(guide.portalUrl).catch(() =>
-                                toast.danger(`Could not open the ${guide.name} Developer Portal`)
+                                toast.danger(`Could not open ${guide.portalUrl}`)
                             );
                         }}
                     >

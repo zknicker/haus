@@ -89,11 +89,19 @@ const oauthPresets: Record<
     },
 };
 
-/** X's hosted MCP takes no OAuth discovery; an app-only Bearer token reads public posts. */
+/**
+ * X's hosted MCP takes no OAuth discovery; an app-only Bearer token reads public posts.
+ * Factory authenticates each agent by the API key Factory issued to it.
+ */
 const bearerTokenPresets: Record<
     McpBearerTokenPreset,
     PresetDefinition<Extract<PresetAuth, { kind: 'bearer-token' }>>
 > = {
+    factory: {
+        auth: { kind: 'bearer-token' },
+        name: 'Factory',
+        url: 'https://factory.merchbase.co/mcp',
+    },
     x: { auth: { kind: 'bearer-token' }, name: 'X', url: 'https://api.x.com/mcp' },
 };
 
