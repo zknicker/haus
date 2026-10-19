@@ -25,7 +25,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Linear, Cloudflare, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Linear, Cloudflare, Factory, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is the one built-in connection
@@ -43,7 +43,8 @@ the user account itself), and an installation belongs to one Haus Server only. I
 `github` Triggers ([GitHub Triggers](../../specs/github-triggers.md)); removing one from Haus pauses
 its Triggers and tells their Agents, and it stays installed on GitHub. X takes a token instead of a sign-in: pressing **+** asks
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
-public posts on that app's credits. Skool opens an isolated browser tab in the Haus desktop app.
+public posts on that app's credits. Factory also takes a token: an agent API key created in
+Factory, which acts as the agent that owns it within the key's scope. Skool opens an isolated browser tab in the Haus desktop app.
 Sign in directly to Skool; Haus captures the resulting session and provisions the hosted connection
 without showing internal tokens. Haus Server starts and supervises the bundled Skool connector; no separate service setup is required. Web users receive a desktop-required notice. After setup the
 connection works from web and mobile while the desktop app is closed. Reconnect and additional
@@ -55,7 +56,7 @@ account can be added deliberately from the connection's page with **Add another 
 sign-in preset (GitHub, MerchBase) one press opens the provider's sign-in tab, adds the account,
 and moves to its page, which shows it connecting until the sign-in finishes; the row shows a spinner
 and ignores further presses meanwhile, and a failed or untrusted sign-in leaves the new account on
-its page as **Sign in required**. X opens the token form instead. Deleting the last account makes the
+its page as **Sign in required**. Factory and X open the token form instead. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
 
 MerchBase Atlas connects to `https://atlas.merchbase.co/mcp` through MerchBase/Clerk
