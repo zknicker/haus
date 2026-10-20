@@ -144,13 +144,13 @@ export interface DreamRecording {
  * failure is logged and never fails the turn; it only costs the record.
  */
 export async function openDreamRecording(input: {
-    command: { agentId: string; dream?: unknown; runId: string };
+    command: { agentId: string; heartbeat?: { kind: 'daytime' | 'nightly' }; runId: string };
     runtime: DaemonRuntime;
     sendFrame(frame: AgentDreamRecord): void;
     startedAt: string;
     workspaceDir: string;
 }): Promise<DreamRecording | null> {
-    if (!input.command.dream) {
+    if (input.command.heartbeat?.kind !== 'nightly') {
         return null;
     }
     let before: MemorySnapshot;

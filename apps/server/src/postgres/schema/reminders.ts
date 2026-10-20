@@ -44,6 +44,12 @@ export const remindersTable = pgTable(
         index('reminders_due_idx')
             .on(table.fireAt, table.id)
             .where(sql`${table.status} = 'scheduled'`),
+        // A dream's follow-ups: reminders an Agent created inside the run's window.
+        index('reminders_owner_created_idx').on(
+            table.serverId,
+            table.ownerAgentId,
+            table.createdAt
+        ),
         foreignKey({
             columns: [table.serverId, table.ownerAgentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],

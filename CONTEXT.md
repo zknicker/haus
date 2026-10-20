@@ -650,11 +650,28 @@ loaded into that agent's prompt and refreshed from Memory by background workers.
 _Avoid_: root-level briefing files, Vault page
 
 **Dreaming**:
-An Agent's own periodic memory consolidation pass over `MEMORY.md` and recently changed `notes/`,
-run overnight as its own private, chatless dream turn that Computer requests when memory changed
-and Server starts only for an idle, running Agent (Manual topic
-`recipes/technique/memory-hygiene`). The Agent does the work; nothing rewrites memory for it.
+The nightly heartbeat: an Agent's own memory consolidation, run once per night as a private,
+chatless dream turn in a throwaway session. It reflects on the day, consolidates `MEMORY.md` and
+`notes/` (Manual topic `recipes/technique/memory-hygiene`), follows up dropped promises, and writes
+a summary. The Agent does the work; nothing rewrites memory for it.
 _Avoid_: Tidy pass, nightly memory review, background extraction, compaction
+
+**Heartbeat**:
+A daytime check-in: a chatless run, every two hours from 08:00 to 22:00 Computer-local, in a
+throwaway session. It catches up on the Chats the Agent took part in, follows leads, and files at
+most one heartbeat report; it posts nothing in a Chat. Skipped while the Agent is busy, and it
+yields to a message addressed to the Agent. Spec: `specs/heartbeat.md`.
+_Avoid_: Ping, poll, cron, scout
+
+**Heartbeat report**:
+The one report a heartbeat run files, queued as a chatless inbox item for the Agent's main session.
+The main session decides whether anyone hears it.
+_Avoid_: Notification, alert, digest
+
+**Lead**:
+A shared, Server-owned claim on a question or thread an Agent is researching, so two Agents do not
+research the same thing. Claimed for seven days, kept fourteen; a finished lead records its finding.
+_Avoid_: Task, ticket, claim (alone)
 
 **Charts**:
 The Widget family for agent-authored chart displays.

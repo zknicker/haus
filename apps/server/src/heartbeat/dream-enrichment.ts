@@ -1,0 +1,99 @@
+import type { AgentDreamFollowUp } from '@haus/api';
+import { and, asc, eq, gte, inArray, lte, ne } from 'drizzle-orm';
+import type { HausDatabase } from '../postgres/connection.ts';
+import { agentDreamSummariesTable, remindersTable } from '../postgres/schema.ts';
+
+/** Most follow-ups one page of dreams reads; a run schedules a handful. */
+const followUpScanLimit = 500;
+const followUpsPerDream = 20;
+
+interface DreamWindow {
+    finishedAt: Date;
+    runId: string;
+    startedAt: Date;
+}
+
+export interface DreamEnrichment {
+    followUps: AgentDreamFollowUp[];
+    summary: string | null;
+}
+
+/**
+ * What each dream's Agent wrote about the run (`haus heartbeat learned`) and the
+ * reminders it created between the run's start and finish. Two bounded reads per page.
+ */
+export async function readDreamEnrichments(
+    db: HausDatabase,
+    input: { agentId: string; dreams: readonly DreamWindow[]; serverId: string }
+): Promise<Map<string, DreamEnrichment>> {
+    const enrichments = new Map<string, DreamEnrichment>(
+        input.dreams.map((dream) => [dream.runId, { followUps: [], summary: null }])
+    );
+    if (input.dreams.length === 0) {
+        return enrichments;
+    }
+    const summaries = await db
+        .select({
+            runId: agentDreamSummariesTable.runId,
+            summary: agentDreamSummariesTable.summary,
+        })
+        .from(agentDreamSummariesTable)
+        .where(
+            and(
+                eq(agentDreamSummariesTable.serverId, input.serverId),
+                eq(agentDreamSummariesTable.agentId, input.agentId),
+                inArray(
+                    agentDreamSummariesTable.runId,
+                    input.dreams.map((dream) => dream.runId)
+                )
+            )
+        );
+    for (const row of summaries) {
+        const entry = enrichments.get(row.runId);
+        if (entry) {
+            entry.summary = row.summary;
+        }
+    }
+
+    const earliest = Math.min(...input.dreams.map((dream) => dream.startedAt.getTime()));
+    const latest = Math.max(...input.dreams.map((dream) => dream.finishedAt.getTime()));
+    const reminders = await db
+        .select({
+            anchorChatId: remindersTable.anchorChatId,
+            createdAt: remindersTable.createdAt,
+            fireAt: remindersTable.fireAt,
+            id: remindersTable.id,
+            title: remindersTable.title,
+        })
+        .from(remindersTable)
+        .where(
+            and(
+                eq(remindersTable.serverId, input.serverId),
+                eq(remindersTable.ownerAgentId, input.agentId),
+                ne(remindersTable.status, 'canceled'),
+                gte(remindersTable.createdAt, new Date(earliest)),
+                lte(remindersTable.createdAt, new Date(latest))
+            )
+        )
+        .orderBy(asc(remindersTable.createdAt), asc(remindersTable.id))
+        .limit(followUpScanLimit);
+    for (const reminder of reminders) {
+        for (const dream of input.dreams) {
+            const entry = enrichments.get(dream.runId);
+            if (
+                entry &&
+                entry.followUps.length < followUpsPerDream &&
+                reminder.createdAt >= dream.startedAt &&
+                reminder.createdAt <= dream.finishedAt
+            ) {
+                entry.followUps.push({
+                    anchorChatId: reminder.anchorChatId,
+                    fireAt: reminder.fireAt.toISOString(),
+                    reminderId: reminder.id,
+                    title: reminder.title,
+                });
+            }
+        }
+    }
+    return enrichments;
+}

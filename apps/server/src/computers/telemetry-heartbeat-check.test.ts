@@ -21,7 +21,7 @@ function relayedAttributes(attributes: Array<{ key: string; value: object }>) {
                                     {
                                         attributes,
                                         endTimeUnixNano: '2000000000',
-                                        name: 'haus.dream.check',
+                                        name: 'haus.heartbeat.check',
                                         spanId: Buffer.alloc(8, 2),
                                         startTimeUnixNano: '1000000000',
                                         traceId: Buffer.alloc(16, 1),
@@ -47,32 +47,35 @@ function relayedAttributes(attributes: Array<{ key: string; value: object }>) {
     return (span?.attributes ?? []).map(({ key }) => key);
 }
 
-test('relays a nightly dream check with its closed outcome, reason, date, and memory size', () => {
+test('relays a heartbeat check with its closed kind, outcome, reason, date, and slot', () => {
     expect(
         relayedAttributes([
             { key: 'haus.agent.id', value: { stringValue: 'agt_owned' } },
-            { key: 'haus.dream.local_date', value: { stringValue: '2026-10-12' } },
-            { key: 'haus.dream.outcome', value: { stringValue: 'skipped' } },
-            { key: 'haus.dream.skip_reason', value: { stringValue: 'resetting' } },
-            { key: 'haus.memory.bytes', value: { intValue: '4096' } },
+            { key: 'haus.heartbeat.kind', value: { stringValue: 'nightly' } },
+            { key: 'haus.heartbeat.local_date', value: { stringValue: '2026-10-12' } },
+            { key: 'haus.heartbeat.outcome', value: { stringValue: 'skipped' } },
+            { key: 'haus.heartbeat.skip_reason', value: { stringValue: 'resetting' } },
+            { key: 'haus.heartbeat.slot', value: { stringValue: '03:30' } },
         ])
     ).toEqual([
         'haus.agent.id',
-        'haus.dream.local_date',
-        'haus.dream.outcome',
-        'haus.dream.skip_reason',
-        'haus.memory.bytes',
+        'haus.heartbeat.kind',
+        'haus.heartbeat.local_date',
+        'haus.heartbeat.outcome',
+        'haus.heartbeat.skip_reason',
+        'haus.heartbeat.slot',
     ]);
 });
 
-test('drops a dream check value outside its closed vocabulary', () => {
+test('drops a heartbeat check value outside its closed vocabulary', () => {
     expect(
         relayedAttributes([
             { key: 'haus.agent.id', value: { stringValue: 'agt_foreign' } },
-            { key: 'haus.dream.local_date', value: { stringValue: 'tonight secret' } },
-            { key: 'haus.dream.outcome', value: { stringValue: 'secret' } },
-            { key: 'haus.dream.skip_reason', value: { stringValue: 'secret' } },
-            { key: 'haus.memory.bytes', value: { doubleValue: -1 } },
+            { key: 'haus.heartbeat.kind', value: { stringValue: 'secret' } },
+            { key: 'haus.heartbeat.local_date', value: { stringValue: 'tonight secret' } },
+            { key: 'haus.heartbeat.outcome', value: { stringValue: 'secret' } },
+            { key: 'haus.heartbeat.skip_reason', value: { stringValue: 'secret' } },
+            { key: 'haus.heartbeat.slot', value: { stringValue: 'secret' } },
         ])
     ).toEqual([]);
 });

@@ -78,6 +78,7 @@ import {
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
+import { startHeartbeatSchedule } from './heartbeat-schedule.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
     acceptHostSkillImport,
@@ -117,7 +118,6 @@ import {
     revokeComputerLoginSession,
     runComputerLogin,
 } from './login.ts';
-import { startNightlyDreamCheck } from './nightly-dream.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import { handleComputerSecretsRequest } from './secrets/requests.ts';
@@ -1111,7 +1111,7 @@ async function connect(
                     startCloudAgentModelCatalogRefresh(connectionWork, () =>
                         trackWriter(reportComputer())
                     );
-                    startNightlyDreamCheck(connectionWork, { agentsDir, daemonWork, runtime });
+                    startHeartbeatSchedule(connectionWork, { agentsDir, daemonWork, runtime });
                     return;
                 }
                 if (process.env.HAUS_COMPUTER_ONESHOT === '1') {

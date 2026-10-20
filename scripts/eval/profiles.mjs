@@ -144,6 +144,59 @@ export const linearTriggerProfiles = {
     },
 };
 
+/**
+ * Heartbeat quality (specs/heartbeat.md#evals), scored out of band by
+ * `scripts/agent-tests/heartbeat-grade.mjs` from each run's evidence file. The
+ * scenarios gate structure (files, reports, posts, reminders); a profile adds what
+ * the spec says about the words.
+ *
+ * Summary (HB1, HB2): a few lines in the Agent's voice naming the lesson, who
+ * taught it, and any correction it had acknowledged but never saved. A quiet day
+ * invents no lesson. Report (HB4): findings first, short, with why it matters, how
+ * sure, and a next step. Quiet-run awareness (HB6): asked what it has been up to,
+ * the Agent says honestly that it checked in.
+ */
+export const heartbeatProfiles = {
+    'heartbeat-learns-unsaved-correction': {
+        rule: { maxWords: 20 },
+        spec: 'HB1',
+        summary: {
+            acknowledgedNotSaved:
+                /\b(acknowledg\w*|agreed|said (?:it|i|got it)|but (?:never|didn'?t|did not|hadn'?t|had not)|never (?:saved|wrote|recorded|noted)|not (?:saved|written|recorded|noted)|unsaved)\b/iu,
+            maxWords: 90,
+            requires: [/\btotal\b/iu],
+        },
+    },
+    'heartbeat-quiet-day-control': { spec: 'HB2', summary: { maxWords: 60, noLesson: true } },
+    'heartbeat-follows-up-dropped-promise': {
+        followUp: { mentions: /cutoff/iu },
+        spec: 'HB3',
+    },
+    'heartbeat-surfaces-new-signal': {
+        report: {
+            confidence:
+                /\b(confident|sure|likely|unclear|unverified|confirmed|certain|probably|appears?|based on|from the ledger)\b/iu,
+            findingFirst: /ORD-9001|chargeback/iu,
+            maxWords: 90,
+            nextStep:
+                /\b(suggest|recommend|next|should|propose|check|confirm|escalate|follow up)\b/iu,
+            requires: [/ORD-9001|chargeback/iu, /48,?200|frozen|Friday/iu],
+        },
+        spec: 'HB4',
+    },
+    'heartbeat-nothing-new-control': { spec: 'HB5' },
+    'heartbeat-quiet-run-awareness': {
+        reply: {
+            forbids: [
+                /\b(?:nothing|haven'?t|have not)\b[^.]{0,30}\b(?:done|run|checked|looked)\b/iu,
+            ],
+            requires: [/\bheartbeat\b|\bcheck(?:ed|ing)?\s+(?:in|on)\b|\bchecked\b/iu],
+        },
+        spec: 'HB6',
+    },
+    'heartbeat-lead-dedupe': { spec: 'HB7' },
+};
+
 /** Jev judge question for the placement eval; its yes-probability maps to 1-5 (pass bar 4). */
 export const placementJudge = {
     no: 'The posts add anything beyond the answer, such as a recap, a plan, an offer, or extra questions, or they answer somewhere the human is not looking.',

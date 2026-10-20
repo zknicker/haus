@@ -1,4 +1,9 @@
-import type { AgentTurnActivitySummary, AgentTurnFailureCode } from '@haus/api';
+import type {
+    AgentHeartbeatAttention,
+    AgentHeartbeatReportAttention,
+    AgentTurnActivitySummary,
+    AgentTurnFailureCode,
+} from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 
@@ -12,12 +17,14 @@ export interface AgentStartCommand {
     agentName?: string;
     /** Pickup reaction; null or absent means the prompt's default. */
     agentSignatureEmoji?: string | null;
-    /** The run's Chat; null only for a dream run, which has none. */
+    /** The run's Chat; null only for a heartbeat or heartbeat-report run, which has none. */
     chatId: string | null;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
-    /** The nightly dreaming attention; present only on a chatless run with no inbox. */
-    dream?: { createdAt: string; id: string };
+    /** A heartbeat run (daytime or nightly): a fresh throwaway session, no inbox. */
+    heartbeat?: AgentHeartbeatAttention;
+    /** A report run: the Agent's own heartbeat report, delivered to the main session. */
+    heartbeatReport?: AgentHeartbeatReportAttention;
     homeTimezone?: string;
     inbox?: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';

@@ -10,10 +10,9 @@ read_when:
 
 # Heartbeat
 
-Status: design agreed with the operator 2026-10-20; not yet implemented. When it lands, the
-dreaming parts of [workspace.md](workspace.md#dreaming) and
-[docs/features/dreams.md](../docs/features/dreams.md) move here or point here, and
-[ADR 0049](../docs/adr/0049-heartbeats-run-in-throwaway-sessions.md) amends
+Status: implemented 2026-10-20. This spec is normative. The dreaming parts of
+[workspace.md](workspace.md#dreaming) and [docs/features/dreams.md](../docs/features/dreams.md)
+point here, and [ADR 0049](../docs/adr/0049-heartbeats-run-in-throwaway-sessions.md) amends
 [ADR 0011](../docs/adr/0011-agents-own-one-global-session.md).
 
 ## Why
@@ -169,8 +168,8 @@ Once per night, also:
 
 - **Report.** `haus heartbeat report "<text>"` queues one chatless `heartbeat_report` inbox item for the
   Agent, delivered after the heartbeat run settles like any concrete item. Its envelope says it is
-  the Agent's own heartbeat report and that the Agent decides whether to post. During the nightly
-  window the main session holds findings and schedules a morning reminder instead of posting.
+  the Agent's own heartbeat report and that the Agent decides whether to post. Between 22:00 and
+  08:00 the main session holds findings and schedules a morning reminder instead of posting.
 - **Checkpoint.** Markdown under the workspace at
   `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md`; the nightly run writes
   `heartbeat/daily/<YYYY-MM-DD>.md`. The Computer deletes checkpoints older than 14 days.
@@ -190,7 +189,7 @@ Once per night, also:
   summary keeps today's headline.
 - The dream sheet shows, in order: the summary, the follow-ups it scheduled (who, where, when),
   then the existing diffs. Stock HeroUI parts; no new components unless the catalog lacks one.
-- The Activity log shows a daytime run as a **Heartbeat** row with its report, or "Nothing new".
+- The Activity log shows a daytime run as a **Heartbeat** row with its report, or "Checked in".
 
 ## What changes
 
@@ -205,7 +204,7 @@ Once per night, also:
 | First run | 24–48h after start | First slot after configuration |
 
 The memory-fingerprint trigger, the 16 KiB size trigger's role as a trigger, and the first-night
-baseline go away. The nightly run still keeps the once-per-night identity, the 20-hour cooldown,
+baseline go away. The nightly run still keeps the once-per-night identity
 and the four-hour retirement.
 
 ## Cost

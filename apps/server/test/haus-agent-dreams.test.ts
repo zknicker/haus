@@ -76,9 +76,11 @@ test('a recorded dream lists newest first with totals and opens with its patch',
             { added: 2, change: 'added', path: 'notes/ramp.md', removed: 0 },
         ],
         finishedAt: '2026-01-02T03:05:00.000Z',
+        followUps: [],
         removed: 1,
         runId: 'run_dreamread00002',
         startedAt: '2026-01-02T03:00:00.000Z',
+        summary: null,
         truncated: false,
     });
     // A dream with no changes is still a dream.
@@ -93,6 +95,58 @@ test('a recorded dream lists newest first with totals and opens with its patch',
     expect(
         await owner.trpc.agent.dream.query({ agentId, runId: 'run_nodreamhere0001', serverId })
     ).toBeNull();
+});
+
+test('a dream reads back its learned summary and the reminders created during the run', async () => {
+    const channel = await owner.trpc.chat.createChannel.mutate({
+        agentIds: [agentId],
+        name: 'followups',
+        serverId,
+    });
+    const anchor = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: 'Remind me about the budget.',
+        nonce: 'dream-followup-anchor',
+        serverId,
+    });
+    await dreamRun('run_dreamsummary01', 4);
+    await record(dream('run_dreamsummary01', 4));
+    await harness.sql`
+        insert into agent_dream_summaries (run_id, server_id, agent_id, summary, created_at, updated_at)
+        values ('run_dreamsummary01', ${serverId}, ${agentId}, 'Budget approved; ramp slips.', now(), now())
+    `;
+    const reminder = (id: string, createdAt: string, status: string) => harness.sql`
+        insert into reminders (
+            id, server_id, owner_agent_id, anchor_chat_id, anchor_message_id, title, fire_at,
+            timezone, status, created_at, updated_at
+        )
+        values (
+            ${id}, ${serverId}, ${agentId}, ${channel.id}, ${anchor.message.id}, ${`Title ${id}`},
+            '2026-02-01T09:00:00Z', 'UTC', ${status}, ${createdAt}, ${createdAt}
+        )
+    `;
+    await reminder('rem_inside00000001', '2026-01-04T03:02:00Z', 'scheduled');
+    await reminder('rem_canceled0000001', '2026-01-04T03:03:00Z', 'canceled');
+    await reminder('rem_outside0000001', '2026-01-04T04:30:00Z', 'scheduled');
+
+    const detail = await owner.trpc.agent.dream.query({
+        agentId,
+        runId: 'run_dreamsummary01',
+        serverId,
+    });
+    expect(detail?.summary).toBe('Budget approved; ramp slips.');
+    expect(detail?.followUps).toEqual([
+        {
+            anchorChatId: channel.id,
+            fireAt: '2026-02-01T09:00:00.000Z',
+            reminderId: 'rem_inside00000001',
+            title: 'Title rem_inside00000001',
+        },
+    ]);
+    const page = await owner.trpc.agent.dreams.query({ agentId, serverId });
+    const listed = page.dreams.find((entry) => entry.runId === 'run_dreamsummary01');
+    expect(listed?.summary).toBe('Budget approved; ramp slips.');
+    expect(listed?.followUps).toHaveLength(1);
 });
 
 test('a truncated dream is kept and read back as truncated', async () => {

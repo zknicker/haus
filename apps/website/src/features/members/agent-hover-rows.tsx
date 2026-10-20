@@ -1,6 +1,11 @@
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { formatRelativeTime } from '../../lib/format.ts';
-import type { HoverLogLine, HoverTimedLine } from './agent-hover-activity-model.ts';
+import {
+    formatFoldedHeartbeats,
+    type HoverLogLine,
+    type HoverTimedLine,
+    isFoldedHeartbeats,
+} from './agent-hover-activity-model.ts';
 import { TurnDuration } from './agent-profile/agent-turn-row.tsx';
 import {
     formatTurnOutcome,
@@ -23,6 +28,17 @@ export function AgentHoverTurn({ row, title }: { row: RecentActivityRow; title: 
             ? `${status.kind === 'failed' ? 'Failed' : 'Interrupted'}${status.count > 1 ? ` ${status.count}×` : ''}`
             : null;
 
+    if (isFoldedHeartbeats(row)) {
+        // Background upkeep folds to one muted line, so it never pushes real work out.
+        return (
+            <li className="flex min-w-0 items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-muted">
+                    {formatFoldedHeartbeats(row)}
+                </span>
+            </li>
+        );
+    }
+
     return (
         <li className="flex min-w-0 items-center gap-2">
             <span className="flex min-w-0 flex-1 flex-col">
@@ -31,7 +47,9 @@ export function AgentHoverTurn({ row, title }: { row: RecentActivityRow; title: 
                     <span className="min-w-0 truncate text-foreground">{outcome}</span>
                 ) : (
                     <>
-                        <span className="min-h-4 min-w-0 truncate text-foreground">
+                        <span
+                            className={`min-h-4 min-w-0 truncate ${title.kind === 'text' && title.quiet ? 'text-muted' : 'text-foreground'}`}
+                        >
                             {title.kind === 'text' ? title.text : null}
                         </span>
                         <span className="min-w-0 truncate text-muted">

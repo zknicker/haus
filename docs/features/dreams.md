@@ -1,38 +1,49 @@
 ---
-summary: Dreams on the Agent profile — when an Agent dreamed and what each nightly memory pass changed in MEMORY.md and notes/, shown as a list and a diff sheet.
+summary: Dreams on the Agent profile — the nightly heartbeat's summary, follow-ups, and memory changes in a dream row and sheet, plus the Heartbeat rows and hover lines that show daytime check-ins.
 read_when:
   - changing the Dreams section, dream rows, or the dream sheet on the Agent profile
-  - changing how a dream turn appears or opens in the Activity log
-  - changing the dream headline wording or how the App reads a dream's patch
+  - changing how a dream or a heartbeat appears in the Activity log or the agent hover card
+  - changing the dream row headline, the follow-ups list, or how the App reads a dream's patch
+  - changing the heartbeat rows, the "Checking in" or "Last night" lines, or the folding of quiet heartbeats
 ---
 
 # Dreams
 
-An Agent dreams overnight: a private turn in which it consolidates its own memory
-([workspace spec](../../specs/workspace.md#dreaming)). Every member who can view the Agent can see
-when it dreamed and what changed. Dreams are a record of what the Agent now remembers, not
-execution evidence, so they are not admin-only.
+An Agent's nightly heartbeat is a dream: a private pass in which it reflects on the day,
+consolidates its memory, follows up promises it dropped, and writes a short summary
+([heartbeat spec](../../specs/heartbeat.md)). Daytime heartbeats run too, but they leave no
+dream; they show as Heartbeat rows in the Activity log. Every member who can view the Agent can
+see its dreams. They record what the Agent now remembers, not execution evidence, so they are
+not admin-only.
 
-An Agent dreams at most once a night, and only on a night its memory changed. Its Computer checks
-once per local night, early in the 03:00–05:00 window, and the first check only records where
-memory stands. A new Agent's first dream therefore comes roughly 24 to 48 hours after it starts.
-A busy Agent still dreams that night: the dream waits for its current turn to finish, then takes
-its place in the queue like any other inbox work.
+A dream runs at most once a night, and only when the Agent took part in something since its last
+dream: it posted, was mentioned or addressed, or filed a heartbeat report. Its Computer asks for
+it once per local night, inside the 03:00–05:00 window. A busy Agent still dreams that night: the
+dream waits for its current turn to finish, then runs. A dream still queued four hours after it was
+requested is retired, not run.
 
 ## On the profile
 
 The hub shows a **Dreams** section with the latest four nights and a **See all** button that
 opens the Dreams drill-down, which lists every dream the Server keeps (the newest 60). The hub
 shows no Dreams section until the Agent has dreamed, and nothing while the read is pending; there
-are no skeletons. Each row shows the night, a file-level headline (`Updated memory · added a
-note`), the files touched, and the line counts. A dream that changed nothing is a quiet row that
-does not open.
+are no skeletons.
+
+Each row leads with the first line of the Agent's summary. A dream with no summary keeps the
+file-level headline (`Updated memory · added a note`). Either way the row shows the night, the
+files touched, and the line counts. A dream that changed nothing is a quiet row that does not
+open.
 
 Pressing a row opens the dream in the right-side sheet the Reminder and Trigger sheets use. The
-sheet's heading is the section-level headline, derived in the App from the patch: the `##`
-sections of `MEMORY.md` the patch touched and how (`Rewrote Active Context · +1 preference ·
-added 2 notes`). Below it, each file's diff renders through the App's one diff renderer; a binary
-or oversized file says why it shows no diff.
+sheet shows, in order:
+
+1. **What I learned**: the whole summary, in the Agent's own words. Absent when the run wrote none.
+2. **Follow-ups**: the reminders the run scheduled, each with who it is for, where it is anchored,
+   and when it fires. Absent when the run scheduled none.
+3. **Memory changes**: the section-level headline, derived in the App from the patch (the `##`
+   sections of `MEMORY.md` the patch touched and how, such as `Rewrote Active Context · +1
+   preference · added 2 notes`), then each file's diff through the App's one diff renderer. A
+   binary or oversized file says why it shows no diff.
 
 The Computer holds at most 8 MiB of memory text per snapshot; past that, files are compared by
 digest only and show no diff. A memory of more than 2,000 files is not compared at all: the dream
@@ -40,9 +51,19 @@ is recorded as `truncated` and reads "Too many memory files to compare".
 
 ## In the Activity log
 
-The dream turn is an ordinary turn row titled **Dreaming**. Once it settles, the row carries a
-**See memory changes** action where a Chat turn shows its Chat button, and it opens the same
-sheet. The row still expands to the turn's trace.
+- **Dreaming**: the nightly run's turn row. Once it settles, the row carries a **See memory
+  changes** action where a Chat turn shows its Chat button, and it opens the same sheet. The row
+  still expands to the turn's trace.
+- **Heartbeat**: a daytime run. While it runs the row reads **Checking in**. Once it settles it
+  reads **Heartbeat** with a muted **Checked in**. Repeated quiet heartbeats fold into one row.
+- **Heartbeat report**: the main-session turn that handles a heartbeat's report.
+
+## On the agent hover card
+
+- **Checking in** appears while a heartbeat runs.
+- **Last night** shows the first line of the newest dream's summary, muted, when that dream
+  finished within the last 36 hours. It shows nothing when there is no summary or the dream is
+  older.
 
 ## Ownership
 
@@ -50,6 +71,10 @@ sheet. The row still expands to the turn's trace.
 | --- | --- |
 | Memory snapshot, diff, caps | Computer, `apps/computer/src/harness/dream-record.ts`, `dream-diff.ts` |
 | Stored record and retention | Server, `agent_dreams`, `apps/server/src/server-agents/record-agent-dream.ts` |
+| Summary and follow-ups | Server, `agent_dream_summaries` (`apps/server/src/heartbeat/dream-summary.ts`), follow-ups derived at read in `apps/server/src/heartbeat/dream-enrichment.ts` |
 | Reads | `agent.dreams`, `agent.dream` ([Agents API](../api/agents.md)) |
 | Headline, patch parsing | App, `apps/website/src/features/members/agent-profile/dream-model.ts` |
+| Summary first line, follow-up times | App, `apps/website/src/features/members/agent-profile/dream-summary-model.ts` |
+| Heartbeat rows, "Checking in", folding | App, `apps/website/src/features/members/agent-profile/agent-turn-row-model.ts` |
+| "Last night" hover line | App, `apps/website/src/features/members/agent-hover-activity-model.ts` |
 | Freshness | A settled run invalidates the Agent's dream reads (`hooks/agents/agent-history-cache.ts`) |

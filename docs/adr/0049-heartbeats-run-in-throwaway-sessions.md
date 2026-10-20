@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 summary: Agent heartbeats (bi-hourly daytime runs and the nightly dream) each run as one turn in a fresh throwaway harness session, serialized through the Agent's one run slot, reporting to the main session through the inbox. Amends ADR 0011 — one turn at a time still holds; one session per Agent no longer does.
 read_when:
   - changing how heartbeat or dream runs open, resume, or settle a harness session
@@ -11,7 +11,7 @@ read_when:
 
 ## Status
 
-Proposed, 2026-10-20. Amends [ADR 0011](0011-agents-own-one-global-session.md). Design in
+Accepted, 2026-10-20. Amends [ADR 0011](0011-agents-own-one-global-session.md). Design in
 [specs/heartbeat.md](../../specs/heartbeat.md).
 
 ## Context

@@ -292,7 +292,12 @@ answer stays in the automation's fire history and nowhere else.
 
 ## Bounds And Failures
 
-One Agent admits one turn at a time; different Agents run concurrently.
+One Agent admits one turn at a time; different Agents run concurrently. A heartbeat
+(daytime or nightly) takes that one run slot as a chatless run, but it executes in a throwaway
+harness session that never touches the main session's resume state
+([ADR 0049](../adr/0049-heartbeats-run-in-throwaway-sessions.md)). A daytime heartbeat is skipped
+when the Agent is busy and yields its slot when a message addressed to the Agent is waiting; the
+nightly run queues and retires after four hours.
 Sixteen consecutive drains containing only automation-authored work (Agent
 messages, Trigger fires, Trigger problem notices, and Linear session events
 another Agent's write started: sources `agent:*`, `trigger`, `trigger_problem`,

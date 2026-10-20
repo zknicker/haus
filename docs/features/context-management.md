@@ -29,14 +29,18 @@ model session. Per-turn message delivery is an inbox concern; see
   notes needed for the task.
   Context compression also requires a recovery read. These are Agent instructions, not automatic
   file injection or a Computer-enforced freshness guarantee; the same global session still resumes.
-- Dreaming is the Agent's own memory consolidation, run overnight as its own private turn. When
-  memory (MEMORY.md plus notes/) changed since the last dream, or MEMORY.md is over 16 KiB,
-  Computer asks the Server for a dream at its one check per night, the first tick inside its
-  03:00–05:00 local quiet window, at most once per 20 hours per Agent. The Server queues it even
-  for a busy Agent and starts it in its turn like any concrete inbox item, then runs it as an
-  ordinary turn: messages that arrive meanwhile reach it as usual. The
-  dream turn has no Chat; its input is only the dreaming instruction, which names the
-  `memory-hygiene` Manual topic, never standing-prompt text ([Agent Workspace](../../specs/workspace.md#dreaming)).
+- Heartbeats (daytime check-ins and the nightly dream) each run as one turn in a fresh throwaway
+  session, `<agentId>-hb-<runId>`, with the same instructions, model, workspace, memory, and
+  tools. They never resume, rewrite, or interrupt the main session, so its cache and compaction
+  stay as they were. Their input is composed by Computer: a header naming the recipe
+  (`haus manual get recipes/technique/heartbeat`), the Server's digest of conversations since the
+  last run, the latest checkpoint, and where to read open reminders and leads. The nightly run
+  is the dream: it reflects, consolidates memory with the `memory-hygiene` Manual topic, follows
+  up dropped promises, and writes a summary. Its input never lives in standing-prompt text
+  ([heartbeat spec](../../specs/heartbeat.md), [Agent Workspace](../../specs/workspace.md#dreaming)).
+- After any heartbeat, the main session's next turn input carries one line saying how many
+  heartbeats ran since its last turn, how many reported, and where the latest checkpoint is. A
+  heartbeat report already reaches the main session as an inbox item.
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
   Server tools. MCP grants and discovery results never change the harness tool catalog.
   Missing tools call for the specific connection or grant to be repaired; local configuration

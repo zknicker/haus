@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
-import { dreamStaleMs } from '../src/agent-delivery/dream-run.ts';
+import { dreamStaleMs } from '../src/agent-delivery/heartbeat-run.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable, chatMessagesTable } from '../src/postgres/schema.ts';

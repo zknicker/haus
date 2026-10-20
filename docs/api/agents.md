@@ -100,8 +100,10 @@ once at dispatch in `agent_run_triggers` so it survives a failed run requeueing 
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
 `{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or
-`{ kind: 'dream' }`: the Agent's private nightly memory pass, the only trigger with no Chat,
-which needs no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming)). `preview`
+`{ kind: 'dream' }`: the Agent's private nightly heartbeat, `{ kind: 'heartbeat' }` a daytime
+check-in, or `{ kind: 'heartbeat_report' }` a heartbeat's report to the main session. These are the
+chatless triggers; they need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
+[heartbeat](../../specs/heartbeat.md)). `preview`
 quotes the waking message so a turn row is titled from the same read:
 `{ content, attachmentCount }`, where `content` is the head of the message's raw
 Markdown (at most 1,000 UTF-16 units; the reader collapses it to one line), or `null`
@@ -142,7 +144,9 @@ returns `{ dreams, nextCursor }`: each dream carries `runId` (the dream turn's r
 `startedAt`, `finishedAt`, `files` (`[{ path, change: 'added' | 'modified' | 'deleted',
 added, removed, omitted? }]`, where `omitted` is `binary` or `too-large` for a file whose text
 is not in the patch), and the `added` and `removed` line totals. A dream that changed nothing
-is still listed, with no files. `agent.dream` (`{ serverId, agentId, runId }`) returns one dream
+is still listed, with no files. Each dream also carries `summary` (the run's `haus heartbeat
+learned` text, or null) and `followUps` (`[{ reminderId, title, anchorChatId, fireAt }]`, the
+reminders the Agent created during the run, derived at read). `agent.dream` (`{ serverId, agentId, runId }`) returns one dream
 with its `patch`, or null when the Server has no record for that run. The patch is one unified
 diff, a `diff --git a/<path> b/<path>` block per file, whose hunk headers name the enclosing
 `## ` section as git's function context does; a file's text is dropped past 64 KiB and the
@@ -151,6 +155,20 @@ view the Agent, with denied and unknown Agents as `NOT_FOUND`. The Computer send
 as an `agent-dream-record` frame just before the dream turn's summary; the Server stores it in
 `agent_dreams` only for the assigned Computer and a run it started as a dream. There is no
 dream event: a settled run already invalidates the App's dream reads.
+
+Heartbeat writes use runner-token routes under `/api/agent/*`, scoped to the run that calls
+them ([heartbeat spec](../../specs/heartbeat.md#wire-contract); routes in
+`apps/server/src/agent-api/heartbeat-routes.ts`):
+
+- `POST /api/agent/heartbeat/report { text }` files the run's one heartbeat report as a
+  chatless `heartbeat_report` inbox item. Only a `heartbeat` or `dream` run may file one; a second
+  report from the same run is refused with 409.
+- `POST /api/agent/heartbeat/learned { text }` stores the nightly summary on the run's
+  `agent_dream_summaries` row. Only a `dream` run may.
+- `POST /api/agent/leads { topic, messageId? }` claims a shared lead, refused while another Agent
+  holds a claim on the same message within seven days. `GET /api/agent/leads` lists this Server's
+  leads from the last seven days. `POST /api/agent/leads/:id/done { finding }` records the finding.
+  Leads live in `agent_leads` and expire after fourteen days.
 
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries

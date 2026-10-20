@@ -59,6 +59,49 @@ test('the same failure on different requests stays separate rows', () => {
     expect(rows.map((row) => row.count)).toEqual([1, 1]);
 });
 
+test('quiet heartbeats fold only when asked, and never swallow real work or failures', () => {
+    const turns = [
+        heartbeat('r5', '2026-10-01T16:50:00Z'),
+        heartbeat('r4', '2026-10-01T16:40:00Z'),
+        completed('r3', '2026-10-01T16:30:00Z'),
+        heartbeat('r2', '2026-10-01T16:20:00Z'),
+        { ...heartbeat('r1', '2026-10-01T16:10:00Z'), status: 'failed' as const },
+    ];
+    expect(collapseRecentActivity(turns, 5).map((row) => row.count)).toEqual([1, 1, 1, 1, 1]);
+    const folded = collapseRecentActivity(turns, 5, { foldHeartbeats: true });
+    expect(folded.map((row) => [row.latest.runId, row.count, row.since])).toEqual([
+        ['r5', 2, '2026-10-01T16:40:00Z'],
+        ['r3', 1, '2026-10-01T16:30:00Z'],
+        ['r2', 1, '2026-10-01T16:20:00Z'],
+        ['r1', 1, '2026-10-01T16:10:00Z'],
+    ]);
+});
+
+test('a heartbeat that reported never folds with quiet ones', () => {
+    const reported: SettledTurn = {
+        ...heartbeat('r2', '2026-10-01T16:40:00Z'),
+        trigger: { kind: 'heartbeat', reported: true },
+    };
+    const rows = collapseRecentActivity(
+        [
+            heartbeat('r3', '2026-10-01T16:50:00Z'),
+            reported,
+            heartbeat('r1', '2026-10-01T16:30:00Z'),
+        ],
+        5,
+        { foldHeartbeats: true }
+    );
+    expect(rows.map((row) => [row.latest.runId, row.count])).toEqual([
+        ['r3', 1],
+        ['r2', 1],
+        ['r1', 1],
+    ]);
+});
+
+function heartbeat(runId: string, startedAt: string): SettledTurn {
+    return { ...settled(runId, startedAt), trigger: { kind: 'heartbeat', reported: false } };
+}
+
 function messageTrigger(messageId: string): AgentActivityTurn['trigger'] {
     return { author: 'human', chatId: 'cht_one', kind: 'message', messageId, preview: null };
 }

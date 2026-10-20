@@ -1,12 +1,13 @@
 import { AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH, type AgentTurnTrigger } from '@haus/api';
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { attachmentsTable, chatMessagesTable } from '../postgres/schema.ts';
+import { agentInboxTable, attachmentsTable, chatMessagesTable } from '../postgres/schema.ts';
 import {
     type AgentTurnTriggerPreviews,
     type AgentTurnTriggerRecord,
     agentTurnTrigger,
     agentTurnTriggerMessageRef,
+    agentTurnTriggerReportKey,
 } from './agent-turn-trigger.ts';
 
 /**
@@ -19,12 +20,41 @@ export async function resolveAgentTurnTriggers(
     serverId: string,
     records: readonly (AgentTurnTriggerRecord | null)[]
 ): Promise<(AgentTurnTrigger | null)[]> {
-    const previews = await readTriggerPreviews(
-        db,
-        serverId,
-        records.map(agentTurnTriggerMessageRef).filter((ref) => ref !== null)
-    );
-    return records.map((record) => agentTurnTrigger(record, previews));
+    const [previews, reportedKeys] = await Promise.all([
+        readTriggerPreviews(
+            db,
+            serverId,
+            records.map(agentTurnTriggerMessageRef).filter((ref) => ref !== null)
+        ),
+        readReportedKeys(
+            db,
+            serverId,
+            records.map(agentTurnTriggerReportKey).filter((key) => key !== null)
+        ),
+    ]);
+    return records.map((record) => agentTurnTrigger(record, previews, reportedKeys));
+}
+
+/** Which of the heartbeats' report keys have an inbox row: one query per page. */
+async function readReportedKeys(
+    db: HausDatabase,
+    serverId: string,
+    keys: readonly string[]
+): Promise<ReadonlySet<string>> {
+    if (keys.length === 0) {
+        return new Set();
+    }
+    const rows = await db
+        .select({ dedupeKey: agentInboxTable.dedupeKey })
+        .from(agentInboxTable)
+        .where(
+            and(
+                eq(agentInboxTable.serverId, serverId),
+                eq(agentInboxTable.source, 'heartbeat_report'),
+                inArray(agentInboxTable.dedupeKey, [...keys])
+            )
+        );
+    return new Set(rows.map((row) => row.dedupeKey));
 }
 
 async function readTriggerPreviews(

@@ -20,10 +20,11 @@ export {
     withTraceCarrier,
 } from './telemetry.ts';
 export {
-    type DreamCheckOutcome,
-    type DreamSkipReason,
-    dreamCheckOutcomes,
-    dreamSkipReasons,
+    type HeartbeatCheckOutcome,
+    type HeartbeatSkipReason,
+    heartbeatCheckOutcomes,
+    heartbeatKinds,
+    heartbeatSkipReasons,
 } from './telemetry-attributes.ts';
 export type { TelemetryRelayConnection } from './telemetry-configuration.ts';
 export { instrumentOperation } from './telemetry-metrics.ts';

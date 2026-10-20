@@ -16,11 +16,7 @@ export function readChatTarget(
     title: TurnRowTitle,
     trigger: AgentActivityTurn['trigger']
 ): { chatId: string; place: string } | null {
-    return trigger &&
-        trigger.kind !== 'private' &&
-        trigger.kind !== 'dream' &&
-        title.kind === 'text' &&
-        title.place
+    return trigger && 'chatId' in trigger && title.kind === 'text' && title.place
         ? { chatId: trigger.chatId, place: title.place }
         : null;
 }

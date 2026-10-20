@@ -15,19 +15,39 @@ export interface RecentActivityRow {
 }
 
 /**
- * Folds consecutive failed turns with the same failure kind and trigger. Turns arrive
- * newest first (as `groupAgentActivityTurns` sorts them), so the first turn of
- * a run is the latest and the last is where the run began. Only failures fold:
- * completed turns are distinct work, and a repeat there is not a symptom.
+ * A settled daytime heartbeat that went fine and sent no report: background
+ * upkeep, not work. A reported heartbeat is news and never folds.
+ */
+export function isQuietHeartbeat(turn: AgentActivityTurn): boolean {
+    return (
+        turn.kind === 'settled' &&
+        turn.status === 'completed' &&
+        turn.trigger?.kind === 'heartbeat' &&
+        !turn.trigger.reported
+    );
+}
+
+/**
+ * Folds consecutive failed turns with the same failure kind and trigger, and
+ * (with `foldHeartbeats`) consecutive quiet heartbeats ("Checked in 3×"), so
+ * background check-ins never push real work out of a short summary; the full
+ * Activity log keeps every run openable. Turns arrive newest first (as `groupAgentActivityTurns`
+ * sorts them), so the first turn of a run is the latest and the last is where
+ * the run began. Other completed turns are distinct work and never fold.
  */
 export function collapseRecentActivity(
     turns: readonly AgentActivityTurn[],
-    limit: number
+    limit: number,
+    { foldHeartbeats = false }: { foldHeartbeats?: boolean } = {}
 ): RecentActivityRow[] {
     const rows: RecentActivityRow[] = [];
     for (const turn of turns) {
         const previous = rows.at(-1);
-        if (previous && isSameFailure(previous.latest, turn)) {
+        if (
+            previous &&
+            (isSameFailure(previous.latest, turn) ||
+                (foldHeartbeats && isQuietHeartbeat(previous.latest) && isQuietHeartbeat(turn)))
+        ) {
             rows[rows.length - 1] = {
                 count: previous.count + 1,
                 latest: previous.latest,

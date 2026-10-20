@@ -15,6 +15,11 @@ Accepted. Supersedes the session-ownership decision of
 [ADR 0007](0007-chat-participants-own-agent-sessions.md); that ADR's
 chat/participant/turn-evidence contracts remain in force.
 
+Amended by [ADR 0049](0049-heartbeats-run-in-throwaway-sessions.md): heartbeats (daytime
+check-ins and the nightly dream) run as one turn in a fresh throwaway session. One turn at a time
+per Agent still holds; one persistent session per Agent now means the main session plus those
+throwaway sessions.
+
 Amended by [ADR 0026](0026-automation-provenance-rides-the-agents-message.md): a
 rotation no longer lands a Server-authored receipt in the Agent's DMs. It is a
 durable rotation record plus a `session_generation` stamp on the Agent's

@@ -1,8 +1,10 @@
-import type { AgentActivityEvent, AgentCurrentActivity } from '@haus/api';
+import type { AgentActivityEvent, AgentCurrentActivity, AgentDreamSummary } from '@haus/api';
 import { formatCurrentAgentActivityLabel } from '../../hooks/agents/current-agent-activity.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { formatAgentActivityEvent } from './agent-profile/agent-activity-model.ts';
 import { formatTurnDuration } from './agent-profile/agent-turn-row-model.ts';
+import { dreamSummaryHeadline } from './agent-profile/dream-summary-model.ts';
+import { isQuietHeartbeat, type RecentActivityRow } from './agent-profile/recent-activity-rows.ts';
 
 /** A hover line: words on the left, a length in the right-aligned numeric column. */
 export interface HoverTimedLine {
@@ -16,6 +18,34 @@ export function formatHoverLiveLine(activity: AgentCurrentActivity, now: number)
     const started = activity.runStartedAt ? Date.parse(activity.runStartedAt) : Number.NaN;
     return { elapsed: formatElapsedSince(started, now), label };
 }
+
+/** Consecutive quiet heartbeats as one line: `Checked in 3× · last 2:04 pm`. */
+export function formatFoldedHeartbeats(row: RecentActivityRow): string {
+    return `Checked in ${row.count}× · last ${formatShortTime(row.latest.startedAt)}`;
+}
+
+/** A run of two or more quiet heartbeats that the card folds into one row. */
+export function isFoldedHeartbeats(row: RecentActivityRow): boolean {
+    return row.count > 1 && isQuietHeartbeat(row.latest);
+}
+
+/**
+ * Last night's dream summary as one muted hover line, or null when the newest
+ * dream has no summary or is older than {@link lastNightWindowMs}. The first
+ * non-blank line, with Markdown flattened, so a bulleted summary still reads.
+ */
+export function formatLastNightLine(
+    dreams: readonly Pick<AgentDreamSummary, 'finishedAt' | 'summary'>[],
+    now: number
+): string | null {
+    const latest = dreams[0];
+    if (!latest?.summary || now - Date.parse(latest.finishedAt) > lastNightWindowMs) {
+        return null;
+    }
+    return dreamSummaryHeadline(latest.summary) || null;
+}
+
+const lastNightWindowMs = 36 * 60 * 60 * 1000;
 
 /** The shared turn-length format since an epoch-ms start, or null when it is unknown. */
 export function formatElapsedSince(startedMs: number, now: number): string | null {

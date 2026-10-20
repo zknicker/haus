@@ -8,7 +8,7 @@ import { diffLines, formatHunks, splitLines } from './dream-diff.ts';
 import { diffMemory, openDreamRecording, snapshotMemory } from './dream-record.ts';
 
 const runtime = makeDaemonRuntime();
-const dream = { createdAt: '2026-10-11T03:00:00.000Z', id: 'dream:agt_test:2026-10-11' };
+const dream = { kind: 'nightly' } as const;
 let root: string;
 let workspaceDir: string;
 
@@ -47,7 +47,7 @@ test('a dream run reports its memory changes as stats and one sectioned unified 
     await writeFile(join(workspaceDir, 'outside.md'), 'not memory\n');
     const frames: AgentDreamRecord[] = [];
     const recording = await openDreamRecording({
-        command: { agentId: 'agt_test', dream, runId: 'run_dream' },
+        command: { agentId: 'agt_test', heartbeat: dream, runId: 'run_dream' },
         runtime,
         sendFrame: (frame) => frames.push(frame),
         startedAt: '2026-10-11T03:00:00.000Z',
@@ -92,7 +92,7 @@ test('a dream that changed nothing still reports, with no files', async () => {
     await writeFile(join(workspaceDir, 'MEMORY.md'), memory);
     const frames: AgentDreamRecord[] = [];
     const recording = await openDreamRecording({
-        command: { agentId: 'agt_test', dream, runId: 'run_quiet' },
+        command: { agentId: 'agt_test', heartbeat: dream, runId: 'run_quiet' },
         runtime,
         sendFrame: (frame) => frames.push(frame),
         startedAt: '2026-10-11T03:00:00.000Z',
@@ -109,6 +109,17 @@ test('an ordinary run records nothing', async () => {
         runtime,
         sendFrame: () => undefined,
         startedAt: '2026-10-11T03:00:00.000Z',
+        workspaceDir,
+    });
+    expect(recording).toBeNull();
+});
+
+test('a daytime heartbeat records no dream', async () => {
+    const recording = await openDreamRecording({
+        command: { agentId: 'agt_test', heartbeat: { kind: 'daytime' }, runId: 'run_day' },
+        runtime,
+        sendFrame: () => undefined,
+        startedAt: '2026-10-11T10:00:00.000Z',
         workspaceDir,
     });
     expect(recording).toBeNull();

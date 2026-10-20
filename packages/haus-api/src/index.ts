@@ -119,6 +119,7 @@ export * from './github.ts';
 export * from './github-trigger-events.ts';
 export * from './haus-agent-version.ts';
 export * from './haus-release.ts';
+export * from './heartbeat.ts';
 export * from './host-skill-file.ts';
 export * from './image-generation.ts';
 export * from './image-generation-models.ts';

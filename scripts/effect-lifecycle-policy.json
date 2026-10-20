@@ -307,6 +307,17 @@
         "timer": 0
       }
     },
+    "apps/computer/src/harness/heartbeat-turn.ts": {
+      "disposition": "effect-owned",
+      "reason": "The daemon runtime owns the heartbeat turn's throwaway session across the foreign harness boundary. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 1,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/computer/src/harness/sandbox-processes.ts": {
       "disposition": "effect-owned",
       "reason": "An Effect scope owns sandbox child processes; Promises and timers implement the foreign stop and kill adapters.",
@@ -395,7 +406,7 @@
         "timer": 0
       }
     },
-    "apps/computer/src/proxy.ts": {
+    "apps/computer/src/proxy-support.ts": {
       "disposition": "external-adapter",
       "reason": "Launch resources own the loopback server; its Promise and timer form a bounded best-effort HTTP attestation deadline.",
       "risks": {

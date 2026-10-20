@@ -1,9 +1,10 @@
 import type { AgentCommand } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
-import { dreamStartFrame } from './dream-run.ts';
+import { heartbeatStartFrame } from './heartbeat-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
+    isChatlessInboxSource,
     isConcreteInboxSource as isConcreteSource,
     isNoticelessInboxSource,
 } from './inbox-lanes.ts';
@@ -40,9 +41,9 @@ export async function startFrame(
               runId: state.activeRunId,
           })
         : [];
-    const dreamRow = runRows.find((row) => row.source === 'dream');
-    if (dreamRow) {
-        return dreamStartFrame(state, config, dreamRow);
+    const chatlessRow = runRows.find((row) => isChatlessInboxSource(row.source));
+    if (chatlessRow) {
+        return await heartbeatStartFrame(db, state, config, chatlessRow);
     }
     const noticeRows =
         runRows.length === 0 && state.activeRunId

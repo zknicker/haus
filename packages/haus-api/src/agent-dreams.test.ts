@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import {
     agentDreamDetailSchema,
     agentDreamRecordSchema,
+    agentDreamSummarySchema,
     agentDreamsInputSchema,
     dreamPatchLimitBytes,
 } from './agent-dreams.ts';
@@ -44,6 +45,34 @@ test('a dream record carries file stats and a capped patch', () => {
         })
     ).toThrow();
     expect(() => agentDreamRecordSchema.parse({ ...record, extra: true })).toThrow();
+});
+
+test('a dream summary carries the report summary and follow-up reminders', () => {
+    const summary = {
+        added: 1,
+        files: [],
+        finishedAt: '2026-10-11T03:05:00.000Z',
+        followUps: [
+            {
+                anchorChatId: 'cht_1',
+                fireAt: '2026-10-12T09:00:00.000Z',
+                reminderId: 'rem_1',
+                title: 'Check the fee change',
+            },
+        ],
+        removed: 0,
+        runId: 'run_1',
+        startedAt: '2026-10-11T03:00:00.000Z',
+        summary: null,
+        truncated: false,
+    };
+    expect(agentDreamSummarySchema.parse(summary).followUps).toHaveLength(1);
+    expect(
+        agentDreamSummarySchema.safeParse({ ...summary, summary: 'Tidied notes.' }).success
+    ).toBe(true);
+    const { followUps: _followUps, ...missing } = summary;
+    expect(agentDreamSummarySchema.safeParse(missing).success).toBe(false);
+    expect(agentDreamDetailSchema.parse({ ...summary, patch: '' })?.summary).toBeNull();
 });
 
 test('dream reads page newest first and a missing detail is null', () => {

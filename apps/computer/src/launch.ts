@@ -1,6 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import type { TraceCarrier } from '@haus/effect';
 import type { AgentActivityRun } from './agent-activity-run.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './agent-commands.ts';
@@ -23,16 +22,17 @@ import {
     type NoticeSinkRegistrar,
     runHarnessTurn,
 } from './harness/executor.ts';
+import { settleHeartbeat } from './harness/heartbeat-settle.ts';
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import type { AgentThoughtNarrator } from './harness/thought-narrator.ts';
 import { turnDeliveryOf } from './harness/turn-prompt.ts';
-import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
 import {
     fakeRuntimeOutcome,
     runnerMintFailureReport,
     runtimeNotInstalledReport,
 } from './launch-failure-turns.ts';
+import { runFakeRuntime } from './launch-fake-runtime.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
 import { reportTurn, turnSummaryText } from './launch-turn-report.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
@@ -90,8 +90,6 @@ export interface RunAgentLaunchOptions {
     turnTraceContext?: TraceCarrier;
 }
 
-const moduleDir = dirname(fileURLToPath(import.meta.url));
-const fakeRuntimePath = resolve(moduleDir, 'fake-runtime.ts');
 /** Runs one isolated Agent launch; only its compact summary leaves Computer. */
 export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<AgentTurnFrame> {
     const { command } = options;
@@ -201,16 +199,7 @@ async function runLedgeredLaunch(
         result =
             command.runtimeId === 'fake'
                 ? fakeRuntimeOutcome(
-                      await runFakeRuntime({
-                          activity,
-                          agentEnv,
-                          command,
-                          dataRoot: options.dataRoot,
-                          dirs,
-                          runtime: options.runtime,
-                          serverId: options.attachment.serverId,
-                          signal: options.signal,
-                      })
+                      await runFakeRuntime({ agentEnv, command, dirs, signal: options.signal })
                   )
                 : await runRealRuntime({
                       attestVisible: visibilityReceipt(options.serverOrigin, runner.runnerToken),
@@ -248,6 +237,14 @@ async function runLedgeredLaunch(
         options.runtime
     );
     await dream?.finish();
+    if (command.heartbeat && result.status === 'completed') {
+        await settleHeartbeat({
+            agentRoot,
+            reported: proxy.reportCount() > 0,
+            runtime: options.runtime,
+            workspaceDir: dirs.workspace,
+        });
+    }
     return reportTurn(options, {
         messageCount: proxy.sendCount(),
         activity: activity.snapshot(),
@@ -277,31 +274,6 @@ interface RuntimeExecutionInput {
     serverId: string;
     signal?: AbortSignal;
     turnTimings?: AgentTurnTimings;
-}
-
-/** Deterministic local model with the real managed CLI and loopback output path. */
-async function runFakeRuntime(
-    input: RuntimeExecutionInput
-): Promise<'completed' | 'failed' | 'interrupted'> {
-    const child = Bun.spawn([process.execPath, fakeRuntimePath], {
-        cwd: input.dirs.workspace,
-        env: {
-            ...process.env,
-            ...input.agentEnv,
-            HAUS_TURN_PROMPT: composeInboxDrain(input.command.inbox ?? []),
-            HOME: input.dirs.home,
-        },
-        signal: input.signal,
-        stderr: 'pipe',
-        stdout: 'pipe',
-    });
-    const [out, err, exitCode] = await Promise.all([
-        new Response(child.stdout).text(),
-        new Response(child.stderr).text(),
-        child.exited,
-    ]);
-    await writeTrace(input, `${out}${err}`);
-    return input.signal?.aborted ? 'interrupted' : exitCode === 0 ? 'completed' : 'failed';
 }
 
 /** Drives a real Harness executor; durable replies leave only through the managed CLI. */

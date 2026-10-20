@@ -2,6 +2,8 @@ import * as z from 'zod';
 import { agentDetailInputSchema } from './agent.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
+const chatlessSources: ReadonlySet<string> = new Set(['dream', 'heartbeat', 'heartbeat_report']);
+
 /**
  * One durable delivery of one unit of work to one Agent. `seen` rows are
  * retained after settlement with the `turnId` that consumed them, so an
@@ -12,7 +14,7 @@ export const agentDeliveryRecordSchema = z
     .object({
         acceptedAt: timestampSchema.nullable(),
         agentId: idSchema,
-        /** Null only for a `dream`, the one delivery with no Chat. */
+        /** Null only for a `dream`, `heartbeat`, or `heartbeat_report`. */
         chatId: idSchema.nullable(),
         createdAt: timestampSchema,
         /** Null for typed work that carries no Chat message. */
@@ -25,8 +27,8 @@ export const agentDeliveryRecordSchema = z
         workId: idSchema,
     })
     .strict()
-    .refine((record) => (record.chatId === null) === (record.source === 'dream'), {
-        message: 'Only a dream delivery is chatless.',
+    .refine((record) => (record.chatId === null) === chatlessSources.has(record.source), {
+        message: 'Only a dream, heartbeat, or heartbeat report delivery is chatless.',
         path: ['chatId'],
     });
 

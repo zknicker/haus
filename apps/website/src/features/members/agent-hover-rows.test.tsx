@@ -49,6 +49,37 @@ test('a recent turn with no visible request is one outcome line, status explicit
     expect(text(markup).slice(0, 3)).toEqual(['Sent 1 message', 'Interrupted 2×', '11m']);
 });
 
+test('consecutive quiet heartbeats fold to one muted line with the last check-in time', () => {
+    const markup = renderToStaticMarkup(
+        <AgentHoverTurn
+            row={{
+                count: 3,
+                latest: turn({ trigger: { kind: 'heartbeat', reported: false } }),
+                since: startedAt,
+            }}
+            title={{ kind: 'text', place: 'Checked in', quiet: true, text: 'Heartbeat' }}
+        />
+    );
+    expect(text(markup)).toEqual([
+        expect.stringMatching(/^Checked in 3× · last \d{1,2}:\d{2} [ap]m$/),
+    ]);
+});
+
+test('a single heartbeat keeps its own row, muted', () => {
+    const markup = renderToStaticMarkup(
+        <AgentHoverTurn
+            row={{
+                count: 1,
+                latest: turn({ trigger: { kind: 'heartbeat', reported: false } }),
+                since: startedAt,
+            }}
+            title={{ kind: 'text', place: 'Checked in', quiet: true, text: 'Heartbeat' }}
+        />
+    );
+    expect(text(markup)[0]).toBe('Heartbeat');
+    expect(markup).toContain('text-muted');
+});
+
 const startedAt = '2026-10-06T12:00:00.000Z';
 
 function text(markup: string): string[] {

@@ -1,3 +1,4 @@
+import { agentHeartbeatAttentionSchema, agentHeartbeatReportAttentionSchema } from '@haus/api';
 import type {
     AgentNoticeCommand,
     AgentResetCommand,
@@ -165,34 +166,28 @@ export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | 
         : null;
 }
 
-/** Only a dream run is chatless, and it carries nothing but its dream. */
+/** Only a heartbeat or report run is chatless, and it carries nothing but its attention. */
 function parseRunChat(
     frame: Record<string, unknown>,
     itemCount: number
-): Pick<AgentStartCommand, 'chatId' | 'dream'> | null {
-    if (frame.dream === undefined) {
+): Pick<AgentStartCommand, 'chatId' | 'heartbeat' | 'heartbeatReport'> | null {
+    if (frame.heartbeat === undefined && frame.heartbeatReport === undefined) {
         return typeof frame.chatId === 'string' && frame.chatId.length > 0
             ? { chatId: frame.chatId }
             : null;
     }
-    const dream = parseDream(frame.dream);
-    return dream && frame.chatId === null && frame.inboxDelivery === 'concrete' && itemCount === 0
-        ? { chatId: null, dream }
-        : null;
-}
-
-function parseDream(value: unknown): { createdAt: string; id: string } | null {
-    if (
-        !isRecord(value) ||
-        Object.keys(value).length !== 2 ||
-        typeof value.id !== 'string' ||
-        value.id.length === 0 ||
-        typeof value.createdAt !== 'string' ||
-        Number.isNaN(Date.parse(value.createdAt))
-    ) {
+    if (frame.heartbeat !== undefined && frame.heartbeatReport !== undefined) {
         return null;
     }
-    return { createdAt: value.createdAt, id: value.id };
+    if (frame.chatId !== null || frame.inboxDelivery !== 'concrete' || itemCount !== 0) {
+        return null;
+    }
+    if (frame.heartbeat !== undefined) {
+        const heartbeat = agentHeartbeatAttentionSchema.safeParse(frame.heartbeat);
+        return heartbeat.success ? { chatId: null, heartbeat: heartbeat.data } : null;
+    }
+    const report = agentHeartbeatReportAttentionSchema.safeParse(frame.heartbeatReport);
+    return report.success ? { chatId: null, heartbeatReport: report.data } : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

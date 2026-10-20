@@ -40,6 +40,30 @@ test('maps each inbox source to its narrow trigger kind', () => {
     expect(agentTurnTrigger(null)).toBeNull();
 });
 
+test('a heartbeat knows whether it reported, and a report names its heartbeat run', () => {
+    const heartbeat = { chatId: null, runId: 'run_hb', source: 'heartbeat', visible: false };
+    const reportedKeys = new Set(['heartbeat-report:run_hb']);
+    expect(agentTurnTrigger({ ...heartbeat, workId: 'w' }, new Map(), reportedKeys)).toEqual({
+        kind: 'heartbeat',
+        reported: true,
+    });
+    expect(agentTurnTrigger({ ...heartbeat, workId: 'w' })).toEqual({
+        kind: 'heartbeat',
+        reported: false,
+    });
+    expect(
+        agentTurnTrigger({
+            chatId: null,
+            source: 'heartbeat_report',
+            visible: false,
+            workId: 'heartbeat-report:run_hb',
+        })
+    ).toEqual({ heartbeatRunId: 'run_hb', kind: 'heartbeat_report' });
+    expect(
+        agentTurnTrigger({ chatId: null, source: 'heartbeat_report', visible: false, workId: 'x' })
+    ).toBeNull();
+});
+
 test('a long trigger message is quoted only up to the preview bound, never mid-character', () => {
     const head = 'a'.repeat(AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH - 1);
     // An astral emoji straddles the bound: its surrogate pair is never split.

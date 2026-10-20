@@ -1,11 +1,6 @@
 import { rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import type { HarnessV1 } from '@ai-sdk/harness';
-import type {
-    HarnessAgent,
-    HarnessAgentResumeSessionState,
-    HarnessAgentSession,
-} from '@ai-sdk/harness/agent';
+import type { HarnessAgentResumeSessionState, HarnessAgentSession } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
@@ -25,18 +20,24 @@ import {
     saveClaudePlanUsageSnapshot,
 } from '../usage/claude-plan-usage-state.ts';
 import { createHarnessActivityProjector } from './activity-projector.ts';
-import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
+import { fingerprintHarnessBootstrap } from './bootstrap-refresh.ts';
 import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
 import { clearPendingCoveGuidanceRefresh } from './cove-guidance-refresh.ts';
 import { prepareCoveGuidanceForTurn } from './cove-guidance-turn.ts';
-import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
+import { sandboxOptions } from './create-agent.ts';
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
 } from './execution-journal.ts';
+import {
+    currentHarnessAgentFactory,
+    currentHarnessBootstrapRefresh,
+    type HarnessAgentFactory,
+} from './executor-seams.ts';
+import { clearQuietRunNote, quietRunLine, readQuietRunNote } from './heartbeat-note.ts';
+import { runHeartbeatTurn } from './heartbeat-turn.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
-import { settleDreamBaseline } from './memory-dream.ts';
 import { AgentSessionResumeRejectedError, isPromptResumeRejection } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
@@ -100,6 +101,11 @@ export interface HarnessTurnResult {
     tokenUsage: HarnessTokenUsage | null;
 }
 
+export {
+    type HarnessAgentFactory,
+    setHarnessAgentFactoryForTesting,
+    setHarnessBootstrapRefreshForTesting,
+} from './executor-seams.ts';
 export type { HarnessTokenUsage } from './token-usage.ts';
 export { HarnessTurnFailedError } from './turn-stream.ts';
 
@@ -109,6 +115,14 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
     const operation = Effect.tryPromise({
         catch: (cause) => new HarnessStreamForeignError({ cause }),
         try: async () => {
+            if (input.heartbeat) {
+                // A heartbeat opens its own throwaway session; the main session is not read or written.
+                return await runHeartbeatTurn(
+                    { ...input, heartbeat: input.heartbeat },
+                    input.harnessAgentFactory ?? currentHarnessAgentFactory(),
+                    journal
+                );
+            }
             const stored = await readAgentSessionState(input.agentRoot);
             const session = resolveTurnSession(stored, {
                 generation: input.sessionGeneration,
@@ -185,10 +199,13 @@ async function executeHarnessTurn(
               env: { ...input.env, HAUS_CLAUDE_USAGE_REFRESH: '1' },
           }
         : input;
-    const agent = (effectiveInput.harnessAgentFactory ?? harnessAgentFactory)(effectiveInput, {
-        harness,
-        instructions,
-    });
+    const agent = (effectiveInput.harnessAgentFactory ?? currentHarnessAgentFactory())(
+        effectiveInput,
+        {
+            harness,
+            instructions,
+        }
+    );
     let live: HarnessAgentSession | undefined;
     const instructionActivityKey = 'instructions';
     const hausAgentVersionDrift = session.hausAgentVersion !== hausAgentVersion;
@@ -239,7 +256,7 @@ async function executeHarnessTurn(
             refreshBootstrap: refreshBootstrap
                 ? (abortSignal) =>
                       timings.measure('bootstrap', () =>
-                          harnessBootstrapRefresh({
+                          currentHarnessBootstrapRefresh()({
                               abortSignal,
                               harness,
                               provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
@@ -272,19 +289,25 @@ async function executeHarnessTurn(
         const turnContent = prompt.turnContent;
         // Cleared only after a completed turn, so a turn that fails before the model sees it retries.
         const skillNotice = await readManagedSkillChangeNotice(input.agentRoot);
+        // Any main-session turn hears what its heartbeats did; a report run clears it unrendered.
+        const quietNote = await readQuietRunNote(input.agentRoot);
+        const quietLine = quietNote && !input.heartbeatReport ? quietRunLine(quietNote) : null;
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await agent.stream({
             abortSignal: turnSignal,
             prompt: projectMessageForAgent({
-                content: [coveGuidance.notice, turnContent, skillNotice?.text]
+                content: [quietLine, coveGuidance.notice, turnContent, skillNotice?.text]
                     .filter(Boolean)
                     .join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
             }),
             session: live,
         });
+        if (quietNote) {
+            await clearQuietRunNote(input.agentRoot);
+        }
         const primaryNotice = prompt.notice;
         const deliverNotice = createNoticeDelivery(live, input, primaryNotice);
         const noticeCoordinator = createNoticeCoordinator(deliverNotice);
@@ -395,7 +418,6 @@ async function executeHarnessTurn(
         if (skillNotice) {
             await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
         }
-        await settleDreamBaseline(input);
         await input.activity.finish(instructionActivityKey, 'completed');
         return observation;
     } catch (error) {
@@ -413,31 +435,4 @@ async function executeHarnessTurn(
         });
         throw error;
     }
-}
-
-// Tests inject a fake Agent at this construction seam.
-export type HarnessAgentFactory = (
-    input: HarnessTurnInput,
-    options: { harness: HarnessV1<ToolSet>; instructions: string }
-) => Pick<HarnessAgent, 'createSession' | 'stream'>;
-
-let harnessAgentFactory: HarnessAgentFactory = createHarnessAgent;
-
-export function setHarnessAgentFactoryForTesting(factory: HarnessAgentFactory) {
-    const previous = harnessAgentFactory;
-    harnessAgentFactory = factory;
-    return () => {
-        harnessAgentFactory = previous;
-    };
-}
-
-type HarnessBootstrapRefresh = typeof refreshHarnessBootstrap;
-let harnessBootstrapRefresh: HarnessBootstrapRefresh = refreshHarnessBootstrap;
-
-export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRefresh) {
-    const previous = harnessBootstrapRefresh;
-    harnessBootstrapRefresh = refresh;
-    return () => {
-        harnessBootstrapRefresh = previous;
-    };
 }

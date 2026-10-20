@@ -72,6 +72,50 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     });
 });
 
+test('a heartbeat is a quiet background row: Checking in live, Heartbeat once settled', () => {
+    expect(resolveTurnRowTitle({ kind: 'heartbeat', reported: false }, chats, true)).toEqual({
+        kind: 'text',
+        place: null,
+        quiet: true,
+        text: 'Checking in',
+    });
+    expect(resolveTurnRowTitle({ kind: 'heartbeat', reported: false }, chats)).toEqual({
+        kind: 'text',
+        place: 'Checked in',
+        quiet: true,
+        text: 'Heartbeat',
+    });
+    // A report reaching the main session is real work, so it is not muted.
+    expect(
+        resolveTurnRowTitle({ heartbeatRunId: 'run_hb', kind: 'heartbeat_report' }, chats)
+    ).toEqual({
+        kind: 'text',
+        place: null,
+        text: 'Heartbeat report',
+    });
+    expect(resolveTurnRowTitle({ kind: 'dream' }, chats, true)).toMatchObject({ text: 'Dreaming' });
+});
+
+test('a heartbeat that sent a report reads Reported at normal emphasis', () => {
+    expect(resolveTurnRowTitle({ kind: 'heartbeat', reported: true }, chats)).toEqual({
+        kind: 'text',
+        place: 'Reported',
+        reported: true,
+        text: 'Heartbeat',
+    });
+    expect(
+        formatTurnOutcome({ ...settled({}), trigger: { kind: 'heartbeat', reported: true } })
+    ).toBe('Reported');
+});
+
+test('a heartbeat that did nothing observable says it checked in, not that it stayed quiet', () => {
+    const base = settled({});
+    expect(formatTurnOutcome({ ...base, trigger: { kind: 'heartbeat', reported: false } })).toBe(
+        'Checked in'
+    );
+    expect(formatTurnOutcome(base)).toBe('Stayed quiet');
+});
+
 test('a task turn reads its task message, and an attachment-only message says so', () => {
     const task = {
         chatId: 'cht_dm',

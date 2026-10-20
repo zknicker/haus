@@ -4,11 +4,7 @@ import { createArtifactProxy } from './artifacts/proxy.ts';
 import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { classifyHausProxyBoundary } from './harness/haus-proxy-boundary.ts';
-import {
-    type AgentInboxLocation,
-    consumeServedAutomations,
-    type VisibleMessageIdentity,
-} from './inbox-store.ts';
+import { consumeServedAutomations } from './inbox-store.ts';
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
 import { mcpRequestHeaders, mcpRequestSignal, readProxyResponse } from './proxy-mcp.ts';
 import { extractServedAutomationIds, extractVisibleMessageIds } from './proxy-response-ids.ts';
@@ -20,12 +16,14 @@ import {
     serverUnavailable,
 } from './proxy-send-outcome.ts';
 import { handleSkillRequest } from './proxy-skills.ts';
+import { agentInboxLocation, awaitBestEffortAttestation, isAuthorized } from './proxy-support.ts';
 import { recordProxyVisibility } from './proxy-visibility.ts';
-import { attestVisibleMessages } from './visibility-receipt.ts';
 
 export interface LoopbackProxy {
     clearRunnerToken(): void;
     close(): void;
+    /** Heartbeat reports the Server accepted since the last reset. */
+    reportCount(): number;
     resetSendCount(): void;
     sendCount(): number;
     setActivityRun(activity: AgentActivityRun | undefined): void;
@@ -50,6 +48,7 @@ export function startLoopbackProxy(input: {
 }): LoopbackProxy {
     const artifacts = createArtifactProxy(input);
     let sends = 0;
+    let reports = 0;
     let runnerToken: string | null = input.runnerToken;
     let runId: string | null = input.runId ?? null;
     let activityRun: AgentActivityRun | undefined;
@@ -74,6 +73,9 @@ export function startLoopbackProxy(input: {
                     onCommittedSend: recordCommittedSend,
                     incrementSendCount: () => {
                         sends += 1;
+                    },
+                    incrementReportCount: () => {
+                        reports += 1;
                     },
                     artifacts,
                 });
@@ -106,8 +108,10 @@ export function startLoopbackProxy(input: {
                 process.stderr.write(`Artifact cache release failed: ${String(error)}\n`);
             });
         },
+        reportCount: () => reports,
         resetSendCount: () => {
             sends = 0;
+            reports = 0;
         },
         sendCount: () => sends,
         setActivityRun: (activity) => {
@@ -148,6 +152,7 @@ async function handleAuthorizedProxyRequest(
         traceContext?: TraceCarrier;
         onCommittedSend?: (send: CommittedSend) => void;
         incrementSendCount(): void;
+        incrementReportCount(): void;
         artifacts: ReturnType<typeof createArtifactProxy>;
     }
 ): Promise<Response> {
@@ -242,6 +247,9 @@ async function handleAuthorizedProxyRequest(
         state.incrementSendCount();
         state.onCommittedSend?.(committed);
     }
+    if (upstream.ok && url.pathname === '/api/agent/heartbeat/report') {
+        state.incrementReportCount();
+    }
     const visibleMessageIds = upstream.ok
         ? extractVisibleMessageIds(url.pathname, responseBody)
         : [];
@@ -271,29 +279,4 @@ async function handleAuthorizedProxyRequest(
         headers: { 'content-type': 'application/json' },
         status: upstream.status,
     });
-}
-
-async function awaitBestEffortAttestation(
-    serverOrigin: string,
-    runnerToken: string,
-    messages: VisibleMessageIdentity[]
-): Promise<void> {
-    await Promise.race([
-        attestVisibleMessages(serverOrigin, runnerToken, messages),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
-    ]);
-}
-
-function agentInboxLocation(input: {
-    agentId?: string;
-    dataRoot?: string;
-    serverId?: string;
-}): AgentInboxLocation | null {
-    return input.agentId && input.dataRoot && input.serverId
-        ? { agentId: input.agentId, dataRoot: input.dataRoot, serverId: input.serverId }
-        : null;
-}
-
-function isAuthorized(request: Request, proxyToken: string): boolean {
-    return request.headers.get('authorization') === `Bearer ${proxyToken}`;
 }

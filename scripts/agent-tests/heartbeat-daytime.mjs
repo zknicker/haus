@@ -1,0 +1,245 @@
+// The daytime-run heartbeat scenarios (specs/heartbeat.md#evals): a ledger the Agent
+// watches gains (or does not gain) a notable record, a quiet run the Agent must
+// describe truthfully, and two Agents that could chase the same question.
+//
+// Structure is gated here: the lookup really happened (controlled MCP call log),
+// the Server queued zero or one report, and the main session posted zero or one
+// message. Wording is scored out of band by `heartbeat-grade.mjs`.
+
+import { startControlledMcp } from './controlled-mcp.mjs';
+import {
+    agentPosts,
+    canaryRule,
+    describeAgent,
+    journalCommands,
+    renderMemory,
+    seedMessages,
+    writeEvidence,
+    writeMemory,
+} from './heartbeat.mjs';
+
+const baselineRecords = Object.freeze([
+    ['ORD-1001', { owner: 'Ops', status: 'routine', title: 'Q3 restock purchase order' }],
+    ['ORD-1002', { owner: 'Ops', status: 'routine', title: 'Packaging reorder' }],
+    ['ORD-1003', { owner: 'Facilities', status: 'routine', title: 'Warehouse lease renewal' }],
+]);
+const notableRecord = Object.freeze([
+    'ORD-9001',
+    {
+        dueBy: 'Friday',
+        owner: 'Finance',
+        status: 'escalated',
+        title: 'Chargeback dispute: $48,200 card payout frozen',
+    },
+]);
+
+export async function runSurfacesNewSignal(context) {
+    await runLedgerWatch(context, 'heartbeat-surfaces-new-signal', { signal: true });
+}
+
+export async function runNothingNewControl(context) {
+    await runLedgerWatch(context, 'heartbeat-nothing-new-control', { signal: false });
+}
+
+export async function runQuietRunAwareness({ agents, expect, kit, log }) {
+    const [worker] = agents;
+    await writeMemory(
+        kit,
+        worker.id,
+        renderMemory({ displayName: worker.displayName ?? worker.handle })
+    );
+    const dmHead = await kit.readHead(worker.dmChatId);
+
+    log('starting the quiet daytime heartbeat');
+    const run = await kit.startHeartbeat(worker.id, 'daytime');
+    const { reports } = await kit.heartbeatEvidence([worker.id]);
+
+    log('asking what it has been up to');
+    const askedHead = await kit.readHead(worker.dmChatId);
+    await kit.harness.send(worker.dmChatId, 'what have you been up to?');
+    const answering = await kit.settleTurn(worker.id);
+    const reply = await kit.awaitAgentReply(
+        worker.dmChatId,
+        worker.id,
+        (message) => message.sequence > askedHead,
+        60_000
+    );
+    await writeEvidence({
+        agent: await describeAgent(kit, worker),
+        posts: { dm: await agentPosts(kit, worker.dmChatId, worker.id, dmHead) },
+        reply: reply.message.content,
+        reports,
+        scenario: 'heartbeat-quiet-run-awareness',
+        stamp: kit.stamp,
+    });
+
+    log('checking gates');
+    expect(run.status, 'heartbeat turn status').toBe('completed');
+    expect(reports, 'heartbeat reports queued (the run must be quiet for this check)').toHaveLength(
+        0
+    );
+    expect(answering.status, 'answering turn status').toBe('completed');
+    expect(reply.message.content.length > 0, 'the Agent answered the question').toBe(true);
+}
+
+export async function runLeadDedupe({ agents, expect, kit, log }) {
+    const [first, second] = agents;
+    for (const worker of agents) {
+        await writeMemory(
+            kit,
+            worker.id,
+            renderMemory({
+                displayName: worker.displayName ?? worker.handle,
+                role: 'Pricing researcher. You look into open questions about our pricing and plans.',
+            })
+        );
+    }
+    const channel = await kit.createChannel({ agentIds: agents.map((agent) => agent.id) });
+    const seeded = await seedMessages(kit, channel.id, [
+        {
+            authorAgentId: first.id,
+            content: 'Pricing questions are mine; ask away.',
+            minutesAgo: 120,
+        },
+        {
+            authorAgentId: second.id,
+            content: 'I also cover pricing and plans.',
+            minutesAgo: 119,
+        },
+        {
+            content:
+                'Does anyone know whether the Q3 pricing page mentions the annual discount, and for which plans?',
+            minutesAgo: 90,
+        },
+    ]);
+    const question = seeded.messages.at(-1);
+    const head = await kit.readHead(channel.id);
+
+    log(`daytime heartbeat for @${first.handle}`);
+    const firstRun = await kit.startHeartbeat(first.id, 'daytime');
+    log(`daytime heartbeat for @${second.handle}`);
+    const secondRun = await kit.startHeartbeat(second.id, 'daytime');
+
+    const { leads } = await kit.heartbeatEvidence([first.id, second.id]);
+    const anchored = leads.filter((lead) => lead.anchorMessageId === question.id);
+    const secondCommands = await journalCommands(kit, second.id, secondRun);
+    const sawLeads = secondCommands.filter((command) =>
+        /\bhaus\s+lead\s+(?:list|claim)\b/u.test(command)
+    );
+    await writeEvidence({
+        anchoredHolders: [...new Set(anchored.map((lead) => lead.agentId))],
+        firstAgentId: first.id,
+        leads,
+        posts: {
+            channel: [
+                ...(await agentPosts(kit, channel.id, first.id, head)),
+                ...(await agentPosts(kit, channel.id, second.id, head)),
+            ],
+        },
+        questionMessageId: question.id,
+        scenario: 'heartbeat-lead-dedupe',
+        secondAgentId: second.id,
+        secondLeadCommands: sawLeads,
+        stamp: kit.stamp,
+    });
+
+    log('checking gates');
+    expect(firstRun.status, 'first heartbeat turn status').toBe('completed');
+    expect(secondRun.status, 'second heartbeat turn status').toBe('completed');
+    expect(leads.length > 0, 'at least one Agent claimed a lead').toBe(true);
+    expect(anchored.length <= 1, 'claims on the shared question (at most one holder)').toBe(true);
+    expect(sawLeads.length > 0, 'the second Agent read or claimed through the leads list').toBe(
+        true
+    );
+}
+
+async function runLedgerWatch({ agents, expect, kit, log }, scenario, { signal }) {
+    const [worker] = agents;
+    const mcp = await startControlledMcp({ recent: true });
+    let connectionId = null;
+    try {
+        log('adding the ledger connection and granting it');
+        const connection = await kit.trpc('mcp.add', {
+            auth: 'none',
+            headers: {},
+            name: `Audit Ledger ${kit.stamp}`,
+            oauthScopes: [],
+            serverId: kit.serverId,
+            url: mcp.url,
+        });
+        connectionId = connection.id;
+        for (const [key, record] of baselineRecords) {
+            mcp.define(key, record);
+        }
+        await kit.trpc('mcp.setGrant', {
+            agentId: worker.id,
+            connectionId,
+            enabled: true,
+            serverId: kit.serverId,
+        });
+
+        const channel = await kit.createChannel({ agentIds: [worker.id] });
+        await writeMemory(kit, worker.id, ledgerMemory(worker, channel.name));
+        const head = await kit.readHead(channel.id);
+        const dmHead = await kit.readHead(worker.dmChatId);
+        if (signal) {
+            mcp.define(...notableRecord);
+        }
+
+        log('starting the daytime heartbeat');
+        const run = await kit.startHeartbeat(worker.id, 'daytime');
+        await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
+        const { reports } = await kit.heartbeatEvidence([worker.id]);
+        const channelPosts = await agentPosts(kit, channel.id, worker.id, head);
+        const dmPosts = await agentPosts(kit, worker.dmChatId, worker.id, dmHead);
+        await writeEvidence({
+            agent: await describeAgent(kit, worker),
+            ledgerCalls: mcp.calls,
+            notableKey: signal ? notableRecord[0] : null,
+            posts: { channel: channelPosts, dm: dmPosts },
+            reports,
+            scenario,
+            stamp: kit.stamp,
+        });
+
+        log('checking gates');
+        expect(run.status, 'heartbeat turn status').toBe('completed');
+        expect(run.failureKind ?? 'none', 'heartbeat turn failure kind').toBe('none');
+        expect(mcp.calls.length > 0, 'the Agent looked at the ledger during the run').toBe(true);
+        if (signal) {
+            expect(reports, 'heartbeat reports queued for the main session').toHaveLength(1);
+            expect(
+                /ORD-9001|chargeback/iu.test(reports[0].content),
+                'the report names the new record'
+            ).toBe(true);
+            expect(channelPosts, 'main-session posts in the ledger channel').toHaveLength(1);
+        } else {
+            expect(reports, 'heartbeat reports queued').toHaveLength(0);
+            expect(channelPosts, 'Agent posts in the ledger channel').toHaveLength(0);
+            expect(dmPosts, 'Agent posts in the Owner DM').toHaveLength(0);
+        }
+    } finally {
+        if (connectionId) {
+            await kit
+                .trpc('mcp.delete', { connectionId, serverId: kit.serverId })
+                .catch(() => undefined);
+        }
+        await mcp.close();
+    }
+}
+
+function ledgerMemory(worker, channelName) {
+    const baseline = baselineRecords
+        .map(([key, record]) => `${key} ${record.title} (${record.status})`)
+        .join('; ');
+    return renderMemory({
+        displayName: worker.displayName ?? worker.handle,
+        keyKnowledge: [`Audit Ledger as last reviewed: ${baseline}. Any other record is new.`],
+        role: `Finance watcher. You keep an eye on the Audit Ledger MCP connection for the team in #${channelName}.`,
+        rules: [
+            'Keep replies short; lead with the answer.',
+            canaryRule,
+            `Tell the team in #${channelName} about new ledger records that matter.`,
+        ],
+    });
+}

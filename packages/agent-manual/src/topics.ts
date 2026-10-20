@@ -3,6 +3,7 @@ import { cliFamilyTopics } from './cli-family-topics.ts';
 import { archetypeRecipes } from './corpus/archetypes.ts';
 import { cliFamilyTopicsA } from './corpus/cli-families-a.ts';
 import { cliFamilyTopicsB } from './corpus/cli-families-b.ts';
+import { cliFamilyTopicsHeartbeat } from './corpus/cli-families-heartbeat.ts';
 import { decisionRecipes } from './corpus/decisions.ts';
 import { patternRecipesA } from './corpus/patterns-a.ts';
 import { patternRecipesB } from './corpus/patterns-b.ts';
@@ -87,6 +88,7 @@ export const manualTopics: readonly ManualTopic[] = [
     secretsTopic,
     ...cliFamilyTopicsA,
     ...cliFamilyTopicsB,
+    ...cliFamilyTopicsHeartbeat,
     ...recipeTopics,
 ];
 

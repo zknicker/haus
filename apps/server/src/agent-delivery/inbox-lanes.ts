@@ -1,4 +1,15 @@
 /**
+ * The attentions with no Chat: the nightly dream, a daytime heartbeat, and a
+ * heartbeat's report to the main session. Each leads its own chatless run
+ * (specs/heartbeat.md), and the schema's chat checks name exactly these sources.
+ */
+export const chatlessInboxSources = ['dream', 'heartbeat', 'heartbeat_report'] as const;
+
+export function isChatlessInboxSource(source: string): boolean {
+    return (chatlessInboxSources as readonly string[]).includes(source);
+}
+
+/**
  * Which inbox items ride the concrete lane. A concrete item's envelope is
  * composed into the run's own first prompt and is served the moment the
  * Computer accepts that run; everything else rides the notice lane, where the
@@ -18,6 +29,8 @@ export const concreteInboxSources = [
     'reminder',
     'task_assignment',
     'dream',
+    'heartbeat',
+    'heartbeat_report',
     'linear_session',
     'linear_session_automated',
 ] as const;
@@ -36,17 +49,17 @@ export const bodilessInboxSources = [
     'cloud_agent_work',
     'trigger_problem',
     'image_generation_failed',
-    'dream',
+    ...chatlessInboxSources,
     'linear_session',
     'linear_session_automated',
 ] as const;
 
 /**
  * Concrete attentions no busy notice, unread digest, or `haus inbox check` lists,
- * because each leads its own run: Cove's bootstrap, and a `dream`, which has no
- * Chat to list it under.
+ * because each leads its own run: Cove's bootstrap, and the chatless attentions,
+ * which have no Chat to list them under.
  */
-export const noticelessInboxSources = ['onboarding', 'dream'] as const;
+export const noticelessInboxSources = ['onboarding', ...chatlessInboxSources] as const;
 
 export function isNoticelessInboxSource(source: string): boolean {
     return (noticelessInboxSources as readonly string[]).includes(source);

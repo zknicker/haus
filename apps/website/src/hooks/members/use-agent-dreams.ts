@@ -7,9 +7,13 @@ import { queryPolicy } from '../../lib/query-policy.ts';
  * hub and the Dreams section share. A dream run settling invalidates it from
  * the Server shell's lifecycle stream (`agent-history-cache.ts`).
  */
-export function useAgentDreams(serverId: string, agentId: string) {
+export function useAgentDreams(
+    serverId: string,
+    agentId: string,
+    limit: number = dreamRetentionPerAgent
+) {
     return hausTrpc.agent.dreams.useQuery(
-        { agentId, limit: dreamRetentionPerAgent, serverId },
+        { agentId, limit, serverId },
         { ...queryPolicy.syncedSnapshot, enabled: Boolean(serverId && agentId) }
     );
 }

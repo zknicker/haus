@@ -158,28 +158,34 @@ The relay accepts finite nonnegative timings through seven days, integral token 
 12 digits, and only the product's known reasoning settings. No content or new metric dimensions
 are exported.
 
-### Nightly dream checks
+### Heartbeat checks
 
-Each Agent's once-a-night dream check ([workspace](../../specs/workspace.md#dreaming)) exports
-one short `haus.dream.check` span to `haus-operations`, beside a local `nightly-dream.check` log
-line. Unlike scheduler polling, each check is a once-a-night decision per Agent, so it earns a
-span. It carries `haus.agent.id`, `haus.dream.local_date` (`YYYY-MM-DD`, Computer-local),
-`haus.dream.outcome` (`baselined`, `requested`, `not-due`, `skipped`), `haus.dream.skip_reason`
-on a skip (`retired`, `resetting`, `not-configured`), and `haus.memory.bytes` (MEMORY.md's size)
-when it was read. The relay accepts only those closed values. An Agent with no span for a night
+Each Agent's heartbeat slot check ([heartbeat](../../specs/heartbeat.md)) exports one short
+`haus.heartbeat.check` span to `haus-operations`, beside a local `heartbeat.check` log line.
+Unlike scheduler polling, each check is a per-slot decision per Agent, so it earns a span. It
+carries `haus.agent.id`, `haus.heartbeat.kind` (`daytime`, `nightly`), `haus.heartbeat.local_date`
+(`YYYY-MM-DD`, Computer-local), `haus.heartbeat.slot` (`HH:MM`), `haus.heartbeat.outcome`
+(`requested`, `skipped`), and `haus.heartbeat.skip_reason` on a skip (`retired`, `resetting`,
+`not-configured`). The relay accepts only those closed values. An Agent with no span for a slot
 was not checked: its Computer was asleep or offline through the window. A request the Computer
-could not send stays a local `nightly-dream.request-failed` warning and is retried; whether the
-dream then ran is the durable dream record, not this span.
+could not send stays a local `heartbeat.request-failed` warning and is retried.
+
+The Server decides each request it receives and exports that decision as a
+`haus.heartbeat.request` span with the same agent, kind, date, and slot attributes, plus
+`haus.heartbeat.outcome` (`queued`, `skipped`) and, on a skip, `haus.heartbeat.skip_reason`
+(`not_assigned`, `stopped`, `usage_paused`, `no_activity`, `busy`). Whether the run then ran is
+the durable run and dream record, not these spans.
 
 ```apl
 ['haus-operations']
-| where name == 'haus.dream.check'
+| where name in ('haus.heartbeat.check', 'haus.heartbeat.request')
 | extend agent = tostring(['attributes.custom']['haus.agent.id']),
-    night = tostring(['attributes.custom']['haus.dream.local_date']),
-    outcome = tostring(['attributes.custom']['haus.dream.outcome']),
-    reason = tostring(['attributes.custom']['haus.dream.skip_reason']),
-    memory_bytes = toint(['attributes.custom']['haus.memory.bytes'])
-| project _time, agent, night, outcome, reason, memory_bytes
+    kind = tostring(['attributes.custom']['haus.heartbeat.kind']),
+    day = tostring(['attributes.custom']['haus.heartbeat.local_date']),
+    slot = tostring(['attributes.custom']['haus.heartbeat.slot']),
+    outcome = tostring(['attributes.custom']['haus.heartbeat.outcome']),
+    reason = tostring(['attributes.custom']['haus.heartbeat.skip_reason'])
+| project _time, name, agent, kind, day, slot, outcome, reason
 ```
 
 ## Trace shape

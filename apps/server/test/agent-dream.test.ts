@@ -1,13 +1,18 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { requestAgentDream } from '../src/agent-delivery/dream-request.ts';
 import * as store from '../src/agent-delivery/store.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentRunTriggersTable } from '../src/postgres/schema.ts';
 import { agentTurnTrigger } from '../src/server-agents/agent-turn-trigger.ts';
-import { dreamRows as readDreamRows, requestDream, settledTurn } from './agent-dream-fixture.ts';
+import {
+    agentSpeaks,
+    dreamRows as readDreamRows,
+    requestDream,
+    requestHeartbeat,
+    settledTurn,
+} from './agent-dream-fixture.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -39,7 +44,7 @@ test('an idle Agent gets one chatless dream run, recorded with a dream trigger',
     const [start] = transport.framesOfType('start');
     expect(start).toMatchObject({
         chatId: null,
-        dream: { id: `dream:${seed.agentId}:2026-10-11` },
+        heartbeat: { id: `dream:${seed.agentId}:2026-10-11`, kind: 'nightly', since: null },
         drainItemIds: [],
         inbox: [],
         inboxDelivery: 'concrete',
@@ -76,18 +81,14 @@ test('a stopped or foreign Agent is never queued a dream', async () => {
     transport.online.add(seed.computerId);
 
     await store.setStopped(connection.db, { ...seed, stopped: true });
-    expect(await dream(delivery, seed)).toBe(false);
+    await agentSpeaks(connection.db, seed);
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly')).toBe(false);
     await store.setStopped(connection.db, { ...seed, stopped: false });
 
+    await agentSpeaks(connection.db, seed);
     expect(
-        await requestAgentDream(connection.db, delivery, {
+        await requestHeartbeat(connection.db, delivery, seed, 'nightly', {
             computerId: 'cmp_someoneelse00',
-            request: {
-                agentId: seed.agentId,
-                localDate: '2026-10-11',
-                type: 'agent-dream-request',
-            },
-            serverId: seed.serverId,
         })
     ).toBe(false);
     expect(await dreamRows(seed)).toEqual([]);
@@ -110,7 +111,10 @@ test('a busy Agent gets its dream queued, and it runs after the current work', a
 
     await delivery.onTurnSettled(seed.computerId, completed(seed, human?.runId ?? ''));
     const next = transport.framesOfType('start').at(-1);
-    expect(next).toMatchObject({ chatId: null, dream: { id: `dream:${seed.agentId}:2026-10-11` } });
+    expect(next).toMatchObject({
+        chatId: null,
+        heartbeat: { id: `dream:${seed.agentId}:2026-10-11` },
+    });
 });
 
 test('a queued dream takes its turn like any concrete item, ahead of waiting notices', async () => {
@@ -123,7 +127,7 @@ test('a queued dream takes its turn like any concrete item, ahead of waiting not
     const first = await wake();
     expect(first).toMatchObject({
         chatId: null,
-        dream: { id: `dream:${seed.agentId}:2026-10-11` },
+        heartbeat: { id: `dream:${seed.agentId}:2026-10-11` },
     });
 
     await delivery.onTurnSettled(seed.computerId, completed(seed, first?.runId ?? ''));

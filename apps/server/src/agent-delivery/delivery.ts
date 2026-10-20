@@ -52,13 +52,16 @@ import {
     preferredDrainLead,
     startFrame,
 } from './drain-selection.ts';
-import { planDreamRun, retireStaleDreams } from './dream-run.ts';
 import * as failureHold from './failure-hold.ts';
+import { planHeartbeatRun, retireStaleHeartbeats } from './heartbeat-run.ts';
+import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
+    isChatlessInboxSource,
     isConcreteInboxSource as isConcreteSource,
     isNoticelessInboxSource,
 } from './inbox-lanes.ts';
+import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
 import { isBackedOff } from './retry-policy.ts';
@@ -82,6 +85,8 @@ export interface DispatchPlan {
     suppressSend?: boolean;
     /** `task.updated` for the tasks this run just made live. */
     taskEvents?: PreparedRealtimeEvent[];
+    /** A daytime heartbeat this plan stopped to make room for addressed work. */
+    yielded?: YieldedHeartbeat;
 }
 
 interface DispatchOptions {
@@ -120,7 +125,7 @@ export class AgentDelivery {
     constructor(
         private readonly db: HausDatabase,
         private readonly transport: DeliveryTransport,
-        private readonly runtime?: EffectRuntime<never>
+        readonly runtime?: EffectRuntime<never>
     ) {}
 
     /**
@@ -260,7 +265,7 @@ export class AgentDelivery {
         if (!(config?.computerId && this.transport.isOnline(config.computerId))) {
             throw new Error('The assigned Computer must be online to restart this Agent.');
         }
-        const interrupted = await this.interruptActiveRun(input);
+        const interrupted = await interruptActiveRun(this.db, input);
         if (interrupted) {
             publishRealtime(interrupted.taskEvents);
             if (interrupted.activity) {
@@ -853,6 +858,26 @@ export class AgentDelivery {
             return null;
         }
         await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
+        const yielded = await yieldHeartbeatToAddressed(tx, state);
+        if (yielded) {
+            const next = await this.planDispatch(tx, agentId);
+            const activities = [
+                ...(yielded.activity ? [yielded.activity] : []),
+                ...(next?.activities ?? []),
+            ];
+            return {
+                ...(next ?? {
+                    computerId: yielded.computerId,
+                    frame: { agentId, runId: yielded.runId, type: 'stop' as const },
+                    serverId: state.serverId,
+                    suppressSend: true,
+                }),
+                activities,
+                configuration: yielded.configuration ?? next?.configuration,
+                taskEvents: [...yielded.taskEvents, ...(next?.taskEvents ?? [])],
+                yielded,
+            };
+        }
         if (state.activeRunId && state.activeRunComputerId) {
             if (!state.acceptedAt || options?.resendActive) {
                 await store.markDispatched(tx, { agentId, runId: state.activeRunId });
@@ -939,7 +964,7 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        await retireStaleDreams(tx, agentId);
+        await retireStaleHeartbeats(tx, agentId);
         // Sequential: planning runs inside the transaction holding the Server
         // row, and overlapping reads on its one connection wedge it.
         const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
@@ -958,10 +983,10 @@ export class AgentDelivery {
             return null;
         }
         const { lead: first, selected } = admitted;
-        // A dream is concrete work with no Chat, so it starts a chatless run.
+        // A dream, heartbeat, or report is concrete work with no Chat: a chatless run.
         // It resets the chain, so admission may also pick it as the lead at the ceiling.
-        if (first.source === 'dream') {
-            return await planDreamRun(tx, { agentId, config, row: first, state });
+        if (isChatlessInboxSource(first.source)) {
+            return await planHeartbeatRun(tx, { agentId, config, row: first, state });
         }
         const runId = createOpaqueId('run');
         const concrete = isConcreteSource(first.source);
@@ -1052,6 +1077,21 @@ export class AgentDelivery {
             return;
         }
         publishRealtime(plan.taskEvents ?? []);
+        if (plan.yielded) {
+            publishAgentLifecycle({
+                agentId: plan.yielded.agentId,
+                chatId: null,
+                outcome: 'stopped',
+                phase: 'settled',
+                runId: plan.yielded.runId,
+                serverId: plan.serverId,
+            });
+            this.transport.send(plan.yielded.computerId, {
+                agentId: plan.yielded.agentId,
+                runId: plan.yielded.runId,
+                type: 'stop',
+            });
+        }
         for (const activity of plan.activities ?? []) {
             if (activity.category === 'starting_work' && activity.phase === 'started') {
                 continue;
@@ -1081,61 +1121,4 @@ export class AgentDelivery {
             });
         }
     }
-
-    private async interruptActiveRun(input: { agentId: string; serverId: string }) {
-        return await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, input.serverId);
-            const state = await store.readDeliveryState(tx, input.agentId);
-            if (!(state?.activeRunId && state.activeRunComputerId)) {
-                return null;
-            }
-            await revokeRunnerCredentialsForRun(tx, {
-                agentId: input.agentId,
-                runId: state.activeRunId,
-                serverId: input.serverId,
-            });
-            await store.requeueInboxItemsForRun(tx, {
-                agentId: input.agentId,
-                runId: state.activeRunId,
-            });
-            const activity = await appendServerAgentActivity(tx, {
-                agentId: input.agentId,
-                category: 'working',
-                phase: 'failed',
-                runId: state.activeRunId,
-                serverId: input.serverId,
-            });
-            const configuration = await rotateDeferredConfiguration(tx, {
-                activeRunModelId: state.activeRunModelId,
-                activeRunReasoningEffort: state.activeRunReasoningEffort,
-                activeRunRuntimeId: state.activeRunRuntimeId,
-                agentId: input.agentId,
-                serverId: input.serverId,
-            });
-            const taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
-            await store.clearActiveRun(tx, input.agentId);
-            return {
-                activity,
-                chatId: state.activeRunChatId,
-                computerId: state.activeRunComputerId,
-                configuration,
-                runId: state.activeRunId,
-                taskEvents,
-            };
-        });
-    }
-}
-
-/**
- * A stopped run leaves its open claims visible for recovery.
- */
-function killedRun(
-    input: { agentId: string; serverId: string },
-    state: { activeRunId: string | null }
-) {
-    return {
-        agentId: input.agentId,
-        runId: state.activeRunId ?? '',
-        serverId: input.serverId,
-    };
 }

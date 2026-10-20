@@ -15,19 +15,44 @@ import type { RecentActivityRow } from './recent-activity-rows.ts';
 export type TurnRowTitle =
     | { readonly kind: 'none' }
     | { readonly kind: 'pending'; readonly place: string | null }
-    | { readonly kind: 'text'; readonly place: string | null; readonly text: string };
+    | {
+          readonly kind: 'text';
+          readonly place: string | null;
+          /** Background check-ins read muted, so they never outweigh real work. */
+          readonly quiet?: boolean;
+          /** A heartbeat that sent a report: its place label reads in the accent tone. */
+          readonly reported?: boolean;
+          readonly text: string;
+      };
 
-/** A message or task trigger quotes its message (`preview`), so a title is never a second read. */
+/**
+ * A message or task trigger quotes its message (`preview`), so a title is never
+ * a second read. `live` is a run still working: a heartbeat then reads
+ * `Checking in`, and once settled `Heartbeat` with its muted `Checked in`.
+ */
 export function resolveTurnRowTitle(
     trigger: AgentTurnTrigger | null,
-    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>
+    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>,
+    live = false
 ): TurnRowTitle {
     if (!trigger || trigger.kind === 'private') {
         return { kind: 'none' };
     }
-    // The nightly dream is the one turn with no Chat, so it has no place.
+    // The nightly dream, heartbeats and their reports have no Chat, so no place.
     if (trigger.kind === 'dream') {
         return { kind: 'text', place: null, text: 'Dreaming' };
+    }
+    if (trigger.kind === 'heartbeat') {
+        if (live) {
+            return { kind: 'text', place: null, quiet: true, text: 'Checking in' };
+        }
+        // A heartbeat that sent a report is news, so it reads at normal emphasis.
+        return trigger.reported
+            ? { kind: 'text', place: 'Reported', reported: true, text: 'Heartbeat' }
+            : { kind: 'text', place: 'Checked in', quiet: true, text: 'Heartbeat' };
+    }
+    if (trigger.kind === 'heartbeat_report') {
+        return { kind: 'text', place: null, text: 'Heartbeat report' };
     }
     const chat = chats.get(trigger.chatId);
     const place = chat ? chatPlace(chat) : null;
@@ -106,7 +131,13 @@ export function formatTurnOutcome(turn: AgentActivityTurn): string {
     }
     // `outputProduced` is false here (no messages), so a completed turn is the
     // Agent's positive choice to stay quiet, not a lost run.
-    return turn.status === 'completed' ? 'Stayed quiet' : 'Ended before any action';
+    if (turn.status === 'completed') {
+        if (turn.trigger?.kind === 'heartbeat') {
+            return turn.trigger.reported ? 'Reported' : 'Checked in';
+        }
+        return 'Stayed quiet';
+    }
+    return 'Ended before any action';
 }
 
 /** Status only when it is news: a completed turn says nothing. */

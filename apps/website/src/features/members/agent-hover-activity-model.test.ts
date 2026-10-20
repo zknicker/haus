@@ -3,6 +3,7 @@ import type { AgentActivityEvent, AgentCurrentActivity } from '@haus/api';
 import {
     formatElapsedSince,
     formatHoverLiveLine,
+    formatLastNightLine,
     selectHoverLogLines,
 } from './agent-hover-activity-model.ts';
 
@@ -18,6 +19,17 @@ test('the live line names the current step on the turn clock', () => {
         elapsed: null,
         label: 'Running a command',
     });
+});
+
+test('last night reads the summary first line while it is under 36 hours old', () => {
+    const dream = (summary: string | null, finishedAt: string) => ({ finishedAt, summary });
+    const recent = '2026-10-06T08:00:00.000Z';
+    expect(
+        formatLastNightLine([dream('- **Mira** prefers bullet recaps.\nSecond line', recent)], now)
+    ).toBe('Mira prefers bullet recaps.');
+    expect(formatLastNightLine([dream('Old news', '2026-10-04T08:00:00.000Z')], now)).toBeNull();
+    expect(formatLastNightLine([dream(null, recent)], now)).toBeNull();
+    expect(formatLastNightLine([], now)).toBeNull();
 });
 
 test('elapsed time uses the turn-row duration format', () => {

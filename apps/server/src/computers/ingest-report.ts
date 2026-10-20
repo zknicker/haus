@@ -1,8 +1,8 @@
 import {
     agentDeliveryAckSchema,
     agentDreamRecordSchema,
-    agentDreamRequestSchema,
     agentEffectiveStateSchema,
+    agentHeartbeatRequestSchema,
     agentNoticeAckSchema,
     agentSkillFileResultSchema,
     agentSkillImportResultSchema,
@@ -22,7 +22,7 @@ import {
 } from '@haus/api';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { requestAgentDream } from '../agent-delivery/dream-request.ts';
+import { requestAgentHeartbeat } from '../agent-delivery/heartbeat-request.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
@@ -135,9 +135,13 @@ export async function ingestReport(
         return;
     }
 
-    const dreamRequest = agentDreamRequestSchema.safeParse(frame);
-    if (dreamRequest.success) {
-        await requestAgentDream(db, delivery, { computerId, request: dreamRequest.data, serverId });
+    const heartbeatRequest = agentHeartbeatRequestSchema.safeParse(frame);
+    if (heartbeatRequest.success) {
+        await requestAgentHeartbeat(db, delivery, {
+            computerId,
+            request: heartbeatRequest.data,
+            serverId,
+        });
         return;
     }
     const dreamRecord = agentDreamRecordSchema.safeParse(frame);

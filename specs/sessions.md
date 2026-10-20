@@ -12,8 +12,9 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
 - `Chat` is the durable conversation container.
 - `Agent seat` is one agent's stable participation in one chat: membership,
   addressing, authorship. Seats do not own sessions.
-- `AgentSession` is the agent's current global execution context: one active
-  session per agent, backed by opaque engine resume state.
+- `AgentSession` is the agent's current global execution context: one persistent
+  main session per agent, backed by opaque engine resume state. Heartbeats add throwaway
+  sessions that never carry conversation ([ADR 0049](../docs/adr/0049-heartbeats-run-in-throwaway-sessions.md)).
 - `AgentTurn` is one execution inside the session, anchored to the session
   itself (floating, I1) — never to a chat. A turn's output is whatever the
   agent sends through the `haus` CLI; there is no reply delivery.
@@ -30,11 +31,17 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   it gets a distinct continuation carrying the Run's status, summary, and branches. A
   busy Agent receives only the notice at the safe boundary and gets the concrete item on
   the next turn. The item has no Chat cursor or visible Chat receipt.
-- A dream is the one chatless run: a private nightly turn whose whole input is the
-  dreaming instruction ([workspace.md](workspace.md#dreaming)). Its start frame carries
-  `chatId: null` and a `dream` attention instead of inbox items, it publishes no Chat
-  lifecycle event, and its recorded trigger is `{ kind: 'dream' }`. Otherwise it is an ordinary
-  concrete run: busy notices reach it, and failure, Stop, and requeue treat it like any other.
+- Chatless runs are dream, heartbeat, and heartbeat report. A dream is the nightly heartbeat;
+  a heartbeat is a daytime check-in; a heartbeat report is the inbox item a heartbeat files for
+  the main session. None has a Chat. Their start frames carry `chatId: null` and a `dream`,
+  `heartbeat`, or `heartbeatReport` attention instead of inbox items, they publish no Chat
+  lifecycle event, and their recorded triggers are `{ kind: 'dream' }`, `{ kind: 'heartbeat' }`,
+  and `{ kind: 'heartbeat_report' }`. Otherwise each is an ordinary concrete run: busy notices
+  reach it, and failure, Stop, and requeue treat it like any other ([heartbeat.md](heartbeat.md)).
+- A heartbeat (daytime or nightly) runs in its own throwaway harness session, `<agentId>-hb-<runId>`,
+  opened without resume. The main session is never touched by it: no `session.json` write, no
+  interrupt, no compaction or cache reset ([ADR 0049](../docs/adr/0049-heartbeats-run-in-throwaway-sessions.md)).
+  A heartbeat report run resumes the main session.
 - A fresh session with no pending delivery starts with bare `Start.`. After a
   reset, the recovery line precedes either `Start.` or the pending notice/typed
   attention that becomes the first prompt. An Agent created with a standing
