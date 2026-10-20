@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+    nextReminderFireAfterWake,
     nextReminderFireAt,
     parseReminderRepeat,
     parseReminderSnooze,
@@ -57,6 +58,25 @@ describe('reminder cadence', () => {
         expect(nextReminderFireAt(fall!, first, 'America/New_York')).toBe(
             Date.UTC(2026, 10, 2, 6, 30)
         );
+    });
+
+    test('an off-slot calendar wake consumes its nearest slot', () => {
+        const weekly = parseReminderRepeat('weekly:tue@09:00');
+        expect(weekly).not.toBeNull();
+        const tz = 'America/New_York';
+        const slot = Date.parse('2026-10-20T13:00:00.000Z');
+        const early = Date.parse('2026-10-20T12:30:00.000Z');
+        const late = Date.parse('2026-10-20T14:00:00.000Z');
+        expect(nextReminderFireAfterWake(weekly!, slot, slot + 15_000, tz)).toBe(
+            Date.parse('2026-10-27T13:00:00.000Z')
+        );
+        expect(nextReminderFireAfterWake(weekly!, early, early + 15_000, tz)).toBe(
+            Date.parse('2026-10-27T13:00:00.000Z')
+        );
+        expect(nextReminderFireAfterWake(weekly!, late, late + 15_000, tz)).toBe(
+            Date.parse('2026-10-27T13:00:00.000Z')
+        );
+        expect(nextReminderFireAt(weekly!, early + 15_000, tz)).toBe(slot);
     });
 
     // Production: weekly:mon@15:57 was meant as 3:57 PM Eastern. The first fire

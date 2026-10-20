@@ -53,7 +53,6 @@
     "apps/server/src/computers/service.ts": 403,
     "apps/server/src/development/seed-server.ts": 458,
     "apps/server/src/haus-server-activation.ts": 310,
-    "apps/server/src/reminders/scheduler.ts": 337,
     "apps/server/src/server-mcp/icons.test.ts": 315,
     "apps/server/test/agent-delivery.test.ts": 2725,
     "apps/server/test/haus-agent-run.test.ts": 2775,
