@@ -1,3 +1,4 @@
+import { unwrapShell } from '../../harness/haus-cli-command.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import type { CodexItem } from './protocol.ts';
 
@@ -158,7 +159,22 @@ function commandStarted(item: CodexItem, id: string): TurnEvent[] {
             { ...shell(id), input: {}, invalid: true, type: 'tool-call' },
         ];
     }
-    return [{ ...shell(id), input: { command: item.command, cwd: item.cwd }, type: 'tool-call' }];
+    return [
+        {
+            ...shell(id),
+            input: { command: modelCommand(item.command), cwd: item.cwd },
+            type: 'tool-call',
+        },
+    ];
+}
+
+/**
+ * The command the model wrote. App-server reports the shell-joined argv Codex ran
+ * (`/bin/zsh -lc "haus … --target \"#x\" …"`); codex-acp reported the script inside it, and
+ * journals, Activity, and `--done` evidence read that script.
+ */
+function modelCommand(command: unknown): unknown {
+    return typeof command === 'string' ? unwrapShell(command) : command;
 }
 
 function fileChanges(item: CodexItem, context: ToolItemContext) {

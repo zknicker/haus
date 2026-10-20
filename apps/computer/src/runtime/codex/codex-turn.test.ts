@@ -96,6 +96,32 @@ describe('Codex turn events', () => {
         });
     });
 
+    test('a shell call reports the script the model wrote, not the shell-joined argv', async () => {
+        const { fake, turn } = await running();
+        // Verbatim from a live gpt-5.6-terra turn: a heredoc's quotes make Codex join with "…".
+        const wrapped =
+            '/bin/zsh -lc "haus message send --target \\"#eval-q6mjgp\\" --reply-to \\"twvWArcS\\" --done <<\'HAUSMSG\'\n43447.\nHAUSMSG"';
+        const single = "/bin/zsh -lc 'echo hello-haus && ls'";
+        for (const [id, command] of [
+            ['cmd-1', wrapped],
+            ['cmd-2', single],
+        ] as const) {
+            emitTurn(fake, turn.turnId, 'item/started', {
+                item: { command, commandActions: [], cwd: '/w', id, type: 'commandExecution' },
+            });
+        }
+        turnCompleted(fake, turn.turnId);
+        const calls = (await turn.finished).filter((event) => event.type === 'tool-call');
+        expect(calls.map((event) => event.input)).toEqual([
+            {
+                command:
+                    'haus message send --target "#eval-q6mjgp" --reply-to "twvWArcS" --done <<\'HAUSMSG\'\n43447.\nHAUSMSG',
+                cwd: '/w',
+            },
+            { command: 'echo hello-haus && ls', cwd: '/w' },
+        ]);
+    });
+
     test('completed tool items yield matching tool results', async () => {
         const { fake, turn } = await running();
         const item = (method: string, value: object) =>
