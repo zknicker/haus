@@ -12,23 +12,68 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-BUN_VERSION="1.4.2"
-
-echo "==> Ensuring Bun ${BUN_VERSION} is installed"
-if ! command -v bun >/dev/null 2>&1 || [ "$(bun --version 2>/dev/null || true)" != "${BUN_VERSION}" ]; then
-    curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}"
+BUN_VERSION="$(sed -n 's/.*"packageManager": *"bun@\([^"]*\)".*/\1/p' package.json)"
+if [ -z "$BUN_VERSION" ]; then
+    echo "package.json does not pin packageManager bun@<version>." >&2
+    exit 1
 fi
+
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+    SUDO="sudo -n"
+fi
+
 export BUN_INSTALL="${BUN_INSTALL:-${HOME}/.bun}"
 export PATH="${BUN_INSTALL}/bin:${PATH}"
-sudo ln -sf "${BUN_INSTALL}/bin/bun" /usr/local/bin/bun
-sudo ln -sf "${BUN_INSTALL}/bin/bunx" /usr/local/bin/bunx
+
+ensure_bun() {
+    local installed
+    installed="$("${BUN_INSTALL}/bin/bun" --version 2>/dev/null || true)"
+    if [ "$installed" = "${BUN_VERSION}" ]; then
+        echo "==> Bun ${BUN_VERSION} already present"
+    else
+        echo "==> Installing Bun ${BUN_VERSION} (found: ${installed:-none})"
+        install_bun_release
+    fi
+    if [ -x "${BUN_INSTALL}/bin/bun" ] && { [ -z "$SUDO" ] || $SUDO true 2>/dev/null; }; then
+        $SUDO ln -sf "${BUN_INSTALL}/bin/bun" /usr/local/bin/bun
+        $SUDO ln -sf "${BUN_INSTALL}/bin/bunx" /usr/local/bin/bunx
+    fi
+    installed="$("${BUN_INSTALL}/bin/bun" --version 2>/dev/null || true)"
+    if [ "$installed" != "${BUN_VERSION}" ]; then
+        echo "bun --version is ${installed:-missing}, expected ${BUN_VERSION}." >&2
+        exit 1
+    fi
+}
+
+install_bun_release() {
+    local arch tmp
+    case "$(uname -m)" in
+        x86_64 | amd64) arch="x64" ;;
+        aarch64 | arm64) arch="aarch64" ;;
+        *)
+            echo "unsupported architecture $(uname -m)." >&2
+            exit 1
+            ;;
+    esac
+    tmp="$(mktemp -d)"
+    curl -fsSL --retry 3 -o "$tmp/bun.zip" \
+        "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-${arch}.zip"
+    unzip -q -o -j "$tmp/bun.zip" -d "$tmp"
+    mkdir -p "${BUN_INSTALL}/bin"
+    install -m 755 "$tmp/bun" "${BUN_INSTALL}/bin/bun"
+    ln -sf bun "${BUN_INSTALL}/bin/bunx"
+    rm -rf "$tmp"
+}
+
+ensure_bun
 
 echo "==> Ensuring PostgreSQL 16 is installed (required by the dev stack)"
 if [ ! -x /usr/lib/postgresql/16/bin/postgres ]; then
     # Retry apt to tolerate transient mirror/CDN errors (e.g. sporadic 400s).
     for attempt in 1 2 3; do
-        sudo DEBIAN_FRONTEND=noninteractive apt-get update || true
-        if sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        $SUDO env DEBIAN_FRONTEND=noninteractive apt-get update || true
+        if $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y \
             -o Acquire::Retries=5 --fix-missing \
             postgresql-16 postgresql-client-16; then
             break
@@ -50,7 +95,7 @@ fi
 echo "==> Exposing PostgreSQL 16 binaries on PATH"
 for pg_bin in postgres initdb pg_ctl pg_isready psql createdb; do
     if [ -x "/usr/lib/postgresql/16/bin/${pg_bin}" ]; then
-        sudo ln -sf "/usr/lib/postgresql/16/bin/${pg_bin}" "/usr/local/bin/${pg_bin}"
+        $SUDO ln -sf "/usr/lib/postgresql/16/bin/${pg_bin}" "/usr/local/bin/${pg_bin}"
     fi
 done
 
@@ -62,7 +107,7 @@ if ! versitygw --version 2>/dev/null | grep -q "${VERSITYGW_VERSION}"; then
     VERSITYGW_DEB="$(mktemp --suffix=.deb)"
     curl -fsSL -o "${VERSITYGW_DEB}" \
         "https://github.com/versity/versitygw/releases/download/v${VERSITYGW_VERSION}/versitygw_${VERSITYGW_VERSION}_linux_$(dpkg --print-architecture).deb"
-    sudo dpkg -i "${VERSITYGW_DEB}"
+    $SUDO dpkg -i "${VERSITYGW_DEB}"
     rm "${VERSITYGW_DEB}"
 fi
 
@@ -78,10 +123,6 @@ bun run setup:worktree
 # Agent turns need a runtime CLI on the host; the dev seed runs on Codex. Pinned
 # with the Codex bridge in apps/computer/assets/harness-bridges/codex. Its login
 # happens per session in start.sh so no snapshot bakes in a credential.
-SUDO=""
-if [ "$(id -u)" -ne 0 ]; then
-    SUDO=sudo
-fi
 # A user-level Node (Cursor's nvm) owns its global prefix and is not on sudo's
 # PATH, so only escalate when the prefix is not writable.
 npm_install_global() {
