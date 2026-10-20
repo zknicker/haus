@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { parseStartCommand } from './agent-command-frames.ts';
+import { turnDeliveryOf } from './harness/turn-prompt.ts';
 
 const frame = {
     agentId: 'agt_chipstest',
@@ -15,10 +16,9 @@ const frame = {
     type: 'start',
 };
 
-test('a start frame carries the Server connection chips into the command', () => {
-    expect(
-        parseStartCommand({ ...frame, connectionChips: ['amazon-product'] })?.connectionChips
-    ).toEqual(['amazon-product']);
+test('a start frame carries the Server connection chips into the turn', () => {
+    const command = parseStartCommand({ ...frame, connectionChips: ['amazon-product'] });
+    expect(command && turnDeliveryOf(command).connectionChips).toEqual(['amazon-product']);
     expect(parseStartCommand(frame)?.connectionChips).toEqual([]);
 });
 

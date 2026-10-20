@@ -7,7 +7,7 @@ import type {
     HarnessAgentSession,
 } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { type AgentReasoningEffort, type ConnectionChipKind, hausAgentVersion } from '@haus/api';
+import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Effect } from 'effect';
@@ -66,7 +66,6 @@ export interface HarnessTurnInput extends TurnDelivery {
     activity: AgentActivityRun;
     agentName: string;
     agentRoot: string;
-    connectionChips?: readonly ConnectionChipKind[];
     conversationStyle?: string | null;
     env: Record<string, string>;
     factoryKind: 'cove' | 'ordinary';
