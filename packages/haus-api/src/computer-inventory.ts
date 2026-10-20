@@ -134,16 +134,20 @@ export const computerInventorySchema = z
         importableSkills: z.array(importableSkillSchema).max(1000).optional(),
         name: z.string().trim().min(1).max(100).optional(),
         runtimeIssues: z
-            .array(
+            .preprocess(
+                dropRetiredPiIssues,
                 z
-                    .object({
-                        runtimeId: z.enum(['codex', 'claude-code', 'grok-build']),
-                        kind: z.literal('authentication'),
-                        observedAt: timestampSchema,
-                    })
-                    .strict()
+                    .array(
+                        z
+                            .object({
+                                runtimeId: z.enum(['codex', 'claude-code', 'grok-build']),
+                                kind: z.literal('authentication'),
+                                observedAt: timestampSchema,
+                            })
+                            .strict()
+                    )
+                    .max(4)
             )
-            .max(4)
             .optional(),
         runtimes: z.array(computerRuntimeSchema).max(50),
         /** The Computer's 1Password vault connection (Computer Secrets), names only. */
@@ -152,3 +156,18 @@ export const computerInventorySchema = z
     .strict();
 
 export type ComputerInventory = z.infer<typeof computerInventorySchema>;
+
+/**
+ * A Computer that predates the Pi retirement may still report a Pi sign-in issue; drop it so the
+ * rest of its inventory is accepted. Remove once every attached Computer runs a release without
+ * Pi (Computer upgrades past the runtime-driver release).
+ */
+function dropRetiredPiIssues(value: unknown): unknown {
+    return Array.isArray(value)
+        ? value.filter((issue) => !(isRecord(issue) && issue.runtimeId === 'pi'))
+        : value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
