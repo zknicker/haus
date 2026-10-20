@@ -12,7 +12,8 @@ When you need product facts for analysis, use execute to search for RankWrangler
         id: 'amazon-product-references',
         kind: 'overview',
         related: ['haus-cli-overview'],
-        summary: 'Amazon ASINs and links become product chips while this Server has RankWrangler connected.',
+        summary:
+            'Amazon ASINs and links become product chips while this Server has RankWrangler connected.',
         title: 'Amazon product references',
     },
     {
