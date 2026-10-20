@@ -1,9 +1,10 @@
-import type { HarnessAgentResumeSessionState, HarnessAgentSession } from '@ai-sdk/harness/agent';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
+import type { RuntimeSession } from '../runtime/driver.ts';
+import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import { readAgentSessionState, writeAgentSessionState } from './session-store.ts';
 
-type Session = Pick<HarnessAgentSession, 'detach' | 'stop'>;
-type Resume = (state: HarnessAgentResumeSessionState, signal?: AbortSignal) => Promise<Session>;
+type Session = Pick<RuntimeSession, 'detach' | 'stop'>;
+type Resume = (state: RuntimeResumeState, signal?: AbortSignal) => Promise<Session>;
 const owners = new WeakMap<DaemonRuntime, HarnessSessionOwner>();
 
 export function harnessSessionOwner(runtime: DaemonRuntime): HarnessSessionOwner {
@@ -70,15 +71,15 @@ export class HarnessSessionOwner {
 export class HarnessSessionLease {
     private live: Session | null = null;
     private resume: Resume | null = null;
-    private transition: Promise<HarnessAgentResumeSessionState> | null = null;
-    private parked: HarnessAgentResumeSessionState | null = null;
+    private transition: Promise<RuntimeResumeState> | null = null;
+    private parked: RuntimeResumeState | null = null;
     private readonly settled = Promise.withResolvers<void>();
     private stopped = false;
     stopping = false;
 
     constructor(private readonly agentRoot: string) {}
 
-    prepare(resumeState: HarnessAgentResumeSessionState | undefined, resume: Resume): void {
+    prepare(resumeState: RuntimeResumeState | undefined, resume: Resume): void {
         this.parked = resumeState ?? null;
         this.resume = resume;
     }
@@ -88,7 +89,7 @@ export class HarnessSessionLease {
         this.resume = resume;
     }
 
-    async checkpoint(): Promise<HarnessAgentResumeSessionState> {
+    async checkpoint(): Promise<RuntimeResumeState> {
         if (!this.live) {
             throw new Error('No Harness session is attached.');
         }

@@ -10,14 +10,14 @@ import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
+import * as aiSdk from '../runtime/ai-sdk-adapter.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
 import {
     HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
-    setHarnessAgentFactoryForTesting,
-    setHarnessBootstrapRefreshForTesting,
+    setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
 import { legacyCoveFaq, legacyCovePlaybook } from './executor-fixtures.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
@@ -70,11 +70,8 @@ beforeEach(async () => {
     streamToolNames = [];
     streamedCoveFaqs = [];
     streamedCovePlaybooks = [];
-    restore = setHarnessAgentFactoryForTesting((input, options) => {
-        agentInstructions.push(options.instructions);
-        return fakeAgent(input);
-    });
-    restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => {
+    restore = setRuntimeDriverFactoryForTesting(aiSdk.aiSdkDriverFactory(fakeAgent));
+    restoreBootstrapRefresh = aiSdk.setHarnessBootstrapRefreshForTesting(async () => {
         refreshedBootstraps += 1;
     });
 });
@@ -85,7 +82,8 @@ afterEach(async () => {
     await rm(agentRoot, { force: true, recursive: true });
 });
 
-function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' | 'stream'> {
+const fakeAgent: aiSdk.HarnessAgentFactory = (input, options) => {
+    agentInstructions.push(options.instructions);
     return {
         createSession: (async (options: { resumeFrom?: unknown; sessionId: string }) => {
             createSessionCalls.push({
@@ -177,7 +175,7 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
             };
         }) as unknown as HarnessAgent['stream'],
     };
-}
+};
 
 async function readOptionalText(path: string): Promise<string | null> {
     return await readFile(path, 'utf8').catch((error: unknown) => {
@@ -256,7 +254,7 @@ function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
         unreadElsewhere: [],
         warmDrainItemIds: [],
         ...inputOverrides,
-        tools: overrides.tools ?? {},
+        tools: overrides.tools ?? [],
     };
     // A concrete frame drains everything it carries; the Server sets the same
     // ids on the wire, so the default keeps these turns behaving as they did.
@@ -1118,7 +1116,7 @@ test('a failed bootstrap refresh stays stale without rejecting the native sessio
         `${JSON.stringify({ ...staleSession, bootstrapFingerprint: 'stale' })}\n`
     );
     restoreBootstrapRefresh();
-    restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => {
+    restoreBootstrapRefresh = aiSdk.setHarnessBootstrapRefreshForTesting(async () => {
         throw new Error('bootstrap rejected');
     });
     const activity: Array<{ category: string; phase: string }> = [];

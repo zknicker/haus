@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import type { TurnEvent } from '../runtime/turn-event.ts';
 import { createComputerActivityProjector } from './activity-projector.ts';
 import { createComputerActivityRegistry } from './activity-registry.ts';
 import {
@@ -14,40 +15,42 @@ import {
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
-// The parts a live Codex turn streamed for one apply_patch that created recheck.txt:
-// codex-acp's edit call, then the harness's synthetic file change tagged with it.
-const patchCall = {
+// The events a live Codex turn streamed for one apply_patch that created recheck.txt:
+// codex-acp's edit call, then the synthetic file change tagged with it.
+const patchCall: TurnEvent = {
     input: '{}',
     providerExecuted: true,
     toolCallId: 'call_patch',
     toolName: 'apply_patch',
     type: 'tool-call',
 };
-const patchResult = {
+const patchResult: TurnEvent = {
     output: {},
     providerExecuted: true,
     toolCallId: 'call_patch',
     toolName: 'apply_patch',
     type: 'tool-result',
 };
-function fileChange(id: string, path: string, event: string, sourceId?: string) {
+function fileChange(id: string, path: string, event: string, sourceId?: string): TurnEvent[] {
     const payload = { event, path };
-    const metadata = sourceId ? { providerMetadata: { acp: { toolCallId: sourceId } } } : {};
     const shared = {
         dynamic: true,
-        input: payload,
         providerExecuted: true,
         toolCallId: id,
         toolName: 'fileChange',
-        ...metadata,
     };
     return [
-        { ...shared, type: 'tool-call' },
+        {
+            ...shared,
+            input: payload,
+            type: 'tool-call',
+            ...(sourceId ? { sourceToolCallId: sourceId } : {}),
+        },
         { ...shared, output: payload, type: 'tool-result' },
     ];
 }
 
-async function project(parts: unknown[]) {
+async function project(parts: TurnEvent[]) {
     const rootDir = await mkdtemp(join(tmpdir(), 'haus-file-change-fold-'));
     const events: string[] = [];
     const journal = await createComputerExecutionJournal({ agentRoot: rootDir, runId: 'run_fold' });

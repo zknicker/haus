@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
-import type { HarnessAgentFactory } from './harness/executor.ts';
 import { type AgentStartCommand, runAgentLaunch } from './launch.ts';
+import { aiSdkDriverFactory, type HarnessAgentFactory } from './runtime/ai-sdk-adapter.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
 
 // The exact failure Codex settled Blippy's turn with, typed by codex-acp beside `end_turn`.
@@ -114,7 +114,7 @@ function launch(runId: string, parts: unknown[]) {
         },
         command,
         dataRoot,
-        harnessAgentFactory,
+        runtimeDriverFactory: aiSdkDriverFactory(harnessAgentFactory),
         runtime,
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${server.port}`,

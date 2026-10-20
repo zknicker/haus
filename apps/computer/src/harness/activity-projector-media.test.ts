@@ -20,6 +20,7 @@ test('a native image tool stays live using_tool activity but counts as a generat
     });
 
     await projector.observe({
+        input: undefined,
         providerExecuted: true,
         toolCallId: 'call_image',
         toolName: 'image_gen',
@@ -51,6 +52,7 @@ test('a native video tool counts as a generated video, not an image', async () =
     });
 
     await projector.observe({
+        input: undefined,
         providerExecuted: true,
         toolCallId: 'call_video',
         toolName: 'image_to_video',

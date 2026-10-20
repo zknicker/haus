@@ -33,11 +33,9 @@ export class RuntimeSessionFailureError extends Error {
  * rejected credential. Codex retries a 401 five times per transport (~30s) before
  * giving up, and no retry can repair a credential. Other warnings stay transient.
  */
-export function fatalRuntimeSessionFailure(rawValue: unknown): RuntimeSessionFailureError | null {
-    const failure = readRuntimeSessionFailure(rawValue);
-    if (!failure) {
-        return null;
-    }
+export function fatalRuntimeSessionFailure(
+    failure: RuntimeSessionFailure
+): RuntimeSessionFailureError | null {
     // Only a retry's category carries the HTTP status; its title is just "Reconnecting... n/5".
     return failure.severity === 'error' || failure.category === 'access'
         ? new RuntimeSessionFailureError(failure)

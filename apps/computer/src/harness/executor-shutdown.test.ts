@@ -7,6 +7,7 @@ import { HarnessAgent, type HarnessAgentResumeSessionState } from '@ai-sdk/harne
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { AttachmentDaemonWork } from '../attachment-daemon-work.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { aiSdkDriverFactory } from '../runtime/ai-sdk-adapter.ts';
 import { type HarnessTurnInput, runHarnessTurn } from './executor.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { readAgentSessionState } from './session-store.ts';
@@ -38,7 +39,7 @@ for (const active of [true, false]) {
             const stored = await readAgentSessionState(root);
             expect(stored?.generation).toBe(1);
             expect(stored?.runtimeSessionId).toBe('agt_test-1');
-            expect(stored?.resumeState?.data).toEqual({ conversation: 'same' });
+            expect(stored?.resumeState).toMatchObject({ data: { conversation: 'same' } });
             expect(stored?.resumeState).not.toHaveProperty('continueFrom');
             const nextRuntime = makeDaemonRuntime();
             const nextAgent = new HarnessAgent({
@@ -173,13 +174,15 @@ function turnInput(
         skillsDir: join(root, 'skills'),
         totalPending: 0,
         workspaceDir: join(root, 'workspace'),
-        tools: {},
-        harnessAgentFactory: (input) =>
-            new HarnessAgent({
-                harness,
-                id: input.agentId,
-                sandbox: createLocalTrustedSandboxProvider({ rootDir: root, runtime }),
-            }),
+        tools: [],
+        runtimeDriverFactory: aiSdkDriverFactory(
+            (input) =>
+                new HarnessAgent({
+                    harness,
+                    id: input.agentId,
+                    sandbox: createLocalTrustedSandboxProvider({ rootDir: root, runtime }),
+                })
+        ),
     };
 }
 
@@ -228,7 +231,7 @@ test('shutdown during resume creation is interrupted without invalidating the st
         const after = await readAgentSessionState(root);
         expect(after?.generation).toBe(before?.generation);
         expect(after?.runtimeSessionId).toBe(before?.runtimeSessionId);
-        expect(after?.resumeState?.data).toEqual({ conversation: 'same' });
+        expect(after?.resumeState).toMatchObject({ data: { conversation: 'same' } });
         expect(events).toEqual(['detach', 'stop']);
     } finally {
         await runtime.dispose();

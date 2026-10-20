@@ -19,9 +19,9 @@ import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
 import { openDreamRecording } from './harness/dream-record.ts';
 import {
-    type HarnessAgentFactory,
     type NoticeSinkRegistrar,
     runHarnessTurn,
+    type TurnDriverFactory,
 } from './harness/executor.ts';
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import type { AgentThoughtNarrator } from './harness/thought-narrator.ts';
@@ -72,8 +72,6 @@ export interface RunAgentLaunchOptions {
     cloudAgents?: CloudAgentWorkSupervisor;
     command: AgentStartCommand;
     dataRoot: string;
-    /** Per-launch construction seam for deterministic Harness boundary tests. */
-    harnessAgentFactory?: HarnessAgentFactory;
     /** Commits the Server ack immediately before the runtime accepts the prompt. */
     onRuntimeReady?(): Promise<void>;
     /** Reports a persisted busy notice that was injected after sink registration. */
@@ -81,6 +79,8 @@ export interface RunAgentLaunchOptions {
     /** Registers the live harness input used for content-free busy notices. */
     registerNoticeSink?: NoticeSinkRegistrar;
     runtime: DaemonRuntime;
+    /** Per-launch construction seam for deterministic runtime boundary tests. */
+    runtimeDriverFactory?: TurnDriverFactory;
     /** Pushes the compact turn summary up the attachment socket. */
     sendFrame(frame: unknown): void;
     serverOrigin: string;
@@ -131,10 +131,10 @@ async function runLedgeredLaunch(
         )
     );
     const runtimeExecutable = resolveRuntimeById(command.runtimeId);
-    if (command.runtimeId !== 'fake' && !runtimeExecutable && !options.harnessAgentFactory) {
+    if (command.runtimeId !== 'fake' && !runtimeExecutable && !options.runtimeDriverFactory) {
         return reportTurn(options, runtimeNotInstalledReport(command.runtimeId, startedAt));
     }
-    if (command.runtimeId === 'fake' || options.harnessAgentFactory) {
+    if (command.runtimeId === 'fake' || options.runtimeDriverFactory) {
         await mkdir(dirs.workspace, { mode: 0o700, recursive: true });
     } else {
         await ensureAgentWorkspace({ agentRoot, dataRoot: options.dataRoot });
@@ -220,7 +220,7 @@ async function runLedgeredLaunch(
                       command,
                       dataRoot: options.dataRoot,
                       dirs,
-                      harnessAgentFactory: options.harnessAgentFactory,
+                      runtimeDriverFactory: options.runtimeDriverFactory,
                       onStoredNoticeDelivered: options.onStoredNoticeDelivered,
                       activity,
                       registerNoticeSink: options.registerNoticeSink,
@@ -309,9 +309,9 @@ async function runRealRuntime(
     input: RuntimeExecutionInput & {
         agentRoot: string;
         attestVisible: ReturnType<typeof visibilityReceipt>;
-        harnessAgentFactory?: HarnessAgentFactory;
+        runtimeDriverFactory?: TurnDriverFactory;
         thoughts?: AgentThoughtNarrator;
-        tools: import('@ai-sdk/provider-utils').ToolSet;
+        tools: ReturnType<typeof createComputerTools>;
     }
 ): Promise<RuntimeTurnOutcome> {
     const { command } = input;
@@ -331,7 +331,7 @@ async function runRealRuntime(
             greetsOnFirstTurn: Boolean(seed?.brief && seed.briefAuthorHandle),
             homeDir: input.dirs.home,
             homeTimezone: command.homeTimezone ?? 'UTC',
-            harnessAgentFactory: input.harnessAgentFactory,
+            runtimeDriverFactory: input.runtimeDriverFactory,
             initialRole: command.agentDescription ?? null,
             conversationStyle: command.agentConversationStyle ?? null,
             signatureEmoji: command.agentSignatureEmoji ?? null,

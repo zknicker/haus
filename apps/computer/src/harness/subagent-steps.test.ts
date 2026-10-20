@@ -6,6 +6,8 @@ import { agentExecutionJournalSchema } from '@haus/api';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { claudeSubagentEvents } from '../runtime/claude-subagent-events.ts';
+import type { TurnEvent } from '../runtime/turn-event.ts';
 import { createComputerActivityProjector } from './activity-projector.ts';
 import { createComputerActivityRegistry } from './activity-registry.ts';
 import { createComputerExecutionJournal } from './execution-journal.ts';
@@ -18,20 +20,24 @@ afterEach(async () => {
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
 });
 
-// Trimmed from a live Claude Code 1.0.143 capture: the harness streams the
-// parent `Agent` call as parts and everything about its sub-agent as raw messages.
+// Trimmed from a live Claude Code 1.0.143 capture: the parent `Agent` call
+// arrives as tool events and everything about its sub-agent as Claude stream
+// messages, which the driver normalizes into `subagent-*` events. Each entry is
+// the events one runtime message became.
 const parent = 'toolu_01SHKppRQNKB4vvqqaiv26WK';
 const task = 'a25887734782ba2ef';
-const raw = (rawValue: Record<string, unknown>) => ({ rawValue, type: 'raw' });
-const completedRun = [
-    {
-        input: '{"description":"Count lines a","subagent_type":"general-purpose","prompt":"Run: wc -l a.txt"}',
-        nativeName: 'Agent',
-        providerExecuted: true,
-        toolCallId: parent,
-        toolName: 'Agent',
-        type: 'tool-call',
-    },
+const raw = (message: Record<string, unknown>): TurnEvent[] => claudeSubagentEvents(message);
+const completedRun: TurnEvent[][] = [
+    [
+        {
+            input: '{"description":"Count lines a","subagent_type":"general-purpose","prompt":"Run: wc -l a.txt"}',
+            nativeName: 'Agent',
+            providerExecuted: true,
+            toolCallId: parent,
+            toolName: 'Agent',
+            type: 'tool-call',
+        },
+    ],
     raw({
         description: 'Count lines a',
         is_backgrounded: false,
@@ -106,20 +112,31 @@ const completedRun = [
         type: 'system',
         usage: { duration_ms: 8390, tool_uses: 3, total_tokens: 24_660 },
     }),
-    {
-        output: {
-            agentType: 'general-purpose',
-            content: [{ text: 'a.txt contains 3 lines.', type: 'text' }],
-            status: 'completed',
-            totalDurationMs: 8390,
-            totalTokens: 24_660,
-            totalToolUseCount: 3,
+    [
+        {
+            output: {
+                agentType: 'general-purpose',
+                content: [{ text: 'a.txt contains 3 lines.', type: 'text' }],
+                status: 'completed',
+                totalDurationMs: 8390,
+                totalTokens: 24_660,
+                totalToolUseCount: 3,
+            },
+            toolCallId: parent,
+            toolName: 'Agent',
+            type: 'tool-result',
         },
-        toolCallId: parent,
-        toolName: 'Agent',
-        type: 'tool-result',
-    },
+    ],
 ];
+
+async function observeAll(
+    projector: ReturnType<typeof createComputerActivityProjector>,
+    messages: TurnEvent[][]
+) {
+    for (const event of messages.flat()) {
+        await projector.observe(event);
+    }
+}
 
 async function setup(runId: string) {
     const root = await mkdtemp(join(tmpdir(), 'haus-subagent-'));
@@ -140,9 +157,7 @@ async function setup(runId: string) {
 
 test('a sub-agent is one paired delegating operation with its calls nested in the journal', async () => {
     const { actions, activity, events, journal, projector } = await setup('run_delegate');
-    for (const part of completedRun) {
-        await projector.observe(part);
-    }
+    await observeAll(projector, completedRun);
     await projector.finish('completed');
     await journal.finish('completed');
 
@@ -186,9 +201,7 @@ test('a sub-agent is one paired delegating operation with its calls nested in th
 test('an interrupted turn settles a running sub-agent and its delegating operation', async () => {
     const { events, journal, projector } = await setup('run_interrupt');
     // Stop before the sub-agent's update, notification, and result.
-    for (const part of completedRun.slice(0, 6)) {
-        await projector.observe(part);
-    }
+    await observeAll(projector, completedRun.slice(0, 6));
     await projector.finish('interrupted');
     await journal.finish('interrupted');
 
@@ -205,10 +218,8 @@ test('an interrupted turn settles a running sub-agent and its delegating operati
 
 test('a revived task runs again and a stray child call never opens activity', async () => {
     const { events, journal, projector } = await setup('run_revive');
-    for (const part of completedRun.slice(0, 9)) {
-        await projector.observe(part);
-    }
-    await projector.observe(completedRun[1]);
+    await observeAll(projector, completedRun.slice(0, 9));
+    await observeAll(projector, completedRun.slice(1, 2));
     expect(journal.snapshot().tools[0]?.subagent).toMatchObject({ status: 'running' });
     expect(journal.snapshot().tools[0]?.subagent?.endedAt).toBeUndefined();
     // Were the harness ever to translate a sub-agent's call, it stays journal-only.

@@ -7,6 +7,7 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { makeLifecycleLoggerLayer } from '@haus/effect';
 import { ManagedRuntime } from 'effect';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { wrapHarnessSession } from '../runtime/ai-sdk-adapter.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { createNoticeDelivery, steerInboxNotice } from './steer-inbox-notice.ts';
 
@@ -21,7 +22,9 @@ afterEach(async () => {
 test('real SDK reports unsupported steering instead of claiming an inbox notice was delivered', async () => {
     const fixture = await createTurn();
     try {
-        expect(await steerInboxNotice(fixture.session, 'new inbox message', runtime)).toBe(false);
+        expect(await steerInboxNotice(fixture.runtimeSession, 'new inbox message', runtime)).toBe(
+            false
+        );
     } finally {
         await fixture.close();
     }
@@ -36,12 +39,14 @@ test('real SDK waits for runtime acknowledgment before reporting delivery', asyn
     });
     try {
         let settled = false;
-        const delivery = steerInboxNotice(fixture.session, 'new inbox message', runtime).then(
-            (value) => {
-                settled = true;
-                return value;
-            }
-        );
+        const delivery = steerInboxNotice(
+            fixture.runtimeSession,
+            'new inbox message',
+            runtime
+        ).then((value) => {
+            settled = true;
+            return value;
+        });
         expect(await submitted.promise).toBe('new inbox message');
         expect(settled).toBe(false);
         accepted.resolve();
@@ -56,7 +61,9 @@ test('runtime delivery failures defer the notice without failing the primary tur
     const failure = new Error('bridge disconnected');
     const fixture = await createTurn(() => Promise.reject(failure));
     try {
-        expect(await steerInboxNotice(fixture.session, 'new inbox message', runtime)).toBe(false);
+        expect(await steerInboxNotice(fixture.runtimeSession, 'new inbox message', runtime)).toBe(
+            false
+        );
     } finally {
         await fixture.close();
     }
@@ -67,7 +74,9 @@ test('a notice attempted after SDK completion stays pending without changing the
     try {
         expect(await fixture.finish()).toBe('stop');
         expect(fixture.session.hasUnfinishedTurn()).toBe(false);
-        expect(await steerInboxNotice(fixture.session, 'late inbox message', runtime)).toBe(false);
+        expect(await steerInboxNotice(fixture.runtimeSession, 'late inbox message', runtime)).toBe(
+            false
+        );
     } finally {
         await fixture.close();
     }
@@ -95,7 +104,7 @@ test('an injected notice logs its runtime, run, and wait since it was stored', a
         await writeFile(noticePath, `${JSON.stringify({ notice: 'new inbox message' })}\n`);
         const storedAt = new Date(Date.now() - 1500);
         await utimes(noticePath, storedAt, storedAt);
-        const deliver = createNoticeDelivery(fixture.session, {
+        const deliver = createNoticeDelivery(fixture.runtimeSession, {
             agentId: 'agt_notice',
             agentRoot,
             runId: 'run_notice',
@@ -191,6 +200,7 @@ async function createTurn(submitUserMessage?: (text: string) => Promise<void>) {
     await started.promise;
     return {
         session,
+        runtimeSession: wrapHarnessSession(agent, session),
         finish: async () => {
             finished.resolve();
             await consumption;

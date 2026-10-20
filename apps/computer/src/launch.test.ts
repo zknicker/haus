@@ -10,8 +10,8 @@ import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { resetAgentState } from './agent-reset.ts';
 import { applyCoveConfiguration } from './cove-configuration.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
-import type { HarnessAgentFactory } from './harness/executor.ts';
 import { type AgentStartCommand, type Attachment, runAgentLaunch } from './launch.ts';
+import { aiSdkDriverFactory, type HarnessAgentFactory } from './runtime/ai-sdk-adapter.ts';
 
 type FakeServer = ReturnType<typeof Bun.serve>;
 
@@ -346,7 +346,7 @@ test('the launch injects Server MCP and Computer Browser tools into the real Har
         attachment,
         command: base,
         dataRoot,
-        harnessAgentFactory,
+        runtimeDriverFactory: aiSdkDriverFactory(harnessAgentFactory),
         runtime,
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${state.server.port}`,

@@ -2,9 +2,10 @@ import { expect, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentResumeSessionState } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { wrapHarnessSession } from '../runtime/ai-sdk-adapter.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { stopSandboxProcesses } from './sandbox-process-owner.ts';
 import { harnessSessionOwner } from './session-lifecycle.ts';
@@ -46,12 +47,15 @@ liveTest(
                 sessionId: 'shutdown-live-test',
                 abortSignal: AbortSignal.timeout(60_000),
             });
-            lease.attach(session, (resumeFrom) =>
-                agent.createSession({
-                    sessionId: session.sessionId,
-                    resumeFrom,
-                    abortSignal: AbortSignal.timeout(15_000),
-                })
+            lease.attach(wrapHarnessSession(agent, session), async (resumeFrom) =>
+                wrapHarnessSession(
+                    agent,
+                    await agent.createSession({
+                        sessionId: session.sessionId,
+                        resumeFrom: resumeFrom as HarnessAgentResumeSessionState,
+                        abortSignal: AbortSignal.timeout(15_000),
+                    })
+                )
             );
             await agent.generate({
                 session,

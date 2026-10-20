@@ -7,8 +7,8 @@ import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { type DaemonRuntime, makeDaemonRuntime } from './daemon-runtime.ts';
-import type { HarnessAgentFactory } from './harness/executor.ts';
 import { type AgentStartCommand, runAgentLaunch } from './launch.ts';
+import { aiSdkDriverFactory, type HarnessAgentFactory } from './runtime/ai-sdk-adapter.ts';
 
 type CreateSession = (options: { abortSignal?: AbortSignal; resumeFrom?: unknown }) => void;
 
@@ -225,7 +225,7 @@ function launch(
         },
         command,
         dataRoot,
-        harnessAgentFactory,
+        runtimeDriverFactory: aiSdkDriverFactory(harnessAgentFactory),
         runtime: options.runtime ?? runtime,
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${server.port}`,

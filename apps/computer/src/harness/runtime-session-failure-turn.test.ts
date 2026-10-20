@@ -5,13 +5,16 @@ import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import {
+    aiSdkDriverFactory,
+    setHarnessBootstrapRefreshForTesting,
+} from '../runtime/ai-sdk-adapter.ts';
 import { classifyRuntimeFailure } from '../runtime-failure.ts';
 import {
     HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
-    setHarnessAgentFactoryForTesting,
-    setHarnessBootstrapRefreshForTesting,
+    setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
 
 // The exact error Codex settled Blippy's turn with after ~28s of silent retries.
@@ -53,7 +56,7 @@ beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-session-failure-'));
     attempts = 0;
     destroyedSessions = 0;
-    restore = setHarnessAgentFactoryForTesting(() => fakeAgent());
+    restore = setRuntimeDriverFactoryForTesting(aiSdkDriverFactory(() => fakeAgent()));
     restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => undefined);
 });
 
@@ -257,7 +260,7 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         serverId: 'srv_session_failure_test',
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
-        tools: {},
+        tools: [],
         totalPending: 0,
         unreadElsewhere: [],
         warmDrainItemIds: [],

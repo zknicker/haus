@@ -73,7 +73,6 @@ test('keeps the real failure a `tool-error` reports instead of a synthetic strea
     });
     await projector.observe({
         error: new Error('ENOENT: no such file'),
-        input: { file_path: '/missing.txt' },
         toolCallId: 'call_error',
         toolName: 'read',
         type: 'tool-error',

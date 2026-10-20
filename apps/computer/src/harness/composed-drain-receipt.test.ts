@@ -7,11 +7,11 @@ import { AgentActivityRun } from '../agent-activity-run.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import {
+    aiSdkDriverFactory,
     type HarnessAgentFactory,
-    type HarnessTurnInput,
-    runHarnessTurn,
     setHarnessBootstrapRefreshForTesting,
-} from './executor.ts';
+} from '../runtime/ai-sdk-adapter.ts';
+import { type HarnessTurnInput, runHarnessTurn } from './executor.ts';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
@@ -88,7 +88,7 @@ function turnInput(overrides: Partial<HarnessTurnInput>): HarnessTurnInput {
         drainItemIds: [],
         env: {},
         factoryKind: 'ordinary',
-        harnessAgentFactory: fakeAgent,
+        runtimeDriverFactory: aiSdkDriverFactory(fakeAgent),
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',
         inbox: [],
@@ -102,7 +102,7 @@ function turnInput(overrides: Partial<HarnessTurnInput>): HarnessTurnInput {
         serverId: 'srv_receipt',
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
-        tools: {},
+        tools: [],
         totalPending: 0,
         unreadElsewhere: [],
         warmDrainItemIds: [],

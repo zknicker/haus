@@ -18,14 +18,12 @@ test('browser commands cannot replace the selected connection or close the share
 });
 
 test('the agent browser tool fails closed when no browser belongs to its attachment', async () => {
-    const tool = createBrowserTools({ agentId: 'agent', root: '/no-browser' }).browser;
-    if (!tool?.execute) {
-        throw new Error('Browser tool missing');
-    }
+    const [tool] = createBrowserTools({ agentId: 'agent', root: '/no-browser' });
+    expect(tool?.name).toBe('browser');
     await expect(
-        tool.execute(
+        tool?.execute(
             { args: ['snapshot'] },
-            { toolCallId: 'test', messages: [], context: undefined }
+            { signal: new AbortController().signal, toolCallId: 'test' }
         )
     ).rejects.toThrow('disabled or unavailable');
 });

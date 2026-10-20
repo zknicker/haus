@@ -97,7 +97,7 @@ test('recognizes a context-window overflow as terminal input', () => {
 });
 
 test('a cancelled turn that never winds down fails as a retryable timeout', async () => {
-    const neverSettles = { consumeStream: () => new Promise<void>(() => undefined) };
+    const neverSettles = { settle: () => new Promise<void>(() => undefined) };
 
     const error = await settleStoppedTurn(neverSettles, 'codex', 5).catch((cause) => cause);
 

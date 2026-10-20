@@ -57,10 +57,12 @@ export const CLAUDE_INACTIVE_TOOLS = [
     'PushNotification',
 ] as const;
 
-type AgentConstructionInput = Pick<
+type SandboxInput = Pick<
     HarnessTurnInput,
-    'agentId' | 'env' | 'homeDir' | 'modelId' | 'runtime' | 'runtimeId' | 'tools' | 'workspaceDir'
+    'agentId' | 'env' | 'homeDir' | 'modelId' | 'runtime' | 'runtimeId' | 'workspaceDir'
 >;
+
+type AgentConstructionInput = SandboxInput & { tools: ToolSet };
 
 /**
  * The Agent's skills are deliberately not handed to the harness. Every runtime
@@ -96,7 +98,7 @@ export function inactiveToolSettings(
 }
 
 export function sandboxOptions(
-    input: AgentConstructionInput
+    input: SandboxInput
 ): Parameters<typeof createLocalTrustedSandboxProvider>[0] {
     const rootDir = dirname(input.workspaceDir);
     const profile = authProfileFor(input.runtimeId);

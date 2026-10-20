@@ -5,6 +5,7 @@ import {
     extractThoughtTitle,
     thoughtReasoningExcerpt,
 } from '@haus/api';
+import type { ReasoningTurnEvent } from '../runtime/turn-event.ts';
 
 /**
  * At most one thought per run in this window, whatever its kind. Candidates
@@ -19,7 +20,7 @@ export const thoughtIntervalMs = 4000;
 export interface AgentThoughtNarrator {
     /** Drops open blocks and any thought still waiting for the interval. */
     close(): void;
-    observe(part: Record<string, unknown>): void;
+    observe(part: ReasoningTurnEvent): void;
     /**
      * Offers a tool action's scrubbed description (`thought-action.ts`), with
      * a scrubbed excerpt of its output once it has finished
@@ -93,7 +94,7 @@ export function createAgentThoughtNarrator(input: {
             cancelWait = null;
         },
         observe(part) {
-            const id = typeof part.id === 'string' && part.id.length > 0 ? part.id : undefined;
+            const id = part.id.length > 0 ? part.id : undefined;
             if (closed || !id) {
                 return;
             }
@@ -101,16 +102,14 @@ export function createAgentThoughtNarrator(input: {
                 blocks.set(id, '');
                 return;
             }
-            if (part.type === 'reasoning-delta' && typeof part.text === 'string') {
+            if (part.type === 'reasoning-delta') {
                 blocks.set(id, (blocks.get(id) ?? '') + part.text);
                 return;
             }
-            if (part.type === 'reasoning-end') {
-                const reasoning = blocks.get(id);
-                blocks.delete(id);
-                if (reasoning) {
-                    offer(thoughtCandidate(reasoning));
-                }
+            const reasoning = blocks.get(id);
+            blocks.delete(id);
+            if (reasoning) {
+                offer(thoughtCandidate(reasoning));
             }
         },
         observeAction(action, result) {

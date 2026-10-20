@@ -1,12 +1,5 @@
 import { rm } from 'node:fs/promises';
-import { basename, join } from 'node:path';
-import type { HarnessV1 } from '@ai-sdk/harness';
-import type {
-    HarnessAgent,
-    HarnessAgentResumeSessionState,
-    HarnessAgentSession,
-} from '@ai-sdk/harness/agent';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import { join } from 'node:path';
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
@@ -16,20 +9,20 @@ import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { journalSinkFor } from '../execution-journal-upload/attachment-journal-uploads.ts';
+import type { HostToolSet } from '../host-tools/host-tool.ts';
 import {
     clearManagedSkillChangeNotice,
     readManagedSkillChangeNotice,
 } from '../managed-skill-changes.ts';
+import { createAiSdkRuntimeDriver } from '../runtime/ai-sdk-adapter.ts';
+import type { RuntimeDriverFactory, RuntimeSession } from '../runtime/driver.ts';
 import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,
 } from '../usage/claude-plan-usage-state.ts';
 import { createHarnessActivityProjector } from './activity-projector.ts';
-import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
-import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
 import { clearPendingCoveGuidanceRefresh } from './cove-guidance-refresh.ts';
 import { prepareCoveGuidanceForTurn } from './cove-guidance-turn.ts';
-import { createHarnessAgent, sandboxOptions } from './create-agent.ts';
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
@@ -39,8 +32,6 @@ import { journalError, journalOutcome } from './journal-outcome.ts';
 import { settleDreamBaseline } from './memory-dream.ts';
 import { AgentSessionResumeRejectedError, isPromptResumeRejection } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
-import { createHarnessForRuntime } from './runtime-harness.ts';
-import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
 import { startHarnessSession } from './session-start.ts';
@@ -69,8 +60,6 @@ export interface HarnessTurnInput extends TurnDelivery {
     conversationStyle?: string | null;
     env: Record<string, string>;
     factoryKind: 'cove' | 'ordinary';
-    /** Per-turn construction seam for boundary tests; production uses the default Harness Agent. */
-    harnessAgentFactory?: HarnessAgentFactory;
     homeDir: string;
     initialRole: string | null;
     modelId: string;
@@ -78,13 +67,15 @@ export interface HarnessTurnInput extends TurnDelivery {
     reasoningEffort: AgentReasoningEffort;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtime: DaemonRuntime;
+    /** Per-turn construction seam for boundary tests; production uses the default driver. */
+    runtimeDriverFactory?: TurnDriverFactory;
     runtimeId: string;
     sessionGeneration: number;
     signal?: AbortSignal;
     signatureEmoji?: string | null;
     skillsDir: string;
     thoughts?: import('./thought-narrator.ts').AgentThoughtNarrator;
-    tools: ToolSet;
+    tools: HostToolSet;
     turnTimings?: AgentTurnTimings;
     workspaceDir: string;
 }
@@ -167,37 +158,21 @@ async function executeHarnessTurn(
         ...input,
         workspacePath: input.workspaceDir,
     });
-    const harness = createHarnessForRuntime(
-        input.runtimeId,
-        input.reasoningEffort,
-        bridgeStoreDirForHost(),
-        input.modelId
-    );
-    const bootstrapFingerprint = await fingerprintHarnessBootstrap({
-        abortSignal: input.signal,
-        harness,
-    });
     const collectClaudePlanUsage =
         input.runtimeId === 'claude-code' && (await claimClaudeSdkUsageRefresh(input.dataRoot));
-    const effectiveInput = collectClaudePlanUsage
-        ? {
-              ...input,
-              env: { ...input.env, HAUS_CLAUDE_USAGE_REFRESH: '1' },
-          }
-        : input;
-    const agent = (effectiveInput.harnessAgentFactory ?? harnessAgentFactory)(effectiveInput, {
-        harness,
+    const driver = (input.runtimeDriverFactory ?? runtimeDriverFactory)(input, {
+        env: collectClaudePlanUsage ? { ...input.env, HAUS_CLAUDE_USAGE_REFRESH: '1' } : input.env,
         instructions,
     });
-    let live: HarnessAgentSession | undefined;
+    const bootstrapFingerprint = await driver.bootstrapFingerprint(input.signal);
+    let live: RuntimeSession | undefined;
     const instructionActivityKey = 'instructions';
     const hausAgentVersionDrift = session.hausAgentVersion !== hausAgentVersion;
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
-        const resumeFrom =
-            (session.resumeState as HarnessAgentResumeSessionState | null) ?? undefined;
-        lease.prepare(resumeFrom, (state, abortSignal) =>
-            agent.createSession({ abortSignal, resumeFrom: state, sessionId })
+        const resumeFrom = session.resumeState ?? undefined;
+        lease.prepare(resumeFrom, (state, signal) =>
+            driver.openSession({ resumeFrom: state, sessionId, signal })
         );
         const coveGuidance = await prepareCoveGuidanceForTurn({
             activity: input.activity,
@@ -232,20 +207,14 @@ async function executeHarnessTurn(
         const reasoningChanged = session.effectiveReasoningEffort !== input.reasoningEffort;
         const phase = createTurnPhaseLog(input);
         live = await startHarnessSession({
-            agent,
             agentId: input.agentId,
+            driver,
             lease,
             phase,
             refreshBootstrap: refreshBootstrap
-                ? (abortSignal) =>
+                ? (signal) =>
                       timings.measure('bootstrap', () =>
-                          harnessBootstrapRefresh({
-                              abortSignal,
-                              harness,
-                              provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
-                              sessionId,
-                              workDir: basename(input.workspaceDir),
-                          })
+                          driver.refreshBootstrap({ sessionId, signal })
                       )
                 : undefined,
             restartNative: refreshBootstrap || reasoningChanged,
@@ -275,15 +244,14 @@ async function executeHarnessTurn(
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
-        const turn = await agent.stream({
-            abortSignal: turnSignal,
+        const turn = await live.startTurn({
             prompt: projectMessageForAgent({
                 content: [coveGuidance.notice, turnContent, skillNotice?.text]
                     .filter(Boolean)
                     .join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
             }),
-            session: live,
+            signal: turnSignal,
         });
         const primaryNotice = prompt.notice;
         const deliverNotice = createNoticeDelivery(live, input, primaryNotice);
@@ -312,7 +280,7 @@ async function executeHarnessTurn(
                         try: async () => {
                             await storedNoticeReady.promise;
                             return await observeTurnStream(
-                                turn.fullStream,
+                                turn.events,
                                 noticeCoordinator,
                                 projector,
                                 {
@@ -367,7 +335,7 @@ async function executeHarnessTurn(
                 effectiveReasoningEffort: input.reasoningEffort,
                 hausAgentStatus: hausAgentVersionDrift ? 'failed' : session.hausAgentStatus,
                 interruptedTurn: true,
-                resumeState: resumeState as Record<string, unknown>,
+                resumeState,
                 runtimeSessionId: live.sessionId,
             });
             await input.activity.finish(instructionActivityKey, 'interrupted');
@@ -386,7 +354,7 @@ async function executeHarnessTurn(
             hausAgentStatus: appliesHausAgentVersion ? 'current' : 'failed',
             hausAgentVersion: appliesHausAgentVersion ? hausAgentVersion : session.hausAgentVersion,
             instructionFingerprint,
-            resumeState: resumeState as Record<string, unknown>,
+            resumeState,
             runtimeSessionId: live.sessionId,
         });
         if (coveGuidance.refreshPending && coveGuidance.refreshCanComplete) {
@@ -415,29 +383,15 @@ async function executeHarnessTurn(
     }
 }
 
-// Tests inject a fake Agent at this construction seam.
-export type HarnessAgentFactory = (
-    input: HarnessTurnInput,
-    options: { harness: HarnessV1<ToolSet>; instructions: string }
-) => Pick<HarnessAgent, 'createSession' | 'stream'>;
+// Tests inject a fake driver at this construction seam.
+export type TurnDriverFactory = RuntimeDriverFactory<HarnessTurnInput>;
 
-let harnessAgentFactory: HarnessAgentFactory = createHarnessAgent;
+let runtimeDriverFactory: TurnDriverFactory = createAiSdkRuntimeDriver;
 
-export function setHarnessAgentFactoryForTesting(factory: HarnessAgentFactory) {
-    const previous = harnessAgentFactory;
-    harnessAgentFactory = factory;
+export function setRuntimeDriverFactoryForTesting(factory: TurnDriverFactory) {
+    const previous = runtimeDriverFactory;
+    runtimeDriverFactory = factory;
     return () => {
-        harnessAgentFactory = previous;
-    };
-}
-
-type HarnessBootstrapRefresh = typeof refreshHarnessBootstrap;
-let harnessBootstrapRefresh: HarnessBootstrapRefresh = refreshHarnessBootstrap;
-
-export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRefresh) {
-    const previous = harnessBootstrapRefresh;
-    harnessBootstrapRefresh = refresh;
-    return () => {
-        harnessBootstrapRefresh = previous;
+        runtimeDriverFactory = previous;
     };
 }

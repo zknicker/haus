@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { HostToolSet } from './host-tools/host-tool.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
 
 let server: ReturnType<typeof Bun.serve> | undefined;
@@ -13,16 +13,15 @@ const definition = {
     name: 'mcp__fixture__weather',
     title: 'Weather',
 };
-const call = (tools: ToolSet, code: string, abortSignal?: AbortSignal) =>
-    tools.execute?.execute?.(
-        { code },
-        {
-            abortSignal,
-            context: undefined,
-            messages: [],
-            toolCallId: 'executor-test',
-        }
-    );
+const call = async (tools: HostToolSet, code: string, abortSignal?: AbortSignal) => {
+    const output = await tools
+        .find((tool) => tool.name === 'execute')
+        ?.execute(
+            { code },
+            { signal: abortSignal ?? new AbortController().signal, toolCallId: 'executor-test' }
+        );
+    return output?.type === 'json' ? output.value : output;
+};
 
 test('fixed tool reads changing grants at dispatch and binds authority outside model code', async () => {
     let granted = false;
@@ -54,7 +53,7 @@ test('fixed tool reads changing grants at dispatch and binds authority outside m
     const proxyUrl = `http://127.0.0.1:${server.port}`;
     const a = createServerMcpTools({ proxyUrl, proxyToken: 'agent-a' });
     const b = createServerMcpTools({ proxyUrl, proxyToken: 'agent-b' });
-    expect(Object.keys(a)).toEqual(['execute']);
+    expect(a.map((tool) => tool.name)).toEqual(['execute']);
     expect(requests).toBe(0);
     expect(await call(a, 'return await tools.search({query:"weather"});')).toMatchObject({
         result: { tools: [], total: 0 },
@@ -91,7 +90,7 @@ test('fixed tool reads changing grants at dispatch and binds authority outside m
     expect(
         await call(a, `return await tools.call({name:"${definition.name}",args:{city:"Paris"}});`)
     ).toMatchObject({ result: { verification: 'fixture-42' } });
-    expect(Object.keys(a)).toEqual(['execute']);
+    expect(a.map((tool) => tool.name)).toEqual(['execute']);
 }, 15_000);
 
 test('preserves Server MCP error codes inside Executor results', async () => {

@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from 'bun:test';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
+import type { RuntimeSession } from '../runtime/driver.ts';
 import { isRetryableRuntimeFailure } from '../runtime-failure.ts';
 import { reportHarnessTurnFailure } from '../turn-failure-report.ts';
 import { HarnessSessionOwner } from './session-lifecycle.ts';
@@ -86,10 +86,10 @@ test('a hung start fails as a retryable timeout and destroys the late session', 
     expect(destroyed).toBe(true);
 });
 
-function sessionStart(create: () => Promise<unknown>): HarnessSessionStart {
+function sessionStart(create: () => Promise<RuntimeSession>): HarnessSessionStart {
     return {
-        agent: { createSession: create as unknown as HarnessAgent['createSession'] },
         agentId: 'agt_start',
+        driver: { openSession: create },
         lease: new HarnessSessionOwner().begin('/tmp/haus-session-start'),
         phase: async () => undefined,
         restartNative: false,
@@ -100,12 +100,14 @@ function sessionStart(create: () => Promise<unknown>): HarnessSessionStart {
     };
 }
 
-function session() {
+function session(): RuntimeSession {
     return {
         destroy: async () => undefined,
         detach: async () => ({}),
         isResume: false,
         sessionId: 'engine_session',
+        startTurn: () => Promise.reject(new Error('Not used by session start.')),
+        steer: async () => ({ delivered: false, reason: 'idle' }),
         stop: async () => ({}),
     };
 }

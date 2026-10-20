@@ -2,6 +2,7 @@ import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Clock, Data, Duration, Effect, Stream } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
+import { type TurnEvent, turnEventLabel } from '../runtime/turn-event.ts';
 import type { createComputerActivityProjector } from './activity-projector.ts';
 import type { HarnessTurnResult } from './executor.ts';
 import {
@@ -9,13 +10,7 @@ import {
     type RuntimeSessionFailureError,
 } from './runtime-session-failure.ts';
 import type { ToolGate } from './stored-notice.ts';
-import {
-    addTokenUsage,
-    type HarnessTokenUsage,
-    readClaudePlanUsageMetadata,
-    readTokenUsage,
-    usageContextTokens,
-} from './token-usage.ts';
+import { addTokenUsage, type HarnessTokenUsage } from './token-usage.ts';
 
 /** A settled provider failure that may still have billable token usage. */
 export class HarnessTurnFailedError extends Error {
@@ -40,7 +35,7 @@ export const turnNoProgressDeadlineMs = 15 * 60_000;
 
 /** Observes execution evidence and terminal state; durable replies leave through the CLI. */
 export async function observeTurnStream(
-    stream: AsyncIterable<unknown>,
+    stream: AsyncIterable<TurnEvent>,
     toolCalls: ToolGate | undefined,
     projector: ReturnType<typeof createComputerActivityProjector> | undefined,
     {
@@ -75,7 +70,7 @@ export async function observeTurnStream(
     let lastPartAt = 0;
     let lastPartType = 'none yet';
     let partCount = 0;
-    const openToolCalls = new Set<unknown>();
+    const openToolCalls = new Set<string>();
     const consume = Stream.fromAsyncIterable(
         stream,
         (cause) => new HarnessStreamForeignError({ cause })
@@ -88,24 +83,15 @@ export async function observeTurnStream(
                 Effect.tryPromise({
                     catch: (cause) => new HarnessStreamForeignError({ cause }),
                     try: async () => {
-                        if (!isRecord(part) || typeof part.type !== 'string') {
-                            return;
-                        }
                         lastPartAt = now;
-                        lastPartType = part.type;
+                        lastPartType = turnEventLabel(part);
                         partCount += 1;
                         if (partCount === 1) {
                             await onFirstPart?.();
                         }
                         switch (part.type) {
-                            case 'raw':
-                                fatalFailure ??= fatalRuntimeSessionFailure(part.rawValue);
-                                await projector?.observe(part);
-                                return;
-                            case 'reasoning-delta':
-                            case 'reasoning-end':
-                            case 'reasoning-start':
-                                await projector?.observe(part);
+                            case 'session-failure':
+                                fatalFailure ??= fatalRuntimeSessionFailure(part);
                                 return;
                             case 'tool-call':
                                 openToolCalls.add(part.toolCallId);
@@ -115,33 +101,32 @@ export async function observeTurnStream(
                                 return;
                             case 'tool-error':
                             case 'tool-result':
-                                if (part.preliminary !== true) {
+                                if (part.type === 'tool-error' || part.preliminary !== true) {
                                     openToolCalls.delete(part.toolCallId);
                                 }
                                 await projector?.observe(part);
                                 await toolCalls?.toolCallSettled(part);
                                 return;
-                            case 'finish-step':
+                            case 'step-finish':
                                 // The last step's input is the context size; summed usage overstates it.
-                                contextTokens = usageContextTokens(part.usage) ?? contextTokens;
-                                stepTokenUsage = addTokenUsage(
-                                    stepTokenUsage,
-                                    readTokenUsage(part.usage)
-                                );
+                                contextTokens = part.contextTokens ?? contextTokens;
+                                stepTokenUsage = addTokenUsage(stepTokenUsage, part.usage);
                                 return;
-                            case 'finish':
-                                finalTokenUsage = readTokenUsage(part.totalUsage);
-                                claudePlanUsage = readClaudePlanUsageMetadata(
-                                    part.providerMetadata
-                                );
+                            case 'turn-finish':
+                                finalTokenUsage = part.usage;
+                                claudePlanUsage = part.claudePlanUsage;
                                 return;
                             case 'error':
-                                streamError ??= part.error ?? new Error('Harness stream failed.');
+                                streamError ??= part.error;
                                 return;
                             case 'abort':
                                 aborted = true;
                                 return;
+                            case 'progress':
+                            case 'text-delta':
+                                return;
                             default:
+                                await projector?.observe(part);
                                 return;
                         }
                     },
@@ -230,14 +215,8 @@ function finishProjector(
     });
 }
 
-function fatalRetry(part: unknown): boolean {
+function fatalRetry(part: TurnEvent): boolean {
     return (
-        isRecord(part) &&
-        part.type === 'raw' &&
-        fatalRuntimeSessionFailure(part.rawValue)?.severity === 'warning'
+        part.type === 'session-failure' && fatalRuntimeSessionFailure(part)?.severity === 'warning'
     );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

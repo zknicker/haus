@@ -274,6 +274,17 @@
         "timer": 0
       }
     },
+    "apps/computer/src/host-tools/mcp-server.ts": {
+      "disposition": "external-adapter",
+      "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
+      "risks": {
+        "abortController": 4,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/computer/src/harness/bootstrap-refresh.ts": {
       "disposition": "finite-cleanup",
       "reason": "Each bootstrap refresh resumes one foreign sandbox and stops it in a bounded finalizer before returning.",

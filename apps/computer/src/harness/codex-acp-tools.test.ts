@@ -6,6 +6,7 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createACP } from '@ai-sdk/harness-acp';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { aiSdkTurnEvents } from '../runtime/ai-sdk-turn-events.ts';
 import { createHarnessActivityProjector } from './activity-projector.ts';
 import { codexBuiltinTools } from './codex-acp.ts';
 import {
@@ -65,7 +66,9 @@ test('codex-acp tool calls get readable names, categories, and real durations', 
             session,
         });
         for await (const part of result.fullStream) {
-            await projector.observe(part);
+            for (const event of aiSdkTurnEvents(part)) {
+                await projector.observe(event);
+            }
         }
         await projector.finish('completed');
     } finally {

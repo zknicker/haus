@@ -1,6 +1,15 @@
 import { expect, test } from 'bun:test';
 import { classifyRuntimeFailure, isRetryableRuntimeFailure } from '../runtime-failure.ts';
-import { fatalRuntimeSessionFailure } from './runtime-session-failure.ts';
+import {
+    fatalRuntimeSessionFailure,
+    readRuntimeSessionFailure,
+} from './runtime-session-failure.ts';
+
+/** The verdict on a raw ACP payload: the driver reads the failure, the turn judges it. */
+function fatal(rawValue: unknown) {
+    const failure = readRuntimeSessionFailure(rawValue);
+    return failure ? fatalRuntimeSessionFailure(failure) : null;
+}
 
 function update(failure: Record<string, unknown>) {
     return {
@@ -10,7 +19,7 @@ function update(failure: Record<string, unknown>) {
 }
 
 test('a rejected-credential retry is fatal and classifies as authentication', () => {
-    const failure = fatalRuntimeSessionFailure(
+    const failure = fatal(
         update({ category: 'access', severity: 'warning', title: 'Reconnecting... 1/5' })
     );
     expect(failure?.severity).toBe('warning');
@@ -30,7 +39,7 @@ test('transient retries and informational notices never end the turn', () => {
             title: 'Falling back from WebSockets to HTTPS transport. unexpected status 401',
         },
     ]) {
-        expect(fatalRuntimeSessionFailure(update(failure))).toBeNull();
+        expect(fatal(update(failure))).toBeNull();
     }
 });
 
@@ -45,15 +54,13 @@ test('a terminal failure on the prompt response is fatal and keeps its provider 
     });
     expect(
         classifyRuntimeFailure(
-            fatalRuntimeSessionFailure(
+            fatal(
                 response('unexpected status 401 Unauthorized: Incorrect API key provided: sk-***')
             )
         )
     ).toBe('authentication');
     expect(
-        classifyRuntimeFailure(
-            fatalRuntimeSessionFailure(response('unexpected status 503 Service Unavailable'))
-        )
+        classifyRuntimeFailure(fatal(response('unexpected status 503 Service Unavailable')))
     ).toBe('transport');
 });
 
@@ -64,7 +71,7 @@ test('ignores raw parts that carry no typed session failure', () => {
         { _meta: { codex: { threadStatus: { type: 'systemError' } } } },
         update({ category: 'access', severity: 'fatal', title: 'x' }),
     ]) {
-        expect(fatalRuntimeSessionFailure(raw)).toBeNull();
+        expect(fatal(raw)).toBeNull();
     }
 });
 
@@ -81,6 +88,6 @@ test('Claude Code sub-agent and task raw parts are never a fatal session failure
         { type: 'tool_progress', tool_use_id: 'toolu_1', parent_tool_use_id: 'toolu_1' },
     ];
     for (const rawValue of rawValues) {
-        expect(fatalRuntimeSessionFailure(rawValue)).toBeNull();
+        expect(fatal(rawValue)).toBeNull();
     }
 });

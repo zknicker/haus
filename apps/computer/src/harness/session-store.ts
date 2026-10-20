@@ -1,6 +1,12 @@
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentReasoningEffort } from '@haus/api';
+import {
+    isHausResumeState,
+    parseRuntimeResumeState,
+    type RuntimeResumeState,
+} from '../runtime/resume-state.ts';
+import type { RuntimeTokenUsage } from '../runtime/turn-event.ts';
 
 /**
  * One global persistent session per Agent (ADR 0011/0019), stored Computer-local
@@ -25,17 +31,11 @@ export interface AgentSessionState {
      * user declining it. Any completed turn clears it.
      */
     interruptedTurn?: true;
-    resumeState: Record<string, unknown> | null;
+    resumeState: RuntimeResumeState | null;
     runtimeSessionId: string | null;
 }
 
-export interface AgentSessionTokenUsage {
-    cacheReadTokens: number;
-    cacheWriteTokens: number;
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-}
+export type AgentSessionTokenUsage = RuntimeTokenUsage;
 
 const sessionFileName = 'session.json';
 
@@ -50,7 +50,7 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
         const parsed = {
             ...rest,
             ...(interruptedTurn === true ? { interruptedTurn } : {}),
-            resumeState: withoutAbandonedTurn(stored.resumeState),
+            resumeState: withoutAbandonedTurn(parseRuntimeResumeState(stored.resumeState)),
         };
         if (
             typeof parsed.generation === 'number' &&
@@ -145,7 +145,7 @@ export async function writeFailedTurnSession(
 function withoutAbandonedTurn(
     resumeState: AgentSessionState['resumeState']
 ): AgentSessionState['resumeState'] {
-    if (!(resumeState && 'continueFrom' in resumeState)) {
+    if (!resumeState || isHausResumeState(resumeState) || !('continueFrom' in resumeState)) {
         return resumeState ?? null;
     }
     const { continueFrom: _abandonedTurn, ...rest } = resumeState;
@@ -160,9 +160,12 @@ function withoutAbandonedTurn(
 function withoutDeadBridge(
     resumeState: AgentSessionState['resumeState']
 ): AgentSessionState['resumeState'] {
-    const data = resumeState?.data;
+    if (!resumeState || isHausResumeState(resumeState)) {
+        return resumeState;
+    }
+    const data = resumeState.data;
     if (
-        resumeState?.harnessId !== 'claude-code' ||
+        resumeState.harnessId !== 'claude-code' ||
         typeof data !== 'object' ||
         data === null ||
         !('bridge' in data)

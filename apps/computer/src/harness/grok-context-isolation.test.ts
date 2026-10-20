@@ -30,7 +30,6 @@ test('Grok Build launches with Claude and Cursor instruction sources off', () =>
         modelId: 'grok-4.6',
         runtime,
         runtimeId: 'grok-build',
-        tools: {},
         workspaceDir: '/tmp/haus-grok/workspace',
     }).env;
     expect(env).toMatchObject(GROK_INSTRUCTION_COMPAT_ENV);

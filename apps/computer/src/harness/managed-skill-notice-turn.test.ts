@@ -12,11 +12,14 @@ import {
     seedAgentManagedSkills,
 } from '../managed-skill-changes.ts';
 import {
+    aiSdkDriverFactory,
+    setHarnessBootstrapRefreshForTesting,
+} from '../runtime/ai-sdk-adapter.ts';
+import {
     HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
-    setHarnessAgentFactoryForTesting,
-    setHarnessBootstrapRefreshForTesting,
+    setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
 
 const runtime = makeDaemonRuntime();
@@ -38,7 +41,7 @@ beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-skill-notice-turn-'));
     failStream = false;
     prompts = [];
-    restore = setHarnessAgentFactoryForTesting(() => fakeAgent());
+    restore = setRuntimeDriverFactoryForTesting(aiSdkDriverFactory(() => fakeAgent()));
     restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => undefined);
     await seedAgentManagedSkills(agentRoot, release('v1'));
     await seedAgentManagedSkills(agentRoot, release('v2'));
@@ -118,7 +121,7 @@ function turnInput(): HarnessTurnInput {
         serverId: 'srv_skill_notice_test',
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
-        tools: {},
+        tools: [],
         totalPending: 0,
         unreadElsewhere: [],
         warmDrainItemIds: [],

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { aiSdkTurnEvents } from '../runtime/ai-sdk-turn-events.ts';
 import { classifyRuntimeFailure } from '../runtime-failure.ts';
 import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
 import { createHarnessForRuntime } from './runtime-harness.ts';
@@ -72,6 +73,6 @@ async function* countRetries(stream: AsyncIterable<unknown>, onRetry: () => void
         if (readRuntimeSessionFailure(rawValue)?.title.startsWith('Reconnecting')) {
             onRetry();
         }
-        yield part;
+        yield* aiSdkTurnEvents(part);
     }
 }

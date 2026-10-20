@@ -6,6 +6,7 @@ import type { HarnessV1 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { aiSdkDriverFactory } from '../runtime/ai-sdk-adapter.ts';
 import { type HarnessTurnInput, runHarnessTurn } from './executor.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { readAgentSessionState, writeAgentSessionState } from './session-store.ts';
@@ -213,12 +214,14 @@ function turnInput(harness: HarnessV1, signal: AbortSignal): HarnessTurnInput {
         skillsDir: join(root, 'skills'),
         totalPending: 0,
         workspaceDir: join(root, 'workspace'),
-        tools: {},
-        harnessAgentFactory: (turn) =>
-            new HarnessAgent({
-                harness,
-                id: turn.agentId,
-                sandbox: createLocalTrustedSandboxProvider({ rootDir: root, runtime }),
-            }),
+        tools: [],
+        runtimeDriverFactory: aiSdkDriverFactory(
+            (turn) =>
+                new HarnessAgent({
+                    harness,
+                    id: turn.agentId,
+                    sandbox: createLocalTrustedSandboxProvider({ rootDir: root, runtime }),
+                })
+        ),
     };
 }
