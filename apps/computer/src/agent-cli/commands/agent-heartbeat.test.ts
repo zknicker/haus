@@ -59,19 +59,20 @@ test('the heartbeat and lead families are registered in the Agent CLI', () => {
     }
 });
 
-test('heartbeat report posts the text and states the fact', async () => {
+test('heartbeat report posts the stdin text, line breaks intact, and states the fact', async () => {
     const fake = fakeClient({ queued: true });
-    expect(await runHeartbeatReport(args({ '--text': ' New reviews. ' }), fake.deps)).toBe(0);
+    fake.deps.readStdin = async () => ' - New reviews.\n- Two are 2-star. \n';
+    expect(await runHeartbeatReport(args(), fake.deps)).toBe(0);
     expect(fake.calls).toEqual([
         {
-            input: { body: { text: 'New reviews.' }, method: 'POST' },
+            input: { body: { text: '- New reviews.\n- Two are 2-star.' }, method: 'POST' },
             route: '/api/agent/heartbeat/report',
         },
     ]);
     expect(fake.output()).toBe('Report queued for your main session.\n');
 });
 
-test('heartbeat text falls back to stdin, and an empty report is refused', async () => {
+test('heartbeat learned reads stdin, and an empty body is refused', async () => {
     const fake = fakeClient({ saved: true });
     await runHeartbeatLearned(args(), fake.deps);
     expect(fake.calls[0]).toEqual({
@@ -80,8 +81,23 @@ test('heartbeat text falls back to stdin, and an empty report is refused', async
     });
     const empty = fakeClient({});
     empty.deps.readStdin = async () => '   ';
-    await expect(runHeartbeatReport(args(), empty.deps)).rejects.toBeInstanceOf(AgentCliError);
+    await expect(runHeartbeatReport(args(), empty.deps)).rejects.toMatchObject({
+        code: 'MISSING_CONTENT',
+    });
     expect(empty.calls).toEqual([]);
+});
+
+test('heartbeat refuses --text and positional text with the stdin recipe', async () => {
+    const fake = fakeClient({});
+    const flagged = { ...args(), flags: { '--text': true } } as unknown as ParsedArgs;
+    const error = await runHeartbeatLearned(flagged, fake.deps).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AgentCliError);
+    expect(error).toMatchObject({ code: 'TEXT_FLAG_UNSUPPORTED' });
+    const positional = { ...args(), positionals: ['x'] } as unknown as ParsedArgs;
+    await expect(runHeartbeatReport(positional, fake.deps)).rejects.toMatchObject({
+        code: 'POSITIONAL_CONTENT_UNSUPPORTED',
+    });
+    expect(fake.calls).toEqual([]);
 });
 
 test('lead claim states the lead, or who already holds it', async () => {

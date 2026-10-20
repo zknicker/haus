@@ -1,7 +1,28 @@
 import { and, eq } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentRunTriggersTable } from '../postgres/schema.ts';
+import { agentDeliveryTable, agentRunTriggersTable } from '../postgres/schema.ts';
+
+/**
+ * Whether the calling run still holds the Agent's run slot. Call inside the Server
+ * lock: a yielded or stopped run clears the slot, and must not write afterwards.
+ */
+export async function isActiveRun(
+    tx: HausDatabase,
+    runner: Pick<ResolvedRunner, 'agentId' | 'runId' | 'serverId'>
+): Promise<boolean> {
+    const [row] = await tx
+        .select({ activeRunId: agentDeliveryTable.activeRunId })
+        .from(agentDeliveryTable)
+        .where(
+            and(
+                eq(agentDeliveryTable.serverId, runner.serverId),
+                eq(agentDeliveryTable.agentId, runner.agentId)
+            )
+        )
+        .limit(1);
+    return row?.activeRunId === runner.runId;
+}
 
 /** The inbox source that started the calling run, or null when the Server recorded none. */
 export async function readRunSource(

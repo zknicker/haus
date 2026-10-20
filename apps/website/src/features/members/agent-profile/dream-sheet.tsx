@@ -85,13 +85,13 @@ function DreamDetail({
     const fileCount = dream.files.length;
     const emptyState = dreamEmptyState(dream);
     const durationMs = Date.parse(dream.finishedAt) - Date.parse(dream.startedAt);
+    const fileHeadline = formatDreamHeadline(dream.files, hunks, dream.truncated);
 
     return (
         <>
             <Sheet.Header>
-                <Sheet.Heading>
-                    {formatDreamHeadline(dream.files, hunks, dream.truncated)}
-                </Sheet.Heading>
+                {/* With a summary the heading stays short; the file headline moves under Memory changes. */}
+                <Sheet.Heading>{summary ? 'Dream' : fileHeadline}</Sheet.Heading>
                 <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 text-muted text-sm tabular-nums leading-5">
                     <span>
                         {`${formatDayLabel(new Date(dream.startedAt), now)} at ${formatShortTime(dream.startedAt)} · ${formatTurnDuration(durationMs)} · ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`}
@@ -108,6 +108,11 @@ function DreamDetail({
                     <ItemCardGroup variant="transparent">
                         <ItemCardGroup.Header>
                             <ItemCardGroup.Title>Memory changes</ItemCardGroup.Title>
+                            {summary ? (
+                                <ItemCardGroup.Description>
+                                    {fileHeadline}
+                                </ItemCardGroup.Description>
+                            ) : null}
                         </ItemCardGroup.Header>
                         <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
                             {emptyState ? <p className="text-muted text-sm">{emptyState}</p> : null}

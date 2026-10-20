@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import { readHeartbeatSince } from '../src/agent-delivery/heartbeat-digest.ts';
 import { heartbeatReportDedupeKey } from '../src/agent-delivery/heartbeat-keys.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -69,6 +70,7 @@ test('the digest lists only conversations the Agent took part in, addressed and 
     });
     // Nothing is running, so the queued DM starts its run; settle it so a heartbeat can follow.
     const dmRun = transport.framesOfType('start').at(-1);
+    await delivery.onAck({ agentId: seed.agentId, runId: dmRun?.runId ?? '' });
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, dmRun?.runId ?? ''));
 
     expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly')).toBe(true);
@@ -108,6 +110,11 @@ test('the digest lists only conversations the Agent took part in, addressed and 
         .select({ at: agentRunTriggersTable.createdAt })
         .from(agentRunTriggersTable)
         .where(eq(agentRunTriggersTable.runId, start?.runId ?? ''));
+    // The DM was only offered as a notice; once the Agent has read it, nothing waits.
+    await connection.db
+        .update(agentInboxTable)
+        .set({ state: 'seen' })
+        .where(eq(agentInboxTable.agentId, seed.agentId));
     expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(true);
     const daytime = transport.framesOfType('start').at(-1);
     expect(daytime?.heartbeat?.since).toBe(trigger?.at.toISOString());
@@ -132,6 +139,55 @@ test('the digest caps at 20 entries and counts the rest', async () => {
     expect(digest?.entries).toHaveLength(20);
     expect(digest?.more).toBe(3);
     expect(digest?.entries[0]).toMatchObject({ messageCount: 3, target: '#busiest' });
+});
+
+test('the digest ranks before its candidate limit and counts every candidate in more', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    transport.online.add(seed.computerId);
+    const busiest = await addChannel(connection.db, seed, 'busiest');
+    for (let index = 0; index < 205; index += 1) {
+        const chatId = await addChannel(connection.db, seed, `many-${index}`);
+        await agentSpeaks(connection.db, seed, chatId, hoursAgo(2));
+    }
+    await agentSpeaks(connection.db, seed, busiest, hoursAgo(2));
+    await humanSays(seed, busiest, 1, hoursAgo(1));
+    await humanSays(seed, busiest, 2, hoursAgo(1));
+
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly')).toBe(true);
+    const digest = transport.framesOfType('start').at(-1)?.heartbeat?.digest;
+    expect(digest?.entries[0]).toMatchObject({ messageCount: 3, target: '#busiest' });
+    expect(digest?.more).toBe(206 - 20);
+});
+
+test('a heartbeat that did not complete does not move the next run cutoff', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    transport.online.add(seed.computerId);
+    await agentSpeaks(connection.db, seed, seed.channelId, hoursAgo(5));
+
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly')).toBe(true);
+    const interrupted = transport.framesOfType('start').at(-1);
+    await delivery.onTurnSettled(seed.computerId, {
+        ...settledTurn(seed, interrupted?.runId ?? ''),
+        status: 'interrupted',
+    });
+
+    const since = (runId: string) =>
+        readHeartbeatSince(connection.db, {
+            agentId: seed.agentId,
+            kind: 'nightly',
+            runId,
+            serverId: seed.serverId,
+        });
+    // The interrupted run completed nothing, so the next run still covers its window.
+    expect(await since('run_next')).toBeNull();
+
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+    const retry = transport.framesOfType('start').at(-1);
+    await delivery.onAck({ agentId: seed.agentId, runId: retry?.runId ?? '' });
+    await delivery.onTurnSettled(seed.computerId, settledTurn(seed, retry?.runId ?? ''));
+    expect(await since('run_next')).toBeInstanceOf(Date);
 });
 
 test('a heartbeat report starts a chatless run carrying its text and the heartbeat run id', async () => {

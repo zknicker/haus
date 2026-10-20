@@ -9,7 +9,19 @@ import {
     isQuietDream,
     parseDreamPatch,
 } from './dream-model.ts';
-import { formatFollowUpWhen } from './dream-summary-model.ts';
+import {
+    dreamSummaryHeadline,
+    dreamSummaryMarkdown,
+    formatFollowUpWhen,
+} from './dream-summary-model.ts';
+
+test('the summary headline drops a leading bullet, and plain lines keep their breaks', () => {
+    expect(dreamSummaryHeadline('- Priya taught me tone.\n- Sam fixed dates.')).toBe(
+        'Priya taught me tone.'
+    );
+    expect(dreamSummaryMarkdown('a\nb\n\nc')).toBe('a  \nb\n\nc');
+    expect(dreamSummaryMarkdown('- a\n- b')).toBe('- a\n- b');
+});
 
 const patch = [
     'diff --git a/MEMORY.md b/MEMORY.md',

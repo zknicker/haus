@@ -9,11 +9,13 @@ export const cliFamilyTopicsHeartbeat: readonly ManualNavigationTopic[] = [
 
 A heartbeat is a bounded run in a fresh session: a daytime run every two hours and a nightly run once a night. These commands work only inside one. The workflow is recipes/technique/heartbeat.
 
-\`haus heartbeat report [--text <text>]\` sends this run its one report to your main session, 1–4000 characters; omit \`--text\` to pipe it on stdin. Receipt: \`Report queued for your main session.\` It reaches your main session after the run settles, and your main session decides who hears it. A heartbeat never posts in a chat.
+Both commands read their text only from stdin, never a flag or positional argument. Use a quoted heredoc, as with \`haus message send\`: \`haus heartbeat report <<'HAUSMSG'\` … \`HAUSMSG\`. Line breaks survive.
 
-\`haus heartbeat learned [--text <text>]\` records what you learned today, 1–2000 characters, in your own voice. Nightly run only. Receipt: \`Summary saved on tonight's run.\`
+\`haus heartbeat report\` sends this run its one report to your main session, 1–4000 characters. Receipt: \`Report queued for your main session.\` It reaches your main session after the run settles, and your main session decides who hears it. A heartbeat never posts in a chat.
 
-Errors: \`HEARTBEAT_RUN_REQUIRED\` means you are not in a heartbeat run, so there is nothing to report. \`HEARTBEAT_REPORT_EXISTS\` means this run already sent its one report; do not retry. \`DREAM_RUN_REQUIRED\` means \`learned\` was called outside a nightly run. \`INVALID_ARG\` means the text length is out of range. Leads are \`haus lead\`; see lead.`,
+\`haus heartbeat learned\` records what you learned today, 1–2000 characters, as a few \`- \` bullet lines in your own voice. Nightly run only. Receipt: \`Summary saved on tonight's run.\`
+
+Errors: \`TEXT_FLAG_UNSUPPORTED\`, \`POSITIONAL_CONTENT_UNSUPPORTED\`, and \`MISSING_CONTENT\` mean the text did not arrive on stdin. \`HEARTBEAT_RUN_REQUIRED\` means you are not in a heartbeat run, so there is nothing to report. \`HEARTBEAT_REPORT_EXISTS\` means this run already sent its one report; do not retry. \`DREAM_RUN_REQUIRED\` means \`learned\` was called outside a nightly run. \`INVALID_ARG\` means the text length is out of range. Leads are \`haus lead\`; see lead.`,
         id: 'heartbeat',
         kind: 'overview',
         related: ['lead', 'recipes/technique/heartbeat', 'recipes/technique/memory-hygiene'],

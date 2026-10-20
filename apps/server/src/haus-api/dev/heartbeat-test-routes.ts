@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { and, desc, eq, inArray, like, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { dreamDedupeKey, heartbeatDedupeKey } from '../../agent-delivery/heartbeat-keys.ts';
+import { env } from '../../config/env.ts';
 import { appendSeedMessages } from '../../development/seed-inbox-messages.ts';
 import { agentInboxTable, agentLeadsTable, usersTable } from '../../postgres/schema.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
@@ -220,6 +221,18 @@ export const heartbeatEvidenceRoute = memberProcedure
         };
     });
 
-function assertHeartbeatTestAllowed(requestHost: string | null) {
+export function assertHeartbeatTestAllowed(
+    requestHost: string | null,
+    devClerkSignInUserId: string | undefined = env.HAUS_DEV_CLERK_SIGN_IN_USER_ID
+) {
+    // The Host header is client-controlled. Only development and test lifecycles
+    // resolve the dev sign-in user (.env.schema), so a hosted non-production
+    // deployment cannot be reached by spoofing a localhost Host.
+    if (!devClerkSignInUserId) {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Heartbeat test routes are available only in development.',
+        });
+    }
     assertEvalCleanupAllowed(requestHost, { nodeEnvironment: process.env.NODE_ENV });
 }

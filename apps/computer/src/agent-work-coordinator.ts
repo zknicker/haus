@@ -10,7 +10,8 @@ interface ActiveRun {
 
 export type AgentRunReservation =
     | { controller: AbortController; kind: 'reserved' }
-    | { kind: 'busy' }
+    /** `stopping` settles when the active run, already told to stop, releases. */
+    | { kind: 'busy'; stopping?: Promise<void> }
     | { kind: 'duplicate' };
 
 /** Owns per-Agent mutation ordering and live-run admission for one attachment daemon. */
@@ -67,7 +68,14 @@ export class AgentWorkCoordinator {
         if (this.runsById.has(runId)) {
             return { kind: 'duplicate' };
         }
-        if (this.runsByAgent.has(agentId)) {
+        const activeRunId = this.runsByAgent.get(agentId);
+        if (activeRunId) {
+            const active = this.runsById.get(activeRunId);
+            // A run told to stop is on its way out: the caller waits for it to
+            // settle and starts again instead of losing the new start.
+            if (active?.controller.signal.aborted) {
+                return { kind: 'busy', stopping: settle(this.runtime, active.settled) };
+            }
             return { kind: 'busy' };
         }
         const controller = new AbortController();

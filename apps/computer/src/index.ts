@@ -908,15 +908,15 @@ async function connect(
         if (resettingAgents.has(command.agentId) || retiredAgents.has(command.agentId)) {
             return;
         }
-        // Reserve the run synchronously, before any async marker I/O, so a
-        // duplicate start frame that arrives mid-launch is deduped here
-        // instead of racing into a second concurrent child.
+        // Reserve synchronously, before any async marker I/O, so a duplicate start
+        // mid-launch is deduped here; a start behind a stopping run waits for it.
         const reservation = agentWork.reserve(command.agentId, command.runId);
         if (reservation.kind === 'duplicate') {
             sendFrame({ agentId: command.agentId, runId: command.runId, type: 'ack' });
             return;
         }
         if (reservation.kind === 'busy') {
+            void reservation.stopping?.then(() => startAgent(command));
             return;
         }
         const releaseRun = () => {

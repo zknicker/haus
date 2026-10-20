@@ -83,6 +83,25 @@ test('runtime shutdown interrupts active and queued configuration work', async (
     await runtime.dispose();
 });
 
+test('a start behind a stopping run waits for it to settle instead of being dropped', async () => {
+    const runtime = makeDaemonRuntime();
+    const coordinator = new AgentWorkCoordinator(runtime);
+    coordinator.reserve('agt_x', 'run_old');
+    expect(coordinator.reserve('agt_x', 'run_new')).toEqual({ kind: 'busy' });
+
+    coordinator.abortRun('run_old');
+    const stopping = coordinator.reserve('agt_x', 'run_new');
+    expect(stopping.kind === 'busy' && stopping.stopping).toBeInstanceOf(Promise);
+
+    coordinator.release('agt_x', 'run_old');
+    if (stopping.kind === 'busy') {
+        await stopping.stopping;
+    }
+    expect(coordinator.reserve('agt_x', 'run_new').kind).toBe('reserved');
+    coordinator.release('agt_x', 'run_new');
+    await runtime.dispose();
+});
+
 test('run reservation is synchronous, per-Agent, and abortable at the foreign edge', async () => {
     const runtime = makeDaemonRuntime();
     const coordinator = new AgentWorkCoordinator(runtime);

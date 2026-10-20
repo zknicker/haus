@@ -6,7 +6,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { HeartbeatRefusedError } from './heartbeat-errors.ts';
-import { readRunSource } from './run-source.ts';
+import { isActiveRun, readRunSource } from './run-source.ts';
 
 const reportingSources = new Set(['dream', 'heartbeat']);
 
@@ -32,6 +32,12 @@ export async function fileHeartbeatReport(
     const dedupeKey = heartbeatReportDedupeKey(runner.runId);
     await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
+        if (!(await isActiveRun(tx, runner))) {
+            throw new HeartbeatRefusedError(
+                'HEARTBEAT_RUN_REQUIRED',
+                'haus heartbeat report works only in a heartbeat run.'
+            );
+        }
         const [existing] = await tx
             .select({ id: agentInboxTable.id })
             .from(agentInboxTable)

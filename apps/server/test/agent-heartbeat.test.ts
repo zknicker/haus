@@ -95,6 +95,18 @@ test('concrete work already waiting skips a daytime run', async () => {
     expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(false);
 });
 
+test('a queued DM the Computer has not started yet skips a daytime run', async () => {
+    const seed = await seedAgent(connection.db);
+    // Computer offline: the addressed message waits in the inbox with no active run.
+    const { delivery } = offlineDelivery(connection.db, seed);
+    await deliverHuman(connection.db, delivery, seed, {
+        addressedReason: 'dm',
+        chatId: seed.dmChatId,
+    });
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(false);
+    expect(await rows(seed, 'heartbeat')).toEqual([]);
+});
+
 test('a daytime run that cannot start in half an hour is retired, never led', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, transport, wake } = offlineDelivery(connection.db, seed);

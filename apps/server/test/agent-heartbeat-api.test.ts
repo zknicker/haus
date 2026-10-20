@@ -80,8 +80,37 @@ async function startRun(runId: string, source: string) {
         values (${fixture.serverId}, ${fixture.orbitAgentId}, ${runId}, ${source},
             ${`work:${runId}`}, ${source === 'human' ? fixture.channelId : null})
     `;
+    await setActiveRun(runId);
     return await mintOnly(runId);
 }
+
+async function setActiveRun(runId: string | null) {
+    await fixture.harness.sql`
+        insert into agent_delivery (agent_id, server_id, active_run_id, active_run_computer_id,
+            active_run_runtime_id, active_run_model_id, active_run_reasoning_effort)
+        values (${fixture.orbitAgentId}, ${fixture.serverId}, ${runId},
+            ${runId ? fixture.computerId : null}, ${runId ? 'codex' : null},
+            ${runId ? 'gpt-5.6-sol' : null}, ${runId ? 'default' : null})
+        on conflict (agent_id) do update set
+            active_run_id = excluded.active_run_id,
+            active_run_computer_id = excluded.active_run_computer_id,
+            active_run_runtime_id = excluded.active_run_runtime_id,
+            active_run_model_id = excluded.active_run_model_id,
+            active_run_reasoning_effort = excluded.active_run_reasoning_effort
+    `;
+}
+
+test('a run that lost its slot (yielded or stopped) can no longer report or learn', async () => {
+    const heartbeat = await startRun('run_hbgone_day00001', 'heartbeat');
+    const nightly = await startRun('run_hbgone_night0001', 'dream');
+    await setActiveRun(null);
+    const report = await call('POST', '/api/agent/heartbeat/report', heartbeat, { text: 'late' });
+    expect(report.status).toBe(403);
+    expect(report.body).toMatchObject({ code: 'HEARTBEAT_RUN_REQUIRED' });
+    const learned = await call('POST', '/api/agent/heartbeat/learned', nightly, { text: 'late' });
+    expect(learned.status).toBe(403);
+    expect(learned.body).toMatchObject({ code: 'DREAM_RUN_REQUIRED' });
+});
 
 async function mintOnly(runId: string, agentId = fixture.orbitAgentId) {
     return await fixture.mintRunner(runId, agentId, undefined, false);

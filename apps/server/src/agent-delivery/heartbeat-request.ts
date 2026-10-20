@@ -8,6 +8,7 @@ import type { AgentDelivery } from './delivery.ts';
 import { readAgentDispatchConfig } from './dispatch-config.ts';
 import { dreamDedupeKey, heartbeatDedupeKey } from './heartbeat-keys.ts';
 import { isHeartbeatUsagePaused } from './heartbeat-usage-pause.ts';
+import { hasQueuedAddressedMessage } from './heartbeat-yield.ts';
 import * as store from './store.ts';
 
 type Decision =
@@ -120,7 +121,8 @@ async function decide(
     }
     const busy =
         Boolean(state?.activeRunId) ||
-        (await store.listQueuedConcreteItems(tx, agentId, 1)).length > 0;
+        (await store.listQueuedConcreteItems(tx, agentId, 1)).length > 0 ||
+        (await hasQueuedAddressedMessage(tx, agentId));
     return busy ? { outcome: 'skipped', reason: 'busy' } : { outcome: 'queued' };
 }
 

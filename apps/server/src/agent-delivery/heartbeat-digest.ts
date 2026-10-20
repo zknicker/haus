@@ -6,7 +6,7 @@ import {
 import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { targetForChat } from '../agent-api/message-view.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentRunTriggersTable } from '../postgres/schema.ts';
+import { agentRunTriggersTable, agentTurnsTable } from '../postgres/schema.ts';
 
 export type HeartbeatKind = AgentHeartbeatAttention['kind'];
 export type HeartbeatDigest = AgentHeartbeatAttention['digest'];
@@ -38,12 +38,21 @@ export async function readHeartbeatSince(
     const [row] = await db
         .select({ at: agentRunTriggersTable.createdAt })
         .from(agentRunTriggersTable)
+        .innerJoin(
+            agentTurnsTable,
+            and(
+                eq(agentTurnsTable.serverId, agentRunTriggersTable.serverId),
+                eq(agentTurnsTable.agentId, agentRunTriggersTable.agentId),
+                eq(agentTurnsTable.runId, agentRunTriggersTable.runId)
+            )
+        )
         .where(
             and(
                 eq(agentRunTriggersTable.serverId, input.serverId),
                 eq(agentRunTriggersTable.agentId, input.agentId),
                 inArray(agentRunTriggersTable.source, sources),
-                ne(agentRunTriggersTable.runId, input.runId)
+                ne(agentRunTriggersTable.runId, input.runId),
+                eq(agentTurnsTable.status, 'completed')
             )
         )
         .orderBy(desc(agentRunTriggersTable.createdAt))
@@ -60,6 +69,7 @@ interface ChatRow {
     name: string | null;
     parentKind: 'channel' | 'dm' | null;
     parentName: string | null;
+    total: number;
 }
 
 interface SpeakerRow {
@@ -79,14 +89,7 @@ export async function buildHeartbeatDigest(
     input: { agentId: string; serverId: string; since: Date | null; until: Date }
 ): Promise<HeartbeatDigest> {
     const cutoff = input.since ?? new Date(input.until.getTime() - firstRunLookbackMs);
-    const chats = (await readChats(db, input, cutoff))
-        .filter((chat) => chat.messageCount > 0)
-        .sort(
-            (a, b) =>
-                Number(b.addressed) - Number(a.addressed) ||
-                b.messageCount - a.messageCount ||
-                a.chatId.localeCompare(b.chatId)
-        );
+    const chats = await readChats(db, input, cutoff);
     const shown = chats.slice(0, heartbeatDigestEntryLimit);
     const speakers = await readSpeakers(
         db,
@@ -113,7 +116,7 @@ export async function buildHeartbeatDigest(
             title: titleOf(chat),
         });
     }
-    return { entries, more: Math.max(0, chats.length - shown.length) };
+    return { entries, more: Math.max(0, (chats[0]?.total ?? 0) - shown.length) };
 }
 
 async function readChats(
@@ -150,8 +153,8 @@ async function readChats(
                         and thread.kind = 'thread'
                   )
               )
-            limit ${candidateChatLimit}
-        )
+        ),
+        stats as (
         select
             exists (
                 select 1 from agent_inbox item
@@ -186,6 +189,12 @@ async function readChats(
         where chat.server_id = ${serverId}
           and chat.deleted_at is null
           and chat.id in (select chat_id from mine)
+        )
+        select stats.*, (count(*) over ())::int as "total"
+        from stats
+        where stats."messageCount" > 0
+        order by stats."addressed" desc, stats."messageCount" desc, stats."chatId"
+        limit ${candidateChatLimit}
     `)) as ChatRow[];
 }
 

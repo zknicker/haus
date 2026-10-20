@@ -7,7 +7,7 @@ import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { ReferenceMarkdown } from '../../mentions/reference-markdown.tsx';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 import { chatPlace } from '../../shell/tab-identity.ts';
-import { formatFollowUpWhen } from './dream-summary-model.ts';
+import { dreamSummaryMarkdown, formatFollowUpWhen } from './dream-summary-model.ts';
 
 /** What the Agent wrote about the night, in its own voice, rendered as the App renders agent text. */
 export function DreamSummaryGroup({ summary }: { summary: string }) {
@@ -16,12 +16,16 @@ export function DreamSummaryGroup({ summary }: { summary: string }) {
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>What I learned</ItemCardGroup.Title>
             </ItemCardGroup.Header>
-            <div data-selectable-text="">
-                <ReferenceMarkdown
-                    className="chat-markdown text-foreground text-sm"
-                    content={summary}
-                />
-            </div>
+            <ItemCardGroup>
+                <ItemCard>
+                    <ItemCard.Content data-selectable-text="">
+                        <ReferenceMarkdown
+                            className="chat-markdown text-foreground text-sm"
+                            content={dreamSummaryMarkdown(summary)}
+                        />
+                    </ItemCard.Content>
+                </ItemCard>
+            </ItemCardGroup>
         </ItemCardGroup>
     );
 }

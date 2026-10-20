@@ -160,13 +160,14 @@ Once per night, also:
    reminder anchored to the original message, around 09:00 in the requester's timezone (look it
    up; do not infer it). Its description says what was promised, because the fire does not show
    the anchor message. Post nothing now.
-10. **Write the summary** with `haus heartbeat learned`: a few lines of what you learned, in your
-    own voice, naming who taught you each lesson, and noting any correction you had acknowledged
-    but not saved.
+10. **Write the summary** with `haus heartbeat learned` (body on stdin): 2–4 `- ` lines, one
+    lesson each, first person, each naming who taught it. Compare the day's corrections with what
+    MEMORY.md held when the run started; a correction acknowledged in chat but not already saved
+    is called out on its line as acknowledged but not saved until now.
 
 ## Outputs
 
-- **Report.** `haus heartbeat report "<text>"` queues one chatless `heartbeat_report` inbox item for the
+- **Report.** `haus heartbeat report` (text on stdin, quoted heredoc as in `haus message send`) queues one chatless `heartbeat_report` inbox item for the
   Agent, delivered after the heartbeat run settles like any concrete item. Its envelope says it is
   the Agent's own heartbeat report and that the Agent decides whether to post. Between 22:00 and
   08:00 the main session holds findings and schedules a morning reminder instead of posting.
@@ -178,7 +179,7 @@ Once per night, also:
   with who holds it. `haus lead list` shows the team's leads from the last 7 days with each
   holder's one-line finding; `haus lead done --id <id> --finding "<text>"` records it. Rows expire
   after 14 days.
-- **Summary.** `haus heartbeat learned "<text>"` (nightly run only) is stored on the run's
+- **Summary.** `haus heartbeat learned` (text on stdin; nightly run only) is stored on the run's
   `agent_dreams` row as `summary`, with the follow-up reminder ids scheduled during the run.
 - **Memory diffs.** Unchanged: the nightly run's snapshot and diff record exactly as dreams do
   today.
@@ -264,7 +265,8 @@ Shared by every implementation slice; `packages/haus-api` owns the schemas.
   - `POST /api/agent/heartbeat/learned { text }`: only from a `dream` run; stored by run id.
   - `POST /api/agent/leads { topic, messageId? }` claim; `GET /api/agent/leads` list (last 7
     days); `POST /api/agent/leads/:id/done { finding }`.
-- **CLI.** `haus heartbeat report --text`, `haus heartbeat learned --text`,
+- **CLI.** `haus heartbeat report` and `haus heartbeat learned` (text from stdin only; `--text` and
+  positional text are refused like `--content` on `haus message send`),
   `haus lead claim --topic [--message-id]`, `haus lead list`, `haus lead done --id --finding`.
 - **Dream reads.** `agentDreamSummarySchema` and detail gain `summary: string | null` and
   `followUps: { reminderId, title, anchorChatId, fireAt }[]` (reminders the Agent created during

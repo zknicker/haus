@@ -14,8 +14,9 @@ test('heartbeat is a query-tier technique recipe', () => {
 
 test('teaches the wire commands', () => {
     expect(body).toContain('haus message read --target <t> --after <seq>');
-    expect(body).toContain('haus heartbeat report --text');
-    expect(body).toContain('haus heartbeat learned --text');
+    expect(body).toContain("haus heartbeat report <<'HAUSMSG'");
+    expect(body).toContain("haus heartbeat learned <<'HAUSMSG'");
+    expect(body).not.toContain('--text');
     expect(body).toContain('haus lead claim --topic');
     expect(body).toContain('haus lead list');
     expect(body).toContain('haus lead done --id <id> --finding');
@@ -36,6 +37,8 @@ test('nightly reflects with evidence and follows up promises', () => {
     expect(body).toContain('One remark is one data point');
     expect(body).toContain('Look the timezone up; do not infer it');
     expect(body).toContain('The description says what was promised');
-    expect(body).toContain('naming who taught you each lesson');
+    expect(body).toContain('each naming who taught it');
+    expect(body).toContain('what MEMORY.md held when the run started');
+    expect(body).toContain('acknowledged but not saved until now');
     expect(body).toContain('recipes/technique/memory-hygiene');
 });

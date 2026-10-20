@@ -16,17 +16,15 @@ interface HeartbeatDeps {
     write(text: string): void;
 }
 
-const TEXT_FLAG = {
-    description: 'The text. Omit it to pipe the text on stdin.',
-    name: '--text',
-    valueName: '<text>',
-};
+const TEXT_FLAG = { description: 'Unsupported; the text uses stdin', name: '--text' };
+
+const REPORT_RECIPE = `haus heartbeat report <<'HAUSMSG'\nThe Etsy shop has 3 new reviews, one 2-star about shipping. Worth a look today.\nHAUSMSG`;
+const LEARNED_RECIPE = `haus heartbeat learned <<'HAUSMSG'\n- I saved Priya's release-note tone correction; I had said "got it" and had not saved it.\nHAUSMSG`;
 
 export const HEARTBEAT_SUBCOMMANDS: SubCommand[] = [
     {
-        examples: [
-            'haus heartbeat report --text "The Etsy shop has 3 new reviews, one 2-star about shipping. Worth a look today."',
-        ],
+        allowExtraPositionals: true,
+        examples: [REPORT_RECIPE],
         flags: [TEXT_FLAG],
         name: 'report',
         notes: [
@@ -34,25 +32,28 @@ export const HEARTBEAT_SUBCOMMANDS: SubCommand[] = [
         ],
         positionals: [],
         run: (args) => runHeartbeatReport(args, defaultDeps()),
-        summary: 'Send this heartbeat run its one report to your main session',
-        usage: 'haus heartbeat report [--text <text>]',
+        summary: 'Send this heartbeat run its one report, read only from stdin',
+        usage: 'haus heartbeat report',
     },
     {
-        examples: [
-            'haus heartbeat learned --text "Priya corrected my release-note tone; I had said I would save it and had not."',
-        ],
+        allowExtraPositionals: true,
+        examples: [LEARNED_RECIPE],
         flags: [TEXT_FLAG],
         name: 'learned',
-        notes: ['Nightly heartbeat only. A few lines in your own voice; it is stored on the run.'],
+        notes: [
+            'Nightly heartbeat only. A few bullet lines in your own voice; it is stored on the run.',
+        ],
         positionals: [],
         run: (args) => runHeartbeatLearned(args, defaultDeps()),
-        summary: 'Record what you learned today (nightly heartbeat)',
-        usage: 'haus heartbeat learned [--text <text>]',
+        summary: 'Record what you learned today, read only from stdin (nightly heartbeat)',
+        usage: 'haus heartbeat learned',
     },
 ];
 
 export async function runHeartbeatReport(args: ParsedArgs, deps: HeartbeatDeps): Promise<number> {
-    const input = heartbeatReportInputSchema.safeParse({ text: await textOf(args, deps) });
+    const input = heartbeatReportInputSchema.safeParse({
+        text: await textOf(args, deps, REPORT_RECIPE),
+    });
     if (!input.success) {
         throw new AgentCliError('INVALID_ARG', 'The report must be 1–4000 characters.');
     }
@@ -65,7 +66,9 @@ export async function runHeartbeatReport(args: ParsedArgs, deps: HeartbeatDeps):
 }
 
 export async function runHeartbeatLearned(args: ParsedArgs, deps: HeartbeatDeps): Promise<number> {
-    const input = heartbeatLearnedInputSchema.safeParse({ text: await textOf(args, deps) });
+    const input = heartbeatLearnedInputSchema.safeParse({
+        text: await textOf(args, deps, LEARNED_RECIPE),
+    });
     if (!input.success) {
         throw new AgentCliError('INVALID_ARG', 'The summary must be 1–2000 characters.');
     }
@@ -77,15 +80,26 @@ export async function runHeartbeatLearned(args: ParsedArgs, deps: HeartbeatDeps)
     return 0;
 }
 
-async function textOf(args: ParsedArgs, deps: HeartbeatDeps): Promise<string> {
-    const flag = args.values['--text'];
-    const text = (flag ?? (await deps.readStdin())).trim();
+async function textOf(args: ParsedArgs, deps: HeartbeatDeps, recipe: string): Promise<string> {
+    if (args.flags['--text'] || args.values['--text'] !== undefined) {
+        throw bodyError('TEXT_FLAG_UNSUPPORTED', '--text is not supported.', recipe);
+    }
+    if (args.positionals.length > 0) {
+        throw bodyError(
+            'POSITIONAL_CONTENT_UNSUPPORTED',
+            'Positional text is not supported.',
+            recipe
+        );
+    }
+    const text = (await deps.readStdin()).trim();
     if (!text) {
-        throw new AgentCliError('MISSING_CONTENT', '--text is required.', {
-            nextAction: 'Pass --text "<text>" or pipe the text on stdin.',
-        });
+        throw bodyError('MISSING_CONTENT', 'Text is required on stdin.', recipe);
     }
     return text;
+}
+
+function bodyError(code: string, message: string, recipe: string): AgentCliError {
+    return new AgentCliError(code, message, { nextAction: recipe });
 }
 
 function defaultDeps(): HeartbeatDeps {

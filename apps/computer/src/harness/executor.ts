@@ -305,9 +305,6 @@ async function executeHarnessTurn(
             }),
             session: live,
         });
-        if (quietNote) {
-            await clearQuietRunNote(input.agentRoot);
-        }
         const primaryNotice = prompt.notice;
         const deliverNotice = createNoticeDelivery(live, input, primaryNotice);
         const noticeCoordinator = createNoticeCoordinator(deliverNotice);
@@ -417,6 +414,9 @@ async function executeHarnessTurn(
         }
         if (skillNotice) {
             await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
+        }
+        if (quietNote) {
+            await clearQuietRunNote(input.agentRoot);
         }
         await input.activity.finish(instructionActivityKey, 'completed');
         return observation;

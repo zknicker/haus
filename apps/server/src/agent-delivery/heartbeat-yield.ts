@@ -87,12 +87,17 @@ async function isDaytimeHeartbeat(tx: HausDatabase, state: store.AgentDeliveryRo
 
 /** A queued Chat message that names the Agent: a DM, a mention, or a reply to it. */
 async function hasWaitingAddressed(tx: HausDatabase, state: store.AgentDeliveryRow) {
+    return hasQueuedAddressedMessage(tx, state.agentId);
+}
+
+/** Shared with the daytime heartbeat busy check so both agree on "someone is waiting". */
+export async function hasQueuedAddressedMessage(tx: HausDatabase, agentId: string) {
     const [row] = await tx
         .select({ id: agentInboxTable.id })
         .from(agentInboxTable)
         .where(
             and(
-                store.queuedFor(state.agentId),
+                store.queuedFor(agentId),
                 isNotNull(agentInboxTable.chatId),
                 or(isNotNull(agentInboxTable.addressedReason), eq(agentInboxTable.mentioned, true))
             )
