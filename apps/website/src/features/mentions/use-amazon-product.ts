@@ -1,7 +1,7 @@
-import { type AmazonProductIdentity, rankWranglerMcpUrl } from '@haus/api';
+import type { AmazonProductIdentity } from '@haus/api';
 import { useQuery } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
-import { useConnections } from '../../hooks/servers/use-connections.ts';
+import type { RenderedChipAvailability } from '../../hooks/servers/use-connection-chip.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import {
@@ -22,14 +22,11 @@ const unbatched = { context: { skipBatch: true } };
 export function useAmazonProduct(
     serverId: string,
     product: AmazonProductIdentity,
+    chip: RenderedChipAvailability,
     previewOpen: boolean
 ): AmazonProductLookup {
     const utils = hausTrpc.useUtils();
-    const connections = useConnections(serverId);
-    const connected =
-        connections.data?.some(
-            (connection) => connection.connected && connection.url === rankWranglerMcpUrl
-        ) ?? false;
+    const connected = chip === 'available';
     const input = { serverId, ...product };
     const summary = useQuery({
         ...queryPolicy.localConfig,
@@ -59,14 +56,11 @@ export function useAmazonProduct(
         enabled: previewOpen && found !== undefined,
         trpc: unbatched,
     });
-    if (connections.isError) {
+    if (chip === 'error') {
         return { status: 'temporarilyUnavailable' };
     }
-    if (!connections.data) {
+    if (chip === 'loading') {
         return { status: 'loading' };
-    }
-    if (!connected || summary.data === null) {
-        return { status: 'disconnected' };
     }
     const state = amazonProductLookupState(summary);
     if (state.status !== 'found') {

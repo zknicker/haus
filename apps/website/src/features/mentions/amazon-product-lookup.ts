@@ -9,14 +9,13 @@ export type SettledAmazonProduct = Exclude<
 /**
  * The chip renders in every state; only its label, image, and hover copy change.
  * `retrying` and `temporarilyUnavailable` are transient upstream problems;
- * `unavailable` is final.
+ * `unavailable` is final. A Server without RankWrangler renders no chip at all.
  */
 export type AmazonProductLookup =
     | { status: 'loading' }
     | { status: 'retrying' }
     | { status: 'temporarilyUnavailable' }
     | { status: 'unavailable' }
-    | { status: 'disconnected' }
     | {
           status: 'ready';
           /** `price` arrives with the detail read when the preview opens. */
@@ -33,19 +32,20 @@ export interface AmazonProductQueryState {
 }
 
 /**
- * Settled data wins. Without it, a lookup that ever gave up stays
+ * Settled data wins; a Server that lost its RankWrangler connection settles
+ * `null`, which reads as unavailable. Without data, a lookup that ever gave up stays
  * `temporarilyUnavailable` through later refetches, so the hover card never
  * falls back to bare loading copy after explaining a problem.
  */
 export function amazonProductLookupState(
     summary: AmazonProductQueryState
 ):
-    | Exclude<AmazonProductLookup, { status: 'ready' | 'disconnected' }>
+    | Exclude<AmazonProductLookup, { status: 'ready' }>
     | { status: 'found'; product: AmazonProductSummary } {
     if (summary.data?.status === 'found') {
         return summary.data;
     }
-    if (summary.data?.status === 'unavailable') {
+    if (summary.data === null || summary.data?.status === 'unavailable') {
         return { status: 'unavailable' };
     }
     if (summary.errorUpdateCount > 0) {
