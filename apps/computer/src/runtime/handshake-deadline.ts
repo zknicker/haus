@@ -10,9 +10,9 @@ export class RuntimeHandshakeTimeoutError extends Error {
 }
 
 export interface HandshakeDeadline {
+    clear(): void;
     /** Aborts on the caller's cancellation or when the handshake runs out of time. */
     readonly signal: AbortSignal;
-    clear(): void;
 }
 
 /**

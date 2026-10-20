@@ -1,8 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { JsonRpcConnection } from '../json-rpc-connection.ts';
 import { LineDecoder } from '../line-decoder.ts';
-import { isSystemErrorCode } from '../process-group-liveness.ts';
 import { ownProcessGroup } from '../process-group.ts';
+import { isSystemErrorCode } from '../process-group-liveness.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 
 /** One frame on the ACP wire, for fixture capture. */

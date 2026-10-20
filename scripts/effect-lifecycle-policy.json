@@ -980,7 +980,7 @@
     },
     "apps/computer/src/harness/turn-notices.ts": {
       "disposition": "finite-cleanup",
-      "reason": "One resolver per turn says the stored notice reached delivery; the executor always awaits close(), which unregisters the notice sink, closes the coordinator, and awaits the stored delivery.",
+      "reason": "One resolver per turn says the stored notice reached delivery; the executor always awaits close(), which unregisters the notice sink, closes the coordinator, and awaits the stored delivery and every steer still in flight.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -1000,9 +1000,42 @@
         "timer": 0
       }
     },
+    "apps/computer/src/runtime/process-group.ts": {
+      "disposition": "external-adapter",
+      "reason": "Ends a foreign runtime child's whole process group: SIGTERM then SIGKILL grace periods whose timers clear in finally, a bounded liveness poll, and a registry entry held until no member is left; a failed termination resets so Computer shutdown retries it.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/handshake-deadline.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One controller per runtime handshake, aborted by the caller's signal or a timeout; every caller clears the timer and the parent listener in finally.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/testing/process-group-testing.ts": {
+      "disposition": "test-support",
+      "reason": "A test process registry resolves one promise when its last registered stop is removed.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
     "apps/computer/src/runtime/warm-pool.ts": {
       "disposition": "external-adapter",
-      "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, cleared whenever the entry leaves the pool (claim, evict, exit, close); idle-close failures go to the daemon logger through onCloseError.",
+      "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -1046,7 +1079,7 @@
     },
     "apps/computer/src/runtime/claude-code/claude-process.ts": {
       "disposition": "external-adapter",
-      "reason": "The foreign claude child's exit promise settles on close, error, or an unref'd post-exit grace timer; its group stop joins the Computer process registry and leaves it on exit.",
+      "reason": "The foreign claude child's exit promise settles on close, error, or an unref'd post-exit grace timer; its process group is owned by process-group.ts, which stays in the Computer process registry until the group is gone.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -1057,13 +1090,24 @@
     },
     "apps/computer/src/runtime/claude-code/claude-turn.ts": {
       "disposition": "external-adapter",
-      "reason": "One turn on the foreign claude process: its settle resolver and steer acknowledgements end with the turn, the steer-ack timeout clears in finally, and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
+      "reason": "One turn on the foreign claude process: its settle resolver and steer acknowledgements end with the turn (the receipt timeout lives in claude-steer-receipt.ts), and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 1,
-        "finallyBlock": 2,
-        "manualPromise": 3,
-        "timer": 3
+        "finallyBlock": 1,
+        "manualPromise": 2,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-steer-receipt.ts": {
+      "disposition": "external-adapter",
+      "reason": "Races one written steer's lifecycle receipt from the foreign claude process against a timeout whose timer clears in finally; the receipt promise itself is owned by the turn.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 2
       }
     },
     "apps/computer/src/runtime/event-queue.ts": {
@@ -1123,13 +1167,24 @@
     },
     "apps/computer/src/runtime/codex/codex-transport.ts": {
       "disposition": "external-adapter",
-      "reason": "The foreign app-server's exit promise settles on close or spawn error; termination waits SIGTERM then SIGKILL grace periods whose timers clear in finally.",
+      "reason": "The foreign app-server's exit promise settles on close or spawn error; its whole process group is terminated through process-group.ts, also after the leader exits on its own.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 2,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/codex-driver.ts": {
+      "disposition": "external-adapter",
+      "reason": "Opens one foreign app-server per session; the handshake deadline clears in finally, and a failed open releases the process and its host-tool scope before rethrowing.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
         "finallyBlock": 1,
-        "manualPromise": 3,
-        "timer": 2
+        "manualPromise": 0,
+        "timer": 0
       }
     },
     "apps/computer/src/runtime/codex/fixtures/capture-fixtures.ts": {
@@ -1255,7 +1310,7 @@
     },
     "apps/computer/src/runtime/grok/grok-process.ts": {
       "disposition": "external-adapter",
-      "reason": "The foreign grok child's exit promise settles on close or spawn error; group termination waits grace periods whose timers clear in finally, and its stop joins and leaves the Computer process registry.",
+      "reason": "The foreign grok child's exit promise settles on close or spawn error; a failed write waits a grace period whose timer clears in finally, and its process group is owned by process-group.ts until no member is left.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,

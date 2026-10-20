@@ -171,9 +171,9 @@ test('retiring Pi moves its Agents to the default runtime their Computer reports
                 reason: 'configuration',
             },
         ]);
-        expect(
-            await database`SELECT agent_id FROM agent_message_drafts ORDER BY agent_id`
-        ).toEqual([{ agent_id: 'agt_codex' }, { agent_id: 'agt_grok' }]);
+        expect(await database`SELECT agent_id FROM agent_message_drafts ORDER BY agent_id`).toEqual(
+            [{ agent_id: 'agt_codex' }, { agent_id: 'agt_grok' }]
+        );
         // A runtime change is a human fix attempt: it lifts failure holds and wake pauses.
         expect(
             await database`SELECT agent_id, consecutive_failures, paused_at, retry_after,

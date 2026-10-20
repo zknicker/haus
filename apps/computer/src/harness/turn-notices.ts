@@ -54,20 +54,26 @@ export function openTurnNotices(
         () => ready.resolve()
     );
     let closing: Promise<void> | null = null;
+    /** Stops new deliveries and waits out every steer still awaiting the runtime's answer. */
+    const close = () => {
+        closing ??= (async () => {
+            unregister?.();
+            coordinator.close();
+            await storedDelivery;
+            // Each delivery's caller handles its failure; here only its settling matters.
+            await Promise.allSettled([...inFlight]);
+        })();
+        return closing;
+    };
     return {
-        /** Stops new deliveries and waits out every steer still awaiting the runtime's answer. */
-        close() {
-            closing ??= (async () => {
-                unregister?.();
-                coordinator.close();
-                await storedDelivery;
-                // Each delivery's caller handles its failure; here only its settling matters.
-                await Promise.allSettled([...inFlight]);
-            })();
-            return closing;
-        },
+        close,
         coordinator,
         ready: ready.promise,
+        /** Closes first, so every in-flight steer resolves before unconsumed ones are read. */
+        async returnUnconsumed(turn: Pick<RuntimeTurn, 'unconsumedSteers'>) {
+            await close();
+            await returnUnconsumedNotices(turn, input);
+        },
     };
 }
 

@@ -6,18 +6,13 @@ import type { ClaudeConnection, TurnSink } from './claude-connection.ts';
 import { ClaudeProcessExitError, ClaudeTurnError, claudeResumeRejection } from './claude-errors.ts';
 import type { ClaudeCommandLifecycle, ClaudeResult, ParsedClaudeLine } from './claude-messages.ts';
 import { readClaudePlanUsage } from './claude-plan-usage.ts';
+import type { ClaudeExit } from './claude-process.ts';
+import { addUsage, classifyResult, claudeTokenUsage, isFatalTurnEvent } from './claude-result.ts';
 import {
     awaitSteerReceipt,
     SteerReceiptTimeoutError,
     steerReceiptMs,
 } from './claude-steer-receipt.ts';
-import type { ClaudeExit } from './claude-process.ts';
-import {
-    addUsage,
-    classifyResult,
-    claudeTokenUsage,
-    isFatalTurnEvent,
-} from './claude-result.ts';
 
 /** How long an interrupted turn may take to reach its result before the process is killed. */
 const interruptGraceMs = 5000;

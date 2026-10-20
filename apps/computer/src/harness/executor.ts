@@ -297,9 +297,7 @@ async function executeHarnessTurn(
             }
         } catch (error) {
             await projector.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
-            // Every in-flight steer resolves before the unconsumed ones are read back.
-            await notices.close();
-            await returnUnconsumedNotices(turn, input);
+            await notices.returnUnconsumed(turn);
             // Claude Code only discovers a missing conversation once prompted.
             throw live.isResume && isRuntimeResumeRejection(error)
                 ? new AgentSessionResumeRejectedError(input.agentId, { cause: error })

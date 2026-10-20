@@ -31,9 +31,9 @@ export interface OpenAppServerInput {
     readonly facts: CodexLaunchFacts;
     readonly hostTools: HostToolSession;
     readonly resumeThreadId: string | undefined;
-    readonly transport: CodexTransport;
     /** Cancels the handshake; the caller ends the process when the open fails. */
     readonly signal?: AbortSignal;
+    readonly transport: CodexTransport;
 }
 
 /** Bounds the wait for the host-tool MCP server before the first turn starts without it. */

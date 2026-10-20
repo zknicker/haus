@@ -2,15 +2,15 @@ import { isProcessGroupAlive, isSystemErrorCode } from './process-group-liveness
 import type { RuntimeProcessRegistry } from './process-registry.ts';
 
 export interface ProcessGroupOwnership {
-    /** A detached child's pid, which is also its process group id. */
-    readonly pid: number | undefined;
     /** Settles once the group leader exited. */
     readonly exited: Promise<unknown>;
+    readonly graceMs?: number;
     /** Names the runtime in a termination failure. */
     readonly label: string;
+    /** A detached child's pid, which is also its process group id. */
+    readonly pid: number | undefined;
     /** Ties the group to Computer shutdown until it is gone. */
     readonly processes?: RuntimeProcessRegistry;
-    readonly graceMs?: number;
 }
 
 const DEFAULT_GRACE_MS = 2000;
