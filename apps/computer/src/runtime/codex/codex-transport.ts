@@ -1,5 +1,6 @@
-import { type ChildProcess, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { LineDecoder } from '../line-decoder.ts';
+import { ownProcessGroup } from '../process-group.ts';
 
 /** How the app-server ended: an exit code, or the signal that killed it. */
 export interface CodexExit {
@@ -77,9 +78,18 @@ export function spawnCodexProcess(launch: CodexProcessLaunch): CodexTransport {
     });
     // A write after exit fails through `exited`; the stream error itself carries nothing more.
     child.stdin?.on('error', () => undefined);
+    const terminate = ownProcessGroup({
+        exited,
+        graceMs: TERMINATION_GRACE_MS,
+        label: 'The Codex app-server',
+        pid: child.pid,
+    });
     return {
         exited,
-        kill: () => terminate(child, exited),
+        kill: () => {
+            child.stdin?.end();
+            return terminate();
+        },
         onLine(listener) {
             listeners.push(listener);
         },
@@ -97,45 +107,3 @@ export function spawnCodexProcess(launch: CodexProcessLaunch): CodexTransport {
     };
 }
 
-async function terminate(child: ChildProcess, exited: Promise<CodexExit>): Promise<void> {
-    if (child.exitCode !== null || child.signalCode !== null) {
-        signalGroup(child, 'SIGKILL');
-        return;
-    }
-    child.stdin?.end();
-    signalGroup(child, 'SIGTERM');
-    if (await settlesWithin(exited, TERMINATION_GRACE_MS)) {
-        signalGroup(child, 'SIGKILL');
-        return;
-    }
-    signalGroup(child, 'SIGKILL');
-    if (!(await settlesWithin(exited, TERMINATION_GRACE_MS))) {
-        throw new Error(`The Codex app-server (pid ${child.pid}) did not exit.`);
-    }
-}
-
-/** Signals the whole process group; a group already gone is the outcome we wanted. */
-function signalGroup(child: ChildProcess, signal: NodeJS.Signals) {
-    if (child.pid === undefined) {
-        return;
-    }
-    try {
-        process.kill(process.platform === 'win32' ? child.pid : -child.pid, signal);
-    } catch (error) {
-        if (!(error instanceof Error && 'code' in error && error.code === 'ESRCH')) {
-            throw error;
-        }
-    }
-}
-
-async function settlesWithin(promise: Promise<unknown>, ms: number): Promise<boolean> {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<false>((resolve) => {
-        timer = setTimeout(() => resolve(false), ms);
-    });
-    try {
-        return await Promise.race([promise.then(() => true as const), timeout]);
-    } finally {
-        clearTimeout(timer);
-    }
-}

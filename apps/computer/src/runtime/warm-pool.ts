@@ -128,9 +128,14 @@ export class WarmProcessPool {
         return entry;
     }
 
+    /**
+     * A parked process that exited on its own still owes its cleanup: `close` ends the
+     * descendants its process group left behind and revokes its host-tool scope.
+     */
     private forget(key: string, process: WarmProcess) {
         if (this.parked.get(key)?.process === process) {
             this.take(key);
+            process.close().catch(this.options.onCloseError);
         }
     }
 

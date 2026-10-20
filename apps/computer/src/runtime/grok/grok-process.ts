@@ -2,6 +2,7 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { JsonRpcConnection } from '../json-rpc-connection.ts';
 import { LineDecoder } from '../line-decoder.ts';
 import { isSystemErrorCode } from '../process-group-liveness.ts';
+import { ownProcessGroup } from '../process-group.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 
 /** One frame on the ACP wire, for fixture capture. */
@@ -32,7 +33,7 @@ export interface GrokProcess {
     readonly pid: number | undefined;
     /** The last stderr lines, for failure messages. */
     stderrTail(): string;
-    /** SIGTERM to the group, then SIGKILL; resolves once the child exited. */
+    /** SIGTERM to the group, then SIGKILL; resolves once every group member exited. */
     terminate(): Promise<void>;
 }
 
@@ -66,13 +67,12 @@ export function spawnGrokProcess(options: GrokProcessOptions): GrokProcess {
     const exited = watchExit(child, connection, stderr);
     pipeStdout(child, connection, options);
     pipeStderr(child, stderr, options);
-    let terminating: Promise<void> | null = null;
-    const terminate = () => {
-        terminating ??= terminateGroup(child, exited);
-        return terminating;
-    };
-    owner?.add(terminate);
-    void exited.then(() => owner?.remove(terminate));
+    const terminate = ownProcessGroup({
+        exited,
+        label: 'Grok',
+        pid: child.pid,
+        processes: owner,
+    });
     return {
         connection,
         exited,
@@ -164,34 +164,6 @@ function watchExit(
             resolve({ code, signal });
         });
     });
-}
-
-async function terminateGroup(child: ChildProcessWithoutNullStreams, exited: Promise<GrokExit>) {
-    if (child.exitCode !== null || child.signalCode !== null || child.pid === undefined) {
-        return;
-    }
-    signalGroup(child, 'SIGTERM');
-    if (await exitsWithin(exited, TERMINATE_GRACE_MS)) {
-        return;
-    }
-    signalGroup(child, 'SIGKILL');
-    if (!(await exitsWithin(exited, TERMINATE_GRACE_MS))) {
-        throw new Error(`Grok process ${child.pid} did not terminate.`);
-    }
-}
-
-function signalGroup(child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals) {
-    try {
-        if (process.platform === 'win32' || child.pid === undefined) {
-            child.kill(signal);
-            return;
-        }
-        process.kill(-child.pid, signal);
-    } catch (error) {
-        if (!isSystemErrorCode(error, 'ESRCH')) {
-            throw error;
-        }
-    }
 }
 
 async function exitsWithin(exited: Promise<GrokExit>, ms: number): Promise<boolean> {

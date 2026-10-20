@@ -93,10 +93,12 @@ async function openCodexSession(
     options.processes?.add(stop);
     let released: Promise<void> | null = null;
     const release = () => {
-        released ??= transport.kill().finally(() => {
-            hostTools.close();
-            options.processes?.remove(stop);
-        });
+        // The bearer scope dies with the process, even when its group outlives the kill; the
+        // registry keeps a group that did not end, so Computer shutdown retries it.
+        released ??= transport
+            .kill()
+            .finally(() => hostTools.close())
+            .then(() => options.processes?.remove(stop));
         return released;
     };
     const hooks: CodexSessionHooks = {

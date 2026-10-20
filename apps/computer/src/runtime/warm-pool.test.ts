@@ -63,13 +63,15 @@ test('one process per Agent: parking a second closes the first', async () => {
     expect(warm.size).toBe(1);
 });
 
-test('a process that exits while parked leaves the pool', async () => {
+test('a process that exits while parked leaves the pool and is still closed', async () => {
     const warm = pool();
     const process = new FakeProcess();
     await warm.park('agent-a', identity, process);
     process.exit();
     await Bun.sleep(0);
     expect(warm.size).toBe(0);
+    // Its close ends the descendants it left behind and revokes its host-tool scope.
+    expect(process.closes).toBe(1);
 });
 
 test('an idle process closes after the idle window', async () => {

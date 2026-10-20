@@ -115,6 +115,33 @@ describe('Codex session lifecycle', () => {
         expect(life.spawned).toHaveLength(2);
     });
 
+    test('a parked process that crashes revokes its host tools and leaves the registry', async () => {
+        const life = agent();
+        let revoked = 0;
+        const driver = life.driver({
+            hostToolServer: {
+                openSession: () => ({
+                    close: () => {
+                        revoked += 1;
+                    },
+                    mcp: {
+                        headers: { Authorization: 'Bearer crash-token' },
+                        name: 'haus',
+                        transport: 'http',
+                        url: 'http://127.0.0.1:9/mcp',
+                    },
+                    replaceTools: () => undefined,
+                }),
+            },
+        });
+        await (await open(driver)).detach();
+        expect(revoked).toBe(0);
+        life.spawned[0]!.crash();
+        await flush();
+        expect(revoked).toBe(1);
+        expect(life.registered).toHaveLength(0);
+    });
+
     test('detach waits for a cancelled turn to reach the idle boundary', async () => {
         const life = agent();
         const fake = () => life.spawned[0]!;

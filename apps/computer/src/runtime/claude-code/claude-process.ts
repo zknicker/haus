@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { LineDecoder } from '../line-decoder.ts';
-import { isProcessGroupAlive, isSystemErrorCode } from '../process-group-liveness.ts';
+import { ownProcessGroup } from '../process-group.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 
 const stderrTailLines = 20;
@@ -45,7 +45,6 @@ export function spawnClaudeProcess(options: {
     const listeners = new Set<(line: string) => void>();
     const stderr: string[] = [];
     let alive = true;
-    let stopping: Promise<void> | undefined;
     const exited = new Promise<ClaudeExit>((resolve) => {
         child.once('error', (error) => {
             stderr.push(error.message);
@@ -69,10 +68,13 @@ export function spawnClaudeProcess(options: {
     });
     // A write racing the child's exit fails its own promise; the stream error is that failure.
     child.stdin.on('error', () => undefined);
-    const stop = () => {
-        stopping ??= terminate(child.pid, exited);
-        return stopping;
-    };
+    const stop = ownProcessGroup({
+        exited,
+        graceMs: terminationGraceMs,
+        label: 'Claude Code',
+        pid: child.pid,
+        processes: owner,
+    });
     const overflow = (error: unknown) => {
         stderr.push(error instanceof Error ? error.message : String(error));
         // The exit fails the running turn with this stderr tail.
@@ -97,8 +99,6 @@ export function spawnClaudeProcess(options: {
         },
         overflow
     );
-    owner?.add(stop);
-    void exited.then(() => owner?.remove(stop));
     return {
         get alive() {
             return alive;
@@ -121,35 +121,6 @@ export function spawnClaudeProcess(options: {
             });
         },
     };
-}
-
-async function terminate(pid: number | undefined, exited: Promise<ClaudeExit>): Promise<void> {
-    if (pid === undefined) {
-        return;
-    }
-    for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
-        signalGroup(pid, signal);
-        const done = await Promise.race([
-            exited.then(() => !isProcessGroupAlive(pid)),
-            Bun.sleep(terminationGraceMs).then(() => false),
-        ]);
-        if (done) {
-            return;
-        }
-    }
-    if (isProcessGroupAlive(pid)) {
-        throw new Error(`Claude Code process group ${pid} did not terminate.`);
-    }
-}
-
-function signalGroup(pid: number, signal: NodeJS.Signals) {
-    try {
-        process.kill(process.platform === 'win32' ? pid : -pid, signal);
-    } catch (error) {
-        if (!isSystemErrorCode(error, 'ESRCH')) {
-            throw error;
-        }
-    }
 }
 
 /**

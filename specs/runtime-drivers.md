@@ -66,7 +66,11 @@ server, the process registry every runtime process joins (`runtime/process-regis
 shared warm pool (`runtime/warm-pool.ts`). The pool parks one process per Agent session, keyed by
 the Agent root, reused only when runtime, native conversation, and launch fingerprint all match;
 an idle process closes after 30 minutes. Agent reset or removal evicts its process; shutdown
-closes the pool, then the host-tool server, then reaps any process still registered. A parked
+closes the pool, then the host-tool server, then reaps any process still registered. Every
+runtime process runs in its own process group (`runtime/process-group.ts`): terminating it ends
+the whole group, even after the CLI leader exited, and the group stays registered until no member
+is left. A leader that exits on its own still has its group ended, and a parked process that
+exits is closed by the pool, which also revokes its host-tool scope. A parked
 Haus resume state needs no resume-to-stop at shutdown: parking and stopping store the same state.
 
 Background work stays off: Claude keeps `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` and `Monitor`

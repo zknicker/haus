@@ -1,6 +1,7 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/runtimeSession.test.ts (FSL-1.1-ALv2)
 import { expect, test } from 'bun:test';
 import { PassThrough } from 'node:stream';
+import { isRunning, killQuietly, trackingRegistry } from '../testing/process-group-testing.ts';
 import { readLines, spawnClaudeProcess } from './claude-process.ts';
 
 test('child-process runtime session decodes split UTF-8 stdout before line parsing', async () => {
@@ -76,4 +77,25 @@ test('stderr keeps a bounded tail for crash diagnostics', async () => {
     const tail = child.stderrTail();
     expect(tail).toHaveLength(20);
     expect(tail.at(-1)).toBe('line 30');
+});
+
+test('a leader that exits on its own still takes its process group down before unregistering', async () => {
+    const registry = trackingRegistry();
+    const child = spawnClaudeProcess({
+        args: ['-c', 'sleep 60 >/dev/null 2>&1 & echo "$!"'],
+        binaryPath: '/bin/sh',
+        cwd: '/',
+        env: { PATH: process.env.PATH ?? '' },
+        processes: registry,
+    });
+    const grandchild = await new Promise<number>((resolve) =>
+        child.onLine((line) => resolve(Number(line)))
+    );
+    try {
+        await child.exited;
+        await registry.emptied;
+        expect(isRunning(grandchild)).toBe(false);
+    } finally {
+        killQuietly(grandchild);
+    }
 });
