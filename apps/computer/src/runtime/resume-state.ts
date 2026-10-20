@@ -44,21 +44,39 @@ export type HausResumeState = z.infer<typeof hausResumeStateSchema>;
  */
 export type LegacyHarnessResumeState = Readonly<Record<string, unknown>>;
 
-export type RuntimeResumeState = HausResumeState | LegacyHarnessResumeState;
+/**
+ * Stored resume state this Computer cannot read: a newer or unknown version, a damaged Haus
+ * shape, or a non-object. It still names a native conversation the stored generation used, so
+ * every driver rejects it (`toHausResumeState`) and the executor rotates like any other rejected
+ * resume instead of silently cold-starting under the same generation.
+ */
+export class UnreadableResumeState {
+    readonly stored: unknown;
+
+    constructor(stored: unknown) {
+        this.stored = stored;
+    }
+}
+
+export type RuntimeResumeState = HausResumeState | LegacyHarnessResumeState | UnreadableResumeState;
 
 /**
- * Validates a stored resume state at the disk boundary. A Haus-shaped state must parse exactly;
- * anything else object-shaped is a legacy harness state a driver converts on open.
+ * Validates a stored resume state at the disk boundary. Only an absent state is null. A
+ * Haus-shaped state must parse exactly; anything else object-shaped is a legacy harness state a
+ * driver converts on open; the rest is unreadable.
  */
 export function parseRuntimeResumeState(value: unknown): RuntimeResumeState | null {
-    if (!isRecord(value)) {
+    if (value === null || value === undefined) {
         return null;
     }
-    if (!('runtime' in value && 'version' in value)) {
+    if (!isRecord(value)) {
+        return new UnreadableResumeState(value);
+    }
+    if (!('runtime' in value || 'version' in value)) {
         return value;
     }
     const parsed = hausResumeStateSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
+    return parsed.success ? parsed.data : new UnreadableResumeState(value);
 }
 
 export function isHausResumeState(state: RuntimeResumeState): state is HausResumeState {

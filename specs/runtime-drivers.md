@@ -145,7 +145,9 @@ harness state (`{ type: 'resume-session', harnessId, data }`) converts on the dr
 shape. Verified against real `session.json` files: Claude Code under `data.claudeSessionId`,
 Codex and Grok Build under `data.acpSessionId` (the Codex app-server thread id names its rollout).
 A missing native session falls back to a fresh one only through the existing resume-rejection
-recovery; Raft's silent `fallback_fresh_thread` is not adopted.
+recovery; Raft's silent `fallback_fresh_thread` is not adopted. The same holds for a stored state
+this Computer cannot read (an unknown version, a damaged Haus shape, a non-object): it parses as
+`UnreadableResumeState`, never as no state, and every driver rejects it as `invalid-state`.
 
 ## Isolation and launch environment
 

@@ -7,6 +7,7 @@ import {
     type HausResumeState,
     isHausResumeState,
     type RuntimeResumeState,
+    UnreadableResumeState,
 } from './resume-state.ts';
 
 /**
@@ -45,6 +46,13 @@ export function toHausResumeState<Runtime extends HausRuntimeId>(
     runtimeId: Runtime,
     state: RuntimeResumeState
 ): HausResumeStates[Runtime] {
+    if (state instanceof UnreadableResumeState) {
+        throw new RuntimeResumeRejectedError(
+            runtimeId,
+            'invalid-state',
+            `The stored ${runtimeId} session state is not one this Computer can read.`
+        );
+    }
     const converted = isHausResumeState(state) ? state : fromLegacy(runtimeId, state);
     if (converted.runtime !== runtimeId) {
         throw new RuntimeResumeRejectedError(

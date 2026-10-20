@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { readAgentSessionState } from '../harness/session-store.ts';
 import { toHausResumeState } from './legacy-resume-state.ts';
 import { isRuntimeResumeRejection } from './resume-rejected.ts';
-import type { RuntimeResumeState } from './resume-state.ts';
+import { parseRuntimeResumeState, type RuntimeResumeState } from './resume-state.ts';
 
 // `resumeState` exactly as the AI SDK harness wrote it into real Agent `session.json` files
 // (captured from ~/.haus dev data, ids and secrets replaced). Claude Code keeps the
@@ -112,4 +112,26 @@ test('a Haus shape passes through; another runtime or an empty harness state is 
     expect(rejection('claude-code', codex)).toBe('foreign-state');
     expect(rejection('claude-code', legacyCodex)).toBe('foreign-state');
     expect(rejection('codex', { data: {}, harnessId: 'codex' })).toBe('invalid-state');
+});
+
+test('a stored state this Computer cannot read is a resume rejection, never a cold start', () => {
+    const rejection = (stored: unknown) => {
+        const state = parseRuntimeResumeState(stored);
+        if (!state) {
+            return 'no state';
+        }
+        try {
+            toHausResumeState('claude-code', state);
+            return null;
+        } catch (error) {
+            return isRuntimeResumeRejection(error) ? (error as { reason: string }).reason : null;
+        }
+    };
+    expect(rejection({ claudeSessionId: 'c-1', runtime: 'claude-code', version: 2 })).toBe(
+        'invalid-state'
+    );
+    expect(rejection({ runtime: 'claude-code', version: 1 })).toBe('invalid-state');
+    expect(rejection({ runtime: 'pi', version: 1 })).toBe('invalid-state');
+    expect(rejection('damaged')).toBe('invalid-state');
+    expect(rejection(null)).toBe('no state');
 });
