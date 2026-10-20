@@ -118,7 +118,15 @@ export async function runLeadDedupe({ agents, expect, kit, log }) {
             await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
         }
 
-        const { leads } = await kit.heartbeatEvidence([first.id, second.id]);
+        const { leads, reports } = await kit.heartbeatEvidence([first.id, second.id]);
+        // Duplicate work is a second finding sent up, not a glance at a source the Agent owns.
+        const reporters = [
+            ...new Set(
+                reports
+                    .filter((report) => answerFacts.test(report.content))
+                    .map((report) => report.agentId)
+            ),
+        ];
         const posts = [
             ...(await agentPosts(kit, channel.id, first.id, head)),
             ...(await agentPosts(kit, channel.id, second.id, head)),
@@ -138,6 +146,7 @@ export async function runLeadDedupe({ agents, expect, kit, log }) {
             mcpCalls: mcp.calls,
             posts: { channel: posts },
             questionMessageId: question.id,
+            reporters,
             scenario: 'heartbeat-lead-dedupe',
             secondAgentId: second.id,
             secondLeadCommands: await leadCommands(second, secondRun),
@@ -148,7 +157,7 @@ export async function runLeadDedupe({ agents, expect, kit, log }) {
         expect(firstRun.status, 'first heartbeat turn status').toBe('completed');
         expect(secondRun.status, 'second heartbeat turn status').toBe('completed');
         expect(outcome.answered, 'an Agent answered the question with the record facts').toBe(true);
-        expect(outcome.callers, 'Agents that searched the pricing notes').toHaveLength(1);
+        expect(reporters, 'Agents that reported the pricing answer').toHaveLength(1);
         expect(outcome.answerPosts, 'answer posts about the question').toHaveLength(1);
     } finally {
         for (const connectionId of connectionIds) {

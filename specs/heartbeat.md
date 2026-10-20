@@ -234,7 +234,7 @@ asserted by the scenario; quality is graded by profiles.
 | `heartbeat-surfaces-new-signal` | A controlled MCP connection the Agent uses for its role gains a notable record nobody mentioned in chat. Daytime run. | One report; the main session then posts once in the right Chat. |
 | `heartbeat-nothing-new-control` | Same connection, no change. Daytime run. | No report, no post. |
 | `heartbeat-quiet-run-awareness` | A quiet daytime run, then a human asks "what have you been up to?" | The answer mentions the heartbeat truthfully. |
-| `heartbeat-lead-dedupe` | Two Agents covering pricing, one unanswered question only a shared MCP source answers. | Outcome only: the question is answered with the source facts, exactly one Agent searched the source, exactly one answer is posted. Lead use is recorded, not asserted. |
+| `heartbeat-lead-dedupe` | Two Agents covering pricing, one unanswered question only a shared MCP source answers. | Outcome only: the question is answered with the source facts, exactly one Agent reports the answer, exactly one answer is posted. Source lookups and lead use are recorded, not asserted: checking a source you own every run is not duplicate work. |
 
 Deterministic coverage by layer: the Computer scheduler (slots, offsets, window), fresh-session
 launch never touching `session.json`, checkpoint retention, and the quiet-run note; Server skip

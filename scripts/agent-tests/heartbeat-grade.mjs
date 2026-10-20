@@ -92,7 +92,7 @@ function gradeReply(evidence, spec, check) {
 function gradeLeads(evidence, check) {
     // Outcome only; lead commands and rows are diagnostic evidence, not graded.
     check('the question was answered with the record facts', evidence.answered === true);
-    check('exactly one Agent searched the source', (evidence.callers ?? []).length === 1);
+    check('exactly one Agent reported the answer', (evidence.reporters ?? []).length === 1);
     check('exactly one answer posted', (evidence.answerPosts ?? []).length === 1);
 }
 

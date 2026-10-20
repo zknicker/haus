@@ -128,17 +128,21 @@ test('quiet-run awareness needs the reply to own the check-in', () => {
     expect(gradeHeartbeatEvidence({ ...base, reply: 'Just waiting for you!' }).ok).toBe(false);
 });
 
-test('lead dedupe grades outcome: one answer, one searcher, facts present', () => {
+test('lead dedupe grades outcome: one answer, one reporter, facts present', () => {
     const base = {
         answerPosts: [{ content: 'Annual discount is 20% on Pro and Team.' }],
         answered: true,
-        callers: ['first'],
+        // Both Agents may glance at a source they own; only one may send the finding up.
+        callers: ['first', 'second'],
+        reporters: ['agt_first'],
         scenario: 'heartbeat-lead-dedupe',
         stamp: 's',
     };
     expect(gradeHeartbeatEvidence(base).ok).toBe(true);
-    expect(gradeHeartbeatEvidence({ ...base, callers: ['first', 'second'] }).ok).toBe(false);
-    expect(gradeHeartbeatEvidence({ ...base, callers: [] }).ok).toBe(false);
+    expect(gradeHeartbeatEvidence({ ...base, reporters: ['agt_first', 'agt_second'] }).ok).toBe(
+        false
+    );
+    expect(gradeHeartbeatEvidence({ ...base, reporters: [] }).ok).toBe(false);
     expect(gradeHeartbeatEvidence({ ...base, answerPosts: [{}, {}] }).ok).toBe(false);
     expect(gradeHeartbeatEvidence({ ...base, answerPosts: [], answered: false }).ok).toBe(false);
 });
