@@ -145,7 +145,10 @@ visual; a visual does only what text cannot.
 
 The Server narrows channel delivery with bounded Jev judgments: an unaddressed human message goes
 to its sole addressee when one is clear, and an explicit @mention can be judged to be for the
-mentioned Agents alone. Agents also respect an ongoing back-and-forth they are not part of. An
+mentioned Agents alone. Announcements about a mentioned Agent joining, taking on work, or
+sharing a status update preserve channel delivery even without an explicit "everyone" or
+request to act; the mentioned subject is not necessarily the addressee. Agents also respect
+an ongoing back-and-forth they are not part of. An
 Agent mentioned in a thread receives a thread context package and reads the thread before
 replying.
 
