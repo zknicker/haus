@@ -1,13 +1,12 @@
 import type { ToolCallTurnEvent, ToolReadLocationTurnEvent } from '../runtime/turn-event.ts';
 
 /**
- * codex-acp sends a file read Codex parsed out of a shell command as an ACP
- * `read` tool call named `exec_command` that carries no command, only the file
- * in `locations`. The call itself arrives as an invalid shell call with empty
- * input, so the driver reports the file first as a `tool-read-location` event
- * and the projector journals the step as a read of that file.
+ * Codex reports a file read it parsed out of a shell command as a command item whose
+ * action names only the file. The Codex driver sends that file first as a
+ * `tool-read-location` event and the call itself as an invalid shell call with empty
+ * input, so the projector journals the step as a read of that file.
  */
-export function createAcpReadSteps(workspaceDir: string | undefined) {
+export function createReadLocationSteps(workspaceDir: string | undefined) {
     const files = new Map<string, string>();
     const reads = new Set<string>();
     return {

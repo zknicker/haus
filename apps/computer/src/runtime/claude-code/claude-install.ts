@@ -9,9 +9,8 @@ import { promisify } from 'node:util';
 const execFileAsync = promisify(execFile);
 
 /**
- * The Claude Code release every Agent runs. It matches the vendor pin the AI SDK bridge shipped
- * (`assets/harness-bridges/claude-code`), so the driver swap changes no CLI behavior; the
- * integrities are the npm registry's for each platform package of that release.
+ * The Claude Code release every Agent runs; the integrities are the npm registry's for each
+ * platform package of that release.
  */
 export const CLAUDE_CODE_VERSION = '2.1.284';
 

@@ -2,18 +2,19 @@ import { expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessV1 } from '@ai-sdk/harness';
-import { HarnessAgent, type HarnessAgentResumeSessionState } from '@ai-sdk/harness/agent';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { AttachmentDaemonWork } from '../attachment-daemon-work.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import { aiSdkDriverFactory } from '../runtime/ai-sdk-adapter.ts';
+import type { RuntimeResumeState } from '../runtime/resume-state.ts';
+import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
+import type { TurnEvent } from '../runtime/turn-event.ts';
 import { type HarnessTurnInput, runHarnessTurn } from './executor.ts';
-import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { readAgentSessionState } from './session-store.ts';
 
+const conversation: RuntimeResumeState = { runtime: 'codex', threadId: 'thread_same', version: 1 };
+
 for (const active of [true, false]) {
-    test(`shutdown stops ${active ? 'an active' : 'a parked'} SDK session and the next Computer resumes its conversation`, async () => {
+    test(`shutdown stops ${active ? 'an active' : 'a parked'} runtime session and the next Computer resumes its conversation`, async () => {
         const root = await mkdtemp(join(tmpdir(), 'haus-executor-shutdown-'));
         const runtime = makeDaemonRuntime();
         const work = new AttachmentDaemonWork(runtime);
@@ -24,9 +25,9 @@ for (const active of [true, false]) {
         const started = Promise.withResolvers<void>();
         const events: string[] = [];
         const resumes: unknown[] = [];
-        const harness = lifecycleHarness({ active, events, resumes, started });
+        const driver = lifecycleDriver({ active, events, resumes, started });
         await mkdir(join(root, 'workspace'), { recursive: true });
-        const input = turnInput(root, runtime, harness, reservation.controller.signal);
+        const input = turnInput(root, runtime, driver, reservation.controller.signal);
         try {
             const turn = work.track(runHarnessTurn(input));
             await started.promise;
@@ -35,25 +36,26 @@ for (const active of [true, false]) {
             }
             await work.close();
             expect((await turn).aborted).toBe(active);
-            expect(events).toEqual(active ? ['cancel', 'stop'] : ['detach', 'stop']);
+            // A parked Haus resume state is already what a stop stores; shutdown does not reopen it.
+            expect(events).toEqual(active ? ['cancel', 'stop'] : ['detach']);
             const stored = await readAgentSessionState(root);
             expect(stored?.generation).toBe(1);
             expect(stored?.runtimeSessionId).toBe('agt_test-1');
-            expect(stored?.resumeState).toMatchObject({ data: { conversation: 'same' } });
-            expect(stored?.resumeState).not.toHaveProperty('continueFrom');
+            expect(stored?.resumeState).toEqual(conversation);
+
             const nextRuntime = makeDaemonRuntime();
-            const nextAgent = new HarnessAgent({
-                harness,
-                id: 'agt_test',
-                sandbox: createLocalTrustedSandboxProvider({ rootDir: root, runtime: nextRuntime }),
-            });
             try {
-                const session = await nextAgent.createSession({
-                    sessionId: stored!.runtimeSessionId!,
-                    resumeFrom: stored!.resumeState as HarnessAgentResumeSessionState,
-                });
+                const session = await driver
+                    .factory(
+                        { ...input, runtime: nextRuntime },
+                        { env: {}, instructions: 'next Computer' }
+                    )
+                    .openSession({
+                        resumeFrom: stored?.resumeState ?? undefined,
+                        sessionId: stored?.runtimeSessionId ?? '',
+                    });
                 expect(session.isResume).toBe(true);
-                expect(resumes.at(-1)).toEqual({ conversation: 'same' });
+                expect(resumes.at(-1)).toEqual(conversation);
                 await session.stop();
             } finally {
                 await nextRuntime.dispose();
@@ -66,85 +68,102 @@ for (const active of [true, false]) {
     });
 }
 
-function lifecycleHarness(input: {
+test('shutdown during resume creation is interrupted without invalidating the stored conversation', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'haus-shutdown-resume-'));
+    const runtime = makeDaemonRuntime();
+    const work = new AttachmentDaemonWork(runtime);
+    const resumeStarted = Promise.withResolvers<void>();
+    const events: string[] = [];
+    let blockResume = false;
+    const driver = lifecycleDriver({
+        active: false,
+        events,
+        onResume: async (signal) => {
+            if (!blockResume) {
+                return;
+            }
+            blockResume = false;
+            resumeStarted.resolve();
+            await new Promise<void>((resolve) =>
+                signal?.addEventListener('abort', () => resolve(), { once: true })
+            );
+            throw new Error('session creation cancelled');
+        },
+        resumes: [],
+        started: Promise.withResolvers<void>(),
+    });
+    await mkdir(join(root, 'workspace'), { recursive: true });
+    try {
+        const controller = new AbortController();
+        await work.track(runHarnessTurn(turnInput(root, runtime, driver, controller.signal)));
+        const before = await readAgentSessionState(root);
+        blockResume = true;
+        const reservation = work.agentWork.reserve('agt_test', 'run_resume');
+        if (reservation.kind !== 'reserved') {
+            throw new Error('Missing reservation');
+        }
+        const turn = work.track(
+            runHarnessTurn({
+                ...turnInput(root, runtime, driver, reservation.controller.signal),
+                runId: 'run_resume',
+            })
+        );
+        await resumeStarted.promise;
+        await work.close();
+        expect((await turn).aborted).toBe(true);
+        const after = await readAgentSessionState(root);
+        expect(after?.generation).toBe(before?.generation);
+        expect(after?.runtimeSessionId).toBe(before?.runtimeSessionId);
+        expect(after?.resumeState).toEqual(conversation);
+        expect(events).toEqual(['detach']);
+    } finally {
+        await runtime.dispose();
+        await rm(root, { force: true, recursive: true });
+    }
+});
+
+function lifecycleDriver(input: {
     active: boolean;
     events: string[];
+    onResume?: (signal: AbortSignal | undefined) => Promise<void>;
     resumes: unknown[];
     started: ReturnType<typeof Promise.withResolvers<void>>;
-}): HarnessV1 {
-    const state = {
-        data: { conversation: 'same' },
-        harnessId: 'shutdown-test',
-        specificationVersion: 'harness-v1',
-        type: 'resume-session',
-    } as const;
-    return {
-        builtinTools: {},
-        harnessId: 'shutdown-test',
-        specificationVersion: 'harness-v1',
-        doStart: async (options) => {
-            input.resumes.push(options.resumeFrom?.data);
-            return {
-                sessionId: options.sessionId,
-                isResume: !!options.resumeFrom,
-                doCompact: async () => undefined,
-                doContinueTurn: async () => {
-                    throw new Error('must not suspend');
-                },
-                doDestroy: async () => {
-                    input.events.push('destroy');
-                },
-                doDetach: async () => {
-                    input.events.push('detach');
-                    return { ...state, data: { connection: 'live' } };
-                },
-                doStop: async () => {
-                    input.events.push('stop');
-                    return state;
-                },
-                doSuspendTurn: async () => {
-                    throw new Error('shutdown must reach idle before stop');
-                },
-                doPromptTurn: async (options) => {
-                    const done = Promise.withResolvers<void>();
-                    if (input.active) {
-                        const cancel = () => {
-                            input.events.push('cancel');
-                            done.reject(new Error('cancelled'));
-                        };
-                        options.abortSignal?.addEventListener('abort', cancel, { once: true });
-                        if (options.abortSignal?.aborted) {
-                            cancel();
-                        }
-                    } else {
-                        options.emit({
-                            type: 'finish',
-                            finishReason: { raw: undefined, unified: 'stop' },
-                            totalUsage: {
-                                inputTokens: {
-                                    noCache: 1,
-                                    total: 1,
-                                    cacheRead: undefined,
-                                    cacheWrite: undefined,
-                                },
-                                outputTokens: { reasoning: undefined, text: 1, total: 1 },
-                                raw: undefined,
-                            },
-                        });
-                        done.resolve();
-                    }
-                    input.started.resolve();
-                    return { done: done.promise, submitToolResult: async () => undefined };
-                },
-            };
+}) {
+    return fakeRuntimeDriver<HarnessTurnInput>({
+        destroy: () => input.events.push('destroy'),
+        detach: () => {
+            input.events.push('detach');
+            return conversation;
         },
-    };
+        open: async ({ resumeFrom, signal }) => {
+            if (resumeFrom) {
+                input.resumes.push(resumeFrom);
+                await input.onResume?.(signal);
+            }
+        },
+        stop: () => {
+            input.events.push('stop');
+            return conversation;
+        },
+        turn: ({ signal }) => {
+            input.started.resolve();
+            return input.active ? cancelledTurn(signal, input.events) : finishedTurn();
+        },
+    });
+}
+
+async function* cancelledTurn(signal: AbortSignal, events: string[]): AsyncGenerator<TurnEvent> {
+    if (!signal.aborted) {
+        await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve()));
+    }
+    events.push('cancel');
+    yield { type: 'abort' };
 }
 
 function turnInput(
     root: string,
     runtime: ReturnType<typeof makeDaemonRuntime>,
-    harness: HarnessV1,
+    driver: ReturnType<typeof lifecycleDriver>,
     signal: AbortSignal
 ): HarnessTurnInput {
     return {
@@ -164,7 +183,7 @@ function turnInput(
         serverId: 'srv_test',
         unreadElsewhere: [],
         warmDrainItemIds: [],
-        modelId: 'test-model',
+        modelId: 'gpt-5.6-sol',
         reasoningEffort: 'medium',
         runId: 'run_test',
         runtimeId: 'codex',
@@ -175,66 +194,6 @@ function turnInput(
         totalPending: 0,
         workspaceDir: join(root, 'workspace'),
         tools: [],
-        runtimeDriverFactory: aiSdkDriverFactory(
-            (input) =>
-                new HarnessAgent({
-                    harness,
-                    id: input.agentId,
-                    sandbox: createLocalTrustedSandboxProvider({ rootDir: root, runtime }),
-                })
-        ),
+        runtimeDriverFactory: driver.factory,
     };
 }
-
-test('shutdown during resume creation is interrupted without invalidating the stored conversation', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'haus-shutdown-resume-'));
-    const runtime = makeDaemonRuntime();
-    const work = new AttachmentDaemonWork(runtime);
-    const started = Promise.withResolvers<void>();
-    const resumeStarted = Promise.withResolvers<void>();
-    const events: string[] = [];
-    const base = lifecycleHarness({ active: false, events, resumes: [], started });
-    let blockResume = false;
-    const harness: HarnessV1 = {
-        ...base,
-        doStart: async (options) => {
-            if (blockResume && options.resumeFrom) {
-                blockResume = false;
-                resumeStarted.resolve();
-                await new Promise<void>((resolve) =>
-                    options.abortSignal?.addEventListener('abort', () => resolve(), { once: true })
-                );
-                throw new Error('session creation cancelled');
-            }
-            return base.doStart(options);
-        },
-    };
-    await mkdir(join(root, 'workspace'), { recursive: true });
-    try {
-        const controller = new AbortController();
-        await work.track(runHarnessTurn(turnInput(root, runtime, harness, controller.signal)));
-        const before = await readAgentSessionState(root);
-        blockResume = true;
-        const reservation = work.agentWork.reserve('agt_test', 'run_resume');
-        if (reservation.kind !== 'reserved') {
-            throw new Error('Missing reservation');
-        }
-        const turn = work.track(
-            runHarnessTurn({
-                ...turnInput(root, runtime, harness, reservation.controller.signal),
-                runId: 'run_resume',
-            })
-        );
-        await resumeStarted.promise;
-        await work.close();
-        expect((await turn).aborted).toBe(true);
-        const after = await readAgentSessionState(root);
-        expect(after?.generation).toBe(before?.generation);
-        expect(after?.runtimeSessionId).toBe(before?.runtimeSessionId);
-        expect(after?.resumeState).toMatchObject({ data: { conversation: 'same' } });
-        expect(events).toEqual(['detach', 'stop']);
-    } finally {
-        await runtime.dispose();
-        await rm(root, { force: true, recursive: true });
-    }
-});

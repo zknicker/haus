@@ -1,11 +1,7 @@
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentReasoningEffort } from '@haus/api';
-import {
-    isHausResumeState,
-    parseRuntimeResumeState,
-    type RuntimeResumeState,
-} from '../runtime/resume-state.ts';
+import { parseRuntimeResumeState, type RuntimeResumeState } from '../runtime/resume-state.ts';
 import type { RuntimeTokenUsage } from '../runtime/turn-event.ts';
 
 /**
@@ -50,7 +46,7 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
         const parsed = {
             ...rest,
             ...(interruptedTurn === true ? { interruptedTurn } : {}),
-            resumeState: withoutAbandonedTurn(parseRuntimeResumeState(stored.resumeState)),
+            resumeState: parseRuntimeResumeState(stored.resumeState),
         };
         if (
             typeof parsed.generation === 'number' &&
@@ -115,65 +111,19 @@ export function resolveTurnSession(
 }
 
 /**
- * Records a failed turn on its stored session. A failure keeps the generation and fingerprints for
- * retry, but a destroyed live session took its bridge with it, so its coordinates are dropped.
+ * Records a failed turn on its stored session. A failure keeps the generation, fingerprints, and
+ * resume state for retry; only a failed Haus Agent version update is written.
  */
 export async function writeFailedTurnSession(
     agentRoot: string,
     session: AgentSessionState,
-    failure: { bridgeDestroyed: boolean; versionFailed: boolean }
+    failure: { versionFailed: boolean }
 ): Promise<void> {
-    const resumeState = failure.bridgeDestroyed
-        ? withoutDeadBridge(session.resumeState)
-        : session.resumeState;
-    // A failed cold start has nothing to forget; its generation persists only once a turn succeeds.
-    if (!failure.versionFailed && resumeState === session.resumeState) {
+    // A failed cold start persists nothing; its generation persists only once a turn succeeds.
+    if (!failure.versionFailed) {
         return;
     }
-    await writeAgentSessionState(agentRoot, {
-        ...session,
-        hausAgentStatus: failure.versionFailed ? 'failed' : session.hausAgentStatus,
-        resumeState,
-    });
-}
-
-/**
- * Haus never continues a turn: Stop and shutdown park at the SDK's idle boundary. A `continueFrom`
- * can only be a turn an older Computer parked mid-Stop, and the SDK refuses every new prompt until
- * it is continued, so resume the conversation without it.
- */
-function withoutAbandonedTurn(
-    resumeState: AgentSessionState['resumeState']
-): AgentSessionState['resumeState'] {
-    if (!resumeState || isHausResumeState(resumeState) || !('continueFrom' in resumeState)) {
-        return resumeState ?? null;
-    }
-    const { continueFrom: _abandonedTurn, ...rest } = resumeState;
-    return rest;
-}
-
-/**
- * Drops a Claude Code resume state's bridge coordinates once that bridge is gone, keeping the
- * Claude conversation id so the next turn respawns a bridge that resumes the same conversation.
- * ACP states keep theirs: their process-loss recovery reads the coordinates.
- */
-function withoutDeadBridge(
-    resumeState: AgentSessionState['resumeState']
-): AgentSessionState['resumeState'] {
-    if (!resumeState || isHausResumeState(resumeState)) {
-        return resumeState;
-    }
-    const data = resumeState.data;
-    if (
-        resumeState.harnessId !== 'claude-code' ||
-        typeof data !== 'object' ||
-        data === null ||
-        !('bridge' in data)
-    ) {
-        return resumeState;
-    }
-    const { bridge: _deadBridge, ...rest } = data as Record<string, unknown>;
-    return { ...resumeState, data: rest };
+    await writeAgentSessionState(agentRoot, { ...session, hausAgentStatus: 'failed' });
 }
 
 function parseFingerprint(value: unknown): string | null {

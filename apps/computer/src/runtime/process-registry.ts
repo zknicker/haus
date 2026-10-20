@@ -1,30 +1,32 @@
 import type { EffectRuntime } from '@haus/effect';
 
-const owners = new WeakMap<EffectRuntime<never>, SandboxProcessOwner>();
+const owners = new WeakMap<EffectRuntime<never>, RuntimeProcessOwner>();
 
-export function sandboxProcessOwner(runtime: EffectRuntime<never>): SandboxProcessOwner {
+/** The Computer-wide registry every runtime process joins, one per daemon runtime. */
+export function runtimeProcessOwner(runtime: EffectRuntime<never>): RuntimeProcessOwner {
     let owner = owners.get(runtime);
     if (!owner) {
-        owner = new SandboxProcessOwner();
+        owner = new RuntimeProcessOwner();
         owners.set(runtime, owner);
     }
     return owner;
 }
 
-export function stopSandboxProcesses(runtime: EffectRuntime<never>): Promise<void> {
-    return sandboxProcessOwner(runtime).close();
+/** Stops every registered runtime process and fences later spawns (Computer shutdown). */
+export function stopRuntimeProcesses(runtime: EffectRuntime<never>): Promise<void> {
+    return runtimeProcessOwner(runtime).close();
 }
 
 /** Registers a live process's stop with Computer shutdown; what every runtime driver takes. */
-export type RuntimeProcessRegistry = Pick<SandboxProcessOwner, 'add' | 'assertOpen' | 'remove'>;
+export type RuntimeProcessRegistry = Pick<RuntimeProcessOwner, 'add' | 'assertOpen' | 'remove'>;
 
-class SandboxProcessOwner {
+class RuntimeProcessOwner {
     private readonly registries = new Set<() => Promise<void>>();
     private closing: Promise<void> | null = null;
 
     assertOpen(): void {
         if (this.closing) {
-            throw new Error('Computer sandbox processes are shutting down.');
+            throw new Error('Computer runtime processes are shutting down.');
         }
     }
 
@@ -44,7 +46,7 @@ class SandboxProcessOwner {
                 result.status === 'rejected' ? [result.reason] : []
             );
             if (errors.length) {
-                throw new AggregateError(errors, 'Sandbox processes did not stop.');
+                throw new AggregateError(errors, 'Runtime processes did not stop.');
             }
         })();
         return this.closing;

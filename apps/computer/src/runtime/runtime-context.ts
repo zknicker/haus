@@ -1,10 +1,7 @@
 import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
-import {
-    type RuntimeProcessRegistry,
-    sandboxProcessOwner,
-} from '../harness/sandbox-process-owner.ts';
 import { type HostToolServer, startHostToolServer } from '../host-tools/mcp-server.ts';
+import { type RuntimeProcessRegistry, runtimeProcessOwner } from './process-registry.ts';
 import { WarmProcessPool } from './warm-pool.ts';
 
 /**
@@ -35,7 +32,7 @@ export function openRuntimeContext(
     const server = startHostToolServer();
     const context: OpenContext = {
         hostToolServer: server,
-        processes: sandboxProcessOwner(runtime),
+        processes: runtimeProcessOwner(runtime),
         server,
         warm: new WarmProcessPool({
             idleMs: options.warmIdleMs,

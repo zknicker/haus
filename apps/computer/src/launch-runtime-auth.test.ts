@@ -2,31 +2,20 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
+import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, runAgentLaunch } from './launch.ts';
-import { aiSdkDriverFactory, type HarnessAgentFactory } from './runtime/ai-sdk-adapter.ts';
+import { fakeRuntimeDriver, finishedTurn } from './runtime/testing/fake-runtime-driver.ts';
+import type { TurnEvent } from './runtime/turn-event.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
 
-// The exact failure Codex settled Blippy's turn with, typed by codex-acp beside `end_turn`.
-const codexAuthFailure = {
-    _meta: {
-        jetbrains: {
-            air: {
-                sessionFailure: {
-                    actions: ['retry'],
-                    category: 'service',
-                    id: 'turn_1:error',
-                    revision: 1,
-                    severity: 'error',
-                    title: 'unexpected status 401 Unauthorized: Incorrect API key provided: sk-svcac***fvMA. You can find your API key at https://platform.openai.com/account/api-keys., url: https://chatgpt.com/backend-api/codex/responses',
-                },
-                version: 1,
-            },
-        },
-    },
-    stopReason: 'end_turn',
+// The exact failure Codex settled Blippy's turn with, typed beside the finished turn.
+const codexAuthFailure: TurnEvent = {
+    category: 'service',
+    severity: 'error',
+    title: 'unexpected status 401 Unauthorized: Incorrect API key provided: sk-svcac***fvMA. You can find your API key at https://platform.openai.com/account/api-keys., url: https://chatgpt.com/backend-api/codex/responses',
+    type: 'session-failure',
 };
 
 const runtime = makeDaemonRuntime();
@@ -63,22 +52,19 @@ afterEach(async () => {
 });
 
 test('a rejected Codex credential fails the turn, raises the runtime issue, and a later success clears it', async () => {
-    const failed = await launch('run_auth_failed', [
-        { rawValue: codexAuthFailure, type: 'raw' },
-        { type: 'finish' },
-    ]);
+    const failed = await launch('run_auth_failed', [codexAuthFailure, ...finishedTurn()]);
     expect(failed).toMatchObject({ failureKind: 'authentication', status: 'failed' });
     // The Computer report carries this issue to the Agent hover card's sign-in prompt.
     expect(await readRuntimeIssues(dataRoot)).toEqual([
         expect.objectContaining({ kind: 'authentication', runtimeId: 'codex' }),
     ]);
 
-    const recovered = await launch('run_auth_recovered', [{ type: 'finish' }]);
+    const recovered = await launch('run_auth_recovered', finishedTurn());
     expect(recovered.status).toBe('completed');
     expect(await readRuntimeIssues(dataRoot)).toEqual([]);
 });
 
-function launch(runId: string, parts: unknown[]) {
+function launch(runId: string, events: TurnEvent[]) {
     const command: AgentStartCommand = {
         agentId: 'agt_launchauth',
         chatId: 'cht_test',
@@ -91,19 +77,7 @@ function launch(runId: string, parts: unknown[]) {
         totalPending: 0,
         type: 'start',
     };
-    const harnessAgentFactory: HarnessAgentFactory = () => ({
-        createSession: (async () => ({
-            destroy: async () => undefined,
-            detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
-            isResume: false,
-            sessionId: 'auth-session',
-        })) as unknown as HarnessAgent['createSession'],
-        stream: (async () => ({
-            fullStream: (async function* () {
-                yield* parts;
-            })(),
-        })) as unknown as HarnessAgent['stream'],
-    });
+    const driver = fakeRuntimeDriver<HarnessTurnInput>({ turn: () => events });
     return runAgentLaunch({
         attachment: {
             computerId: 'cmp_launchauth0000000',
@@ -114,7 +88,7 @@ function launch(runId: string, parts: unknown[]) {
         },
         command,
         dataRoot,
-        runtimeDriverFactory: aiSdkDriverFactory(harnessAgentFactory),
+        runtimeDriverFactory: driver.factory,
         runtime,
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${server.port}`,

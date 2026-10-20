@@ -22,6 +22,7 @@ import {
     saveClaudePlanUsageSnapshot,
 } from '../usage/claude-plan-usage-state.ts';
 import { createHarnessActivityProjector } from './activity-projector.ts';
+import { readAgentSkillNames } from './agent-skill-names.ts';
 import { clearPendingCoveGuidanceRefresh } from './cove-guidance-refresh.ts';
 import { prepareCoveGuidanceForTurn } from './cove-guidance-turn.ts';
 import {
@@ -44,7 +45,6 @@ import {
     writeAgentSessionState,
     writeFailedTurnSession,
 } from './session-store.ts';
-import { readAgentSkills } from './skills.ts';
 import { settleStoppedTurn } from './stopped-turn.ts';
 import type { HarnessTokenUsage } from './token-usage.ts';
 import { openTurnNotices, returnUnconsumedNotices } from './turn-notices.ts';
@@ -151,7 +151,7 @@ async function executeHarnessTurn(
 ): Promise<HarnessTurnResult> {
     const timings = input.turnTimings ?? new AgentTurnTimings();
     // For the prompt's activation hints; runtimes read the library natively.
-    const skills = await readAgentSkills(input.skillsDir);
+    const skillNames = await readAgentSkillNames(input.skillsDir);
     // A changed managed-instruction fingerprint restarts the adapter, preserving conversation.
     // The turn input carries every Agent fact the prompt reads; only the workspace is renamed.
     const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
@@ -171,9 +171,6 @@ async function executeHarnessTurn(
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom = session.resumeState ?? undefined;
-        lease.prepare(resumeFrom, (state, signal) =>
-            driver.openSession({ resumeFrom: state, sessionId, signal })
-        );
         const coveGuidance = await prepareCoveGuidanceForTurn({
             activity: input.activity,
             activityKey: instructionActivityKey,
@@ -249,7 +246,7 @@ async function executeHarnessTurn(
                 content: [coveGuidance.notice, turnContent, skillNotice?.text]
                     .filter(Boolean)
                     .join('\n\n'),
-                enabledSkillIds: skills.map((skill) => skill.name),
+                enabledSkillIds: skillNames,
             }),
             signal: turnSignal,
         });
@@ -362,7 +359,6 @@ async function executeHarnessTurn(
         }
         await live?.destroy().catch(() => undefined);
         await writeFailedTurnSession(input.agentRoot, session, {
-            bridgeDestroyed: live !== undefined,
             versionFailed: hausAgentVersionDrift,
         });
         throw error;

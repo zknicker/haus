@@ -38,7 +38,7 @@ export function readExecutionToolKind(toolName: string): ExecutionToolKind {
 
 /**
  * Wire names, lowercased. `compaction` and `filechange` are the reserved names
- * the AI SDK harness projects its own runtime events under.
+ * runtime drivers report their own runtime events under.
  */
 const toolKindsByName: Readonly<Record<string, ExecutionToolKind>> = {
     bash: 'shell',

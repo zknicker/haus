@@ -3,8 +3,8 @@ import { Data, Effect } from 'effect';
 import { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
-import { stopSandboxProcesses } from './harness/sandbox-process-owner.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
+import { stopRuntimeProcesses } from './runtime/process-registry.ts';
 import { closeRuntimeContext } from './runtime/runtime-context.ts';
 
 export interface AttachmentFrameSender {
@@ -117,7 +117,7 @@ export class AttachmentDaemonWork {
                     await closeRuntimeContext(this.runtime);
                 } finally {
                     try {
-                        await stopSandboxProcesses(this.runtime);
+                        await stopRuntimeProcesses(this.runtime);
                     } finally {
                         this.sender = null;
                     }

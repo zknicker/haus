@@ -2,15 +2,10 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import {
-    aiSdkDriverFactory,
-    type HarnessAgentFactory,
-    setHarnessBootstrapRefreshForTesting,
-} from '../runtime/ai-sdk-adapter.ts';
+import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import { type HarnessTurnInput, runHarnessTurn } from './executor.ts';
 
 const runtime = makeDaemonRuntime();
@@ -18,16 +13,13 @@ afterAll(() => runtime.dispose());
 
 let agentRoot: string;
 let events: string[];
-let restoreBootstrapRefresh: () => void;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-drain-receipt-'));
     events = [];
-    restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => undefined);
 });
 
 afterEach(async () => {
-    restoreBootstrapRefresh();
     await rm(agentRoot, { force: true, recursive: true });
 });
 
@@ -55,23 +47,11 @@ const channel: AgentInboxItem = {
     target: '#product',
 };
 
-const fakeAgent: HarnessAgentFactory = () => ({
-    createSession: (async (options: { resumeFrom?: unknown }) => ({
-        destroy: async () => undefined,
-        detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
-        hasUnfinishedTurn: () => false,
-        isResume: Boolean(options.resumeFrom),
-        sessionId: 'engine_session_1',
-        stop: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
-    })) as unknown as HarnessAgent['createSession'],
-    stream: (async () => {
+const { factory: fakeDriver } = fakeRuntimeDriver<HarnessTurnInput>({
+    turn: () => {
         events.push('stream');
-        return {
-            fullStream: (async function* () {
-                yield { totalUsage: undefined, type: 'finish' };
-            })(),
-        };
-    }) as unknown as HarnessAgent['stream'],
+        return finishedTurn();
+    },
 });
 
 function turnInput(overrides: Partial<HarnessTurnInput>): HarnessTurnInput {
@@ -88,7 +68,7 @@ function turnInput(overrides: Partial<HarnessTurnInput>): HarnessTurnInput {
         drainItemIds: [],
         env: {},
         factoryKind: 'ordinary',
-        runtimeDriverFactory: aiSdkDriverFactory(fakeAgent),
+        runtimeDriverFactory: fakeDriver,
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',
         inbox: [],

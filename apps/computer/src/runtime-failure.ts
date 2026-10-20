@@ -82,7 +82,7 @@ export function isRetryableRuntimeFailure(kind: RuntimeFailureKind): boolean {
 
 /** The raw runtime text (name, message, and cause chain). It never leaves the Computer. */
 export function runtimeErrorText(error: unknown, depth = 0): string {
-    // ACP error parts arrive as plain objects rather than native Error instances.
+    // A runtime may report an error as a plain object rather than a native Error.
     if (depth > 4 || !error || typeof error !== 'object') {
         return typeof error === 'string' ? error : '';
     }
@@ -98,7 +98,7 @@ const contextOverflowPattern =
     /context window|context.?length.?exceeded|maximum context length|prompt is too long/u;
 
 // Generic "Compaction failed"/"Failed to compact"; Claude Code: "Error during compaction";
-// Codex: "Error running remote compact task". No harness surfaces a typed compaction failure.
+// Codex: "Error running remote compact task". No runtime surfaces a typed compaction failure.
 const compactionFailurePattern =
     /compaction failed|failed to compact|error during compaction|compact task/u;
 
@@ -117,9 +117,6 @@ function classifyRuntimeFailureText(normalized: string): RuntimeFailure {
     ) {
         return { code: 'model-unavailable', kind: 'configuration' };
     }
-    if (/cannot find module .*\.harness-bootstrap/u.test(normalized)) {
-        return { code: 'configuration-invalid', kind: 'configuration' };
-    }
     if (
         contextOverflowPattern.test(normalized) ||
         /too many tokens|input .*too large|payload too large|\b413\b/u.test(normalized)
@@ -129,7 +126,7 @@ function classifyRuntimeFailureText(normalized: string): RuntimeFailure {
     if (/rate.?limit|too many requests|quota|usage limit|at capacity|\b429\b/u.test(normalized)) {
         return { code: 'rate-limited', kind: 'rate-limit' };
     }
-    // A provider request that timed out; a turn stall is reported by the harness, not as text.
+    // A provider request that timed out; a turn stall is reported by the executor, not as text.
     if (/timed out|timeout/u.test(normalized)) {
         return { code: 'provider-unavailable', kind: 'timeout' };
     }

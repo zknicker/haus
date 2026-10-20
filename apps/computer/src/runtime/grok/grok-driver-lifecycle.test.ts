@@ -1,7 +1,7 @@
 import { afterAll, expect, test } from 'bun:test';
 import { makeDaemonRuntime } from '../../daemon-runtime.ts';
-import { sandboxProcessOwner } from '../../harness/sandbox-process-owner.ts';
 import type { SteerResult } from '../driver.ts';
+import { runtimeProcessOwner } from '../process-registry.ts';
 import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import { collect, replayDriver, significant, text } from './fixtures/replay-driver.ts';
 import { createGrokDriver } from './grok-driver.ts';
@@ -177,7 +177,7 @@ test('a missing grok executable fails the open with an install hint', async () =
             },
             instructions: 'x',
             modelId: 'grok-4.6',
-            processes: sandboxProcessOwner(runtime),
+            processes: runtimeProcessOwner(runtime),
             reasoningEffort: 'default',
             tools: [],
             warm: { key: replay.homeDir, pool: replay.pool },

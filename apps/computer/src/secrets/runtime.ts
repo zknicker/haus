@@ -1,13 +1,12 @@
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 // Bun's text loader embeds the pinned manifest and lockfile in the standalone
-// executable, the same way harness bridges ship theirs.
+// executable, the same way the Codex driver ships its pin.
 import runtimeManifest from '../../assets/secrets-runtime/package.json' with { type: 'text' };
 import runtimeLockfile from '../../assets/secrets-runtime/pnpm-lock.yaml' with { type: 'text' };
-import { bridgeStoreDirForHost } from '../harness/bridge-bootstrap.ts';
-import { bridgePnpm, retriedOnce } from '../harness/bridge-pnpm.ts';
 import { runtimeSearchPath } from '../runtime-discovery.ts';
 
 const manifestText = runtimeManifest as unknown as string;
@@ -26,7 +25,10 @@ export type InstallCommand = (input: { command: string; cwd: string }) => Promis
     stderr: string;
 }>;
 
-/** The Varlock entry `haus-secrets` execs. Its pnpm shim runs `node` from PATH, as bridges do. */
+/** One pinned pnpm, whatever the host has on PATH (the Codex driver pins the same release). */
+const pinnedPnpm = 'CI=true corepack pnpm@10.32.1';
+
+/** The Varlock entry `haus-secrets` execs. Its pnpm shim runs `node` from PATH. */
 export function secretsVarlockBin(root: string) {
     return join(root, 'node_modules', '.bin', 'varlock');
 }
@@ -37,10 +39,9 @@ export function isSecretsRuntimeInstalled(root: string) {
 
 /**
  * Installs pinned Varlock and its 1Password plugin into one attachment's
- * secrets directory with the same pinned pnpm and machine-wide store as the
- * harness bridges. The Computer needs Node.js (with corepack) on PATH, which
- * bridges already require; it never needs the `op` CLI. A matching marker
- * skips the install, so refresh stays cheap.
+ * secrets directory with a pinned pnpm and one machine-wide store. The
+ * Computer needs Node.js (with corepack) on PATH; it never needs the `op`
+ * CLI. A matching marker skips the install, so refresh stays cheap.
  */
 export async function installSecretsRuntime(
     root: string,
@@ -53,7 +54,7 @@ export async function installSecretsRuntime(
     await mkdir(root, { mode: 0o700, recursive: true });
     await writeFile(join(root, 'package.json'), manifestText);
     await writeFile(join(root, 'pnpm-lock.yaml'), lockfileText);
-    const install = `${bridgePnpm} install --ignore-workspace --frozen-lockfile --prod --store-dir "${bridgeStoreDirForHost()}"`;
+    const install = `${pinnedPnpm} install --ignore-workspace --frozen-lockfile --prod --store-dir "${secretsStoreDir()}"`;
     const result = await run({
         command: `${install} && ${retriedOnce({ install, verify: './node_modules/.bin/varlock --version', wipe: 'node_modules' })}`,
         cwd: root,
@@ -86,6 +87,19 @@ async function runInstallCommand({ command, cwd }: { command: string; cwd: strin
     });
     const [stderr, exitCode] = await Promise.all([new Response(child.stderr).text(), child.exited]);
     return { exitCode, stderr };
+}
+
+/** Machine software, not Server-scoped state; the path predates the runtime drivers. */
+function secretsStoreDir() {
+    return join(homedir(), '.haus', 'cache', 'harness-bridge-store');
+}
+
+/**
+ * pnpm exits 0 even when an optional platform package fails to download, so the verify
+ * command doubles as the gate: on failure it reinstalls once from a clean `node_modules`.
+ */
+function retriedOnce(input: { install: string; verify: string; wipe: string }) {
+    return `(${input.verify}) || (rm -rf ${input.wipe} && ${input.install} && (${input.verify}))`;
 }
 
 function parsePins(manifest: string) {

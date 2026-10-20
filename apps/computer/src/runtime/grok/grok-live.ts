@@ -1,7 +1,7 @@
 import { realpath } from 'node:fs/promises';
-import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer, HostToolSession } from '../../host-tools/mcp-server.ts';
+import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import type { WarmProcess } from '../warm-pool.ts';
 import { type GrokCredential, resolveGrokCredential } from './grok-auth.ts';
 import { openGrokAcpSession } from './grok-handshake.ts';

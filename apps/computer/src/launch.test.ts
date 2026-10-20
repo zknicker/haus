@@ -2,16 +2,16 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import { parseResetCommand, parseStartCommand } from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { resetAgentState } from './agent-reset.ts';
 import { applyCoveConfiguration } from './cove-configuration.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
+import type { HarnessTurnInput } from './harness/executor.ts';
+import type { HostToolSet } from './host-tools/host-tool.ts';
 import { type AgentStartCommand, type Attachment, runAgentLaunch } from './launch.ts';
-import { aiSdkDriverFactory, type HarnessAgentFactory } from './runtime/ai-sdk-adapter.ts';
+import { fakeRuntimeDriver, finishedTurn } from './runtime/testing/fake-runtime-driver.ts';
 
 type FakeServer = ReturnType<typeof Bun.serve>;
 
@@ -299,61 +299,34 @@ test('the launch injects Server MCP and Computer Browser tools into the real Har
         totalPending: 0,
         type: 'start',
     };
-    let tools: ToolSet = {};
+    let tools: HostToolSet = [];
     let invocationResult: unknown;
-    const harnessAgentFactory: HarnessAgentFactory = (input) => {
-        tools = input.tools;
-        return {
-            createSession: (async () => ({
-                detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
-                destroy: async () => undefined,
-                isResume: false,
-                sessionId: 'mcp-session',
-            })) as unknown as HarnessAgent['createSession'],
-            stream: (async () => {
-                invocationResult = await input.tools.execute?.execute?.(
+    const driver = fakeRuntimeDriver<HarnessTurnInput>({
+        async *turn({ input }) {
+            tools = input.tools;
+            invocationResult = await input.tools
+                .find((tool) => tool.name === 'execute')
+                ?.execute(
                     {
                         code: 'return await tools.call({name:"mcp__server__echo",args:{value:"granted"}});',
                     },
-                    {
-                        abortSignal: new AbortController().signal,
-                        context: undefined,
-                        messages: [],
-                        toolCallId: 'tool-call',
-                    }
+                    { signal: new AbortController().signal, toolCallId: 'tool-call' }
                 );
-                return {
-                    fullStream: (async function* () {
-                        yield {
-                            type: 'finish-step',
-                            usage: {
-                                inputTokenDetails: {
-                                    cacheReadTokens: 0,
-                                    cacheWriteTokens: 0,
-                                    noCacheTokens: 1,
-                                },
-                                inputTokens: 1,
-                                outputTokens: 1,
-                                totalTokens: 2,
-                            },
-                        };
-                    })(),
-                };
-            }) as unknown as HarnessAgent['stream'],
-        };
-    };
+            yield* finishedTurn();
+        },
+    });
     const turn = await runAgentLaunch({
         attachment,
         command: base,
         dataRoot,
-        runtimeDriverFactory: aiSdkDriverFactory(harnessAgentFactory),
+        runtimeDriverFactory: driver.factory,
         runtime,
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
     expect(turn.status).toBe('completed');
-    expect(Object.keys(tools)).toEqual(['execute', 'browser']);
-    expect(invocationResult).toMatchObject({ result: 'server:granted' });
+    expect(tools.map((tool) => tool.name)).toEqual(['execute', 'browser']);
+    expect(invocationResult).toMatchObject({ value: { result: 'server:granted' } });
 });
 
 test('session reset rotates harness context while preserving Agent-owned state', async () => {
@@ -535,11 +508,7 @@ async function seedResetFixture() {
             JSON.stringify({
                 effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
                 generation: 1,
-                resumeState: {
-                    data: { nativeSessionId: 'native-reset-session' },
-                    harnessId: 'codex',
-                    type: 'resume-session',
-                },
+                resumeState: { runtime: 'codex', threadId: 'native-reset-session', version: 1 },
                 runtimeSessionId: 'harness-reset-session',
             })
         ),

@@ -2,8 +2,8 @@ import type { SessionFailureTurnEvent } from '../turn-event.ts';
 import type { CodexTurnError } from './protocol.ts';
 
 /**
- * The categories codex-acp's typed session failures used, kept so Activity and the turn stream
- * read Codex failures exactly as before: `access` is a rejected credential (fatal even as a
+ * The policy categories Haus reads Codex failures by, so Activity and the turn stream classify
+ * them consistently: `access` is a rejected credential (fatal even as a
  * retry warning), `limit` a rate limit, quota, or exhausted context, `connection` a lost
  * transport, `service` a provider fault, `request` a refused or malformed request.
  */

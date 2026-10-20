@@ -1,20 +1,24 @@
-/** A single-consumer async iterable fed by push; `end` lets the consumer drain and stop. */
-export class AsyncQueue<T> implements AsyncIterable<T> {
+/**
+ * A single-consumer async queue a driver's turn pushes `TurnEvent`s into as native output
+ * arrives, and the executor iterates. `end` lets the consumer drain what is queued and stop.
+ * Pushes after `end` are dropped, and a consumer that stops early ends the queue, so the
+ * producer never blocks or buffers for nobody.
+ */
+export class EventQueue<T> implements AsyncIterable<T> {
     private readonly items: T[] = [];
-    private waiter: ((result: IteratorResult<T>) => void) | null = null;
     private ended = false;
+    private waiter: ((result: IteratorResult<T>) => void) | null = null;
 
-    push(item: T): void {
+    push(...items: T[]): void {
         if (this.ended) {
             return;
         }
-        if (this.waiter) {
+        this.items.push(...items);
+        if (this.waiter && this.items.length > 0) {
             const resolve = this.waiter;
             this.waiter = null;
-            resolve({ done: false, value: item });
-            return;
+            resolve({ done: false, value: this.items.shift() as T });
         }
-        this.items.push(item);
     }
 
     end(): void {
@@ -24,10 +28,6 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
             this.waiter = null;
             resolve({ done: true, value: undefined });
         }
-    }
-
-    get isEnded(): boolean {
-        return this.ended;
     }
 
     [Symbol.asyncIterator](): AsyncIterator<T> {

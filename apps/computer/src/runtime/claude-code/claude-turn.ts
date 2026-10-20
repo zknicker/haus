@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { SteerResult } from '../driver.ts';
+import { EventQueue } from '../event-queue.ts';
 import type { RuntimeTokenUsage, TurnEvent } from '../turn-event.ts';
 import type { ClaudeConnection, TurnSink } from './claude-connection.ts';
 import { ClaudeProcessExitError, ClaudeTurnError, claudeResumeRejection } from './claude-errors.ts';
@@ -7,7 +8,6 @@ import type { ClaudeCommandLifecycle, ClaudeResult, ParsedClaudeLine } from './c
 import { readClaudePlanUsage } from './claude-plan-usage.ts';
 import type { ClaudeExit } from './claude-process.ts';
 import { addUsage, classifyResult, claudeTokenUsage } from './claude-result.ts';
-import { EventQueue } from './event-queue.ts';
 
 /** How long an interrupted turn may take to reach its result before the process is killed. */
 const interruptGraceMs = 5000;

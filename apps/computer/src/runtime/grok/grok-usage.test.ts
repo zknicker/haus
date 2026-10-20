@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { readGrokRequestUsage, readGrokTurnUsage } from './grok-usage.ts';
 
-// The cases of harness/grok-token-usage.test.ts, which proved the AI SDK path, on the driver.
 test('reads Grok turn usage from the prompt response _meta.usage', () => {
     expect(
         readGrokTurnUsage({

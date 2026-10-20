@@ -285,17 +285,6 @@
         "timer": 0
       }
     },
-    "apps/computer/src/harness/bootstrap-refresh.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each bootstrap refresh resumes one foreign sandbox and stops it in a bounded finalizer before returning.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
     "apps/computer/src/harness/execution-journal-file.ts": {
       "disposition": "finite-cleanup",
       "reason": "The per-journal Promise tail serializes finite atomic writes, and callers await the current write failure.",
@@ -318,17 +307,6 @@
         "timer": 0
       }
     },
-    "apps/computer/src/harness/sandbox-processes.ts": {
-      "disposition": "effect-owned",
-      "reason": "An Effect scope owns sandbox child processes; Promises and timers implement the foreign stop and kill adapters.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 3,
-        "timer": 2
-      }
-    },
     "apps/computer/src/agent-cli/commands/agent-image.ts": {
       "disposition": "finite-cleanup",
       "reason": "The one-shot CLI poll waits with a single awaited sleep timer that fires once per poll, bounded by a five-minute timeout; no timer outlives the awaiting command.",
@@ -349,17 +327,6 @@
         "finallyBlock": 0,
         "manualPromise": 0,
         "timer": 2
-      }
-    },
-    "apps/computer/src/harness/sandbox.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns sandbox resources; the Promise bridges Node port reservation into the scoped harness.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
       }
     },
     "apps/computer/src/inbox-store.ts": {
@@ -848,7 +815,7 @@
     },
     "apps/computer/src/harness/session-lifecycle.ts": {
       "disposition": "external-adapter",
-      "reason": "Finite AI SDK detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and sandbox reaping.",
+      "reason": "Finite runtime-driver detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and process reaping.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -870,7 +837,7 @@
     },
     "apps/computer/src/harness/stopped-turn.ts": {
       "disposition": "external-adapter",
-      "reason": "Bounds the foreign AI SDK turn's consumeStream settlement with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
+      "reason": "Bounds a runtime driver turn's settle with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -1099,9 +1066,9 @@
         "timer": 3
       }
     },
-    "apps/computer/src/runtime/claude-code/event-queue.ts": {
+    "apps/computer/src/runtime/event-queue.ts": {
       "disposition": "finite-cleanup",
-      "reason": "A single-consumer event queue: at most one pending wake resolver, resolved by the next push or by end(), which every turn reaches on settlement.",
+      "reason": "A single-consumer event queue: at most one pending wake resolver, resolved by the next push or by end(), which every Claude Code and Grok Build turn reaches on settlement or its consumer reaches by stopping early.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -1198,6 +1165,17 @@
         "timer": 0
       }
     },
+    "apps/computer/src/runtime/testing/fake-runtime-driver.ts": {
+      "disposition": "test-support",
+      "reason": "In-memory runtime driver for executor tests; each turn's drain resolver settles when the test consumes or abandons its scripted events.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
     "apps/computer/src/runtime/codex/testing/replay-transport.ts": {
       "disposition": "test-support",
       "reason": "Replays a recorded app-server stream; its resolvers settle as the fixture advances, ends, or the test kills the transport.",
@@ -1240,17 +1218,6 @@
         "finallyBlock": 0,
         "manualPromise": 4,
         "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/grok/async-queue.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A single-consumer queue: at most one pending wake resolver, resolved by the next push or by end(), which every Grok turn reaches on settlement.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
       }
     },
     "apps/computer/src/runtime/grok/fixtures/capture.ts": {

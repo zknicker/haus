@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
+import { supportsSubagents } from '../runtime/runtime-subagents.ts';
 import { composeAgentInstructions } from './instructions.ts';
-import { supportsSubagents } from './runtime-harness.ts';
 
 const facts = {
     agentId: 'agt_cove',
@@ -12,18 +12,17 @@ const facts = {
 
 test('only Claude Code supports sub-agents', () => {
     expect(supportsSubagents('claude-code')).toBe(true);
-    for (const runtimeId of ['codex', 'grok-build', 'pi', 'unknown']) {
+    for (const runtimeId of ['codex', 'grok-build', 'unknown']) {
         expect(supportsSubagents(runtimeId)).toBe(false);
     }
 });
 
 test('runtimes without sub-agents get no delegation section', () => {
-    const [codex, grok, pi] = ['codex', 'grok-build', 'pi'].map(
+    const [codex, grok] = ['codex', 'grok-build'].map(
         (runtimeId) => composeAgentInstructions({ ...facts, runtimeId }).instructions
     );
     expect(codex).not.toContain('## Working through sub-agents');
     expect(grok).toBe(codex);
-    expect(pi).toBe(codex);
 });
 
 // Raft v1.21 renders its conditional sub-agent section between task splitting and @Mentions.

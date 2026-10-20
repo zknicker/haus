@@ -1,9 +1,9 @@
 import * as z from 'zod';
 import type { RuntimeTurn } from '../driver.ts';
+import { EventQueue } from '../event-queue.ts';
 import { JsonRpcRequestError } from '../json-rpc.ts';
 import type { JsonRpcConnection } from '../json-rpc-connection.ts';
 import type { TurnEvent } from '../turn-event.ts';
-import { AsyncQueue } from './async-queue.ts';
 import { grokRequestFailure } from './grok-failure.ts';
 import type { GrokTurnNormalizer } from './grok-turn-normalizer.ts';
 import { readGrokTurnUsage } from './grok-usage.ts';
@@ -21,7 +21,7 @@ export class GrokTurn implements RuntimeTurn {
     readonly events: AsyncIterable<TurnEvent>;
     /** Resolves once Grok has started streaming this turn, or the turn settled. */
     readonly started: Promise<void>;
-    private readonly queue = new AsyncQueue<TurnEvent>();
+    private readonly queue = new EventQueue<TurnEvent>();
     private readonly settledSignal = Promise.withResolvers<void>();
     private readonly startedSignal = Promise.withResolvers<void>();
     private settledFlag = false;

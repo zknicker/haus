@@ -39,7 +39,7 @@ export function defineHostTool<Schema extends z.ZodType>(definition: {
     };
 }
 
-/** Matches the AI SDK's Zod 4 rendering so every runtime sees the same schema. */
+/** One Zod 4 rendering (draft-7, inline) so every runtime sees the same schema. */
 export function hostToolJsonSchema(tool: HostTool): Record<string, unknown> {
     const schema = z.toJSONSchema(tool.inputSchema, {
         io: 'input',

@@ -3,9 +3,9 @@ import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from '../../daemon-runtime.ts';
-import { sandboxProcessOwner } from '../../harness/sandbox-process-owner.ts';
 import { startHostToolServer } from '../../host-tools/mcp-server.ts';
 import type { RuntimeSession, SteerResult } from '../driver.ts';
+import { runtimeProcessOwner } from '../process-registry.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import { WarmProcessPool } from '../warm-pool.ts';
 import { echoHostTool } from './fixtures/echo-host-tool.ts';
@@ -49,7 +49,7 @@ liveTest(
                     'You are a Haus test agent. Follow instructions exactly; keep replies short.\n',
                 modelId: process.env.HAUS_LIVE_GROK_MODEL ?? 'grok-4.6',
                 reasoningEffort: 'low',
-                processes: sandboxProcessOwner(runtime),
+                processes: runtimeProcessOwner(runtime),
                 warm: { key: root, pool: warmPool },
                 tools: [echoHostTool],
                 workspaceDir,

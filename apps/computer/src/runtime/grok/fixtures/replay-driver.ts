@@ -2,9 +2,9 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DaemonRuntime } from '../../../daemon-runtime.ts';
-import { sandboxProcessOwner } from '../../../harness/sandbox-process-owner.ts';
 import { startHostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeTurn } from '../../driver.ts';
+import { runtimeProcessOwner } from '../../process-registry.ts';
 import type { TurnEvent } from '../../turn-event.ts';
 import { WarmProcessPool } from '../../warm-pool.ts';
 import { createGrokDriver } from '../grok-driver.ts';
@@ -39,7 +39,7 @@ export async function replayDriver(fixture: string, runtime: DaemonRuntime) {
         instructions: 'Replay instructions.\n',
         modelId: 'grok-4.6',
         reasoningEffort: 'low',
-        processes: sandboxProcessOwner(runtime),
+        processes: runtimeProcessOwner(runtime),
         warm: { key: root, pool },
         tools: [echoHostTool],
         workspaceDir,

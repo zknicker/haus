@@ -5,8 +5,8 @@ import { mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from '../../../daemon-runtime.ts';
-import { sandboxProcessOwner } from '../../../harness/sandbox-process-owner.ts';
 import { startHostToolServer } from '../../../host-tools/mcp-server.ts';
+import { runtimeProcessOwner } from '../../process-registry.ts';
 import type { RuntimeResumeState } from '../../resume-state.ts';
 import type { TurnEvent } from '../../turn-event.ts';
 import { WarmProcessPool } from '../../warm-pool.ts';
@@ -201,7 +201,7 @@ for (const name of selected.length > 0 ? selected : Object.keys(scenarios)) {
                     'You are a Haus test agent. Follow instructions exactly and keep replies short.\n',
                 modelId: process.env.HAUS_LIVE_GROK_MODEL ?? 'grok-4.6',
                 reasoningEffort: 'low',
-                processes: sandboxProcessOwner(runtime),
+                processes: runtimeProcessOwner(runtime),
                 warm: { key: root, pool: warmPool },
                 tools: [echoHostTool],
                 wireTap: recorder ? (frame) => recorder.tap(frame) : undefined,

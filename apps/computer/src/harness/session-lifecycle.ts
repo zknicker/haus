@@ -1,10 +1,8 @@
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { RuntimeSession } from '../runtime/driver.ts';
-import { isHausResumeState, type RuntimeResumeState } from '../runtime/resume-state.ts';
-import { readAgentSessionState, writeAgentSessionState } from './session-store.ts';
+import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 
 type Session = Pick<RuntimeSession, 'detach' | 'stop'>;
-type Resume = (state: RuntimeResumeState, signal?: AbortSignal) => Promise<Session>;
 const owners = new WeakMap<DaemonRuntime, HarnessSessionOwner>();
 
 export function harnessSessionOwner(runtime: DaemonRuntime): HarnessSessionOwner {
@@ -26,7 +24,7 @@ export class HarnessSessionOwner {
         if (this.stopping) {
             throw new Error('The Computer is shutting down.');
         }
-        const lease = new HarnessSessionLease(agentRoot);
+        const lease = new HarnessSessionLease();
         this.sessions.set(agentRoot, lease);
         return lease;
     }
@@ -38,7 +36,7 @@ export class HarnessSessionOwner {
         }
     }
 
-    /** Stops a parked native adapter before resetting or retiring its workspace. */
+    /** Waits out an Agent's running turn before resetting or retiring its workspace. */
     async stopAgent(agentRoot: string): Promise<void> {
         const session = this.sessions.get(agentRoot);
         if (!session) {
@@ -70,23 +68,12 @@ export class HarnessSessionOwner {
 
 export class HarnessSessionLease {
     private live: Session | null = null;
-    private resume: Resume | null = null;
     private transition: Promise<RuntimeResumeState> | null = null;
-    private parked: RuntimeResumeState | null = null;
     private readonly settled = Promise.withResolvers<void>();
-    private stopped = false;
     stopping = false;
 
-    constructor(private readonly agentRoot: string) {}
-
-    prepare(resumeState: RuntimeResumeState | undefined, resume: Resume): void {
-        this.parked = resumeState ?? null;
-        this.resume = resume;
-    }
-
-    attach(live: Session, resume: Resume): void {
+    attach(live: Session): void {
         this.live = live;
-        this.resume = resume;
     }
 
     async checkpoint(): Promise<RuntimeResumeState> {
@@ -94,16 +81,13 @@ export class HarnessSessionLease {
             throw new Error('No Harness session is attached.');
         }
         if (!this.transition) {
-            this.stopped = this.stopping;
-            this.transition = this.stopped ? this.live.stop() : this.live.detach();
+            this.transition = this.stopping ? this.live.stop() : this.live.detach();
         }
-        this.parked = await this.transition;
-        return this.parked;
+        return await this.transition;
     }
 
     discard(): void {
         this.live = null;
-        this.parked = null;
     }
 
     /** Called only after the turn has finished all session-state writes. */
@@ -115,22 +99,10 @@ export class HarnessSessionLease {
         this.stopping = true;
         await this.settled.promise;
         signal?.throwIfAborted();
+        // A driver parks and stops to the same state; a warm process ends through the Computer's
+        // warm pool (Agent reset or removal, shutdown), never by resuming the session here.
         if (this.transition) {
             await this.transition;
-        }
-        // A Haus driver parks and stops to the same state; its warm process ends through the
-        // Computer's warm pool (agent reset or removal, shutdown), never by resuming it here.
-        if (!this.stopped && this.parked && this.resume && !isHausResumeState(this.parked)) {
-            const stored = await readAgentSessionState(this.agentRoot);
-            // A reset or retirement can remove this parked session between turns.
-            if (!(stored && JSON.stringify(stored.resumeState) === JSON.stringify(this.parked))) {
-                return;
-            }
-            const resumed = await this.resume(this.parked, signal);
-            const state = await resumed.stop();
-            signal?.throwIfAborted();
-            await writeAgentSessionState(this.agentRoot, { ...stored, resumeState: state });
-            this.stopped = true;
         }
     }
 }

@@ -2,9 +2,9 @@ import { mkdir, readlink, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
- * The skills manifest `@ai-sdk/harness` keeps in a native skill directory. Haus passes harnesses
- * no skills and patches them to write none, but earlier Computers let an empty one land in every
- * Agent library through these links; it is removed before each turn.
+ * The skills manifest the retired AI SDK harness kept in a native skill directory. Earlier
+ * Computers let an empty one land in every Agent library through these links; it is removed
+ * before each turn.
  */
 const HARNESS_SKILLS_MANIFEST = '.ai-sdk-harness-skills.json';
 

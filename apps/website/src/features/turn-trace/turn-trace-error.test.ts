@@ -28,8 +28,8 @@ test('P0-4: a Claude tool error loses its wrapper tags and Error prefix', () => 
 test('a thrown harness error keeps its message and drops the stack', () => {
     const error = [
         'Error: Harness session agt_1 has an unfinished turn and must be continued before accepting a new prompt.',
-        '    at requirePromptableTurn (/node_modules/@ai-sdk/harness/dist/agent/index.js:3244:15)',
-        '    at async stream (/node_modules/@ai-sdk/harness/dist/agent/index.js:4395:70)',
+        '    at requirePromptableTurn (/node_modules/runtime-agent/dist/agent/index.js:3244:15)',
+        '    at async stream (/node_modules/runtime-agent/dist/agent/index.js:4395:70)',
     ].join('\n');
     assert.equal(
         readTraceError(error)?.message,

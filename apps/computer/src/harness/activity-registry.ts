@@ -41,7 +41,7 @@ export function createComputerActivityRegistry(): ComputerActivityRegistry {
             }
             const known = knownToolCategory(input.runtimeId, input.toolName, input.nativeName);
             // A runtime builtin whose input failed its schema is still that builtin
-            // (codex-acp sends a parsed file read as `exec_command` with no command).
+            // (Codex reports a parsed file read as a shell call with no command).
             if (known && input.invalid && input.providerExecuted) {
                 return { category: known, outcome: 'activity' };
             }

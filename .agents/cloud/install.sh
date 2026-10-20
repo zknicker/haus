@@ -76,7 +76,7 @@ echo "==> Installing project dependencies and HeroUI Pro artifacts"
 bun run setup:worktree
 
 # Agent turns need a runtime CLI on the host; the dev seed runs on Codex. Pinned
-# with the Codex bridge in apps/computer/assets/harness-bridges/codex. Its login
+# with the Codex driver in apps/computer/src/runtime/codex/pin. Its login
 # happens per session in start.sh so no snapshot bakes in a credential.
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then

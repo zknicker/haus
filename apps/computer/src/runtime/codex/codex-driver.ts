@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer, HostToolSession } from '../../host-tools/mcp-server.ts';
 import type { OpenSessionOptions, RuntimeDriver } from '../driver.ts';
 import { toHausResumeState } from '../legacy-resume-state.ts';
+import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import type { RuntimeResumeState } from '../resume-state.ts';
 import type { WarmProcess, WarmSlot } from '../warm-pool.ts';
 import { openAppServer } from './app-server.ts';

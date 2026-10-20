@@ -1,30 +1,22 @@
 import { readFile } from 'node:fs/promises';
 import { composeTurnPrompt } from './turn-prompt.ts';
 
-export async function streamWeeklyTurn({ agent, session, turn, notes, persistEvidence, prompt }) {
-    const result = await agent.stream({
-        prompt,
-        session,
-        abortSignal: AbortSignal.timeout(180_000),
-    });
+export async function streamWeeklyTurn({ session, turn, notes, persistEvidence, prompt }) {
+    const run = await session.startTurn({ prompt, signal: AbortSignal.timeout(180_000) });
     let finished = false;
-    for await (const part of result.fullStream) {
+    let finalText = '';
+    for await (const part of run.events) {
         const failure = nativeStreamFailure(part);
         if (failure) {
             turn.failure = failure;
             await persistEvidence();
             throw new Error(turn.failure);
         }
-        if (part.type === 'finish') {
-            turn.finishReason = part.finishReason;
-            const reason =
-                typeof part.finishReason === 'string'
-                    ? part.finishReason
-                    : part.finishReason?.unified;
-            if (reason === 'error') {
-                throw new Error('Native model finished with an error');
-            }
+        if (part.type === 'turn-finish') {
             finished = true;
+        }
+        if (part.type === 'text-delta') {
+            finalText += part.text;
         }
         if (part.type === 'tool-call') {
             turn.toolCount = (turn.toolCount ?? 0) + 1;
@@ -33,7 +25,7 @@ export async function streamWeeklyTurn({ agent, session, turn, notes, persistEvi
     if (!finished) {
         throw new Error('Native model stream ended without a finish receipt');
     }
-    turn.finalText = await result.text;
+    turn.finalText = finalText;
     turn.notesAfter = await readFile(notes, 'utf8').catch(() => null);
     turn.messages = turn.actions
         .filter((a) => a.path === '/api/agent/messages/send' && a.result?.state === 'sent')

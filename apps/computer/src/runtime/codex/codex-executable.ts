@@ -7,9 +7,9 @@ import codexPackageJson from './pin/codex.package.json' with { type: 'text' };
 import codexLockfile from './pin/codex.pnpm-lock.yaml' with { type: 'text' };
 
 /**
- * The one Codex CLI every Haus Codex session runs: `@openai/codex` at the version codex-acp
- * pinned before (0.159.0), installed once per machine from a frozen lockfile and shared by
- * every Agent. Nothing installs per turn or per Agent.
+ * The one Codex CLI every Haus Codex session runs: `@openai/codex` 0.159.0, installed once per
+ * machine from a frozen lockfile and shared by every Agent. Nothing installs per turn or per
+ * Agent.
  */
 export const CODEX_CLI_VERSION = '0.159.0';
 
@@ -19,9 +19,12 @@ export interface CodexExecutable {
     readonly path: string;
 }
 
+/** The embedded pin manifest, as text (Bun's text loader keeps it in the standalone build). */
+export const codexPinManifest = codexPackageJson as unknown as string;
+
 /** Content hash of the pin; a changed pin restarts parked sessions (`bootstrapFingerprint`). */
 export const codexPinFingerprint = createHash('sha256')
-    .update(codexPackageJson as unknown as string)
+    .update(codexPinManifest)
     .update('\0')
     .update(codexLockfile)
     .digest('hex');
@@ -63,7 +66,7 @@ async function installPinnedCodex(signal?: AbortSignal): Promise<CodexExecutable
         return installed;
     }
     await mkdir(dir, { recursive: true });
-    await writeAtomic(join(dir, 'package.json'), codexPackageJson as unknown as string);
+    await writeAtomic(join(dir, 'package.json'), codexPinManifest);
     await writeAtomic(join(dir, 'pnpm-lock.yaml'), codexLockfile);
     await run(
         [

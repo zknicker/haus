@@ -6,17 +6,6 @@ ignoreScripts = true
 saveTextLockfile = true
 minimumReleaseAge = 259200
 minimumReleaseAgeExcludes = [
-    # Exact transitive pins required by the current AI SDK harness release.
-    "ai",
-    "@ai-sdk/gateway",
-    "@ai-sdk/provider",
-    "@ai-sdk/harness",
-    "@ai-sdk/harness-acp",
-    "@ai-sdk/harness-claude-code",
-    "@ai-sdk/harness-grok-build",
-    "@ai-sdk/harness-pi",
-    "@ai-sdk/mcp",
-    "@ai-sdk/provider-utils",
     "@heroui-pro/react",
     # Required peers of @heroui-pro/react 1.0.0-beta.9 (>=3.2.5).
     "@heroui/react",

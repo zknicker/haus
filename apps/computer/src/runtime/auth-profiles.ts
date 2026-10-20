@@ -1,11 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-/**
- * Pi has no profile: it runs in the Computer process and reads its login from the Computer's own
- * `~/.pi/agent/auth.json`, never from the Agent HOME.
- */
-export type LocalTrustedSandboxAuthProfile = 'claude-code' | 'codex' | 'grok-build';
+/** A runtime whose host login the Agent HOME links to. */
+export type RuntimeAuthProfile = 'claude-code' | 'codex' | 'grok-build';
 
 /**
  * References the physical machine's native provider session from the isolated
@@ -13,7 +10,7 @@ export type LocalTrustedSandboxAuthProfile = 'claude-code' | 'codex' | 'grok-bui
  * runtime simply cannot run it.
  */
 export async function referenceAuthProfiles(input: {
-    authProfiles: readonly LocalTrustedSandboxAuthProfile[];
+    authProfiles: readonly RuntimeAuthProfile[];
     homeDir: string;
     hostGrokHomeDir: string;
     hostHomeDir: string;
@@ -77,7 +74,6 @@ const legacyCodexImageGenerationBlock = new RegExp(
  * Earlier releases disabled Codex's native image generation in every managed
  * Agent home. Remove only that release-owned block; explicit operator or Agent
  * config remains untouched, and Codex's stable native default takes effect.
- * MCP servers declared here never load: Haus's codex-acp patch disables them.
  */
 async function restoreCodexNativeImageGeneration(codexHome: string) {
     const configPath = path.join(codexHome, 'config.toml');

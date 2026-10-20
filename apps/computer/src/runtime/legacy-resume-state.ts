@@ -22,10 +22,10 @@ export type HausRuntimeId = keyof HausResumeStates;
 
 /**
  * The AI SDK harness stored `{ type: 'resume-session', harnessId, data }`. Verified against real
- * `session.json` files: Claude Code keeps its conversation under `data.claudeSessionId`
- * (@ai-sdk/harness-claude-code), and harness-acp keeps the native session under
- * `data.acpSessionId`, which for Codex is the app-server thread id (its rollout file is named
- * by it) and for Grok Build is the ACP session `session/load` reopens.
+ * `session.json` files: Claude Code kept its conversation under `data.claudeSessionId`, and the
+ * ACP harness kept the native session under `data.acpSessionId`, which for Codex is the
+ * app-server thread id (its rollout file is named by it) and for Grok Build is the ACP session
+ * `session/load` reopens.
  */
 const legacyClaudeSchema = z.looseObject({
     data: z.looseObject({ claudeSessionId: z.string().min(1) }),

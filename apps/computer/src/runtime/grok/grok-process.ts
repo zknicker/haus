@@ -1,8 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
-import { isSystemErrorCode } from '../../harness/process-group-liveness.ts';
-import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
 import { JsonRpcConnection } from '../json-rpc-connection.ts';
 import { LineDecoder } from '../line-decoder.ts';
+import { isSystemErrorCode } from '../process-group-liveness.ts';
+import type { RuntimeProcessRegistry } from '../process-registry.ts';
 
 /** One frame on the ACP wire, for fixture capture. */
 export interface GrokWireFrame {

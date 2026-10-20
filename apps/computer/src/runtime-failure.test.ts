@@ -15,7 +15,6 @@ test('classifies operator-action failures as terminal', () => {
     for (const [message, kind] of [
         ['Not logged in. Run codex login.', 'authentication'],
         ['Unknown model gpt-nope', 'configuration'],
-        ["Cannot find module '/agent/.harness-bootstrap/codex/bridge.mjs'", 'configuration'],
         ['Input exceeds the context window', 'input'],
     ] as const) {
         expect(classifyRuntimeFailure(new Error(message))).toBe(kind);
@@ -109,11 +108,6 @@ test('names a stable failure code beside every kind', () => {
     for (const [error, kind, code] of [
         [new Error('Not logged in. Run codex login.'), 'authentication', 'authentication-required'],
         [new Error('Unknown model gpt-nope'), 'configuration', 'model-unavailable'],
-        [
-            new Error("Cannot find module '/agent/.harness-bootstrap/codex/bridge.mjs'"),
-            'configuration',
-            'configuration-invalid',
-        ],
         [new Error('prompt is too long: 201234 tokens'), 'input', 'context-too-large'],
         [new Error('429 Too Many Requests'), 'rate-limit', 'rate-limited'],
         [new Error('Request timed out'), 'timeout', 'provider-unavailable'],

@@ -15,7 +15,7 @@ test('records native startup and stream boundaries without inventing message sen
     const session: RuntimeSession = {
         isResume: false,
         sessionId: 'test-session',
-        detach: async () => ({ type: 'resume-session', harnessId: 'fake', data: {} }),
+        detach: async () => ({ runtime: 'codex', threadId: 'test-thread', version: 1 }),
         destroy: async () => {},
         startTurn: async () => ({
             events: (async function* () {
@@ -37,7 +37,7 @@ test('records native startup and stream boundaries without inventing message sen
             unconsumedSteers: () => [],
         }),
         steer: async () => ({ delivered: false, reason: 'idle' }),
-        stop: async () => ({ type: 'resume-session', harnessId: 'fake', data: {} }),
+        stop: async () => ({ runtime: 'codex', threadId: 'test-thread', version: 1 }),
     };
     const factory: TurnDriverFactory = () => ({
         bootstrapFingerprint: async () => null,
@@ -64,7 +64,7 @@ test('records native startup and stream boundaries without inventing message sen
             unreadElsewhere: [],
             warmDrainItemIds: [],
             initialRole: null,
-            modelId: 'test-model',
+            modelId: 'gpt-5.6-sol',
             reasoningEffort: 'high',
             runId: 'run_timing',
             runtime,

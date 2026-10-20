@@ -48,9 +48,7 @@ export async function startHarnessSession(start: HarnessSessionStart): Promise<R
                     await start.phase('session creation failed');
                     throw error;
                 });
-            start.lease.attach(live, (state, signal) =>
-                start.driver.openSession({ resumeFrom: state, sessionId: start.sessionId, signal })
-            );
+            start.lease.attach(live);
             return live;
         }
     );

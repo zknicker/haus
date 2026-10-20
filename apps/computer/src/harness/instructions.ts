@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { hostname, release, type } from 'node:os';
 import computerPackage from '../../package.json' with { type: 'json' };
+import { supportsSubagents } from '../runtime/runtime-subagents.ts';
 import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
-import { supportsSubagents } from './runtime-harness.ts';
 
 /**
  * Ported composition seam (Runtime's `agent-instructions.ts` +

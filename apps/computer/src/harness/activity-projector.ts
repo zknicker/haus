@@ -1,6 +1,5 @@
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import type { ToolTurnEvent, TurnEvent } from '../runtime/turn-event.ts';
-import { createAcpReadSteps } from './acp-read-steps.ts';
 import {
     type ComputerActivityRegistry,
     createComputerActivityRegistry,
@@ -13,6 +12,7 @@ import {
     type NativeImageToolAction,
     nativeImageToolAction,
 } from './generated-images.ts';
+import { createReadLocationSteps } from './read-location-steps.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 import { createSubagentSteps, delegationOperationId } from './subagent-steps.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
@@ -34,7 +34,7 @@ export function createComputerActivityProjector(input: {
         findings: createToolFindings(input.thoughts),
         images: createGeneratedImageSteps(input),
         pending: new Map(),
-        reads: createAcpReadSteps(input.workspaceDir),
+        reads: createReadLocationSteps(input.workspaceDir),
         skipped,
         subagents: createSubagentSteps(input.journal),
     };
@@ -275,7 +275,7 @@ interface ToolCalls {
     findings: ReturnType<typeof createToolFindings>;
     images: ReturnType<typeof createGeneratedImageSteps>;
     pending: Map<string, ComputerToolActivity>;
-    reads: ReturnType<typeof createAcpReadSteps>;
+    reads: ReturnType<typeof createReadLocationSteps>;
     skipped: Set<string>;
     subagents: ReturnType<typeof createSubagentSteps>;
 }

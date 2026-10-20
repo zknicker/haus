@@ -2,7 +2,7 @@ import type { ToolCallTurnEvent } from '../runtime/turn-event.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 
 /**
- * An ACP runtime's own edit call (codex-acp's `apply_patch`) and the synthetic
+ * A runtime's own edit call (a Codex patch, a Grok Build edit) and the synthetic
  * `fileChange` for the same edit describe one edit. The driver tags that
  * `fileChange` with the call it came from (`sourceToolCallId`), so the projector folds
  * it into its source call instead of counting the edit twice: the source keeps
@@ -76,7 +76,7 @@ function fileChangeSourceId(part: ToolCallTurnEvent): string | undefined {
     return part.sourceToolCallId || undefined;
 }
 
-/** codex-acp sends a patch call with no raw input, which arrives as `{}`. */
+/** A patch call with no input of its own arrives as `{}`. */
 function isBare(input: unknown): boolean {
     if (typeof input === 'string') {
         return input.trim() === '' || input.trim() === '{}';

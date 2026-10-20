@@ -38,8 +38,9 @@ export type GrokResumeState = z.infer<typeof grokResumeStateSchema>;
 export type HausResumeState = z.infer<typeof hausResumeStateSchema>;
 
 /**
- * The AI SDK harness's opaque `HarnessAgentResumeSessionState`, which only the temporary
- * adapter (`ai-sdk-adapter.ts`) reads. It goes with the adapter.
+ * The retired AI SDK harness's opaque resume state, still stored by Agents that have not run
+ * since the drivers replaced it. Each driver converts it on first open
+ * (`legacy-resume-state.ts`).
  */
 export type LegacyHarnessResumeState = Readonly<Record<string, unknown>>;
 
@@ -47,7 +48,7 @@ export type RuntimeResumeState = HausResumeState | LegacyHarnessResumeState;
 
 /**
  * Validates a stored resume state at the disk boundary. A Haus-shaped state must parse exactly;
- * anything else object-shaped is a legacy harness state the adapter still owns.
+ * anything else object-shaped is a legacy harness state a driver converts on open.
  */
 export function parseRuntimeResumeState(value: unknown): RuntimeResumeState | null {
     if (!isRecord(value)) {

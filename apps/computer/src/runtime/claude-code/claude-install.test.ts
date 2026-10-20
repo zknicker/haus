@@ -39,14 +39,7 @@ async function packagedTarget(): Promise<{ target: ClaudeInstallTarget; tarball:
     };
 }
 
-test('the pinned install matches the vendor pin the AI SDK bridge shipped', async () => {
-    const bridge = JSON.parse(
-        await readFile(
-            join(import.meta.dir, '../../../assets/harness-bridges/claude-code/package.json'),
-            'utf8'
-        )
-    );
-    expect(bridge.dependencies['@anthropic-ai/claude-code']).toBe(CLAUDE_CODE_VERSION);
+test('the pinned install targets the registry tarball for each supported platform', () => {
     const target = claudeInstallTarget('/home/op', 'linux-x64');
     expect(target.tarballUrl).toBe(
         `https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-${CLAUDE_CODE_VERSION}.tgz`

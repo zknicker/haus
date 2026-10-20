@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { isProcessGroupAlive, isSystemErrorCode } from '../../harness/process-group-liveness.ts';
-import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
 import { LineDecoder } from '../line-decoder.ts';
+import { isProcessGroupAlive, isSystemErrorCode } from '../process-group-liveness.ts';
+import type { RuntimeProcessRegistry } from '../process-registry.ts';
 
 const stderrTailLines = 20;
 const terminationGraceMs = 2000;
@@ -30,7 +30,7 @@ export function spawnClaudeProcess(options: {
     binaryPath: string;
     cwd: string;
     env: Record<string, string>;
-    /** Ties the child to Computer shutdown (`sandbox-process-owner.ts`). */
+    /** Ties the child to Computer shutdown (`process-registry.ts`). */
     processes?: RuntimeProcessRegistry;
 }): ClaudeProcess {
     const owner = options.processes;

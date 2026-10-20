@@ -33,7 +33,7 @@ export interface AgentPromptRenderInput {
     runtimeVersion: string;
     /** Pickup reaction; absent or blank renders the default. */
     signatureEmoji?: string | null;
-    /** The runtime's harness can start sub-agents (`supportsSubagents` in runtime-harness.ts). */
+    /** The runtime can start sub-agents (`supportsSubagents` in runtime/runtime-subagents.ts). */
     supportsSubagents?: boolean;
     workspacePath: string;
 }

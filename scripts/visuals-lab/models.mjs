@@ -2,10 +2,7 @@
 // runtime registry so a contender can be added or dropped without touching
 // product code.
 //
-// Every model runs the product's harness bridge, the lane Haus actually ships.
-// There used to be a second lane spawning the CLIs installed on this Mac,
-// because the pinned bridges rejected `gpt-6-astra` and `claude-fable-5-1`;
-// the bridge upgrade landed, so that lane is gone.
+// Every model runs the product's runtime driver, the lane Haus actually ships.
 //
 // `reasoning` is the effort a run starts at; the page can override it per model
 // before a run, which is why it lives here as a default rather than a constant.

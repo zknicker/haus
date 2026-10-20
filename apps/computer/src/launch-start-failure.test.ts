@@ -2,15 +2,17 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { type DaemonRuntime, makeDaemonRuntime } from './daemon-runtime.ts';
+import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, runAgentLaunch } from './launch.ts';
-import { aiSdkDriverFactory, type HarnessAgentFactory } from './runtime/ai-sdk-adapter.ts';
+import { RuntimeResumeRejectedError } from './runtime/resume-rejected.ts';
+import { fakeRuntimeDriver, finishedTurn } from './runtime/testing/fake-runtime-driver.ts';
+import type { TurnEvent } from './runtime/turn-event.ts';
 
-type CreateSession = (options: { abortSignal?: AbortSignal; resumeFrom?: unknown }) => void;
+type CreateSession = (options: { resumeFrom?: unknown }) => void;
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
@@ -70,7 +72,11 @@ test('a missing runtime session is reported for Server-authorized recovery', asy
     const failed = await launch('run_resume_missing', {
         onCreate: ({ resumeFrom }) => {
             if (resumeFrom) {
-                throw new Error('No conversation found with session ID: native_1');
+                throw new RuntimeResumeRejectedError(
+                    'codex',
+                    'missing',
+                    'No conversation found with session ID: native_1'
+                );
             }
         },
     });
@@ -83,8 +89,15 @@ test('a missing runtime session is reported for Server-authorized recovery', asy
 });
 
 test('a resumed conversation the runtime cannot find once prompted is reported for recovery', async () => {
-    const replayRejected = [
-        { error: new Error('No conversation found with session ID: 7f3c'), type: 'error' },
+    const replayRejected: TurnEvent[] = [
+        {
+            error: new RuntimeResumeRejectedError(
+                'claude-code',
+                'missing',
+                'No conversation found with session ID: 7f3c'
+            ),
+            type: 'error',
+        },
     ];
     // A cold session has nothing to rotate away from.
     const cold = await launch('run_cold_rejected', { parts: replayRejected });
@@ -148,7 +161,7 @@ test('a turn stalled past the no-progress deadline fails as a retryable timeout'
     const testRuntime = makeTestRuntime();
     try {
         const stalling = launch('run_stalled', {
-            parts: [{ type: 'reasoning-start' }],
+            parts: [{ id: 'r1', type: 'reasoning-start' }],
             runtime: testRuntime,
             stall: true,
         });
@@ -169,7 +182,7 @@ function launch(
     runId: string,
     options: {
         onCreate?: CreateSession;
-        parts?: unknown[];
+        parts?: TurnEvent[];
         runtime?: DaemonRuntime;
         signal?: AbortSignal;
         /** Goes silent after `parts` until the turn is aborted. */
@@ -188,32 +201,20 @@ function launch(
         totalPending: 0,
         type: 'start',
     };
-    const harnessAgentFactory: HarnessAgentFactory = () => ({
-        createSession: (async (create: { abortSignal?: AbortSignal; resumeFrom?: unknown }) => {
-            options.onCreate?.(create);
-            return {
-                destroy: async () => undefined,
-                detach: async () => ({
-                    data: { nativeSessionId: 'native_1' },
-                    harnessId: 'fake',
-                    type: 'resume-session',
-                }),
-                isResume: Boolean(create.resumeFrom),
-                sessionId: 'start-session',
-            };
-        }) as unknown as HarnessAgent['createSession'],
-        stream: (async ({ abortSignal }: { abortSignal?: AbortSignal }) => ({
-            consumeStream: async () => undefined,
-            fullStream: (async function* () {
-                yield* options.parts ?? [{ type: 'finish' }];
-                if (options.stall && abortSignal) {
+    const driver = fakeRuntimeDriver<HarnessTurnInput>({
+        detach: () => ({ runtime: 'codex', threadId: 'native_1', version: 1 }),
+        open: ({ resumeFrom }) => options.onCreate?.({ resumeFrom }),
+        async *turn({ signal }) {
+            yield* options.parts ?? finishedTurn();
+            if (options.stall) {
+                if (!signal.aborted) {
                     await new Promise((resolve) =>
-                        abortSignal.addEventListener('abort', resolve, { once: true })
+                        signal.addEventListener('abort', resolve, { once: true })
                     );
-                    yield { type: 'abort' };
                 }
-            })(),
-        })) as unknown as HarnessAgent['stream'],
+                yield { type: 'abort' };
+            }
+        },
     });
     return runAgentLaunch({
         attachment: {
@@ -225,7 +226,7 @@ function launch(
         },
         command,
         dataRoot,
-        runtimeDriverFactory: aiSdkDriverFactory(harnessAgentFactory),
+        runtimeDriverFactory: driver.factory,
         runtime: options.runtime ?? runtime,
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${server.port}`,

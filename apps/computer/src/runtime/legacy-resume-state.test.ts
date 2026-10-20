@@ -81,6 +81,14 @@ test('each runtime converts its stored AI SDK state to its own Haus shape on fir
         threadId: '01a12154-c29a-7c53-a099-dedca0d7f8bb',
         version: 1,
     });
+    // A turn an older Computer parked mid-Stop carried `continueFrom`; the conversation resumes
+    // without the abandoned turn.
+    const midStop = { ...legacyCodex, continueFrom: { ...legacyCodex, type: 'continue-turn' } };
+    expect(toHausResumeState('codex', await storedResumeState('codex', midStop))).toEqual({
+        runtime: 'codex',
+        threadId: '01a12154-c29a-7c53-a099-dedca0d7f8bb',
+        version: 1,
+    });
     expect(
         toHausResumeState('grok-build', await storedResumeState('grok-build', legacyGrok))
     ).toEqual({

@@ -4,7 +4,7 @@ import type { SubagentStatus, SubagentTurnEvent, SubagentUsage } from './turn-ev
  * Normalizes one Claude Code stream message about a sub-agent: a `system` `task_*` message, or
  * the sub-agent's own assistant/user message tagged with the delegating call's
  * `parent_tool_use_id`. Claude Code's `--output-format stream-json` and the Agent SDK emit the
- * same messages, so the AI SDK adapter and the Claude driver share this.
+ * same messages; the Claude driver's normalizer reads them here.
  */
 export function claudeSubagentEvents(message: unknown): SubagentTurnEvent[] {
     if (!isRecord(message)) {
