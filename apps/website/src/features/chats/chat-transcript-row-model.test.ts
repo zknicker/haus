@@ -41,7 +41,7 @@ function userTurn(id: string, timestamp: string): TranscriptEntry {
         kind: 'turn',
         participant: 'user',
         responseId: null,
-        showReplyReference: true,
+        continuesPrevious: false,
         timestamp,
     } as TranscriptEntry;
 }
@@ -57,7 +57,7 @@ function hiddenAgentTurn(id: string, timestamp: string): TranscriptEntry {
         kind: 'turn',
         participant: 'agent',
         responseId: null,
-        showReplyReference: true,
+        continuesPrevious: false,
         timestamp,
     } as TranscriptEntry;
 }

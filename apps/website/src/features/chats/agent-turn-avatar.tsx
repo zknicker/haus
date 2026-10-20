@@ -145,3 +145,8 @@ function AgentTurnProfileButton({
         </button>
     );
 }
+
+/** Holds the avatar column for a follow-up that sits under the previous message's header. */
+export function TurnAvatarSlot() {
+    return <div aria-hidden="true" className={transcriptTurnGeometry.avatarSlot} />;
+}
