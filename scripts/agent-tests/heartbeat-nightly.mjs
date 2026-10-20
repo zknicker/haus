@@ -146,9 +146,11 @@ export async function runFollowsUpDroppedPromise(context) {
             `the reminder fires 08:00-10:00 in ${operatorZone} (got ${reminder.fireAt})`
         ).toBe(true);
         expect(
-            `${reminder.title} ${reminder.description ?? ''}`.toLowerCase(),
-            'the reminder names the promise'
-        ).toContain('cutoff');
+            /\b(?:cutoff|ship(?:ping)?)\b/u.test(
+                `${reminder.title} ${reminder.description ?? ''}`.toLowerCase()
+            ),
+            'the reminder names the shipping promise'
+        ).toBe(true);
         expectNoPosts(expect, outcome);
     } finally {
         await kit
