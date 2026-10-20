@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.5.1 - 2026-10-20
+
+- Stopped Cursor Cloud Agent runs leave “Stopping” once Cursor confirms cancellation, even when it rejects a repeated stop request.
+
 ## v15.5.0 - 2026-10-20
 
 - Opening a new or existing Thread focuses its reply input. Selecting Reply in chat focuses the message input too.
