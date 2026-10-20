@@ -1,6 +1,6 @@
 import * as z from 'zod';
-import { AcpHandlerError, type AcpRequestHandler } from './acp-connection.ts';
-import { jsonRpcInvalidParams, jsonRpcMethodNotFound } from './json-rpc.ts';
+import { jsonRpcInvalidParams, jsonRpcMethodNotFound } from '../json-rpc.ts';
+import { JsonRpcHandlerError, type JsonRpcRequestHandler } from '../json-rpc-connection.ts';
 
 const permissionRequestSchema = z.looseObject({
     options: z.array(z.looseObject({ kind: z.string(), optionId: z.string().min(1) })),
@@ -17,10 +17,10 @@ export function grokRequestHandler(input: {
     autoApprove: boolean;
     isTurnRunning: () => boolean;
     sessionId: () => string | undefined;
-}): AcpRequestHandler {
+}): JsonRpcRequestHandler {
     return (method, params) => {
         if (method !== 'session/request_permission') {
-            throw new AcpHandlerError({
+            throw new JsonRpcHandlerError({
                 code: jsonRpcMethodNotFound,
                 message: `Haus does not support the ACP client method ${method}.`,
             });
@@ -40,6 +40,6 @@ export function grokRequestHandler(input: {
     };
 }
 
-function invalid(message: string): AcpHandlerError {
-    return new AcpHandlerError({ code: jsonRpcInvalidParams, message });
+function invalid(message: string): JsonRpcHandlerError {
+    return new JsonRpcHandlerError({ code: jsonRpcInvalidParams, message });
 }

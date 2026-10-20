@@ -5,9 +5,11 @@ import { mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from '../../../daemon-runtime.ts';
+import { sandboxProcessOwner } from '../../../harness/sandbox-process-owner.ts';
 import { startHostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeResumeState } from '../../resume-state.ts';
 import type { TurnEvent } from '../../turn-event.ts';
+import { WarmProcessPool } from '../../warm-pool.ts';
 import { createGrokDriver } from '../grok-driver.ts';
 import { echoHostTool } from './echo-host-tool.ts';
 import { createFixtureRecorder } from './fixture-recorder.ts';
@@ -163,6 +165,11 @@ function log(label: string, value: unknown) {
 
 const runtime = makeDaemonRuntime();
 const hostToolServer = startHostToolServer();
+const warmPool = new WarmProcessPool({
+    onCloseError: (error) => {
+        throw error;
+    },
+});
 const selected = process.argv.slice(2);
 for (const name of selected.length > 0 ? selected : Object.keys(scenarios)) {
     const scenario = scenarios[name];
@@ -189,13 +196,13 @@ for (const name of selected.length > 0 ? selected : Object.keys(scenarios)) {
                         token = session.mcp.headers.Authorization.slice('Bearer '.length);
                         return session;
                     },
-                    stop: () => hostToolServer.stop(),
                 },
                 instructions:
                     'You are a Haus test agent. Follow instructions exactly and keep replies short.\n',
                 modelId: process.env.HAUS_LIVE_GROK_MODEL ?? 'grok-4.6',
                 reasoningEffort: 'low',
-                runtime,
+                processes: sandboxProcessOwner(runtime),
+                warm: { key: root, pool: warmPool },
                 tools: [echoHostTool],
                 wireTap: recorder ? (frame) => recorder.tap(frame) : undefined,
                 workspaceDir,
@@ -212,5 +219,6 @@ for (const name of selected.length > 0 ? selected : Object.keys(scenarios)) {
     const recorder = await scenario(context);
     await writeFile(join(import.meta.dir, `${name}.jsonl`), recorder.toJsonl());
 }
+await warmPool.close();
 await hostToolServer.stop();
 await runtime.dispose();

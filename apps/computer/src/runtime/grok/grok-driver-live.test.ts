@@ -3,9 +3,11 @@ import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeDaemonRuntime } from '../../daemon-runtime.ts';
+import { sandboxProcessOwner } from '../../harness/sandbox-process-owner.ts';
 import { startHostToolServer } from '../../host-tools/mcp-server.ts';
 import type { RuntimeSession, SteerResult } from '../driver.ts';
 import type { TurnEvent } from '../turn-event.ts';
+import { WarmProcessPool } from '../warm-pool.ts';
 import { echoHostTool } from './fixtures/echo-host-tool.ts';
 import { createGrokDriver } from './grok-driver.ts';
 
@@ -17,9 +19,15 @@ const liveTest =
     process.env.HAUS_RUN_LIVE_GROK_DRIVER_TEST === '1' && Bun.which('grok') ? test : test.skip;
 const runtime = makeDaemonRuntime();
 const hostToolServer = startHostToolServer();
+const warmPool = new WarmProcessPool({
+    onCloseError: (error) => {
+        throw error;
+    },
+});
 const roots: string[] = [];
 
 afterAll(async () => {
+    await warmPool.close();
     await hostToolServer.stop();
     await runtime.dispose();
     await Promise.all(roots.map((root) => rm(root, { force: true, recursive: true })));
@@ -41,7 +49,8 @@ liveTest(
                     'You are a Haus test agent. Follow instructions exactly; keep replies short.\n',
                 modelId: process.env.HAUS_LIVE_GROK_MODEL ?? 'grok-4.6',
                 reasoningEffort: 'low',
-                runtime,
+                processes: sandboxProcessOwner(runtime),
+                warm: { key: root, pool: warmPool },
                 tools: [echoHostTool],
                 workspaceDir,
             });

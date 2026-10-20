@@ -1,8 +1,9 @@
 import type { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { RuntimeDriver, RuntimeSession } from '../runtime/driver.ts';
+import { isRuntimeResumeRejection } from '../runtime/resume-rejected.ts';
 import type { RuntimeResumeState } from '../runtime/resume-state.ts';
-import { AgentSessionResumeRejectedError, isResumeRejection } from './resume-rejection.ts';
+import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import type { HarnessSessionLease } from './session-lifecycle.ts';
 import { harnessStartupDeadlineMs, runHarnessStart, type StartupWindow } from './start-gate.ts';
 
@@ -25,7 +26,7 @@ export interface HarnessSessionStart {
 
 /**
  * Creates the turn's live session inside the machine-wide start gate and the startup deadline.
- * Only specific evidence that stored state is unusable becomes a resume rejection.
+ * Only a driver's typed `RuntimeResumeRejectedError` becomes a resume rejection.
  */
 export async function startHarnessSession(start: HarnessSessionStart): Promise<RuntimeSession> {
     return await runHarnessStart(
@@ -69,7 +70,7 @@ async function createSession(
             signal: window.signal,
         });
     } catch (error) {
-        throw resumeFrom && isResumeRejection(error)
+        throw resumeFrom && isRuntimeResumeRejection(error)
             ? new AgentSessionResumeRejectedError(start.agentId, { cause: error })
             : error;
     }

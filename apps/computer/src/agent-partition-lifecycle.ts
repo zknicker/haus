@@ -4,6 +4,7 @@ import { resetAgentState } from './agent-reset.ts';
 import { purgeRetiredAgent, reportRetirementError } from './agent-retirement.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
+import { evictWarmRuntime } from './runtime/runtime-context.ts';
 import { ensureAgentWorkspace } from './workspace-volumes/workspace-volume.ts';
 
 interface Location {
@@ -37,5 +38,6 @@ export function agentWorkspacePreparation(dataRoot: string, runtimeId: string | 
 async function stopOwnedSession(input: Location) {
     const root = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
     await harnessSessionOwner(input.runtime).stopAgent(root);
+    await evictWarmRuntime(input.runtime, root);
     disposeAgentLaunchHost(input.serverId, input.agentId);
 }

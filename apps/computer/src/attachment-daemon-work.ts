@@ -5,6 +5,7 @@ import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { stopSandboxProcesses } from './harness/sandbox-process-owner.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
+import { closeRuntimeContext } from './runtime/runtime-context.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
@@ -112,9 +113,14 @@ export class AttachmentDaemonWork {
                 );
             } finally {
                 try {
-                    await stopSandboxProcesses(this.runtime);
+                    // Every warm runtime process ends, then the host-tool server they called.
+                    await closeRuntimeContext(this.runtime);
                 } finally {
-                    this.sender = null;
+                    try {
+                        await stopSandboxProcesses(this.runtime);
+                    } finally {
+                        this.sender = null;
+                    }
                 }
             }
         })();

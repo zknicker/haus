@@ -1,20 +1,18 @@
 import { createHash } from 'node:crypto';
+import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer, HostToolSession } from '../../host-tools/mcp-server.ts';
 import type { OpenSessionOptions, RuntimeDriver } from '../driver.ts';
+import { toHausResumeState } from '../legacy-resume-state.ts';
 import type { RuntimeResumeState } from '../resume-state.ts';
+import type { WarmProcess, WarmSlot } from '../warm-pool.ts';
 import { openAppServer } from './app-server.ts';
 import {
     type CodexExecutable,
     codexPinFingerprint,
     resolvePinnedCodex,
 } from './codex-executable.ts';
-import {
-    type CodexLaunchFacts,
-    codexHomeFor,
-    codexProcessEnv,
-    prepareCodexHome,
-} from './codex-launch.ts';
+import { type CodexLaunchFacts, codexProcessEnv, prepareCodexHome } from './codex-launch.ts';
 import { CodexSession, type CodexSessionHooks } from './codex-session.ts';
 import {
     type CodexProcessLaunch,
@@ -25,12 +23,14 @@ import {
 export interface CodexDriverOptions extends CodexLaunchFacts {
     /** The Computer's host-tool MCP server; each session opens its own bearer-scoped tools. */
     readonly hostToolServer: Pick<HostToolServer, 'openSession'>;
-    /** Registers a live app-server with Computer shutdown; returns its unregister. */
-    readonly registerProcess?: (close: () => Promise<void>) => () => void;
+    /** Ties every app-server to Computer shutdown. */
+    readonly processes?: RuntimeProcessRegistry;
     /** Test seams: the Codex binary and the process transport. */
     readonly resolveExecutable?: (signal?: AbortSignal) => Promise<CodexExecutable>;
     readonly spawn?: (launch: CodexProcessLaunch) => CodexTransport;
     readonly tools: HostToolSet;
+    /** Where the session parks its app-server between turns. */
+    readonly warm: WarmSlot;
 }
 
 /**
@@ -51,9 +51,6 @@ export function createCodexDriver(options: CodexDriverOptions): RuntimeDriver {
     };
 }
 
-/** Parked app-servers by CODEX_HOME: at most one live process per Agent. */
-const parked = new Map<string, { launchKey: string; session: CodexSession }>();
-
 async function openCodexSession(
     options: CodexDriverOptions,
     resolveExecutable: (signal?: AbortSignal) => Promise<CodexExecutable>,
@@ -61,21 +58,26 @@ async function openCodexSession(
 ): Promise<CodexSession> {
     const threadId = resumeThreadId(open.resumeFrom);
     const executable = await resolveExecutable(open.signal);
-    const home = codexHomeFor(options.homeDir);
     const launchKey = launchKeyOf(options, executable);
-    const warm = parked.get(home);
-    parked.delete(home);
-    if (
-        warm?.session.alive &&
-        warm.launchKey === launchKey &&
-        warm.session.sessionId === threadId
-    ) {
-        warm.session.server.hostTools.replaceTools(options.tools);
-        return warm.session.reopen();
+    const { key, pool } = options.warm;
+    // A second app-server on the same thread would be refused as a busy writer, so whatever is
+    // parked for this Agent and cannot take the open is closed first.
+    const warm = threadId
+        ? await pool.claim(
+              key,
+              { launchKey, nativeSessionId: threadId, runtimeId: 'codex' },
+              isCodexSession
+          )
+        : undefined;
+    if (warm) {
+        warm.server.hostTools.replaceTools(options.tools);
+        return warm.reopen();
     }
-    // A second app-server on the same thread would be refused as a busy writer.
-    await warm?.session.destroy();
+    if (!threadId) {
+        await pool.evict(key);
+    }
     open.signal?.throwIfAborted();
+    options.processes?.assertOpen();
     await prepareCodexHome(options);
     const hostTools = options.hostToolServer.openSession(options.tools);
     const transport = (options.spawn ?? spawnCodexProcess)({
@@ -87,20 +89,24 @@ async function openCodexSession(
         }),
         executable: executable.path,
     });
-    const unregister = options.registerProcess?.(() => transport.kill()) ?? (() => undefined);
+    const stop = () => transport.kill();
+    options.processes?.add(stop);
     let released: Promise<void> | null = null;
+    const release = () => {
+        released ??= transport.kill().finally(() => {
+            hostTools.close();
+            options.processes?.remove(stop);
+        });
+        return released;
+    };
     const hooks: CodexSessionHooks = {
-        park: (session) => parked.set(home, { launchKey, session }),
-        release: (session) => {
-            if (parked.get(home)?.session === session) {
-                parked.delete(home);
-            }
-            released ??= transport.kill().finally(() => {
-                hostTools.close();
-                unregister();
-            });
-            return released;
-        },
+        park: (session) =>
+            pool.park(
+                key,
+                { launchKey, nativeSessionId: session.sessionId, runtimeId: 'codex' },
+                session
+            ),
+        release,
     };
     try {
         const server = await openAppServer({
@@ -111,40 +117,18 @@ async function openCodexSession(
         });
         return new CodexSession(server, hooks, options.workspaceDir);
     } catch (error) {
-        await transport.kill().finally(() => {
-            hostTools.close();
-            unregister();
-        });
+        await release();
         throw error;
     }
 }
 
-/**
- * The Codex thread a stored state resumes. A legacy AI SDK harness state carries codex-acp's
- * session id, which is the app-server thread id, under `data.acpSessionId`. The errors use the
- * words `isResumeRejection` already treats as unusable lifecycle state.
- */
+/** The Codex thread a stored state resumes; legacy harness state converts on first open. */
 export function resumeThreadId(state: RuntimeResumeState | undefined): string | undefined {
-    if (!state) {
-        return;
-    }
-    if (state.runtime === 'codex' && typeof state.threadId === 'string') {
-        return state.threadId;
-    }
-    if ('runtime' in state && 'version' in state) {
-        throw new Error(
-            `Lifecycle state was produced by harness ${String(state.runtime)}, not codex.`
-        );
-    }
-    const data = state.data as { acpSessionId?: unknown } | undefined;
-    if (
-        state.harnessId === 'codex' &&
-        typeof data?.acpSessionId === 'string' &&
-        data.acpSessionId
-    ) {
-        return data.acpSessionId;
-    }
-    throw new Error('ACP lifecycle state data is missing a Codex thread id.');
+    return state ? toHausResumeState('codex', state).threadId : undefined;
+}
+
+function isCodexSession(process: WarmProcess): process is CodexSession {
+    return process instanceof CodexSession;
 }
 
 function bearerToken(session: HostToolSession): string {

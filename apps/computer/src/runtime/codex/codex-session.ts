@@ -1,7 +1,9 @@
 import type { RuntimeSession, RuntimeTurn, SteerResult } from '../driver.ts';
 import type { CodexResumeState } from '../resume-state.ts';
+import type { WarmProcess } from '../warm-pool.ts';
 import type { CodexAppServer } from './app-server.ts';
-import { turnStartResultSchema } from './protocol.ts';
+import type { CodexInbound } from './codex-connection.ts';
+import { turnStartResultSchema, userMessageText } from './protocol.ts';
 import { CodexTurnNormalizer } from './turn-normalizer.ts';
 import { CodexTurnRouter } from './turn-router.ts';
 import { CodexTurnRun } from './turn-run.ts';
@@ -12,7 +14,7 @@ const STEER_WAIT_MS = 15_000;
 
 export interface CodexSessionHooks {
     /** Parks the live app-server for the next open of the same thread. */
-    park(session: CodexSession): void;
+    park(session: CodexSession): Promise<void>;
     /** Ends the app-server for good; it is never reused. */
     release(session: CodexSession): Promise<void>;
 }
@@ -22,9 +24,11 @@ export interface CodexSessionHooks {
  * `turn/completed`; busy delivery is `turn/steer` with the expected turn id, only after
  * `turn/started` and never right after a tool finishes (Raft #238); Stop is `turn/interrupt`.
  */
-export class CodexSession implements RuntimeSession {
+export class CodexSession implements RuntimeSession, WarmProcess {
     readonly sessionId: string;
     private active: CodexTurnRun | null = null;
+    /** Delivered steers not yet seen as a `userMessage` item, per turn. */
+    private steered: Array<{ readonly run: CodexTurnRun; readonly text: string }> = [];
     private readonly router: CodexTurnRouter;
     private hostToolsChecked = false;
     private resumed: boolean;
@@ -44,7 +48,10 @@ export class CodexSession implements RuntimeSession {
             )
         );
         server.route(
-            (message) => this.router.receive(message),
+            (message) => {
+                this.noteConsumedSteer(message);
+                this.router.receive(message);
+            },
             (line) =>
                 this.active?.push([
                     { nativeType: `codex_invalid_line:${line.slice(0, 80)}`, type: 'progress' },
@@ -55,6 +62,15 @@ export class CodexSession implements RuntimeSession {
 
     get alive(): boolean {
         return this.server.connection.alive;
+    }
+
+    get exited(): Promise<unknown> {
+        return this.server.connection.exited;
+    }
+
+    /** Ends the app-server (as a parked `WarmProcess`). */
+    close(): Promise<void> {
+        return this.hooks.release(this);
     }
 
     get isResume(): boolean {
@@ -72,6 +88,7 @@ export class CodexSession implements RuntimeSession {
             throw new Error('A Codex turn is already running on this session.');
         }
         const run = new CodexTurnRun();
+        this.steered = [];
         const warning = await this.hostToolsWarning();
         options.signal.throwIfAborted();
         this.active = run;
@@ -102,7 +119,12 @@ export class CodexSession implements RuntimeSession {
         if (options.signal.aborted) {
             onAbort();
         }
-        return { events: run.events(), settle: () => run.idle };
+        return {
+            events: run.events(),
+            settle: () => run.idle,
+            unconsumedSteers: () =>
+                this.steered.filter((steer) => steer.run === run).map((steer) => steer.text),
+        };
     }
 
     async steer(text: string): Promise<SteerResult> {
@@ -127,6 +149,7 @@ export class CodexSession implements RuntimeSession {
                 input: [{ text, text_elements: [], type: 'text' }],
                 threadId: this.sessionId,
             });
+            this.steered.push({ run, text });
             return { delivered: true };
         } catch (error) {
             return run.isEnded
@@ -137,9 +160,7 @@ export class CodexSession implements RuntimeSession {
 
     async detach(): Promise<CodexResumeState> {
         await this.active?.idle;
-        if (this.alive) {
-            this.hooks.park(this);
-        }
+        await this.hooks.park(this);
         return this.resumeState();
     }
 
@@ -151,6 +172,23 @@ export class CodexSession implements RuntimeSession {
 
     async destroy(): Promise<void> {
         await this.hooks.release(this);
+    }
+
+    /**
+     * Codex records accepted steering as a `userMessage` item once the model's next request
+     * carries it; a steer with no such item by turn end never reached the model.
+     */
+    private noteConsumedSteer(message: CodexInbound) {
+        const text = message.kind === 'notification' ? userMessageText(message) : null;
+        const index =
+            text === null
+                ? -1
+                : this.steered.findIndex(
+                      (steer) => steer.run === this.active && steer.text === text
+                  );
+        if (index >= 0) {
+            this.steered.splice(index, 1);
+        }
     }
 
     private resumeState(): CodexResumeState {

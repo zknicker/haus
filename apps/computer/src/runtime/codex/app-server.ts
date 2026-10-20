@@ -1,6 +1,11 @@
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
-import { CodexConnection, type CodexInbound, CodexRpcError } from './codex-connection.ts';
-import { CodexResumeRejectedError, classifyResumeRefusal } from './codex-errors.ts';
+import { JsonRpcRequestError } from '../json-rpc.ts';
+import { CodexConnection, type CodexInbound } from './codex-connection.ts';
+import {
+    CodexResumeRejectedError,
+    CodexThreadBusyError,
+    classifyResumeRefusal,
+} from './codex-errors.ts';
 import { type CodexLaunchFacts, codexMcpServers, codexThreadParams } from './codex-launch.ts';
 import type { CodexTransport } from './codex-transport.ts';
 import { initializeResultSchema, mcpStartupParamsSchema, threadResultSchema } from './protocol.ts';
@@ -108,12 +113,15 @@ async function resumeThread(
             });
             return threadIdOf(await connection.request('thread/resume', resume));
         }
+        if (reason === 'thread-writer-busy') {
+            throw new CodexThreadBusyError(threadId, { cause: error });
+        }
         throw reason ? new CodexResumeRejectedError(threadId, reason, { cause: error }) : error;
     }
 }
 
 function refusal(error: unknown) {
-    return error instanceof CodexRpcError ? classifyResumeRefusal(error.message) : null;
+    return error instanceof JsonRpcRequestError ? classifyResumeRefusal(error.detail) : null;
 }
 
 function threadIdOf(result: unknown): string {

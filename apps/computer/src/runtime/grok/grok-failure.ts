@@ -1,6 +1,6 @@
 import * as z from 'zod';
+import { JsonRpcRequestError } from '../json-rpc.ts';
 import type { SessionFailureTurnEvent } from '../turn-event.ts';
-import { AcpRequestError } from './json-rpc.ts';
 
 /**
  * Grok reports a provider failure in-band as an `_x.ai/session_notification` `retry_state`:
@@ -52,7 +52,7 @@ export function grokRetryStateFailure(update: unknown): SessionFailureTurnEvent 
 const ACP_AUTH_REQUIRED = -32_000;
 
 export function grokRequestFailure(error: unknown): SessionFailureTurnEvent | null {
-    if (!(error instanceof AcpRequestError) || error.code !== ACP_AUTH_REQUIRED) {
+    if (!(error instanceof JsonRpcRequestError) || error.code !== ACP_AUTH_REQUIRED) {
         return null;
     }
     return {

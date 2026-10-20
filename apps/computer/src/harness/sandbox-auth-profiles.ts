@@ -48,7 +48,7 @@ export async function referenceAuthProfiles(input: {
  * credentials, so the Agent home keeps its own state file: any link there is dropped, never
  * followed, whatever the runtime.
  */
-async function unlinkHostClaudeState(homeDir: string) {
+export async function unlinkHostClaudeState(homeDir: string) {
     const statePath = path.join(homeDir, '.claude.json');
     try {
         if ((await fs.lstat(statePath)).isSymbolicLink()) {

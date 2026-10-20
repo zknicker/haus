@@ -1,10 +1,11 @@
 import * as z from 'zod';
 import { computerVersion } from '../../build-identity.ts';
 import type { HostToolMcpDescriptor } from '../../host-tools/mcp-server.ts';
-import type { AcpConnection } from './acp-connection.ts';
+import { JsonRpcRequestError } from '../json-rpc.ts';
+import type { JsonRpcConnection } from '../json-rpc-connection.ts';
+import { RuntimeResumeRejectedError } from '../resume-rejected.ts';
 import { type GrokCredential, grokAuthMethod } from './grok-auth.ts';
 import { grokSessionMeta } from './grok-launch.ts';
-import { AcpRequestError } from './json-rpc.ts';
 
 export const GROK_ACP_PROTOCOL_VERSION = 1;
 
@@ -35,10 +36,9 @@ const setModelResultSchema = z
     .nullish();
 
 /** `session/load` named a session Grok has no record of (it answers `FS_NOT_FOUND`). */
-export class GrokSessionNotFoundError extends Error {
+export class GrokSessionNotFoundError extends RuntimeResumeRejectedError {
     constructor(sessionId: string, options?: { cause?: unknown }) {
-        // "session not found" is the wording resume-rejection.ts recognizes.
-        super(`Grok Build session not found: ${sessionId}.`, options);
+        super('grok-build', 'missing', `Grok Build session not found: ${sessionId}.`, options);
         this.name = 'GrokSessionNotFoundError';
     }
 }
@@ -50,7 +50,7 @@ export interface GrokAcpSession {
 
 /** initialize → authenticate → `session/new` or `session/load` → `session/set_model`. */
 export async function openGrokAcpSession(input: {
-    connection: AcpConnection;
+    connection: JsonRpcConnection;
     credential: GrokCredential;
     cwd: string;
     hostTools: HostToolMcpDescriptor;
@@ -117,7 +117,7 @@ export class GrokSignedOutError extends Error {
 
 /** Switches the session's model; a mismatch with the warm process's model is fixed this way. */
 export async function selectModel(
-    connection: AcpConnection,
+    connection: JsonRpcConnection,
     params: { modelId: string; sessionId: string },
     signal?: AbortSignal
 ): Promise<void> {
@@ -133,7 +133,7 @@ export async function selectModel(
 }
 
 async function loadSession(
-    connection: AcpConnection,
+    connection: JsonRpcConnection,
     params: Record<string, unknown> & { sessionId: string },
     signal?: AbortSignal
 ): Promise<SessionResult> {
@@ -149,7 +149,7 @@ async function loadSession(
 }
 
 function isMissingSession(error: unknown): boolean {
-    if (!(error instanceof AcpRequestError)) {
+    if (!(error instanceof JsonRpcRequestError)) {
         return false;
     }
     const data = z.looseObject({ code: z.string() }).safeParse(error.data);

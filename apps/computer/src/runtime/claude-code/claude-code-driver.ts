@@ -2,10 +2,12 @@ import { createHash, randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AgentReasoningEffort } from '@haus/api';
-import type { DaemonRuntime } from '../../daemon-runtime.ts';
+import { unlinkHostClaudeState } from '../../harness/sandbox-auth-profiles.ts';
+import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer } from '../../host-tools/mcp-server.ts';
 import type { RuntimeDriver } from '../driver.ts';
+import type { WarmProcess, WarmSlot } from '../warm-pool.ts';
 import { ClaudeConnection } from './claude-connection.ts';
 import { resolveClaudeCredentials } from './claude-credentials.ts';
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
@@ -27,10 +29,9 @@ import { spawnClaudeProcess } from './claude-process.ts';
 import { claudeResumeSessionId } from './claude-resume.ts';
 import { createClaudeSession } from './claude-session.ts';
 import { createWorkspaceStripper } from './claude-tool-names.ts';
-import { type ClaudeWarmPool, claudeWarmPool } from './claude-warm-pool.ts';
 
 export interface ClaudeCodeDriverOptions {
-    /** Test seams: a stand-in CLI, credentials, the Computer env, and an isolated pool. */
+    /** Test seams: a stand-in CLI, credentials, and the Computer env. */
     baseEnv?: NodeJS.ProcessEnv;
     binaryPath?: string;
     credentials?: () => Promise<Record<string, string>>;
@@ -43,11 +44,12 @@ export interface ClaudeCodeDriverOptions {
     /** The composed Agent instructions, appended to Claude Code's system prompt. */
     instructions: string;
     modelId: string;
-    pool?: ClaudeWarmPool;
-    reasoningEffort: AgentReasoningEffort;
     /** Ties every process to Computer shutdown. */
-    runtime?: DaemonRuntime;
+    processes?: RuntimeProcessRegistry;
+    reasoningEffort: AgentReasoningEffort;
     tools: HostToolSet;
+    /** Where the session parks its process between turns. */
+    warm: WarmSlot;
     workspaceDir: string;
 }
 
@@ -56,7 +58,7 @@ export interface ClaudeCodeDriverOptions {
  * long-lived process per Agent session, parked warm between turns (specs/runtime-drivers.md).
  */
 export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): RuntimeDriver {
-    const pool = options.pool ?? claudeWarmPool;
+    const { key: warmKey, pool } = options.warm;
     const target = options.binaryPath ? null : (options.installTarget ?? claudeInstallTarget());
     const collectPlanUsage = options.env[CLAUDE_USAGE_REFRESH_ENV] === '1';
     // The refresh flag changes per turn; it must not restart a warm process.
@@ -72,16 +74,25 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
             (await ensureClaudeInstall(requireTarget(target), { signal: input.signal }));
         const credentials = await (options.credentials ?? (() => hostCredentials(baseEnv)))();
         const launchKey = fingerprint({ binaryPath, credentials, launchEnv, options });
-        if (input.resumeSessionId) {
-            const warm = pool.take(input.resumeSessionId);
-            if (warm?.launchKey === launchKey) {
-                warm.hostTools.replaceTools(options.tools);
-                return warm;
-            }
-            // Launch facts changed (instructions, model, effort, env, login): resume anew.
-            await warm?.stop();
+        // Launch facts changed (instructions, model, effort, env, login): the claim closes the
+        // parked process and the conversation resumes in a new one. A fresh session closes it too.
+        const warm = input.resumeSessionId
+            ? await pool.claim(
+                  warmKey,
+                  { launchKey, nativeSessionId: input.resumeSessionId, runtimeId: 'claude-code' },
+                  isClaudeConnection
+              )
+            : undefined;
+        if (!input.resumeSessionId) {
+            await pool.evict(warmKey);
+        }
+        if (warm) {
+            warm.hostTools.replaceTools(options.tools);
+            return warm;
         }
         input.signal?.throwIfAborted();
+        // The Agent HOME keeps its own `.claude.json`; an old link to the operator's is dropped.
+        await unlinkHostClaudeState(options.homeDir);
         const hostTools = options.hostToolServer.openSession(options.tools);
         try {
             const files = await writeClaudeLaunchFiles({
@@ -107,7 +118,7 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
                     hostToolToken: hostToolToken(hostTools.mcp),
                     launchEnv,
                 }),
-                runtime: options.runtime,
+                processes: options.processes,
             });
             const normalizer = new ClaudeEventNormalizer({
                 hostServer: hostTools.mcp.name,
@@ -133,7 +144,16 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
                 collectPlanUsage,
                 connection,
                 isResume: resumeSessionId !== undefined,
-                pool,
+                park: (parked) =>
+                    pool.park(
+                        warmKey,
+                        {
+                            launchKey: parked.launchKey,
+                            nativeSessionId: parked.sessionId,
+                            runtimeId: 'claude-code',
+                        },
+                        parked
+                    ),
                 relaunch: (claudeSessionId) => connect({ resumeSessionId: claudeSessionId }),
             });
         },
@@ -181,6 +201,10 @@ function fingerprint(input: {
             ])
         )
         .digest('hex');
+}
+
+function isClaudeConnection(process: WarmProcess): process is ClaudeConnection {
+    return process instanceof ClaudeConnection;
 }
 
 function realPath(path: string): string {

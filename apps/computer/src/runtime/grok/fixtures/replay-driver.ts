@@ -2,9 +2,11 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DaemonRuntime } from '../../../daemon-runtime.ts';
+import { sandboxProcessOwner } from '../../../harness/sandbox-process-owner.ts';
 import { startHostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeTurn } from '../../driver.ts';
 import type { TurnEvent } from '../../turn-event.ts';
+import { WarmProcessPool } from '../../warm-pool.ts';
 import { createGrokDriver } from '../grok-driver.ts';
 import { echoHostTool } from './echo-host-tool.ts';
 import { parseFixture } from './fixture-format.ts';
@@ -22,6 +24,11 @@ export async function replayDriver(fixture: string, runtime: DaemonRuntime) {
     const logPath = join(root, 'replay.log');
     const fixturePath = join(import.meta.dir, `${fixture}.jsonl`);
     const hostToolServer = startHostToolServer();
+    const pool = new WarmProcessPool({
+        onCloseError: (error) => {
+            throw error;
+        },
+    });
     const driver = createGrokDriver({
         command: [process.execPath, join(import.meta.dir, 'replay-grok.ts'), fixturePath],
         env: { PATH: process.env.PATH ?? '', REPLAY_LOG: logPath, XAI_API_KEY: 'xai-replay' },
@@ -32,17 +39,20 @@ export async function replayDriver(fixture: string, runtime: DaemonRuntime) {
         instructions: 'Replay instructions.\n',
         modelId: 'grok-4.6',
         reasoningEffort: 'low',
-        runtime,
+        processes: sandboxProcessOwner(runtime),
+        warm: { key: root, pool },
         tools: [echoHostTool],
         workspaceDir,
     });
     const frames = parseFixture(await readFile(fixturePath, 'utf8'));
     return {
         cleanup: async () => {
+            await pool.close();
             await hostToolServer.stop();
             await rm(root, { force: true, recursive: true });
         },
         driver,
+        pool,
         homeDir,
         /** The Grok session id the fixture recorded. */
         recordedSessionId(): string {

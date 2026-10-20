@@ -76,7 +76,6 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
-import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
@@ -119,6 +118,7 @@ import {
 } from './login.ts';
 import { startNightlyDreamCheck } from './nightly-dream.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
+import { createRuntimePrewarmer } from './runtime/runtime-prewarm.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import { handleComputerSecretsRequest } from './secrets/requests.ts';
 import { deleteServerPartition } from './server-partition-purge.ts';
@@ -398,9 +398,8 @@ async function main(args: string[]) {
             throw new Error('This Server is not attached to this Haus Computer.');
         }
         await finishRestart(dataRoot);
-        const prewarm = createBridgePrewarmer({
-            agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
-            ...(process.env.HAUS_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
+        const prewarm = createRuntimePrewarmer({
+            ...(process.env.HAUS_DEV_STACK === '1' ? { runtimes: ['codex'] } : {}),
         });
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {

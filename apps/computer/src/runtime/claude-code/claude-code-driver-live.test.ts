@@ -8,8 +8,8 @@ import { startHostToolServer } from '../../host-tools/mcp-server.ts';
 import type { RuntimeSession } from '../driver.ts';
 import type { ClaudeResumeState } from '../resume-state.ts';
 import type { TurnEvent } from '../turn-event.ts';
+import { WarmProcessPool } from '../warm-pool.ts';
 import { createClaudeCodeDriver } from './claude-code-driver.ts';
-import { createClaudeWarmPool } from './claude-warm-pool.ts';
 
 // A real Claude Code session through the driver: the pinned install, the host login, two warm
 // turns, a steer mid-tool, a detach, and a cold resume. Prints time-to-first-event per turn.
@@ -26,7 +26,11 @@ liveTest(
         await mkdir(homeDir, { recursive: true });
         await mkdir(workspaceDir, { recursive: true });
         const server = startHostToolServer();
-        const pool = createClaudeWarmPool();
+        const pool = new WarmProcessPool({
+            onCloseError: (error) => {
+                throw error;
+            },
+        });
         const calls: string[] = [];
         const tools = [
             defineHostTool({
@@ -54,7 +58,7 @@ liveTest(
                 instructions:
                     'You are a Haus test Agent. Follow the user exactly; keep replies short.',
                 modelId: 'claude-haiku-4-5',
-                pool,
+                warm: { key: root, pool },
                 reasoningEffort: 'low',
                 tools,
                 workspaceDir,

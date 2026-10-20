@@ -1,9 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
-import type { DaemonRuntime } from '../../daemon-runtime.ts';
 import { isSystemErrorCode } from '../../harness/process-group-liveness.ts';
-import { sandboxProcessOwner } from '../../harness/sandbox-process-owner.ts';
-import { AcpConnection } from './acp-connection.ts';
-import { LineDecoder } from './line-decoder.ts';
+import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
+import { JsonRpcConnection } from '../json-rpc-connection.ts';
+import { LineDecoder } from '../line-decoder.ts';
 
 /** One frame on the ACP wire, for fixture capture. */
 export interface GrokWireFrame {
@@ -17,7 +16,7 @@ export interface GrokProcessOptions {
     readonly command: readonly [string, ...string[]];
     readonly cwd: string;
     readonly env: Record<string, string>;
-    readonly runtime: DaemonRuntime;
+    readonly processes?: RuntimeProcessRegistry;
     readonly wireTap?: (frame: GrokWireFrame) => void;
 }
 
@@ -28,7 +27,7 @@ export interface GrokExit {
 
 /** A live `grok agent stdio` child in its own process group, with its ACP connection. */
 export interface GrokProcess {
-    readonly connection: AcpConnection;
+    readonly connection: JsonRpcConnection;
     readonly exited: Promise<GrokExit>;
     readonly pid: number | undefined;
     /** The last stderr lines, for failure messages. */
@@ -41,8 +40,8 @@ const TERMINATE_GRACE_MS = 2000;
 const STDERR_TAIL_LINES = 20;
 
 export function spawnGrokProcess(options: GrokProcessOptions): GrokProcess {
-    const owner = sandboxProcessOwner(options.runtime);
-    owner.assertOpen();
+    const owner = options.processes;
+    owner?.assertOpen();
     const [executable, ...prefix] = options.command;
     const child = spawn(executable, [...prefix, ...options.args], {
         cwd: options.cwd,
@@ -52,7 +51,7 @@ export function spawnGrokProcess(options: GrokProcessOptions): GrokProcess {
         stdio: ['pipe', 'pipe', 'pipe'],
     });
     const stderr: string[] = [];
-    const connection = new AcpConnection({
+    const connection = new JsonRpcConnection({
         // A write fails when Grok never started or already exited; its exit reason (missing
         // binary, crash with stderr) says more than EPIPE, so it wins once the exit lands.
         write: (line) =>
@@ -72,8 +71,8 @@ export function spawnGrokProcess(options: GrokProcessOptions): GrokProcess {
         terminating ??= terminateGroup(child, exited);
         return terminating;
     };
-    owner.add(terminate);
-    void exited.then(() => owner.remove(terminate));
+    owner?.add(terminate);
+    void exited.then(() => owner?.remove(terminate));
     return {
         connection,
         exited,
@@ -100,7 +99,7 @@ function writeLine(
 
 function pipeStdout(
     child: ChildProcessWithoutNullStreams,
-    connection: AcpConnection,
+    connection: JsonRpcConnection,
     options: GrokProcessOptions
 ) {
     const decoder = new LineDecoder();
@@ -142,7 +141,7 @@ function pipeStderr(
 
 function watchExit(
     child: ChildProcessWithoutNullStreams,
-    connection: AcpConnection,
+    connection: JsonRpcConnection,
     stderr: string[]
 ): Promise<GrokExit> {
     return new Promise((resolve) => {

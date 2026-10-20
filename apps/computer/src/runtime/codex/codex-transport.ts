@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process';
-import { createLineDecoder } from './line-decoder.ts';
+import { LineDecoder } from '../line-decoder.ts';
 
 /** How the app-server ended: an exit code, or the signal that killed it. */
 export interface CodexExit {
@@ -44,14 +44,27 @@ export function spawnCodexProcess(launch: CodexProcessLaunch): CodexTransport {
         stdio: ['pipe', 'pipe', 'pipe'],
     });
     const listeners: Array<(line: string) => void> = [];
-    const decoder = createLineDecoder((line) => {
-        for (const listener of listeners) {
-            listener(line);
+    const decoder = new LineDecoder();
+    const deliver = (lines: string[]) => {
+        for (const line of lines) {
+            if (line.trim().length > 0) {
+                for (const listener of listeners) {
+                    listener(line);
+                }
+            }
+        }
+    };
+    let stderr = '';
+    child.stdout?.on('data', (chunk: Buffer) => {
+        try {
+            deliver(decoder.push(chunk));
+        } catch (error) {
+            // An oversized line is a protocol failure: end the app-server rather than buffer it.
+            stderr = `${stderr}\n${error instanceof Error ? error.message : String(error)}`;
+            child.kill('SIGKILL');
         }
     });
-    let stderr = '';
-    child.stdout?.on('data', (chunk: Buffer) => decoder.push(chunk));
-    child.stdout?.on('end', () => decoder.end());
+    child.stdout?.on('end', () => deliver(decoder.end()));
     child.stderr?.on('data', (chunk: Buffer) => {
         stderr = (stderr + chunk.toString('utf8')).slice(-STDERR_TAIL_BYTES);
     });

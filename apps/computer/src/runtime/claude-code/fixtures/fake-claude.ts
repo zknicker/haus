@@ -54,6 +54,7 @@ if (flag('--resume')?.startsWith('missing')) {
 
 let slowTurn = false;
 let holding = false;
+const queued: string[] = [];
 for await (const line of createInterface({ input: process.stdin })) {
     const message = JSON.parse(line) as {
         message?: { content?: { text?: string }[] };
@@ -70,6 +71,10 @@ for await (const line of createInterface({ input: process.stdin })) {
         });
         if (message.request?.subtype === 'interrupt' && slowTurn) {
             slowTurn = false;
+            // `cancel_queued`: messages waiting for the slow turn's next boundary are dropped.
+            for (const uuid of queued.splice(0)) {
+                print({ command_uuid: uuid, state: 'cancelled', type: 'command_lifecycle' });
+            }
             result({ errors: ['interrupted'], is_error: true, subtype: 'error_during_execution' });
         }
         continue;
@@ -83,6 +88,10 @@ for await (const line of createInterface({ input: process.stdin })) {
             result({ result: 'first' });
             print({ command_uuid: message.uuid, state: 'started', type: 'command_lifecycle' });
             result({ result: 'second', user_message_uuid: message.uuid });
+        } else if (slowTurn) {
+            // The running tool has no boundary yet; the message waits in Claude Code's queue.
+            queued.push(message.uuid);
+            continue;
         }
         print({ command_uuid: message.uuid, state: 'completed', type: 'command_lifecycle' });
         continue;

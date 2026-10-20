@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { SteerResult } from '../driver.ts';
 import type { RuntimeTokenUsage, TurnEvent } from '../turn-event.ts';
 import type { ClaudeConnection, TurnSink } from './claude-connection.ts';
-import { ClaudeProcessExitError, ClaudeTurnError } from './claude-errors.ts';
+import { ClaudeProcessExitError, ClaudeTurnError, claudeResumeRejection } from './claude-errors.ts';
 import type { ClaudeCommandLifecycle, ClaudeResult, ParsedClaudeLine } from './claude-messages.ts';
 import { readClaudePlanUsage } from './claude-plan-usage.ts';
 import type { ClaudeExit } from './claude-process.ts';
@@ -13,10 +13,15 @@ import { EventQueue } from './event-queue.ts';
 const interruptGraceMs = 5000;
 const steerAckMs = 15_000;
 const terminalLifecycle = new Set(['cancelled', 'completed', 'discarded']);
+/** Lifecycle states that prove Claude Code handed the message to the model. */
+const consumedLifecycle = new Set(['completed', 'started']);
 
 interface Steer {
     ack?: { reject(error: Error): void; resolve(): void };
+    /** The steer reported `delivered` to its caller. */
+    delivered: boolean;
     state: string;
+    readonly text: string;
 }
 
 /**
@@ -71,6 +76,13 @@ export class ClaudeTurn implements TurnSink {
         return this.settled.promise;
     }
 
+    /** Delivered steers Claude Code never started: cancelled by an interrupt, or still queued. */
+    unconsumedSteers(): readonly string[] {
+        return [...this.steers.values()]
+            .filter((steer) => steer.delivered && !consumedLifecycle.has(steer.state))
+            .map((steer) => steer.text);
+    }
+
     async steer(text: string): Promise<SteerResult> {
         if (this.finishing) {
             return { delivered: false, reason: 'idle' };
@@ -83,7 +95,7 @@ export class ClaudeTurn implements TurnSink {
             };
         }
         const uuid = randomUUID();
-        const steer: Steer = { state: 'written' };
+        const steer: Steer = { delivered: false, state: 'written', text };
         this.steers.set(uuid, steer);
         const acknowledged = new Promise<void>((resolve, reject) => {
             steer.ack = { reject, resolve };
@@ -97,6 +109,7 @@ export class ClaudeTurn implements TurnSink {
                     'Claude Code did not queue the message.'
                 );
             }
+            steer.delivered = true;
             return { delivered: true };
         } catch (error) {
             // Unacknowledged, it must not hold the turn open waiting for a lifecycle receipt.
@@ -174,13 +187,11 @@ export class ClaudeTurn implements TurnSink {
         if (!(this.aborting || this.failed)) {
             const outcome = classifyResult(result, this.connection.normalizer);
             if (outcome.kind !== 'success') {
-                this.fail({
-                    error:
-                        outcome.kind === 'failed'
-                            ? outcome.error
-                            : new ClaudeTurnError('Execution failed'),
-                    type: 'error',
-                });
+                const error =
+                    outcome.kind === 'failed'
+                        ? outcome.error
+                        : new ClaudeTurnError('Execution failed');
+                this.fail({ error: claudeResumeRejection(error) ?? error, type: 'error' });
             }
         }
         void this.trySettle();

@@ -1,8 +1,7 @@
 import { spawn } from 'node:child_process';
-import { StringDecoder } from 'node:string_decoder';
-import type { DaemonRuntime } from '../../daemon-runtime.ts';
 import { isProcessGroupAlive, isSystemErrorCode } from '../../harness/process-group-liveness.ts';
-import { sandboxProcessOwner } from '../../harness/sandbox-process-owner.ts';
+import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
+import { LineDecoder } from '../line-decoder.ts';
 
 const stderrTailLines = 20;
 const terminationGraceMs = 2000;
@@ -32,9 +31,9 @@ export function spawnClaudeProcess(options: {
     cwd: string;
     env: Record<string, string>;
     /** Ties the child to Computer shutdown (`sandbox-process-owner.ts`). */
-    runtime?: DaemonRuntime;
+    processes?: RuntimeProcessRegistry;
 }): ClaudeProcess {
-    const owner = options.runtime ? sandboxProcessOwner(options.runtime) : undefined;
+    const owner = options.processes;
     owner?.assertOpen();
     const child = spawn(options.binaryPath, [...options.args], {
         cwd: options.cwd,
@@ -70,21 +69,34 @@ export function spawnClaudeProcess(options: {
     });
     // A write racing the child's exit fails its own promise; the stream error is that failure.
     child.stdin.on('error', () => undefined);
-    readLines(child.stdout, (line) => {
-        for (const listener of listeners) {
-            listener(line);
-        }
-    });
-    readLines(child.stderr, (line) => {
-        stderr.push(line);
-        if (stderr.length > stderrTailLines) {
-            stderr.shift();
-        }
-    });
     const stop = () => {
         stopping ??= terminate(child.pid, exited);
         return stopping;
     };
+    const overflow = (error: unknown) => {
+        stderr.push(error instanceof Error ? error.message : String(error));
+        // The exit fails the running turn with this stderr tail.
+        stop().catch((cause: unknown) => stderr.push(String(cause)));
+    };
+    readLines(
+        child.stdout,
+        (line) => {
+            for (const listener of listeners) {
+                listener(line);
+            }
+        },
+        overflow
+    );
+    readLines(
+        child.stderr,
+        (line) => {
+            stderr.push(line);
+            if (stderr.length > stderrTailLines) {
+                stderr.shift();
+            }
+        },
+        overflow
+    );
     owner?.add(stop);
     void exited.then(() => owner?.remove(stop));
     return {
@@ -140,34 +152,43 @@ function signalGroup(pid: number, signal: NodeJS.Signals) {
     }
 }
 
-/** Splits a byte stream into lines, decoding UTF-8 across chunk boundaries. */
-export function readLines(stream: NodeJS.ReadableStream, onLine: (line: string) => void) {
-    const decoder = new StringDecoder('utf8');
-    let buffer = '';
-    const drain = (final: boolean) => {
-        let newline = buffer.indexOf('\n');
-        while (newline >= 0) {
-            emit(buffer.slice(0, newline));
-            buffer = buffer.slice(newline + 1);
-            newline = buffer.indexOf('\n');
-        }
-        if (final && buffer.length > 0) {
-            emit(buffer);
-            buffer = '';
-        }
-    };
-    const emit = (line: string) => {
-        const trimmed = line.endsWith('\r') ? line.slice(0, -1) : line;
-        if (trimmed.length > 0) {
-            onLine(trimmed);
+/**
+ * Splits a byte stream into non-empty lines through the shared decoder. An oversized line is a
+ * protocol failure reported to `onOverflow`, never an unbounded buffer.
+ */
+export function readLines(
+    stream: NodeJS.ReadableStream,
+    onLine: (line: string) => void,
+    onOverflow: (error: unknown) => void = (error) => {
+        throw error;
+    }
+) {
+    const decoder = new LineDecoder();
+    const emit = (lines: readonly string[]) => {
+        for (const line of lines) {
+            if (line.length > 0) {
+                onLine(line);
+            }
         }
     };
+    let failed = false;
     stream.on('data', (chunk: Buffer | string) => {
-        buffer += typeof chunk === 'string' ? chunk : decoder.write(chunk);
-        drain(false);
+        if (failed) {
+            return;
+        }
+        let lines: string[];
+        try {
+            lines = decoder.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        } catch (error) {
+            failed = true;
+            onOverflow(error);
+            return;
+        }
+        emit(lines);
     });
     stream.on('end', () => {
-        buffer += decoder.end();
-        drain(true);
+        if (!failed) {
+            emit(decoder.end());
+        }
     });
 }

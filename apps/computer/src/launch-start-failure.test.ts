@@ -82,9 +82,9 @@ test('a missing runtime session is reported for Server-authorized recovery', asy
     });
 });
 
-test('a provider rejecting the resumed replay mid-stream is reported for recovery', async () => {
+test('a resumed conversation the runtime cannot find once prompted is reported for recovery', async () => {
     const replayRejected = [
-        { error: new Error('Cannot continue from message role: assistant'), type: 'error' },
+        { error: new Error('No conversation found with session ID: 7f3c'), type: 'error' },
     ];
     // A cold session has nothing to rotate away from.
     const cold = await launch('run_cold_rejected', { parts: replayRejected });

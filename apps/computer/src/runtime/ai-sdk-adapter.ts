@@ -16,6 +16,7 @@ import type { HarnessTurnInput } from '../harness/executor.ts';
 import { createHarnessForRuntime } from '../harness/runtime-harness.ts';
 import { createLocalTrustedSandboxProvider } from '../harness/sandbox.ts';
 import { toAiSdkToolSet } from '../host-tools/ai-sdk-tool-set.ts';
+import { harnessOpenRejection, harnessPromptRejection } from './ai-sdk-resume-rejection.ts';
 import { aiSdkTurnEvents } from './ai-sdk-turn-events.ts';
 import type {
     RuntimeDriverFactory as HausRuntimeDriverFactory,
@@ -59,12 +60,16 @@ export function aiSdkDriverFactory(agentFactory: HarnessAgentFactory): RuntimeDr
             bootstrapFingerprint: (signal) =>
                 fingerprintHarnessBootstrap({ abortSignal: signal, harness }),
             openSession: async ({ resumeFrom, sessionId, signal }) => {
-                const live = await agent.createSession({
-                    abortSignal: signal,
-                    resumeFrom: resumeFrom as HarnessAgentResumeSessionState | undefined,
-                    sessionId,
-                });
-                return wrapHarnessSession(agent, live);
+                const live = await agent
+                    .createSession({
+                        abortSignal: signal,
+                        resumeFrom: resumeFrom as HarnessAgentResumeSessionState | undefined,
+                        sessionId,
+                    })
+                    .catch((error: unknown) => {
+                        throw resumeFrom ? harnessOpenRejection(input.runtimeId, error) : error;
+                    });
+                return wrapHarnessSession(agent, live, input.runtimeId);
             },
             refreshBootstrap: ({ sessionId, signal }) =>
                 harnessBootstrapRefresh({
@@ -86,7 +91,8 @@ export const createAiSdkRuntimeDriver: RuntimeDriverFactory =
 /** One live Harness Agent session as a `RuntimeSession`. */
 export function wrapHarnessSession(
     agent: HarnessTurnStreamer,
-    live: HarnessAgentSession
+    live: HarnessAgentSession,
+    runtimeId = 'unknown'
 ): RuntimeSession {
     return {
         destroy: () => live.destroy(),
@@ -97,8 +103,10 @@ export function wrapHarnessSession(
         startTurn: async ({ prompt, signal }): Promise<RuntimeTurn> => {
             const turn = await agent.stream({ abortSignal: signal, prompt, session: live });
             return {
-                events: turnEvents(turn.fullStream),
+                events: turnEvents(turn.fullStream, live.isResume ? runtimeId : null),
                 settle: () => Promise.resolve(turn.consumeStream()),
+                // The harness reports no steer lifecycle; it never claimed this guarantee.
+                unconsumedSteers: () => [],
             };
         },
         stop: async () => (await live.stop()) as RuntimeResumeState,
@@ -131,9 +139,21 @@ async function steerHarnessTurn(
     }
 }
 
-async function* turnEvents(parts: AsyncIterable<unknown>): AsyncGenerator<TurnEvent> {
-    for await (const part of parts) {
-        yield* aiSdkTurnEvents(part);
+/** `resumedRuntime`: a resumed session's runtime, whose prompt-time rejections are typed. */
+async function* turnEvents(
+    parts: AsyncIterable<unknown>,
+    resumedRuntime: string | null
+): AsyncGenerator<TurnEvent> {
+    const typed = (error: unknown) =>
+        resumedRuntime ? harnessPromptRejection(resumedRuntime, error) : error;
+    try {
+        for await (const part of parts) {
+            for (const event of aiSdkTurnEvents(part)) {
+                yield event.type === 'error' ? { error: typed(event.error), type: 'error' } : event;
+            }
+        }
+    } catch (error) {
+        throw typed(error);
     }
 }
 

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
+import type { WarmProcess } from '../warm-pool.ts';
 import type { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import {
     type ClaudeCommandLifecycle,
@@ -27,7 +28,7 @@ interface PendingControl {
  * normalizer (which carries session-scoped evidence across turns), the launch key a warm reuse
  * must match, and the conversation id it is writing.
  */
-export class ClaudeConnection {
+export class ClaudeConnection implements WarmProcess {
     private readonly controls = new Map<string, PendingControl>();
     private sink: TurnSink | null = null;
     /** The CLI advertises queued-message lifecycle receipts (`msg_lifecycle_v1`) in `init`. */
@@ -54,6 +55,15 @@ export class ClaudeConnection {
 
     get alive(): boolean {
         return this.process.alive;
+    }
+
+    get exited(): Promise<unknown> {
+        return this.process.exited;
+    }
+
+    /** Ends the process (as a parked `WarmProcess`). */
+    close(): Promise<void> {
+        return this.stop();
     }
 
     attach(sink: TurnSink): () => void {

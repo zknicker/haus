@@ -34,6 +34,7 @@ test('records native startup and stream boundaries without inventing message sen
                 };
             })(),
             settle: async () => undefined,
+            unconsumedSteers: () => [],
         }),
         steer: async () => ({ delivered: false, reason: 'idle' }),
         stop: async () => ({ type: 'resume-session', harnessId: 'fake', data: {} }),

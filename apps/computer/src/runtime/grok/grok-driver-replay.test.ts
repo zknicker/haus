@@ -2,7 +2,6 @@ import { afterAll, expect, test } from 'bun:test';
 import { makeDaemonRuntime } from '../../daemon-runtime.ts';
 import type { ToolCallTurnEvent } from '../turn-event.ts';
 import { collect, replayDriver, significant, text } from './fixtures/replay-driver.ts';
-import { warmSessionCount } from './grok-warm-pool.ts';
 
 // Each test replays a fixture captured from the installed `grok` (fixtures/capture.ts) through
 // the production driver: process, ACP client, handshake, turn, and normalizer.
@@ -63,10 +62,10 @@ test('text turn: handshake, model selection, one reply, and the turn settles at 
         // Detach parks the process warm; the next open of that state claims it without a launch.
         const parked = await session.detach();
         expect(parked).toEqual({ runtime: 'grok-build', sessionId: session.sessionId, version: 1 });
-        expect(warmSessionCount()).toBe(1);
+        expect(replay.pool.size).toBe(1);
         const warm = await replay.driver.openSession({ resumeFrom: parked, sessionId: 'agt-1' });
         expect(warm.isResume).toBe(true);
-        expect(warmSessionCount()).toBe(0);
+        expect(replay.pool.size).toBe(0);
         expect((await replay.messages()).filter((message) => 'argv' in message)).toHaveLength(1);
         await warm.stop();
     } finally {

@@ -1,6 +1,11 @@
 import * as z from 'zod';
 
-/** JSON-RPC 2.0 framing for ACP over stdio: one message per line. */
+/**
+ * JSON-RPC 2.0 framing over stdio, one message per line, shared by the Codex app-server and Grok
+ * ACP drivers. Codex omits the `jsonrpc` member and sometimes the error `code`, so both are
+ * optional here; a JSON object that is no JSON-RPC message at all is `foreign` (Codex writes
+ * `{ type: 'error' }` capacity lines on the same stream).
+ */
 export type JsonRpcId = number | string;
 
 export type JsonRpcMessage =
@@ -12,30 +17,31 @@ export type JsonRpcMessage =
       }
     | { readonly kind: 'notification'; readonly method: string; readonly params: unknown }
     | { readonly id: JsonRpcId; readonly kind: 'result'; readonly result: unknown }
-    | { readonly error: JsonRpcErrorBody; readonly id: JsonRpcId | null; readonly kind: 'error' };
+    | { readonly error: JsonRpcErrorBody; readonly id: JsonRpcId | null; readonly kind: 'error' }
+    | { readonly kind: 'foreign'; readonly value: Readonly<Record<string, unknown>> };
 
 export interface JsonRpcErrorBody {
-    readonly code: number;
+    readonly code?: number;
     readonly data?: unknown;
     readonly message: string;
 }
 
 const idSchema = z.union([z.number(), z.string()]);
-const errorBodySchema = z.object({
-    code: z.number(),
+const errorBodySchema = z.looseObject({
+    code: z.number().optional(),
     data: z.unknown().optional(),
-    message: z.string(),
+    message: z.string().optional(),
 });
-const wireSchema = z.object({
+const wireSchema = z.looseObject({
     error: errorBodySchema.optional(),
     id: idSchema.nullable().optional(),
-    jsonrpc: z.literal('2.0'),
+    jsonrpc: z.literal('2.0').optional(),
     method: z.string().min(1).optional(),
     params: z.unknown().optional(),
     result: z.unknown().optional(),
 });
 
-/** Parses one line; `null` for a line that is not a JSON-RPC 2.0 message. */
+/** Parses one line; `null` for a line that is not a JSON object. */
 export function parseJsonRpcLine(line: string): JsonRpcMessage | null {
     let value: unknown;
     try {
@@ -43,25 +49,32 @@ export function parseJsonRpcLine(line: string): JsonRpcMessage | null {
     } catch {
         return null;
     }
+    return isRecord(value) ? classifyJsonRpc(value) : null;
+}
+
+function classifyJsonRpc(value: Record<string, unknown>): JsonRpcMessage {
     const parsed = wireSchema.safeParse(value);
     if (!parsed.success) {
-        return null;
+        return { kind: 'foreign', value };
     }
     const wire = parsed.data;
-    const hasResult = isRecord(value) && 'result' in value;
     if (wire.method !== undefined) {
-        if (wire.id === undefined || wire.id === null) {
-            return { kind: 'notification', method: wire.method, params: wire.params };
-        }
-        return { id: wire.id, kind: 'request', method: wire.method, params: wire.params };
+        return wire.id === undefined || wire.id === null
+            ? { kind: 'notification', method: wire.method, params: wire.params }
+            : { id: wire.id, kind: 'request', method: wire.method, params: wire.params };
     }
-    if (wire.error) {
-        return { error: wire.error, id: wire.id ?? null, kind: 'error' };
+    if (wire.error && 'id' in value) {
+        const { code, data, message } = wire.error;
+        return {
+            error: { code, data, message: message ?? 'JSON-RPC error' },
+            id: wire.id ?? null,
+            kind: 'error',
+        };
     }
-    if (hasResult && wire.id !== undefined && wire.id !== null) {
+    if ('result' in value && wire.id !== undefined && wire.id !== null) {
         return { id: wire.id, kind: 'result', result: wire.result };
     }
-    return null;
+    return { kind: 'foreign', value };
 }
 
 export function encodeRequest(id: JsonRpcId, method: string, params: unknown): string {
@@ -80,26 +93,30 @@ export function encodeError(id: JsonRpcId, error: JsonRpcErrorBody): string {
     return JSON.stringify({ error, id, jsonrpc: '2.0' });
 }
 
-/** The agent answered a request with a JSON-RPC error. */
-export class AcpRequestError extends Error {
-    readonly code: number;
+/** The peer answered a request with a JSON-RPC error. */
+export class JsonRpcRequestError extends Error {
+    readonly code: number | undefined;
     readonly data: unknown;
+    /** The peer's own error text, without the method prefix. */
+    readonly detail: string;
     readonly method: string;
 
     constructor(method: string, body: JsonRpcErrorBody) {
-        super(`${method} failed: ${describeError(body)}`);
-        this.name = 'AcpRequestError';
+        const detail = describeError(body);
+        super(`${method} failed: ${detail}`);
+        this.name = 'JsonRpcRequestError';
         this.code = body.code;
         this.data = body.data;
+        this.detail = detail;
         this.method = method;
     }
 }
 
 /** The connection closed (process exit, stdout end, or local close) before an answer. */
-export class AcpConnectionClosedError extends Error {
+export class JsonRpcConnectionClosedError extends Error {
     constructor(message: string, options?: { cause?: unknown }) {
         super(message, options);
-        this.name = 'AcpConnectionClosedError';
+        this.name = 'JsonRpcConnectionClosedError';
     }
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { isResumeRejection } from '../../harness/resume-rejection.ts';
 import { fatalRuntimeSessionFailure } from '../../harness/runtime-session-failure.ts';
 import type { RuntimeSession } from '../driver.ts';
+import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import { captureScenarios } from './fixtures/capture-scenarios.ts';
 import {
@@ -236,7 +236,7 @@ describe('Codex fixtures', () => {
             })
             .catch((caught: unknown) => caught);
         expect(error).toBeInstanceOf(Error);
-        expect(isResumeRejection(error)).toBe(true);
+        expect(isRuntimeResumeRejection(error)).toBe(true);
     });
 
     test('a provider request error fails the turn with its message and keeps usage', async () => {

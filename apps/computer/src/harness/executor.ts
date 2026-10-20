@@ -14,8 +14,9 @@ import {
     clearManagedSkillChangeNotice,
     readManagedSkillChangeNotice,
 } from '../managed-skill-changes.ts';
-import { createAiSdkRuntimeDriver } from '../runtime/ai-sdk-adapter.ts';
 import type { RuntimeDriverFactory, RuntimeSession } from '../runtime/driver.ts';
+import { createRuntimeDriver } from '../runtime/driver-factory.ts';
+import { isRuntimeResumeRejection } from '../runtime/resume-rejected.ts';
 import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,
@@ -30,7 +31,7 @@ import {
 import { composeAgentInstructions } from './instructions.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
 import { settleDreamBaseline } from './memory-dream.ts';
-import { AgentSessionResumeRejectedError, isPromptResumeRejection } from './resume-rejection.ts';
+import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
@@ -44,15 +45,14 @@ import {
     writeFailedTurnSession,
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
-import { createNoticeDelivery } from './steer-inbox-notice.ts';
 import { settleStoppedTurn } from './stopped-turn.ts';
-import { createNoticeCoordinator, deliverStoredNotice } from './stored-notice.ts';
 import type { HarnessTokenUsage } from './token-usage.ts';
+import { openTurnNotices, returnUnconsumedNotices } from './turn-notices.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
 import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
 import { HarnessStreamForeignError, observeTurnStream } from './turn-stream.ts';
 
-/** Drives one isolated, persistent Codex, Claude Code, Grok Build, or Pi Agent session. */
+/** Drives one isolated, persistent Codex, Claude Code, or Grok Build Agent session. */
 export interface HarnessTurnInput extends TurnDelivery {
     activity: AgentActivityRun;
     agentName: string;
@@ -253,21 +253,7 @@ async function executeHarnessTurn(
             }),
             signal: turnSignal,
         });
-        const primaryNotice = prompt.notice;
-        const deliverNotice = createNoticeDelivery(live, input, primaryNotice);
-        const noticeCoordinator = createNoticeCoordinator(deliverNotice);
-        const deliverAtSafeBoundary = async (notice: string) =>
-            notice === primaryNotice
-                ? await deliverNotice(notice)
-                : await noticeCoordinator.enqueue(notice);
-        const unregisterNoticeSink = input.registerNoticeSink?.(deliverAtSafeBoundary);
-        const storedNoticeReady = Promise.withResolvers<void>();
-        const storedNoticeDelivery = deliverStoredNotice(
-            input.agentRoot,
-            deliverAtSafeBoundary,
-            input.onStoredNoticeDelivered,
-            () => storedNoticeReady.resolve()
-        );
+        const notices = openTurnNotices(live, input, prompt.notice);
         let observation: HarnessTurnResult;
         // The turn input carries the projector's activity run, thoughts, runtime, and workspace.
         const projector = createHarnessActivityProjector({ ...input, journal });
@@ -278,10 +264,10 @@ async function executeHarnessTurn(
                     Effect.tryPromise({
                         catch: (cause) => new HarnessStreamForeignError({ cause }),
                         try: async () => {
-                            await storedNoticeReady.promise;
+                            await notices.ready;
                             return await observeTurnStream(
                                 turn.events,
-                                noticeCoordinator,
+                                notices.coordinator,
                                 projector,
                                 {
                                     onFirstPart: () => {
@@ -314,19 +300,19 @@ async function executeHarnessTurn(
             }
         } catch (error) {
             await projector.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
-            // Claude and Pi only discover a missing session or rejected replay once prompted.
-            throw live.isResume && isPromptResumeRejection(error)
+            await returnUnconsumedNotices(turn, input);
+            // Claude Code only discovers a missing conversation once prompted.
+            throw live.isResume && isRuntimeResumeRejection(error)
                 ? new AgentSessionResumeRejectedError(input.agentId, { cause: error })
                 : error;
         } finally {
-            unregisterNoticeSink?.();
-            noticeCoordinator.close();
-            await storedNoticeDelivery;
+            await notices.close();
         }
         if (observation.aborted || lease.stopping) {
-            // Stop, the no-progress deadline, and shutdown all park at the SDK's idle boundary.
+            // Stop, the no-progress deadline, and shutdown all park at the runtime's idle boundary.
             await settleStoppedTurn(turn, input.runtimeId);
         }
+        await returnUnconsumedNotices(turn, input);
         const resumeState = await lease.checkpoint();
         observation = { ...observation, aborted: observation.aborted || lease.stopping };
         if (observation.aborted) {
@@ -386,7 +372,7 @@ async function executeHarnessTurn(
 // Tests inject a fake driver at this construction seam.
 export type TurnDriverFactory = RuntimeDriverFactory<HarnessTurnInput>;
 
-let runtimeDriverFactory: TurnDriverFactory = createAiSdkRuntimeDriver;
+let runtimeDriverFactory: TurnDriverFactory = createRuntimeDriver;
 
 export function setRuntimeDriverFactoryForTesting(factory: TurnDriverFactory) {
     const previous = runtimeDriverFactory;

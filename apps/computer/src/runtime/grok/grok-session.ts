@@ -1,12 +1,11 @@
 import type { RuntimeSession, RuntimeTurn, SteerResult } from '../driver.ts';
+import { JsonRpcRequestError, jsonRpcMethodNotFound } from '../json-rpc.ts';
 import type { RuntimeResumeState } from '../resume-state.ts';
 import { GROK_CREDENTIAL_REFRESH_WINDOW_MS } from './grok-auth.ts';
 import { closeGrokLive, type GrokLive } from './grok-live.ts';
 import { grokResumeState } from './grok-resume.ts';
 import { GrokTurn } from './grok-turn.ts';
 import { createGrokTurnNormalizer } from './grok-turn-normalizer.ts';
-import { parkWarm } from './grok-warm-pool.ts';
-import { AcpRequestError, jsonRpcMethodNotFound } from './json-rpc.ts';
 
 /** Re-launches the same Grok session in a fresh process (`session/load`). */
 export type GrokRelaunch = (previous: GrokLive) => Promise<GrokLive>;
@@ -19,13 +18,21 @@ export class GrokSession implements RuntimeSession {
     readonly isResume: boolean;
     private turn: GrokTurn | null = null;
     private ended = false;
+    private readonly park: (live: GrokLive) => Promise<void>;
+    private readonly relaunch: GrokRelaunch;
 
     constructor(
         private live: GrokLive,
-        private readonly relaunch: GrokRelaunch,
-        options: { isResume: boolean }
+        options: {
+            isResume: boolean;
+            /** Parks the live process in the Computer's warm pool. */
+            park: (live: GrokLive) => Promise<void>;
+            relaunch: GrokRelaunch;
+        }
     ) {
         this.isResume = options.isResume;
+        this.park = options.park;
+        this.relaunch = options.relaunch;
     }
 
     get sessionId(): string {
@@ -74,14 +81,16 @@ export class GrokSession implements RuntimeSession {
         if (turn.settled) {
             return { delivered: false, reason: 'idle' };
         }
+        const tracked = turn.trackSteer(text);
         try {
             await this.live.process.connection.request('_x.ai/interject', {
                 sessionId: this.live.sessionId,
                 text,
             });
+            tracked.delivered();
             return { delivered: true };
         } catch (error) {
-            if (error instanceof AcpRequestError && error.code === jsonRpcMethodNotFound) {
+            if (error instanceof JsonRpcRequestError && error.code === jsonRpcMethodNotFound) {
                 return { delivered: false, reason: 'unsupported' };
             }
             return turn.settled
@@ -96,7 +105,7 @@ export class GrokSession implements RuntimeSession {
         if (this.live.process.connection.closed) {
             this.live.hostTools.close();
         } else {
-            await parkWarm(this.live);
+            await this.park(this.live);
         }
         return grokResumeState(this.live.sessionId);
     }

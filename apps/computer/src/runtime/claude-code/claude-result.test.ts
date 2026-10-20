@@ -3,12 +3,7 @@ import { expect, test } from 'bun:test';
 import { classifyRuntimeFailure } from '../../runtime-failure.ts';
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import { type ClaudeResult, parseClaudeLine } from './claude-messages.ts';
-import {
-    bashExitCode,
-    type ClaudeResultOutcome,
-    classifyResult,
-    claudeTokenUsage,
-} from './claude-result.ts';
+import { type ClaudeResultOutcome, classifyResult, claudeTokenUsage } from './claude-result.ts';
 
 const fresh = { apiErrorReported: false };
 
@@ -216,12 +211,4 @@ test('an unrecoverable API retry ends the turn; a transient one is liveness', ()
     expect(
         send({ error: 'overloaded', error_status: 529, subtype: 'api_retry', type: 'system' })
     ).toEqual([{ nativeType: 'system:api_retry', type: 'progress' }]);
-});
-
-test('task #17: the Exit code N format of a Bash tool_result maps to its exit code', () => {
-    expect(bashExitCode('Exit code 1\n2 tests failed')).toBe(1);
-    expect(bashExitCode('Exit code 127\nbash: foo: command not found')).toBe(127);
-    expect(bashExitCode([{ text: 'Exit code 2', type: 'text' }])).toBe(2);
-    expect(bashExitCode('Error: tool failed (Exit code 1)')).toBeUndefined();
-    expect(bashExitCode('Exit code: 1')).toBeUndefined();
 });

@@ -59,6 +59,8 @@ test('steering a running turn resolves once Claude Code queues the message', asy
     }
     await turn.settle();
     expect(await session.steer('after')).toEqual({ delivered: false, reason: 'idle' });
+    // The interrupt cancelled the queued message: delivered, yet the model never saw it.
+    expect(turn.unconsumedSteers()).toEqual(['more context']);
 });
 
 test('a steer queued past the turn’s result keeps the turn open until it is answered', async () => {
@@ -73,6 +75,7 @@ test('a steer queued past the turn’s result keeps the turn open until it is an
         }
     }
     expect(steered).toEqual({ delivered: true });
+    expect(turn.unconsumedSteers()).toEqual([]);
     const finishes = events.filter((event) => event.type === 'turn-finish');
     expect(finishes).toHaveLength(1);
     // Both results' usage belongs to the one turn.

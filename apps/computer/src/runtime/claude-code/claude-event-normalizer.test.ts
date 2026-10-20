@@ -231,7 +231,10 @@ test('normalizes user tool_result as a steering boundary with the call’s ident
     ]);
 });
 
-test('task #17: a non-zero Bash exit is an ok call with the exit code; other errors fail', () => {
+// Haus keeps the AI SDK bridge's projection, not Raft #17: a Bash call Claude Code marks as an
+// error (non-zero exit) is a failed call, `{ exitCode: 1, stdout }` unless `tool_use_result` says
+// more, so activity and the journal show it as failed exactly as before the driver.
+test('a non-zero Bash exit is a failed call, as the AI SDK bridge projected it', () => {
     const normalize = createNormalizer();
     normalize(
         assistant([
@@ -251,8 +254,15 @@ test('task #17: a non-zero Bash exit is an ok call with the exit code; other err
             },
             type: 'user',
         });
-    expect(result('toolu_9', 'Exit code 1\n2 tests failed')).toMatchObject([
-        { output: { exitCode: 1, stdout: 'Exit code 1\n2 tests failed' }, type: 'tool-result' },
+    expect(result('toolu_9', 'Exit code 1\n2 tests failed')).toEqual([
+        {
+            error: { exitCode: 1, stdout: 'Exit code 1\n2 tests failed' },
+            nativeName: 'Bash',
+            providerExecuted: true,
+            toolCallId: 'toolu_9',
+            toolName: 'bash',
+            type: 'tool-error',
+        },
     ]);
     expect(result('toolu_10', [{ text: 'File does not exist.', type: 'text' }])).toMatchObject([
         { error: 'File does not exist.', toolName: 'read', type: 'tool-error' },

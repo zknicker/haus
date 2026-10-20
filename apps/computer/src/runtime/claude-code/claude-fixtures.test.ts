@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { isPromptResumeRejection } from '../../harness/resume-rejection.ts';
 import type { RuntimeSession } from '../driver.ts';
+import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import { parseClaudeLine } from './claude-messages.ts';
 import { createClaudeSession } from './claude-session.ts';
-import { createClaudeWarmPool } from './claude-warm-pool.ts';
 import { collect, readFixture, replayConnection } from './fixtures/fixture-replay.ts';
 
 const fixtureNames = [
@@ -33,7 +32,7 @@ function replaySession(name: string, options: { collectPlanUsage?: boolean } = {
         collectPlanUsage: options.collectPlanUsage ?? false,
         connection,
         isResume: false,
-        pool: createClaudeWarmPool(),
+        park: () => Promise.resolve(),
         relaunch: () => Promise.reject(new Error('A replay cannot relaunch.')),
     });
     return { process, session };
@@ -108,14 +107,21 @@ describe('Claude Code fixture replay', () => {
         expect(calls[0]?.input).toEqual({ file_path: 'notes.txt' });
         expect(calls[1]?.input).toEqual({ command: 'wc -l notes.txt' });
         const results = ofType(events, 'tool-result');
-        // Raft #17: a command that ran and exited non-zero is a completed call.
-        expect(results.find((result) => result.toolCallId === calls[2]?.toolCallId)).toMatchObject({
-            output: { exitCode: 3, stdout: 'Exit code 3' },
-        });
+        // As the AI SDK bridge projected it: a non-zero exit is a failed call carrying Claude
+        // Code's own `tool_use_result`.
+        expect(ofType(events, 'tool-error')).toEqual([
+            {
+                error: 'Error: Exit code 3',
+                nativeName: 'Bash',
+                providerExecuted: true,
+                toolCallId: calls[2]?.toolCallId ?? '',
+                toolName: 'bash',
+                type: 'tool-error',
+            },
+        ]);
         expect(
             results.find((result) => result.toolCallId === calls[0]?.toolCallId)?.output
         ).toMatchObject({ file: { filePath: 'notes.txt' }, type: 'text' });
-        expect(ofType(events, 'tool-error')).toEqual([]);
         expect(events.at(-1)?.type).toBe('turn-finish');
     });
 
@@ -188,7 +194,7 @@ describe('Claude Code fixture replay', () => {
     test('a missing conversation fails the turn as a prompt resume rejection', async () => {
         const events = await runTurn(replaySession('resume-missing').session);
         const [failure] = ofType(events, 'error');
-        expect(isPromptResumeRejection(failure?.error)).toBe(true);
+        expect(isRuntimeResumeRejection(failure?.error)).toBe(true);
         expect(events.at(-1)?.type).toBe('error');
     });
 

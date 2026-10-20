@@ -15,6 +15,9 @@ export function stopSandboxProcesses(runtime: EffectRuntime<never>): Promise<voi
     return sandboxProcessOwner(runtime).close();
 }
 
+/** Registers a live process's stop with Computer shutdown; what every runtime driver takes. */
+export type RuntimeProcessRegistry = Pick<SandboxProcessOwner, 'add' | 'assertOpen' | 'remove'>;
+
 class SandboxProcessOwner {
     private readonly registries = new Set<() => Promise<void>>();
     private closing: Promise<void> | null = null;

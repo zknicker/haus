@@ -15,6 +15,7 @@ import type { RuntimeSession } from '../../driver.ts';
 import type { TurnEvent } from '../../turn-event.ts';
 import { createCodexDriver } from '../codex-driver.ts';
 import { type CodexTransport, spawnCodexProcess } from '../codex-transport.ts';
+import { testWarmPool } from '../testing/replay-driver.ts';
 import { type CaptureStep, captureScenarios } from './capture-scenarios.ts';
 
 const model = process.env.HAUS_LIVE_CODEX_MODEL ?? 'gpt-5.6-luna';
@@ -47,6 +48,7 @@ for (const scenario of captureScenarios) {
     await mkdir(join(root, 'workspace'), { recursive: true });
     const driver = createCodexDriver({
         env: {},
+        warm: { key: root, pool: testWarmPool },
         homeDir: join(root, 'home'),
         hostHomeDir: scenario.loggedOut ? join(root, 'logged-out-host') : homedir(),
         hostToolServer: server,

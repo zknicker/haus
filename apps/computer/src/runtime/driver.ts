@@ -69,6 +69,12 @@ export interface RuntimeTurn {
      * session parks, or the parked state carries a turn the next prompt cannot start over.
      */
     settle(): Promise<void>;
+    /**
+     * Steering text the runtime acknowledged (`delivered`) with no evidence the model received
+     * it: a Stop cancelled it, or it was still queued when the turn ended. Read once the events
+     * end; the executor returns it to the pending-notice path so the next turn gets it.
+     */
+    unconsumedSteers(): readonly string[];
 }
 
 /**

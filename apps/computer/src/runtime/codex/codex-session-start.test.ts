@@ -1,8 +1,8 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/codex.test.ts (FSL-1.1-ALv2)
 import { describe, expect, test } from 'bun:test';
-import { isResumeRejection } from '../../harness/resume-rejection.ts';
+import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import { resumeThreadId } from './codex-driver.ts';
-import { CodexResumeRejectedError } from './codex-errors.ts';
+import { CodexResumeRejectedError, CodexThreadBusyError } from './codex-errors.ts';
 import { FakeAppServer } from './testing/fake-app-server.ts';
 import { flush, labels, openFake, startFakeTurn, turnStarted } from './testing/session-harness.ts';
 
@@ -61,17 +61,19 @@ describe('Codex session start', () => {
         });
         const error = await openFake(fake, { resumeFrom }).catch((caught: unknown) => caught);
         expect(error).toBeInstanceOf(CodexResumeRejectedError);
-        expect((error as CodexResumeRejectedError).reason).toBe('missing-rollout');
-        expect(isResumeRejection(error)).toBe(true);
+        expect((error as CodexResumeRejectedError).codexReason).toBe('missing-rollout');
+        expect((error as CodexResumeRejectedError).reason).toBe('missing');
+        expect(isRuntimeResumeRejection(error)).toBe(true);
         expect(fake.methods()).not.toContain('thread/start');
     });
 
-    test('an active writer on the thread is a resume rejection', async () => {
+    test('an active writer on the thread is retryable, never a rejection that drops it', async () => {
         const fake = new FakeAppServer({
             'thread/resume': refusal('thread existing-thread-1 already has an active writer'),
         });
         const error = await openFake(fake, { resumeFrom }).catch((caught: unknown) => caught);
-        expect((error as CodexResumeRejectedError).reason).toBe('thread-writer-busy');
+        expect(error).toBeInstanceOf(CodexThreadBusyError);
+        expect(isRuntimeResumeRejection(error)).toBe(false);
     });
 
     test('an archived thread is unarchived and resumed as the same thread (task #14)', async () => {
@@ -110,6 +112,7 @@ describe('Codex session start', () => {
         });
         const error = await openFake(fake, { resumeFrom }).catch((caught: unknown) => caught);
         expect((error as CodexResumeRejectedError).reason).toBe('archived');
+        expect(isRuntimeResumeRejection(error)).toBe(true);
     });
 
     test('a resume permission error is a startup failure, not a rejection', async () => {
@@ -119,7 +122,7 @@ describe('Codex session start', () => {
         const error = await openFake(fake, { resumeFrom }).catch((caught: unknown) => caught);
         expect(error).toBeInstanceOf(Error);
         expect(error).not.toBeInstanceOf(CodexResumeRejectedError);
-        expect(isResumeRejection(error)).toBe(false);
+        expect(isRuntimeResumeRejection(error)).toBe(false);
         expect(fake.methods()).toEqual([
             'initialize',
             'initialized',
@@ -132,16 +135,16 @@ describe('Codex session start', () => {
         const initialize = await openFake(
             new FakeAppServer({ initialize: refusal('initialize failed') })
         ).catch((caught: unknown) => caught);
-        expect((initialize as Error).message).toBe('initialize failed');
+        expect((initialize as Error).message).toBe('initialize failed: initialize failed');
         const start = await openFake(
             new FakeAppServer({ 'thread/start': refusal('thread start failed') })
         ).catch((caught: unknown) => caught);
-        expect((start as Error).message).toBe('thread start failed');
+        expect((start as Error).message).toBe('thread/start failed: thread start failed');
         const { fake, session } = await openFake(
             new FakeAppServer({ 'turn/start': refusal('turn start failed') })
         );
         const turn = await startFakeTurn(fake, session).catch((caught: unknown) => caught);
-        expect((turn as Error).message).toBe('turn start failed');
+        expect((turn as Error).message).toBe('turn/start failed: turn start failed');
     });
 
     test('an initialize response without the userAgent handshake fails closed', async () => {
@@ -208,14 +211,17 @@ describe('Codex session start', () => {
                 type: 'resume-session',
             })
         ).toBe('acp-thread');
-        expect(() => resumeThreadId({ data: {}, harnessId: 'codex' })).toThrow(
-            /lifecycle state data/u
+        const rejection = (state: Parameters<typeof resumeThreadId>[0]) => {
+            try {
+                resumeThreadId(state);
+            } catch (error) {
+                return isRuntimeResumeRejection(error) ? (error as Error).message : null;
+            }
+            return null;
+        };
+        expect(rejection({ data: {}, harnessId: 'codex' })).toMatch(/holds no codex/u);
+        expect(rejection({ claudeSessionId: 'c', runtime: 'claude-code', version: 1 })).toMatch(
+            /belongs to claude-code/u
         );
-        expect(() =>
-            resumeThreadId({ claudeSessionId: 'c', runtime: 'claude-code', version: 1 })
-        ).toThrow(/produced by harness claude-code/u);
-        expect(
-            isResumeRejection(new Error('ACP lifecycle state data is missing a Codex thread id.'))
-        ).toBe(true);
     });
 });

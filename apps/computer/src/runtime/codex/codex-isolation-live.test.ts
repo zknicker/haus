@@ -5,6 +5,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startHostToolServer } from '../../host-tools/mcp-server.ts';
 import { createCodexDriver } from './codex-driver.ts';
+import { testWarmPool } from './testing/replay-driver.ts';
 
 // Opt-in: one small real Codex turn.
 // HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex/codex-isolation-live.test.ts
@@ -35,6 +36,7 @@ liveTest(
         await writeFile(join(workspace, '.codex', 'config.toml'), markerServer('agent_project'));
         const session = await createCodexDriver({
             env: {},
+            warm: { key: home, pool: testWarmPool },
             homeDir: home,
             hostHomeDir: host,
             hostToolServer: server,

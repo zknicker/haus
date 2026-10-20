@@ -164,16 +164,6 @@ export function isProviderApiFailureText(value: string): boolean {
     );
 }
 
-/**
- * Whether a tool_result reports a Bash command that ran and exited non-zero: Claude Code says
- * so only as text ("Exit code N" first), and such a call is still a successful call (Raft #17).
- */
-export function bashExitCode(content: unknown): number | undefined {
-    const text = contentText(content);
-    const exit = /^Exit code (\d+)\b/u.exec(text);
-    return exit ? Number(exit[1]) : undefined;
-}
-
 /** The text a tool_result's content carries. */
 export function contentText(content: unknown): string {
     if (typeof content === 'string') {

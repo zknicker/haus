@@ -3,13 +3,13 @@ import type { RuntimeResumeState } from '../resume-state.ts';
 import type { ClaudeConnection } from './claude-connection.ts';
 import { claudeResumeState } from './claude-resume.ts';
 import { ClaudeTurn } from './claude-turn.ts';
-import type { ClaudeWarmPool } from './claude-warm-pool.ts';
 
 export interface ClaudeSessionDeps {
     collectPlanUsage: boolean;
     connection: ClaudeConnection;
     isResume: boolean;
-    pool: ClaudeWarmPool;
+    /** Parks the live process in the Computer's warm pool for the Agent's next turn. */
+    park(connection: ClaudeConnection): Promise<void>;
     /** Resumes the conversation in a new process when this one died between turns. */
     relaunch(claudeSessionId: string): Promise<ClaudeConnection>;
 }
@@ -34,7 +34,7 @@ export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
         async detach(): Promise<RuntimeResumeState> {
             await idle();
             closed = true;
-            deps.pool.park(connection);
+            await deps.park(connection);
             return claudeResumeState(connection.sessionId);
         },
         isResume: deps.isResume,
@@ -57,7 +57,11 @@ export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
             });
             turn = next;
             await next.start(prompt);
-            return { events: next.events, settle: () => next.settle() };
+            return {
+                events: next.events,
+                settle: () => next.settle(),
+                unconsumedSteers: () => next.unconsumedSteers(),
+            };
         },
         steer(text): Promise<SteerResult> {
             if (!turn || turn.isSettled) {

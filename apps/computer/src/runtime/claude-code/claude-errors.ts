@@ -1,6 +1,19 @@
+import { RuntimeResumeRejectedError } from '../resume-rejected.ts';
+
+/**
+ * Claude Code accepts `--resume <id>` for a conversation it no longer has and only says so when
+ * prompted, as an error result. That result is the same typed rejection a driver throws from
+ * `openSession`, so recovery is uniform across runtimes.
+ */
+export function claudeResumeRejection(error: Error): RuntimeResumeRejectedError | null {
+    return /No conversation found with session ID/iu.test(error.message)
+        ? new RuntimeResumeRejectedError('claude-code', 'missing', error.message, { cause: error })
+        : null;
+}
+
 /**
  * Failures a Claude Code turn ends on. Messages keep Claude's own text: Computer's failure
- * classifier and resume-rejection recovery read it (`runtime-failure.ts`, `resume-rejection.ts`).
+ * classifier reads it (`runtime-failure.ts`).
  */
 export class ClaudeTurnError extends Error {
     constructor(message: string) {
@@ -38,13 +51,5 @@ export class ClaudeProcessExitError extends Error {
         const detail = stderrTail.length > 0 ? `: ${stderrTail.join(' | ')}` : '';
         super(`Claude Code exited (${how}) before the turn finished${detail}`);
         this.name = 'ClaudeProcessExitError';
-    }
-}
-
-/** Stored resume state this driver cannot resume; matches `isResumeRejection`. */
-export class ClaudeResumeStateError extends Error {
-    constructor(reason: string) {
-        super(`Lifecycle state has unexpected shape for claude-code: ${reason}`);
-        this.name = 'ClaudeResumeStateError';
     }
 }

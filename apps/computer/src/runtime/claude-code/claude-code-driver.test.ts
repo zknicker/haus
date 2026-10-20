@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { isPromptResumeRejection, isResumeRejection } from '../../harness/resume-rejection.ts';
 import type { RuntimeSession } from '../driver.ts';
+import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import type { ClaudeResumeState } from '../resume-state.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import { createFakeDriverHarness, signal } from './fixtures/fake-driver.ts';
@@ -137,7 +137,7 @@ test('a stored conversation Claude Code cannot find is a prompt resume rejection
     const events = await turn(session, 'hi');
     const failure = events.at(-1);
     expect(failure?.type).toBe('error');
-    expect(isPromptResumeRejection(failure?.type === 'error' ? failure.error : null)).toBe(true);
+    expect(isRuntimeResumeRejection(failure?.type === 'error' ? failure.error : null)).toBe(true);
 });
 
 test('a legacy harness state resumes its Claude conversation; another runtime’s is rejected', async () => {
@@ -153,7 +153,7 @@ test('a legacy harness state resumes its Claude conversation; another runtime’
         resumeFrom: { runtime: 'codex', threadId: 't', version: 1 },
         sessionId: 'agt_test-1',
     });
-    expect(isResumeRejection(await rejected.catch((error: unknown) => error))).toBe(true);
+    expect(isRuntimeResumeRejection(await rejected.catch((error: unknown) => error))).toBe(true);
 });
 
 test('stop ends the process and still returns the resume state', async () => {

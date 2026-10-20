@@ -103,9 +103,3 @@ test('other runtimes carry no Grok MCP output cap', () => {
         HOME: '/tmp/haus-constructor/home',
     });
 });
-
-// Pi runs in the Computer process and reads the Computer's own `~/.pi/agent/auth.json`,
-// so an Agent HOME link would point at a path Pi never reads.
-test('Pi references no host login from the Agent HOME', () => {
-    expect(sandboxOptions({ ...grokInput, runtimeId: 'pi' })).not.toHaveProperty('authProfiles');
-});

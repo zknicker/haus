@@ -1,88 +1,9 @@
 // Permission and steering cases ported from botiverse/raft-source
 // packages/daemon/src/drivers/grok.test.ts (FSL-1.1-ALv2), on an in-memory Grok.
 import { expect, test } from 'bun:test';
-import type { TurnEvent } from '../turn-event.ts';
-import { AcpConnection } from './acp-connection.ts';
+import { drain, fakeGrok, update } from './fixtures/fake-grok.ts';
 import { grokLaunchArgs } from './grok-launch.ts';
-import type { GrokLive } from './grok-live.ts';
 import { grokRequestHandler } from './grok-permissions.ts';
-import { GrokSession } from './grok-session.ts';
-import { createWorkspacePaths } from './workspace-paths.ts';
-
-/** A Grok that answers each method with `respond`, and can send its own messages. */
-function fakeGrok(respond: (method: string, params: Record<string, unknown>) => unknown) {
-    const written: Record<string, unknown>[] = [];
-    let connection: AcpConnection;
-    const send = (message: Record<string, unknown>) =>
-        connection.receiveLine(JSON.stringify({ jsonrpc: '2.0', ...message }));
-    connection = new AcpConnection({
-        write: (line) => {
-            const message = JSON.parse(line) as Record<string, unknown>;
-            written.push(message);
-            if (typeof message.method === 'string' && message.id !== undefined) {
-                const id = message.id;
-                const methodNotFound = (error: Error) => ({
-                    error: { code: -32_601, message: error.message },
-                    id,
-                });
-                Promise.resolve(
-                    respond(message.method, message.params as Record<string, unknown>)
-                ).then(
-                    (answer) =>
-                        send(
-                            answer instanceof Error
-                                ? methodNotFound(answer)
-                                : { id, result: answer }
-                        ),
-                    () => undefined
-                );
-            }
-            return Promise.resolve();
-        },
-    });
-    const live = {
-        credential: { kind: 'api-key' },
-        fingerprint: 'f',
-        hostServerName: 'haus',
-        hostTools: { close: () => undefined, mcp: {} as never, replaceTools: () => undefined },
-        isResume: false,
-        modelId: 'grok-4.6',
-        paths: createWorkspacePaths([]),
-        process: {
-            connection,
-            exited: new Promise(() => undefined),
-            pid: 1,
-            stderrTail: () => '',
-            terminate: () => Promise.resolve(),
-        },
-        sessionId: 's-1',
-        turnRunning: false,
-    } as GrokLive;
-    connection.setRequestHandler(
-        grokRequestHandler({
-            autoApprove: true,
-            isTurnRunning: () => live.turnRunning,
-            sessionId: () => live.sessionId,
-        })
-    );
-    const session = new GrokSession(live, () => Promise.reject(new Error('no relaunch')), {
-        isResume: false,
-    });
-    return { send, session, written };
-}
-
-const update = (sessionUpdate: string, extra: Record<string, unknown> = {}) => ({
-    method: 'session/update',
-    params: { sessionId: 's-1', update: { sessionUpdate, ...extra } },
-});
-
-async function drain(events: AsyncIterable<TurnEvent>) {
-    const seen: TurnEvent[] = [];
-    for await (const event of events) {
-        seen.push(event);
-    }
-    return seen;
-}
 
 test('an unsupported interjection is unsupported, never a failed turn', async () => {
     let finishPrompt: (value: unknown) => void = () => undefined;

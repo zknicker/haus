@@ -31,9 +31,10 @@ function agent() {
             {
                 homeDir,
                 hostHomeDir,
-                registerProcess: (close) => {
-                    registered.push(close);
-                    return () => registered.splice(registered.indexOf(close), 1);
+                processes: {
+                    add: (close) => registered.push(close),
+                    assertOpen: () => undefined,
+                    remove: (close) => registered.splice(registered.indexOf(close), 1),
                 },
                 ...overrides,
             }

@@ -1,31 +1,31 @@
 import {
-    AcpConnectionClosedError,
-    AcpRequestError,
     encodeError,
     encodeNotification,
     encodeRequest,
     encodeResult,
+    JsonRpcConnectionClosedError,
     type JsonRpcErrorBody,
     type JsonRpcId,
+    JsonRpcRequestError,
     jsonRpcMethodNotFound,
     parseJsonRpcLine,
 } from './json-rpc.ts';
 
-/** Writes one encoded line to the agent; resolves once the bytes are accepted. */
-export interface AcpTransport {
+/** Writes one encoded line to the peer; resolves once the bytes are accepted. */
+export interface JsonRpcTransport {
     write(line: string): Promise<void>;
 }
 
-/** Answers an agent → client request; throw `AcpHandlerError` for a JSON-RPC error reply. */
-export type AcpRequestHandler = (method: string, params: unknown) => Promise<unknown> | unknown;
+/** Answers a peer → client request; throw `JsonRpcHandlerError` for a JSON-RPC error reply. */
+export type JsonRpcRequestHandler = (method: string, params: unknown) => Promise<unknown> | unknown;
 
-export type AcpNotificationListener = (method: string, params: unknown) => void;
+export type JsonRpcNotificationListener = (method: string, params: unknown) => void;
 
-/** An error the client returns to the agent for one of its requests. */
-export class AcpHandlerError extends Error {
+/** An error the client returns to the peer for one of its requests. */
+export class JsonRpcHandlerError extends Error {
     constructor(readonly body: JsonRpcErrorBody) {
         super(body.message);
-        this.name = 'AcpHandlerError';
+        this.name = 'JsonRpcHandlerError';
     }
 }
 
@@ -36,26 +36,28 @@ interface Pending {
 }
 
 /**
- * The client side of one ACP JSON-RPC stream: request/response correlation, notifications,
- * agent → client requests, and one close that fails every request still waiting.
+ * The client side of one JSON-RPC line stream (Codex app-server, Grok ACP): request/response
+ * correlation, notifications, peer → client requests, foreign JSON lines, and one close that
+ * fails every request still waiting.
  */
-export class AcpConnection {
+export class JsonRpcConnection {
     private nextId = 1;
     private readonly pending = new Map<JsonRpcId, Pending>();
-    private readonly listeners = new Set<AcpNotificationListener>();
+    private readonly listeners = new Set<JsonRpcNotificationListener>();
+    private readonly foreignListeners = new Set<(value: Record<string, unknown>) => void>();
     private readonly invalidLineListeners = new Set<(line: string) => void>();
-    private requestHandler: AcpRequestHandler = () => {
-        throw new AcpHandlerError({ code: jsonRpcMethodNotFound, message: 'Method not found' });
+    private requestHandler: JsonRpcRequestHandler = () => {
+        throw new JsonRpcHandlerError({ code: jsonRpcMethodNotFound, message: 'Method not found' });
     };
     private closeReason: Error | null = null;
 
-    constructor(private readonly transport: AcpTransport) {}
+    constructor(private readonly transport: JsonRpcTransport) {}
 
     get closed(): Error | null {
         return this.closeReason;
     }
 
-    /** Sends a request; a local abort stops waiting (the agent's late answer is dropped). */
+    /** Sends a request; a local abort stops waiting (the peer's late answer is dropped). */
     request(method: string, params: unknown, options: { signal?: AbortSignal } = {}) {
         if (this.closeReason) {
             return Promise.reject(this.closedError(method));
@@ -72,7 +74,7 @@ export class AcpConnection {
         options.signal?.addEventListener('abort', onAbort, { once: true });
         this.transport.write(encodeRequest(id, method, params)).catch((error: unknown) => {
             if (this.pending.delete(id)) {
-                reject(error);
+                reject(this.closeReason ? this.closedError(method) : error);
             }
         });
         return promise.finally(() => options.signal?.removeEventListener('abort', onAbort));
@@ -85,9 +87,15 @@ export class AcpConnection {
         await this.transport.write(encodeNotification(method, params));
     }
 
-    onNotification(listener: AcpNotificationListener): () => void {
+    onNotification(listener: JsonRpcNotificationListener): () => void {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
+    }
+
+    /** A JSON object that is no JSON-RPC message; without a listener it counts as invalid. */
+    onForeign(listener: (value: Record<string, unknown>) => void): () => void {
+        this.foreignListeners.add(listener);
+        return () => this.foreignListeners.delete(listener);
     }
 
     onInvalidLine(listener: (line: string) => void): () => void {
@@ -95,23 +103,26 @@ export class AcpConnection {
         return () => this.invalidLineListeners.delete(listener);
     }
 
-    setRequestHandler(handler: AcpRequestHandler): void {
+    setRequestHandler(handler: JsonRpcRequestHandler): void {
         this.requestHandler = handler;
     }
 
-    /** Feeds one line the agent wrote. */
+    /** Feeds one line the peer wrote. */
     receiveLine(line: string): void {
         if (line.trim().length === 0) {
             return;
         }
         const message = parseJsonRpcLine(line);
-        if (!message) {
-            for (const listener of this.invalidLineListeners) {
-                listener(line);
-            }
+        if (!message || (message.kind === 'foreign' && this.foreignListeners.size === 0)) {
+            this.invalid(line);
             return;
         }
         switch (message.kind) {
+            case 'foreign':
+                for (const listener of this.foreignListeners) {
+                    listener({ ...message.value });
+                }
+                return;
             case 'notification':
                 for (const listener of this.listeners) {
                     listener(message.method, message.params);
@@ -121,12 +132,12 @@ export class AcpConnection {
                 void this.answer(message.id, message.method, message.params);
                 return;
             case 'result':
-                this.settle(message.id, (pending) => pending.resolve(message.result));
+                this.settle(message.id, line, (pending) => pending.resolve(message.result));
                 return;
             case 'error':
                 if (message.id !== null) {
-                    this.settle(message.id, (pending) =>
-                        pending.reject(new AcpRequestError(pending.method, message.error))
+                    this.settle(message.id, line, (pending) =>
+                        pending.reject(new JsonRpcRequestError(pending.method, message.error))
                     );
                 }
                 return;
@@ -145,12 +156,21 @@ export class AcpConnection {
         }
     }
 
-    private settle(id: JsonRpcId, settle: (pending: Pending) => void): void {
-        const pending = this.pending.get(id);
-        if (pending) {
-            this.pending.delete(id);
-            settle(pending);
+    private invalid(line: string) {
+        for (const listener of this.invalidLineListeners) {
+            listener(line);
         }
+    }
+
+    private settle(id: JsonRpcId, line: string, settle: (pending: Pending) => void): void {
+        const pending = this.pending.get(id);
+        if (!pending) {
+            // An answer to nothing this client asked (or already abandoned).
+            this.invalid(line);
+            return;
+        }
+        this.pending.delete(id);
+        settle(pending);
     }
 
     private async answer(id: JsonRpcId, method: string, params: unknown): Promise<void> {
@@ -160,7 +180,7 @@ export class AcpConnection {
         } catch (error) {
             line = encodeError(
                 id,
-                error instanceof AcpHandlerError
+                error instanceof JsonRpcHandlerError
                     ? error.body
                     : { code: -32_603, message: error instanceof Error ? error.message : 'Failed' }
             );
@@ -168,13 +188,13 @@ export class AcpConnection {
         if (this.closeReason) {
             return;
         }
-        // A reply the closed agent can no longer read has nowhere to go; the close owns the error.
+        // A reply the closed peer can no longer read has nowhere to go; the close owns the error.
         await this.transport.write(line).catch(() => undefined);
     }
 
-    private closedError(method: string): AcpConnectionClosedError {
+    private closedError(method: string): JsonRpcConnectionClosedError {
         const reason = this.closeReason ?? new Error('closed');
-        return new AcpConnectionClosedError(`${method} failed: ${reason.message}`, {
+        return new JsonRpcConnectionClosedError(`${method} failed: ${reason.message}`, {
             cause: reason,
         });
     }

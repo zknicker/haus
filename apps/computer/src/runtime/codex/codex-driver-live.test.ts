@@ -9,6 +9,7 @@ import type { RuntimeSession } from '../driver.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import { createCodexDriver } from './codex-driver.ts';
 import { resolvePinnedCodex } from './codex-executable.ts';
+import { testWarmPool } from './testing/replay-driver.ts';
 
 // Opt-in: spends real Codex quota and installs the pinned Codex CLI on first run.
 // HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex/codex-driver-live.test.ts
@@ -37,6 +38,7 @@ liveTest(
         const driver = () =>
             createCodexDriver({
                 env: {},
+                warm: { key: root, pool: testWarmPool },
                 homeDir: join(root, 'home'),
                 hostToolServer: server,
                 instructions: 'You are a Haus test Agent. Follow the user exactly.',

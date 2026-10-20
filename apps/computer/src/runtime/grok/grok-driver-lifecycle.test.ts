@@ -1,7 +1,8 @@
 import { afterAll, expect, test } from 'bun:test';
 import { makeDaemonRuntime } from '../../daemon-runtime.ts';
-import { isResumeRejection } from '../../harness/resume-rejection.ts';
+import { sandboxProcessOwner } from '../../harness/sandbox-process-owner.ts';
 import type { SteerResult } from '../driver.ts';
+import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import { collect, replayDriver, significant, text } from './fixtures/replay-driver.ts';
 import { createGrokDriver } from './grok-driver.ts';
 
@@ -92,7 +93,7 @@ test('a session Grok has no record of is a resume rejection', async () => {
         const error = await opened.catch((caught: unknown) => caught);
 
         expect(String(error)).toContain('Grok Build session not found');
-        expect(isResumeRejection(error)).toBe(true);
+        expect(isRuntimeResumeRejection(error)).toBe(true);
     } finally {
         await replay.cleanup();
     }
@@ -106,7 +107,7 @@ test('a rejected login fails the open with an actionable message, not a resume r
             .catch((caught: unknown) => caught);
 
         expect(String(error)).toContain('Run `grok login`');
-        expect(isResumeRejection(error)).toBe(false);
+        expect(isRuntimeResumeRejection(error)).toBe(false);
     } finally {
         await replay.cleanup();
     }
@@ -167,11 +168,19 @@ test('a missing grok executable fails the open with an install hint', async () =
             env: { PATH: '/nonexistent' },
             homeDir: replay.homeDir,
             hostGrokHomeDir: '/nonexistent/host-grok',
+            hostToolServer: {
+                openSession: () => ({
+                    close: () => undefined,
+                    mcp: {} as never,
+                    replaceTools: () => undefined,
+                }),
+            },
             instructions: 'x',
             modelId: 'grok-4.6',
+            processes: sandboxProcessOwner(runtime),
             reasoningEffort: 'default',
-            runtime,
             tools: [],
+            warm: { key: replay.homeDir, pool: replay.pool },
             workspaceDir: replay.workspaceDir,
         });
         const error = await driver

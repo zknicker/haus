@@ -1,7 +1,6 @@
 import type { HarnessV1 } from '@ai-sdk/harness';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
-import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { AgentReasoningEffort } from '@haus/api';
 import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
@@ -29,7 +28,7 @@ export const CLAUDE_NO_BACKGROUND_TASKS_ENV = {
 /**
  * Whether the runtime's harness lets the Agent start sub-agents, which turns on the prompt's
  * `## Working through sub-agents` section. Only Claude Code: Codex and Grok Build sub-agents are
- * switched off at their harness, and Pi has none.
+ * switched off at their runtime.
  */
 export function supportsSubagents(runtimeId: string): boolean {
     return runtimeId === 'claude-code';
@@ -38,7 +37,7 @@ export function supportsSubagents(runtimeId: string): boolean {
 /**
  * Applies the Agent's reasoning policy at the native runtime boundary. Every runtime here
  * steers a live turn (`submitUserMessage`), which the composed prompt promises: Claude Code
- * and Pi natively, Grok Build and Codex through Haus's @ai-sdk/harness-acp patch
+ * natively, Grok Build and Codex through Haus's @ai-sdk/harness-acp patch
  * (`_x.ai/interject` and `_session/steering`, gated in bridge-bootstrap.ts). A runtime
  * that cannot steer needs its own prompt variant before it joins this table.
  */
@@ -72,10 +71,6 @@ export function createHarnessForRuntime(
         case 'grok-build':
             return createGrokBuild({
                 reasoningEffort: reasoningEffort === 'default' ? undefined : reasoningEffort,
-            }) as HarnessV1<ToolSet>;
-        case 'pi':
-            return createPi({
-                thinkingLevel: reasoningEffort === 'default' ? undefined : reasoningEffort,
             }) as HarnessV1<ToolSet>;
         default:
             throw new Error(`Unsupported runtime "${runtimeId}".`);

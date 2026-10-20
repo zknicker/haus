@@ -1,6 +1,6 @@
 import type { TurnEvent } from '../turn-event.ts';
 import type { ClaudeContentBlock } from './claude-messages.ts';
-import { bashExitCode, contentText } from './claude-result.ts';
+import { contentText } from './claude-result.ts';
 import { type ClaudeToolName, claudeToolName } from './claude-tool-names.ts';
 
 /**
@@ -45,15 +45,8 @@ export function createClaudeToolEvents(options: {
                     ? { ...facts, error: output, type: 'tool-error' }
                     : { ...facts, output, type: 'tool-result' };
             }
-            const exitCode =
-                name.nativeName === 'Bash' && isError ? bashExitCode(block.content) : undefined;
-            if (exitCode !== undefined) {
-                return {
-                    ...facts,
-                    output: options.strip({ exitCode, stdout: contentText(block.content) }),
-                    type: 'tool-result',
-                };
-            }
+            // A Bash command that exited non-zero is a failed call, exactly as the AI SDK bridge
+            // projected it: `tool-error` carrying `tool_use_result` (or `{ exitCode, stdout }`).
             const output = options.strip(
                 structured === undefined ? nativeOutput(name, block.content, isError) : structured
             );

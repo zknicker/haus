@@ -4,9 +4,17 @@ import { join } from 'node:path';
 import type { HostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeDriver, RuntimeSession } from '../../driver.ts';
 import type { TurnEvent } from '../../turn-event.ts';
+import { WarmProcessPool } from '../../warm-pool.ts';
 import { type CodexDriverOptions, createCodexDriver } from '../codex-driver.ts';
 import type { CaptureStep } from '../fixtures/capture-scenarios.ts';
 import { type ReplayTransport, readFixture, replayTransport } from './replay-transport.ts';
+
+/** The warm pool every test driver shares, like the Computer-wide one. */
+export const testWarmPool = new WarmProcessPool({
+    onCloseError: (error) => {
+        throw error;
+    },
+});
 
 /** Fixture paths were scrubbed to this root; the driver sees the same workspace. */
 export const FIXTURE_WORKSPACE = '<root>/workspace';
@@ -37,9 +45,12 @@ export function testCodexDriver(
     overrides: Partial<CodexDriverOptions> = {}
 ): RuntimeDriver {
     const root = mkdtempSync(join(tmpdir(), 'haus-codex-test-'));
+    const homeDir = overrides.homeDir ?? join(root, 'home');
     return createCodexDriver({
         env: {},
-        homeDir: join(root, 'home'),
+        homeDir,
+        // One Agent per HOME, as the executor keys the Computer's warm pool by Agent.
+        warm: { key: homeDir, pool: testWarmPool },
         hostHomeDir: join(root, 'host'),
         hostToolServer: fakeHostToolServer(),
         instructions: 'You are a Haus test Agent. Follow the user exactly.',

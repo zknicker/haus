@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
-import { AcpConnection, AcpHandlerError } from './acp-connection.ts';
-import { AcpConnectionClosedError, AcpRequestError } from './json-rpc.ts';
+import { JsonRpcConnectionClosedError, JsonRpcRequestError } from './json-rpc.ts';
+import { JsonRpcConnection, JsonRpcHandlerError } from './json-rpc-connection.ts';
 
 function connection() {
     const written: Record<string, unknown>[] = [];
-    const acp = new AcpConnection({
+    const acp = new JsonRpcConnection({
         write: (line) => {
             written.push(JSON.parse(line));
             return Promise.resolve();
@@ -43,7 +43,7 @@ test('a JSON-RPC error rejects with its code, data, and the detail ACP agents pu
     });
 
     const error = await pending.catch((caught: unknown) => caught);
-    expect(error).toBeInstanceOf(AcpRequestError);
+    expect(error).toBeInstanceOf(JsonRpcRequestError);
     expect(error).toMatchObject({
         code: -32_603,
         data: { code: 'FS_NOT_FOUND' },
@@ -74,7 +74,7 @@ test('answers agent requests with the handler result or its JSON-RPC error', asy
         if (method === 'session/request_permission') {
             return { outcome: { optionId: 'allow', outcome: 'selected' } };
         }
-        throw new AcpHandlerError({ code: -32_601, message: `no ${method}` });
+        throw new JsonRpcHandlerError({ code: -32_601, message: `no ${method}` });
     });
 
     reply({ id: 'perm-1', method: 'session/request_permission', params: {} });
@@ -112,7 +112,7 @@ test('close fails every waiting request once, and later requests fail fast', asy
     reply({ id: 1, result: { stopReason: 'end_turn' } });
 
     const error = await pending.catch((caught: unknown) => caught);
-    expect(error).toBeInstanceOf(AcpConnectionClosedError);
+    expect(error).toBeInstanceOf(JsonRpcConnectionClosedError);
     expect((error as Error).message).toBe('session/prompt failed: Grok exited (code 101)');
     await expect(acp.request('initialize', {})).rejects.toThrow('Grok exited (code 101)');
     await expect(acp.notify('session/cancel', {})).rejects.toThrow('Grok exited (code 101)');
@@ -129,7 +129,7 @@ test('a local abort stops waiting and drops the late answer', async () => {
 });
 
 test('a failed write fails its request', async () => {
-    const acp = new AcpConnection({ write: () => Promise.reject(new Error('EPIPE')) });
+    const acp = new JsonRpcConnection({ write: () => Promise.reject(new Error('EPIPE')) });
 
     await expect(acp.request('initialize', {})).rejects.toThrow('EPIPE');
 });

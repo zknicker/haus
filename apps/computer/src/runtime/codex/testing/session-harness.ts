@@ -26,6 +26,7 @@ export interface LiveTurn {
     readonly finished: Promise<TurnEvent[]>;
     readonly settle: () => Promise<void>;
     readonly turnId: string;
+    readonly unconsumedSteers: () => readonly string[];
 }
 
 /** Starts a turn on a fake and drains its events in the background. */
@@ -43,7 +44,14 @@ export async function startFakeTurn(
         }
         return events;
     })();
-    return { abort, events, finished, settle: () => turn.settle(), turnId: fake.lastTurnId };
+    return {
+        abort,
+        events,
+        finished,
+        settle: () => turn.settle(),
+        turnId: fake.lastTurnId,
+        unconsumedSteers: () => turn.unconsumedSteers(),
+    };
 }
 
 /** A fresh session on a fake with one turn already started. */

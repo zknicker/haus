@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type HostToolServer, startHostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeDriver } from '../../driver.ts';
+import { WarmProcessPool } from '../../warm-pool.ts';
 import { type ClaudeCodeDriverOptions, createClaudeCodeDriver } from '../claude-code-driver.ts';
-import { type ClaudeWarmPool, createClaudeWarmPool } from '../claude-warm-pool.ts';
 
 export interface FakeLaunch {
     args: string[];
@@ -27,7 +27,7 @@ export async function createFakeDriverHarness() {
     await chmod(binaryPath, 0o755);
     const log = join(root, 'launches.jsonl');
     const server: HostToolServer = startHostToolServer();
-    const pool: ClaudeWarmPool = createClaudeWarmPool();
+    const pool = new WarmProcessPool({ onCloseError: reportCloseError });
     const driver = (overrides: Partial<ClaudeCodeDriverOptions> = {}): RuntimeDriver =>
         createClaudeCodeDriver({
             baseEnv: { CLAUDECODE: '1', FAKE_CLAUDE_LOG: log, PATH: process.env.PATH },
@@ -38,7 +38,7 @@ export async function createFakeDriverHarness() {
             hostToolServer: server,
             instructions: 'You are a test Agent.',
             modelId: 'claude-haiku-4-5',
-            pool,
+            warm: { key: root, pool },
             reasoningEffort: 'medium',
             tools: [],
             workspaceDir,
@@ -64,6 +64,10 @@ export async function createFakeDriverHarness() {
         },
         root,
     };
+}
+
+function reportCloseError(error: unknown): never {
+    throw error;
 }
 
 export function signal(): AbortSignal {

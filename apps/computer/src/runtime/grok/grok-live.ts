@@ -1,7 +1,8 @@
 import { realpath } from 'node:fs/promises';
-import type { DaemonRuntime } from '../../daemon-runtime.ts';
+import type { RuntimeProcessRegistry } from '../../harness/sandbox-process-owner.ts';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer, HostToolSession } from '../../host-tools/mcp-server.ts';
+import type { WarmProcess } from '../warm-pool.ts';
 import { type GrokCredential, resolveGrokCredential } from './grok-auth.ts';
 import { openGrokAcpSession } from './grok-handshake.ts';
 import {
@@ -25,10 +26,10 @@ export interface GrokLaunchFacts {
     readonly homeDir: string;
     readonly hostGrokHomeDir?: string;
     readonly hostHomeDir?: string;
-    readonly hostToolServer: HostToolServer;
+    readonly hostToolServer: Pick<HostToolServer, 'openSession'>;
     readonly instructions: string;
     readonly modelId: string;
-    readonly runtime: DaemonRuntime;
+    readonly processes?: RuntimeProcessRegistry;
     readonly tools: HostToolSet;
     readonly wireTap?: (frame: GrokWireFrame) => void;
     readonly workspaceDir: string;
@@ -81,7 +82,7 @@ export async function launchGrokLive(
         command: facts.command,
         cwd: facts.workspaceDir,
         env: credential.kind === 'subscription' ? { ...childEnv, ...credential.env } : childEnv,
-        runtime: facts.runtime,
+        processes: facts.processes,
         wireTap: facts.wireTap,
     });
     let sessionId: string | undefined;
@@ -132,4 +133,21 @@ export async function launchGrokLive(
 export async function closeGrokLive(live: Pick<GrokLive, 'hostTools' | 'process'>): Promise<void> {
     live.hostTools.close();
     await live.process.terminate();
+}
+
+/** A detached Grok session parked in the Computer's warm pool. */
+export class GrokWarmProcess implements WarmProcess {
+    constructor(readonly live: GrokLive) {}
+
+    get alive(): boolean {
+        return this.live.process.connection.closed === null;
+    }
+
+    get exited(): Promise<unknown> {
+        return this.live.process.exited;
+    }
+
+    close(): Promise<void> {
+        return closeGrokLive(this.live);
+    }
 }

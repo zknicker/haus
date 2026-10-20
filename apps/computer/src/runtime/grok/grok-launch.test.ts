@@ -12,7 +12,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { isResumeRejection } from '../../harness/resume-rejection.ts';
+import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import {
     GROK_INSTRUCTION_COMPAT_ENV,
     grokLaunchAllowsAutoApproval,
@@ -134,7 +134,7 @@ test('state another runtime wrote is a resume rejection, never a silent fresh se
         try {
             open();
         } catch (error) {
-            expect(isResumeRejection(error)).toBe(true);
+            expect(isRuntimeResumeRejection(error)).toBe(true);
         }
     }
 });

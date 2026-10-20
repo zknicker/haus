@@ -1,3 +1,6 @@
+import { jsonRpcMethodNotFound } from '../json-rpc.ts';
+import { JsonRpcHandlerError } from '../json-rpc-connection.ts';
+
 /**
  * Haus Agents run unattended with full access: Codex never asks under `approvalPolicy: never` and
  * `danger-full-access`, and anything it still asks is answered the way that policy would. A
@@ -17,9 +20,10 @@ export function answerCodexServerRequest(method: string, params: unknown): unkno
         case 'mcpServer/elicitation/request':
             return { _meta: null, action: 'decline', content: null };
         default:
-            throw new Error(
-                `Codex app-server request "${method}" is not supported by the unattended Haus driver.`
-            );
+            throw new JsonRpcHandlerError({
+                code: jsonRpcMethodNotFound,
+                message: `Codex app-server request "${method}" is not supported by the unattended Haus driver.`,
+            });
     }
 }
 

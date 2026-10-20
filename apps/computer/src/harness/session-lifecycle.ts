@@ -1,6 +1,6 @@
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { RuntimeSession } from '../runtime/driver.ts';
-import type { RuntimeResumeState } from '../runtime/resume-state.ts';
+import { isHausResumeState, type RuntimeResumeState } from '../runtime/resume-state.ts';
 import { readAgentSessionState, writeAgentSessionState } from './session-store.ts';
 
 type Session = Pick<RuntimeSession, 'detach' | 'stop'>;
@@ -118,7 +118,9 @@ export class HarnessSessionLease {
         if (this.transition) {
             await this.transition;
         }
-        if (!this.stopped && this.parked && this.resume) {
+        // A Haus driver parks and stops to the same state; its warm process ends through the
+        // Computer's warm pool (agent reset or removal, shutdown), never by resuming it here.
+        if (!this.stopped && this.parked && this.resume && !isHausResumeState(this.parked)) {
             const stored = await readAgentSessionState(this.agentRoot);
             // A reset or retirement can remove this parked session between turns.
             if (!(stored && JSON.stringify(stored.resumeState) === JSON.stringify(this.parked))) {
