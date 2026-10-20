@@ -63,6 +63,7 @@ const startFrame = {
 
 const report = {
     createdAt: '2026-10-20T10:40:00.000Z',
+    heartbeatKind: 'daytime' as const,
     heartbeatRunId: 'run_hb',
     id: 'heartbeat-report:run_hb',
     text: 'Three new 2-star reviews mention shipping.',
@@ -152,6 +153,15 @@ test('a report run hands the main session the Agent’s own report to decide on'
     );
     expect(prompt.turnContent).toContain(report.text);
     expect(prompt.turnContent).toContain('Between 22:00 and 08:00, schedule a morning reminder');
+});
+
+test('a nightly heartbeat report never posts: it becomes a morning reminder', () => {
+    const prompt = composeTurnPrompt(
+        delivery({ heartbeatReport: { ...report, heartbeatKind: 'nightly' } }),
+        { isColdStart: false, sessionGeneration: 2 }
+    );
+    expect(prompt.turnContent).toContain('came from your nightly heartbeat, so post nothing now');
+    expect(prompt.turnContent).not.toContain('post where it belongs');
 });
 
 test('the quiet-run note counts settled heartbeats, renders one line, and clears', async () => {

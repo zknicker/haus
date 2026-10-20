@@ -249,6 +249,7 @@ test('a report run resumes the main session and clears the note without renderin
         turnInput({
             heartbeatReport: {
                 createdAt: '2026-10-20T10:40:00.000Z',
+                heartbeatKind: 'daytime',
                 heartbeatRunId: 'run_hb',
                 id: 'heartbeat-report:run_hb',
                 text: 'Three new 2-star reviews.',

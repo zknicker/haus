@@ -57,6 +57,8 @@ export type AgentHeartbeatAttention = z.infer<typeof agentHeartbeatAttentionSche
 export const agentHeartbeatReportAttentionSchema = z
     .object({
         createdAt: timestampSchema,
+        /** The kind of the heartbeat that filed the report; a nightly report waits for morning. */
+        heartbeatKind: z.enum(['daytime', 'nightly']),
         heartbeatRunId: idSchema,
         id: idSchema,
         text: z.string().min(1).max(4000),

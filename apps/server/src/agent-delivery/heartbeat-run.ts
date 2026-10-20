@@ -156,10 +156,23 @@ async function attentionOf(
     const createdAt = row.createdAt.toISOString();
     const kind = heartbeatKindOf(row.source);
     if (!kind) {
+        const heartbeatRunId = heartbeatRunIdOfReport(row.dedupeKey);
+        const [filedBy] = await db
+            .select({ source: agentRunTriggersTable.source })
+            .from(agentRunTriggersTable)
+            .where(
+                and(
+                    eq(agentRunTriggersTable.serverId, state.serverId),
+                    eq(agentRunTriggersTable.agentId, state.agentId),
+                    eq(agentRunTriggersTable.runId, heartbeatRunId)
+                )
+            );
         return {
             heartbeatReport: {
                 createdAt,
-                heartbeatRunId: heartbeatRunIdOfReport(row.dedupeKey),
+                heartbeatKind:
+                    filedBy?.source === 'dream' ? ('nightly' as const) : ('daytime' as const),
+                heartbeatRunId,
                 id: row.dedupeKey,
                 text: row.content,
             },

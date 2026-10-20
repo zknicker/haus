@@ -21,6 +21,7 @@ export async function composeHeartbeatInput(
         digestSection(heartbeat.digest),
         await checkpointLine(workspaceDir),
         'Open reminders: `haus reminder list`. Open leads: `haus lead list`.',
+        'Every run, even a quiet one: check the sources your work depends on for what changed since your checkpoint (find your connections with the `execute` tool\'s `tools.search` and call the ones your role or memory relies on). Before you research or answer any lead, claim it: `haus lead claim --topic "..." [--message-id <id>]`; a refused claim belongs to another Agent, so leave it.',
     ].join('\n\n');
 }
 
@@ -29,7 +30,9 @@ export function composeHeartbeatReportInput(report: AgentHeartbeatReportAttentio
     return [
         `[Haus heartbeat report] Your own heartbeat (run ${report.heartbeatRunId}) reported:`,
         report.text,
-        'You decide whether anyone should hear this: post where it belongs, or do nothing. Between 22:00 and 08:00, schedule a morning reminder instead of posting.',
+        report.heartbeatKind === 'nightly'
+            ? 'This came from your nightly heartbeat, so post nothing now: for anything someone should hear, schedule a morning reminder anchored to the message it concerns, or do nothing.'
+            : 'You decide whether anyone should hear this: post where it belongs, or do nothing. Between 22:00 and 08:00, schedule a morning reminder instead of posting.',
     ].join('\n\n');
 }
 

@@ -38,6 +38,7 @@ const heartbeat = {
 
 const heartbeatReport = {
     createdAt: '2026-10-11T03:20:00.000Z',
+    heartbeatKind: 'nightly',
     heartbeatRunId: 'run_1',
     id: 'heartbeat-report:run_1',
     text: 'Found one thing.',
