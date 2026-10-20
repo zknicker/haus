@@ -1,7 +1,7 @@
 import type { LinearIssueUrl } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import { useConnections } from '../servers/use-connections.ts';
+import { useConnectionChip } from '../servers/use-connection-chip.ts';
 import { linearIssueRefetchInterval } from './linear-issue-refresh.ts';
 
 /**
@@ -11,21 +11,18 @@ import { linearIssueRefetchInterval } from './linear-issue-refresh.ts';
  * rereads before its signed URL expires.
  */
 export function useLinearIssue(serverId: string, issue: LinearIssueUrl) {
-    const connections = useConnections(serverId);
-    const hasLinear =
-        connections.data?.some((connection) => connection.preset === 'linear') ?? false;
+    const chip = useConnectionChip(serverId, 'linear-issue');
     const read = hausTrpc.linear.issue.useQuery(
         { serverId, url: issue.url },
         {
             ...queryPolicy.syncedSnapshot,
-            enabled: hasLinear,
+            enabled: chip === 'available',
             refetchInterval: (query) => linearIssueRefetchInterval(query.state.data),
         }
     );
-    // Until the connection list loads, the link may still be an issue chip.
     return {
         data: read.data,
-        enabled: connections.data === undefined || hasLinear,
+        enabled: chip !== 'absent',
         isError: read.isError,
     };
 }

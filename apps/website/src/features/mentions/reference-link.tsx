@@ -1,9 +1,8 @@
-import { cloudAgentPullRequestNumber, parseAmazonProduct, parseLinearIssueUrl } from '@haus/api';
+import { cloudAgentPullRequestNumber } from '@haus/api';
 import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
 import { useSharedArtifactTarget } from '../chats/shared-artifact-scope.tsx';
-import { AmazonReference } from './amazon-reference.tsx';
-import { LinearIssueReference } from './linear-issue-reference.tsx';
+import { connectionChipLink } from './connection-chip-views.tsx';
 import type { Mention, ReferenceActivation } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
 
@@ -129,21 +128,9 @@ function ReferenceLink({
                 />
             </a>
         );
-        const product = parseAmazonProduct(website.href);
-        if (product && serverId) {
-            return <AmazonReference href={website.href} product={product} serverId={serverId} />;
-        }
-        const issue = parseLinearIssueUrl(website.href);
-        return issue && serverId ? (
-            <LinearIssueReference
-                fallback={link}
-                href={website.href}
-                issue={issue}
-                serverId={serverId}
-            />
-        ) : (
-            link
-        );
+        return serverId
+            ? connectionChipLink({ fallback: link, href: website.href, serverId })
+            : link;
     }
 
     return href ? <MarkdownLink href={href}>{children}</MarkdownLink> : children;

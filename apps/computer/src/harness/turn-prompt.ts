@@ -1,3 +1,4 @@
+import type { ConnectionChipKind } from '@haus/api';
 import type { AgentStartCommand, UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';
@@ -16,6 +17,8 @@ export interface TurnDelivery {
         identities: VisibleMessageIdentity[],
         signal: AbortSignal
     ): Promise<VisibleMessageIdentity[] | null>;
+    /** Chips the Server's connections add to chat, for the system prompt's Formatting refs. */
+    connectionChips?: readonly ConnectionChipKind[];
     dataRoot: string;
     /** Inbox identities drainable on any start; the warm set needs a live session. */
     drainItemIds: string[];
@@ -64,6 +67,7 @@ export const dreamTurnLine =
 /** The delivery facets of a start command, exactly as one turn composes them. */
 export function turnDeliveryOf(command: AgentStartCommand) {
     return {
+        connectionChips: command.connectionChips ?? [],
         ...(command.dream ? { dream: command.dream } : {}),
         drainItemIds: command.drainItemIds ?? [],
         inbox: command.inbox ?? [],

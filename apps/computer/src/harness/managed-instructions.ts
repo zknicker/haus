@@ -10,7 +10,8 @@
  * must remain covered by the Computer harness instruction tests. See AGENTS.md.
  */
 
-import { TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
+import { type ConnectionChipKind, TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
+import { connectionChipRefs } from './connection-chip-instructions.ts';
 import {
     conversationStyleSection,
     housePersonalitySection,
@@ -23,6 +24,8 @@ export const agentWorkDirectoryName = 'workbench';
 export interface AgentPromptRenderInput {
     agentId: string;
     agentName: string;
+    /** Chips the Server's connections add to chat; absent renders none. */
+    connectionChips?: readonly ConnectionChipKind[];
     /** Voice guidance set by the owner or the Agent itself; private to this prompt. */
     conversationStyle?: string | null;
     homeTimezone: string;
@@ -65,7 +68,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         communicationStyleSection(input),
         etiquetteSection(),
         liveConstraintsSection,
-        formattingRefsSection(),
+        formattingRefsSection(input.connectionChips ?? []),
         workspaceMemorySection,
         outputsSection,
         visualsSection,
@@ -360,12 +363,13 @@ A constraint that makes you delay or withhold an otherwise authorized action nee
 
 Do not infer approval, completion, release, or permission from a person's role or from an old announcement. Treat each action's current contract and authoritative state as the source of truth; an action that is not explicitly in scope remains out of scope. Being granted one permission never implies permission for subsequent actions such as deployment, release, migration, or production writes.`;
 
-function formattingRefsSection() {
+function formattingRefsSection(connectionChips: readonly ConnectionChipKind[]) {
     const refs = [
         '- @alice: links to a user',
         '- #general: links to a channel',
         '- #engineering:b885b5ae: links to a specific thread (channel name + msg ID suffix)',
         '- task #123: links to a task (always write "task #N", not bare "#N" which is ambiguous with other references)',
+        ...connectionChipRefs(connectionChips),
     ].join('\n');
     return `## Formatting: Mentions & Channel Refs
 

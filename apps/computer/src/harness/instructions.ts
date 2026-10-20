@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { hostname, release, type } from 'node:os';
+import type { ConnectionChipKind } from '@haus/api';
 import computerPackage from '../../package.json' with { type: 'json' };
 import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
 import { supportsSubagents } from './runtime-harness.ts';
@@ -13,11 +14,12 @@ import { supportsSubagents } from './runtime-harness.ts';
  *
  * Boundary adaptation: host facts (hostname/OS/runtime version) are derived on
  * the Computer; Server-owned Agent facts (name, description, conversation style,
- * signature emoji, web access, home timezone) arrive on the start command because the Computer cannot know them.
+ * signature emoji, home timezone, connection chips) arrive on the start command because the Computer cannot know them.
  */
 export interface AgentInstructionFacts {
     agentId: string;
     agentName: string;
+    connectionChips?: readonly ConnectionChipKind[];
     conversationStyle?: string | null;
     homeTimezone: string;
     initialRole: string | null;
@@ -36,6 +38,7 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
     const render: AgentPromptRenderInput = {
         agentId: facts.agentId,
         agentName: facts.agentName,
+        connectionChips: facts.connectionChips ?? [],
         conversationStyle: facts.conversationStyle ?? null,
         homeTimezone: facts.homeTimezone,
         hostname: hostname(),

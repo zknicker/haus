@@ -153,7 +153,10 @@ that scrolls with Settings. It leads with the server's mark and name, a `···`
 **Add credentials** button; the server's own description follows when it offers one. Below come
 ruled sections, actionable first: **Connected Account** (a card with the account label and its own
 `···` menu for Sign in again or Replace credentials and Disconnect account, plus **Add another
-account** for a built-in service; hidden for servers that take no credentials), for GitHub
+account** for a built-in service; hidden for servers that take no credentials), **In Chat** for a
+connection that adds chat chips (RankWrangler's product chips, Linear's issue chips: each named
+with one line and an inert sample drawn by the real chip; see
+[Rich References](rich-references.md#connection-chips)), for GitHub
 **Installations** (see [GitHub App connection](../../specs/github-app-connection.md#app-ui)), **Agent Access**
 (one switch per Agent; a new grant waits for sign-in; a built-in definition may add a line under
 the title, per-Agent state and actions on each row, a panel expanding under a row, and footer

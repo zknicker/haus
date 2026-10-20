@@ -16,6 +16,7 @@ type DreamFrameConfig = Pick<
     | 'agentDescription'
     | 'agentName'
     | 'agentSignatureEmoji'
+    | 'connectionChips'
     | 'homeTimezone'
     | 'sessionGeneration'
 >;

@@ -4,6 +4,7 @@ read_when:
   - changing chat mentions, rich reference rendering, autocomplete references, or explicit typed links in messages
   - changing the `cloud-agent://` or `image-generation://` link, its label, or which trailing link paragraph the transcript hides
   - adding a new reference type such as agent, skill, app, plugin, file, directory, pull request, product, ASIN, memory, chat, or session
+  - adding a chip a connection provides, or changing whether Amazon or Linear chips render without their connection
 ---
 
 # Rich References
@@ -45,12 +46,34 @@ in an older note still requires checking against the current directory.
 
 ## Product Rules
 
+### Connection chips
+
+Some chips belong to a connection: Amazon product chips to RankWrangler, and
+Linear issue chips to Linear. `packages/haus-api/src/connection-chips.ts`
+declares each one with the single check for whether a connection provides it;
+the App's chip gate, the Server's chip reads, and the Agent's start facts all use
+that check. A chip renders only while the Server has a connection that provides
+it. Without one, the text or link it came from renders as it would anywhere else,
+including in older messages, which become chips again once the connection
+returns. While the Server's connection list first loads, matching text renders
+as a chip so a message never flashes from text to chip. The connection's page in
+Settings → Connections shows an **In Chat** section naming each chip it adds,
+beside an inert sample drawn by the real chip component.
+
+The Agent's system prompt names a chip only when the Agent must write something
+specific to get it, and only while the Server provides it: with RankWrangler
+connected, the Formatting refs teach the Agent to write a product's ASIN beside
+its name. Linear issue chips come from linear.app links Agents already paste, so
+they add no prompt text. A connection change reaches an Agent at its next start.
+
 ### Amazon prototype
 
-Haus App renders US Amazon product links and standalone uppercase ASINs as
-product chips as soon as the text matches. Whether text becomes a chip never
-depends on RankWrangler: the chip links to Amazon with the ASIN as its label and
-a product placeholder mark, and the RankWrangler lookup fills it in place.
+While the Server has RankWrangler connected (signed in, with its
+`rankwrangler_product` tool), Haus App renders US Amazon product links and
+standalone uppercase ASINs as product chips as soon as the text matches. The chip
+links to Amazon with the ASIN as its label and a product placeholder mark, and
+the RankWrangler lookup fills it in place. Without RankWrangler, an ASIN stays
+plain text and an Amazon link stays an ordinary website link.
 While the lookup runs, the placeholder pulses and the hover card says product
 details are being fetched. Once it completes, the label becomes RankWrangler’s
 generated short name (else the ASIN) and the mark becomes the transparent cutout
@@ -61,11 +84,9 @@ longer than usual. Retrying…" while bounded retries run, "Product details are
 temporarily unavailable. We’ll try again shortly." once they give up on a
 transient problem, and "Product details unavailable" for an unknown ASIN or a
 permanent failure. Once a lookup has explained a problem it never falls back to
-the bare loading copy. Without a RankWrangler connection in Settings →
-Connections the hover card notes that details need it.
+the bare loading copy.
 The card is anchored below the chip. Its first line is the ASIN in monospace
-with a Copy ASIN button in every lookup state (loading, failure, and without
-RankWrangler), then the title when RankWrangler has one, brand, and price. The
+with a Copy ASIN button in every lookup state (loading and failure), then the title when RankWrangler has one, brand, and price. The
 pointer can move into the card. Tab from the chip reaches Copy ASIN. Escape
 closes it. The transparent product cutout floats beside the text, tilted
 slightly, with a brief settling entrance and sparkle. Reduced motion disables
@@ -88,7 +109,7 @@ their own unbatched HTTP requests (`skipBatch`), so a slow product never holds t
 tRPC batch that carries a screen's other queries. The read returns one typed
 result: `found` with the summary, `temporarilyUnavailable` with
 `retryAfterSeconds` (1–30), or `unavailable`; `null` means no RankWrangler
-connection. Server makes exactly one RankWrangler `get` per product with
+connection, which the App shows as unavailable until the connection list catches up. Server makes exactly one RankWrangler `get` per product with
 `include: ['shortName', 'cutoutThumbnail']` and shares an in-flight read between
 concurrent chips. RankWrangler waits, up to about 20 seconds, for the short name
 and cutout, then returns the listing with anything unfinished settled as
@@ -111,8 +132,8 @@ Removed listings show last-known data with a removal label. Missing prices and b
 visible with an unavailable notice.
 
 The Agent Manual topic `amazon-product-references` explains the syntax and tool
-access. No system-prompt expansion or special Agent tool call is required for
-rendering.
+access. Rendering needs no Agent tool call; the prompt's ASIN ref appears only
+while RankWrangler is connected (see Connection chips).
 
 ### Shared references
 
