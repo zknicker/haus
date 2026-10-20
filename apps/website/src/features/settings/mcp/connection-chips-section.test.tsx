@@ -11,7 +11,7 @@ test('RankWrangler says it adds product chips, beside an inert sample product ch
         'Amazon ASINs and product links in chat become product chips with a preview.'
     );
     expect(markup).toMatch(
-        /<span inert="">.*aria-label="Open Pumpkin Patch Tee on Amazon".*reference-chip--product/
+        /<span class="text-base" inert="">.*aria-label="Open Pumpkin Patch Tee on Amazon".*reference-chip--product/
     );
 });
 
@@ -20,7 +20,7 @@ test('Linear says it adds issue chips, beside an inert sample issue chip', () =>
 
     expect(markup).toContain('Issue chips');
     expect(markup).toMatch(
-        /<span inert="">.*aria-label="Open HAUS-42 Polish the onboarding tour in Linear"/
+        /<span class="text-base" inert="">.*aria-label="Open HAUS-42 Onboarding tour in Linear"/
     );
 });
 

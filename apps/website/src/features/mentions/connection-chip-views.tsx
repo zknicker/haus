@@ -66,7 +66,7 @@ export const connectionChipViews: Record<ConnectionChipKind, ConnectionChipView>
                 notice={null}
                 state={{
                     kind: 'issue',
-                    label: `${sampleIssue.identifier} Polish the onboarding tour`,
+                    label: `${sampleIssue.identifier} Onboarding tour`,
                     pending: false,
                     view: null,
                 }}

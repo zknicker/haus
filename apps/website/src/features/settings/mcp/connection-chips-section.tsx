@@ -28,7 +28,7 @@ export function ConnectionChipsSection({ preset }: { preset: McpPreset | null })
                                 </ItemCard.Description>
                             </ItemCard.Content>
                             <ItemCard.Action>
-                                <span inert>
+                                <span className="text-base" inert>
                                     <Sample />
                                 </span>
                             </ItemCard.Action>
