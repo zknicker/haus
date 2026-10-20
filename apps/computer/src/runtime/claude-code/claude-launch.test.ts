@@ -118,6 +118,7 @@ test('claude env isolates HOME, drops the nested-session marker, and disables ba
     });
     expect(env).toEqual({
         CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
+        CLAUDE_CODE_ENTRYPOINT: 'sdk-ts',
         CLAUDE_CODE_OAUTH_TOKEN: 'token',
         HAUS_AGENT_ID: 'agt_1',
         HAUS_HOST_TOOLS_TOKEN: 'host-token',

@@ -122,6 +122,10 @@ export function buildClaudeEnv(input: {
         ...input.launchEnv,
         ...input.credentials,
         CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
+        // The Agent SDK's entrypoint: Claude Code shapes its built-in system prompt for a
+        // programmatic host rather than an interactive terminal user. Without it, Agents read
+        // sender prefixes like `@name:` as addressing someone else (placement-quick-fact eval).
+        CLAUDE_CODE_ENTRYPOINT: 'sdk-ts',
         [HOST_TOOL_TOKEN_ENV]: input.hostToolToken,
         HOME: input.homeDir,
     };
