@@ -44,7 +44,7 @@ export function AmazonReferenceChip({
     const label = summary?.shortName ?? product.asin;
     return (
         <HoverCard onOpenChange={onPreviewOpenChange} openDelay={250}>
-            <HoverCard.Trigger>
+            <HoverCard.Trigger className="align-middle">
                 <a
                     aria-busy={lookupInProgress(lookup) || undefined}
                     aria-label={`Open ${label} on Amazon`}
