@@ -1,5 +1,8 @@
 import { expect, test } from 'bun:test';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import {
+    evidenceDirectory,
     inMorningWindow,
     newPreferenceLines,
     renderMemory,
@@ -141,16 +144,46 @@ test('lead dedupe grades outcome: one answer, one searcher, facts present', () =
 });
 
 test('lead dedupe outcome reads facts from posts and callers from MCP calls', () => {
-    const posts = [{ content: 'On it.' }, { content: 'Yes: 20% on Pro and Team.' }];
+    const posts = ['On it.', 'Yes: 20% on Pro and Team.'];
     const calls = [
-        { caller: 'second', key: null, tool: 'list_recent_audit_records' },
+        { caller: 'first', key: null, tool: 'list_recent_audit_records' },
         { caller: 'second', key: 'DOC-Q3-PRICING', tool: 'lookup_audit_record' },
     ];
     const outcome = leadDedupeOutcome({ calls, posts });
     expect(outcome.answered).toBe(true);
     expect(outcome.answerPosts).toHaveLength(1);
     expect(outcome.callers).toEqual(['second']);
-    expect(leadDedupeOutcome({ calls: [], posts: [{ content: 'Not sure.' }] }).answered).toBe(
-        false
-    );
+    expect(leadDedupeOutcome({ calls: [], posts: ['Not sure.'] }).answered).toBe(false);
+});
+
+test('lead dedupe replays saved live evidence: answers found, scan-only calls are not research', async () => {
+    const directory = path.join(evidenceDirectory);
+    const files = existsSync(directory)
+        ? readdirSync(directory).filter((file) => file.endsWith('-heartbeat-lead-dedupe.json'))
+        : [];
+    // Evidence is local-only; with none saved, the inline shape below still replays.
+    const saved = files.map((file) => JSON.parse(readFileSync(path.join(directory, file), 'utf8')));
+    saved.push({
+        mcpCalls: [{ caller: 'first', key: null, tool: 'list_recent_audit_records' }],
+        posts: {
+            channel: [
+                'Yes. The Q3 pricing page notes say Pro and Team receive a 20% annual discount; Starter has no annual discount.',
+            ],
+        },
+    });
+    for (const evidence of saved.filter((entry) => Array.isArray(entry.posts?.channel))) {
+        const outcome = leadDedupeOutcome({
+            calls: evidence.mcpCalls ?? [],
+            posts: evidence.posts.channel,
+        });
+        // Posts are plain strings; the earlier object-shaped predicate dropped them all.
+        const factual = evidence.posts.channel.filter((post) =>
+            /20\s*%|\bPro\b|\bTeam\b/u.test(post)
+        );
+        expect(outcome.answerPosts).toHaveLength(factual.length);
+        // List/scan calls alone never count as research on the pricing record.
+        if ((evidence.mcpCalls ?? []).every((call) => call.tool !== 'lookup_audit_record')) {
+            expect(outcome.callers).toEqual([]);
+        }
+    }
 });

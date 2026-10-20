@@ -30,16 +30,33 @@ export const pricingRecord = Object.freeze([
 export const answerFacts = /20\s*%|\bPro\b|\bTeam\b/u;
 const leadCommand = /\bhaus\s+lead\b/u;
 
-/** Outcome of one run from its channel posts and controlled-MCP calls. */
+/**
+ * Outcome of one run from its channel posts (`agentPosts` returns message text
+ * strings) and controlled-MCP calls. Only lookups of the pricing record count as
+ * research on it.
+ */
 export function leadDedupeOutcome({ calls, posts }) {
-    const answerPosts = posts.filter((post) => answerFacts.test(post.content ?? ''));
-    const callers = [...new Set(calls.map((call) => call.caller).filter(Boolean))];
+    const answerPosts = posts.filter((post) => answerFacts.test(postText(post)));
+    const callers = [
+        ...new Set(
+            calls
+                .filter(
+                    (call) => call.tool === 'lookup_audit_record' && call.key === pricingRecord[0]
+                )
+                .map((call) => call.caller)
+                .filter(Boolean)
+        ),
+    ];
     return { answerPosts, answered: answerPosts.length > 0, callers };
+}
+
+function postText(post) {
+    return typeof post === 'string' ? post : (post?.content ?? '');
 }
 
 export async function runLeadDedupe({ agents, expect, kit, log }) {
     const [first, second] = agents;
-    const mcp = await startControlledMcp({ recent: true });
+    const mcp = await startControlledMcp();
     const connectionIds = [];
     try {
         log('adding one connection per Agent to the pricing notes source and granting it');
@@ -69,7 +86,7 @@ export async function runLeadDedupe({ agents, expect, kit, log }) {
                 renderMemory({
                     displayName: worker.displayName ?? worker.handle,
                     keyKnowledge: [
-                        'The Pricing Notes MCP connection holds the Q3 pricing page notes; nothing else does.',
+                        'The Pricing Notes MCP connection holds the Q3 pricing page notes (record key DOC-Q3-PRICING); nothing else does.',
                     ],
                     role: 'Pricing researcher. You look into open questions about our pricing and plans.',
                 })
