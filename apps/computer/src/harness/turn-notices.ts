@@ -29,7 +29,19 @@ export function openTurnNotices(
     input: NoticeTurnInput,
     primaryNotice: string | null
 ) {
-    const deliverNotice = createNoticeDelivery(live, input, primaryNotice);
+    const steerNotice = createNoticeDelivery(live, input, primaryNotice);
+    // Every delivery is tracked until the runtime answers its steer, so `close` resolves only
+    // once each steer is either acked (and visible to `unconsumedSteers`) or refused.
+    const inFlight = new Set<Promise<boolean>>();
+    const deliverNotice = (notice: string) => {
+        const delivery = steerNotice(notice);
+        inFlight.add(delivery);
+        void delivery.then(
+            () => inFlight.delete(delivery),
+            () => inFlight.delete(delivery)
+        );
+        return delivery;
+    };
     const coordinator = createNoticeCoordinator(deliverNotice);
     const deliverAtSafeBoundary = async (notice: string) =>
         notice === primaryNotice ? await deliverNotice(notice) : await coordinator.enqueue(notice);
@@ -41,11 +53,18 @@ export function openTurnNotices(
         input.onStoredNoticeDelivered,
         () => ready.resolve()
     );
+    let closing: Promise<void> | null = null;
     return {
-        async close() {
-            unregister?.();
-            coordinator.close();
-            await storedDelivery;
+        /** Stops new deliveries and waits out every steer still awaiting the runtime's answer. */
+        close() {
+            closing ??= (async () => {
+                unregister?.();
+                coordinator.close();
+                await storedDelivery;
+                // Each delivery's caller handles its failure; here only its settling matters.
+                await Promise.allSettled([...inFlight]);
+            })();
+            return closing;
         },
         coordinator,
         ready: ready.promise,

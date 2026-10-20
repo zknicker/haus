@@ -111,6 +111,66 @@ test('a delivered notice the runtime never handed the model returns for the next
     expect(JSON.parse(await readFile(pendingNotice(root), 'utf8'))).toEqual({ notice });
 });
 
+test('a steer still awaiting its ack when the turn ends is resolved before notices return', async () => {
+    const root = await agentRoot();
+    const notice = 'You have 1 unread message in #product.';
+    const abort = new AbortController();
+    const acked: string[] = [];
+    const steerStarted = Promise.withResolvers<void>();
+    let sink: ((notice: string) => Promise<boolean>) | undefined;
+    const session: RuntimeSession = {
+        destroy: async () => undefined,
+        detach: async () => ({ runtime: 'codex', threadId: 'thread-1', version: 1 }),
+        isResume: false,
+        sessionId: 'thread-1',
+        startTurn: async () => ({
+            events: (async function* () {
+                yield { input: {}, toolCallId: 'call-1', toolName: 'bash', type: 'tool-call' };
+                // The daemon stores a live notice and hands it to the turn's sink mid-tool.
+                await writeFile(pendingNotice(root), JSON.stringify({ notice }));
+                void sink?.(notice);
+                yield { output: {}, toolCallId: 'call-1', toolName: 'bash', type: 'tool-result' };
+                yield { claudePlanUsage: null, type: 'turn-finish', usage: null };
+            })(),
+            settle: async () => undefined,
+            // Acked, never handed to the model: Stop cancelled the runtime's queue.
+            unconsumedSteers: () => [...acked],
+        }),
+        steer: async (text) => {
+            steerStarted.resolve();
+            // Stop lands while the runtime still owes this steer its ack.
+            abort.abort(new Error('Stop'));
+            await Bun.sleep(30);
+            acked.push(text);
+            return { delivered: true };
+        },
+        stop: async () => ({ runtime: 'codex', threadId: 'thread-1', version: 1 }),
+    };
+    const factory: TurnDriverFactory = () => ({
+        bootstrapFingerprint: async () => null,
+        openSession: async () => session,
+        refreshBootstrap: async () => undefined,
+        runtimeId: 'codex',
+    });
+
+    const result = await runHarnessTurn({
+        ...turnInput(root, factory),
+        registerNoticeSink: (next) => {
+            sink = next;
+            return () => {
+                sink = undefined;
+            };
+        },
+        signal: abort.signal,
+    });
+
+    await steerStarted.promise;
+    expect(result.aborted).toBe(true);
+    expect(acked).toEqual([notice]);
+    // The acked steer never reached the model, so its notice is back for the next turn.
+    expect(JSON.parse(await readFile(pendingNotice(root), 'utf8'))).toEqual({ notice });
+});
+
 test('a newer stored notice wins over the one being returned', async () => {
     const root = await agentRoot();
     await writeFile(pendingNotice(root), JSON.stringify({ notice: 'newer summary' }));
