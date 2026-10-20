@@ -677,6 +677,11 @@ but it settles through one observation carrying both that raw status and the Run
 Computer stops watching a Run the moment it settles, so a bare status followed by an evidence read
 would lose the evidence.
 
+Cancellation retries still read and report the Run's status when the stop request fails. Cursor can
+reject a repeated stop with `run_not_cancellable` after the Run has already stopped; that rejection
+must not block terminal reconciliation. A failed stop against a still-active Run retains the
+60-second retry backoff.
+
 The SDK does not surface the hosted Agent's own `url`, so the adapter builds the "Open in Cursor"
 link as `https://cursor.com/agents?id=<agentId>`.
 
