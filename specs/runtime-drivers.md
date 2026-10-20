@@ -130,7 +130,12 @@ Semantics the consumers rely on:
 turn. Busy notices still wait for a tool boundary with no call in flight
 (`createNoticeCoordinator`), and the primary notice is delivered immediately. Steering resolves
 only once the runtime acknowledges the write (stdin flushed and accepted for Claude, the JSON-RPC
-response for Codex and Grok).
+response for Codex and Grok). A Claude steer whose stdin write succeeded is never dropped: when
+its queue receipt is late it still reports `delivered`, stays tracked (holding the turn open), and
+counts as unconsumed until Claude Code starts it. A Claude turn settles only on results for the
+messages it wrote, so a stray result on the warm connection never finishes another turn. The
+executor closes the turn's notices, waiting out every steer still awaiting its answer, before it
+reads `unconsumedSteers()`.
 
 ## Resume state
 

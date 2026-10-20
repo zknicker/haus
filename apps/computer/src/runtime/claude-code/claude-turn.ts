@@ -6,12 +6,21 @@ import type { ClaudeConnection, TurnSink } from './claude-connection.ts';
 import { ClaudeProcessExitError, ClaudeTurnError, claudeResumeRejection } from './claude-errors.ts';
 import type { ClaudeCommandLifecycle, ClaudeResult, ParsedClaudeLine } from './claude-messages.ts';
 import { readClaudePlanUsage } from './claude-plan-usage.ts';
+import {
+    awaitSteerReceipt,
+    SteerReceiptTimeoutError,
+    steerReceiptMs,
+} from './claude-steer-receipt.ts';
 import type { ClaudeExit } from './claude-process.ts';
-import { addUsage, classifyResult, claudeTokenUsage } from './claude-result.ts';
+import {
+    addUsage,
+    classifyResult,
+    claudeTokenUsage,
+    isFatalTurnEvent,
+} from './claude-result.ts';
 
 /** How long an interrupted turn may take to reach its result before the process is killed. */
 const interruptGraceMs = 5000;
-const steerAckMs = 15_000;
 const terminalLifecycle = new Set(['cancelled', 'completed', 'discarded']);
 /** Lifecycle states that prove Claude Code handed the message to the model. */
 const consumedLifecycle = new Set(['completed', 'started']);
@@ -33,6 +42,8 @@ export class ClaudeTurn implements TurnSink {
     readonly events = new EventQueue<TurnEvent>();
     private readonly settled = Promise.withResolvers<void>();
     private readonly steers = new Map<string, Steer>();
+    /** Every user message this turn wrote (prompt and steers); only their results are its own. */
+    private readonly ownMessages = new Set<string>();
     private aborting = false;
     private readonly detachSink: () => void;
     private failed = false;
@@ -43,7 +54,12 @@ export class ClaudeTurn implements TurnSink {
 
     constructor(
         private readonly connection: ClaudeConnection,
-        private readonly options: { collectPlanUsage: boolean; signal: AbortSignal }
+        private readonly options: {
+            collectPlanUsage: boolean;
+            signal: AbortSignal;
+            /** How long a written steer may wait for its queue receipt; tests shorten it. */
+            steerAckMs?: number;
+        }
     ) {
         this.detachSink = connection.attach(this);
         connection.normalizer.beginTurn();
@@ -64,8 +80,10 @@ export class ClaudeTurn implements TurnSink {
             await this.finish();
             return;
         }
+        const uuid = randomUUID();
+        this.ownMessages.add(uuid);
         try {
-            await this.connection.sendUser(prompt, { uuid: randomUUID() });
+            await this.connection.sendUser(prompt, { uuid });
         } catch (error) {
             this.fail({ error, type: 'error' });
             void this.finish();
@@ -100,23 +118,28 @@ export class ClaudeTurn implements TurnSink {
         const acknowledged = new Promise<void>((resolve, reject) => {
             steer.ack = { reject, resolve };
         });
+        this.ownMessages.add(uuid);
         try {
             await this.connection.sendUser(text, { priority: 'next', uuid });
-            if (this.connection.supportsLifecycle) {
-                await withTimeout(
-                    acknowledged,
-                    steerAckMs,
-                    'Claude Code did not queue the message.'
-                );
-            }
-            steer.delivered = true;
-            return { delivered: true };
         } catch (error) {
-            // Unacknowledged, it must not hold the turn open waiting for a lifecycle receipt.
-            this.steers.delete(uuid);
-            void this.trySettle();
-            return { delivered: false, error, reason: 'failed' };
+            // Never written, so nothing will answer it; it must not hold the turn open.
+            return this.dropSteer(uuid, error);
         }
+        if (this.connection.supportsLifecycle) {
+            try {
+                await awaitSteerReceipt(acknowledged, this.options.steerAckMs ?? steerReceiptMs);
+            } catch (error) {
+                if (!(error instanceof SteerReceiptTimeoutError)) {
+                    // Claude Code cancelled or discarded it: the model will never see it.
+                    return this.dropSteer(uuid, error);
+                }
+                // Written but unconfirmed: Claude Code still holds the message, so it stays
+                // tracked (holding the turn open and counted unconsumed until it starts) and is
+                // reported delivered, so its notice is not steered again next turn.
+            }
+        }
+        steer.delivered = true;
+        return { delivered: true };
     }
 
     onLine(line: ParsedClaudeLine): void {
@@ -128,7 +151,7 @@ export class ClaudeTurn implements TurnSink {
             return;
         }
         for (const event of this.connection.normalizer.normalize(line)) {
-            if (isFatal(event)) {
+            if (isFatalTurnEvent(event)) {
                 this.fail(event);
                 return;
             }
@@ -173,7 +196,22 @@ export class ClaudeTurn implements TurnSink {
         void this.finish();
     }
 
+    private dropSteer(uuid: string, error: unknown): SteerResult {
+        this.steers.delete(uuid);
+        void this.trySettle();
+        return { delivered: false, error, reason: 'failed' };
+    }
+
     private onResult(result: ClaudeResult) {
+        const answered = [result.user_message_uuid, ...(result.user_message_uuids ?? [])].filter(
+            (uuid): uuid is string => Boolean(uuid)
+        );
+        if (answered.length > 0 && !answered.some((uuid) => this.ownMessages.has(uuid))) {
+            // Another turn's message (a late steer) answered on this warm connection: liveness
+            // only, never this turn's outcome.
+            this.events.push({ nativeType: 'result:foreign', type: 'progress' });
+            return;
+        }
         this.resultSeen = true;
         this.usage = addUsage(this.usage, claudeTokenUsage(result.usage));
         // A result that does not settle the turn (a queued steer runs next) is still liveness.
@@ -260,28 +298,5 @@ export class ClaudeTurn implements TurnSink {
         this.connection
             .control({ cancel_queued: true, subtype: 'interrupt' }, interruptGraceMs)
             .catch(kill);
-    }
-}
-
-/** An error, or a session failure that must end the turn now (specs/runtime-drivers.md). */
-function isFatal(event: TurnEvent): boolean {
-    return (
-        event.type === 'error' ||
-        (event.type === 'session-failure' &&
-            (event.severity === 'error' || event.category === 'access'))
-    );
-}
-
-async function withTimeout(promise: Promise<void>, ms: number, message: string) {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-        await Promise.race([
-            promise,
-            new Promise<never>((_, reject) => {
-                timer = setTimeout(() => reject(new ClaudeTurnError(message)), ms);
-            }),
-        ]);
-    } finally {
-        clearTimeout(timer);
     }
 }

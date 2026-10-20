@@ -183,3 +183,12 @@ export function contentText(content: unknown): string {
         )
         .join('');
 }
+
+/** An error, or a session failure that must end the turn now (specs/runtime-drivers.md). */
+export function isFatalTurnEvent(event: TurnEvent): boolean {
+    return (
+        event.type === 'error' ||
+        (event.type === 'session-failure' &&
+            (event.severity === 'error' || event.category === 'access'))
+    );
+}
