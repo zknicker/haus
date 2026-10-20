@@ -42,6 +42,22 @@ function agent() {
     return { driver, registered, spawned };
 }
 
+/** A host-tool server whose sessions report their revocation. */
+function revokeCounting(onClose: () => void): CodexDriverOptions['hostToolServer'] {
+    return {
+        openSession: () => ({
+            close: onClose,
+            mcp: {
+                headers: { Authorization: 'Bearer test-token' },
+                name: 'haus',
+                transport: 'http',
+                url: 'http://127.0.0.1:9/mcp',
+            },
+            replaceTools: () => undefined,
+        }),
+    };
+}
+
 async function completeTurn(fake: FakeAppServer, session: Awaited<ReturnType<typeof open>>) {
     const turn = await startFakeTurn(fake, session as never);
     turnStarted(fake, turn.turnId);
@@ -119,20 +135,9 @@ describe('Codex session lifecycle', () => {
         const life = agent();
         let revoked = 0;
         const driver = life.driver({
-            hostToolServer: {
-                openSession: () => ({
-                    close: () => {
-                        revoked += 1;
-                    },
-                    mcp: {
-                        headers: { Authorization: 'Bearer crash-token' },
-                        name: 'haus',
-                        transport: 'http',
-                        url: 'http://127.0.0.1:9/mcp',
-                    },
-                    replaceTools: () => undefined,
-                }),
-            },
+            hostToolServer: revokeCounting(() => {
+                revoked += 1;
+            }),
         });
         await (await open(driver)).detach();
         expect(revoked).toBe(0);
@@ -174,6 +179,53 @@ describe('Codex session lifecycle', () => {
         );
         await expect(open(failing)).rejects.toThrow('no');
         expect(await life.spawned[0]!.exited).toMatchObject({ signal: 'SIGTERM' });
+    });
+
+    test('cancelling a hung handshake ends the process and revokes its host tools', async () => {
+        for (const method of ['initialize', 'config/read', 'thread/start']) {
+            const life = agent();
+            let revoked = 0;
+            const driver = life.driver({
+                hostToolServer: revokeCounting(() => {
+                    revoked += 1;
+                }),
+                spawn: () => {
+                    const fake = new FakeAppServer({ [method]: () => 'hold' });
+                    life.spawned.push(fake);
+                    return fake;
+                },
+            });
+            const abort = new AbortController();
+            const opening = driver.openSession({
+                resumeFrom: undefined,
+                sessionId: 'agent-1',
+                signal: abort.signal,
+            });
+            await flush();
+            expect(life.spawned[0]!.methods()).toContain(method);
+            abort.abort(new Error('startup cancelled'));
+            await expect(opening).rejects.toThrow('startup cancelled');
+            expect(await life.spawned[0]!.exited).toMatchObject({ signal: 'SIGTERM' });
+            expect(revoked).toBe(1);
+            expect(life.registered).toHaveLength(0);
+        }
+    });
+
+    test('a handshake the app-server never answers times out and ends the process', async () => {
+        const life = agent();
+        const driver = life.driver({
+            handshakeTimeoutMs: 20,
+            spawn: () => {
+                const fake = new FakeAppServer({ 'thread/resume': () => 'hold' });
+                life.spawned.push(fake);
+                return fake;
+            },
+        });
+        await expect(
+            open(driver, { runtime: 'codex', threadId: 'thread-1', version: 1 })
+        ).rejects.toThrow('handshake');
+        expect(await life.spawned[0]!.exited).toMatchObject({ signal: 'SIGTERM' });
+        expect(life.registered).toHaveLength(0);
     });
 
     test('the bootstrap fingerprint is the Codex pin', async () => {

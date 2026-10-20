@@ -28,6 +28,8 @@ export interface GrokDriverOptions {
     /** The runtime process's launch env (Haus CLI, PATH, runner token). */
     readonly env: Record<string, string>;
     readonly fetch?: typeof fetch;
+    /** Bounds the ACP handshake; defaults to `RUNTIME_HANDSHAKE_TIMEOUT_MS`. */
+    readonly handshakeTimeoutMs?: number;
     readonly homeDir: string;
     readonly hostGrokHomeDir?: string;
     readonly hostHomeDir?: string;
@@ -57,6 +59,7 @@ export function createGrokDriver(options: GrokDriverOptions): RuntimeDriver {
         command: options.command ?? resolveGrokCommand(options),
         env: options.env,
         fetch: options.fetch,
+        handshakeTimeoutMs: options.handshakeTimeoutMs,
         homeDir: options.homeDir,
         hostGrokHomeDir: options.hostGrokHomeDir,
         hostHomeDir: options.hostHomeDir,

@@ -1,6 +1,7 @@
 import { realpath } from 'node:fs/promises';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer, HostToolSession } from '../../host-tools/mcp-server.ts';
+import { handshakeDeadline } from '../handshake-deadline.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import type { WarmProcess } from '../warm-pool.ts';
 import { type GrokCredential, resolveGrokCredential } from './grok-auth.ts';
@@ -23,6 +24,8 @@ export interface GrokLaunchFacts {
     readonly command: readonly [string, ...string[]];
     readonly env: Readonly<Record<string, string>>;
     readonly fetch?: typeof fetch;
+    /** Bounds the ACP handshake; defaults to `RUNTIME_HANDSHAKE_TIMEOUT_MS`. */
+    readonly handshakeTimeoutMs?: number;
     readonly homeDir: string;
     readonly hostGrokHomeDir?: string;
     readonly hostHomeDir?: string;
@@ -94,11 +97,12 @@ export async function launchGrokLive(
             sessionId: () => sessionId,
         })
     );
+    const deadline = handshakeDeadline('Grok Build', signal, facts.handshakeTimeoutMs);
     // The catch below awaits this same (memoized) termination and reports its failure.
     const onAbort = () => {
         child.terminate().catch(() => undefined);
     };
-    signal?.addEventListener('abort', onAbort, { once: true });
+    deadline.signal.addEventListener('abort', onAbort, { once: true });
     try {
         const opened = await openGrokAcpSession({
             connection: child.connection,
@@ -107,7 +111,7 @@ export async function launchGrokLive(
             hostTools: hostTools.mcp,
             modelId: facts.modelId,
             resumeSessionId,
-            signal,
+            signal: deadline.signal,
         });
         sessionId = opened.sessionId;
         return Object.assign(live, {
@@ -123,9 +127,10 @@ export async function launchGrokLive(
         });
     } catch (error) {
         await closeGrokLive({ hostTools, process: child });
-        throw signal?.aborted ? signal.reason : error;
+        throw deadline.signal.aborted ? deadline.signal.reason : error;
     } finally {
-        signal?.removeEventListener('abort', onAbort);
+        deadline.signal.removeEventListener('abort', onAbort);
+        deadline.clear();
     }
 }
 

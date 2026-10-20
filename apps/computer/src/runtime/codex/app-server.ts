@@ -32,6 +32,8 @@ export interface OpenAppServerInput {
     readonly hostTools: HostToolSession;
     readonly resumeThreadId: string | undefined;
     readonly transport: CodexTransport;
+    /** Cancels the handshake; the caller ends the process when the open fails. */
+    readonly signal?: AbortSignal;
 }
 
 /** Bounds the wait for the host-tool MCP server before the first turn starts without it. */
@@ -60,11 +62,13 @@ export async function openAppServer(input: OpenAppServerInput): Promise<CodexApp
         listener?.(message);
     });
     void connection.exited.then((error) => ready.resolve({ error: error.message, ok: false }));
+    const { signal } = input;
     const initialized = initializeResultSchema.safeParse(
-        await connection.request('initialize', {
-            capabilities: { experimentalApi: true },
-            clientInfo: CLIENT_INFO,
-        })
+        await connection.request(
+            'initialize',
+            { capabilities: { experimentalApi: true }, clientInfo: CLIENT_INFO },
+            { signal }
+        )
     );
     if (!initialized.success) {
         throw new Error(
@@ -72,14 +76,15 @@ export async function openAppServer(input: OpenAppServerInput): Promise<CodexApp
         );
     }
     await connection.notify('initialized', {});
-    const configRead = await connection.request('config/read', {
-        cwd: input.facts.workspaceDir,
-        includeLayers: true,
-    });
+    const configRead = await connection.request(
+        'config/read',
+        { cwd: input.facts.workspaceDir, includeLayers: true },
+        { signal }
+    );
     const params = codexThreadParams(input.facts, codexMcpServers(configRead, input.hostTools.mcp));
     const threadId = input.resumeThreadId
-        ? await resumeThread(connection, input.resumeThreadId, params)
-        : await startThread(connection, params);
+        ? await resumeThread(connection, input.resumeThreadId, params, signal)
+        : threadIdOf(await connection.request('thread/start', params, { signal }));
     return {
         connection,
         hostTools: input.hostTools,
@@ -93,25 +98,26 @@ export async function openAppServer(input: OpenAppServerInput): Promise<CodexApp
     };
 }
 
-async function startThread(connection: CodexConnection, params: Record<string, unknown>) {
-    return threadIdOf(await connection.request('thread/start', params));
-}
-
 async function resumeThread(
     connection: CodexConnection,
     threadId: string,
-    params: Record<string, unknown>
+    params: Record<string, unknown>,
+    signal: AbortSignal | undefined
 ): Promise<string> {
     const resume = { ...params, excludeTurns: true, threadId };
     try {
-        return threadIdOf(await connection.request('thread/resume', resume));
+        return threadIdOf(await connection.request('thread/resume', resume, { signal }));
     } catch (error) {
         const reason = refusal(error);
         if (reason === 'archived') {
-            await connection.request('thread/unarchive', { threadId }).catch((cause: unknown) => {
-                throw new CodexResumeRejectedError(threadId, 'archived', { cause });
-            });
-            return threadIdOf(await connection.request('thread/resume', resume));
+            await connection
+                .request('thread/unarchive', { threadId }, { signal })
+                .catch((cause: unknown) => {
+                    // A cancelled or timed-out unarchive says nothing about the thread.
+                    signal?.throwIfAborted();
+                    throw new CodexResumeRejectedError(threadId, 'archived', { cause });
+                });
+            return threadIdOf(await connection.request('thread/resume', resume, { signal }));
         }
         if (reason === 'thread-writer-busy') {
             throw new CodexThreadBusyError(threadId, { cause: error });

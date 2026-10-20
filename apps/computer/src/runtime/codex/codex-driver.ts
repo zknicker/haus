@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer, HostToolSession } from '../../host-tools/mcp-server.ts';
 import type { OpenSessionOptions, RuntimeDriver } from '../driver.ts';
+import { handshakeDeadline } from '../handshake-deadline.ts';
 import { toHausResumeState } from '../legacy-resume-state.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import type { RuntimeResumeState } from '../resume-state.ts';
@@ -21,6 +22,8 @@ import {
 } from './codex-transport.ts';
 
 export interface CodexDriverOptions extends CodexLaunchFacts {
+    /** Bounds the app-server handshake; defaults to `RUNTIME_HANDSHAKE_TIMEOUT_MS`. */
+    readonly handshakeTimeoutMs?: number;
     /** The Computer's host-tool MCP server; each session opens its own bearer-scoped tools. */
     readonly hostToolServer: Pick<HostToolServer, 'openSession'>;
     /** Ties every app-server to Computer shutdown. */
@@ -110,17 +113,25 @@ async function openCodexSession(
             ),
         release,
     };
+    const deadline = handshakeDeadline(
+        'The Codex app-server',
+        open.signal,
+        options.handshakeTimeoutMs
+    );
     try {
         const server = await openAppServer({
             facts: options,
             hostTools,
             resumeThreadId: threadId,
+            signal: deadline.signal,
             transport,
         });
         return new CodexSession(server, hooks, options.workspaceDir);
     } catch (error) {
         await release();
         throw error;
+    } finally {
+        deadline.clear();
     }
 }
 

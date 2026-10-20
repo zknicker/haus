@@ -60,8 +60,8 @@ export class CodexConnection {
         this.listener = listener;
     }
 
-    request(method: string, params: unknown): Promise<unknown> {
-        return this.rpc.request(method, params);
+    request(method: string, params: unknown, options: { signal?: AbortSignal } = {}) {
+        return this.rpc.request(method, params, options);
     }
 
     notify(method: string, params: unknown): Promise<void> {

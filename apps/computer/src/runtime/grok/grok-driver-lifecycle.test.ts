@@ -3,6 +3,7 @@ import { makeDaemonRuntime } from '../../daemon-runtime.ts';
 import type { SteerResult } from '../driver.ts';
 import { runtimeProcessOwner } from '../process-registry.ts';
 import { isRuntimeResumeRejection } from '../resume-rejected.ts';
+import { trackingRegistry } from '../testing/process-group-testing.ts';
 import { collect, replayDriver, significant, text } from './fixtures/replay-driver.ts';
 import { createGrokDriver } from './grok-driver.ts';
 
@@ -155,6 +156,53 @@ test('a Grok crash mid-stream fails the turn with its exit and stderr', async ()
             runtime: 'grok-build',
             sessionId: session.sessionId,
         });
+    } finally {
+        await replay.cleanup();
+    }
+});
+
+test('a Grok that never answers its handshake times out, ends, and revokes its host tools', async () => {
+    const replay = await replayDriver('text', runtime);
+    try {
+        let revoked = 0;
+        const registry = trackingRegistry();
+        const driver = createGrokDriver({
+            // Reads the handshake and never answers.
+            command: ['/bin/sh', '-c', 'cat >/dev/null'],
+            env: { PATH: process.env.PATH ?? '' },
+            handshakeTimeoutMs: 50,
+            homeDir: replay.homeDir,
+            hostGrokHomeDir: '/nonexistent/host-grok',
+            hostToolServer: {
+                openSession: () => ({
+                    close: () => {
+                        revoked += 1;
+                    },
+                    mcp: {
+                        headers: { Authorization: 'Bearer test-token' },
+                        name: 'haus',
+                        transport: 'http',
+                        url: 'http://127.0.0.1:9/mcp',
+                    },
+                    replaceTools: () => undefined,
+                }),
+            },
+            instructions: 'x',
+            modelId: 'grok-4.6',
+            processes: registry,
+            reasoningEffort: 'default',
+            tools: [],
+            warm: { key: replay.homeDir, pool: replay.pool },
+            workspaceDir: replay.workspaceDir,
+        });
+        const error = await driver
+            .openSession({ resumeFrom: undefined, sessionId: 'agt-1' })
+            .catch((caught: unknown) => caught);
+
+        expect(String(error)).toContain('startup handshake');
+        expect(isRuntimeResumeRejection(error)).toBe(false);
+        expect(revoked).toBe(1);
+        await registry.emptied;
     } finally {
         await replay.cleanup();
     }
