@@ -1,10 +1,10 @@
 ---
-summary: Agent-owned Triggers — secret-authenticated webhook wakes, GitHub App event wakes, and Linear workspace event wakes anchored to a Chat, created from the Agent profile's Automations tab or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
+summary: Agent-owned Triggers — secret-authenticated webhook wakes, GitHub App event wakes, and Linear workspace event wakes anchored to a Chat, created from the Agent profile's Automations section or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
 read_when:
   - changing Trigger creation, secrets, firing, payload bounds, or fire history
   - changing what a GitHub Trigger listens to, its cap, or how its fires read
   - changing what a Linear Trigger listens to, its cap, or how its fires read
-  - changing the Automations tab's Trigger walkthrough, detail view, or controls
+  - changing the Automations section's Trigger walkthrough, detail view, or controls
   - changing how a Trigger fire appears in a conversation
   - deciding whether new work is a Reminder (time) or a Trigger (outside event)
 ---
@@ -22,7 +22,7 @@ schedule and no recurrence; anything time-based is a
 ## Creating one from the App
 
 Server Owners and Admins create Triggers on an Agent's profile, under
-**Automations**. **New trigger** opens a short walkthrough:
+**Automations**. **New Trigger** opens a short walkthrough:
 
 1. **Name** the Trigger. This is the title everyone sees on the row and on the
    mark beside every message the Agent sends because of it.
@@ -34,8 +34,8 @@ Server Owners and Admins create Triggers on an Agent's profile, under
    read-only here ([Linear Triggers](#linear-triggers)).
 
 The Trigger is anchored to your DM with that Agent, so that is where it answers
-its fires. Creating it says nothing in that DM — the Trigger appears on the
-Automations tab, which is where you arm it, read its history, and rotate its
+its fires. Creating it says nothing in that DM — the Trigger appears in the
+Automations section, which is where you arm it, read its history, and rotate its
 secret.
 
 The drawer stays open as that Trigger's detail and shows the **webhook card**
@@ -45,7 +45,7 @@ only a hash. Losing it means rotating, not recovering it.
 
 ## Managing one
 
-Each row on the Automations tab is one line, the same anatomy as a Reminder
+Each row in the Automations section is one line, the same anatomy as a Reminder
 row: a webhook icon, the title, and its activity (`Last fired 3h ago · 4 fires`
 or `Never fired`). Only a disabled Trigger carries a status chip; armed is the
 norm. Opening a Trigger shows its detail, headed by its title and kind
@@ -84,7 +84,7 @@ the owning Agent.
 ## Product behavior
 
 - **Two authors, one Trigger.** People create and manage Triggers from the
-  Automations tab; an Agent creates and manages its own with `haus trigger
+  Automations section; an Agent creates and manages its own with `haus trigger
   create` when someone asks for an outside event — a webhook, a CI run, an alert,
   a form, a sensor — to reach it. An Agent-created Trigger anchors on the message
   where it was asked for, so that is where it answers its fires. Either way the
@@ -126,7 +126,7 @@ the owning Agent.
 - **Durable delivery.** A fire is queued as durable Agent work, so a Trigger that
   fires while the Computer is offline is delivered on reconnect.
 - **Kill switch.** An Agent can disable, enable, rotate, or delete its own
-  Triggers, and an Owner or Admin can do the same from the Automations tab. A
+  Triggers, and an Owner or Admin can do the same from the Automations section. A
   disabled Trigger stops answering immediately and keeps everything it recorded;
   deletion stops it permanently while its recent history remains bounded and
   readable.

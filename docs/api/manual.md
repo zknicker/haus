@@ -5,6 +5,7 @@ read_when:
   - adding or revising release-owned Manual topics and recipe search behavior
   - changing Manual lookup ranking, aliases, miss guidance, or command-family help pointers
   - reviewing Manual lookup misses from the audit table
+  - adding, moving, or renaming a place in Haus App that Agents tell people about (topic `app`)
 ---
 
 # Haus Manual API
@@ -98,8 +99,8 @@ aliases.
 ## Published corpus
 
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
-reference topics `agent`, `cloud-agents`, `tasks`, `replies`, `secrets`, and
-`amazon-product-references`, one product-noun topic per remaining command
+reference topics `agent`, `cloud-agents`, `tasks`, `replies`, `secrets`,
+`app`, and `amazon-product-references`, one product-noun topic per remaining command
 family (`message`, `inbox`, `thread`, `channel`, `server`, `profile`,
 `attachment`, `skill`, `reminder`, `trigger`), `recipes/index`, `recipes/seeded`,
 and 33 complete recipe cards: 12 seeded cards and 21 query-tier cards. Delivery tiers are editorial
@@ -122,3 +123,19 @@ prescribing team shape or what creative concept an Agent should choose.
 Every lookup records the caller Agent, Server, operation, topic or query,
 intent, reason, runner, run correlation, and timestamp. Audit rows never store
 fetched Manual content or message payloads.
+
+## Where things are in Haus App
+
+Topic `app` maps what a person is trying to do to the place in Haus App that
+does it, with who can use it and caveats such as desktop App only. It renders
+from `appPlaces` in `packages/agent-manual/src/app-places.ts`. Each path
+holds UI labels exactly as rendered; a segment in parentheses, such as
+`(your Computer)`, is the person's own choice.
+
+`scripts/manual-app-places.test.ts` (in `test:fast`) resolves every label
+against App source: a Settings section id and its label in the settings
+navigation, an Agent profile section and its label, a route in the Server's
+page routes, or a source file that renders the label. It also fails when any
+Manual topic or Cove guidance writes an App path (`A → B`) that is not a prefix
+of a mapped path, so a new place starts in `appPlaces` and other topics point
+at it. The iPhone app has its own layout and is not mapped.

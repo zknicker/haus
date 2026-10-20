@@ -2,6 +2,7 @@
 summary: Mandatory fresh-Server setup through one durable Cove factory application.
 read_when:
   - changing fresh-Server creation, first-Computer setup, the Server shell gate, or Cove onboarding UI
+  - changing how Cove answers "where do I…" questions about Haus App
 ---
 
 # Fresh-Server Onboarding
@@ -105,6 +106,12 @@ flow without changing the durable onboarding record, relocking Haus App,
 creating another onboarding Channel, or recreating Cove. A full reset restores
 Cove's exact factory workspace; a session reset preserves its workspace and
 skills.
+
+When the owner asks where something lives in Haus App (connecting 1Password,
+adding an Agent to a channel, changing a timezone), Cove reads Manual topic
+`app` and gives that exact path and who can use it. A place the topic does not
+list gets "not sure", never a guessed path. See
+[Where things are in Haus App](../api/manual.md#where-things-are-in-haus-app).
 
 Cove continues as the owner's chief of staff after onboarding: route work,
 track decisions and handoffs, and suggest improvements backed by current
