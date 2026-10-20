@@ -90,11 +90,10 @@ function gradeReply(evidence, spec, check) {
 }
 
 function gradeLeads(evidence, check) {
-    check(
-        'at most one holder on the shared question',
-        (evidence.anchoredHolders ?? []).length <= 1
-    );
-    check('the second Agent used the leads list', (evidence.secondLeadCommands ?? []).length > 0);
+    // Outcome only; lead commands and rows are diagnostic evidence, not graded.
+    check('the question was answered with the record facts', evidence.answered === true);
+    check('exactly one Agent searched the source', (evidence.callers ?? []).length === 1);
+    check('exactly one answer posted', (evidence.answerPosts ?? []).length === 1);
 }
 
 function gradeSummary(evidence, profile, check) {

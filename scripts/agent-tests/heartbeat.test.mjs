@@ -8,6 +8,7 @@ import {
     zonedClock,
 } from './heartbeat.mjs';
 import { gradeHeartbeatEvidence, inventsLesson } from './heartbeat-grade.mjs';
+import { leadDedupeOutcome } from './heartbeat-lead-dedupe.mjs';
 
 test('renderMemory round-trips Standing Preferences', () => {
     const memory = renderMemory({ displayName: 'Eval', rules: ['One.', 'Two.'] });
@@ -124,16 +125,32 @@ test('quiet-run awareness needs the reply to own the check-in', () => {
     expect(gradeHeartbeatEvidence({ ...base, reply: 'Just waiting for you!' }).ok).toBe(false);
 });
 
-test('lead dedupe passes on one holder and a leads-list read, fails on two holders', () => {
+test('lead dedupe grades outcome: one answer, one searcher, facts present', () => {
     const base = {
-        firstAgentId: 'a',
+        answerPosts: [{ content: 'Annual discount is 20% on Pro and Team.' }],
+        answered: true,
+        callers: ['first'],
         scenario: 'heartbeat-lead-dedupe',
-        secondLeadCommands: ['haus lead list'],
         stamp: 's',
     };
-    expect(gradeHeartbeatEvidence({ ...base, anchoredHolders: ['a'] }).ok).toBe(true);
-    expect(gradeHeartbeatEvidence({ ...base, anchoredHolders: ['a', 'b'] }).ok).toBe(false);
-    expect(
-        gradeHeartbeatEvidence({ ...base, anchoredHolders: ['a'], secondLeadCommands: [] }).ok
-    ).toBe(false);
+    expect(gradeHeartbeatEvidence(base).ok).toBe(true);
+    expect(gradeHeartbeatEvidence({ ...base, callers: ['first', 'second'] }).ok).toBe(false);
+    expect(gradeHeartbeatEvidence({ ...base, callers: [] }).ok).toBe(false);
+    expect(gradeHeartbeatEvidence({ ...base, answerPosts: [{}, {}] }).ok).toBe(false);
+    expect(gradeHeartbeatEvidence({ ...base, answerPosts: [], answered: false }).ok).toBe(false);
+});
+
+test('lead dedupe outcome reads facts from posts and callers from MCP calls', () => {
+    const posts = [{ content: 'On it.' }, { content: 'Yes: 20% on Pro and Team.' }];
+    const calls = [
+        { caller: 'second', key: null, tool: 'list_recent_audit_records' },
+        { caller: 'second', key: 'DOC-Q3-PRICING', tool: 'lookup_audit_record' },
+    ];
+    const outcome = leadDedupeOutcome({ calls, posts });
+    expect(outcome.answered).toBe(true);
+    expect(outcome.answerPosts).toHaveLength(1);
+    expect(outcome.callers).toEqual(['second']);
+    expect(leadDedupeOutcome({ calls: [], posts: [{ content: 'Not sure.' }] }).answered).toBe(
+        false
+    );
 });

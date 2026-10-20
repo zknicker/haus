@@ -1,6 +1,7 @@
 // The daytime-run heartbeat scenarios (specs/heartbeat.md#evals): a ledger the Agent
 // watches gains (or does not gain) a notable record, a quiet run the Agent must
-// describe truthfully, and two Agents that could chase the same question.
+// describe truthfully. (The two-Agent question scenario lives in
+// heartbeat-lead-dedupe.mjs.)
 //
 // Structure is gated here: the lookup really happened (controlled MCP call log),
 // the Server queued zero or one report, and the main session posted zero or one
@@ -11,9 +12,7 @@ import {
     agentPosts,
     canaryRule,
     describeAgent,
-    journalCommands,
     renderMemory,
-    seedMessages,
     writeEvidence,
     writeMemory,
 } from './heartbeat.mjs';
@@ -80,77 +79,6 @@ export async function runQuietRunAwareness({ agents, expect, kit, log }) {
     );
     expect(answering.status, 'answering turn status').toBe('completed');
     expect(reply.message.content.length > 0, 'the Agent answered the question').toBe(true);
-}
-
-export async function runLeadDedupe({ agents, expect, kit, log }) {
-    const [first, second] = agents;
-    for (const worker of agents) {
-        await writeMemory(
-            kit,
-            worker.id,
-            renderMemory({
-                displayName: worker.displayName ?? worker.handle,
-                role: 'Pricing researcher. You look into open questions about our pricing and plans.',
-            })
-        );
-    }
-    const channel = await kit.createChannel({ agentIds: agents.map((agent) => agent.id) });
-    const seeded = await seedMessages(kit, channel.id, [
-        {
-            authorAgentId: first.id,
-            content: 'Pricing questions are mine; ask away.',
-            minutesAgo: 120,
-        },
-        {
-            authorAgentId: second.id,
-            content: 'I also cover pricing and plans.',
-            minutesAgo: 119,
-        },
-        {
-            content:
-                'Does anyone know whether the Q3 pricing page mentions the annual discount, and for which plans?',
-            minutesAgo: 90,
-        },
-    ]);
-    const question = seeded.messages.at(-1);
-    const head = await kit.readHead(channel.id);
-
-    log(`daytime heartbeat for @${first.handle}`);
-    const firstRun = await kit.startHeartbeat(first.id, 'daytime');
-    log(`daytime heartbeat for @${second.handle}`);
-    const secondRun = await kit.startHeartbeat(second.id, 'daytime');
-
-    const { leads } = await kit.heartbeatEvidence([first.id, second.id]);
-    const anchored = leads.filter((lead) => lead.anchorMessageId === question.id);
-    const secondCommands = await journalCommands(kit, second.id, secondRun);
-    const sawLeads = secondCommands.filter((command) =>
-        /\bhaus\s+lead\s+(?:list|claim)\b/u.test(command)
-    );
-    await writeEvidence({
-        anchoredHolders: [...new Set(anchored.map((lead) => lead.agentId))],
-        firstAgentId: first.id,
-        leads,
-        posts: {
-            channel: [
-                ...(await agentPosts(kit, channel.id, first.id, head)),
-                ...(await agentPosts(kit, channel.id, second.id, head)),
-            ],
-        },
-        questionMessageId: question.id,
-        scenario: 'heartbeat-lead-dedupe',
-        secondAgentId: second.id,
-        secondLeadCommands: sawLeads,
-        stamp: kit.stamp,
-    });
-
-    log('checking gates');
-    expect(firstRun.status, 'first heartbeat turn status').toBe('completed');
-    expect(secondRun.status, 'second heartbeat turn status').toBe('completed');
-    expect(leads.length > 0, 'at least one Agent claimed a lead').toBe(true);
-    expect(anchored.length <= 1, 'claims on the shared question (at most one holder)').toBe(true);
-    expect(sawLeads.length > 0, 'the second Agent read or claimed through the leads list').toBe(
-        true
-    );
 }
 
 async function runLedgerWatch({ agents, expect, kit, log }, scenario, { signal }) {

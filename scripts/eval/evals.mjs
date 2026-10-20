@@ -70,7 +70,7 @@ export const evals = {
             'heartbeat-lead-dedupe',
         ],
         summary:
-            'A nightly heartbeat learns a correction the Agent only acknowledged and follows up a dropped promise; a daytime heartbeat reports a new signal once, stays quiet otherwise, and shares leads.',
+            'A nightly heartbeat learns a correction the Agent only acknowledged and follows up a dropped promise; a daytime heartbeat reports a new signal once, stays quiet otherwise, and two Agents answer a shared question once without duplicate research.',
     },
     // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
     // cloud-launch-and-link needs Cursor access.
