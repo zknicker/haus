@@ -333,6 +333,7 @@ async function runRealRuntime(
             homeTimezone: command.homeTimezone ?? 'UTC',
             harnessAgentFactory: input.harnessAgentFactory,
             initialRole: command.agentDescription ?? null,
+            connectionChips: command.connectionChips ?? [],
             conversationStyle: command.agentConversationStyle ?? null,
             signatureEmoji: command.agentSignatureEmoji ?? null,
             modelId: command.modelId,

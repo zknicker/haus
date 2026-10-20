@@ -1,4 +1,4 @@
-import type { AgentTurnActivitySummary, AgentTurnFailureCode } from '@haus/api';
+import type { AgentTurnActivitySummary, AgentTurnFailureCode, ConnectionChipKind } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 
@@ -14,6 +14,8 @@ export interface AgentStartCommand {
     agentSignatureEmoji?: string | null;
     /** The run's Chat; null only for a dream run, which has none. */
     chatId: string | null;
+    /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent writes. */
+    connectionChips?: ConnectionChipKind[];
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
     /** The nightly dreaming attention; present only on a chatless run with no inbox. */

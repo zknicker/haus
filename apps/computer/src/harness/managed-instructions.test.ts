@@ -179,6 +179,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
 test('keeps the managed prompt within its reviewed size budget', () => {
     const prompt = renderPrompt({
         homeTimezone: 'America/Los_Angeles',
+        connectionChips: ['amazon-product', 'linear-issue'],
         conversationStyle: 'Terse.',
         initialRole: 'the operator’s right hand',
         supportsSubagents: true,
@@ -228,7 +229,18 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their
     // runtime's native web tools with no gate and no prompt text, as in Raft.
     // Raised by exactly 110 (→ 37,145) zoned clock times, 114 (→ 37,259) UTC `time=` + `sender_tz=`, 143 (→ 37,402) Artifacts family, 126 (→ 37,528) launch card is the inline reply, 106 (→ 37,634) `secrets` Manual pointer. Lowered by exactly 3 (→ 37,631) when the Artifacts entry named the drive verbs `list`, `pull`, `push`. Raised by exactly 212 (→ 37,843): Images family entry so agents discover haus image. Lowered by exactly 16 (→ 37,827) when the shared drive was renamed Files (`haus files`, `files` Manual topic). Lowered by exactly 16 (→ 37,811) when the `artifact` fence became the `page` fence (Workspace pane). Lowered by exactly 7 (→ 37,804) when Visuals said full documents, not keepable deliverables, get pages: a page is a live workspace view, and keeping belongs in Files. Raised by exactly 662 (→ 38,466) when message placement became one description of what humans see and who is notified (message-notification.ts: thread anchor author and @mentions notified, followers unread, every DM message notifies; thread arrivals answered in the thread without `--reply-to`) replacing the Sending and Threads category rules and Raft's own-message-thread bullet, and "summarize the result" became "answer what was asked, then stop" (operator: less verbosity); it says a thread on the request notifies its author for every post so the task-thread regression in ADR 0029 cannot return. Raised by exactly 497 (→ 38,963): mechanics paragraph restored after the live gate showed --done and --reply-to dropped. Raised by exactly 135 (→ 39,098) when Triggers named both kinds (`webhook` POST URL, `github` with no URL) and pointed at the `trigger` topic, keeping the webhook recipe for webhooks only: a mandatory webhook read made GitHub CI setups say "webhook".
-    expect(prompt.length).toBeLessThanOrEqual(39_098);
+    // Raised by exactly 111 (→ 39,209): the Amazon product chip ref, rendered only while the Server has RankWrangler connected; measured here with every chip on.
+    expect(prompt.length).toBeLessThanOrEqual(39_209);
+});
+
+test('teaches a connection chip ref only while the Server provides that chip', () => {
+    const amazonRef =
+        "- B07XN9T11R: an Amazon ASIN renders as a product chip; write it beside a product's name whenever you name one";
+    expect(renderPrompt()).not.toContain('B07XN9T11R');
+    expect(renderPrompt({ connectionChips: ['linear-issue'] })).not.toContain('B07XN9T11R');
+    expect(renderPrompt({ connectionChips: ['amazon-product'] })).toContain(
+        `ambiguous with other references)\n${amazonRef}\n\nWrite them inline`
+    );
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {
