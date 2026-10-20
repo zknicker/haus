@@ -32,8 +32,13 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     const initialMessageBox = await rootRow.boundingBox();
     // Recently opened Chats stay mounted hidden; measure the composer on screen.
     const composerInput = page.locator('.prompt-input').filter({ visible: true });
+    const composer = composerInput.getByRole('textbox');
     const initialComposerBox = await composerInput.boundingBox();
     await rootRow.getByLabel('Reply', { exact: true }).click();
+    await expect(composer).toBeFocused();
+    await rootRow.hover();
+    await rootRow.getByLabel('Reply', { exact: true }).click();
+    await expect(composer).toBeFocused();
     await expect(page.locator('[data-inline-reply-reference]')).toHaveAttribute(
         'title',
         'How are sales today?'
@@ -65,7 +70,7 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     expect(await composerInput.boundingBox()).toEqual(initialComposerBox);
     await rootRow.hover();
     await rootRow.getByLabel('Reply', { exact: true }).click();
-    const composer = page.getByRole('textbox', { name: `Message ${server.channels[0].name}` });
+    await expect(composer).toBeFocused();
     await composer.fill('Use yesterday instead, please.');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(page.locator('[data-inline-reply-reference]')).toHaveCount(0);
