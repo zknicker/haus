@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.6.0 - 2026-10-20
+
+- An Agent’s Automations page shows the Cloud Agents whose results will wake it, with queued handoffs, delivered history, and warnings when tracking is unavailable. Haus manages these automatic notifications.
+- Agent announcements addressed to a channel’s audience keep that audience when the message also names someone.
+
 ## v15.5.1 - 2026-10-20
 
 - Stopped Cursor Cloud Agent runs leave “Stopping” once Cursor confirms cancellation, even when it rejects a repeated stop request.
