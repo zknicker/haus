@@ -28,8 +28,10 @@ Server Owners and Admins create Triggers on an Agent's profile, under
    mark beside every message the Agent sends because of it.
 2. **Instruction** — what the Agent should do each time it fires. Optional, but
    it is the only standing direction the Agent has when a fire arrives.
-3. **Trigger type** — choose it in the select; **Webhook**, an outside system
-   POSTing to a private URL, is the only type today.
+3. **Trigger type** — choose it in the select: **Webhook**, an outside system
+   POSTing to a private URL, or **GitHub**, events in repositories the GitHub
+   connection reaches. Linear Triggers are created by the Agent and show
+   read-only here ([Linear Triggers](#linear-triggers)).
 
 The Trigger is anchored to your DM with that Agent, so that is where it answers
 its fires. Creating it says nothing in that DM — the Trigger appears on the
