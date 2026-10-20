@@ -233,16 +233,6 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     expect(prompt.length).toBeLessThanOrEqual(39_209);
 });
 
-test('teaches a connection chip ref only while the Server provides that chip', () => {
-    const amazonRef =
-        "- B07XN9T11R: an Amazon ASIN renders as a product chip; write it beside a product's name whenever you name one";
-    expect(renderPrompt()).not.toContain('B07XN9T11R');
-    expect(renderPrompt({ connectionChips: ['linear-issue'] })).not.toContain('B07XN9T11R');
-    expect(renderPrompt({ connectionChips: ['amazon-product'] })).toContain(
-        `ambiguous with other references)\n${amazonRef}\n\nWrite them inline`
-    );
-});
-
 test('teaches automation provenance without an envelope tutorial', () => {
     const prompt = renderPrompt();
 

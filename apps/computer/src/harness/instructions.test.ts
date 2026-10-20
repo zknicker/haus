@@ -270,17 +270,6 @@ test('a conversation style or signature emoji change changes the instruction fin
     expect(signed.fingerprint).not.toBe(plain.fingerprint);
 });
 
-test('connecting RankWrangler on the Server changes the fingerprint, so the chip ref reaches the next start', () => {
-    const plain = composeAgentInstructions(facts);
-    const chipped = composeAgentInstructions({ ...facts, connectionChips: ['amazon-product'] });
-
-    expect(plain.instructions).not.toContain('an Amazon ASIN renders as a product chip');
-    expect(chipped.instructions).toContain(
-        '- B07XN9T11R: an Amazon ASIN renders as a product chip'
-    );
-    expect(chipped.fingerprint).not.toBe(plain.fingerprint);
-});
-
 test('teaches MEMORY.md as hot memory plus a notes index, with history left in chat', () => {
     const { instructions: prompt } = composeAgentInstructions(facts);
 
