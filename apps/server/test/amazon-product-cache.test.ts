@@ -70,6 +70,9 @@ test('product cache shares lookups and rechecks connection state before serving 
             product: { asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const },
         };
         expect(await readAmazonProductSummary(db.db, runtime, member, input)).toBeNull();
+        await harness.sql`update mcp_connections set connected = true, tools = ARRAY['rankwrangler_search'] where id = ${account.id}`;
+        expect(await readAmazonProductSummary(db.db, runtime, member, input)).toBeNull();
+        expect(reads).toBe(0);
         await harness.sql`update mcp_connections set connected = true, tools = ARRAY['rankwrangler_product'] where id = ${account.id}`;
         const results = await Promise.all([
             readAmazonProductSummary(db.db, runtime, member, input),

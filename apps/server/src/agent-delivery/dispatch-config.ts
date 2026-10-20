@@ -1,8 +1,13 @@
-import type { AgentCommand, AgentReasoningEffort } from '@haus/api';
+import {
+    type AgentCommand,
+    type AgentReasoningEffort,
+    availableChipKinds,
+    type ConnectionChipKind,
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable } from '../postgres/schema.ts';
+import { agentsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 
 /**
  * What the Server tells a Computer to run an Agent as: identity, desired
@@ -22,6 +27,8 @@ export interface AgentDispatchConfig {
     brief: string | null;
     briefAuthorHandle: string | null;
     computerId: string | null;
+    /** Chips this Server's connections add to chat, read fresh on every dispatch. */
+    connectionChips: ConnectionChipKind[];
     desiredModelId: string | null;
     desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
@@ -56,6 +63,7 @@ export async function readAgentDispatchConfig(
             factoryKind: agentsTable.factoryKind,
             homeTimezone: agentsTable.homeTimezone,
             retiredAt: agentsTable.retiredAt,
+            serverId: agentsTable.serverId,
             sessionGeneration: agentsTable.sessionGeneration,
             sessionResetKind: agentsTable.sessionResetKind,
         })
@@ -69,7 +77,20 @@ export async function readAgentDispatchConfig(
         )
         .where(eq(agentsTable.id, agentId))
         .limit(1);
-    return row ?? null;
+    if (!row) {
+        return null;
+    }
+    const { serverId, ...config } = row;
+    const connections = await db
+        .select({
+            connected: mcpConnectionsTable.connected,
+            preset: mcpConnectionsTable.preset,
+            tools: mcpConnectionsTable.tools,
+            url: mcpConnectionsTable.url,
+        })
+        .from(mcpConnectionsTable)
+        .where(eq(mcpConnectionsTable.serverId, serverId));
+    return { ...config, connectionChips: availableChipKinds(connections) };
 }
 
 /** Agents assigned to one Computer, for reconnect reconciliation. */
@@ -162,12 +183,13 @@ export interface AgentConfigureRequest {
 export function startPromptFacts(
     config: Pick<
         AgentDispatchConfig,
-        'agentConversationStyle' | 'agentDescription' | 'agentSignatureEmoji'
+        'agentConversationStyle' | 'agentDescription' | 'agentSignatureEmoji' | 'connectionChips'
     >
 ): {
     agentConversationStyle?: string;
     agentDescription?: string;
     agentSignatureEmoji: string | null;
+    connectionChips: ConnectionChipKind[];
 } {
     return {
         ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
@@ -175,5 +197,6 @@ export function startPromptFacts(
             ? { agentConversationStyle: config.agentConversationStyle }
             : {}),
         agentSignatureEmoji: config.agentSignatureEmoji,
+        connectionChips: config.connectionChips,
     };
 }

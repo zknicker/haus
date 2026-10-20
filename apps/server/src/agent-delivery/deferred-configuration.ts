@@ -1,4 +1,9 @@
-import { type Agent, type AgentCommand, reasoningChangeResetsSession } from '@haus/api';
+import {
+    type Agent,
+    type AgentCommand,
+    type ConnectionChipKind,
+    reasoningChangeResetsSession,
+} from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
@@ -85,6 +90,7 @@ export interface ConfiguredAgent {
     brief: string | null;
     briefAuthorHandle: string | null;
     computerId: string;
+    connectionChips: ConnectionChipKind[];
     desiredModelId: string;
     desiredReasoningEffort: Agent['desiredReasoningEffort'];
     desiredRuntimeId: string;
