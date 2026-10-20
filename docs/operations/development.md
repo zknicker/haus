@@ -236,13 +236,12 @@ derive the same four-port group from the checkout path, or from
 `bun run dev` and `bun run dev-app` share the same Server, Computer,
 PostgreSQL, and web app, so Agent behavior matches across both.
 
-AI SDK bridge packages use the machine-wide
-`~/.haus/cache/harness-bridge-store` pnpm cache in development and production.
-Bridge installs pin pnpm so Computer prewarming and Agent sandboxes use the same
-store format instead of creating parallel versioned stores.
-Fresh development Servers prewarm Codex, the runtime used by their seeded Agents;
-other available runtimes warm when first selected. Agent homes, sessions, and
-workspaces remain isolated inside each dev stack.
+The Claude Code and Codex runtime drivers install one pinned CLI per machine under
+`~/.haus/cache` (`claude-code/`, `runtimes/codex/`); Grok Build runs the operator's
+installed `grok`. A Computer daemon prewarms those installs when it connects.
+Development stacks prewarm only Codex, the runtime their seeded Agents use; other
+runtimes install on their first turn. Agent homes, sessions, and workspaces remain
+isolated inside each dev stack.
 
 The installed Computer keeps service output under its stable data root and
 exposes local recovery checks:

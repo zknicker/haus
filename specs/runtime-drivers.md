@@ -28,7 +28,7 @@ effort, composed instructions, isolated HOME, workspace, launch env, host tools)
 | --- | --- |
 | `bootstrapFingerprint(signal)` | Hash of whatever the driver installs before a session runs; `null` when it installs nothing. Drift parks and restarts a resumed session. |
 | `refreshBootstrap({ sessionId, signal })` | Re-installs that bootstrap for a parked session before it resumes. |
-| `openSession({ sessionId, resumeFrom, signal })` | Fresh session, or a native resume of `resumeFrom`. A resume the runtime proves unusable throws an error `isResumeRejection` recognizes; nothing else becomes a rejection. |
+| `openSession({ sessionId, resumeFrom, signal })` | Fresh session, or a native resume of `resumeFrom`. A resume the runtime proves unusable (missing, archived, another runtime's or unreadable state) throws `RuntimeResumeRejectedError` (`resume-rejected.ts`); nothing else becomes a rejection. A busy writer is retryable, never a rejection. |
 
 A `RuntimeSession` is the live native session:
 
@@ -39,6 +39,12 @@ A `RuntimeSession` is the live native session:
 | `steer(text)` | Delivers text into the running turn → `SteerResult`. |
 | `detach()` / `stop()` | Park at an idle boundary and return `RuntimeResumeState`. `detach` may keep a native process warm; `stop` ends it. |
 | `destroy()` | Tear down with no resume state (after a failed turn). |
+
+`RuntimeTurn.unconsumedSteers()` names steers the turn reported `delivered` with no evidence the
+model received them (Claude Code lifecycle `started`/`completed`, a Codex `userMessage` item, a Grok
+`_x.ai/session/interjection`): a Stop cancelled them or they were still queued at turn end. The
+executor puts the latest back on the pending-notice path (`turn-notices.ts`) unless a newer notice
+is already stored, so a notice is never lost.
 
 `RuntimeTurn.settle()` drains a cancelled turn to the runtime's idle boundary. The executor waits
 at most `stoppedTurnSettleMs` (20s) before failing the turn as a retryable timeout; parking a
@@ -55,8 +61,14 @@ session opened after its window was abandoned is destroyed.
 | Codex | One `codex app-server --listen stdio://` per session, JSON-RPC. `thread/start` or `thread/resume`. | `turn/start`; ends at `turn/completed`. | `turn/steer` with the expected turn id, only after `turn/started` (Raft regression #238). |
 | Grok Build | One `grok` ACP agent per session, JSON-RPC. `session/new` or `session/load`. | `session/prompt`; ends at the prompt response (deduplicated against the terminal notification). | `_x.ai/interject`. Unsupported interjection is `unsupported`, never a failed turn. |
 
-A session's process lives inside the Agent's process group (`sandbox-process-owner.ts`) and dies
-with Computer shutdown after the lease parks it (`session-lifecycle.ts`).
+The attachment daemon opens one `RuntimeContext` (`runtime/runtime-context.ts`) that the
+production factory (`runtime/driver-factory.ts`) hands every driver: the Computer's host-tool
+server, the process registry every runtime process joins (`sandbox-process-owner.ts`), and the
+shared warm pool (`runtime/warm-pool.ts`). The pool parks one process per Agent session, keyed by
+the Agent root, reused only when runtime, native conversation, and launch fingerprint all match;
+an idle process closes after 30 minutes. Agent reset or removal evicts its process; shutdown
+closes the pool, then the host-tool server, then reaps any process still registered. A parked
+Haus resume state needs no resume-to-stop at shutdown: parking and stopping store the same state.
 
 Background work stays off: Claude keeps `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` and `Monitor`
 disallowed. A long-lived Claude process is what later makes background sub-agents possible, so
@@ -129,10 +141,10 @@ Stored in the Agent's `session.json` as `resumeState`, validated at read
 | Grok Build | `{ runtime: 'grok-build', version: 1, sessionId }` |
 
 The conversation itself stays in the runtime's own store under the Agent HOME. A legacy AI SDK
-harness state (any other object) belongs to the temporary adapter. When a driver replaces the
-adapter for a runtime, it converts that runtime's legacy state on first open, reading the native
-conversation id the harness stored under `data` (verify the field against a captured
-`session.json` before relying on it), instead of rotating the generation.
+harness state (`{ type: 'resume-session', harnessId, data }`) converts on the driver's first open
+(`runtime/legacy-resume-state.ts`) instead of rotating the generation; detach then stores the Haus
+shape. Verified against real `session.json` files: Claude Code under `data.claudeSessionId`,
+Codex and Grok Build under `data.acpSessionId` (the Codex app-server thread id names its rollout).
 A missing native session falls back to a fresh one only through the existing resume-rejection
 recovery; Raft's silent `fallback_fresh_thread` is not adopted.
 
@@ -189,7 +201,7 @@ cases.
 | --- | --- |
 | `claudeLaunch.test.ts` | disallows provider-native cron tools; passes exact model and effort; resume passes the session id; standing instructions via prompt file only; no chat-MCP flags; prompt file owner-only. |
 | `claude.test.ts` | stream-json launch args; launch continues without managed MCP when discovery fails; oversized startup payload blocked before launch. |
-| `claudeEventNormalizer.test.ts` | result `error_during_execution`, `is_error`, budget, `max_tokens` errors; provider API failure text as error (not when the turn also called a tool); assistant SDK `error` field; rate-limit classification; stream events as progress; tool_use id and tool_result outcome (Bash non-zero exit is ok); sub-agent lineage (6a/6b, task_notification status); user tool_result as a steering boundary; result usage per turn. |
+| `claudeEventNormalizer.test.ts` | result `error_during_execution`, `is_error`, budget, `max_tokens` errors; provider API failure text as error (not when the turn also called a tool); assistant SDK `error` field; rate-limit classification; stream events as progress; tool_use id and tool_result outcome (Haus keeps the bridge's projection: a Bash non-zero exit is a `tool-error`, not Raft #17's ok call); sub-agent lineage (6a/6b, task_notification status); user tool_result as a steering boundary; result usage per turn. |
 | `codex.test.ts` | fresh/resume thread start; resume missing rollout or active writer; archived thread; initialize/thread/turn start errors as startup failures; waits for the MCP server before the first turn; idle `turn/start` vs busy `turn/steer`; steering gate (#238) and its fallback; no duplicated agent text; commentary vs final_answer phases; no-output success as error; compaction and review lifecycle; tool output for completed items; secondary-thread isolation; `systemError` to error; retryable errors as liveness; raw capacity errors; interrupted turns non-success; model/effort on thread request. |
 | `codexBlankFinalAnswer.contract.test.ts` | blank final answer handling. |
 | `grok.test.ts`, `grokEventNormalizer.test.ts` | handshake, model select, dedup completion; missing resume; auth failure message; permission auto-approve rules; idle prompt vs busy interjection; unsupported interjection; late terminal notification; text/thought/tool normalization; failed or cancelled tool outcome. |
@@ -221,13 +233,16 @@ real streams rather than hand-written frames:
 1. **Seam (done):** contract types, `TurnEvent` consumers, the temporary AI SDK adapter
    (`runtime/ai-sdk-adapter.ts`, `runtime/ai-sdk-turn-events.ts`); no behavior change.
 2. **Host-tool MCP server** (`host-tools/`), used by the adapter first.
-3. **Claude Code driver** with fixtures and ported tests; legacy resume conversion; switch
-   `claude-code` in the driver factory; drop `harness-claude-code` and its patch.
-4. **Codex driver** on `codex app-server`; drop `codex-acp`, `harness-acp`'s Codex parts.
-5. **Grok Build driver** on direct ACP; drop `harness-grok-build` and `harness-acp`.
-6. **Remove Pi and the adapter:** delete `harness-pi`, the adapter, bridge bootstrap, AI SDK
-   sandbox, `@ai-sdk/*` dependencies, and their rows in
-   [Dependency Patches](../docs/operations/dependency-patches.md).
+3. **Claude Code, Codex, and Grok Build drivers (done)** with fixtures, ported tests, and live
+   tests.
+4. **Drivers are the execution path (done):** `driver-factory.ts` maps each runtime to its driver
+   through the daemon's `RuntimeContext`; Pi left execution; legacy resume conversion; typed
+   resume rejection; returned steers; bridge prewarm replaced by `runtime-prewarm.ts`. The
+   adapter remains, unused outside tests. Proof: `harness/runtime-driver-e2e-live.test.ts`.
+5. **Remove the adapter:** delete the adapter, `ai-sdk-resume-rejection.ts`, `harness-*`
+   packages, bridge bootstrap, AI SDK sandbox, `@ai-sdk/*` dependencies, their patches and rows
+   in [Dependency Patches](../docs/operations/dependency-patches.md), and move the executor tests
+   that fake a Harness Agent onto fake drivers.
 
 Each phase gates on: Computer test + typecheck, the runtime's fixtures, its opt-in live test,
 and a time-to-first-event and turn-latency comparison against the adapter on the same build
