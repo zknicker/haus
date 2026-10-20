@@ -94,6 +94,13 @@ export function codexThreadParams(
 }
 
 /**
+ * Per-turn settings every `turn/start` carries. App-server turns default to no reasoning
+ * summary, so the model's reasoning never reached Activity or the journal; codex-acp asked for
+ * `auto` on every turn.
+ */
+export const codexTurnParams = { summary: 'auto' } as const;
+
+/**
  * The thread's MCP servers: the Haus host-tool server alone. Every server a config layer
  * declares (the Agent's `config.toml`, a workspace `.codex/config.toml`) is overridden by an
  * inert, disabled entry; thread config merges per name, so each override stays valid alone.

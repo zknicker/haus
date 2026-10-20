@@ -3,6 +3,7 @@ import type { CodexResumeState } from '../resume-state.ts';
 import type { WarmProcess } from '../warm-pool.ts';
 import type { CodexAppServer } from './app-server.ts';
 import type { CodexInbound } from './codex-connection.ts';
+import { codexTurnParams } from './codex-launch.ts';
 import { turnStartResultSchema, userMessageText } from './protocol.ts';
 import { CodexTurnNormalizer } from './turn-normalizer.ts';
 import { CodexTurnRouter } from './turn-router.ts';
@@ -97,6 +98,7 @@ export class CodexSession implements RuntimeSession, WarmProcess {
         let result: unknown;
         try {
             result = await this.server.connection.request('turn/start', {
+                ...codexTurnParams,
                 input: [{ text: options.prompt, text_elements: [], type: 'text' }],
                 threadId: this.sessionId,
             });

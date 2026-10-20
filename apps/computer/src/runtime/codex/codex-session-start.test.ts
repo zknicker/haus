@@ -26,6 +26,8 @@ describe('Codex session start', () => {
         });
         expect(fake.request('turn/start')?.params).toEqual({
             input: [{ text: 'initial prompt', text_elements: [], type: 'text' }],
+            // App-server turns default to no reasoning summary; Activity reads the summaries.
+            summary: 'auto',
             threadId: 'thread-1',
         });
         expect(session.isResume).toBe(false);

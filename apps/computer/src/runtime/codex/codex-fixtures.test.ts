@@ -100,6 +100,7 @@ describe('Codex fixtures', () => {
             model: 'gpt-5.6-luna',
             sandbox: 'danger-full-access',
         });
+        expect(written(transport!, 'turn/start')[0]?.params).toMatchObject({ summary: 'auto' });
         const events = turns[0]?.events ?? [];
         expect(eventSequence(events)).toEqual(['text-delta', 'step-finish', 'turn-finish']);
         expect(
