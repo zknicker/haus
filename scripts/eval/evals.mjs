@@ -82,6 +82,23 @@ export const evals = {
         summary:
             'Agents set up a GitHub CI-failure or Linear state-transition Trigger from a plain ask and answer its fire once, top level, with --cause.',
     },
+    // Two Agents and a human in one channel, each scenario with a decoy the
+    // Manual card warns against. Serial: the scenarios assert silence.
+    room: {
+        judge: null,
+        lanes: 1,
+        profiles: {},
+        scenarios: [
+            'room-pickup-reaction-on-it',
+            'room-task-claimed-by-peer',
+            'room-peer-handoff-with-evidence',
+            'room-pending-ask-peer-guesses',
+            'room-reminder-fires-mid-conversation',
+            'room-visual-not-caption-only',
+        ],
+        summary:
+            'In a shared channel, Agents pick up visibly, leave peer-claimed work alone, act on handoffs, wait for the human, place reminder answers, and draw visuals by the skill.',
+    },
 };
 
 /** The registered eval, or a UsageError naming the known ones. */
