@@ -10,6 +10,7 @@ import { useServerContext } from '../../servers/server-context.ts';
 import { settingsConnectionRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { BuiltInConnectionSections } from '../connections/built-in/built-in-connection-sections.tsx';
+import { ConnectionChipsSection } from './connection-chips-section.tsx';
 import { ConnectionDetailHeader } from './connection-detail-header.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
@@ -29,7 +30,7 @@ import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 
 /**
  * One connection's settings page, read like a product page: identity and setup
- * action, the account it signs in as, which Agents may use it, then reference
+ * action, the account it signs in as, what it adds to chat, which Agents may use it, then reference
  * material — what it exposes and, for a custom connection, the facts the
  * Server keeps. Confirmations and
  * the credentials form stay dialogs over the page.
@@ -107,6 +108,7 @@ export function ConnectionPage({
                     saving={saving}
                     usesToken={tokenPreset !== null}
                 />
+                <ConnectionChipsSection preset={connection.preset} />
                 <BuiltInConnectionSections
                     connection={connection}
                     placement="after-account"
