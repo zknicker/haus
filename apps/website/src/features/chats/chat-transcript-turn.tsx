@@ -19,6 +19,8 @@ import {
 } from './chat-transcript-activity-utils.ts';
 import {
     type AgentItemSegment,
+    getLastMessage,
+    getLastMessageRow,
     getTranscriptItemKey,
     groupAgentItems,
 } from './chat-transcript-item-utils.ts';
@@ -816,31 +818,6 @@ function TranscriptMessageActions({
             />
         </ActionTooltip>
     );
-}
-
-/**
- * One fire, one message — so a turn provoked by an automation carries exactly
- * one caused message, and its cause is the turn's. Scans forward so that if a
- * turn ever did hold two, the header names the one that opened it.
- */
-function getLastMessageRow(items: TranscriptItem[]) {
-    for (let index = items.length - 1; index >= 0; index -= 1) {
-        const item = items[index];
-
-        if (
-            item?.kind === 'row' &&
-            item.row.kind === 'message' &&
-            !isActivityBackedMessageRow(item.row)
-        ) {
-            return item.row;
-        }
-    }
-
-    return null;
-}
-
-function getLastMessage(items: TranscriptItem[]) {
-    return getLastMessageRow(items)?.message ?? null;
 }
 
 function isActiveTurn(

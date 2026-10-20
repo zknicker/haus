@@ -32,8 +32,7 @@ export interface TranscriptSystemEntry {
 
 export interface TranscriptTurnEntry {
     actor: TranscriptActor;
-    // True when an inline reply continues its author's previous reply and
-    // renders under that message's header (reply-continuation.ts).
+    // Continues its author's previous reply under that header (reply-continuation.ts).
     continuesPrevious: boolean;
     id: string;
     items: TranscriptItem[];
