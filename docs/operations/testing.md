@@ -487,6 +487,7 @@ rendered as the report's "What was changed" section). The registry is
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
 | `triggers` | GitHub and Linear Triggers on an `acme` GitHub installation and a Linear workspace seeded on the eval stack (no GitHub or Linear account; a loopback fake Linear resolves names): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger, and "ping me when a Design issue goes from Design Review to Changes Requested" one state-transition `linear` Trigger, each with a short confirmation; a signed `workflow_run` failure or Issue update gets one top-level `--cause` answer naming the workflow and branch, or the issue. Serial. |
+| `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live Thread exchange is answered at its anchor with `--cause`, not in the Thread; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
 | `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
@@ -529,7 +530,7 @@ with `bun run test:agents --only placement-found-the-kit-local`. The `attention`
 `mention-wakes-only-addressed` and `task-thread-routing` the same way. The `triggers` profiles
 grade each setup confirmation as an inline reply (one post, no question, no URL) and each fire
 answer from its first fire-caused post (one post in the anchor chat naming the GitHub workflow and
-branch, or the Linear issue identifier); `memory` and `tools` are graded on runner verdicts alone.
+branch, or the Linear issue identifier); `memory`, `room`, and `tools` are graded on runner verdicts alone.
 
 To isolate one failing scenario, use `bun run test:agents --only <name> --lanes 1` against
 `bun run dev`.
