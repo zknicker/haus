@@ -29,8 +29,8 @@ persisting or logging it, and the Computer keeps it only in the login macOS Keyc
 
 Claude's isolated Agent home cannot read the host's macOS Keychain login directly. At each native
 start, Computer resolves the current host-owned login and supplies its access token only in the
-Claude bridge process environment. It never writes the token into Agent files or persisted bridge
-turn settings, and it leaves explicit native environment authentication intact. Missing native
+Claude Code process environment. It never writes the token into Agent files or any Haus-written
+launch record, and it leaves explicit native environment authentication intact. Missing native
 credentials fail with a sign-in instruction. Other runtimes reference their native credential
 files while preserving separate Agent homes and sessions.
 

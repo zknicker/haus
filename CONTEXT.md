@@ -117,9 +117,10 @@ canonical path is `~/.haus`; resident service state lives under `computer/`, whi
 owns `computer/servers/<server-id>/` with its credential, vault, queues, and
 `agents/<agent-id>/{home,skills,workspace,runtime}/` directories. Removing or reinstalling the
 standalone executable never deletes this root. Reinstalling resumes every still-valid attachment
-and workspace. Immutable execution-runtime bridge packages use the machine-wide
-`cache/harness-bridge-store/` and may be shared by production Computers, development stacks, and
-Server attachments; Agent state and credentials never enter that cache.
+and workspace. Immutable pinned runtime CLIs (`cache/claude-code/`, `cache/runtimes/codex/`) and the
+secrets runtime's pnpm store use the machine-wide `cache/` and may be shared by production
+Computers, development stacks, and Server attachments; Agent state and credentials never enter
+that cache.
 _Avoid_: Computer install root, npm package directory, application bundle
 
 **Computer model access**:

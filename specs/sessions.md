@@ -1,6 +1,6 @@
 # Sessions
 
-One agent owns one persistent harness session spanning every chat it
+One agent owns one persistent runtime session spanning every chat it
 participates in. Chats and threads are routing and presentation surfaces —
 never session boundaries. Different agents are fully isolated. Normative per
 [ADR 0011](../docs/adr/0011-agents-own-one-global-session.md) as amended by
@@ -44,10 +44,10 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   second mid-turn delivery.
 - A Computer starts at most five Agent runtimes at once; further starts queue. A runtime that
   has not produced a live session within two minutes fails the turn as a retryable timeout.
-  Reattaching to a stored Claude Code bridge gets at most ten seconds of that window, so a bridge
-  lost to a restart or crash falls through to a respawn that resumes the same conversation. A
-  failed turn destroys its bridge, so it also clears the stored Claude Code bridge coordinates
-  (ACP coordinates stay, because its process-loss recovery reads them). A live turn that emits nothing for fifteen minutes with no tool call in flight is interrupted and
+  A warm runtime process parked by the previous turn is reused when its runtime, native
+  conversation, and launch fingerprint all match; otherwise the driver launches a fresh process
+  that resumes the same conversation. A failed turn destroys its runtime session but keeps the
+  stored resume state, so the next turn resumes the same conversation. A live turn that emits nothing for fifteen minutes with no tool call in flight is interrupted and
   resume state is kept, but it settles as a retryable `timeout` failure, so a turn that stalls
   every time backs off and then pauses automatic wakes instead of looping. A Stop or Restart during startup settles
   as interrupted, never as a resume failure.
@@ -78,7 +78,7 @@ Sessions never rotate because of age or idleness. A new session starts only on:
 2. **Resume recovery** — if the executor reports that its stored runtime session is missing or
    replay is rejected, Computer automatically starts a fresh Agent session generation. Only
    specific runtime evidence counts (a missing conversation, thread, or session; stored state the
-   adapter rejects; a provider rejecting the replay); a network, auth, rate-limit, or timeout
+   runtime rejects; a provider rejecting the replay); a network, auth, rate-limit, or timeout
    failure while resuming is an ordinary turn failure, classified as usual, that keeps the session. The recovery
    is visible in activity and injected into the fresh context, directing the Agent to recover from
    Haus history and local `MEMORY.md`/notes. If the cold start also fails, the Agent becomes
@@ -93,15 +93,14 @@ Sessions never rotate because of age or idleness. A new session starts only on:
      onboarding seed for Cove, and only `visuals` today.
    Session reset and Full reset rotate the agent token. Restart does not.
 
-Reasoning-effort changes apply on the next turn without rotating the session, except Grok Build:
-its ACP adapter includes effort in resume compatibility and requires a fresh session. The active turn
+Reasoning-effort changes apply on the next turn without rotating the session. The active turn
 keeps its frozen effort. Computer restarts the parked native process with the saved resume state
 and the latest effort, preserving conversation context while refreshing constructor-only settings.
 
-Managed instruction, Cove factory-guidance, or Harness bootstrap drift does not rotate the session.
-The AI SDK Harness supplies current composed instructions on every accepted turn. Bootstrap drift or
-an explicit Restart additionally parks the adapter, installs the current bootstrap, and resumes the
-same native conversation. A recognized prior Cove playbook or FAQ revision is replaced before the
+Managed instruction, Cove factory-guidance, or runtime bootstrap drift does not rotate the session.
+The runtime driver mounts current composed instructions on every accepted turn. Bootstrap drift (a
+changed runtime CLI pin) or an explicit Restart additionally parks the session, refreshes the
+driver's install, and resumes the same native conversation. A recognized prior Cove playbook or FAQ revision is replaced before the
 turn and the current session receives a one-turn re-read notice; edited or missing guidance is
 preserved as a conflict. Applied fingerprints persist only after the refreshed turn successfully
 successfully detaches. Activity History records refresh outcomes without instruction text or local implementation
@@ -142,6 +141,6 @@ can talk to it.
 ## Non-goals
 
 - No per-chat model overrides.
-- No context forking for threads; harness subagents remain an engine
+- No context forking for threads; runtime sub-agents remain an engine
   execution detail, not a session contract.
 - No migration shims: cutover starts every agent on a fresh global session.

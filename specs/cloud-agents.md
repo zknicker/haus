@@ -591,7 +591,7 @@ capabilities:
 
 | Capability | Ready when | Purpose |
 | --- | --- | --- |
-| Cursor runtime | `cursor-agent` is installed and its native session is usable | Local Cursor execution through an AI SDK harness adapter |
+| Cursor runtime | `cursor-agent` is installed and its native session is usable | Local Cursor execution through a Haus runtime driver |
 | Cursor Cloud Agent | `@cursor/sdk` resolves a user API key from `CURSOR_API_KEY` or `~/.cursor/sdk/auth.json` | Provider-hosted execution |
 
 Readiness reports one of three reasons when it is not ready. `not-connected` — no credential
@@ -805,7 +805,7 @@ administrative integration and is outside this Computer capability.
    returns a Message. The retired `ask` kind first introduced the column; ADR 0037 removed it.
 2. **Landed.** ADR 0028 retired prepared actions entirely: Agents create Agents directly, the
    `agent-created` body joined this union, and the top-level `preparedAction` field is gone.
-3. Add Cursor runtime discovery and AI SDK harness support.
+3. Add Cursor runtime discovery and a Cursor runtime driver.
 4. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
 5. **Landed.** The `haus cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
    fake, the durable work and Run records, the launch Message, and the eager Thread.

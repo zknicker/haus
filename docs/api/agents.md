@@ -568,8 +568,8 @@ Computer protocol 21 so an older Computer cannot fall back to opening its own br
 
 Computer protocol 23 adds per-model `reasoningEfforts` and `defaultReasoningEffort` to inventory and supports `default`,
 `low`, `medium`, `high`, `xhigh`, and `max`. Computer maintains the capability list beside its
-model inventory; AI SDK adapter settings define the runtime's accepted vocabulary, but do not
-provide a per-model discovery API. Claude Haiku has only `default`. Inventories predating this
+model inventory; each runtime's CLI defines its accepted vocabulary, but none provides a
+per-model discovery API. Claude Haiku has only `default`. Inventories predating this
 field retain the original low/medium/high contract. Server validates explicit creation and
 configuration choices against the assigned Computer's report. Configurable models report a concrete
 default (currently Haus's Medium), which the App selects when a prior choice is unsupported.

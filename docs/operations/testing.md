@@ -2,6 +2,7 @@
 summary: Testing strategy for choosing focused lanes, writing durable tests, keeping suites current, and avoiding unnecessary route or smoke coverage.
 read_when:
   - adding tests, changing execution-runtime contracts, or choosing a verification lane
+  - running a live runtime-driver test (Claude Code, Codex, Grok Build) against a real CLI
   - changing OpenAPI, Server stores, SDK, App e2e, or Computer execution behavior
   - adding or changing an agent-behavior scenario under scripts/agent-tests/
   - running or changing an eval (`bun run eval`, scripts/eval/), or comparing a change against a baseline commit
@@ -54,7 +55,7 @@ Each package gate includes its tests and typecheck:
 | `packages/haus-api` | `@haus/api check`, plus typecheck of the consuming apps you touched |
 | `packages/haus-sdk` | `@haus/sdk test` + `typecheck` |
 | Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:app`, scoped to the affected spec file when possible |
-| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@haus/computer test` + `typecheck`; add a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
+| Execution runtimes, runtime drivers, provider auth wiring, or a runtime CLI pin bump | `@haus/computer test` + `typecheck`, which replay each driver against its recorded CLI fixtures; add the affected [live runtime test](#live-runtime-tests), and a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
 
 Rules that keep runs cheap and honest:
 
@@ -246,37 +247,43 @@ four-file/12-summary seed under root `MEMORY.md` and `notes/`,
 `apps/server/test/haus-agent-manual.test.ts` for authenticated Manual overview,
 full-card access, and audit metadata.
 
-## Execution Runtime Adapter Contracts
+## Execution Runtime Driver Contracts
 
 When changing executor routes, event projection, chat behavior, or delivery
 semantics, verify against deterministic service fixtures, hosted Browser E2E,
-or an opt-in live harness smoke when a concrete ambiguity remains.
+or an opt-in live runtime test when a concrete ambiguity remains.
 
-Add raw-frame or fixture-backed tests for behavior Haus depends on.
+Add raw-frame or fixture-backed tests for behavior Haus depends on: each driver replays
+recorded CLI streams from `apps/computer/src/runtime/<runtime>/fixtures/`, and executor and
+launch tests script `TurnEvent`s through the in-memory driver in
+`apps/computer/src/runtime/testing/fake-runtime-driver.ts`.
+
+## Live Runtime Tests
+
+Each runtime driver has an opt-in live test against the real CLI and the host's sign-in. They
+spend real quota and never run in a default lane:
+
+```sh
+HAUS_RUN_LIVE_CLAUDE_CODE_TEST=1 bun test apps/computer/src/runtime/claude-code
+HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex
+HAUS_RUN_LIVE_GROK_DRIVER_TEST=1 bun test apps/computer/src/runtime/grok
+HAUS_RUN_LIVE_RUNTIME_E2E_TEST=1 bun test apps/computer/src/harness/runtime-driver-e2e-live.test.ts
+```
+
+The driver tests run a session through its lifecycle: turns, a steer mid-tool, a host-tool call,
+a warm detach, and a cold resume; Claude Code and Codex also prove context isolation (no
+operator `CLAUDE.md`, project docs, or operator MCP servers reach the Agent). The Codex test
+checks `codex login status` first and the Grok test needs `grok` on `PATH`. The end-to-end test
+drives every installed runtime through the real executor, driver factory, and runtime context:
+two turns on one session with a busy notice steered into the first, printing the
+`AgentTurnTimings` per turn. `HAUS_LIVE_RUNTIMES` narrows it (comma-separated runtime ids), and
+`HAUS_LIVE_CLAUDE_MODEL`, `HAUS_LIVE_CODEX_MODEL`, and `HAUS_LIVE_GROK_MODEL` pick models (for
+example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`).
 
 ## Manual Smoke Hygiene
 
 Manual real-provider chats are rare. Prefer deterministic e2e or unit/service
-tests.
-
-The Grok Build live interjection smoke is opt-in and still checks for a local
-login before running:
-
-```sh
-HAUS_RUN_LIVE_GROK_TEST=1 bun test apps/computer/src/harness/grok-build-live.test.ts
-```
-
-Set `HAUS_LIVE_GROK_MODEL` to test a specific model, such as `grok-4.7` or
-`grok-4.7-build-fast`; the smoke defaults to `grok-4.6`.
-
-The Codex live smoke runs only with its variable set and then checks `codex login status`. It
-drives the production runtime table through codex-acp: a steered message lands
-mid-turn, a Computer host tool answers over the harness MCP relay, a stopped
-session resumes with its conversation, and MCP servers in the Agent's own Codex config never start.
-
-```sh
-HAUS_RUN_LIVE_CODEX_TEST=1 bun test apps/computer/src/harness/codex-live.test.ts
-```
+tests; for a real runtime, use the [live runtime tests](#live-runtime-tests).
 
 If manual validation creates real Haus chats, use an obvious temporary first
 message such as `Codex smoke <timestamp>: <purpose>`, record the created chat
@@ -605,7 +612,7 @@ console errors and collapsed heights.
 The question tabs are the battery the server hands the page, so adding a prompt
 to `scripts/visuals-lab/engine/prompts.mjs` shows up as a tab with no page edit.
 Each model's reasoning effort is a select beside its name, defaulting to medium
-and shared across skills; every model runs the harness bridge Haus itself ships,
+and shared across skills; every model runs the runtime driver Haus itself ships,
 so a result is a judgement about the product. Runs land in
 `scripts/visuals-lab/results/<model>/<stamp>/` (gitignored), and a cell reads the
 newest run that carries that prompt, so a narrow rerun never hides the rest.

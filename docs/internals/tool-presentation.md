@@ -158,7 +158,7 @@ today; a typed generation reference from Computer is a follow-up. A
 video, a host-only path, or a failed read names the file instead. Nothing renders while it
 loads. Pressing the picture (Enter or Space) opens it in a HeroUI Modal at the window's size
 with its file name and prompt, and on desktop an "Open in workspace" action that opens the file
-as a workspace page; the web omits it, since the trace has no Workspace pane. The harness's reserved
+as a workspace page; the web omits it, since the trace has no Workspace pane. The drivers' reserved
 synthetic names get their own kinds so they read as what happened — `Modified <path>`,
 `Compacted the context` — rather than a generic call with empty arguments.
 
@@ -239,7 +239,7 @@ from an off-scale 10px onto that tier's `xs` step.
   import a Server router merely to inherit its output types.
 - Semantic activity is the default human-readable evidence. Raw execution
   journal data is restricted to the access policy enforced by Server.
-- A managed instruction, Cove factory-guidance, or Harness bootstrap refresh is durable semantic activity:
+- A managed instruction, Cove factory-guidance, or runtime bootstrap refresh is durable semantic activity:
   `Updating instructions…`, `Updated instructions`, or `Failed to update instructions`. It exposes
   only the lifecycle outcome; instruction text, hashes, paths, commands, and raw errors stay local.
 - Tool-specific labels and bodies extend `features/turn-trace/` for detail and
@@ -247,21 +247,21 @@ from an off-scale 10px onto that tier's `xs` step.
   through the transcript contract or the execution-journal path. They must not
   restore a direct Runtime fetch.
 - A tool body reads unknown payloads through `turn-trace-values.ts` and degrades to
-  JSON. No runtime result shape is trusted. codex-acp's shell result is
+  JSON. No runtime result shape is trusted. The Codex driver's shell result is
   `{ formatted_output, exit_code }`; an exit code shows only when non-zero. A
-  runtime file change (`fileChange`, folded from Codex's `apply_patch`) carries the
-  ACP edit result, one `{ type: 'diff', path, oldText, newText }` per file: a created
-  file shows its contents and a modified one its diff.
-- The AI SDK harness shows the Agent workspace relative: a path inside it loses the
-  workspace prefix, and a bare mention of the workspace itself reads `<workspace>`
-  (Haus's `@ai-sdk/harness` patch; upstream wrote `.`, which turned
-  `cwd is /…/workspace.` into `cwd is ..`). The journal stores that display text.
-  The patch only reaches the top-level Agent, so Computer applies the same rule (plus
+  runtime file change (`fileChange`, folded into the edit call it restates) carries
+  one `{ type: 'diff', path, oldText, newText }` per file: a created file shows its
+  contents and a modified one its diff.
+- Each driver shows the Agent workspace relative: a path inside it loses the
+  workspace prefix. Claude Code's driver writes a bare mention of the workspace itself
+  as `<workspace>`, so `cwd is /…/workspace.` does not read `cwd is ..`; Grok Build's writes
+  `.` for it. The journal stores that display text.
+  The drivers rewrite only top-level Agent calls, so Computer applies the same rule (plus
   `~/` for the Agent home) to every string it uploads from the journal, sub-agent
   calls included, and adds a normalized `failure: { message, exitCode? }` beside each
   raw tool `error` and on a failed turn; prefer it over parsing `error`.
 - A step whose start and end arrived together shows no duration. Codex reports a
-  fast command's or patch's ACP start and completion in the same instant, and its
+  fast command's or patch's start and completion in the same instant, and its
   own measured duration for them is also zero, so there is no real span to state.
 - Nothing bounds a model- or MCP-authored payload, and one opened body can hold any of it, so text is clamped by character
   (`clampTraceText` / `clampTraceValue`) before it reaches a code block, a diff, or a

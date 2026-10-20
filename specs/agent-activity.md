@@ -29,7 +29,7 @@ the category is current.
 | `starting_work` | `Starting work…` | Server admits a turn to its assigned Computer |
 | `checking_messages` | `Checking messages…` | A structured Haus message check/read/search boundary runs |
 | `received_message` | `Received a new message…` | Server consumes a notice-ack that marks new queued work noticed by the run |
-| `thinking` | `Thinking…` | Harness reasoning starts; text stays out of Activity |
+| `thinking` | `Thinking…` | Runtime reasoning starts; text stays out of Activity |
 | `updating_instructions` | `Updating instructions…` | A managed instruction or factory-guidance refresh runs |
 | `browsing` | `Browsing…` | A known Browser capability runs |
 | `searching_web` | `Searching the web…` | A known provider or Haus web-search capability runs |
@@ -68,14 +68,13 @@ inference.
    sends and turn lifecycle come from Server write boundaries.
 2. **Known tools** map through an explicit registry owned by the Computer activity projector.
    Provider-specific Codex, Claude, and Grok Build identities have fixture-backed mappings. Haus-owned
-   host tools declare their category at registration. codex-acp names only shell calls
-   (`exec_command`, the `bash` builtin); Computer declares its fixed-title unnamed calls as
-   builtins, so an ACP `edit` call titled `Editing files` is `apply_patch` (`editing_files`) and
-   `Compact conversation` is the reserved `compaction`. A provider-executed builtin whose input
-   fails its schema keeps that builtin's category. The one exception is a file read Codex parsed
-   out of a shell command: codex-acp sends it as an ACP `read` call named `exec_command` with no
-   command and the file in `locations`, so the projector reads that file from the raw ACP update
-   and records `reading_files`, journaling a `read` step of the workspace-relative file.
+   host tools declare their category at registration. The Codex driver names each app-server item
+   kind as a builtin: a command is `bash`, a patch is `apply_patch` (`editing_files`), and context
+   compaction is the reserved `compaction`. A provider-executed builtin whose input fails its schema
+   keeps that builtin's category. The one exception is a file read Codex parsed out of a shell
+   command: the driver sends the file first as a `tool-read-location` event and the call as an
+   input-less shell call, so the projector records `reading_files`, journaling a `read` step of the
+   workspace-relative file.
    The one command the projector reads is the `haus` CLI's own: a shell call whose whole command
    is one `haus …` invocation (an absolute path to the shim, leading `env`/`NAME=value`
    assignments, a runtime's `sh -c` wrapper, or a trailing heredoc body allowed) opens no activity
@@ -89,13 +88,13 @@ inference.
    parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
    does not turn a shell event into file reading. The `haus` CLI exception above is the only
    command recognized.
-4. **Harness-synthesized runtime events** arrive as reserved provider-executed tool calls:
+4. **Driver-synthesized runtime events** arrive as reserved provider-executed tool calls:
    `fileChange` maps to `editing_files`, so a runtime whose only file-edit evidence is a file-change
-   event still reports file work. A `fileChange` that harness-acp tags with an already-seen ACP
-   tool call is that call's edit, not a second one: the source call (Codex's `apply_patch`) keeps
+   event still reports file work. A `fileChange` the driver tags with an already-seen tool call
+   (`sourceToolCallId`) is that call's edit, not a second one: the source call (Codex's `apply_patch`) keeps
    the edit's single activity, and a source step with no input of its own takes the first file's
    name and path. A multi-file patch journals each further file as its own step without opening
-   more activity. `compaction` maps to no activity at all — context compaction is harness bookkeeping rather than agent work — while still landing in the execution journal. Both
+   more activity. `compaction` maps to no activity at all — context compaction is runtime bookkeeping rather than agent work — while still landing in the execution journal. Both
    names stay generic when the call is not provider-executed, so a host or MCP tool cannot claim them.
 
 An optional tool label crosses only when it is a canonical Haus-controlled display identity.
@@ -134,7 +133,7 @@ producerId, producerSequence)`, assigns the next run-local `position` while hold
   current projection. `position` is the only presentation order within a run; the Server's recorded
   run start preserves cross-Agent turn ordering. Producer timestamps never resolve event ordering.
   Server-originated lifecycle events use their own producer identity and the same ordered journal
-  without pretending they came from Harness.
+  without pretending they came from the runtime.
 
 The hosted Server API exposes this journal through `agent.activityHistory`, the unsettled-run
 `agent.activeActivity` snapshot, and one Server-scoped `agent.onActivity` subscription. Current
@@ -164,10 +163,10 @@ paths, commands, tool inputs or outputs, authorization data, or private file con
 
 ## Computer projection and execution journal
 
-One raw Harness event fans into two deliberately separate products:
+One runtime `TurnEvent` fans into two deliberately separate products:
 
 ```text
-Harness tool call/result
+Runtime tool call/result
   -> Computer execution journal (detailed) -> redacted journal sync -> Server execution journal
   -> Computer activity projector (semantic) -> Server activity journal
 ```
@@ -177,14 +176,12 @@ identity, inputs, outputs, errors, timings, and the turn's model reasoning block
 sub-agent's tool calls are journal tools whose `parentToolCallId` names the delegating call, and
 that call carries a `subagent` record (label, sub-agent type, status, timings, token and tool-use
 totals, latest progress line); see [Agents API](../docs/api/agents.md). Claude Code reports both
-only through raw SDK messages (`task_*` system messages and the sub-agent's messages tagged with
+only through its stream messages (`task_*` system messages and the sub-agent's messages tagged with
 `parent_tool_use_id`), which the projector maps in `subagent-steps.ts`. A sub-agent the turn's
 interruption or end leaves running is settled `interrupted`. A tool's timing
-runs from the observed tool call to its result. The ACP adapter holds a runtime tool call for up
-to a second while it checks whether the call is a host-tool invocation echoed back; Codex calls
-that codex-acp does not tag as MCP are Codex's own and skip that window, so their steps span the
-real start and completion. Tool payloads are
-read from the translated stream's `output` field, and a failed call keeps the `tool-error` the
+runs from the observed tool call to its result, so a step spans the runtime's real start and
+completion. Tool payloads are
+read from the `tool-result` event's `output` field, and a failed call keeps the `tool-error` the
 runtime reported rather than a synthetic stream failure. Reasoning is stored per block id with its
 start and end timestamps, capped at 64,000 characters per block and 1,000 blocks per turn
 (`truncated: true` marks a clipped block, and Computer stops opening blocks at the ceiling so an

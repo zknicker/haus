@@ -73,8 +73,8 @@ because those runtime transcripts do not carry a Haus Agent id.
 
 For a Haus Agent turn, input includes cached input: cache-read and cache-write
 break input down and are not added again. Processed tokens (a turn's total) are input plus output.
-Claude Code reports input this way. codex-acp reports input without its cached part, so the ACP
-adapter patch adds the cached count back for Codex turns; a Codex turn's processed tokens then
+Claude Code reports input this way. Codex reports input without its cached part, so the Codex
+driver adds the cached count back; a Codex turn's processed tokens then
 equal the growth in Codex's own thread total. Codex usage recorded before that fix undercounts
 input and is not corrected: daily rows mix turns from before and after it, and earlier rows also
 counted only a turn's last model request, so no reliable correction exists.
@@ -156,18 +156,13 @@ Computer.
 Computer also records normalized token counts from each completed Haus Agent turn. The compact
 turn summary carries the Agent, runtime, model, input, output, and cache counts to Server; prompts,
 transcripts, and raw provider events remain Computer-local. A Codex turn reports every model
-request it made. Upstream codex-acp answers a prompt with only the final request's usage
-(app-server's `ThreadTokenUsage.last`), so Computer's pnpm patch to codex-acp
-(`assets/harness-bridges/codex/codex-acp.patch`) adds app-server's `last` and thread-cumulative
-`total` to each `usage_update` as `_meta["haus/threadTokenUsage"]`. The ACP adapter patch reports
-the turn as the growth of that thread total: from the previous turn's total, or, in a fresh bridge
-process, from the first update's total minus its own request. A re-sent total is not a request.
-A Codex turn without those updates keeps codex-acp's last-request usage.
-Grok Build reports full turn totals in the prompt response's `_meta.usage` object. The ACP adapter
-patch maps those counts into standard finish usage, including cache counts, without adding
-reasoning tokens a second time. Sibling token fields describe only the last model call and are
-not a fallback for missing turn usage. Remove this part of the patch once the upstream adapter
-consumes Grok's prompt usage. Turns without reported usage remain unknown.
+request it made: the app-server's `thread/tokenUsage/updated` carries each request (`last`) and
+the thread's running total, and the Codex driver (`runtime/codex/turn-usage.ts`) sums a turn's
+requests. An update that only re-sends the previous total, as a turn opens, is not a request.
+Grok Build reports full turn totals in the prompt response's `_meta.usage` object. The Grok driver
+(`runtime/grok/grok-usage.ts`) maps those counts into the turn's usage, including cache counts,
+without adding reasoning tokens a second time. Sibling token fields describe only the last model
+call and are not a fallback for missing turn usage. Turns without reported usage remain unknown.
 
 Server maintains a daily UTC rollup keyed by Server, date, Agent, runtime, and model. PostgreSQL
 updates that cube transactionally when a compact turn summary is inserted, corrected, or deleted.
@@ -193,17 +188,13 @@ Agent hover cards, and profile pages show the issue for their assigned Computer 
 runtime, with a link to Computer settings. The Computer page owns native sign-in instructions.
 Other runtimes on the same Computer remain unaffected.
 
-AI SDK's native adapters own execution authentication for Claude Code and Grok Build, including
-host subscription discovery, token refresh, and saving rotated credentials. Haus does not inject
-its own Claude access token or reject an expired token before the adapter can refresh it. Agent
-workspaces remain isolated while authentication is resolved on the host.
-
-The Claude adapter patch also removes credential environment variables from its bundled bridge's
-persisted start settings, while leaving the live message intact. Resumed turns receive freshly
-resolved credentials from the host. The shared persistence code is bundled into this adapter, so
-the patch targets that shipped bundle. Remove it when upstream stops persisting credentials;
-the same behavior is still present in version 1.0.121. A regression exercises the shipped
-persistence function and checks both recovery files.
+The runtime drivers resolve execution authentication from the host's own login. The Claude Code
+and Grok Build drivers discover the host subscription, refresh an expiring token, and write the
+rotated credential back owner-only (`claude-credentials.ts`, `grok-auth.ts`); a failed refresh
+fails the session open instead of launching with a dead token. Codex links the host's
+`auth.json` into the Agent's `CODEX_HOME`. An explicit API key in the Computer's environment wins
+over a login. Agent workspaces remain isolated while authentication is resolved on the host, and
+a credential rides only the live process environment, never a Haus-written launch record.
 
 The warning describes the last Haus authentication failure, not the runtime's current login state.
 If the runtime already works on the Computer, retry the Agent request. Sign in there only if the

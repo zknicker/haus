@@ -4,6 +4,7 @@ read_when:
   - running Haus locally or changing the managed development stack
   - changing local stack startup, ports, or developer verification
   - running or verifying the iPhone app in Simulator against a local Server
+  - upgrading a runtime CLI pin (Claude Code, Codex) or adding a model
 ---
 
 # Development
@@ -49,62 +50,42 @@ open when a nested tooltip appears; [Dependency Patches](dependency-patches.md)
 owns their removal condition and proof. Restart Vite after touching them so it
 rebuilds optimized dependencies.
 
-## Runtime Harness Upgrades
+## Runtime Upgrades
 
-The `@ai-sdk/harness*` packages version in lockstep: every adapter pins one
-exact `@ai-sdk/harness`, and `harness-grok-build` pins one exact
-`harness-acp`, which Computer also depends on directly to run Codex. Bump the whole set to versions that agree, and prefer the newest
-set whose exact dependencies agree. The AI SDK packages, including the core
-`ai`, `@ai-sdk/gateway`, and `@ai-sdk/provider` transitive pins, are excluded from the three-day
-`minimumReleaseAge` hold in `bunfig.toml` so current stable releases can install.
+Computer runs every Agent turn on Haus-owned runtime drivers
+([Runtime drivers](../../specs/runtime-drivers.md)); no runtime adapter package sits between
+them and the CLI. Each driver pins the CLI it launches:
 
-Every adapter is patched locally, as is `@ai-sdk/harness` itself, and each
-`patchedDependencies` key carries an exact version, so an upgrade regenerates every adapter patch with `bun patch`
-rather than renaming the files. [Dependency Patches](dependency-patches.md) lists
-each patch with its proof and removal condition; check that table before
-regenerating, because its guard test fails on every renamed key.
+- Claude Code: `CLAUDE_CODE_VERSION` and the per-platform registry integrities in
+  `apps/computer/src/runtime/claude-code/claude-install.ts`, installed once per machine under
+  `~/.haus/cache/claude-code/`.
+- Codex: the manifest and pnpm lockfile in `apps/computer/src/runtime/codex/pin/` with
+  `CODEX_CLI_VERSION` in `codex-executable.ts` (currently `0.159.0`), installed once per machine
+  under `~/.haus/cache/runtimes/codex/`. Regenerate the lockfile with
+  `corepack pnpm@10.32.1 install --ignore-workspace --lockfile-only` beside a copy of the
+  edited manifest.
+- Grok Build: the operator's installed `grok`; nothing is pinned.
 
-Each adapter also ships a bridge manifest pinning the vendor CLI it installs,
-and those pins trail the models Haus offers. Computer therefore owns the
-Claude Code bridge manifest and lockfile in
-`apps/computer/assets/harness-bridges/claude-code/`, taking only the bridge code
-from the package. It pins Claude Code `2.1.284` and Agent SDK `0.3.284` to support
-Opus 5.5 and Sonnet 5.5; the current adapter still bundles CLI `2.1.281`, which
-predates Sonnet 5.5. Codex has no adapter-owned pin: `harness-bridges/codex/` is the
-implementation Computer installs behind `harness-acp` — an exact
-`@agentclientprotocol/codex-acp` plus a pnpm override pinning the `@openai/codex`
-CLI it drives (currently `0.159.0`, verified with `gpt-6.1-sol`), and `codex-acp.patch`, a pnpm patch
-that sends per-request token usage (see [Usage](../features/usage.md)). Rebuild the patch
-with `pnpm patch` / `pnpm patch-commit --patches-dir .` when bumping codex-acp. Regenerate a
-lockfile with
-`corepack pnpm@10.32.1 install --ignore-workspace --lockfile-only` beside the
-edited manifest. Drop an override once the published bridge pins that vendor at
-or above the floor Haus needs; the bootstrap recipe is content-fingerprinted,
-so changing a pin re-runs every Agent's bridge install on its own.
-
-Harness-generated bootstraps and run state live under each Agent home's
-`.ai-sdk-harness/` directory. The local sandbox always sets `HOME` to that Agent
-home, including during bootstrap refresh; it must never inherit the operator's
-home for these files. An upgrade from the older workspace layout installs the
-current bridge recipe in the new location.
+A pin is part of its driver's bootstrap fingerprint, so changing one parks and restarts each
+resumed session once on the new CLI. Re-capture the driver's replay fixtures when an upgrade
+changes its stream (Runtime drivers, "Recording fixtures"); the fixture diff is the review
+surface. Each driver launches with `HOME` set to the Agent home, so a runtime's own state
+(`.claude/`, `.codex/`, `.grok/`) never lands in the operator's home.
 
 Adding a model is one entry in `apps/computer/src/inventory.ts`. Nothing
 validates a model id against the vendor, so prove a new one end to end before
 shipping it: start the visuals lab (`bun run visuals:lab`) and run the new
-model on one question. It drives the same harness bridge the Computer executor
-does, so a model id the bridge rejects fails there rather than in front of a
+model on one question. It drives the same runtime driver the Computer executor
+does, so a model id the runtime rejects fails there rather than in front of a
 user. That is a real model turn and costs money — see [Testing](testing.md),
 "Visuals Lab".
 
-For a focused Claude model and conversation-continuity smoke without a visual,
-run `HAUS_RUN_LIVE_CLAUDE_MODELS_TEST=1 bun test apps/computer/src/harness/claude-models-live.test.ts`.
-It uses the host's Claude sign-in and runs real turns on Opus 5.5 and Sonnet 5.5. It also proves
-MCP servers in the Agent's own Claude Code config never start.
-
-Codex model smoke uses the existing opt-in bridge suite:
-`HAUS_RUN_LIVE_CODEX_TEST=1 HAUS_LIVE_CODEX_MODEL=gpt-6.1-sol bun test apps/computer/src/harness/codex-live.test.ts`.
-It uses the host's Codex sign-in and checks steering, tools, token usage, and
-conversation resume. Without a model override, the suite uses GPT-5.6 Luna.
+For a focused model and conversation-continuity smoke without a visual, run the runtime
+end-to-end test with that model:
+`HAUS_RUN_LIVE_RUNTIME_E2E_TEST=1 HAUS_LIVE_RUNTIMES=claude-code HAUS_LIVE_CLAUDE_MODEL=claude-opus-5-5 bun test apps/computer/src/harness/runtime-driver-e2e-live.test.ts`
+(`HAUS_LIVE_CODEX_MODEL` and `HAUS_LIVE_GROK_MODEL` pick the other runtimes' models). It uses the
+host's sign-in and runs two real turns on one session through the executor, with a busy notice
+steered into the first. The driver-level live tests are in [Testing](testing.md#live-runtime-tests).
 
 ## Local Stack
 
@@ -286,8 +267,8 @@ Computer keeps its macOS-only pieces behind platform seams:
 
 Turns need a signed-in runtime CLI on the host, exactly as on a Mac. The dev
 seed puts Cove, Blippy, and Tiny on Codex. Cloud sessions handle this
-automatically: `.agents/cloud/install.sh` installs the Codex CLI pinned in
-`harness-bridges/codex/`, and `.agents/cloud/start.sh` signs it in each session
+automatically: `.agents/cloud/install.sh` installs the Codex CLI the Codex driver pins
+(`runtime/codex/pin/`), and `.agents/cloud/start.sh` signs it in each session
 with the Development OpenAI key. Elsewhere on Linux, do the same by hand:
 
 ```bash

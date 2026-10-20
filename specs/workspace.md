@@ -169,7 +169,7 @@ Each check logs one `nightly-dream.check` line and exports one `haus.dream.check
 ([observability](../docs/internals/observability.md#nightly-dream-checks)) with the Agent, the
 local date, the outcome (`baselined`, `requested`, `not-due`, or `skipped` with a reason:
 `retired`, `resetting`, or `not-configured`), and `MEMORY.md`'s size. Skips are not persisted.
-Only Agent folders are checked; dot-directories such as `.harness-bridge-prewarm` are Computer
+Only Agent folders are checked; dot-directories such as an older Computer's `.harness-bridge-prewarm` are Computer
 scratch, not Agents.
 
 A due Agent gets one `agent-dream-request` frame, even while it is busy. Server queues a `dream`

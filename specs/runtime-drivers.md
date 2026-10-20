@@ -1,18 +1,17 @@
 ---
-summary: Normative contract for Haus-owned runtime drivers (Claude Code, Codex, Grok Build) that replace the AI SDK harness inside Haus Computer — driver and session interfaces, TurnEvent vocabulary, steering, resume state, isolation, host tools, and the migration phases.
+summary: Normative contract for the Haus-owned runtime drivers (Claude Code, Codex, Grok Build) that run every Agent turn inside Haus Computer — driver and session interfaces, TurnEvent vocabulary, steering, resume state, isolation, host tools, fixtures, and the completed migration from the AI SDK harness.
 read_when:
-  - changing apps/computer/src/runtime/ (driver contract, TurnEvent, resume state, AI SDK adapter)
+  - changing apps/computer/src/runtime/ (driver contract, TurnEvent, resume state, legacy resume conversion, test fake driver)
   - adding or changing a Claude Code, Codex, or Grok Build driver, or its launch flags, env, or event normalizer
   - changing how a turn's events reach activity, the execution journal, thoughts, usage, or steering
-  - removing an @ai-sdk/harness* package or one of its bun patches
 ---
 
 # Runtime drivers
 
 Haus Computer runs every Agent turn through a **runtime driver**: Haus code that speaks one
 execution runtime's native protocol and normalizes it into the Haus `TurnEvent` vocabulary.
-Drivers replace the AI SDK harness (`@ai-sdk/harness*`, `@ai-sdk/provider-utils`). Pi is not
-carried forward. Session ownership stays as [Sessions](sessions.md) and
+Drivers replaced the AI SDK harness, which is gone along with its packages and patches (Phases).
+Pi is not carried forward. Session ownership stays as [Sessions](sessions.md) and
 [ADR 0011](../docs/adr/0011-agents-own-one-global-session.md) define it: one Agent, one
 persistent session, resumed across turns and Computer restarts.
 
@@ -63,7 +62,7 @@ session opened after its window was abandoned is destroyed.
 
 The attachment daemon opens one `RuntimeContext` (`runtime/runtime-context.ts`) that the
 production factory (`runtime/driver-factory.ts`) hands every driver: the Computer's host-tool
-server, the process registry every runtime process joins (`sandbox-process-owner.ts`), and the
+server, the process registry every runtime process joins (`runtime/process-registry.ts`), and the
 shared warm pool (`runtime/warm-pool.ts`). The pool parks one process per Agent session, keyed by
 the Agent root, reused only when runtime, native conversation, and launch fingerprint all match;
 an idle process closes after 30 minutes. Agent reset or removal evicts its process; shutdown
@@ -152,13 +151,13 @@ recovery; Raft's silent `fallback_fresh_thread` is not adopted.
 
 Every driver launches with HOME = the Agent HOME and the Agent workspace as cwd, inherits the
 turn's `env` (Haus CLI, PATH, runner token), and links host logins into the HOME through the
-existing auth profiles (`sandbox-auth-profiles.ts`). What each runtime must keep, carried over
-from `runtime-harness.ts`, `create-agent.ts`, `codex-acp.ts`, and the bun patches:
+auth profiles (`runtime/auth-profiles.ts`). What each runtime must keep, carried over from the AI
+SDK harness setup and its patches:
 
 **Claude Code**
 - Settings from user scope only (`--setting-sources user`); no project/local `CLAUDE.md`.
 - `--strict-mcp-config` with only the Haus host-tool MCP server; no operator MCP servers.
-- `--disallowedTools` = `CLAUDE_INACTIVE_TOOLS`; `--allowedTools` names `Glob` and `Grep`
+- `--disallowedTools` = `CLAUDE_DISALLOWED_TOOLS`; `--allowedTools` names `Glob` and `Grep`
   (the native build otherwise drops both from the Agent and sub-agents).
 - `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`; `--effort` from reasoning effort; extended thinking
   enabled for `claude-haiku-4-5`; `--permission-mode bypassPermissions`.
@@ -182,14 +181,16 @@ from `runtime-harness.ts`, `create-agent.ts`, `codex-acp.ts`, and the bun patche
   `GROK_MAX_MCP_OUTPUT_BYTES=102400`; the operator's installed `grok`, never an npm copy.
 - Permission requests auto-approve only with both launch and session yolo facts (Raft).
 
-The `*-context-isolation*.test.ts` files are the proof for each runtime and move to the drivers.
+Each driver's launch test (`claude-launch.test.ts`, `codex-launch.test.ts`, `grok-launch.test.ts`)
+is the deterministic proof; `claude-context-isolation-live.test.ts` and
+`codex-isolation-live.test.ts` prove it against the real CLI.
 
 ## Host tools
 
 Haus host tools (`execute` for Server MCP, `browser`) are a `HostToolSet` served to every runtime
 through one Computer-local MCP server (`apps/computer/src/host-tools/`), bound to the turn and
 addressed to the runtime as its only MCP server. Drivers report host-tool calls without
-`providerExecuted`. The adapter alone converts `HostToolSet` to AI SDK tools.
+`providerExecuted`.
 
 ## Behavior catalog
 
@@ -232,19 +233,23 @@ real streams rather than hand-written frames:
 
 1. **Seam (done):** contract types, `TurnEvent` consumers, the temporary AI SDK adapter
    (`runtime/ai-sdk-adapter.ts`, `runtime/ai-sdk-turn-events.ts`); no behavior change.
-2. **Host-tool MCP server** (`host-tools/`), used by the adapter first.
+2. **Host-tool MCP server (done)** (`host-tools/`), used by the adapter first.
 3. **Claude Code, Codex, and Grok Build drivers (done)** with fixtures, ported tests, and live
    tests.
 4. **Drivers are the execution path (done):** `driver-factory.ts` maps each runtime to its driver
    through the daemon's `RuntimeContext`; Pi left execution; legacy resume conversion; typed
    resume rejection; returned steers; bridge prewarm replaced by `runtime-prewarm.ts`. The
    adapter remains, unused outside tests. Proof: `harness/runtime-driver-e2e-live.test.ts`.
-5. **Remove the adapter:** delete the adapter, `ai-sdk-resume-rejection.ts`, `harness-*`
-   packages, bridge bootstrap, AI SDK sandbox, `@ai-sdk/*` dependencies, their patches and rows
-   in [Dependency Patches](../docs/operations/dependency-patches.md), and move the executor tests
-   that fake a Harness Agent onto fake drivers.
+5. **Remove the adapter (done):** the adapter, its resume-rejection mapping, the harness
+   packages, bridge bootstrap and prewarm, the AI SDK sandbox, every AI SDK dependency, and their
+   patches and Dependency Patches rows are gone. Facts the drivers still use moved under
+   `runtime/` (`process-registry.ts`, `process-group-liveness.ts`, `auth-profiles.ts`,
+   `runtime-subagents.ts`, `runtime-assets.ts` for the release and doctor check, one
+   `event-queue.ts` for Claude Code and Grok Build). Executor, launch, and shutdown tests script
+   `TurnEvent`s through `runtime/testing/fake-runtime-driver.ts`. A legacy AI SDK resume state
+   still converts on first open (`legacy-resume-state.ts`).
 
 Each phase gates on: Computer test + typecheck, the runtime's fixtures, its opt-in live test,
-and a time-to-first-event and turn-latency comparison against the adapter on the same build
+and a time-to-first-event and turn-latency comparison against the previous build
 (`AgentTurnTimings`: `harness_ready`, `session_create`, `first_stream`, `first_tool`). A driver
 that regresses either does not ship.
