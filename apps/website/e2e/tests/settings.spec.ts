@@ -1,10 +1,15 @@
 import { randomBytes } from 'node:crypto';
-import type { Page } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
+import type { Locator, Page } from '@playwright/test';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { assertOpaqueId, completeOnboarding, createClient, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const slug = 'settings-hq';
+const profilePhotoPath = fileURLToPath(
+    new URL('../../public/prototypes/cove-avatar.png', import.meta.url)
+);
+let viewerUserId: string;
 
 test.beforeAll(async () => {
     const { databaseUrl, token } = readClerkSessionFixture();
@@ -17,6 +22,7 @@ test.beforeAll(async () => {
         "select id from users where clerk_user_id = 'user_e2e_human'"
     );
     assertOpaqueId(ownerUserId);
+    viewerUserId = ownerUserId;
     runPsql(
         databaseUrl,
         `update users set display_name = 'Zach Knickerbocker', avatar_id = null where id = '${ownerUserId}'`
@@ -142,7 +148,35 @@ test('Usage keeps the settings rail and Archived chats links out', async ({ page
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/archived$`, 'u'));
 });
 
+test('uploads a profile photo, serves it from the avatar API, and replaces it on re-upload', async ({
+    page,
+}) => {
+    await signInAsClerkHuman(page);
+    await page.goto(`/s/${slug}/settings/profile`);
+
+    const photo = page.getByRole('button', { name: /profile photo/u });
+    const first = await uploadProfilePhoto(page, photo);
+    const firstResponse = await page.request.get(first.src);
+    expect(firstResponse.ok()).toBe(true);
+    expect(firstResponse.headers()['content-type']).toMatch(/^image\/png/u);
+
+    const second = await uploadProfilePhoto(page, photo, first.avatarId);
+    expect(second.avatarId).not.toBe(first.avatarId);
+
+    await page.goto(`/s/${slug}/settings/members/humans/${viewerUserId}`);
+    await expect(page.getByRole('button', { name: /profile photo/u }).locator('img')).toHaveAttribute(
+        'src',
+        new RegExp(`/api/avatars/${second.avatarId}$`, 'u')
+    );
+});
+
 test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {
+    const { databaseUrl } = readClerkSessionFixture();
+    runPsql(
+        databaseUrl,
+        `update users set display_name = 'Zach Knickerbocker', avatar_id = null where id = '${viewerUserId}'`
+    );
+
     await signInAsClerkHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     const name = page.getByRole('textbox', { name: 'Display name' });
@@ -297,4 +331,28 @@ test('hides added presets and allows deleting every preset account', async ({ pa
 async function removeConnectionFromPage(page: Page, name: string) {
     await page.getByRole('button', { name: `${name} actions` }).click();
     await page.getByRole('menuitem', { name: 'Remove from Haus' }).click();
+}
+
+const avatarSrcPattern = /\/api\/avatars\/(avt_[a-z0-9]{16})/u;
+
+async function uploadProfilePhoto(page: Page, photo: Locator, previousAvatarId?: string) {
+    const chooser = page.waitForEvent('filechooser');
+    await photo.click();
+    await (await chooser).setFiles(profilePhotoPath);
+    const img = photo.locator('img');
+    await expect(img).toBeVisible();
+    await expect
+        .poll(async () => {
+            const src = (await img.getAttribute('src')) ?? '';
+            const avatarId = avatarSrcPattern.exec(src)?.[1] ?? '';
+            if (!avatarId) {
+                return false;
+            }
+            return !previousAvatarId || avatarId !== previousAvatarId;
+        })
+        .toBe(true);
+    const src = (await img.getAttribute('src')) ?? '';
+    const avatarId = avatarSrcPattern.exec(src)?.[1] ?? '';
+    expect(avatarId).toMatch(/^avt_[a-z0-9]{16}$/u);
+    return { avatarId, src };
 }
