@@ -207,7 +207,12 @@ test('stacks one series per Agent with a distinct categorical color', () => {
         ...usage,
         breakdown: [
             ...usage.breakdown,
-            { ...usage.breakdown[0]!, modelId: 'gpt-5.6-mini', runtimeId: 'pi', totalTokens: 7 },
+            {
+                ...usage.breakdown[0]!,
+                modelId: 'grok-4.6',
+                runtimeId: 'grok-build',
+                totalTokens: 7,
+            },
         ],
     };
     const view = buildTokenUsageView(twoModels, 7, null, new Date('2026-08-13T18:00:00.000Z'), {

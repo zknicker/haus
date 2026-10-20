@@ -1,5 +1,5 @@
 import type { ComputerInventory, ComputerRuntimeId, UsageOverview } from '@haus/api';
-import { Button, Chip, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
+import { Chip, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { ProviderMark } from '../../components/provider-mark.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
@@ -21,15 +21,11 @@ import {
  */
 export function DetectedRuntimeUsage({
     detectedRuntimeIds,
-    onViewPiUsage,
-    piAgentCount,
     usage,
     runtimeIssues = [],
     computerName = 'this Computer',
 }: {
     detectedRuntimeIds: ComputerRuntimeId[];
-    onViewPiUsage?: () => void;
-    piAgentCount: number | null;
     usage: UsageOverview;
     runtimeIssues?: ComputerInventory['runtimeIssues'];
     computerName?: string;
@@ -38,7 +34,7 @@ export function DetectedRuntimeUsage({
     const rows = runtimeOrder
         .filter((id) => detected.has(id))
         .map((id) => {
-            const row = buildRuntimeRow(id, usage, piAgentCount);
+            const row = buildRuntimeRow(id, usage);
             if (runtimeIssues.some((issue) => issue.runtimeId === id)) {
                 row.issue = 'authentication';
             }
@@ -52,7 +48,7 @@ export function DetectedRuntimeUsage({
     return (
         <DataGrid
             aria-label="Runtimes on this Computer"
-            columns={runtimeColumns(Date.now(), computerName, onViewPiUsage)}
+            columns={runtimeColumns(Date.now(), computerName)}
             contentClassName="min-w-160"
             data={rows}
             getRowId={(item) => item.id}
@@ -79,11 +75,7 @@ export function DetectedRuntimeUsageSkeleton({
     );
 }
 
-function runtimeColumns(
-    now: number,
-    computerName: string,
-    onViewPiUsage?: () => void
-): DataGridColumn<RuntimeUsageRow>[] {
+function runtimeColumns(now: number, computerName: string): DataGridColumn<RuntimeUsageRow>[] {
     return [
         {
             cell: (item) => (
@@ -173,17 +165,10 @@ function runtimeColumns(
                 if (staleAt) {
                     return null;
                 }
-                if (item.window?.resetsAt) {
-                    return (
-                        <span className="text-muted text-sm">
-                            Resets {formatTimestamp(item.window.resetsAt)}
-                        </span>
-                    );
-                }
-                return item.id === 'pi' && onViewPiUsage ? (
-                    <Button className="-my-1" onPress={onViewPiUsage} size="sm" variant="ghost">
-                        View usage
-                    </Button>
+                return item.window?.resetsAt ? (
+                    <span className="text-muted text-sm">
+                        Resets {formatTimestamp(item.window.resetsAt)}
+                    </span>
                 ) : null;
             },
             header: 'Details',

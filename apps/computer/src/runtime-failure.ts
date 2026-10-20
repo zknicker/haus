@@ -97,7 +97,7 @@ export function runtimeErrorText(error: unknown, depth = 0): string {
 const contextOverflowPattern =
     /context window|context.?length.?exceeded|maximum context length|prompt is too long/u;
 
-// Pi: "Compaction failed"/"Auto-compaction failed"; Claude Code: "Error during compaction";
+// Generic "Compaction failed"/"Failed to compact"; Claude Code: "Error during compaction";
 // Codex: "Error running remote compact task". No harness surfaces a typed compaction failure.
 const compactionFailurePattern =
     /compaction failed|failed to compact|error during compaction|compact task/u;

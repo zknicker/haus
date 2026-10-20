@@ -31,7 +31,7 @@ test('concurrent Agent DM sends commit while Server-scoped reads keep arriving',
             )
             values (
                 ${computerId}, ${serverId}, ${ownerUserId}, ${'e'.repeat(64)},
-                ${{ runtimes: [{ id: 'pi', label: 'Pi', models: [{ id: 'pi', label: 'Pi' }] }] }}::jsonb,
+                ${{ runtimes: [{ id: 'grok-build', label: 'Grok Build', models: [{ id: 'grok-4.6', label: 'Grok 4.6' }] }] }}::jsonb,
                 'healthy'
             )
         `;
@@ -39,8 +39,8 @@ test('concurrent Agent DM sends commit while Server-scoped reads keep arriving',
             computerId,
             displayName: 'Blippy',
             handle: 'blippy',
-            modelId: 'pi',
-            runtimeId: 'pi',
+            modelId: 'grok-4.6',
+            runtimeId: 'grok-build',
             serverId,
         });
         const agentId = created.agent.id;

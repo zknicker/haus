@@ -1,9 +1,7 @@
-import { Atom01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/utils.ts';
-import { Icon } from './ui/icon.tsx';
 
-export type ProviderMarkId = 'claude-code' | 'codex' | 'grok-build' | 'openrouter' | 'pi';
+export type ProviderMarkId = 'claude-code' | 'codex' | 'grok-build' | 'openrouter';
 
 export function ProviderMark({
     className,
@@ -12,15 +10,6 @@ export function ProviderMark({
     className?: string;
     provider: ProviderMarkId;
 }) {
-    if (provider === 'pi') {
-        return (
-            <Icon
-                aria-hidden="true"
-                className={cn('size-5 shrink-0', className)}
-                icon={Atom01Icon}
-            />
-        );
-    }
     const path = providerPaths[provider];
 
     return (
@@ -34,14 +23,11 @@ export function ProviderMark({
     );
 }
 
-// Provider glyphs are bare SVG; Pi uses HugeIcons. All share one monochrome
+// Provider glyphs are bare SVG. All share one monochrome
 // contract and inherit their surface's text color — hardcoding white rendered
 // them invisible on any light surface. Call sites that place a mark on a dark or
 // tinted tile pass their own fill.
-const providerPaths: Record<
-    Exclude<ProviderMarkId, 'pi'>,
-    { elements: ReactNode; viewBox: string }
-> = {
+const providerPaths: Record<ProviderMarkId, { elements: ReactNode; viewBox: string }> = {
     'claude-code': {
         elements: (
             <path

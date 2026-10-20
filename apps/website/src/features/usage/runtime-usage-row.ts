@@ -20,11 +20,7 @@ export interface RuntimeUsageRow {
     window: DisplayPlanWindow | null;
 }
 
-export function buildRuntimeRow(
-    id: ComputerRuntimeId,
-    usage: UsageOverview,
-    piAgentCount: number | null
-): RuntimeUsageRow {
+export function buildRuntimeRow(id: ComputerRuntimeId, usage: UsageOverview): RuntimeUsageRow {
     const title = runtimeLabels[id];
 
     if (id === 'codex') {
@@ -71,34 +67,20 @@ export function buildRuntimeRow(
         };
     }
 
-    if (id === 'grok-build') {
-        const grok = usage.grok;
-        return {
-            capturedAt: grok.status === 'ok' ? grok.snapshot.capturedAt : null,
-            fiveHourWindow: null,
-            id,
-            issue: usageIssue(grok),
-            stale: retainedReason(grok),
-            status: 'Weekly limit unavailable',
-            title,
-            window:
-                grok.status === 'ok'
-                    ? (grok.snapshot.windows.find(
-                          (candidate) => candidate.label === 'Weekly Limit'
-                      ) ?? null)
-                    : null,
-        };
-    }
-
+    const grok = usage.grok;
     return {
-        capturedAt: null,
+        capturedAt: grok.status === 'ok' ? grok.snapshot.capturedAt : null,
         fiveHourWindow: null,
         id,
-        issue: null,
-        stale: null,
-        status: piAgentSummary(piAgentCount),
+        issue: usageIssue(grok),
+        stale: retainedReason(grok),
+        status: 'Weekly limit unavailable',
         title,
-        window: null,
+        window:
+            grok.status === 'ok'
+                ? (grok.snapshot.windows.find((candidate) => candidate.label === 'Weekly Limit') ??
+                  null)
+                : null,
     };
 }
 
@@ -143,20 +125,10 @@ function codexBurstWindow(windows: CodexWindows): DisplayPlanWindow | null {
     return selectWindow([session], 'current-session', '5h');
 }
 
-function piAgentSummary(agentCount: number | null) {
-    if (agentCount === null) {
-        return 'API-backed · Usage tracked automatically';
-    }
-    return agentCount === 0
-        ? 'API-backed · No Agents using Pi'
-        : `API-backed · ${agentCount} ${agentCount === 1 ? 'Agent' : 'Agents'}`;
-}
-
-export const runtimeOrder: ComputerRuntimeId[] = ['codex', 'claude-code', 'grok-build', 'pi'];
+export const runtimeOrder: ComputerRuntimeId[] = ['codex', 'claude-code', 'grok-build'];
 
 const runtimeLabels: Record<ComputerRuntimeId, string> = {
     'claude-code': 'Claude Code',
     codex: 'Codex',
     'grok-build': 'Grok Build',
-    pi: 'Pi',
 };

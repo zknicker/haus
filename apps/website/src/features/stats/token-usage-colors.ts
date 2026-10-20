@@ -2,7 +2,6 @@ const runtimeLabels: Record<string, string> = {
     'claude-code': 'Claude Code',
     codex: 'Codex',
     'grok-build': 'Grok',
-    pi: 'Pi',
 };
 
 /**

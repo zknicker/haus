@@ -137,7 +137,7 @@ export const computerInventorySchema = z
             .array(
                 z
                     .object({
-                        runtimeId: z.enum(['codex', 'claude-code', 'grok-build', 'pi']),
+                        runtimeId: z.enum(['codex', 'claude-code', 'grok-build']),
                         kind: z.literal('authentication'),
                         observedAt: timestampSchema,
                     })

@@ -569,8 +569,7 @@ Computer protocol 21 so an older Computer cannot fall back to opening its own br
 Computer protocol 23 adds per-model `reasoningEfforts` and `defaultReasoningEffort` to inventory and supports `default`,
 `low`, `medium`, `high`, `xhigh`, and `max`. Computer maintains the capability list beside its
 model inventory; AI SDK adapter settings define the runtime's accepted vocabulary, but do not
-provide a per-model discovery API. Claude Haiku has only `default`; Pi's alias uses its adapter's
-thinking budgets, with the native model determining their effect. Inventories predating this
+provide a per-model discovery API. Claude Haiku has only `default`. Inventories predating this
 field retain the original low/medium/high contract. Server validates explicit creation and
 configuration choices against the assigned Computer's report. Configurable models report a concrete
 default (currently Haus's Medium), which the App selects when a prior choice is unsupported.
@@ -580,8 +579,8 @@ the effort setting at the adapter boundary. An applied value records the request
 Computer protocol 28 adds per-model `features`: the core abilities an Agent gets on that model as
 Haus launches its runtime, from `subagents` and `image-generation`. Computer declares them beside
 the effort list in `apps/computer/src/inventory.ts`, following the harness settings: Claude Code
-has sub-agents; Codex and Grok Build keep native image generation with sub-agents switched off;
-Pi has neither. Codex image generation needs a paid ChatGPT plan and drops silently otherwise.
+has sub-agents; Codex and Grok Build keep native image generation with sub-agents switched off.
+Codex image generation needs a paid ChatGPT plan and drops silently otherwise.
 Web search is not a reported feature. An absent list means an older Computer, not "none". The
 App shows these facts in the Agent model picker and Settings -> Models.
 

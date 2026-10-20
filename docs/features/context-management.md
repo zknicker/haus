@@ -109,7 +109,6 @@ itself, as the prompt directs. Computer enforces this per runtime:
 | --- | --- | --- |
 | Claude Code | `project`/`local` settings (`CLAUDE.md`, `.claude/`) in the workspace and every ancestor | `settingSources: ['user']`; Agent `HOME` keeps its own `.claude.json`, never a link to the operator's (login resolves from host credentials) |
 | Codex | `AGENTS.md` in the workspace and every directory up to its git root | `project_doc_max_bytes = 0` in `CODEX_CONFIG`; isolated `CODEX_HOME` |
-| Pi | `AGENTS.md`/`CLAUDE.md` in the workspace and every ancestor to `/` | `noContextFiles` ([Dependency Patches](../operations/dependency-patches.md)) |
 | Grok Build | Claude/Cursor files (`.claude/CLAUDE.md`, `.claude/rules/`, `~/.claude/`), plus generic names below | `GROK_{CLAUDE,CURSOR}_{AGENTS,RULES}_ENABLED=false`; isolated `GROK_HOME` |
 
 Known gap: Grok Build 1.0.13 has no switch for generic `AGENTS.md`,

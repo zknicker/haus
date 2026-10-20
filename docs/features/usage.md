@@ -34,11 +34,9 @@ while you read it.
   opening Agents Overview already scoped to that Agent. Ranges, per-configuration breakdown, and
   cross-Agent comparison belong to Agents Overview.
 * **Computer detail.** Owners and Admins see equal-size capacity cards for detected Codex, Claude
-  Code, Grok Build, and Pi runtimes. Supported runtimes that are absent sit in compact,
+  Code, and Grok Build runtimes. Supported runtimes that are absent sit in compact,
   low-contrast **Not Detected** Chips in the section header instead of occupying card-sized space.
-  Pi is shown as the provider-agnostic, API-backed runtime rather than as an OpenRouter account; its
-  **View usage** action opens Agents Overview scoped to that Computer and Pi. Computer-local token
-  ledgers are not shown on this surface.
+  Computer-local token ledgers are not shown on this surface.
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
   Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses which

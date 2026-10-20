@@ -129,7 +129,6 @@ outside any file the Agent can edit:
   connectors, served as `codex_apps`) and plugin MCP servers never load. Codex merges same-named
   server entries field by field, so an Agent that declares Haus's reserved server name
   (`ai-sdk-harness-tools`) in its Codex config can break its own Codex session.
-- Pi loads no filesystem extensions, so it has no MCP source besides Haus.
 - Grok Build launches with its Claude Code, Cursor, Codex, and xAI-managed MCP sources off. Known
   gap: the Grok CLI has no per-process switch for its own `$GROK_HOME/config.toml`, trusted
   project, or plugin MCP servers, so a server an Agent adds there loads in its next Grok session.

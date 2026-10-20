@@ -10,7 +10,7 @@ test('labels model features, with the Codex plan caveat on image generation', ()
 });
 
 test('describes no features, or an older Computer that reports none, as nothing', () => {
-    expect(modelFeatureDescription('pi', [])).toBeUndefined();
+    expect(modelFeatureDescription('grok-build', [])).toBeUndefined();
     expect(modelFeatureDescription('codex')).toBeUndefined();
     expect(modelFeatureDescription('claude-code', ['subagents', 'image-generation'])).toBe(
         'Sub-agents · Image generation'

@@ -147,7 +147,7 @@ tool boundary with no other tool call still in flight, using AI SDK Harness's ac
 `experimental_steerTurn` API. The harness reports compaction only after it completes, so no
 compaction gate exists.
 Computer acknowledges only successful runtime acceptance, never a local queue write.
-Every runtime steers. Claude Code and Pi do so natively. Grok Build and Codex run behind
+Every runtime steers. Claude Code does so natively. Grok Build and Codex run behind
 `@ai-sdk/harness-acp`, whose Haus patch forwards the message as the agent's own steering request:
 `_x.ai/interject` for Grok Build, and `_session/steering` for Codex, which runs as
 [codex-acp](https://github.com/agentclientprotocol/codex-acp) over `codex app-server`

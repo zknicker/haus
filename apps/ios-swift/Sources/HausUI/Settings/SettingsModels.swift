@@ -127,7 +127,6 @@ public func settingsRuntimeDisplayName(_ slug: String) -> String {
     switch slug.lowercased() {
     case "codex": "Codex"
     case "claude-code", "claude_code": "Claude Code"
-    case "pi": "Pi"
     case "grok-build", "grok_build": "Grok Build"
     default: slug
     }

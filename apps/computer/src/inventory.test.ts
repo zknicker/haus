@@ -3,7 +3,7 @@ import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { detectInventory, featuresForRuntime, reasoningEffortsForModel } from './inventory.ts';
-import { runtimeSearchPath } from './runtime-discovery.ts';
+import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
 
 test('reports effort capabilities for the runtime and concrete model', () => {
     expect(reasoningEffortsForModel('claude-code', 'claude-opus-4-8')).toEqual([
@@ -29,7 +29,6 @@ test('reports the core features each runtime is launched with', () => {
     expect(featuresForRuntime('claude-code')).toEqual(['subagents']);
     expect(featuresForRuntime('codex')).toEqual(['image-generation']);
     expect(featuresForRuntime('grok-build')).toEqual(['image-generation']);
-    expect(featuresForRuntime('pi')).toEqual([]);
 });
 
 test('offers Claude 5.5 models with medium default effort after the existing default', async () => {
@@ -83,23 +82,28 @@ test('discovers a runtime from the Computer search path and verifies the executa
     const claude = join(root, 'claude');
     const pi = join(root, 'pi');
     const grok = join(root, 'grok');
+    const broken = join(root, 'broken');
     try {
         await Promise.all([
             writeFile(codex, '#!/bin/sh\necho "codex-cli 0.144.0"\n'),
             writeFile(claude, '#!/bin/sh\nexit 1\n'),
-            writeFile(pi, '#!/missing/interpreter\n'),
+            writeFile(pi, '#!/bin/sh\necho "pi 0.80.0"\n'),
+            writeFile(broken, '#!/missing/interpreter\n'),
             writeFile(grok, '#!/bin/sh\necho "grok 0.2.112"\n'),
         ]);
         await Promise.all([
             chmod(codex, 0o755),
             chmod(claude, 0o755),
             chmod(pi, 0o755),
+            chmod(broken, 0o755),
             chmod(grok, 0o755),
         ]);
 
         const inventory = detectInventory({ searchPath: root });
 
+        // Claude fails its probe, and an installed Pi CLI is no longer a Haus runtime.
         expect(inventory.runtimes.map((runtime) => runtime.id)).toEqual(['codex', 'grok-build']);
+        expect(resolveRuntimeExecutable('broken', { searchPath: root })).toBeNull();
         const codexModels = inventory.runtimes.find((runtime) => runtime.id === 'codex')?.models;
         expect(codexModels?.[0]?.id).toBe('gpt-5.6-sol');
         for (const [id, label] of [

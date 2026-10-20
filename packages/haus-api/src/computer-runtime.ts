@@ -3,7 +3,6 @@ export const computerRuntimeCatalog = [
     { id: 'codex', label: 'Codex' },
     { id: 'claude-code', label: 'Claude Code' },
     { id: 'grok-build', label: 'Grok Build' },
-    { id: 'pi', label: 'Pi' },
 ] as const;
 
 export type ComputerRuntimeId = (typeof computerRuntimeCatalog)[number]['id'];

@@ -24,7 +24,7 @@ const codexRuntime = {
         { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
     ],
 };
-const piRuntime = { id: 'pi', label: 'Pi', models: [{ id: 'pi', label: 'Pi' }] };
+const grok = { id: 'grok-build', label: 'Grok', models: [{ id: 'grok-4.6', label: 'Grok' }] };
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
@@ -50,9 +50,9 @@ beforeAll(async () => {
         slug: 'other-hq',
     });
 
-    // Computer A reports Codex; Computer B reports only Pi; a foreign Server owns its own Computer.
+    // Computer A reports Codex; Computer B reports only Grok Build; a foreign Server owns its own Computer.
     await insertComputer(serverId, computerA, credentialHash, { runtimes: [codexRuntime] });
-    await insertComputer(serverId, computerB, otherCredentialHash, { runtimes: [piRuntime] });
+    await insertComputer(serverId, computerB, otherCredentialHash, { runtimes: [grok] });
     await insertComputer(foreign.id, foreignComputer, foreignCredentialHash, {
         runtimes: [codexRuntime],
     });
@@ -149,8 +149,8 @@ test('first human sends materialize exactly one pair DM under retries and per-hu
         computerId: computerB,
         displayName: 'Relay',
         handle: 'relay',
-        modelId: 'pi',
-        runtimeId: 'pi',
+        modelId: 'grok-4.6',
+        runtimeId: 'grok-build',
         serverId,
     });
     const input = {
@@ -232,14 +232,14 @@ test('fails closed on a runtime or model the assigned Computer never reported', 
         })
     ).rejects.toThrow(/does not report the model/i);
 
-    // Pi lives only on Computer B, so referencing it on Computer A fails closed.
+    // Grok Build lives only on Computer B, so referencing it on Computer A fails closed.
     await expect(
         owner.trpc.agent.create.mutate({
             computerId: computerA,
             displayName: 'Ghost',
             handle: 'ghost',
-            modelId: 'pi',
-            runtimeId: 'pi',
+            modelId: 'grok-4.6',
+            runtimeId: 'grok-build',
             serverId,
         })
     ).rejects.toThrow(/does not report the runtime/i);
@@ -517,8 +517,8 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
         computerId: computerB,
         displayName: 'Fen',
         handle: 'fen',
-        modelId: 'pi',
-        runtimeId: 'pi',
+        modelId: 'grok-4.6',
+        runtimeId: 'grok-build',
         serverId,
     });
     const dmChatId = (
@@ -608,8 +608,8 @@ test('releases a retired Agent handle without conflating the replacement identit
         computerId: computerB,
         displayName: 'Echo',
         handle: 'echo',
-        modelId: 'pi',
-        runtimeId: 'pi',
+        modelId: 'grok-4.6',
+        runtimeId: 'grok-build',
         serverId,
     });
     const originalChat = await owner.trpc.chat.ensureAgentDm.mutate({
@@ -622,8 +622,8 @@ test('releases a retired Agent handle without conflating the replacement identit
             computerId: computerB,
             displayName: 'Other Echo',
             handle: 'echo',
-            modelId: 'pi',
-            runtimeId: 'pi',
+            modelId: 'grok-4.6',
+            runtimeId: 'grok-build',
             serverId,
         })
     ).rejects.toThrow(/already taken/u);
@@ -638,8 +638,8 @@ test('releases a retired Agent handle without conflating the replacement identit
         computerId: computerB,
         displayName: 'Echo',
         handle: 'echo',
-        modelId: 'pi',
-        runtimeId: 'pi',
+        modelId: 'grok-4.6',
+        runtimeId: 'grok-build',
         serverId,
     });
     const replacementChat = await owner.trpc.chat.ensureAgentDm.mutate({

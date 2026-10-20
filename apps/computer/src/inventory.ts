@@ -37,7 +37,6 @@ const knownRuntimes: ComputerRuntime[] = [
         { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
         { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
     ]),
-    supportedRuntime('pi', [{ id: 'pi', label: 'Pi' }]),
     supportedRuntime('grok-build', [
         { id: 'grok-4.6', label: 'Grok 4.6' },
         { id: 'grok-4.5', label: 'Grok 4.5' },
@@ -118,7 +117,7 @@ export function reasoningEffortsForModel(
  * Core abilities as Haus launches each runtime, so this list must follow the harness settings:
  * sub-agents come from `supportsSubagents` (runtime-harness.ts), with Codex's `agents.enabled =
  * false` (codex-acp.ts) and Grok's `GROK_SUBAGENTS=0` (create-agent.ts) switching them off.
- * Codex and Grok Build keep their native image generation; Claude Code and Pi have none.
+ * Codex and Grok Build keep their native image generation; Claude Code has none.
  */
 export function featuresForRuntime(runtimeId: ComputerRuntimeId): ComputerModelFeature[] {
     const features: ComputerModelFeature[] = [];

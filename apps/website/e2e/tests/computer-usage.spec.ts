@@ -107,7 +107,7 @@ test('manual runtime refresh updates capacity and Agent model choices without re
             JSON.stringify({ type: 'usage-report', usage: planUsage(new Date().toISOString()) })
         );
         await page.goto(`/s/${slug}/computers`);
-        await expect(page.getByText('Not detected: Claude Code, Grok Build, Pi')).toBeVisible();
+        await expect(page.getByText('Not detected: Claude Code, Grok Build')).toBeVisible();
         const refreshRequest = new Promise<
             ReturnType<typeof computerInventoryRefreshRequestSchema.parse>
         >((resolve) => {
@@ -143,7 +143,7 @@ test('manual runtime refresh updates capacity and Agent model choices without re
         await expect(
             page.getByRole('grid', { name: 'Runtimes on this Computer' }).getByText('Grok Build')
         ).toBeVisible();
-        await expect(page.getByText('Not detected: Claude Code, Pi')).toBeVisible();
+        await expect(page.getByText('Not detected: Claude Code')).toBeVisible();
         await page.screenshot({ path: test.info().outputPath('refreshed-runtimes.png') });
         const { agent } = await owner.agent.create.mutate({
             serverId: server.id,

@@ -179,7 +179,7 @@ The weekly Reminder's next fire is a week out and the Trigger's secret is discar
 there wakes an Agent on its own.
 
 Computer
-then runs their real Agent turns using the host's Codex, Claude Code, Grok Build, or Pi
+then runs their real Agent turns using the host's Codex, Claude Code, or Grok Build
 sign-in.
 
 When `HAUS_OPENAI_API_KEY` or `HAUS_GEMINI_API_KEY` resolves in the dev stack, bootstrap stores it as

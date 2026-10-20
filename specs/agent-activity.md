@@ -67,7 +67,7 @@ inference.
 1. **Haus product boundaries** map directly. Message checks come from the structured local proxy;
    sends and turn lifecycle come from Server write boundaries.
 2. **Known tools** map through an explicit registry owned by the Computer activity projector.
-   Provider-specific Codex, Claude, and Pi identities have fixture-backed mappings. Haus-owned
+   Provider-specific Codex, Claude, and Grok Build identities have fixture-backed mappings. Haus-owned
    host tools declare their category at registration. codex-acp names only shell calls
    (`exec_command`, the `bash` builtin); Computer declares its fixed-title unnamed calls as
    builtins, so an ACP `edit` call titled `Editing files` is `apply_patch` (`editing_files`) and

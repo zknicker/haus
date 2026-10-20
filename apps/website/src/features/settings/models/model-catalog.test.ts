@@ -31,8 +31,8 @@ const computers = [
         reportedInventory: {
             runtimes: [
                 {
-                    id: 'pi',
-                    label: 'Pi',
+                    id: 'future-runtime',
+                    label: 'Future Runtime',
                     models: [
                         { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
                         { id: 'kimi-k2', label: 'Kimi K2' },
@@ -50,14 +50,14 @@ test('deduplicates models and preserves runtime, feature, and Computer availabil
             features: ['Image generation (ChatGPT paid plans)'],
             id: 'gpt-5.6-sol',
             label: 'GPT-5.6 Sol',
-            runtimes: ['Codex', 'Pi'],
+            runtimes: ['Codex', 'Future Runtime'],
         },
         {
             computerCount: 1,
             features: [],
             id: 'kimi-k2',
             label: 'Kimi K2',
-            runtimes: ['Pi'],
+            runtimes: ['Future Runtime'],
         },
     ]);
 });

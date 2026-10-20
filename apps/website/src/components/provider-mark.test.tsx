@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { ProviderMark, type ProviderMarkId } from './provider-mark.tsx';
 
 test('renders provider marks as bare glyphs that inherit their surface color', () => {
-    const providers: ProviderMarkId[] = ['codex', 'claude-code', 'grok-build', 'openrouter', 'pi'];
+    const providers: ProviderMarkId[] = ['codex', 'claude-code', 'grok-build', 'openrouter'];
 
     for (const provider of providers) {
         const markup = renderToStaticMarkup(<ProviderMark provider={provider} />);

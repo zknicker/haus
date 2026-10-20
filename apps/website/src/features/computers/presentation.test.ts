@@ -108,7 +108,6 @@ test('presents every supported runtime and preserves newly reported runtimes', (
         { detected: true, id: 'codex', label: 'Codex' },
         { detected: false, id: 'claude-code', label: 'Claude Code' },
         { detected: false, id: 'grok-build', label: 'Grok Build' },
-        { detected: false, id: 'pi', label: 'Pi' },
         { detected: true, id: 'future-runtime', label: 'Future Runtime' },
     ]);
 });

@@ -10,7 +10,7 @@ state retain the internal `haus` name.
 ## Architecture
 
 ```text
-Haus App -> Haus Server -> Haus Computer -> Codex / Claude Code / Pi
+Haus App -> Haus Server -> Haus Computer -> Codex / Claude Code / Grok Build
 ```
 
 `packages/haus-api` is the cross-boundary contract package. OpenAPI is the

@@ -16,7 +16,7 @@ read_when:
 | Computer attachment → Server | Revocable credential scoped to one Server Computer |
 | Computer runner → Server | Per-launch Agent runner credential, held behind the localhost proxy |
 | Managed Agent → Computer | Per-launch local proxy token file; never valid at Server |
-| Computer → provider | Native Codex, Claude Code, Grok Build, or Pi login owned by that runtime |
+| Computer → provider | Native Codex, Claude Code, or Grok Build login owned by that runtime |
 
 Server stores Computer, runner, MCP, and hosted OAuth secrets. Computer stores attachment
 credentials and local proxy tokens in private files. Operators authenticate through each execution

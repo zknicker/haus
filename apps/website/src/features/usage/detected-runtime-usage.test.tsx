@@ -47,7 +47,6 @@ test('a failed usage login does not claim the runtime cannot authenticate', () =
     const markup = renderToStaticMarkup(
         <DetectedRuntimeUsage
             detectedRuntimeIds={['claude-code']}
-            piAgentCount={null}
             usage={{
                 ...usageFixture,
                 claude: {
@@ -68,7 +67,6 @@ test('a retained snapshot whose usage login expired keeps its meters without an 
     const markup = renderToStaticMarkup(
         <DetectedRuntimeUsage
             detectedRuntimeIds={['claude-code']}
-            piAgentCount={null}
             usage={{
                 ...usageFixture,
                 claude: {
@@ -171,7 +169,6 @@ function renderCodexWindows(
     return renderToStaticMarkup(
         <DetectedRuntimeUsage
             detectedRuntimeIds={['codex']}
-            piAgentCount={null}
             usage={{
                 ...usageFixture,
                 codex: {
@@ -193,7 +190,6 @@ test('execution authentication issues override successful usage and stay scoped 
         <DetectedRuntimeUsage
             computerName="Zach’s Mac mini"
             detectedRuntimeIds={['codex', 'claude-code']}
-            piAgentCount={null}
             runtimeIssues={[
                 {
                     runtimeId: 'codex',

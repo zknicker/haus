@@ -43,7 +43,7 @@ _Avoid_: Haus server, Computer attachment, Agent runtime, child runner, attachme
 **Haus Runtime (retired)**:
 The pre-Computer standalone product that combined local collaboration state and Agent execution in
 one self-contained service. It is not a current product, release, connection, or compatibility surface.
-_Avoid_: using this name for Haus Computer or for Codex, Claude Code, or Pi execution runtimes
+_Avoid_: using this name for Haus Computer or for Codex, Claude Code, or Grok Build execution runtimes
 
 **Haus CLI**:
 The agent-facing `haus` command that acts on one Haus server through the managed Agent's local
@@ -430,7 +430,7 @@ _Avoid_: Server attachment storage, Wiki root, provider home
 **Agent runtime home**:
 The Haus-managed logical `HOME` seen by one Agent's executor. It lives beside that Agent's
 workspace inside its Computer attachment and contains only per-Agent executor state. Its
-executor-native skill locations, including `.agents/skills` for Codex and Pi and `.claude/skills`
+executor-native skill locations, including `.agents/skills` for Codex and `.claude/skills`
 for Claude Code, resolve to the Agent skill library beside it. The executor does not discover the
 operator's global skill folders. It is not a macOS account, the operator's home, or a
 provider-credential store. Runtime-specific references or environment injection let the executor

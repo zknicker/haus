@@ -79,12 +79,10 @@ As in Raft, an Agent's one global session inherently serializes its turns; new w
 Agent waits in that Agent's pending inbox rather than entering a separate scheduler. Different
 Agents run concurrently on the same Computer, including across Server attachments. There is no
 Computer-wide job queue.
-Codex, Claude Code, and Pi all receive an isolated per-Agent logical `HOME`; native locations such
+Every runtime receives an isolated per-Agent logical `HOME`; native locations such
 as `.agents/skills` and `.claude/skills` resolve to the Agent's canonical writable `skills/`
 directory. Each executor reads that native location, making it the exact set visible to every
-executor while excluding host-global, cross-Agent, and cross-Computer skills. Pi runs inside the
-Computer process, so a bounded `@ai-sdk/harness-pi` patch points its skill loader at the Agent's
-native `.agents/skills` instead of the operator's HOME and the workspace. This deliberately diverges from Raft's ambient host-global discovery:
+executor while excluding host-global, cross-Agent, and cross-Computer skills. This deliberately diverges from Raft's ambient host-global discovery:
 runtime-compatible global skill folders on the physical machine are opt-in import sources only.
 Haus also diverges from Raft on ambient instruction files: Raft treats a runtime's
 `CLAUDE.md`/`AGENTS.md` loading as a feature of the runtime (Raft source
@@ -92,7 +90,7 @@ Haus also diverges from Raft on ambient instruction files: Raft treats a runtime
 included, so an Agent's context is the composed prompt plus what it reads itself. The per-runtime
 settings and the one Grok Build gap live in
 [Context Management](../../docs/features/context-management.md).
-Changing an Agent between Codex, Claude Code, or Pi keeps that same library unchanged. Haus
+Changing an Agent between runtimes keeps that same library unchanged. Haus
 creates no per-runtime copies or variants, performs no conversion or compatibility filtering, and
 treats runtime-specific instructions as ordinary Agent-owned skill content.
 Haus App may copy a selected bundle into one Agent library while its Computer is online, after which
@@ -439,7 +437,7 @@ inbox. Human **Start** resumes the current session and drains that work.
   the evolved role lives in MEMORY.md. `SOUL.md`, its prompt section, its injection mechanism,
   and its settings editor all retire at the flip; existing SOUL content folds into
   description/MEMORY.md at manual cutover. (b) **The Skills prompt section is dropped.** Skill
-  discovery is harness-native (our engine drives Claude Code/Codex/Pi harnesses via AI SDK
+  discovery is harness-native (our engine drives Claude Code/Codex/Grok Build harnesses via AI SDK
   adapters; each Agent's local library materializes into its harness's own skill system) — listing
   it again in our prompt was redundant. There is no Server-owned skill assignment; the Agent's
   writable local library gates what the harness sees. `haus skill …` management verbs stay CLI
