@@ -4,7 +4,7 @@ export const productTopics: readonly ManualNavigationTopic[] = [
     {
         body: `# Amazon product references
 
-Write a standalone uppercase Amazon ASIN such as B07XN9T11R, or a normal https://www.amazon.com/dp/B07XN9T11R link, in message prose. Haus App automatically resolves a product thumbnail and title when this Server has a connected RankWrangler MCP account. Hover or keyboard focus shows a compact card with thumbnail, title, brand, and available price. No special markup or lookup call is needed just to display a reference.
+While this Server has RankWrangler connected, a standalone uppercase Amazon ASIN such as B07XN9T11R, or a normal https://www.amazon.com/dp/B07XN9T11R link, in message prose renders as a product chip, and Haus App resolves its thumbnail and title. Without RankWrangler the ASIN stays plain text and the link stays an ordinary link. When you name a product, write its ASIN beside the name so readers get the chip. Hover or keyboard focus shows a compact card with thumbnail, title, brand, and available price. No special markup or lookup call is needed just to display a reference.
 
 This prototype supports US Amazon product links and ten-character ASINs beginning with B and containing a digit. Code stays code. Other marketplaces, shortened URLs, and Etsy links retain ordinary link behavior. Missing product data leaves the original text readable.
 
@@ -12,7 +12,7 @@ When you need product facts for analysis, use execute to search for RankWrangler
         id: 'amazon-product-references',
         kind: 'overview',
         related: ['haus-cli-overview'],
-        summary: 'Mention Amazon ASINs and links as product chips with RankWrangler previews.',
+        summary: 'Amazon ASINs and links become product chips while this Server has RankWrangler connected.',
         title: 'Amazon product references',
     },
     {
