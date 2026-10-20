@@ -42,7 +42,7 @@ export function LinearIssueReference({
 
     return (
         <HoverCard openDelay={250}>
-            <HoverCard.Trigger>
+            <HoverCard.Trigger className="align-middle">
                 <a
                     aria-busy={state.pending || undefined}
                     aria-label={`Open ${state.label} in Linear`}

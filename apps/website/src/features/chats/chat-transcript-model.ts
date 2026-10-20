@@ -1,5 +1,5 @@
 import { getTranscriptItemKey } from './chat-transcript-item-utils.ts';
-import { markRepeatedReplyReferences } from './inline-reply-reference.ts';
+import { markReplyContinuations } from './reply-continuation.ts';
 import type {
     TranscriptActiveReply,
     TranscriptActor,
@@ -32,6 +32,9 @@ export interface TranscriptSystemEntry {
 
 export interface TranscriptTurnEntry {
     actor: TranscriptActor;
+    // True when an inline reply continues its author's previous reply and
+    // renders under that message's header (reply-continuation.ts).
+    continuesPrevious: boolean;
     id: string;
     items: TranscriptItem[];
     key: string;
@@ -40,8 +43,6 @@ export interface TranscriptTurnEntry {
     // Server-truth turn identity from the owning response, when rows carry
     // it. Live tail items and legacy rows fall back to grouping heuristics.
     responseId: string | null;
-    // False when an inline reply continues its author's previous reply.
-    showReplyReference: boolean;
     timestamp: string | null;
 }
 
@@ -97,7 +98,7 @@ export function buildTranscriptEntries(input: {
             kind: 'turn',
             participant,
             responseId,
-            showReplyReference: true,
+            continuesPrevious: false,
             timestamp: getItemTimestamp(item),
         };
         entries.push(entry);
@@ -176,7 +177,7 @@ export function buildTranscriptEntries(input: {
         entries.splice(entries.indexOf(entry), 1);
     }
 
-    return markRepeatedReplyReferences(entries);
+    return markReplyContinuations(entries);
 }
 
 // Widgets, clarifications, stop notes, and artifacts are parts of a turn's
