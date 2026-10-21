@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
 import type { ActivityLogEntry } from '../../../members/agent-profile/agent-activity-log-entries.ts';
 import { minMarkGap, readMarkSummary, spreadPositions } from './heartbeat-marks-model.ts';
-import { readHeartbeatEntries } from './heartbeat-runs.ts';
+import { readHeartbeatEntries, readMarksByRun } from './heartbeat-runs.ts';
 import {
     formatTokens,
     type LaneView,
@@ -128,4 +128,12 @@ test('the runs log keeps heartbeat, dream and report turns, and any run a lane m
         lanes
     );
     expect(kept.map((item) => item.row.latest.runId)).toEqual(['hb', 'dr', 'rp', 'running_1']);
+});
+
+test('each marked run maps to its mark, and unmarked slots drop', () => {
+    const reported = mark(new Date(noon), { runId: 'r1' });
+    const skipped = mark(new Date(noon), { outcome: 'skipped', runId: null });
+    const byRun = readMarksByRun([{ agentId: 'a', lane: lane('a', [reported, skipped]) }]);
+    expect([...byRun.keys()]).toEqual(['r1']);
+    expect(byRun.get('r1')).toBe(reported);
 });

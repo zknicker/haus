@@ -7,9 +7,11 @@ import {
     useLogEntries,
 } from '../../../members/agent-profile/agent-activity-log-entries.ts';
 import { getTurnDetailAccess } from '../../../members/agent-profile/agent-activity-model.ts';
+import { formatTurnOutcome } from '../../../members/agent-profile/agent-turn-row-model.ts';
 import { useServerContext } from '../../server-context.ts';
 import { readServerActivityGroups } from '../server-activity-turns.ts';
-import { readHeartbeatEntries } from './heartbeat-runs.ts';
+import { HeartbeatRunOutcome } from './heartbeat-run-outcome.tsx';
+import { readHeartbeatEntries, readMarksByRun } from './heartbeat-runs.ts';
 import type { DayWindow, LaneView } from './heartbeats-model.ts';
 
 /**
@@ -22,6 +24,7 @@ export function HeartbeatRunsLog({
     agentIds,
     agents,
     lanes,
+    revealKey,
     revealRunId,
     serverId,
     serverSlug,
@@ -30,6 +33,7 @@ export function HeartbeatRunsLog({
     agentIds: readonly string[];
     agents: readonly ActivityLogAgent[];
     lanes: readonly LaneView[];
+    revealKey: number;
     revealRunId: string | null;
     serverId: string;
     serverSlug: string;
@@ -40,6 +44,7 @@ export function HeartbeatRunsLog({
     const current = useOptionalCurrentAgentActivity()?.activities ?? [];
     const groups = readServerActivityGroups({ agents, current, settled: turns.turns });
     const entries = readHeartbeatEntries(useLogEntries(serverId, groups), lanes);
+    const marksByRun = readMarksByRun(lanes);
     const oldest = turns.turns.at(-1);
     const isBeforeDay = !oldest || Date.parse(oldest.startedAt) > window.startMs;
     const isLoadingDay = turns.isFetchingMore || (turns.hasMore && isBeforeDay);
@@ -59,10 +64,19 @@ export function HeartbeatRunsLog({
             access={getTurnDetailAccess(server.role)}
             entries={entries}
             filter={{ agentIds: lanes.map((laneView) => laneView.agentId) }}
+            outcome={(entry) => (
+                <HeartbeatRunOutcome
+                    fallback={formatTurnOutcome(entry.row.latest)}
+                    mark={marksByRun.get(entry.row.latest.runId)}
+                    serverId={serverId}
+                />
+            )}
+            revealKey={revealKey}
             revealRunId={revealRunId}
             scope={window}
             serverId={serverId}
             serverSlug={serverSlug}
+            summaryTimeline
         />
     );
 }

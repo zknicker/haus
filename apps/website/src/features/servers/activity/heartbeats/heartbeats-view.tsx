@@ -31,7 +31,11 @@ export function HeartbeatsView({
 }) {
     const nowMs = useRelativeNow(30_000);
     const [offset, setOffset] = useState(0);
-    const [chosen, setChosen] = useState<{ key: string; runId: string | null } | null>(null);
+    const [chosen, setChosen] = useState<{
+        key: string;
+        press: number;
+        runId: string | null;
+    } | null>(null);
     const day = readDayWindow(offset, nowMs);
     const query = useAgentHeartbeats(serverId, day, agentIds.length > 0 ? agentIds : undefined);
     const byId = new Map(agents.map((agent) => [agent.id, agent]));
@@ -70,7 +74,9 @@ export function HeartbeatsView({
                         isToday={offset === 0}
                         lanes={lanes}
                         nowMs={nowMs}
-                        onSelect={(key, runId) => setChosen({ key, runId })}
+                        onSelect={(key, runId) =>
+                            setChosen((last) => ({ key, press: (last?.press ?? 0) + 1, runId }))
+                        }
                         selectedKey={chosen?.key ?? null}
                         window={day}
                     />
@@ -79,6 +85,7 @@ export function HeartbeatsView({
                             agentIds={agentIds}
                             agents={agents}
                             lanes={lanes}
+                            revealKey={chosen?.press ?? 0}
                             revealRunId={chosen?.runId ?? null}
                             serverId={serverId}
                             serverSlug={serverSlug}

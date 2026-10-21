@@ -43,11 +43,11 @@ export function HeartbeatLane({
     }));
     const tabKey = marks.find((entry) => entry.key === selectedKey)?.key ?? marks[0]?.key;
     return (
-        <div className={`${laneRowClass} h-16`}>
-            <span className="flex min-w-0 items-center gap-3">
-                <EntityAvatar name={name} size={40} src={agent?.avatarUrl} />
+        <div className={`${laneRowClass} h-12`}>
+            <span className="flex min-w-0 items-center gap-2.5">
+                <EntityAvatar name={name} size={32} src={agent?.avatarUrl} />
                 <span className="grid min-w-0">
-                    <span className="truncate font-medium text-base">{name}</span>
+                    <span className="truncate font-medium text-sm">{name}</span>
                     {marks.length > 0 ? (
                         <span className="truncate text-muted text-xs">
                             {marks.length === 1 ? '1 check-in' : `${marks.length} check-ins`}

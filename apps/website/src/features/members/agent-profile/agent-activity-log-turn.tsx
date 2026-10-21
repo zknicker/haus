@@ -8,6 +8,7 @@ import { TraceNested } from '../../turn-trace/turn-trace-depth.tsx';
 import {
     traceRowClass,
     traceRowHoverClass,
+    traceTextInset,
     traceTurnClass,
 } from '../../turn-trace/turn-trace-grid.tsx';
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
@@ -17,7 +18,11 @@ import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from '../../turn-trace/turn-trace-view.ts';
 import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
 import { LogDreamButton } from './agent-activity-log-dream.tsx';
-import { type ActivityLogEntry, readStepMarks } from './agent-activity-log-entries.ts';
+import {
+    type ActivityLogEntry,
+    readStepMarks,
+    timelineStatus,
+} from './agent-activity-log-entries.ts';
 import { useLogTurnJournal } from './agent-activity-log-journal.ts';
 import { useActivityLogStores, useIsLinkedFromOverview } from './agent-activity-log-stores.ts';
 import {
@@ -26,6 +31,7 @@ import {
     readChatTarget,
     TurnRuler,
 } from './agent-activity-log-turn-parts.tsx';
+import { TurnSummaryStrip } from './agent-activity-log-turn-strip.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
 import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
 import { formatTurnOutcome, getTurnRowStatus } from './agent-turn-row-model.ts';
@@ -42,17 +48,23 @@ export function ActivityLogTurn({
     entry,
     isOpen,
     onOpenChange,
+    outcome,
     serverId,
     serverSlug,
     showAgent,
+    summaryTimeline = false,
 }: {
     access: TurnDetailAccess;
     entry: ActivityLogEntry;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
+    /** What the run came to, under the header and above the chart. */
+    outcome?: React.ReactNode;
     serverId: string;
     serverSlug: string;
     showAgent: boolean;
+    /** A closed row shows its run as one summary strip; open, the full chart. */
+    summaryTimeline?: boolean;
 }) {
     const { agent, row, title } = entry;
     const turn = row.latest;
@@ -165,6 +177,18 @@ export function ActivityLogTurn({
                             />
                         ) : null}
                     </div>
+                    {outcome ? (
+                        <div
+                            className="pe-(--trace-pad) pt-0.5 pb-1"
+                            data-log-outcome
+                            style={{ paddingInlineStart: traceTextInset }}
+                        >
+                            {outcome}
+                        </div>
+                    ) : null}
+                    {summaryTimeline && !isOpen ? (
+                        <TurnSummaryStrip runId={turn.runId} status={timelineStatus(turn)} />
+                    ) : null}
                     <Disclosure.Content>
                         {ruler ? <TurnRuler scale={ruler} /> : null}
                         <TurnSteps

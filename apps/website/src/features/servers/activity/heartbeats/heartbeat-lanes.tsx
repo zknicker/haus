@@ -35,9 +35,9 @@ export function HeartbeatLanes({
     const bands = readNightBands(window);
     const nowAt = isToday ? readTrackPosition(nowMs, window) : null;
     return (
-        <div className="border-separator border-b pb-2">
-            <div className="grid gap-1">
-                <div aria-hidden className={cn(laneRowClass, 'h-6')}>
+        <div className="border-separator border-b pb-1.5">
+            <div className="grid gap-0.5">
+                <div aria-hidden className={cn(laneRowClass, 'h-5')}>
                     <span />
                     <HourRuler nowAt={nowAt} window={window} />
                     <span />
@@ -74,7 +74,7 @@ function HourRuler({ nowAt, window }: { nowAt: number | null; window: DayWindow 
                     {tick.label ? (
                         <span
                             className={cn(
-                                'absolute top-2 whitespace-nowrap text-muted text-sm tabular-nums leading-none',
+                                'absolute top-1.5 whitespace-nowrap text-muted text-sm tabular-nums leading-none',
                                 tick.at > 0 && '-translate-x-1/2'
                             )}
                             style={{ left: `${tick.at}%` }}

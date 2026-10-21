@@ -1,7 +1,21 @@
+import type { HeartbeatMark } from '@haus/api';
 import type { ActivityLogEntry } from '../../../members/agent-profile/agent-activity-log-entries.ts';
 import type { LaneView } from './heartbeats-model.ts';
 
 const heartbeatTriggers: ReadonlySet<string> = new Set(['dream', 'heartbeat', 'heartbeat_report']);
+
+/** Each marked run's mark, by run id: the outcome the log row leads with. */
+export function readMarksByRun(lanes: readonly LaneView[]): ReadonlyMap<string, HeartbeatMark> {
+    const byRun = new Map<string, HeartbeatMark>();
+    for (const { lane } of lanes) {
+        for (const mark of lane.marks) {
+            if (mark.runId) {
+                byRun.set(mark.runId, mark);
+            }
+        }
+    }
+    return byRun;
+}
 
 /**
  * The log entries that are heartbeats or dreams. A running turn has no trigger

@@ -10,6 +10,7 @@ import {
     readOpenOnArrival,
     useLogEntries,
 } from './agent-activity-log-entries.ts';
+import { ActivityLogDayOutlines } from './agent-activity-log-outlines.tsx';
 import { ActivityLogOverview } from './agent-activity-log-overview.tsx';
 import {
     type ActivityLogStores,
@@ -52,12 +53,18 @@ interface ActivityLogProps {
     filter: ActivityLogFilter;
     /** Closes the log under its last day, still beneath the pinned band. */
     footer?: React.ReactNode;
+    /** What each run came to, shown under its header (the Heartbeats view). */
+    outcome?: (entry: ActivityLogEntry) => React.ReactNode;
+    /** Pressing the same run again re-reveals it: a new key per press. */
+    revealKey?: number;
     /** A run to open and scroll to once its turn is in the log (a link from another lens). */
     revealRunId?: string | null;
     /** One local day as bare rows: no overview strip, no day heading. The page owns the day. */
     scope?: { endMs: number; startMs: number };
     serverId: string;
     serverSlug: string;
+    /** Rows start closed, each a summary strip; a reveal highlights instead of opening. */
+    summaryTimeline?: boolean;
 }
 
 /**
@@ -74,10 +81,13 @@ export function ActivityLog({
     entries,
     filter,
     footer,
+    outcome,
+    revealKey = 0,
     revealRunId,
     scope,
     serverId,
     serverSlug,
+    summaryTimeline = false,
 }: ActivityLogProps) {
     const isRunning = entries.some((entry) => entry.row.latest.kind === 'active');
     const now = useLogNow(isRunning);
@@ -87,7 +97,7 @@ export function ActivityLog({
     );
     const showAgent = filter.agentIds.length > 1;
     const [toggled, setToggled] = React.useState<ReadonlyMap<string, boolean>>(new Map());
-    const openByDefault = readOpenOnArrival(days);
+    const openByDefault = summaryTimeline ? new Set<string>() : readOpenOnArrival(days);
     const isOpen = (runId: string) => toggled.get(runId) ?? openByDefault.has(runId);
     const setOpen = React.useCallback((runId: string, open: boolean) => {
         setToggled((current) => new Map(current).set(runId, open));
@@ -97,7 +107,17 @@ export function ActivityLog({
         marks: new StepMarksStore(),
         queue: new JournalQueue(),
         reveal: (runId) => {
-            setOpen(runId, true);
+            if (summaryTimeline) {
+                // Closed rows stay closed: the row lights briefly instead.
+                stores.hover.set({ runId, source: 'overview', span: null });
+                window.setTimeout(() => {
+                    if (stores.hover.get()?.runId === runId) {
+                        stores.hover.set(null);
+                    }
+                }, 1600);
+            } else {
+                setOpen(runId, true);
+            }
             requestAnimationFrame(() =>
                 scrollToLogTarget(`[data-log-turn="${CSS.escape(runId)}"]`)
             );
@@ -108,11 +128,12 @@ export function ActivityLog({
         revealRunId && entries.some((entry) => entry.row.latest.runId === revealRunId)
     );
     React.useEffect(() => {
-        if (revealRunId && hasRevealTarget && revealed.current !== revealRunId) {
-            revealed.current = revealRunId;
+        const token = `${revealRunId}:${revealKey}`;
+        if (revealRunId && hasRevealTarget && revealed.current !== token) {
+            revealed.current = token;
             stores.reveal(revealRunId);
         }
-    }, [hasRevealTarget, revealRunId, stores]);
+    }, [hasRevealTarget, revealKey, revealRunId, stores]);
     const root = React.useRef<HTMLDivElement>(null);
     const [viewedKey, setViewedKey] = useViewedDay(root);
     const viewed = days.findIndex((day) => day.key === viewedKey);
@@ -151,6 +172,17 @@ export function ActivityLog({
                                 showAgent={showAgent}
                             />
                         ) : null}
+                        {summaryTimeline
+                            ? days.map((logDay) => (
+                                  // One batched outline read per Agent, never a journal per row.
+                                  <ActivityLogDayOutlines
+                                      access={access}
+                                      day={logDay}
+                                      key={logDay.key}
+                                      serverId={serverId}
+                                  />
+                              ))
+                            : null}
                         {days.map((logDay, dayIndex) => (
                             <section
                                 aria-label={logDay.label}
@@ -185,9 +217,11 @@ export function ActivityLog({
                                             onOpenChange={(open) =>
                                                 setOpen(entry.row.latest.runId, open)
                                             }
+                                            outcome={outcome?.(entry)}
                                             serverId={serverId}
                                             serverSlug={serverSlug}
                                             showAgent={showAgent}
+                                            summaryTimeline={summaryTimeline}
                                         />
                                     ))}
                                 </div>
