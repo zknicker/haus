@@ -40,6 +40,7 @@ const glyphClass: Record<Exclude<GlyphKind, 'dream'>, string> = {
     quiet: 'border-2 border-muted/75',
     reported: 'bg-accent shadow-[0_0_0_3px_var(--accent-soft)]',
     running: 'border-2 border-accent motion-safe:animate-pulse',
-    skipped: 'relative border-2 border-muted/55 after:absolute after:inset-x-[-1px] after:top-1/2 after:h-0.5 after:-translate-y-1/2 after:-rotate-45 after:bg-muted/55',
+    skipped:
+        'relative border-2 border-muted/55 after:absolute after:inset-x-[-1px] after:top-1/2 after:h-0.5 after:-translate-y-1/2 after:-rotate-45 after:bg-muted/55',
     yielded: 'border-2 border-muted bg-linear-to-r from-muted from-50% to-transparent to-50%',
 };
