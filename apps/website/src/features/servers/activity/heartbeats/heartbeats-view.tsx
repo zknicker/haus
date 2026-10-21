@@ -1,15 +1,12 @@
-import { Button } from '@heroui/react';
-import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useEffect, useState } from 'react';
-import { Icon } from '../../../../components/ui/icon.tsx';
 import { useAgentHeartbeats } from '../../../../hooks/members/use-agent-heartbeats.ts';
 import { ActivityNote } from '../../../members/agent-profile/agent-activity.tsx';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
-import { formatDayLabel } from '../../../members/agent-profile/agent-turn-row-model.ts';
 import { HeartbeatDetail } from './heartbeat-detail.tsx';
 import { HeartbeatLanes } from './heartbeat-lanes.tsx';
 import { HeartbeatSummary } from './heartbeat-summary.tsx';
+import { HeartbeatsDayBar } from './heartbeats-day-bar.tsx';
 import { readDayWindow, readLanes, resolveSelection } from './heartbeats-model.ts';
 
 /**
@@ -40,9 +37,12 @@ export function HeartbeatsView({
     const day = readDayWindow(offset, nowMs);
     const query = useAgentHeartbeats(serverId, day, agentIds.length > 0 ? agentIds : undefined);
     const byId = new Map(agents.map((agent) => [agent.id, agent]));
+    // Every visible Agent gets a lane, in the roster's order the Log filter uses.
     const lanes = readLanes(
         query.data?.lanes ?? [],
-        agents.map((agent) => agent.id)
+        agents
+            .map((agent) => agent.id)
+            .filter((id) => agentIds.length === 0 || agentIds.includes(id))
     );
     const selected = resolveSelection(lanes, chosenKey);
     const showDay = (next: number) => {
@@ -56,34 +56,13 @@ export function HeartbeatsView({
     }
     return (
         <div className="@container/heartbeats min-w-0 cursor-default [--trace-pad:calc(var(--spacing)*3)]">
-            <section
-                aria-label="Heartbeats day"
-                className="sticky top-0 z-10 -mt-px flex min-w-0 items-center gap-1 border-separator border-b bg-background px-(--trace-pad) pt-2 pb-1"
-            >
-                <Button
-                    aria-label="Show the earlier day"
-                    isIconOnly
-                    onPress={() => showDay(offset + 1)}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon icon={ArrowLeft01Icon} size={16} />
-                </Button>
-                <Button
-                    aria-label={offset > 0 ? 'Show the later day' : 'No later days'}
-                    isDisabled={offset === 0}
-                    isIconOnly
-                    onPress={() => showDay(offset - 1)}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon icon={ArrowRight01Icon} size={16} />
-                </Button>
-                <h3 aria-live="polite" className="ms-1 shrink-0 font-medium text-sm">
-                    {formatDayLabel(new Date(day.startMs), nowMs)}
-                </h3>
-                <span className="ms-auto flex items-center gap-1">{action}</span>
-            </section>
+            <HeartbeatsDayBar
+                action={action}
+                dayStartMs={day.startMs}
+                nowMs={nowMs}
+                offset={offset}
+                onShowDay={showDay}
+            />
             {query.error && !query.data ? (
                 <ActivityNote>Heartbeats are unavailable right now.</ActivityNote>
             ) : query.data && lanes.length > 0 ? (
@@ -107,14 +86,23 @@ export function HeartbeatsView({
                             serverId={serverId}
                             serverSlug={serverSlug}
                         />
-                    ) : null}
+                    ) : (
+                        <EmptyDay isToday={offset === 0} />
+                    )}
                 </>
             ) : (
-                <p className="px-(--trace-pad) py-3 text-muted text-sm">
-                    {offset === 0 ? 'No heartbeats today' : 'No heartbeats this day'}
-                </p>
+                <EmptyDay isToday={offset === 0} />
             )}
         </div>
+    );
+}
+
+/** No heartbeat on the day: said once the day is truly empty, never while loading. */
+function EmptyDay({ isToday }: { isToday: boolean }) {
+    return (
+        <p className="px-(--trace-pad) py-3 text-muted text-sm">
+            {isToday ? 'No heartbeats today' : 'No heartbeats this day'}
+        </p>
     );
 }
 

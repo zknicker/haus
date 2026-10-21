@@ -2254,6 +2254,12 @@
         --chip-fg: var(--channel-color-light, var(--foreground));
     }
 
+    /* The dream's chip: a soft wash in the dream violet, like a soft status chip. */
+    .chip.chip--soft.chip--dream {
+        background-color: var(--dream-soft);
+        color: var(--dream-soft-foreground);
+    }
+
     .chip.reference-chip--skill {
         --chip-fg: var(--skill-reference);
     }

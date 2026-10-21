@@ -1,66 +1,55 @@
 import type { HeartbeatMark } from '@haus/api';
 import { Tooltip } from '@heroui/react';
-import { formatShortTime } from '../../../../lib/format.ts';
 import { cn } from '../../../../lib/utils.ts';
-import { outcomeLabels, readKindLabel, readMarkAriaLabel } from './heartbeats-model.ts';
+import { HeartbeatGlyph } from './heartbeat-glyph.tsx';
+import { readGlyphKind, readMarkSummary } from './heartbeat-marks-model.ts';
 
 /**
- * One slot on an Agent's lane: a button at its time that selects the mark.
- * Shape and fill read the outcome without color alone: a quiet ring, a filled
- * reported dot, a half-filled yielded dot, a dashed skipped ring, a heavy
- * warning ring for paused. A dream is a diamond, the one shape no daytime
- * heartbeat takes (no violet token exists, so it keeps the accent).
+ * One slot on an Agent's lane: a button at its place on the track that selects
+ * the mark. Its tooltip and label carry the exact time, outcome, run time and
+ * tokens, so a nudged mark never misreports when it ran. The selected mark wears
+ * a foreground ring; keyboard focus gets the focus ring on top of it.
  */
 export function HeartbeatMarkButton({
     agentName,
     isSelected,
+    isTabStop,
     left,
     mark,
     onSelect,
 }: {
     agentName: string;
     isSelected: boolean;
+    /** The lane's roving tab stop: one mark per lane is reachable by Tab. */
+    isTabStop: boolean;
     left: number;
     mark: HeartbeatMark;
     onSelect: () => void;
 }) {
-    const isDream = mark.kind === 'nightly';
+    const summary = readMarkSummary(agentName, mark);
     return (
         <Tooltip delay={0}>
             <Tooltip.Trigger>
                 <button
-                    aria-label={readMarkAriaLabel(agentName, mark)}
+                    aria-label={summary}
                     aria-pressed={isSelected}
                     className={cn(
-                        'absolute top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 cursor-(--cursor-interactive) items-center justify-center rounded-xs outline-none focus-visible:ring-2 focus-visible:ring-focus',
-                        isSelected && 'bg-default'
+                        'absolute top-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 cursor-(--cursor-interactive) items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+                        isSelected && 'ring-2 ring-foreground'
                     )}
+                    data-heartbeat-mark=""
                     onClick={onSelect}
                     style={{ left: `${left}%` }}
+                    tabIndex={isTabStop ? 0 : -1}
                     type="button"
                 >
-                    <span
-                        aria-hidden
-                        className={cn(
-                            isDream ? 'size-3 rotate-45 rounded-xs' : 'size-3 rounded-full',
-                            glyphClass[mark.outcome]
-                        )}
+                    <HeartbeatGlyph
+                        isFailed={mark.outcome === 'failed'}
+                        kind={readGlyphKind(mark)}
                     />
                 </button>
             </Tooltip.Trigger>
-            <Tooltip.Content>
-                {`${formatShortTime(mark.at)} ${readKindLabel(mark)} · ${outcomeLabels[mark.outcome]}`}
-            </Tooltip.Content>
+            <Tooltip.Content>{summary}</Tooltip.Content>
         </Tooltip>
     );
 }
-
-const glyphClass: Record<HeartbeatMark['outcome'], string> = {
-    failed: 'bg-danger',
-    paused: 'border-2 border-warning bg-background',
-    quiet: 'border border-muted bg-background',
-    reported: 'bg-accent',
-    running: 'border border-accent bg-background motion-safe:animate-pulse',
-    skipped: 'border border-muted border-dashed bg-background',
-    yielded: 'border border-accent bg-linear-to-r from-accent from-50% to-background to-50%',
-};

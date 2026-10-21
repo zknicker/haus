@@ -5,7 +5,6 @@ import type {
     HeartbeatPlanShare,
     HeartbeatSkipReason,
 } from '@haus/api';
-import { formatShortTime } from '../../../../lib/format.ts';
 
 /**
  * The Heartbeats view's pure model: where a mark sits on the day's track, the
@@ -99,20 +98,8 @@ export const outcomeLabels: Record<HeartbeatOutcome, string> = {
     yielded: 'Yielded',
 };
 
-export function outcomeChipColor(
-    outcome: HeartbeatOutcome
-): 'accent' | 'danger' | 'default' | 'warning' {
-    if (outcome === 'reported' || outcome === 'running') {
-        return 'accent';
-    }
-    if (outcome === 'failed') {
-        return 'danger';
-    }
-    return outcome === 'paused' ? 'warning' : 'default';
-}
-
 export function readKindLabel(mark: Pick<HeartbeatMark, 'kind'>): string {
-    return mark.kind === 'nightly' ? 'dream' : 'heartbeat';
+    return mark.kind === 'nightly' ? 'Dream' : 'Heartbeat';
 }
 
 const skipReasonLabels: Record<HeartbeatSkipReason, string> = {
@@ -143,10 +130,6 @@ export function readMarkFate(mark: HeartbeatMark, chatPlace: string | null): str
                 ? skipReasonLabels[mark.skipReason]
                 : outcomeLabels[mark.outcome];
     }
-}
-
-export function readMarkAriaLabel(agentName: string, mark: HeartbeatMark): string {
-    return `${agentName}, ${formatShortTime(mark.at)} ${readKindLabel(mark)}, ${outcomeLabels[mark.outcome].toLowerCase()}`;
 }
 
 export function formatTokens(tokens: number | null): string | null {
@@ -229,15 +212,23 @@ export interface LaneView {
     readonly lane: HeartbeatLane;
 }
 
-/** Lanes with something on them, in the Agents' own order; lanes of unknown Agents drop. */
+/**
+ * One lane per visible Agent, in the Agents' own order. An Agent with nothing
+ * on the day still gets its (empty) lane, so an idle or paused Agent shows;
+ * lanes of unknown Agents drop.
+ */
 export function readLanes(
     lanes: readonly HeartbeatLane[],
     agentOrder: readonly string[]
 ): LaneView[] {
-    return agentOrder.flatMap((agentId) => {
-        const lane = lanes.find((candidate) => candidate.agentId === agentId);
-        return lane && lane.marks.length > 0 ? [{ agentId, lane }] : [];
-    });
+    return agentOrder.map((agentId) => ({
+        agentId,
+        lane: lanes.find((candidate) => candidate.agentId === agentId) ?? {
+            agentId,
+            marks: [],
+            tokens: 0,
+        },
+    }));
 }
 
 export interface SelectedMark {

@@ -12,10 +12,10 @@ import { formatTurnDuration } from '../../../members/agent-profile/agent-turn-ro
 import { DreamSheet } from '../../../members/agent-profile/dream-sheet.tsx';
 import { chatPlace } from '../../../shell/tab-identity.ts';
 import { serverChatRoute } from '../../server-routes.ts';
+import { readOutcomeChip } from './heartbeat-marks-model.ts';
 import {
     formatDreamDelta,
     formatTokens,
-    outcomeChipColor,
     outcomeLabels,
     readKindLabel,
     readMarkFate,
@@ -48,10 +48,13 @@ export function HeartbeatDetail({
     const chat = useListedChat(serverId, chatId ?? '', chatId !== null);
     const place = chat ? chatPlace(chat) : null;
     const name = agent?.displayName ?? 'Agent';
+    const tokens = formatTokens(mark.tokens);
+    const chip = readOutcomeChip(mark);
     const meta = [
-        `${formatShortTime(mark.at)} ${readKindLabel(mark)}`,
+        formatShortTime(mark.at),
+        readKindLabel(mark),
         mark.durationMs === null ? null : formatTurnDuration(mark.durationMs),
-        formatTokens(mark.tokens) === null ? null : `${formatTokens(mark.tokens)} tokens`,
+        tokens === null ? null : `${tokens} tokens`,
     ].filter(Boolean);
 
     return (
@@ -62,7 +65,12 @@ export function HeartbeatDetail({
             <div className="flex min-w-0 items-center gap-2">
                 <EntityAvatar name={name} size={16} src={agent?.avatarUrl} />
                 <span className="truncate font-semibold">{name}</span>
-                <Chip color={outcomeChipColor(mark.outcome)} size="sm" variant="soft">
+                <Chip
+                    className={chip.isDream ? 'chip--dream' : undefined}
+                    color={chip.color}
+                    size="sm"
+                    variant="soft"
+                >
                     {outcomeLabels[mark.outcome]}
                 </Chip>
                 <span className="min-w-0 truncate text-muted tabular-nums">{meta.join(' · ')}</span>

@@ -123,6 +123,17 @@
         --trigger-mark-line: color-mix(in oklab, var(--trigger-mark) 40%, var(--separator));
         --reminder-mark-line: color-mix(in oklab, var(--reminder-mark) 40%, var(--separator));
 
+        /*
+         * Dreams. A nightly dream is its own kind of run, not a status: it never
+         * reads as success, caution, or failure, so it gets a violet of its own
+         * apart from `accent` (heartbeats) and `--trace-thinking` (a step kind).
+         * Paints the Heartbeats lane's dream disc and the dream chip. `-soft` is
+         * the disc fill and chip wash, `-soft-foreground` the chip ink.
+         */
+        --dream: oklch(0.72 0.13 295);
+        --dream-soft: color-mix(in oklab, var(--dream) 18%, transparent);
+        --dream-soft-foreground: oklch(0.84 0.09 295);
+
         --label-red-fg: var(--color-red-300);
         --label-red-bg: --alpha(var(--color-red-500) / 15%);
         --label-orange-fg: var(--color-orange-300);
@@ -209,6 +220,11 @@
         --trigger-mark: oklch(0.66 0.15 88);
         --reminder-mark: oklch(0.6 0.17 12);
 
+        /* Dream violet down the ramp for the near-white page. */
+        --dream: oklch(0.58 0.15 295);
+        --dream-soft: color-mix(in oklab, var(--dream) 14%, transparent);
+        --dream-soft-foreground: oklch(0.46 0.15 295);
+
         --label-red-fg: var(--color-red-600);
         --label-red-bg: --alpha(var(--color-red-500) / 12%);
         --label-orange-fg: var(--color-orange-600);
@@ -235,6 +251,9 @@
     --color-background-hover: var(--background-hover);
     --color-code-constant: var(--code-constant);
     --color-code-string: var(--code-string);
+    --color-dream: var(--dream);
+    --color-dream-soft: var(--dream-soft);
+    --color-dream-soft-foreground: var(--dream-soft-foreground);
     --color-nested-surface: var(--nested-surface);
     --color-nested-surface-hover: var(--nested-surface-hover);
     --color-reasoning-high: var(--reasoning-high);

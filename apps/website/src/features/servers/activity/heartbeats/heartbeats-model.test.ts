@@ -1,6 +1,13 @@
 import { expect, test } from 'bun:test';
 import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
 import {
+    minMarkGap,
+    readLegendKinds,
+    readMarkSummary,
+    readOutcomeChip,
+    spreadPositions,
+} from './heartbeat-marks-model.ts';
+import {
     formatDreamDelta,
     formatTokens,
     type LaneView,
@@ -135,16 +142,62 @@ test('a plan meter splits its use into other, heartbeat, and dream, inside the b
     expect(over.heartbeat + over.dream + over.other).toBeLessThanOrEqual(12);
 });
 
-test('lanes without marks drop and the rest follow the Agents order', () => {
-    const lanes = [
-        lane('b', [mark(new Date(noon))]),
-        lane('a', [mark(new Date(noon))]),
-        lane('c', []),
+test('every visible Agent has a lane in the Agents order, empty when nothing ran', () => {
+    const lanes = [lane('b', [mark(new Date(noon))]), lane('c', []), lane('gone', [])];
+    const read = readLanes(lanes, ['a', 'b', 'c']);
+    expect(read.map((entry) => entry.agentId)).toEqual(['a', 'b', 'c']);
+    expect(read[0]?.lane.marks).toEqual([]);
+    expect(read[1]?.lane.marks).toHaveLength(1);
+});
+
+test('marks too close on a lane are nudged apart in order and stay on the track', () => {
+    const spread = spreadPositions([10, 10, 10.2, 50]);
+    expect(
+        spread.slice(1).every((at, index) => at - (spread[index] ?? 0) >= minMarkGap - 1e-9)
+    ).toBe(true);
+    expect(spread[3]).toBe(50);
+    const edge = spreadPositions([99.5, 100, 100]);
+    expect(Math.max(...edge)).toBeLessThanOrEqual(100);
+    expect(edge[0]).toBeLessThan(edge[1] ?? 0);
+});
+
+test('a mark reads as agent, time, outcome, run time, and tokens', () => {
+    const text = readMarkSummary(
+        'Tiny',
+        mark(new Date(2026, 9, 21, 14, 7), {
+            durationMs: 41_000,
+            outcome: 'reported',
+            tokens: 18_200,
+        })
+    );
+    expect(text).toMatch(/^Tiny · .*pm · Reported · 41s · 18\.2k tokens$/i);
+    expect(readMarkSummary('Tiny', mark(new Date(noon), { kind: 'nightly' }))).toContain(
+        'Dream quiet'
+    );
+});
+
+test('the legend lists the glyph kinds on the day, dream last', () => {
+    const lanes: LaneView[] = [
+        {
+            agentId: 'a',
+            lane: lane('a', [
+                mark(new Date(noon), { outcome: 'reported' }),
+                mark(new Date(noon), { kind: 'nightly', outcome: 'reported' }),
+                mark(new Date(noon)),
+            ]),
+        },
     ];
-    expect(readLanes(lanes, ['a', 'b', 'c', 'd']).map((entry) => entry.agentId)).toEqual([
-        'a',
-        'b',
-    ]);
+    expect(readLegendKinds(lanes)).toEqual(['quiet', 'reported', 'dream']);
+});
+
+test('a dream chip takes the dream token unless the dream failed or paused', () => {
+    expect(readOutcomeChip({ kind: 'nightly', outcome: 'reported' }).isDream).toBe(true);
+    expect(readOutcomeChip({ kind: 'nightly', outcome: 'failed' })).toEqual({
+        color: 'danger',
+        isDream: false,
+    });
+    expect(readOutcomeChip({ kind: 'daytime', outcome: 'paused' }).color).toBe('warning');
+    expect(readOutcomeChip({ kind: 'daytime', outcome: 'reported' }).color).toBe('accent');
 });
 
 test('selection keeps the chosen mark, else the newest reported, else the newest', () => {

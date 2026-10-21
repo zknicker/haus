@@ -365,6 +365,18 @@ fill (21%, a step above the card) rather than by shadow. See "Shell variants" in
 | `warning-soft-foreground` | `#855F2E` | `#F9CB86` | `Light: warning / 80% + foreground / 70%; Dark: warning / 80% + foreground / 30%` | `--warning-soft-foreground` | Prefer the HeroUI token for warning-soft-foreground. | Text color on warning-soft backgrounds. |
 | `warning-soft-hover` | `rgba(245, 165, 36, 0.2)` | `rgba(247, 183, 80, 0.16)` | `Light: warning / 20% + transparent; Dark: warning / 16% + transparent` | `--warning-soft-hover` | Prefer the HeroUI token for warning-soft-hover. | Hover state for warning-soft backgrounds. |
 
+### Dream token
+
+`--dream` is the violet of a nightly dream, a kind of run rather than a status: it never
+reads as success, caution, or failure, and stays apart from `accent` (heartbeats) and
+`--trace-thinking` (a step kind). Dark / light: `oklch(0.72 0.13 295)` / `oklch(0.58 0.15 295)`.
+`--dream-soft` (a translucent mix of it) fills the lane's dream disc and the dream chip, and
+`--dream-soft-foreground` inks the chip (`oklch(0.84 0.09 295)` / `oklch(0.46 0.15 295)`). The
+tokens live in `styles/product-tokens.css` and reach Tailwind as `text-dream`, `bg-dream-soft`, and
+`text-dream-soft-foreground`; the chip's wash is the `.chip.chip--soft.chip--dream` override in
+`default-theme.css`. The Activity Heartbeats lane draws a dream as a moon on that disc, larger than
+a heartbeat's 14px outcome glyph, and a failed dream keeps the disc but rings it in `danger`.
+
 ### Artifact icon tokens
 
 The Files library draws files and folders as small illustrated icons
