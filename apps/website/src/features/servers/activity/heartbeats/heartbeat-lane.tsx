@@ -43,7 +43,7 @@ export function HeartbeatLane({
     }));
     const tabKey = marks.find((entry) => entry.key === selectedKey)?.key ?? marks[0]?.key;
     return (
-        <div className={`${laneRowClass} h-10`}>
+        <div className={`${laneRowClass} h-[52px]`}>
             <span className="flex min-w-0 items-center gap-2 text-sm">
                 <EntityAvatar name={name} size={16} src={agent?.avatarUrl} />
                 <span className="truncate font-medium">{name}</span>
@@ -51,7 +51,7 @@ export function HeartbeatLane({
             {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: a roving toolbar; the key handler walks the real buttons inside it */}
             <div
                 aria-label={`${name} heartbeats`}
-                className="relative h-7"
+                className="relative h-10"
                 onKeyDown={walkMarks}
                 role="toolbar"
             >

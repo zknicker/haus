@@ -134,6 +134,11 @@
         --dream-soft: color-mix(in oklab, var(--dream) 18%, transparent);
         --dream-soft-foreground: oklch(0.84 0.09 295);
 
+        /* Heartbeat badge halos: the outcome's own hue, blurred behind the disc. */
+        --glow-accent: color-mix(in oklab, var(--accent) 55%, transparent);
+        --glow-warning: color-mix(in oklab, var(--warning) 50%, transparent);
+        --glow-dream: color-mix(in oklab, var(--dream) 55%, transparent);
+
         --label-red-fg: var(--color-red-300);
         --label-red-bg: --alpha(var(--color-red-500) / 15%);
         --label-orange-fg: var(--color-orange-300);
@@ -225,6 +230,11 @@
         --dream-soft: color-mix(in oklab, var(--dream) 14%, transparent);
         --dream-soft-foreground: oklch(0.46 0.15 295);
 
+        /* Halos run lighter on the near-white page. */
+        --glow-accent: color-mix(in oklab, var(--accent) 38%, transparent);
+        --glow-warning: color-mix(in oklab, var(--warning) 36%, transparent);
+        --glow-dream: color-mix(in oklab, var(--dream) 38%, transparent);
+
         --label-red-fg: var(--color-red-600);
         --label-red-bg: --alpha(var(--color-red-500) / 12%);
         --label-orange-fg: var(--color-orange-600);
@@ -249,11 +259,16 @@
 /* Expose the wash to Tailwind so bg-background-hover works like bg-surface-hover. */
 @theme inline {
     --color-background-hover: var(--background-hover);
+    /* Big stat numerals (the Heartbeats scoreboard): SF Pro Rounded where the platform has it, else the app font. */
+    --font-numeral: ui-rounded, 'SF Pro Rounded', var(--font-sans);
     --color-code-constant: var(--code-constant);
     --color-code-string: var(--code-string);
     --color-dream: var(--dream);
     --color-dream-soft: var(--dream-soft);
     --color-dream-soft-foreground: var(--dream-soft-foreground);
+    --color-glow-accent: var(--glow-accent);
+    --color-glow-warning: var(--glow-warning);
+    --color-glow-dream: var(--glow-dream);
     --color-nested-surface: var(--nested-surface);
     --color-nested-surface-hover: var(--nested-surface-hover);
     --color-reasoning-high: var(--reasoning-high);

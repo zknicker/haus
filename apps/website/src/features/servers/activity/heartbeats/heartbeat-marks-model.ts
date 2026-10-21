@@ -31,7 +31,7 @@ const glyphOrder: readonly GlyphKind[] = [
 export const glyphLabels: Record<GlyphKind, string> = { ...outcomeLabels, dream: 'Dream' };
 
 /** Marks closer than this on one lane (percent of the track) are nudged apart. */
-export const minMarkGap = 1.6;
+export const minMarkGap = 3.4;
 
 export function readGlyphKind(mark: Pick<HeartbeatMark, 'kind' | 'outcome'>): GlyphKind {
     return mark.kind === 'nightly' ? 'dream' : mark.outcome;
@@ -50,6 +50,25 @@ export function readGlyphCounts(lanes: readonly LaneView[]): { count: number; ki
         const count = counts.get(kind) ?? 0;
         return count > 0 ? [{ count, kind }] : [];
     });
+}
+
+/** Last night's dreams on the day: how many, the lessons they added, the promises they made. */
+export function readDreamTotals(lanes: readonly LaneView[]): {
+    dreams: number;
+    lessons: number;
+    promises: number;
+} {
+    const totals = { dreams: 0, lessons: 0, promises: 0 };
+    for (const { lane } of lanes) {
+        for (const mark of lane.marks) {
+            if (mark.kind === 'nightly') {
+                totals.dreams += 1;
+                totals.lessons += mark.dream?.added ?? 0;
+                totals.promises += mark.dream?.followUps ?? 0;
+            }
+        }
+    }
+    return totals;
 }
 
 /** The meta row under the detail header: time, duration, tokens (what is known). */
