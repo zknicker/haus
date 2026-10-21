@@ -1,6 +1,7 @@
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import { agentExecutionJournalAckSchema } from './agent-execution-journal-upload.ts';
 import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
+import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
 import { browserRequestSchema } from './browser-frames.ts';
 import {
     cloudAgentCancelCommandSchema,
@@ -12,6 +13,7 @@ export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
 export * from './agent-inbox.ts';
 export * from './agent-stop-commands.ts';
+export * from './agent-subagent-wake-frames.ts';
 export * from './browser-frames.ts';
 export * from './cloud-agent-protocol.ts';
 
@@ -145,6 +147,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     agentStartCommandSchema,
     agentStopCommandSchema,
     agentStopBackgroundCommandSchema,
+    agentSubagentWakeResultSchema,
     agentRestartCommandSchema,
     agentResetCommandSchema,
     agentRetireCommandSchema,

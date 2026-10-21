@@ -150,6 +150,21 @@ export async function restartIdleAgentChain(
     return restarted.length > 0 ? 0 : currentTurns;
 }
 
+/**
+ * Whether automation work queued now would only hold: the chain is at its ceiling (which
+ * never times out) and no work that resets it is queued to lead first.
+ */
+export async function isAgentChainHeld(
+    tx: HausDatabase,
+    agentId: string,
+    currentTurns: number
+): Promise<boolean> {
+    return (
+        currentTurns >= maxAgentChainTurns &&
+        (await findOldestQueuedChainResetItem(tx, agentId)) === undefined
+    );
+}
+
 /** Records a completed drain's effect on the chain (see {@link nextAgentChain}). */
 export async function settleAgentChain(
     tx: HausDatabase,

@@ -43,24 +43,6 @@ export const agentSubagentWakeAttentionSchema = z
 export type AgentSubagentWakeAttention = z.infer<typeof agentSubagentWakeAttentionSchema>;
 
 /**
- * Computer→Server: background work this Agent started needs a turn. `finished`: the runtime
- * started a turn on its own to report it, which the wake run adopts. `stopped`: the Computer
- * restarted while it ran, so it was lost. The Server queues at most one wake per Agent, only
- * for the Agent's current session generation and never for a stopped Agent.
- */
-export const agentSubagentWakeRequestSchema = z
-    .object({
-        agentId: idSchema,
-        reason: z.enum(['finished', 'stopped']),
-        sessionGeneration: z.number().int().positive(),
-        type: z.literal('agent-subagent-wake'),
-        wakeId: idSchema,
-    })
-    .strict();
-
-export type AgentSubagentWakeRequest = z.infer<typeof agentSubagentWakeRequestSchema>;
-
-/**
  * Computer→Server: how many background sub-agents each listed Agent runs right now, past the
  * turn that started them. Sent for one Agent when its count changes, and for every Agent the
  * Computer hosts on each connect, so a restarted Computer clears counts its processes took

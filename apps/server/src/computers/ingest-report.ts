@@ -134,7 +134,9 @@ export async function ingestReport(
         return;
     }
 
-    if (await ingestBackgroundWorkFrame(db, delivery, { computerId, frame, serverId })) {
+    if (
+        await ingestBackgroundWorkFrame(db, delivery, { computerId, connections, frame, serverId })
+    ) {
         return;
     }
     const dreamRecord = agentDreamRecordSchema.safeParse(frame);
