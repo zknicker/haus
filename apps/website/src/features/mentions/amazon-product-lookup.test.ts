@@ -18,6 +18,10 @@ test('a refetch after giving up keeps the explanation instead of bare loading', 
     expect(status({ errorUpdateCount: 1, failureCount: 1 })).toBe('temporarilyUnavailable');
 });
 
+test('a Server that lost RankWrangler mid-read settles unavailable', () => {
+    expect(status({ data: null })).toBe('unavailable');
+});
+
 test('settled data wins over earlier failures', () => {
     expect(status({ data: { ...identity, status: 'unavailable' }, errorUpdateCount: 2 })).toBe(
         'unavailable'

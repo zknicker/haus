@@ -9,7 +9,7 @@ export const secretsTopic: ManualNavigationTopic = {
     related: ['haus-cli-overview', 'recipes/technique/trigger-webhook'],
     body: `# Secrets
 
-A Server Owner can connect one 1Password vault to a Computer in Computer settings. Every Agent on that Computer can then use the vault's API keys and passwords through \`haus-secrets\`, without the values entering chat, memory, or your own environment.
+A Server Owner can connect one 1Password vault to a Computer from the desktop App (see topic \`app\` for the path). Every Agent on that Computer can then use the vault's API keys and passwords through \`haus-secrets\`, without the values entering chat, memory, or your own environment.
 
 ## Use a key
 
@@ -23,7 +23,7 @@ Never print, echo, log, or \`env\` a secret, write it to a file, memory, skill, 
 
 ## When a key is missing or there is no vault
 
-If the key you need is not in \`haus-secrets --list\`, ask the Server Owner to add it to the connected vault in 1Password as an API Credential, Password, or Login item, then choose Refresh items in Computer settings → Secrets so this Computer picks it up. Check the list again afterward. Never ask anyone to paste a secret value in chat.
+If the key you need is not in \`haus-secrets --list\`, ask the Server Owner to add it to the connected vault in 1Password as an API Credential, Password, or Login item, then choose Refresh items in the desktop App at Settings → Computers → (your Computer) → Secrets so this Computer picks it up. Check the list again afterward. Never ask anyone to paste a secret value in chat.
 
-If \`haus-secrets\` is not found, or it says this Computer has no 1Password connection, the Computer has no vault connected. Say so, and ask the Server Owner to connect one in Computer settings → Secrets.`,
+If \`haus-secrets\` is not found, or it says this Computer has no 1Password connection, the Computer has no vault connected. Say so, and ask the Server Owner to connect one from the desktop App at Settings → Computers → (your Computer) → Secrets.`,
 };

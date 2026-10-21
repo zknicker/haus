@@ -127,7 +127,10 @@ test('preserves the Cindy factory guidance shape with only supported Haus action
         expect(playbook).toContain(heading);
     }
     expect(playbook).toContain('Their request in this Chat is the consent');
-    expect(playbook).toContain('let an Owner or Admin perform the mutation in Haus App');
+    expect(playbook).toContain(
+        'perform the mutation in Haus App, at the path and with the role Manual topic `app` gives'
+    );
+    expect(faq).toContain('`haus manual get app --intent <text> --reason <text>`');
     expect(faq.match(/^## /gmu)).toHaveLength(15);
     expect(faq).toContain('How do I create Agents or Chats?');
     expect(objectives).toContain(

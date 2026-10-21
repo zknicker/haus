@@ -2,6 +2,7 @@ import type { Reminder, Trigger } from '@haus/api';
 
 export interface AgentAutomationCounts {
     armedTriggers: number;
+    cloudAgents: number;
     scheduledReminders: number;
     total: number;
 }
@@ -14,7 +15,8 @@ export interface AgentAutomationCounts {
  */
 export function countAgentAutomations(
     reminders: readonly Pick<Reminder, 'status'>[],
-    triggers: readonly Pick<Trigger, 'status'>[]
+    triggers: readonly Pick<Trigger, 'status'>[],
+    cloudAgents = 0
 ): AgentAutomationCounts {
     const scheduledReminders = reminders.filter(
         (reminder) => reminder.status === 'scheduled'
@@ -22,8 +24,9 @@ export function countAgentAutomations(
     const armedTriggers = triggers.filter((trigger) => trigger.status === 'armed').length;
     return {
         armedTriggers,
+        cloudAgents,
         scheduledReminders,
-        total: armedTriggers + scheduledReminders,
+        total: armedTriggers + scheduledReminders + cloudAgents,
     };
 }
 
@@ -33,6 +36,9 @@ export function countAgentAutomations(
  */
 export function formatAutomationsFact(counts: AgentAutomationCounts): string {
     const parts = [
+        counts.cloudAgents > 0
+            ? `${counts.cloudAgents} ${pluralize(counts.cloudAgents, 'cloud agent')}`
+            : null,
         counts.scheduledReminders > 0
             ? `${counts.scheduledReminders} ${pluralize(counts.scheduledReminders, 'reminder')}`
             : null,

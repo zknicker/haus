@@ -9,9 +9,9 @@ read_when:
 
 # Image Generation
 
-Status: **Accepted, in implementation** ([ADR 0047](../docs/adr/0047-agents-generate-images-through-haus.md)).
-Phase 0 (contracts in `packages/haus-api`, the migration) has landed; nothing user-visible ships
-until the Server adapters, CLI, and App cards do.
+Status: **Accepted, landed** ([ADR 0047](../docs/adr/0047-agents-generate-images-through-haus.md)).
+The Server adapters, `haus image models`, `generate`, and `wait`, provider-key Settings, and the
+App image cards have shipped; what remains is listed under [Follow-ups](#follow-ups).
 
 Image generation gives every Haus Agent, on every execution runtime, one first-class way to render
 images: `haus image`. The Server owns the providers, the keys, and a short curated model list. One

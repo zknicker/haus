@@ -12,14 +12,16 @@ import {
     type WorkspaceBarPlacement,
     WorkspacePageToolbar,
 } from '../../chats/chat-artifact-workspace-toolbar.tsx';
+import { AgentCloudAutomations } from './agent-cloud-automations.tsx';
 import { AgentReminders } from './agent-reminders.tsx';
 import { AgentTriggers } from './agent-triggers.tsx';
 
 export { AgentActivity } from './agent-activity.tsx';
 
 /**
- * Both of an Agent's standing automations in one section: Reminders answer "at this
- * time", Triggers answer "when this outside thing happens". One section, because a
+ * An Agent's automatic wakes in one section: Reminders answer "at this
+ * time", Triggers answer "when this outside thing happens", and Cloud Agents
+ * expose automatic result handoffs. One section, because a
  * reader asking "what wakes this Agent on its own?" is asking one question.
  *
  * Each section owns its own query, so a slow one never blanks the other.
@@ -29,6 +31,7 @@ export function AgentAutomations({ agent, server }: { agent: Agent; server: Serv
         <>
             <AgentReminders agent={agent} server={server} />
             <AgentTriggers agent={agent} server={server} />
+            <AgentCloudAutomations agent={agent} server={server} />
         </>
     );
 }

@@ -6,7 +6,7 @@ import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { cn } from '../../lib/utils.ts';
-import { AgentTurnProfileAvatar, TurnAvatar } from './agent-turn-avatar.tsx';
+import { AgentTurnProfileAvatar, TurnAvatar, TurnAvatarSlot } from './agent-turn-avatar.tsx';
 import { AssistantReplyBody } from './assistant-reply-body.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import {
@@ -19,6 +19,8 @@ import {
 } from './chat-transcript-activity-utils.ts';
 import {
     type AgentItemSegment,
+    getLastMessage,
+    getLastMessageRow,
     getTranscriptItemKey,
     groupAgentItems,
 } from './chat-transcript-item-utils.ts';
@@ -196,22 +198,31 @@ function UserTurnPresentation({
     // absolute and invisible until hover, so confirmation moves nothing.
     const actionsRow = hasPendingMessage ? null : lastMessageRow;
     const inlineReplyHover = useInlineReplyHoverState(entry.items, lastMessageRow);
+    const continues = entry.continuesPrevious;
 
     return (
         <InlineReplyHoverProvider state={inlineReplyHover}>
             <div className={cn('relative -mx-5 px-5', lastMessageRow && turnInteractionClassName)}>
                 <TurnContext cause={null} entry={entry} />
                 <ChatMessage.Assistant
-                    className={cn(transcriptTurnGeometry.row, 'static')}
+                    className={cn(
+                        transcriptTurnGeometry.row,
+                        'static',
+                        continues && transcriptTurnGeometry.continuation
+                    )}
                     onMouseLeave={inlineReplyHover.clear}
                 >
-                    <TurnAvatar
-                        avatarUrl={actorProfile?.avatarUrl}
-                        deleted={actorProfile?.deleted}
-                        name={displayName}
-                    />
+                    {continues ? (
+                        <TurnAvatarSlot />
+                    ) : (
+                        <TurnAvatar
+                            avatarUrl={actorProfile?.avatarUrl}
+                            deleted={actorProfile?.deleted}
+                            name={displayName}
+                        />
+                    )}
                     <ChatMessage.Body className={transcriptTurnGeometry.body}>
-                        {layout.showHumanIdentity ? (
+                        {layout.showHumanIdentity && !continues ? (
                             <TurnHeader
                                 deleted={actorProfile?.deleted}
                                 displayName={displayName}
@@ -325,7 +336,6 @@ function AgentTurnPresentation({
     const actorId = entry.actor?.id ?? null;
     const items = entry.items;
     const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'Agent';
-    const showIdentity = layout.showAgentIdentity;
     const lastMessageRow = getLastMessageRow(items);
     const lastMessage = lastMessageRow?.message ?? null;
     const turnCompletedAt = lastMessage?.timestamp ?? null;
@@ -339,6 +349,10 @@ function AgentTurnPresentation({
         openAgentProfile,
         repliedRunIds,
     } = context;
+    const cause = causeLineHidden ? null : getTurnCause(items);
+    // A follow-up with a cause line keeps its header: the cause is why it was said.
+    const continues = entry.continuesPrevious && !cause;
+    const showIdentity = layout.showAgentIdentity && !continues;
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);
     const turnStopped =
@@ -399,26 +413,28 @@ function AgentTurnPresentation({
         <MessageContextActionsProvider onViewTurnDetails={openTurnDetails}>
             <InlineReplyHoverProvider state={inlineReplyHover}>
                 <div className={cn('relative -mx-5 px-5', turnInteractionClassName)}>
-                    <TurnContext
-                        cause={causeLineHidden ? null : getTurnCause(items)}
-                        entry={entry}
-                    />
+                    <TurnContext cause={cause} entry={entry} />
                     <ChatMessage.Assistant
                         className={cn(
                             transcriptTurnGeometry.row,
                             'static',
-                            !showIdentity && followsRuntimeNotice && 'mt-0'
+                            !showIdentity && followsRuntimeNotice && 'mt-0',
+                            continues && transcriptTurnGeometry.continuation
                         )}
                         onMouseLeave={inlineReplyHover.clear}
                     >
-                        <AgentTurnProfileAvatar
-                            actorId={actorId}
-                            chatId={chatId}
-                            displayName={displayName}
-                            openAgentProfile={openAgentProfile}
-                            profile={actorProfile}
-                            serverId={turnDetails?.serverId}
-                        />
+                        {continues ? (
+                            <TurnAvatarSlot />
+                        ) : (
+                            <AgentTurnProfileAvatar
+                                actorId={actorId}
+                                chatId={chatId}
+                                displayName={displayName}
+                                openAgentProfile={openAgentProfile}
+                                profile={actorProfile}
+                                serverId={turnDetails?.serverId}
+                            />
+                        )}
                         <ChatMessage.Body className={transcriptTurnGeometry.body}>
                             {showIdentity ? (
                                 <TurnHeader
@@ -802,31 +818,6 @@ function TranscriptMessageActions({
             />
         </ActionTooltip>
     );
-}
-
-/**
- * One fire, one message — so a turn provoked by an automation carries exactly
- * one caused message, and its cause is the turn's. Scans forward so that if a
- * turn ever did hold two, the header names the one that opened it.
- */
-function getLastMessageRow(items: TranscriptItem[]) {
-    for (let index = items.length - 1; index >= 0; index -= 1) {
-        const item = items[index];
-
-        if (
-            item?.kind === 'row' &&
-            item.row.kind === 'message' &&
-            !isActivityBackedMessageRow(item.row)
-        ) {
-            return item.row;
-        }
-    }
-
-    return null;
-}
-
-function getLastMessage(items: TranscriptItem[]) {
-    return getLastMessageRow(items)?.message ?? null;
 }
 
 function isActiveTurn(

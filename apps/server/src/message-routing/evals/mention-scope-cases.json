@@ -23,6 +23,11 @@
         "id": "agt_juniper",
         "name": "Juniper",
         "description": "Researches markets, pricing, and metrics."
+      },
+      {
+        "id": "agt_piper",
+        "name": "Piper",
+        "description": "Fulfills Etsy orders every morning."
       }
     ],
     "humans": [
@@ -383,6 +388,56 @@
           "secondsBeforeCurrent": 30
         }
       ]
+    },
+    {
+      "id": "announcement-piper-onboarded",
+      "expected": "others",
+      "text": "@Piper has been onboarded to fulfill our Etsy orders every morning! Woo"
+    },
+    {
+      "id": "announcement-new-responsibility",
+      "expected": "others",
+      "text": "@Tiny is now handling our release notes every Friday."
+    },
+    {
+      "id": "announcement-completed-work",
+      "expected": "others",
+      "text": "@Blippy finished migrating CI to the new runners. We are ready for launch!"
+    },
+    {
+      "id": "announcement-team-introduction",
+      "expected": "others",
+      "text": "Please welcome @Piper, our new Etsy fulfillment teammate!"
+    },
+    {
+      "id": "announcement-schedule",
+      "expected": "others",
+      "text": "Quick update: @Juniper will be away next week."
+    },
+    {
+      "id": "announcement-reference",
+      "expected": "others",
+      "text": "The deployment issue @Blippy found is fixed. Shipping is unblocked."
+    },
+    {
+      "id": "direct-piper-instruction",
+      "expected": "mentioned",
+      "text": "@Piper, please fulfill our Etsy orders every morning."
+    },
+    {
+      "id": "direct-piper-confirmation",
+      "expected": "mentioned",
+      "text": "@Piper, have you been onboarded to fulfill our Etsy orders every morning?"
+    },
+    {
+      "id": "direct-piper-fyi",
+      "expected": "mentioned",
+      "text": "FYI @Piper: our Etsy orders need to be fulfilled every morning."
+    },
+    {
+      "id": "direct-about-piper",
+      "expected": "mentioned",
+      "text": "@Cove, has Piper been onboarded to fulfill our Etsy orders every morning?"
     }
   ]
 }

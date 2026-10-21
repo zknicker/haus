@@ -13,8 +13,10 @@ import {
     installKeptChatViewTestDom,
     mountKept,
 } from '../../../test-support/kept-chat-views-harness.tsx';
+import { message } from '../../../test-support/transcript-render-harness.tsx';
 import { ChatReadState } from './chat-read-state.tsx';
 import { useChatComposerCommands } from './use-chat-composer-commands.ts';
+import { useChatInlineReply } from './use-chat-inline-reply.ts';
 import {
     createVisibleChatSequence,
     type VisibleChatSequence,
@@ -25,6 +27,45 @@ import {
 
 installKeptChatViewTestDom();
 const scope = globalThis as Record<string, unknown>;
+
+test('selecting an inline reply focuses only the shown composer, including reselection', async () => {
+    const focuses: string[] = [];
+    const replies = new Map<string, ReturnType<typeof useChatInlineReply>>();
+    function Composer({ chatId }: { chatId: string }) {
+        replies.set(chatId, useChatInlineReply(chatId));
+        useChatComposerCommands({
+            agents: [],
+            chatId,
+            focusTextEditor: () => focuses.push(chatId),
+            insertMention: () => undefined,
+            thread: false,
+            updateContent: () => undefined,
+        });
+        return null;
+    }
+    const { show, unmount } = await mountKept((id) => <Composer chatId={id} />);
+    try {
+        await show('a');
+        await show('b');
+        focuses.length = 0;
+        const parent = message('b', 1);
+
+        await React.act(() => replies.get('b')?.selectInlineReply(parent));
+        expect(replies.get('b')?.inlineReply?.messageId).toBe(parent.id);
+        expect(focuses).toEqual(['b']);
+
+        focuses.length = 0;
+        await React.act(() => replies.get('b')?.selectInlineReply(parent));
+        expect(focuses).toEqual(['b']);
+
+        focuses.length = 0;
+        await React.act(() => replies.get('b')?.selectInlineReply(message('a', 1)));
+        expect(focuses).toEqual([]);
+        expect(replies.get('b')?.inlineReply?.messageId).toBe(parent.id);
+    } finally {
+        await unmount();
+    }
+});
 
 test('only the shown kept composer answers commands, and a reveal focuses it', async () => {
     const drafts: Record<string, string> = {};

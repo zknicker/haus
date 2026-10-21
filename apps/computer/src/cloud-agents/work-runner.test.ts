@@ -71,9 +71,12 @@ test('a failed cancellation keeps its retry owner until the provider settles', a
     f.provider.cancel = () =>
         ++attempts === 1 ? Promise.reject(new Error('offline')) : Promise.resolve();
     f.provider.read = () =>
-        Promise.resolve({ observedAt: new Date(60_000).toISOString(), status: 'cancelled' });
+        Promise.resolve({
+            observedAt: new Date(attempts * 60_000).toISOString(),
+            status: attempts === 1 ? 'running' : 'cancelled',
+        });
     await f.work.cancel({ ...entry, type: 'cloud-agent-cancel' });
-    expect(f.observations).toHaveLength(0);
+    expect(f.observations.at(-1)?.status).toBe('running');
     await f.runtime.runPromise(TestClock.adjust('60 seconds'));
     expect(f.observations.at(-1)?.status).toBe('cancelled');
     expect(attempts).toBe(2);
@@ -241,4 +244,27 @@ test('slow pull request evidence stays before later terminal observations', asyn
         'completed',
     ]);
     expect(f.observations[1]?.summary).toBe('GitHub evidence attached');
+});
+
+test('a rejected repeat cancellation still observes the already stopped provider run', async () => {
+    const f = await fixture();
+    let cancellations = 0;
+    let reads = 0;
+    f.provider.cancel = async () => {
+        cancellations += 1;
+        if (cancellations > 1) {
+            throw new Error('Run is no longer active');
+        }
+    };
+    f.provider.read = async () => ({
+        observedAt: new Date(++reads * 5000).toISOString(),
+        status: reads === 1 ? 'running' : 'cancelled',
+    });
+    await f.work.cancel({ ...entry, type: 'cloud-agent-cancel' });
+    expect(f.observations.at(-1)?.status).toBe('running');
+    await f.runtime.runPromise(TestClock.adjust('5 seconds'));
+    expect(f.observations.at(-1)?.status).toBe('cancelled');
+    await f.runtime.runPromise(TestClock.adjust('1 hour'));
+    expect(reads).toBe(2);
+    expect(cancellations).toBe(2);
 });

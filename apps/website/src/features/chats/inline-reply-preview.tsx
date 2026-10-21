@@ -14,7 +14,8 @@ type OpenInlineReply = (
 
 /**
  * The parent this turn replies to, when its reference line should show. A
- * same-author follow-up to the same parent skips it (markRepeatedReplyReferences).
+ * reply continuing its author's previous reply sits under that message's
+ * header and skips it (markReplyContinuations).
  */
 export function useTurnReplyReference(
     entry: TranscriptTurnEntry
@@ -25,7 +26,7 @@ export function useTurnReplyReference(
         message?.kind === 'row' && message.row.kind === 'message'
             ? message.row.message.reply
             : null;
-    if (!(reply && entry.showReplyReference && context?.onOpenInlineReply)) {
+    if (!(reply && !entry.continuesPrevious && context?.onOpenInlineReply)) {
         return null;
     }
     return { onOpen: context.onOpenInlineReply, reference: reply.parent };

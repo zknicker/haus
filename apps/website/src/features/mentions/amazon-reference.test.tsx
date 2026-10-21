@@ -67,11 +67,10 @@ test('loaded product data fills the label and cutout in place', () => {
         'Price unavailable'
     );
 });
-test('failed and disconnected lookups keep the ASIN chip linking to Amazon', () => {
+test('failed lookups keep the ASIN chip linking to Amazon', () => {
     for (const lookup of [
         { status: 'unavailable' },
         { status: 'temporarilyUnavailable' },
-        { status: 'disconnected' },
     ] as const) {
         const markup = chip(lookup);
         expect(markup).toContain('aria-label="Open B07XN9T11R on Amazon"');
@@ -85,7 +84,6 @@ test('every lookup state leads with a copyable ASIN, and the title follows only 
         { status: 'retrying' },
         { status: 'temporarilyUnavailable' },
         { status: 'unavailable' },
-        { status: 'disconnected' },
         { status: 'ready', detailFailed: false, product: summary },
         {
             status: 'ready',
@@ -117,7 +115,6 @@ test('each lookup state explains itself in the hover card', () => {
         temporarilyUnavailable:
             'Product details are temporarily unavailable. We’ll try again shortly.',
         unavailable: 'Product details unavailable',
-        disconnected: 'Connect RankWrangler for product details',
     };
     for (const [status, text] of Object.entries(copy)) {
         expect(preview({ status } as AmazonProductLookup)).toContain(text);

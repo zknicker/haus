@@ -237,7 +237,7 @@ function turn(id: string, messageIds: string[]): TranscriptRenderRow {
         kind: 'turn',
         participant: 'user',
         responseId: null,
-        showReplyReference: true,
+        continuesPrevious: false,
         timestamp: null,
     } as TranscriptEntry;
     return {

@@ -25,10 +25,14 @@ const legacyFaq = await fixture('cove-legacy-faq.md');
 const outgoingWeeklyPlaybook = await fixture('cove-outgoing-weekly-playbook.md');
 // Shipped 9.0–9.4 rendering, whose coordination note kept a run-by-run ledger.
 const ledgerPlaybook = await fixture('cove-9-0-playbook.md');
+// Rendering before Cove pointed App questions at Manual topic `app`.
+const preAppFaq = await fixture('cove-pre-app-faq.md');
+const preAppPlaybook = await fixture('cove-pre-app-playbook.md');
 const revisions = [
     { name: 'deployed d031', faq: deployedFaq, playbook: deployedPlaybook },
     { name: 'previous local daily', faq: deployedFaq, playbook: dailyPlaybook },
     { name: 'outgoing weekly', faq: deployedFaq, playbook: outgoingWeeklyPlaybook },
+    { name: 'pre-app-places', faq: preAppFaq, playbook: preAppPlaybook },
 ];
 const reviewStates = ['offered', 'pending', 'enabled', 'declined', 'postponed'] as const;
 let workspaceDir = '';
@@ -70,6 +74,12 @@ test('legacy fixtures pin genuine deployed and outgoing daily factory renderings
     expect(dailyPlaybook).toContain('proposal is once daily');
     expect(sha256(outgoingWeeklyPlaybook)).toBe(
         '864698e59425d4f3ba974f4fb27734556afd5cf6e86146a3f60bfb7757643500'
+    );
+    expect(sha256(preAppFaq)).toBe(
+        'da4ae05e0f84c78b52c4f0d89fc3e35d6d3bcb0141e59d5a937a1c6842094475'
+    );
+    expect(sha256(preAppPlaybook)).toBe(
+        '0d2ce9cab94a7d2b3ec459e3e4c5a4e7f3f7e13e62d66026fd89db34cf8295a9'
     );
 });
 

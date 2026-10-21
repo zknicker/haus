@@ -1,7 +1,7 @@
 import { assertOpaqueId, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN chips after disconnect', async ({
+test('Amazon chips resolve prose and links, preview on focus, and turn back into text and links after disconnect', async ({
     page,
     context,
 }) => {
@@ -144,16 +144,13 @@ test('Amazon chips resolve prose and links, preview on focus, and stay as ASIN c
     summary.shortName = null;
     await page.reload();
     const fallbackChips = page.getByRole('link', { name: 'Open B07XN9T11R on Amazon' });
-    await expect(fallbackChips).toHaveCount(2);
+    await expect(fallbackChips).toHaveCount(2, { timeout: 15_000 });
     await client.mcp.disconnect.mutate({ serverId: server.id, connectionId: connection.id });
-    await expect(fallbackChips.first().locator('img')).toHaveCount(0);
-    await expect(fallbackChips).toHaveCount(2);
-    await expect(fallbackChips.last()).toHaveAttribute(
+    await expect(fallbackChips).toHaveCount(0);
+    await expect(page.locator('strong').filter({ hasText: /^B07XN9T11R$/u })).toBeVisible();
+    await expect(page.getByText(`and ${slowAsin}.`)).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open the listing' })).toHaveAttribute(
         'href',
         'https://www.amazon.com/dp/B07XN9T11R'
     );
-    await page.mouse.move(0, 0);
-    const disconnected = page.getByRole('dialog', { name: 'B07XN9T11R details' });
-    await fallbackChips.last().focus();
-    await expect(disconnected.getByText('Connect RankWrangler for product details')).toBeVisible();
 });

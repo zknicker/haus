@@ -195,6 +195,7 @@ describe('Chat stream hooks', () => {
             listKey('agent.chats', { serverId }),
             listKey('thread.listUnread', { serverId }),
             // Linked Cloud Agent work may leave the viewer's lists (ADR 0044).
+            listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
             listKey('cloudAgentWork.listForChat', { serverId }),
         ]);
@@ -247,11 +248,13 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onEvent)).toEqual([
             listKey('cloudAgentWork.listForChat', { chatId: 'cht_thread', serverId }),
             listKey('cloudAgentWork.listForChat', { chatId: 'cht_a', serverId }),
+            listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
         ]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual([
             listKey('cloudAgentWork.listForChat', { serverId }),
+            listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
         ]);
     });

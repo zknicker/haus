@@ -1,5 +1,9 @@
 import { isAssistantNarrationItem } from './chat-transcript-activity-utils.ts';
-import type { TranscriptItem, TranscriptRow } from './chat-transcript-model.ts';
+import {
+    isActivityBackedMessageRow,
+    type TranscriptItem,
+    type TranscriptRow,
+} from './chat-transcript-model.ts';
 
 export type AgentItemSegment =
     | { item: TranscriptItem; key: string; kind: 'item' }
@@ -120,4 +124,24 @@ function getDurableReplyRunId(row: TranscriptRow) {
     const runId = (runtime as Record<string, unknown>).runId;
 
     return typeof runId === 'string' && runId.trim().length > 0 ? runId : null;
+}
+
+export function getLastMessageRow(items: TranscriptItem[]) {
+    for (let index = items.length - 1; index >= 0; index -= 1) {
+        const item = items[index];
+
+        if (
+            item?.kind === 'row' &&
+            item.row.kind === 'message' &&
+            !isActivityBackedMessageRow(item.row)
+        ) {
+            return item.row;
+        }
+    }
+
+    return null;
+}
+
+export function getLastMessage(items: TranscriptItem[]) {
+    return getLastMessageRow(items)?.message ?? null;
 }

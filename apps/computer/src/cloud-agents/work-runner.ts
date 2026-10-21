@@ -170,12 +170,18 @@ export class CloudAgentWorkSupervisor {
                         return false;
                     }
                     const provider = self.provider(run.ref.provider);
-                    if (run.cancelRequested) {
-                        yield* foreign((signal) => provider.cancel(run.ref, signal));
-                    }
+                    const cancellation = run.cancelRequested
+                        ? yield* Effect.either(
+                              foreign((signal) => provider.cancel(run.ref, signal))
+                          )
+                        : undefined;
+                    // A rejected repeat stop must not block terminal reconciliation.
                     const observation = yield* foreign((signal) => provider.read(run.ref, signal));
                     self.learnRunId(run, observation);
                     yield* reports.publish(observation);
+                    if (!run.terminal && cancellation?._tag === 'Left') {
+                        return yield* Effect.fail(cancellation.left);
+                    }
                     yield* Deferred.succeed(run.ready, undefined);
                     if (!(run.terminal || run.cancelRequested || streamAttempted)) {
                         streamAttempted = true;

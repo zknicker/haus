@@ -2,23 +2,51 @@ import { type AmazonProductIdentity, amazonProductUrl, parseAmazonProduct } from
 import { HoverCard } from '@heroui-pro/react';
 import * as React from 'react';
 import { hausHoverCardClassName } from '../../components/ui/cursor-hover-card.tsx';
+import {
+    type RenderedChipAvailability,
+    useConnectionChip,
+} from '../../hooks/servers/use-connection-chip.ts';
 import { cn } from '../../lib/utils.ts';
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 import { AmazonProductPreview, lookupInProgress, productImage } from './amazon-product-preview.tsx';
 import { ReferenceChip } from './reference-chip.tsx';
 import { useAmazonProduct } from './use-amazon-product.ts';
 
+/**
+ * An ASIN or Amazon link as a product chip while the Server has RankWrangler
+ * connected; without it, the text or link it came from (`fallback`).
+ */
 export function AmazonReference({
+    fallback,
+    href,
     product,
     serverId,
-    href,
 }: {
+    fallback: React.ReactNode;
+    href?: string;
     product: AmazonProductIdentity;
     serverId: string;
+}) {
+    const chip = useConnectionChip(serverId, 'amazon-product');
+    if (chip === 'absent') {
+        return fallback;
+    }
+    return <AmazonProductReference chip={chip} href={href} product={product} serverId={serverId} />;
+}
+
+function AmazonProductReference({
+    chip,
+    href,
+    product,
+    serverId,
+}: {
+    chip: RenderedChipAvailability;
     href?: string;
+    product: AmazonProductIdentity;
+    serverId: string;
 }) {
     const [open, setOpen] = React.useState(false);
-    const lookup = useAmazonProduct(serverId, product, open);
+    const lookup = useAmazonProduct(serverId, product, chip, open);
     return (
         <AmazonReferenceChip
             href={href}
@@ -95,7 +123,14 @@ export function renderAmazonText(children: React.ReactNode, serverId?: string): 
                 continue;
             }
             parts.push(child.slice(cursor, match.index));
-            parts.push(<AmazonReference key={match.index} product={product} serverId={serverId} />);
+            parts.push(
+                <AmazonReference
+                    fallback={match[0]}
+                    key={match.index}
+                    product={product}
+                    serverId={serverId}
+                />
+            );
             cursor = match.index + match[0].length;
         }
         parts.push(child.slice(cursor));

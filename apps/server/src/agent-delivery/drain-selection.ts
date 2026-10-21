@@ -30,6 +30,7 @@ export async function startFrame(
         | 'agentDescription'
         | 'agentName'
         | 'agentSignatureEmoji'
+        | 'connectionChips'
         | 'homeTimezone'
         | 'sessionGeneration'
     >

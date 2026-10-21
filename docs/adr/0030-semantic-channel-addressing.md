@@ -53,7 +53,7 @@ revoked. Every other bypass above still applies first, and a mention still wins.
 Amended 2026-09-25. Mentions were an unconditional bypass: "@Blippy do X" in a channel with
 Blippy and Tiny delivered to both, with Blippy flagged `mentioned`. Now a top-level human
 channel message that @mentions at least one eligible Agent, while at least one other
-eligible Agent is unmentioned, asks Jev the `mention-v2` mention-scope Choice instead of
+eligible Agent is unmentioned, asks Jev the `mention-v3` mention-scope Choice instead of
 the audience question: is the message meant only for the mentioned Agents
 (`mentioned`), also for an unmentioned Agent (`others`), or is that `unclear`? Asides to
 humans do not count as others; only waking another Agent is at stake.
@@ -72,7 +72,7 @@ attachments, over-long text, DMs, over 32 Agents, and nonce replays bypass first
 request, deadline, snapshot recheck and audit match the audience question, except that
 `currentMessage.explicitAgentIds` names the mentioned Agents and a channel's first message
 is judged on its text alone. Its audit carries `bypassReason: 'mention'` with the Jev model,
-`promptVersion: 'mention-v2'`, the choice, confidence and probability, which is how Dev Mode tells it
+`promptVersion: 'mention-v3'`, the choice, confidence and probability, which is how Dev Mode tells it
 from the audience question.
 
 The errors are asymmetric. Excluding an Agent the author actually spoke to silently drops
@@ -101,6 +101,37 @@ question to Cove about everyone's plate. Repeat runs move individual scores by a
 so one v2 rerun narrowed 30. Median latency was about 150 ms. Re-run the eval with
 `agent-varlock -- bunx varlock run -- bun scripts/mention-scope-eval.ts` before changing the
 question, model or threshold.
+
+### Announcements name a subject, not necessarily an addressee
+
+Amended 2026-10-20. `mention-v3` distinguishes who a message is about from who it is
+for. A shared announcement such as "@Piper has been onboarded to fulfill our Etsy
+orders every morning! Woo" preserves ordinary channel delivery, even without an
+explicit group address or requested action. Direct requests, questions, greetings,
+personal thanks and personal FYIs can still narrow. Narrowing requires positive
+evidence that every sentence addresses only the mentioned Agents or humans;
+unresolved audiences preserve delivery. A group question such as "what did you and
+the others find?" still includes unmentioned Agents.
+
+The corpus now has 68 cases: the original 58 plus six announcements and four
+direct-address controls, including a question to one Agent about Piper. Piper is
+also a fifth eligible Agent. Both prompts used this same expanded topology and
+corpus, `jev-1.13.0`, and the unchanged 0.80 confidence gate for three live passes.
+
+| Prompt | Judgments | Wrongly exclusive | Missed narrow | Piper announcement preserved |
+| --- | --- | --- | --- | --- |
+| mention-v2 baseline | 204 | 12 | 7 | 0/3 |
+| mention-v3 | 204 | 0 | 9 | 3/3 |
+
+All six added announcements preserved delivery and all four direct-address controls
+narrowed in every final pass. The three remaining missed narrows per pass are a
+later handoff, a relay, and a question about everyone's workload; these preserve
+extra recipients rather than exclude intended readers. An intermediate draft
+incorrectly narrowed "you and the others"; the final wording explicitly preserves
+that audience and passed all three reruns. These are synthetic live-model results,
+not a production replay or an error-rate guarantee. The earlier 58-case results
+above remain historical evidence for mention-v2. Reproduce with
+`agent-varlock -- bunx varlock run -- bun scripts/mention-scope-eval.ts`.
 
 ## Threshold
 

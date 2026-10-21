@@ -151,7 +151,7 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(agent?.body).toContain('haus agent update --agent @handle --description <text>');
     expect(agent?.body).toContain('haus agent avatar --agent @handle --concept <text>');
     expect(agent?.body).toContain("Cove's identity is protected");
-    expect(agent?.body).toContain('The Agent profile pane in Haus App');
+    expect(agent?.body).toContain('at Agent profile → Runs on');
     expect(agent?.body).not.toMatch(/action card|haus action prepare|Server role/iu);
     expect(
         searchManualTopics('create a new agent', { limit: 5, scope: 'all' }).map(

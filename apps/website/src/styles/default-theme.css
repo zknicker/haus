@@ -834,6 +834,17 @@
         border-radius: calc(var(--radius) * 5) calc(var(--radius) * 5) 0 0;
     }
 
+    /*
+     * Dark fields draw no border, so the strip above was page on page with no
+     * edge. Keep its page-dark fill, but rim it in the field's own fill so the
+     * strip and the editor read as one card.
+     */
+    [data-theme="dark"] .prompt-input__reply,
+    .dark .prompt-input__reply {
+        border-width: 2px 2px 0;
+        border-color: var(--field-background);
+    }
+
     .prompt-input[data-layout="compact"][data-replying] .prompt-input__shell--compact,
     .prompt-input[data-layout="compact"][data-replying]
         .prompt-input__shell--compact:not(:has(.prompt-input__attachments > *)) {

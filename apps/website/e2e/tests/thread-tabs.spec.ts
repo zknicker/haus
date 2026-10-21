@@ -40,6 +40,7 @@ test('Threads open as pages in the right pane beside the chat', async ({ page },
     await expect(right).toHaveCount(1);
     await expect(right.first()).toContainText('First thread root');
     await expect(threadPane.getByText('First thread reply', { exact: true })).toBeVisible();
+    await expect(threadPane.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     expect(page.url()).not.toContain('thread=');
 
@@ -48,9 +49,11 @@ test('Threads open as pages in the right pane beside the chat', async ({ page },
     await expect(right).toHaveCount(2);
     await expect(right.nth(1)).toContainText('Second thread root');
     await expect(threadPane.getByText('Second thread reply', { exact: true })).toBeVisible();
+    await expect(threadPane.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
     await openThread.first().click();
     await expect(right).toHaveCount(2);
     await expect(threadPane.getByText('First thread reply', { exact: true })).toBeVisible();
+    await expect(threadPane.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
 
     // Replying from the Thread page posts into the Thread.
     const reply = threadPane.getByRole('textbox', { name: /Message Thread/u });

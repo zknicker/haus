@@ -65,6 +65,7 @@ for (const desktop of [false, true]) {
             ? page.locator('.desktop-tab-frame[data-frame-pane="secondary"]:visible')
             : page.getByRole('complementary', { name: 'Thread' });
         await expect(pane.getByText('Thread destination', { exact: true })).toBeVisible();
+        await expect(pane.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
         if (desktop) {
             await expect(
                 page.getByRole('navigation', { name: 'Right pane tabs', exact: true })

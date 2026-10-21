@@ -9,7 +9,7 @@ test('secrets topic teaches haus-secrets without ever handling a value', () => {
     expect(body).toContain('masking is a backstop, not permission');
     expect(body).toContain('Never ask anyone to paste a secret value in chat.');
     expect(body).toContain('ask the Server Owner to add it to the connected vault in 1Password');
-    expect(body).toContain('ask the Server Owner to connect one in Computer settings');
+    expect(body).toContain('ask the Server Owner to connect one from the desktop App');
 });
 
 test('an Agent looking for a key finds the secrets topic', () => {

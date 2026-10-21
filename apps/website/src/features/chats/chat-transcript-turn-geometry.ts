@@ -1,7 +1,11 @@
 /** Shared footprint for pending and durable transcript turns. */
 export const transcriptTurnGeometry = {
     avatar: 'mt-1',
+    // The avatar's footprint on a follow-up that sits under the previous header.
+    avatarSlot: 'w-8 shrink-0',
     body: 'gap-0',
+    // A follow-up under the previous header drops its top half of the gap.
+    continuation: 'pt-0',
     header: 'flex min-w-0 max-w-full items-center gap-2 text-muted text-xs',
     name: 'shrink-0 truncate font-semibold text-sm leading-tight',
     // Keep the bleed width on the same theme-scaled unit as its two margins.

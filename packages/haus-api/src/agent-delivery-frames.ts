@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { agentInboxItemSchema, unreadElsewhereSchema } from './agent-inbox.ts';
 import { idSchema } from './chat.ts';
 import { timestampSchema } from './chat-contract-primitives.ts';
+import { connectionChipKindSchema } from './connection-chips.ts';
 import { traceCarrierSchema } from './trace-context.ts';
 
 /**
@@ -83,6 +84,8 @@ export const agentStartCommandSchema = z
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
         /** The run's Chat; null only for a dream or sub-agent wake run, which have none. */
         chatId: idSchema.nullable(),
+        /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent must write. */
+        connectionChips: z.array(connectionChipKindSchema).max(16).default([]),
         /** Present only on a dream run, which carries no inbox items. */
         dream: agentDreamAttentionSchema.optional(),
         /** Present only on a sub-agent wake run, which carries no inbox items. */

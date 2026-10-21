@@ -15,7 +15,7 @@ import { AgentHub } from './agent-hub.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import { AgentHubBand, AgentSectionBand, AgentTrail } from './agent-profile-band.tsx';
 import { loadAgentProfileContent, useLoadedAgentProfileContent } from './agent-profile-module.ts';
-import type { AgentSection } from './agent-sections.ts';
+import { type AgentSection, agentSectionLabels } from './agent-sections.ts';
 
 // Cold fallbacks only: a warmed content module renders directly (`useLoadedAgentProfileContent`).
 const LazyAgentWorkspace = React.lazy(async () => ({
@@ -32,17 +32,6 @@ export interface AgentProfileViewProps {
     section: AgentSection;
     server: ServerDetail;
 }
-
-const sectionLabels: Record<Exclude<AgentSection, 'home'>, string> = {
-    activity: 'Activity',
-    automations: 'Automations',
-    connections: 'Connections',
-    dreams: 'Dreams',
-    profile: 'Profile',
-    runtime: 'Runs on',
-    skills: 'Skills',
-    workspace: 'Workspace',
-};
 
 /**
  * An Agent's profile body, host-agnostic: the web route and the desktop agent
@@ -93,7 +82,7 @@ export function AgentProfileView({
                 <>
                     <AgentSectionBand
                         agent={agent}
-                        label={sectionLabels[section]}
+                        label={agentSectionLabels[section]}
                         onDeleted={onDeleted}
                         onHome={() => onSectionChange('home')}
                         server={server}
@@ -175,7 +164,7 @@ function AgentWorkspacePage({
     const loaded = useLoadedAgentProfileContent();
     const trail = (
         <AgentTrail agent={agent} onHome={onHome}>
-            <WorkspaceRootCrumb>{sectionLabels.workspace}</WorkspaceRootCrumb>
+            <WorkspaceRootCrumb>{agentSectionLabels.workspace}</WorkspaceRootCrumb>
             <WorkspaceOpenFileCrumb />
         </AgentTrail>
     );

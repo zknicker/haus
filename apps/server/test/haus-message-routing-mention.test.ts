@@ -68,7 +68,7 @@ test('a confident mention-only judgment delivers to the mentioned Agent alone', 
     expect(await audit(receipt.message.id)).toMatchObject({
         outcome: 'mentioned',
         bypassReason: 'mention',
-        promptVersion: 'mention-v2',
+        promptVersion: 'mention-v3',
         model: 'jev-1.13.0',
         choice: 'mentioned',
         confidence: 0.97,
@@ -136,7 +136,7 @@ test('kept, uncertain, failed, timed-out and invalid judgments keep ordinary del
         expect(await audit(receipt.message.id)).toMatchObject({
             outcome,
             bypassReason: 'mention',
-            promptVersion: 'mention-v2',
+            promptVersion: 'mention-v3',
         });
     }
 });

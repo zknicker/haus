@@ -9,7 +9,7 @@ import type {
 } from './agent-commands.ts';
 import { parseDrainItemIds, parseInbox, parseUnreadElsewhere } from './agent-inbox-input.ts';
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
-import { parseStartAgentFacts } from './start-command-facts.ts';
+import { parseConnectionChips, parseStartAgentFacts } from './start-command-facts.ts';
 
 // Server→Computer command frame validation. Every parser fails closed to null.
 
@@ -54,7 +54,8 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
         return null;
     }
     const facts = parseStartAgentFacts(frame);
-    if (!facts) {
+    const connectionChips = parseConnectionChips(frame.connectionChips);
+    if (!(facts && connectionChips)) {
         return null;
     }
     const traceContext = parseTurnTraceContext(frame.traceContext);
@@ -65,6 +66,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
         ...facts,
         agentId: frame.agentId as string,
         ...runChat,
+        connectionChips,
         drainItemIds,
         inbox,
         inboxDelivery: frame.inboxDelivery as 'concrete' | 'notice',

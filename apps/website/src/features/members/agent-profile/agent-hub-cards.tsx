@@ -8,6 +8,7 @@ import {
     Plug01Icon,
     UserIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
@@ -52,6 +53,7 @@ export function AgentHubCards({
     const canView = server.role !== 'member';
     const computers = useComputers(server.id);
     const connections = useConnections(server.id);
+    const cloudAgents = useAgentCloudAutomations(server.id, agent.id);
     const reminders = useAgentReminders(server.id, agent.id, canView);
     const triggers = useAgentTriggers(server.id, agent.id, canView);
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
@@ -97,9 +99,13 @@ export function AgentHubCards({
             />
             <AgentHubCard
                 fact={
-                    revealed && reminders.data && triggers.data
+                    revealed && reminders.data && triggers.data && cloudAgents.data
                         ? formatAutomationsFact(
-                              countAgentAutomations(reminders.data, triggers.data)
+                              countAgentAutomations(
+                                  reminders.data,
+                                  triggers.data,
+                                  cloudAgents.data.length
+                              )
                           )
                         : undefined
                 }

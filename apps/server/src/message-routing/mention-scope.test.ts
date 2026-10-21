@@ -94,7 +94,7 @@ test('the mention-scope request asks one pinned question and fails closed', asyn
     expect(body.model).toBe(routingModel);
     expect(Object.keys(body.questions ?? {})).toEqual(['scope']);
     expect(body.state?.currentMessage.explicitAgentIds).toEqual(['a']);
-    expect(mentionScopePromptVersion).toBe('mention-v2');
+    expect(mentionScopePromptVersion).toBe('mention-v3');
     const failing = createJevRouter(
         'private-key',
         async () => new Response('private vendor error', { status: 529 })

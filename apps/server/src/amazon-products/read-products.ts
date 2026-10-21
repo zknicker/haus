@@ -2,9 +2,9 @@ import {
     type AmazonProductDetail,
     type AmazonProductIdentity,
     type AmazonProductResult,
-    rankWranglerMcpUrl,
+    chipConnection,
 } from '@haus/api';
-import { and, arrayContains, asc, eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
@@ -71,20 +71,15 @@ async function connectedSource(
     serverId: string
 ) {
     await requireServerMembership(db, member, serverId);
-    const [connection] = await db
-        .select()
-        .from(mcpConnectionsTable)
-        .where(
-            and(
-                eq(mcpConnectionsTable.serverId, serverId),
-                eq(mcpConnectionsTable.url, rankWranglerMcpUrl),
-                arrayContains(mcpConnectionsTable.tools, ['rankwrangler_product']),
-                eq(mcpConnectionsTable.connected, true)
-            )
-        )
-        .orderBy(asc(mcpConnectionsTable.id))
-        .limit(1);
-    if (!connection?.tools.includes('rankwrangler_product')) {
+    const connection = chipConnection(
+        'amazon-product',
+        await db
+            .select()
+            .from(mcpConnectionsTable)
+            .where(eq(mcpConnectionsTable.serverId, serverId))
+            .orderBy(asc(mcpConnectionsTable.id))
+    );
+    if (!connection) {
         return null;
     }
     let runtimeCaches = caches.get(runtime);

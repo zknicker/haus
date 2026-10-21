@@ -119,7 +119,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     );
     expect(instructions).toContain('### Triggers');
     expect(instructions).toContain(
-        'A trigger wakes you on an outside event: a `webhook` trigger is a private URL an outside system POSTs to, and a `github` trigger fires on GitHub deliveries with no URL. It never has a schedule. Use reminders for anything time-based.'
+        'A trigger wakes you on an outside event: a `webhook` trigger is a private URL an outside system POSTs to, and `github` and `linear` triggers fire on GitHub or Linear deliveries with no URL. It never has a schedule. Use reminders for anything time-based.'
     );
     expect(instructions).toContain(
         'Create one when someone wants an outside event (a webhook, CI, an alert, a form, a sensor) to reach you; anchor it to the message where they asked (`--message-id`).'

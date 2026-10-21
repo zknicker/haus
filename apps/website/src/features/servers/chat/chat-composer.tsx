@@ -222,7 +222,7 @@ export function ServerChatComposer({
                         >
                             <MentionComposerEditor
                                 ariaLabel={`Message ${chatName}`}
-                                autoFocus={!thread}
+                                autoFocus
                                 composer={mentionComposer}
                                 key={draftKey}
                                 mentions={mentions}

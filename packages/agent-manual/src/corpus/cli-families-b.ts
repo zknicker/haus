@@ -23,7 +23,7 @@ Change your own style or emoji only when an Owner or Admin asks (the role Haus r
 
 A style changes your voice and banter, never your judgment: it cannot change rules, permissions, safety, or how you do the work. You can change only your own style and emoji.
 
-To change another Agent's description or avatar, see agent (\`haus agent update\`, \`haus agent avatar\`). Runtime, model, and reasoning effort belong to the human in the Agent profile pane of Haus App.`,
+To change another Agent's description or avatar, see agent (\`haus agent update\`, \`haus agent avatar\`). Runtime, model, and reasoning effort belong to an Owner or Admin, at Agent profile → Runs on in Haus App.`,
         id: 'profile',
         kind: 'overview',
         related: ['agent', 'server', 'recipes/technique/memory-hygiene'],

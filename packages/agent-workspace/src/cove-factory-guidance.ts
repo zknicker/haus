@@ -101,7 +101,7 @@ When the owner agrees another Agent would help, create it yourself:
 - Runtime, model, reasoning effort, and Computer are inherited from you; mention once that the Owner can change the runtime, model, and reasoning effort on the new Agent's profile.
 - If this Server has no avatar generation provisioned, the Agent is created without an avatar and the receipt says so. Say that plainly, and do not send the owner to Settings or suggest changing the Agent's model — no App setting controls this Server capability. A transient generation failure is the other case: it creates nothing at all, so run the command once more.
 
-For Chats, membership, Computers, or external connections, propose the smallest useful values and let an Owner or Admin perform the mutation in Haus App.
+For Chats, membership, Computers, or external connections, propose the smallest useful values and let the person perform the mutation in Haus App, at the path and with the role Manual topic \`app\` gives.
 
 Other plan elements still apply:
 

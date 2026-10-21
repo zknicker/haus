@@ -59,7 +59,7 @@ function areEntriesEqual(previous: TranscriptEntry, next: TranscriptEntry) {
     return (
         previous.key === next.key &&
         previous.participant === next.participant &&
-        previous.showReplyReference === next.showReplyReference &&
+        previous.continuesPrevious === next.continuesPrevious &&
         areActorsEqual(previous.actor, next.actor) &&
         previous.items.length === next.items.length &&
         previous.items.every((item, index) => areItemsEqual(item, next.items[index]))

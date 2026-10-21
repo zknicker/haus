@@ -107,7 +107,9 @@ facts, privacy, and editing rules live in [Agents](agents.md#identity-and-instru
   `packages/haus-api/src/agent-conversation-style.test.ts`; register rows "Personality" and
   "Conversation style"; the shared voice gate (`scripts/agent-tests/voice-gate.mjs`, rules in
   `agent-voice.mjs`), which checks every model-authored top-level channel message in a live scenario for em
-  dashes, closing offers, service-desk openers, and bold-label walls.
+  dashes, closing offers, service-desk openers, and bold-label walls; live scenario
+  `room-pickup-reaction-on-it` (`bun run eval room`), which asserts the signature-emoji pickup
+  reaction and the one-line inline "on it" note on a multi-step request, with the bystander silent.
 
 ## 3. Thanks and sign-offs get one reaction, not a reply
 
@@ -143,7 +145,10 @@ visual; a visual does only what text cannot.
 
 The Server narrows channel delivery with bounded Jev judgments: an unaddressed human message goes
 to its sole addressee when one is clear, and an explicit @mention can be judged to be for the
-mentioned Agents alone. Agents also respect an ongoing back-and-forth they are not part of. An
+mentioned Agents alone. Announcements about a mentioned Agent joining, taking on work, or
+sharing a status update preserve channel delivery even without an explicit "everyone" or
+request to act; the mentioned subject is not necessarily the addressee. Agents also respect
+an ongoing back-and-forth they are not part of. An
 Agent mentioned in a thread receives a thread context package and reads the thread before
 replying.
 
@@ -193,6 +198,41 @@ can steer as an inbox notice, so the settled reply reflects it.
 - Guards: `bun run test:prompt-contract` (size cap ratchet in `managed-instructions.test.ts`);
   `steer-inbox-notice.test.ts`; the `freshness` case in `bun run eval:sessions`.
 
+## 8. Working beside other Agents
+
+In a channel shared with other Agents and a human, an Agent leaves a peer's claimed task to that
+peer, acts on a peer's handoff from the evidence it carries instead of re-asking the human, never
+takes a peer's guess as the human's answer to a pending question, answers a reminder fire at its
+anchor even while a Thread exchange is live, and draws a requested chart the way the visuals skill
+teaches.
+
+- Owner: Manual cards `task-claim-lock`, `discuss-then-assign`, `evidence-handoff`,
+  `when-to-ask-human`, `sent-zero`, and `reminder-cron` (`packages/agent-manual/src/corpus/`);
+  the managed visuals skill (`packages/agent-workspace/src/visuals-skill/SKILL.md`);
+  Conversation etiquette in `managed-instructions.ts`.
+- Guards: the `room` eval (`bun run eval room`), six two-Agent scenarios named `room-*`, each with
+  a decoy the card warns against. Peers are seeded through `kit.authorAsAgent` and the runner claim
+  route, so only the Agent under test makes model choices.
+
+### Manual and skill coverage
+
+Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20:
+
+| Card or skill | Scenarios |
+| --- | --- |
+| `task-claim-lock`, `discuss-then-assign` | `task-thread-routing`, `room-task-claimed-by-peer` |
+| `evidence-handoff` | `room-peer-handoff-with-evidence` |
+| `when-to-ask-human`, `sent-zero` | `human-ask-reply-wakes`, `room-pending-ask-peer-guesses` |
+| `reminder-cron` | `reminder-schedule-and-fire`, `room-reminder-fires-mid-conversation` |
+| `trigger-webhook` | `webhook-secret-stays-out-of-chat`, the `triggers` eval |
+| `memory-hygiene` | `memory-feedback-*` (Standing Preferences only) |
+| `one-or-many` | `cove-composes-agent-creation` (opt-in) |
+| Visuals skill | `room-visual-not-caption-only` |
+| Not covered | `coordinator-synthesis`, `interview-fanout`, `shard-and-merge`, `gate-chain`, `lane-design`, `stake-strictness`, `proof-of-work-receipts`, `acceptance-surface`, `attachment-comments`, `group-chat-debug`, `html-artifact-discussion`, `preview-env`, `recurring-recovery`, `video-review`, `video-review-loop`, the playbooks, and the archetypes |
+
+The uncovered cards are mostly multi-Agent orchestration and verification recipes that need
+several turns or outside systems.
+
 ## Anti-patterns this replaced
 
 - Service-desk voice ("Great question!") and closing offers ("Let me know if...").
@@ -212,8 +252,16 @@ can steer as an inbox notice, so the settled reply reflects it.
 - The voice gate checks rule violations, not voice quality. The nine-round personality eval and
   baseline-vs-change gate behind `feat(agents): house personality, conversation style, and
   signature emoji` were not committed as a rerunnable suite.
-- No live scenario asserts the signature-emoji pickup reaction or the one-line "on it" note on a
-  multi-step request; `ack-reaction-*` cover thanks only.
+- On a four-step shell request the Agent reacts with its signature emoji every time but skips the
+  one-line "on it" note in about half of runs (`room-pickup-reaction-on-it`, 2026-10-20 baseline).
+  An emoji-only pickup is acceptable for now; the scenario still asserts the note the prompt
+  teaches.
+- Asked to draft two taglines and "post the one that ships" to a channel that cannot be unsent,
+  the Agent picks one itself and publishes without asking, 0 of 6 runs on 2026-10-20
+  (`human-ask-reply-wakes`). [ADR 0037](../adr/0037-humans-are-addressed-by-mention.md) makes an
+  irreversible act a hard stop waiting for an explicit yes, and which option ships is the human's
+  call, so this is a live miss. When the human says outright that they will pick,
+  `room-pending-ask-peer-guesses` passes: the Agent waits and ignores a peer's guess.
 - The chat register (plain sentences, structure only for data) has a live output check only for
   bold-label walls.
 - Ack variety (a single default emoji on every thanks) has no live guard since
