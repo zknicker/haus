@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { HostToolSession } from '../../../host-tools/mcp-server.ts';
 import type { TurnEvent } from '../../turn-event.ts';
-import { ClaudeConnection } from '../claude-connection.ts';
+import { type ClaudeBackgroundHooks, ClaudeConnection } from '../claude-connection.ts';
 import { ClaudeEventNormalizer } from '../claude-event-normalizer.ts';
 import type { ClaudeExit, ClaudeProcess } from '../claude-process.ts';
 import { createWorkspaceStripper } from '../claude-tool-names.ts';
@@ -46,6 +46,7 @@ export function replayProcess(name: string, processIndex = 0) {
     const exit = Promise.withResolvers<ClaudeExit>();
     let alive = true;
     let next = 1;
+    const ids = new Map<string, string>();
     const release = async (segment: FixtureRecord[], idMap: Map<string, string>) => {
         for (const record of segment) {
             await Bun.sleep(0);
@@ -93,7 +94,11 @@ export function replayProcess(name: string, processIndex = 0) {
             const recorded = recordedWrites[next - 1];
             const segment = segments[next] ?? [];
             next += 1;
-            void release(segment, requestIdMap(recorded?.line, line));
+            // A message's id stays mapped for the rest of the replay: its result may come later.
+            for (const [recordedId, liveId] of requestIdMap(recorded?.line, line)) {
+                ids.set(recordedId, liveId);
+            }
+            void release(segment, ids);
             return Promise.resolve();
         },
         writes,
@@ -103,7 +108,11 @@ export function replayProcess(name: string, processIndex = 0) {
 }
 
 /** A connection over a replayed process, launched as the driver launches it. */
-export function replayConnection(name: string, processIndex = 0) {
+export function replayConnection(
+    name: string,
+    processIndex = 0,
+    background?: ClaudeBackgroundHooks
+) {
     const process = replayProcess(name, processIndex);
     const hostTools: HostToolSession = {
         close: () => undefined,
@@ -125,7 +134,8 @@ export function replayConnection(name: string, processIndex = 0) {
             normalizer,
             hostTools,
             'replay',
-            'replay-session'
+            'replay-session',
+            background
         ),
         process,
     };

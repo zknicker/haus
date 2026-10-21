@@ -5,6 +5,12 @@ export interface WarmProcess {
     close(): Promise<void>;
     /** Settles once the process exited on its own or was closed. */
     readonly exited: Promise<unknown>;
+    /**
+     * Work the process runs past its turn (a background sub-agent or shell, or a turn the
+     * runtime started on its own to report one). Closing would end it, so the pool never
+     * closes such a process for idleness or a launch-fact change; evict and close still do.
+     */
+    readonly holdsBackgroundWork?: boolean;
 }
 
 /** What a parked process was launched with; only an identical open may reuse it. */
@@ -42,7 +48,9 @@ interface Parked {
  * Computer-wide parked runtime processes, one per Agent session (keyed by the Agent's root):
  * a detached session parks its process here so the Agent's next turn continues it without a
  * spawn. A changed launch fingerprint, another runtime, or another conversation closes the
- * parked process instead. Idle processes close after `idleMs`; `close` ends every one.
+ * parked process instead. Idle processes close after `idleMs`; `close` ends every one. A process
+ * holding background work is exempt from both the idle close and the launch-fingerprint close
+ * until that work ends (specs/runtime-drivers.md "Background work").
  */
 export class WarmProcessPool {
     private readonly parked = new Map<string, Parked>();
@@ -64,9 +72,7 @@ export class WarmProcessPool {
             return;
         }
         const previous = this.parked.get(key);
-        const timer = setTimeout(() => this.expire(key, process), this.idleMs);
-        timer.unref?.();
-        this.parked.set(key, { identity, process, timer });
+        this.parked.set(key, { identity, process, timer: this.idleTimer(key, process) });
         void process.exited.then(() => this.forget(key, process));
         if (previous && previous.process !== process) {
             // Two live processes must never write one Agent's conversation.
@@ -89,13 +95,12 @@ export class WarmProcessPool {
             return;
         }
         const { identity, process } = entry;
-        if (
-            process.alive &&
-            is(process) &&
+        const sameConversation =
             identity.runtimeId === want.runtimeId &&
-            identity.launchKey === want.launchKey &&
-            identity.nativeSessionId === want.nativeSessionId
-        ) {
+            identity.nativeSessionId === want.nativeSessionId;
+        // New launch facts wait for the background work to end; the next claim relaunches.
+        const keep = identity.launchKey === want.launchKey || process.holdsBackgroundWork === true;
+        if (process.alive && is(process) && sameConversation && keep) {
             return process;
         }
         await process.close();
@@ -139,8 +144,20 @@ export class WarmProcessPool {
         }
     }
 
+    private idleTimer(key: string, process: WarmProcess): ReturnType<typeof setTimeout> {
+        const timer = setTimeout(() => this.expire(key, process), this.idleMs);
+        timer.unref?.();
+        return timer;
+    }
+
     private expire(key: string, process: WarmProcess) {
-        if (this.parked.get(key)?.process !== process) {
+        const entry = this.parked.get(key);
+        if (entry?.process !== process) {
+            return;
+        }
+        if (process.holdsBackgroundWork) {
+            // Background work still runs: the idle window starts over once it ends.
+            this.parked.set(key, { ...entry, timer: this.idleTimer(key, process) });
             return;
         }
         this.take(key);

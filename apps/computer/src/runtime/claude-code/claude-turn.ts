@@ -13,20 +13,10 @@ import {
     SteerReceiptTimeoutError,
     steerReceiptMs,
 } from './claude-steer-receipt.ts';
+import { ClaudeTurnSteers } from './claude-turn-steers.ts';
 
 /** How long an interrupted turn may take to reach its result before the process is killed. */
 const interruptGraceMs = 5000;
-const terminalLifecycle = new Set(['cancelled', 'completed', 'discarded']);
-/** Lifecycle states that prove Claude Code handed the message to the model. */
-const consumedLifecycle = new Set(['completed', 'started']);
-
-interface Steer {
-    ack?: { reject(error: Error): void; resolve(): void };
-    /** The steer reported `delivered` to its caller. */
-    delivered: boolean;
-    state: string;
-    readonly text: string;
-}
 
 /**
  * One turn on a live connection: the initial user message, any steering written into it, and
@@ -36,7 +26,7 @@ interface Steer {
 export class ClaudeTurn implements TurnSink {
     readonly events = new EventQueue<TurnEvent>();
     private readonly settled = Promise.withResolvers<void>();
-    private readonly steers = new Map<string, Steer>();
+    private readonly steers = new ClaudeTurnSteers();
     /** Every user message this turn wrote (prompt and steers); only their results are its own. */
     private readonly ownMessages = new Set<string>();
     private aborting = false;
@@ -44,18 +34,25 @@ export class ClaudeTurn implements TurnSink {
     private failed = false;
     private finishing = false;
     private interruptRequested = false;
+    /** This turn is the wake for a turn Claude Code started itself, so that turn's result is its own. */
+    private readonly ownsNotificationTurn: boolean;
     private resultSeen = false;
     private usage: RuntimeTokenUsage | null = null;
 
     constructor(
         private readonly connection: ClaudeConnection,
         private readonly options: {
+            /** Lines of a turn Claude Code started on its own; this turn picks it up mid-flight. */
+            adopted?: readonly ParsedClaudeLine[] | null;
             collectPlanUsage: boolean;
             signal: AbortSignal;
             /** How long a written steer may wait for its queue receipt; tests shorten it. */
             steerAckMs?: number;
+            /** A wake for background work: an adopted turn stands in for the prompt. */
+            wake?: boolean;
         }
     ) {
+        this.ownsNotificationTurn = Boolean(options.adopted && options.wake);
         this.detachSink = connection.attach(this);
         connection.normalizer.beginTurn();
         const onAbort = () => this.abort();
@@ -67,8 +64,25 @@ export class ClaudeTurn implements TurnSink {
         return this.finishing;
     }
 
-    /** Writes the turn's prompt; a failed write ends the turn on the process's own error. */
+    get accepting(): boolean {
+        return !this.finishing;
+    }
+
+    /**
+     * Writes the turn's prompt; a failed write ends the turn on the process's own error. A turn
+     * Claude Code already started on its own is replayed into this one first; a wake then writes
+     * nothing, because that turn is the model answering the very thing the wake is for.
+     */
     async start(prompt: string): Promise<void> {
+        for (const line of this.options.adopted ?? []) {
+            this.onLine(line);
+        }
+        if (this.ownsNotificationTurn) {
+            if (this.options.signal.aborted) {
+                this.abort();
+            }
+            return;
+        }
         if (this.options.signal.aborted) {
             // Nothing reached Claude Code, so the runtime is already at its idle boundary.
             this.aborting = true;
@@ -91,9 +105,7 @@ export class ClaudeTurn implements TurnSink {
 
     /** Delivered steers Claude Code never started: cancelled by an interrupt, or still queued. */
     unconsumedSteers(): readonly string[] {
-        return [...this.steers.values()]
-            .filter((steer) => steer.delivered && !consumedLifecycle.has(steer.state))
-            .map((steer) => steer.text);
+        return this.steers.unconsumed();
     }
 
     async steer(text: string): Promise<SteerResult> {
@@ -108,11 +120,9 @@ export class ClaudeTurn implements TurnSink {
             };
         }
         const uuid = randomUUID();
-        const steer: Steer = { delivered: false, state: 'written', text };
-        this.steers.set(uuid, steer);
-        const acknowledged = new Promise<void>((resolve, reject) => {
-            steer.ack = { reject, resolve };
-        });
+        const acknowledged = this.steers.track(uuid, text);
+        // A dropped steer's receipt rejection is answered by `dropSteer`, never left unhandled.
+        acknowledged.catch(() => undefined);
         this.ownMessages.add(uuid);
         try {
             await this.connection.sendUser(text, { priority: 'next', uuid });
@@ -133,7 +143,7 @@ export class ClaudeTurn implements TurnSink {
                 // reported delivered, so its notice is not steered again next turn.
             }
         }
-        steer.delivered = true;
+        this.steers.delivered(uuid);
         return { delivered: true };
     }
 
@@ -155,17 +165,9 @@ export class ClaudeTurn implements TurnSink {
     }
 
     onLifecycle(message: ClaudeCommandLifecycle): void {
-        const steer = this.steers.get(message.command_uuid);
-        if (!steer) {
-            return;
+        if (this.steers.onLifecycle(message)) {
+            void this.trySettle();
         }
-        steer.state = message.state;
-        if (message.state === 'queued' || message.state === 'started') {
-            steer.ack?.resolve();
-        } else if (message.state === 'cancelled' || message.state === 'discarded') {
-            steer.ack?.reject(new ClaudeTurnError(`Claude Code ${message.state} the message.`));
-        }
-        void this.trySettle();
     }
 
     onUnreadable(nativeType: string): void {
@@ -192,12 +194,18 @@ export class ClaudeTurn implements TurnSink {
     }
 
     private dropSteer(uuid: string, error: unknown): SteerResult {
-        this.steers.delete(uuid);
+        this.steers.drop(uuid);
         void this.trySettle();
         return { delivered: false, error, reason: 'failed' };
     }
 
     private onResult(result: ClaudeResult) {
+        if (result.origin?.kind === 'task-notification' && !this.ownsNotificationTurn) {
+            // A turn Claude Code ran on its own (a background task's report, or the orphan notice
+            // it records on resume) shares the connection; it never settles this turn.
+            this.events.push({ nativeType: 'result:task-notification', type: 'progress' });
+            return;
+        }
         const answered = [result.user_message_uuid, ...(result.user_message_uuids ?? [])].filter(
             (uuid): uuid is string => Boolean(uuid)
         );
@@ -211,12 +219,7 @@ export class ClaudeTurn implements TurnSink {
         this.usage = addUsage(this.usage, claudeTokenUsage(result.usage));
         // A result that does not settle the turn (a queued steer runs next) is still liveness.
         this.events.push({ nativeType: 'result', type: 'progress' });
-        for (const uuid of [result.user_message_uuid, ...(result.user_message_uuids ?? [])]) {
-            const steer = uuid ? this.steers.get(uuid) : undefined;
-            if (steer) {
-                steer.state = 'completed';
-            }
-        }
+        this.steers.completed([result.user_message_uuid, ...(result.user_message_uuids ?? [])]);
         if (!(this.aborting || this.failed)) {
             const outcome = classifyResult(result, this.connection.normalizer);
             if (outcome.kind !== 'success') {
@@ -232,9 +235,7 @@ export class ClaudeTurn implements TurnSink {
 
     private async trySettle() {
         // An interrupt cancels queued messages too, so its result is the idle boundary.
-        const pending =
-            !this.interruptRequested &&
-            [...this.steers.values()].some((steer) => !terminalLifecycle.has(steer.state));
+        const pending = !this.interruptRequested && this.steers.pending;
         if (this.resultSeen && !pending) {
             await this.finish();
         }

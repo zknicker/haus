@@ -41,7 +41,7 @@ export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
         get sessionId() {
             return connection.sessionId;
         },
-        async startTurn({ prompt, signal }): Promise<RuntimeTurn> {
+        async startTurn({ prompt, signal, wake }): Promise<RuntimeTurn> {
             if (closed) {
                 throw new Error('The Claude Code session is parked.');
             }
@@ -51,9 +51,12 @@ export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
             if (!connection.alive) {
                 connection = await deps.relaunch(connection.sessionId);
             }
+            // A turn Claude Code started on its own while idle becomes part of this one.
             const next = new ClaudeTurn(connection, {
+                adopted: connection.adoptSelfStartedTurn(),
                 collectPlanUsage: deps.collectPlanUsage,
                 signal,
+                wake,
             });
             turn = next;
             await next.start(prompt);

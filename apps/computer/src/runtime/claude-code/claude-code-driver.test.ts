@@ -56,7 +56,8 @@ test('a fresh session launches as the driver contract requires and parks warm', 
     expect(launch?.args).not.toContain('--resume');
     expect(launch?.env).toEqual({
         CLAUDECODE: null,
-        CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
+        CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: null,
+        CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: '4',
         HOME: harness.homeDir,
         hasHostToolToken: true,
     });
@@ -128,16 +129,14 @@ test('a process that dies mid-turn fails the turn with its stderr; the session r
     expect((await harness.launches())[1]?.args).toContain('--resume');
 });
 
-test('a stored conversation Claude Code cannot find is a prompt resume rejection', async () => {
-    const session = await open(harness.driver(), {
-        claudeSessionId: 'missing-1',
-        runtime: 'claude-code',
-        version: 1,
+test('a stored conversation Claude Code cannot find is a resume rejection at open', async () => {
+    // Claude Code exits before answering the `initialize` handshake, naming the conversation.
+    const opened = harness.driver().openSession({
+        resumeFrom: { claudeSessionId: 'missing-1', runtime: 'claude-code', version: 1 },
+        sessionId: 'agt_test-1',
+        signal: signal(),
     });
-    const events = await turn(session, 'hi');
-    const failure = events.at(-1);
-    expect(failure?.type).toBe('error');
-    expect(isRuntimeResumeRejection(failure?.type === 'error' ? failure.error : null)).toBe(true);
+    expect(isRuntimeResumeRejection(await opened.catch((error: unknown) => error))).toBe(true);
 });
 
 test('a legacy harness state resumes its Claude conversation; another runtime’s is rejected', async () => {

@@ -108,17 +108,23 @@ test('claude launch reads settings from the Agent HOME only and MCP from Haus on
     });
 });
 
-test('claude env isolates HOME, drops the nested-session marker, and disables background work', () => {
+test('claude env isolates HOME, drops the nested-session marker, and caps concurrent sub-agents', () => {
     const env = buildClaudeEnv({
-        base: { CLAUDECODE: '1', HOME: '/Users/operator', PATH: '/usr/bin' },
+        base: {
+            CLAUDECODE: '1',
+            // Background work is the driver's contract; the operator's shell cannot turn it off.
+            CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
+            HOME: '/Users/operator',
+            PATH: '/usr/bin',
+        },
         credentials: { CLAUDE_CODE_OAUTH_TOKEN: 'token' },
         homeDir: '/agent/home',
         hostToolToken: 'host-token',
         launchEnv: { HAUS_AGENT_ID: 'agt_1', PATH: '/agent/bin:/usr/bin' },
     });
     expect(env).toEqual({
-        CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
         CLAUDE_CODE_ENTRYPOINT: 'sdk-ts',
+        CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: '4',
         CLAUDE_CODE_OAUTH_TOKEN: 'token',
         HAUS_AGENT_ID: 'agt_1',
         HAUS_HOST_TOOLS_TOKEN: 'host-token',

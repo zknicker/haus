@@ -4,6 +4,7 @@ import { type WarmProcess, WarmProcessPool } from './warm-pool.ts';
 class FakeProcess implements WarmProcess {
     alive = true;
     closes = 0;
+    holdsBackgroundWork = false;
     private readonly ended = Promise.withResolvers<void>();
     readonly exited = this.ended.promise;
 
@@ -81,6 +82,50 @@ test('an idle process closes after the idle window', async () => {
     await Bun.sleep(20);
     expect(process.closes).toBe(1);
     expect(warm.size).toBe(0);
+});
+
+test('a process holding background work outlives the idle window, then closes once it is done', async () => {
+    const warm = pool(5);
+    const process = new FakeProcess();
+    process.holdsBackgroundWork = true;
+    await warm.park('agent-a', identity, process);
+    await Bun.sleep(25);
+    expect(process.closes).toBe(0);
+    expect(warm.size).toBe(1);
+    process.holdsBackgroundWork = false;
+    await Bun.sleep(25);
+    expect(process.closes).toBe(1);
+    expect(warm.size).toBe(0);
+});
+
+test('changed launch facts keep a process holding background work for the same conversation', async () => {
+    const warm = pool();
+    const process = new FakeProcess();
+    process.holdsBackgroundWork = true;
+    await warm.park('agent-a', identity, process);
+    expect(await warm.claim('agent-a', { ...identity, launchKey: 'launch-2' }, isFake)).toBe(
+        process
+    );
+    expect(process.closes).toBe(0);
+    // Another conversation or runtime is a deliberate reset: the background work ends with it.
+    await warm.park('agent-a', identity, process);
+    expect(
+        await warm.claim('agent-a', { ...identity, nativeSessionId: 'conversation-2' }, isFake)
+    ).toBeUndefined();
+    expect(process.closes).toBe(1);
+});
+
+test('evict and close end a process even while it holds background work', async () => {
+    const warm = pool();
+    const a = new FakeProcess();
+    const b = new FakeProcess();
+    a.holdsBackgroundWork = true;
+    b.holdsBackgroundWork = true;
+    await warm.park('agent-a', identity, a);
+    await warm.park('agent-b', identity, b);
+    await warm.evict('agent-a');
+    await warm.close();
+    expect([a.closes, b.closes]).toEqual([1, 1]);
 });
 
 test('evict ends one Agent’s process; close ends all and refuses later parks', async () => {

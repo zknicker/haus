@@ -5,6 +5,8 @@ import { defineHostTool, type HostToolSet } from '../../../host-tools/host-tool.
 export type CaptureStep =
     | { kind: 'control'; request: Record<string, unknown> }
     | { kind: 'end' }
+    /** SIGKILLs the process at once: a crash, with nothing flushed. */
+    | { kind: 'kill' }
     | { kind: 'send'; priority?: 'later' | 'next' | 'now'; text: string; uuid?: boolean }
     | { kind: 'sleep'; ms: number }
     | {

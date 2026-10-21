@@ -12,6 +12,15 @@ export function claudeResumeRejection(error: Error): RuntimeResumeRejectedError 
 }
 
 /**
+ * A process that ended before answering the `initialize` handshake. Resuming a conversation
+ * Claude Code no longer has exits at once with the same stderr line, so that case is the typed
+ * rejection; anything else keeps the handshake's own error.
+ */
+export function claudeInitializeFailure(error: unknown, stderrTail: readonly string[]): unknown {
+    return claudeResumeRejection(new Error(stderrTail.join('\n'))) ?? error;
+}
+
+/**
  * Failures a Claude Code turn ends on. Messages keep Claude's own text: Computer's failure
  * classifier reads it (`runtime-failure.ts`).
  */

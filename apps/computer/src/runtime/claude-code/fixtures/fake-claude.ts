@@ -22,7 +22,9 @@ if (log) {
             env: {
                 CLAUDECODE: process.env.CLAUDECODE ?? null,
                 CLAUDE_CODE_DISABLE_BACKGROUND_TASKS:
-                    process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS,
+                    process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS ?? null,
+                CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS:
+                    process.env.CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS,
                 HOME: process.env.HOME,
                 hasHostToolToken: Boolean(process.env.HAUS_HOST_TOOLS_TOKEN),
             },

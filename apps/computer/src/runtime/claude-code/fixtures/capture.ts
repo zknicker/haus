@@ -12,7 +12,12 @@ import {
     renderClaudeMcpConfig,
     writeClaudeLaunchFiles,
 } from '../claude-launch.ts';
-import { type CaptureStep, captureScenarios, captureTools } from './capture-scenarios.ts';
+import { backgroundCaptureScenarios } from './capture-background-scenarios.ts';
+import {
+    captureScenarios as baseScenarios,
+    type CaptureStep,
+    captureTools,
+} from './capture-scenarios.ts';
 import { scrubFixtureLine } from './fixture-scrub.ts';
 
 /**
@@ -21,6 +26,7 @@ import { scrubFixtureLine } from './fixture-scrub.ts';
  *
  *   bun apps/computer/src/runtime/claude-code/fixtures/capture.ts <scenario> <claude-binary>
  */
+const captureScenarios = { ...baseScenarios, ...backgroundCaptureScenarios };
 const [scenarioName, binaryPath] = process.argv.slice(2);
 const scenario = scenarioName ? captureScenarios[scenarioName] : undefined;
 if (!(scenario && binaryPath)) {
@@ -166,6 +172,10 @@ async function runStep(
             child.stdin.end();
             await Promise.race([messages.exited, Bun.sleep(30_000)]);
             child.kill('SIGKILL');
+            return;
+        case 'kill':
+            child.kill('SIGKILL');
+            await messages.exited;
             return;
         default:
             throw new Error('Unknown capture step.');

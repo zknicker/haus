@@ -54,8 +54,16 @@ export interface RuntimeSession {
     readonly isResume: boolean;
     /** The runtime's own session id, persisted as the next generation's coordinates. */
     readonly sessionId: string;
-    /** Starts a turn. Its events end at the turn's settlement event. */
-    startTurn(options: { prompt: string; signal: AbortSignal }): Promise<RuntimeTurn>;
+    /**
+     * Starts a turn. Its events end at the turn's settlement event. A runtime that started a
+     * turn on its own to report background work (Claude Code) folds it into this one; when
+     * `wake` is set the turn exists for that report, so the adopted turn replaces the prompt.
+     */
+    startTurn(options: {
+        prompt: string;
+        signal: AbortSignal;
+        wake?: boolean;
+    }): Promise<RuntimeTurn>;
     /** Delivers text into the running turn at the runtime's next safe boundary. */
     steer(text: string): Promise<SteerResult>;
     /** Parks the session and ends its native process. */

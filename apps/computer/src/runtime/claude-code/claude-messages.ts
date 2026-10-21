@@ -70,6 +70,8 @@ const resultSchema = z.looseObject({
     api_error_status: z.number().nullish(),
     errors: z.array(z.unknown()).nullish(),
     is_error: z.boolean().optional(),
+    /** `task-notification`: Claude Code started this turn itself to report background work. */
+    origin: z.looseObject({ kind: z.string() }).nullish(),
     result: z.string().nullish(),
     stop_reason: z.string().nullish(),
     subtype: z.string(),
@@ -97,6 +99,16 @@ const systemSchema = z.looseObject({
         .optional(),
     subtype: z.string(),
     task_id: z.string().optional(),
+    /** `background_tasks_changed`: every live background task, replacing the previous set. */
+    tasks: z
+        .array(
+            z.looseObject({
+                ambient: z.boolean().optional(),
+                task_id: z.string(),
+                task_type: z.string(),
+            })
+        )
+        .optional(),
     type: z.literal('system'),
 });
 export type ClaudeSystemMessage = z.infer<typeof systemSchema>;

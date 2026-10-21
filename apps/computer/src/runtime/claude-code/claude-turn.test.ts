@@ -34,8 +34,16 @@ function fakeConnection() {
         connection: connection as unknown as ClaudeConnection,
         lifecycle: (uuid: string, state: string) =>
             emit({ command_uuid: uuid, state, type: 'command_lifecycle' }),
+        notificationResult: () =>
+            emit({
+                origin: { kind: 'task-notification' },
+                result: 'reported',
+                subtype: 'success',
+                type: 'result',
+            }),
         result: (uuid: string) =>
             emit({ result: 'ok', subtype: 'success', type: 'result', user_message_uuid: uuid }),
+        written,
         uuidOf: (text: string) => written.find((entry) => entry.text === text)?.uuid ?? '',
     };
 }
@@ -77,6 +85,55 @@ test('a result for a message this turn never wrote does not finish it', async ()
     expect(turn.isSettled).toBe(false);
 
     fake.result(fake.uuidOf('prompt'));
+    await turn.settle();
+    expect(turn.isSettled).toBe(true);
+});
+
+test('a turn Claude Code ran on its own never settles a prompted turn', async () => {
+    const fake = fakeConnection();
+    const turn = newTurn(fake.connection);
+    await turn.start('prompt');
+    // A background task's report raced the prompt: it runs first, then the prompt does.
+    fake.notificationResult();
+    expect(turn.isSettled).toBe(false);
+    fake.result(fake.uuidOf('prompt'));
+    await turn.settle();
+    expect(turn.isSettled).toBe(true);
+});
+
+test('a wake that adopts a self-started turn writes nothing and settles on that turn', async () => {
+    const fake = fakeConnection();
+    const init = parseClaudeLine(
+        JSON.stringify({ subtype: 'init', type: 'system' })
+    ) as ParsedClaudeLine;
+    const turn = new ClaudeTurn(fake.connection, {
+        adopted: [init],
+        collectPlanUsage: false,
+        signal: new AbortController().signal,
+        wake: true,
+    });
+    await turn.start('the wake prompt');
+    expect(fake.written).toEqual([]);
+    fake.notificationResult();
+    await turn.settle();
+    expect(turn.isSettled).toBe(true);
+});
+
+test('a prompted turn that adopts a self-started turn still writes its prompt', async () => {
+    const fake = fakeConnection();
+    const init = parseClaudeLine(
+        JSON.stringify({ subtype: 'init', type: 'system' })
+    ) as ParsedClaudeLine;
+    const turn = new ClaudeTurn(fake.connection, {
+        adopted: [init],
+        collectPlanUsage: false,
+        signal: new AbortController().signal,
+    });
+    await turn.start('a human message');
+    expect(fake.written.map((entry) => entry.text)).toEqual(['a human message']);
+    fake.notificationResult();
+    expect(turn.isSettled).toBe(false);
+    fake.result(fake.uuidOf('a human message'));
     await turn.settle();
     expect(turn.isSettled).toBe(true);
 });

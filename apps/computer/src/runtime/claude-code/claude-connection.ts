@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
+import { type BackgroundWork, noBackgroundWork } from '../background-work.ts';
 import type { WarmProcess } from '../warm-pool.ts';
+import { ClaudeBackgroundTasks, SelfStartedTurns } from './claude-background.ts';
 import type { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import {
     type ClaudeCommandLifecycle,
@@ -9,8 +11,19 @@ import {
 } from './claude-messages.ts';
 import type { ClaudeExit, ClaudeProcess } from './claude-process.ts';
 
+/** How long a new process may take to answer the `initialize` handshake. */
+const initializeTimeoutMs = 30_000;
+
+/** Where the connection reports work that outlives a turn (the daemon's listener, bound). */
+export interface ClaudeBackgroundHooks {
+    changed(work: BackgroundWork): void;
+    wake(): void;
+}
+
 /** Receives one turn's share of the stream; the connection outlives every turn. */
 export interface TurnSink {
+    /** False once the turn is finishing: later lines belong to whatever runs next. */
+    readonly accepting: boolean;
     onExit(exit: ClaudeExit): void;
     onLifecycle(message: ClaudeCommandLifecycle): void;
     onLine(line: ParsedClaudeLine): void;
@@ -26,11 +39,15 @@ interface PendingControl {
 /**
  * One live `claude` process and the Haus state bound to it: its host-tool scope, the event
  * normalizer (which carries session-scoped evidence across turns), the launch key a warm reuse
- * must match, and the conversation id it is writing.
+ * must match, and the conversation id it is writing. Between Haus turns it still reads the
+ * stream: background tasks keep reporting, and Claude Code may start a turn of its own to report
+ * one that finished (specs/runtime-drivers.md "Background work").
  */
 export class ClaudeConnection implements WarmProcess {
     private readonly controls = new Map<string, PendingControl>();
+    private readonly selfStarted = new SelfStartedTurns();
     private sink: TurnSink | null = null;
+    private readonly tasks = new ClaudeBackgroundTasks();
     /** The CLI advertises queued-message lifecycle receipts (`msg_lifecycle_v1`) in `init`. */
     supportsLifecycle = true;
 
@@ -39,7 +56,8 @@ export class ClaudeConnection implements WarmProcess {
         readonly normalizer: ClaudeEventNormalizer,
         readonly hostTools: HostToolSession,
         readonly launchKey: string,
-        public sessionId: string
+        public sessionId: string,
+        private readonly background?: ClaudeBackgroundHooks
     ) {
         process.onLine((line) => this.dispatch(line));
         void process.exited.then((exit) => {
@@ -49,12 +67,42 @@ export class ClaudeConnection implements WarmProcess {
                 pending.reject(new Error('Claude Code exited before answering a control request.'));
             }
             this.controls.clear();
+            this.selfStarted.take();
+            if (this.tasks.clear()) {
+                this.background?.changed(noBackgroundWork);
+            }
             this.sink?.onExit(exit);
         });
     }
 
     get alive(): boolean {
         return this.process.alive;
+    }
+
+    get backgroundWork(): BackgroundWork {
+        return this.tasks.work;
+    }
+
+    /** Closing now would end a background task or a turn Claude Code started on its own. */
+    get holdsBackgroundWork(): boolean {
+        return this.process.alive && (this.tasks.work.tasks > 0 || this.selfStarted.running);
+    }
+
+    /**
+     * The SDK handshake. `perTaskStopAffordance` makes an interrupt stop only the turn: Claude
+     * Code otherwise kills every background task on interrupt (it assumes a host with no other
+     * way to stop one). Haus ends background work by ending the process (Stop, reset, shutdown).
+     */
+    async initialize(): Promise<void> {
+        await this.control(
+            { perTaskStopAffordance: true, subtype: 'initialize' },
+            initializeTimeoutMs
+        );
+    }
+
+    /** The turn Claude Code is running on its own, for a Haus turn to adopt; null when none. */
+    adoptSelfStartedTurn(): readonly ParsedClaudeLine[] | null {
+        return this.selfStarted.take();
     }
 
     get exited(): Promise<unknown> {
@@ -117,13 +165,15 @@ export class ClaudeConnection implements WarmProcess {
     }
 
     private dispatch(line: string) {
+        // A finishing turn takes nothing more; what follows is idle traffic or the next turn's.
+        const sink = this.sink?.accepting ? this.sink : null;
         const parsed = parseClaudeLine(line);
         if (!parsed) {
-            this.sink?.onUnreadable('stdout');
+            sink?.onUnreadable('stdout');
             return;
         }
         if ('invalid' in parsed) {
-            this.sink?.onUnreadable(`invalid:${parsed.invalid}`);
+            sink?.onUnreadable(`invalid:${parsed.invalid}`);
             return;
         }
         if (parsed.sessionId) {
@@ -145,9 +195,16 @@ export class ClaudeConnection implements WarmProcess {
                 );
             }
         }
-        if (message.kind === 'lifecycle') {
-            this.sink?.onLifecycle(message.message);
+        if (message.kind === 'system' && this.tasks.apply(message.message)) {
+            this.background?.changed(this.tasks.work);
         }
-        this.sink?.onLine(parsed);
+        if (message.kind === 'lifecycle') {
+            sink?.onLifecycle(message.message);
+        }
+        if (sink) {
+            sink.onLine(parsed);
+        } else if (this.selfStarted.observe(parsed)) {
+            this.background?.wake();
+        }
     }
 }

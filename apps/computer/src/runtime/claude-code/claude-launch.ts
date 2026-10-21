@@ -7,7 +7,8 @@ import type { HostToolMcpDescriptor } from '../../host-tools/mcp-server.ts';
  * Claude Code builtins Haus switches off, as native names. The first six match Raft's
  * `CLAUDE_DISALLOWED_TOOLS`: plan mode and the runtime's own wakeups and cron jobs, which Haus
  * Reminders own. `AskUserQuestion` waits on a host answer Haus never sends. `Monitor` streams a
- * background process, and Haus runs no background work (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`).
+ * process's output into the conversation as it runs, a wake source Haus does not surface;
+ * background sub-agents and shells stay on, as in Raft (specs/runtime-drivers.md).
  */
 export const CLAUDE_DISALLOWED_TOOLS = [
     'EnterPlanMode',
@@ -91,10 +92,19 @@ function thinkingArgs(modelId: string): string[] {
         : ['--thinking', 'adaptive', '--thinking-display', 'summarized'];
 }
 
+/**
+ * Sub-agents one Agent may run at once, foreground and background together. Claude Code
+ * enforces it itself: an Agent call past the cap is refused with a tool error telling the model
+ * not to retry (its default is 20).
+ */
+export const CLAUDE_MAX_CONCURRENT_SUBAGENTS = 4;
+
 /** Variables the turn env must not carry into Claude Code. */
 const droppedEnv = [
     // Marks a nested Claude Code session; the Agent's process is never nested (Raft).
     'CLAUDECODE',
+    // Background work is part of the driver contract; an operator's shell must not switch it off.
+    'CLAUDE_CODE_DISABLE_BACKGROUND_TASKS',
 ] as const;
 
 /**
@@ -121,7 +131,7 @@ export function buildClaudeEnv(input: {
         ...env,
         ...input.launchEnv,
         ...input.credentials,
-        CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
+        CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: String(CLAUDE_MAX_CONCURRENT_SUBAGENTS),
         // The Agent SDK's entrypoint: Claude Code shapes its built-in system prompt for a
         // programmatic host rather than an interactive terminal user. Without it, Agents read
         // sender prefixes like `@name:` as addressing someone else (placement-quick-fact eval).
