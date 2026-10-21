@@ -1,19 +1,18 @@
-import type * as React from 'react';
-import { EntityAvatar, identityMarkRadius } from '../../../../components/ui/entity-avatar.tsx';
+import type { Key, Selection } from '@heroui/react';
+import { Tag, TagGroup } from '@heroui/react';
+import { EntityAvatar } from '../../../../components/ui/entity-avatar.tsx';
 import { cn } from '../../../../lib/utils.ts';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
-import type { RosterEntry, RosterRing } from './heartbeat-roster-model.ts';
+import type { RosterEntry, RosterSignal } from './heartbeat-roster-model.ts';
 
-const avatarSize = 52;
-/** The ring's band and the gap between ring and avatar, in px. */
-const ringWidth = 3;
-const ringGap = 2;
+const avatarSize = 20;
+const everyoneKey = 'everyone';
 
 /**
- * Every Agent as a story-ring avatar with a one-line status, first "Everyone".
- * An accent ring has new noticed posts today, a dream ring dreamed last night,
- * a neutral ring is quiet. It is the feed's Agent filter: pressing an Agent
- * narrows the feed to it, pressing it again returns to everyone.
+ * The feed's Agent filter as a compact row of pills, first "Everyone", then one
+ * per Agent. A tiny dot on the avatar says what is new: accent for noticed posts
+ * today, dream violet for a dream last night, pulsing while a check-in runs.
+ * Pressing an Agent narrows the feed to it; "Everyone" returns to all.
  */
 export function HeartbeatRoster({
     agents,
@@ -27,109 +26,65 @@ export function HeartbeatRoster({
     selected: readonly string[];
 }) {
     const byId = new Map(entries.map((entry) => [entry.agentId, entry]));
+    const selectedKey = selected.length === 1 ? (selected[0] ?? everyoneKey) : everyoneKey;
     return (
-        <nav
+        <TagGroup
             aria-label="Agents"
-            className="flex items-start gap-4 overflow-x-auto px-1 pt-5 pb-4 [scrollbar-width:none]"
+            className="pt-5 pb-3"
+            disallowEmptySelection
+            onSelectionChange={(keys) => onSelect(readAgentIds(keys))}
+            selectedKeys={[selectedKey]}
+            selectionMode="single"
+            size="sm"
+            variant="surface"
         >
-            <RosterItem
-                isSelected={selected.length === 0}
-                label="Everyone"
-                onPress={() => onSelect([])}
-                ring="all"
-                status={agents.length === 1 ? '1 Agent' : `${agents.length} Agents`}
-            >
-                <span
-                    className="grid place-items-center bg-surface-secondary font-semibold text-foreground text-sm"
-                    style={{
-                        borderRadius: identityMarkRadius(avatarSize),
-                        height: avatarSize,
-                        width: avatarSize,
-                    }}
-                >
-                    All
-                </span>
-            </RosterItem>
-            {agents.map((agent) => {
-                const entry = byId.get(agent.id);
-                const isSelected = selected.length === 1 && selected[0] === agent.id;
-                return (
-                    <RosterItem
-                        isLive={entry?.isLive}
-                        isSelected={isSelected}
-                        key={agent.id}
-                        label={agent.displayName}
-                        onPress={() => onSelect(isSelected ? [] : [agent.id])}
-                        ring={entry?.ring ?? 'quiet'}
-                        status={entry?.status ?? 'No check-ins yet'}
-                    >
-                        <EntityAvatar
-                            name={agent.displayName}
-                            size={avatarSize}
-                            src={agent.avatarUrl}
-                        />
-                    </RosterItem>
-                );
-            })}
-        </nav>
+            <TagGroup.List className="flex-nowrap overflow-x-auto [scrollbar-width:none]">
+                <Tag id={everyoneKey}>Everyone</Tag>
+                {agents.map((agent) => {
+                    const entry = byId.get(agent.id);
+                    return (
+                        <Tag id={agent.id} key={agent.id} textValue={agent.displayName}>
+                            <span className="relative flex-none">
+                                <EntityAvatar
+                                    name={agent.displayName}
+                                    size={avatarSize}
+                                    src={agent.avatarUrl}
+                                />
+                                <SignalDot
+                                    isLive={entry?.isLive}
+                                    signal={entry?.signal ?? 'none'}
+                                />
+                            </span>
+                            {agent.displayName}
+                        </Tag>
+                    );
+                })}
+            </TagGroup.List>
+        </TagGroup>
     );
 }
 
-function RosterItem({
-    children,
-    isLive = false,
-    isSelected,
-    label,
-    onPress,
-    ring,
-    status,
-}: {
-    children: React.ReactNode;
-    isLive?: boolean;
-    isSelected: boolean;
-    label: string;
-    onPress: () => void;
-    ring: RosterRing | 'all';
-    status: string;
-}) {
-    const inner = identityMarkRadius(avatarSize);
+function SignalDot({ isLive = false, signal }: { isLive?: boolean; signal: RosterSignal }) {
+    if (signal === 'none' && !isLive) {
+        return null;
+    }
     return (
-        <button
-            aria-pressed={isSelected}
-            className="grid w-[4.75rem] shrink-0 cursor-(--cursor-interactive) content-start justify-items-center gap-1.5 rounded-lg text-center"
-            onClick={onPress}
-            type="button"
-        >
-            <span
-                className={cn('grid', ringStyles[ring], isSelected && 'ring-2 ring-foreground')}
-                style={{
-                    borderRadius: `calc(${inner} + ${ringGap + ringWidth}px)`,
-                    padding: ringWidth,
-                }}
-            >
-                <span
-                    className="grid bg-background"
-                    style={{ borderRadius: `calc(${inner} + ${ringGap}px)`, padding: ringGap }}
-                >
-                    {children}
-                </span>
-            </span>
-            <span className="max-w-full truncate font-semibold text-xs">{label}</span>
-            <span
-                className={cn(
-                    'line-clamp-2 text-muted text-xs leading-tight',
-                    isLive && 'text-accent motion-safe:animate-pulse'
-                )}
-            >
-                {status}
-            </span>
-        </button>
+        <span
+            aria-hidden="true"
+            className={cn(
+                'absolute -right-0.5 -bottom-0.5 box-content size-1.5 flex-none rounded-full border-2 border-background',
+                signal === 'dream' ? 'bg-dream' : 'bg-accent',
+                isLive && 'motion-safe:animate-pulse'
+            )}
+        />
     );
 }
 
-const ringStyles: Record<RosterRing | 'all', string> = {
-    all: 'bg-separator',
-    dream: 'bg-dream',
-    new: 'bg-accent',
-    quiet: 'bg-separator',
-};
+/** A selection of nothing or "Everyone" is every Agent; otherwise the one Agent. */
+function readAgentIds(keys: Selection): readonly string[] {
+    if (keys === 'all') {
+        return [];
+    }
+    const [key]: Key[] = [...keys];
+    return key === undefined || key === everyoneKey ? [] : [String(key)];
+}

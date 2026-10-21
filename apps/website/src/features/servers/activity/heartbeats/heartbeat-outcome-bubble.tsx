@@ -46,14 +46,8 @@ function Tail({ fill, shape }: { fill: string; shape: 'speech' | 'thought' }) {
     if (shape === 'thought') {
         return (
             <>
-                <span
-                    aria-hidden="true"
-                    className={cn('absolute -top-2 left-3 size-2 rounded-full border', fill)}
-                />
-                <span
-                    aria-hidden="true"
-                    className={cn('absolute -top-3.5 left-1 size-1.5 rounded-full border', fill)}
-                />
+                <ThoughtDot diameter={8} fill={fill} left={12} top={-12} />
+                <ThoughtDot diameter={5} fill={fill} left={6} top={-21} />
             </>
         );
     }
@@ -64,6 +58,34 @@ function Tail({ fill, shape }: { fill: string; shape: 'speech' | 'thought' }) {
                 'absolute -top-[5px] left-3.5 size-2.5 rotate-45 border-t border-l [clip-path:polygon(0_0,100%_0,0_100%)]',
                 fill
             )}
+        />
+    );
+}
+
+/** A perfect circle: equal fixed width and height, never flexed or stretched. */
+function ThoughtDot({
+    diameter,
+    fill,
+    left,
+    top,
+}: {
+    diameter: number;
+    fill: string;
+    left: number;
+    top: number;
+}) {
+    return (
+        <span
+            aria-hidden="true"
+            className={cn('absolute box-border aspect-square flex-none rounded-full border', fill)}
+            style={{
+                height: diameter,
+                left,
+                minHeight: diameter,
+                minWidth: diameter,
+                top,
+                width: diameter,
+            }}
         />
     );
 }

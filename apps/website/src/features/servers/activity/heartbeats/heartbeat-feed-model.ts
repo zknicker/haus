@@ -60,6 +60,20 @@ export function readFeedEntry(agentId: string, mark: HeartbeatMark): FeedEntry |
     return null;
 }
 
+/** The system note for a dream with nothing learned to say; links to the changes when any. */
+export function readDreamNote(dream: HeartbeatMark['dream']): {
+    readonly hasMemoryChanges: boolean;
+    readonly text: string;
+} {
+    if (dream === null || dream.added + dream.removed === 0) {
+        return { hasMemoryChanges: false, text: 'dreamed · no memory changes' };
+    }
+    return {
+        hasMemoryChanges: true,
+        text: `dreamed · tidied memory (+${dream.added} −${dream.removed})`,
+    };
+}
+
 /**
  * Days of entries across the lanes, newest first. `agentIds` narrows the feed;
  * empty is every Agent.

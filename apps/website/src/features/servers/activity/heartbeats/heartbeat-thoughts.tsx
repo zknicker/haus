@@ -24,7 +24,7 @@ export function HeartbeatThoughts({
     const { thoughts } = post;
     return (
         <div className="grid min-w-0 gap-2 text-sm" data-heartbeat-post-kind={post.postKind}>
-            <div className={cn('grid justify-items-start gap-1', isDream ? 'mt-3.5' : 'mt-2')}>
+            <div className={cn('grid justify-items-start gap-1.5', isDream ? 'mt-6' : 'mt-2')}>
                 {thoughts.map((thought, index) => (
                     <OutcomeBubble
                         hasTail={index === 0}

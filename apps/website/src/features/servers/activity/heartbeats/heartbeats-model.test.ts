@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
 import {
+    readDreamNote,
     readDreamThoughts,
     readFeedDays,
     readFeedEntry,
@@ -137,7 +138,7 @@ test('the feed groups entries by local day, newest day and entry first, and filt
     expect(onlyB.flatMap((entry) => entry.entries.map((item) => item.agentId))).toEqual(['b', 'b']);
 });
 
-test('the roster rings and words each Agent by today, last night, and what runs now', () => {
+test('the roster signals each Agent by today, last night, and what runs now', () => {
     const lanes = [
         lane('news', [mark(noon - hour), reported(noon - 30 * 60 * 1000)]),
         lane('dream', [
@@ -152,12 +153,24 @@ test('the roster rings and words each Agent by today, last night, and what runs 
     ];
     const roster = readRoster(['news', 'dream', 'quiet', 'live', 'paused', 'none'], lanes, noon);
     const by = (agentId: string) => roster.find((entry) => entry.agentId === agentId);
-    expect(by('news')).toMatchObject({ ring: 'new', status: expect.stringMatching(/^1 new · /) });
-    expect(by('dream')).toMatchObject({ ring: 'dream', status: 'Dreamed · quiet today' });
-    expect(by('quiet')).toMatchObject({ ring: 'quiet', status: 'Quiet · 2 check-ins' });
-    expect(by('live')).toMatchObject({ isLive: true, status: 'Checking in…' });
-    expect(by('paused')?.status).toBe('Paused · plan limit');
-    expect(by('none')?.status).toBe('No check-ins yet');
+    expect(by('news')).toMatchObject({ isLive: false, signal: 'new' });
+    expect(by('dream')).toMatchObject({ signal: 'dream' });
+    expect(by('quiet')).toMatchObject({ signal: 'none' });
+    expect(by('live')).toMatchObject({ isLive: true, signal: 'none' });
+    expect(by('paused')).toMatchObject({ isLive: false, signal: 'none' });
+    expect(by('none')).toMatchObject({ isLive: false, signal: 'none' });
+});
+
+test('a dream note says whether memory changed, never "nothing new to remember"', () => {
+    const changed = readDreamNote(dreamed(noon, null).dream);
+    expect(changed).toEqual({
+        hasMemoryChanges: true,
+        text: 'dreamed · tidied memory (+2 −1)',
+    });
+    const base = dreamed(noon, null).dream;
+    const quiet = base && readDreamNote({ ...base, added: 0, removed: 0 });
+    expect(quiet).toEqual({ hasMemoryChanges: false, text: 'dreamed · no memory changes' });
+    expect(readDreamNote(null).text).toBe('dreamed · no memory changes');
 });
 
 test('a dream with nothing learned is a system note, not an empty bubble', () => {

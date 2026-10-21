@@ -6,7 +6,7 @@ import { formatShortTime } from '../../../../lib/format.ts';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
 import { HeartbeatDayTimeline } from './heartbeat-day-timeline.tsx';
 import { HeartbeatDreamLink } from './heartbeat-dream-link.tsx';
-import type { FeedNote, FeedPost } from './heartbeat-feed-model.ts';
+import { type FeedNote, type FeedPost, readDreamNote } from './heartbeat-feed-model.ts';
 import { HeartbeatNoteGlyph } from './heartbeat-glyph.tsx';
 import { HeartbeatThoughts } from './heartbeat-thoughts.tsx';
 import { readDayBounds } from './heartbeats-model.ts';
@@ -85,8 +85,7 @@ export function HeartbeatNote({
     const name = agent?.displayName ?? 'Agent';
     const what =
         note.mark.kind === 'nightly' ? 'dream' : `${formatShortTime(note.mark.at)} check-in`;
-    const dream = note.mark.dream;
-    const hasMemoryChanges = dream !== null && dream.added + dream.removed > 0;
+    const dreamNote = readDreamNote(note.mark.dream);
     return (
         <div
             className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 py-2.5 text-muted text-sm"
@@ -101,9 +100,9 @@ export function HeartbeatNote({
                     <span className="text-danger">{`couldn't finish its ${what}`}</span>
                 ) : null}
                 {note.reason === 'yielded' ? `paused its ${what} for a new message` : null}
-                {note.reason === 'dreamed' ? 'dreamed · nothing new to remember' : null}
+                {note.reason === 'dreamed' ? dreamNote.text : null}
                 {note.reason === 'dreamed' ? (
-                    hasMemoryChanges && note.mark.runId ? (
+                    dreamNote.hasMemoryChanges && note.mark.runId ? (
                         <>
                             {' · '}
                             <HeartbeatDreamLink
