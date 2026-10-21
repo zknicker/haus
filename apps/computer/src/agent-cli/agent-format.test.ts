@@ -24,7 +24,7 @@ function message(overrides: Partial<AgentCliMessage> = {}): AgentCliMessage {
 
 test('an ordinary Message carries no suffix, and the suffixes keep their order', () => {
     expect(formatHistoryLine(message())).toEndWith(
-        '@orbit: The migration is staged. Should I run it?'
+        '] orbit: The migration is staged. Should I run it?'
     );
     expect(
         formatHistoryLine(
@@ -224,9 +224,9 @@ test("read and check lines print explicit UTC and a human sender's saved zone", 
         '[seq=7 msg=msg_1a2b3c4d5e6f time=2026-09-03 12:00:00 UTC sender_tz=America/Chicago type=human]'
     );
     expect(formatDeliveryEnvelope('#general', human)).toStartWith(
-        '[target=#general msg=1a2b3c4d time=2026-09-03 12:00:00 UTC sender_tz=America/Chicago type=human] @sam:'
+        '[target=#general msg=1a2b3c4d time=2026-09-03 12:00:00 UTC sender_tz=America/Chicago type=human] sam:'
     );
     expect(formatDeliveryEnvelope('#general', message())).toStartWith(
-        '[target=#general msg=1a2b3c4d time=2026-09-03 12:00:00 UTC type=agent] @orbit:'
+        '[target=#general msg=1a2b3c4d time=2026-09-03 12:00:00 UTC type=agent] orbit:'
     );
 });

@@ -67,7 +67,7 @@ test('the pickup bullet replaces the Raft acknowledge-and-outline and progress b
 
 test('the rendered prompt carries no em dash outside the real envelope header examples', () => {
     // Models mirror the prompt's own punctuation, so the prompt is written without em dashes. The
-    // header examples keep them because they reproduce the actual `@sender — <description>:` wire
+    // header examples keep them because they reproduce the actual `sender — <description>:` wire
     // format an Agent receives.
     const prompt = render({
         conversationStyle: 'Warm.',
@@ -78,7 +78,7 @@ test('the rendered prompt carries no em dash outside the real envelope header ex
     for (const line of dashed) {
         expect(
             line.startsWith('[target=') ||
-                line.startsWith('After the header: `@sender — <description>:`,')
+                line.startsWith('After the header: `sender — <description>:`,')
         ).toBe(true);
     }
 });

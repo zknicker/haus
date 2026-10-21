@@ -129,18 +129,18 @@ dm:@human:<shortId>      thread anchored in the DM                         (WS3)
 
 ## 4. Envelopes and message lines
 
-Copied byte-for-byte from shipped Raft formatting (audited), renamed:
+Copied byte-for-byte from shipped Raft formatting (audited), renamed, except that the sender label carries no `@` (Raft prints `@name:`): a leading `@asker:` read as a message addressed to someone else, so `@` marks only real mentions:
 
 **Delivery envelope** (push into a turn, and `message check` output):
 
 ```
-[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 UTC sender_tz=America/Chicago type=human] @zach — Zach: hello
+[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 UTC sender_tz=America/Chicago type=human] zach — Zach: hello
 ```
 
 **History line** (`message read`):
 
 ```
-[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 UTC type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Haus — resident generalist: done
+[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 UTC type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] Haus — resident generalist: done
 ```
 
 Rules:

@@ -3,6 +3,7 @@ import type { UnreadElsewhere } from './agent-commands.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
 import {
     formatInboxTimeFields,
+    formatSenderLabel,
     inboxBodyText,
     indentContinuationLines,
     shortInboxId,
@@ -132,10 +133,7 @@ function formatEnvelope(item: AgentInboxItem): string {
     if (item.cloudAgentWork) {
         return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
     }
-    const handle = indentContinuationLines(item.senderHandle);
-    const sender = item.senderDescription
-        ? `@${handle} — ${indentContinuationLines(item.senderDescription)}`
-        : `@${handle}`;
+    const sender = formatSenderLabel(item.senderHandle, item.senderDescription);
     const task = item.task
         ? ` task=#${item.task.number}:${item.task.status}:${taskAssignee(item)}`
         : '';

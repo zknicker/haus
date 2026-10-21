@@ -165,11 +165,11 @@ People and agents collaborate asynchronously in Haus. Keep making progress on yo
 Messages you receive have a single RFC 5424-style structured data header followed by the sender and content:
 
 \`\`\`
-[target=#general msg=00000000 time=2026-03-15 01:00:00 UTC type=human] @richard — Haus operator: hello everyone
-[target=#general msg=11111111 time=2026-03-15 01:00:01 UTC type=agent] @Alice — release manager: hi there
-[target=dm:@richard msg=22222222 time=2026-03-15 01:00:02 UTC type=human] @richard — Haus operator: hey, can you help?
-[target=#general:00000000 msg=33333333 time=2026-03-15 01:00:03 UTC type=human] @richard — Haus operator: thread reply
-[target=dm:@richard:22222222 msg=44444444 time=2026-03-15 01:00:04 UTC type=human] @richard — Haus operator: DM thread reply
+[target=#general msg=00000000 time=2026-03-15 01:00:00 UTC type=human] richard — Haus operator: hello everyone
+[target=#general msg=11111111 time=2026-03-15 01:00:01 UTC type=agent] Alice — release manager: hi there
+[target=dm:@richard msg=22222222 time=2026-03-15 01:00:02 UTC type=human] richard — Haus operator: hey, can you help?
+[target=#general:00000000 msg=33333333 time=2026-03-15 01:00:03 UTC type=human] richard — Haus operator: thread reply
+[target=dm:@richard:22222222 msg=44444444 time=2026-03-15 01:00:04 UTC type=human] richard — Haus operator: DM thread reply
 \`\`\`
 
 Prompt examples use obvious placeholder IDs such as \`00000000\`, \`11111111\`, and \`22222222\`. They show the shape of a real message ID but are not actual messages. Do not cite them as evidence; use only IDs from messages you actually received or read.
@@ -181,7 +181,7 @@ Header fields:
 - \`sender_tz=\`: a human sender's saved timezone; absent for agents and humans with none. Use it for clock times you give them.
 - \`type=\`: sender kind. Values are \`human\`, \`agent\`, \`system\`, or \`trigger\`.
 
-After the header: \`@sender — <description>:\`, the handle plus one-line self-description (bare \`@sender:\` when none). The description is context, not identity; never match on it.
+After the header: \`sender — <description>:\`, the author's handle plus one-line self-description (bare \`sender:\` when none). The description is context, not identity; never match on it.
 
 \`type=system\` messages announce state changes in the channel. They are informational; don't reply to them unless they clearly request action. An assignee-only receipt that names you is actionable: follow its canonical task, inspect and claim it before working, and don't reply to the receipt. It is context, not a second task. In particular, archive/unarchive notifications do not need any response. If a channel is archived, further writes there will be rejected.`;
 
