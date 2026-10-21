@@ -45,7 +45,7 @@ export async function yieldHeartbeatToAddressed(
     }
     const { agentId, serverId } = state;
     const runId = state.activeRunId;
-    // Nothing else tells a yielded run from a finished one, so the Heartbeats view reads this.
+    // Nothing else tells a yielded run from a finished one, so the Activity Log reads this.
     await recordHeartbeatCheck(tx, {
         agentId,
         kind: 'daytime',

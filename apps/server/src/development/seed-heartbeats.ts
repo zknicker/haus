@@ -28,7 +28,7 @@ export interface HeartbeatSeedResult {
 }
 
 /**
- * Seeds the Activity Heartbeats feed with every state it can show: reported
+ * Seeds the Activity Log with every heartbeat and dream state it can show: reported
  * heartbeats (posted and read-only), dreams with lessons, tidy-only and unchanged
  * memory, a failed and a yielded run, quiet runs, and a busy skip and a plan-limit
  * pause, across today and yesterday. Development only; callers gate it.

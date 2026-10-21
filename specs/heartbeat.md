@@ -277,8 +277,25 @@ Shared by every implementation slice; `packages/haus-api` owns the schemas.
 
 ## Observability
 
-The Activity page's Heartbeats view reads `agent.heartbeats` (contract:
-`packages/haus-api/src/agent-heartbeats.ts`, behavior: [agents API](../docs/api/agents.md)).
+Heartbeat and dream runs show in the regular Activity Log; there is no separate Heartbeats page
+or read. A run is an ordinary turn row (same expand-to-steps behavior, same collapsed state) plus:
+
+- **Badge.** A stock soft `Chip` after the title, **Heartbeat** or **Dream** (the dream tone is
+  the `--dream` token). The main session's `Heartbeat report` turn carries the **Heartbeat**
+  badge and otherwise reads as a normal turn.
+- **Outcome line.** One muted, single-line truncating line under the title. A heartbeat that
+  reported reads the report's first sentence plus ` · Posted in #shop` or ` · Read, not posted`;
+  a quiet one reads `Nothing to report`; a dream reads its first learned line, else `Tidied memory
+  (+a −r)`, else `No memory changes`; a yielded heartbeat reads `Paused for a new message`; a failed
+  or interrupted run reads its usual failure text.
+- **Data.** The facts ride the turn trigger (`agent.turns`, `agent.serverTurns`,
+  `agent.runTrigger`): `dream { learned, added, removed }` and `heartbeat { report, yielded }`
+  (contract: `packages/haus-api/src/agent-turn-trigger.ts`, behavior: [agents
+  API](../docs/api/agents.md)), resolved in a few bounded reads per page. `postedChatId` is limited
+  to Chats the viewer can see.
+
+The skip, pause, and yield decisions have no row of their own. The checks table is a Server
+record read by SQL or Axiom (and by the trigger for `yielded`):
 
 - **Checks.** Every decision on an announced slot writes one `agent_heartbeat_checks` row in the
   decision's own transaction: `queued`, `skipped` with a reason (`busy`, `stopped`, `no-activity`,
@@ -286,13 +303,11 @@ The Activity page's Heartbeats view reads `agent.heartbeats` (contract:
   yield-on-address stops a daytime run, with the stopped `run_id`. A repeat of a slot with the
   same outcome is one row, and a skip never records over a slot that already queued. Rows older
   than 30 days are swept, a bounded batch per Agent, as new decisions arrive. The
-  `haus.heartbeat.request` span stays; the table is what the view reads.
-- **Marks.** A run that started shows from its trigger and turn, so `queued` rows have no mark of
-  their own. Skipped, paused, and yielded slots are marks from check rows.
-- **Plan share.** A plan's weekly meter split by the week's heartbeat and dream token share. An
-  estimate, labeled as one in the view.
+  `haus.heartbeat.request` span stays alongside the table.
+- **Runs.** A run that started shows from its trigger and turn, so `queued` rows have no row of
+  their own. Skipped and paused slots appear only in the table and the span.
 - **Refresh.** A recorded decision announces `agent.onUpdated` for the Agent after its transaction
-  commits; a settled or stopped run already publishes the lifecycle event.
+  commits; a settled or stopped run already publishes the lifecycle event the Log refreshes on.
 
 ## Implementation slices
 

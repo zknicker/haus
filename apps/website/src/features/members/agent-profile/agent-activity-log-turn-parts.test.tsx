@@ -16,7 +16,7 @@ const message = {
 test('a header offers its Chat only for a visible request in a known place', () => {
     expect(readChatTarget(dm, message)).toEqual({ chatId: 'cht_dm', place: 'DM' });
     expect(readChatTarget(dm, { kind: 'private' })).toBeNull();
-    expect(readChatTarget(dm, { kind: 'dream' })).toBeNull();
+    expect(readChatTarget(dm, { added: 0, kind: 'dream', learned: null, removed: 0 })).toBeNull();
     expect(readChatTarget(dm, null)).toBeNull();
     expect(readChatTarget({ ...dm, place: null }, message)).toBeNull();
     expect(readChatTarget({ kind: 'none' }, message)).toBeNull();

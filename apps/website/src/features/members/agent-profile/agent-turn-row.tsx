@@ -5,9 +5,9 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
+import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import {
     formatTurnDuration,
-    formatTurnOutcome,
     getTurnRowStatus,
     type TurnRowStatus,
     type TurnRowTitle,
@@ -103,14 +103,7 @@ export function TurnRowTitleLine({
             </span>
             {/* Regular weight even after a log header's semibold title. */}
             {title.place ? (
-                <span
-                    className={cn(
-                        'shrink-0 font-normal',
-                        title.kind === 'text' && title.reported ? 'text-accent' : 'text-muted'
-                    )}
-                >
-                    {title.place}
-                </span>
+                <span className="shrink-0 font-normal text-muted">{title.place}</span>
             ) : null}
             {repeats}
         </span>

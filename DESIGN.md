@@ -370,12 +370,10 @@ fill (21%, a step above the card) rather than by shadow. See "Shell variants" in
 `--dream` is the violet of a nightly dream, a kind of run rather than a status: it never
 reads as success, caution, or failure, and stays apart from `accent` (heartbeats) and
 `--trace-thinking` (a step kind). Dark / light: `oklch(0.72 0.13 295)` / `oklch(0.58 0.15 295)`.
-`--dream-soft` (a translucent mix of it) fills the lane's dream disc and the dream chip, and
-`--dream-soft-foreground` inks the chip (`oklch(0.84 0.09 295)` / `oklch(0.46 0.15 295)`). The
-tokens live in `styles/product-tokens.css` and reach Tailwind as `text-dream`, `bg-dream-soft`, and
-`text-dream-soft-foreground`; the chip's wash is the `.chip.chip--soft.chip--dream` override in
-`default-theme.css`. The Activity Heartbeats lane draws a dream as a moon on that disc, larger than
-a heartbeat's 14px outcome glyph, and a failed dream keeps the disc but rings it in `danger`.
+`--dream-soft` (a translucent mix of it) is the wash of the Activity Log's Dream badge, and
+`--dream-soft-foreground` inks it (`oklch(0.84 0.09 295)` / `oklch(0.46 0.15 295)`). The tokens
+live in `styles/product-tokens.css`; the badge's wash is the `.chip.chip--soft.chip--dream`
+override in `default-theme.css`, on a stock soft `Chip`.
 
 ### Artifact icon tokens
 

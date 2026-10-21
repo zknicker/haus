@@ -25,7 +25,7 @@ import type { InboxSeedContext } from './seed-inbox-context.ts';
 const minute = 60_000;
 
 /**
- * Every row the Activity Heartbeats feed reads, shaped the way the product writes it
+ * Every row the Activity Log reads for heartbeat and dream runs, shaped the way the product writes it
  * and keyed by stable ids, so a refresh replaces rather than duplicates. Pure: the
  * caller owns the database.
  */

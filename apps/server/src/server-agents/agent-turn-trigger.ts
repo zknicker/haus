@@ -1,8 +1,13 @@
-import type { AgentTurnTrigger, AgentTurnTriggerPreview } from '@haus/api';
+import {
+    AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH,
+    type AgentTurnTrigger,
+    type AgentTurnTriggerPreview,
+} from '@haus/api';
 import {
     heartbeatReportDedupeKey,
     heartbeatRunIdOfReport,
 } from '../agent-delivery/heartbeat-keys.ts';
+import type { AgentTurnOutcomes } from './agent-turn-trigger-outcomes.ts';
 
 const taskAssignmentKeyPattern = /^task-assign:([^:]+):\d+$/u;
 
@@ -21,13 +26,22 @@ export interface AgentTurnTriggerRecord {
 export type AgentTurnTriggerPreviews = ReadonlyMap<string, AgentTurnTriggerPreview>;
 
 const noPreviews: AgentTurnTriggerPreviews = new Map();
-const noReports: ReadonlySet<string> = new Set();
+const noOutcomes: AgentTurnOutcomes = {
+    dreams: new Map(),
+    reports: new Map(),
+    yielded: new Set(),
+};
 
-/** The inbox dedupe key a daytime heartbeat's report would carry, or null without a run id. */
-export function agentTurnTriggerReportKey(record: AgentTurnTriggerRecord | null): string | null {
-    return record?.source === 'heartbeat' && record.runId
-        ? heartbeatReportDedupeKey(record.runId)
-        : null;
+/** The run ids of a page's dreams and daytime heartbeats, whose outcomes the Log reads. */
+export function agentTurnTriggerRunIds(records: readonly (AgentTurnTriggerRecord | null)[]): {
+    dreamRunIds: string[];
+    heartbeatRunIds: string[];
+} {
+    const runIdsOf = (source: string) =>
+        records.flatMap((record) =>
+            record?.source === source && record.runId ? [record.runId] : []
+        );
+    return { dreamRunIds: runIdsOf('dream'), heartbeatRunIds: runIdsOf('heartbeat') };
 }
 
 /**
@@ -35,23 +49,27 @@ export function agentTurnTriggerReportKey(record: AgentTurnTriggerRecord | null)
  * reader cannot see is `private`; one with no record, or a source this Server
  * does not recognize, is absent (null) rather than guessed. A message or task
  * trigger quotes its message from `previews`. A dream has no Chat to gate on: it
- * names only itself, so any reader who may see the Agent's turns sees it. A heartbeat
- * is `reported` when its report key is in `reportedKeys`.
+ * names only itself, so any reader who may see the Agent's turns sees it. A dream
+ * and a heartbeat carry what the run came to from `outcomes`.
  */
 export function agentTurnTrigger(
     record: AgentTurnTriggerRecord | null,
     previews: AgentTurnTriggerPreviews = noPreviews,
-    reportedKeys: ReadonlySet<string> = noReports
+    outcomes: AgentTurnOutcomes = noOutcomes
 ): AgentTurnTrigger | null {
     if (!record) {
         return null;
     }
     if (record.source === 'dream') {
-        return { kind: 'dream' };
+        const dream = record.runId ? outcomes.dreams.get(record.runId) : undefined;
+        return { added: 0, learned: null, removed: 0, ...dream, kind: 'dream' };
     }
     if (record.source === 'heartbeat') {
-        const key = agentTurnTriggerReportKey(record);
-        return { kind: 'heartbeat', reported: key !== null && reportedKeys.has(key) };
+        return {
+            kind: 'heartbeat',
+            report: (record.runId && outcomes.reports.get(record.runId)) || null,
+            yielded: record.runId !== undefined && outcomes.yielded.has(record.runId),
+        };
     }
     if (record.source === 'heartbeat_report') {
         // A report with no recoverable heartbeat run is unknown, not guessed.
@@ -118,4 +136,18 @@ function triggerFor(
 function isReportKey(workId: string): boolean {
     const prefix = heartbeatReportDedupeKey('');
     return workId.startsWith(prefix) && workId.length > prefix.length;
+}
+
+const highSurrogateAtEnd = /[\uD800-\uDBFF]$/u;
+
+/**
+ * The contract bounds UTF-16 units while Postgres `left` counts characters, so
+ * the head is cut again here without splitting a surrogate pair.
+ */
+export function previewHead(content: string): string {
+    if (content.length <= AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH) {
+        return content;
+    }
+    const head = content.slice(0, AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH);
+    return highSurrogateAtEnd.test(head) ? head.slice(0, -1) : head;
 }

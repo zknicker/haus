@@ -12,7 +12,7 @@ read_when:
 An Agent's nightly heartbeat is a dream: a private pass in which it reflects on the day,
 consolidates its memory, follows up promises it dropped, and writes a short summary
 ([heartbeat spec](../../specs/heartbeat.md)). Daytime heartbeats run too, but they leave no
-dream; they show as Heartbeat rows in the Activity log. Every member who can view the Agent can
+dream; they show as badged Heartbeat rows in the Activity log. Every member who can view the Agent can
 see its dreams. They record what the Agent now remembers, not execution evidence, so they are
 not admin-only.
 
@@ -51,12 +51,21 @@ is recorded as `truncated` and reads "Too many memory files to compare".
 
 ## In the Activity log
 
-- **Dreaming**: the nightly run's turn row. Once it settles, the row carries a **See memory
-  changes** action where a Chat turn shows its Chat button, and it opens the same sheet. The row
-  still expands to the turn's trace.
-- **Heartbeat**: a daytime run. While it runs the row reads **Checking in**. Once it settles it
-  reads **Heartbeat** with a muted **Checked in**. Repeated quiet heartbeats fold into one row.
-- **Heartbeat report**: the main-session turn that handles a heartbeat's report.
+Dream and heartbeat runs are ordinary turn rows, with a soft badge after the title (**Dream** in
+the dream violet, **Heartbeat** in the default tone) and one muted, single-line outcome line under
+it.
+
+- **Dreamed**: the nightly run's turn row, **Dreaming** while it runs. The outcome line is the first
+  line of what the Agent learned, else `Tidied memory (+a −r)`, else `No memory changes`. Once it
+  settles, the row carries a **See memory changes** action where a Chat turn shows its Chat button,
+  and it opens the same sheet. The row still expands to the turn's trace.
+- **Checked in**: a daytime heartbeat, **Checking in** while it runs. The outcome line is the
+  report's first sentence plus `Posted in #shop` or `Read, not posted`, or `Nothing to report`
+  (the title is muted too), or `Paused for a new message` when the Server stopped it for an
+  addressed message. Repeated quiet heartbeats fold into one row on the profile and hover card.
+- **Heartbeat report**: the main-session turn that handles a heartbeat's report. It carries the
+  badge and reads like any other turn.
+- A failed or interrupted run shows its usual failure text as the outcome line.
 
 ## On the agent hover card
 
@@ -75,6 +84,8 @@ is recorded as `truncated` and reads "Too many memory files to compare".
 | Reads | `agent.dreams`, `agent.dream` ([Agents API](../api/agents.md)) |
 | Headline, patch parsing | App, `apps/website/src/features/members/agent-profile/dream-model.ts` |
 | Summary first line, follow-up times | App, `apps/website/src/features/members/agent-profile/dream-summary-model.ts` |
-| Heartbeat rows, "Checking in", folding | App, `apps/website/src/features/members/agent-profile/agent-turn-row-model.ts` |
+| Dream and heartbeat facts on a turn's trigger | Server, `apps/server/src/server-agents/agent-turn-trigger.ts` and `agent-turn-trigger-outcomes.ts` |
+| Badges, outcome lines | App, `apps/website/src/features/members/agent-profile/agent-run-mark.ts` |
+| Heartbeat and dream titles, folding | App, `apps/website/src/features/members/agent-profile/agent-turn-row-model.ts` |
 | "Last night" hover line | App, `apps/website/src/features/members/agent-hover-activity-model.ts` |
 | Freshness | A settled run invalidates the Agent's dream reads (`hooks/agents/agent-history-cache.ts`) |

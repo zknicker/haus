@@ -15,7 +15,8 @@ import { serversTable } from './servers.ts';
  * One row per heartbeat decision the Server made for a slot its Computer announced
  * (specs/heartbeat.md#observability): queued, skipped, or paused by the plan meter,
  * plus `yielded` when a daytime run gave way to addressed work (then `run_id` names
- * the stopped run). It feeds the Activity Heartbeats view; a run that started shows
+ * the stopped run). It is the Server's record of decisions, read by SQL or Axiom
+ * (and for `yielded`, by the Activity Log's outcome line); a run that started shows
  * from `agent_run_triggers` and `agent_turns`. Rows are kept 30 days. A repeated
  * slot with the same outcome is one row.
  */

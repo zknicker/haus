@@ -69,7 +69,6 @@ export * from './agent-execution-journal-presentation.ts';
 export * from './agent-execution-journal-replay.ts';
 export * from './agent-execution-journal-upload.ts';
 export * from './agent-execution-outline.ts';
-export * from './agent-heartbeats.ts';
 export * from './agent-idempotency.ts';
 export * from './agent-inbox-conversations.ts';
 export * from './agent-profile.ts';

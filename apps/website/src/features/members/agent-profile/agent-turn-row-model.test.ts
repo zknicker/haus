@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import type { AgentTurnOperationCount } from '@haus/api';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
+import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import {
     formatTurnDuration,
-    formatTurnOutcome,
     getTurnRowStatus,
     groupTurnRowsByDay,
     resolveTurnRowTitle,
@@ -16,6 +16,7 @@ const chats = new Map([
     ['cht_dm', { kind: 'dm' as const, name: 'Tiny' }],
     ['cht_product', { kind: 'channel' as const, name: 'product' }],
 ]);
+const dream = { added: 0, kind: 'dream', learned: null, removed: 0 } as const;
 const dmMessage = {
     author: 'human',
     chatId: 'cht_dm',
@@ -54,10 +55,10 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     expect(resolveTurnRowTitle({ kind: 'private' }, chats)).toEqual({ kind: 'none' });
     expect(resolveTurnRowTitle(null, chats)).toEqual({ kind: 'none' });
     // The nightly dream has no Chat, so it names itself without a place.
-    expect(resolveTurnRowTitle({ kind: 'dream' }, chats)).toEqual({
+    expect(resolveTurnRowTitle(dream, chats)).toMatchObject({
         kind: 'text',
         place: null,
-        text: 'Dreaming',
+        text: 'Dreamed',
     });
     expect(resolveTurnRowTitle({ chatId: 'cht_product', kind: 'reminder' }, chats)).toEqual({
         kind: 'text',
@@ -70,50 +71,6 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
         place: null,
         text: 'Trigger',
     });
-});
-
-test('a heartbeat is a quiet background row: Checking in live, Heartbeat once settled', () => {
-    expect(resolveTurnRowTitle({ kind: 'heartbeat', reported: false }, chats, true)).toEqual({
-        kind: 'text',
-        place: null,
-        quiet: true,
-        text: 'Checking in',
-    });
-    expect(resolveTurnRowTitle({ kind: 'heartbeat', reported: false }, chats)).toEqual({
-        kind: 'text',
-        place: 'Checked in',
-        quiet: true,
-        text: 'Heartbeat',
-    });
-    // A report reaching the main session is real work, so it is not muted.
-    expect(
-        resolveTurnRowTitle({ heartbeatRunId: 'run_hb', kind: 'heartbeat_report' }, chats)
-    ).toEqual({
-        kind: 'text',
-        place: null,
-        text: 'Heartbeat report',
-    });
-    expect(resolveTurnRowTitle({ kind: 'dream' }, chats, true)).toMatchObject({ text: 'Dreaming' });
-});
-
-test('a heartbeat that sent a report reads Reported at normal emphasis', () => {
-    expect(resolveTurnRowTitle({ kind: 'heartbeat', reported: true }, chats)).toEqual({
-        kind: 'text',
-        place: 'Reported',
-        reported: true,
-        text: 'Heartbeat',
-    });
-    expect(
-        formatTurnOutcome({ ...settled({}), trigger: { kind: 'heartbeat', reported: true } })
-    ).toBe('Reported');
-});
-
-test('a heartbeat that did nothing observable says it checked in, not that it stayed quiet', () => {
-    const base = settled({});
-    expect(formatTurnOutcome({ ...base, trigger: { kind: 'heartbeat', reported: false } })).toBe(
-        'Checked in'
-    );
-    expect(formatTurnOutcome(base)).toBe('Stayed quiet');
 });
 
 test('a task turn reads its task message, and an attachment-only message says so', () => {

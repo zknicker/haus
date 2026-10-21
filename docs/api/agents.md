@@ -99,12 +99,26 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or
-`{ kind: 'dream' }`: the Agent's private nightly heartbeat, `{ kind: 'heartbeat' }` a daytime
-check-in, or `{ kind: 'heartbeat_report' }` a heartbeat's report to the main session. These are the
-chatless triggers; they need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
-[heartbeat](../../specs/heartbeat.md)). `preview`
-quotes the waking message so a turn row is titled from the same read:
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or one of the chatless
+runs, which need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
+[heartbeat](../../specs/heartbeat.md)) and carry what the run came to, so the Activity Log can
+say it under the row's title:
+
+- `{ kind: 'dream', learned, added, removed }`: the Agent's private nightly heartbeat. `learned`
+  is the first non-empty line of its `agent_dream_summaries` text with a leading `- ` removed
+  (null when it wrote none); `added` and `removed` total `agent_dreams.files`.
+- `{ kind: 'heartbeat', report, yielded }`: a daytime check-in. `report` is
+  `{ text, postedChatId }` when a `heartbeat-report:<runId>` inbox row exists (`text` is its head,
+  at most 1,000 UTF-16 units, and `postedChatId` the Chat of the first message the report run's
+  Agent sent, null when it stayed quiet or the Chat is not one the reader can see), else null.
+  `yielded` marks a run `yieldHeartbeatToAddressed` stopped, which `agent_heartbeat_checks`
+  records because nothing else tells a stopped run from a finished one.
+- `{ kind: 'heartbeat_report', heartbeatRunId }`: a heartbeat's report arriving in the main session.
+
+The dream and heartbeat facts for a page come from a few bounded reads keyed by the page's run
+ids, never one per turn.
+
+`preview` quotes the waking message so a turn row is titled from the same read:
 `{ content, attachmentCount }`, where `content` is the head of the message's raw
 Markdown (at most 1,000 UTF-16 units; the reader collapses it to one line), or `null`
 when the message no longer exists in that Chat. A trigger in a Chat the reader cannot
@@ -131,36 +145,6 @@ since every member can see every Agent; `agentIds` (1–100 distinct ids) narrow
 ids naming no Agent simply match nothing. `limit` is 1–50 (default 30). It returns
 `{ turns, nextBefore }`, where `nextBefore` is the `{ startedAt, runId }` keyset cursor
 for the next page, or null at the end. Like `agent.turns`, each page is one joined query.
-
-`agent.heartbeats` (`{ serverId, agentIds?, from, to }`) feeds the Activity Heartbeats view: one
-lane per Agent (every non-retired Agent, or the `agentIds` that match), each holding its marks in
-`[from, to)` oldest first, plus the window's `summary`. Like `agent.serverTurns` it requires Server
-membership only; `report.postedChatId` is limited to Chats the viewer can see (otherwise null). A
-window past 31 days or with `to <= from` returns empty lanes. Marks:
-
-- Runs come from `agent_run_triggers` (source `heartbeat` is daytime, `dream` nightly) joined to
-  `agent_turns`: `running` (the Agent's active run, no turn yet), `failed` (a `failed` or
-  `interrupted` turn), `reported` (a `heartbeat-report:<runId>` inbox row exists; `report.text` is
-  its content and `postedChatId` the Chat of the first message the report run's Agent sent), else
-  `quiet`. `yielded` is a run `yieldHeartbeatToAddressed` stopped, recorded as a check row because
-  nothing else tells a stopped run from a finished one.
-- `skipped` and `paused` (a `plan-limit` skip) come from `agent_heartbeat_checks`; `runId` is
-  null and `at` is the decision time.
-- A nightly mark that ran carries `dream`: `added`/`removed` from `agent_dreams.files`, the first
-  non-empty line of the `agent_dream_summaries` text with a leading `- ` removed, and `followUps`
-  (reminders created during the run, as `agent.dreams`).
-
-`summary.rulesLearned` counts the non-blank lines the window's dreams added under `## Standing
-Preferences` in `MEMORY.md` (read from the patch's hunk headers and `## ` lines, as the App's dream
-model does); a reworded rule counts once. `summary.posts` is the reports with a `postedChatId`.
-`summary.plans` has one entry per runtime among the shown Agents whose Computer reports a weekly
-meter (`codex` current-week, `claude-code` current-week-all-models): `usedPercent` is the meter,
-and `heartbeatPercent`/`dreamPercent` are that percent times the plan week's heartbeat (dream)
-tokens over every token the Server's Agents spent on that Computer and runtime in the week. This
-is an estimate. The week starts a week before the meter's reset time, or seven days ago when none
-is reported; with several Computers on one runtime the fullest meter is reported. Queries are
-bounded and not per Agent. A recorded check refreshes readers through `agent.onUpdated`; a settled
-run does so through the existing lifecycle event.
 
 A turn's `startedAt` is the run's first launch. When the Server resends an accepted
 run after the Computer restarts, the relaunch resumes a Computer-local turn ledger

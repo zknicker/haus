@@ -107,8 +107,12 @@ test('a heartbeat request names one Agent, kind, local date, and slot', () => {
 
 test('dream, heartbeat, and report triggers have no Chat', () => {
     const triggers = [
-        { kind: 'dream' },
-        { kind: 'heartbeat', reported: true },
+        { added: 3, kind: 'dream', learned: 'Prefers terse replies.', removed: 1 },
+        {
+            kind: 'heartbeat',
+            report: { postedChatId: 'cht_1', text: 'The Q4 budget is stuck.' },
+            yielded: false,
+        },
         { heartbeatRunId: 'run_1', kind: 'heartbeat_report' },
     ] as const;
     for (const trigger of triggers) {
@@ -118,6 +122,7 @@ test('dream, heartbeat, and report triggers have no Chat', () => {
         );
     }
     expect(agentTurnTriggerSchema.safeParse({ kind: 'heartbeat' }).success).toBe(false);
+    expect(agentTurnTriggerSchema.safeParse({ kind: 'dream' }).success).toBe(false);
     expect(agentTurnTriggerSchema.safeParse({ kind: 'heartbeat_report' }).success).toBe(false);
     expect(agentTurnTriggerSchema.safeParse({ kind: 'reminder' }).success).toBe(false);
 });

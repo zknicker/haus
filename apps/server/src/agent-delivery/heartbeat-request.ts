@@ -94,7 +94,7 @@ async function decideAndQueue(
         }
         return decided;
     });
-    // The Heartbeats view reads the check row; a queued slot also shows as a run.
+    // The check row is the Server's record of the decision; a queued slot also shows as a run.
     agentUpdatedTopic.announce({ agentId: request.agentId, serverId: input.serverId });
     if (decision.outcome === 'queued') {
         await delivery.dispatchAgent(request.agentId, input.serverId);

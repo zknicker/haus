@@ -1,4 +1,4 @@
-// Applies the Activity Heartbeats demo seed to the running development stack's existing
+// Applies the heartbeat and dream demo seed to the running development stack's existing
 // database, without wiping it. Signs in through the eval harness like the agent tests do.
 // Run it as `bun run seed:heartbeats` (set HAUS_DEV_STACK_ID to pick a named stack).
 import { createEvalHarness } from './eval-harness.mjs';

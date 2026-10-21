@@ -6,7 +6,7 @@ import { memberProcedure } from '../server/procedure.ts';
 import { assertHeartbeatTestAllowed } from './heartbeat-test-routes.ts';
 
 /**
- * Applies the Activity Heartbeats demo seed to an existing development database,
+ * Applies the heartbeat and dream demo seed to an existing development database,
  * replacing a previous run of the same seed and touching nothing else. Gated like
  * the heartbeat test routes: never in production, only from localhost.
  */

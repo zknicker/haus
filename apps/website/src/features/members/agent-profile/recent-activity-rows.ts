@@ -23,7 +23,8 @@ export function isQuietHeartbeat(turn: AgentActivityTurn): boolean {
         turn.kind === 'settled' &&
         turn.status === 'completed' &&
         turn.trigger?.kind === 'heartbeat' &&
-        !turn.trigger.reported
+        turn.trigger.report === null &&
+        !turn.trigger.yielded
     );
 }
 

@@ -80,7 +80,11 @@ test('quiet heartbeats fold only when asked, and never swallow real work or fail
 test('a heartbeat that reported never folds with quiet ones', () => {
     const reported: SettledTurn = {
         ...heartbeat('r2', '2026-10-01T16:40:00Z'),
-        trigger: { kind: 'heartbeat', reported: true },
+        trigger: {
+            kind: 'heartbeat',
+            report: { postedChatId: null, text: 'Heads up.' },
+            yielded: false,
+        },
     };
     const rows = collapseRecentActivity(
         [
@@ -99,7 +103,10 @@ test('a heartbeat that reported never folds with quiet ones', () => {
 });
 
 function heartbeat(runId: string, startedAt: string): SettledTurn {
-    return { ...settled(runId, startedAt), trigger: { kind: 'heartbeat', reported: false } };
+    return {
+        ...settled(runId, startedAt),
+        trigger: { kind: 'heartbeat', report: null, yielded: false },
+    };
 }
 
 function messageTrigger(messageId: string): AgentActivityTurn['trigger'] {

@@ -58,7 +58,7 @@ test('an idle Agent gets one chatless dream run, recorded with a dream trigger',
     expect(trigger).toMatchObject({ chatId: null, source: 'dream' });
     expect(
         agentTurnTrigger({ chatId: null, source: 'dream', visible: false, workId: 'w' })
-    ).toEqual({ kind: 'dream' });
+    ).toEqual({ added: 0, kind: 'dream', learned: null, removed: 0 });
 
     // A resend reproduces the same chatless frame.
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });

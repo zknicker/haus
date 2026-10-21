@@ -26,7 +26,7 @@ export interface HeartbeatCheckInput {
 }
 
 /**
- * Records one heartbeat decision for the Activity Heartbeats view
+ * Records one heartbeat decision for the Activity Log
  * (specs/heartbeat.md#observability), inside the decision's own transaction.
  * A repeat of the same slot and outcome is a no-op, and an Agent the Server does
  * not hold (a slot announced for the wrong Server) records nothing. Rows past

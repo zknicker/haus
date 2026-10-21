@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH } from '@haus/api';
-import { agentTurnTrigger } from '../src/server-agents/agent-turn-trigger.ts';
-import { previewHead } from '../src/server-agents/agent-turn-trigger-previews.ts';
+import { agentTurnTrigger, previewHead } from '../src/server-agents/agent-turn-trigger.ts';
 
 test('maps each inbox source to its narrow trigger kind', () => {
     const at = (source: string, workId = 'msg_one') =>
@@ -40,17 +39,27 @@ test('maps each inbox source to its narrow trigger kind', () => {
     expect(agentTurnTrigger(null)).toBeNull();
 });
 
-test('a heartbeat knows whether it reported, and a report names its heartbeat run', () => {
+test('a heartbeat carries its report, and a report names its heartbeat run', () => {
     const heartbeat = { chatId: null, runId: 'run_hb', source: 'heartbeat', visible: false };
-    const reportedKeys = new Set(['heartbeat-report:run_hb']);
-    expect(agentTurnTrigger({ ...heartbeat, workId: 'w' }, new Map(), reportedKeys)).toEqual({
+    const report = { postedChatId: 'cht_shop', text: 'Q4 budget is stuck on legal.' };
+    const outcomes = {
+        dreams: new Map(),
+        reports: new Map([['run_hb', report]]),
+        yielded: new Set(['run_yielded']),
+    };
+    expect(agentTurnTrigger({ ...heartbeat, workId: 'w' }, new Map(), outcomes)).toEqual({
         kind: 'heartbeat',
-        reported: true,
+        report,
+        yielded: false,
     });
     expect(agentTurnTrigger({ ...heartbeat, workId: 'w' })).toEqual({
         kind: 'heartbeat',
-        reported: false,
+        report: null,
+        yielded: false,
     });
+    expect(
+        agentTurnTrigger({ ...heartbeat, runId: 'run_yielded', workId: 'w' }, new Map(), outcomes)
+    ).toMatchObject({ yielded: true });
     expect(
         agentTurnTrigger({
             chatId: null,

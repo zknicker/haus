@@ -1,4 +1,4 @@
-import { Disclosure } from '@heroui/react';
+import { Chip, Disclosure } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
@@ -18,11 +18,7 @@ import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from '../../turn-trace/turn-trace-view.ts';
 import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
 import { LogDreamButton } from './agent-activity-log-dream.tsx';
-import {
-    type ActivityLogEntry,
-    readStepMarks,
-    timelineStatus,
-} from './agent-activity-log-entries.ts';
+import { type ActivityLogEntry, readStepMarks } from './agent-activity-log-entries.ts';
 import { useLogTurnJournal } from './agent-activity-log-journal.ts';
 import { useActivityLogStores, useIsLinkedFromOverview } from './agent-activity-log-stores.ts';
 import {
@@ -31,10 +27,11 @@ import {
     readChatTarget,
     TurnRuler,
 } from './agent-activity-log-turn-parts.tsx';
-import { TurnSummaryStrip } from './agent-activity-log-turn-strip.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
+import { readRunOutcomeLine, type TurnRunBadge } from './agent-run-mark.ts';
+import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
-import { formatTurnOutcome, getTurnRowStatus } from './agent-turn-row-model.ts';
+import { getTurnRowStatus } from './agent-turn-row-model.ts';
 
 /**
  * One turn as a group in the flat log: a header row on the log's columns
@@ -48,23 +45,17 @@ export function ActivityLogTurn({
     entry,
     isOpen,
     onOpenChange,
-    outcome,
     serverId,
     serverSlug,
     showAgent,
-    summaryTimeline = false,
 }: {
     access: TurnDetailAccess;
     entry: ActivityLogEntry;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    /** What the run came to, under the header and above the chart. */
-    outcome?: React.ReactNode;
     serverId: string;
     serverSlug: string;
     showAgent: boolean;
-    /** A closed row shows its run as one summary strip; open, the full chart. */
-    summaryTimeline?: boolean;
 }) {
     const { agent, row, title } = entry;
     const turn = row.latest;
@@ -95,13 +86,12 @@ export function ActivityLogTurn({
     const status = getTurnRowStatus(row);
     const chatTarget = readChatTarget(title, turn.trigger);
     const isSettledDream = turn.trigger?.kind === 'dream' && turn.kind === 'settled';
+    const run = title.kind === 'text' ? title.run : undefined;
+    const outcomeLine = run ? readRunOutcomeLine(run, turn) : null;
 
     return (
         <div
-            className={cn(
-                'group/turn grid min-w-0 scroll-mt-40 pt-1.5 pb-1',
-                traceTurnClass(isLinked)
-            )}
+            className={cn('grid min-w-0 scroll-mt-40 pt-1.5 pb-1', traceTurnClass(isLinked))}
             data-log-turn={turn.runId}
             onPointerLeave={() => hover.set(null)}
             onPointerOver={(event) => {
@@ -149,6 +139,7 @@ export function ActivityLogTurn({
                                         title={title}
                                         turn={turn}
                                     />
+                                    {run ? <RunBadge badge={run.badge} /> : null}
                                     {chatTarget || isSettledDream ? <ChatButtonRoom /> : null}
                                 </span>
                                 {/* The track column stays empty: the Chat button shows here on hover. */}
@@ -180,17 +171,14 @@ export function ActivityLogTurn({
                             />
                         ) : null}
                     </div>
-                    {outcome ? (
-                        <div
-                            className="pe-(--trace-pad) pt-0.5 pb-1"
+                    {outcomeLine ? (
+                        <p
+                            className="truncate pe-(--trace-pad) pt-0.5 pb-1 text-muted text-sm"
                             data-log-outcome
                             style={{ paddingInlineStart: traceTextInset }}
                         >
-                            {outcome}
-                        </div>
-                    ) : null}
-                    {summaryTimeline && !isOpen ? (
-                        <TurnSummaryStrip runId={turn.runId} status={timelineStatus(turn)} />
+                            {outcomeLine}
+                        </p>
                     ) : null}
                     <Disclosure.Content>
                         {ruler ? <TurnRuler scale={ruler} /> : null}
@@ -204,6 +192,15 @@ export function ActivityLogTurn({
                 </Disclosure>
             </TurnTraceScopeProvider>
         </div>
+    );
+}
+
+/** Marks a heartbeat or dream run among the log's turns; a dream wears its own violet wash. */
+function RunBadge({ badge }: { badge: TurnRunBadge }) {
+    return (
+        <Chip className={badge === 'Dream' ? 'chip--dream' : undefined} size="sm" variant="soft">
+            {badge}
+        </Chip>
     );
 }
 

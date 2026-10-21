@@ -6,12 +6,9 @@ import {
     type HoverTimedLine,
     isFoldedHeartbeats,
 } from './agent-hover-activity-model.ts';
+import { formatTurnOutcome } from './agent-profile/agent-turn-outcome.ts';
 import { TurnDuration } from './agent-profile/agent-turn-row.tsx';
-import {
-    formatTurnOutcome,
-    getTurnRowStatus,
-    type TurnRowTitle,
-} from './agent-profile/agent-turn-row-model.ts';
+import { getTurnRowStatus, type TurnRowTitle } from './agent-profile/agent-turn-row-model.ts';
 import type { RecentActivityRow } from './agent-profile/recent-activity-rows.ts';
 
 /**

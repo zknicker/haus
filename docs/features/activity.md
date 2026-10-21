@@ -21,6 +21,15 @@ The Agent menu at the end of the day bar narrows the page to chosen Agents. The 
 the page address (`?agents=…`), so a narrowed view survives reload and can be shared. Older turns
 load a page at a time with `Load older activity`.
 
+Heartbeat and dream runs are ordinary turns in the log: the same row, the same expand-to-steps
+behavior, the same collapsed state. A small soft **Heartbeat** or **Dream** badge follows the
+title, and one muted line under the title says what the run came to: a heartbeat that reported
+reads the report's first sentence plus `Posted in #shop` or `Read, not posted`, a quiet one reads
+`Nothing to report`, a dream reads the first thing it learned (or `Tidied memory (+a −r)` /
+`No memory changes`), and a stopped heartbeat reads `Paused for a new message`. A failed run shows
+its usual failure text instead. The main session handling a report is a normal `Heartbeat
+report` turn with the badge. See [Dreams](dreams.md) and the [heartbeat spec](../../specs/heartbeat.md#observability).
+
 Every member sees turn summaries; a turn's title stays private when its request came from a Chat
 the viewer cannot see. Step-level detail (the execution journal and outlines) is for Server Owners
 and Admins. The contract lives in [Agent Activity](../../specs/agent-activity.md#server-activity-page)

@@ -179,9 +179,9 @@ inline reply (only its cause line shows), a Trigger answer, an archived Reminder
 The weekly Reminder's next fire is a week out and the Trigger's secret is discarded, so nothing
 there wakes an Agent on its own.
 
-An idempotent seed (`seed-heartbeats.ts`) fills **Activity → Heartbeats** across today and
-yesterday with every state the feed shows: reported heartbeats (some posted in a new `#shop`
-Channel, one as two bubbles, one read with nothing posted), dreams with lessons, memory changes, and a follow-up
+An idempotent seed (`seed-heartbeats.ts`) fills the **Activity** log across today and
+yesterday with every heartbeat and dream state its rows show: reported heartbeats (some posted in a new `#shop`
+Channel, one read with nothing posted), dreams with lessons, memory changes, and a follow-up
 Reminder, a tidy-only dream, an unchanged dream, a failed and a yielded run, quiet runs, a busy
 skip, and a plan-limit pause. Fresh and existing workspaces get it once on bootstrap. To refresh
 it on a running stack without wiping the database (it replaces only its own rows and re-times

@@ -62,7 +62,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     // Base workspace, the UI gallery channel and its threads, #automations,
     // and #repo-health with its Cloud Agent fan-out Thread. The gallery's three
     // follow-up works, its pending-input sample, and its five Claude provider
-    // samples each carry a Thread. #shop holds the Heartbeats feed's posts.
+    // samples each carry a Thread. #shop holds the heartbeat reports' posts.
     expect(await connection.db.select().from(chatsTable)).toHaveLength(38);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {

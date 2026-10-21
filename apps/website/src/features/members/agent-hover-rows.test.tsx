@@ -54,7 +54,7 @@ test('consecutive quiet heartbeats fold to one muted line with the last check-in
         <AgentHoverTurn
             row={{
                 count: 3,
-                latest: turn({ trigger: { kind: 'heartbeat', reported: false } }),
+                latest: turn({ trigger: { kind: 'heartbeat', report: null, yielded: false } }),
                 since: startedAt,
             }}
             title={{ kind: 'text', place: 'Checked in', quiet: true, text: 'Heartbeat' }}
@@ -70,7 +70,7 @@ test('a single heartbeat keeps its own row, muted', () => {
         <AgentHoverTurn
             row={{
                 count: 1,
-                latest: turn({ trigger: { kind: 'heartbeat', reported: false } }),
+                latest: turn({ trigger: { kind: 'heartbeat', report: null, yielded: false } }),
                 since: startedAt,
             }}
             title={{ kind: 'text', place: 'Checked in', quiet: true, text: 'Heartbeat' }}

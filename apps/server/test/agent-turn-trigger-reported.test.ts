@@ -3,7 +3,12 @@ import { heartbeatReportDedupeKey } from '../src/agent-delivery/heartbeat-keys.t
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentInboxTable } from '../src/postgres/schema.ts';
+import {
+    agentDreamSummariesTable,
+    agentDreamsTable,
+    agentHeartbeatChecksTable,
+    agentInboxTable,
+} from '../src/postgres/schema.ts';
 import { resolveAgentTurnTriggers } from '../src/server-agents/agent-turn-trigger-previews.ts';
 import { seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -22,7 +27,15 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-test('a page of heartbeats learns which sent a report in one lookup', async () => {
+const record = (source: string, runId: string) => ({
+    chatId: null,
+    runId,
+    source,
+    visible: false,
+    workId: `${source}:${runId}`,
+});
+
+test('a page of heartbeats learns its reports and yields in one lookup', async () => {
     const seed = await seedAgent(connection.db);
     await connection.db.insert(agentInboxTable).values({
         agentId: seed.agentId,
@@ -33,22 +46,66 @@ test('a page of heartbeats learns which sent a report in one lookup', async () =
         serverId: seed.serverId,
         source: 'heartbeat_report',
     });
-    const record = (runId: string) => ({
-        chatId: null,
-        runId,
-        source: 'heartbeat',
-        visible: false,
-        workId: `heartbeat:${runId}`,
+    await connection.db.insert(agentHeartbeatChecksTable).values({
+        agentId: seed.agentId,
+        id: createOpaqueId('hbc'),
+        kind: 'daytime',
+        localDate: '2026-10-21',
+        outcome: 'yielded',
+        runId: 'run_yielded',
+        serverId: seed.serverId,
+        slot: '10:00',
     });
     expect(
-        await resolveAgentTurnTriggers(connection.db, seed.serverId, [
-            record('run_reported'),
-            record('run_quiet'),
-            null,
-        ])
+        await resolveAgentTurnTriggers(
+            connection.db,
+            { serverId: seed.serverId, userId: seed.userId },
+            [
+                record('heartbeat', 'run_reported'),
+                record('heartbeat', 'run_quiet'),
+                record('heartbeat', 'run_yielded'),
+                null,
+            ]
+        )
     ).toEqual([
-        { kind: 'heartbeat', reported: true },
-        { kind: 'heartbeat', reported: false },
+        {
+            kind: 'heartbeat',
+            report: { postedChatId: null, text: 'Q4 budget is stuck on legal.' },
+            yielded: false,
+        },
+        { kind: 'heartbeat', report: null, yielded: false },
+        { kind: 'heartbeat', report: null, yielded: true },
         null,
+    ]);
+});
+
+test('a dream carries its first learned line and the memory lines it changed', async () => {
+    const seed = await seedAgent(connection.db);
+    const dreamValues = {
+        agentId: seed.agentId,
+        serverId: seed.serverId,
+    };
+    await connection.db.insert(agentDreamSummariesTable).values({
+        ...dreamValues,
+        runId: 'run_learned',
+        summary: '\n- Prefers terse replies.\n- Posts go in #all.',
+    });
+    await connection.db.insert(agentDreamsTable).values({
+        ...dreamValues,
+        files: [{ added: 3, change: 'modified', path: 'MEMORY.md', removed: 1 }],
+        finishedAt: new Date(),
+        patch: '',
+        runId: 'run_learned',
+        startedAt: new Date(),
+    });
+    expect(
+        await resolveAgentTurnTriggers(
+            connection.db,
+            { serverId: seed.serverId, userId: seed.userId },
+            [record('dream', 'run_learned'), record('dream', 'run_empty')]
+        )
+    ).toEqual([
+        { added: 3, kind: 'dream', learned: 'Prefers terse replies.', removed: 1 },
+        { added: 0, kind: 'dream', learned: null, removed: 0 },
     ]);
 });
