@@ -40,7 +40,11 @@ test('Claude Code learns sub-agent delegation between task splitting and @Mentio
     expect(prompt).toContain(
         '5. **Only you speak in Haus.** Tell every sub-agent not to run `haus`'
     );
-    expect(prompt).toContain('7. **Finish within your turn.** Sub-agents end when your turn ends');
+    // Raft's rule 7, verbatim: background sub-agents outlive the turn that starts them.
+    expect(prompt).toContain(
+        '7. **Stay reachable while work runs.** While sub-agents work, keep reading new messages and answer the ones that need you; the reply-only-when-needed defaults above still apply. "Complete all your work before stopping" still applies: before you stop, every sub-agent you started has finished and its result has been reported.'
+    );
+    expect(prompt).not.toContain('Finish within your turn');
     // The section is the only difference, so other runtimes keep their prompt byte for byte.
     const section = prompt.slice(subagents, mentions);
     expect(prompt.replace(section, '')).toBe(codex.instructions);

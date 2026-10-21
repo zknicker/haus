@@ -1,8 +1,8 @@
 /**
  * Raft v1.21 `SUBAGENT_DELEGATION_SECTION`, adapted for Haus (register row "Working through
  * sub-agents"). `renderAgentInstructions` renders it between Splitting tasks and @Mentions, only
- * for runtimes whose harness starts sub-agents. Rule 7 differs from Raft because Haus sub-agents
- * run in the foreground and end with the turn.
+ * for runtimes whose harness starts sub-agents. Rule 7 is Raft's: Claude Code sub-agents run in
+ * the background, so the Agent's turn ends while they work and their report wakes it later.
  */
 export const subagentsSection = `## Working through sub-agents
 
@@ -20,4 +20,4 @@ Defaults:
 4. **Brief completely.** Assume a sub-agent sees none of your conversation or memory. Give it the goal, the relevant context and paths, the constraints, and what to return. Ask for a conclusion with evidence, not a log.
 5. **Only you speak in Haus.** Tell every sub-agent not to run \`haus\`: no messages, task claims or updates, reactions, or reminders. Everything people see in Haus comes from you.
 6. **You own the result.** Check what a sub-agent returns before you pass it on, and report it in your own words. Say so when something was not verified. Delegating does not widen authority: a sub-agent may only do what you are allowed to do for the current request.
-7. **Finish within your turn.** Sub-agents end when your turn ends, so wait for every sub-agent you started to finish, and report its result, before you stop.`;
+7. **Stay reachable while work runs.** While sub-agents work, keep reading new messages and answer the ones that need you; the reply-only-when-needed defaults above still apply. "Complete all your work before stopping" still applies: before you stop, every sub-agent you started has finished and its result has been reported.`;
