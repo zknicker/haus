@@ -47,7 +47,7 @@ export class AttachmentDaemonWork {
                 closing: () => this.closing,
                 holdForWake: (agentId, ms) =>
                     holdAgentLaunchHostForWake(partition.serverId, agentId, ms),
-                onError: reportBackgroundWorkError,
+                onError: (error) => this.reportBackgroundWorkError(error),
                 send: (frame) => this.send(frame),
             });
         }
@@ -62,7 +62,18 @@ export class AttachmentDaemonWork {
         await work
             ?.reportCounts()
             .then(() => work.recoverLostWork())
-            .catch(reportBackgroundWorkError);
+            .catch((error: unknown) => this.reportBackgroundWorkError(error));
+    }
+
+    private reportBackgroundWorkError(error: unknown) {
+        void this.runtime.runPromise(
+            Effect.logWarning('A background work report failed; the next change retries.').pipe(
+                Effect.annotateLogs({
+                    error: error instanceof Error ? error.message : String(error),
+                    event: 'background-work-report-failed',
+                })
+            )
+        );
     }
 
     attachSender(sender: AttachmentFrameSender): () => void {
@@ -158,12 +169,6 @@ export class AttachmentDaemonWork {
         })();
         return this.closePromise;
     }
-}
-
-function reportBackgroundWorkError(error: unknown) {
-    console.error(
-        `Background work report failed: ${error instanceof Error ? error.message : error}`
-    );
 }
 
 function shutdownStage<Value>(

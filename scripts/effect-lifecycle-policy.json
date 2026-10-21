@@ -373,9 +373,9 @@
         "timer": 0
       }
     },
-    "apps/computer/src/proxy.ts": {
-      "disposition": "external-adapter",
-      "reason": "Launch resources own the loopback server; its Promise and timer form a bounded best-effort HTTP attestation deadline.",
+    "apps/computer/src/proxy-runner-hold.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Holds Agent requests between turns until a wake run's runner arrives: each waiter's Promise resolves on release or on its own bounded timer, which it clears; proxy close releases every waiter.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -492,6 +492,17 @@
         "finallyBlock": 1,
         "manualPromise": 0,
         "timer": 0
+      }
+    },
+    "apps/computer/src/visibility-receipt.ts": {
+      "disposition": "external-adapter",
+      "reason": "The proxy's best-effort freshness receipt races the Server's HTTP answer against a bounded 250ms Promise timer, so a slow receipt never holds the proxied response.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 1
       }
     },
     "apps/computer/src/workspace-files.ts": {
@@ -991,11 +1002,11 @@
     },
     "apps/computer/src/runtime/runtime-context.ts": {
       "disposition": "finite-cleanup",
-      "reason": "The attachment daemon opens one context and closes it at shutdown; close ends every warm process and stops the host-tool server in finally, so a failed process close never leaves the server bound.",
+      "reason": "The attachment daemon opens one context and closes it at shutdown; close ends every warm process and stops the host-tool server in finally, so a failed process close never leaves the server bound. An eviction marks its Agent root as a deliberate end and clears the mark in finally.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
-        "finallyBlock": 1,
+        "finallyBlock": 2,
         "manualPromise": 0,
         "timer": 0
       }
@@ -1035,13 +1046,13 @@
     },
     "apps/computer/src/runtime/warm-pool.ts": {
       "disposition": "external-adapter",
-      "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
+      "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, re-armed while the process holds background work and cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
         "finallyBlock": 0,
         "manualPromise": 0,
-        "timer": 2
+        "timer": 3
       }
     },
     "apps/computer/src/runtime/json-rpc-connection.ts": {
@@ -1088,14 +1099,25 @@
         "timer": 1
       }
     },
+    "apps/computer/src/runtime/claude-code/claude-turn-steers.ts": {
+      "disposition": "external-adapter",
+      "reason": "A turn's steers on the foreign claude process: each acknowledgement Promise settles on Claude Code's queued, started, cancelled, or discarded receipt and is raced against claude-steer-receipt.ts's bounded timeout.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
     "apps/computer/src/runtime/claude-code/claude-turn.ts": {
       "disposition": "external-adapter",
-      "reason": "One turn on the foreign claude process: its settle resolver and steer acknowledgements end with the turn (the receipt timeout lives in claude-steer-receipt.ts), and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
+      "reason": "One turn on the foreign claude process: its settle resolver ends with the turn (steer acknowledgements live in claude-turn-steers.ts, the receipt timeout in claude-steer-receipt.ts), and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 1,
         "finallyBlock": 1,
-        "manualPromise": 2,
+        "manualPromise": 1,
         "timer": 1
       }
     },

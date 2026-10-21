@@ -40,4 +40,6 @@ export const migrationsSince0060 = [
     '0097_linear-team-membership',
     '0098_factory-preset',
     '0099_retire-pi-runtime',
+    '0100_subagent-wake',
+    '0101_background-subagents',
 ];

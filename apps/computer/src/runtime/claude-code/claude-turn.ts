@@ -121,8 +121,6 @@ export class ClaudeTurn implements TurnSink {
         }
         const uuid = randomUUID();
         const acknowledged = this.steers.track(uuid, text);
-        // A dropped steer's receipt rejection is answered by `dropSteer`, never left unhandled.
-        acknowledged.catch(() => undefined);
         this.ownMessages.add(uuid);
         try {
             await this.connection.sendUser(text, { priority: 'next', uuid });
