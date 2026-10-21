@@ -4,23 +4,21 @@ import { useRelativeNow } from '../../../../components/time/relative-time.tsx';
 import { useAgentHeartbeats } from '../../../../hooks/members/use-agent-heartbeats.ts';
 import { ActivityNote } from '../../../members/agent-profile/agent-activity.tsx';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
-import { HeartbeatDetail } from './heartbeat-detail.tsx';
 import { HeartbeatLanes } from './heartbeat-lanes.tsx';
-import { HeartbeatSummary } from './heartbeat-summary.tsx';
+import { HeartbeatRunsLog } from './heartbeat-runs-log.tsx';
 import { HeartbeatsDayBar } from './heartbeats-day-bar.tsx';
-import { readDayWindow, readLanes, resolveSelection } from './heartbeats-model.ts';
+import { readDayWindow, readLanes } from './heartbeats-model.ts';
 
 /**
  * The Server Activity page's Heartbeats lens: the day bar (older and newer day,
- * then the page's view and Agent controls), a summary strip, one lane per Agent
- * across the viewer's local day, and the selected mark's detail. The Server
- * reads one day at a time; the lens holds only which day and which mark.
+ * then the Agent filter), one lane per Agent across the viewer's local day, and
+ * under them the real Activity log of that day's heartbeat and dream runs. The
+ * Server reads one day at a time; the lens holds only which day and which mark.
  */
 export function HeartbeatsView({
     action,
     agentIds,
     agents,
-    onOpenTrace,
     serverId,
     serverSlug,
 }: {
@@ -28,13 +26,12 @@ export function HeartbeatsView({
     /** The Agent filter: empty is every Agent. */
     agentIds: readonly string[];
     agents: readonly ActivityLogAgent[];
-    onOpenTrace: (runId: string) => void;
     serverId: string;
     serverSlug: string;
 }) {
     const nowMs = useRelativeNow(30_000);
     const [offset, setOffset] = useState(0);
-    const [chosenKey, setChosenKey] = useState<string | null>(null);
+    const [chosen, setChosen] = useState<{ key: string; runId: string | null } | null>(null);
     const day = readDayWindow(offset, nowMs);
     const query = useAgentHeartbeats(serverId, day, agentIds.length > 0 ? agentIds : undefined);
     const byId = new Map(agents.map((agent) => [agent.id, agent]));
@@ -45,10 +42,10 @@ export function HeartbeatsView({
             .map((agent) => agent.id)
             .filter((id) => agentIds.length === 0 || agentIds.includes(id))
     );
-    const selected = resolveSelection(lanes, chosenKey);
+    const hasMarks = lanes.some(({ lane }) => lane.marks.length > 0);
     const showDay = (next: number) => {
         setOffset(next);
-        setChosenKey(null);
+        setChosen(null);
     };
 
     // Blank while loading; the empty line only once the day is truly empty.
@@ -66,39 +63,37 @@ export function HeartbeatsView({
             />
             {query.error && !query.data ? (
                 <ActivityNote>Heartbeats are unavailable right now.</ActivityNote>
-            ) : query.data && lanes.length > 0 ? (
+            ) : (
                 <>
-                    <HeartbeatSummary lanes={lanes} summary={query.data.summary} />
                     <HeartbeatLanes
                         agents={byId}
                         isToday={offset === 0}
                         lanes={lanes}
                         nowMs={nowMs}
-                        onSelect={setChosenKey}
-                        selectedKey={selected?.key ?? null}
+                        onSelect={(key, runId) => setChosen({ key, runId })}
+                        selectedKey={chosen?.key ?? null}
                         window={day}
                     />
-                    {selected ? (
-                        <HeartbeatDetail
-                            agent={byId.get(selected.agentId)}
-                            key={selected.key}
-                            onOpenTrace={onOpenTrace}
-                            selected={selected}
+                    {hasMarks ? (
+                        <HeartbeatRunsLog
+                            agentIds={agentIds}
+                            agents={agents}
+                            lanes={lanes}
+                            revealRunId={chosen?.runId ?? null}
                             serverId={serverId}
                             serverSlug={serverSlug}
+                            window={day}
                         />
                     ) : (
                         <EmptyDay isToday={offset === 0} />
                     )}
                 </>
-            ) : (
-                <EmptyDay isToday={offset === 0} />
             )}
         </div>
     );
 }
 
-/** No heartbeat on the day: said once the day is truly empty, never while loading. */
+/** No check-in on the day: said once the day is truly empty, never while loading. */
 function EmptyDay({ isToday }: { isToday: boolean }) {
     return (
         <p className="px-(--trace-pad) py-3 text-muted text-sm">

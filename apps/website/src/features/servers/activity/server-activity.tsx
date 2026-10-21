@@ -14,7 +14,7 @@ import { useServerContext } from '../server-context.ts';
 import { HeartbeatsView } from './heartbeats/heartbeats-view.tsx';
 import { ActivityAgentFilter, useActivityAgentFilter } from './server-activity-filter.tsx';
 import { readServerActivityGroups } from './server-activity-turns.ts';
-import { ActivityViewSwitch, useActivityView } from './server-activity-view.tsx';
+import { useActivityView } from './server-activity-view.tsx';
 
 /**
  * The Server's Activity page, in two lenses kept in the address: the Log, every
@@ -29,19 +29,15 @@ export function ServerActivity() {
     const agentsQuery = useAgents(server.id);
     const agents = agentsQuery.data ?? [];
     const filter = useActivityAgentFilter(agents);
-    const { openTrace, revealRunId, setView, view } = useActivityView();
-    const controls = (
-        <>
-            <ActivityViewSwitch onChange={setView} view={view} />
-            {agents.length > 1 ? (
-                <ActivityAgentFilter
-                    agents={agents}
-                    onSelectionChange={filter.select}
-                    selected={filter.selected}
-                />
-            ) : null}
-        </>
-    );
+    const { view } = useActivityView();
+    const controls =
+        agents.length > 1 ? (
+            <ActivityAgentFilter
+                agents={agents}
+                onSelectionChange={filter.select}
+                selected={filter.selected}
+            />
+        ) : null;
 
     if (agentsQuery.isPending) {
         return <div aria-busy="true" className="min-h-0 flex-1" />;
@@ -51,29 +47,21 @@ export function ServerActivity() {
             action={controls}
             agentIds={filter.selected}
             agents={agents}
-            onOpenTrace={openTrace}
             serverId={server.id}
             serverSlug={server.slug}
         />
     ) : (
-        <ServerActivityLog
-            agents={agents}
-            controls={controls}
-            revealRunId={revealRunId}
-            selected={filter.selected}
-        />
+        <ServerActivityLog agents={agents} controls={controls} selected={filter.selected} />
     );
 }
 
 function ServerActivityLog({
     agents,
     controls,
-    revealRunId,
     selected,
 }: {
     agents: readonly ActivityLogAgent[];
     controls: React.ReactNode;
-    revealRunId: string | null;
     selected: readonly string[];
 }) {
     const { server } = useServerContext();
@@ -117,7 +105,6 @@ function ServerActivityLog({
                     </div>
                 ) : null
             }
-            revealRunId={revealRunId}
             serverId={server.id}
             serverSlug={server.slug}
         />

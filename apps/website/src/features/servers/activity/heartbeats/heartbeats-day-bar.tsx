@@ -5,8 +5,8 @@ import { Icon } from '../../../../components/ui/icon.tsx';
 import { formatDayLabel } from '../../../members/agent-profile/agent-turn-row-model.ts';
 
 /**
- * The lens's day bar: older and newer day, the day's label, then the page's own
- * view and Agent controls at the end. Sticky, on the page ground.
+ * The lens's day bar: older and newer day, the day's label, then the page's
+ * Agent filter at the end. Sticky, on the page ground.
  */
 export function HeartbeatsDayBar({
     action,
@@ -24,7 +24,7 @@ export function HeartbeatsDayBar({
     return (
         <section
             aria-label="Heartbeats day"
-            className="sticky top-0 z-10 -mt-px flex min-w-0 items-center gap-1 border-separator border-b bg-background px-(--trace-pad) pt-2 pb-1"
+            className="sticky top-0 z-10 -mt-px flex min-w-0 items-center gap-1 border-separator border-b bg-background px-(--trace-pad) pt-1 pb-1"
         >
             <Button
                 aria-label="Show the earlier day"

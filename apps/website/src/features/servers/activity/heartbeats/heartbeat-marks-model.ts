@@ -5,7 +5,6 @@ import {
     type DayWindow,
     formatTokens,
     type HeartbeatOutcome,
-    type LaneView,
     outcomeLabels,
     readTrackPosition,
 } from './heartbeats-model.ts';
@@ -16,18 +15,6 @@ import {
  */
 export type GlyphKind = HeartbeatOutcome | 'dream';
 
-/** Legend order: the quiet baseline first, then what happened, then the dream. */
-const glyphOrder: readonly GlyphKind[] = [
-    'quiet',
-    'reported',
-    'yielded',
-    'skipped',
-    'paused',
-    'running',
-    'failed',
-    'dream',
-];
-
 export const glyphLabels: Record<GlyphKind, string> = { ...outcomeLabels, dream: 'Dream' };
 
 /** Marks closer than this on one lane (percent of the track) are nudged apart. */
@@ -35,50 +22,6 @@ export const minMarkGap = 3.4;
 
 export function readGlyphKind(mark: Pick<HeartbeatMark, 'kind' | 'outcome'>): GlyphKind {
     return mark.kind === 'nightly' ? 'dream' : mark.outcome;
-}
-
-/** How many marks of each glyph kind are on the day, in legend order; absent kinds drop. */
-export function readGlyphCounts(lanes: readonly LaneView[]): { count: number; kind: GlyphKind }[] {
-    const counts = new Map<GlyphKind, number>();
-    for (const { lane } of lanes) {
-        for (const mark of lane.marks) {
-            const kind = readGlyphKind(mark);
-            counts.set(kind, (counts.get(kind) ?? 0) + 1);
-        }
-    }
-    return glyphOrder.flatMap((kind) => {
-        const count = counts.get(kind) ?? 0;
-        return count > 0 ? [{ count, kind }] : [];
-    });
-}
-
-/** Last night's dreams on the day: how many, the lessons they added, the promises they made. */
-export function readDreamTotals(lanes: readonly LaneView[]): {
-    dreams: number;
-    lessons: number;
-    promises: number;
-} {
-    const totals = { dreams: 0, lessons: 0, promises: 0 };
-    for (const { lane } of lanes) {
-        for (const mark of lane.marks) {
-            if (mark.kind === 'nightly') {
-                totals.dreams += 1;
-                totals.lessons += mark.dream?.added ?? 0;
-                totals.promises += mark.dream?.followUps ?? 0;
-            }
-        }
-    }
-    return totals;
-}
-
-/** The meta row under the detail header: time, duration, tokens (what is known). */
-export function readMarkMeta(mark: HeartbeatMark): string[] {
-    const tokens = formatTokens(mark.tokens);
-    return [
-        formatShortTime(mark.at),
-        mark.durationMs === null ? null : formatTurnDuration(mark.durationMs),
-        tokens === null ? null : `${tokens} tokens`,
-    ].filter((part): part is string => part !== null);
 }
 
 /** A lane's marks in time order, each with its place on the track after nudging. */
@@ -126,22 +69,4 @@ export function readMarkSummary(agentName: string, mark: HeartbeatMark): string 
     ]
         .filter(Boolean)
         .join(' · ');
-}
-
-/** The detail chip: the outcome's color, or the dream's own while a dream is well. */
-export function readOutcomeChip(mark: Pick<HeartbeatMark, 'kind' | 'outcome'>): {
-    color: 'accent' | 'danger' | 'default' | 'warning';
-    isDream: boolean;
-} {
-    const base = (() => {
-        if (mark.outcome === 'reported' || mark.outcome === 'running') {
-            return 'accent' as const;
-        }
-        if (mark.outcome === 'failed') {
-            return 'danger' as const;
-        }
-        return mark.outcome === 'paused' ? ('warning' as const) : ('default' as const);
-    })();
-    const isDream = mark.kind === 'nightly' && base !== 'danger' && base !== 'warning';
-    return { color: isDream ? 'default' : base, isDream };
 }

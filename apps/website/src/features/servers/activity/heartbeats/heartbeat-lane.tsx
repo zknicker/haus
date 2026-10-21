@@ -1,4 +1,3 @@
-import { Badge } from '@heroui/react';
 import type * as React from 'react';
 import { EntityAvatar } from '../../../../components/ui/entity-avatar.tsx';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
@@ -13,7 +12,7 @@ import {
 } from './heartbeats-model.ts';
 
 export const laneRowClass =
-    'grid grid-cols-[7rem_minmax(0,1fr)_3rem] items-center gap-3 px-(--trace-pad) @min-2xl/heartbeats:grid-cols-[9rem_minmax(0,1fr)_3.5rem]';
+    'grid grid-cols-[8.5rem_minmax(0,1fr)_3.5rem] items-center gap-3 px-(--trace-pad) @min-2xl/heartbeats:grid-cols-[11rem_minmax(0,1fr)_4rem]';
 
 /**
  * One Agent's lane: its name, a track with night bands, the Now line and a mark
@@ -33,7 +32,7 @@ export function HeartbeatLane({
     bands: readonly TrackBand[];
     laneView: LaneView;
     nowAt: number | null;
-    onSelect: (key: string) => void;
+    onSelect: (key: string, runId: string | null) => void;
     selectedKey: string | null;
     window: DayWindow;
 }) {
@@ -44,22 +43,17 @@ export function HeartbeatLane({
     }));
     const tabKey = marks.find((entry) => entry.key === selectedKey)?.key ?? marks[0]?.key;
     return (
-        <div className={`${laneRowClass} h-12`}>
-            <span className="flex min-w-0 items-center gap-2.5 text-sm">
-                <Badge.Anchor className="shrink-0" style={{ height: 34, width: 34 }}>
-                    <EntityAvatar name={name} size={34} src={agent?.avatarUrl} />
+        <div className={`${laneRowClass} h-16`}>
+            <span className="flex min-w-0 items-center gap-3">
+                <EntityAvatar name={name} size={40} src={agent?.avatarUrl} />
+                <span className="grid min-w-0">
+                    <span className="truncate font-medium text-base">{name}</span>
                     {marks.length > 0 ? (
-                        <Badge
-                            color="default"
-                            placement="bottom-right"
-                            size="sm"
-                            title={`${marks.length} runs today`}
-                        >
-                            {marks.length}
-                        </Badge>
+                        <span className="truncate text-muted text-xs">
+                            {marks.length === 1 ? '1 check-in' : `${marks.length} check-ins`}
+                        </span>
                     ) : null}
-                </Badge.Anchor>
-                <span className="truncate font-medium">{name}</span>
+                </span>
             </span>
             {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: a roving toolbar; the key handler walks the real buttons inside it */}
             <div
@@ -94,11 +88,11 @@ export function HeartbeatLane({
                         key={key}
                         left={left}
                         mark={mark}
-                        onSelect={() => onSelect(key)}
+                        onSelect={() => onSelect(key, mark.runId)}
                     />
                 ))}
             </div>
-            <span className="text-end text-muted text-xs tabular-nums">
+            <span className="text-end text-muted text-sm tabular-nums">
                 {marks.length > 0 ? formatTokens(lane.tokens) : '—'}
             </span>
         </div>

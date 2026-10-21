@@ -37,7 +37,7 @@ export function HeartbeatMarkButton({
                     aria-pressed={isSelected}
                     className={cn(
                         'absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 cursor-(--cursor-interactive) items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-                        isDream ? 'size-8' : 'size-7',
+                        isDream ? 'size-9' : 'size-8',
                         isSelected && 'ring-2 ring-foreground ring-offset-1 ring-offset-background'
                     )}
                     data-heartbeat-mark=""
@@ -49,7 +49,7 @@ export function HeartbeatMarkButton({
                     <HeartbeatGlyph
                         isFailed={mark.outcome === 'failed'}
                         kind={kind}
-                        size={isDream ? 26 : 22}
+                        size={isDream ? 30 : 26}
                     />
                 </button>
             </Tooltip.Trigger>

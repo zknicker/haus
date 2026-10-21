@@ -2,48 +2,35 @@ import { Segment } from '@heroui-pro/react';
 import { useSearchParams } from 'react-router-dom';
 
 const viewParam = 'view';
-const runParam = 'run';
 
 export type ActivityView = 'heartbeats' | 'log';
 
 /**
  * Which lens the Activity page shows, kept in the URL (`?view=heartbeats`; the
- * log is the bare page) beside the Agent filter. `run` carries a run to reveal
- * once the log is showing, which is how a heartbeat's "Open trace" lands on it.
+ * log is the bare page) beside the Agent filter.
  */
 export function useActivityView() {
     const [searchParams, setSearchParams] = useSearchParams();
     const view: ActivityView = searchParams.get(viewParam) === 'heartbeats' ? 'heartbeats' : 'log';
-    const update = (change: (params: URLSearchParams) => void) =>
-        setSearchParams(
-            (params) => {
-                const next = new URLSearchParams(params);
-                change(next);
-                return next;
-            },
-            { replace: true }
-        );
     return {
-        openTrace: (runId: string) =>
-            update((params) => {
-                params.delete(viewParam);
-                params.set(runParam, runId);
-            }),
-        revealRunId: view === 'log' ? searchParams.get(runParam) : null,
         setView: (next: ActivityView) =>
-            update((params) => {
-                params.delete(runParam);
-                if (next === 'heartbeats') {
-                    params.set(viewParam, next);
-                } else {
-                    params.delete(viewParam);
-                }
-            }),
+            setSearchParams(
+                (params) => {
+                    const updated = new URLSearchParams(params);
+                    if (next === 'heartbeats') {
+                        updated.set(viewParam, next);
+                    } else {
+                        updated.delete(viewParam);
+                    }
+                    return updated;
+                },
+                { replace: true }
+            ),
         view,
     };
 }
 
-/** The Log | Heartbeats switch that ends the day bar, before the Agent filter. */
+/** The Log | Heartbeats switch at the far end of the page's header band. */
 export function ActivityViewSwitch({
     onChange,
     view,

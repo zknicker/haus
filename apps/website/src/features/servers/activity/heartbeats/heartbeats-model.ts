@@ -1,15 +1,9 @@
-import type {
-    AgentHeartbeats,
-    HeartbeatLane,
-    HeartbeatMark,
-    HeartbeatPlanShare,
-    HeartbeatSkipReason,
-} from '@haus/api';
+import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
 
 /**
  * The Heartbeats view's pure model: where a mark sits on the day's track, the
- * night bands and hour ticks behind it, the words for each outcome, the
- * summary strip's facts, a plan meter's segments, and which mark is selected.
+ * night bands and hour ticks behind it, the words for each outcome, and a
+ * lane per Agent.
  */
 export type HeartbeatOutcome = HeartbeatMark['outcome'];
 
@@ -98,40 +92,6 @@ export const outcomeLabels: Record<HeartbeatOutcome, string> = {
     yielded: 'Yielded',
 };
 
-export function readKindLabel(mark: Pick<HeartbeatMark, 'kind'>): string {
-    return mark.kind === 'nightly' ? 'Dream' : 'Heartbeat';
-}
-
-const skipReasonLabels: Record<HeartbeatSkipReason, string> = {
-    busy: 'The Agent was busy with other work',
-    'no-activity': 'Nothing had changed since the last check-in',
-    'not-configured': 'Heartbeat is not set up for this Agent',
-    'plan-limit': 'Paused at 80% of the weekly plan meter',
-    stopped: 'The Agent was stopped',
-};
-
-/** What became of the mark, in a line: where its report went, or why nothing ran. */
-export function readMarkFate(mark: HeartbeatMark, chatPlace: string | null): string {
-    switch (mark.outcome) {
-        case 'reported':
-            return mark.report?.postedChatId
-                ? `Posted in ${chatPlace ?? 'a chat'}`
-                : 'Read by the Agent, nothing posted';
-        case 'quiet':
-            return 'Nothing to report';
-        case 'yielded':
-            return 'Stopped early for a message addressed to the Agent';
-        case 'failed':
-            return 'Ended with an error';
-        case 'running':
-            return 'Still running';
-        default:
-            return mark.skipReason
-                ? skipReasonLabels[mark.skipReason]
-                : outcomeLabels[mark.outcome];
-    }
-}
-
 export function formatTokens(tokens: number | null): string | null {
     if (tokens === null) {
         return null;
@@ -144,77 +104,6 @@ export function formatTokens(tokens: number | null): string | null {
         return `${thousands < 100 ? thousands.toFixed(1) : Math.round(thousands)}k`;
     }
     return `${(tokens / 1_000_000).toFixed(1)}M`;
-}
-
-export function formatDreamDelta(
-    dream: Pick<NonNullable<HeartbeatMark['dream']>, 'added' | 'removed'>
-) {
-    return `+${dream.added} −${dream.removed}`;
-}
-
-export interface ResultStat {
-    readonly count: number;
-    readonly label: string;
-}
-
-/** What came of the day's heartbeats: a labeled count each, never a sentence. */
-export function readSummaryResults(summary: AgentHeartbeats['summary']): ResultStat[] {
-    return [
-        { count: summary.posts, label: summary.posts === 1 ? 'post' : 'posts' },
-        {
-            count: summary.rulesLearned,
-            label: summary.rulesLearned === 1 ? 'rule learned' : 'rules learned',
-        },
-        { count: summary.followUps, label: summary.followUps === 1 ? 'follow-up' : 'follow-ups' },
-    ];
-}
-
-export interface DetailFact {
-    readonly label: string;
-    readonly value: string;
-}
-
-/** The selected mark's facts as label/value rows: memory change, follow-ups, then the outcome. */
-export function readDetailFacts(mark: HeartbeatMark, chatPlace: string | null): DetailFact[] {
-    const dream = mark.dream;
-    return [
-        ...(dream ? [{ label: 'Memory', value: formatDreamDelta(dream) }] : []),
-        ...(dream && dream.followUps > 0
-            ? [{ label: 'Follow-ups', value: String(dream.followUps) }]
-            : []),
-        { label: 'Outcome', value: readMarkFate(mark, chatPlace) },
-    ];
-}
-
-export interface PlanMeter {
-    readonly dream: number;
-    readonly heartbeat: number;
-    readonly label: string;
-    /** Used by everything else on the plan. */
-    readonly other: number;
-    readonly tooltip: string;
-    readonly used: number;
-}
-
-/** A plan's weekly meter as segments of one bar: other use, heartbeats, dreams. */
-export function readPlanMeter(plan: HeartbeatPlanShare): PlanMeter {
-    const used = Math.min(100, plan.usedPercent);
-    const heartbeat = Math.min(plan.heartbeatPercent, used);
-    const dream = Math.min(plan.dreamPercent, used - heartbeat);
-    return {
-        dream,
-        heartbeat,
-        label: plan.label,
-        other: used - heartbeat - dream,
-        tooltip: `~${formatPercent(plan.heartbeatPercent)} heartbeats and ~${formatPercent(plan.dreamPercent)} dreams of ${plan.label}'s weekly meter. An estimate: the plan's reported use, split by token share.`,
-        used,
-    };
-}
-
-export function formatPercent(percent: number): string {
-    return percent < 10 && !Number.isInteger(percent)
-        ? `${percent.toFixed(1)}%`
-        : `${Math.round(percent)}%`;
 }
 
 export interface LaneView {
@@ -239,28 +128,4 @@ export function readLanes(
             tokens: 0,
         },
     }));
-}
-
-export interface SelectedMark {
-    readonly agentId: string;
-    readonly key: string;
-    readonly mark: HeartbeatMark;
-}
-
-/** The chosen mark when it is still on the day; otherwise the newest reported, else the newest. */
-export function resolveSelection(
-    lanes: readonly LaneView[],
-    chosenKey: string | null
-): SelectedMark | null {
-    const all = lanes.flatMap(({ agentId, lane }) =>
-        lane.marks.map((mark) => ({ agentId, key: readMarkKey(agentId, mark), mark }))
-    );
-    const chosen = chosenKey ? all.find((entry) => entry.key === chosenKey) : undefined;
-    if (chosen) {
-        return chosen;
-    }
-    const newestFirst = [...all].sort(
-        (left, right) => Date.parse(right.mark.at) - Date.parse(left.mark.at)
-    );
-    return newestFirst.find((entry) => entry.mark.outcome === 'reported') ?? newestFirst[0] ?? null;
 }

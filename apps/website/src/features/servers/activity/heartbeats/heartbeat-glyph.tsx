@@ -18,7 +18,7 @@ export function HeartbeatGlyph({
     /** A failed dream keeps its moon but sits in danger ink with no halo. */
     isFailed?: boolean;
     kind: GlyphKind;
-    /** Rendered size in px: 16 summary pip, 22 lane mark, 26 dream, 40 detail. */
+    /** Rendered size in px: 26 lane mark, 30 dream. */
     size?: number;
 }) {
     const tone = isFailed ? failedDreamTone : tones[kind];

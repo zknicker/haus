@@ -12,7 +12,7 @@ import {
 /**
  * The day, one lane per Agent on a shared 24-hour axis: night bands behind the
  * track, a mark at each slot's time, today's Now line, the lane's tokens at the
- * end. The glyph legend lives in the summary. The ruler hangs from the same
+ * end. The lanes are the day's summary; the ruler hangs from the same
  * baseline idiom as the log's overview strip.
  */
 export function HeartbeatLanes({
@@ -28,7 +28,7 @@ export function HeartbeatLanes({
     isToday: boolean;
     lanes: readonly LaneView[];
     nowMs: number;
-    onSelect: (key: string) => void;
+    onSelect: (key: string, runId: string | null) => void;
     selectedKey: string | null;
     window: DayWindow;
 }) {
@@ -37,7 +37,7 @@ export function HeartbeatLanes({
     return (
         <div className="border-separator border-b pb-2">
             <div className="grid gap-1">
-                <div aria-hidden className={cn(laneRowClass, 'h-5')}>
+                <div aria-hidden className={cn(laneRowClass, 'h-6')}>
                     <span />
                     <HourRuler nowAt={nowAt} window={window} />
                     <span />
@@ -74,7 +74,7 @@ function HourRuler({ nowAt, window }: { nowAt: number | null; window: DayWindow 
                     {tick.label ? (
                         <span
                             className={cn(
-                                'absolute top-2 whitespace-nowrap text-muted text-xs tabular-nums leading-none',
+                                'absolute top-2 whitespace-nowrap text-muted text-sm tabular-nums leading-none',
                                 tick.at > 0 && '-translate-x-1/2'
                             )}
                             style={{ left: `${tick.at}%` }}

@@ -21,6 +21,7 @@ import {
 import { ActivityLogTurn } from './agent-activity-log-turn.tsx';
 import type { TurnDetailAccess } from './agent-activity-model.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
+import { localDayKey } from './agent-turn-row-model.ts';
 
 /** The Activity tab's log: one Agent's turns, through the same log an all-Agents view would use. */
 export function AgentActivityLog({
@@ -53,6 +54,8 @@ interface ActivityLogProps {
     footer?: React.ReactNode;
     /** A run to open and scroll to once its turn is in the log (a link from another lens). */
     revealRunId?: string | null;
+    /** One local day as bare rows: no overview strip, no day heading. The page owns the day. */
+    scope?: { endMs: number; startMs: number };
     serverId: string;
     serverSlug: string;
 }
@@ -72,12 +75,16 @@ export function ActivityLog({
     filter,
     footer,
     revealRunId,
+    scope,
     serverId,
     serverSlug,
 }: ActivityLogProps) {
     const isRunning = entries.some((entry) => entry.row.latest.kind === 'active');
     const now = useLogNow(isRunning);
-    const days = readLogDays(entries, filter, now);
+    const scopeKey = scope ? localDayKey(new Date(scope.startMs)) : null;
+    const days = readLogDays(entries, filter, now).filter(
+        (logDay) => scopeKey === null || logDay.key === scopeKey
+    );
     const showAgent = filter.agentIds.length > 1;
     const [toggled, setToggled] = React.useState<ReadonlyMap<string, boolean>>(new Map());
     const openByDefault = readOpenOnArrival(days);
@@ -131,7 +138,7 @@ export function ActivityLog({
                         data-activity-log
                         data-turn-trace
                     >
-                        {day ? (
+                        {day && !scope ? (
                             <ActivityLogOverview
                                 access={access}
                                 action={dayBarAction}
@@ -151,15 +158,19 @@ export function ActivityLog({
                                     'grid min-w-0 scroll-mt-28 content-start',
                                     // The last day can still scroll under the strip, so
                                     // the switcher always lands on the day it names.
-                                    dayIndex === days.length - 1 && 'min-h-[calc(100dvh-14rem)]'
+                                    !scope &&
+                                        dayIndex === days.length - 1 &&
+                                        'min-h-[calc(100dvh-14rem)]'
                                 )}
                                 data-log-day={logDay.key}
                                 key={logDay.key}
                             >
-                                <h3 className="border-separator border-b px-(--trace-pad) pt-4 pb-2 font-semibold text-sm">
-                                    {logDay.label}
-                                </h3>
-                                {logDay.entries.length === 0 ? (
+                                {scope ? null : (
+                                    <h3 className="border-separator border-b px-(--trace-pad) pt-4 pb-2 font-semibold text-sm">
+                                        {logDay.label}
+                                    </h3>
+                                )}
+                                {logDay.entries.length === 0 && !scope ? (
                                     <p className="px-(--trace-pad) py-3 text-muted text-sm">
                                         No activity
                                     </p>
