@@ -1,64 +1,75 @@
-import type * as React from 'react';
-import { useState } from 'react';
 import { useRelativeNow } from '../../../../components/time/relative-time.tsx';
 import { useAgentHeartbeats } from '../../../../hooks/members/use-agent-heartbeats.ts';
+import { useLoadMoreSentinel } from '../../../../hooks/shell/use-load-more-sentinel.ts';
 import { ActivityNote } from '../../../members/agent-profile/agent-activity.tsx';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
-import { HeartbeatsDayBar } from './heartbeats-day-bar.tsx';
+import { readFeedDays } from './heartbeat-feed-model.ts';
+import { HeartbeatRoster } from './heartbeat-roster.tsx';
+import { readRoster } from './heartbeat-roster-model.ts';
 import { HeartbeatsFeed } from './heartbeats-feed.tsx';
-import { readDayWindow } from './heartbeats-model.ts';
 
 /**
- * The Server Activity page's Heartbeats lens: the day bar (older and newer day,
- * then the Agent filter) over a feed of the day's heartbeat and dream outputs.
- * The Server reads one day at a time; the lens holds only which day.
+ * The Server Activity page's Heartbeats lens, as a social feed: a roster of
+ * Agents (which is also the Agent filter) over one continuous column of what
+ * they noticed and learned, newest first, older days loading as you scroll.
  */
 export function HeartbeatsView({
-    action,
     agentIds,
     agents,
+    onSelectAgents,
     readLogSearch,
     serverId,
 }: {
-    action: React.ReactNode;
     /** The Agent filter: empty is every Agent. */
     agentIds: readonly string[];
     agents: readonly ActivityLogAgent[];
+    onSelectAgents: (agentIds: readonly string[]) => void;
     /** The Log's address with a run to reveal. */
     readLogSearch: (runId: string | null) => string;
     serverId: string;
 }) {
     const nowMs = useRelativeNow(30_000);
-    const [offset, setOffset] = useState(0);
-    const day = readDayWindow(offset, nowMs);
-    const query = useAgentHeartbeats(serverId, day, agentIds.length > 0 ? agentIds : undefined);
-    const byId = new Map(agents.map((agent) => [agent.id, agent]));
+    const heartbeats = useAgentHeartbeats(serverId);
+    const { hasMore, isFetchingMore, loadMore } = heartbeats;
+    const sentinelRef = useLoadMoreSentinel({
+        isActive: hasMore && !isFetchingMore,
+        onReachEnd: loadMore,
+    });
 
-    // Blank while loading; the empty line only once the day is truly empty.
-    if (query.isPending) {
+    // Blank while loading; the empty line only once there is truly nothing.
+    if (heartbeats.isPending) {
         return <div aria-busy="true" className="min-h-0 flex-1" />;
     }
+    const byId = new Map(agents.map((agent) => [agent.id, agent]));
+    const visible = heartbeats.lanes.filter((lane) => byId.has(lane.agentId));
+    const days = readFeedDays(visible, agentIds);
+    const roster = readRoster(
+        agents.map((agent) => agent.id),
+        visible,
+        nowMs
+    );
+    const isEmpty = days.length === 0 && !hasMore && !isFetchingMore;
     return (
-        <div className="@container/heartbeats min-w-0 cursor-default [--trace-pad:calc(var(--spacing)*3)]">
-            <HeartbeatsDayBar
-                action={action}
-                dayStartMs={day.startMs}
-                nowMs={nowMs}
-                offset={offset}
-                onShowDay={setOffset}
+        <div className="mx-auto min-w-0 max-w-[42.5rem] cursor-default px-4 pb-10">
+            <HeartbeatRoster
+                agents={agents}
+                entries={roster}
+                onSelect={onSelectAgents}
+                selected={agentIds}
             />
-            {query.error && !query.data ? (
+            {heartbeats.error && days.length === 0 ? (
                 <ActivityNote>Heartbeats are unavailable right now.</ActivityNote>
             ) : (
                 <HeartbeatsFeed
                     agents={byId}
-                    isToday={offset === 0}
-                    lanes={query.data?.lanes ?? []}
+                    days={days}
+                    lanes={visible}
                     readLogSearch={readLogSearch}
                     serverId={serverId}
-                    window={day}
                 />
             )}
+            {isEmpty ? <p className="py-6 text-muted text-sm">No observations yet</p> : null}
+            {hasMore ? <div aria-hidden className="h-px" ref={sentinelRef} /> : null}
         </div>
     );
 }

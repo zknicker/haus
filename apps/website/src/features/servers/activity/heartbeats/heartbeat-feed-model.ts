@@ -1,118 +1,139 @@
 import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
-import { formatTurnDuration } from '../../../members/agent-profile/agent-turn-row-model.ts';
-import { formatTokens } from './heartbeats-model.ts';
+import { readDayBounds } from './heartbeats-model.ts';
 
 /**
- * The Heartbeats feed's pure model: which runs are posts, how consecutive quiet
- * runs fold into one line, and the words of a post's footer. The feed reads
- * newest first.
+ * The feed's pure model. A report or a dream is a post made of thoughts, one
+ * bubble each; a failed or yielded run is a system note, never a bubble. Quiet
+ * check-ins, skips and pauses take no row. Days run newest first, and so do the
+ * entries within a day.
  */
 export interface FeedPost {
     readonly agentId: string;
     readonly key: string;
     readonly kind: 'post';
     readonly mark: HeartbeatMark;
+    readonly postKind: 'dreamed' | 'noticed';
+    /** One per bubble. */
+    readonly thoughts: readonly string[];
 }
 
-/** Consecutive quiet check-ins of one Agent, folded into a single line. */
-export interface FeedQuietFold {
+export interface FeedNote {
     readonly agentId: string;
-    /** The newest quiet run's time: the fold's place in the feed. */
-    readonly at: string;
     readonly key: string;
-    readonly kind: 'quiet';
-    /** Oldest first. */
-    readonly marks: readonly HeartbeatMark[];
+    readonly kind: 'note';
+    readonly mark: HeartbeatMark;
+    /** `dreamed` is a dream with nothing learned to say. */
+    readonly reason: 'dreamed' | 'failed' | 'yielded';
 }
 
-export type FeedItem = FeedPost | FeedQuietFold;
+export type FeedEntry = FeedNote | FeedPost;
 
-/** A reported, failed or yielded run, or a settled dream, is worth a post. */
-export function isPost(mark: HeartbeatMark): boolean {
+/** One local day's entries; `startMs` keys the day and labels its divider. */
+export interface FeedDay {
+    readonly entries: readonly FeedEntry[];
+    readonly startMs: number;
+}
+
+/** The entry a mark makes, or null when it is not worth a row. */
+export function readFeedEntry(agentId: string, mark: HeartbeatMark): FeedEntry | null {
     if (mark.runId === null) {
-        return false;
+        return null;
     }
+    const key = `${agentId}:${mark.runId}`;
     if (mark.outcome === 'failed' || mark.outcome === 'yielded') {
-        return true;
+        return { agentId, key, kind: 'note', mark, reason: mark.outcome };
     }
-    if (mark.outcome === 'reported') {
-        return mark.report !== null;
+    if (mark.kind === 'nightly') {
+        if (mark.dream === null && mark.outcome !== 'quiet') {
+            return null;
+        }
+        const thoughts = readDreamThoughts(mark.dream?.summary ?? null);
+        if (thoughts.length === 0) {
+            return { agentId, key, kind: 'note', mark, reason: 'dreamed' };
+        }
+        return { agentId, key, kind: 'post', mark, postKind: 'dreamed', thoughts };
     }
-    return mark.kind === 'nightly' && mark.outcome === 'quiet';
-}
-
-function isQuietCheckIn(mark: HeartbeatMark): boolean {
-    return mark.kind === 'daytime' && mark.outcome === 'quiet';
+    if (mark.outcome === 'reported' && mark.report !== null) {
+        const thoughts = readReportThoughts(mark.report.text);
+        return { agentId, key, kind: 'post', mark, postKind: 'noticed', thoughts };
+    }
+    return null;
 }
 
 /**
- * Posts and quiet folds across the lanes, newest first. Per Agent, quiet runs
- * with no post between them fold together; skipped, paused and running slots
- * neither post nor break a fold.
+ * Days of entries across the lanes, newest first. `agentIds` narrows the feed;
+ * empty is every Agent.
  */
-export function readFeed(lanes: readonly HeartbeatLane[]): FeedItem[] {
-    const items: FeedItem[] = [];
+export function readFeedDays(
+    lanes: readonly HeartbeatLane[],
+    agentIds: readonly string[]
+): FeedDay[] {
+    const days = new Map<number, FeedEntry[]>();
     for (const lane of lanes) {
-        let fold: HeartbeatMark[] = [];
-        const closeFold = () => {
-            const newest = fold.at(-1);
-            if (newest) {
-                items.push({
-                    agentId: lane.agentId,
-                    at: newest.at,
-                    key: `${lane.agentId}:quiet:${fold[0]?.at}`,
-                    kind: 'quiet',
-                    marks: fold,
-                });
-            }
-            fold = [];
-        };
-        for (const mark of [...lane.marks].sort((a, b) => a.at.localeCompare(b.at))) {
-            if (isPost(mark)) {
-                closeFold();
-                items.push({
-                    agentId: lane.agentId,
-                    key: `${lane.agentId}:${mark.runId}`,
-                    kind: 'post',
-                    mark,
-                });
-            } else if (isQuietCheckIn(mark)) {
-                fold.push(mark);
+        if (agentIds.length > 0 && !agentIds.includes(lane.agentId)) {
+            continue;
+        }
+        for (const mark of lane.marks) {
+            const entry = readFeedEntry(lane.agentId, mark);
+            if (entry) {
+                const { startMs } = readDayBounds(Date.parse(mark.at));
+                days.set(startMs, [...(days.get(startMs) ?? []), entry]);
             }
         }
-        closeFold();
     }
-    return items.sort((left, right) => readItemAt(right).localeCompare(readItemAt(left)));
+    return [...days]
+        .sort(([left], [right]) => right - left)
+        .map(([startMs, entries]) => ({
+            entries: entries.sort((left, right) => right.mark.at.localeCompare(left.mark.at)),
+            startMs,
+        }));
 }
 
-export function readItemAt(item: FeedItem): string {
-    return item.kind === 'post' ? item.mark.at : item.at;
-}
-
-/** "Blippy checked in 4× · nothing to report". */
-export function readQuietFoldText(name: string, count: number): string {
-    return `${name} checked in ${count === 1 ? 'once' : `${count}×`} · nothing to report`;
-}
-
-/** The "what I learned" lines of a dream summary, bullets stripped. */
-export function readSummaryLines(summary: string | null): string[] {
+/** A dream summary's "what I learned" lines, bullets stripped: a thought each. */
+export function readDreamThoughts(summary: string | null): string[] {
     return (summary ?? '')
         .split('\n')
-        .map((line) => line.trim().replace(/^[-*•]\s+/u, ''))
+        .map((line) => stripBullet(line.trim()))
         .filter((line) => line !== '');
 }
 
-/** "41s · 18k tokens": a run's cost, for the quiet end of a post. */
-export function readRunCost(mark: HeartbeatMark): string {
-    const tokens = formatTokens(mark.tokens);
-    return [
-        mark.durationMs === null ? null : formatTurnDuration(mark.durationMs),
-        tokens === null ? null : `${tokens} tokens`,
-    ]
-        .filter(Boolean)
-        .join(' · ');
+/**
+ * A report's thoughts: each bullet is one, and consecutive prose lines join
+ * into a paragraph that is one, split at blank lines.
+ */
+export function readReportThoughts(text: string): string[] {
+    const thoughts: string[] = [];
+    let paragraph: string[] = [];
+    const flush = () => {
+        if (paragraph.length > 0) {
+            thoughts.push(paragraph.join(' '));
+            paragraph = [];
+        }
+    };
+    for (const raw of text.split('\n')) {
+        const line = raw.trim();
+        if (line === '') {
+            flush();
+        } else if (bulletPattern.test(line)) {
+            flush();
+            thoughts.push(stripBullet(line));
+        } else {
+            paragraph.push(line);
+        }
+    }
+    flush();
+    return thoughts;
 }
 
-export function readKindLabel(mark: HeartbeatMark): string {
-    return mark.kind === 'nightly' ? 'Dream' : 'Heartbeat';
+const bulletPattern = /^(?:[-*•]|\d+[.)])\s+/u;
+
+function stripBullet(line: string): string {
+    return line.replace(bulletPattern, '');
+}
+
+export function readFollowUpCount(count: number): string | null {
+    if (count === 0) {
+        return null;
+    }
+    return count === 1 ? '1 follow-up' : `${count} follow-ups`;
 }

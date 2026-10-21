@@ -1,22 +1,24 @@
 import { expect, test } from 'bun:test';
 import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
 import {
-    isPost,
-    readFeed,
-    readQuietFoldText,
-    readRunCost,
-    readSummaryLines,
+    readDreamThoughts,
+    readFeedDays,
+    readFeedEntry,
+    readReportThoughts,
 } from './heartbeat-feed-model.ts';
+import { readRoster } from './heartbeat-roster-model.ts';
 import {
-    formatTokens,
-    readDayWindow,
-    readNightBands,
+    mergeLanes,
+    pageDays,
+    readDayBounds,
+    readNextPageIndex,
+    readPageWindow,
     readTrackPosition,
 } from './heartbeats-model.ts';
 
 const noon = new Date(2026, 9, 21, 12, 0).getTime();
-const day = readDayWindow(0, noon);
 const hour = 60 * 60 * 1000;
+const day = 24 * hour;
 
 function mark(atMs: number, overrides: Partial<HeartbeatMark> = {}): HeartbeatMark {
     return {
@@ -33,92 +35,134 @@ function mark(atMs: number, overrides: Partial<HeartbeatMark> = {}): HeartbeatMa
     };
 }
 
-function reported(atMs: number): HeartbeatMark {
-    return mark(atMs, { outcome: 'reported', report: { postedChatId: null, text: 'News.' } });
+function reported(atMs: number, text = 'News.'): HeartbeatMark {
+    return mark(atMs, { outcome: 'reported', report: { postedChatId: null, text } });
+}
+
+function dreamed(atMs: number, summary: string | null): HeartbeatMark {
+    return mark(atMs, {
+        dream: {
+            added: 2,
+            followUpTitles: [],
+            followUps: 0,
+            removed: 1,
+            summary,
+            summaryLine: null,
+        },
+        kind: 'nightly',
+    });
 }
 
 function lane(agentId: string, marks: HeartbeatMark[]): HeartbeatLane {
     return { agentId, marks, tokens: 0 };
 }
 
-test('the day window spans the local day, and a past day sits before it', () => {
-    expect(new Date(day.startMs).getHours()).toBe(0);
-    expect(new Date(day.endMs).getDate()).not.toBe(new Date(day.startMs).getDate());
-    expect(day.from).toBe(new Date(day.startMs).toISOString());
-    expect(readDayWindow(1, noon).endMs).toBe(day.startMs);
+test('a page reads pageDays local days ending where the newer page began', () => {
+    const first = readPageWindow(0, noon);
+    const second = readPageWindow(1, noon);
+    expect(Date.parse(first.to)).toBe(readDayBounds(noon).endMs);
+    expect(Date.parse(first.to) - Date.parse(first.from)).toBeGreaterThanOrEqual(
+        pageDays * day - hour
+    );
+    expect(second.to).toBe(first.from);
 });
 
-test('a mark sits at its share of the day and never leaves the track', () => {
-    expect(readTrackPosition(noon, day)).toBeCloseTo(50);
-    expect(readTrackPosition(day.startMs - 1000, day)).toBe(0);
-    expect(readTrackPosition(day.endMs + 1000, day)).toBe(100);
+test('paging continues while a page held marks and stops at an empty one', () => {
+    expect(readNextPageIndex(0, [lane('a', [mark(noon)])])).toBe(1);
+    expect(readNextPageIndex(3, [lane('a', [])])).toBeNull();
+    expect(readNextPageIndex(29, [lane('a', [mark(noon)])])).toBeNull();
 });
 
-test('night bands cover 22:00 to 08:00 at both ends of the track', () => {
-    const [morning, evening] = readNightBands(day);
-    expect(morning).toEqual({ left: 0, width: expect.closeTo(100 / 3, 5) });
-    expect(evening?.left).toBeCloseTo((22 / 24) * 100);
-    expect((evening?.left ?? 0) + (evening?.width ?? 0)).toBeCloseTo(100);
+test('merging pages gives one oldest-first lane per Agent and keeps each mark once', () => {
+    const older = mark(noon - 4 * day);
+    const newer = mark(noon);
+    const merged = mergeLanes([[lane('a', [newer])], [lane('a', [older, newer]), lane('b', [])]]);
+    expect(merged.map((entry) => entry.agentId)).toEqual(['a', 'b']);
+    expect(merged[0]?.marks.map((entry) => entry.at)).toEqual([older.at, newer.at]);
 });
 
-test('tokens read short', () => {
-    expect(formatTokens(null)).toBeNull();
-    expect(formatTokens(950)).toBe('950');
-    expect(formatTokens(18_200)).toBe('18.2k');
-    expect(formatTokens(240_000)).toBe('240k');
-    expect(formatTokens(1_250_000)).toBe('1.3M');
+test('a mark sits at its share of its day and never leaves the track', () => {
+    const bounds = readDayBounds(noon);
+    expect(readTrackPosition(noon, bounds)).toBeCloseTo(50);
+    expect(readTrackPosition(bounds.startMs - 1000, bounds)).toBe(0);
+    expect(readTrackPosition(bounds.endMs + 1000, bounds)).toBe(100);
 });
 
-test('reported, failed, yielded runs and settled dreams are posts; quiet and unstarted are not', () => {
-    expect(isPost(reported(noon))).toBe(true);
-    expect(isPost(mark(noon, { outcome: 'failed' }))).toBe(true);
-    expect(isPost(mark(noon, { outcome: 'yielded' }))).toBe(true);
-    expect(isPost(mark(noon, { kind: 'nightly' }))).toBe(true);
-    expect(isPost(mark(noon))).toBe(false);
-    expect(isPost(mark(noon, { outcome: 'running' }))).toBe(false);
-    expect(isPost(mark(noon, { outcome: 'skipped', runId: null }))).toBe(false);
+test('reports and dreams are posts; failed and yielded runs are notes; quiet runs take no row', () => {
+    expect(readFeedEntry('a', reported(noon))?.kind).toBe('post');
+    expect(readFeedEntry('a', dreamed(noon, '- Learned.'))).toMatchObject({
+        kind: 'post',
+        postKind: 'dreamed',
+    });
+    expect(readFeedEntry('a', mark(noon, { outcome: 'failed' }))).toMatchObject({
+        kind: 'note',
+        reason: 'failed',
+    });
+    expect(readFeedEntry('a', mark(noon, { outcome: 'yielded' }))).toMatchObject({
+        kind: 'note',
+        reason: 'yielded',
+    });
+    expect(readFeedEntry('a', mark(noon))).toBeNull();
+    expect(readFeedEntry('a', mark(noon, { outcome: 'running' }))).toBeNull();
+    expect(readFeedEntry('a', mark(noon, { outcome: 'paused', runId: null }))).toBeNull();
 });
 
-test('the feed runs newest first and folds consecutive quiet runs per Agent', () => {
-    const items = readFeed([
-        lane('a', [
-            mark(noon),
-            mark(noon + hour),
-            mark(noon + 2 * hour, { outcome: 'skipped', runId: null }),
-            mark(noon + 3 * hour),
-            reported(noon + 4 * hour),
-            mark(noon + 5 * hour),
-        ]),
-        lane('b', [reported(noon + 2.5 * hour)]),
-    ]);
-    expect(items.map((item) => item.kind)).toEqual(['quiet', 'post', 'quiet', 'post']);
-    const [last, , folded] = items;
-    expect(last?.kind === 'quiet' ? last.marks : []).toHaveLength(1);
-    // The skipped slot between quiet runs does not break the fold.
-    expect(folded?.kind === 'quiet' ? folded.marks : []).toHaveLength(3);
-});
-
-test('a post between quiet runs splits the fold', () => {
-    const items = readFeed([lane('a', [mark(noon), reported(noon + hour), mark(noon + 2 * hour)])]);
-    expect(items.map((item) => item.kind)).toEqual(['quiet', 'post', 'quiet']);
-});
-
-test('a quiet fold reads as who, how many times, and nothing to report', () => {
-    expect(readQuietFoldText('Blippy', 4)).toBe('Blippy checked in 4× · nothing to report');
-    expect(readQuietFoldText('Blippy', 1)).toBe('Blippy checked in once · nothing to report');
-});
-
-test('a dream summary reads as its lines with bullets stripped', () => {
-    expect(readSummaryLines('\n- Lead with the answer.\n* Name files.\n\n')).toEqual([
+test('a dream is a thought per learned line, bullets stripped', () => {
+    expect(readDreamThoughts('\n- Lead with the answer.\n* Name files.\n\n')).toEqual([
         'Lead with the answer.',
         'Name files.',
     ]);
-    expect(readSummaryLines(null)).toEqual([]);
+    expect(readDreamThoughts(null)).toEqual([]);
 });
 
-test('a run costs its duration and tokens', () => {
-    expect(readRunCost(mark(noon, { durationMs: 41_000, tokens: 18_200 }))).toBe(
-        '41s · 18.2k tokens'
-    );
-    expect(readRunCost(mark(noon, { durationMs: null, tokens: null }))).toBe('');
+test('a report is a thought per paragraph and per bullet', () => {
+    expect(
+        readReportThoughts('Sales dipped\nunder pace.\n\nAds are flat.\n- Check mugs\n- Check ads')
+    ).toEqual(['Sales dipped under pace.', 'Ads are flat.', 'Check mugs', 'Check ads']);
+});
+
+test('the feed groups entries by local day, newest day and entry first, and filters by Agent', () => {
+    const lanes = [
+        lane('a', [reported(noon - day), reported(noon), mark(noon + hour)]),
+        lane('b', [mark(noon + 2 * hour, { outcome: 'failed' }), dreamed(noon - day, '- One.')]),
+    ];
+    const days = readFeedDays(lanes, []);
+    expect(days.map((entry) => entry.startMs)).toEqual([
+        readDayBounds(noon).startMs,
+        readDayBounds(noon - day).startMs,
+    ]);
+    expect(days[0]?.entries.map((entry) => entry.kind)).toEqual(['note', 'post']);
+    expect(days[1]?.entries).toHaveLength(2);
+    const onlyB = readFeedDays(lanes, ['b']);
+    expect(onlyB.flatMap((entry) => entry.entries.map((item) => item.agentId))).toEqual(['b', 'b']);
+});
+
+test('the roster rings and words each Agent by today, last night, and what runs now', () => {
+    const lanes = [
+        lane('news', [mark(noon - hour), reported(noon - 30 * 60 * 1000)]),
+        lane('dream', [
+            dreamed(readDayBounds(noon).startMs + 3 * hour, '- One.'),
+            mark(noon - hour),
+        ]),
+        lane('quiet', [mark(noon - 2 * hour), mark(noon - hour)]),
+        lane('live', [mark(noon - 60_000, { outcome: 'running' })]),
+        lane('paused', [
+            mark(noon - hour, { outcome: 'paused', runId: null, skipReason: 'plan-limit' }),
+        ]),
+    ];
+    const roster = readRoster(['news', 'dream', 'quiet', 'live', 'paused', 'none'], lanes, noon);
+    const by = (agentId: string) => roster.find((entry) => entry.agentId === agentId);
+    expect(by('news')).toMatchObject({ ring: 'new', status: expect.stringMatching(/^1 new · /) });
+    expect(by('dream')).toMatchObject({ ring: 'dream', status: 'Dreamed · quiet today' });
+    expect(by('quiet')).toMatchObject({ ring: 'quiet', status: 'Quiet · 2 check-ins' });
+    expect(by('live')).toMatchObject({ isLive: true, status: 'Checking in…' });
+    expect(by('paused')?.status).toBe('Paused · plan limit');
+    expect(by('none')?.status).toBe('No check-ins yet');
+});
+
+test('a dream with nothing learned is a system note, not an empty bubble', () => {
+    expect(readFeedEntry('a', dreamed(noon, null))).toMatchObject({
+        kind: 'note',
+        reason: 'dreamed',
+    });
 });

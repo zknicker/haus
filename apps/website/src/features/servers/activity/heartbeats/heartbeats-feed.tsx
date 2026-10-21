@@ -1,80 +1,79 @@
 import type { HeartbeatLane } from '@haus/api';
+import { DayDivider, formatDayLabel } from '../../../../components/chats/day-divider.tsx';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
-import { type FeedItem, readFeed } from './heartbeat-feed-model.ts';
-import { HeartbeatPost, HeartbeatQuietFold } from './heartbeat-post.tsx';
-import type { DayWindow } from './heartbeats-model.ts';
+import type { FeedDay, FeedEntry } from './heartbeat-feed-model.ts';
+import { HeartbeatNote, HeartbeatPost } from './heartbeat-post.tsx';
+import { readDayBounds } from './heartbeats-model.ts';
 
 /**
- * The day's heartbeat and dream outputs as a feed, newest first: a post per
- * meaningful run, consecutive quiet check-ins folded into one muted line. Each
- * post carries its Agent's day as a tiny timeline that links to the Log.
+ * The feed: one centered column of posts and system notes, newest first, under
+ * the same day dividers the channels use. Older days keep arriving below.
  */
 export function HeartbeatsFeed({
     agents,
-    isToday,
+    days,
     lanes,
     readLogSearch,
     serverId,
-    window,
 }: {
     agents: ReadonlyMap<string, ActivityLogAgent>;
-    isToday: boolean;
+    days: readonly FeedDay[];
     lanes: readonly HeartbeatLane[];
     readLogSearch: (runId: string | null) => string;
     serverId: string;
-    window: DayWindow;
 }) {
-    const items = readFeed(lanes.filter((lane) => agents.has(lane.agentId)));
     const marksByAgent = new Map(lanes.map((lane) => [lane.agentId, lane.marks]));
-    const hasPosts = items.some((item) => item.kind === 'post');
     return (
-        <div className="grid max-w-[70ch] gap-6 px-(--trace-pad) py-5">
-            {hasPosts ? null : (
-                <p className="text-muted text-sm">
-                    {isToday ? 'No heartbeat posts today' : 'No heartbeat posts this day'}
-                </p>
-            )}
-            {items.map((item) => (
-                <FeedEntry
-                    agent={agents.get(item.agentId)}
-                    item={item}
-                    key={item.key}
-                    laneMarks={marksByAgent.get(item.agentId) ?? []}
-                    readLogSearch={readLogSearch}
-                    serverId={serverId}
-                    window={window}
-                />
+        <>
+            {days.map((day) => (
+                <section aria-label={formatDayLabel(new Date(day.startMs))} key={day.startMs}>
+                    <DayDivider
+                        className="mt-5 mb-1"
+                        label={formatDayLabel(new Date(day.startMs))}
+                    />
+                    <div className="divide-y divide-separator">
+                        {day.entries.map((entry) => (
+                            <FeedRow
+                                agent={agents.get(entry.agentId)}
+                                dayMarks={(marksByAgent.get(entry.agentId) ?? []).filter(
+                                    (mark) =>
+                                        readDayBounds(Date.parse(mark.at)).startMs === day.startMs
+                                )}
+                                entry={entry}
+                                key={entry.key}
+                                logSearch={readLogSearch(entry.mark.runId)}
+                                serverId={serverId}
+                            />
+                        ))}
+                    </div>
+                </section>
             ))}
-        </div>
+        </>
     );
 }
 
-function FeedEntry({
+function FeedRow({
     agent,
-    item,
-    laneMarks,
-    readLogSearch,
+    dayMarks,
+    entry,
+    logSearch,
     serverId,
-    window,
 }: {
     agent: ActivityLogAgent | undefined;
-    item: FeedItem;
-    laneMarks: HeartbeatLane['marks'];
-    readLogSearch: (runId: string | null) => string;
+    dayMarks: HeartbeatLane['marks'];
+    entry: FeedEntry;
+    logSearch: string;
     serverId: string;
-    window: DayWindow;
 }) {
-    if (item.kind === 'quiet') {
-        return <HeartbeatQuietFold agent={agent} fold={item} />;
-    }
-    return (
+    return entry.kind === 'note' ? (
+        <HeartbeatNote agent={agent} logSearch={logSearch} note={entry} serverId={serverId} />
+    ) : (
         <HeartbeatPost
             agent={agent}
-            laneMarks={laneMarks}
-            logSearch={readLogSearch(item.mark.runId)}
-            post={item}
+            dayMarks={dayMarks}
+            logSearch={logSearch}
+            post={entry}
             serverId={serverId}
-            window={window}
         />
     );
 }

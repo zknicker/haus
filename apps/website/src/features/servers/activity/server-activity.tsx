@@ -19,8 +19,9 @@ import { useActivityView } from './server-activity-view.tsx';
 /**
  * The Server's Activity page, in two lenses kept in the address: the Log, every
  * Agent's turns interleaved in the same event log an Agent's Activity tab
- * shows, and Heartbeats, each Agent's slots across the day. The Agent filter in
- * the day bar narrows both. Settled turns come a page at a time from
+ * shows, and Heartbeats, a feed of what the Agents noticed and learned. The Log's
+ * day bar holds the Agent filter; the Heartbeats roster is the same filter,
+ * kept in the same `?agents=` address. Settled turns come a page at a time from
  * `agent.serverTurns`; working runs come from the Server's one current-activity
  * projection.
  */
@@ -44,9 +45,9 @@ export function ServerActivity() {
     }
     return view === 'heartbeats' ? (
         <HeartbeatsView
-            action={controls}
             agentIds={filter.selected}
             agents={agents}
+            onSelectAgents={filter.select}
             readLogSearch={readLogSearch}
             serverId={server.id}
         />

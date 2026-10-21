@@ -1,82 +1,83 @@
-import type { HeartbeatMark } from '@haus/api';
+import type { HeartbeatLane } from '@haus/api';
 
 /**
- * The Heartbeats view's pure model: the local day, where a mark sits on the
- * day's timeline, the night bands behind it, and the words for each outcome.
+ * The Heartbeats feed's read model: local-day bounds, the multi-day windows the
+ * feed pages backward through, merging those pages' lanes, and where a mark
+ * sits on its day's track.
  */
-export type HeartbeatOutcome = HeartbeatMark['outcome'];
 
-/** The viewer's local day: its bounds as the Server read wants them, and as numbers. */
-export interface DayWindow {
+/** Local days one `agent.heartbeats` read covers. */
+export const pageDays = 3;
+
+/** A hard stop on how far back the feed pages (about three months). */
+export const maxPages = 30;
+
+/** A local day's bounds as numbers. */
+export interface DayBounds {
     readonly endMs: number;
-    readonly from: string;
     readonly startMs: number;
-    readonly to: string;
 }
 
-export interface TrackBand {
-    readonly left: number;
-    readonly width: number;
-}
-
-/** The local day `offsetDays` before today's; 0 is today. */
-export function readDayWindow(offsetDays: number, now: number): DayWindow {
-    const today = new Date(now);
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offsetDays);
+export function readDayBounds(atMs: number): DayBounds {
+    const date = new Date(atMs);
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
-    return {
-        endMs: end.getTime(),
-        from: start.toISOString(),
-        startMs: start.getTime(),
-        to: end.toISOString(),
-    };
+    return { endMs: end.getTime(), startMs: start.getTime() };
 }
 
-/** A time's place on the day's track, in percent, held inside the track. */
-export function readTrackPosition(atMs: number, window: DayWindow): number {
-    const span = window.endMs - window.startMs;
+/**
+ * Page `pageIndex`'s read window: the `pageDays` local days that end
+ * `pageIndex * pageDays` days before the end of today; page 0 ends tonight.
+ */
+export function readPageWindow(pageIndex: number, nowMs: number): { from: string; to: string } {
+    const today = new Date(nowMs);
+    const shift = pageIndex * pageDays;
+    const to = new Date(today.getFullYear(), today.getMonth(), today.getDate() - shift + 1);
+    const from = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - shift - (pageDays - 1)
+    );
+    return { from: from.toISOString(), to: to.toISOString() };
+}
+
+/** Older days exist to read while the page just read held any mark. */
+export function readNextPageIndex(
+    pageIndex: number,
+    lanes: readonly HeartbeatLane[]
+): number | null {
+    const hasMarks = lanes.some((lane) => lane.marks.length > 0);
+    return hasMarks && pageIndex + 1 < maxPages ? pageIndex + 1 : null;
+}
+
+/** Lanes of every loaded page as one lane per Agent, marks oldest first, each once. */
+export function mergeLanes(pages: readonly (readonly HeartbeatLane[])[]): HeartbeatLane[] {
+    const byAgent = new Map<string, HeartbeatLane>();
+    for (const lane of pages.flat()) {
+        const known = byAgent.get(lane.agentId);
+        const seen = new Set((known?.marks ?? []).map(markKey));
+        const fresh = lane.marks.filter((mark) => !seen.has(markKey(mark)));
+        byAgent.set(lane.agentId, {
+            agentId: lane.agentId,
+            marks: [...(known?.marks ?? []), ...fresh],
+            tokens: (known?.tokens ?? 0) + lane.tokens,
+        });
+    }
+    return [...byAgent.values()].map((lane) => ({
+        ...lane,
+        marks: [...lane.marks].sort((left, right) => left.at.localeCompare(right.at)),
+    }));
+}
+
+/** A time's place on its day's track, in percent, held inside the track. */
+export function readTrackPosition(atMs: number, day: DayBounds): number {
+    const span = day.endMs - day.startMs;
     if (span <= 0) {
         return 0;
     }
-    return Math.min(100, Math.max(0, ((atMs - window.startMs) / span) * 100));
+    return Math.min(100, Math.max(0, ((atMs - day.startMs) / span) * 100));
 }
 
-/** Night is 22:00 to 08:00 on the viewer's clock: a band at each end of the track. */
-export function readNightBands(window: DayWindow): TrackBand[] {
-    const start = new Date(window.startMs);
-    const at = (hour: number) =>
-        readTrackPosition(
-            new Date(start.getFullYear(), start.getMonth(), start.getDate(), hour).getTime(),
-            window
-        );
-    const morning = at(8);
-    const evening = at(22);
-    return [
-        { left: 0, width: morning },
-        { left: evening, width: 100 - evening },
-    ];
-}
-
-export const outcomeLabels: Record<HeartbeatOutcome, string> = {
-    failed: 'Failed',
-    paused: 'Paused',
-    quiet: 'Quiet',
-    reported: 'Reported',
-    running: 'Running',
-    skipped: 'Skipped',
-    yielded: 'Yielded',
-};
-
-export function formatTokens(tokens: number | null): string | null {
-    if (tokens === null) {
-        return null;
-    }
-    if (tokens < 1000) {
-        return String(tokens);
-    }
-    if (tokens < 1_000_000) {
-        const thousands = tokens / 1000;
-        return `${thousands < 100 ? thousands.toFixed(1) : Math.round(thousands)}k`;
-    }
-    return `${(tokens / 1_000_000).toFixed(1)}M`;
+function markKey(mark: HeartbeatLane['marks'][number]): string {
+    return `${mark.at}:${mark.runId ?? mark.kind}`;
 }

@@ -79,7 +79,7 @@ export function invalidateServerAgentHistory(queryClient: QueryClient, serverId:
         }),
         queryClient.invalidateQueries({
             predicate: onServer,
-            queryKey: getQueryKey(hausTrpc.agent.heartbeats, undefined, 'query'),
+            queryKey: getQueryKey(hausTrpc.agent.heartbeats, undefined, 'any'),
         }),
     ]);
 }
@@ -125,7 +125,7 @@ export function invalidateSettledAgentHistory(
         // A settled run is a heartbeat mark's outcome; the read spans Agents, so only the Server scopes it.
         queryClient.invalidateQueries({
             predicate: (query) => activityInputOf(query)?.serverId === event.serverId,
-            queryKey: getQueryKey(hausTrpc.agent.heartbeats, undefined, 'query'),
+            queryKey: getQueryKey(hausTrpc.agent.heartbeats, undefined, 'any'),
         }),
     ]);
 }
