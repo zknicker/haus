@@ -12,7 +12,7 @@ export interface AgentStartCommand {
     agentName?: string;
     /** Pickup reaction; null or absent means the prompt's default. */
     agentSignatureEmoji?: string | null;
-    /** The run's Chat; null only for a dream run, which has none. */
+    /** The run's Chat; null only for a dream or sub-agent wake run, which have none. */
     chatId: string | null;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
@@ -25,6 +25,8 @@ export interface AgentStartCommand {
     runId: string;
     runtimeId: string;
     sessionGeneration: number;
+    /** Background work the Agent started finished or stopped; a chatless run with no inbox. */
+    subagentWake?: { createdAt: string; id: string };
     totalPending: number;
     traceContext?: { traceparent: string };
     type: 'start';
@@ -45,6 +47,12 @@ export interface AgentStopCommand {
     agentId: string;
     runId: string;
     type: 'stop';
+}
+
+/** Server→Computer Stop of the background work an Agent left running between turns. */
+export interface AgentStopBackgroundCommand {
+    agentId: string;
+    type: 'agent-stop-background';
 }
 
 /** Server→Computer command to refresh instructions without rotating context. */

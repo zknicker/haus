@@ -1,6 +1,12 @@
+import { join } from 'node:path';
 import { settle } from '@haus/effect';
 import { Data, Effect } from 'effect';
+import { holdAgentLaunchHostForWake } from './agent-launch-host.ts';
 import { AgentWorkCoordinator } from './agent-work-coordinator.ts';
+import {
+    type BackgroundWorkReporter,
+    createBackgroundWorkReporter,
+} from './background-work-reporter.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
@@ -21,6 +27,9 @@ export class AttachmentDaemonWork {
     readonly resettingAgents = new Set<string>();
     readonly retiredAgents = new Set<string>();
 
+    /** Background work Agents' runtimes run between turns; absent without a partition (tests). */
+    readonly backgroundWork?: BackgroundWorkReporter;
+
     private closePromise: Promise<void> | null = null;
     private closing = false;
     private sender: AttachmentFrameSender | null = null;
@@ -28,9 +37,25 @@ export class AttachmentDaemonWork {
 
     constructor(
         private readonly runtime: DaemonRuntime,
-        readonly cloudAgents?: CloudAgentWorkSupervisor
+        readonly cloudAgents?: CloudAgentWorkSupervisor,
+        partition?: { dataRoot: string; serverId: string }
     ) {
         this.agentWork = new AgentWorkCoordinator(runtime);
+        if (partition) {
+            this.backgroundWork = createBackgroundWorkReporter({
+                agentsDir: join(partition.dataRoot, 'servers', partition.serverId, 'agents'),
+                closing: () => this.closing,
+                holdForWake: (agentId, ms) =>
+                    holdAgentLaunchHostForWake(partition.serverId, agentId, ms),
+                onError: reportBackgroundWorkError,
+                send: (frame) => this.send(frame),
+            });
+        }
+    }
+
+    /** Asks a wake for background work the previous daemon's processes took with them. */
+    async recoverLostBackgroundWork(): Promise<void> {
+        await this.backgroundWork?.recoverLostWork().catch(reportBackgroundWorkError);
     }
 
     attachSender(sender: AttachmentFrameSender): () => void {
@@ -126,6 +151,12 @@ export class AttachmentDaemonWork {
         })();
         return this.closePromise;
     }
+}
+
+function reportBackgroundWorkError(error: unknown) {
+    console.error(
+        `Background work report failed: ${error instanceof Error ? error.message : error}`
+    );
 }
 
 function shutdownStage<Value>(

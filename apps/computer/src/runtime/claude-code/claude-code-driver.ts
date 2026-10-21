@@ -5,7 +5,7 @@ import type { AgentReasoningEffort } from '@haus/api';
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer } from '../../host-tools/mcp-server.ts';
 import { unlinkHostClaudeState } from '../auth-profiles.ts';
-import type { BackgroundWorkListener } from '../background-work.ts';
+import type { BackgroundWorkReports } from '../background-work.ts';
 import type { RuntimeDriver } from '../driver.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import type { WarmProcess, WarmSlot } from '../warm-pool.ts';
@@ -34,7 +34,7 @@ import { createWorkspaceStripper } from './claude-tool-names.ts';
 
 export interface ClaudeCodeDriverOptions {
     /** Hears the session's background sub-agents and the turns Claude Code starts for them. */
-    background?: BackgroundWorkListener;
+    background?: BackgroundWorkReports;
     /** Test seams: a stand-in CLI, credentials, and the Computer env. */
     baseEnv?: NodeJS.ProcessEnv;
     binaryPath?: string;
@@ -140,6 +140,7 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
                 sessionId,
                 background && {
                     changed: (work) => background.changed(warmKey, work),
+                    lost: () => background.lost(warmKey),
                     wake: () => background.wake(warmKey),
                 }
             );

@@ -4,14 +4,11 @@ import { createArtifactProxy } from './artifacts/proxy.ts';
 import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { classifyHausProxyBoundary } from './harness/haus-proxy-boundary.ts';
-import {
-    type AgentInboxLocation,
-    consumeServedAutomations,
-    type VisibleMessageIdentity,
-} from './inbox-store.ts';
+import { type AgentInboxLocation, consumeServedAutomations } from './inbox-store.ts';
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
 import { mcpRequestHeaders, mcpRequestSignal, readProxyResponse } from './proxy-mcp.ts';
 import { extractServedAutomationIds, extractVisibleMessageIds } from './proxy-response-ids.ts';
+import { createRunnerHold } from './proxy-runner-hold.ts';
 import {
     type CommittedSend,
     committedSend,
@@ -21,11 +18,13 @@ import {
 } from './proxy-send-outcome.ts';
 import { handleSkillRequest } from './proxy-skills.ts';
 import { recordProxyVisibility } from './proxy-visibility.ts';
-import { attestVisibleMessages } from './visibility-receipt.ts';
+import { awaitBestEffortAttestation } from './visibility-receipt.ts';
 
 export interface LoopbackProxy {
     clearRunnerToken(): void;
     close(): void;
+    /** Requests arriving with no runner wait up to `ms` for one (a wake run is on its way). */
+    holdForRunner(ms: number): void;
     resetSendCount(): void;
     sendCount(): number;
     setActivityRun(activity: AgentActivityRun | undefined): void;
@@ -55,6 +54,7 @@ export function startLoopbackProxy(input: {
     let activityRun: AgentActivityRun | undefined;
     let traceContext: TraceCarrier | undefined;
     let onCommittedSend: ((send: CommittedSend) => void) | undefined;
+    const runnerHold = createRunnerHold();
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -63,6 +63,9 @@ export function startLoopbackProxy(input: {
             }
             if (!isAuthorized(request, input.proxyToken)) {
                 return new Response('Unauthorized', { status: 401 });
+            }
+            if (!runnerToken) {
+                await runnerHold.wait();
             }
             const category = classifyHausProxyBoundary(request.method, url.pathname);
             const recordCommittedSend = onCommittedSend;
@@ -91,21 +94,23 @@ export function startLoopbackProxy(input: {
         maxRequestBodySize: 256 * 1024 ** 2,
         port: 0,
     });
+    const releaseArtifacts = () =>
+        void artifacts.release().catch((error: unknown) => {
+            process.stderr.write(`Artifact cache release failed: ${String(error)}\n`);
+        });
     return {
         clearRunnerToken: () => {
             runnerToken = null;
             traceContext = undefined;
             onCommittedSend = undefined;
-            void artifacts.release().catch((error: unknown) => {
-                process.stderr.write(`Artifact cache release failed: ${String(error)}\n`);
-            });
+            releaseArtifacts();
         },
         close: () => {
             server.stop(true);
-            void artifacts.release().catch((error: unknown) => {
-                process.stderr.write(`Artifact cache release failed: ${String(error)}\n`);
-            });
+            runnerHold.release();
+            releaseArtifacts();
         },
+        holdForRunner: (ms) => runnerHold.hold(ms),
         resetSendCount: () => {
             sends = 0;
         },
@@ -118,6 +123,7 @@ export function startLoopbackProxy(input: {
         },
         setRunnerToken: (token) => {
             runnerToken = token;
+            runnerHold.release();
         },
         setTraceContext: (context) => {
             traceContext = context;
@@ -271,17 +277,6 @@ async function handleAuthorizedProxyRequest(
         headers: { 'content-type': 'application/json' },
         status: upstream.status,
     });
-}
-
-async function awaitBestEffortAttestation(
-    serverOrigin: string,
-    runnerToken: string,
-    messages: VisibleMessageIdentity[]
-): Promise<void> {
-    await Promise.race([
-        attestVisibleMessages(serverOrigin, runnerToken, messages),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
-    ]);
 }
 
 function agentInboxLocation(input: {

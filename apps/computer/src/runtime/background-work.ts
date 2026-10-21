@@ -13,12 +13,27 @@ export interface BackgroundWork {
 export const noBackgroundWork: BackgroundWork = { subagents: 0, tasks: 0 };
 
 /**
+ * What a driver reports about its session's background work, keyed by the Agent root. The
+ * runtime context forwards it to the daemon's listener, adding whether a loss was deliberate.
+ */
+export interface BackgroundWorkReports {
+    changed(agentRoot: string, work: BackgroundWork): void;
+    lost(agentRoot: string): void;
+    wake(agentRoot: string): void;
+}
+
+/**
  * Receives each Agent session's background work, keyed by the Agent root (the warm-pool key).
  * The attachment daemon implements it: it reports the count to the Server and asks the Server
  * for a wake when the runtime starts a turn on its own.
  */
 export interface BackgroundWorkListener {
     changed(agentRoot: string, work: BackgroundWork): void;
+    /**
+     * The runtime process ended while background work still ran, so that work is gone.
+     * `deliberate`: Haus ended it on purpose (Stop, reset, retirement), so nobody is told.
+     */
+    lost(agentRoot: string, deliberate: boolean): void;
     /**
      * The runtime started a turn on its own, with no Haus turn running, to report background
      * work that finished or stopped. The model is already running; a Haus run must adopt it.

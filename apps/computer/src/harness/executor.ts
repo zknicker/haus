@@ -152,7 +152,6 @@ async function executeHarnessTurn(
     const timings = input.turnTimings ?? new AgentTurnTimings();
     // For the prompt's activation hints; runtimes read the library natively.
     const skillNames = await readAgentSkillNames(input.skillsDir);
-    // A changed managed-instruction fingerprint restarts the adapter, preserving conversation.
     // The turn input carries every Agent fact the prompt reads; only the workspace is renamed.
     const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
         ...input,
@@ -249,6 +248,7 @@ async function executeHarnessTurn(
                 enabledSkillIds: skillNames,
             }),
             signal: turnSignal,
+            wake: input.subagentWake !== undefined,
         });
         const notices = openTurnNotices(live, input, prompt.notice);
         let observation: HarnessTurnResult;

@@ -4,7 +4,7 @@ const taskAssignmentKeyPattern = /^task-assign:([^:]+):\d+$/u;
 
 /** A run's recorded trigger row, with whether the reader can see its Chat. */
 export interface AgentTurnTriggerRecord {
-    /** Null only for a dream run. */
+    /** Null only for a dream or sub-agent wake run. */
     readonly chatId: string | null;
     readonly source: string;
     readonly visible: boolean;
@@ -20,8 +20,8 @@ const noPreviews: AgentTurnTriggerPreviews = new Map();
  * Names a turn's recorded trigger in the narrow API shape. A trigger in a Chat the
  * reader cannot see is `private`; one with no record, or a source this Server
  * does not recognize, is absent (null) rather than guessed. A message or task
- * trigger quotes its message from `previews`. A dream has no Chat to gate on: it
- * names only itself, so any reader who may see the Agent's turns sees it.
+ * trigger quotes its message from `previews`. A dream or sub-agent wake has no Chat to
+ * gate on: it names only itself, so any reader who may see the Agent's turns sees it.
  */
 export function agentTurnTrigger(
     record: AgentTurnTriggerRecord | null,
@@ -32,6 +32,9 @@ export function agentTurnTrigger(
     }
     if (record.source === 'dream') {
         return { kind: 'dream' };
+    }
+    if (record.source === 'subagent') {
+        return { kind: 'subagent' };
     }
     const trigger = triggerFor(record, previews);
     if (!trigger) {

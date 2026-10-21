@@ -28,7 +28,8 @@ export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSche
  * - `task`: a task assignment; `messageId` is the task's message.
  * - `reminder`, `trigger`, `cloud_agent`, `onboarding`: typed work anchored to a Chat
  *   with no message of its own.
- * - `dream`: the Agent's private nightly memory pass; the only trigger with no Chat.
+ * - `dream`: the Agent's private nightly memory pass; it has no Chat.
+ * - `subagent`: background work the Agent started finished or stopped; it has no Chat.
  * - `private`: the turn has a recorded trigger in a Chat the reader cannot see.
  */
 export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
@@ -54,6 +55,7 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
     z.object({ chatId: idSchema, kind: z.literal('cloud_agent') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('onboarding') }).strict(),
     z.object({ kind: z.literal('dream') }).strict(),
+    z.object({ kind: z.literal('subagent') }).strict(),
     z.object({ kind: z.literal('private') }).strict(),
 ]);
 

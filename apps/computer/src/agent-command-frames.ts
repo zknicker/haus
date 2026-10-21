@@ -3,6 +3,7 @@ import type {
     AgentResetCommand,
     AgentRestartCommand,
     AgentStartCommand,
+    AgentStopBackgroundCommand,
     AgentStopCommand,
     ServerDeleteCommand,
 } from './agent-commands.ts';
@@ -165,23 +166,45 @@ export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | 
         : null;
 }
 
-/** Only a dream run is chatless, and it carries nothing but its dream. */
+/** Validates a Server→Computer Stop of background work. Fails closed to null. */
+export function parseStopBackgroundCommand(frame: unknown): AgentStopBackgroundCommand | null {
+    return isRecord(frame) &&
+        frame.type === 'agent-stop-background' &&
+        typeof frame.agentId === 'string' &&
+        frame.agentId.length > 0
+        ? { agentId: frame.agentId, type: 'agent-stop-background' }
+        : null;
+}
+
+/**
+ * Only a dream or sub-agent wake run is chatless, and it carries nothing but that attention.
+ */
 function parseRunChat(
     frame: Record<string, unknown>,
     itemCount: number
-): Pick<AgentStartCommand, 'chatId' | 'dream'> | null {
-    if (frame.dream === undefined) {
+): Pick<AgentStartCommand, 'chatId' | 'dream' | 'subagentWake'> | null {
+    if (frame.dream === undefined && frame.subagentWake === undefined) {
         return typeof frame.chatId === 'string' && frame.chatId.length > 0
             ? { chatId: frame.chatId }
             : null;
     }
-    const dream = parseDream(frame.dream);
-    return dream && frame.chatId === null && frame.inboxDelivery === 'concrete' && itemCount === 0
-        ? { chatId: null, dream }
-        : null;
+    if (
+        (frame.dream !== undefined && frame.subagentWake !== undefined) ||
+        frame.chatId !== null ||
+        frame.inboxDelivery !== 'concrete' ||
+        itemCount !== 0
+    ) {
+        return null;
+    }
+    if (frame.dream !== undefined) {
+        const dream = parseAttention(frame.dream);
+        return dream ? { chatId: null, dream } : null;
+    }
+    const subagentWake = parseAttention(frame.subagentWake);
+    return subagentWake ? { chatId: null, subagentWake } : null;
 }
 
-function parseDream(value: unknown): { createdAt: string; id: string } | null {
+function parseAttention(value: unknown): { createdAt: string; id: string } | null {
     if (
         !isRecord(value) ||
         Object.keys(value).length !== 2 ||

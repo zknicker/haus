@@ -61,7 +61,7 @@ export async function withAttachmentShutdown<T>(
     try {
         await reclaimPartitionStorage(partition);
         // The daemon's host-tool server and warm runtime pool; `work.close()` closes them.
-        openRuntimeContext(runtime);
+        openRuntimeContext(runtime, { background: work.backgroundWork });
         return await run();
     } finally {
         await work

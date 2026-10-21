@@ -19,6 +19,7 @@ export function readChatTarget(
     return trigger &&
         trigger.kind !== 'private' &&
         trigger.kind !== 'dream' &&
+        trigger.kind !== 'subagent' &&
         title.kind === 'text' &&
         title.place
         ? { chatId: trigger.chatId, place: title.place }

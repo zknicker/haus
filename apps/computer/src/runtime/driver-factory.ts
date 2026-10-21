@@ -34,7 +34,8 @@ export function createDriver(
     };
     switch (input.runtimeId) {
         case 'claude-code':
-            return createClaudeCodeDriver(shared);
+            // Only Claude Code runs background work past a turn (specs/runtime-drivers.md).
+            return createClaudeCodeDriver({ ...shared, background: context.background });
         case 'codex':
             return createCodexDriver({ ...shared, hostHomeDir: hostHome() });
         case 'grok-build':

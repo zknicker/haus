@@ -16,6 +16,7 @@ import { parseAgentRetireCommand } from './agent-retirement.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
+import { handleStopFrame } from './agent-stop-frames.ts';
 import { traceAgentTurn } from './agent-turn-telemetry.ts';
 import { handleCloudAgentFrame } from './attachment-cloud-agents.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
@@ -404,10 +405,8 @@ async function main(args: string[]) {
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
                 const partition = { dataRoot, serverId: attachment.serverId };
-                const daemonWork = new AttachmentDaemonWork(
-                    runtime,
-                    new CloudAgentWorkSupervisor(runtime, partition)
-                );
+                const cloudAgents = new CloudAgentWorkSupervisor(runtime, partition);
+                const daemonWork = new AttachmentDaemonWork(runtime, cloudAgents, partition);
                 return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                     runAttachmentDaemon(runtime, {
                         attachmentExists: async () => (await readAttachment(target)) !== null,
@@ -1092,6 +1091,7 @@ async function connect(
                             await sendUsageReport(sendFrame);
                         }
                     });
+                    void trackWriter(daemonWork.recoverLostBackgroundWork());
                     void trackWriter(initialReport.catch(reportStateError)).finally(() => {
                         if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
                             socket.close();
@@ -1150,9 +1150,8 @@ async function connect(
             ) {
                 return;
             }
-            const stop = commandFrames.parseStopCommand(frame);
-            if (stop) {
-                agentWork.abortRun(stop.runId);
+            const stopDeps = { agentWork, agentsDir, onError: reportStateError, runtime };
+            if (handleStopFrame(frame, { ...stopDeps, track: trackWriter })) {
                 return;
             }
             const restart = commandFrames.parseRestartCommand(frame);

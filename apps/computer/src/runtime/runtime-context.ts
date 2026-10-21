@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { type HostToolServer, startHostToolServer } from '../host-tools/mcp-server.ts';
+import type { BackgroundWorkListener, BackgroundWorkReports } from './background-work.ts';
 import { type RuntimeProcessRegistry, runtimeProcessOwner } from './process-registry.ts';
 import { WarmProcessPool } from './warm-pool.ts';
 
@@ -10,12 +11,16 @@ import { WarmProcessPool } from './warm-pool.ts';
  * pool parked processes wait in between turns (specs/runtime-drivers.md).
  */
 export interface RuntimeContext {
+    /** Where drivers report background work that outlives a turn; absent in tests. */
+    readonly background?: BackgroundWorkReports;
     readonly hostToolServer: Pick<HostToolServer, 'openSession'>;
     readonly processes: RuntimeProcessRegistry;
     readonly warm: WarmProcessPool;
 }
 
 interface OpenContext extends RuntimeContext {
+    /** Agent roots whose process Haus is ending on purpose (reset, retirement, Stop). */
+    readonly ending: Set<string>;
     readonly server: HostToolServer;
 }
 
@@ -24,13 +29,25 @@ const contexts = new WeakMap<DaemonRuntime, OpenContext>();
 /** Starts the host-tool server and warm pool for `runtime`; closed by `closeRuntimeContext`. */
 export function openRuntimeContext(
     runtime: DaemonRuntime,
-    options: { warmIdleMs?: number } = {}
+    options: { background?: BackgroundWorkListener; warmIdleMs?: number } = {}
 ): RuntimeContext {
     if (contexts.has(runtime)) {
         throw new Error('The Computer runtime context is already open.');
     }
     const server = startHostToolServer();
+    const ending = new Set<string>();
+    const listener = options.background;
     const context: OpenContext = {
+        ...(listener
+            ? {
+                  background: {
+                      changed: (agentRoot, work) => listener.changed(agentRoot, work),
+                      lost: (agentRoot) => listener.lost(agentRoot, ending.has(agentRoot)),
+                      wake: (agentRoot) => listener.wake(agentRoot),
+                  },
+              }
+            : {}),
+        ending,
         hostToolServer: server,
         processes: runtimeProcessOwner(runtime),
         server,
@@ -60,9 +77,21 @@ export function requireRuntimeContext(runtime: DaemonRuntime): RuntimeContext {
     return context;
 }
 
-/** Ends the warm processes parked for one Agent session before its reset or removal. */
+/**
+ * Ends the warm process parked for one Agent session, with any background work it runs, on
+ * purpose: a reset, a retirement, or a human Stop. Nobody is woken to report that work.
+ */
 export async function evictWarmRuntime(runtime: DaemonRuntime, agentRoot: string): Promise<void> {
-    await contexts.get(runtime)?.warm.evict(agentRoot);
+    const context = contexts.get(runtime);
+    if (!context) {
+        return;
+    }
+    context.ending.add(agentRoot);
+    try {
+        await context.warm.evict(agentRoot);
+    } finally {
+        context.ending.delete(agentRoot);
+    }
 }
 
 /** Ends every warm runtime process, then stops the host-tool server (Computer shutdown). */

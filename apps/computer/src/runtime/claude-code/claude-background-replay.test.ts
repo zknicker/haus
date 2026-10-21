@@ -15,6 +15,7 @@ function open(name: string, processIndex = 0) {
     let onWake: () => void = () => undefined;
     const replay = replayConnection(name, processIndex, {
         changed: (work) => changes.push(work),
+        lost: () => changes.push({ subagents: -1, tasks: -1 }),
         wake: () => onWake(),
     });
     return {

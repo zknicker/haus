@@ -58,6 +58,8 @@ export interface FakeRuntimeRecord<Input> {
     readonly opens: FakeOpen[];
     readonly prompts: string[];
     readonly steers: string[];
+    /** Per turn, whether the executor started it as a background-work wake. */
+    readonly wakes: boolean[];
 }
 
 export const fakeParkedState: RuntimeResumeState = {
@@ -75,6 +77,7 @@ export function fakeRuntimeDriver<Input extends { readonly runtimeId: string }>(
         opens: [],
         prompts: [],
         steers: [],
+        wakes: [],
     };
     const factory: RuntimeDriverFactory<Input> = (input, options) => {
         const launch = { input, options };
@@ -130,8 +133,9 @@ function fakeSession<Input>(
         },
         isResume: session.isResume,
         sessionId: session.sessionId,
-        startTurn: async ({ prompt, signal }): Promise<RuntimeTurn> => {
+        startTurn: async ({ prompt, signal, wake }): Promise<RuntimeTurn> => {
             record.prompts.push(prompt);
+            record.wakes.push(wake === true);
             const context = { input: session.input, isResume: session.isResume, prompt, signal };
             const events = script.turn?.(context) ?? finishedTurn();
             const drained = Promise.withResolvers<void>();

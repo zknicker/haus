@@ -10,7 +10,7 @@ import type { DispatchPlan } from './delivery.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
 import * as store from './store.ts';
 
-type DreamFrameConfig = Pick<
+type ChatlessFrameConfig = Pick<
     AgentDispatchConfig,
     | 'agentConversationStyle'
     | 'agentDescription'
@@ -43,11 +43,12 @@ export async function retireStaleDreams(db: HausDatabase, agentId: string): Prom
 }
 
 /**
- * Starts the run a queued dream leads. A dream is concrete work, so its run carries
- * it alone; having no Chat, the run has no inbox items, digest, or Chat lifecycle
- * event. Busy notices, settlement, failure, and Stop treat it like any concrete run.
+ * Starts the run a queued chatless attention leads: a dream or a sub-agent wake. Each is
+ * concrete work, so its run carries it alone; having no Chat, the run has no inbox items,
+ * digest, or Chat lifecycle event. Busy notices, settlement, failure, and Stop treat it like
+ * any concrete run.
  */
-export async function planDreamRun(
+export async function planChatlessRun(
     tx: HausDatabase,
     input: {
         agentId: string;
@@ -79,7 +80,7 @@ export async function planDreamRun(
     return {
         ...(activity ? { activities: [activity] } : {}),
         computerId: config.computerId,
-        frame: dreamStartFrame(
+        frame: chatlessStartFrame(
             {
                 activeRunId: runId,
                 activeRunModelId: config.desiredModelId,
@@ -93,21 +94,22 @@ export async function planDreamRun(
     };
 }
 
-/** The dream run's start frame, identical on first dispatch and every resend. */
-export function dreamStartFrame(
+/** A chatless run's start frame, identical on first dispatch and every resend. */
+export function chatlessStartFrame(
     state: Pick<
         store.AgentDeliveryRow,
         'activeRunId' | 'activeRunModelId' | 'activeRunRuntimeId' | 'agentId'
     >,
-    config: DreamFrameConfig,
-    row: Pick<store.InboxItemRow, 'createdAt' | 'dedupeKey'>
+    config: ChatlessFrameConfig,
+    row: Pick<store.InboxItemRow, 'createdAt' | 'dedupeKey' | 'source'>
 ): AgentCommand {
+    const attention = { createdAt: row.createdAt.toISOString(), id: row.dedupeKey };
     return {
         agentId: state.agentId,
         ...startPromptFacts(config),
         agentName: config.agentName,
         chatId: null,
-        dream: { createdAt: row.createdAt.toISOString(), id: row.dedupeKey },
+        ...(row.source === 'subagent' ? { subagentWake: attention } : { dream: attention }),
         drainItemIds: [],
         homeTimezone: config.homeTimezone,
         inbox: [],

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
-import { type BackgroundWork, noBackgroundWork } from '../background-work.ts';
+import type { BackgroundWork } from '../background-work.ts';
 import type { WarmProcess } from '../warm-pool.ts';
 import { ClaudeBackgroundTasks, SelfStartedTurns } from './claude-background.ts';
 import type { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
@@ -17,6 +17,8 @@ const initializeTimeoutMs = 30_000;
 /** Where the connection reports work that outlives a turn (the daemon's listener, bound). */
 export interface ClaudeBackgroundHooks {
     changed(work: BackgroundWork): void;
+    /** The process ended with background tasks still live. */
+    lost(): void;
     wake(): void;
 }
 
@@ -69,7 +71,7 @@ export class ClaudeConnection implements WarmProcess {
             this.controls.clear();
             this.selfStarted.take();
             if (this.tasks.clear()) {
-                this.background?.changed(noBackgroundWork);
+                this.background?.lost();
             }
             this.sink?.onExit(exit);
         });

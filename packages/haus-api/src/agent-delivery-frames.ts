@@ -31,6 +31,36 @@ export const agentDreamRequestSchema = z
 export type AgentDreamRequest = z.infer<typeof agentDreamRequestSchema>;
 
 /**
+ * The sub-agent wake: a private turn for background work the Agent started on its runtime (a
+ * Claude Code background sub-agent or shell) that finished or stopped after the turn that
+ * started it ended. It has no Chat, sender, or body: the runtime's own report is already in the
+ * Agent's conversation. `id` is its inbox identity (`subagent:<agentId>:<wake id>`).
+ */
+export const agentSubagentWakeAttentionSchema = z
+    .object({ createdAt: timestampSchema, id: idSchema })
+    .strict();
+
+export type AgentSubagentWakeAttention = z.infer<typeof agentSubagentWakeAttentionSchema>;
+
+/**
+ * Computer→Server: background work this Agent started needs a turn. `finished`: the runtime
+ * started a turn on its own to report it, which the wake run adopts. `stopped`: the Computer
+ * restarted while it ran, so it was lost. The Server queues at most one wake per Agent, only
+ * for the Agent's current session generation and never for a stopped Agent.
+ */
+export const agentSubagentWakeRequestSchema = z
+    .object({
+        agentId: idSchema,
+        reason: z.enum(['finished', 'stopped']),
+        sessionGeneration: z.number().int().positive(),
+        type: z.literal('agent-subagent-wake'),
+        wakeId: idSchema,
+    })
+    .strict();
+
+export type AgentSubagentWakeRequest = z.infer<typeof agentSubagentWakeRequestSchema>;
+
+/**
  * The inbox items whose bodies may enter this run's prompt. Eligibility is
  * Server-owned; the lane is not. The Computer knows whether its harness session
  * resumed, so it drains {@link agentStartCommandSchema.shape.drainItemIds} on
@@ -49,10 +79,12 @@ export const agentStartCommandSchema = z
         agentConversationStyle: z.string().max(10_000).optional(),
         /** The Agent's pickup reaction; null means the Computer's default. */
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
-        /** The run's Chat; null only for a dream run, which has none. */
+        /** The run's Chat; null only for a dream or sub-agent wake run, which have none. */
         chatId: idSchema.nullable(),
         /** Present only on a dream run, which carries no inbox items. */
         dream: agentDreamAttentionSchema.optional(),
+        /** Present only on a sub-agent wake run, which carries no inbox items. */
+        subagentWake: agentSubagentWakeAttentionSchema.optional(),
         /** Drainable on any start: concrete work, and human work addressed to this Agent. */
         drainItemIds: drainItemIdsSchema,
         homeTimezone: z.string().trim().min(1).max(128).optional(),
@@ -74,15 +106,17 @@ export const agentStartCommandSchema = z
     .strict()
     .refine(
         (frame) =>
-            frame.dream
-                ? frame.chatId === null &&
+            frame.dream || frame.subagentWake
+                ? !(frame.dream && frame.subagentWake) &&
+                  frame.chatId === null &&
                   frame.inbox.length === 0 &&
                   frame.drainItemIds.length === 0 &&
                   frame.warmDrainItemIds.length === 0 &&
                   frame.inboxDelivery === 'concrete'
                 : frame.chatId !== null,
         {
-            message: 'Only a dream run is chatless, and it carries nothing but its dream.',
+            message:
+                'Only a dream or sub-agent wake run is chatless, and it carries nothing but that attention.',
             path: ['chatId'],
         }
     );

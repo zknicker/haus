@@ -6,6 +6,7 @@ import {
     agentNoticeAckSchema,
     agentSkillFileResultSchema,
     agentSkillImportResultSchema,
+    agentSubagentWakeRequestSchema,
     agentTurnSummarySchema,
     agentWorkspaceResultSchema,
     browserResultSchema,
@@ -23,6 +24,7 @@ import {
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { requestAgentDream } from '../agent-delivery/dream-request.ts';
+import { requestSubagentWake } from '../agent-delivery/subagent-wake-request.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
@@ -135,9 +137,7 @@ export async function ingestReport(
         return;
     }
 
-    const dreamRequest = agentDreamRequestSchema.safeParse(frame);
-    if (dreamRequest.success) {
-        await requestAgentDream(db, delivery, { computerId, request: dreamRequest.data, serverId });
+    if (await ingestWakeRequest(db, delivery, { computerId, frame, serverId })) {
         return;
     }
     const dreamRecord = agentDreamRecordSchema.safeParse(frame);
@@ -154,6 +154,30 @@ export async function ingestReport(
     }
 
     await recordComputerReport(db, computerId, serverId, frame);
+}
+
+/** A Computer asking for a turn it cannot start itself: a nightly dream or a sub-agent wake. */
+async function ingestWakeRequest(
+    db: HausDatabase,
+    delivery: AgentDelivery,
+    input: { computerId: string; frame: unknown; serverId: string }
+): Promise<boolean> {
+    const { computerId, frame, serverId } = input;
+    const dreamRequest = agentDreamRequestSchema.safeParse(frame);
+    if (dreamRequest.success) {
+        await requestAgentDream(db, delivery, { computerId, request: dreamRequest.data, serverId });
+        return true;
+    }
+    const subagentWake = agentSubagentWakeRequestSchema.safeParse(frame);
+    if (subagentWake.success) {
+        await requestSubagentWake(db, delivery, {
+            computerId,
+            request: subagentWake.data,
+            serverId,
+        });
+        return true;
+    }
+    return false;
 }
 
 /**

@@ -28,13 +28,16 @@ export interface AgentChain {
 /**
  * Automation-authored typed sources. Agent messages (`agent:*`) are the rest.
  * A Linear session event caused by a Haus write is automation; one caused by
- * a person (`linear_session`) resets the chain like a human message.
+ * a person (`linear_session`) resets the chain like a human message. A sub-agent
+ * wake is the Agent's own earlier turn calling back, so an Agent that starts new
+ * background work on every wake spends the chain instead of looping forever.
  */
 const automationInboxSources = [
     'trigger',
     'trigger_problem',
     'image_generation_failed',
     'linear_session_automated',
+    'subagent',
 ] as const;
 
 export function isAutomationAuthored(row: AuthoredWork): boolean {

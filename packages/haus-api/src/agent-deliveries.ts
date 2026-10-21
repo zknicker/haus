@@ -12,7 +12,7 @@ export const agentDeliveryRecordSchema = z
     .object({
         acceptedAt: timestampSchema.nullable(),
         agentId: idSchema,
-        /** Null only for a `dream`, the one delivery with no Chat. */
+        /** Null only for a `dream` or `subagent` wake, the deliveries with no Chat. */
         chatId: idSchema.nullable(),
         createdAt: timestampSchema,
         /** Null for typed work that carries no Chat message. */
@@ -25,10 +25,17 @@ export const agentDeliveryRecordSchema = z
         workId: idSchema,
     })
     .strict()
-    .refine((record) => (record.chatId === null) === (record.source === 'dream'), {
-        message: 'Only a dream delivery is chatless.',
+    .refine((record) => (record.chatId === null) === isChatlessInboxSource(record.source), {
+        message: 'Only a dream or sub-agent wake delivery is chatless.',
         path: ['chatId'],
     });
+
+/** Inbox sources with no Chat: the nightly dream and the sub-agent wake. */
+export const chatlessInboxSources = ['dream', 'subagent'] as const;
+
+export function isChatlessInboxSource(source: string): boolean {
+    return (chatlessInboxSources as readonly string[]).includes(source);
+}
 
 export type AgentDeliveryRecord = z.infer<typeof agentDeliveryRecordSchema>;
 

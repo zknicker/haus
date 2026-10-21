@@ -18,6 +18,7 @@ export const concreteInboxSources = [
     'reminder',
     'task_assignment',
     'dream',
+    'subagent',
     'linear_session',
     'linear_session_automated',
 ] as const;
@@ -37,16 +38,17 @@ export const bodilessInboxSources = [
     'trigger_problem',
     'image_generation_failed',
     'dream',
+    'subagent',
     'linear_session',
     'linear_session_automated',
 ] as const;
 
 /**
  * Concrete attentions no busy notice, unread digest, or `haus inbox check` lists,
- * because each leads its own run: Cove's bootstrap, and a `dream`, which has no
- * Chat to list it under.
+ * because each leads its own run: Cove's bootstrap, a `dream`, and a `subagent` wake,
+ * which have no Chat to list them under.
  */
-export const noticelessInboxSources = ['onboarding', 'dream'] as const;
+export const noticelessInboxSources = ['onboarding', 'dream', 'subagent'] as const;
 
 export function isNoticelessInboxSource(source: string): boolean {
     return (noticelessInboxSources as readonly string[]).includes(source);
