@@ -170,7 +170,14 @@ function toRunMark(
     };
 }
 
-const zeroDream = { added: 0, followUps: 0, removed: 0, summaryLine: null };
+const zeroDream = {
+    added: 0,
+    followUpTitles: [],
+    followUps: 0,
+    removed: 0,
+    summary: null,
+    summaryLine: null,
+};
 
 /**
  * `interrupted` turns count as `failed`: a heartbeat the Server did not stop to

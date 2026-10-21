@@ -1,5 +1,5 @@
 import { Button } from '@heroui/react';
-import type * as React from 'react';
+import * as React from 'react';
 import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useServerTurns } from '../../../hooks/members/use-server-turns.ts';
@@ -29,7 +29,7 @@ export function ServerActivity() {
     const agentsQuery = useAgents(server.id);
     const agents = agentsQuery.data ?? [];
     const filter = useActivityAgentFilter(agents);
-    const { view } = useActivityView();
+    const { readLogSearch, runId, view } = useActivityView();
     const controls =
         agents.length > 1 ? (
             <ActivityAgentFilter
@@ -47,21 +47,29 @@ export function ServerActivity() {
             action={controls}
             agentIds={filter.selected}
             agents={agents}
+            readLogSearch={readLogSearch}
             serverId={server.id}
-            serverSlug={server.slug}
         />
     ) : (
-        <ServerActivityLog agents={agents} controls={controls} selected={filter.selected} />
+        <ServerActivityLog
+            agents={agents}
+            controls={controls}
+            revealRunId={runId}
+            selected={filter.selected}
+        />
     );
 }
 
 function ServerActivityLog({
     agents,
     controls,
+    revealRunId,
     selected,
 }: {
     agents: readonly ActivityLogAgent[];
     controls: React.ReactNode;
+    /** A run linked from the Heartbeats feed: older pages load until it appears. */
+    revealRunId: string | null;
     selected: readonly string[];
 }) {
     const { server } = useServerContext();
@@ -70,6 +78,14 @@ function ServerActivityLog({
     const groups = readServerActivityGroups({ agents, current, settled: turns.turns });
     const entries = useLogEntries(server.id, groups);
     const shown = selected.length > 0 ? selected : agents.map((agent) => agent.id);
+    const { hasMore, isFetchingMore, loadMore } = turns;
+    const isRevealPending =
+        revealRunId !== null && !entries.some((entry) => entry.row.latest.runId === revealRunId);
+    React.useEffect(() => {
+        if (isRevealPending && hasMore && !isFetchingMore) {
+            loadMore();
+        }
+    }, [hasMore, isFetchingMore, isRevealPending, loadMore]);
 
     // Blank while loading; the empty state only once there is truly nothing.
     if (turns.isPending) {
@@ -105,6 +121,7 @@ function ServerActivityLog({
                     </div>
                 ) : null
             }
+            revealRunId={revealRunId}
             serverId={server.id}
             serverSlug={server.slug}
         />

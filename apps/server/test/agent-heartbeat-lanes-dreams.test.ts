@@ -126,8 +126,10 @@ test('a dream carries its memory changes, summary line, follow-ups, and learned 
     expect(marks[0]).toMatchObject({
         dream: {
             added: 4,
+            followUpTitles: ['Check the launch'],
             followUps: 1,
             removed: 1,
+            summary: '- Learned to lead with the answer.\n- And to name files.',
             summaryLine: 'Learned to lead with the answer.',
         },
         kind: 'nightly',

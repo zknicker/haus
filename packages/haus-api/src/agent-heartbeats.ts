@@ -31,8 +31,12 @@ export const heartbeatMarkSchema = z
         dream: z
             .object({
                 added: z.number().int().nonnegative(),
+                /** Titles of the follow-ups it scheduled, oldest first, bounded. */
+                followUpTitles: z.array(z.string()),
                 followUps: z.number().int().nonnegative(),
                 removed: z.number().int().nonnegative(),
+                /** The full "what I learned" summary; null when it wrote none. */
+                summary: z.string().nullable(),
                 /** First line of the "what I learned" summary, bullet stripped. */
                 summaryLine: z.string().nullable(),
             })

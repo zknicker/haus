@@ -1,34 +1,40 @@
 import { expect, test } from 'bun:test';
 import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
-import type { ActivityLogEntry } from '../../../members/agent-profile/agent-activity-log-entries.ts';
-import { minMarkGap, readMarkSummary, spreadPositions } from './heartbeat-marks-model.ts';
-import { readHeartbeatEntries, readMarksByRun } from './heartbeat-runs.ts';
+import {
+    isPost,
+    readFeed,
+    readQuietFoldText,
+    readRunCost,
+    readSummaryLines,
+} from './heartbeat-feed-model.ts';
 import {
     formatTokens,
-    type LaneView,
     readDayWindow,
-    readHourTicks,
-    readLanes,
     readNightBands,
     readTrackPosition,
 } from './heartbeats-model.ts';
 
 const noon = new Date(2026, 9, 21, 12, 0).getTime();
 const day = readDayWindow(0, noon);
+const hour = 60 * 60 * 1000;
 
-function mark(at: Date, overrides: Partial<HeartbeatMark> = {}): HeartbeatMark {
+function mark(atMs: number, overrides: Partial<HeartbeatMark> = {}): HeartbeatMark {
     return {
-        at: at.toISOString(),
+        at: new Date(atMs).toISOString(),
         dream: null,
         durationMs: 1000,
         kind: 'daytime',
         outcome: 'quiet',
         report: null,
-        runId: 'run_1',
+        runId: `run_${atMs}`,
         skipReason: null,
         tokens: 100,
         ...overrides,
     };
+}
+
+function reported(atMs: number): HeartbeatMark {
+    return mark(atMs, { outcome: 'reported', report: { postedChatId: null, text: 'News.' } });
 }
 
 function lane(agentId: string, marks: HeartbeatMark[]): HeartbeatLane {
@@ -43,7 +49,7 @@ test('the day window spans the local day, and a past day sits before it', () => 
 });
 
 test('a mark sits at its share of the day and never leaves the track', () => {
-    expect(readTrackPosition(new Date(2026, 9, 21, 12).getTime(), day)).toBeCloseTo(50);
+    expect(readTrackPosition(noon, day)).toBeCloseTo(50);
     expect(readTrackPosition(day.startMs - 1000, day)).toBe(0);
     expect(readTrackPosition(day.endMs + 1000, day)).toBe(100);
 });
@@ -55,17 +61,6 @@ test('night bands cover 22:00 to 08:00 at both ends of the track', () => {
     expect((evening?.left ?? 0) + (evening?.width ?? 0)).toBeCloseTo(100);
 });
 
-test('hour ticks run the day and label every sixth hour', () => {
-    const ticks = readHourTicks(day);
-    expect(ticks).toHaveLength(24);
-    expect(ticks.filter((tick) => tick.label).map((tick) => tick.label)).toEqual([
-        '12a',
-        '6a',
-        '12p',
-        '6p',
-    ]);
-});
-
 test('tokens read short', () => {
     expect(formatTokens(null)).toBeNull();
     expect(formatTokens(950)).toBe('950');
@@ -74,66 +69,56 @@ test('tokens read short', () => {
     expect(formatTokens(1_250_000)).toBe('1.3M');
 });
 
-test('every visible Agent has a lane in the Agents order, empty when nothing ran', () => {
-    const lanes = [lane('b', [mark(new Date(noon))]), lane('c', []), lane('gone', [])];
-    const read = readLanes(lanes, ['a', 'b', 'c']);
-    expect(read.map((entry) => entry.agentId)).toEqual(['a', 'b', 'c']);
-    expect(read[0]?.lane.marks).toEqual([]);
-    expect(read[1]?.lane.marks).toHaveLength(1);
+test('reported, failed, yielded runs and settled dreams are posts; quiet and unstarted are not', () => {
+    expect(isPost(reported(noon))).toBe(true);
+    expect(isPost(mark(noon, { outcome: 'failed' }))).toBe(true);
+    expect(isPost(mark(noon, { outcome: 'yielded' }))).toBe(true);
+    expect(isPost(mark(noon, { kind: 'nightly' }))).toBe(true);
+    expect(isPost(mark(noon))).toBe(false);
+    expect(isPost(mark(noon, { outcome: 'running' }))).toBe(false);
+    expect(isPost(mark(noon, { outcome: 'skipped', runId: null }))).toBe(false);
 });
 
-test('marks too close on a lane are nudged apart in order and stay on the track', () => {
-    const spread = spreadPositions([10, 10, 10.2, 50]);
-    expect(
-        spread.slice(1).every((at, index) => at - (spread[index] ?? 0) >= minMarkGap - 1e-9)
-    ).toBe(true);
-    expect(spread[3]).toBe(50);
-    const edge = spreadPositions([99.5, 100, 100]);
-    expect(Math.max(...edge)).toBeLessThanOrEqual(100);
-    expect(edge[0]).toBeLessThan(edge[1] ?? 0);
+test('the feed runs newest first and folds consecutive quiet runs per Agent', () => {
+    const items = readFeed([
+        lane('a', [
+            mark(noon),
+            mark(noon + hour),
+            mark(noon + 2 * hour, { outcome: 'skipped', runId: null }),
+            mark(noon + 3 * hour),
+            reported(noon + 4 * hour),
+            mark(noon + 5 * hour),
+        ]),
+        lane('b', [reported(noon + 2.5 * hour)]),
+    ]);
+    expect(items.map((item) => item.kind)).toEqual(['quiet', 'post', 'quiet', 'post']);
+    const [last, , folded] = items;
+    expect(last?.kind === 'quiet' ? last.marks : []).toHaveLength(1);
+    // The skipped slot between quiet runs does not break the fold.
+    expect(folded?.kind === 'quiet' ? folded.marks : []).toHaveLength(3);
 });
 
-test('a mark reads as agent, time, outcome, run time, and tokens', () => {
-    const text = readMarkSummary(
-        'Tiny',
-        mark(new Date(2026, 9, 21, 14, 7), {
-            durationMs: 41_000,
-            outcome: 'reported',
-            tokens: 18_200,
-        })
+test('a post between quiet runs splits the fold', () => {
+    const items = readFeed([lane('a', [mark(noon), reported(noon + hour), mark(noon + 2 * hour)])]);
+    expect(items.map((item) => item.kind)).toEqual(['quiet', 'post', 'quiet']);
+});
+
+test('a quiet fold reads as who, how many times, and nothing to report', () => {
+    expect(readQuietFoldText('Blippy', 4)).toBe('Blippy checked in 4× · nothing to report');
+    expect(readQuietFoldText('Blippy', 1)).toBe('Blippy checked in once · nothing to report');
+});
+
+test('a dream summary reads as its lines with bullets stripped', () => {
+    expect(readSummaryLines('\n- Lead with the answer.\n* Name files.\n\n')).toEqual([
+        'Lead with the answer.',
+        'Name files.',
+    ]);
+    expect(readSummaryLines(null)).toEqual([]);
+});
+
+test('a run costs its duration and tokens', () => {
+    expect(readRunCost(mark(noon, { durationMs: 41_000, tokens: 18_200 }))).toBe(
+        '41s · 18.2k tokens'
     );
-    expect(text).toMatch(/^Tiny · .*pm · Reported · 41s · 18\.2k tokens$/i);
-    expect(readMarkSummary('Tiny', mark(new Date(noon), { kind: 'nightly' }))).toContain(
-        'Dream quiet'
-    );
-});
-
-function entry(runId: string, trigger: { kind: string } | null): ActivityLogEntry {
-    return { row: { latest: { runId, trigger } } } as unknown as ActivityLogEntry;
-}
-
-test('the runs log keeps heartbeat, dream and report turns, and any run a lane marks', () => {
-    const lanes: LaneView[] = [
-        { agentId: 'a', lane: lane('a', [mark(new Date(noon), { runId: 'running_1' })]) },
-    ];
-    const kept = readHeartbeatEntries(
-        [
-            entry('hb', { kind: 'heartbeat' }),
-            entry('dr', { kind: 'dream' }),
-            entry('rp', { kind: 'heartbeat_report' }),
-            entry('msg', { kind: 'message' }),
-            entry('running_1', null),
-            entry('other', null),
-        ],
-        lanes
-    );
-    expect(kept.map((item) => item.row.latest.runId)).toEqual(['hb', 'dr', 'rp', 'running_1']);
-});
-
-test('each marked run maps to its mark, and unmarked slots drop', () => {
-    const reported = mark(new Date(noon), { runId: 'r1' });
-    const skipped = mark(new Date(noon), { outcome: 'skipped', runId: null });
-    const byRun = readMarksByRun([{ agentId: 'a', lane: lane('a', [reported, skipped]) }]);
-    expect([...byRun.keys()]).toEqual(['r1']);
-    expect(byRun.get('r1')).toBe(reported);
+    expect(readRunCost(mark(noon, { durationMs: null, tokens: null }))).toBe('');
 });

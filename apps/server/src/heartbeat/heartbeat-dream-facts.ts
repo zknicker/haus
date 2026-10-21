@@ -67,19 +67,26 @@ export async function readDreamFacts(
     for (const dream of dreams) {
         const record = recordOf.get(dream.runId);
         const finishedAt = record?.finishedAt ?? dream.endedAt;
-        const followUps = reminders.filter(
-            (reminder) =>
-                reminder.ownerAgentId === dream.agentId &&
-                reminder.createdAt >= dream.startedAt &&
-                finishedAt !== null &&
-                reminder.createdAt <= finishedAt
-        ).length;
+        const followUps = reminders
+            .filter(
+                (reminder) =>
+                    reminder.ownerAgentId === dream.agentId &&
+                    reminder.createdAt >= dream.startedAt &&
+                    finishedAt !== null &&
+                    reminder.createdAt <= finishedAt
+            )
+            .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
+        const summary = summaryOf.get(dream.runId)?.trim() || null;
         facts.set(dream.runId, {
             facts: {
                 added: sum(record?.files ?? [], 'added'),
-                followUps: Math.min(followUps, followUpsPerDream),
+                followUpTitles: followUps
+                    .slice(0, followUpsPerDream)
+                    .map((reminder) => reminder.title),
+                followUps: Math.min(followUps.length, followUpsPerDream),
                 removed: sum(record?.files ?? [], 'removed'),
-                summaryLine: firstSummaryLine(summaryOf.get(dream.runId) ?? null),
+                summary,
+                summaryLine: firstSummaryLine(summary),
             },
             rulesLearned: record ? countStandingPreferencesAdded(record.patch) : 0,
         });
@@ -133,6 +140,7 @@ function readReminders(db: HausDatabase, serverId: string, dreams: readonly Drea
         .select({
             createdAt: remindersTable.createdAt,
             ownerAgentId: remindersTable.ownerAgentId,
+            title: remindersTable.title,
         })
         .from(remindersTable)
         .where(
