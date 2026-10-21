@@ -40,4 +40,5 @@ export const migrationsSince0060 = [
     '0097_linear-team-membership',
     '0098_factory-preset',
     '0099_heartbeat-delivery',
+    '0100_heartbeat-checks',
 ];

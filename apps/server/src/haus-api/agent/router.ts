@@ -14,6 +14,7 @@ import { agentDreamsProcedure } from './dreams.ts';
 import { agentExecutionJournalProcedure } from './execution-journal.ts';
 import { agentExecutionOutlinesProcedure } from './execution-outlines.ts';
 import { getAgentProcedure } from './get.ts';
+import { agentHeartbeatsProcedure } from './heartbeats.ts';
 import { importAgentSkillProcedure } from './import-skill.ts';
 import { listAgentsProcedure } from './list.ts';
 import { onAgentActivityProcedure } from './on-activity.ts';
@@ -54,6 +55,7 @@ export const agentRouter = createRouter({
     executionJournal: agentExecutionJournalProcedure,
     executionOutlines: agentExecutionOutlinesProcedure,
     get: getAgentProcedure,
+    heartbeats: agentHeartbeatsProcedure,
     importSkill: importAgentSkillProcedure,
     skillFile: agentSkillFileProcedure,
     deleteSkillFile: deleteAgentSkillFileProcedure,

@@ -1,7 +1,9 @@
 import type { AgentHeartbeatRequest } from '@haus/api';
 import { tracePromise } from '@haus/effect';
 import { sql } from 'drizzle-orm';
+import { type HeartbeatCheckInput, recordHeartbeatCheck } from '../heartbeat/heartbeat-checks.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentUpdatedTopic } from '../realtime/topics.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { isConfigured } from './deferred-configuration.ts';
 import type { AgentDelivery } from './delivery.ts';
@@ -69,6 +71,14 @@ async function decideAndQueue(
     const decision = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const decided = await decide(tx, input);
+        await recordHeartbeatCheck(tx, {
+            agentId: request.agentId,
+            kind: request.kind,
+            localDate: request.localDate,
+            serverId: input.serverId,
+            slot: request.slot,
+            ...checkOf(decided),
+        });
         if (decided.outcome === 'queued') {
             await delivery.enqueue(tx, {
                 agentId: request.agentId,
@@ -84,10 +94,31 @@ async function decideAndQueue(
         }
         return decided;
     });
+    // The Heartbeats view reads the check row; a queued slot also shows as a run.
+    agentUpdatedTopic.announce({ agentId: request.agentId, serverId: input.serverId });
     if (decision.outcome === 'queued') {
         await delivery.dispatchAgent(request.agentId, input.serverId);
     }
     return decision;
+}
+
+const skipReasons = {
+    busy: 'busy',
+    no_activity: 'no-activity',
+    not_assigned: 'not-configured',
+    stopped: 'stopped',
+    usage_paused: 'plan-limit',
+} as const;
+
+/** The persisted outcome of a decision; a plan-limit skip is the `paused` outcome. */
+function checkOf(decided: Decision): Pick<HeartbeatCheckInput, 'outcome' | 'skipReason'> {
+    if (decided.outcome === 'queued') {
+        return { outcome: 'queued' };
+    }
+    return {
+        outcome: decided.reason === 'usage_paused' ? 'paused' : 'skipped',
+        skipReason: skipReasons[decided.reason],
+    };
 }
 
 async function decide(

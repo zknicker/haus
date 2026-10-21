@@ -701,6 +701,13 @@
       "when": 1792514778955,
       "tag": "0099_heartbeat-delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1792600598737,
+      "tag": "0100_heartbeat-checks",
+      "breakpoints": true
     }
   ]
 }

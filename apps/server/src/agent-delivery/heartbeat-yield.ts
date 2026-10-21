@@ -1,6 +1,7 @@
 import type { AgentActivityEvent } from '@haus/api';
 import { and, eq, isNotNull, or } from 'drizzle-orm';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
+import { recordHeartbeatCheck } from '../heartbeat/heartbeat-checks.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, agentRunTriggersTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
@@ -10,6 +11,7 @@ import {
     type DeferredConfiguration,
     rotateDeferredConfiguration,
 } from './deferred-configuration.ts';
+import { heartbeatSlotOfKey } from './heartbeat-keys.ts';
 import * as store from './store.ts';
 
 export interface YieldedHeartbeat {
@@ -37,11 +39,22 @@ export async function yieldHeartbeatToAddressed(
     if (!(state.activeRunId && state.activeRunComputerId)) {
         return null;
     }
-    if (!((await isDaytimeHeartbeat(tx, state)) && (await hasWaitingAddressed(tx, state)))) {
+    const slot = await readDaytimeSlot(tx, state);
+    if (!(slot && (await hasWaitingAddressed(tx, state)))) {
         return null;
     }
     const { agentId, serverId } = state;
     const runId = state.activeRunId;
+    // Nothing else tells a yielded run from a finished one, so the Heartbeats view reads this.
+    await recordHeartbeatCheck(tx, {
+        agentId,
+        kind: 'daytime',
+        localDate: slot.localDate,
+        outcome: 'yielded',
+        runId,
+        serverId,
+        slot: slot.slot,
+    });
     await revokeRunnerCredentialsForRun(tx, { agentId, runId, serverId });
     await store.markInboxItemsSeenForRun(tx, { agentId, runId });
     await store.clearInboxNotices(tx, { agentId, runId });
@@ -71,9 +84,13 @@ export async function yieldHeartbeatToAddressed(
     };
 }
 
-async function isDaytimeHeartbeat(tx: HausDatabase, state: store.AgentDeliveryRow) {
+/** The local date and slot of the active run when it is a daytime heartbeat, else null. */
+async function readDaytimeSlot(tx: HausDatabase, state: store.AgentDeliveryRow) {
     const [trigger] = await tx
-        .select({ source: agentRunTriggersTable.source })
+        .select({
+            source: agentRunTriggersTable.source,
+            workId: agentRunTriggersTable.workId,
+        })
         .from(agentRunTriggersTable)
         .where(
             and(
@@ -82,7 +99,7 @@ async function isDaytimeHeartbeat(tx: HausDatabase, state: store.AgentDeliveryRo
                 eq(agentRunTriggersTable.runId, state.activeRunId ?? '')
             )
         );
-    return trigger?.source === 'heartbeat';
+    return trigger?.source === 'heartbeat' ? heartbeatSlotOfKey(trigger.workId) : null;
 }
 
 /** A queued Chat message that names the Agent: a DM, a mention, or a reply to it. */

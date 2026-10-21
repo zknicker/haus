@@ -56,5 +56,7 @@ export function applyAgentUpdate(
     invalidate(getQueryKey(hausTrpc.agent.workspaceFile, scope));
     invalidate(getQueryKey(hausTrpc.agent.workspaceFiles, scope));
     invalidate(getQueryKey(hausTrpc.agent.list, { serverId }));
+    // A recorded heartbeat check (skipped, paused, yielded) announces here.
+    invalidate(getQueryKey(hausTrpc.agent.heartbeats, { serverId }));
     invalidate(getQueryKey(hausTrpc.chat.list, { serverId }));
 }

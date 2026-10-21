@@ -51,6 +51,8 @@ interface ActivityLogProps {
     filter: ActivityLogFilter;
     /** Closes the log under its last day, still beneath the pinned band. */
     footer?: React.ReactNode;
+    /** A run to open and scroll to once its turn is in the log (a link from another lens). */
+    revealRunId?: string | null;
     serverId: string;
     serverSlug: string;
 }
@@ -69,6 +71,7 @@ export function ActivityLog({
     entries,
     filter,
     footer,
+    revealRunId,
     serverId,
     serverSlug,
 }: ActivityLogProps) {
@@ -93,6 +96,16 @@ export function ActivityLog({
             );
         },
     }));
+    const revealed = React.useRef<string | null>(null);
+    const hasRevealTarget = Boolean(
+        revealRunId && entries.some((entry) => entry.row.latest.runId === revealRunId)
+    );
+    React.useEffect(() => {
+        if (revealRunId && hasRevealTarget && revealed.current !== revealRunId) {
+            revealed.current = revealRunId;
+            stores.reveal(revealRunId);
+        }
+    }, [hasRevealTarget, revealRunId, stores]);
     const root = React.useRef<HTMLDivElement>(null);
     const [viewedKey, setViewedKey] = useViewedDay(root);
     const viewed = days.findIndex((day) => day.key === viewedKey);

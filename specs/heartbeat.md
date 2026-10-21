@@ -275,6 +275,25 @@ Shared by every implementation slice; `packages/haus-api` owns the schemas.
   reports since the last main-session turn and names the newest checkpoint; the next
   main-session turn input renders it and clears it.
 
+## Observability
+
+The Activity page's Heartbeats view reads `agent.heartbeats` (contract:
+`packages/haus-api/src/agent-heartbeats.ts`, behavior: [agents API](../docs/api/agents.md)).
+
+- **Checks.** Every decision on an announced slot writes one `agent_heartbeat_checks` row in the
+  decision's own transaction: `queued`, `skipped` with a reason (`busy`, `stopped`, `no-activity`,
+  `not-configured`), or `paused` (the `plan-limit` skip). `yielded` is written when
+  yield-on-address stops a daytime run, with the stopped `run_id`. A repeat of a slot with the
+  same outcome is one row, and a skip never records over a slot that already queued. Rows older
+  than 30 days are swept, a bounded batch per Agent, as new decisions arrive. The
+  `haus.heartbeat.request` span stays; the table is what the view reads.
+- **Marks.** A run that started shows from its trigger and turn, so `queued` rows have no mark of
+  their own. Skipped, paused, and yielded slots are marks from check rows.
+- **Plan share.** A plan's weekly meter split by the week's heartbeat and dream token share. An
+  estimate, labeled as one in the view.
+- **Refresh.** A recorded decision announces `agent.onUpdated` for the Agent after its transaction
+  commits; a settled or stopped run already publishes the lifecycle event.
+
 ## Implementation slices
 
 1. **Contracts and Server**: request frame and run kind (`heartbeat`, kind daytime/nightly),
