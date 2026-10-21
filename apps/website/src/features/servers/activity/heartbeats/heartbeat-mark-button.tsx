@@ -42,7 +42,7 @@ export function HeartbeatMarkButton({
                     <span
                         aria-hidden
                         className={cn(
-                            isDream ? 'size-2.5 rotate-45 rounded-xs' : 'size-2.5 rounded-full',
+                            isDream ? 'size-3 rotate-45 rounded-xs' : 'size-3 rounded-full',
                             glyphClass[mark.outcome]
                         )}
                     />

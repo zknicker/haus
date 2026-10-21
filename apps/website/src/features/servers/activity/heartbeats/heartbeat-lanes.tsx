@@ -59,7 +59,7 @@ export function HeartbeatLanes({
                             {bands.map((band) => (
                                 <span
                                     aria-hidden
-                                    className="absolute inset-y-0 bg-default"
+                                    className="absolute inset-y-1 rounded-sm bg-default/35"
                                     key={band.left}
                                     style={{ left: `${band.left}%`, width: `${band.width}%` }}
                                 />
