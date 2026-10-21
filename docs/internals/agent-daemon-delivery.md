@@ -287,13 +287,25 @@ fire reaches the transcript: the Server validates the fire against the sending
 Agent and records the provenance with the message. A fire the Agent does not
 answer stays in the automation's fire history and nowhere else.
 
+A Claude Code background sub-agent or shell outlives the turn that started it
+([Runtime drivers](../../specs/runtime-drivers.md#background-work)). When it
+finishes while the Agent is idle, Claude Code starts a turn of its own; the
+Computer asks the Server for a sub-agent wake (`agent-subagent-wake`) and holds
+the Agent's `haus` calls at the loopback proxy until that run's runner arrives.
+The Server queues one chatless concrete row (source `subagent`, built like a
+dream run) for the Agent's current session generation only; the wake run adopts
+Claude Code's turn instead of writing a prompt. Work a dying process takes with
+it wakes the Agent as `stopped`. A human Stop sends `agent-stop-background`
+(also with no active run), which ends the runtime process once any turn settled;
+Stop and session reset retire queued wakes.
+
 ## Bounds And Failures
 
 One Agent admits one turn at a time; different Agents run concurrently.
 Sixteen consecutive drains containing only automation-authored work (Agent
-messages, Trigger fires, Trigger problem notices, and Linear session events
-another Agent's write started: sources `agent:*`, `trigger`, `trigger_problem`,
-and `linear_session_automated`) are allowed. The seventeenth remains queued
+messages, Trigger fires, Trigger problem notices, Linear session events
+another Agent's write started, and sub-agent wakes: sources `agent:*`, `trigger`,
+`trigger_problem`, `linear_session_automated`, and `subagent`) are allowed. The seventeenth remains queued
 until human input arrives; human input resets the counter on arrival, and any
 drain containing other work (a human message, a reminder, a task assignment)
 resets it at settlement. Admission judges the drain that will actually run: at

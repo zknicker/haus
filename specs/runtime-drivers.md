@@ -4,6 +4,7 @@ read_when:
   - changing apps/computer/src/runtime/ (driver contract, TurnEvent, resume state, legacy resume conversion, test fake driver)
   - adding or changing a Claude Code, Codex, or Grok Build driver, or its launch flags, env, or event normalizer
   - changing how a turn's events reach activity, the execution journal, thoughts, usage, or steering
+  - changing Claude Code background sub-agents or shells, the sub-agent wake, or the warm-pool exemption for background work
 ---
 
 # Runtime drivers
@@ -34,7 +35,7 @@ A `RuntimeSession` is the live native session:
 | Member | Contract |
 | --- | --- |
 | `isResume`, `sessionId` | Whether the open resumed; the runtime's own session id, persisted as `runtimeSessionId`. |
-| `startTurn({ prompt, signal })` | Starts one turn. `events` yields `TurnEvent`s and ends after a settlement event; aborting `signal` cancels the turn. |
+| `startTurn({ prompt, signal, wake? })` | Starts one turn. `events` yields `TurnEvent`s and ends after a settlement event; aborting `signal` cancels the turn. A turn the runtime started on its own is folded in; with `wake` it replaces the prompt (Background work). |
 | `steer(text)` | Delivers text into the running turn → `SteerResult`. |
 | `detach()` / `stop()` | Park at an idle boundary and return `RuntimeResumeState`. `detach` may keep a native process warm; `stop` ends it. |
 | `destroy()` | Tear down with no resume state (after a failed turn). |
@@ -73,9 +74,46 @@ is left. A leader that exits on its own still has its group ended, and a parked 
 exits is closed by the pool, which also revokes its host-tool scope. A parked
 Haus resume state needs no resume-to-stop at shutdown: parking and stopping store the same state.
 
-Background work stays off: Claude keeps `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` and `Monitor`
-disallowed. A long-lived Claude process is what later makes background sub-agents possible, so
-the Claude driver must not assume a turn ends the process.
+A process holding background work (below) is exempt from the idle close and from the
+launch-fingerprint close: new launch facts wait until the work ends, and the next claim
+relaunches. Evict (reset, retirement, Stop) and pool close still end it.
+
+## Background work
+
+Claude Code runs background sub-agents and background shells past the turn that starts them, as
+in Raft. The turn ends at the result for its own prompt; the Agent goes idle (the run settles and
+its reservation is released) and stays reachable while the work runs. Only Claude Code does this:
+Codex and Grok Build start no sub-agents.
+
+| Concern | Contract |
+| --- | --- |
+| Launch | `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` is never set (dropped from inherited env), so `run_in_background` and auto-backgrounding of long commands stay on, Raft's default. `Monitor` stays disallowed: it streams output into the conversation, a wake source Haus does not surface. |
+| Cap | `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=4` (`claude-launch.ts`), enforced by Claude Code itself: an Agent call past it is a tool error telling the model not to retry. It counts foreground and background sub-agents together; shells are not capped. |
+| Handshake | Every process sends the SDK `initialize` control request with `perTaskStopAffordance: true` before its first turn. Without it Claude Code kills every background task on interrupt; with it an interrupt (Stop, a fatal event, the no-progress deadline) ends only the turn. A resumed conversation Claude Code no longer has exits before answering, which is the typed `missing` rejection at open. |
+| Tracking | `system/background_tasks_changed` carries the whole live set (replace semantics); ambient tasks never count. `ClaudeConnection.backgroundWork` is `{ subagents, tasks }` (`local_agent` tasks, all tasks). |
+| Between turns | The connection keeps reading stdout with no turn attached. When a task finishes and no turn holds the connection, Claude Code starts a turn of its own (`system/init`, then a `result` with `origin.kind = 'task-notification'` and no `user_message_uuid`). The connection buffers it from `init` and reports a wake once it reaches the model. A notification-origin result never settles a Haus turn that did not adopt it. |
+| Fold | A task that finishes while a Haus turn runs is folded into that turn by Claude Code: one result, no wake. |
+| Adoption | `startTurn` takes any running self-started turn into the new turn (its buffered lines replay first). With `wake: true` the adopted turn replaces the prompt; otherwise the prompt is written and queues behind it. A self-started turn that reached its result before any run adopted it is dropped, and the wake run writes its prompt. |
+| Orphans | A resumed process reports tasks the previous process left running as `task_notification` `stopped` and records the notice in the conversation without calling the model (a zero-turn `result`). |
+
+The Computer side (`background-work-reporter.ts`, wired through `RuntimeContext.background`):
+
+- **Wake.** A self-started turn asks the Server for a sub-agent wake (`agent-subagent-wake`,
+  reason `finished`, the session generation from `session.json`), and the loopback proxy holds the
+  Agent's `haus` calls (`holdForRunner`, up to 120 seconds) until that run's runner arrives. The
+  Server queues one chatless concrete inbox item (source `subagent`, like a dream) only for the
+  Agent's current generation, its assigned Computer, and a running Agent; one queued wake covers
+  every report. It spends the automation chain. The wake run (`subagentWake` on the start frame,
+  trigger kind `subagent`) adopts Claude Code's turn, or prompts the Agent to report or stop
+  (`subagentWakeTurnLine`).
+- **Lost work.** A process that ends with tasks still live (a crash, a failed turn's destroy, a
+  restart) wakes the Agent with reason `stopped`, so it can tell whoever was waiting. During
+  shutdown a marker (`runtime/background-work.json`) carries it to the next daemon start. A
+  deliberate end (`evictWarmRuntime`: reset, retirement, Stop) wakes nobody and clears the marker.
+- **Stop.** A human Stop sends `agent-stop-background`; the Computer waits for any live turn to
+  settle and park, then evicts the process. Stop and session reset retire queued wakes.
+- **Activity.** The live sub-agent count reaches the Server as `agent-background-work`
+  (specs/agent-activity.md "Background sub-agents").
 
 ## TurnEvent
 
@@ -170,8 +208,9 @@ SDK harness setup and its patches:
 - `--strict-mcp-config` with only the Haus host-tool MCP server; no operator MCP servers.
 - `--disallowedTools` = `CLAUDE_DISALLOWED_TOOLS`; `--allowedTools` names `Glob` and `Grep`
   (the native build otherwise drops both from the Agent and sub-agents).
-- `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`; `--effort` from reasoning effort; extended thinking
-  enabled for `claude-haiku-4-5`; `--permission-mode bypassPermissions`.
+- Background work on, `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=4`, and the `initialize` handshake
+  with `perTaskStopAffordance` (see Background work); `--effort` from reasoning effort; extended
+  thinking enabled for `claude-haiku-4-5`; `--permission-mode bypassPermissions`.
 - Instructions through `--append-system-prompt-file` (owner-only file), never argv.
 - Never persist live credentials in any Haus-written launch record.
 - Plan usage read after a turn when `HAUS_CLAUDE_USAGE_REFRESH=1` (`turn-finish.claudePlanUsage`).
@@ -235,7 +274,10 @@ real streams rather than hand-written frames:
    relative timing to `apps/computer/src/runtime/fixtures/<runtime>/<scenario>.jsonl`.
 2. Scenarios per runtime: plain reply; reasoning; shell tool; file edit; host MCP tool call;
    steer mid-turn; Stop mid-tool; resume after restart; provider auth failure; Claude sub-agent;
-   Codex image generation.
+   Codex image generation. Claude background work has its own
+   (`capture-background-scenarios.ts`): `background-subagent`, `background-fold`,
+   `background-interrupt`, `background-orphan`, replayed by `claude-background-replay.test.ts`;
+   `claude-background-live.test.ts` proves the flow against the real CLI.
 3. Fixtures are scrubbed (tokens, paths, account ids) and committed; a replay helper feeds a
    fixture through the normalizer and asserts the `TurnEvent` sequence.
 4. Re-capture when a runtime upgrade changes its stream; the diff is the review surface.

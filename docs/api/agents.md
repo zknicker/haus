@@ -100,8 +100,10 @@ once at dispatch in `agent_run_triggers` so it survives a failed run requeueing 
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
 `{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or
-`{ kind: 'dream' }`: the Agent's private nightly memory pass, the only trigger with no Chat,
-which needs no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming)). `preview`
+`{ kind: 'dream' }`: the Agent's private nightly memory pass ([workspace](../../specs/workspace.md#dreaming)),
+or `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped
+([runtime drivers](../../specs/runtime-drivers.md#background-work)). These two have no Chat and
+need no Chat visibility to read. `preview`
 quotes the waking message so a turn row is titled from the same read:
 `{ content, attachmentCount }`, where `content` is the head of the message's raw
 Markdown (at most 1,000 UTF-16 units; the reader collapses it to one line), or `null`

@@ -161,6 +161,21 @@ coalesced for live presentation, but every meaningful transition remains availab
 Activity events never contain reasoning text, model narration, draft messages, URLs, search terms,
 paths, commands, tool inputs or outputs, authorization data, or private file contents.
 
+### Background sub-agents
+
+A Claude Code background sub-agent outlives the run that started it (specs/runtime-drivers.md
+"Background work"), so it cannot live in the run-scoped projection: once the run settles the
+Agent is idle while the sub-agent still works. The Agent record carries it instead:
+`Agent.backgroundSubagents`, the count of sub-agents its Computer last reported running past
+their turn, zero while that Computer is offline. The Computer sends `agent-background-work`
+(per-Agent counts) when a count changes and for every hosted Agent on each connect, so a
+restarted Computer clears what its processes took with them; the Server stores it on
+`agents.effective_background_subagents` and announces `agent.updated` only on change, which
+already invalidates `agent.get`. The App's Agent hover card states it after availability
+(`Online · 2 sub-agents running`). Background shells are not counted. The execution journal still
+settles a sub-agent its turn left running as `interrupted`; for a background one that status is
+not yet accurate (known gap).
+
 ## Computer projection and execution journal
 
 One runtime `TurnEvent` fans into two deliberately separate products:

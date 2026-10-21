@@ -18,6 +18,7 @@ Native builtins that would bypass Haus or wait on a host answer stay off
 `grok-launch.ts`): Claude Code runs without plan mode, `ScheduleWakeup`,
 and the `Cron*` tools (Raft's disallowed set; Haus Reminders own scheduling), without
 `RemoteTrigger` and `PushNotification` (the same bypass through Claude's cloud), without
-`AskUserQuestion`, and without `Monitor` (Haus runs no background work; see
-[Context management](../docs/features/context-management.md)); Grok Build runs without
+`AskUserQuestion`, and without `Monitor` (it streams output into the conversation, a wake source
+Haus does not surface; background sub-agents and shells stay on, see
+[Runtime drivers](runtime-drivers.md#background-work)); Grok Build runs without
 `ask_user_question`. Agents ask humans in a Haus message.

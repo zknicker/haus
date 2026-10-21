@@ -121,16 +121,16 @@ launch test proves its row (`claude-launch.test.ts`, `codex-launch.test.ts`,
 `claude-context-isolation-live.test.ts` and `codex-isolation-live.test.ts` prove it against the
 real CLI, and the Grok live test fails when Grok changes this behavior.
 
-Sub-agents run on Claude Code only, and only in the foreground. Claude Code runs no background
-work at all, by choice: Haus keeps one long-lived `claude` process per Agent session, which could
-carry background work across turns later, but today a background shell, sub-agent, or monitor has
-no Haus surface that reports its completion. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` removes
-`run_in_background` from the Agent and Bash tools, turns off auto-backgrounding (a foreground
-command that times out stops instead of detaching), and disables Ctrl+B; `Monitor` is in the
-disallowed tools (`CLAUDE_DISALLOWED_TOOLS` in `claude-launch.ts`). A sub-agent therefore
-finishes inside its parent turn. Codex launches with `agents.enabled = false` and
-`features.multi_agent = false` in its thread config (`codexThreadConfig`), and Grok Build with `GROK_SUBAGENTS=0`, so
-neither offers a spawn tool.
+Sub-agents run on Claude Code only, in the foreground or the background, as in Raft. A
+background sub-agent or shell outlives the turn that starts it: that turn ends, the Agent stays
+reachable for new messages, and when the work finishes Claude Code starts a turn of its own to
+report it, which Haus runs as a sub-agent wake (specs/runtime-drivers.md "Background work"). The
+one long-lived `claude` process per Agent session carries the work between turns, so the warm
+pool never closes it for idleness while work runs. At most four sub-agents run at once
+(`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`). `Monitor` stays in the disallowed tools
+(`CLAUDE_DISALLOWED_TOOLS` in `claude-launch.ts`). Codex launches with `agents.enabled = false`
+and `features.multi_agent = false` in its thread config (`codexThreadConfig`), and Grok Build with
+`GROK_SUBAGENTS=0`, so neither offers a spawn tool.
 
 The Server stores desired configuration and canonical history. Computer stores
 effective runtime session state and resume evidence. The App reports that distinction
