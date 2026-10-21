@@ -185,7 +185,7 @@ test('an Agent-authored page fence in a Thread opens the chat Workspace pane', a
     await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
 
     const thread = page.getByRole('complementary', { name: 'Thread' });
-    await expect(thread).toBeVisible();
+    await expect(thread.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
     await expect(thread.getByText('```page', { exact: false })).toHaveCount(0);
     await thread.getByRole('textbox', { name: /Message Thread/u }).fill('Preserved draft');
     await thread.getByTestId('artifact-card').press('Enter');
@@ -218,7 +218,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await expect.poll(async () => (await panel.boundingBox())?.width ?? 0).toBe(560);
-    await expect(panel).toBeVisible();
+    await expect(panel.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
     await expect
         .poll(async () => {
             const [chatBox, panelBox] = await Promise.all([

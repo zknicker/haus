@@ -12,20 +12,21 @@ test('the Automations count is what is still standing, not what has run', () => 
         [{ status: 'scheduled' }, { status: 'fired' }, { status: 'scheduled' }],
         [{ status: 'armed' }, { status: 'disabled' }]
     );
-    expect(counts).toEqual({ armedTriggers: 1, scheduledReminders: 2, total: 3 });
+    expect(counts).toEqual({ armedTriggers: 1, cloudAgents: 0, scheduledReminders: 2, total: 3 });
     expect(formatAutomationsFact(counts)).toBe('2 reminders · 1 trigger');
 });
 
 test('an Agent with no standing automations counts zero', () => {
     expect(countAgentAutomations([], [])).toEqual({
         armedTriggers: 0,
+        cloudAgents: 0,
         scheduledReminders: 0,
         total: 0,
     });
     expect(formatAutomationsFact(countAgentAutomations([], []))).toBe('Nothing scheduled');
-    expect(formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 1, total: 1 })).toBe(
-        '1 reminder'
-    );
+    expect(
+        formatAutomationsFact({ armedTriggers: 0, cloudAgents: 0, scheduledReminders: 1, total: 1 })
+    ).toBe('1 reminder');
 });
 
 test('Connections is only what this Agent can use right now', () => {
@@ -67,4 +68,9 @@ test('a card names two members and counts the rest', () => {
     expect(formatNameList(['Visuals'])).toBe('Visuals');
     expect(formatNameList(['Atlas', 'BidBeacon'])).toBe('Atlas, BidBeacon');
     expect(formatNameList(['Atlas', 'BidBeacon', 'Cove', 'Drift'])).toBe('Atlas, BidBeacon +2');
+});
+
+test('Cloud Agent handoffs count toward the Automations doorway', () => {
+    expect(formatAutomationsFact(countAgentAutomations([], [], 2))).toBe('2 cloud agents');
+    expect(countAgentAutomations([], [], 2).total).toBe(2);
 });

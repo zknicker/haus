@@ -1,3 +1,4 @@
+import { appTopic } from './app-topic.ts';
 import { filesTopic } from './artifact-topic.ts';
 import { cliFamilyTopics } from './cli-family-topics.ts';
 import { archetypeRecipes } from './corpus/archetypes.ts';
@@ -37,12 +38,12 @@ The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orie
 
 Product reference topics describe current Haus capabilities without turning them into prescriptive recipes. Every haus command family has one named after its noun: ${cliFamilyTopicList()}. Get accepts the family noun in singular or plural form.
 
-Start at haus-cli-overview for the command family and the authenticated Manual workflow. Search by useful words, then fetch the stable topic id before acting. A get that misses lists the closest topics; a search that finds nothing suggests the nearest topics and a retry.
+Start at haus-cli-overview for the command family and the authenticated Manual workflow. When a person asks where something is in Haus App, get app for the verified place and who can use it. Search by useful words, then fetch the stable topic id before acting. A get that misses lists the closest topics; a search that finds nothing suggests the nearest topics and a retry.
 
 Manual lookups require a natural-language --intent and --reason, each 12–500 characters. Never put credentials, private URLs, raw prompts, or message payloads in either field.`,
         id: 'index',
         kind: 'index',
-        related: ['haus-cli-overview', 'agent', 'recipes/index', 'recipes/seeded'],
+        related: ['haus-cli-overview', 'app', 'agent', 'recipes/index', 'recipes/seeded'],
         summary: 'Navigate the shared Haus Manual and its complete recipe corpus.',
         title: 'Haus Manual for Agents',
     },
@@ -58,7 +59,7 @@ Each command family has a Manual topic named after it, such as haus manual get m
 The Manual is read-only. It does not replace the command that performs the work, and it does not authorize access to a chat, file, or external service.`,
         id: 'haus-cli-overview',
         kind: 'overview',
-        related: ['index', 'agent', 'recipes/index', 'recipes/seeded'],
+        related: ['index', 'app', 'agent', 'recipes/index', 'recipes/seeded'],
         summary: 'Use the managed Haus CLI and expand operating guidance on demand.',
         title: 'Haus CLI overview',
     },
@@ -86,6 +87,7 @@ export const manualTopics: readonly ManualTopic[] = [
     ...navigationTopics,
     ...productTopics,
     secretsTopic,
+    appTopic,
     ...cliFamilyTopicsA,
     ...cliFamilyTopicsB,
     ...cliFamilyTopicsHeartbeat,

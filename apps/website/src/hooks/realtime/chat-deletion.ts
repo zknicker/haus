@@ -37,6 +37,9 @@ export function applyChatDeletion({
  */
 function invalidateLinkedCloudAgentWork(coalescer: ChatReadsCoalescer, serverId: string) {
     coalescer.invalidate({
+        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listAutomations, { serverId }),
+    });
+    coalescer.invalidate({
         queryKey: getQueryKey(hausTrpc.cloudAgentWork.listActive, { serverId }),
     });
     coalescer.invalidate({

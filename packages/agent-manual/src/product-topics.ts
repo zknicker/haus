@@ -4,7 +4,7 @@ export const productTopics: readonly ManualNavigationTopic[] = [
     {
         body: `# Amazon product references
 
-Write a standalone uppercase Amazon ASIN such as B07XN9T11R, or a normal https://www.amazon.com/dp/B07XN9T11R link, in message prose. Haus App automatically resolves a product thumbnail and title when this Server has a connected RankWrangler MCP account. Hover or keyboard focus shows a compact card with thumbnail, title, brand, and available price. No special markup or lookup call is needed just to display a reference.
+While this Server has RankWrangler connected, a standalone uppercase Amazon ASIN such as B07XN9T11R, or a normal https://www.amazon.com/dp/B07XN9T11R link, in message prose renders as a product chip, and Haus App resolves its thumbnail and title. Without RankWrangler the ASIN stays plain text and the link stays an ordinary link. When you name a product, write its ASIN beside the name so readers get the chip. Hover or keyboard focus shows a compact card with thumbnail, title, brand, and available price. No special markup or lookup call is needed just to display a reference.
 
 This prototype supports US Amazon product links and ten-character ASINs beginning with B and containing a digit. Code stays code. Other marketplaces, shortened URLs, and Etsy links retain ordinary link behavior. Missing product data leaves the original text readable.
 
@@ -12,7 +12,8 @@ When you need product facts for analysis, use execute to search for RankWrangler
         id: 'amazon-product-references',
         kind: 'overview',
         related: ['haus-cli-overview'],
-        summary: 'Mention Amazon ASINs and links as product chips with RankWrangler previews.',
+        summary:
+            'Amazon ASINs and links become product chips while this Server has RankWrangler connected.',
         title: 'Amazon product references',
     },
     {
@@ -20,7 +21,7 @@ When you need product facts for analysis, use execute to search for RankWrangler
 
 Use \`haus image generate\` for any image people will see or that needs a specific model. Your runtime's own image tool, when it has one, suits scratch work no one else needs.
 
-**Pick a model.** The list is curated and every model has a real id. \`haus image models\` prints each one's strengths, sizing rules, quality levels, reference limit, transparency support, price estimates, and whether this Server has its key. An unavailable model says why; the Server Owner adds the key in Settings → Image generation.
+**Pick a model.** The list is curated and every model has a real id. \`haus image models\` prints each one's strengths, sizing rules, quality levels, reference limit, transparency support, price estimates, and whether this Server has its key. An unavailable model says why; the Server Owner adds the key at Settings → Models → Image generation.
 
 **Generate.** \`haus image generate --model <id> [--size WxH | --aspect A:B --resolution 1K|2K|4K] [--quality <level>] [--background opaque|transparent] [--reference <attachment id | workspace path>]...\` with the prompt on stdin. One generation is one image. The command starts the generation and returns at once with a \`Link:\` line and the generation id; it does not wait for the image.
 
@@ -142,7 +143,7 @@ For revisions, corrections, or another step in the same assignment, send instruc
 
 \`haus cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
 
-**Provider and model.** Cursor and Claude are the Cloud Agent providers. A launch uses the Computer's default provider, which a human picks in Computer settings; add \`--provider cursor\` or \`--provider claude\` only when the requester asks for one. A human picks each provider's model once per Server in Haus App; the default is Auto (Cursor's per-run router, or Claude's account default). You cannot choose or override the model: no command flag or start input carries one.
+**Provider and model.** Cursor and Claude are the Cloud Agent providers. A launch uses the Computer's default provider, which an Owner or Admin picks at Settings → Computers → (your Computer) → Cloud Agents; add \`--provider cursor\` or \`--provider claude\` only when the requester asks for one. An Owner or Admin picks each provider's model once per Server at Settings → Models; the default is Auto (Cursor's per-run router, or Claude's account default). You cannot choose or override the model: no command flag or start input carries one.
 
 **Questions.** A Claude cloud agent can stop to ask a question. That settles its run as \`pending_input\` and your inbox attention carries the question as its summary. Answer it yourself when the request already settles it; otherwise ask the requester in the work thread and pass their answer on. Send the answer with \`haus cloud-agent send --work <workId>\`, which resumes the same session.
 
@@ -193,7 +194,7 @@ The receipt returns the new \`@handle\` and the channels it landed in.
 
 \`haus agent update --agent @handle --description <text>\` rewrites an Agent's description, and \`haus agent avatar --agent @handle --concept <text>\` replaces its avatar. Cove's identity is protected: both refuse on Cove.
 
-The Agent profile pane in Haus App is where a human owns these values, along with runtime, model, and reasoning effort, which are theirs alone to change. Editing from Chat is a convenience for the human standing in front of you, not the record.`,
+The Agent profile in Haus App is where a human owns these values, along with runtime, model, and reasoning effort at Agent profile → Runs on, which an Owner or Admin alone changes. Editing from Chat is a convenience for the human standing in front of you, not the record.`,
         id: 'agent',
         kind: 'overview',
         related: ['haus-cli-overview', 'recipes/decision/when-to-ask-human'],

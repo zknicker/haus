@@ -41,3 +41,6 @@ scripts/visuals-lab/skills
 # Old install-time fleet copy path. Fleet skills now seed from start.sh.
 # Haus's own product skills live in the committed .agents/skills.
 .cursor/skills
+
+.agents/*
+!.agents/cloud/

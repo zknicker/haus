@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@haus/api';
 import * as React from 'react';
+import { requestChatComposerFocus } from '../../../commands/chat-composer-focus.ts';
 import { type ChatInlineReplyTarget, toChatInlineReplyTarget } from './chat-inline-reply.tsx';
 
 export function useChatInlineReply(chatId: string) {
@@ -8,6 +9,7 @@ export function useChatInlineReply(chatId: string) {
         (message: ChatMessage) => {
             if (message.chatId === chatId) {
                 setInlineReply(toChatInlineReplyTarget(message));
+                requestChatComposerFocus();
             }
         },
         [chatId]

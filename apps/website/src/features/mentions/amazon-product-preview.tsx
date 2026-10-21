@@ -86,8 +86,6 @@ export function previewNotice(lookup: AmazonProductLookup): string | undefined {
             return 'Product details are temporarily unavailable. We’ll try again shortly.';
         case 'unavailable':
             return 'Product details unavailable';
-        case 'disconnected':
-            return 'Connect RankWrangler for product details';
         case 'ready':
             return lookup.detailFailed ? 'Price unavailable' : undefined;
         default:

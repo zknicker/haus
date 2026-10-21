@@ -1,3 +1,4 @@
+import { type ConnectionChipKind, connectionChipKindSchema } from '@haus/api';
 import type { AgentStartCommand } from './agent-commands.ts';
 
 const agentFactFields = [
@@ -32,4 +33,18 @@ export function parseStartAgentFacts(frame: Record<string, unknown>): AgentFacts
         facts[field] = value;
     }
     return facts;
+}
+
+/**
+ * The chip kinds a start frame names. A kind this Computer does not know is a newer Server's and
+ * is dropped, so it never blocks the run; anything but an array of strings rejects the frame.
+ */
+export function parseConnectionChips(value: unknown): ConnectionChipKind[] | null {
+    if (value === undefined) {
+        return [];
+    }
+    if (!(Array.isArray(value) && value.every((kind) => typeof kind === 'string'))) {
+        return null;
+    }
+    return connectionChipKindSchema.options.filter((kind) => value.includes(kind));
 }

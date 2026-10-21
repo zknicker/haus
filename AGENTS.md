@@ -212,7 +212,7 @@ The composed agent system prompt is a guarded contract. Its sources live under
 `managed-instructions.test.ts`.
 
 Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
-reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 39,098
+reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 39,230
 characters). The cap is a ratchet that forces a deliberate decision, not a hard limit, and no
 adapter enforces a prompt length. A justified addition raises the cap to the measured render in
 the same change, with a one-line reason in the register. Never delete, trim, merge, or
@@ -275,48 +275,35 @@ publishes a Server target deploys production automatically through the Release w
 
 ## Cloud agents
 
-Haus follows the fleet cloud agent contract; set up or repair it with the `zknicker/agents`
-`cloud-agent-setup` skill. `.agents/cloud/install.sh` provisions Bun `1.4.2` and PostgreSQL 16,
-then runs `bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download), and
-`.agents/cloud/env.sh` holds session exports. `.agents/cloud/bootstrap.sh` is a fleet-owned copy:
-never edit it here. It runs the Haus scripts on both platforms. The fleet (make-it-so, fleet
-skills, global rules) loads separately: on Claude from the cloud environment's Setup script, on
-Cursor from `bootstrap.sh cursor-install` and `bootstrap.sh cursor`.
+Haus follows the fleet cloud agent contract. Set up or repair it with the `zknicker/agents`
+`cloud-agent-setup` skill. `.agents/cloud/bootstrap.sh` is a byte copy of the fleet script. Never
+edit it here. The fleet loads separately. Claude loads it from the environment Setup script. Cursor
+loads it from `bootstrap.sh cursor-install` and refreshes it from `bootstrap.sh cursor`.
 
-- There are no per-repository cloud secrets. Each platform provides the fleet-wide read-only
- Development identity as `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`; every value resolves from
- 1Password through the committed `.env.schema`. The two licensed install credentials are fetched
- by `bun run setup:worktree` under the install context switch; the Clerk credentials arrive as
- ordinary schema values when the stack starts. See
- [docs/operations/environment.md](docs/operations/environment.md).
-- Haus's own product skills stay in the committed `.agents/skills`.
-- PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, and the install symlinks its binaries into
- `/usr/local/bin` so every PostgreSQL-backed lane finds them on `PATH` (`bun run test:app`,
- `apps/server` tests, evals, and the dev stack). `scripts/dev-postgres.mjs` and the server test
- harness otherwise only auto-discover Homebrew paths on Linux; if you run PostgreSQL 16 from a
- non-standard location, set `HAUS_POSTGRES_BIN` to its bin directory. Do not start a system
- PostgreSQL service; each lane owns a throwaway/worktree-isolated cluster.
-- The full dev stack, Agent turns, and UI capture work in cloud sessions; see
- [Linux And Cloud Sessions](docs/operations/development.md#linux-and-cloud-sessions).
-- PostgreSQL's server binaries refuse to run as root. On root hosts (Claude cloud containers)
- `scripts/postgres-server-account.mjs` runs them as the `postgres` account and keeps their state
- under that account's home.
-- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against Haus's development Clerk
- instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
- channels, starter messages). No manual login is required in dev.
-- `bun run dev` renders a live TUI whose "Services" banner prints the resolved Server, Computer, and
- Website URLs (ports are derived per worktree, e.g. website `43444` / Server `43447`; Server is the
- website port plus three). Read those URLs from the banner rather than assuming `3100`/`8090`. See
- `docs/operations/development.md` for stack details and `docs/operations/testing.md` for
- lint/test/build lanes (`bun run lint`, `bun run typecheck`).
-
-### Platform adapters
-
-- Cursor: `.cursor/environment.json` installs with `.agents/cloud/bootstrap.sh cursor-install`, starts with
- `.agents/cloud/bootstrap.sh cursor`, and auto-starts the full stack in the `dev-stack` terminal.
-- Claude Code: `.claude/settings.json` runs `bun run setup:worktree` in local sessions and
- `.agents/cloud/bootstrap.sh claude` in cloud sessions. The dev stack is not auto-started.
-- One Claude cloud environment serves every fleet repo. It carries
- `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` as an environment variable, and its Setup script is the
- `zknicker/agents` `cloud/setup-script.sh`, which loads the fleet in every session, including
- sessions with several repositories.
+- `install.sh` provisions Bun at the root `packageManager` pin, PostgreSQL 16, versitygw `1.9.0`,
+  the pinned Codex CLI, and `agent-browser`, then runs `bun run setup:worktree` (frozen install and
+  the HeroUI Pro artifacts). Rerunning it is safe.
+- `start.sh` signs Codex in for the dev seed. `env.sh` exports `HAUS_POSTGRES_BIN`.
+- Cursor (`.cursor/environment.json`) installs with `bootstrap.sh cursor-install`, starts with
+  `bootstrap.sh cursor`, and opens the `dev-stack` terminal
+  (`. .agents/cloud/env.sh && bun run dev`).
+- Claude (`.claude/settings.json`) runs `bun run setup:worktree` on a local SessionStart, and runs
+  `bootstrap.sh claude` only when `CLAUDE_CODE_REMOTE` is true. Those hooks are separate entries.
+  The dev stack is not auto-started.
+- Verify with `bun run dev`. The Services banner prints the Website, Server, and Computer URLs.
+  Ports come from the worktree. Server is the website port plus three. Read the banner instead of
+  assuming `3100` or `8090`. `bun run check:fast` is the fast quality check. See
+  [Linux And Cloud Sessions](docs/operations/development.md#linux-and-cloud-sessions).
+- No per-repository cloud secrets. Each platform provides `CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`.
+  Values resolve from 1Password through `.env.schema`. `setup:worktree` fetches the two licensed
+  install credentials itself. See [docs/operations/environment.md](docs/operations/environment.md).
+- Product skills stay in the committed `.agents/skills`. Fleet skill links under `.agents/` stay
+  untracked.
+- PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, symlinked onto `/usr/local/bin`.
+  `scripts/dev-postgres.mjs` only auto-discovers Homebrew paths on Linux, so a non-standard install
+  needs `HAUS_POSTGRES_BIN`. Do not start a system PostgreSQL service. Each lane owns a throwaway
+  cluster. On root hosts, `scripts/postgres-server-account.mjs` runs the server as `postgres`.
+- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`). The first Server boot seeds the
+  demo Server (Blippy, Tiny, `#all`, `#product`). No manual login.
+- One Claude cloud environment serves every fleet repo. Its Setup script is `zknicker/agents`
+  `cloud/setup-script.sh`.

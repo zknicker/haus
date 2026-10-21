@@ -3,6 +3,7 @@ import type {
     AgentHeartbeatReportAttention,
     AgentTurnActivitySummary,
     AgentTurnFailureCode,
+    ConnectionChipKind,
 } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
@@ -19,6 +20,8 @@ export interface AgentStartCommand {
     agentSignatureEmoji?: string | null;
     /** The run's Chat; null only for a heartbeat or heartbeat-report run, which has none. */
     chatId: string | null;
+    /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent writes. */
+    connectionChips?: ConnectionChipKind[];
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
     /** A heartbeat run (daytime or nightly): a fresh throwaway session, no inbox. */

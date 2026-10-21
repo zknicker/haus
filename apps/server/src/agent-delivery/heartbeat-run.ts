@@ -18,6 +18,7 @@ type HeartbeatFrameConfig = Pick<
     | 'agentDescription'
     | 'agentName'
     | 'agentSignatureEmoji'
+    | 'connectionChips'
     | 'homeTimezone'
     | 'sessionGeneration'
 >;

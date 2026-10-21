@@ -6,6 +6,8 @@ import { useLinearIssue } from '../../hooks/linear/use-linear-issue.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { cn } from '../../lib/utils.ts';
 import {
+    type LinearChipAgent,
+    type LinearChipState,
     linearChipState,
     linearIssueHoverModel,
     linearIssueNotice,
@@ -38,8 +40,30 @@ export function LinearIssueReference({
     if (state.kind === 'plain') {
         return fallback;
     }
-    const notice = state.view ? null : linearIssueNotice(read.data, read.isError);
+    return (
+        <LinearIssueChip
+            agents={agents ?? []}
+            href={href}
+            issue={issue}
+            notice={state.view ? null : linearIssueNotice(read.data, read.isError)}
+            state={state}
+        />
+    );
+}
 
+export function LinearIssueChip({
+    agents,
+    href,
+    issue,
+    notice,
+    state,
+}: {
+    agents: readonly LinearChipAgent[];
+    href: string;
+    issue: LinearIssueUrl;
+    notice: string | null;
+    state: Extract<LinearChipState, { kind: 'issue' }>;
+}) {
     return (
         <HoverCard openDelay={250}>
             <HoverCard.Trigger className="align-middle">
@@ -67,9 +91,7 @@ export function LinearIssueReference({
                     placement="bottom start"
                 >
                     {state.view ? (
-                        <LinearIssuePreview
-                            model={linearIssueHoverModel(state.view, agents ?? [])}
-                        />
+                        <LinearIssuePreview model={linearIssueHoverModel(state.view, agents)} />
                     ) : (
                         <ReferencePreviewText>{notice}</ReferencePreviewText>
                     )}

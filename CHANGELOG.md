@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.6.0 - 2026-10-20
+
+- An Agent’s Automations page shows the Cloud Agents whose results will wake it, with queued handoffs, delivered history, and warnings when tracking is unavailable. Haus manages these automatic notifications.
+- Agent announcements addressed to a channel’s audience keep that audience when the message also names someone.
+
+## v15.5.1 - 2026-10-20
+
+- Stopped Cursor Cloud Agent runs leave “Stopping” once Cursor confirms cancellation, even when it rejects a repeated stop request.
+
+## v15.5.0 - 2026-10-20
+
+- Opening a new or existing Thread focuses its reply input. Selecting Reply in chat focuses the message input too.
+- Factory is available in Connections with an API key from its Account Center. Product and Linear issue chips appear only while their connection provides them, and connection settings explain which chips they add.
+- Continuing inline replies share one author header and quote; reply strips stay visible in dark mode and chips align with the text.
+- Haus Agent 11.1.0 knows the App paths for common requests and teaches Amazon product chips only while RankWrangler is connected.
+
 ## v15.4.1 - 2026-10-17
 
 - Under Halloween, the desktop sidebar and content card sit darker, close to the web page's near-black instead of a lit blue-grey.

@@ -45,6 +45,7 @@ export function applyAgentUpdate(
     const scope = agentId ? { agentId, serverId } : { serverId };
     const invalidate = (queryKey: ReturnType<typeof getQueryKey>) =>
         coalescer.invalidate({ queryKey });
+    invalidate(getQueryKey(hausTrpc.cloudAgentWork.listAutomations, { serverId }));
     invalidate(getQueryKey(hausTrpc.server.bySlug, { slug: server.slug }));
     invalidate(getQueryKey(hausTrpc.agent.get, scope));
     if (agentId) {

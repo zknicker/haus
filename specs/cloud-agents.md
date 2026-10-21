@@ -110,6 +110,27 @@ human lifecycle: the Agent advances it — to `in_review` when a pull request ex
 that pull request merges — through the ordinary versioned task mutation. A launch Message is never
 itself promoted to a Task.
 
+## Automatic wakes in Automations
+
+An Agent's Automations page includes **Cloud agents**, marked **Managed by Haus**. These
+rows are a read-only projection of visible, Agent-owned work and its per-Run inbox identities;
+no Trigger is created, so there is no separate trigger lifecycle to reconcile or clean up.
+
+- Queued/running work remains current while its automatic completion notification is possible.
+  Offline or stale tracking reads **Status unconfirmed**, with its last update.
+- Any unsettled `cloud_agent_work` inbox identity keeps the work current as **Result queued**,
+  including an older Run's handoff while a follow-up runs. A result is delivered when its
+  identity reaches `seen`, after the Agent turn settles successfully, not merely when offered.
+- Delivered work moves to history. Retired Agents, removed tracking Computers, and deleted
+  requesting conversations move impossible future notifications to history with an explanation.
+  The recorded provider lifecycle is preserved; loss of tracking never fabricates a terminal state.
+- Current rows are unbounded by history; history reads the latest 100 records. Visibility follows
+  existing work links, and row navigation opens a visible work conversation, including settled work.
+- Reassignment of the Haus Agent does not change the work's launching Computer or delegating Agent.
+  Computer reconnection retains the existing provider reconciliation and durable, per-Run deduplication.
+- Work observations, Chat deletion, Computer/Agent changes, and Agent turn settlement refresh the
+  projection through existing event owners. Stream recovery refreshes it without a polling loop.
+
 ## Messages and cards
 
 A Message is the only Chat transcript item. Every Message has stable identity, authorship,
@@ -676,6 +697,11 @@ settles. A streamed terminal status does settle the Run, because that is where `
 but it settles through one observation carrying both that raw status and the Run's own evidence —
 Computer stops watching a Run the moment it settles, so a bare status followed by an evidence read
 would lose the evidence.
+
+Cancellation retries still read and report the Run's status when the stop request fails. Cursor can
+reject a repeated stop with `run_not_cancellable` after the Run has already stopped; that rejection
+must not block terminal reconciliation. A failed stop against a still-active Run retains the
+60-second retry backoff.
 
 The SDK does not surface the hosted Agent's own `url`, so the adapter builds the "Open in Cursor"
 link as `https://cursor.com/agents?id=<agentId>`.

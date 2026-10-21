@@ -40,7 +40,7 @@ test('trigger manual retains setup, recovery, and payload boundaries', () => {
 test('webhook manual never sends a secret through chat', () => {
     const body = getManualTopic('recipes/technique/trigger-webhook')?.body ?? '';
     expect(body).toContain('Never post the secret in any chat, a DM included');
-    expect(body).toContain('Agent profile → Automations → this trigger → Rotate');
+    expect(body).toContain('Agent profile → Automations → (the Trigger) → Rotate secret → Rotate');
     expect(body).toContain('install the secret there yourself');
     expect(body).toContain('Never paste the curl line into chat');
     expect(body).not.toMatch(/hand the url and the secret/iu);

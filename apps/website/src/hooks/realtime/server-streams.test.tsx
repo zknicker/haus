@@ -57,6 +57,7 @@ describe('Server-level stream hooks', () => {
         );
         const agent = { agentId: 'agt_1', serverId };
         expect(onEvent).toEqual([
+            read('cloudAgentWork.listAutomations', { serverId }),
             read('server.bySlug', { slug: 'team-room' }),
             read('agent.get', agent),
             read('agent.deliveryState', agent),
@@ -79,6 +80,7 @@ describe('Server-level stream hooks', () => {
             { computerId: 'cmp_1', serverId }
         );
         expect(onEvent).toEqual([
+            read('cloudAgentWork.listAutomations', { serverId }),
             read('server.bySlug', { slug: 'team-room' }),
             read('computer.list', { serverId }),
             read('computer.systemLog', { computerId: 'cmp_1', serverId }),
