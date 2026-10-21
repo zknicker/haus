@@ -3,11 +3,17 @@
 // a fresh Agent has a fresh session, a fresh workspace, and a fresh Owner DM.
 //
 // Creation is globally bounded to two concurrent create-and-wait operations.
-// More concurrent applies race the Computer into a degraded Agent whose
-// missingResources carry "session" (observed live at four concurrent); the
-// repair for one that lands there anyway is a single full reset.
+// An Agent still missing its session after the repair window gets one full
+// reset.
+//
+// Every fresh Agent reserves a capped workspace volume against the Computer's
+// free disk, so a tight disk admits fewer live Agents than the lanes want. The
+// Computer reports that Agent as missing its "workspace"; no reset re-applies
+// it, so the provisioner retires it and creates a replacement once a sibling
+// scenario's retirement frees capacity.
 
 import { sleep } from '../eval-harness.mjs';
+import { createSemaphore, withTimeout } from './concurrency.mjs';
 
 export const agentKindDescriptions = Object.freeze({
     worker: 'Temporary agent-test fixture. Act only when explicitly addressed or assigned.',
@@ -23,6 +29,7 @@ const readyTimeoutMs = 300_000;
 const repairAfterMs = 45_000;
 const retireTimeoutMs = 45_000;
 const targetTimeoutMs = 60_000;
+const workspaceRetryMs = 10_000;
 
 const gate = createSemaphore(createConcurrency);
 const targets = new WeakMap();
@@ -33,7 +40,11 @@ const targets = new WeakMap();
  * exists — before readiness — so a crash mid-provision still leaves the id in
  * the caller's ledger.
  */
-export async function provisionAgents(harness, requests, { onCreated, onPhase } = {}) {
+export async function provisionAgents(
+    harness,
+    requests,
+    { onCreated, onPhase, retryMs = workspaceRetryMs } = {}
+) {
     const created = [];
     // Settled, not raced: a failure must not abandon an Agent still being
     // created in a sibling request.
@@ -45,6 +56,7 @@ export async function provisionAgents(harness, requests, { onCreated, onPhase } 
                     await onCreated?.(agent);
                 },
                 onPhase,
+                retryMs,
             })
         )
     );
@@ -131,30 +143,46 @@ export function agentHandleSuffix(length = 6) {
     return [...bytes].map((byte) => handleAlphabet[byte % handleAlphabet.length]).join('');
 }
 
-async function provisionAgent(harness, request, position, { onCreated, onPhase }) {
+async function provisionAgent(harness, request, position, { onCreated, onPhase, retryMs }) {
     const target = await resolveAgentTarget(harness);
     const displayName = `Eval ${titleCase(request.kind)} ${harness.stamp}-${position}`;
-    const handle = `eval-${request.kind}${position}-${agentHandleSuffix()}`;
+    const deadline = Date.now() + readyTimeoutMs;
     await gate.acquire();
     try {
-        onPhase?.(`creating @${handle}`);
-        const created = await harness.trpc('agent.create', {
-            computerId: target.computerId,
-            description: agentKindDescriptions[request.kind],
-            displayName,
-            handle,
-            modelId: target.modelId,
-            runtimeId: target.runtimeId,
-            serverId: harness.serverId,
-        });
-        const agentId = created.agent.id;
-        await onCreated?.({ displayName, handle, id: agentId });
-        const dm = await harness.trpc('chat.ensureAgentDm', {
-            agentId,
-            serverId: harness.serverId,
-        });
-        const agent = await waitForReady(harness, agentId, { handle, onPhase });
-        return { ...agent, dmChatId: dm.id, kind: request.kind };
+        for (;;) {
+            const handle = `eval-${request.kind}${position}-${agentHandleSuffix()}`;
+            onPhase?.(`creating @${handle}`);
+            const created = await harness.trpc('agent.create', {
+                computerId: target.computerId,
+                description: agentKindDescriptions[request.kind],
+                displayName,
+                handle,
+                modelId: target.modelId,
+                runtimeId: target.runtimeId,
+                serverId: harness.serverId,
+            });
+            const agentId = created.agent.id;
+            await onCreated?.({ displayName, handle, id: agentId });
+            const dm = await harness.trpc('chat.ensureAgentDm', {
+                agentId,
+                serverId: harness.serverId,
+            });
+            const agent = await waitForReady(harness, agentId, { deadline, handle, onPhase });
+            if (isReady(agent)) {
+                return { ...agent, dmChatId: dm.id, kind: request.kind };
+            }
+            // No workspace capacity: replace the Agent once a sibling frees some.
+            const { failures } = await retireAgents(harness, [
+                { displayName, handle, id: agentId },
+            ]);
+            if (failures.length > 0 || Date.now() + retryMs >= deadline) {
+                throw new Error(
+                    `Agent @${handle} never got a workspace within ${Math.round(readyTimeoutMs / 1000)}s: the Computer has no free workspace capacity (${describeAgent(agent)}).`
+                );
+            }
+            onPhase?.(`waiting for workspace capacity for @${handle}`);
+            await sleep(retryMs);
+        }
     } finally {
         gate.release();
     }
@@ -162,18 +190,18 @@ async function provisionAgent(harness, request, position, { onCreated, onPhase }
 
 /**
  * Waits for the Computer to report the Agent applied on the exact desired
- * runtime and model. An Agent still missing its session after the repair
- * window gets one full reset, which clears the raced apply.
+ * runtime and model, or to report it missing its workspace (returned as is).
+ * An Agent still missing its session after the repair window gets one full
+ * reset.
  */
-async function waitForReady(harness, agentId, { handle, onPhase } = {}) {
-    const deadline = Date.now() + readyTimeoutMs;
+async function waitForReady(harness, agentId, { deadline, handle, onPhase }) {
     const repairAt = Date.now() + repairAfterMs;
     let repaired = false;
     let latest = null;
     while (Date.now() < deadline) {
         const agents = await harness.trpc('agent.list', { serverId: harness.serverId });
         latest = agents.find((candidate) => candidate.id === agentId);
-        if (isReady(latest)) {
+        if (isReady(latest) || latest?.missingResources?.includes('workspace')) {
             return latest;
         }
         if (!repaired && Date.now() >= repairAt && latest?.missingResources?.includes('session')) {
@@ -235,50 +263,6 @@ export function requestedTarget(value = process.env.HAUS_AGENT_TESTS_MODEL) {
         return { modelHint: defaultModelHint, runtimeId: defaultRuntimeId };
     }
     return { modelHint: value.slice(at + 1), runtimeId: value.slice(0, at) };
-}
-
-/** A counting semaphore: a released slot is handed straight to the next waiter. */
-function createSemaphore(limit) {
-    const waiting = [];
-    let active = 0;
-
-    return {
-        acquire() {
-            if (active < limit) {
-                active += 1;
-                return Promise.resolve();
-            }
-            return new Promise((resolve) => waiting.push(resolve));
-        },
-        release() {
-            const next = waiting.shift();
-            if (next) {
-                next();
-                return;
-            }
-            active = Math.max(0, active - 1);
-        },
-    };
-}
-
-async function withTimeout(operation, timeoutMs, label) {
-    let timer = null;
-    try {
-        return await Promise.race([
-            operation,
-            new Promise((_resolve, reject) => {
-                timer = setTimeout(
-                    () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
-                    timeoutMs
-                );
-                timer.unref?.();
-            }),
-        ]);
-    } finally {
-        if (timer) {
-            clearTimeout(timer);
-        }
-    }
 }
 
 function healthRank(computer) {
