@@ -21,6 +21,7 @@ export interface RuntimeContext {
 interface OpenContext extends RuntimeContext {
     /** Agent roots whose process Haus is ending on purpose (reset, retirement, Stop). */
     readonly ending: Set<string>;
+    readonly listener?: BackgroundWorkListener;
     readonly server: HostToolServer;
 }
 
@@ -29,7 +30,12 @@ const contexts = new WeakMap<DaemonRuntime, OpenContext>();
 /** Starts the host-tool server and warm pool for `runtime`; closed by `closeRuntimeContext`. */
 export function openRuntimeContext(
     runtime: DaemonRuntime,
-    options: { background?: BackgroundWorkListener; warmIdleMs?: number } = {}
+    options: {
+        background?: BackgroundWorkListener;
+        /** How long background work may hold a parked process (WarmPoolOptions). */
+        backgroundLimitMs?: number;
+        warmIdleMs?: number;
+    } = {}
 ): RuntimeContext {
     if (contexts.has(runtime)) {
         throw new Error('The Computer runtime context is already open.');
@@ -41,6 +47,7 @@ export function openRuntimeContext(
         ...(listener
             ? {
                   background: {
+                      absorbed: (agentRoot) => listener.absorbed(agentRoot),
                       changed: (agentRoot, work) => listener.changed(agentRoot, work),
                       lost: (agentRoot) => listener.lost(agentRoot, ending.has(agentRoot)),
                       wake: (agentRoot) => listener.wake(agentRoot),
@@ -49,9 +56,11 @@ export function openRuntimeContext(
             : {}),
         ending,
         hostToolServer: server,
+        ...(listener ? { listener } : {}),
         processes: runtimeProcessOwner(runtime),
         server,
         warm: new WarmProcessPool({
+            backgroundLimitMs: options.backgroundLimitMs,
             idleMs: options.warmIdleMs,
             onCloseError: (error) =>
                 void runtime.runPromise(
@@ -79,7 +88,9 @@ export function requireRuntimeContext(runtime: DaemonRuntime): RuntimeContext {
 
 /**
  * Ends the warm process parked for one Agent session, with any background work it runs, on
- * purpose: a reset, a retirement, or a human Stop. Nobody is woken to report that work.
+ * purpose: a reset, a retirement, a Restart, or a human Stop. Nobody is woken to report that
+ * work, any wake still owed is retired, and the Agent's background files are settled before
+ * this resolves, so a caller may then remove them.
  */
 export async function evictWarmRuntime(runtime: DaemonRuntime, agentRoot: string): Promise<void> {
     const context = contexts.get(runtime);
@@ -92,6 +103,15 @@ export async function evictWarmRuntime(runtime: DaemonRuntime, agentRoot: string
     } finally {
         context.ending.delete(agentRoot);
     }
+    await context.listener?.retire(agentRoot);
+}
+
+/**
+ * Interrupts the turn an Agent's parked runtime started on its own after the Server refused
+ * its wake. A process a run already claimed is left alone: that run adopted the turn.
+ */
+export async function fenceWarmRuntime(runtime: DaemonRuntime, agentRoot: string): Promise<void> {
+    await contexts.get(runtime)?.warm.fence(agentRoot);
 }
 
 /** Ends every warm runtime process, then stops the host-tool server (Computer shutdown). */

@@ -11,7 +11,7 @@ import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
 import { stopRuntimeProcesses } from './runtime/process-registry.ts';
-import { closeRuntimeContext } from './runtime/runtime-context.ts';
+import { closeRuntimeContext, fenceWarmRuntime } from './runtime/runtime-context.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
@@ -45,6 +45,7 @@ export class AttachmentDaemonWork {
             this.backgroundWork = createBackgroundWorkReporter({
                 agentsDir: join(partition.dataRoot, 'servers', partition.serverId, 'agents'),
                 closing: () => this.closing,
+                fence: (agentRoot) => fenceWarmRuntime(runtime, agentRoot),
                 holdForWake: (agentId, ms) =>
                     holdAgentLaunchHostForWake(partition.serverId, agentId, ms),
                 onError: (error) => this.reportBackgroundWorkError(error),
@@ -55,12 +56,14 @@ export class AttachmentDaemonWork {
 
     /**
      * On each connect: reports every Agent's running sub-agents (clearing counts a restart made
-     * stale), then, once, asks a wake for background work the previous daemon took with it.
+     * stale), resends every wake request the Server has not answered, then, once, asks a wake
+     * for background work the previous daemon took with it.
      */
     async syncBackgroundWork(): Promise<void> {
         const work = this.backgroundWork;
         await work
             ?.reportCounts()
+            .then(() => work.resendPendingWakes())
             .then(() => work.recoverLostWork())
             .catch((error: unknown) => this.reportBackgroundWorkError(error));
     }

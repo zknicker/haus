@@ -5,6 +5,7 @@ class FakeProcess implements WarmProcess {
     alive = true;
     closes = 0;
     holdsBackgroundWork = false;
+    backgroundWorkSince: number | null = null;
     private readonly ended = Promise.withResolvers<void>();
     readonly exited = this.ended.promise;
 
@@ -94,6 +95,26 @@ test('a process holding background work outlives the idle window, then closes on
     expect(warm.size).toBe(1);
     process.holdsBackgroundWork = false;
     await Bun.sleep(25);
+    expect(process.closes).toBe(1);
+    expect(warm.size).toBe(0);
+});
+
+test('background work past its lifetime no longer exempts the process from the idle close', async () => {
+    const warm = new WarmProcessPool({
+        backgroundLimitMs: 40,
+        idleMs: 5,
+        onCloseError: (error) => {
+            throw error;
+        },
+    });
+    const process = new FakeProcess();
+    process.holdsBackgroundWork = true;
+    process.backgroundWorkSince = Date.now();
+    await warm.park('agent-a', identity, process);
+    await Bun.sleep(20);
+    expect(process.closes).toBe(0);
+    // A hung task: the process closes as an unplanned end, so the Agent hears it stopped.
+    await Bun.sleep(60);
     expect(process.closes).toBe(1);
     expect(warm.size).toBe(0);
 });

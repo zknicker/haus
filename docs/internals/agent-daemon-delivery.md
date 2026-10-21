@@ -294,10 +294,17 @@ Computer asks the Server for a sub-agent wake (`agent-subagent-wake`) and holds
 the Agent's `haus` calls at the loopback proxy until that run's runner arrives.
 The Server queues one chatless concrete row (source `subagent`, built like a
 dream run) for the Agent's current session generation only; the wake run adopts
-Claude Code's turn instead of writing a prompt. Work a dying process takes with
-it wakes the Agent as `stopped`. A human Stop sends `agent-stop-background`
-(also with no active run), which ends the runtime process once any turn settled;
-Stop and session reset retire queued wakes.
+Claude Code's turn instead of writing a prompt. The Server answers every request
+with `agent-subagent-wake-result`: `accepted`, or `refused` (wrong generation or
+Computer, a stopped Agent, or the automation chain at its ceiling with no reset
+work queued), on which the Computer interrupts Claude Code's turn so it calls no
+more tools unadmitted. The Computer persists each request and resends it on
+every connect until it is answered. A human message's run that reaches the
+session first folds Claude Code's turn in and sends `agent-subagent-wake-retire`
+for that wake. Work a dying process takes with it wakes the Agent as `stopped`.
+A human Stop sends `agent-stop-background` (also with no active run), which ends
+the runtime process once any turn settled; Restart ends it the same way. Stop
+and session reset retire queued wakes.
 
 ## Bounds And Failures
 

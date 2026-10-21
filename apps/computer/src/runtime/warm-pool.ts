@@ -1,10 +1,17 @@
 /** A parked native runtime process (`claude`, `codex app-server`, `grok`) between turns. */
 export interface WarmProcess {
     readonly alive: boolean;
+    /** When its oldest live background task started (epoch ms); null when none runs. */
+    readonly backgroundWorkSince?: number | null;
     /** Ends the process for good; resolves once it exited. */
     close(): Promise<void>;
     /** Settles once the process exited on its own or was closed. */
     readonly exited: Promise<unknown>;
+    /**
+     * Interrupts a turn the runtime started on its own while parked, sparing its background
+     * tasks: the Server refused the wake that turn needed (specs/runtime-drivers.md).
+     */
+    fenceSelfStartedTurn?(): Promise<void>;
     /**
      * Work the process runs past its turn (a background sub-agent or shell, or a turn the
      * runtime started on its own to report one). Closing would end it, so the pool never
@@ -23,6 +30,12 @@ export interface WarmIdentity {
 }
 
 export interface WarmPoolOptions {
+    /**
+     * How long background work may keep a parked process past the idle window. Past it the
+     * work is treated as hung: the process closes as an unplanned end, so the Agent is woken
+     * to say the work stopped. Checked at each idle window, so it is honored within `idleMs`.
+     */
+    backgroundLimitMs?: number;
     /** A process parked this long without a turn is closed; the next open resumes it cold. */
     idleMs?: number;
     /** Reports a close that failed off any turn's path (idle eviction). */
@@ -37,6 +50,9 @@ export interface WarmSlot {
 }
 
 export const DEFAULT_WARM_IDLE_MS = 30 * 60_000;
+
+/** Long enough for a real research or build sub-agent; short enough that a hung one ends. */
+export const DEFAULT_BACKGROUND_LIMIT_MS = 4 * 60 * 60_000;
 
 interface Parked {
     readonly identity: WarmIdentity;
@@ -55,10 +71,12 @@ interface Parked {
 export class WarmProcessPool {
     private readonly parked = new Map<string, Parked>();
     private readonly idleMs: number;
+    private readonly backgroundLimitMs: number;
     private closed = false;
 
     constructor(private readonly options: WarmPoolOptions) {
         this.idleMs = options.idleMs ?? DEFAULT_WARM_IDLE_MS;
+        this.backgroundLimitMs = options.backgroundLimitMs ?? DEFAULT_BACKGROUND_LIMIT_MS;
     }
 
     get size(): number {
@@ -106,6 +124,11 @@ export class WarmProcessPool {
         await process.close();
     }
 
+    /** Interrupts the self-started turn of the process parked for `key`, if one is parked. */
+    async fence(key: string): Promise<void> {
+        await this.parked.get(key)?.process.fenceSelfStartedTurn?.();
+    }
+
     /** Closes the process parked for `key` (Agent reset or removal). */
     async evict(key: string): Promise<void> {
         await this.take(key)?.process.close();
@@ -144,6 +167,12 @@ export class WarmProcessPool {
         }
     }
 
+    /** Its oldest background task ran past the lifetime bound: treat it as hung. */
+    private outlived(process: WarmProcess): boolean {
+        const since = process.backgroundWorkSince;
+        return typeof since === 'number' && Date.now() - since >= this.backgroundLimitMs;
+    }
+
     private idleTimer(key: string, process: WarmProcess): ReturnType<typeof setTimeout> {
         const timer = setTimeout(() => this.expire(key, process), this.idleMs);
         timer.unref?.();
@@ -155,7 +184,7 @@ export class WarmProcessPool {
         if (entry?.process !== process) {
             return;
         }
-        if (process.holdsBackgroundWork) {
+        if (process.holdsBackgroundWork && !this.outlived(process)) {
             // Background work still runs: the idle window starts over once it ends.
             this.parked.set(key, { ...entry, timer: this.idleTimer(key, process) });
             return;

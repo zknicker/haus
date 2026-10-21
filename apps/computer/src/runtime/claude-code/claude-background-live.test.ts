@@ -39,6 +39,9 @@ liveTest(
         const driver = () =>
             createClaudeCodeDriver({
                 background: {
+                    absorbed: () => {
+                        throw new Error('Only the wake turn adopts in this flow.');
+                    },
                     changed: (_root, work) => changes.push(work),
                     lost: () => undefined,
                     wake: () => woke.resolve(performance.now() - started),

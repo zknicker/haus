@@ -53,7 +53,7 @@ export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
             }
             // A turn Claude Code started on its own while idle becomes part of this one.
             const next = new ClaudeTurn(connection, {
-                adopted: connection.adoptSelfStartedTurn(),
+                adopted: connection.adoptSelfStartedTurn({ wake: wake === true }),
                 collectPlanUsage: deps.collectPlanUsage,
                 signal,
                 wake,

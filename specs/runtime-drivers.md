@@ -76,7 +76,10 @@ Haus resume state needs no resume-to-stop at shutdown: parking and stopping stor
 
 A process holding background work (below) is exempt from the idle close and from the
 launch-fingerprint close: new launch facts wait until the work ends, and the next claim
-relaunches. Evict (reset, retirement, Stop) and pool close still end it.
+relaunches. Evict (reset, retirement, Restart, Stop) and pool close still end it. The exemption is
+bounded: once the oldest live background task has run for `backgroundLimitMs` (a pool option,
+default four hours, checked at each idle window) the work counts as hung and the idle close ends
+the process as an unplanned end, so the Agent is woken with reason `stopped`.
 
 ## Background work
 
@@ -87,31 +90,48 @@ Codex and Grok Build start no sub-agents.
 
 | Concern | Contract |
 | --- | --- |
-| Launch | `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` is never set (dropped from inherited env), so `run_in_background` and auto-backgrounding of long commands stay on, Raft's default. `Monitor` stays disallowed: it streams output into the conversation, a wake source Haus does not surface. |
+| Launch | `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` is never set (dropped from inherited env), so `run_in_background` and auto-backgrounding of long commands stay on, Raft's default. `Monitor` stays disallowed: it streams output into the conversation, a wake source Haus does not surface. Known gap: Claude Code 2.1.284 blocks a foreground `sleep` behind a remote feature flag (`tengu_amber_sentinel`), and both that block's tool error and the Bash tool description then tell the model to use `Monitor`. No CLI flag or env var turns the steer off short of disabling all remote flags, so the model can try `Monitor`, get the disallowed-tool error, and fall back to the error's other advice (`run_in_background`). |
 | Cap | `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=4` (`claude-launch.ts`), enforced by Claude Code itself: an Agent call past it is a tool error telling the model not to retry. It counts foreground and background sub-agents together; shells are not capped. |
 | Handshake | Every process sends the SDK `initialize` control request with `perTaskStopAffordance: true` before its first turn. Without it Claude Code kills every background task on interrupt; with it an interrupt (Stop, a fatal event, the no-progress deadline) ends only the turn. A resumed conversation Claude Code no longer has exits before answering, which is the typed `missing` rejection at open. |
 | Tracking | `system/background_tasks_changed` carries the whole live set (replace semantics); ambient tasks never count. `ClaudeConnection.backgroundWork` is `{ subagents, tasks }` (`local_agent` tasks, all tasks). |
 | Between turns | The connection keeps reading stdout with no turn attached. When a task finishes and no turn holds the connection, Claude Code starts a turn of its own (`system/init`, then a `result` with `origin.kind = 'task-notification'` and no `user_message_uuid`). The connection buffers it from `init` and reports a wake once it reaches the model. A notification-origin result never settles a Haus turn that did not adopt it. |
 | Fold | A task that finishes while a Haus turn runs is folded into that turn by Claude Code: one result, no wake. |
-| Adoption | `startTurn` takes any running self-started turn into the new turn (its buffered lines replay first). With `wake: true` the adopted turn replaces the prompt; otherwise the prompt is written and queues behind it. A self-started turn that reached its result before any run adopted it is dropped, and the wake run writes its prompt. |
+| Adoption | `startTurn` takes any running self-started turn into the new turn (its buffered lines replay first): one run holds the Agent at a time, so the run that starts next is the only one that can own it. With `wake: true` (the sub-agent wake run) the adopted turn replaces the prompt. Any other run (a human message's run that reached the session before the wake) folds it in as Claude Code folds a completion into a running turn: its prompt is written and queues behind the adopted turn, the run owns that turn's output and `haus` calls (its runner releases the proxy hold), and the Computer retires the wake asked for it (`agent-subagent-wake-retire` with that wake id), so no wake re-prompts afterwards. A self-started turn that reached its result before any run adopted it is dropped, and the wake run writes its prompt. |
+| Fence | `ClaudeConnection.fenceSelfStartedTurn` interrupts a self-started turn whose wake the Server refused, sparing background tasks (`perTaskStopAffordance`); a process that does not answer within five seconds is ended. Tool calls the turn made before the refusal arrived (one Server round trip) are the unavoidable unadmitted window; its `haus` calls wait at the proxy hold and never run unadmitted. |
 | Orphans | A resumed process reports tasks the previous process left running as `task_notification` `stopped` and records the notice in the conversation without calling the model (a zero-turn `result`). |
 
 The Computer side (`background-work-reporter.ts`, wired through `RuntimeContext.background`):
 
 - **Wake.** A self-started turn asks the Server for a sub-agent wake (`agent-subagent-wake`,
-  reason `finished`, the session generation from `session.json`), and the loopback proxy holds the
-  Agent's `haus` calls (`holdForRunner`, up to 120 seconds) until that run's runner arrives. The
-  Server queues one chatless concrete inbox item (source `subagent`, like a dream) only for the
-  Agent's current generation, its assigned Computer, and a running Agent; one queued wake covers
-  every report. It spends the automation chain. The wake run (`subagentWake` on the start frame,
-  trigger kind `subagent`) adopts Claude Code's turn, or prompts the Agent to report or stop
-  (`subagentWakeTurnLine`).
+  reason `finished`, a Computer-minted `wakeId`, the session generation from `session.json`), and
+  the loopback proxy holds the Agent's `haus` calls (`holdForRunner`, up to 120 seconds) until a
+  run's runner arrives. The Server queues one chatless concrete inbox item (source `subagent`,
+  like a dream) only for the Agent's current generation, its assigned Computer, and a running
+  Agent; one queued wake covers every report. It spends the automation chain. The wake run
+  (`subagentWake` on the start frame, trigger kind `subagent`) adopts Claude Code's turn, or
+  prompts the Agent to report or stop (`subagentWakeTurnLine`).
+- **Admission.** The Server answers every request with `agent-subagent-wake-result`:
+  `accepted` (queued, covered by a queued wake, or a resend of one it already queued) or
+  `refused` (another generation or Computer, a stopped Agent, or the automation chain at its
+  ceiling with no reset work queued to lead and no active run). A refusal of the wake for the
+  turn still running fences that turn (Fence above) when its process is parked; a process a run
+  already claimed was adopted by that run. A refused report stays in the conversation for the
+  next admitted turn.
+- **Delivery.** Each request is written to `runtime/subagent-wake.json` before it is sent and
+  resent on every connect until its result arrives, so a request sent between connections is
+  never lost. A deliberate end and a run that folded the turn in retire it. Every marker and
+  wake-file write runs on a per-Agent queue in call order (`keyed-queue.ts`), and a deliberate
+  end waits for that queue, so a stale write can never land after a later end or cleanup.
 - **Lost work.** A process that ends with tasks still live (a crash, a failed turn's destroy, a
-  restart) wakes the Agent with reason `stopped`, so it can tell whoever was waiting. During
-  shutdown a marker (`runtime/background-work.json`) carries it to the next daemon start. A
-  deliberate end (`evictWarmRuntime`: reset, retirement, Stop) wakes nobody and clears the marker.
+  daemon restart, a hung task past the lifetime bound) wakes the Agent with reason `stopped`, so
+  it can tell whoever was waiting. During shutdown a marker (`runtime/background-work.json`)
+  carries it to the next daemon start. A deliberate end (`evictWarmRuntime`: reset, retirement,
+  Restart, Stop) wakes nobody, clears the marker, and retires any pending wake request.
 - **Stop.** A human Stop sends `agent-stop-background`; the Computer waits for any live turn to
   settle and park, then evicts the process. Stop and session reset retire queued wakes.
+- **Restart.** An instruction Restart ends the parked process the same way, deliberately and
+  unreported as Stop does, before disposing its loopback proxy; the next turn resumes the
+  conversation on a new process.
 - **Activity.** The live sub-agent count reaches the Server as `agent-background-work`
   (specs/agent-activity.md "Background sub-agents").
 

@@ -1,9 +1,9 @@
-import { randomUUID } from 'node:crypto';
 import { access, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import type { AgentBackgroundWorkReport, AgentSubagentWakeRequest } from '@haus/api';
-import { readAgentSessionState } from './harness/session-store.ts';
+import type { AgentBackgroundWorkReport, AgentSubagentWakeResult } from '@haus/api';
+import { createKeyedQueue } from './keyed-queue.ts';
 import type { BackgroundWork, BackgroundWorkListener } from './runtime/background-work.ts';
+import { createSubagentWakeRequests } from './subagent-wake-requests.ts';
 
 /** How long a self-started turn's `haus` calls wait for the wake run the Server dispatches. */
 export const wakeHoldMs = 120_000;
@@ -16,6 +16,8 @@ export interface BackgroundWorkReporterInput {
     agentsDir: string;
     /** The attachment daemon is shutting down: lost work is reported by the next start. */
     closing(): boolean;
+    /** Interrupts the turn the runtime started on its own when the Server refused its wake. */
+    fence(agentRoot: string): Promise<void>;
     /** Holds the Agent's `haus` calls until the wake run's runner arrives. */
     holdForWake(agentId: string, ms: number): void;
     onError(error: unknown): void;
@@ -23,24 +25,30 @@ export interface BackgroundWorkReporterInput {
 }
 
 export interface BackgroundWorkReporter extends BackgroundWorkListener {
+    /** The Server's answer to one wake request. */
+    onWakeResult(result: AgentSubagentWakeResult): void;
     /** Once per daemon: asks a wake for every Agent whose background work a restart ended. */
     recoverLostWork(): Promise<void>;
     /** On each connect: every hosted Agent's live sub-agent count, zero for one with none. */
     reportCounts(): Promise<void>;
+    /** On each connect: every wake still owed an answer, sent again. */
+    resendPendingWakes(): Promise<void>;
 }
 
 /**
  * The attachment daemon's side of background work (specs/runtime-drivers.md "Background
  * work"). A turn Claude Code starts on its own becomes a Server-owned wake run; work a process
  * took with it when it died (a crash, a failed turn, a restart) becomes a `stopped` wake so the
- * Agent can tell whoever was waiting. Work Haus ended on purpose (Stop, reset) wakes nobody.
+ * Agent can tell whoever was waiting. Work Haus ended on purpose (Stop, reset, Restart) wakes
+ * nobody. Each Agent's files change on one queue, in call order.
  */
 export function createBackgroundWorkReporter(
     input: BackgroundWorkReporterInput
 ): BackgroundWorkReporter {
     let recovered = false;
     const counts = new Map<string, number>();
-    const report = (operation: Promise<unknown>) => void operation.catch(input.onError);
+    const queue = createKeyedQueue(input.onError);
+    const wakes = createSubagentWakeRequests({ fence: input.fence, queue, send: input.send });
     const sendCounts = (agents: AgentBackgroundWorkReport['agents']) => {
         if (agents.length > 0) {
             input.send({
@@ -56,41 +64,29 @@ export function createBackgroundWorkReporter(
             sendCounts([{ agentId, subagents }]);
         }
     };
-    const requestWake = async (
-        agentRoot: string,
-        reason: AgentSubagentWakeRequest['reason']
-    ): Promise<boolean> => {
-        const session = await readAgentSessionState(agentRoot);
-        if (!session) {
-            return false;
-        }
-        const frame: AgentSubagentWakeRequest = {
-            agentId: basename(agentRoot),
-            reason,
-            sessionGeneration: session.generation,
-            type: 'agent-subagent-wake',
-            wakeId: `wake_${randomUUID()}`,
-        };
-        return input.send(frame);
-    };
-    const reportStopped = async (agentRoot: string) => {
-        if (await requestWake(agentRoot, 'stopped')) {
-            await rm(markerPath(agentRoot), { force: true });
-        }
-    };
+    const clearMarker = (agentRoot: string) =>
+        queue.run(agentRoot, () => rm(markerPath(agentRoot), { force: true }));
+    const reportStopped = (agentRoot: string) =>
+        Promise.all([wakes.request(agentRoot, 'stopped'), clearMarker(agentRoot)]);
     return {
+        absorbed(agentRoot: string) {
+            void wakes.absorbed(agentRoot);
+        },
         changed(agentRoot: string, work: BackgroundWork) {
             count(agentRoot, work.subagents);
-            report(writeMarker(agentRoot, work));
+            void queue.run(agentRoot, () => writeMarker(agentRoot, work));
         },
         lost(agentRoot: string, deliberate: boolean) {
             count(agentRoot, 0);
             if (deliberate) {
-                report(rm(markerPath(agentRoot), { force: true }));
+                void clearMarker(agentRoot);
             } else if (!input.closing()) {
-                report(reportStopped(agentRoot));
+                void reportStopped(agentRoot);
             }
             // Closing: the marker stays, and the next start reports the lost work.
+        },
+        onWakeResult(result: AgentSubagentWakeResult) {
+            void wakes.answered(join(input.agentsDir, result.agentId), result);
         },
         async recoverLostWork() {
             if (recovered) {
@@ -112,9 +108,17 @@ export function createBackgroundWorkReporter(
                 }))
             );
         },
+        async resendPendingWakes() {
+            const roots = await listAgentRoots(input.agentsDir);
+            await Promise.all(roots.map((agentRoot) => wakes.resend(agentRoot)));
+        },
+        async retire(agentRoot: string) {
+            await Promise.all([wakes.retire(agentRoot), clearMarker(agentRoot)]);
+        },
+        settled: (agentRoot: string) => queue.settled(agentRoot),
         wake(agentRoot: string) {
             input.holdForWake(basename(agentRoot), wakeHoldMs);
-            report(requestWake(agentRoot, 'finished'));
+            void wakes.request(agentRoot, 'finished');
         },
     };
 }

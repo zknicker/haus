@@ -7,29 +7,40 @@ import type { ClaudeSystemMessage, ParsedClaudeLine } from './claude-messages.ts
  * not activity, as Claude Code documents, so they never count.
  */
 export class ClaudeBackgroundTasks {
-    private live = new Map<string, string>();
+    /** task id → its type and when this connection first saw it live (epoch ms). */
+    private live = new Map<string, { since: number; type: string }>();
 
     get work(): BackgroundWork {
-        const types = [...this.live.values()];
+        const types = [...this.live.values()].map((task) => task.type);
         return {
             subagents: types.filter((type) => type === 'local_agent').length,
             tasks: types.length,
         };
     }
 
+    /** When the oldest live task started; null when none runs. */
+    get since(): number | null {
+        const starts = [...this.live.values()].map((task) => task.since);
+        return starts.length > 0 ? Math.min(...starts) : null;
+    }
+
     /** Applies one system message; returns whether the live set changed. */
-    apply(message: ClaudeSystemMessage): boolean {
+    apply(message: ClaudeSystemMessage, now = Date.now()): boolean {
         if (message.subtype !== 'background_tasks_changed' || !message.tasks) {
             return false;
         }
         const next = new Map(
             message.tasks
                 .filter((task) => task.ambient !== true)
-                .map((task) => [task.task_id, task.task_type])
+                .map((task) => {
+                    const known = this.live.get(task.task_id);
+                    const since = known?.type === task.task_type ? known.since : now;
+                    return [task.task_id, { since, type: task.task_type }] as const;
+                })
         );
         const changed =
             next.size !== this.live.size ||
-            [...next].some(([id, type]) => this.live.get(id) !== type);
+            [...next].some(([id, task]) => this.live.get(id)?.type !== task.type);
         this.live = next;
         return changed;
     }
@@ -81,10 +92,13 @@ export class SelfStartedTurns {
         return true;
     }
 
-    /** Hands the running self-started turn's lines to a Haus turn, or null when none runs. */
-    take(): readonly ParsedClaudeLine[] | null {
-        const lines = this.current?.lines ?? null;
+    /**
+     * Hands the running self-started turn to a Haus turn, or null when none runs. `announced`:
+     * it reached the model, so a wake was asked for it.
+     */
+    take(): { announced: boolean; lines: readonly ParsedClaudeLine[] } | null {
+        const taken = this.current;
         this.current = null;
-        return lines;
+        return taken;
     }
 }

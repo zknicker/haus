@@ -4,11 +4,13 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
+import { handleBackgroundFrame } from './agent-background-frames.ts';
 import * as commandFrames from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
-import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
+import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import {
     agentWorkspacePreparation,
+    handleRestartFrame,
     resetOwnedAgentState,
     retireOwnedAgentState,
 } from './agent-partition-lifecycle.ts';
@@ -16,7 +18,6 @@ import { parseAgentRetireCommand } from './agent-retirement.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
-import { handleStopFrame } from './agent-stop-frames.ts';
 import { traceAgentTurn } from './agent-turn-telemetry.ts';
 import { handleCloudAgentFrame } from './attachment-cloud-agents.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
@@ -77,7 +78,6 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
-import { requestSessionRestart } from './harness/session-restart.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
     acceptHostSkillImport,
@@ -1150,24 +1150,13 @@ async function connect(
             ) {
                 return;
             }
-            const stopDeps = { agentWork, agentsDir, onError: reportStateError, runtime };
-            if (handleStopFrame(frame, { ...stopDeps, track: trackWriter })) {
-                return;
-            }
-            const restart = commandFrames.parseRestartCommand(frame);
-            if (restart) {
-                if (retiredAgents.has(restart.agentId)) {
-                    return;
-                }
-                void trackWriter(
-                    agentWork
-                        .enqueueConfiguration(restart.agentId, async () => {
-                            await agentWork.waitForRun(restart.agentId);
-                            disposeAgentLaunchHost(attachment.serverId, restart.agentId);
-                            await requestSessionRestart(join(agentsDir, restart.agentId));
-                        })
-                        .catch(reportStateError)
-                );
+            const { backgroundWork } = daemonWork;
+            const { serverId } = attachment;
+            const deps = { agentWork, onError: reportStateError, runtime, track: trackWriter };
+            if (
+                handleBackgroundFrame(frame, { ...deps, agentsDir, backgroundWork }) ||
+                handleRestartFrame(frame, { ...deps, dataRoot, retiredAgents, serverId })
+            ) {
                 return;
             }
             const retirement = parseAgentRetireCommand(frame);

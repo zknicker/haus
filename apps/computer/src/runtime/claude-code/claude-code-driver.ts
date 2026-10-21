@@ -139,6 +139,7 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
                 launchKey,
                 sessionId,
                 background && {
+                    absorbed: () => background.absorbed(warmKey),
                     changed: (work) => background.changed(warmKey, work),
                     lost: () => background.lost(warmKey),
                     wake: () => background.wake(warmKey),

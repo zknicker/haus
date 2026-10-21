@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { BackgroundWork } from '../background-work.ts';
 import type { TurnEvent } from '../turn-event.ts';
+import type { ParsedClaudeLine } from './claude-messages.ts';
 import { ClaudeTurn } from './claude-turn.ts';
 import { collect, readFixture, replayConnection } from './fixtures/fixture-replay.ts';
 
@@ -12,14 +13,17 @@ import { collect, readFixture, replayConnection } from './fixtures/fixture-repla
  */
 function open(name: string, processIndex = 0) {
     const changes: BackgroundWork[] = [];
+    const absorbed: true[] = [];
     let onWake: () => void = () => undefined;
     const replay = replayConnection(name, processIndex, {
+        absorbed: () => absorbed.push(true),
         changed: (work) => changes.push(work),
         lost: () => changes.push({ subagents: -1, tasks: -1 }),
         wake: () => onWake(),
     });
     return {
         ...replay,
+        absorbed,
         changes,
         setWake(handler: () => void) {
             onWake = handler;
@@ -29,7 +33,7 @@ function open(name: string, processIndex = 0) {
 
 const turnOn = (
     connection: ReturnType<typeof replayConnection>['connection'],
-    options: { adopted?: ReturnType<typeof connection.adoptSelfStartedTurn>; wake?: boolean } = {}
+    options: { adopted?: readonly ParsedClaudeLine[] | null; wake?: boolean } = {}
 ) =>
     new ClaudeTurn(connection, {
         collectPlanUsage: false,
@@ -53,6 +57,7 @@ test('the turn that starts a background sub-agent ends at its own result while t
     expect(textOf(events)).toBe('started');
     expect(replay.connection.backgroundWork).toEqual({ subagents: 1, tasks: 1 });
     expect(replay.connection.holdsBackgroundWork).toBe(true);
+    expect(replay.connection.backgroundWorkSince).toBeNumber();
     expect(replay.changes[0]).toEqual({ subagents: 1, tasks: 1 });
 
     // A new message is answered while the sub-agent still runs.
@@ -62,7 +67,7 @@ test('the turn that starts a background sub-agent ends at its own result while t
         // The run adopts the turn Claude Code started on its own; here at once, in production
         // whenever the Server's wake run reaches the session.
         adopted = turnOn(replay.connection, {
-            adopted: replay.connection.adoptSelfStartedTurn(),
+            adopted: replay.connection.adoptSelfStartedTurn({ wake: true }),
             wake: true,
         });
         void adopted.start('wake prompt is never written');
@@ -102,7 +107,52 @@ test('a turn Claude Code started and finished before any run adopted it is not a
     while (replay.connection.holdsBackgroundWork) {
         await Bun.sleep(1);
     }
-    expect(replay.connection.adoptSelfStartedTurn()).toBeNull();
+    expect(replay.connection.adoptSelfStartedTurn({ wake: true })).toBeNull();
+});
+
+/** Runs the fixture until Claude Code starts its own turn and announces the wake. */
+async function untilSelfStarted(replay: ReturnType<typeof open>) {
+    const woke = Promise.withResolvers<void>();
+    replay.setWake(() => woke.resolve());
+    await replay.connection.initialize();
+    for (const prompt of ['start', 'pong']) {
+        const turn = turnOn(replay.connection);
+        await turn.start(prompt);
+        await collect(turn.events);
+    }
+    await woke.promise;
+}
+
+test('only the wake run adopts silently; any other run that adopts the turn retires its wake', async () => {
+    const wakeRun = open('background-subagent');
+    await untilSelfStarted(wakeRun);
+    expect(wakeRun.connection.adoptSelfStartedTurn({ wake: true })).not.toBeNull();
+    expect(wakeRun.absorbed).toEqual([]);
+
+    const humanRun = open('background-subagent');
+    await untilSelfStarted(humanRun);
+    // A human message's run won the race: it folds the turn in and owns its report.
+    expect(humanRun.connection.adoptSelfStartedTurn({ wake: false })).not.toBeNull();
+    expect(humanRun.absorbed).toEqual([true]);
+});
+
+test('a refused wake interrupts the self-started turn and spares the background tasks', async () => {
+    const replay = open('background-subagent');
+    await untilSelfStarted(replay);
+    const writes = replay.process.writes.length;
+    const fenced = replay.connection.fenceSelfStartedTurn();
+    await Bun.sleep(0);
+    const interrupt = JSON.parse(replay.process.writes[writes] ?? '{}');
+    // No `cancel_queued`, and never the process: background tasks keep running.
+    expect(interrupt.request).toEqual({ subtype: 'interrupt' });
+    expect(replay.process.alive).toBe(true);
+    await replay.process.stop();
+    await fenced;
+    // Nothing self-started is left to fence.
+    const idle = open('background-orphan', 1);
+    await idle.connection.initialize();
+    await idle.connection.fenceSelfStartedTurn();
+    expect(idle.process.writes).toHaveLength(1);
 });
 
 test('an interrupt of a later turn spares the background sub-agent, whose report still wakes', async () => {

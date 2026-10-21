@@ -14,8 +14,13 @@ import type { ClaudeExit, ClaudeProcess } from './claude-process.ts';
 /** How long a new process may take to answer the `initialize` handshake. */
 const initializeTimeoutMs = 30_000;
 
+/** How long a fenced self-started turn may take to stop before the process is ended. */
+const fenceGraceMs = 5000;
+
 /** Where the connection reports work that outlives a turn (the daemon's listener, bound). */
 export interface ClaudeBackgroundHooks {
+    /** A run other than the wake adopted the self-started turn its wake was asked for. */
+    absorbed(): void;
     changed(work: BackgroundWork): void;
     /** The process ended with background tasks still live. */
     lost(): void;
@@ -90,6 +95,10 @@ export class ClaudeConnection implements WarmProcess {
         return this.process.alive && (this.tasks.work.tasks > 0 || this.selfStarted.running);
     }
 
+    get backgroundWorkSince(): number | null {
+        return this.tasks.since;
+    }
+
     /**
      * The SDK handshake. `perTaskStopAffordance` makes an interrupt stop only the turn: Claude
      * Code otherwise kills every background task on interrupt (it assumes a host with no other
@@ -102,9 +111,31 @@ export class ClaudeConnection implements WarmProcess {
         );
     }
 
-    /** The turn Claude Code is running on its own, for a Haus turn to adopt; null when none. */
-    adoptSelfStartedTurn(): readonly ParsedClaudeLine[] | null {
-        return this.selfStarted.take();
+    /**
+     * The turn Claude Code is running on its own, for a Haus turn to adopt; null when none. Any
+     * run adopts it: one run holds the Agent at a time, so the run that starts next is the only
+     * one that can. The wake run (`wake`) exists for it; any other run (a human message that
+     * won the race) folds it in as Claude Code folds a completion into a running turn, owns its
+     * report and `haus` calls, and retires the wake asked for it.
+     */
+    adoptSelfStartedTurn(options: { wake: boolean }): readonly ParsedClaudeLine[] | null {
+        const taken = this.selfStarted.take();
+        if (taken?.announced && !options.wake) {
+            this.background?.absorbed();
+        }
+        return taken?.lines ?? null;
+    }
+
+    /**
+     * Interrupts the turn Claude Code started on its own, after the Server refused its wake: no
+     * run will own it, so it must not keep calling tools. The interrupt spares background tasks
+     * (`perTaskStopAffordance`); a process that will not answer is ended.
+     */
+    async fenceSelfStartedTurn(): Promise<void> {
+        if (!(this.selfStarted.running && this.process.alive)) {
+            return;
+        }
+        await this.control({ subtype: 'interrupt' }, fenceGraceMs).catch(() => this.stop());
     }
 
     get exited(): Promise<unknown> {
