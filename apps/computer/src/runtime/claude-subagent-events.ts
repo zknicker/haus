@@ -33,6 +33,7 @@ function taskEvents(message: Record<string, unknown>): SubagentTurnEvent[] {
                 taskId,
                 toolCallId,
                 type: 'subagent-started',
+                ...(message.is_backgrounded === true ? { backgrounded: true as const } : {}),
                 ...optional('description', text(message.description)),
                 ...optional('subagentType', text(message.subagent_type)),
             },

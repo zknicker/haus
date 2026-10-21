@@ -79,6 +79,8 @@ export interface ToolReadLocationTurnEvent {
  */
 export type SubagentTurnEvent =
     | {
+          /** It runs in the background, past its delegating call and turn. */
+          readonly backgrounded?: true;
           readonly description?: string;
           readonly subagentType?: string;
           readonly taskId: string;

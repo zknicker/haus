@@ -33,6 +33,8 @@ export interface ExecutionJournalReasoning {
 
 /** The sub-agent a delegating tool call ran. */
 export interface ExecutionJournalSubagent {
+    /** Runs in the background past its delegating call and turn (see the schema). */
+    backgrounded?: true;
     endedAt?: string;
     label: string;
     latestAction?: string;

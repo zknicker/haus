@@ -88,6 +88,7 @@ async function recordTaskEvent(
         const subagentType = label(event.subagentType);
         // A finished task may be revived under the same id; it runs again.
         await record(journal, event.toolCallId, {
+            ...(event.backgrounded ? { backgrounded: true } : {}),
             endedAt: null,
             status: 'running',
             ...(description ? { label: description } : {}),

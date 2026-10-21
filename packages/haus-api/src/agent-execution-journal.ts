@@ -44,6 +44,13 @@ export const EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS = 128;
  */
 export const executionJournalSubagentSchema = z
     .object({
+        /**
+         * A background sub-agent: it keeps running after its delegating call returns and its
+         * turn ends, and reports to the Agent in a later turn. Nothing in this run settles it,
+         * so a `running` status here means it was still running when the run's evidence ends;
+         * a completion within the run still settles it with the real outcome.
+         */
+        backgrounded: z.literal(true).optional(),
         endedAt: timestampSchema.optional(),
         /**
          * How many of the sub-agent's own tool calls failed. The Server derives it when

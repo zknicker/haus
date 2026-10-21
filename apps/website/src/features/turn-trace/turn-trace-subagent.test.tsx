@@ -8,6 +8,7 @@ import {
     formatSubagentDetails,
     formatSubagentLabel,
     formatSubagentToolCount,
+    resolveSubagentStatus,
 } from './turn-trace-subagent.ts';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 
@@ -82,6 +83,21 @@ test('the row label follows the sub-agent status, not the parent call status', (
         formatSubagentLabel(tool({ input: { description: 'Audit docs' }, toolName: 'Agent' })),
         'Ran sub-agent: Audit docs'
     );
+});
+
+test('a background sub-agent still running past its run reads as started, not live', () => {
+    const background = tool({
+        status: 'completed',
+        subagent: subagent({ backgrounded: true, status: 'running' }),
+    });
+    assert.equal(
+        formatSubagentLabel(background),
+        'Started background sub-agent: Count files in apps'
+    );
+    assert.equal(resolveSubagentStatus(background), 'completed');
+    // One that finished within the run reads as any other.
+    const folded = tool({ subagent: subagent({ backgrounded: true, status: 'completed' }) });
+    assert.equal(formatSubagentLabel(folded), 'Ran sub-agent: Count files in apps');
 });
 
 test('sub-agent meta prefers reported usage, else counts the calls seen so far', () => {

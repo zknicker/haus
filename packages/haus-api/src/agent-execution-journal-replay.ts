@@ -60,13 +60,16 @@ export function interruptExecutionJournalTool(
     tool.interruptions = interruptions;
 }
 
-/** Closes a sub-agent still running when its tool or turn settles without saying so. */
+/**
+ * Closes a sub-agent still running when its tool or turn settles without saying so. A
+ * background sub-agent outlives both, so only its own status report settles it.
+ */
 export function settleExecutionJournalSubagent(
     tool: ExecutionJournalTool,
     status: Exclude<ExecutionJournalStatus, 'running'>,
     at: string
 ) {
-    if (tool.subagent?.status !== 'running') {
+    if (tool.subagent?.status !== 'running' || tool.subagent.backgrounded) {
         return;
     }
     tool.subagent = { ...tool.subagent, endedAt: at, status };

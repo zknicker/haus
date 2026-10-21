@@ -216,6 +216,59 @@ test('an interrupted turn settles a running sub-agent and its delegating operati
     expect(child).toMatchObject({ parentToolCallId: parent, status: 'completed' });
 });
 
+test('a background sub-agent outlives its launch call and turn: marked backgrounded, never settled', async () => {
+    const { journal, projector } = await setup('run_background');
+    // As Claude Code 2.1.284 streams it (fixtures/background-subagent.jsonl): the call, the
+    // task's start marked `is_backgrounded`, then the launch acknowledgement as its result.
+    await observeAll(projector, [
+        completedRun[0] ?? [],
+        raw({
+            description: 'Count lines a',
+            is_backgrounded: true,
+            subagent_type: 'general-purpose',
+            subtype: 'task_started',
+            task_id: task,
+            task_type: 'local_agent',
+            tool_use_id: parent,
+            type: 'system',
+        }),
+        [
+            {
+                output: { isAsync: true, status: 'async_launched' },
+                toolCallId: parent,
+                toolName: 'Agent',
+                type: 'tool-result',
+            },
+        ],
+    ]);
+    await projector.finish('completed');
+    await journal.finish('completed');
+
+    const document = agentExecutionJournalSchema.parse(journal.snapshot());
+    expect(document.tools[0]?.status).toBe('completed');
+    expect(document.tools[0]?.subagent).toMatchObject({
+        backgrounded: true,
+        label: 'Count lines a',
+        status: 'running',
+    });
+    expect(document.tools[0]?.subagent?.endedAt).toBeUndefined();
+});
+
+test('a background sub-agent that finishes within the run settles with its real outcome', async () => {
+    const { journal, projector } = await setup('run_background_fold');
+    const backgrounded = completedRun.map((events) =>
+        events.map((event) =>
+            event.type === 'subagent-started' ? { ...event, backgrounded: true as const } : event
+        )
+    );
+    await observeAll(projector, backgrounded);
+    await journal.finish('completed');
+    expect(journal.snapshot().tools[0]?.subagent).toMatchObject({
+        backgrounded: true,
+        status: 'completed',
+    });
+});
+
 test('a revived task runs again and a stray child call never opens activity', async () => {
     const { events, journal, projector } = await setup('run_revive');
     await observeAll(projector, completedRun.slice(0, 9));
