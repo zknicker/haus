@@ -1,5 +1,6 @@
 import type * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useRelativeNow } from '../../../../components/time/relative-time.tsx';
 import { useAgentHeartbeats } from '../../../../hooks/members/use-agent-heartbeats.ts';
 import { ActivityNote } from '../../../members/agent-profile/agent-activity.tsx';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
@@ -31,7 +32,7 @@ export function HeartbeatsView({
     serverId: string;
     serverSlug: string;
 }) {
-    const nowMs = useNow(30_000);
+    const nowMs = useRelativeNow(30_000);
     const [offset, setOffset] = useState(0);
     const [chosenKey, setChosenKey] = useState<string | null>(null);
     const day = readDayWindow(offset, nowMs);
@@ -104,14 +105,4 @@ function EmptyDay({ isToday }: { isToday: boolean }) {
             {isToday ? 'No heartbeats today' : 'No heartbeats this day'}
         </p>
     );
-}
-
-/** The clock the Now line and the day label read, ticking on an interval. */
-function useNow(intervalMs: number): number {
-    const [now, setNow] = useState(() => Date.now());
-    useEffect(() => {
-        const timer = window.setInterval(() => setNow(Date.now()), intervalMs);
-        return () => window.clearInterval(timer);
-    }, [intervalMs]);
-    return now;
 }

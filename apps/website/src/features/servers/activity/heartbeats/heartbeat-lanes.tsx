@@ -35,8 +35,8 @@ export function HeartbeatLanes({
     const bands = readNightBands(window);
     const nowAt = isToday ? readTrackPosition(nowMs, window) : null;
     return (
-        <div className="border-separator border-b">
-            <div className="grid divide-y divide-separator">
+        <div className="border-separator border-b pb-2">
+            <div className="grid gap-1">
                 <div aria-hidden className={cn(laneRowClass, 'h-5')}>
                     <span />
                     <HourRuler nowAt={nowAt} window={window} />

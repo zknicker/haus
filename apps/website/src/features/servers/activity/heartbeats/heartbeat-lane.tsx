@@ -1,3 +1,4 @@
+import { Badge } from '@heroui/react';
 import type * as React from 'react';
 import { EntityAvatar } from '../../../../components/ui/entity-avatar.tsx';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
@@ -43,37 +44,48 @@ export function HeartbeatLane({
     }));
     const tabKey = marks.find((entry) => entry.key === selectedKey)?.key ?? marks[0]?.key;
     return (
-        <div className={`${laneRowClass} h-[52px]`}>
-            <span className="flex min-w-0 items-center gap-2 text-sm">
-                <EntityAvatar name={name} size={16} src={agent?.avatarUrl} />
+        <div className={`${laneRowClass} h-12`}>
+            <span className="flex min-w-0 items-center gap-2.5 text-sm">
+                <Badge.Anchor className="shrink-0" style={{ height: 34, width: 34 }}>
+                    <EntityAvatar name={name} size={34} src={agent?.avatarUrl} />
+                    {marks.length > 0 ? (
+                        <Badge
+                            color="default"
+                            placement="bottom-right"
+                            size="sm"
+                            title={`${marks.length} runs today`}
+                        >
+                            {marks.length}
+                        </Badge>
+                    ) : null}
+                </Badge.Anchor>
                 <span className="truncate font-medium">{name}</span>
             </span>
             {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: a roving toolbar; the key handler walks the real buttons inside it */}
             <div
                 aria-label={`${name} heartbeats`}
-                className="relative h-10"
+                className="relative h-full"
                 onKeyDown={walkMarks}
                 role="toolbar"
             >
-                {bands.map((band) => (
-                    <span
-                        aria-hidden
-                        className="absolute inset-y-1 rounded-sm bg-default/35"
-                        key={band.left}
-                        style={{ left: `${band.left}%`, width: `${band.width}%` }}
-                    />
-                ))}
-                <span
+                <div
                     aria-hidden
-                    className="absolute inset-x-0 top-1/2 border-border border-t border-dotted"
-                />
-                {nowAt === null ? null : (
-                    <span
-                        aria-hidden
-                        className="absolute inset-y-0 w-px bg-accent"
-                        style={{ left: `${nowAt}%` }}
-                    />
-                )}
+                    className="absolute inset-0 overflow-hidden rounded-lg bg-default/40"
+                >
+                    {bands.map((band) => (
+                        <span
+                            className="absolute inset-y-0 bg-default/50"
+                            key={band.left}
+                            style={{ left: `${band.left}%`, width: `${band.width}%` }}
+                        />
+                    ))}
+                    {nowAt === null ? null : (
+                        <span
+                            className="absolute inset-y-0 w-px bg-accent"
+                            style={{ left: `${nowAt}%` }}
+                        />
+                    )}
+                </div>
                 {marks.map(({ key, left, mark }) => (
                     <HeartbeatMarkButton
                         agentName={name}

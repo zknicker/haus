@@ -66,6 +66,7 @@ describe('Server-level stream hooks', () => {
             read('agent.workspaceFile', agent),
             read('agent.workspaceFiles', agent),
             read('agent.list', { serverId }),
+            read('agent.heartbeats', { serverId }),
             read('chat.list', { serverId }),
         ]);
         // Recovery is the broad (null id) row.
