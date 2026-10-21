@@ -1,11 +1,15 @@
 import type { Chat, HeartbeatMark } from '@haus/api';
 import type * as React from 'react';
 import { useListedChat } from '../../../../hooks/servers/use-chats.ts';
+import { HeartbeatGlyph } from './heartbeat-glyph.tsx';
+import { readGlyphKind } from './heartbeat-marks-model.ts';
+import { OutcomeBubble } from './heartbeat-outcome-bubble.tsx';
 
 /**
- * What a heartbeat or dream run came to, as the lead of its log row: the
- * report (and where it was posted), the dream's learnings, or a muted line for
- * a quiet, stopped or failed run. `fallback` is the turn's own summary line.
+ * What a heartbeat or dream run came to, as a bubble from the Agent leading its
+ * log row: the report (and where it was posted), the dream's learnings, or a
+ * small muted one for a quiet, stopped or failed run. `fallback` is the turn's
+ * own summary line.
  */
 export function HeartbeatRunOutcome({
     fallback,
@@ -19,61 +23,102 @@ export function HeartbeatRunOutcome({
     if (!mark) {
         return null;
     }
+    const glyph = (
+        <HeartbeatGlyph isFailed={mark.outcome === 'failed'} kind={readGlyphKind(mark)} size={18} />
+    );
     return (
-        <div className="grid max-w-[70ch] gap-0.5 text-sm" data-heartbeat-outcome={mark.outcome}>
-            <OutcomeBody fallback={fallback} mark={mark} serverId={serverId} />
+        <div
+            className="flex max-w-[70ch] flex-wrap items-center gap-x-2.5 text-sm"
+            data-heartbeat-outcome={mark.outcome}
+        >
+            <OutcomeBody fallback={fallback} glyph={glyph} mark={mark} serverId={serverId} />
         </div>
     );
 }
 
 function OutcomeBody({
     fallback,
+    glyph,
     mark,
     serverId,
 }: {
     fallback: string;
+    glyph: React.ReactNode;
     mark: HeartbeatMark;
     serverId: string;
 }) {
     if (mark.dream) {
         const { added, followUps, removed, summaryLine } = mark.dream;
         return (
-            <>
-                {summaryLine ? <p>{summaryLine}</p> : <Muted>No learnings recorded</Muted>}
-                <Muted>
-                    {`Memory +${added} −${removed}`}
-                    {followUps > 0
-                        ? ` · ${followUps === 1 ? '1 follow-up' : `${followUps} follow-ups`}`
-                        : ''}
-                </Muted>
-            </>
+            <OutcomeBubble shape="thought" tone="dream">
+                {glyph}
+                <div className="grid gap-1">
+                    {summaryLine ? (
+                        <p>{summaryLine}</p>
+                    ) : (
+                        <p className="text-muted">No learnings recorded</p>
+                    )}
+                    <Footer>
+                        {`Memory +${added} −${removed}`}
+                        {followUps > 0
+                            ? ` · ${followUps === 1 ? '1 follow-up' : `${followUps} follow-ups`}`
+                            : ''}
+                    </Footer>
+                </div>
+            </OutcomeBubble>
         );
     }
     if (mark.report) {
         return (
-            <>
-                <p className="whitespace-pre-line">{mark.report.text}</p>
-                {mark.report.postedChatId ? (
-                    <PostedIn chatId={mark.report.postedChatId} serverId={serverId} />
-                ) : null}
-            </>
+            <OutcomeBubble tone="report">
+                {glyph}
+                <div className="grid gap-1">
+                    <p className="whitespace-pre-line">{mark.report.text}</p>
+                    {mark.report.postedChatId ? (
+                        <PostedIn chatId={mark.report.postedChatId} serverId={serverId} />
+                    ) : null}
+                </div>
+            </OutcomeBubble>
         );
     }
     if (mark.outcome === 'failed') {
-        return <p className="text-danger">{fallback || 'Failed'}</p>;
+        return (
+            <OutcomeBubble tone="danger">
+                {glyph}
+                <p className="text-danger">{fallback || 'Failed'}</p>
+            </OutcomeBubble>
+        );
     }
     if (mark.outcome === 'yielded') {
-        return <Muted>Stopped for a message to the agent</Muted>;
+        return (
+            <OutcomeBubble tone="muted">
+                {glyph}
+                <p>Stopped for a message to the agent</p>
+            </OutcomeBubble>
+        );
     }
     if (mark.outcome === 'running') {
-        return <Muted>Running</Muted>;
+        return (
+            <OutcomeBubble compact tone="muted">
+                {glyph}
+                <p>Running</p>
+            </OutcomeBubble>
+        );
     }
-    return <Muted>{fallback ? `Nothing to report · ${fallback}` : 'Nothing to report'}</Muted>;
+    return (
+        <>
+            <OutcomeBubble compact tone="muted">
+                {glyph}
+                <p>Nothing to report</p>
+            </OutcomeBubble>
+            {fallback ? <span className="mt-2 text-muted text-xs">{fallback}</span> : null}
+        </>
+    );
 }
 
 function PostedIn({ chatId, serverId }: { chatId: string; serverId: string }) {
     const chat = useListedChat(serverId, chatId);
-    return <Muted>{`Posted in ${readPlace(chat)}`}</Muted>;
+    return <Footer>{`Posted in ${readPlace(chat)}`}</Footer>;
 }
 
 /** DMs read "DM", never the peer's name; a channel reads "#name". */
@@ -87,6 +132,6 @@ function readPlace(chat: Chat | undefined): string {
     return chat.name ? `#${chat.name}` : 'a channel';
 }
 
-function Muted({ children }: { children: React.ReactNode }) {
-    return <p className="text-muted">{children}</p>;
+function Footer({ children }: { children: React.ReactNode }) {
+    return <p className="text-muted text-xs">{children}</p>;
 }

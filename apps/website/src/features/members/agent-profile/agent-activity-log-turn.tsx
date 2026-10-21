@@ -98,7 +98,10 @@ export function ActivityLogTurn({
 
     return (
         <div
-            className={cn('grid min-w-0 scroll-mt-40 pt-1.5 pb-1', traceTurnClass(isLinked))}
+            className={cn(
+                'group/turn grid min-w-0 scroll-mt-40 pt-1.5 pb-1',
+                traceTurnClass(isLinked)
+            )}
             data-log-turn={turn.runId}
             onPointerLeave={() => hover.set(null)}
             onPointerOver={(event) => {
