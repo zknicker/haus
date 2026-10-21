@@ -61,6 +61,26 @@ export const agentSubagentWakeRequestSchema = z
 export type AgentSubagentWakeRequest = z.infer<typeof agentSubagentWakeRequestSchema>;
 
 /**
+ * Computer→Server: how many background sub-agents each listed Agent runs right now, past the
+ * turn that started them. Sent for one Agent when its count changes, and for every Agent the
+ * Computer hosts on each connect, so a restarted Computer clears counts its processes took
+ * with them. A count is volatile runtime state; the Server stores only the latest.
+ */
+export const agentBackgroundWorkReportSchema = z
+    .object({
+        agents: z
+            .array(
+                z.object({ agentId: idSchema, subagents: z.number().int().min(0).max(64) }).strict()
+            )
+            .min(1)
+            .max(500),
+        type: z.literal('agent-background-work'),
+    })
+    .strict();
+
+export type AgentBackgroundWorkReport = z.infer<typeof agentBackgroundWorkReportSchema>;
+
+/**
  * The inbox items whose bodies may enter this run's prompt. Eligibility is
  * Server-owned; the lane is not. The Computer knows whether its harness session
  * resumed, so it drains {@link agentStartCommandSchema.shape.drainItemIds} on

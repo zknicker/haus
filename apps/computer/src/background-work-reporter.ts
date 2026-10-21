@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { access, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import type { AgentSubagentWakeRequest } from '@haus/api';
+import type { AgentBackgroundWorkReport, AgentSubagentWakeRequest } from '@haus/api';
 import { readAgentSessionState } from './harness/session-store.ts';
 import type { BackgroundWork, BackgroundWorkListener } from './runtime/background-work.ts';
 
@@ -25,6 +25,8 @@ export interface BackgroundWorkReporterInput {
 export interface BackgroundWorkReporter extends BackgroundWorkListener {
     /** Once per daemon: asks a wake for every Agent whose background work a restart ended. */
     recoverLostWork(): Promise<void>;
+    /** On each connect: every hosted Agent's live sub-agent count, zero for one with none. */
+    reportCounts(): Promise<void>;
 }
 
 /**
@@ -37,7 +39,23 @@ export function createBackgroundWorkReporter(
     input: BackgroundWorkReporterInput
 ): BackgroundWorkReporter {
     let recovered = false;
+    const counts = new Map<string, number>();
     const report = (operation: Promise<unknown>) => void operation.catch(input.onError);
+    const sendCounts = (agents: AgentBackgroundWorkReport['agents']) => {
+        if (agents.length > 0) {
+            input.send({
+                agents,
+                type: 'agent-background-work',
+            } satisfies AgentBackgroundWorkReport);
+        }
+    };
+    const count = (agentRoot: string, subagents: number) => {
+        const agentId = basename(agentRoot);
+        if ((counts.get(agentId) ?? 0) !== subagents) {
+            counts.set(agentId, subagents);
+            sendCounts([{ agentId, subagents }]);
+        }
+    };
     const requestWake = async (
         agentRoot: string,
         reason: AgentSubagentWakeRequest['reason']
@@ -62,9 +80,11 @@ export function createBackgroundWorkReporter(
     };
     return {
         changed(agentRoot: string, work: BackgroundWork) {
+            count(agentRoot, work.subagents);
             report(writeMarker(agentRoot, work));
         },
         lost(agentRoot: string, deliberate: boolean) {
+            count(agentRoot, 0);
             if (deliberate) {
                 report(rm(markerPath(agentRoot), { force: true }));
             } else if (!input.closing()) {
@@ -82,6 +102,15 @@ export function createBackgroundWorkReporter(
                     await reportStopped(agentRoot);
                 }
             }
+        },
+        async reportCounts() {
+            const agents = (await listAgentRoots(input.agentsDir)).map((root) => basename(root));
+            sendCounts(
+                agents.slice(0, 500).map((agentId) => ({
+                    agentId,
+                    subagents: counts.get(agentId) ?? 0,
+                }))
+            );
         },
         wake(agentRoot: string) {
             input.holdForWake(basename(agentRoot), wakeHoldMs);

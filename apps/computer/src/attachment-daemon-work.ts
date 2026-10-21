@@ -53,9 +53,16 @@ export class AttachmentDaemonWork {
         }
     }
 
-    /** Asks a wake for background work the previous daemon's processes took with them. */
-    async recoverLostBackgroundWork(): Promise<void> {
-        await this.backgroundWork?.recoverLostWork().catch(reportBackgroundWorkError);
+    /**
+     * On each connect: reports every Agent's running sub-agents (clearing counts a restart made
+     * stale), then, once, asks a wake for background work the previous daemon took with it.
+     */
+    async syncBackgroundWork(): Promise<void> {
+        const work = this.backgroundWork;
+        await work
+            ?.reportCounts()
+            .then(() => work.recoverLostWork())
+            .catch(reportBackgroundWorkError);
     }
 
     attachSender(sender: AttachmentFrameSender): () => void {

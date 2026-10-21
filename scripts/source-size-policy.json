@@ -85,7 +85,6 @@
     "apps/website/src/features/servers/chat/chat-search.tsx": 333,
     "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
     "packages/haus-api/src/agent-runner.ts": 420,
-    "packages/haus-api/src/agent.ts": 304,
     "packages/haus-sdk/src/client.ts": 431,
     "scripts/agent-tests/kit.mjs": 309,
     "scripts/agent-tests/kit.test.mjs": 459,

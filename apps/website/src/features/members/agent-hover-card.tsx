@@ -4,7 +4,7 @@ import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { agentExecutionLabels, availabilityLabel } from '../computers/presentation.ts';
+import { agentExecutionLabels } from '../computers/presentation.ts';
 import {
     ReferencePreviewHeader,
     ReferencePreviewText,
@@ -16,6 +16,7 @@ import {
     AgentWakePauseBanner,
     agentHoverAttention,
 } from './agent-hover-attention.tsx';
+import { agentHoverMeta } from './agent-hover-delegations.ts';
 import {
     resolveAgentHoverExecution,
     resolveAgentHoverModelChange,
@@ -111,7 +112,7 @@ export function AgentHoverCardContent({
                     src={value.avatarUrl}
                 />
             }
-            meta={availabilityLabel(value)}
+            meta={agentHoverMeta(value)}
             title={value.displayName}
         >
             {value.description ? (

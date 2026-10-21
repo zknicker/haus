@@ -1,12 +1,10 @@
 import {
     agentDeliveryAckSchema,
     agentDreamRecordSchema,
-    agentDreamRequestSchema,
     agentEffectiveStateSchema,
     agentNoticeAckSchema,
     agentSkillFileResultSchema,
     agentSkillImportResultSchema,
-    agentSubagentWakeRequestSchema,
     agentTurnSummarySchema,
     agentWorkspaceResultSchema,
     browserResultSchema,
@@ -23,8 +21,6 @@ import {
 } from '@haus/api';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { requestAgentDream } from '../agent-delivery/dream-request.ts';
-import { requestSubagentWake } from '../agent-delivery/subagent-wake-request.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
@@ -37,6 +33,7 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
+import { ingestBackgroundWorkFrame } from './ingest-background-work.ts';
 import { ingestExecutionJournalUpload } from './ingest-execution-journal.ts';
 import { recordComputerInventory, recordInvalidComputerInventory } from './record-inventory.ts';
 import { recordComputerManagementEvents, reportComputerUpdateProgress } from './service.ts';
@@ -137,7 +134,7 @@ export async function ingestReport(
         return;
     }
 
-    if (await ingestWakeRequest(db, delivery, { computerId, frame, serverId })) {
+    if (await ingestBackgroundWorkFrame(db, delivery, { computerId, frame, serverId })) {
         return;
     }
     const dreamRecord = agentDreamRecordSchema.safeParse(frame);
@@ -154,30 +151,6 @@ export async function ingestReport(
     }
 
     await recordComputerReport(db, computerId, serverId, frame);
-}
-
-/** A Computer asking for a turn it cannot start itself: a nightly dream or a sub-agent wake. */
-async function ingestWakeRequest(
-    db: HausDatabase,
-    delivery: AgentDelivery,
-    input: { computerId: string; frame: unknown; serverId: string }
-): Promise<boolean> {
-    const { computerId, frame, serverId } = input;
-    const dreamRequest = agentDreamRequestSchema.safeParse(frame);
-    if (dreamRequest.success) {
-        await requestAgentDream(db, delivery, { computerId, request: dreamRequest.data, serverId });
-        return true;
-    }
-    const subagentWake = agentSubagentWakeRequestSchema.safeParse(frame);
-    if (subagentWake.success) {
-        await requestSubagentWake(db, delivery, {
-            computerId,
-            request: subagentWake.data,
-            serverId,
-        });
-        return true;
-    }
-    return false;
 }
 
 /**

@@ -1091,7 +1091,7 @@ async function connect(
                             await sendUsageReport(sendFrame);
                         }
                     });
-                    void trackWriter(daemonWork.recoverLostBackgroundWork());
+                    void trackWriter(daemonWork.syncBackgroundWork());
                     void trackWriter(initialReport.catch(reportStateError)).finally(() => {
                         if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
                             socket.close();

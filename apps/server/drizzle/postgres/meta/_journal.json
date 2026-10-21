@@ -708,6 +708,13 @@
       "when": 1792600288061,
       "tag": "0100_subagent-wake",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1792601170730,
+      "tag": "0101_background-subagents",
+      "breakpoints": true
     }
   ]
 }

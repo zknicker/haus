@@ -6,8 +6,9 @@ import * as store from '../src/agent-delivery/store.ts';
 import { requestSubagentWake } from '../src/agent-delivery/subagent-wake-request.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { agentInboxTable, agentRunTriggersTable } from '../src/postgres/schema.ts';
+import { agentInboxTable, agentRunTriggersTable, agentsTable } from '../src/postgres/schema.ts';
 import { agentTurnTrigger } from '../src/server-agents/agent-turn-trigger.ts';
+import { recordAgentBackgroundWork } from '../src/server-agents/record-agent-background-work.ts';
 import { settledTurn } from './agent-dream-fixture.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -145,6 +146,25 @@ test('Stop retires a queued wake and tells the Computer to end background work',
     await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
     expect(transport.framesOfType('agent-stop-background')).toHaveLength(2);
+});
+
+test('a Computer’s sub-agent counts are stored for its own Agents and projected while online', async () => {
+    const seed = await seedAgent(connection.db);
+    const report = (computerId: string, subagents: number) =>
+        recordAgentBackgroundWork(connection.db, computerId, {
+            agents: [{ agentId: seed.agentId, subagents }],
+            type: 'agent-background-work',
+        });
+    expect(await report(seed.computerId, 2)).toEqual([seed.agentId]);
+    // An unchanged count announces nothing; another Computer's claim changes nothing.
+    expect(await report(seed.computerId, 2)).toEqual([]);
+    expect(await report('cmp_someoneelse00', 0)).toEqual([]);
+    const [row] = await connection.db
+        .select({ count: agentsTable.effectiveBackgroundSubagents })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(row?.count).toBe(2);
+    expect(await report(seed.computerId, 0)).toEqual([seed.agentId]);
 });
 
 test('a session reset retires a queued wake', async () => {

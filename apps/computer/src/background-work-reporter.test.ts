@@ -50,12 +50,35 @@ const markers = async () =>
     (await readdir(join(agentRoot, 'runtime'))).filter((name) => name === 'background-work.json');
 
 const settled = () => Bun.sleep(20);
+const wakes = () => frames.filter((frame) => frame.type === 'agent-subagent-wake');
+const counts = () => frames.filter((frame) => frame.type === 'agent-background-work');
+
+test('each Agent’s running sub-agents reach the Server on change and on every connect', async () => {
+    await mkdir(join(agentsDir, 'agt_two'));
+    const work = reporter();
+    work.changed(agentRoot, { subagents: 2, tasks: 3 });
+    // A shell that changes the task count but not the sub-agent count says nothing new.
+    work.changed(agentRoot, { subagents: 2, tasks: 2 });
+    work.lost(agentRoot, true);
+    await work.reportCounts();
+    expect(counts()).toEqual([
+        { agents: [{ agentId: 'agt_one', subagents: 2 }], type: 'agent-background-work' },
+        { agents: [{ agentId: 'agt_one', subagents: 0 }], type: 'agent-background-work' },
+        {
+            agents: [
+                { agentId: 'agt_one', subagents: 0 },
+                { agentId: 'agt_two', subagents: 0 },
+            ],
+            type: 'agent-background-work',
+        },
+    ]);
+});
 
 test('a turn Claude Code starts on its own asks the Server for a wake and holds the Agent’s calls', async () => {
     reporter().wake(agentRoot);
     await settled();
     expect(holds).toEqual([['agt_one', wakeHoldMs]]);
-    expect(frames).toEqual([
+    expect(wakes()).toEqual([
         {
             agentId: 'agt_one',
             reason: 'finished',
@@ -74,14 +97,14 @@ test('work a process took with it wakes the Agent as stopped; deliberate ends wa
 
     work.lost(agentRoot, true);
     await settled();
-    expect(frames).toEqual([]);
+    expect(wakes()).toEqual([]);
     expect(await markers()).toEqual([]);
 
     work.changed(agentRoot, { subagents: 1, tasks: 2 });
     await settled();
     work.lost(agentRoot, false);
     await settled();
-    expect(frames).toMatchObject([{ reason: 'stopped', sessionGeneration: 3 }]);
+    expect(wakes()).toMatchObject([{ reason: 'stopped', sessionGeneration: 3 }]);
     expect(await markers()).toEqual([]);
 });
 
@@ -92,13 +115,13 @@ test('work lost to a shutdown is reported once by the next daemon', async () => 
     closing = true;
     before.lost(agentRoot, false);
     await settled();
-    expect(frames).toEqual([]);
+    expect(wakes()).toEqual([]);
     expect(await markers()).toEqual(['background-work.json']);
 
     const after = reporter();
     await after.recoverLostWork();
     await after.recoverLostWork();
-    expect(frames).toMatchObject([{ agentId: 'agt_one', reason: 'stopped' }]);
+    expect(wakes()).toMatchObject([{ agentId: 'agt_one', reason: 'stopped' }]);
     expect(await markers()).toEqual([]);
 });
 
@@ -110,5 +133,5 @@ test('finished background work clears its marker', async () => {
     await settled();
     expect(await markers()).toEqual([]);
     await work.recoverLostWork();
-    expect(frames).toEqual([]);
+    expect(wakes()).toEqual([]);
 });

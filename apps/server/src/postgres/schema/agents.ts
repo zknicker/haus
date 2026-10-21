@@ -49,6 +49,10 @@ export const agentsTable = pgTable(
         desiredRuntimeId: text('desired_runtime_id'),
         description: text('description'),
         displayName: text('display_name').notNull(),
+        /** Background sub-agents the assigned Computer last reported running past their turn. */
+        effectiveBackgroundSubagents: integer('effective_background_subagents')
+            .notNull()
+            .default(0),
         effectiveHausAgentAppliedAt: timestamp('effective_haus_agent_applied_at', {
             withTimezone: true,
         }),

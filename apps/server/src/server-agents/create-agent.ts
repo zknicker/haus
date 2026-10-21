@@ -155,6 +155,7 @@ export async function createAgentInTransaction(
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
             dmChatId: null,
+            effectiveBackgroundSubagents: 0,
             effectiveHausAgentAppliedAt: null,
             effectiveHausAgentStatus: null,
             effectiveHausAgentVersion: null,

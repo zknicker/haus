@@ -175,6 +175,7 @@ export async function configureAgent(
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
                 displayName: agentsTable.displayName,
                 dmChatId: agentDm.id,
+                effectiveBackgroundSubagents: agentsTable.effectiveBackgroundSubagents,
                 effectiveHausAgentAppliedAt: agentsTable.effectiveHausAgentAppliedAt,
                 effectiveHausAgentStatus: agentsTable.effectiveHausAgentStatus,
                 effectiveHausAgentVersion: agentsTable.effectiveHausAgentVersion,

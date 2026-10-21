@@ -32,6 +32,7 @@ export interface ConfiguredAgentRow
     desiredRuntimeId: string | null;
     displayName: string;
     dmChatId: string | null;
+    effectiveBackgroundSubagents: number;
     effectiveHausAgentAppliedAt: Date | null;
     effectiveHausAgentStatus: HausAgentStatus | null;
     effectiveHausAgentVersion: string | null;
@@ -94,6 +95,9 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
     return {
         availability: deriveAgentAvailability(row),
         avatarUrl: avatarUrlFor(row.avatarId),
+        // An offline Computer's last count is stale: its sub-agents may already be gone.
+        backgroundSubagents:
+            row.computerHealth === 'healthy' ? row.effectiveBackgroundSubagents : 0,
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
         createdByAgentId: row.createdByAgentId ?? null,
