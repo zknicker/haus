@@ -62,8 +62,8 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     // Base workspace, the UI gallery channel and its threads, #automations,
     // and #repo-health with its Cloud Agent fan-out Thread. The gallery's three
     // follow-up works, its pending-input sample, and its five Claude provider
-    // samples each carry a Thread.
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(37);
+    // samples each carry a Thread. #shop holds the Heartbeats feed's posts.
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(38);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -75,8 +75,8 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     ]);
     // #repo-health adds its anchor and nine Cloud Agent work Messages; the
     // gallery's three follow-up works, pending-input sample, and five Claude
-    // provider samples add one Message each.
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(86);
+    // provider samples add one Message each; #shop adds the owner's line and three posts.
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(90);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,

@@ -6,19 +6,17 @@ export type OutcomeBubbleTone = 'dream' | 'report';
 
 /**
  * One thought from the Agent leading a post, in the channel typing bubble's
- * language (glass fill, hairline edge, soft lift). A speech bubble's tail points
- * up at the avatar; a thought bubble trails dots. Only the first bubble of a
- * stack carries its `tail`, like the first of consecutive chat messages. Errors
- * are never bubbles: a bubble is something the Agent learned or thought.
+ * language (glass fill, hairline edge, soft lift). Every bubble carries its own
+ * tail on the left, toward the avatar: a speech bubble a small triangle, a
+ * thought bubble trailing dots. Errors are never bubbles: a bubble is something
+ * the Agent learned or thought.
  */
 export function OutcomeBubble({
     children,
-    hasTail,
     shape,
     tone,
 }: {
     children: React.ReactNode;
-    hasTail: boolean;
     shape: 'speech' | 'thought';
     tone: OutcomeBubbleTone;
 }) {
@@ -33,21 +31,22 @@ export function OutcomeBubble({
             )}
             data-slot="heartbeat-outcome-bubble"
             initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
-            style={{ transformOrigin: '14px 0' }}
+            style={{ transformOrigin: '0 14px' }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
         >
-            {hasTail ? <Tail fill={fill} shape={shape} /> : null}
+            <Tail fill={fill} shape={shape} />
             {children}
         </motion.div>
     );
 }
 
+/** Beside the first text line, pointing left at the avatar column. */
 function Tail({ fill, shape }: { fill: string; shape: 'speech' | 'thought' }) {
     if (shape === 'thought') {
         return (
             <>
-                <ThoughtDot diameter={8} fill={fill} left={12} top={-12} />
-                <ThoughtDot diameter={5} fill={fill} left={6} top={-21} />
+                <ThoughtDot diameter={8} fill={fill} left={-12} top={9} />
+                <ThoughtDot diameter={5} fill={fill} left={-19} top={14} />
             </>
         );
     }
@@ -55,7 +54,7 @@ function Tail({ fill, shape }: { fill: string; shape: 'speech' | 'thought' }) {
         <span
             aria-hidden="true"
             className={cn(
-                'absolute -top-[5px] left-3.5 size-2.5 rotate-45 border-t border-l [clip-path:polygon(0_0,100%_0,0_100%)]',
+                'absolute top-2.5 -left-[5px] size-2.5 rotate-45 border-b border-l [clip-path:polygon(0_0,100%_100%,0_100%)]',
                 fill
             )}
         />

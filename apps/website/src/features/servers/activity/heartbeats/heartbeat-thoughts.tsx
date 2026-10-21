@@ -1,7 +1,6 @@
 import type { Chat } from '@haus/api';
 import { Link } from 'react-router-dom';
 import { useListedChat } from '../../../../hooks/servers/use-chats.ts';
-import { cn } from '../../../../lib/utils.ts';
 import { HeartbeatDreamLink } from './heartbeat-dream-link.tsx';
 import { type FeedPost, readFollowUpCount } from './heartbeat-feed-model.ts';
 import { OutcomeBubble } from './heartbeat-outcome-bubble.tsx';
@@ -24,10 +23,9 @@ export function HeartbeatThoughts({
     const { thoughts } = post;
     return (
         <div className="grid min-w-0 gap-2 text-sm" data-heartbeat-post-kind={post.postKind}>
-            <div className={cn('grid justify-items-start gap-1.5', isDream ? 'mt-6' : 'mt-2')}>
+            <div className="mt-2 grid justify-items-start gap-1.5 pl-5">
                 {thoughts.map((thought, index) => (
                     <OutcomeBubble
-                        hasTail={index === 0}
                         // biome-ignore lint/suspicious/noArrayIndexKey: thoughts can repeat; the stack never reorders
                         key={`${index}:${thought}`}
                         shape={isDream ? 'thought' : 'speech'}

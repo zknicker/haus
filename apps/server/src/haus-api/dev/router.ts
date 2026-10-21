@@ -7,12 +7,14 @@ import {
     setOperatorTimezoneRoute,
     startHeartbeatRoute,
 } from './heartbeat-test-routes.ts';
+import { seedHeartbeatsRoute } from './seed-heartbeats.ts';
 
 export const devRouter = createRouter({
     cleanupEvalChats: cleanupEvalChatsRoute,
     createClerkSignInToken: createClerkSignInTokenRoute,
     heartbeatEvidence: heartbeatEvidenceRoute,
     seedHeartbeatMessages: seedHeartbeatMessagesRoute,
+    seedHeartbeats: seedHeartbeatsRoute,
     setOperatorTimezone: setOperatorTimezoneRoute,
     startHeartbeat: startHeartbeatRoute,
 });

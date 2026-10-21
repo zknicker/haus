@@ -1,6 +1,5 @@
 import { computerProtocolVersion, hausAgentVersion } from '@haus/api';
 import { eq } from 'drizzle-orm';
-import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -23,18 +22,9 @@ import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import { allChannelDescription, type ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/haus-user.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
-import { ensureDevelopmentArtifactMessage } from './seed-artifact-message.ts';
-import { seedDevelopmentAutomationCauses } from './seed-automation-causes.ts';
-import { ensureDevelopmentChatAttachment } from './seed-chat-attachment.ts';
-import {
-    developmentComputerCredentialHash,
-    developmentComputerDataRoot,
-    ensureDevelopmentComputerAttachment,
-} from './seed-computer-attachment.ts';
-import { ensureDevelopmentCove } from './seed-cove.ts';
+import { developmentComputerCredentialHash } from './seed-computer-attachment.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
-import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
-import { seedDevelopmentUiGallery } from './seed-ui-gallery.ts';
+import { ensureDevelopmentSeedSteps, type SeedDevelopmentServerOptions } from './seed-steps.ts';
 
 const demoInventory = {
     name: 'Development Mac',
@@ -49,12 +39,6 @@ const demoInventory = {
         },
     ],
 };
-
-interface SeedDevelopmentServerOptions {
-    attachmentRoot?: AttachmentRoot;
-    computerDataRoot?: string;
-    serverOrigin?: string;
-}
 
 /** Creates the one idempotent Server-owned demo workspace for a signed-in dev user. */
 export async function seedDevelopmentServer(
@@ -337,27 +321,6 @@ export async function seedDevelopmentServer(
     });
     await ensureDevelopmentSeedSteps(db, seeded, user.id, options);
     return seeded;
-}
-
-/** Idempotent seed steps that run on every sign-in, for a fresh or an existing Server. */
-async function ensureDevelopmentSeedSteps(
-    db: HausDatabase,
-    server: ServerSummary,
-    userId: string,
-    options: SeedDevelopmentServerOptions
-) {
-    await ensureDevelopmentCove(db, { serverId: server.id, userId });
-    await ensureDevelopmentComputerAttachment(db, server, options);
-    if (options.attachmentRoot) {
-        await ensureDevelopmentChatAttachment(db, options.attachmentRoot, server.id);
-    }
-    await ensureDevelopmentArtifactMessage(db, {
-        computerDataRoot: developmentComputerDataRoot(options),
-        serverId: server.id,
-    });
-    await seedDevelopmentInboxActivity(db, { serverId: server.id, userId });
-    await seedDevelopmentUiGallery(db, { serverId: server.id, userId });
-    await seedDevelopmentAutomationCauses(db, { serverId: server.id, userId });
 }
 
 /** Mirrors the deterministic anchor id used by `ensureThread`. */
