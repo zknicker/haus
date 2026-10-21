@@ -152,28 +152,38 @@ export function formatDreamDelta(
     return `+${dream.added} −${dream.removed}`;
 }
 
-export interface SummaryFacts {
-    /** Runs, then what they did. */
-    readonly outcomes: readonly string[];
-    /** What came of them. */
-    readonly results: readonly string[];
+export interface ResultStat {
+    readonly count: number;
+    readonly label: string;
 }
 
-export function readSummaryFacts(summary: AgentHeartbeats['summary']): SummaryFacts {
-    return {
-        outcomes: [
-            count(summary.runs, 'heartbeat', 'heartbeats'),
-            `${summary.reported} reported`,
-            `${summary.yielded} yielded`,
-            `${summary.skipped} skipped`,
-            ...(summary.paused > 0 ? [`${summary.paused} paused`] : []),
-        ],
-        results: [
-            count(summary.posts, 'post', 'posts'),
-            count(summary.rulesLearned, 'rule learned', 'rules learned'),
-            count(summary.followUps, 'follow-up', 'follow-ups'),
-        ],
-    };
+/** What came of the day's heartbeats: a labeled count each, never a sentence. */
+export function readSummaryResults(summary: AgentHeartbeats['summary']): ResultStat[] {
+    return [
+        { count: summary.posts, label: summary.posts === 1 ? 'post' : 'posts' },
+        {
+            count: summary.rulesLearned,
+            label: summary.rulesLearned === 1 ? 'rule learned' : 'rules learned',
+        },
+        { count: summary.followUps, label: summary.followUps === 1 ? 'follow-up' : 'follow-ups' },
+    ];
+}
+
+export interface DetailFact {
+    readonly label: string;
+    readonly value: string;
+}
+
+/** The selected mark's facts as label/value rows: memory change, follow-ups, then the outcome. */
+export function readDetailFacts(mark: HeartbeatMark, chatPlace: string | null): DetailFact[] {
+    const dream = mark.dream;
+    return [
+        ...(dream ? [{ label: 'Memory', value: formatDreamDelta(dream) }] : []),
+        ...(dream && dream.followUps > 0
+            ? [{ label: 'Follow-ups', value: String(dream.followUps) }]
+            : []),
+        { label: 'Outcome', value: readMarkFate(mark, chatPlace) },
+    ];
 }
 
 export interface PlanMeter {
@@ -253,8 +263,4 @@ export function resolveSelection(
         (left, right) => Date.parse(right.mark.at) - Date.parse(left.mark.at)
     );
     return newestFirst.find((entry) => entry.mark.outcome === 'reported') ?? newestFirst[0] ?? null;
-}
-
-function count(value: number, one: string, many: string): string {
-    return `${value} ${value === 1 ? one : many}`;
 }

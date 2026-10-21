@@ -2,7 +2,8 @@ import { expect, test } from 'bun:test';
 import type { HeartbeatLane, HeartbeatMark } from '@haus/api';
 import {
     minMarkGap,
-    readLegendKinds,
+    readGlyphCounts,
+    readMarkMeta,
     readMarkSummary,
     readOutcomeChip,
     spreadPositions,
@@ -12,12 +13,13 @@ import {
     formatTokens,
     type LaneView,
     readDayWindow,
+    readDetailFacts,
     readHourTicks,
     readLanes,
     readMarkFate,
     readNightBands,
     readPlanMeter,
-    readSummaryFacts,
+    readSummaryResults,
     readTrackPosition,
     resolveSelection,
 } from './heartbeats-model.ts';
@@ -113,11 +115,35 @@ test('summary facts pluralize and show paused only when there is some', () => {
         skipped: 5,
         yielded: 3,
     };
-    expect(readSummaryFacts(base)).toEqual({
-        outcomes: ['1 heartbeat', '4 reported', '3 yielded', '5 skipped'],
-        results: ['4 posts', '2 rules learned', '1 follow-up'],
+    expect(readSummaryResults(base)).toEqual([
+        { count: 4, label: 'posts' },
+        { count: 2, label: 'rules learned' },
+        { count: 1, label: 'follow-up' },
+    ]);
+});
+
+test('detail facts list memory and follow-ups for a dream, then the outcome', () => {
+    const dream = mark(new Date(noon), {
+        dream: { added: 1, followUps: 2, removed: 1, summaryLine: 'x' },
+        kind: 'nightly',
+        outcome: 'reported',
+        report: { postedChatId: null, text: 'x' },
     });
-    expect(readSummaryFacts({ ...base, paused: 2 }).outcomes.at(-1)).toBe('2 paused');
+    expect(readDetailFacts(dream, null)).toEqual([
+        { label: 'Memory', value: '+1 −1' },
+        { label: 'Follow-ups', value: '2' },
+        { label: 'Outcome', value: 'Read by the Agent, nothing posted' },
+    ]);
+    expect(readDetailFacts(mark(new Date(noon)), null)).toEqual([
+        { label: 'Outcome', value: 'Nothing to report' },
+    ]);
+});
+
+test('the meta row keeps only what is known', () => {
+    expect(readMarkMeta(mark(new Date(noon), { durationMs: null, tokens: 18_200 }))).toEqual([
+        expect.any(String),
+        '18.2k tokens',
+    ]);
 });
 
 test('a plan meter splits its use into other, heartbeat, and dream, inside the bar', () => {
@@ -187,7 +213,11 @@ test('the legend lists the glyph kinds on the day, dream last', () => {
             ]),
         },
     ];
-    expect(readLegendKinds(lanes)).toEqual(['quiet', 'reported', 'dream']);
+    expect(readGlyphCounts(lanes).map((entry) => entry.kind)).toEqual([
+        'quiet',
+        'reported',
+        'dream',
+    ]);
 });
 
 test('a dream chip takes the dream token unless the dream failed or paused', () => {

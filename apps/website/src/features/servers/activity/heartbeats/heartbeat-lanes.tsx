@@ -1,8 +1,6 @@
 import { cn } from '../../../../lib/utils.ts';
 import type { ActivityLogAgent } from '../../../members/agent-profile/agent-activity-log-entries.ts';
 import { HeartbeatLane, laneRowClass } from './heartbeat-lane.tsx';
-import { HeartbeatLegend } from './heartbeat-legend.tsx';
-import { readLegendKinds } from './heartbeat-marks-model.ts';
 import {
     type DayWindow,
     type LaneView,
@@ -14,7 +12,7 @@ import {
 /**
  * The day, one lane per Agent on a shared 24-hour axis: night bands behind the
  * track, a mark at each slot's time, today's Now line, the lane's tokens at the
- * end, and a legend of the glyphs in play. The ruler hangs from the same
+ * end. The glyph legend lives in the summary. The ruler hangs from the same
  * baseline idiom as the log's overview strip.
  */
 export function HeartbeatLanes({
@@ -57,7 +55,6 @@ export function HeartbeatLanes({
                     />
                 ))}
             </div>
-            <HeartbeatLegend kinds={readLegendKinds(lanes)} />
         </div>
     );
 }

@@ -37,10 +37,29 @@ export function readGlyphKind(mark: Pick<HeartbeatMark, 'kind' | 'outcome'>): Gl
     return mark.kind === 'nightly' ? 'dream' : mark.outcome;
 }
 
-/** The glyph kinds present on the day, in legend order. */
-export function readLegendKinds(lanes: readonly LaneView[]): GlyphKind[] {
-    const present = new Set(lanes.flatMap(({ lane }) => lane.marks.map(readGlyphKind)));
-    return glyphOrder.filter((kind) => present.has(kind));
+/** How many marks of each glyph kind are on the day, in legend order; absent kinds drop. */
+export function readGlyphCounts(lanes: readonly LaneView[]): { count: number; kind: GlyphKind }[] {
+    const counts = new Map<GlyphKind, number>();
+    for (const { lane } of lanes) {
+        for (const mark of lane.marks) {
+            const kind = readGlyphKind(mark);
+            counts.set(kind, (counts.get(kind) ?? 0) + 1);
+        }
+    }
+    return glyphOrder.flatMap((kind) => {
+        const count = counts.get(kind) ?? 0;
+        return count > 0 ? [{ count, kind }] : [];
+    });
+}
+
+/** The meta row under the detail header: time, duration, tokens (what is known). */
+export function readMarkMeta(mark: HeartbeatMark): string[] {
+    const tokens = formatTokens(mark.tokens);
+    return [
+        formatShortTime(mark.at),
+        mark.durationMs === null ? null : formatTurnDuration(mark.durationMs),
+        tokens === null ? null : `${tokens} tokens`,
+    ].filter((part): part is string => part !== null);
 }
 
 /** A lane's marks in time order, each with its place on the track after nudging. */

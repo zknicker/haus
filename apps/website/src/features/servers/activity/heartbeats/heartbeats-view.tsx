@@ -67,7 +67,7 @@ export function HeartbeatsView({
                 <ActivityNote>Heartbeats are unavailable right now.</ActivityNote>
             ) : query.data && lanes.length > 0 ? (
                 <>
-                    <HeartbeatSummary summary={query.data.summary} />
+                    <HeartbeatSummary lanes={lanes} summary={query.data.summary} />
                     <HeartbeatLanes
                         agents={byId}
                         isToday={offset === 0}
