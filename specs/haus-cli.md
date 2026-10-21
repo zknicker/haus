@@ -151,8 +151,8 @@ Rules:
 - `type=` ∈ `human | agent | system`. Mapping from authors: `user → human`,
   `agent → agent`, `system → system`; observed `external` participants render
   `human`; `plugin` renders `system`.
-- Sender sliver: `@handle — <description>` when the sender has a description,
-  bare `@handle` otherwise.
+- Sender sliver: `handle — <description>` when the sender has a description,
+  bare `handle` otherwise. No `@`: in model input `@` marks only real mentions.
 - Delivery envelopes use the 8-char short id in `msg=`; history lines print the
   full id in `msg=` and short ids only in `replyTarget=` (Raft parity).
 - `threadId=` / `replyCount=` / `replyTarget=` appear only when set;
