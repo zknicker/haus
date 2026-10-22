@@ -122,7 +122,7 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
     expect(text).toContain('so do not fetch them again');
     // A bare "post nothing" read as "no report" in a live run (heartbeat-surfaces-new-signal).
     expect(text).toContain(
-        'Post nothing in any chat; the one `haus heartbeat report` below is not a post.'
+        'A `haus heartbeat report` is not a post: send at most one, only when you found something worth reporting; staying quiet is the usual outcome, and a quiet run sends no report.'
     );
     expect(text).toContain(
         'Latest checkpoint (heartbeat/checkpoints/2026-10-20/08-07.md), already read for you:'

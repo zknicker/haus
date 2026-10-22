@@ -28,7 +28,7 @@ export async function composeHeartbeatInput(
             heartbeat.kind === 'nightly'
                 ? `Read the full recipe first, its nightly section matters: ${fetchRecipe}.`
                 : `The every-run steps are below; fetch the recipe (${fetchRecipe}) only if you need detail.`
-        } The checkpoint, leads, reminders, and connections below are current, so do not fetch them again. Post nothing in any chat; the one \`haus heartbeat report\` below is not a post.`,
+        } The checkpoint, leads, reminders, and connections below are current, so do not fetch them again. Post nothing in any chat. A \`haus heartbeat report\` is not a post: send at most one, only when you found something worth reporting; staying quiet is the usual outcome, and a quiet run sends no report.`,
         heartbeat.since
             ? `Cutoff: ${heartbeat.since}. Cover everything since then.`
             : 'No earlier cutoff: this is your first look back.',
