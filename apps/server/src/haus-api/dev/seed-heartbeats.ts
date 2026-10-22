@@ -26,7 +26,7 @@ export const seedHeartbeatsRoute = memberProcedure
         });
         if (!result.seeded) {
             throw new TRPCError({
-                code: 'PRECONDITION_FAILED',
+                code: 'BAD_REQUEST',
                 message:
                     'This Server is not the development demo workspace (Blippy, Tiny, and Cove with their Chats).',
             });
