@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 
-/** Daytime slots start every two hours, 08:00 through 22:00, in this machine's local time. */
-export const daytimeSlotHours = [8, 10, 12, 14, 16, 18, 20, 22] as const;
-export const daytimeSlotSpanMs = 2 * 60 * 60 * 1000;
+/** Daytime slots start every three hours, 08:00 through 20:00, in this machine's local time. */
+export const daytimeSlotHours = [8, 11, 14, 17, 20] as const;
+export const daytimeSlotSpanMs = 3 * 60 * 60 * 1000;
 /** The nightly window, in local time: the night's run is requested from 03:00 until 05:00. */
 export const nightlyWindow = { endHour: 5, startHour: 3 } as const;
 export const nightlySlot = '03:00';

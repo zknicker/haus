@@ -657,7 +657,7 @@ a summary. The Agent does the work; nothing rewrites memory for it.
 _Avoid_: Tidy pass, nightly memory review, background extraction, compaction
 
 **Heartbeat**:
-A daytime check-in: a chatless run, every two hours from 08:00 to 22:00 Computer-local, in a
+A daytime check-in: a chatless run, every three hours from 08:00 to 20:00 Computer-local, in a
 throwaway session. It catches up on the Chats the Agent took part in, follows leads, and files at
 most one heartbeat report; it posts nothing in a Chat. Skipped while the Agent is busy, and it
 yields to a message addressed to the Agent. Spec: `specs/heartbeat.md`.

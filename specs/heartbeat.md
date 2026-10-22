@@ -1,5 +1,5 @@
 ---
-summary: Design for Agent heartbeats — a bi-hourly daytime check-in plus the nightly dream, one recipe, each run a fresh throwaway session that catches up on the Agent's chats, follows leads, reports to the main session through the inbox, and (nightly) reflects, consolidates memory, schedules morning follow-ups, and writes the "what I learned" summary.
+summary: Design for Agent heartbeats — a daytime check-in every three hours plus the nightly dream, one recipe, each run a fresh throwaway session that catches up on the Agent's chats, follows leads, reports to the main session through the inbox, and (nightly) reflects, consolidates memory, schedules morning follow-ups, and writes the "what I learned" summary.
 read_when:
   - changing heartbeat or nightly dream scheduling, skip rules, or the request frame
   - changing the heartbeat run, its fresh session, checkpoint, or turn input
@@ -62,7 +62,7 @@ One recipe, two kinds of run:
 
 | | Daytime heartbeat | Nightly heartbeat (the dream) |
 | --- | --- | --- |
-| When | Every 2 hours, 08:00 to 22:00 Computer-local (8 slots), each Agent offset by a stable per-Agent minute so Agents do not all run on the hour | Once in the 03:00–05:00 Computer-local window |
+| When | Every 3 hours, 08:00 to 20:00 Computer-local (5 slots), each Agent offset by a stable per-Agent minute so Agents do not all run on the hour | Once in the 03:00–05:00 Computer-local window |
 | Runs if | The Agent is configured, running, and idle at its slot | The Agent took part in any conversation or sent a report since its last nightly run |
 | Covers | Everything since its previous run | Everything since the last nightly run |
 | Writes | Checkpoint; topic notes it uses as baselines | Checkpoint; MEMORY.md and `notes/`; reminders; the "what I learned" summary |
@@ -98,7 +98,7 @@ cache, compaction, and generation stay as they were. On the Server the run occup
 one active-run slot as a chatless run, like today's dream (ADR 0049).
 
 Why fresh: the main session carries 600k–960k tokens, and its one-hour cache has expired by each
-two-hour slot, so waking it would rewrite the whole prefix every run (the Codex #45070 trap). A
+three-hour slot, so waking it would rewrite the whole prefix every run (the Codex #45070 trap). A
 persistent heartbeat thread would grow the same way. A fresh run is bounded by its digest.
 
 ### Turn input
@@ -212,9 +212,10 @@ and the four-hour retirement.
 
 From the operator's usage study (three Claude and three Codex Agents; Claude Max 20×, ChatGPT Pro
 $200): a bounded per-Agent run hourly around the clock costs about +2 Claude and +9 Codex weekly
-points. Eight daytime slots plus one nightly run is about 9/24 of that: roughly **+1 Claude and
-+3–4 Codex weekly points**, plus main-session turns for reports. The 80% pause caps the
-downside. Usage is recorded per run in `agent_turns` like any turn.
+points. Five daytime slots plus one nightly run is about 6/24 of that: roughly **+0.5 Claude and
++2 Codex weekly points**, plus main-session turns for reports. Live runs processed about twice
+the study's per-run tokens (565k–673k, cached reads included), so budget up to double that. The
+80% pause caps the downside. Usage is recorded per run in `agent_turns` like any turn.
 
 ## Evals
 

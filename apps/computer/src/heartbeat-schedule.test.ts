@@ -90,19 +90,20 @@ test('a daytime slot is due from its start plus the offset until the next slot b
     const offset = agentSlotOffsetMinutes('agt_a');
     expect(offset).toBeGreaterThan(0);
     // Before start plus offset nothing is due; the previous slot's span has ended.
-    expect(dueHeartbeatSlot('agt_a', new Date(at(10, offset - 1)))).toBeNull();
-    expect(dueHeartbeatSlot('agt_a', new Date(at(9, 59)))).toEqual({
+    expect(dueHeartbeatSlot('agt_a', new Date(at(11, offset - 1)))).toBeNull();
+    expect(dueHeartbeatSlot('agt_a', new Date(at(10, 59)))).toEqual({
         kind: 'daytime',
         localDate: '2026-10-11',
         slot: '08:00',
     });
-    expect(dueHeartbeatSlot('agt_a', new Date(at(10, offset)))).toEqual({
+    expect(dueHeartbeatSlot('agt_a', new Date(at(11, offset)))).toEqual({
         kind: 'daytime',
         localDate: '2026-10-11',
-        slot: '10:00',
+        slot: '11:00',
     });
-    expect(dueHeartbeatSlot('agt_a', new Date(at(11, 59)))?.slot).toBe('10:00');
-    expect(dueHeartbeatSlot('agt_a', new Date(at(23, 59)))?.slot).toBe('22:00');
+    expect(dueHeartbeatSlot('agt_a', new Date(at(13, 59)))?.slot).toBe('11:00');
+    expect(dueHeartbeatSlot('agt_a', new Date(at(22, 59)))?.slot).toBe('20:00');
+    expect(dueHeartbeatSlot('agt_a', new Date(at(23, 0)))).toBeNull();
 });
 
 test('the quiet hours carry only the nightly window', () => {
@@ -121,16 +122,16 @@ test('the quiet hours carry only the nightly window', () => {
 test('each Agent is asked once per slot, and a missed slot is not made up', async () => {
     await addAgent('agt_a');
     const offset = agentSlotOffsetMinutes('agt_a');
-    expect(await tick(at(10, 0))).toEqual([]);
-    expect(await tick(at(10, offset))).toEqual(['agt_a:daytime:10:00:requested']);
-    expect(await tick(at(10, offset + 10))).toEqual([]);
-    expect(await tick(at(11, 50))).toEqual([]);
+    expect(await tick(at(11, 0))).toEqual([]);
+    expect(await tick(at(11, offset))).toEqual(['agt_a:daytime:11:00:requested']);
+    expect(await tick(at(11, offset + 10))).toEqual([]);
+    expect(await tick(at(13, 50))).toEqual([]);
 
-    // The 12:00 slot is a fresh ask.
-    expect(await tick(at(12, offset))).toEqual(['agt_a:daytime:12:00:requested']);
-    // A Computer asleep through 14:00 does not ask for it at 16:00.
-    expect(await tick(at(16, offset))).toEqual(['agt_a:daytime:16:00:requested']);
-    expect(sent.map((frame) => frame.slot)).not.toContain('14:00');
+    // The 14:00 slot is a fresh ask.
+    expect(await tick(at(14, offset))).toEqual(['agt_a:daytime:14:00:requested']);
+    // A Computer asleep through 17:00 does not ask for it at 20:00.
+    expect(await tick(at(20, offset))).toEqual(['agt_a:daytime:20:00:requested']);
+    expect(sent.map((frame) => frame.slot)).not.toContain('17:00');
 });
 
 test('the request frame carries kind, local date, and slot', async () => {

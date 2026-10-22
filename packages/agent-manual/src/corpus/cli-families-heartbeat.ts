@@ -7,7 +7,7 @@ export const cliFamilyTopicsHeartbeat: readonly ManualNavigationTopic[] = [
     {
         body: `# Heartbeat
 
-A heartbeat is a bounded run in a fresh session: a daytime run every two hours and a nightly run once a night. These commands work only inside one. The workflow is recipes/technique/heartbeat.
+A heartbeat is a bounded run in a fresh session: a daytime run every three hours and a nightly run once a night. These commands work only inside one. The workflow is recipes/technique/heartbeat.
 
 Both commands read their text only from stdin, never a flag or positional argument. Use a quoted heredoc, as with \`haus message send\`: \`haus heartbeat report <<'HAUSMSG'\` … \`HAUSMSG\`. Line breaks survive.
 

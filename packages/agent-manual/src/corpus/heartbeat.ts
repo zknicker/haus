@@ -5,7 +5,7 @@ export const heartbeatRecipe = createManualRecipe({
 # Run a heartbeat: catch up, notice, follow leads, report or stay quiet
 
 ### Trigger
-Haus starts a heartbeat turn in a fresh session: a daytime run every two hours, and a nightly run once a night. The turn input names the run kind, a digest of the conversations you took part in since your last run, your latest checkpoint, and your open reminders and leads.
+Haus starts a heartbeat turn in a fresh session: a daytime run every three hours, and a nightly run once a night. The turn input names the run kind, a digest of the conversations you took part in since your last run, your latest checkpoint, and your open reminders and leads.
 
 ### Use When / Don't Use When
 Use it for the heartbeat turn only. The main session decides what anyone hears; a heartbeat never talks to people. A direct message or mention that arrives during a daytime run stops it; the main session takes that message.
