@@ -82,7 +82,7 @@ test('a heartbeat that reported never folds with quiet ones', () => {
         ...heartbeat('r2', '2026-10-01T16:40:00Z'),
         trigger: {
             kind: 'heartbeat',
-            report: { postedChatId: null, text: 'Heads up.' },
+            report: { posted: false, postedChatId: null, text: 'Heads up.' },
             yielded: false,
         },
     };

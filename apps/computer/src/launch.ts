@@ -237,14 +237,14 @@ async function runLedgeredLaunch(
         options.runtime
     );
     await dream?.finish();
-    if (command.heartbeat && result.status === 'completed') {
-        await settleHeartbeat({
-            agentRoot,
-            reported: proxy.reportCount() > 0,
-            runtime: options.runtime,
-            workspaceDir: dirs.workspace,
-        });
-    }
+    await settleHeartbeat({
+        agentRoot,
+        command,
+        proxy,
+        runtime: options.runtime,
+        status: result.status,
+        workspaceDir: dirs.workspace,
+    });
     return reportTurn(options, {
         messageCount: proxy.sendCount(),
         activity: activity.snapshot(),

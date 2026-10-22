@@ -62,7 +62,7 @@ const evidenceInputSchema = z.object({
 export const startHeartbeatRoute = memberProcedure
     .input(startHeartbeatInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost);
+        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
         const now = new Date();
@@ -96,7 +96,7 @@ export const startHeartbeatRoute = memberProcedure
 export const seedHeartbeatMessagesRoute = memberProcedure
     .input(seedMessagesInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost);
+        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
         const operator = ctx.member;
         if (!operator) {
@@ -143,7 +143,7 @@ export const seedHeartbeatMessagesRoute = memberProcedure
 export const setOperatorTimezoneRoute = memberProcedure
     .input(operatorTimezoneInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost);
+        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
         const operator = ctx.member;
         if (!operator) {
@@ -168,7 +168,7 @@ export const setOperatorTimezoneRoute = memberProcedure
 export const heartbeatEvidenceRoute = memberProcedure
     .input(evidenceInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost);
+        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
         const reports = await ctx.hausDb
@@ -223,7 +223,7 @@ export const heartbeatEvidenceRoute = memberProcedure
 
 export function assertHeartbeatTestAllowed(
     requestHost: string | null,
-    devClerkSignInUserId: string | undefined = env.HAUS_DEV_CLERK_SIGN_IN_USER_ID
+    devClerkSignInUserId: string | undefined
 ) {
     // The Host header is client-controlled. Only development and test lifecycles
     // resolve the dev sign-in user (.env.schema), so a hosted non-production

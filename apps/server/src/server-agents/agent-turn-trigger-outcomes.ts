@@ -134,8 +134,13 @@ async function readReports(
             )
         );
     const reportRunIds = inbox.flatMap((row) => (row.reportRunId ? [row.reportRunId] : []));
-    const posts =
-        reportRunIds.length === 0 ? [] : await readFirstPosts(db, serverId, userId, reportRunIds);
+    const [posts, postedRuns] =
+        reportRunIds.length === 0
+            ? [[], new Set<string>()]
+            : await Promise.all([
+                  readFirstPosts(db, serverId, userId, reportRunIds),
+                  readPostedRuns(db, serverId, reportRunIds),
+              ]);
     const chatOfRun = new Map<string, string>();
     for (const post of posts) {
         if (post.runId && !chatOfRun.has(post.runId)) {
@@ -146,12 +151,31 @@ async function readReports(
         const heartbeatRunId = heartbeatRunOf.get(row.dedupeKey);
         if (heartbeatRunId) {
             reports.set(heartbeatRunId, {
+                posted: row.reportRunId ? postedRuns.has(row.reportRunId) : false,
                 postedChatId: row.reportRunId ? (chatOfRun.get(row.reportRunId) ?? null) : null,
                 text: previewHead(row.content),
             });
         }
     }
     return reports;
+}
+
+/** Report runs that posted anywhere, whether or not the viewer can see the Chat. */
+async function readPostedRuns(
+    db: HausDatabase,
+    serverId: string,
+    reportRunIds: readonly string[]
+): Promise<Set<string>> {
+    const rows = await db
+        .selectDistinct({ runId: chatMessagesTable.runId })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, serverId),
+                inArray(chatMessagesTable.runId, [...reportRunIds])
+            )
+        );
+    return new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])));
 }
 
 function readFirstPosts(

@@ -87,10 +87,17 @@ test('a heartbeat request names one Agent, kind, local date, and slot', () => {
         agentId: 'agt_1',
         kind: 'daytime',
         localDate: '2026-10-11',
-        slot: '14:30',
+        slot: '14:00',
         type: 'agent-heartbeat-request',
     } as const;
     expect(agentHeartbeatRequestSchema.parse(request)).toEqual(request);
+    // Only the real slots are accepted: each distinct value would be a new dedupe key.
+    for (const slot of ['14:30', '03:00', '09:00']) {
+        expect(agentHeartbeatRequestSchema.safeParse({ ...request, slot }).success).toBe(false);
+    }
+    const night = { ...request, kind: 'nightly', slot: '03:00' } as const;
+    expect(agentHeartbeatRequestSchema.parse(night)).toEqual(night);
+    expect(agentHeartbeatRequestSchema.safeParse({ ...night, slot: '14:00' }).success).toBe(false);
     expect(agentHeartbeatRequestSchema.safeParse({ ...request, localDate: 'x' }).success).toBe(
         false
     );
@@ -110,7 +117,7 @@ test('dream, heartbeat, and report triggers have no Chat', () => {
         { added: 3, kind: 'dream', learned: 'Prefers terse replies.', removed: 1 },
         {
             kind: 'heartbeat',
-            report: { postedChatId: 'cht_1', text: 'The Q4 budget is stuck.' },
+            report: { posted: true, postedChatId: 'cht_1', text: 'The Q4 budget is stuck.' },
             yielded: false,
         },
         { heartbeatRunId: 'run_1', kind: 'heartbeat_report' },

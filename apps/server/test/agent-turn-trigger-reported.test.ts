@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 import { heartbeatReportDedupeKey } from '../src/agent-delivery/heartbeat-keys.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -8,9 +9,11 @@ import {
     agentDreamsTable,
     agentHeartbeatChecksTable,
     agentInboxTable,
+    chatMessagesTable,
+    chatsTable,
 } from '../src/postgres/schema.ts';
 import { resolveAgentTurnTriggers } from '../src/server-agents/agent-turn-trigger-previews.ts';
-import { seedAgent } from './agent-inbox-harness.ts';
+import { addChannel, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
@@ -70,12 +73,54 @@ test('a page of heartbeats learns its reports and yields in one lookup', async (
     ).toEqual([
         {
             kind: 'heartbeat',
-            report: { postedChatId: null, text: 'Q4 budget is stuck on legal.' },
+            report: { posted: false, postedChatId: null, text: 'Q4 budget is stuck on legal.' },
             yielded: false,
         },
         { kind: 'heartbeat', report: null, yielded: false },
         { kind: 'heartbeat', report: null, yielded: true },
         null,
+    ]);
+});
+
+test('a report posted where the viewer cannot see still reads as posted', async () => {
+    const seed = await seedAgent(connection.db);
+    const hiddenChatId = await addChannel(connection.db, seed, 'gone');
+    await connection.db
+        .update(chatsTable)
+        .set({ deletedAt: new Date(), deletedByUserId: seed.userId })
+        .where(eq(chatsTable.id, hiddenChatId));
+    await connection.db.insert(chatMessagesTable).values({
+        authorAgentId: seed.agentId,
+        chatId: hiddenChatId,
+        content: 'Posted the finding.',
+        id: createOpaqueId('msg'),
+        nonce: createOpaqueId('nonce'),
+        runId: 'run_main_report',
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    await connection.db.insert(agentInboxTable).values({
+        agentId: seed.agentId,
+        chatId: null,
+        content: 'Shipping is late.',
+        dedupeKey: heartbeatReportDedupeKey('run_posted'),
+        id: createOpaqueId('inb'),
+        runId: 'run_main_report',
+        serverId: seed.serverId,
+        source: 'heartbeat_report',
+    });
+    expect(
+        await resolveAgentTurnTriggers(
+            connection.db,
+            { serverId: seed.serverId, userId: seed.userId },
+            [record('heartbeat', 'run_posted')]
+        )
+    ).toEqual([
+        {
+            kind: 'heartbeat',
+            report: { posted: true, postedChatId: null, text: 'Shipping is late.' },
+            yielded: false,
+        },
     ]);
 });
 

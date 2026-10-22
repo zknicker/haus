@@ -180,6 +180,18 @@ test('the quiet-run note counts settled heartbeats, renders one line, and clears
     expect(await readQuietRunNote(root)).toBeNull();
 });
 
+test('a replayed heartbeat run is counted once, even after the note is cleared', async () => {
+    const run = { latestCheckpoint: null, reported: true, runId: 'run_replayed' };
+    await recordHeartbeatSettled(root, run);
+    await recordHeartbeatSettled(root, run);
+    expect(await readQuietRunNote(root)).toMatchObject({ count: 1, reported: 1 });
+    await clearQuietRunNote(root);
+    await recordHeartbeatSettled(root, run);
+    expect(await readQuietRunNote(root)).toBeNull();
+    await recordHeartbeatSettled(root, { ...run, runId: 'run_other' });
+    expect(await readQuietRunNote(root)).toMatchObject({ count: 1 });
+});
+
 test('retention deletes checkpoints and daily files older than 14 days and nothing else', async () => {
     const workspace = join(root, 'workspace');
     const checkpoints = join(workspace, 'heartbeat', 'checkpoints');

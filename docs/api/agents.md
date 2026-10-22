@@ -100,7 +100,7 @@ once at dispatch in `agent_run_triggers` so it survives a failed run requeueing 
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
 `{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or one of the chatless
-runs, which need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
+sources (`dream`, `heartbeat`, `heartbeat_report`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
 [heartbeat](../../specs/heartbeat.md)) and carry what the run came to, so the Activity Log can
 say it under the row's title:
 
@@ -108,9 +108,10 @@ say it under the row's title:
   is the first non-empty line of its `agent_dream_summaries` text with a leading `- ` removed
   (null when it wrote none); `added` and `removed` total `agent_dreams.files`.
 - `{ kind: 'heartbeat', report, yielded }`: a daytime check-in. `report` is
-  `{ text, postedChatId }` when a `heartbeat-report:<runId>` inbox row exists (`text` is its head,
-  at most 1,000 UTF-16 units, and `postedChatId` the Chat of the first message the report run's
-  Agent sent, null when it stayed quiet or the Chat is not one the reader can see), else null.
+  `{ text, posted, postedChatId }` when a `heartbeat-report:<runId>` inbox row exists (`text` is
+  its head, at most 1,000 UTF-16 units; `posted` is whether the report run's Agent sent any
+  message, whatever the reader can see; `postedChatId` the Chat of the first such message, null
+  when it stayed quiet or the Chat is not one the reader can see), else null.
   `yielded` marks a run `yieldHeartbeatToAddressed` stopped, which `agent_heartbeat_checks`
   records because nothing else tells a stopped run from a finished one.
 - `{ kind: 'heartbeat_report', heartbeatRunId }`: a heartbeat's report arriving in the main session.

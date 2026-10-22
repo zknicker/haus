@@ -1,20 +1,21 @@
 import { createHash } from 'node:crypto';
+import { daytimeHeartbeatSlots, nightlyHeartbeatSlot } from '@haus/api';
 
-/** Daytime slots start every three hours, 08:00 through 20:00, in this machine's local time. */
-export const daytimeSlotHours = [8, 11, 14, 17, 20] as const;
+/**
+ * Daytime slots start every three hours, 08:00 through 20:00, in this machine's local
+ * time; the slot list is the wire contract's, so the two cannot drift.
+ */
 export const daytimeSlotSpanMs = 3 * 60 * 60 * 1000;
 /** The nightly window, in local time: the night's run is requested from 03:00 until 05:00. */
 export const nightlyWindow = { endHour: 5, startHour: 3 } as const;
-export const nightlySlot = '03:00';
+export const nightlySlot = nightlyHeartbeatSlot;
 
 export type HeartbeatKind = 'daytime' | 'nightly';
 
 /** One due slot for one Agent: the Server dedupes on `kind`, `localDate`, and `slot`. */
-export interface HeartbeatSlot {
-    kind: HeartbeatKind;
-    localDate: string;
-    slot: string;
-}
+export type HeartbeatSlot =
+    | { kind: 'daytime'; localDate: string; slot: (typeof daytimeHeartbeatSlots)[number] }
+    | { kind: 'nightly'; localDate: string; slot: typeof nightlyHeartbeatSlot };
 
 /** A stable per-Agent minute in [0, 60), so Agents do not all run on the hour. */
 export function agentSlotOffsetMinutes(agentId: string): number {
@@ -32,10 +33,11 @@ export function dueHeartbeatSlot(agentId: string, now: Date): HeartbeatSlot | nu
         return { kind: 'nightly', localDate, slot: nightlySlot };
     }
     const offsetMs = agentSlotOffsetMinutes(agentId) * 60_000;
-    for (const hour of daytimeSlotHours) {
+    for (const slot of daytimeHeartbeatSlots) {
+        const hour = Number(slot.slice(0, 2));
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour).getTime();
         if (now.getTime() >= start + offsetMs && now.getTime() < start + daytimeSlotSpanMs) {
-            return { kind: 'daytime', localDate, slot: `${String(hour).padStart(2, '0')}:00` };
+            return { kind: 'daytime', localDate, slot };
         }
     }
     return null;

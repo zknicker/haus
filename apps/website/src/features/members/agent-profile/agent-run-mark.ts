@@ -1,4 +1,4 @@
-import type { AgentTurnTrigger, Chat } from '@haus/api';
+import type { AgentTurnHeartbeatReport, AgentTurnTrigger, Chat } from '@haus/api';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { chatPlace } from '../../shell/tab-identity.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
@@ -78,18 +78,19 @@ function heartbeatOutcome(
         return 'Nothing to report';
     }
     const sentence = firstSentence(report.text);
-    const fate = reportFate(report.postedChatId, chats);
+    const fate = reportFate(report, chats);
     return sentence ? `${sentence} · ${fate}` : fate;
 }
 
+/** "Posted" is independent of what the viewer can see; the place is named only when visible. */
 function reportFate(
-    postedChatId: string | null,
+    report: AgentTurnHeartbeatReport,
     chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>
 ): string {
-    if (!postedChatId) {
+    if (!report.posted) {
         return 'Read, not posted';
     }
-    const chat = chats.get(postedChatId);
+    const chat = report.postedChatId ? chats.get(report.postedChatId) : undefined;
     return chat ? `Posted in ${chatPlace(chat)}` : 'Posted';
 }
 

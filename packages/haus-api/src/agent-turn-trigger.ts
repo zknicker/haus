@@ -19,12 +19,13 @@ export const agentTurnTriggerPreviewSchema = z
 export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSchema>;
 
 /**
- * What a heartbeat filed: the head of its report, and the Chat the main session
- * posted in after reading it (null when it only read it, or the Chat is not one
- * the reader can see).
+ * What a heartbeat filed: the head of its report, whether the main session posted
+ * after reading it (`posted`, true whatever the reader can see), and the Chat it
+ * posted in (null when it only read it, or the Chat is not one the reader can see).
  */
 export const agentTurnHeartbeatReportSchema = z
     .object({
+        posted: z.boolean(),
         postedChatId: idSchema.nullable(),
         text: z.string().max(AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH),
     })

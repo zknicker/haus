@@ -7,7 +7,11 @@ import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { ReferenceMarkdown } from '../../mentions/reference-markdown.tsx';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 import { chatPlace } from '../../shell/tab-identity.ts';
-import { dreamSummaryMarkdown, formatFollowUpWhen } from './dream-summary-model.ts';
+import {
+    dreamSummaryMarkdown,
+    formatFollowUpDetail,
+    formatFollowUpWhen,
+} from './dream-summary-model.ts';
 
 /** What the Agent wrote about the night, in its own voice, rendered as the App renders agent text. */
 export function DreamSummaryGroup({ summary }: { summary: string }) {
@@ -48,6 +52,10 @@ export function DreamFollowUpsGroup({
             <ItemCardGroup className="overflow-hidden">
                 {followUps.map((followUp, index) => {
                     const chat = chats.data?.find((entry) => entry.id === followUp.anchorChatId);
+                    const detail = formatFollowUpDetail(
+                        followUp.requester,
+                        chat ? chatPlace(chat) : null
+                    );
                     return (
                         <React.Fragment key={followUp.reminderId}>
                             {index > 0 ? <Separator /> : null}
@@ -55,10 +63,8 @@ export function DreamFollowUpsGroup({
                                 <ItemCard.Content>
                                     <ItemCard.Title>{followUp.title}</ItemCard.Title>
                                     {/* Blank until the Chat list reads; never a placeholder. */}
-                                    {chat ? (
-                                        <ItemCard.Description>
-                                            {chatPlace(chat)}
-                                        </ItemCard.Description>
+                                    {detail ? (
+                                        <ItemCard.Description>{detail}</ItemCard.Description>
                                     ) : null}
                                 </ItemCard.Content>
                                 <ItemCard.Action className="min-w-0 shrink">

@@ -5,7 +5,13 @@ import { heartbeatReportDedupeKey } from '../src/agent-delivery/heartbeat-keys.t
 import { heartbeatStaleMs } from '../src/agent-delivery/heartbeat-run.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { agentInboxTable, agentsTable, computersTable } from '../src/postgres/schema.ts';
+import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import {
+    agentInboxTable,
+    agentsTable,
+    chatsTable,
+    computersTable,
+} from '../src/postgres/schema.ts';
 import { agentSpeaks, requestHeartbeat, settledTurn } from './agent-dream-fixture.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -38,7 +44,8 @@ test('a nightly run needs activity since the last one, and a report counts as ac
     const { delivery, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
 
-    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly')).toBe(false);
+    const eve = { localDate: '2026-10-10' };
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly', eve)).toBe(false);
     expect(await rows(seed, 'dream')).toEqual([]);
 
     await agentSpeaks(connection.db, seed);
@@ -60,7 +67,8 @@ test('a nightly run needs activity since the last one, and a report counts as ac
         serverId: seed.serverId,
         source: 'heartbeat_report',
     });
-    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly', next)).toBe(true);
+    const third = { localDate: '2026-10-13' };
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly', third)).toBe(true);
 });
 
 test('a daytime run is skipped, never queued, while the Agent is busy or has concrete work', async () => {
@@ -74,10 +82,11 @@ test('a daytime run is skipped, never queued, while the Agent is busy or has con
 
     const busy = transport.framesOfType('start').at(-1);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, busy?.runId ?? ''));
-    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(true);
+    const next = { slot: '11:00' };
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime', next)).toBe(true);
     expect(transport.framesOfType('start').at(-1)).toMatchObject({
         chatId: null,
-        heartbeat: { id: `heartbeat:${seed.agentId}:2026-10-11:08:00`, kind: 'daytime' },
+        heartbeat: { id: `heartbeat:${seed.agentId}:2026-10-11:11:00`, kind: 'daytime' },
     });
 });
 
@@ -169,10 +178,52 @@ test('the weekly usage meter at 80% pauses both kinds; below it, or unreported, 
     expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(false);
 
     await setUsage(usageAt(79));
-    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(true);
+    const later = { slot: '11:00' };
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime', later)).toBe(true);
     const run = transport.framesOfType('start').at(-1);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, run?.runId ?? ''));
 
     await setUsage(null);
+    const nextNight = { localDate: '2026-10-12' };
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly', nextNight)).toBe(true);
+});
+
+test('a slot is decided once: a repeat neither recomputes nor re-queues', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    transport.online.add(seed.computerId);
+
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(false);
+
+    // The Agent is idle by the retry, but the slot was already skipped as busy.
+    const busy = transport.framesOfType('start').at(-1);
+    await delivery.onTurnSettled(seed.computerId, settledTurn(seed, busy?.runId ?? ''));
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime')).toBe(false);
+    expect(await rows(seed, 'heartbeat')).toEqual([]);
+
+    // A repeat of a queued slot is also a no-op.
+    const next = { slot: '11:00' };
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime', next)).toBe(true);
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'daytime', next)).toBe(false);
+    expect(await rows(seed, 'heartbeat')).toHaveLength(1);
+});
+
+test('replies in a Thread the Agent follows count as nightly activity', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    const threadId = createOpaqueId('cht');
+    const anchorId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.channelId });
+    await connection.db.insert(chatsTable).values({
+        anchorMessageId: anchorId,
+        id: threadId,
+        kind: 'thread',
+        parentChatId: seed.channelId,
+        parentChatKind: 'channel',
+        serverId: seed.serverId,
+    });
+    // A plain reply: not a mention, not addressed to the Agent.
+    await deliverHuman(connection.db, delivery, seed, { chatId: threadId });
+    transport.online.add(seed.computerId);
     expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly')).toBe(true);
 });

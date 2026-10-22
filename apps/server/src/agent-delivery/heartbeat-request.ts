@@ -20,6 +20,9 @@ type Decision =
           reason: 'busy' | 'no_activity' | 'not_assigned' | 'stopped' | 'usage_paused';
       };
 
+/** What a request resolved to; `repeat` is a slot the Server already decided. */
+type Resolution = Decision | { outcome: 'repeat' };
+
 /**
  * Decides one heartbeat slot its Computer announced, and queues the run when it
  * should happen. Both kinds need a configured Agent assigned to that Computer, a
@@ -66,10 +69,14 @@ async function decideAndQueue(
     db: HausDatabase,
     delivery: AgentDelivery,
     input: { computerId: string; request: AgentHeartbeatRequest; serverId: string }
-): Promise<Decision> {
+): Promise<Resolution> {
     const { request } = input;
-    const decision = await db.transaction(async (tx) => {
+    const decision = await db.transaction(async (tx): Promise<Decision | null> => {
         await lockServerRow(tx, input.serverId);
+        // A slot is decided once; a repeat returns without recomputing or re-queuing.
+        if (await hasSlotDecision(tx, input.serverId, request)) {
+            return null;
+        }
         const decided = await decide(tx, input);
         await recordHeartbeatCheck(tx, {
             agentId: request.agentId,
@@ -94,12 +101,36 @@ async function decideAndQueue(
         }
         return decided;
     });
+    if (decision === null) {
+        return { outcome: 'repeat' };
+    }
     // The check row is the Server's record of the decision; a queued slot also shows as a run.
     agentUpdatedTopic.announce({ agentId: request.agentId, serverId: input.serverId });
     if (decision.outcome === 'queued') {
         await delivery.dispatchAgent(request.agentId, input.serverId);
     }
     return decision;
+}
+
+/**
+ * Whether this slot already has a recorded decision. A request lost in transit is
+ * a missed slot, by design: the cadence is best-effort, never made up.
+ */
+async function hasSlotDecision(
+    tx: HausDatabase,
+    serverId: string,
+    request: AgentHeartbeatRequest
+): Promise<boolean> {
+    const rows = (await tx.execute(sql`
+        select 1 from agent_heartbeat_checks
+        where server_id = ${serverId}
+          and agent_id = ${request.agentId}
+          and kind = ${request.kind}
+          and local_date = ${request.localDate}
+          and slot = ${request.slot}
+        limit 1
+    `)) as unknown[];
+    return rows.length > 0;
 }
 
 const skipReasons = {
@@ -158,8 +189,8 @@ async function decide(
 }
 
 /**
- * Whether the Agent posted, was mentioned or addressed, or sent a heartbeat report
- * since its last nightly run (ever, when it has had none).
+ * Whether the Agent posted, was mentioned or addressed, had a reply in a Thread it
+ * follows, or sent a heartbeat report since its last nightly run (ever, when it has had none).
  */
 async function tookPartSinceLastNight(
     tx: HausDatabase,
@@ -190,6 +221,13 @@ async function tookPartSinceLastNight(
                       item.source = 'heartbeat_report'
                       or item.mentioned
                       or item.addressed_reason is not null
+                      -- Replies in a Thread the Agent follows, as the digest counts them.
+                      or exists (
+                          select 1 from chats thread
+                          where thread.server_id = item.server_id
+                            and thread.id = item.chat_id
+                            and thread.kind = 'thread'
+                      )
                   )
             )
         ) as "active"

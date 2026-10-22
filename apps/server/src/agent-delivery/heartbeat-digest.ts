@@ -4,7 +4,7 @@ import {
     heartbeatDigestEntryLimit,
 } from '@haus/api';
 import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
-import { targetForChat } from '../agent-api/message-view.ts';
+import { shortMessageId, visibleChatSql } from '../agent-api/message-view.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, agentTurnsTable } from '../postgres/schema.ts';
 
@@ -63,7 +63,10 @@ export async function readHeartbeatSince(
 interface ChatRow {
     addressed: boolean;
     afterSequence: number;
+    anchorMessageId: string | null;
     chatId: string;
+    /** The human's handle for a DM, or for a Thread in a DM. */
+    dmHandle: string | null;
     kind: 'channel' | 'dm' | 'thread';
     messageCount: number;
     name: string | null;
@@ -99,7 +102,7 @@ export async function buildHeartbeatDigest(
     );
     const entries: HeartbeatDigestEntry[] = [];
     for (const chat of shown) {
-        const target = await readTarget(db, input.serverId, chat.chatId);
+        const target = targetOf(chat);
         if (target === null) {
             continue;
         }
@@ -181,14 +184,29 @@ async function readChats(
                   and message.created_at <= ${until}::timestamptz
             )::int as "messageCount",
             chat.name as "name",
+            chat.anchor_message_id as "anchorMessageId",
+            membership.handle as "dmHandle",
             parent.kind as "parentKind",
             parent.name as "parentName"
         from chats chat
         left join chats parent
             on parent.server_id = chat.server_id and parent.id = chat.parent_chat_id
+        left join server_memberships membership
+            on membership.server_id = chat.server_id
+           and membership.user_id = case
+               when chat.kind = 'dm' then chat.dm_member_one_user_id
+               else parent.dm_member_one_user_id
+           end
         where chat.server_id = ${serverId}
           and chat.deleted_at is null
           and chat.id in (select chat_id from mine)
+          -- Current visibility, so a Chat the Agent lost access to never appears.
+          and exists (
+              select 1 from chats
+              where chats.server_id = chat.server_id
+                and chats.id = chat.id
+                and ${visibleChatSql({ agentId, serverId })}
+          )
         )
         select stats.*, (count(*) over ())::int as "total"
         from stats
@@ -238,20 +256,26 @@ async function readSpeakers(
 }
 
 /**
- * The handle `--target` accepts. A DM whose human has left has no handle and
- * nothing to catch up on, so it drops out of the digest rather than failing the run.
+ * The handle `--target` accepts, from the row's own joined fields (no per-entry
+ * reads). A DM whose human has left has no handle and nothing to catch up on, so
+ * it drops out of the digest rather than failing the run.
  */
-async function readTarget(
-    db: HausDatabase,
-    serverId: string,
-    chatId: string
-): Promise<string | null> {
-    try {
-        const target = await targetForChat(db, serverId, chatId);
-        return target === '#unknown' ? null : target;
-    } catch {
-        return null;
+function targetOf(chat: ChatRow): string | null {
+    if (chat.kind === 'dm') {
+        return chat.dmHandle ? `dm:@${chat.dmHandle}` : null;
     }
+    if (chat.kind === 'channel') {
+        return `#${chat.name}`;
+    }
+    const parent =
+        chat.parentKind === 'dm'
+            ? chat.dmHandle
+                ? `dm:@${chat.dmHandle}`
+                : null
+            : chat.parentKind === 'channel'
+              ? `#${chat.parentName}`
+              : null;
+    return parent === null ? null : `${parent}:${shortMessageId(chat.anchorMessageId ?? '')}`;
 }
 
 function titleOf(chat: ChatRow): string {

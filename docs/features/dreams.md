@@ -31,7 +31,8 @@ are no skeletons.
 
 Each row leads with the first line of the Agent's summary. A dream with no summary keeps the
 file-level headline (`Updated memory · added a note`). Either way the row shows the night, the
-files touched, and the line counts. A dream that changed nothing is a quiet row that does not
+files touched, and the line counts. A dream is a quiet row that does not open only when it changed
+no files and also has no summary, no follow-ups, and no truncation; any one of those makes it
 open.
 
 Pressing a row opens the dream in the right-side sheet the Reminder and Trigger sheets use. The

@@ -38,6 +38,7 @@ test('a heartbeat is a quiet background row: Checking in live, Checked in once s
 
 test('a heartbeat that sent a report is not muted, and its line says what became of it', () => {
     const report = {
+        posted: true,
         postedChatId: 'cht_product',
         text: '**Sales** are up 20%. Labels are due.\n\nMore.',
     };
@@ -48,11 +49,18 @@ test('a heartbeat that sent a report is not muted, and its line says what became
             text: 'Checked in',
         }
     );
-    const read = { ...report, postedChatId: null };
+    const read = { ...report, posted: false, postedChatId: null };
     expect(
         resolveTurnRowTitle({ kind: 'heartbeat', report: read, yielded: false }, chats)
     ).toMatchObject({
         run: { outcome: 'Sales are up 20%. · Read, not posted' },
+    });
+    // Posted somewhere the viewer cannot see: still posted, place unnamed.
+    const hidden = { ...report, postedChatId: null };
+    expect(
+        resolveTurnRowTitle({ kind: 'heartbeat', report: hidden, yielded: false }, chats)
+    ).toMatchObject({
+        run: { outcome: 'Sales are up 20%. · Posted' },
     });
     expect(
         formatTurnOutcome({

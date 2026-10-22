@@ -1,7 +1,14 @@
-import type { AgentDreamFollowUp } from '@haus/api';
+import type { AgentDreamFollowUp, AgentDreamFollowUpRequester } from '@haus/api';
 import { and, asc, eq, gte, inArray, lte, ne } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentDreamSummariesTable, remindersTable } from '../postgres/schema.ts';
+import {
+    agentDreamSummariesTable,
+    agentsTable,
+    chatMessagesTable,
+    remindersTable,
+    serverMembershipsTable,
+    usersTable,
+} from '../postgres/schema.ts';
 
 /** Most follow-ups one page of dreams reads; a run schedules a handful. */
 const followUpScanLimit = 500;
@@ -60,6 +67,7 @@ export async function readDreamEnrichments(
     const reminders = await db
         .select({
             anchorChatId: remindersTable.anchorChatId,
+            anchorMessageId: remindersTable.anchorMessageId,
             createdAt: remindersTable.createdAt,
             fireAt: remindersTable.fireAt,
             id: remindersTable.id,
@@ -77,6 +85,11 @@ export async function readDreamEnrichments(
         )
         .orderBy(asc(remindersTable.createdAt), asc(remindersTable.id))
         .limit(followUpScanLimit);
+    const requesters = await readRequesters(
+        db,
+        input.serverId,
+        reminders.map((reminder) => reminder.anchorMessageId)
+    );
     for (const reminder of reminders) {
         for (const dream of input.dreams) {
             const entry = enrichments.get(dream.runId);
@@ -90,10 +103,71 @@ export async function readDreamEnrichments(
                     anchorChatId: reminder.anchorChatId,
                     fireAt: reminder.fireAt.toISOString(),
                     reminderId: reminder.id,
+                    requester: requesters.get(reminder.anchorMessageId) ?? null,
                     title: reminder.title,
                 });
             }
         }
     }
     return enrichments;
+}
+
+/** The author of each anchor message, in one read: who the follow-up is for. */
+async function readRequesters(
+    db: HausDatabase,
+    serverId: string,
+    messageIds: readonly string[]
+): Promise<Map<string, AgentDreamFollowUpRequester>> {
+    const requesters = new Map<string, AgentDreamFollowUpRequester>();
+    if (messageIds.length === 0) {
+        return requesters;
+    }
+    const rows = await db
+        .select({
+            agentHandle: agentsTable.handle,
+            agentName: agentsTable.displayName,
+            authorAgentId: chatMessagesTable.authorAgentId,
+            authorUserId: chatMessagesTable.authorUserId,
+            humanHandle: serverMembershipsTable.handle,
+            humanName: usersTable.displayName,
+            messageId: chatMessagesTable.id,
+        })
+        .from(chatMessagesTable)
+        .leftJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, chatMessagesTable.serverId),
+                eq(agentsTable.id, chatMessagesTable.authorAgentId)
+            )
+        )
+        .leftJoin(
+            serverMembershipsTable,
+            and(
+                eq(serverMembershipsTable.serverId, chatMessagesTable.serverId),
+                eq(serverMembershipsTable.userId, chatMessagesTable.authorUserId)
+            )
+        )
+        .leftJoin(usersTable, eq(usersTable.id, chatMessagesTable.authorUserId))
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, serverId),
+                inArray(chatMessagesTable.id, [...new Set(messageIds)])
+            )
+        );
+    for (const row of rows) {
+        if (row.authorAgentId && row.agentName) {
+            requesters.set(row.messageId, {
+                displayName: row.agentName,
+                handle: row.agentHandle,
+                kind: 'agent',
+            });
+        } else if (row.authorUserId && (row.humanName || row.humanHandle)) {
+            requesters.set(row.messageId, {
+                displayName: row.humanName ?? row.humanHandle ?? '',
+                handle: row.humanHandle,
+                kind: 'human',
+            });
+        }
+    }
+    return requesters;
 }

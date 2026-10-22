@@ -57,6 +57,7 @@ test('a dream summary carries the report summary and follow-up reminders', () =>
                 anchorChatId: 'cht_1',
                 fireAt: '2026-10-12T09:00:00.000Z',
                 reminderId: 'rem_1',
+                requester: { displayName: 'Maya', handle: 'maya', kind: 'human' },
                 title: 'Check the fee change',
             },
         ],

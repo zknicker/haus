@@ -1,3 +1,4 @@
+import type { AgentDreamFollowUpRequester } from '@haus/api';
 import { formatShortTime } from '../../../lib/format.ts';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { formatDayLabel, localDayKey } from './agent-turn-row-model.ts';
@@ -35,6 +36,21 @@ export function dreamSummaryMarkdown(summary: string): string {
             return breaks ? `${line.trimEnd()}  ` : line;
         })
         .join('\n');
+}
+
+/**
+ * What a follow-up row says beneath its title: who it is for, then where it was
+ * promised: `for @maya · #product`. A part with nothing to say is left out; the Chat
+ * is blank until the Chat list reads.
+ */
+export function formatFollowUpDetail(
+    requester: AgentDreamFollowUpRequester | null,
+    place: string | null
+): string {
+    const who = requester
+        ? `for ${requester.handle ? `@${requester.handle}` : requester.displayName}`
+        : null;
+    return [who, place].filter((part): part is string => Boolean(part)).join(' · ');
 }
 
 /** `Tomorrow 9:00 am`, `Today 9:00 am`, or `Oct 21 9:00 am` for a follow-up's reminder. */

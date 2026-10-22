@@ -8,6 +8,7 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentInboxTable,
     agentRunTriggersTable,
+    channelAgentParticipantsTable,
     chatMessagesTable,
 } from '../src/postgres/schema.ts';
 import { agentSpeaks, requestHeartbeat, settledTurn } from './agent-dream-fixture.ts';
@@ -49,10 +50,46 @@ async function humanSays(seed: Seed, chatId: string, sequence: number, createdAt
     });
 }
 
+/** A Channel the Agent is a participant of, so it can see it. */
+async function joinedChannel(seed: Seed, name: string): Promise<string> {
+    const chatId = await addChannel(connection.db, seed, name);
+    await joinChannel(seed, chatId);
+    return chatId;
+}
+
+async function joinChannel(seed: Seed, chatId: string) {
+    await connection.db.insert(channelAgentParticipantsTable).values({
+        agentId: seed.agentId,
+        chatId,
+        serverId: seed.serverId,
+    });
+}
+
+test('the digest drops a Chat the Agent can no longer see', async () => {
+    const seed = await seedAgent(connection.db);
+    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    transport.online.add(seed.computerId);
+    const kept = await joinedChannel(seed, 'kept');
+    const revoked = await joinedChannel(seed, 'secret');
+    for (const chatId of [kept, revoked]) {
+        await agentSpeaks(connection.db, seed, chatId, hoursAgo(2));
+        await humanSays(seed, chatId, 1, hoursAgo(1));
+    }
+    // The Agent was removed from #secret after posting; the channel kept moving.
+    await connection.db
+        .delete(channelAgentParticipantsTable)
+        .where(eq(channelAgentParticipantsTable.chatId, revoked));
+
+    expect(await requestHeartbeat(connection.db, delivery, seed, 'nightly')).toBe(true);
+    const entries = transport.framesOfType('start').at(-1)?.heartbeat?.digest.entries ?? [];
+    expect(entries.map((entry) => entry.target)).toEqual(['#kept']);
+});
+
 test('the digest lists only conversations the Agent took part in, addressed and busiest first', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
+    await joinChannel(seed, seed.channelId);
 
     // #product: a message from two days ago (outside the first-run day), then
     // three since, including the Agent's own, the human last.
@@ -125,9 +162,9 @@ test('the digest caps at 20 entries and counts the rest', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
-    const busiest = await addChannel(connection.db, seed, 'busiest');
+    const busiest = await joinedChannel(seed, 'busiest');
     for (let index = 0; index < 22; index += 1) {
-        const chatId = await addChannel(connection.db, seed, `room-${index}`);
+        const chatId = await joinedChannel(seed, `room-${index}`);
         await agentSpeaks(connection.db, seed, chatId, hoursAgo(2));
     }
     await agentSpeaks(connection.db, seed, busiest, hoursAgo(2));
@@ -145,9 +182,9 @@ test('the digest ranks before its candidate limit and counts every candidate in 
     const seed = await seedAgent(connection.db);
     const { delivery, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
-    const busiest = await addChannel(connection.db, seed, 'busiest');
+    const busiest = await joinedChannel(seed, 'busiest');
     for (let index = 0; index < 205; index += 1) {
-        const chatId = await addChannel(connection.db, seed, `many-${index}`);
+        const chatId = await joinedChannel(seed, `many-${index}`);
         await agentSpeaks(connection.db, seed, chatId, hoursAgo(2));
     }
     await agentSpeaks(connection.db, seed, busiest, hoursAgo(2));

@@ -109,6 +109,11 @@ test('a dream reads back its learned summary and the reminders created during th
         nonce: 'dream-followup-anchor',
         serverId,
     });
+    // The requester reads by handle when the member has no display name.
+    await harness.sql`
+        update server_memberships set handle = 'maya'
+        where server_id = ${serverId} and user_id = ${await readUserId('user_dreams_owner')}
+    `;
     await dreamRun('run_dreamsummary01', 4);
     await record(dream('run_dreamsummary01', 4));
     await harness.sql`
@@ -140,6 +145,8 @@ test('a dream reads back its learned summary and the reminders created during th
             anchorChatId: channel.id,
             fireAt: '2026-02-01T09:00:00.000Z',
             reminderId: 'rem_inside00000001',
+            // The author of the anchor message: the human who asked.
+            requester: { displayName: 'maya', handle: 'maya', kind: 'human' },
             title: 'Title rem_inside00000001',
         },
     ]);

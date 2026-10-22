@@ -70,7 +70,7 @@ test('a dream that missed its night is retired, never led', async () => {
     expect(await wake()).toBeUndefined();
     expect(transport.sent).toEqual([]);
     expect(await dreamRows(connection.db, seed)).toEqual([{ chatId: null, state: 'seen' }]);
-    // The night's identity stays taken, so it cannot queue again.
-    expect(await requestDream(connection.db, delivery, seed)).toBe(true);
+    // The night's slot was decided once, so a repeat neither recomputes nor queues again.
+    expect(await requestDream(connection.db, delivery, seed)).toBe(false);
     expect(transport.framesOfType('start')).toEqual([]);
 });

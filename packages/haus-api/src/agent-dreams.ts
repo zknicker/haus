@@ -70,12 +70,25 @@ export const agentDreamsInputSchema = agentDetailInputSchema.extend({
 
 export type AgentDreamsInput = z.infer<typeof agentDreamsInputSchema>;
 
+/** Who a follow-up is for: the author of the reminder's anchor message. */
+export const agentDreamFollowUpRequesterSchema = z
+    .object({
+        displayName: z.string(),
+        handle: z.string().nullable(),
+        kind: z.enum(['agent', 'human']),
+    })
+    .strict();
+
+export type AgentDreamFollowUpRequester = z.infer<typeof agentDreamFollowUpRequesterSchema>;
+
 /** A reminder the Agent set for itself while dreaming. */
 export const agentDreamFollowUpSchema = z
     .object({
         anchorChatId: idSchema,
         fireAt: timestampSchema,
         reminderId: idSchema,
+        /** Null when the anchor message or its author no longer exists. */
+        requester: agentDreamFollowUpRequesterSchema.nullable(),
         title: z.string(),
     })
     .strict();

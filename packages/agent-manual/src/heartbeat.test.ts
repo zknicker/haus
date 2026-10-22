@@ -42,3 +42,10 @@ test('nightly reflects with evidence and follows up promises', () => {
     expect(body).toContain('acknowledged but not saved until now');
     expect(body).toContain('recipes/technique/memory-hygiene');
 });
+
+test('the learned summary is written only for real lessons, never invented', () => {
+    expect(body).toContain('Write the summary only when there are real lessons');
+    expect(body).toContain('1–4 lines');
+    expect(body).toContain('skip `haus heartbeat learned` entirely');
+    expect(body).toContain('never invent a lesson');
+});

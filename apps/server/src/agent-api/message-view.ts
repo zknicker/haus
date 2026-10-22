@@ -246,6 +246,6 @@ export function visibleChatSql(runner: Pick<ResolvedRunner, 'agentId' | 'serverI
     )`;
 }
 
-function shortMessageId(id: string) {
+export function shortMessageId(id: string) {
     return id.startsWith('msg_') ? id.slice(4, 12) : id;
 }

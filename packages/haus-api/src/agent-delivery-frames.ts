@@ -68,20 +68,35 @@ export const agentHeartbeatReportAttentionSchema = z
 
 export type AgentHeartbeatReportAttention = z.infer<typeof agentHeartbeatReportAttentionSchema>;
 
+/** The daytime slot starts, local `HH:mm`, every three hours; the Computer derives its hours from these. */
+export const daytimeHeartbeatSlots = ['08:00', '11:00', '14:00', '17:00', '20:00'] as const;
+export const nightlyHeartbeatSlot = '03:00';
+
 /**
  * Computer→Server: a heartbeat slot is due for this Agent. `slot` is the local
  * `HH:mm` slot start (`03:00` for nightly). The Server queues at most one run per
  * Agent per `kind`, `localDate`, and `slot`, and applies its own skip and pause rules.
  */
-export const agentHeartbeatRequestSchema = z
-    .object({
-        agentId: idSchema,
-        kind: z.enum(['daytime', 'nightly']),
-        localDate: z.iso.date(),
-        slot: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-        type: z.literal('agent-heartbeat-request'),
-    })
-    .strict();
+export const agentHeartbeatRequestSchema = z.discriminatedUnion('kind', [
+    z
+        .object({
+            agentId: idSchema,
+            kind: z.literal('daytime'),
+            localDate: z.iso.date(),
+            slot: z.enum(daytimeHeartbeatSlots),
+            type: z.literal('agent-heartbeat-request'),
+        })
+        .strict(),
+    z
+        .object({
+            agentId: idSchema,
+            kind: z.literal('nightly'),
+            localDate: z.iso.date(),
+            slot: z.literal(nightlyHeartbeatSlot),
+            type: z.literal('agent-heartbeat-request'),
+        })
+        .strict(),
+]);
 
 export type AgentHeartbeatRequest = z.infer<typeof agentHeartbeatRequestSchema>;
 

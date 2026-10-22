@@ -87,6 +87,10 @@ edits it, while the nightly window already runs on Computer-local time.
   who needs the Agent, and the existing stall watchdog and no-progress deadline still apply. Run
   durations are traced; add a limit only if they show a need.
 - Every skip and stop is logged and traced like today's `haus.dream.check`.
+- A slot is decided once. The Server records the first decision for an Agent, kind, local date,
+  and slot, and a repeat of that slot returns without recomputing or re-queuing, so a retry never
+  turns a skipped slot into a run. The cadence is best-effort: a request lost in transit is a
+  missed slot, by design, and is not made up.
 
 ### Fresh, throwaway session
 
@@ -160,8 +164,9 @@ Once per night, also:
    reminder anchored to the original message, around 09:00 in the requester's timezone (look it
    up; do not infer it). Its description says what was promised, because the fire does not show
    the anchor message. Post nothing now.
-10. **Write the summary** with `haus heartbeat learned` (body on stdin): 2–4 `- ` lines, one
-    lesson each, first person, each naming who taught it. Compare the day's corrections with what
+10. **Write the summary only when there are real lessons**, with `haus heartbeat learned` (body on
+    stdin): 1–4 `- ` lines, one lesson each, first person, each naming who taught it. On a quiet
+    night skip the command entirely; never invent a lesson. Compare the day's corrections with what
     MEMORY.md held when the run started; a correction acknowledged in chat but not already saved
     is called out on its line as acknowledged but not saved until now.
 
@@ -169,8 +174,10 @@ Once per night, also:
 
 - **Report.** `haus heartbeat report` (text on stdin, quoted heredoc as in `haus message send`) queues one chatless `heartbeat_report` inbox item for the
   Agent, delivered after the heartbeat run settles like any concrete item. Its envelope says it is
-  the Agent's own heartbeat report and that the Agent decides whether to post. Between 22:00 and
-  08:00 the main session holds findings and schedules a morning reminder instead of posting.
+  the Agent's own heartbeat report and that the Agent decides whether to post. A report from a
+  **nightly** heartbeat always becomes a morning reminder, whatever the clock says when it is
+  delivered (decided behavior). A **daytime** report follows the clock: between 22:00 and 08:00
+  the main session holds findings and schedules a morning reminder instead of posting.
 - **Checkpoint.** Markdown under the workspace at
   `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md`; the nightly run writes
   `heartbeat/daily/<YYYY-MM-DD>.md`. The Computer deletes checkpoints older than 14 days.
@@ -196,7 +203,7 @@ Once per night, also:
 
 | | Today | New |
 | --- | --- | --- |
-| Runs | One nightly dream when memory changed | Bi-hourly daytime heartbeat plus a nightly run when there was activity |
+| Runs | One nightly dream when memory changed | Daytime heartbeat every three hours plus a nightly run when there was activity |
 | Session | Nightly dream resumes the main session | Every run is a fresh throwaway session |
 | Input | One instruction line | Digest, checkpoint, open reminders and leads |
 | Work | Tidy memory | Catch up, notice, follow leads, report; nightly: reflect, consolidate, follow up, summarize |
@@ -247,8 +254,9 @@ rules, the 80% pause, yield-on-address, the digest query, report delivery, and l
 Shared by every implementation slice; `packages/haus-api` owns the schemas.
 
 - **Request frame** `agent-heartbeat-request` `{ agentId, kind: 'daytime' | 'nightly', localDate,
-  slot }` (`slot` is the local `HH:mm` slot start, `'03:00'` for nightly). It replaces
-  `agent-dream-request`.
+  slot }` (`slot` is the local `HH:mm` slot start: `'03:00'` for nightly, one of `'08:00'`,
+  `'11:00'`, `'14:00'`, `'17:00'`, `'20:00'` for daytime; the schema is a discriminated union and
+  the Computer derives its hours from the exported list). It replaces `agent-dream-request`.
 - **Inbox and run-trigger sources.** `dream` stays the nightly run (the profile still calls it
   Dreams); `heartbeat` is a daytime run; `heartbeat_report` is a report. All three are chatless:
   the `(chat_id is null) = (source = 'dream')` checks become `source in ('dream', 'heartbeat',
@@ -290,9 +298,9 @@ or read. A run is an ordinary turn row (same expand-to-steps behavior, same coll
   (+a −r)`, else `No memory changes`; a yielded heartbeat reads `Paused for a new message`; a failed
   or interrupted run reads its usual failure text.
 - **Data.** The facts ride the turn trigger (`agent.turns`, `agent.serverTurns`,
-  `agent.runTrigger`): `dream { learned, added, removed }` and `heartbeat { report, yielded }`
+  `agent.runTrigger`): `dream { learned, added, removed }` and `heartbeat { report: { text, posted, postedChatId }, yielded }`
   (contract: `packages/haus-api/src/agent-turn-trigger.ts`, behavior: [agents
-  API](../docs/api/agents.md)), resolved in a few bounded reads per page. `postedChatId` is limited
+  API](../docs/api/agents.md)), resolved in a few bounded reads per page. `posted` ignores visibility (the App reads "Posted" when it is true but the Chat is hidden); `postedChatId` is limited
   to Chats the viewer can see.
 
 The skip, pause, and yield decisions have no row of their own. The checks table is a Server

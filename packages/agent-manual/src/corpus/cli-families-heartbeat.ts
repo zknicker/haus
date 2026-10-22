@@ -13,7 +13,7 @@ Both commands read their text only from stdin, never a flag or positional argume
 
 \`haus heartbeat report\` sends this run its one report to your main session, 1–4000 characters. Receipt: \`Report queued for your main session.\` It reaches your main session after the run settles, and your main session decides who hears it. A heartbeat never posts in a chat.
 
-\`haus heartbeat learned\` records what you learned today, 1–2000 characters, as a few \`- \` bullet lines in your own voice. Nightly run only. Receipt: \`Summary saved on tonight's run.\`
+\`haus heartbeat learned\` records what you learned today, 1–2000 characters, as a few \`- \` bullet lines in your own voice. Nightly run only, and only when you learned something; skip it on a quiet night. Receipt: \`Summary saved on tonight's run.\`
 
 Errors: \`TEXT_FLAG_UNSUPPORTED\`, \`POSITIONAL_CONTENT_UNSUPPORTED\`, and \`MISSING_CONTENT\` mean the text did not arrive on stdin. \`HEARTBEAT_RUN_REQUIRED\` means you are not in a heartbeat run, so there is nothing to report. \`HEARTBEAT_REPORT_EXISTS\` means this run already sent its one report; do not retry. \`DREAM_RUN_REQUIRED\` means \`learned\` was called outside a nightly run. \`INVALID_ARG\` means the text length is out of range. Leads are \`haus lead\`; see lead.`,
         id: 'heartbeat',

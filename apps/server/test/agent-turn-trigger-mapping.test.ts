@@ -41,7 +41,7 @@ test('maps each inbox source to its narrow trigger kind', () => {
 
 test('a heartbeat carries its report, and a report names its heartbeat run', () => {
     const heartbeat = { chatId: null, runId: 'run_hb', source: 'heartbeat', visible: false };
-    const report = { postedChatId: 'cht_shop', text: 'Q4 budget is stuck on legal.' };
+    const report = { posted: true, postedChatId: 'cht_shop', text: 'Q4 budget is stuck on legal.' };
     const outcomes = {
         dreams: new Map(),
         reports: new Map([['run_hb', report]]),

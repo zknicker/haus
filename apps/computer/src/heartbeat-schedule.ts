@@ -27,11 +27,11 @@ export interface HeartbeatScheduleInput {
 }
 
 /** One Agent's slot check, logged and traced as `haus.heartbeat.check`. */
-export interface HeartbeatCheckRecord extends HeartbeatSlot {
+export type HeartbeatCheckRecord = HeartbeatSlot & {
     agentId: string;
     outcome: HeartbeatCheckOutcome;
     reason?: HeartbeatSkipReason;
-}
+};
 
 /**
  * Sends each Agent one `agent-heartbeat-request` per due slot while this machine is

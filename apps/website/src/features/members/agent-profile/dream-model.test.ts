@@ -12,6 +12,7 @@ import {
 import {
     dreamSummaryHeadline,
     dreamSummaryMarkdown,
+    formatFollowUpDetail,
     formatFollowUpWhen,
 } from './dream-summary-model.ts';
 
@@ -137,9 +138,21 @@ test('a dream with a summary or follow-ups is not quiet even with no file change
         anchorChatId: 'cht_one',
         fireAt: '2026-10-21T09:00:00.000Z',
         reminderId: 'rem_one',
+        requester: null,
         title: 'Check the invoice',
     };
     expect(isQuietDream({ ...empty, followUps: [followUp], summary: null })).toBe(false);
+});
+
+test('a follow-up names who it is for, then where, and drops what it does not know', () => {
+    const maya = { displayName: 'Maya Chen', handle: 'maya', kind: 'human' } as const;
+    expect(formatFollowUpDetail(maya, '#product')).toBe('for @maya · #product');
+    expect(formatFollowUpDetail(maya, null)).toBe('for @maya');
+    expect(formatFollowUpDetail({ ...maya, handle: null }, '#product')).toBe(
+        'for Maya Chen · #product'
+    );
+    expect(formatFollowUpDetail(null, '#product')).toBe('#product');
+    expect(formatFollowUpDetail(null, null)).toBe('');
 });
 
 test('a follow-up reads Tomorrow, Today, or the date, then its local time', () => {
