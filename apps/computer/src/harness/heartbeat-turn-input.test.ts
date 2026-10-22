@@ -120,7 +120,10 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
     );
     expect(text).not.toContain('Read the full recipe first');
     expect(text).toContain('so do not fetch them again');
-    expect(text).toContain('Post nothing in any chat.');
+    // A bare "post nothing" read as "no report" in a live run (heartbeat-surfaces-new-signal).
+    expect(text).toContain(
+        'Post nothing in any chat; the one `haus heartbeat report` below is not a post.'
+    );
     expect(text).toContain(
         'Latest checkpoint (heartbeat/checkpoints/2026-10-20/08-07.md), already read for you:'
     );
@@ -128,6 +131,7 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
     expect(text).toContain('- led_1 @blippy: Why the Etsy payout was short');
     expect(text).toContain('- rem_1 "Check payout" fires 2026-10-21T09:00:00.000Z');
     expect(text).toContain('Connections you can call with `execute`: Etsy, Linear.');
+    expect(text).toContain('connection names, not tool names');
     expect(text).toContain('1. Catch up:');
     expect(text).toContain('6. Checkpoint:');
     expect(text).toContain('Do not read back what you wrote.');
@@ -144,7 +148,7 @@ test('an empty first heartbeat says so instead of listing', async () => {
         { ...heartbeat, connections: [], leads: [], reminders: [] },
         root
     );
-    expect(text).toContain('No checkpoint yet — this is your first heartbeat.');
+    expect(text).toContain('No checkpoint yet: this is your first heartbeat.');
     expect(text).toContain('Open leads: none.');
     expect(text).toContain('Your open reminders: none.');
     expect(text).toContain('Connections: none granted.');
