@@ -49,3 +49,12 @@ test('the learned summary is written only for real lessons, never invented', () 
     expect(body).toContain('skip `haus heartbeat learned` entirely');
     expect(body).toContain('never invent a lesson');
 });
+
+test('the turn input carries the checkpoint, leads, reminders, and connections, and the run does not read back', () => {
+    expect(body).toContain('The latest checkpoint is in the turn input; do not fetch it again');
+    expect(body).toContain('Your connection names are in the turn input; do not search for them');
+    expect(body).toContain('The open leads and your open reminders are in the turn input');
+    expect(body).toContain('so do not read it back');
+    expect(body).not.toContain('The checkpoint exists at the path above');
+    expect(body).toContain('re-reading it wastes the run');
+});

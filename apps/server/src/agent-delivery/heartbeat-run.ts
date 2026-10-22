@@ -8,6 +8,7 @@ import { recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import type { ConfiguredAgent } from './deferred-configuration.ts';
 import type { DispatchPlan } from './delivery.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
+import { readHeartbeatContext } from './heartbeat-context.ts';
 import { buildHeartbeatDigest, heartbeatKindOf, readHeartbeatSince } from './heartbeat-digest.ts';
 import { heartbeatRunIdOfReport } from './heartbeat-keys.ts';
 import * as store from './store.ts';
@@ -198,6 +199,7 @@ async function attentionOf(
     });
     return {
         heartbeat: {
+            ...(await readHeartbeatContext(db, state)),
             createdAt,
             digest: await buildHeartbeatDigest(db, {
                 agentId: state.agentId,

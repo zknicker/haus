@@ -236,10 +236,10 @@ async function runLedgeredLaunch(
         },
         options.runtime
     );
-    await dream?.finish();
     await settleHeartbeat({
         agentRoot,
         command,
+        dreamChange: (await dream?.finish()) ?? null,
         proxy,
         runtime: options.runtime,
         status: result.status,

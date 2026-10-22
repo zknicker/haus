@@ -1,4 +1,4 @@
-import { readdir, rm, stat } from 'node:fs/promises';
+import { readdir, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /** Checkpoints and daily summaries older than this are deleted after a heartbeat settles. */
@@ -27,6 +27,29 @@ export async function latestCheckpoint(workspaceDir: string): Promise<string | n
     }
     found.sort((a, b) => b.mtimeMs - a.mtimeMs || b.path.localeCompare(a.path));
     return found[0]?.path ?? null;
+}
+
+/** The most of a checkpoint a heartbeat turn input carries inline. */
+export const checkpointInlineLimitBytes = 4096;
+
+/**
+ * A workspace-relative checkpoint's text, cut to {@link checkpointInlineLimitBytes} on a
+ * character boundary. Null when the file is gone or unreadable: it only costs the inline copy.
+ */
+export async function readCheckpointInline(
+    workspaceDir: string,
+    path: string
+): Promise<{ text: string; truncated: boolean } | null> {
+    try {
+        const bytes = await readFile(join(workspaceDir, path));
+        if (bytes.byteLength <= checkpointInlineLimitBytes) {
+            return { text: bytes.toString('utf8').trimEnd(), truncated: false };
+        }
+        const cut = bytes.subarray(0, checkpointInlineLimitBytes).toString('utf8');
+        return { text: cut.replace(/�+$/u, '').trimEnd(), truncated: true };
+    } catch {
+        return null;
+    }
 }
 
 /**

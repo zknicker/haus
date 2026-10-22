@@ -109,21 +109,39 @@ persistent heartbeat thread would grow the same way. A fresh run is bounded by i
 
 The Computer composes the whole input; the system prompt does not change.
 
-1. A header naming the run kind and the recipe: `haus manual get recipes/technique/heartbeat`.
+Every run starts with what it would otherwise fetch first, so it spends no tool calls on it.
+
+1. A header naming the run kind. A **nightly** run is told to read the full recipe,
+   `haus manual get recipes/technique/heartbeat`, because its nightly section matters. A
+   **daytime** run is told the every-run steps are below and to fetch the recipe only for detail.
 2. **Digest**, built by the Server and carried on the start command: each Chat and Thread the
    Agent took part in since the cutoff (it posted, was mentioned or DMed, or a Thread it posts in
    got replies), busiest and most direct first, capped at 20 with "and N more". Each entry has
    the target, the first sequence after the cutoff, message count, who spoke, whether the Agent
-   was addressed, and who spoke last. No bodies: the Agent reads them with
+   was addressed, and who spoke last. No bodies, ever: the Agent reads them with
    `haus message read --target <t> --after <seq>`.
-3. **Checkpoint**: the path of the latest checkpoint, read first.
-4. The Agent's open reminders and the open leads list, as counts and the commands to read them.
+3. **Checkpoint**: the latest checkpoint's text, cut at 4 KB with a note and its path when
+   longer. The path alone when the file cannot be read.
+4. **Open leads** (the team's, last seven days, `haus lead list` data) and the Agent's
+   **scheduled reminders** (id, title, fire time), at most 10 each, and the Agent's **granted
+   connection names**, at most 10. The Server reads them when it builds the start command
+   (`connections`, `leads`, `reminders` on the heartbeat attention); a list at its limit names
+   the command that shows the rest. The Agent does not re-fetch them or `tools.search` for its
+   connections.
+5. A compact copy of the recipe's every-run steps (catch up, notice, leads, decide, report,
+   checkpoint), plus a line for steps 7–10 on a nightly run.
 
 ### Quiet-run note
 
 The main session's next turn input after any heartbeat gets one line, so it can always say what
-it has been doing: "Your heartbeat ran 2× since your last turn (no report); latest checkpoint:
+it has been doing: "Your heartbeat ran 2× since your last turn (no report). Latest checkpoint:
 `heartbeat/checkpoints/<…>.md`." A heartbeat with a report already reaches it as an inbox item.
+When a settled nightly run changed memory, the line also says so, so the Agent re-reads before
+relying on what it remembers: "Your heartbeat ran 3× since your last turn (1 reported). Last
+night's dream updated MEMORY.md (+4 −2): re-read it before relying on memory. Latest
+checkpoint: `heartbeat/daily/2026-10-22.md`." The line counts come from the dream record the
+Computer computes when the run settles; they are stored in the note and summed per run id, so a
+replayed run never counts twice.
 
 ## The recipe
 
@@ -205,7 +223,7 @@ Once per night, also:
 | --- | --- | --- |
 | Runs | One nightly dream when memory changed | Daytime heartbeat every three hours plus a nightly run when there was activity |
 | Session | Nightly dream resumes the main session | Every run is a fresh throwaway session |
-| Input | One instruction line | Digest, checkpoint, open reminders and leads |
+| Input | One instruction line | Digest, checkpoint text, open reminders and leads, connection names, compact steps |
 | Work | Tidy memory | Catch up, notice, follow leads, report; nightly: reflect, consolidate, follow up, summarize |
 | May write | MEMORY.md and `notes/` | Daytime: checkpoint, baseline notes, one report, lead claims. Nightly: also memory, reminders, summary |
 | Team sees | Diffs | Summary, follow-ups, diffs; Heartbeat rows |
@@ -280,8 +298,12 @@ Shared by every implementation slice; `packages/haus-api` owns the schemas.
 - **Dream reads.** `agentDreamSummarySchema` and detail gain `summary: string | null` and
   `followUps: { reminderId, title, anchorChatId, fireAt }[]` (reminders the Agent created during
   the run, derived at read).
+- **Heartbeat attention context.** `heartbeat` also carries `connections: string[]`, `leads:
+  { id, agentHandle, topic }[]`, and `reminders: { id, title, fireAt }[]`, each at most 10 and
+  defaulting to empty.
 - **Quiet-run note.** Computer-only: `runtime/heartbeat-note.json` counts settled heartbeats and
-  reports since the last main-session turn and names the newest checkpoint; the next
+  reports since the last main-session turn, sums what nightly runs changed in memory
+  (`dream: { added, removed, memory, notes }`), and names the newest checkpoint; the next
   main-session turn input renders it and clears it.
 
 ## Observability

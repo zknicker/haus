@@ -19,10 +19,13 @@ const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
 const heartbeat = {
+    connections: [],
     createdAt: '2026-10-20T10:05:00.000Z',
     digest: { entries: [], more: 0 },
     id: 'heartbeat:agt_test:2026-10-20:10:00',
     kind: 'daytime' as const,
+    leads: [],
+    reminders: [],
     since: null,
 };
 const mainResume = {
@@ -230,7 +233,7 @@ test('the next main-session turn starts with the quiet-run line, resumes the mai
     );
 
     expect(prompts[0]?.split('\n')[0]).toBe(
-        'Your heartbeat ran 2× since your last turn (1 reported); latest checkpoint: heartbeat/checkpoints/2026-10-20/10-05.md.'
+        'Your heartbeat ran 2× since your last turn (1 reported). Latest checkpoint: heartbeat/checkpoints/2026-10-20/10-05.md.'
     );
     expect(createSessionCalls[0]?.resumeFrom).toMatchObject({ type: 'resume-session' });
     expect(await readQuietRunNote(agentRoot)).toBeNull();

@@ -4,12 +4,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseStartCommand } from '../agent-command-frames.ts';
 import { pruneCheckpoints } from './heartbeat-checkpoints.ts';
-import {
-    clearQuietRunNote,
-    quietRunLine,
-    readQuietRunNote,
-    recordHeartbeatSettled,
-} from './heartbeat-note.ts';
 import { composeHeartbeatInput } from './heartbeat-prompt.ts';
 import { composeTurnPrompt, type TurnDelivery, turnDeliveryOf } from './turn-prompt.ts';
 
@@ -22,6 +16,7 @@ afterEach(async () => {
 });
 
 const heartbeat = {
+    connections: ['Etsy', 'Linear'],
     createdAt: '2026-10-20T10:05:00.000Z',
     digest: {
         entries: [
@@ -41,6 +36,8 @@ const heartbeat = {
     },
     id: 'heartbeat:agt_test:2026-10-20:10:00',
     kind: 'daytime' as const,
+    leads: [{ agentHandle: 'blippy', id: 'led_1', topic: 'Why the Etsy payout was short' }],
+    reminders: [{ fireAt: '2026-10-21T09:00:00.000Z', id: 'rem_1', title: 'Check payout' }],
     since: '2026-10-20T08:07:00.000Z',
 };
 
@@ -108,24 +105,72 @@ test('heartbeat and report frames parse chatless, and only those frames may', ()
     ).toBe('cht_1');
 });
 
-test('a daytime heartbeat input names the recipe, cutoff, digest, checkpoint, and commands', async () => {
+async function writeCheckpoint(text: string) {
+    const dir = join(root, 'heartbeat', 'checkpoints', '2026-10-20');
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, '08-07.md'), text);
+}
+
+test('a daytime heartbeat input carries what the run would fetch, and the recipe only for detail', async () => {
+    await writeCheckpoint('Reported: quiet. Checked Etsy payouts.');
     const text = await composeHeartbeatInput(heartbeat, root);
     expect(text).toContain('[Haus daytime heartbeat]');
     expect(text).toContain(
-        'haus manual get recipes/technique/heartbeat --intent "daytime heartbeat" --reason "Haus started my heartbeat"'
+        'fetch the recipe (`haus manual get recipes/technique/heartbeat --intent "daytime heartbeat" --reason "Haus started my heartbeat"`) only if you need detail'
     );
+    expect(text).not.toContain('Read the full recipe first');
+    expect(text).toContain('so do not fetch them again');
     expect(text).toContain('Post nothing in any chat.');
+    expect(text).toContain(
+        'Latest checkpoint (heartbeat/checkpoints/2026-10-20/08-07.md), already read for you:'
+    );
+    expect(text).toContain('Reported: quiet. Checked Etsy payouts.');
+    expect(text).toContain('- led_1 @blippy: Why the Etsy payout was short');
+    expect(text).toContain('- rem_1 "Check payout" fires 2026-10-21T09:00:00.000Z');
+    expect(text).toContain('Connections you can call with `execute`: Etsy, Linear.');
+    expect(text).toContain('1. Catch up:');
+    expect(text).toContain('6. Checkpoint:');
+    expect(text).toContain('Do not read back what you wrote.');
+    expect(text).not.toContain('recipe steps 7–10');
     expect(text).toContain('2026-10-20T08:07:00.000Z');
     expect(text).toContain(
         '- #product (channel) "product": 5 new since seq 120; read with `haus message read --target #product --after 120`; speakers @maya, @sam; addressed you; last speaker @maya'
     );
     expect(text).toContain('and 3 more');
-    expect(text).toContain('No checkpoint yet — this is your first heartbeat.');
-    expect(text).toContain('`haus reminder list`');
-    expect(text).toContain('`haus lead list`');
 });
 
-test('a nightly heartbeat names the nightly recipe intent and the latest checkpoint', async () => {
+test('an empty first heartbeat says so instead of listing', async () => {
+    const text = await composeHeartbeatInput(
+        { ...heartbeat, connections: [], leads: [], reminders: [] },
+        root
+    );
+    expect(text).toContain('No checkpoint yet — this is your first heartbeat.');
+    expect(text).toContain('Open leads: none.');
+    expect(text).toContain('Your open reminders: none.');
+    expect(text).toContain('Connections: none granted.');
+});
+
+test('a list at its limit names the command that shows the rest', async () => {
+    const leads = Array.from({ length: 10 }, (_, index) => ({
+        agentHandle: 'blippy',
+        id: `led_${index}`,
+        topic: `topic ${index}`,
+    }));
+    const text = await composeHeartbeatInput({ ...heartbeat, leads }, root);
+    expect(text).toContain('Open leads (first 10; `haus lead list` shows all):');
+    expect(text).not.toContain('Your open reminders (first');
+});
+
+test('a long checkpoint is cut at 4 KB with a note, never pasted whole', async () => {
+    await writeCheckpoint(`${'a'.repeat(5000)}TAIL`);
+    const text = await composeHeartbeatInput(heartbeat, root);
+    expect(text).toContain('cut at 4096 bytes, read the file for the rest');
+    expect(text).toContain('a'.repeat(4096));
+    expect(text).not.toContain('a'.repeat(4097));
+    expect(text).not.toContain('TAIL');
+});
+
+test('a nightly heartbeat reads the full recipe, does the nightly steps, and shows the latest checkpoint', async () => {
     const dir = join(root, 'heartbeat', 'checkpoints', '2026-10-20');
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, '08-07.md'), 'old');
@@ -136,10 +181,13 @@ test('a nightly heartbeat names the nightly recipe intent and the latest checkpo
         root
     );
     expect(text).toContain('[Haus nightly heartbeat]');
+    expect(text).toContain('Read the full recipe first, its nightly section matters');
     expect(text).toContain('--intent "nightly heartbeat"');
+    expect(text).toContain('recipe steps 7–10');
     expect(text).toContain('No earlier cutoff');
     expect(text).toContain('no conversation you took part in moved');
     expect(text).toContain('heartbeat/checkpoints/2026-10-20/10-05.md');
+    expect(text).toContain('\nnew\n');
 });
 
 test('a report run hands the main session the Agent’s own report to decide on', () => {
@@ -162,34 +210,6 @@ test('a nightly heartbeat report never posts: it becomes a morning reminder', ()
     );
     expect(prompt.turnContent).toContain('came from your nightly heartbeat, so post nothing now');
     expect(prompt.turnContent).not.toContain('post where it belongs');
-});
-
-test('the quiet-run note counts settled heartbeats, renders one line, and clears', async () => {
-    expect(await readQuietRunNote(root)).toBeNull();
-    await recordHeartbeatSettled(root, {
-        latestCheckpoint: 'heartbeat/checkpoints/a.md',
-        reported: false,
-    });
-    await recordHeartbeatSettled(root, { latestCheckpoint: null, reported: true });
-    const note = await readQuietRunNote(root);
-    expect(note).toEqual({ count: 2, latestCheckpoint: 'heartbeat/checkpoints/a.md', reported: 1 });
-    expect(note && quietRunLine(note)).toBe(
-        'Your heartbeat ran 2× since your last turn (1 reported); latest checkpoint: heartbeat/checkpoints/a.md.'
-    );
-    await clearQuietRunNote(root);
-    expect(await readQuietRunNote(root)).toBeNull();
-});
-
-test('a replayed heartbeat run is counted once, even after the note is cleared', async () => {
-    const run = { latestCheckpoint: null, reported: true, runId: 'run_replayed' };
-    await recordHeartbeatSettled(root, run);
-    await recordHeartbeatSettled(root, run);
-    expect(await readQuietRunNote(root)).toMatchObject({ count: 1, reported: 1 });
-    await clearQuietRunNote(root);
-    await recordHeartbeatSettled(root, run);
-    expect(await readQuietRunNote(root)).toBeNull();
-    await recordHeartbeatSettled(root, { ...run, runId: 'run_other' });
-    expect(await readQuietRunNote(root)).toMatchObject({ count: 1 });
 });
 
 test('retention deletes checkpoints and daily files older than 14 days and nothing else', async () => {

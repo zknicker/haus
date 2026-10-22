@@ -1,5 +1,5 @@
 import type { Lead, LeadClaimInput, LeadClaimResult, LeadListResponse } from '@haus/api';
-import { and, desc, eq, gt, inArray, lt } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import { resolveAgentMessage } from '../agent-api/message-read.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -99,6 +99,28 @@ export async function listLeads(
         .orderBy(desc(agentLeadsTable.createdAt), desc(agentLeadsTable.id))
         .limit(listLimit);
     return { leads: rows.map(toLead) };
+}
+
+/** This Server's open leads from the last seven days, newest first, at most `limit`. */
+export async function listOpenLeads(
+    db: HausDatabase,
+    serverId: string,
+    limit: number
+): Promise<Lead[]> {
+    const rows = await db
+        .select(leadColumns)
+        .from(agentLeadsTable)
+        .innerJoin(agentsTable, agentJoin())
+        .where(
+            and(
+                eq(agentLeadsTable.serverId, serverId),
+                isNull(agentLeadsTable.doneAt),
+                gt(agentLeadsTable.createdAt, new Date(Date.now() - claimWindowMs))
+            )
+        )
+        .orderBy(desc(agentLeadsTable.createdAt), desc(agentLeadsTable.id))
+        .limit(limit);
+    return rows.map(toLead);
 }
 
 /** Records the claiming Agent's finding; another Agent's lead is refused. */

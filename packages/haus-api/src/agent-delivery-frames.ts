@@ -28,14 +28,34 @@ export type HeartbeatDigestEntry = z.infer<typeof heartbeatDigestEntrySchema>;
 /** Most digest entries one heartbeat carries; `more` counts the rest. */
 export const heartbeatDigestEntryLimit = 20;
 
+/** Most open leads, open reminders, and connection names one heartbeat carries inline. */
+export const heartbeatContextLimit = 10;
+
+/** One open lead on the team's list: what `haus lead list` shows for it. */
+export const heartbeatLeadSchema = z
+    .object({
+        agentHandle: z.string().min(1).max(128),
+        id: idSchema,
+        topic: z.string().min(1).max(200),
+    })
+    .strict();
+
+/** One of the Agent's scheduled reminders. */
+export const heartbeatReminderSchema = z
+    .object({ fireAt: timestampSchema, id: idSchema, title: z.string().min(1).max(512) })
+    .strict();
+
 /**
  * The heartbeat attention: a chatless, private turn for the Agent's daytime look
  * around or nightly dream. `id` is its inbox identity
  * (`dream:<agentId>:<localDate>` or `heartbeat:<agentId>:<localDate>:<slot>`);
  * `since` is the previous settled heartbeat's start, null for the first.
+ * `connections`, `leads`, and `reminders` are what every run would otherwise
+ * fetch first: the Agent's granted connection names and its open work, bounded.
  */
 export const agentHeartbeatAttentionSchema = z
     .object({
+        connections: z.array(z.string().min(1).max(256)).max(heartbeatContextLimit).default([]),
         createdAt: timestampSchema,
         digest: z
             .object({
@@ -45,6 +65,8 @@ export const agentHeartbeatAttentionSchema = z
             .strict(),
         id: idSchema,
         kind: z.enum(['daytime', 'nightly']),
+        leads: z.array(heartbeatLeadSchema).max(heartbeatContextLimit).default([]),
+        reminders: z.array(heartbeatReminderSchema).max(heartbeatContextLimit).default([]),
         since: timestampSchema.nullable(),
     })
     .strict();

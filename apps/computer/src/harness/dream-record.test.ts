@@ -64,8 +64,9 @@ test('a dream run reports its memory changes as stats and one sectioned unified 
         '# Ramp\nStep up Oct 14.\n'
     );
     await writeFile(join(workspaceDir, 'outside.md'), 'changed, still not memory\n');
-    await recording?.finish();
+    const change = await recording?.finish();
 
+    expect(change).toEqual({ added: 3, memory: true, notes: true, removed: 2 });
     expect(frames).toHaveLength(1);
     const frame = agentDreamRecordSchema.parse(frames[0]);
     expect(frame).toMatchObject({ agentId: 'agt_test', runId: 'run_dream' });
@@ -98,7 +99,7 @@ test('a dream that changed nothing still reports, with no files', async () => {
         startedAt: '2026-10-11T03:00:00.000Z',
         workspaceDir,
     });
-    await recording?.finish();
+    expect(await recording?.finish()).toBeNull();
 
     expect(frames).toEqual([expect.objectContaining({ files: [], patch: '' })]);
 });

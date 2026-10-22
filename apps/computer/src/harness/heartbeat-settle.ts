@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { latestCheckpoint, pruneCheckpoints } from './heartbeat-checkpoints.ts';
-import { recordHeartbeatSettled } from './heartbeat-note.ts';
+import { type DreamMemoryChange, recordHeartbeatSettled } from './heartbeat-note.ts';
 
 /**
  * After a heartbeat run completes: counts it once for the main session's quiet-run
@@ -12,6 +12,8 @@ import { recordHeartbeatSettled } from './heartbeat-note.ts';
 export async function settleHeartbeat(input: {
     agentRoot: string;
     command: { heartbeat?: unknown; runId: string };
+    /** What a nightly run changed in memory, from its dream record; null otherwise. */
+    dreamChange?: DreamMemoryChange | null;
     now?: Date;
     proxy: { reportCount(): number };
     runtime: DaemonRuntime;
@@ -24,6 +26,7 @@ export async function settleHeartbeat(input: {
     try {
         await pruneCheckpoints(input.workspaceDir, input.now ?? new Date());
         await recordHeartbeatSettled(input.agentRoot, {
+            dream: input.dreamChange ?? null,
             latestCheckpoint: await latestCheckpoint(input.workspaceDir),
             reported: input.proxy.reportCount() > 0,
             runId: input.command.runId,

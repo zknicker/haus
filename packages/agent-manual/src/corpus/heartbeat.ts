@@ -5,15 +5,15 @@ export const heartbeatRecipe = createManualRecipe({
 # Run a heartbeat: catch up, notice, follow leads, report or stay quiet
 
 ### Trigger
-Haus starts a heartbeat turn in a fresh session: a daytime run every three hours, and a nightly run once a night. The turn input names the run kind, a digest of the conversations you took part in since your last run, your latest checkpoint, and your open reminders and leads.
+Haus starts a heartbeat turn in a fresh session: a daytime run every three hours, and a nightly run once a night. The turn input names the run kind, a digest of the conversations you took part in since your last run, your latest checkpoint's text, your open reminders and leads, your connection names, and a compact copy of the every-run steps. A daytime run needs this recipe only for detail; a nightly run reads all of it.
 
 ### Use When / Don't Use When
 Use it for the heartbeat turn only. The main session decides what anyone hears; a heartbeat never talks to people. A direct message or mention that arrives during a daytime run stops it; the main session takes that message.
 
 ### Do This (every run)
-1. **Catch up.** Read the latest checkpoint first, then each digest conversation: \`haus message read --target <t> --after <seq>\`. The digest has no bodies.
-2. **Notice.** Start from your role, your memory, what people asked you about recently, and the connections and tools you have. Every run, check the sources your work depends on for what changed since your checkpoint, even when the chats were quiet: find your connections with the \`execute\` tool's \`tools.search\` and call the ones your role or memory relies on. Then look wider: the repo, the web, other Agents' state.
-3. **Follow leads.** A question nobody answered, something you said you would check, a gap in an area you own, a hunch. Before you research any lead, even one you expect to answer in a minute, run \`haus lead list\`, then \`haus lead claim --topic "..." [--message-id <id>]\` (pass the message id when the lead is a message); if it is refused, another Agent holds it, so leave it. Record the result with \`haus lead done --id <id> --finding "..."\`. Leave leads in another Agent's area to that Agent.
+1. **Catch up.** The latest checkpoint is in the turn input; do not fetch it again. Read each digest conversation: \`haus message read --target <t> --after <seq>\`. The digest has no bodies.
+2. **Notice.** Start from your role, your memory, what people asked you about recently, and the connections and tools you have. Your connection names are in the turn input; do not search for them. Every run, check the sources your work depends on for what changed since your checkpoint, even when the chats were quiet: call the connections your role or memory relies on with the \`execute\` tool (\`tools.search\` only to find a tool inside one). Then look wider: the repo, the web, other Agents' state.
+3. **Follow leads.** A question nobody answered, something you said you would check, a gap in an area you own, a hunch. The open leads and your open reminders are in the turn input; do not run \`haus lead list\` or \`haus reminder list\` unless the list is cut off. Before you research any lead, even one you expect to answer in a minute, run \`haus lead claim --topic "..." [--message-id <id>]\` (pass the message id when the lead is a message); if it is refused, another Agent holds it, so leave it. Record the result with \`haus lead done --id <id> --finding "..."\`. Leave leads in another Agent's area to that Agent.
 4. **Decide what matters.** Report what is urgent, changes a plan, involves money or a deadline, answers something someone asked, or is a real change from normal. Stay quiet about unchanged values and routine movement. Never repeat a finding the checkpoint says you reported unless it changed.
 5. **Report or stay quiet.** At most one \`haus heartbeat report <<'HAUSMSG'\` … \`HAUSMSG\` (body on stdin, like \`haus message send\`), findings first, each with what you learned, why it matters, how sure you are, and a suggested next step. Daytime runs never edit MEMORY.md; put memory suggestions in the report.
 6. **Checkpoint.** Write \`heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md\` in your workspace: the exact report sent or "quiet" and why, what you checked, what you could not check, open leads, where to pick up.
@@ -28,11 +28,12 @@ The nightly run also writes \`heartbeat/daily/<YYYY-MM-DD>.md\` as its checkpoin
 10. **Write the summary only when there are real lessons.** With \`haus heartbeat learned <<'HAUSMSG'\` … \`HAUSMSG\`: 1–4 lines starting \`- \`, one lesson each, first person, each naming who taught it. On a quiet night with nothing learned, skip \`haus heartbeat learned\` entirely; never invent a lesson to fill the summary. Compare the day's corrections with what MEMORY.md held when the run started; a correction you acknowledged in chat (such as "got it") that was not already saved says so on its line: acknowledged but not saved until now.
 
 ### Verify
-Chats show no new message from this run. At most one report was sent. The checkpoint exists at the path above and says what was reported. Nightly: every promise you dropped has a reminder anchored to its message, and any summary names who taught each lesson (a quiet night has none).
+Chats show no new message from this run. At most one report was sent. The checkpoint you wrote says what was reported; the write command already confirms it, so do not read it back. Nightly: every promise you dropped has a reminder anchored to its message, and any summary names who taught each lesson (a quiet night has none).
 
 ### If It Fails
 - **Chatty run**: you posted or reported twice. Counter: one report or silence; the main session decides what anyone hears.
 - **Repeat report**: the same finding goes out every run. Counter: read the checkpoint; report only what changed.
+- **Read-back**: you re-read a file you just wrote. Counter: a successful write is the proof; re-reading it wastes the run.
 - **Duplicate research**: two Agents chase one lead. Counter: claim before researching.
 - **False dropped handoff**: you blame another Agent from memory. Counter: check its actual state first.
 - **One-off rule**: a single remark becomes a standing rule. Counter: treat it as one data point until it repeats.
