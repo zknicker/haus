@@ -1,12 +1,7 @@
 import type { Agent, TriggerKind } from '@haus/api';
 import { Button, Separator, Tooltip } from '@heroui/react';
-import {
-    Add01Icon,
-    GithubIcon,
-    HistoryIcon,
-    Task01Icon,
-    WebhookIcon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { GithubIcon, Task01Icon, WebhookIcon } from '@hugeicons-pro/core-solid-rounded';
+import { Add01Icon, HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -24,6 +19,7 @@ import { ProfileListSection } from './profile-list-section.tsx';
 import { TriggerHistoryDrawer } from './trigger-history-drawer.tsx';
 import { TriggerSheet } from './trigger-sheet.tsx';
 
+/** Solid, to sit at the keycap bolt's weight on the row's key. */
 const triggerKindIcons = {
     github: GithubIcon,
     linear: Task01Icon,
