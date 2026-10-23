@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
-import { latestCheckpoint, pruneCheckpoints } from './heartbeat-checkpoints.ts';
+import { pruneCheckpoints } from './heartbeat-checkpoints.ts';
 import { type DreamMemoryChange, recordHeartbeatSettled } from './heartbeat-note.ts';
 
 /**
@@ -27,7 +27,6 @@ export async function settleHeartbeat(input: {
         await pruneCheckpoints(input.workspaceDir, input.now ?? new Date());
         await recordHeartbeatSettled(input.agentRoot, {
             dream: input.dreamChange ?? null,
-            latestCheckpoint: await latestCheckpoint(input.workspaceDir),
             reported: input.proxy.reportCount() > 0,
             runId: input.command.runId,
         });

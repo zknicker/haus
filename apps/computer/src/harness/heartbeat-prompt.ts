@@ -29,7 +29,7 @@ export async function composeHeartbeatInput(
             heartbeat.kind === 'nightly'
                 ? `Read the full recipe first, its nightly section matters: ${fetchRecipe}.`
                 : `The every-run steps are below; fetch the recipe (${fetchRecipe}) only if you need detail.`
-        } The checkpoint, leads, reminders, and connections below are current, so do not fetch them again. Post nothing in any chat. A \`haus heartbeat report\` is not a post: send at most one, only when you found something worth reporting; staying quiet is the usual outcome, and a quiet run sends no report.`,
+        } The checkpoint, leads, reminders, and connections below are current, so do not fetch them again. Post nothing in any chat. A \`haus heartbeat report\` is not a post: send at most one; a quiet run sends no report.`,
         heartbeat.since
             ? `Cutoff: ${heartbeat.since}. Cover everything since then.`
             : 'No earlier cutoff: this is your first look back.',
@@ -50,9 +50,9 @@ export async function composeHeartbeatInput(
 const everyRunSteps = [
     'Every run, even a quiet one:',
     '1. Catch up: read each digest conversation with its command; the digest has no bodies.',
-    '2. Notice: check the sources your work depends on for what changed since the checkpoint, by calling the connections above with the `execute` tool, then look wider as your role suggests.',
+    '2. Notice: check the sources your work depends on for what is new or still open, by calling the connections above with the `execute` tool, then look wider as your role suggests.',
     '3. Follow leads: a listed lead is held by the Agent named; leave another Agent\'s lead to it. An unanswered question is a lead even if step 2 already found its answer. Before researching or reporting one, claim it with `haus lead claim --topic "..." [--message-id <id>]` (not `haus task claim`); refused means another Agent claimed or finished it, so leave it out of your report. Record the result with `haus lead done --id <id> --finding "..."`.',
-    '4. Decide: report only what is urgent, changes a plan, involves money or a deadline, answers a question, or really changed; never repeat what the checkpoint says you reported.',
+    '4. Decide: report what needs you or someone you work for and is still unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet. Stay quiet when nothing does; never resend a finding a past report already carried.',
     "5. Report or stay quiet: at most one `haus heartbeat report` (body on stdin, findings first: what, why it matters, how sure, next step). An answer to someone's question names the chat and message id it answers: the asker has heard nothing until your main session replies there, so the next step is that reply. Daytime runs never edit MEMORY.md.",
     '6. Checkpoint: write `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md` (nightly: `heartbeat/daily/<YYYY-MM-DD>.md`) with the exact report or "quiet" and why, what you checked and could not, open leads, and where to pick up. Do not read back what you wrote.',
 ].join('\n');
@@ -80,7 +80,7 @@ function daytimeDecision(now: Date, quietHoursApply: boolean): string {
     if (quietHoursApply && (now.getHours() >= 22 || now.getHours() < 8)) {
         return `It is ${clock} here, inside quiet hours (22:00–08:00): post nothing now; schedule a morning reminder anchored to the message it concerns for anything someone should hear, or do nothing.`;
     }
-    return `It is ${clock} here. You decide whether anyone should hear this: post where it belongs, or do nothing.`;
+    return `It is ${clock} here. You decide whether anyone should hear this: post where it belongs, or do nothing. Anything you post or do about it unasked opens with a heads-up line: what you noticed and why it matters now. Then act within your standing instructions.`;
 }
 
 function digestSection(digest: AgentHeartbeatAttention['digest']): string {

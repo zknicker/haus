@@ -200,17 +200,16 @@ test('a failed heartbeat still destroys its session and never marks the main ses
 });
 
 test('a heartbeat neither reads nor clears the quiet-run note', async () => {
-    await recordHeartbeatSettled(agentRoot, { latestCheckpoint: null, reported: false });
+    await recordHeartbeatSettled(agentRoot, { reported: false });
     await runHarnessTurn(turnInput({ heartbeat }));
     expect(await readQuietRunNote(agentRoot)).toMatchObject({ count: 1 });
 });
 
 test('the next main-session turn starts with the quiet-run line, resumes the main session, and clears it', async () => {
     await recordHeartbeatSettled(agentRoot, {
-        latestCheckpoint: 'heartbeat/checkpoints/2026-10-20/10-05.md',
         reported: false,
     });
-    await recordHeartbeatSettled(agentRoot, { latestCheckpoint: null, reported: true });
+    await recordHeartbeatSettled(agentRoot, { reported: true });
 
     await runHarnessTurn(
         turnInput({
@@ -233,21 +232,21 @@ test('the next main-session turn starts with the quiet-run line, resumes the mai
     );
 
     expect(prompts[0]?.split('\n')[0]).toBe(
-        'Your heartbeat ran 2× since your last turn (1 reported). Latest checkpoint: heartbeat/checkpoints/2026-10-20/10-05.md.'
+        'Your heartbeat ran 2× since your last turn (1 reported).'
     );
     expect(createSessionCalls[0]?.resumeFrom).toMatchObject({ type: 'resume-session' });
     expect(await readQuietRunNote(agentRoot)).toBeNull();
 });
 
 test('a failed main-session turn keeps the quiet-run note for the retry', async () => {
-    await recordHeartbeatSettled(agentRoot, { latestCheckpoint: null, reported: false });
+    await recordHeartbeatSettled(agentRoot, { reported: false });
     streamFails = true;
     await expect(runHarnessTurn(turnInput({ runId: 'run_main_fail' }))).rejects.toThrow();
     expect(await readQuietRunNote(agentRoot)).toMatchObject({ count: 1 });
 });
 
 test('a report run resumes the main session and clears the note without rendering it', async () => {
-    await recordHeartbeatSettled(agentRoot, { latestCheckpoint: null, reported: true });
+    await recordHeartbeatSettled(agentRoot, { reported: true });
     await runHarnessTurn(
         turnInput({
             heartbeatReport: {

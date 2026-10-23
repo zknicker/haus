@@ -134,14 +134,25 @@ Every run starts with what it would otherwise fetch first, so it spends no tool 
 ### Quiet-run note
 
 The main session's next turn input after any heartbeat gets one line, so it can always say what
-it has been doing: "Your heartbeat ran 2× since your last turn (no report). Latest checkpoint:
-`heartbeat/checkpoints/<…>.md`." A heartbeat with a report already reaches it as an inbox item.
-When a settled nightly run changed memory, the line also says so, so the Agent re-reads before
-relying on what it remembers: "Your heartbeat ran 3× since your last turn (1 reported). Last
-night's dream updated MEMORY.md (+4 −2): re-read it before relying on memory. Latest
-checkpoint: `heartbeat/daily/2026-10-22.md`." The line counts come from the dream record the
-Computer computes when the run settles; they are stored in the note and summed per run id, so a
-replayed run never counts twice.
+it has been doing: "Your heartbeat ran 2× since your last turn (0 reported)." A heartbeat with a
+report already reaches it as an inbox item. When a settled nightly run changed memory, the line
+also says so, so the Agent re-reads before relying on what it remembers: "Your heartbeat ran 3×
+since your last turn (1 reported). Last night's dream updated MEMORY.md (+4 −2): re-read it
+before relying on memory." The line counts come from the dream record the Computer computes when
+the run settles; they are stored in the note and summed per run id, so a replayed run never
+counts twice.
+
+The line names no checkpoint. A checkpoint is the heartbeat's own working notes; what the main
+session should act on arrives as a report. When the line pointed at the checkpoint, an unrelated
+main-session turn read it and launched work from a loose end the heartbeat had decided not to
+report (Forge, 2026-10-22).
+
+### Report run
+
+A report reaches the main session as its own turn (see Outputs). For a daytime report outside
+quiet hours, the input adds one rule for anything the Agent posts or does about it unasked: open
+with a heads-up line saying what it noticed and why it matters now, then act within its standing
+instructions. Acting is fine; acting without saying why is the failure this prevents.
 
 ## The recipe
 
@@ -154,14 +165,17 @@ Every run:
 1. **Catch up.** Read the checkpoint, then the digest's conversations since the cutoff.
 2. **Notice.** Start from your role, your memory, what people asked you about recently, and the
    connections and tools you have. Spend more time on what your work depends on. Look for what
-   is new: in your connections, the repo, the web, other Agents' state.
+   is new or still open: in your connections, the repo, the web, other Agents' state.
 3. **Follow leads.** A question nobody answered, something you said you would check, a gap in an
    area you own, a hunch. Claim each lead before researching it (see Leads). Leave leads in
    another Agent's area to that Agent.
-4. **Decide what matters.** Report what is urgent, changes a plan, involves money or a deadline,
-   answers something someone asked, or is a real change from normal. Stay quiet about unchanged
-   values and routine movement. Never repeat a finding the checkpoint says you already reported
-   unless something changed.
+4. **Decide what matters.** Report what needs you or someone you work for and is still
+   unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet.
+   Stay quiet when nothing does. Never resend a finding a past report already carried. One test,
+   no category list: a filter for change left a week-old pile of dependency PRs, a real security
+   fix among them, listed as a loose end and never reported (Forge, 2026-10-22). Live runs read
+   "unchanged" as "nothing to report" until the input said otherwise, and read "what the checkpoint
+   says you reported" as anything the checkpoint listed, so the wording names both.
 5. **Report or stay quiet.** At most one `haus heartbeat report`, findings first, each with what
    you learned, why it matters, how sure you are, and a suggested next step. An answer to
    someone's question names the chat and message id it answers: the asker has heard nothing
@@ -198,7 +212,8 @@ Once per night, also:
   **nightly** heartbeat always becomes a morning reminder, whatever the clock says when it is
   delivered (decided behavior). A **daytime** report follows the Computer's local clock, and the
   Computer states the decision in the report input rather than asking the Agent to work it out:
-  "It is 14:05 here. You decide whether anyone should hear this: ..." outside 22:00-08:00, and
+  "It is 14:05 here. You decide whether anyone should hear this: ..." outside 22:00-08:00 (with
+  the heads-up rule from Report run), and
   "It is 23:40 here, inside quiet hours (22:00-08:00): post nothing now; schedule a morning
   reminder ..." inside it.
 - **Dev and test switches.** The Computer reads two switches, declared in `.env.schema` and never
@@ -276,6 +291,8 @@ asserted by the scenario; quality is graded by profiles.
 | `heartbeat-follows-up-dropped-promise` | The Agent said "I'll check and get back to you" and never did. Nightly run. | One reminder anchored to that message, firing 08:00–10:00 in the requester's timezone, description names the promise; nothing posted. |
 | `heartbeat-surfaces-new-signal` | A controlled MCP connection the Agent uses for its role gains a notable record nobody mentioned in chat. Daytime run. | One report; the main session then posts once in the right Chat. |
 | `heartbeat-nothing-new-control` | Same connection, no change. Daytime run. | No report, no post. |
+| `heartbeat-reports-unhandled-standing-item` | Same connection holds an actionable item open since Monday; the seeded checkpoint saw it and stayed quiet. Daytime run. | One report naming it; the main session posts once in the right Chat, its first line a heads-up (lexical check) that says what it noticed. |
+| `heartbeat-stale-loose-end-control` | Same connection; the seeded checkpoint lists a loose end the ledger shows closed. A quiet daytime run, then an unrelated DM intro. | No report; the intro turn makes no ledger call, posts nothing in the Channel, and does not bring up the loose end. |
 | `heartbeat-quiet-run-awareness` | A quiet daytime run, then a human asks "what have you been up to?" | The answer mentions the heartbeat truthfully. |
 | `heartbeat-lead-dedupe` | Two Agents covering pricing, one unanswered question only a shared MCP source answers. | Outcome only: the question is answered with the source facts, exactly one Agent reports the answer, exactly one answer is posted. Source lookups and lead use are recorded, not asserted: checking a source you own every run is not duplicate work. |
 
@@ -321,8 +338,8 @@ Shared by every implementation slice; `packages/haus-api` owns the schemas.
   defaulting to empty.
 - **Quiet-run note.** Computer-only: `runtime/heartbeat-note.json` counts settled heartbeats and
   reports since the last main-session turn, sums what nightly runs changed in memory
-  (`dream: { added, removed, memory, notes }`), and names the newest checkpoint; the next
-  main-session turn input renders it and clears it.
+  (`dream: { added, removed, memory, notes }`); the next main-session turn input renders it and
+  clears it.
 
 ## Observability
 

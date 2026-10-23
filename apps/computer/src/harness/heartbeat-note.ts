@@ -17,20 +17,17 @@ export interface QuietRunNote {
     count: number;
     /** Memory changes of the nightly runs among them, summed; null when none changed memory. */
     dream: DreamMemoryChange | null;
-    latestCheckpoint: string | null;
     reported: number;
 }
 
 /**
- * Counts one settled heartbeat; `latestCheckpoint` is workspace-relative, or null, and
- * `dream` is what a nightly run changed in memory. A `runId` already settled is ignored,
- * so a replayed run never double-counts.
+ * Counts one settled heartbeat; `dream` is what a nightly run changed in memory. A `runId`
+ * already settled is ignored, so a replayed run never double-counts.
  */
 export async function recordHeartbeatSettled(
     agentRoot: string,
     run: {
         dream?: DreamMemoryChange | null;
-        latestCheckpoint: string | null;
         reported: boolean;
         runId?: string;
     }
@@ -43,7 +40,6 @@ export async function recordHeartbeatSettled(
     const next: QuietRunNote = {
         count: (previous?.count ?? 0) + 1,
         dream: mergeDreamChange(previous?.dream ?? null, run.dream ?? null),
-        latestCheckpoint: run.latestCheckpoint ?? previous?.latestCheckpoint ?? null,
         reported: (previous?.reported ?? 0) + (run.reported ? 1 : 0),
     };
     if (run.runId) {
@@ -82,8 +78,6 @@ export async function readQuietRunNote(agentRoot: string): Promise<QuietRunNote 
         return {
             count: parsed.count,
             dream: parseDreamChange(parsed.dream),
-            latestCheckpoint:
-                typeof parsed.latestCheckpoint === 'string' ? parsed.latestCheckpoint : null,
             reported: parsed.reported,
         };
     } catch {
@@ -98,16 +92,8 @@ export async function clearQuietRunNote(agentRoot: string): Promise<void> {
 
 /** The one line a main-session turn starts with, so the Agent can say what it has been doing. */
 export function quietRunLine(note: QuietRunNote): string {
-    const checkpoint = note.latestCheckpoint
-        ? `Latest checkpoint: ${note.latestCheckpoint}.`
-        : 'No checkpoint written.';
-    return [
-        `Your heartbeat ran ${note.count}× since your last turn (${note.reported} reported).`,
-        note.dream ? dreamSentence(note.dream) : null,
-        checkpoint,
-    ]
-        .filter((part) => part !== null)
-        .join(' ');
+    const line = `Your heartbeat ran ${note.count}× since your last turn (${note.reported} reported).`;
+    return note.dream ? `${line} ${dreamSentence(note.dream)}` : line;
 }
 
 function dreamSentence(dream: DreamMemoryChange): string {

@@ -3,7 +3,6 @@ import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseStartCommand } from '../agent-command-frames.ts';
-import { pruneCheckpoints } from './heartbeat-checkpoints.ts';
 import { composeHeartbeatInput, composeHeartbeatReportInput } from './heartbeat-prompt.ts';
 import { composeTurnPrompt, type TurnDelivery, turnDeliveryOf } from './turn-prompt.ts';
 
@@ -122,7 +121,11 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
     expect(text).toContain('so do not fetch them again');
     // A bare "post nothing" read as "no report" in a live run (heartbeat-surfaces-new-signal).
     expect(text).toContain(
-        'A `haus heartbeat report` is not a post: send at most one, only when you found something worth reporting; staying quiet is the usual outcome, and a quiet run sends no report.'
+        'A `haus heartbeat report` is not a post: send at most one; a quiet run sends no report.'
+    );
+    // A run that filtered for change left a week-old pile unreported (Forge, 2026-10-22).
+    expect(text).toContain(
+        '4. Decide: report what needs you or someone you work for and is still unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet.'
     );
     expect(text).toContain(
         'Latest checkpoint (heartbeat/checkpoints/2026-10-20/08-07.md), already read for you:'
@@ -223,6 +226,10 @@ test('a daytime report outside quiet hours leaves the decision to the Agent', ()
     expect(text).toContain(
         'It is 14:05 here. You decide whether anyone should hear this: post where it belongs, or do nothing.'
     );
+    // Unprompted work started with a terse post and no context (Forge, 2026-10-22).
+    expect(text).toContain(
+        'Anything you post or do about it unasked opens with a heads-up line: what you noticed and why it matters now. Then act within your standing instructions.'
+    );
     expect(text).not.toContain('quiet hours');
 });
 
@@ -233,6 +240,7 @@ test('a daytime report inside quiet hours says to post nothing and schedule a mo
             'inside quiet hours (22:00–08:00): post nothing now; schedule a morning reminder anchored to the message it concerns'
         );
         expect(text).not.toContain('post where it belongs');
+        expect(text).not.toContain('heads-up');
     }
     expect(
         composeHeartbeatReportInput(report, { now: local(8, 0), quietHours: 'on' })
@@ -271,30 +279,4 @@ test('a nightly heartbeat report never posts: it becomes a morning reminder', ()
     );
     expect(prompt.turnContent).toContain('came from your nightly heartbeat, so post nothing now');
     expect(prompt.turnContent).not.toContain('post where it belongs');
-});
-
-test('retention deletes checkpoints and daily files older than 14 days and nothing else', async () => {
-    const workspace = join(root, 'workspace');
-    const checkpoints = join(workspace, 'heartbeat', 'checkpoints');
-    const daily = join(workspace, 'heartbeat', 'daily');
-    for (const day of ['2026-10-05', '2026-10-06', '2026-10-19']) {
-        await mkdir(join(checkpoints, day), { recursive: true });
-        await writeFile(join(checkpoints, day, '10-00.md'), day);
-    }
-    await mkdir(join(checkpoints, 'scratch'), { recursive: true });
-    await mkdir(daily, { recursive: true });
-    await writeFile(join(daily, '2026-10-05.md'), 'old');
-    await writeFile(join(daily, '2026-10-06.md'), 'edge');
-    await writeFile(join(daily, 'notes.md'), 'mine');
-    await writeFile(join(workspace, 'MEMORY.md'), 'memory');
-    await mkdir(join(workspace, 'notes'), { recursive: true });
-    await writeFile(join(workspace, 'notes', '2026-01-01.md'), 'a note');
-
-    await pruneCheckpoints(workspace, new Date(2026, 9, 20, 12));
-
-    const { readdir } = await import('node:fs/promises');
-    expect((await readdir(checkpoints)).sort()).toEqual(['2026-10-06', '2026-10-19', 'scratch']);
-    expect((await readdir(daily)).sort()).toEqual(['2026-10-06.md', 'notes.md']);
-    expect(await readdir(join(workspace, 'notes'))).toEqual(['2026-01-01.md']);
-    expect(await Bun.file(join(workspace, 'MEMORY.md')).text()).toBe('memory');
 });

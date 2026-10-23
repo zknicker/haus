@@ -30,7 +30,10 @@ test('carries the checkpoint paths and the quiet rules', () => {
     expect(body).toContain('Post nothing in any chat. One report or silence.');
     expect(body).toContain('Daytime runs never edit MEMORY.md');
     expect(body).toContain('the asker has heard nothing until your main session replies there');
-    expect(body).toContain('Never repeat a finding the checkpoint says you reported');
+    expect(body).toContain('Never resend a finding a past report already carried');
+    expect(body).toContain(
+        'Report what needs you or someone you work for and is still unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet.'
+    );
 });
 
 test('nightly reflects with evidence and follows up promises', () => {
