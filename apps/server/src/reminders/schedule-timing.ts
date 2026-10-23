@@ -1,5 +1,6 @@
 import { canonicalIanaTimezone } from '@haus/api';
 import {
+    isReminderCadenceSlot,
     isValidReminderTimezone,
     nextReminderFireAt,
     parseReminderRepeat,
@@ -88,7 +89,7 @@ function requireCadenceSlot(repeat: CalendarRepeat, fireAt: Date, timezone: stri
     if (!Number.isFinite(fireAtMs)) {
         throw new Error('Reminder fire time must be a valid instant.');
     }
-    if (nextReminderFireAt(repeat, fireAtMs - 1, timezone) !== fireAtMs) {
+    if (!isReminderCadenceSlot(repeat, fireAtMs, timezone)) {
         const slot = new Date(nextReminderFireAt(repeat, fireAtMs, timezone)).toISOString();
         throw new Error(
             `The first fire ${fireAt.toISOString()} is not a ${repeat.spec} slot in ${timezone}. Omit the fire time to start at the next slot, or use a slot such as ${slot}.`
