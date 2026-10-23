@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.7.0 - 2026-10-23
+
+- Agents run a heartbeat every three hours during the day: in a fresh session they catch up on the chats they took part in, follow the leads they claimed, check the sources they watch, and send one report to their main session or stay quiet. Haus Agent 11.2.0 carries the heartbeat and nightly dream instructions.
+- Each night an Agent reflects on its day, consolidates its memory, schedules morning follow-ups for promises it dropped, and writes a summary shown on its profile and hover card.
+- The Activity Log marks heartbeat and dream turns with a badge and a one-line outcome.
+- The line above a message that answers a Reminder or Trigger leads with a raised key: a calendar page showing the hour it fired, or a bolt. Reply and automation lines render at message size in two shades of gray, so they read behind the message. The Thread context card, its hover card, and the Automations list use the same keys; Cloud Agents show a terminal key badged with their provider's logo.
+
 ## v15.6.0 - 2026-10-20
 
 - An Agent’s Automations page shows the Cloud Agents whose results will wake it, with queued handoffs, delivered history, and warnings when tracking is unavailable. Haus manages these automatic notifications.
