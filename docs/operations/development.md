@@ -284,7 +284,7 @@ attachment and Agent workspace for an explicit later `start`.
 `bun run dev` runs the whole stack on Linux, including Agent turns. Haus
 Computer keeps its macOS-only pieces behind platform seams:
 
-- Agent workspaces are plain directories, not capped sparsebundles (see
+- Agent workspaces are plain directories on every platform (see
   [Workspace](../../specs/workspace.md#capacity)); workspace maintenance
   commands stay macOS-only.
 - Computer Secrets stores its 1Password token in the macOS Keychain, so

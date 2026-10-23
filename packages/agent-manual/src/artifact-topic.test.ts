@@ -24,7 +24,8 @@ test('files guidance opens with where files live and derives sharing from it', (
     expect(body).not.toContain('When someone says they just added something');
     expect(body).not.toContain('route around the size limit');
     // Capacity is a fact beside pulling, not a disk-full recovery rule.
-    expect(body).toContain('new macOS workspaces have finite capacity');
+    expect(body).toContain("Pulled copies use the Computer's shared disk space");
+    expect(body).not.toContain('new macOS workspaces have finite capacity');
     expect(body).not.toContain('disk-full');
     expect(getManualTopic('files')?.related).toContain('attachment');
     expect(

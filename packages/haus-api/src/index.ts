@@ -107,6 +107,7 @@ export * from './cloud-agent-model.ts';
 export * from './cloud-agent-model-choice.ts';
 export * from './cloud-agent-shared.ts';
 export * from './cloud-agent-work-link.ts';
+export * from './computer-disk.ts';
 export * from './computer-inventory-refresh.ts';
 export * from './computer-runtime.ts';
 export * from './computer-secrets.ts';

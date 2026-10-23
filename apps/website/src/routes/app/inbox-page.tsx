@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ComputerDiskNotices } from '../../features/computers/computer-disk-notices.tsx';
 import { InboxHeader } from '../../features/servers/inbox/inbox-header.tsx';
 import { InboxSection, InboxSectionPending } from '../../features/servers/inbox/inbox-section.tsx';
 import { PageBand } from '../../features/shell/page-band.tsx';
@@ -55,6 +56,7 @@ export function InboxPage() {
             <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
                 <PageColumn>
                     <InboxHeader />
+                    <ComputerDiskNotices />
                     <InboxSection title="Active this week">
                         <React.Suspense
                             fallback={<InboxSectionPending label="Loading Agent activity" />}

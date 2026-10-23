@@ -63,8 +63,10 @@ import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
 import { startCloudAgentModelCatalogRefresh } from './cloud-agents/model-catalog.ts';
 import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
+import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
+import { startComputerReportSchedule } from './computer-report-schedule.ts';
 import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
@@ -1004,7 +1006,7 @@ async function connect(
     };
     let lastProgress = JSON.stringify(initialProgress);
     let heartbeat: AttachmentHeartbeat | null = null;
-    let usageLoopStarted = false;
+    let reportLoopsStarted = false;
     connectionWork.startLoop(
         500,
         async () => {
@@ -1081,6 +1083,7 @@ async function connect(
                         await Promise.all([
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
                             sendSystemEventReport(dataRoot, sendFrame, attachment.serverId),
+                            sendComputerDiskReport(dataRoot, sendFrame),
                         ]);
                         const acceptedImports = await listAcceptedHostSkillImports(
                             dataRoot,
@@ -1098,14 +1101,10 @@ async function connect(
                             socket.close();
                         }
                     });
-                    if (process.env.HAUS_COMPUTER_USAGE_DISABLED !== '1' && !usageLoopStarted) {
-                        usageLoopStarted = true;
-                        connectionWork.startLoop(
-                            '15 minutes',
-                            async () => {
-                                await trackWriter(sendUsageReport(sendFrame));
-                            },
-                            reportStateError
+                    if (!reportLoopsStarted) {
+                        reportLoopsStarted = true;
+                        startComputerReportSchedule(connectionWork, dataRoot, sendFrame, () =>
+                            trackWriter(sendUsageReport(sendFrame))
                         );
                     }
                     startCloudAgentModelCatalogRefresh(connectionWork, () =>

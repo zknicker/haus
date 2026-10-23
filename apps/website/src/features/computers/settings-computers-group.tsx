@@ -8,6 +8,8 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { cn } from '../../lib/utils.ts';
 import { serverComputersRoute } from '../servers/server-routes.ts';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
+import { computerDiskWarning } from './computer-disk.ts';
+import { ComputerDiskChip } from './computer-disk-warning.tsx';
 import { computerHealthColor, computerHealthLabel, computerLabel } from './presentation.ts';
 
 /**
@@ -90,9 +92,16 @@ export function SettingsComputersGroup({
                             </Sidebar.MenuIcon>
                             <Sidebar.MenuItemContent>
                                 <Sidebar.MenuLabel>{computerLabel(computer)}</Sidebar.MenuLabel>
-                                <Sidebar.MenuChip>
-                                    v{computer.productVersion ?? '—'}
-                                </Sidebar.MenuChip>
+                                {computerDiskWarning(computer) ? (
+                                    <ComputerDiskChip
+                                        computerId={computer.id}
+                                        serverId={serverId}
+                                    />
+                                ) : (
+                                    <Sidebar.MenuChip>
+                                        v{computer.productVersion ?? '—'}
+                                    </Sidebar.MenuChip>
+                                )}
                             </Sidebar.MenuItemContent>
                         </Sidebar.MenuItem>
                     ))}

@@ -1,22 +1,15 @@
-import { chmod, lstat, mkdir, readdir, rm } from 'node:fs/promises';
+import { lstat, mkdir, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { hostWorkspaceDisk, type WorkspaceDisk } from './disk-image.ts';
-import {
-    isMissing,
-    readJson,
-    reserveWorkspace,
-    type WorkspaceOptions,
-    withStorageLock,
-    workspaceDefaults,
-    writeJson,
-} from './storage-ledger.ts';
+import { isMissing, readJson, withStorageLock } from './storage-ledger.ts';
 import {
     type BusyVolumePolicy,
     type DetachOutcome,
     type DetachPacing,
     detachWorkspaceVolume,
 } from './volume-detach.ts';
+import { convertWorkspaceVolume, workspaceConversion } from './workspace-directory.ts';
 
 export const workspaceVolumeSchema = z.object({
     capacityBytes: z.number().int().positive(),
@@ -26,62 +19,31 @@ export interface WorkspaceLocation {
     agentRoot: string;
     dataRoot: string;
     disk?: WorkspaceDisk | null;
-    options?: WorkspaceOptions;
 }
-export type WorkspaceState =
-    | { kind: 'legacy'; path: string }
-    | { kind: 'uncapped'; path: string }
-    | { kind: 'capped'; path: string; capacityBytes: number };
+export interface WorkspaceState {
+    kind: 'uncapped';
+    path: string;
+}
 
-/** Existing directories are explicit legacy state, never silently migrated. */
+/** New workspaces are ordinary directories; older images convert before execution. */
 export function ensureAgentWorkspace(input: WorkspaceLocation): Promise<WorkspaceState> {
     return withStorageLock(input.dataRoot, () => ensureWorkspaceLocked(input));
 }
 
 export async function ensureWorkspaceLocked(input: WorkspaceLocation): Promise<WorkspaceState> {
-    const disk = input.disk === undefined ? hostWorkspaceDisk : input.disk;
-    if (!disk) {
-        return await ensureUncappedWorkspace(input.agentRoot);
-    }
-    const options = input.options ?? workspaceDefaults;
-    const { image, manifest, path } = workspaceVolumePaths(input.agentRoot);
     await mkdir(input.agentRoot, { recursive: true, mode: 0o700 });
-    const record = await readJson(manifest, workspaceVolumeSchema);
+    const conversion = await workspaceConversion(input);
+    if (conversion && conversion.stage !== 'complete') {
+        await convertWorkspaceVolume(input, conversion.volumeUuid);
+    }
+    const record = await readJson(
+        workspaceVolumePaths(input.agentRoot).manifest,
+        workspaceVolumeSchema
+    );
     if (record) {
-        await assertImageExists(image);
-        const mounted = await mountUuid(disk, path);
-        if (mounted && mounted !== record.volumeUuid) {
-            throw new Error('Workspace mount belongs to another volume.');
-        }
-        if (!mounted) {
-            await assertEmptyMountpoint(path);
-            const uuid = await disk.mount(image, path);
-            if (uuid !== record.volumeUuid) {
-                throw new Error('Workspace image identity changed.');
-            }
-        }
-        return { capacityBytes: record.capacityBytes, kind: 'capped', path };
+        await convertWorkspaceVolume(input, record.volumeUuid);
     }
-    if (await exists(image)) {
-        throw new Error('Workspace image has no verified manifest; recover it before launching.');
-    }
-    if (await exists(path)) {
-        const info = await lstat(path);
-        if (!info.isDirectory() || info.isSymbolicLink()) {
-            throw new Error('Workspace must be an ordinary directory or a verified capped volume.');
-        }
-        if (await mountUuid(disk, path)) {
-            throw new Error('Workspace is mounted without a verified manifest.');
-        }
-        return { kind: 'legacy', path };
-    }
-    await reserveWorkspace(input.dataRoot, input.agentRoot, options);
-    await disk.create(image, options.capacityBytes);
-    await mkdir(path, { mode: 0o500 });
-    const volumeUuid = await disk.mount(image, path);
-    await writeJson(manifest, { capacityBytes: options.capacityBytes, volumeUuid });
-    await chmod(path, 0o700);
-    return { capacityBytes: options.capacityBytes, kind: 'capped', path };
+    return await ensureUncappedWorkspace(input.agentRoot);
 }
 
 export async function resetWorkspaceContents(
@@ -166,7 +128,7 @@ export async function exists(path: string) {
     }
 }
 
-/** Off macOS a workspace is an ordinary directory: no volume, cap, or reservation. */
+/** Ordinary host directories have no volume, cap, or reservation. */
 async function ensureUncappedWorkspace(agentRoot: string): Promise<WorkspaceState> {
     const { image, manifest, path } = workspaceVolumePaths(agentRoot);
     if ((await exists(manifest)) || (await exists(image))) {
@@ -186,10 +148,4 @@ function requireCappedDisk(disk: WorkspaceDisk | null) {
         throw new Error('This workspace is a capped macOS volume; open it on macOS.');
     }
     return disk;
-}
-
-async function assertImageExists(image: string) {
-    if (!(await exists(image))) {
-        throw new Error('Capped workspace image is missing; refusing an uncapped replacement.');
-    }
 }
