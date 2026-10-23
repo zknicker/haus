@@ -866,6 +866,8 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   becomes the key (`automation-mark` in `default-theme.css`), keeping its stock box and radius. A
   listed Reminder's key shows its next hour in the viewer's zone; a listed Trigger's key shows its
   source glyph (GitHub, Linear, webhook) in the trigger ink instead of the bolt.
+  A listed Cloud Agent's key prints a solid terminal in `--cloud-agent-mark` with its provider's
+  logo badged in the lower corner (`CloudAgentKeycapFace`).
   The recipient and cancel action remain visible; the original excerpt is available on hover.
   The header uses the lighter background token, with cancel aligned above Send. The selected
   message row, including its avatar and header, uses `--reply-highlight` (70% of accent-soft)

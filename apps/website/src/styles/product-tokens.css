@@ -116,6 +116,9 @@
          */
         --trigger-mark: oklch(0.86 0.16 92);
         --reminder-mark: oklch(0.76 0.15 14);
+        /* A Cloud Agent's key in the Automations list: a sky ink of its own,
+         * apart from `accent` so a running job never reads as a link. */
+        --cloud-agent-mark: oklch(0.78 0.11 230);
         /*
          * The keycap a cause line leads with: a small raised key, face lit from
          * above with a hairline edge, a top highlight, and a darker lip along
@@ -234,6 +237,7 @@
          * denser end to hold against a near-white page at 11px. */
         --trigger-mark: oklch(0.66 0.15 88);
         --reminder-mark: oklch(0.6 0.17 12);
+        --cloud-agent-mark: oklch(0.6 0.13 235);
         --automation-keycap-face: linear-gradient(oklch(1 0 0), oklch(0.94 0.002 286));
         --automation-keycap-shadow:
             inset 0 0 0 0.5px oklch(0 0 0 / 14%), inset 0 0.75px 0 oklch(1 0 0),
@@ -277,6 +281,7 @@
     --color-reasoning-low: var(--reasoning-low);
     --color-reasoning-medium: var(--reasoning-medium);
     --color-automation-keycap-ink-trigger: var(--automation-keycap-ink-trigger);
+    --color-cloud-agent-mark: var(--cloud-agent-mark);
     --color-context-line-quiet: var(--context-line-quiet);
     --color-reminder-mark: var(--reminder-mark);
     --color-skill-reference: var(--skill-reference);

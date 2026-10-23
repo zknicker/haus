@@ -9,7 +9,7 @@ import { currentOpenGesture } from '../../../hooks/desktop-tabs/tab-open-gesture
 import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
 import { useThreadOpener } from '../../../hooks/threads/use-thread-opener.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { CloudAgentProviderGlyph } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
+import { CloudAgentKeycapFace } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
 import { useOpenCloudAgentWork } from '../../cloud-agents/use-open-cloud-agent-work.ts';
 import { AgentLoading } from './agent-loading.tsx';
 import { cloudAutomationPresentation } from './cloud-automation-model.ts';
@@ -101,8 +101,8 @@ function CloudAutomationRow({
             render={(props) => <button type="button" {...props} />}
         >
             <PressableFeedback.Highlight />
-            <ItemCard.Icon>
-                <CloudAgentProviderGlyph provider={row.work.provider} />
+            <ItemCard.Icon aria-hidden="true" className="automation-mark">
+                <CloudAgentKeycapFace provider={row.work.provider} />
             </ItemCard.Icon>
             <ItemCard.Content>
                 <ItemCard.Title className="truncate">{row.work.title}</ItemCard.Title>

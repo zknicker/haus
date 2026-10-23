@@ -1464,11 +1464,13 @@
      * message's context line leads with — face, edge, highlight, and lip from
      * `--automation-keycap-*` — keeping its stock box and radius, so the key and
      * its corner stay paired. `AutomationKeycapFace` prints on it: a Reminder's
-     * rose band over its next hour, a Trigger's source glyph in its ink. The
+     * rose band over its next hour, a Trigger's source glyph in its ink, a
+     * Cloud Agent's terminal with its provider badged in the corner. The
      * face stacks band over body, so the slot lays out as a column. Paired
      * selectors outrank the secondary group's icon wash.
      */
     .item-card__icon.automation-mark {
+        position: relative;
         flex-direction: column;
         overflow: hidden;
         background-color: transparent;
