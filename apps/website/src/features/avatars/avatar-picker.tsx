@@ -1,4 +1,4 @@
-import { avatarMediaTypes } from '@haus/api/avatar';
+import { avatarMediaTypes, avatarUploadHint } from '@haus/api/avatar';
 import { Button, Description, Dropdown, Label, Tooltip } from '@heroui/react';
 import { AiMagicIcon, Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -49,6 +49,7 @@ export function AvatarPicker({
 }: AvatarPickerProps): React.ReactElement {
     const inputRef = React.useRef<HTMLInputElement>(null);
     const action = `${src ? 'Change' : 'Upload'} ${label}`;
+    const hint = avatarUploadHint();
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -123,7 +124,10 @@ export function AvatarPicker({
                         >
                             <Dropdown.Item id="upload" textValue="Upload photo">
                                 <Icon aria-hidden="true" icon={Camera01Icon} size={16} />
-                                <Label>Upload photo</Label>
+                                <div className="flex min-w-0 flex-col">
+                                    <Label>Upload photo</Label>
+                                    <Description>{hint}</Description>
+                                </div>
                             </Dropdown.Item>
                             <Dropdown.Item
                                 id="generate"
@@ -144,7 +148,12 @@ export function AvatarPicker({
             ) : (
                 <Tooltip delay={0}>
                     {trigger}
-                    <Tooltip.Content placement="top">{action}</Tooltip.Content>
+                    <Tooltip.Content placement="top">
+                        <span className="flex flex-col gap-0.5">
+                            <span>{action}</span>
+                            <span className="text-muted text-xs">{hint}</span>
+                        </span>
+                    </Tooltip.Content>
                 </Tooltip>
             )}
         </>

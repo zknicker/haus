@@ -131,10 +131,15 @@ projections emit.
 ## Uploading
 
 `features/avatars/` owns the whole upload experience for both humans and
-Agents. `readAvatarImage(file)` validates the media type, center-crops to a
-square, resizes down to `avatarPixelSize` (it never upscales), re-encodes in the
-source media type, enforces `avatarMaxBytes`, and returns `{ base64, blob,
-dataUrl, mediaType }` — one canvas encode serving both the hosted upload and the
-local data URL. `AvatarPicker` wraps that in a stock HeroUI `Button` +
-`Tooltip` around `EntityAvatar`, and reports failures through `onError` so each
-caller presents them in its own idiom.
+Agents. `readAvatarImage(file)` validates the media type (declared type, then
+content signature, then extension — always against `avatarMediaTypes`),
+center-crops to a square, resizes down to `avatarPixelSize` (it never upscales),
+re-encodes in the source media type, enforces `avatarMaxBytes`, and returns
+`{ base64, blob, dataUrl, mediaType }` — one canvas encode serving both the
+hosted upload and the local data URL. Shared copy helpers
+(`avatarUploadHint`, `avatarTooLargeMessage`, `avatarUnsupportedMediaTypeMessage`)
+keep the App and Server aligned on the 512 KiB ceiling and accepted types.
+`AvatarPicker` wraps that in a stock HeroUI `Button` + `Tooltip` around
+`EntityAvatar`, surfaces the accepted-types hint, and reports failures through
+`onError` so each caller presents them in its own idiom. Successful saves use
+the shared saving toast.
