@@ -109,17 +109,13 @@
          * Automation provenance. A fire writes nothing to the transcript, so
          * the context line above the Agent's own message is the only thing
          * that says why it spoke — and the two automations have to be told
-         * apart at a glance at 11px. Neither reads as a status: `warning` and
+         * apart at a glance. Neither reads as a status: `warning` and
          * `danger` would make every triggered message look like something
          * went wrong. So they are their own vocabulary — a charged yellow for
          * a Trigger, a rosy red for a Reminder.
          */
         --trigger-mark: oklch(0.86 0.16 92);
         --reminder-mark: oklch(0.76 0.15 14);
-        /* The Automations list's icon wash, derived from the ink so a retune
-         * of the ink carries through. */
-        --trigger-mark-soft: color-mix(in oklab, var(--trigger-mark) 18%, transparent);
-        --reminder-mark-soft: color-mix(in oklab, var(--reminder-mark) 18%, transparent);
         /*
          * The keycap a cause line leads with: a small raised key, face lit from
          * above with a hairline edge, a top highlight, and a darker lip along
@@ -283,12 +279,9 @@
     --color-automation-keycap-ink-trigger: var(--automation-keycap-ink-trigger);
     --color-context-line-quiet: var(--context-line-quiet);
     --color-reminder-mark: var(--reminder-mark);
-    --color-reminder-mark-soft: var(--reminder-mark-soft);
     --color-skill-reference: var(--skill-reference);
     --color-thought-glass: var(--thought-glass);
     --color-thought-glass-border: var(--thought-glass-border);
-    --color-trigger-mark: var(--trigger-mark);
-    --color-trigger-mark-soft: var(--trigger-mark-soft);
     --color-trace-axis: var(--trace-axis);
     --color-trace-grid: var(--trace-grid);
     --color-trace-leader-danger: var(--trace-leader-danger);

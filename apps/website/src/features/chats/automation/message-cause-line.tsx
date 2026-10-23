@@ -6,11 +6,13 @@ import {
     ReferencePreviewHeader,
     ReferencePreviewText,
 } from '../../mentions/reference-preview-header.tsx';
-import { TurnContextLine, turnContextLineContentClassName } from '../turn-context-line.tsx';
-import { AutomationGlyph } from './automation-glyph.tsx';
-import { AutomationKeycap } from './automation-keycap.tsx';
 import {
-    automationMarkColor,
+    TurnContextLine,
+    turnContextLineContentClassName,
+    turnContextMarkSize,
+} from '../turn-context-line.tsx';
+import { AutomationKeycap, causeKeycapMark } from './automation-keycap.tsx';
+import {
     messageCauseAttributionNote,
     messageCauseDescription,
     messageCauseHoverFacts,
@@ -40,7 +42,7 @@ export function MessageCauseLine({ cause }: { cause: MessageCause }) {
     const className = cn(turnContextLineContentClassName, 'max-w-full');
     const content = (
         <>
-            <AutomationKeycap cause={cause} />
+            <AutomationKeycap mark={causeKeycapMark(cause)} size={turnContextMarkSize} />
             <span className="min-w-0 truncate font-medium text-muted">{cause.title}</span>
             <span className="min-w-0 shrink-[4] truncate text-context-line-quiet">
                 {cause.summary}
@@ -94,13 +96,7 @@ export function MessageCauseHoverContent({ cause }: { cause: MessageCause }) {
 
     return (
         <ReferencePreviewHeader
-            mark={
-                <AutomationGlyph
-                    className={automationMarkColor[cause.kind]}
-                    kind={cause.kind}
-                    size={16}
-                />
-            }
+            mark={<AutomationKeycap mark={causeKeycapMark(cause)} size={16} />}
             meta={cause.kind === 'reminder' ? null : cause.summary}
             title={cause.title}
         >

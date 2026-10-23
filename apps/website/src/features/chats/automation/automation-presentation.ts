@@ -7,14 +7,6 @@ import { formatByteSize, formatRelativeTime, formatTimestamp } from '../../../li
  * Reminder are told apart in one place rather than at three call sites.
  */
 
-export type AutomationKind = MessageCause['kind'];
-
-/** The mark's ink. One token per automation, resolved through Tailwind. */
-export const automationMarkColor = {
-    reminder: 'text-reminder-mark',
-    trigger: 'text-trigger-mark',
-} as const satisfies Record<AutomationKind, string>;
-
 /**
  * A status is a resting state someone chose, not a failure, so only `armed`
  * and `scheduled` carry colour — the inert states stay neutral rather than

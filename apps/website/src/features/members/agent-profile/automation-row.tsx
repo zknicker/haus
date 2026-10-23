@@ -1,7 +1,9 @@
 import { Chip } from '@heroui/react';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
-import { Icon } from '../../../components/ui/icon.tsx';
-import type { AutomationKind } from '../../chats/automation/automation-presentation.ts';
+import {
+    AutomationKeycapFace,
+    type AutomationKeycapMark,
+} from '../../chats/automation/automation-keycap.tsx';
 
 /**
  * One Automation — a Reminder or a Trigger — as a list row: its kind as the
@@ -11,16 +13,14 @@ import type { AutomationKind } from '../../chats/automation/automation-presentat
  * exceptional state only; the normal state is the absence of a chip.
  */
 export function AutomationRow({
-    icon,
-    kind,
+    mark,
     onPress,
     status,
     summary,
     title,
 }: {
-    icon: Parameters<typeof Icon>[0]['icon'];
-    /** Tints the mark in its automation's ink; the glyph tells one-time from recurring. */
-    kind: AutomationKind;
+    /** The automation's keycap: a Reminder's next hour, or a Trigger's source glyph. */
+    mark: AutomationKeycapMark;
     /** Absent when the viewer cannot open the detail. */
     onPress?: () => void;
     status?: string | null;
@@ -29,10 +29,10 @@ export function AutomationRow({
 }) {
     const body = (
         <>
-            {/* The theme layer (`default-theme.css`) tints the slot per kind
-                and sizes the glyph. */}
-            <ItemCard.Icon className={`automation-mark automation-mark--${kind}`}>
-                <Icon aria-hidden="true" icon={icon} />
+            {/* The theme layer (`default-theme.css`) turns the slot into the
+                key; the face scales to the slot's stock 9-unit box. */}
+            <ItemCard.Icon aria-hidden="true" className="automation-mark">
+                <AutomationKeycapFace mark={mark} size={automationRowKeySize} />
             </ItemCard.Icon>
             <ItemCard.Content>
                 <ItemCard.Title className="truncate">{title}</ItemCard.Title>
@@ -68,3 +68,6 @@ export function AutomationRow({
         </ItemCard>
     );
 }
+
+/** The stock `size-9` icon slot, in px at the default `--spacing`. */
+const automationRowKeySize = 34;

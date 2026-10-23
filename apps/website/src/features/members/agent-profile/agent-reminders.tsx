@@ -1,18 +1,19 @@
 import type { Agent } from '@haus/api';
 import { Button, Separator, Tooltip } from '@heroui/react';
-import { Calendar03Icon, HistoryIcon, RepeatIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { keycapHour } from '../../chats/automation/automation-keycap.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import { resolveReminderDetail, scheduledReminders } from './agent-reminder-model.ts';
 import { AutomationRow } from './automation-row.tsx';
 import { ProfileListSection } from './profile-list-section.tsx';
 import { ReminderHistoryDrawer } from './reminder-history-drawer.tsx';
-import { formatReminderRowSummary, reminderKind } from './reminder-schedule-presentation.ts';
+import { formatReminderRowSummary } from './reminder-schedule-presentation.ts';
 import { ReminderSheet } from './reminder-sheet.tsx';
 
 /**
@@ -75,10 +76,10 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
                         <React.Fragment key={reminder.id}>
                             {index > 0 ? <Separator /> : null}
                             <AutomationRow
-                                icon={
-                                    reminderKind(reminder) === 'once' ? Calendar03Icon : RepeatIcon
-                                }
-                                kind="reminder"
+                                mark={{
+                                    hour: keycapHour(reminder.fireAt, viewerZone),
+                                    kind: 'reminder',
+                                }}
                                 onPress={canView ? () => setDetailId(reminder.id) : undefined}
                                 summary={formatReminderRowSummary(reminder, { now, viewerZone })}
                                 title={reminder.title}

@@ -97,8 +97,7 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                             {/* Every action on a Trigger lives in the sheet its row
                                 opens, so there is one place a Trigger is operated. */}
                             <AutomationRow
-                                icon={triggerKindIcons[trigger.kind]}
-                                kind="trigger"
+                                mark={{ icon: triggerKindIcons[trigger.kind], kind: 'trigger' }}
                                 onPress={
                                     canManage
                                         ? () => setSheet({ kind: 'detail', triggerId: trigger.id })

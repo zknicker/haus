@@ -3,7 +3,7 @@ import { Button, Chip, Disclosure } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useFireContext } from '../../../hooks/chats/use-fire-context.ts';
-import { AutomationGlyphBox } from './automation-glyph.tsx';
+import { AutomationKeycap, causeKeycapMark } from './automation-keycap.tsx';
 import { ManageInAutomationsLink } from './automation-manage-link.tsx';
 import {
     type AutomationMetaPart,
@@ -66,7 +66,7 @@ export function AutomationFireContextCardView({ context }: { context: Automation
         >
             <div className="flex flex-col gap-1.5 p-2.5">
                 <div className="flex min-w-0 items-center gap-2.5">
-                    <AutomationGlyphBox kind={cause.kind} />
+                    <AutomationKeycap mark={causeKeycapMark(cause)} size={24} />
                     <span className="min-w-0 flex-1 truncate font-semibold text-foreground text-sm">
                         {cause.title}
                     </span>

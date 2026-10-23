@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
 import { AutomationFireContextCardView } from './automation-fire-context-card.tsx';
-import { firedHour } from './automation-keycap.tsx';
+import { keycapHour } from './automation-keycap.tsx';
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 
 test('the cause line reads like a reply line: keycap, muted title, then a quieter summary', () => {
@@ -34,18 +34,30 @@ test('a Trigger keycap prints a bolt; a Reminder keycap is a calendar page with 
     expect(trigger).not.toContain('bg-reminder-mark');
     expect(reminder).toContain('data-automation-keycap="reminder"');
     expect(reminder).toContain('bg-reminder-mark');
-    expect(reminder).toContain(`>${firedHour(reminderCause().firedAt)}</span>`);
+    expect(reminder).toContain(`>${keycapHour(reminderCause().firedAt)}</span>`);
     // The same bounds as the 20px EntityAvatar on a reply line.
     expect(reminder).toMatch(/height:20px;width:20px/);
 });
 
-test('firedHour prints the hour on a 12-hour clock, and nothing for a bad stamp', () => {
+test('keycapHour prints the hour on a 12-hour clock, and nothing for a bad stamp', () => {
     const nineOFour = new Date(2026, 9, 23, 9, 4).toISOString();
     const afternoon = new Date(2026, 9, 23, 15, 30).toISOString();
 
-    expect(firedHour(nineOFour)).toBe('9');
-    expect(firedHour(afternoon)).toBe('3');
-    expect(firedHour('not a time')).toBe('');
+    expect(keycapHour(nineOFour)).toBe('9');
+    expect(keycapHour(afternoon)).toBe('3');
+    expect(keycapHour('not a time')).toBe('');
+    // A named zone reads the same instant on that zone's clock.
+    expect(keycapHour('2026-10-23T13:04:00.000Z', 'America/New_York')).toBe('9');
+});
+
+test('the Thread context card and hover card carry the same key as the line', () => {
+    const card = render(<AutomationFireContextCardView context={reminderContext()} />);
+    const hover = render(<MessageCauseHoverContent cause={triggerCause()} />);
+
+    expect(card).toContain('data-automation-keycap="reminder"');
+    expect(card).toMatch(/height:24px;width:24px/);
+    expect(hover).toContain('data-automation-keycap="trigger"');
+    expect(hover).toMatch(/height:16px;width:16px/);
 });
 
 test('the cause line opens the owning Agent’s Automations tab', () => {
