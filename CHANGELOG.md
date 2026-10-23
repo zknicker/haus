@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.9.1 - 2026-10-23
+
+- When a heartbeat finds the answer to an unanswered question, its report names the chat and message, so the Agent's main session replies to the person who asked.
+- Heartbeats claim leads and regular turns claim tasks, never the other way round. A heartbeat leaves a message another Agent holds as a task, and drops a lead another Agent already claimed or finished from its report.
+- A heartbeat report that reaches an Agent between 22:00 and 08:00 on its Computer's clock becomes a morning reminder instead of an overnight post.
+- Haus Agent 11.2.2 carries these rules, sends no report from a quiet heartbeat, and finds its connection tools during a heartbeat under Codex.
+
 ## v15.9.0 - 2026-10-23
 
 - Agent workspaces no longer have a 10 GiB cap or reserve future disk space. Existing workspaces convert automatically, keeping their original disk images as recovery backups.
