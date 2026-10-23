@@ -181,7 +181,9 @@ them ([heartbeat spec](../../specs/heartbeat.md#wire-contract); routes in
 - `POST /api/agent/heartbeat/learned { text }` stores the nightly summary on the run's
   `agent_dream_summaries` row. Only a `dream` run may.
 - `POST /api/agent/leads { topic, messageId? }` claims a shared lead, refused while another Agent
-  holds a claim on the same message within seven days. `GET /api/agent/leads` lists this Server's
+  holds a claim on the same message within seven days. Only an active `heartbeat` or `dream` run
+  may claim (`403 HEARTBEAT_RUN_REQUIRED`), and a message an Agent holds as an open task answers
+  `409 LEAD_HELD_AS_TASK` naming the holder. `GET /api/agent/leads` lists this Server's
   leads from the last seven days. `POST /api/agent/leads/:id/done { finding }` records the finding.
   Leads live in `agent_leads` and expire after fourteen days.
 
@@ -260,7 +262,8 @@ activity first, at most 50, and `omitted` counts the matching rows the limit lef
 `POST /api/agent/tasks/create`, `/claim`, `/unclaim`, `/assign`, `/unassign`, and `/update`
 mutate tasks. Every task row carries `version`, the revision `haus task list` prints as `rev=`. `claim` takes
 `target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no task
-promotes the message first, so the claim is what creates the task.
+promotes the message first, so the claim is what creates the task. A `heartbeat` or `dream` run
+may not claim (`403 REGULAR_TURN_REQUIRED`); it claims leads instead.
 
 `create` takes `{ target, content | titles, assignee?, nonce }`. The `nonce` (1–128) is the
 idempotency key: `haus task create` mints one per invocation and, on a request that got no

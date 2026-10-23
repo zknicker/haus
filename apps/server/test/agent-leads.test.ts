@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { startHeartbeatRun } from './heartbeat-run-fixture.ts';
 
 const fixture = agentCreationFixture();
 
@@ -114,7 +115,9 @@ test('claiming sweeps leads older than fourteen days', async () => {
     expect(rows).toEqual([]);
 });
 
+/** Leads are claimed only from an active heartbeat run, so each runner is one. */
 async function runner(runId: string, agentId: string) {
+    await startHeartbeatRun(fixture, runId, agentId);
     return await fixture.mintRunner(runId, agentId, undefined, false);
 }
 

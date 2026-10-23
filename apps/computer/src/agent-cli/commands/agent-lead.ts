@@ -39,6 +39,7 @@ export const LEAD_SUBCOMMANDS: SubCommand[] = [
         name: 'claim',
         notes: [
             'Claim a lead before researching it. A message another Agent claimed in the last 7 days is refused and names who holds it.',
+            'Heartbeat runs only; in a regular turn use haus task claim. A message an Agent holds as a task is refused.',
         ],
         positionals: [],
         run: (args) => runLeadClaim(args, defaultDeps()),

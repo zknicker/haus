@@ -29,6 +29,7 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
   promoted promotes it, with `origin` `claimed` — distinct from a human's `converted` (Convert to
   Task) and `composed` (created as a task). A claim is a concurrency lock, so it fails closed
   against a claim someone else holds.
+- Heartbeat runs cannot claim tasks; they claim leads ([heartbeat spec](../../specs/heartbeat.md)).
 - The Agent sets its own finished work `done`. It uses `in_review` only when the requester asked to
   sign off or a human decision is still pending, and says in the conversation what to check. The
   composed Agent prompt under `apps/computer/src/harness/` carries this rule and its tests.

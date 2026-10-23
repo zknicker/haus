@@ -1,12 +1,13 @@
 import type { Lead, LeadClaimInput, LeadClaimResult, LeadListResponse } from '@haus/api';
-import { and, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, lt, notInArray } from 'drizzle-orm';
 import { resolveAgentMessage } from '../agent-api/message-read.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentLeadsTable, agentsTable } from '../postgres/schema.ts';
+import { agentLeadsTable, agentsTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { HeartbeatRefusedError, LeadNotFoundError } from './heartbeat-errors.ts';
+import { isActiveRun, isHeartbeatRun } from './run-source.ts';
 
 const day = 24 * 60 * 60 * 1000;
 const claimWindowMs = 7 * day;
@@ -39,8 +40,9 @@ interface LeadRow {
 }
 
 /**
- * Claims a topic for the calling Agent. A message another Agent claimed within the last
- * seven days is refused with who holds it; the Agent's own live claim on it is returned
+ * Claims a topic for the calling heartbeat run's Agent; any other run is refused. A message
+ * an Agent holds as an open task, or another Agent claimed as a lead within the last seven
+ * days, is refused with who holds it; the Agent's own live claim on it is returned
  * unchanged. Rows past retention are swept in a bounded batch on the way.
  */
 export async function claimLead(
@@ -48,11 +50,18 @@ export async function claimLead(
     runner: ResolvedRunner,
     input: LeadClaimInput
 ): Promise<LeadClaimResult> {
+    if (!(await isHeartbeatRun(db, runner))) {
+        throw heartbeatRunRequired();
+    }
     const anchor = input.messageId ? await resolveAgentMessage(db, runner, input.messageId) : null;
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
+        if (!(await isActiveRun(tx, runner))) {
+            throw heartbeatRunRequired();
+        }
         await sweepExpiredLeads(tx, runner.serverId);
         if (anchor) {
+            await refuseTaskHeldMessage(tx, runner.serverId, anchor.id);
             const rows = await readHolders(tx, runner.serverId, anchor.id);
             const other = rows.find((row) => row.agentId !== runner.agentId);
             if (other) {
@@ -147,6 +156,42 @@ export async function finishLead(
             )
         );
     return { lead: toLead(await readLead(db, runner.serverId, input.id)) };
+}
+
+/** A message an Agent holds as an open task is that Agent's work, not a lead. */
+async function refuseTaskHeldMessage(tx: HausDatabase, serverId: string, messageId: string) {
+    const [task] = await tx
+        .select({ agentHandle: agentsTable.handle })
+        .from(messageTasksTable)
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, messageTasksTable.serverId),
+                eq(agentsTable.id, messageTasksTable.assigneeAgentId)
+            )
+        )
+        .where(
+            and(
+                eq(messageTasksTable.serverId, serverId),
+                eq(messageTasksTable.messageId, messageId),
+                notInArray(messageTasksTable.status, ['done', 'closed'])
+            )
+        )
+        .limit(1);
+    if (task) {
+        throw new HeartbeatRefusedError(
+            'LEAD_HELD_AS_TASK',
+            `@${task.agentHandle} has this as a task; leave it to them.`,
+            409
+        );
+    }
+}
+
+function heartbeatRunRequired() {
+    return new HeartbeatRefusedError(
+        'HEARTBEAT_RUN_REQUIRED',
+        'haus lead claim works only in a heartbeat run. In a regular turn, use haus task claim.'
+    );
 }
 
 async function readHolders(db: HausDatabase, serverId: string, messageId: string) {

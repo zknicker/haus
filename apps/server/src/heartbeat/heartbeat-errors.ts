@@ -2,6 +2,7 @@ export type HeartbeatRefusal =
     | 'DREAM_RUN_REQUIRED'
     | 'HEARTBEAT_REPORT_EXISTS'
     | 'HEARTBEAT_RUN_REQUIRED'
+    | 'LEAD_HELD_AS_TASK'
     | 'LEAD_NOT_OWNED';
 
 /** A heartbeat request this run may not make; the Agent API maps `code` to a CLI-printable error. */

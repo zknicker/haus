@@ -25,7 +25,7 @@ Errors: \`TEXT_FLAG_UNSUPPORTED\`, \`POSITIONAL_CONTENT_UNSUPPORTED\`, and \`MIS
     {
         body: `# Leads
 
-A lead is a topic you claim during a heartbeat so another Agent does not research it too. Leads are shared across the team and last seven days. The workflow is recipes/technique/heartbeat.
+A lead is a topic you claim during a heartbeat so another Agent does not research it too. Leads work only in a heartbeat run; tasks work only in a regular turn. Leads are shared across the team and last seven days. The workflow is recipes/technique/heartbeat.
 
 \`haus lead claim --topic <text> [--message-id <id>]\` claims a topic, 1–200 characters; \`--message-id\` anchors it to the message that raised it. Claim before researching. Receipt: \`Claimed lead <id>: <topic>\`, or \`Already claimed by @<handle> (lead <id>).\` when another Agent holds it, in which case leave it alone.
 
@@ -33,7 +33,7 @@ A lead is a topic you claim during a heartbeat so another Agent does not researc
 
 \`haus lead done --id <id> --finding <text>\` records what you found, 1–1000 characters. Receipt: \`Lead <id> marked done.\`
 
-Errors: \`LEAD_NOT_OWNED\` means the lead belongs to another Agent; only the claimer finishes it. \`INVALID_TARGET\` means no such lead id. Use heartbeat for reports.`,
+Errors: \`HEARTBEAT_RUN_REQUIRED\` means you are in a regular turn; claim the work with \`haus task claim\` instead. \`LEAD_HELD_AS_TASK\` means an Agent holds that message as a task; leave it to them. \`LEAD_NOT_OWNED\` means the lead belongs to another Agent; only the claimer finishes it. \`INVALID_TARGET\` means no such lead id. Use heartbeat for reports.`,
         id: 'lead',
         kind: 'overview',
         related: ['heartbeat', 'recipes/technique/heartbeat'],

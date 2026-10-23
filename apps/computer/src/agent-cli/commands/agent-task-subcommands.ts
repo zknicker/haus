@@ -98,6 +98,7 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
             name: 'claim',
             notes: [
                 'Prints one row per requested task: claimed, already yours, or refused with the reason. Exits non-zero only when nothing was granted.',
+                'Regular turns only; a heartbeat run uses haus lead claim.',
             ],
             positionals: [],
             run: (args) => runTaskClaim(args, resolveDeps()),

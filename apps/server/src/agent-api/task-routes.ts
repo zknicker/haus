@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { isHeartbeatRun } from '../heartbeat/run-source.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
@@ -76,6 +77,15 @@ export function registerAgentTaskRoutes(
             .safeParse(request.body);
         if (!(runner && parsed.success)) {
             return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The task request was invalid.');
+        }
+        // A heartbeat's throwaway session cannot follow replies or finish a tracked task.
+        if (await isHeartbeatRun(db, runner)) {
+            return sendAgentApiError(
+                reply,
+                403,
+                'REGULAR_TURN_REQUIRED',
+                'haus task claim does not work in a heartbeat run. Use haus lead claim.'
+            );
         }
         try {
             const result = await claimAgentTasks(db, runner, parsed.data);

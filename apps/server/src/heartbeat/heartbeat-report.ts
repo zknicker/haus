@@ -6,9 +6,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { HeartbeatRefusedError } from './heartbeat-errors.ts';
-import { isActiveRun, readRunSource } from './run-source.ts';
-
-const reportingSources = new Set(['dream', 'heartbeat']);
+import { isActiveRun, isHeartbeatRun } from './run-source.ts';
 
 /**
  * Queues the run's one report as a chatless `heartbeat_report` inbox item for the
@@ -22,8 +20,7 @@ export async function fileHeartbeatReport(
     runner: ResolvedRunner,
     text: string
 ): Promise<{ queued: true }> {
-    const source = await readRunSource(db, runner);
-    if (!(source && reportingSources.has(source))) {
+    if (!(await isHeartbeatRun(db, runner))) {
         throw new HeartbeatRefusedError(
             'HEARTBEAT_RUN_REQUIRED',
             'haus heartbeat report works only in a heartbeat run.'

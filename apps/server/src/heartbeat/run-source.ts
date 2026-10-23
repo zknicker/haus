@@ -3,6 +3,17 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentRunTriggersTable } from '../postgres/schema.ts';
 
+const heartbeatSources = new Set(['dream', 'heartbeat']);
+
+/** Whether the calling run is a heartbeat run, daytime (`heartbeat`) or nightly (`dream`). */
+export async function isHeartbeatRun(
+    db: HausDatabase,
+    runner: Pick<ResolvedRunner, 'agentId' | 'runId' | 'serverId'>
+): Promise<boolean> {
+    const source = await readRunSource(db, runner);
+    return source !== null && heartbeatSources.has(source);
+}
+
 /**
  * Whether the calling run still holds the Agent's run slot. Call inside the Server
  * lock: a yielded or stopped run clears the slot, and must not write afterwards.
