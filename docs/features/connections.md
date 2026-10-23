@@ -25,7 +25,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Linear, Cloudflare, Factory, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Linear, Cloudflare, Factory, Kittl, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is the one built-in connection
@@ -82,6 +82,11 @@ Cloudflare connects to its [official MCP](https://github.com/cloudflare/mcp) at
 `https://mcp.cloudflare.com/mcp` through OAuth, with permissions selected during authorization.
 It exposes Cloudflare API and documentation tools, including DNS and Workers operations.
 Cloudflare requires sign-in and an explicit Agent access grant.
+
+Kittl connects to its [official MCP](https://www.kittl.com/mcp) at
+`https://mcp.kittl.com/mcp` through OAuth with dynamic client registration. Sign in with a
+Kittl account to discover its design, image generation, and mockup tools. Adding Kittl does
+not grant Agent access; enable it explicitly on the connection page.
 
 Linear connects by installing the Haus app in a Linear workspace; the install callback creates
 one connection per workspace, served by Haus Server's own Linear connector

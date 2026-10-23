@@ -52,6 +52,11 @@ const oauthPresets: Record<
         name: 'GitHub',
         url: 'https://api.githubcopilot.com/mcp/',
     },
+    kittl: {
+        auth: { kind: 'oauth', scopes: [] },
+        name: 'Kittl',
+        url: 'https://mcp.kittl.com/mcp',
+    },
     rankwrangler: {
         auth: { kind: 'oauth', scopes: ['openid', 'email', 'profile'] },
         name: 'RankWrangler',

@@ -41,4 +41,5 @@ export const migrationsSince0060 = [
     '0098_factory-preset',
     '0099_heartbeat-delivery',
     '0100_heartbeat-checks',
+    '0101_kittl-preset',
 ];

@@ -18,3 +18,18 @@ test('Factory is recommended until the Server has a Factory account', () => {
         true
     );
 });
+
+test('Kittl is recommended until the Server has a Kittl account', () => {
+    assert.deepEqual(
+        recommendedPresets([]).find((preset) => preset.id === 'kittl'),
+        {
+            description: 'Create designs, generate images, and render product mockups.',
+            id: 'kittl',
+            name: 'Kittl',
+        }
+    );
+    assert.equal(
+        recommendedPresets([{ preset: 'kittl' }]).some((preset) => preset.id === 'kittl'),
+        false
+    );
+});

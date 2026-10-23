@@ -57,6 +57,7 @@ test('Linear is a built-in connection, never an OAuth preset account', async () 
 
 test.each([
     ['cloudflare', 'https://mcp.cloudflare.com/mcp'],
+    ['kittl', 'https://mcp.kittl.com/mcp'],
 ] as const)('%s awaits OAuth without credentials or Agent grants', async (preset, url) => {
     const created = await owner.trpc.mcp.addPresetAccount.mutate({
         name: preset,
@@ -118,6 +119,7 @@ test.each([
     'google-calendar',
     'rankwrangler',
     'cloudflare',
+    'kittl',
 ] as const)('deletes a %s account and its secrets without removing another account', async (preset) => {
     const first = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
     const second = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });

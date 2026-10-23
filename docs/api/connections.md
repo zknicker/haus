@@ -41,7 +41,9 @@ notice each), tombstones the installations, and only then deletes the connection
 Agents are woken after commit.
 
 `cloudflare` creates an OAuth connection to `https://mcp.cloudflare.com/mcp` through MCP OAuth
-discovery with no preset scope overrides or static credentials. Creating an account grants no
+discovery with no preset scope overrides or static credentials. Kittl uses
+`https://mcp.kittl.com/mcp` with OAuth discovery, PKCE, and dynamic client registration, also
+without preset scopes or packaged credentials. Creating an account grants no
 Agent access. `vercel` is not an accepted preset; previously saved Vercel accounts migrate to
 custom connections (`preset: null`) without changing their configuration, secrets, or grants.
 

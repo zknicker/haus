@@ -708,6 +708,13 @@
       "when": 1792600598737,
       "tag": "0100_heartbeat-checks",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1792777824828,
+      "tag": "0101_kittl-preset",
+      "breakpoints": true
     }
   ]
 }
