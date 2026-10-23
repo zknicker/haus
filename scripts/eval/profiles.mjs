@@ -185,6 +185,9 @@ export const heartbeatProfiles = {
         spec: 'HB4',
     },
     'heartbeat-nothing-new-control': { spec: 'HB5' },
+    // Gated in the scenario (heartbeat-standing.mjs): report, one heads-up post, no stray action.
+    'heartbeat-reports-unhandled-standing-item': { spec: 'HB8' },
+    'heartbeat-stale-loose-end-control': { spec: 'HB9' },
     'heartbeat-quiet-run-awareness': {
         reply: {
             forbids: [

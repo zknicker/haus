@@ -12,6 +12,15 @@ import {
 } from './heartbeat.mjs';
 import { gradeHeartbeatEvidence, inventsLesson } from './heartbeat-grade.mjs';
 import { leadDedupeOutcome } from './heartbeat-lead-dedupe.mjs';
+import { opensWithHeadsUp } from './heartbeat-standing.mjs';
+
+test('opensWithHeadsUp reads only the first line, and a bare action is not a heads-up', () => {
+    expect(opensWithHeadsUp('Heads-up: ORD-7001 has waited since Monday.')).toBe(true);
+    expect(opensWithHeadsUp('\nFlagging ORD-7001, still unreviewed.\nDetails below.')).toBe(true);
+    expect(opensWithHeadsUp('Sweeping the ws updates now.')).toBe(false);
+    expect(opensWithHeadsUp('Sweeping now.\nHeads-up: ws fix pending.')).toBe(false);
+    expect(opensWithHeadsUp('')).toBe(false);
+});
 
 test('renderMemory round-trips Standing Preferences', () => {
     const memory = renderMemory({ displayName: 'Eval', rules: ['One.', 'Two.'] });

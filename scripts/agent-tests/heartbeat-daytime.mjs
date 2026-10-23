@@ -17,7 +17,7 @@ import {
     writeMemory,
 } from './heartbeat.mjs';
 
-const baselineRecords = Object.freeze([
+export const baselineRecords = Object.freeze([
     ['ORD-1001', { owner: 'Ops', status: 'routine', title: 'Q3 restock purchase order' }],
     ['ORD-1002', { owner: 'Ops', status: 'routine', title: 'Packaging reorder' }],
     ['ORD-1003', { owner: 'Facilities', status: 'routine', title: 'Warehouse lease renewal' }],
@@ -81,8 +81,11 @@ export async function runQuietRunAwareness({ agents, expect, kit, log }) {
     expect(reply.message.content.length > 0, 'the Agent answered the question').toBe(true);
 }
 
-async function runLedgerWatch({ agents, expect, kit, log }, scenario, { signal }) {
-    const [worker] = agents;
+/**
+ * Runs `body(mcp)` with a controlled Audit Ledger holding `records`, added as a
+ * connection and granted to `worker`, and removes both afterwards.
+ */
+export async function withLedger({ kit, log }, worker, records, body) {
     const mcp = await startControlledMcp({ recent: true });
     let connectionId = null;
     try {
@@ -96,7 +99,7 @@ async function runLedgerWatch({ agents, expect, kit, log }, scenario, { signal }
             url: mcp.url,
         });
         connectionId = connection.id;
-        for (const [key, record] of baselineRecords) {
+        for (const [key, record] of records) {
             mcp.define(key, record);
         }
         await kit.trpc('mcp.setGrant', {
@@ -105,7 +108,20 @@ async function runLedgerWatch({ agents, expect, kit, log }, scenario, { signal }
             enabled: true,
             serverId: kit.serverId,
         });
+        return await body(mcp);
+    } finally {
+        if (connectionId) {
+            await kit
+                .trpc('mcp.delete', { connectionId, serverId: kit.serverId })
+                .catch(() => undefined);
+        }
+        await mcp.close();
+    }
+}
 
+async function runLedgerWatch({ agents, expect, kit, log }, scenario, { signal }) {
+    const [worker] = agents;
+    await withLedger({ kit, log }, worker, baselineRecords, async (mcp) => {
         const channel = await kit.createChannel({ agentIds: [worker.id] });
         await writeMemory(kit, worker.id, ledgerMemory(worker, channel.name));
         const head = await kit.readHead(channel.id);
@@ -146,14 +162,7 @@ async function runLedgerWatch({ agents, expect, kit, log }, scenario, { signal }
             expect(channelPosts, 'Agent posts in the ledger channel').toHaveLength(0);
             expect(dmPosts, 'Agent posts in the Owner DM').toHaveLength(0);
         }
-    } finally {
-        if (connectionId) {
-            await kit
-                .trpc('mcp.delete', { connectionId, serverId: kit.serverId })
-                .catch(() => undefined);
-        }
-        await mcp.close();
-    }
+    });
 }
 
 function ledgerMemory(worker, channelName) {

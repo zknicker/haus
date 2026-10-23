@@ -66,11 +66,13 @@ export const evals = {
             'heartbeat-follows-up-dropped-promise',
             'heartbeat-surfaces-new-signal',
             'heartbeat-nothing-new-control',
+            'heartbeat-reports-unhandled-standing-item',
+            'heartbeat-stale-loose-end-control',
             'heartbeat-quiet-run-awareness',
             'heartbeat-lead-dedupe',
         ],
         summary:
-            'A nightly heartbeat learns a correction the Agent only acknowledged and follows up a dropped promise; a daytime heartbeat reports a new signal once, stays quiet otherwise, and two Agents answer a shared question once without duplicate research.',
+            'A nightly heartbeat learns a correction the Agent only acknowledged and follows up a dropped promise; a daytime heartbeat reports a new signal or a still-unhandled item once with a heads-up, stays quiet otherwise, leaves stale loose ends alone, and two Agents answer a shared question once without duplicate research.',
     },
     // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
     // cloud-launch-and-link needs Cursor access.
