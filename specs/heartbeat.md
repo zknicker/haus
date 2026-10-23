@@ -171,18 +171,20 @@ Every run:
    another Agent's area to that Agent.
 4. **Decide what matters.** Report what needs you or someone you work for and is still
    unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet.
-   Stay quiet when nothing does. Never resend a finding a past report already carried. One test,
-   no category list: a filter for change left a week-old pile of dependency PRs, a real security
-   fix among them, listed as a loose end and never reported (Forge, 2026-10-22). Live runs read
-   "unchanged" as "nothing to report" until the input said otherwise, and read "what the checkpoint
-   says you reported" as anything the checkpoint listed, so the wording names both.
+   Stay quiet when nothing does. Never resend a finding a past report already carried; a
+   checkpoint whose first line is `Report: quiet` carried nothing. One test, no category list: a
+   filter for change left a week-old pile of dependency PRs, a real security fix among them,
+   listed as a loose end and never reported (Forge, 2026-10-22). Live runs read "unchanged" as
+   "nothing to report" until the input said otherwise, and read "what the checkpoint says you
+   reported" as anything the checkpoint listed, even a loose end under `Report: quiet`, so the
+   wording names both and the checkpoint's fixed first line makes "already reported" checkable.
 5. **Report or stay quiet.** At most one `haus heartbeat report`, findings first, each with what
    you learned, why it matters, how sure you are, and a suggested next step. An answer to
    someone's question names the chat and message id it answers: the asker has heard nothing
    until the main session replies there, so the next step is that reply. Daytime runs suggest
    memory changes in the report instead of editing MEMORY.md.
-6. **Checkpoint.** Write the run's checkpoint: the exact report sent or "quiet" and why, what you
-   checked, what you could not check, open leads, where to pick up.
+6. **Checkpoint.** Write the run's checkpoint, opening with `Report: quiet` or
+   `Report: <exact report sent>`, then why, what you checked, what you could not check, open leads, where to pick up.
 
 Post nothing in any Chat. The main session decides what anyone hears.
 

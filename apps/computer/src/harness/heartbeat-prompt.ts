@@ -52,9 +52,9 @@ const everyRunSteps = [
     '1. Catch up: read each digest conversation with its command; the digest has no bodies.',
     '2. Notice: check the sources your work depends on for what is new or still open, by calling the connections above with the `execute` tool, then look wider as your role suggests.',
     '3. Follow leads: a listed lead is held by the Agent named; leave another Agent\'s lead to it. An unanswered question is a lead even if step 2 already found its answer. Before researching or reporting one, claim it with `haus lead claim --topic "..." [--message-id <id>]` (not `haus task claim`); refused means another Agent claimed or finished it, so leave it out of your report. Record the result with `haus lead done --id <id> --finding "..."`.',
-    '4. Decide: report what needs you or someone you work for and is still unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet. Stay quiet when nothing does; never resend a finding a past report already carried.',
+    '4. Decide: report what needs you or someone you work for and is still unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet. Stay quiet when nothing does; never resend a finding a past report already carried; a checkpoint whose first line is `Report: quiet` carried nothing.',
     "5. Report or stay quiet: at most one `haus heartbeat report` (body on stdin, findings first: what, why it matters, how sure, next step). An answer to someone's question names the chat and message id it answers: the asker has heard nothing until your main session replies there, so the next step is that reply. Daytime runs never edit MEMORY.md.",
-    '6. Checkpoint: write `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md` (nightly: `heartbeat/daily/<YYYY-MM-DD>.md`) with the exact report or "quiet" and why, what you checked and could not, open leads, and where to pick up. Do not read back what you wrote.',
+    '6. Checkpoint: write `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md` (nightly: `heartbeat/daily/<YYYY-MM-DD>.md`) opening with `Report: quiet` or `Report: <exact report>`, then why, what you checked and could not, open leads, and where to pick up. Do not read back what you wrote.',
 ].join('\n');
 
 /** The input of a report run: the Agent's own heartbeat report, handed to its main session. */
