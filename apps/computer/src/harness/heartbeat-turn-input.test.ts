@@ -132,6 +132,14 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
     expect(text).toContain('- rem_1 "Check payout" fires 2026-10-21T09:00:00.000Z');
     expect(text).toContain('Connections you can call with `execute`: Etsy, Linear.');
     expect(text).toContain('connection names, not tool names');
+    // Codex code mode lists `execute` as `mcp__…__execute` beside its own `tools.*` globals;
+    // runs that searched their tool list for the connection name or bare `execute` gave up.
+    expect(text).toContain('inside `execute` code, `tools.search` each one');
+    expect(text).toContain('ending in `__execute`');
+    // Another Agent's open lead leaked into an unrelated run and became its report.
+    expect(text).toContain(
+        "a listed lead is held by the Agent named; leave another Agent's lead to it."
+    );
     expect(text).toContain('1. Catch up:');
     expect(text).toContain('6. Checkpoint:');
     expect(text).toContain('Do not read back what you wrote.');
