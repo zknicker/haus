@@ -5,7 +5,11 @@ import type { TranscriptTurnEntry } from './chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
 import { messagePreviewLine } from './message-preview-line.ts';
 import type { TranscriptReplyReference } from './transcript-reply-contract.ts';
-import { TurnContextLine, turnContextLineContentClassName } from './turn-context-line.tsx';
+import {
+    TurnContextLine,
+    turnContextLineContentClassName,
+    turnContextMarkSize,
+} from './turn-context-line.tsx';
 
 type OpenInlineReply = (
     reference: TranscriptReplyReference,
@@ -73,9 +77,13 @@ export function InlineReplyPreview({
                 onClick={onPress}
                 type="button"
             >
-                <EntityAvatar name={author} size={16} src={reference.author.profile?.avatarUrl} />
+                <EntityAvatar
+                    name={author}
+                    size={turnContextMarkSize}
+                    src={reference.author.profile?.avatarUrl}
+                />
                 <span className="max-w-40 shrink-0 truncate font-medium">{author}</span>
-                <span className="min-w-0 truncate" title={excerpt}>
+                <span className="min-w-0 truncate text-context-line-quiet" title={excerpt}>
                     {excerpt}
                 </span>
             </button>

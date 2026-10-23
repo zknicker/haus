@@ -15,18 +15,6 @@ export const automationMarkColor = {
     trigger: 'text-trigger-mark',
 } as const satisfies Record<AutomationKind, string>;
 
-/** The soft tint behind the glyph where it stands in for an author. */
-export const automationMarkSoftFill = {
-    reminder: 'bg-reminder-mark-soft',
-    trigger: 'bg-trigger-mark-soft',
-} as const satisfies Record<AutomationKind, string>;
-
-/** The context line's elbow, tinted toward the ink so it is not a reply's. */
-export const automationMarkElbow = {
-    reminder: 'border-reminder-mark-line',
-    trigger: 'border-trigger-mark-line',
-} as const satisfies Record<AutomationKind, string>;
-
 /**
  * A status is a resting state someone chose, not a failure, so only `armed`
  * and `scheduled` carry colour — the inert states stay neutral rather than

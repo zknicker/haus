@@ -116,12 +116,31 @@
          */
         --trigger-mark: oklch(0.86 0.16 92);
         --reminder-mark: oklch(0.76 0.15 14);
-        /* The line's avatar fill and its elbow, derived from the ink so a
-         * retune of the ink carries through. */
+        /* The Automations list's icon wash, derived from the ink so a retune
+         * of the ink carries through. */
         --trigger-mark-soft: color-mix(in oklab, var(--trigger-mark) 18%, transparent);
         --reminder-mark-soft: color-mix(in oklab, var(--reminder-mark) 18%, transparent);
-        --trigger-mark-line: color-mix(in oklab, var(--trigger-mark) 40%, var(--separator));
-        --reminder-mark-line: color-mix(in oklab, var(--reminder-mark) 40%, var(--separator));
+        /*
+         * The keycap a cause line leads with: a small raised key, face lit from
+         * above with a hairline edge, a top highlight, and a darker lip along
+         * the bottom. Dark lifts the face well clear of the canvas so the key
+         * still reads at 16px. `-ink-trigger` is the bolt on the face, which
+         * light needs denser than the line ink to hold against a white key.
+         */
+        --automation-keycap-face: linear-gradient(oklch(0.44 0.008 286), oklch(0.34 0.009 286));
+        --automation-keycap-shadow:
+            inset 0 0 0 0.5px oklch(1 0 0 / 16%), inset 0 0.75px 0 oklch(1 0 0 / 22%),
+            inset 0 -1.75px 0 oklch(0 0 0 / 55%);
+        --automation-keycap-ink-trigger: var(--trigger-mark);
+
+        /*
+         * The quiet second tier of a turn context line — a reply's excerpt, an
+         * automation's cadence or kind — a step below `muted`, which the line's
+         * name or title takes, so the line stays behind the message it
+         * introduces while its lead still reads first. Derived from the canvas,
+         * so it holds in both themes.
+         */
+        --context-line-quiet: color-mix(in oklab, var(--muted) 62%, var(--background));
 
         /*
          * Dreams. A nightly dream is its own kind of run, not a status: it never
@@ -219,6 +238,11 @@
          * denser end to hold against a near-white page at 11px. */
         --trigger-mark: oklch(0.66 0.15 88);
         --reminder-mark: oklch(0.6 0.17 12);
+        --automation-keycap-face: linear-gradient(oklch(1 0 0), oklch(0.94 0.002 286));
+        --automation-keycap-shadow:
+            inset 0 0 0 0.5px oklch(0 0 0 / 14%), inset 0 0.75px 0 oklch(1 0 0),
+            inset 0 -1.75px 0 oklch(0 0 0 / 16%);
+        --automation-keycap-ink-trigger: oklch(0.6 0.15 80);
 
         /* Dream violet down the ramp for the near-white page. */
         --dream: oklch(0.58 0.15 295);
@@ -256,14 +280,14 @@
     --color-reasoning-high: var(--reasoning-high);
     --color-reasoning-low: var(--reasoning-low);
     --color-reasoning-medium: var(--reasoning-medium);
+    --color-automation-keycap-ink-trigger: var(--automation-keycap-ink-trigger);
+    --color-context-line-quiet: var(--context-line-quiet);
     --color-reminder-mark: var(--reminder-mark);
-    --color-reminder-mark-line: var(--reminder-mark-line);
     --color-reminder-mark-soft: var(--reminder-mark-soft);
     --color-skill-reference: var(--skill-reference);
     --color-thought-glass: var(--thought-glass);
     --color-thought-glass-border: var(--thought-glass-border);
     --color-trigger-mark: var(--trigger-mark);
-    --color-trigger-mark-line: var(--trigger-mark-line);
     --color-trigger-mark-soft: var(--trigger-mark-soft);
     --color-trace-axis: var(--trace-axis);
     --color-trace-grid: var(--trace-grid);

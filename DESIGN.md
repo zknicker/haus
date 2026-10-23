@@ -849,13 +849,18 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   Each inline reply starts its own visual row; clicking the excerpt reveals its parent.
   While composing, a compact “Replying to” header joins the editor into one rounded surface.
 - **Turn context lines:** A reply line and an automation's cause line share one geometry
-  (`TurnContextLine`): the avatar-rail indent, a 16px leading mark, `text-xs` single-line text,
-  and an elbow from the row's midline toward the author's avatar that stops ~3px short of both the
-  16px mark and the avatar, like a reply connector. A cause line leads with a 16px
-  rounded-square automation avatar (the reply avatar's bounds, `identityMarkRadius`) filled with
-  `--reminder-mark-soft` or `--trigger-mark-soft`, then the title in the mark ink, `font-medium`,
-  truncating; its elbow takes `--*-mark-line`. A turn shows one context line: when it has a cause,
-  the cause line replaces its reply line.
+  (`TurnContextLine`): the avatar-rail indent, a 20px leading mark, `text-base` single-line text
+  (the message body's size), and an elbow from the row's midline toward the author's avatar that
+  stops ~3px short of both the 20px mark and the avatar, like a reply connector. The row under it
+  opens to `pt-3`, so the stem runs about as long as the arm. Both lines read in two tiers: the
+  lead (a reply's author, an automation's title) in `text-muted` `font-medium`, then the excerpt,
+  cadence, or trigger kind in `--context-line-quiet`, a step below `muted`, so every context line
+  stays behind the message it introduces. A cause line leads with a 20px raised keycap (the reply
+  avatar's bounds, `identityMarkRadius`; face, edge, highlight, and lip from
+  `--automation-keycap-*`). A Reminder's key is a calendar page: a `--reminder-mark` band over the
+  hour it fired. A Trigger's key carries a solid bolt in `--automation-keycap-ink-trigger`. Only
+  the key carries ink; the elbow is a reply's neutral one. A turn shows one context line: when it
+  has a cause, the cause line replaces its reply line.
   The Automations list (Agent profile) carries the same vocabulary on its rows: the ItemCard icon
   slot fills with `--reminder-mark-soft` or `--trigger-mark-soft` and inks a 20px glyph in the mark
   color (`automation-mark--*` in `default-theme.css`); the glyph tells one-time from recurring.

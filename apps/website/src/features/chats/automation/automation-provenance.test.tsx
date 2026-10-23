@@ -5,29 +5,47 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
 import { AutomationFireContextCardView } from './automation-fire-context-card.tsx';
+import { firedHour } from './automation-keycap.tsx';
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 
-test('the cause line names its automation in that automation’s own ink', () => {
+test('the cause line reads like a reply line: keycap, muted title, then a quieter summary', () => {
     const trigger = render(<MessageCauseLine cause={triggerCause()} />);
     const reminder = render(<MessageCauseLine cause={reminderCause()} />);
 
-    expect(trigger).toContain('Deploy finished');
-    expect(trigger).toContain('text-trigger-mark');
-    expect(trigger).not.toContain('text-reminder-mark');
-    expect(reminder).toContain('Weekly self-review');
-    expect(reminder).toContain('text-reminder-mark');
+    expect(trigger).toMatch(/text-muted">Deploy finished<\/span>/);
+    expect(trigger).toMatch(/text-context-line-quiet">Webhook</);
+    expect(reminder).toMatch(/text-muted">Weekly self-review<\/span>/);
+    expect(reminder).toMatch(/text-context-line-quiet">Every Monday at 09:00</);
+    // Behind the message it introduces: the title never takes the body's ink.
+    expect(trigger + reminder).not.toContain('font-medium text-foreground');
+    // Only the key carries the ink; the elbow is a reply's.
+    expect(trigger + reminder).toContain('border-separator');
     // Neither borrows a status colour: a fired automation is not a warning.
     expect(trigger + reminder).not.toContain('text-warning');
     expect(trigger + reminder).not.toContain('text-danger');
 });
 
-test('the cause line leads with a tinted automation avatar and a tinted elbow', () => {
+test('a Trigger keycap prints a bolt; a Reminder keycap is a calendar page with its hour', () => {
+    const trigger = render(<MessageCauseLine cause={triggerCause()} />);
     const reminder = render(<MessageCauseLine cause={reminderCause()} />);
 
-    expect(reminder).toContain('bg-reminder-mark-soft');
-    expect(reminder).toContain('border-reminder-mark-line');
-    // The same bounds as the 16px EntityAvatar on a reply line.
-    expect(reminder).toContain('border-radius:calc(var(--radius) * 1);height:16px;width:16px');
+    expect(trigger).toContain('data-automation-keycap="trigger"');
+    expect(trigger).toContain('text-automation-keycap-ink-trigger');
+    expect(trigger).not.toContain('bg-reminder-mark');
+    expect(reminder).toContain('data-automation-keycap="reminder"');
+    expect(reminder).toContain('bg-reminder-mark');
+    expect(reminder).toContain(`>${firedHour(reminderCause().firedAt)}</span>`);
+    // The same bounds as the 20px EntityAvatar on a reply line.
+    expect(reminder).toMatch(/height:20px;width:20px/);
+});
+
+test('firedHour prints the hour on a 12-hour clock, and nothing for a bad stamp', () => {
+    const nineOFour = new Date(2026, 9, 23, 9, 4).toISOString();
+    const afternoon = new Date(2026, 9, 23, 15, 30).toISOString();
+
+    expect(firedHour(nineOFour)).toBe('9');
+    expect(firedHour(afternoon)).toBe('3');
+    expect(firedHour('not a time')).toBe('');
 });
 
 test('the cause line opens the owning Agent’s Automations tab', () => {
@@ -94,8 +112,7 @@ test('an archived automation keeps its line but loses the way into Automations',
     const archived = render(<MessageCauseLine cause={archivedReminderCause()} />);
 
     expect(archived).toContain('Weekly self-review');
-    expect(archived).toContain('text-reminder-mark');
-    expect(archived).toContain('bg-reminder-mark-soft');
+    expect(archived).toContain('data-automation-keycap="reminder"');
     expect(archived).not.toContain('<a');
     expect(archived).not.toContain('/automations');
 });
