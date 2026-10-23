@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.9.0 - 2026-10-23
+
+- Agent workspaces no longer have a 10 GiB cap or reserve future disk space. Existing workspaces convert automatically, keeping their original disk images as recovery backups.
+- Computers show low-disk warnings in Settings and a dismissible Inbox notice with a link to the affected Computer.
+- Haus Agent 11.2.1 describes workspace files as sharing the Computer’s disk space.
+
 ## v15.8.0 - 2026-10-23
 
 - Kittl is available in Connections. Sign in to give Agents access to design, image generation, and product mockup tools.
