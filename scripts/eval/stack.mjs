@@ -48,7 +48,8 @@ export async function bootStack({ logFile, root, stackId }) {
         );
     }
     const log = createWriteStream(logFile, { flags: 'a' });
-    const child = spawn('node', ['scripts/run-dev-stack.mjs', 'web'], {
+    // `./scripts`, not `scripts`: peer sessions' cleanup kills `node scripts/run-dev-stack.mjs web`.
+    const child = spawn('node', ['./scripts/run-dev-stack.mjs', 'web'], {
         cwd: root,
         // Linear scenarios serve a fake Linear here; nothing reaches api.linear.app.
         env: stackEnvironment(stackId, { HAUS_LINEAR_API_ORIGIN: fakeLinearOrigin(ports) }),
