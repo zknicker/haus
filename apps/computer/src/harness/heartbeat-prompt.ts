@@ -3,6 +3,7 @@ import {
     type AgentHeartbeatReportAttention,
     heartbeatContextLimit,
 } from '@haus/api';
+import { type HeartbeatSwitch, heartbeatQuietHoursSwitch } from '../heartbeat-dev-switches.ts';
 import {
     checkpointInlineLimitBytes,
     latestCheckpoint,
@@ -57,14 +58,29 @@ const everyRunSteps = [
 ].join('\n');
 
 /** The input of a report run: the Agent's own heartbeat report, handed to its main session. */
-export function composeHeartbeatReportInput(report: AgentHeartbeatReportAttention): string {
+export function composeHeartbeatReportInput(
+    report: AgentHeartbeatReportAttention,
+    options: { now?: Date; quietHours?: HeartbeatSwitch } = {}
+): string {
     return [
         `[Haus heartbeat report] Your own heartbeat (run ${report.heartbeatRunId}) reported:`,
         report.text,
         report.heartbeatKind === 'nightly'
             ? 'This came from your nightly heartbeat, so post nothing now: for anything someone should hear, schedule a morning reminder anchored to the message it concerns, or do nothing.'
-            : 'You decide whether anyone should hear this: post where it belongs, or do nothing. Between 22:00 and 08:00, schedule a morning reminder instead of posting.',
+            : daytimeDecision(
+                  options.now ?? new Date(),
+                  (options.quietHours ?? heartbeatQuietHoursSwitch()) === 'on'
+              ),
     ].join('\n\n');
+}
+
+/** The Computer, not the Agent, works out whether the Computer-local clock is in quiet hours. */
+function daytimeDecision(now: Date, quietHoursApply: boolean): string {
+    const clock = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    if (quietHoursApply && (now.getHours() >= 22 || now.getHours() < 8)) {
+        return `It is ${clock} here, inside quiet hours (22:00–08:00): post nothing now; schedule a morning reminder anchored to the message it concerns for anything someone should hear, or do nothing.`;
+    }
+    return `It is ${clock} here. You decide whether anyone should hear this: post where it belongs, or do nothing.`;
 }
 
 function digestSection(digest: AgentHeartbeatAttention['digest']): string {

@@ -194,8 +194,17 @@ Once per night, also:
   Agent, delivered after the heartbeat run settles like any concrete item. Its envelope says it is
   the Agent's own heartbeat report and that the Agent decides whether to post. A report from a
   **nightly** heartbeat always becomes a morning reminder, whatever the clock says when it is
-  delivered (decided behavior). A **daytime** report follows the clock: between 22:00 and 08:00
-  the main session holds findings and schedules a morning reminder instead of posting.
+  delivered (decided behavior). A **daytime** report follows the Computer's local clock, and the
+  Computer states the decision in the report input rather than asking the Agent to work it out:
+  "It is 14:05 here. You decide whether anyone should hear this: ..." outside 22:00-08:00, and
+  "It is 23:40 here, inside quiet hours (22:00-08:00): post nothing now; schedule a morning
+  reminder ..." inside it.
+- **Dev and test switches.** The Computer reads two switches, declared in `.env.schema` and never
+  set in production; each accepts `on` or `off`, defaults to `on`, and fails loudly on any other
+  value. `HAUS_HEARTBEAT_QUIET_HOURS=off` makes every report input take the daytime branch (the
+  clock is still shown). `HAUS_HEARTBEAT_SCHEDULE=off` keeps the schedule loop from starting;
+  dev triggers still start runs. Eval stacks set both, so a heartbeat eval does not depend on the
+  time of day.
 - **Checkpoint.** Markdown under the workspace at
   `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md`; the nightly run writes
   `heartbeat/daily/<YYYY-MM-DD>.md`. The Computer deletes checkpoints older than 14 days.

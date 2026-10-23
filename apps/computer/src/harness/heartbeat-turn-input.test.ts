@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseStartCommand } from '../agent-command-frames.ts';
 import { pruneCheckpoints } from './heartbeat-checkpoints.ts';
-import { composeHeartbeatInput } from './heartbeat-prompt.ts';
+import { composeHeartbeatInput, composeHeartbeatReportInput } from './heartbeat-prompt.ts';
 import { composeTurnPrompt, type TurnDelivery, turnDeliveryOf } from './turn-prompt.ts';
 
 let root: string;
@@ -204,7 +204,55 @@ test('a report run hands the main session the Agent’s own report to decide on'
         '[Haus heartbeat report] Your own heartbeat (run run_hb) reported:'
     );
     expect(prompt.turnContent).toContain(report.text);
-    expect(prompt.turnContent).toContain('Between 22:00 and 08:00, schedule a morning reminder');
+    expect(prompt.turnContent).toMatch(/It is \d\d:\d\d here/);
+});
+
+const local = (hour: number, minute: number) => new Date(2026, 9, 20, hour, minute);
+
+test('a daytime report outside quiet hours leaves the decision to the Agent', () => {
+    const text = composeHeartbeatReportInput(report, { now: local(14, 5), quietHours: 'on' });
+    expect(text).toContain(
+        'It is 14:05 here. You decide whether anyone should hear this: post where it belongs, or do nothing.'
+    );
+    expect(text).not.toContain('quiet hours');
+});
+
+test('a daytime report inside quiet hours says to post nothing and schedule a morning reminder', () => {
+    for (const now of [local(23, 40), local(22, 0), local(7, 59), local(0, 0)]) {
+        const text = composeHeartbeatReportInput(report, { now, quietHours: 'on' });
+        expect(text).toContain(
+            'inside quiet hours (22:00–08:00): post nothing now; schedule a morning reminder anchored to the message it concerns'
+        );
+        expect(text).not.toContain('post where it belongs');
+    }
+    expect(
+        composeHeartbeatReportInput(report, { now: local(8, 0), quietHours: 'on' })
+    ).not.toContain('quiet hours');
+    expect(
+        composeHeartbeatReportInput(report, { now: local(21, 59), quietHours: 'on' })
+    ).not.toContain('quiet hours');
+    expect(composeHeartbeatReportInput(report, { now: local(23, 40), quietHours: 'on' })).toContain(
+        'It is 23:40 here, inside quiet hours'
+    );
+});
+
+test('with quiet hours off a night-time daytime report still takes the daytime branch', () => {
+    const text = composeHeartbeatReportInput(report, { now: local(23, 40), quietHours: 'off' });
+    expect(text).toContain('It is 23:40 here. You decide whether anyone should hear this');
+    expect(text).not.toContain('quiet hours');
+});
+
+test('a nightly report is unchanged by the clock or the switch', () => {
+    const nightly = { ...report, heartbeatKind: 'nightly' as const };
+    const texts = [local(14, 5), local(23, 40)].flatMap((now) =>
+        (['on', 'off'] as const).map((quietHours) =>
+            composeHeartbeatReportInput(nightly, { now, quietHours })
+        )
+    );
+    for (const text of texts) {
+        expect(text).toContain('came from your nightly heartbeat, so post nothing now');
+        expect(text).not.toContain('It is ');
+    }
 });
 
 test('a nightly heartbeat report never posts: it becomes a morning reminder', () => {

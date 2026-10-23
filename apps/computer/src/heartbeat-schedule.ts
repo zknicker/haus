@@ -11,6 +11,7 @@ import { readAppliedAgentConfiguration } from './agent-configuration.ts';
 import type { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import type { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
+import { heartbeatScheduleSwitch } from './heartbeat-dev-switches.ts';
 import { dueHeartbeatSlot, type HeartbeatSlot, slotKey } from './heartbeat-slots.ts';
 
 /** How often the timer looks for a due slot; each Agent is still asked once per slot. */
@@ -40,8 +41,13 @@ export type HeartbeatCheckRecord = HeartbeatSlot & {
  */
 export function startHeartbeatSchedule(
     work: AttachmentConnectionWork,
-    input: Omit<HeartbeatScheduleInput, 'handled'>
+    input: Omit<HeartbeatScheduleInput, 'handled'>,
+    environment: Readonly<Record<string, string | undefined>> = process.env
 ): void {
+    // Dev and eval stacks turn the clock off so dev triggers are the only way a run starts.
+    if (heartbeatScheduleSwitch(environment) === 'off') {
+        return;
+    }
     const handled = new Map<string, string>();
     work.startLoop(
         heartbeatCheckInterval,

@@ -25,6 +25,22 @@ test('parses settles from the runner, including names past its pad and split chu
     ]);
 });
 
+test('stack children run with the heartbeat clock off, whatever the shell says', () => {
+    const previous = process.env.HAUS_HEARTBEAT_QUIET_HOURS;
+    process.env.HAUS_HEARTBEAT_QUIET_HOURS = 'on';
+    try {
+        const env = stackEnvironment('eval-heartbeat-change');
+        expect(env.HAUS_HEARTBEAT_QUIET_HOURS).toBe('off');
+        expect(env.HAUS_HEARTBEAT_SCHEDULE).toBe('off');
+    } finally {
+        if (previous === undefined) {
+            Reflect.deleteProperty(process.env, 'HAUS_HEARTBEAT_QUIET_HOURS');
+        } else {
+            process.env.HAUS_HEARTBEAT_QUIET_HOURS = previous;
+        }
+    }
+});
+
 test('stack children get the stack id and never an inherited port override', () => {
     const previous = process.env.HAUS_DEV_PORT_BASE;
     process.env.HAUS_DEV_PORT_BASE = '42000';

@@ -96,6 +96,13 @@ metadata without the concept or image bytes. The fixture path is runtime input,
 so the PNG is not bundled into the Server artifact. Do not enable the fixture in
 a released Server environment.
 
+Two dev and test switches make heartbeat runs independent of the time of day, read only by the
+Computer: `HAUS_HEARTBEAT_QUIET_HOURS=off` makes a daytime heartbeat report always take the
+daytime branch, and `HAUS_HEARTBEAT_SCHEDULE=off` keeps the schedule loop from starting. Both are
+declared `undefined` in every lifecycle, accept only `on` or `off` (unset means `on`), and are
+never set in production. `scripts/eval/stack.mjs` sets both on every eval stack; a normal
+`bun run dev` keeps the defaults ([Heartbeat](../../specs/heartbeat.md#outputs)).
+
 Agent thought summaries use `HAUS_GEMINI_API_KEY`, resolved per lifecycle from
 `Google AI Studio - Haus` and delivered only to the Server; a Computer never holds it. It is
 optional everywhere: `fallback(op(…), undefined)` turns an empty 1Password field into an absent
