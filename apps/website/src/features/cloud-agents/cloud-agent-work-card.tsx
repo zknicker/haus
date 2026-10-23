@@ -10,7 +10,7 @@ import {
     cloudAgentJobText,
     cloudAgentWorkBranch,
 } from './cloud-agent-presentation.ts';
-import { CloudAgentProviderMark } from './cloud-agent-provider-mark.tsx';
+import { CloudAgentKeycap } from './cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from './cloud-agent-status-disc.tsx';
 import { cloudAgentStatusLine } from './cloud-agent-status-line.ts';
 import { CloudAgentWorkActions } from './cloud-agent-work-actions.tsx';
@@ -49,7 +49,7 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
         >
             <ActionCard.Header>
                 <ActionCard.Mark>
-                    <CloudAgentProviderMark provider={work.provider} />
+                    <CloudAgentKeycap provider={work.provider} size={40} />
                 </ActionCard.Mark>
                 <ActionCard.Content>
                     <ActionCard.Title>

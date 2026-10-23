@@ -866,8 +866,10 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   becomes the key (`automation-mark` in `default-theme.css`), keeping its stock box and radius. A
   listed Reminder's key shows its next hour in the viewer's zone; a listed Trigger's key shows its
   source glyph (GitHub, Linear, webhook) in the trigger ink instead of the bolt.
-  A listed Cloud Agent's key prints a solid terminal in `--cloud-agent-mark` with its provider's
-  logo badged in the lower corner (`CloudAgentKeycapFace`).
+  A Cloud Agent is the same key everywhere it appears (`CloudAgentKeycap`): a solid terminal in
+  `--cloud-agent-mark`, with its provider's logo badged in the lower corner on keys 28px and up
+  (the 40px work card, the 32px Inbox row, the Automations list). A Thread's 20px job rows print the
+  terminal alone. A cloud agent reference chip uses the same terminal glyph, without the key.
   The recipient and cancel action remain visible; the original excerpt is available on hover.
   The header uses the lighter background token, with cancel aligned above Send. The selected
   message row, including its avatar and header, uses `--reply-highlight` (70% of accent-soft)

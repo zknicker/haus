@@ -102,7 +102,7 @@ function CloudAutomationRow({
         >
             <PressableFeedback.Highlight />
             <ItemCard.Icon aria-hidden="true" className="automation-mark">
-                <CloudAgentKeycapFace provider={row.work.provider} />
+                <CloudAgentKeycapFace provider={row.work.provider} size={cloudAgentRowKeySize} />
             </ItemCard.Icon>
             <ItemCard.Content>
                 <ItemCard.Title className="truncate">{row.work.title}</ItemCard.Title>
@@ -121,3 +121,6 @@ function CloudAutomationRow({
         </ItemCard>
     );
 }
+
+/** The stock `size-9` icon slot, in px at the default `--spacing`. */
+const cloudAgentRowKeySize = 34;

@@ -1,4 +1,4 @@
-import { CloudAgentProviderGlyph } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
+import { CloudAgentKeycap } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';
 import type { HappeningNowRow } from './happening-now-rows.ts';
 import {
@@ -7,6 +7,7 @@ import {
     InboxRow,
     InboxRowBody,
     InboxRowMeta,
+    inboxMarkSize,
 } from './inbox-row.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
 
@@ -30,7 +31,7 @@ export function HappeningNowList({
                 row.kind === 'work' ? (
                     <InboxRow label={row.work.title} onOpen={() => onOpenRow(row)}>
                         <InboxGlyphMark>
-                            <CloudAgentProviderGlyph provider={row.work.provider} />
+                            <CloudAgentKeycap provider={row.work.provider} size={inboxMarkSize} />
                         </InboxGlyphMark>
                         <InboxRowBody
                             preview={`${row.work.chatLabel} · ${row.work.agentName}`}

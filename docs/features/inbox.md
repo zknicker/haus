@@ -123,7 +123,7 @@ owners remain in setup and members and Admins remain on the waiting page, outsid
 **Happening now** — work running right now, whether or not this human started it, also as one list:
 
 - [Cloud Agent work](../../specs/cloud-agents.md) queued, running, or waiting on an answer
-  (`Needs input`) anywhere on the Server I can see, led by its provider glyph: the title, the Chat and Agent it came from as its preview, and its
+  (`Needs input`) anywhere on the Server I can see, led by its cloud agent key (a terminal badged with its provider's logo): the title, the Chat and Agent it came from as its preview, and its
   status disc with the elapsed time trailing — `Running · 25m`.
 - Agents currently in a turn, from the current Agent activity projection
   ([Agent Activity](../../specs/agent-activity.md)), each stating its current activity and total

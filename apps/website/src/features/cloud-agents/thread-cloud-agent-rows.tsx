@@ -1,9 +1,8 @@
 import type { CloudAgentWork } from '@haus/api';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
-import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { cn } from '../../lib/utils.ts';
 import { isEndedCloudAgentJob } from './cloud-agent-presentation.ts';
-import { CloudAgentProviderGlyph } from './cloud-agent-provider-mark.tsx';
+import { CloudAgentKeycap } from './cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from './cloud-agent-status-disc.tsx';
 import { type ThreadCloudAgentRow, threadCloudAgentRows } from './thread-cloud-agent-row-model.ts';
 
@@ -34,12 +33,7 @@ function ThreadCloudAgentJobRow({ row }: { row: ThreadCloudAgentRow }) {
             data-job-state={row.state}
             data-testid="thread-cloud-agent-row"
         >
-            <span
-                className="flex shrink-0 items-center justify-center bg-default dark:inset-ring-[length:var(--hairline-width)] dark:inset-ring-foreground/80 dark:bg-background"
-                style={{ borderRadius: identityMarkRadius(20), height: 20, width: 20 }}
-            >
-                <CloudAgentProviderGlyph className="scale-110" provider={row.work.provider} />
-            </span>
+            <CloudAgentKeycap provider={row.work.provider} size={20} />
             <span
                 className={cn(
                     'min-w-0 flex-1 truncate',

@@ -2,7 +2,7 @@ import { parseChatThreadReferenceTarget } from '@haus/api';
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     ChromeIcon,
-    CloudIcon,
+    CommandLineIcon,
     CubeIcon,
     File01Icon,
     Folder01Icon,
@@ -87,7 +87,7 @@ const mentionIconMap = {
     agent: CubeIcon,
     chat: HashtagIcon,
     chrome: ChromeIcon,
-    'cloud-agent': CloudIcon,
+    'cloud-agent': CommandLineIcon,
     file: File01Icon,
     folder: Folder01Icon,
     github: Github01Icon,
