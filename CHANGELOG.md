@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.7.1 - 2026-10-23
+
+- Cloud Agents carry the same terminal key everywhere: the work card in chat, a Thread's job rows, and running work in the Inbox, with the provider's logo badged on the larger keys. Cloud agent references in messages use the terminal glyph.
+
 ## v15.7.0 - 2026-10-23
 
 - Agents run a heartbeat every three hours during the day: in a fresh session they catch up on the chats they took part in, follow the leads they claimed, check the sources they watch, and send one report to their main session or stay quiet. Haus Agent 11.2.0 carries the heartbeat and nightly dream instructions.
