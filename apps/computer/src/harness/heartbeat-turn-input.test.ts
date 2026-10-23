@@ -141,6 +141,7 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
         "a listed lead is held by the Agent named; leave another Agent's lead to it."
     );
     expect(text).toContain('1. Catch up:');
+    expect(text).toContain('the asker has heard nothing until your main session replies there');
     expect(text).toContain('6. Checkpoint:');
     expect(text).toContain('Do not read back what you wrote.');
     expect(text).not.toContain('recipe steps 7–10');

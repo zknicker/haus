@@ -28,7 +28,6 @@ export const pricingRecord = Object.freeze([
 
 /** The answer's facts: the discount rate or the plans that get it. */
 export const answerFacts = /20\s*%|\bPro\b|\bTeam\b/u;
-const leadCommand = /\bhaus\s+lead\b/u;
 
 /**
  * Outcome of one run from its channel posts (`agentPosts` returns message text
@@ -48,6 +47,16 @@ export function leadDedupeOutcome({ calls, posts }) {
         ),
     ];
     return { answerPosts, answered: answerPosts.length > 0, callers };
+}
+
+function compactMessage(message) {
+    return {
+        author: message.author?.agentId ?? message.author?.kind ?? null,
+        chatId: message.chatId,
+        content: message.content,
+        id: message.id,
+        sequence: message.sequence,
+    };
 }
 
 function postText(post) {
@@ -132,24 +141,25 @@ export async function runLeadDedupe({ agents, expect, kit, log }) {
             ...(await agentPosts(kit, channel.id, second.id, head)),
         ];
         const outcome = leadDedupeOutcome({ calls: mcp.calls, posts });
-        const leadCommands = async (worker, run) =>
-            (await journalCommands(kit, worker.id, run)).filter((command) =>
-                leadCommand.test(command)
-            );
+        // Every command of the heartbeat and report runs, so a failure shows what each did.
+        const commands = (worker, run) =>
+            journalCommands(kit, worker.id, run).catch((error) => [`unreadable: ${error}`]);
         await writeEvidence({
             answerPosts: outcome.answerPosts,
             answered: outcome.answered,
             callers: outcome.callers,
+            channelMessages: (await kit.readMessages(channel.id)).map(compactMessage),
             firstAgentId: first.id,
-            firstLeadCommands: await leadCommands(first, firstRun),
+            firstCommands: await commands(first, firstRun),
             leads,
             mcpCalls: mcp.calls,
             posts: { channel: posts },
             questionMessageId: question.id,
             reporters,
+            reports,
             scenario: 'heartbeat-lead-dedupe',
             secondAgentId: second.id,
-            secondLeadCommands: await leadCommands(second, secondRun),
+            secondCommands: await commands(second, secondRun),
             stamp: kit.stamp,
         });
 

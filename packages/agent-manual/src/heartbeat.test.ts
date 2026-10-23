@@ -29,6 +29,7 @@ test('carries the checkpoint paths and the quiet rules', () => {
     expect(body).toContain('heartbeat/daily/<YYYY-MM-DD>.md');
     expect(body).toContain('Post nothing in any chat. One report or silence.');
     expect(body).toContain('Daytime runs never edit MEMORY.md');
+    expect(body).toContain('the asker has heard nothing until your main session replies there');
     expect(body).toContain('Never repeat a finding the checkpoint says you reported');
 });
 

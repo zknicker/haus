@@ -163,7 +163,9 @@ Every run:
    values and routine movement. Never repeat a finding the checkpoint says you already reported
    unless something changed.
 5. **Report or stay quiet.** At most one `haus heartbeat report`, findings first, each with what
-   you learned, why it matters, how sure you are, and a suggested next step. Daytime runs suggest
+   you learned, why it matters, how sure you are, and a suggested next step. An answer to
+   someone's question names the chat and message id it answers: the asker has heard nothing
+   until the main session replies there, so the next step is that reply. Daytime runs suggest
    memory changes in the report instead of editing MEMORY.md.
 6. **Checkpoint.** Write the run's checkpoint: the exact report sent or "quiet" and why, what you
    checked, what you could not check, open leads, where to pick up.

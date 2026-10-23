@@ -7,6 +7,11 @@ import { createWriteStream } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { runsDirectory } from './evidence.mjs';
+import {
+    failedScenarios,
+    heartbeatEvidencePath,
+    saveFailureEvidence,
+} from './failure-evidence.mjs';
 import { isInfraFailure } from './grade.mjs';
 import { bootStack, stackEnvironment, stopStack } from './stack.mjs';
 import { runnerCause } from './summary.mjs';
@@ -92,6 +97,7 @@ export async function runBuild({
 /** One `cli.mjs` run over every scenario; settles print as they land. */
 async function runPass({ build, lanes, model, outDir, pass, root, scenarios, stackId, terminal }) {
     const before = new Set(await listStamps(root));
+    const startedAt = Date.now();
     const args = [
         path.join(root, 'scripts/agent-tests/cli.mjs'),
         ...scenarios.flatMap((name) => ['--only', name]),
@@ -133,6 +139,13 @@ async function runPass({ build, lanes, model, outDir, pass, root, scenarios, sta
     if (!summary.scenarios || setup) {
         return { infra: setup ? runnerCause(setup.error) : 'no summary.json' };
     }
+    await saveFailureEvidence({
+        evidenceDir: path.join(root, heartbeatEvidencePath),
+        failed: failedScenarios(summary),
+        outDir,
+        prefix: `pass-${build}-${pass}`,
+        sinceMs: startedAt,
+    });
     return { stamp };
 }
 
