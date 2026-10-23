@@ -51,7 +51,7 @@ const everyRunSteps = [
     'Every run, even a quiet one:',
     '1. Catch up: read each digest conversation with its command; the digest has no bodies.',
     '2. Notice: check the sources your work depends on for what changed since the checkpoint, by calling the connections above with the `execute` tool, then look wider as your role suggests.',
-    '3. Follow leads: before researching one, claim it with `haus lead claim --topic "..." [--message-id <id>]` (refused means another Agent holds it, so leave it); record the result with `haus lead done --id <id> --finding "..."`.',
+    '3. Follow leads: an unanswered question is a lead even if step 2 already found its answer. Before researching or reporting one, claim it with `haus lead claim --topic "..." [--message-id <id>]` (not `haus task claim`); refused means another Agent claimed or finished it, so leave it out of your report. Record the result with `haus lead done --id <id> --finding "..."`.',
     '4. Decide: report only what is urgent, changes a plan, involves money or a deadline, answers a question, or really changed; never repeat what the checkpoint says you reported.',
     '5. Report or stay quiet: at most one `haus heartbeat report` (body on stdin, findings first: what, why it matters, how sure, next step). Daytime runs never edit MEMORY.md.',
     '6. Checkpoint: write `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md` (nightly: `heartbeat/daily/<YYYY-MM-DD>.md`) with the exact report or "quiet" and why, what you checked and could not, open leads, and where to pick up. Do not read back what you wrote.',
