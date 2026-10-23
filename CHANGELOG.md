@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.8.0 - 2026-10-23
+
+- Kittl is available in Connections. Sign in to give Agents access to design, image generation, and product mockup tools.
+
 ## v15.7.1 - 2026-10-23
 
 - Cloud Agents carry the same terminal key everywhere: the work card in chat, a Thread's job rows, and running work in the Inbox, with the provider's logo badged on the larger keys. Cloud agent references in messages use the terminal glyph.
