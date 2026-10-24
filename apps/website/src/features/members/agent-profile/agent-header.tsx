@@ -117,12 +117,14 @@ export function AgentHeader({
                             onError={setAvatarError}
                             onGenerate={canGenerate ? () => setGenerateOpen(true) : undefined}
                             onSelect={async (image) => {
-                                await setAvatar.mutateAsync({
-                                    bytesBase64: image.base64,
-                                    mediaType: image.mediaType,
-                                    serverId: server.id,
-                                    target: { agentId: agent.id, kind: 'agent' },
-                                });
+                                await withSavingToast(() =>
+                                    setAvatar.mutateAsync({
+                                        bytesBase64: image.base64,
+                                        mediaType: image.mediaType,
+                                        serverId: server.id,
+                                        target: { agentId: agent.id, kind: 'agent' },
+                                    })
+                                );
                             }}
                             size={headerAvatarSize}
                             src={agent.avatarUrl}

@@ -7,6 +7,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { ProfileFact, ProfileFacts } from '../../../components/ui/profile-facts.tsx';
 import { useHumanAvatar } from '../../../hooks/members/use-human-avatar.ts';
 import { useHumanIdentity } from '../../../hooks/members/use-human-identity.ts';
+import { withSavingToast } from '../../../lib/saving-toast.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName, humanHandle } from '../../servers/human-identity.ts';
 import { MemberProfileHeader } from '../member-profile-header.tsx';
@@ -52,12 +53,14 @@ export function HumanIdentity({
                         name={name}
                         onError={setAvatarError}
                         onSelect={async (image) => {
-                            await setAvatar.mutateAsync({
-                                bytesBase64: image.base64,
-                                mediaType: image.mediaType,
-                                serverId,
-                                target: { kind: 'user' },
-                            });
+                            await withSavingToast(() =>
+                                setAvatar.mutateAsync({
+                                    bytesBase64: image.base64,
+                                    mediaType: image.mediaType,
+                                    serverId,
+                                    target: { kind: 'user' },
+                                })
+                            );
                         }}
                         size={64}
                         src={member.avatarUrl}
