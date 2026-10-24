@@ -287,6 +287,11 @@ test('a nightly heartbeat report never posts: it becomes a morning reminder', ()
     // The morning fire shows only the reminder, so its description carries the heads-up
     // (Forge, 2026-10-24: a nightly report became a context-free morning post).
     expect(prompt.turnContent).toContain(HEADS_UP_REMINDER);
+    // A finding from a source has no message of its own; without a fallback anchor the
+    // report run scheduled nothing (heartbeat-nightly-report-morning-post, 2026-10-24).
+    expect(prompt.turnContent).toContain(
+        'if no message does, the latest message in the chat where it should be posted'
+    );
     expect(prompt.turnContent).not.toContain('post where it belongs');
 });
 

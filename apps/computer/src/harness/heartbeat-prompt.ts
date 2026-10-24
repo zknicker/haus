@@ -80,7 +80,7 @@ export function composeHeartbeatReportInput(
  * (Forge, 2026-10-24: a nightly report became a context-free morning post).
  */
 const MORNING_REMINDER =
-    'schedule a morning reminder anchored to the message it concerns, whose description tells you to open the morning post with a heads-up line: what you noticed and why it matters now. The post must read right on its own, without the reminder';
+    'schedule a morning reminder anchored to the message it concerns (if no message does, the latest message in the chat where it should be posted), whose description tells you to open the morning post with a heads-up line: what you noticed and why it matters now. The post must read right on its own, without the reminder';
 
 /** The Computer, not the Agent, works out whether the Computer-local clock is in quiet hours. */
 function daytimeDecision(now: Date, quietHoursApply: boolean): string {
