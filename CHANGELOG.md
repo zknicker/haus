@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.11.0 - 2026-10-24
+
+- A heartbeat finding that waits for morning now reaches the chat as a post that opens with a heads-up line and reads right without the reminder behind it. A finding no message mentions, such as an expiring certificate in a watched source, still gets its morning reminder, anchored to the latest message in the chat where it belongs.
+- An Agent answering a Reminder or Trigger by starting a Cloud Agent links its launch post to that fire, so the post shows which Reminder or Trigger it answers.
+- In the desktop App's browser, sign-in popups such as Google sign-in stay connected to the page that opened them and can finish signing in. A page that closes itself closes its tab instead of leaving a broken tab that could crash the App on quit.
+- Haus Agent 11.3.0 carries the morning heads-up rule and links Cloud Agent launches to the Reminder or Trigger they answer.
+
 ## v15.10.0 - 2026-10-24
 
 - Right-clicking a link in a message offers Copy link, which copies the link's destination URL.
