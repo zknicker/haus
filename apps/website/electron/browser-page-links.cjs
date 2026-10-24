@@ -22,10 +22,13 @@ function isMailUrl(value) {
  * tab, and popups, target=_blank, and modified clicks open browser tabs with
  * Chrome's dispositions — in the background for background-tab (⌘- or
  * middle-click), selected otherwise (foreground-tab: ⌘⇧-click, target=_blank;
- * new-window: ⇧-click, window.open). Mail links go to the operating system;
- * every other scheme is blocked.
+ * new-window: ⇧-click, window.open). Chromium opens the new page itself
+ * (`openPopup`), so a popup keeps its `window.opener` (sign-in popups post
+ * their result back through it) and, as in Chrome, outlives its opener. When
+ * no tab can take a popup page, the URL opens fresh (`openTab`). Mail links go
+ * to the operating system; every other scheme is blocked.
  */
-function installBrowserPageLinks(contents, { openExternal, openTab, onNavigate }) {
+function installBrowserPageLinks(contents, { openExternal, openPopup, openTab, onNavigate }) {
     const guard = (event, target, userNavigation) => {
         if (isWebUrl(target)) {
             onNavigate();
@@ -40,7 +43,12 @@ function installBrowserPageLinks(contents, { openExternal, openTab, onNavigate }
     contents.on('will-redirect', (event, target) => guard(event, target, false));
     contents.setWindowOpenHandler(({ url, disposition }) => {
         if (isWebUrl(url)) {
-            openTab(url, { background: disposition === 'background-tab' });
+            const background = disposition === 'background-tab';
+            const createWindow = openPopup(url, { background });
+            if (createWindow) {
+                return { action: 'allow', createWindow, outlivesOpener: true };
+            }
+            openTab(url, { background });
         } else if (isMailUrl(url)) {
             void openExternal(url);
         }

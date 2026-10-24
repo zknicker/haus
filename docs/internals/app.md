@@ -79,7 +79,12 @@ Web pages in desktop tabs ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.m
 - **Links and focus.** A page's popup, `target=_blank`, ⌘-click, or Open Link in New Tab sends
   `onBrowserOpenRequest` (`openerId`, `background`); the App opens a new tab from the opener's tab
   by [ADR 0046](../adr/0046-the-sidebar-goes-pages-open-to-the-right.md): a selected open lands
-  in the right pane, and `background` asks for a background tab right after the opener, same pane. A view taking key focus
+  in the right pane, and `background` asks for a background tab right after the opener, same pane.
+  Chromium opens a page's popup itself, so it keeps `window.opener` (sign-in popups post their
+  result through it) and outlives its opener as in Chrome; Electron names that live view and the
+  request carries its `viewId`, which the new tab adopts. A page that closes itself
+  (`window.close()`) leaves Electron and sends `onBrowserClosed(viewId)`; the App closes the tab
+  showing it. A view taking key focus
   sends `onBrowserFocus(viewId)` and the App focuses that tab's pane. Keys pressed inside a page act
   on that page.
 - **Disposal.** `BrowserViewsProvider` closes every view no open tab's history names, so views of

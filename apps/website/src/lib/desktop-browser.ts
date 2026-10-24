@@ -6,7 +6,7 @@ export interface BrowserTab {
     faviconUrl: string | null;
     /** The live find-in-page session's matches, or null while none runs. */
     find: BrowserFindResult | null;
-    /** The App-chosen view id (`open` with `viewId`), named in `TabLocation`. */
+    /** The view id named in `TabLocation`: App-chosen (`open`), or Electron's for a popup. */
     id: string;
     loading: boolean;
     title: string;
@@ -87,12 +87,15 @@ export function parseBrowserWorkspace(value: unknown): BrowserWorkspaceState | n
 /**
  * A web page's link or popup (`openerId`: its view) or an App-window web link (`openerId`:
  * null) asking for a new tab. `background` is Chrome's background-tab disposition (a ⌘- or
- * middle-click) or Open Link in New Tab; anything else opens the tab selected.
+ * middle-click) or Open Link in New Tab; anything else opens the tab selected. `viewId` names
+ * the live view Chromium already opened for a popup, which the new tab shows so the page keeps
+ * its opener; null asks the App to name a fresh view.
  */
 export interface BrowserOpenRequest {
     background: boolean;
     openerId: string | null;
     url: string;
+    viewId: string | null;
 }
 
 export function parseBrowserOpenRequest(value: unknown): BrowserOpenRequest | null {
@@ -106,13 +109,24 @@ export function parseBrowserOpenRequest(value: unknown): BrowserOpenRequest | nu
             'openerId' in value &&
             (value.openerId === null || typeof value.openerId === 'string') &&
             'background' in value &&
-            typeof value.background === 'boolean'
+            typeof value.background === 'boolean' &&
+            'viewId' in value &&
+            (value.viewId === null ||
+                (typeof value.viewId === 'string' && viewIdPattern.test(value.viewId)))
         )
     ) {
         return null;
     }
-    return { background: value.background, openerId: value.openerId, url: value.url };
+    return {
+        background: value.background,
+        openerId: value.openerId,
+        url: value.url,
+        viewId: value.viewId,
+    };
 }
+
+/** Electron's view-name contract (`browser-workspace-layout.cjs` `assertViewId`). */
+const viewIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
 
 /** A fresh App-side view name for a new web tab's `TabLocation`. */
 export function newBrowserViewId(): string {

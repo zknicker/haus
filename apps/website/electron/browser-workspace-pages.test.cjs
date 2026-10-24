@@ -1,6 +1,6 @@
 'use strict';
 const { expect, test } = require('bun:test');
-const { fixture } = require('./browser-test-fakes.cjs');
+const { FakeContents, fixture } = require('./browser-test-fakes.cjs');
 
 const noop = () => undefined;
 const bounds = { x: 0, y: 40, width: 400, height: 600 };
@@ -11,21 +11,73 @@ function openRequests(window) {
         .map(([, request]) => request);
 }
 
+function closedEvents(window) {
+    return (window.webContents.sent ?? [])
+        .filter(([channel]) => channel === 'desktop:browser:closed')
+        .map(([, viewId]) => viewId);
+}
+
+/** Runs Electron's `createWindow` the way Chromium does for an allowed popup. */
+function openPopup(contents, details) {
+    const response = contents.popup(details);
+    expect(response).toMatchObject({ action: 'allow', outlivesOpener: true });
+    const popup = new FakeContents();
+    expect(response.createWindow({ webContents: popup })).toBe(popup);
+    return popup;
+}
+
 // Chromium's dispositions: ⌘- or middle-click is background-tab, ⌘⇧-click and target=_blank
 // foreground-tab, ⇧-click new-window (a selected tab in Haus).
 test('⌘- and middle-click ask for a background tab; ⌘⇧-, ⇧-click, and target=_blank for a selected one', () => {
     const { workspace, pageAt, window } = fixture();
     workspace.command({ kind: 'open', url: 'https://example.com', viewId: 'opener' });
     const contents = pageAt(0);
-    contents.popup({ url: 'https://example.com/a', disposition: 'background-tab' });
-    contents.popup({ url: 'https://example.com/b', disposition: 'foreground-tab' });
-    contents.popup({ url: 'https://example.com/c', disposition: 'new-window' });
-    expect(openRequests(window)).toEqual([
+    openPopup(contents, { url: 'https://example.com/a', disposition: 'background-tab' });
+    openPopup(contents, { url: 'https://example.com/b', disposition: 'foreground-tab' });
+    openPopup(contents, { url: 'https://example.com/c', disposition: 'new-window' });
+    const requests = openRequests(window);
+    expect(requests).toMatchObject([
         { url: 'https://example.com/a', openerId: 'opener', background: true },
         { url: 'https://example.com/b', openerId: 'opener', background: false },
         { url: 'https://example.com/c', openerId: 'opener', background: false },
     ]);
-    expect(workspace.snapshot().tabs).toHaveLength(1);
+    // Each request names the live view hosting the page Chromium opened, never reloaded.
+    const ids = workspace.snapshot().tabs.map((tab) => tab.id);
+    expect(ids.slice(1)).toEqual(requests.map((request) => request.viewId));
+    expect(pageAt(1).loads).toEqual([]);
+});
+
+test('a popup the workspace cannot host opens its URL in a fresh tab instead', () => {
+    const { workspace, pageAt, window } = fixture();
+    for (let index = 0; index < 20; index += 1) {
+        workspace.command({ kind: 'open', url: 'https://example.com', viewId: `v${index}` });
+    }
+    expect(pageAt(0).popup({ url: 'https://example.com/a', disposition: 'new-window' })).toEqual({
+        action: 'deny',
+    });
+    expect(openRequests(window)).toEqual([
+        { url: 'https://example.com/a', openerId: 'v0', background: false, viewId: null },
+    ]);
+});
+
+// A sign-in popup finishing after its opener tab closed: the popup's window.close() used to
+// leave a view with no page, so every later close threw and the App retried forever.
+test('a page that closes itself leaves the workspace and asks the App to close its tab', () => {
+    const { workspace, pageAt, window } = fixture();
+    workspace.command({ kind: 'open', url: 'https://printful.com', viewId: 'opener' });
+    const popup = openPopup(pageAt(0), {
+        url: 'https://accounts.google.com/gsi/select',
+        disposition: 'new-window',
+    });
+    const [{ viewId }] = openRequests(window);
+    workspace.setLayout([{ viewId, bounds, focused: true }]);
+    workspace.command({ kind: 'close', id: 'opener' });
+    popup.emit('destroyed');
+    expect(workspace.snapshot().tabs).toEqual([]);
+    expect(closedEvents(window)).toEqual([viewId]);
+    expect(workspace.hasActiveTab()).toBe(false);
+    expect(() => workspace.command({ kind: 'close', id: viewId })).not.toThrow();
+    expect(() => window.emit('closed')).not.toThrow();
 });
 
 test('mail links leave for the OS while other schemes stay blocked', () => {
@@ -97,7 +149,7 @@ test('Open Link in New Tab from the page menu asks for a background tab', () => 
     ]);
     page.menus[0][0].click();
     expect(openRequests(window)).toEqual([
-        { url: 'https://example.org/', openerId: 'one', background: true },
+        { url: 'https://example.org/', openerId: 'one', background: true, viewId: null },
     ]);
 });
 

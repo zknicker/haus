@@ -53,6 +53,8 @@ export interface HausDesktopBridge {
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
     /** Electron loads the canonical Haus App instead of a bundled renderer. */
     loadsApp?: true;
+    /** Main → renderer: a web page closed itself (`window.close()`); its view id (unvalidated). */
+    onBrowserClosed?: (listener: (viewId: unknown) => void) => () => void;
     /** Main → renderer: a web view took key focus; its view id (unvalidated). */
     onBrowserFocus?: (listener: (viewId: unknown) => void) => () => void;
     /**

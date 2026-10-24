@@ -17,16 +17,18 @@ import { useBrowserWorkspaceLinks, type WebLinkOpen } from './use-browser-worksp
  *   selected one there.
  * - The source is the link's own tab: an App link's tab, or the tab showing the
  *   requesting web view.
+ * - A popup Electron already opened (`viewId`) becomes the new tab's page, keeping its opener.
  * - A web view taking key focus focuses its tab's pane.
+ * - A page closing itself (`window.close()`) closes the tab showing it, as in Chrome.
  */
 export function useBrowserViewRequests(tabs: DesktopTabsApi) {
     const latest = React.useRef(tabs);
     latest.current = tabs;
-    const openUrl = React.useCallback((request: WebLinkOpen) => {
+    const openUrl = React.useCallback((request: WebLinkOpen, viewId?: string) => {
         openWithGesture(
             latest.current,
             request.fromTabId,
-            newBrowserLocation(request.url),
+            newBrowserLocation(request.url, viewId),
             request.gesture
         );
     }, []);
@@ -37,11 +39,16 @@ export function useBrowserViewRequests(tabs: DesktopTabsApi) {
             const request = parseBrowserOpenRequest(value);
             if (request) {
                 const { state } = latest.current;
-                openUrl({
-                    fromTabId: request.openerId ? tabShowingView(state, request.openerId) : null,
-                    gesture: browserOpenGesture(request),
-                    url: request.url,
-                });
+                openUrl(
+                    {
+                        fromTabId: request.openerId
+                            ? tabShowingView(state, request.openerId)
+                            : null,
+                        gesture: browserOpenGesture(request),
+                        url: request.url,
+                    },
+                    request.viewId ?? undefined
+                );
             }
         });
         const stopFocus = bridge?.onBrowserFocus?.((viewId) => {
@@ -52,9 +59,17 @@ export function useBrowserViewRequests(tabs: DesktopTabsApi) {
                 focusPane(pane);
             }
         });
+        const stopClosed = bridge?.onBrowserClosed?.((viewId) => {
+            const { state, close } = latest.current;
+            const tabId = typeof viewId === 'string' ? tabShowingView(state, viewId) : null;
+            if (tabId) {
+                close([tabId]);
+            }
+        });
         return () => {
             stopRequests?.();
             stopFocus?.();
+            stopClosed?.();
         };
     }, [openUrl]);
 }

@@ -61,18 +61,27 @@ test('page captures render only as inline PNG or JPEG images', () => {
     }
 });
 
-test('open requests carry a web URL, the opener view, and the background flag', () => {
-    const request = { url: 'https://example.com/', openerId: 'view-1', background: true };
+test('open requests carry a web URL, the opener view, the background flag, and a popup view', () => {
+    const request = {
+        url: 'https://example.com/',
+        openerId: 'view-1',
+        background: true,
+        viewId: null,
+    };
     expect(parseBrowserOpenRequest(request)).toEqual(request);
     expect(parseBrowserOpenRequest({ ...request, openerId: null })).toEqual({
         ...request,
         openerId: null,
     });
+    const popup = { ...request, viewId: '0b6c1f9e-5d2a-4c1e-9f3b-7a8d6e5c4b3a' };
+    expect(parseBrowserOpenRequest(popup)).toEqual(popup);
     for (const value of [
         null,
         { ...request, url: 'file:///etc/passwd' },
         { ...request, openerId: 4 },
         { ...request, background: 'yes' },
+        { ...request, viewId: 'not a view' },
+        { url: request.url, openerId: null, background: false },
         { url: request.url },
     ]) {
         expect(parseBrowserOpenRequest(value)).toBeNull();

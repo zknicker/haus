@@ -66,6 +66,7 @@ describe('desktop preload bridge', () => {
         expect(typeof bridge.onBrowserState).toBe('function');
         expect(typeof bridge.onBrowserFocus).toBe('function');
         expect(typeof bridge.onBrowserOpenRequest).toBe('function');
+        expect(typeof bridge.onBrowserClosed).toBe('function');
         expect(bridge.onBrowserReveal).toBeUndefined();
         expect(typeof bridge.focusWindow).toBe('function');
         expect(typeof bridge.setAppIcon).toBe('function');

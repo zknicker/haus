@@ -65,10 +65,12 @@ test('a new web location gets its own view and a host title', () => {
     const location = newBrowserLocation(url);
     expect(location).toMatchObject({ kind: 'browser', title: 'docs.example', url });
     expect(location.viewId).not.toBe(newBrowserLocation('https://docs.example/a').viewId);
+    // A popup's tab shows the live view Electron opened for it.
+    expect(newBrowserLocation(url, 'popup-1').viewId).toBe('popup-1');
 });
 
 test("a page's open request: background beside the page, else a plain Open on the right", () => {
-    const request = { background: true, openerId: 'v1', url: 'https://example.com/' };
+    const request = { background: true, openerId: 'v1', url: 'https://example.com/', viewId: null };
     // ⌘- or middle-click in a page, and the page menu's Open Link in New Tab.
     expect(browserOpenGesture(request)).toBe('backgroundTab');
     // target=_blank and a popup: Open, a selected tab in the right pane.

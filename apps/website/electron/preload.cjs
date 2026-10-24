@@ -25,6 +25,11 @@ const bridge = {
         ipcRenderer.on('desktop:browser:focus', handler);
         return () => ipcRenderer.off('desktop:browser:focus', handler);
     },
+    onBrowserClosed: (listener) => {
+        const handler = (_event, viewId) => listener(viewId);
+        ipcRenderer.on('desktop:browser:closed', handler);
+        return () => ipcRenderer.off('desktop:browser:closed', handler);
+    },
     onBrowserOpenRequest: (listener) => {
         const handler = (_event, request) => listener(request);
         ipcRenderer.on('desktop:browser:open-request', handler);

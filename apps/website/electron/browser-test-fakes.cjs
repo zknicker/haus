@@ -94,7 +94,7 @@ class FakeContents extends EventEmitter {
 class FakeView {
     constructor(options) {
         this.options = options;
-        this.webContents = new FakeContents();
+        this.webContents = options.webContents ?? new FakeContents();
     }
     setVisible(value) {
         this.visible = value;
