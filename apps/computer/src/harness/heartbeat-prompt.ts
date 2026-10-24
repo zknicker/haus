@@ -66,7 +66,7 @@ export function composeHeartbeatReportInput(
         `[Haus heartbeat report] Your own heartbeat (run ${report.heartbeatRunId}) reported:`,
         report.text,
         report.heartbeatKind === 'nightly'
-            ? 'This came from your nightly heartbeat, so post nothing now: for anything someone should hear, schedule a morning reminder anchored to the message it concerns, or do nothing.'
+            ? `This came from your nightly heartbeat, so post nothing now. For anything someone should hear, ${MORNING_REMINDER}. Otherwise do nothing.`
             : daytimeDecision(
                   options.now ?? new Date(),
                   (options.quietHours ?? heartbeatQuietHoursSwitch()) === 'on'
@@ -74,11 +74,19 @@ export function composeHeartbeatReportInput(
     ].join('\n\n');
 }
 
+/**
+ * The morning turn sees the reminder, not this report, so its description carries the
+ * instruction; the reminder itself explains nothing to readers, so the post must
+ * (Forge, 2026-10-24: a nightly report became a context-free morning post).
+ */
+const MORNING_REMINDER =
+    'schedule a morning reminder anchored to the message it concerns, whose description tells you to open the morning post with a heads-up line: what you noticed and why it matters now. The post must read right on its own, without the reminder';
+
 /** The Computer, not the Agent, works out whether the Computer-local clock is in quiet hours. */
 function daytimeDecision(now: Date, quietHoursApply: boolean): string {
     const clock = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     if (quietHoursApply && (now.getHours() >= 22 || now.getHours() < 8)) {
-        return `It is ${clock} here, inside quiet hours (22:00–08:00): post nothing now; schedule a morning reminder anchored to the message it concerns for anything someone should hear, or do nothing.`;
+        return `It is ${clock} here, inside quiet hours (22:00–08:00): post nothing now. For anything someone should hear, ${MORNING_REMINDER}. Otherwise do nothing.`;
     }
     return `It is ${clock} here. You decide whether anyone should hear this: post where it belongs, or do nothing. Anything you post or do about it unasked opens with a heads-up line: what you noticed and why it matters now. Then act within your standing instructions.`;
 }

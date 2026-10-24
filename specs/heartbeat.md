@@ -154,6 +154,13 @@ quiet hours, the input adds one rule for anything the Agent posts or does about 
 with a heads-up line saying what it noticed and why it matters now, then act within its standing
 instructions. Acting is fine; acting without saying why is the failure this prevents.
 
+A nightly report, or a daytime report inside quiet hours, posts nothing and becomes a morning
+reminder. The morning turn sees the reminder's description, not the report, so the input asks for
+a description that tells the morning turn to open its post with a heads-up line: what the Agent
+noticed and why it matters now. The reminder and its reply line are only linkage, so the post must
+read right on its own without them. Without this, a nightly report about two dependency PRs became
+a morning post with no framing (Forge, 2026-10-24).
+
 ## The recipe
 
 New Manual recipe `recipes/technique/heartbeat`. Memory-writing rules stay in

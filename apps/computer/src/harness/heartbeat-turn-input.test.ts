@@ -243,10 +243,10 @@ test('a daytime report inside quiet hours says to post nothing and schedule a mo
     for (const now of [local(23, 40), local(22, 0), local(7, 59), local(0, 0)]) {
         const text = composeHeartbeatReportInput(report, { now, quietHours: 'on' });
         expect(text).toContain(
-            'inside quiet hours (22:00–08:00): post nothing now; schedule a morning reminder anchored to the message it concerns'
+            'inside quiet hours (22:00–08:00): post nothing now. For anything someone should hear, schedule a morning reminder anchored to the message it concerns'
         );
+        expect(text).toContain(HEADS_UP_REMINDER);
         expect(text).not.toContain('post where it belongs');
-        expect(text).not.toContain('heads-up');
     }
     expect(
         composeHeartbeatReportInput(report, { now: local(8, 0), quietHours: 'on' })
@@ -284,5 +284,11 @@ test('a nightly heartbeat report never posts: it becomes a morning reminder', ()
         { isColdStart: false, sessionGeneration: 2 }
     );
     expect(prompt.turnContent).toContain('came from your nightly heartbeat, so post nothing now');
+    // The morning fire shows only the reminder, so its description carries the heads-up
+    // (Forge, 2026-10-24: a nightly report became a context-free morning post).
+    expect(prompt.turnContent).toContain(HEADS_UP_REMINDER);
     expect(prompt.turnContent).not.toContain('post where it belongs');
 });
+
+const HEADS_UP_REMINDER =
+    'whose description tells you to open the morning post with a heads-up line: what you noticed and why it matters now. The post must read right on its own, without the reminder';
