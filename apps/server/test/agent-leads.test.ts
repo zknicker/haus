@@ -115,6 +115,37 @@ test('claiming sweeps leads older than fourteen days', async () => {
     expect(rows).toEqual([]);
 });
 
+// Last: it retires the peer Agent.
+test("a retired Agent's unfinished claim neither blocks a claim nor lists as open", async () => {
+    const anchor = await fixture.owner.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'Can the Memphis warehouse still ship today?',
+        nonce: 'lead-anchor-retired',
+        serverId: fixture.serverId,
+    });
+    const peer = await runner('run_lead_peer000004', fixture.peerAgentId);
+    const held = await call('POST', '/api/agent/leads', peer, {
+        messageId: anchor.message.id,
+        topic: 'Memphis cutoff',
+    });
+    expect(held.body).toMatchObject({ claimed: true });
+    await fixture.harness.sql`
+        update agents set retired_at = now() where id = ${fixture.peerAgentId}
+    `;
+
+    const orbit = await runner('run_lead_orbit00004', fixture.orbitAgentId);
+    const claimed = await call('POST', '/api/agent/leads', orbit, {
+        messageId: anchor.message.id,
+        topic: 'Memphis cutoff',
+    });
+    expect(claimed.body).toMatchObject({ claimed: true, lead: { agentHandle: 'orbit' } });
+    const list = await call('GET', '/api/agent/leads', orbit);
+    const holders = (list.body.leads as { agentId: string; topic: string }[])
+        .filter((lead) => lead.topic === 'Memphis cutoff')
+        .map((lead) => lead.agentId);
+    expect(holders).toEqual([fixture.orbitAgentId]);
+});
+
 /** Leads are claimed only from an active heartbeat run, so each runner is one. */
 async function runner(runId: string, agentId: string) {
     await startHeartbeatRun(fixture, runId, agentId);

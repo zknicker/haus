@@ -4,8 +4,10 @@ import path from 'node:path';
 import {
     evidenceDirectory,
     inMorningWindow,
+    journalTrace,
     newPreferenceLines,
     renderMemory,
+    runReasoning,
     standingPreferenceLines,
     wordCount,
     zonedClock,
@@ -199,4 +201,43 @@ test('lead dedupe replays saved live evidence: answers found, scan-only calls ar
             expect(outcome.callers).toEqual([]);
         }
     }
+});
+
+test('journalTrace orders reasoning and tool calls, and marks failed calls', () => {
+    const trace = journalTrace({
+        reasoning: [{ startedAt: '2026-10-24T02:00:02Z', text: ' Read the recipe first. ' }],
+        tools: [
+            {
+                input: { command: 'haus reminder schedule' },
+                failure: { exitCode: 1, message: 'invalid --fire-at' },
+                startedAt: '2026-10-24T02:00:05Z',
+                status: 'failed',
+            },
+            {
+                input: { command: 'haus manual get' },
+                output: 'recipe body',
+                startedAt: '2026-10-24T02:00:01Z',
+                status: 'completed',
+            },
+        ],
+    });
+    expect(trace).toEqual([
+        '$ {"command":"haus manual get"}',
+        '> recipe body',
+        'Read the recipe first.',
+        '$ {"command":"haus reminder schedule"}',
+        '! failed: exit 1: invalid --fire-at',
+    ]);
+});
+
+test('runReasoning retries a missing journal and notes one that never arrives', async () => {
+    const results = [
+        { status: 'missing' },
+        { journal: { reasoning: [], tools: [] }, status: 'available' },
+    ];
+    const kit = { serverId: 'srv', trpc: async () => results.shift() ?? { status: 'missing' } };
+    expect(await runReasoning(kit, 'agt', { runId: 'run_1' }, { delayMs: 0 })).toEqual([]);
+    expect(await runReasoning(kit, 'agt', { runId: 'run_2' }, { attempts: 2, delayMs: 0 })).toEqual(
+        ['(journal for run run_2 missing)']
+    );
 });

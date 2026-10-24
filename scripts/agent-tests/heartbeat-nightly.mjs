@@ -15,6 +15,7 @@ import {
     newPreferenceLines,
     readMemory,
     renderMemory,
+    runReasoning,
     seedMessages,
     standingPreferenceLines,
     writeEvidence,
@@ -49,7 +50,7 @@ export async function runLearnsUnsavedCorrection(context) {
     expect(outcome.after, 'Standing Preferences section survives').toBeTruthy();
     expect(outcome.after, 'unrelated seeded rule survives').toContain(canaryRule);
     expect(
-        outcome.added.some((line) => /\btotal\b/iu.test(line)),
+        outcome.added.some((line) => /\btotals?\b/iu.test(line)),
         'a new Standing Preference captures leading with the total'
     ).toBe(true);
     expect(outcome.dream.summary, 'the dream summary').toBeTruthy();
@@ -204,6 +205,7 @@ async function collectNight({ agents, kit }, setup, run, scenario) {
     const evidence = {
         agent: await describeAgent(kit, worker),
         dream: { followUps: dream.followUps, summary: dream.summary },
+        heartbeatReasoning: await runReasoning(kit, worker.id, run),
         memory: { after, seeded: setup.seededMemory },
         operator: setup.seeded.operator,
         posts: { channel: channelPosts, dm: dmPosts },

@@ -203,7 +203,8 @@ Once per night, also:
 9. **Follow up dropped promises.** For each promise you dropped to a person or Agent, schedule a
    reminder anchored to the original message, around 09:00 in the requester's timezone (look it
    up; do not infer it). Its description says what was promised, because the fire does not show
-   the anchor message. Post nothing now.
+   the anchor message. Your promise stays yours even when another Agent holds a lead on its
+   topic. Post nothing now.
 10. **Write the summary only when there are real lessons**, with `haus heartbeat learned` (body on
     stdin): 1–4 `- ` lines, one lesson each, first person, each naming who taught it. On a quiet
     night skip the command entirely; never invent a lesson. Compare the day's corrections with what
@@ -235,7 +236,8 @@ Once per night, also:
   <id>]` claims a lead; a claim on a message another Agent claimed in the last 7 days is refused
   with who holds it. `haus lead list` shows the team's leads from the last 7 days with each
   holder's one-line finding; `haus lead done --id <id> --finding "<text>"` records it. Rows expire
-  after 14 days.
+  after 14 days. A retired Agent holds nothing: its unfinished leads are left out of the list and
+  the turn input, and never block a claim.
 - **Leads and tasks do not cross.** The Server enforces three rules. A lead claim outside an
   active heartbeat run is refused (`HEARTBEAT_RUN_REQUIRED`, pointing to `haus task claim`). A lead
   claim on a message an Agent holds as an open task is refused under the same Server lock as task

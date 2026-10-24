@@ -200,6 +200,63 @@ export async function journalCommands(kit, agentId, turn, { attempts = 10, delay
     return commands;
 }
 
+/**
+ * The reasoning summaries and tool calls of a settled turn's runs, for the evidence.
+ * Journals sync asynchronously, so `missing` retries; a journal that never becomes
+ * readable leaves one line saying so instead of failing the scenario.
+ */
+export async function runReasoning(kit, agentId, turn, { attempts = 10, delayMs = 3000 } = {}) {
+    const texts = [];
+    for (const runId of turn.runIds ?? [turn.runId]) {
+        let result = null;
+        for (let attempt = 1; attempt <= attempts; attempt += 1) {
+            result = await kit
+                .trpc('agent.executionJournal', { agentId, runId, serverId: kit.serverId })
+                .catch((error) => ({ status: `unreadable: ${error.message}` }));
+            if (result.status !== 'missing') {
+                break;
+            }
+            await sleep(delayMs);
+        }
+        if (result?.status !== 'available') {
+            texts.push(`(journal for run ${runId} ${result?.status ?? 'unreadable'})`);
+            continue;
+        }
+        texts.push(...journalTrace(result.journal));
+    }
+    return texts;
+}
+
+/**
+ * A journal as evidence lines in the order they happened: reasoning summaries, and each
+ * tool call's input then its clipped result, `!` marking a call that did not complete.
+ */
+export function journalTrace(journal) {
+    const steps = [
+        ...(journal.reasoning ?? []).map((step) => ({
+            at: step.startedAt,
+            lines: [step.text.trim()],
+        })),
+        ...(journal.tools ?? []).map((tool) => ({ at: tool.startedAt, lines: toolLines(tool) })),
+    ];
+    return steps
+        .sort((left, right) => Date.parse(left.at) - Date.parse(right.at))
+        .flatMap((step) => step.lines);
+}
+
+function toolLines(tool) {
+    const call = `$ ${JSON.stringify(tool.input ?? null).slice(0, 600)}`;
+    if (tool.status !== 'completed') {
+        const reason = tool.failure
+            ? `${tool.failure.exitCode === undefined ? '' : `exit ${tool.failure.exitCode}: `}${tool.failure.message}`
+            : 'no failure message';
+        return [call, `! ${tool.status}: ${reason.slice(0, 600)}`];
+    }
+    const result = tool.output ?? tool.final?.output ?? '';
+    const output = typeof result === 'string' ? result : JSON.stringify(result);
+    return [call, `> ${output.slice(0, 400)}`];
+}
+
 /** Agent-authored messages in a chat after `sinceSequence`, including task Threads promoted from it. */
 export async function agentPosts(kit, chatId, agentId, sinceSequence = 0) {
     const messages = await kit.readMessages(chatId);

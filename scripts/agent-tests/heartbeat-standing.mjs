@@ -16,6 +16,7 @@ import {
     describeAgent,
     memoryPath,
     renderMemory,
+    runReasoning,
     writeEvidence,
     writeMemory,
 } from './heartbeat.mjs';
@@ -168,24 +169,6 @@ export async function runStaleLooseEndControl({ agents, expect, kit, log }) {
             'intro replies that bring up the loose end'
         ).toHaveLength(0);
     });
-}
-
-/** The reasoning summaries of a settled turn's runs, for the evidence; empty when unreadable. */
-async function runReasoning(kit, agentId, turn) {
-    const texts = [];
-    for (const runId of turn.runIds ?? [turn.runId]) {
-        const result = await kit
-            .trpc('agent.executionJournal', { agentId, runId, serverId: kit.serverId })
-            .catch(() => null);
-        const journal = result?.status === 'available' ? result.journal : null;
-        for (const step of journal?.reasoning ?? []) {
-            texts.push(step.text.trim());
-        }
-        for (const tool of journal?.tools ?? []) {
-            texts.push(`$ ${JSON.stringify(tool.input).slice(0, 600)}`);
-        }
-    }
-    return texts;
 }
 
 /** Every checkpoint in the workspace, seeded and written, as { path: text }, for the evidence. */

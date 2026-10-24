@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { heartbeatContextLimit } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { readHeartbeatContext } from '../src/agent-delivery/heartbeat-context.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -7,6 +8,7 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentLeadsTable,
     agentMcpConnectionGrantsTable,
+    agentsTable,
     chatMessagesTable,
     mcpConnectionsTable,
     remindersTable,
@@ -127,6 +129,17 @@ test('the heartbeat context lists granted connections, open leads, and scheduled
     expect((await readHeartbeatContext(connection.db, seed)).leads).toHaveLength(
         heartbeatContextLimit
     );
+});
+
+test("a retired Agent's unfinished lead is not listed as held", async () => {
+    const seed = await seedAgent(connection.db);
+    await lead(seed, 'Memphis shipping cutoff', 5);
+    await connection.db
+        .update(agentsTable)
+        .set({ retiredAt: new Date() })
+        .where(eq(agentsTable.id, seed.agentId));
+
+    expect((await readHeartbeatContext(connection.db, seed)).leads).toEqual([]);
 });
 
 test('a heartbeat start frame carries the context', async () => {

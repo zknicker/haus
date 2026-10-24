@@ -43,6 +43,7 @@ test('nightly reflects with evidence and follows up promises', () => {
     expect(body).toContain('One remark is one data point');
     expect(body).toContain('Look the timezone up; do not infer it');
     expect(body).toContain('The description says what was promised');
+    expect(body).toContain('Your promise stays yours even when another Agent holds a lead');
     expect(body).toContain('each naming who taught it');
     expect(body).toContain('what MEMORY.md held when the run started');
     expect(body).toContain('acknowledged but not saved until now');

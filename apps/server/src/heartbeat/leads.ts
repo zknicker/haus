@@ -1,5 +1,5 @@
 import type { Lead, LeadClaimInput, LeadClaimResult, LeadListResponse } from '@haus/api';
-import { and, desc, eq, gt, inArray, isNull, lt, notInArray } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { resolveAgentMessage } from '../agent-api/message-read.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -90,7 +90,7 @@ export async function claimLead(
     });
 }
 
-/** This Server's leads from the last seven days, newest first. */
+/** This Server's leads from the last seven days, newest first, without retired Agents' unfinished ones. */
 export async function listLeads(
     db: HausDatabase,
     runner: ResolvedRunner
@@ -102,6 +102,7 @@ export async function listLeads(
         .where(
             and(
                 eq(agentLeadsTable.serverId, runner.serverId),
+                or(isNotNull(agentLeadsTable.doneAt), isNull(agentsTable.retiredAt)),
                 gt(agentLeadsTable.createdAt, new Date(Date.now() - claimWindowMs))
             )
         )
@@ -110,7 +111,10 @@ export async function listLeads(
     return { leads: rows.map(toLead) };
 }
 
-/** This Server's open leads from the last seven days, newest first, at most `limit`. */
+/**
+ * This Server's open leads from the last seven days, newest first, at most `limit`. A
+ * retired Agent can never finish its lead, so its unfinished claims are not listed as held.
+ */
 export async function listOpenLeads(
     db: HausDatabase,
     serverId: string,
@@ -124,6 +128,7 @@ export async function listOpenLeads(
             and(
                 eq(agentLeadsTable.serverId, serverId),
                 isNull(agentLeadsTable.doneAt),
+                isNull(agentsTable.retiredAt),
                 gt(agentLeadsTable.createdAt, new Date(Date.now() - claimWindowMs))
             )
         )
@@ -194,6 +199,7 @@ function heartbeatRunRequired() {
     );
 }
 
+/** Live claims on a message; a retired Agent's claim holds nothing. */
 async function readHolders(db: HausDatabase, serverId: string, messageId: string) {
     return await db
         .select(leadColumns)
@@ -203,6 +209,7 @@ async function readHolders(db: HausDatabase, serverId: string, messageId: string
             and(
                 eq(agentLeadsTable.serverId, serverId),
                 eq(agentLeadsTable.anchorMessageId, messageId),
+                isNull(agentsTable.retiredAt),
                 gt(agentLeadsTable.createdAt, new Date(Date.now() - claimWindowMs))
             )
         )
