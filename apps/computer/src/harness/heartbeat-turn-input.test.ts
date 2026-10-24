@@ -125,7 +125,11 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
     );
     // A run that filtered for change left a week-old pile unreported (Forge, 2026-10-22).
     expect(text).toContain(
-        '4. Decide: report what needs you or someone you work for and is still unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet.'
+        '4. Decide: ask of each open item whether it needs you or someone you work for and is still unhandled, and report it if so. Whether it changed does not matter; a past quiet run decided for itself, so decide again.'
+    );
+    // A run copied a seeded "Report: quiet. Nothing changed" forward with the item still open.
+    expect(text).toContain(
+        'for each open item you did not report, why it needs nobody now (unchanged is not a reason)'
     );
     expect(text).toContain(
         'Latest checkpoint (heartbeat/checkpoints/2026-10-20/08-07.md), already read for you:'

@@ -34,7 +34,7 @@ test('carries the checkpoint paths and the quiet rules', () => {
     expect(body).toContain('a checkpoint whose first line is `Report: quiet` carried nothing.');
     expect(body).toContain('opening with `Report: quiet` or `Report: <exact report sent>`');
     expect(body).toContain(
-        'Report what needs you or someone you work for and is still unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet.'
+        'Ask of each open item whether it needs you or someone you work for and is still unhandled, and report it if so. Whether it changed does not matter; a past quiet run decided for itself, so decide again.'
     );
 });
 

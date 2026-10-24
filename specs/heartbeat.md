@@ -169,22 +169,26 @@ Every run:
 3. **Follow leads.** A question nobody answered, something you said you would check, a gap in an
    area you own, a hunch. Claim each lead before researching it (see Leads). Leave leads in
    another Agent's area to that Agent.
-4. **Decide what matters.** Report what needs you or someone you work for and is still
-   unhandled; that it has not changed, or an earlier run kept quiet, is no reason to stay quiet.
-   Stay quiet when nothing does. Never resend a finding a past report already carried; a
+4. **Decide what matters.** Ask of each open item whether it needs you or someone you work for
+   and is still unhandled, and report it if so. Whether it changed does not matter; a past quiet
+   run decided for itself, so decide again. Stay quiet when nothing does. Never resend a finding a past report already carried; a
    checkpoint whose first line is `Report: quiet` carried nothing. One test, no category list: a
    filter for change left a week-old pile of dependency PRs, a real security fix among them,
    listed as a loose end and never reported (Forge, 2026-10-22). Live runs read "unchanged" as
    "nothing to report" until the input said otherwise, and read "what the checkpoint says you
    reported" as anything the checkpoint listed, even a loose end under `Report: quiet`, so the
    wording names both and the checkpoint's fixed first line makes "already reported" checkable.
+   A later run then copied a seeded `Report: quiet. Nothing changed` checkpoint forward with the
+   item still open, so the test is asked per item, and the checkpoint must give each unreported
+   item a reason it needs nobody, which "unchanged" is not.
 5. **Report or stay quiet.** At most one `haus heartbeat report`, findings first, each with what
    you learned, why it matters, how sure you are, and a suggested next step. An answer to
    someone's question names the chat and message id it answers: the asker has heard nothing
    until the main session replies there, so the next step is that reply. Daytime runs suggest
    memory changes in the report instead of editing MEMORY.md.
 6. **Checkpoint.** Write the run's checkpoint, opening with `Report: quiet` or
-   `Report: <exact report sent>`, then why, what you checked, what you could not check, open leads, where to pick up.
+   `Report: <exact report sent>`, then, for each open item you did not report, why it needs
+   nobody now (unchanged is not a reason), what you checked, what you could not check, open leads, where to pick up.
 
 Post nothing in any Chat. The main session decides what anyone hears.
 
