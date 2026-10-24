@@ -20,6 +20,7 @@ import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
+import { optionalCause } from './agent-message-input.ts';
 
 const START_RECIPE = `haus cloud-agent start --target "#product" --reply-to <messageId> --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" \\
@@ -53,6 +54,11 @@ const START_COMMAND: SubCommand = {
         { description: 'One-line title for the work', name: '--title', valueName: '<text>' },
         { description: 'What you tell the chat you are doing', name: '--say', valueName: '<text>' },
         {
+            description: 'Record the trigger or reminder fire the --say post answers',
+            name: '--cause',
+            valueName: '<fireId>',
+        },
+        {
             description: "Cloud agent provider; omit for this Computer's default",
             name: '--provider',
             valueName: '<cursor|claude>',
@@ -62,7 +68,7 @@ const START_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runCloudAgentStart(args, defaultDeps()),
     summary: 'Delegate bounded work to a cloud agent; the instructions come from stdin',
-    usage: 'haus cloud-agent start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text> [--provider <cursor|claude>]',
+    usage: 'haus cloud-agent start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text> [--cause <fireId>] [--provider <cursor|claude>]',
 };
 
 const SEND_COMMAND: SubCommand = {
@@ -176,6 +182,7 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
     const content = requiredValue(args, '--say');
     const startingRef = args.values['--ref']?.trim() || null;
     const provider = readProvider(args);
+    const cause = optionalCause(args);
     const replyToMessageId =
         args.values['--reply-to'] === undefined ? undefined : requiredValue(args, '--reply-to');
 
@@ -193,6 +200,7 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
         agentCloudAgentStartResponseSchema,
         {
             body: {
+                ...(cause ? { cause } : {}),
                 content: content.trim(),
                 instructions: instructions.trimEnd(),
                 nonce: deps.mintNonce(),

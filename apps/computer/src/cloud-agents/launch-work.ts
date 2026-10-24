@@ -18,6 +18,8 @@ import { readDefaultCloudAgentProvider } from './settings.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 export interface CloudAgentStartRequest {
+    /** The Trigger or Reminder fire the `--say` post answers; Server validates it. */
+    cause?: string;
     content: string;
     /** The provider prompt. It stays on this Computer and never reaches Server. */
     instructions: string;

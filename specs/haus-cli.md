@@ -337,6 +337,7 @@ agent shells are ephemeral, and haus.chat must survive machine hops.
 The flag is optional and accepted on every send mode, a `--send-draft` release
 included, so a held message still names its cause when it finally commits. The
 fire id is the one the wake envelope's final `reply with:` line printed.
+`cloud-agent start --cause <fireId>` does the same for a fire answered by delegating.
 
 The Server validates it before committing: the fire must exist in this Server,
 its automation must be owned by the sending Agent, and a Trigger fire's Trigger

@@ -52,7 +52,7 @@ NUL byte, since PostgreSQL `text` cannot hold one. Only the excerpt carried in
 the Agent's envelope is altered: it arrives under a provenance line marking it as
 untrusted data, with every payload line indented two spaces so a body cannot forge
 an envelope header line, and the envelope's last line is
-`reply with: haus message send --cause <fireId>`. See
+`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. See
 [specs/triggers.md](../../specs/triggers.md) for the exact envelope.
 
 A fire writes no Chat message and emits no durable event. It records the fire and

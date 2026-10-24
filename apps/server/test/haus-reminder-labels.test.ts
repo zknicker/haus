@@ -150,7 +150,7 @@ test('relabels title and description together and hands the description to the f
             '🔔 Reminder: Monday Advertising Review',
             `  ${description}`,
             `fire=${fire.id}`,
-            `reply with: haus message send --cause ${fire.id}`,
+            `reply with: --cause ${fire.id} on the command that posts (haus message send or haus cloud-agent start)`,
         ].join('\n')
     );
 

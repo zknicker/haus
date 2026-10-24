@@ -482,8 +482,11 @@ local: they reach the provider and never Server.
 a question settles as `pending_input` and wakes the Agent once; it answers with
 `haus cloud-agent send --work <workId>`.
 
-`POST /api/agent/cloud-agents` takes `{ content, nonce, provider, replyToMessageId?, repository,
-startingRef, target, title }`. The target is a Channel or DM, or a Thread that already holds
+`POST /api/agent/cloud-agents` takes `{ cause?, content, nonce, provider, replyToMessageId?,
+repository, startingRef, target, title }`. `cause` (`start --cause <fireId>`) is the Trigger or
+Reminder fire the launch answers; the Server validates and records it on the launch Message as
+`haus message send --cause` does, and infers it the same way when absent
+([Automation provenance](../../specs/automation-provenance.md)). The target is a Channel or DM, or a Thread that already holds
 conversation: a launch never opens a Thread, so a `<target>:<shortId>` anchor without one, or
 whose Thread holds no Messages, fails with
 `CLOUD_AGENT_NEW_THREAD` before anything is written, and its message names the inline

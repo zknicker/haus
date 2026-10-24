@@ -123,7 +123,7 @@ Use one when the work is a real coding change in a repository someone else's mac
 
 \`haus cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>\`
 
-The instructions for the cloud agent arrive on stdin. Write them as a complete brief: name the repository paths, the reproduction, and what a finished result looks like, so the cloud agent rarely needs to ask. \`--say\` is your own message to the chat and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit.
+The instructions for the cloud agent arrive on stdin. Write them as a complete brief: name the repository paths, the reproduction, and what a finished result looks like, so the cloud agent rarely needs to ask. \`--say\` is your own message to the chat and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit. When the launch answers a reminder or trigger fire, add \`--cause <fireId>\` as on \`haus message send\`.
 
 **The launch card is your reply.** In a channel or DM, target the channel or DM and add \`--reply-to <messageId>\` of the request, so the card answers it inline. Inside a thread already in progress, use that thread's target. A launch never opens a new thread: a \`<target>:<shortId>\` with no conversation in its thread yet is refused. Several runs for one request are several cards replying to it. Progress belongs in each card's own work thread.
 

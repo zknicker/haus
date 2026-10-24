@@ -53,6 +53,8 @@ export type CloudAgentWorkUpdatedEvent = z.infer<typeof cloudAgentWorkUpdatedEve
  */
 export const agentCloudAgentStartInputSchema = z
     .object({
+        /** The Trigger or Reminder fire the `--say` post answers, as on `haus message send`. */
+        cause: z.string().trim().min(1).max(200).optional(),
         content: z.string().trim().min(1).max(32_000),
         nonce: z.string().trim().min(1).max(128),
         provider: cloudAgentProviderSchema,

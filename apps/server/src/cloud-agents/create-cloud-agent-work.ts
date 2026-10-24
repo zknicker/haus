@@ -11,6 +11,8 @@ import {
 import { and, asc, eq } from 'drizzle-orm';
 import { readFreshnessHold } from '../agent-api/send-hold.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { resolveAgentMessageCause } from '../automations/infer-message-cause.ts';
+import { insertMessageCause } from '../automations/message-cause.ts';
 import {
     findAgentMessageByNonce,
     planAgentAuthoredMessage,
@@ -76,6 +78,13 @@ export async function createCloudAgentWork(
 
         const computerId = await requireAssignedComputer(tx, runner);
         const authored = await authoredContent(tx, runner.serverId, input.content);
+        // As on `haus message send`: an unknown or borrowed fire is refused
+        // before the hold check, never held.
+        const cause = await resolveAgentMessageCause(tx, {
+            ...runner,
+            cause: input.cause,
+            chatId: plan.chatId,
+        });
         const hold = await readFreshnessHold(tx, runner, plan.chatId);
         if (hold) {
             return { held: { ...hold, state: 'held' }, kind: 'held' };
@@ -104,6 +113,14 @@ export async function createCloudAgentWork(
             },
             agentDelivery
         );
+        if (cause) {
+            await insertMessageCause(tx, {
+                attribution: cause.attribution,
+                cause: cause.fire,
+                messageId: written.messageId,
+                serverId: runner.serverId,
+            });
+        }
 
         await tx.insert(cloudAgentWorkTable).values({
             agentId: runner.agentId,

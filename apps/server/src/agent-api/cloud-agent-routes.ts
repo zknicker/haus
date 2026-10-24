@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import { announceRunEngagements } from '../agent-delivery/chat-engagement-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { MessageCauseError } from '../automations/message-cause.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { InvalidInlineReplyError } from '../chats/reply-context.ts';
@@ -188,6 +189,9 @@ function sendCloudAgentFailure(
 ): unknown {
     if (cause instanceof InvalidInlineReplyError) {
         return sendAgentApiError(reply, 400, 'INVALID_REPLY', cause.message);
+    }
+    if (cause instanceof MessageCauseError) {
+        return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
     }
     if (cause instanceof ZodError) {
         return sendAgentApiError(

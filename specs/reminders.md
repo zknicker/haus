@@ -93,7 +93,7 @@ The envelope the Agent pulls names the reminder by title, then carries its
 description indented on the next lines (omitted when absent or identical to the
 title, so the Agent always receives the full instruction), then the fire and
 the next occurrence, and ends with the line
-`reply with: haus message send --cause <fireId>`. Bounded script output rides
+`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. Bounded script output rides
 that same envelope.
 
 An optional script is opaque UTF-8 delivery data limited to 16,384 bytes.

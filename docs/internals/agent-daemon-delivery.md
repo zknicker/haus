@@ -285,7 +285,7 @@ not itself a Chat message, keyed by fire identity: an idle Agent wakes with the
 envelope in its first prompt and the row is served the moment the Computer accepts
 that run, while a busy Agent still gets only the content-free notice and the item in
 its next turn. Both envelopes end with
-`reply with: haus message send --cause <fireId>`. That flag is the only way a
+`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. That flag is the only way a
 fire reaches the transcript: the Server validates the fire against the sending
 Agent and records the provenance with the message. A fire the Agent does not
 answer stays in the automation's fire history and nowhere else.

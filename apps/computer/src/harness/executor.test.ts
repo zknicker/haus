@@ -475,7 +475,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
         content: [
             '🔔 Reminder: Check the deploy',
             'fire=rmf_9a8b7c6d',
-            'reply with: haus message send --cause rmf_9a8b7c6d',
+            'reply with: --cause rmf_9a8b7c6d on the command that posts (haus message send or haus cloud-agent start)',
         ].join('\n'),
         createdAt: '2026-07-27T00:00:00.000Z',
         id: 'rmf_9a8b7c6d',
@@ -493,7 +493,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     expect(streamedPrompts[0]).toContain(
         '[target=#general msg=- time=2026-07-27 00:00:00 UTC type=system] @reminder: 🔔 Reminder: Check the deploy'
     );
-    expect(streamedPrompts[0]).toContain('reply with: haus message send --cause rmf_9a8b7c6d');
+    expect(streamedPrompts[0]).toContain('reply with: --cause rmf_9a8b7c6d on the command');
 
     streamedPrompts = [];
     const assignment = {

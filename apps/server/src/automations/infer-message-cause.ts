@@ -8,6 +8,28 @@ import {
 } from './message-cause.ts';
 
 /**
+ * The cause of an Agent message: the fire its `--cause` names, refused with
+ * `MessageCauseError` when unknown or another Agent's, or else the inferred one.
+ * `haus message send` and `haus cloud-agent start --say` share this rule.
+ */
+export async function resolveAgentMessageCause(
+    db: HausDatabase,
+    input: { agentId: string; cause?: string; chatId: string; runId: string; serverId: string }
+): Promise<AttributedMessageCause | undefined> {
+    if (!input.cause) {
+        return await inferMessageCause(db, input);
+    }
+    return {
+        attribution: 'explicit',
+        fire: await resolveMessageCause(db, {
+            agentId: input.agentId,
+            cause: input.cause,
+            serverId: input.serverId,
+        }),
+    };
+}
+
+/**
  * The cause of an Agent message that carried no `--cause`.
  *
  * A fire is inferable only when it was the whole reason the run had anything to

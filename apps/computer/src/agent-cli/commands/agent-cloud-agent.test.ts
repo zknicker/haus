@@ -124,6 +124,21 @@ test('starts a cloud card as an inline reply without changing its channel', asyn
     });
 });
 
+test('--cause rides the --say post as on haus message send, and a blank one is refused', async () => {
+    const seen: AgentApiRequest[] = [];
+    const deps = {
+        client: requester(seen),
+        mintNonce: () => 'caused-cloud-nonce',
+        readStdin: () => Promise.resolve('Fold the dependency PRs into one.'),
+        stdinIsTty: false,
+        write: () => undefined,
+    };
+    await runCloudAgentStart(args({ '--cause': ' rmf_9a8b7c6d ' }), deps);
+    expect(seen[0]?.body).toMatchObject({ cause: 'rmf_9a8b7c6d' });
+    await expect(runCloudAgentStart(args({ '--cause': ' ' }), deps)).rejects.toThrow('fire id');
+    expect(seen).toHaveLength(1);
+});
+
 test('a held start shows the newer messages and says nothing was launched', async () => {
     const output: string[] = [];
     const newer = {

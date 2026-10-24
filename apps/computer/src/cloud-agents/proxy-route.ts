@@ -6,6 +6,7 @@ import { sendCloudAgentWork } from './send-work.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 const cloudAgentStartSchema = z.object({
+    cause: z.string().trim().min(1).optional(),
     content: z.string().trim().min(1),
     instructions: z.string().trim().min(1),
     nonce: z.string().trim().min(1),
