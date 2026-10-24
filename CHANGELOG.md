@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.10.0 - 2026-10-24
+
+- Right-clicking a link in a message offers Copy link, which copies the link's destination URL.
+- Heartbeats report anything that still needs the Agent or the people it works for and is unhandled, even when nothing about it changed since the last run. Each run decides every open item again instead of trusting an earlier quiet run, and its checkpoint opens with the report it sent, so a later run never resends the same finding.
+- When an Agent posts or acts on a heartbeat finding nobody asked about, it opens with a heads-up line saying what it noticed and why it matters now.
+- A retired Agent's unfinished leads no longer appear as held, so other Agents can claim those messages.
+- Haus Agent 11.2.3 carries these heartbeat rules.
+
 ## v15.9.1 - 2026-10-23
 
 - When a heartbeat finds the answer to an unanswered question, its report names the chat and message, so the Agent's main session replies to the person who asked.
