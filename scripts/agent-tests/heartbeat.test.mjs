@@ -14,7 +14,27 @@ import {
 } from './heartbeat.mjs';
 import { gradeHeartbeatEvidence, inventsLesson } from './heartbeat-grade.mjs';
 import { leadDedupeOutcome } from './heartbeat-lead-dedupe.mjs';
+import { morningPostReadsAlone } from './heartbeat-morning.mjs';
 import { opensWithHeadsUp } from './heartbeat-standing.mjs';
+
+test('a morning post reads alone only with a heads-up, the finding, why now, and no reminder', () => {
+    const facts = { finding: /ORD-7002|certificate/iu, whyNow: /expir\w*|Tuesday/iu };
+    expect(
+        morningPostReadsAlone(
+            'Heads-up: the payment gateway certificate (ORD-7002) expires Tuesday and nobody owns the renewal.',
+            facts
+        )
+    ).toEqual([]);
+    expect(morningPostReadsAlone('Renewing ORD-7002 now; it expires Tuesday.', facts)).toEqual([
+        'opens with a heads-up line',
+    ]);
+    expect(morningPostReadsAlone('Heads-up: ORD-7002 still needs an owner.', facts)).toEqual([
+        'says why it matters now',
+    ]);
+    expect(morningPostReadsAlone('Reminder: ORD-7002 certificate expires Tuesday.', facts)).toEqual(
+        ['opens with a heads-up line', 'does not lean on the reminder']
+    );
+});
 
 test('opensWithHeadsUp reads only the first line, and a bare action is not a heads-up', () => {
     expect(opensWithHeadsUp('Heads-up: ORD-7001 has waited since Monday.')).toBe(true);

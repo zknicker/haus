@@ -155,7 +155,9 @@ with a heads-up line saying what it noticed and why it matters now, then act wit
 instructions. Acting is fine; acting without saying why is the failure this prevents.
 
 A nightly report, or a daytime report inside quiet hours, posts nothing and becomes a morning
-reminder. The morning turn sees the reminder's description, not the report, so the input asks for
+reminder, anchored to the message the finding concerns or, when no message does (a finding from a
+source), to the latest message in the chat where it should be posted. The morning turn sees the
+reminder's description, not the report, so the input asks for
 a description that tells the morning turn to open its post with a heads-up line: what the Agent
 noticed and why it matters now. The reminder and its reply line are only linkage, so the post must
 read right on its own without them. Without this, a nightly report about two dependency PRs became
@@ -304,6 +306,7 @@ asserted by the scenario; quality is graded by profiles.
 | `heartbeat-learns-unsaved-correction` | A human corrects the Agent in a Channel; the Agent replied "got it" but MEMORY.md lacks the rule. Nightly run. | MEMORY.md gains the rule (graded like `memory-feedback`); the dream summary names the lesson and who gave it, and notes it had been acknowledged but not saved; nothing posted. **The operator's acceptance case.** |
 | `heartbeat-quiet-day-control` | Ordinary day, no corrections. Nightly run. | No new Standing Preference; summary invents no lesson. |
 | `heartbeat-follows-up-dropped-promise` | The Agent said "I'll check and get back to you" and never did. Nightly run. | One reminder anchored to that message, firing 08:00–10:00 in the requester's timezone, description names the promise; nothing posted. |
+| `heartbeat-nightly-report-morning-post` | A controlled MCP connection holds an aging risk nobody asked about (a certificate expiring in three days, renewal unassigned). Nightly run, then the morning reminder is fired now through the test-only `dev.fireReminderNow`. | One report; the report run posts nothing and schedules one reminder anchored to a message; the morning turn posts once in the anchored chat with the fire as its cause, and the post alone opens with a heads-up line naming the risk and why it matters now, without mentioning the reminder (lexical check). |
 | `heartbeat-surfaces-new-signal` | A controlled MCP connection the Agent uses for its role gains a notable record nobody mentioned in chat. Daytime run. | One report; the main session then posts once in the right Chat. |
 | `heartbeat-nothing-new-control` | Same connection, no change. Daytime run. | No report, no post. |
 | `heartbeat-reports-unhandled-standing-item` | Same connection holds an actionable item open since Monday; the seeded checkpoint saw it and stayed quiet. Daytime run. | One report naming it; the main session posts once in the right Chat, its first line a heads-up (lexical check) that says what it noticed. |

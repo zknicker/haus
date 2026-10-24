@@ -172,6 +172,8 @@ export const heartbeatProfiles = {
         followUp: { mentions: /cutoff/iu },
         spec: 'HB3',
     },
+    // Gated in the scenario (heartbeat-morning.mjs): report, reminder, one fire-caused post that reads alone.
+    'heartbeat-nightly-report-morning-post': { spec: 'HB10' },
     'heartbeat-surfaces-new-signal': {
         report: {
             confidence:

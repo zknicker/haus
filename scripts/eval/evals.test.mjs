@@ -51,14 +51,14 @@ test.each(
     }
 });
 
-test('the heartbeat eval runs its nine opt-in scenarios serially, graded by heartbeatProfiles', () => {
+test('the heartbeat eval runs its ten opt-in scenarios serially, graded by heartbeatProfiles', () => {
     const { lanes, profiles, scenarios } = resolveEval('heartbeat');
-    expect(scenarios).toHaveLength(9);
+    expect(scenarios).toHaveLength(10);
     expect(lanes).toBe(1);
     expect(profiles).toEqual({});
     expect(Object.keys(heartbeatProfiles).sort()).toEqual([...scenarios].sort());
     for (const profile of Object.values(heartbeatProfiles)) {
-        expect(profile.spec).toMatch(/^HB\d$/u);
+        expect(profile.spec).toMatch(/^HB\d+$/u);
     }
 });
 
