@@ -25,7 +25,7 @@ test('pins the shared avatar upload ceiling and media allowlist', () => {
 });
 
 test('base64 length ceiling tracks avatarMaxBytes so client and server cannot drift', () => {
-    expect(avatarBase64MaxLength).toBe(Math.ceil((avatarMaxBytes * 4) / 3) + 8);
+    expect(avatarBase64MaxLength).toBe(4 * Math.ceil(avatarMaxBytes / 3));
 
     const atCap = 'A'.repeat(avatarBase64MaxLength);
     expect(

@@ -60,11 +60,6 @@ export async function readAvatarImage(file: File): Promise<AvatarImage> {
     return { base64: dataUrl.slice(dataUrl.indexOf(',') + 1), blob, dataUrl, mediaType };
 }
 
-/**
- * Resolves the upload media type from the file's declared type, content
- * signature, then extension — and refuses anything outside the shared
- * avatar allowlist. Exported for boundary tests.
- */
 export async function resolveAvatarMediaType(file: File): Promise<AvatarMediaType> {
     if (isAvatarMediaType(file.type)) {
         return file.type;
@@ -88,7 +83,6 @@ export async function resolveAvatarMediaType(file: File): Promise<AvatarMediaTyp
     throw new Error(avatarUnsupportedMediaTypeMessage());
 }
 
-/** Enforces the shared post-resize ceiling. Exported for boundary tests. */
 export function assertAvatarFits(byteLength: number): void {
     if (byteLength <= 0) {
         throw new Error('That image could not be processed.');

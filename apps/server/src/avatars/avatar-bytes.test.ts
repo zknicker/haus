@@ -3,7 +3,6 @@ import { avatarMaxBytes, avatarTooLargeMessage, formatAvatarMaxBytes } from '@ha
 import { readAvatarBytes } from './avatar-bytes.ts';
 import { AvatarRejectedError } from './avatar-errors.ts';
 
-/** A real 1×1 PNG the signature check accepts. */
 const pngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 

@@ -15,7 +15,6 @@ export const avatarMaxBytes = 512 * 1024;
 /** Clients resize to this square before upload; nothing stores the original. */
 export const avatarPixelSize = 256;
 
-/** Short label for accept copy in pickers and settings. */
 export const avatarAcceptedTypesLabel = 'JPEG, PNG, or WebP';
 
 export const avatarIdSchema = z.string().regex(/^avt_[a-z0-9]{16}$/u);
@@ -30,7 +29,6 @@ export function isAvatarMediaType(value: string): value is AvatarMediaType {
     return (avatarMediaTypes as readonly string[]).includes(value);
 }
 
-/** Derive the human size label from `avatarMaxBytes` so copy cannot drift. */
 export function formatAvatarMaxBytes(bytes: number = avatarMaxBytes): string {
     if (bytes > 0 && bytes % (1024 * 1024) === 0) {
         return `${bytes / (1024 * 1024)} MiB`;
@@ -49,15 +47,13 @@ export function avatarTooLargeMessage(): string {
     return `An avatar image must be ${formatAvatarMaxBytes()} or smaller.`;
 }
 
-/** Standing hint under profile photo controls. */
 export function avatarUploadHint(): string {
     return `${avatarAcceptedTypesLabel} · up to ${formatAvatarMaxBytes()} after resize to ${avatarPixelSize}×${avatarPixelSize}.`;
 }
 
 const idSchema = z.string().trim().min(1);
 
-/** Base64 inflates the byte ceiling by 4/3; the slack covers padding. */
-export const avatarBase64MaxLength = Math.ceil((avatarMaxBytes * 4) / 3) + 8;
+export const avatarBase64MaxLength = 4 * Math.ceil(avatarMaxBytes / 3);
 
 export const avatarBytesInputSchema = z
     .object({
