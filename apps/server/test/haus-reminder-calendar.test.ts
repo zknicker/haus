@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { listReminders, scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
+import {
+    listReminderFires,
+    listReminders,
+    scheduleReminder,
+    snoozeReminder,
+    tickReminders,
+} from '../src/reminders/reminders.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -139,4 +145,57 @@ test('a reminder zone must be a canonical IANA name, stored in its canonical cas
         now
     );
     expect(utc.reminder).toMatchObject({ fireAt: '2026-10-09T09:00:00.000Z', timezone: 'UTC' });
+});
+
+// Demo Inbox claim: early snooze of a weekly digest left the same-day cadence
+// slot due, so the reminder woke twice that morning.
+test('an early snooze before a weekly slot fires once and skips that slot', async () => {
+    const scheduled = await scheduleReminder(
+        connection.db,
+        agentId,
+        {
+            anchorChatId: chatId,
+            anchorMessageId,
+            commandId: 'reminder-command-weekly-digest',
+            repeat: 'weekly:tue@09:00',
+            serverId,
+            timezone: 'America/New_York',
+            title: 'Weekly digest',
+        },
+        { now: () => new Date('2026-10-19T12:00:00.000Z') }
+    );
+    expect(scheduled.reminder.fireAt).toBe('2026-10-20T13:00:00.000Z');
+
+    const snoozed = await snoozeReminder(
+        connection.db,
+        agentId,
+        {
+            commandId: 'reminder-command-weekly-digest-snooze',
+            duration: '30m',
+            expectedVersion: scheduled.reminder.version,
+            reminderId: scheduled.reminder.id,
+            serverId,
+        },
+        { now: () => new Date('2026-10-20T12:00:00.000Z') }
+    );
+    expect(snoozed.reminder.fireAt).toBe('2026-10-20T12:30:00.000Z');
+
+    await tickReminders(connection.db, { now: () => new Date('2026-10-20T12:30:15.000Z') });
+    await tickReminders(connection.db, { now: () => new Date('2026-10-20T13:00:15.000Z') });
+
+    const fires = await listReminderFires(connection.db, {
+        actor: { agentId, kind: 'agent' },
+        reminderId: scheduled.reminder.id,
+        serverId,
+    });
+    expect(fires).toEqual([
+        expect.objectContaining({
+            firedAt: '2026-10-20T12:30:15.000Z',
+            scheduledFor: '2026-10-20T12:30:00.000Z',
+        }),
+    ]);
+    const [next] = (
+        await listReminders(connection.db, { actor: { agentId, kind: 'agent' }, serverId })
+    ).filter((reminder) => reminder.id === scheduled.reminder.id);
+    expect(next?.fireAt).toBe('2026-10-27T13:00:00.000Z');
 });
