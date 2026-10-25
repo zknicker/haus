@@ -58,7 +58,9 @@ those is one a human asked for.
   timezone when none is supplied. A calendar first fire is a cadence slot: derived
   from now when omitted, refused when supplied off-slot (ADR 0040).
 - A delayed Server fires one overdue logical slot, then recurring schedules
-  advance from the current time. Missed slots never burst.
+  advance from the current time. Missed slots never burst. An off-slot calendar
+  wake (early or late snooze) also consumes its nearest cadence slot so that
+  same-day slot does not fire again.
 - An active Agent may schedule, list, inspect logs, snooze, update, or cancel
   only its own reminders and only while it can access the anchor. Owner and
   Admin operators may list all Server reminders, inspect fire logs, and

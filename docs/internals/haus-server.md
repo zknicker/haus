@@ -339,7 +339,9 @@ bootstrap. It performs an immediate recovery tick, then checks every 15
 seconds. PostgreSQL row locks with `SKIP LOCKED` serialize concurrent ticks,
 and a unique logical-fire key prevents duplicate fires after response loss
 or restart. One overdue slot fires and recurring cadence advances from the
-current time; missed slots never burst. A row-local fire failure is redacted,
+current time; missed slots never burst. An off-slot calendar wake also consumes
+its nearest cadence slot so an early snooze cannot leave that day's slot due. A
+row-local fire failure is redacted,
 skipped for the rest of that tick, retried later, and does not block other due
 reminders.
 

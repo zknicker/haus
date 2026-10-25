@@ -147,8 +147,6 @@ test('a reminder zone must be a canonical IANA name, stored in its canonical cas
     expect(utc.reminder).toMatchObject({ fireAt: '2026-10-09T09:00:00.000Z', timezone: 'UTC' });
 });
 
-// Demo Inbox claim: early snooze of a weekly digest left the same-day cadence
-// slot due, so the reminder woke twice that morning.
 test('an early snooze before a weekly slot fires once and skips that slot', async () => {
     const scheduled = await scheduleReminder(
         connection.db,
