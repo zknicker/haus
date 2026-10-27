@@ -184,6 +184,7 @@ async function sendWithHandle(
                 result: run.result ?? null,
                 runId: run.id,
                 usage: null,
+                ...runStart(run),
             },
         };
     } finally {
@@ -212,6 +213,7 @@ async function readingOf(
         result: run.result ?? null,
         runId: run.id,
         usage: await usageOf(agentApi, agentId, run),
+        ...runStart(run),
     };
 }
 
@@ -269,4 +271,9 @@ async function usageOf(
               }
             : null;
     }
+}
+
+function runStart(run: Pick<Run, 'createdAt'>): { startedAt?: string } {
+    const date = new Date(run.createdAt ?? Number.NaN);
+    return Number.isFinite(date.getTime()) ? { startedAt: date.toISOString() } : {};
 }

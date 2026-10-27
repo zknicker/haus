@@ -207,8 +207,11 @@ function workObservationUpdate(observation: CloudAgentObservation, previousStart
 
 function observationTimes(observation: CloudAgentObservation, previousStart: Date | null) {
     const observedAt = new Date(observation.observedAt);
+    const startedAt = observation.startedAt ? new Date(observation.startedAt) : observedAt;
     return {
-        ...(observation.status !== 'queued' && !previousStart ? { startedAt: observedAt } : {}),
+        ...(observation.status !== 'queued' && (!previousStart || startedAt < previousStart)
+            ? { startedAt }
+            : {}),
         status: observation.status,
         terminalAt: isTerminalCloudAgentStatus(observation.status) ? observedAt : null,
     };

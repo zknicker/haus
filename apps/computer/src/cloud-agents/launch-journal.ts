@@ -11,6 +11,7 @@ const launchSchema = z.object({
     providerRunId: z.string().min(1).nullable(),
     providerUrl: z.string().nullable(),
     status: cloudAgentStatusSchema,
+    startedAt: z.iso.datetime().optional(),
 });
 /** Retryable send failures so far; absent until the first attempt fails. */
 const deliverySchema = z.object({

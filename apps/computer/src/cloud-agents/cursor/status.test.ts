@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { cloudAgentBranchSchema } from '@haus/api';
-import { branchesOf, repositoryOf } from './status.ts';
+import { branchesOf, observationOf, repositoryOf } from './status.ts';
 
 describe('a Cursor repository reference reads back as one repository label', () => {
     const cases: [string, string | null][] = [
@@ -78,4 +78,22 @@ test('a branch Cursor reports without a branch name is dropped', () => {
     expect(
         branchesOf([{ branch: null, prUrl: null, repoUrl: 'github.com/merchbaseco/tmterminal' }])
     ).toEqual([]);
+});
+
+test('a Run first read after sleep retains its provider start time', () => {
+    const startedAt = '2026-10-26T22:23:00.000Z';
+    const observation = observationOf(
+        {
+            branches: [],
+            errorCode: null,
+            errorMessage: null,
+            rawStatus: 'RUNNING',
+            result: null,
+            runId: 'run_sleep',
+            startedAt,
+            usage: null,
+        },
+        { agentId: 'bc_sleep', observedAt: '2026-10-26T23:06:00.000Z' }
+    );
+    expect(observation).toMatchObject({ startedAt });
 });

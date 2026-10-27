@@ -189,6 +189,7 @@ export async function startCloudAgentWork(input: {
         ...(launch.providerRunId ? { providerRunId: launch.providerRunId } : {}),
         ...(launch.providerUrl ? { providerUrl: launch.providerUrl } : {}),
         status: launch.status,
+        startedAt: launch.startedAt,
     });
     input.supervisor.watch({
         ...ref,

@@ -181,3 +181,37 @@ test('a Run that never reached the provider settles with the reason its Agent re
     expect(await fixture.readAttentions(runId)).toHaveLength(1);
     socket.close();
 });
+
+test('reconciliation corrects a first-observed start with the provider Run time', async () => {
+    const runner = await fixture.mintRunner('run_cloud_sleep');
+    const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-sleep' }));
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    const report = (observation: Record<string, unknown>) =>
+        socket.send(
+            JSON.stringify({
+                type: 'cloud-agent-observation',
+                observation: { runId, workId: work.id, ...observation },
+            })
+        );
+    const startedAt = '2026-10-26T22:23:00.000Z';
+    const firstObservedAt = '2026-10-26T23:06:00.000Z';
+    report({ observedAt: firstObservedAt, status: 'running' });
+    await fixture.waitForWorkStatus(work.id, 'running');
+    report({ observedAt: '2026-10-26T23:06:01.000Z', startedAt, status: 'running' });
+    await fixture.waitFor(async () => {
+        const run = await fixture.readRun(runId);
+        return new Date(String(run.started_at)).toISOString() === startedAt;
+    });
+    expect(new Date(String((await fixture.readWork(work.id)).started_at)).toISOString()).toBe(
+        startedAt
+    );
+    // Later stream messages omit the provider timestamp and must not restart the clock.
+    report({ observedAt: '2026-10-26T23:07:00.000Z', status: 'completed' });
+    await fixture.waitForWorkStatus(work.id, 'completed');
+    expect(new Date(String((await fixture.readRun(runId)).started_at)).toISOString()).toBe(
+        startedAt
+    );
+    socket.close();
+});

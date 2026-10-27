@@ -170,6 +170,11 @@ A card is presentation, not a durable noun. It owns no id, placement, lifecycle,
 data. Haus App renders a Cloud Agent work card from the Message's `cloudAgentWork` annotation,
 which the Server projects from the Message's recorded links.
 
+Elapsed time uses the provider's Run creation timestamp when available, including after Computer
+reconnects. Observation timestamps track reporting freshness, not when hosted work began. A later
+provider reading can correct an earlier first-observed start; providers without a Run timestamp
+retain the first non-queued observation as the fallback.
+
 **One card everywhere.** Haus App renders Cloud Agent work as one full work card under each
 linking Message, the same card in the parent Chat — a Channel or a DM — inside the Thread, and in
 any other conversation that links it. No link is primary and none is a copy. A Message that links

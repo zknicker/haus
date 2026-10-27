@@ -1,6 +1,7 @@
 import { expect, spyOn, test } from 'bun:test';
 import { Agent } from '@cursor/sdk';
 import { streamCursorRun } from './sdk-stream.ts';
+import { createCursorSdkTransport } from './sdk-transport.ts';
 
 const runId = 'run-12345678-1234-1234-1234-123456789012';
 const agentId = 'bc-12345678-1234-1234-1234-123456789012';
@@ -90,3 +91,30 @@ function mockFetch(request: (...args: Parameters<typeof globalThis.fetch>) => Pr
         Object.assign(request, { preconnect: globalThis.fetch.preconnect })
     );
 }
+
+test('SDK reconciliation keeps the hosted Run creation time after a late read', async () => {
+    const startedAt = '2026-10-26T22:23:00.000Z';
+    const fetch = mockFetch(() =>
+        Promise.resolve(
+            Response.json({
+                agentId,
+                createdAt: startedAt,
+                id: runId,
+                status: 'RUNNING',
+            })
+        )
+    );
+    const previousKey = process.env.CURSOR_API_KEY;
+    process.env.CURSOR_API_KEY = 'fixture-only-key';
+    try {
+        const reading = await createCursorSdkTransport().readRun({ agentId, runId });
+        expect(reading.startedAt).toBe(startedAt);
+    } finally {
+        if (previousKey === undefined) {
+            Reflect.deleteProperty(process.env, 'CURSOR_API_KEY');
+        } else {
+            process.env.CURSOR_API_KEY = previousKey;
+        }
+        fetch.mockRestore();
+    }
+});

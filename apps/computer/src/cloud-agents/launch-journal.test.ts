@@ -16,6 +16,7 @@ const launch = {
     providerAgentId: 'provider-agent',
     providerRunId: 'provider-run',
     providerUrl: null,
+    startedAt: '2026-10-26T22:23:00.000Z',
     status: 'running' as const,
 };
 

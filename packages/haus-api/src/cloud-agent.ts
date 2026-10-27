@@ -132,6 +132,8 @@ export const cloudAgentObservationSchema = z
         branches: z.array(cloudAgentBranchSchema).max(50).optional(),
         errorCode: z.string().trim().min(1).max(120).optional(),
         observedAt: timestampSchema,
+        /** Provider Run creation time; observation time is only the reporting clock. */
+        startedAt: timestampSchema.optional(),
         providerAgentId: z.string().trim().min(1).max(200).optional(),
         providerRunId: z.string().trim().min(1).max(200).optional(),
         providerUrl: z.url().max(2000).optional(),

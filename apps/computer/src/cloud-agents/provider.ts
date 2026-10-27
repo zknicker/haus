@@ -73,6 +73,8 @@ export interface CloudAgentLaunch {
     /** Null when the provider acknowledges delivery before naming the execution. */
     providerRunId: string | null;
     providerUrl: string | null;
+    /** Provider-reported Run creation time, when available. */
+    startedAt?: string;
     status: CloudAgentStatus;
 }
 
@@ -95,6 +97,8 @@ export interface CloudAgentProviderObservation {
     providerRunId?: string;
     providerUrl?: string;
     rawStatus?: string;
+    /** Provider-reported Run creation time, when available. */
+    startedAt?: string;
     status: CloudAgentStatus;
     summary?: string;
     usage?: CloudAgentUsage;

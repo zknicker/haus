@@ -81,6 +81,7 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
                 providerRunId: launch.reading.runId,
                 providerUrl: cursorAgentUrl(launch.agentId),
                 status: cloudAgentStatusOf(launch.reading.rawStatus),
+                ...(launch.reading.startedAt ? { startedAt: launch.reading.startedAt } : {}),
             };
         },
         async start(input: CloudAgentStartInput): Promise<CloudAgentLaunch> {
@@ -99,6 +100,7 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
                 providerRunId: launch.reading.runId,
                 providerUrl: cursorAgentUrl(launch.agentId),
                 status: cloudAgentStatusOf(launch.reading.rawStatus),
+                ...(launch.reading.startedAt ? { startedAt: launch.reading.startedAt } : {}),
             };
         },
         subscribe(
