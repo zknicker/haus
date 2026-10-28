@@ -1,3 +1,4 @@
+import { avatarUploadHint } from '@haus/api/avatar';
 import type { ServerMember } from '@haus/api/membership';
 import { participantHandleSchema, suggestParticipantHandle } from '@haus/api/participant-handle';
 import { Button, Input, Separator, TextField } from '@heroui/react';
@@ -7,6 +8,7 @@ import { useHumanAvatar } from '../../../hooks/members/use-human-avatar.ts';
 import { useHumanIdentity } from '../../../hooks/members/use-human-identity.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { isClerkEnabled } from '../../../lib/clerk.tsx';
+import { withSavingToast } from '../../../lib/saving-toast.ts';
 import { useSignOut } from '../../auth/use-sign-out.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName } from '../../servers/human-identity.ts';
@@ -97,6 +99,7 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Photo</ItemCard.Title>
+                    <ItemCard.Description>{avatarUploadHint()}</ItemCard.Description>
                     <SettingsRowError>{avatarError ?? setAvatar.error?.message}</SettingsRowError>
                 </ItemCard.Content>
                 {/* The picker's edit badge overhangs its own box by 8px,
@@ -109,12 +112,14 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
                         name={humanDisplayName(viewer)}
                         onError={setAvatarError}
                         onSelect={async (image) => {
-                            await setAvatar.mutateAsync({
-                                bytesBase64: image.base64,
-                                mediaType: image.mediaType,
-                                serverId,
-                                target: { kind: 'user' },
-                            });
+                            await withSavingToast(() =>
+                                setAvatar.mutateAsync({
+                                    bytesBase64: image.base64,
+                                    mediaType: image.mediaType,
+                                    serverId,
+                                    target: { kind: 'user' },
+                                })
+                            );
                         }}
                         src={viewer.avatarUrl}
                     />
