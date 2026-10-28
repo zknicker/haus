@@ -1,4 +1,5 @@
 import { AGENT_DESCRIPTION_MAX_LENGTH, type Agent, type AgentReasoningEffort } from '@haus/api';
+import { avatarUploadHint } from '@haus/api/avatar';
 import {
     Alert,
     Button,
@@ -134,7 +135,7 @@ export function AgentCreationForm({
                             <p className="text-muted text-sm">
                                 {avatar
                                     ? 'New image selected.'
-                                    : 'Optional — initials stand in until you choose one.'}
+                                    : `Optional — ${avatarUploadHint()} Initials stand in until you choose one.`}
                             </p>
                         </div>
                     </div>
