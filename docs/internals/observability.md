@@ -52,6 +52,8 @@ an authenticated audit trail or an authorization input. Confirm important facts
 against durable Haus records.
 
 Operation traces use `haus-operations` and metrics use `haus-metrics`.
+Each lifecycle's ingestion token must allow ingest into both datasets; token permissions cannot
+be changed after creation.
 Every signal carries the standard `deployment.environment.name` resource
 attribute, so dashboards can default to production while retaining direct
 development-versus-production comparisons. The independently rotated
