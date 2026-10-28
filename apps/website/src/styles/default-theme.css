@@ -53,7 +53,7 @@
   /*
    * Every radius in the product derives from this: HeroUI's utilities compile
    * to `calc(var(--radius) * n)` and its shells to `min(32px, --radius-3xl)`.
-   * See the radius tier table in DESIGN.md before picking a step.
+   * See the radius tier table in .design/guidelines.md before picking a step.
    */
   --radius-base: 0.375rem;
   --radius: var(--radius-base);

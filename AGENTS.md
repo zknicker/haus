@@ -113,7 +113,7 @@ so `docs:list` routes future agents correctly.
   workaround only when neither is currently viable, and document its removal condition.
 - After changing a browser-runtime dependency, restart the worktree dev stack so Vite rebuilds its
   optimized dependencies before browser verification.
-- `DESIGN.md` and `apps/website/src/styles/default-theme.css` started as exports from the
+- `.design/guidelines.md` and `apps/website/src/styles/default-theme.css` started as exports from the
   [saved Haus design system](https://heroui.pro/ds/9e70cb0a-050a-4aca-8cc4-4d38eafb56ad)
   in HeroUI Pro and are now owned in code. The saved design system is stale; the repo is the
   source of truth. Edit both directly and keep them consistent.
@@ -121,7 +121,7 @@ so `docs:list` routes future agents correctly.
   `:root`, then one `@layer components` block for BEM overrides. A customization climbs that
   order and never skips up: a **token**, then a **BEM override** in the theme layer, then a
   **structural component** that gives the rule a class to hang on, and only then a
-  **call-site class** for a genuine one-off. `DESIGN.md` → "Where a customization goes"
+  **call-site class** for a genuine one-off. `.design/guidelines.md` → "Where a customization goes"
   carries the ladder with its reasons. Do not add new per-region `--spacing` or `--radius`
   scopes, and do not scatter override rules into feature CSS. Product CSS may own layout or
   behavior HeroUI cannot express, but must not recreate component appearance.
@@ -129,7 +129,7 @@ so `docs:list` routes future agents correctly.
   an exact-pixel avatar, an icon container — derive the radius too (`identityMarkRadius` in
   `components/ui/entity-avatar.tsx`), or the corner stays fixed while the box moves and the
   shape drifts. This has been the root cause of every radius bug in this codebase so far.
-  `DESIGN.md` carries the tier table; match a component's tier rather than eyeballing a step
+  `.design/guidelines.md` carries the tier table; match a component's tier rather than eyeballing a step
   that looks right at today's `--radius`.
 - Focus: a tab stop is earned by interaction, never by structure. Only native interactive
   elements, ARIA widget roles, and React Aria's composite roots carry `tabIndex >= 0`; scroll
@@ -142,11 +142,12 @@ so `docs:list` routes future agents correctly.
 - Use the HeroUI design tokens (`bg-surface`, `text-muted`, `text-accent`, etc.) for UI colors. Do
   not hand-roll component-local color mixes or arbitrary color values unless a new reusable token
   is first added to the theme layer.
-- Follow `DESIGN.md` for generated tokens, component guidance, and visual rules. Consult the
+- Follow `.design/guidelines.md` for generated tokens, component guidance, and visual rules. Consult the
   `heroui-react-pro` and `heroui-pro-design-taste` skills
   plus the HeroUI Pro MCP (`list_components` → `get_component_docs`) before building UI —
   and before reshaping it. A mismatch you are about to solve with CSS is often a component
   you have not looked for yet; check the catalog before concluding one does not exist.
+- Design rejections go in `.design/rejections.md`.
 - For motion polish, use Fluid Functionalism's motion guidance and ThinkingIndicator reference:
   https://www.fluidfunctionalism.com/docs/motion and
   https://www.fluidfunctionalism.com/docs/thinking-indicator.

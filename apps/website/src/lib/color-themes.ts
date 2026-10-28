@@ -1,7 +1,7 @@
 import type { ColorTheme } from './color-theme.ts';
 
 /**
- * Every color theme as one definition (DESIGN.md "Color themes"). Consumers
+ * Every color theme as one definition (.design/guidelines.md "Color themes"). Consumers
  * read the definition, never the id, so a new theme is a new entry here plus
  * its token CSS under `styles/themes/`.
  */

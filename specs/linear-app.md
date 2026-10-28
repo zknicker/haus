@@ -1147,7 +1147,7 @@ trigger-envelope,trigger-problem-sync,trigger-references}.ts`, `apps/server/src/
 **Slice E: App UI and chips.** Owns `apps/website/src/features/settings/connections/built-in/linear/*`,
 `apps/website/src/hooks/linear/*`, the chip and hovercard, `haus-api/linear/issue.ts`, the
 thumbnail route, `features/members/agent-profile/trigger-*` for `linear`, and iOS read-only
-Trigger rendering. Uses `architect-react-features`, the HeroUI catalog, and `DESIGN.md`. Proof:
+Trigger rendering. Uses `architect-react-features`, the HeroUI catalog, and `.design/guidelines.md`. Proof:
 website gate, Browser pane walkthrough of install, guided identity flow, and a chip.
 
 **Slice F: Agent CLI** (after D). Owns

@@ -59,7 +59,7 @@
     }
 
     /*
-     * Text selection, the native rule (DESIGN.md → "Text selection").
+     * Text selection, the native rule (.design/guidelines.md → "Text selection").
      *
      * App chrome never selects: rows, tiles, labels, bands, tabs, menus and
      * buttons ignore click-drag, double-click and Shift-click, as in a Mac

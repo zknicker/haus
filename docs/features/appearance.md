@@ -45,4 +45,4 @@ forces a mode, its mascot, its app icon, its scene, and its greeting pools. Ever
 definition, never the theme's name, so Default stays exactly the plain app (the ghost, no sky,
 "Good morning, Name", your own mode) and adding a theme is one definition plus its token CSS.
 
-Design contract: [DESIGN.md → Color themes](../../DESIGN.md#color-themes).
+Design contract: [.design/guidelines.md → Color themes](../../.design/guidelines.md#color-themes).

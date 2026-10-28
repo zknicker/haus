@@ -333,7 +333,7 @@ test harness); `github/deliveries.ts` binding ingest to the running Server; and
 `HausModels/AutomationModels.swift`, `HausModels/AutomationFormatting.swift`, and
 `HausUI/Automations/TriggerDetailView.swift` (GitHub label, problem line, footer copy without
 "rotate the secret" for `github`). Uses `architect-react-features`, the HeroUI catalog, and
-`DESIGN.md`. Proof: website gate plus focused tests, Browser pane walkthrough, scoped App e2e for
+`.design/guidelines.md`. Proof: website gate plus focused tests, Browser pane walkthrough, scoped App e2e for
 GitHub Trigger creation, `swift test` and a Simulator build.
 
 **Slice E: Agent CLI and Manual.** Owns `apps/computer/src/agent-cli/commands/agent-trigger*.ts`,

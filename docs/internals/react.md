@@ -602,13 +602,13 @@ holds whole-App renders per interaction to the ratchet in
 ## Styling
 
 * `styles/global.css` owns import order and document defaults only.
-* `styles/default-theme.css` and root `DESIGN.md` started as exports from the
+* `styles/default-theme.css` and `.design/guidelines.md` started as exports from the
   saved HeroUI Pro design system and are now owned in code — the saved system is
   stale. Edit both directly and keep them consistent. `default-theme.css` holds
   the tokens in `:root` and one `@layer components` block of BEM overrides;
   reach for a token first, a BEM override when no token can express it, and a
   call-site class only for a genuine one-off.
-* Page, dialog, section, and body text use the four type roles in `DESIGN.md`
+* Page, dialog, section, and body text use the four type roles in `.design/guidelines.md`
   ("Document type roles"). Every step is carried by a stock component or by
   `SettingsPageHeader`; a call site setting its own `text-*` size on a
   HeroUI part is the bug that role table exists to prevent.

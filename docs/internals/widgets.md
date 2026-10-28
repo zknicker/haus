@@ -170,7 +170,7 @@ registration), with optional info-string text as the title:
 - **Taste layer.** One seeded `visuals` skill owns everything the agent
   renders — when to render, the visual and page fence contracts, and the
   design system and the curated icon assets, written against the published
-  token names in `artifact-tokens.css`; DESIGN.md carries the app-side
+  token names in `artifact-tokens.css`; .design/guidelines.md carries the app-side
   reference. The managed prompt keeps a three-line pointer: the surfaces exist
   and the skill is a mandatory read before emitting any fence (ADR 0012). The
   design system's first rule follows the frame: the conversation is the

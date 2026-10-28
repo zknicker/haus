@@ -1,5 +1,5 @@
 /*
- * Halloween color theme: token overrides only (DESIGN.md "Color themes").
+ * Halloween color theme: token overrides only (.design/guidelines.md "Color themes").
  * Decorations live in `halloween-decorations.css`.
  *
  * Dark only: `ThemeProvider` pins the mode to dark while Halloween is active,

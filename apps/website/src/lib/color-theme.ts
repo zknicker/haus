@@ -1,5 +1,5 @@
 /**
- * The color theme (DESIGN.md "Color themes"): a palette family layered over
+ * The color theme (.design/guidelines.md "Color themes"): a palette family layered over
  * the Light/Dark/System mode, picked in Settings > Preferences. Stamped as
  * `data-color-theme` on the document root, where token and decoration layers
  * under `styles/themes/` key off it. App-local presentation: persisted per

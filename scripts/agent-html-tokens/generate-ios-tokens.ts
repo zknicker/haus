@@ -31,7 +31,7 @@ const WEB = `${REPO}apps/website`;
  *
  * The color-theme layers under `styles/themes/` are left out too, and on purpose:
  * they do override published tokens, but only under `data-color-theme`, and iOS
- * bakes the Default theme (DESIGN.md → Color themes).
+ * bakes the Default theme (.design/guidelines.md → Color themes).
  */
 const SOURCES = [
     `${WEB}/node_modules/tailwindcss/theme.css`,

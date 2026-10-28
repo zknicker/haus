@@ -24,6 +24,9 @@ apps/website/test-results
 scripts/design-battery/output
 scripts/visuals-lab/results
 scripts/visuals-lab/skills
+# Design skill screenshots
+.design/renders/
+
 # Interaction perf results, prod bundles, traces (scripts/perf)
 .perf/
 
