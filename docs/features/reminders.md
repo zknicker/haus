@@ -57,7 +57,9 @@ new command id.
   `daily@HH:MM`, and `weekly:days@HH:MM`. Calendar repeats (`daily@`,
   `weekly:`) recur in the reminder's explicit IANA timezone, which the Server
   requires; it never falls back to the Agent's UTC home time. After downtime the
-  Server fires once and advances from now, never bursts missed slots.
+  Server fires once and advances from now, never bursts missed slots. An
+  off-slot calendar wake (early or late snooze) also consumes its nearest
+  cadence slot, so that same-day slot does not fire again.
 - **The requester's zone.** Every human has a timezone preference: the App and
   the iPhone app report the device zone when none is set, and Settings > Profile
   (a searchable Timezone row on both) changes it.
