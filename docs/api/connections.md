@@ -47,22 +47,22 @@ without preset scopes or packaged credentials. Creating an account grants no
 Agent access. `vercel` is not an accepted preset; previously saved Vercel accounts migrate to
 custom connections (`preset: null`) without changing their configuration, secrets, or grants.
 
-`merchbase-atlas` creates an OAuth connection to `https://atlas.merchbase.co/mcp`
-with `openid profile email` scopes and Clerk dynamic client registration. It needs no
+`merchbase-atlas` creates an OAuth connection to `https://atlas-api.merchbase.co/mcp`
+with Cloudflare Managed OAuth discovery and no preset scopes. It needs no
 configured Server client or static token.
 
-`handmade` creates an OAuth connection to `https://handmade.merchbase.co/mcp`
-with `openid profile email` scopes and Clerk dynamic client registration. It needs no
+`handmade` creates an OAuth connection to `https://handmade-api.merchbase.co/mcp`
+with Cloudflare Managed OAuth discovery and no preset scopes. It needs no
 configured Server client or static token. Etsy shop authorization remains upstream in Handmade.
 Creating the connection grants no Agent access.
 
 `merchbase-fulfillment` creates an OAuth connection to
-`https://fulfillment.merchbase.co/mcp/printful` with `openid profile email` scopes.
-It uses Clerk dynamic client registration, with no configured Server client or static token.
+`https://fulfillment-api.merchbase.co/mcp/printful` without preset scopes.
+It uses Cloudflare Managed OAuth discovery, with no configured Server client or static token.
 Printful store linking remains an upstream tool flow after MerchBase authentication.
 
 `mcp.addPresetAccount` is a union keyed by `preset`: OAuth and keyless presets accept no token, and a
-bearer-token preset (`x`) requires `bearerToken`, a single header-safe token. Server stores it as an
+bearer-token preset (`x` or `factory`) requires `bearerToken`, a single header-safe token. Server stores it as an
 `Authorization: Bearer` secret header and connects immediately; the token is never returned.
 `mcp.replacePresetToken` swaps that token and clears grants; `mcp.replaceHeaders` rejects
 bearer-token presets.
@@ -283,3 +283,13 @@ Those instructions are written for a model, not a reader — a real server retur
 characters cataloguing every tool it offers. Server keeps only the opening line, trimmed and capped
 at 200 characters, because that is the part that reads as a description. A connection whose server
 sends no instructions has `summary: null`, and the App falls back to showing the endpoint.
+
+### Merchbase Cloudflare cutover
+
+Preset defaults use the API aliases. Existing saved URLs and OAuth secrets remain
+explicit migration work: disconnect, replace the exact intended legacy URL, clear
+old scopes/discovery/client credentials, approve the new authorization server,
+and reconnect. Preserve connection ownership and record Agent grants before the
+normal disconnect flow clears them; regrant explicitly after authentication.
+Factory bearer connections require a named Factory agent credential, not a
+Merchbase Account Center key. Do not change Haus's own authentication or tunnel.

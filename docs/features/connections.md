@@ -43,9 +43,8 @@ the user account itself), and an installation belongs to one Haus Server only. I
 `github` Triggers ([GitHub Triggers](../../specs/github-triggers.md)); removing one from Haus pauses
 its Triggers and tells their Agents, and it stays installed on GitHub. X takes a token instead of a sign-in: pressing **+** asks
 for an app-only Bearer token from the owner's X developer app, which lets Agents search and read
-public posts on that app's credits. Factory also takes a token: a Merchbase API Key from the owner's
-Account Center at merchbase.co/account/api-keys. Factory issues no keys of its own and records the
-agent under that key. Skool opens an isolated browser tab in the Haus desktop app.
+public posts on that app's credits. Factory also takes a token: the named agent's `fa_` credential from Factory Settings → Agents. It connects to
+`https://factory-agent.merchbase.co/mcp` and keeps that agent's Factory permissions. Skool opens an isolated browser tab in the Haus desktop app.
 Sign in directly to Skool; Haus captures the resulting session and provisions the hosted connection
 without showing internal tokens. Haus Server starts and supervises the bundled Skool connector; no separate service setup is required. Web users receive a desktop-required notice. After setup the
 connection works from web and mobile while the desktop app is closed. Reconnect and additional
@@ -60,21 +59,21 @@ and ignores further presses meanwhile, and a failed or untrusted sign-in leaves 
 its page as **Sign in required**. Factory and X open the token form instead. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
 
-MerchBase Atlas connects to `https://atlas.merchbase.co/mcp` through MerchBase/Clerk
+MerchBase Atlas connects to `https://atlas-api.merchbase.co/mcp` through Cloudflare Access
 OAuth. It exposes artwork search, asset management, and design exports. Adding it requires
 sign-in and does not grant Agent access.
 
-Handmade connects to `https://handmade.merchbase.co/mcp` through MerchBase/Clerk OAuth.
+Handmade connects to `https://handmade-api.merchbase.co/mcp` through Cloudflare Access OAuth.
 It exposes Etsy listing management, order lookup, and product mockup tools. Etsy shop linking
 remains in Handmade; existing shops must reconnect there to authorize order reads. Adding the
 connection requires sign-in and does not grant Agent access.
 
-MerchBase Fulfillment connects to `https://fulfillment.merchbase.co/mcp/printful` through
-MerchBase/Clerk OAuth. It exposes Printful order review and fulfillment tools. Linking a Printful
+MerchBase Fulfillment connects to `https://fulfillment-api.merchbase.co/mcp/printful` through
+Cloudflare Access OAuth. It exposes Printful order review and fulfillment tools. Linking a Printful
 store happens through those tools after sign-in; adding the preset does not link a store or enable
 Agent access.
 
-Trademark Terminal connects to `https://tmterminal.merchbase.co/mcp` through MerchBase/Clerk
+Trademark Terminal connects to `https://tmterminal-api.merchbase.co/mcp` through Cloudflare Access
 OAuth. It exposes trademark search, exact serial or registration lookup, and listing text
 screening. Adding it requires sign-in and does not grant Agent access.
 

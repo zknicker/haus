@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const rankWranglerMcpUrl = 'https://rankwrangler.merchbase.co/mcp';
+export const rankWranglerMcpUrl = 'https://rankwrangler-api.merchbase.co/mcp';
 export const amazonProductIdentitySchema = z.object({
     asin: z.string().regex(/^B(?=[A-Z0-9]*\d)[A-Z0-9]{9}$/u),
     marketplaceId: z.literal('ATVPDKIKX0DER'),

@@ -52,7 +52,7 @@ afterAll(async () => {
 
 test.each([
     ['x', 'X', 'https://api.x.com/mcp'],
-    ['factory', 'Factory', 'https://factory.merchbase.co/mcp'],
+    ['factory', 'Factory', 'https://factory-agent.merchbase.co/mcp'],
 ] as const)('%s stores its token as a Server-only Authorization header', async (preset, name, url) => {
     const created = await createMcpPresetAccount(connection.db, runtime, noIcon, member, {
         bearerToken: token,

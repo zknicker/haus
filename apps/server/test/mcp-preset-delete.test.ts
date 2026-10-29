@@ -82,11 +82,13 @@ test.each([
 });
 
 test.each([
-    ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
-    ['handmade', 'https://handmade.merchbase.co/mcp'],
-    ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
-    ['tmterminal', 'https://tmterminal.merchbase.co/mcp'],
-] as const)('%s awaits OAuth with identity scopes and no Agent grants', async (preset, url) => {
+    ['merchbase', 'https://core-api.merchbase.co/mcp'],
+    ['rankwrangler', 'https://rankwrangler-api.merchbase.co/mcp'],
+    ['merchbase-atlas', 'https://atlas-api.merchbase.co/mcp'],
+    ['handmade', 'https://handmade-api.merchbase.co/mcp'],
+    ['merchbase-fulfillment', 'https://fulfillment-api.merchbase.co/mcp/printful'],
+    ['tmterminal', 'https://tmterminal-api.merchbase.co/mcp'],
+] as const)('%s awaits discovered OAuth without identity scopes or Agent grants', async (preset, url) => {
     const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
         name: preset,
         preset,
@@ -104,7 +106,7 @@ test.each([
     const [stored] = await harness.sql`
         select secret from mcp_secrets where connection_id = ${fulfillment.id}
     `;
-    expect(stored?.secret.oauthScopes).toEqual(['openid', 'profile', 'email']);
+    expect(stored?.secret.oauthScopes).toEqual([]);
     expect(stored?.secret.headers).toEqual({});
     await owner.trpc.mcp.delete.mutate({ connectionId: fulfillment.id, serverId });
 });

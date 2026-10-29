@@ -58,7 +58,7 @@ const oauthPresets: Record<
         url: 'https://mcp.kittl.com/mcp',
     },
     rankwrangler: {
-        auth: { kind: 'oauth', scopes: ['openid', 'email', 'profile'] },
+        auth: { kind: 'oauth', scopes: [] },
         name: 'RankWrangler',
         url: rankWranglerMcpUrl,
     },
@@ -70,33 +70,33 @@ const oauthPresets: Record<
     merchbase: {
         auth: { kind: 'oauth', scopes: [] },
         name: 'MerchBase',
-        url: 'https://app.merchbase.co/mcp',
+        url: 'https://core-api.merchbase.co/mcp',
     },
     handmade: {
-        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        auth: { kind: 'oauth', scopes: [] },
         name: 'Handmade',
-        url: 'https://handmade.merchbase.co/mcp',
+        url: 'https://handmade-api.merchbase.co/mcp',
     },
     'merchbase-atlas': {
-        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        auth: { kind: 'oauth', scopes: [] },
         name: 'MerchBase Atlas',
-        url: 'https://atlas.merchbase.co/mcp',
+        url: 'https://atlas-api.merchbase.co/mcp',
     },
     'merchbase-fulfillment': {
-        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        auth: { kind: 'oauth', scopes: [] },
         name: 'MerchBase Fulfillment',
-        url: 'https://fulfillment.merchbase.co/mcp/printful',
+        url: 'https://fulfillment-api.merchbase.co/mcp/printful',
     },
     tmterminal: {
-        auth: { kind: 'oauth', scopes: ['openid', 'profile', 'email'] },
+        auth: { kind: 'oauth', scopes: [] },
         name: 'Trademark Terminal',
-        url: 'https://tmterminal.merchbase.co/mcp',
+        url: 'https://tmterminal-api.merchbase.co/mcp',
     },
 };
 
 /**
  * X's hosted MCP takes no OAuth discovery; an app-only Bearer token reads public posts.
- * Factory authenticates each agent by the API key Factory issued to it.
+ * Factory authenticates its named agents with their own scoped credentials.
  */
 const bearerTokenPresets: Record<
     McpBearerTokenPreset,
@@ -105,7 +105,7 @@ const bearerTokenPresets: Record<
     factory: {
         auth: { kind: 'bearer-token' },
         name: 'Factory',
-        url: 'https://factory.merchbase.co/mcp',
+        url: 'https://factory-agent.merchbase.co/mcp',
     },
     x: { auth: { kind: 'bearer-token' }, name: 'X', url: 'https://api.x.com/mcp' },
 };
