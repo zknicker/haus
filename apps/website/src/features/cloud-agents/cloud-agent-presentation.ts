@@ -18,7 +18,7 @@ export type CloudAgentWorkPresentationInput = Pick<
 >;
 
 export const cloudAgentJobLabels: Record<CloudAgentJobState, string> = {
-    cancelled: 'Cancelled',
+    cancelled: 'Stopped',
     done: 'Done',
     expired: 'Expired',
     failed: 'Failed',
@@ -87,6 +87,28 @@ export function cloudAgentJobText(job: CloudAgentWork['job'], now: number): stri
         return duration === null ? label : `${label} · ${duration}`;
     }
     return label;
+}
+
+/** Launching and stopping are concrete lifecycle stages, never generic working labels. */
+export function cloudAgentWorkText(
+    work: Pick<CloudAgentWork, 'job' | 'status' | 'createdAt' | 'cancelRequestedAt'>,
+    now: number
+): string {
+    if (!isTerminalCloudAgentStatus(work.status) && work.cancelRequestedAt) {
+        return 'Stopping';
+    }
+    if (
+        work.job.state === 'failed' &&
+        (work.job.errorCode?.startsWith('launch-') ||
+            work.job.errorCode?.startsWith('provider-launch-'))
+    ) {
+        return 'Stopped';
+    }
+    if (work.job.state === 'working' && work.status === 'queued' && !work.job.followUp) {
+        const elapsed = elapsedSince(work.createdAt, now);
+        return elapsed === null ? 'Starting' : `Starting · ${elapsed}`;
+    }
+    return cloudAgentJobText(work.job, now);
 }
 
 /**

@@ -4,11 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CloudAgentObservation, CloudAgentReconcileEntry } from '@haus/api';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import {
-    CloudAgentLaunchFailedError,
-    CloudAgentLaunchUnconfirmedError,
-    startCloudAgentWork,
-} from './launch-work.ts';
+import { CloudAgentLaunchFailedError, startCloudAgentWork } from './launch-work.ts';
 import { CloudAgentProviderUnavailableError } from './provider.ts';
 import { setCloudAgentProvider } from './registry.ts';
 
@@ -247,7 +243,7 @@ test('a lost identity report replays the journal address without a second launch
     });
 });
 
-test('an ambiguous start cannot launch twice when the same nonce is replayed', async () => {
+test('a lost launch response stops the work and replay never launches twice', async () => {
     const provider = install(createFakeCloudAgentProvider());
     let attempts = 0;
     provider.start = () => {
@@ -256,11 +252,12 @@ test('an ambiguous start cannot launch twice when the same nonce is replayed', a
     };
     stubServer();
     const input = { dataRoot, supervisor, request, runnerToken: 'grtr_x', serverId, serverOrigin };
-    await expect(startCloudAgentWork(input)).rejects.toThrow(CloudAgentLaunchUnconfirmedError);
+    await expect(startCloudAgentWork(input)).rejects.toThrow(CloudAgentLaunchFailedError);
     stubServer({ ...receipt, idempotent: true });
-    await expect(startCloudAgentWork(input)).rejects.toThrow(CloudAgentLaunchUnconfirmedError);
+    await expect(startCloudAgentWork(input)).rejects.toThrow(CloudAgentLaunchFailedError);
     expect(attempts).toBe(1);
-    expect(observations.map((entry) => entry.status)).toEqual(['queued']);
+    expect(observations.map((entry) => entry.status)).toEqual(['failed', 'failed']);
+    expect(observations[0]).toMatchObject({ errorCode: 'provider-launch-failed' });
 });
 
 test('a replayed rejection settles the same work without another provider launch', async () => {

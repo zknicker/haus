@@ -7,6 +7,7 @@ import {
     cloudAgentJobText,
     cloudAgentJobTone,
     cloudAgentWorkBranch,
+    cloudAgentWorkText,
     formatCloudAgentDuration,
     quietFor,
 } from './cloud-agent-presentation.ts';
@@ -51,7 +52,7 @@ test('a follow-up queued behind a finished Run keeps the job done', () => {
 test('a failed, cancelled, or expired job names only its outcome in Cursor’s words', () => {
     expect(cloudAgentJobText(work({ status: 'failed' }).job, now)).toBe('Failed');
     expect(cloudAgentJobText(work({ status: 'expired' }).job, now)).toBe('Expired');
-    expect(cloudAgentJobText(work({ status: 'cancelled' }).job, now)).toBe('Cancelled');
+    expect(cloudAgentJobText(work({ status: 'cancelled' }).job, now)).toBe('Stopped');
 });
 
 test('a cancelled or expired job is muted; the other states carry their own tone', () => {
@@ -184,4 +185,17 @@ test('a branch names its pull request from the snapshot, then from its URL', () 
             pullRequestUrl: null,
         })
     ).toBe(null);
+});
+
+test('launching reads Starting, a failed launch reads Stopped, and a requested stop reads Stopping', () => {
+    const starting = work({ status: 'queued', startedAt: null });
+    expect(cloudAgentWorkText(starting, now)).toBe('Starting · 4m');
+    const failed = work({
+        status: 'failed',
+        runs: [run({ status: 'failed', providerRunId: null, errorCode: 'provider-launch-failed' })],
+    });
+    expect(cloudAgentWorkText(failed, now)).toBe('Stopped');
+    expect(cloudAgentWorkText(work({ cancelRequestedAt: new Date(now).toISOString() }), now)).toBe(
+        'Stopping'
+    );
 });

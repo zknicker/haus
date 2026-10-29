@@ -32,7 +32,11 @@ test('only one concurrent caller admits a launch, and a restart keeps the admiss
     const claims = await Promise.all([journal.claim('server', ref), journal.claim('server', ref)]);
     expect(claims.filter(Boolean)).toHaveLength(1);
     expect(await new CloudLaunchJournal(root).claim('server', ref)).toBe(false);
-    expect(await journal.read('server', ref)).toEqual({ phase: 'launching', workId: ref.workId });
+    expect(await journal.read('server', ref)).toMatchObject({
+        phase: 'launching',
+        workId: ref.workId,
+        deadlineAt: expect.any(String),
+    });
 });
 
 test('a saved provider address survives restart and contains no instructions or credential', async () => {
@@ -121,3 +125,21 @@ async function recordPath(root: string) {
     }
     return join(folder, partition, file);
 }
+
+test('a late launch cannot replace cancellation or a failed launch across journal instances', async () => {
+    for (const outcome of ['cancelled', 'rejected'] as const) {
+        const root = await directory();
+        const journal = new CloudLaunchJournal(root);
+        await journal.claim('server', ref);
+        if (outcome === 'cancelled') {
+            await journal.cancel('server', ref);
+        } else {
+            await journal.reject('server', ref, {
+                errorCode: 'launch-timeout',
+                summary: 'Timed out.',
+            });
+        }
+        expect(await new CloudLaunchJournal(root).record('server', ref, launch)).toBe(false);
+        expect((await journal.read('server', ref))?.phase).toBe(outcome);
+    }
+});

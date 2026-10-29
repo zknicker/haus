@@ -36,6 +36,14 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     /// The headline: the job's state, never its newest Run's. A working job
     /// states how long it has been going; a done one how long it took.
     public func jobText(at now: Date) -> String {
+        if work.status.isActive, work.cancelRequestedAt != nil { return "Stopping" }
+        if case .failed(let errorCode, _, _, _) = work.job,
+           let errorCode, errorCode.hasPrefix("launch-") || errorCode.hasPrefix("provider-launch-") {
+            return "Stopped"
+        }
+        if work.status == .queued, case .working = work.job, work.job.followUp == nil {
+            return "Starting · \(Self.duration(from: work.createdAt, to: now))"
+        }
         let label = Self.jobLabel(work.job.state)
         switch work.job {
         case .working(let startedAt, _):
@@ -54,7 +62,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         case .working: "Working"
         case .done: "Done"
         case .failed: "Failed"
-        case .cancelled: "Cancelled"
+        case .cancelled: "Stopped"
         case .expired: "Expired"
         case .pendingInput: "Needs input"
         }

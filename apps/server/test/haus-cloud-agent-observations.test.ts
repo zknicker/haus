@@ -215,3 +215,42 @@ test('reconciliation corrects a first-observed start with the provider Run time'
     );
     socket.close();
 });
+
+test('a failed launch settles without provider ids and notifies its delegating Agent once', async () => {
+    const runner = await fixture.mintRunner('run_launch_failed');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'launch-failed-notify' })
+    );
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    const observation = {
+        errorCode: 'provider-launch-failed',
+        observedAt: new Date().toISOString(),
+        runId,
+        status: 'failed',
+        summary: 'The cloud agent launch failed before the provider confirmed it started.',
+        workId: work.id,
+    };
+    socket.send(JSON.stringify({ type: 'cloud-agent-observation', observation }));
+    await fixture.waitForWorkStatus(work.id, 'failed');
+    expect(await fixture.readRun(runId)).toMatchObject({
+        status: 'failed',
+        summary: observation.summary,
+    });
+    expect(await fixture.readAttentions(runId)).toHaveLength(1);
+    socket.send(
+        JSON.stringify({
+            type: 'cloud-agent-observation',
+            observation: { ...observation, observedAt: new Date(Date.now() + 1000).toISOString() },
+        })
+    );
+    await Bun.sleep(100);
+    expect(await fixture.readAttentions(runId)).toHaveLength(1);
+    expect(await fixture.readWork(work.id)).toMatchObject({
+        status: 'failed',
+        provider_agent_id: null,
+    });
+    socket.close();
+});

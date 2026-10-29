@@ -166,12 +166,12 @@
     },
     "apps/computer/src/cloud-agents/launch-journal.ts": {
       "disposition": "finite-cleanup",
-      "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts.",
+      "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts. A finite per-Run write lock serializes terminal settlement with late acknowledgements across journal instances; the lock is released before the Promise returns.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
+        "finallyBlock": 3,
+        "manualPromise": 1,
         "timer": 0
       }
     },
@@ -1007,6 +1007,17 @@
         "abortController": 0,
         "catchAndIgnore": 1,
         "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/launch-attempt.ts": {
+      "disposition": "external-adapter",
+      "reason": "Request-local AbortController bridge to provider provisioning. The existing Effect-owned work monitor owns the persisted deadline and cancellation; this finite adapter owns no timer, retry loop, or detached task and joins late acknowledgement cancellation before returning.",
+      "risks": {
+        "abortController": 2,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
         "manualPromise": 0,
         "timer": 0
       }

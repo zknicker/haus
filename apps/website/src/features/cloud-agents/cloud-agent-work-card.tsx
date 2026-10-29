@@ -7,8 +7,8 @@ import { Icon } from '../../components/ui/icon.tsx';
 import {
     cloudAgentBranchPullRequestNumber,
     cloudAgentJobChipColor,
-    cloudAgentJobText,
     cloudAgentWorkBranch,
+    cloudAgentWorkText,
 } from './cloud-agent-presentation.ts';
 import { CloudAgentKeycap } from './cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from './cloud-agent-status-disc.tsx';
@@ -64,7 +64,7 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
                                     className="size-3 text-current"
                                     state={work.job.state}
                                 />
-                                <Chip.Label>{cloudAgentJobText(work.job, now)}</Chip.Label>
+                                <Chip.Label>{cloudAgentWorkText(work, now)}</Chip.Label>
                             </Chip>
                         </ActionCard.Status>
                     </ActionCard.Title>

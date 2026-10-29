@@ -133,7 +133,7 @@ export interface CloudAgentProvider {
     read(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
     send(input: CloudAgentSendInput): Promise<CloudAgentLaunch>;
-    start(input: CloudAgentStartInput): Promise<CloudAgentLaunch>;
+    start(input: CloudAgentStartInput, signal?: AbortSignal): Promise<CloudAgentLaunch>;
     subscribe(
         ref: CloudAgentRunRef,
         onObservation: (observation: CloudAgentProviderObservation) => void,

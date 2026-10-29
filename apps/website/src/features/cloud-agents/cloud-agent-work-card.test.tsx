@@ -58,7 +58,7 @@ test('thread rows show the job, never a queued follow-up', () => {
     for (const [value, label] of [
         [work({ status: 'completed' }), 'Done'],
         [work({ status: 'failed' }), 'Failed'],
-        [work({ status: 'cancelled' }), 'Cancelled'],
+        [work({ status: 'cancelled' }), 'Stopped'],
         [work({ status: 'expired' }), 'Expired'],
         [followedUp, 'Done'],
     ] as const) {

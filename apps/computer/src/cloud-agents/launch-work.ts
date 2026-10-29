@@ -4,8 +4,10 @@ import type {
     CloudAgentProvider,
 } from '@haus/api';
 import { agentCloudAgentStartResponseSchema, isTerminalCloudAgentStatus } from '@haus/api';
+import { launchCloudAgent } from './launch-attempt.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import {
+    type CloudAgentProvider as CloudAgentExecutor,
     type CloudAgentLaunch,
     CloudAgentLaunchRejectedError,
     CloudAgentProviderUnavailableError,
@@ -38,20 +40,10 @@ export class CloudAgentLaunchFailedError extends Error {
 
     constructor(receipt: AgentCloudAgentReceipt, cause: unknown) {
         super(
-            `The provider refused the launch: ${cause instanceof Error ? cause.message : String(cause)}`
+            `The cloud agent launch stopped: ${cause instanceof Error ? cause.message : String(cause)}`
         );
         this.name = 'CloudAgentLaunchFailedError';
         this.receipt = receipt;
-    }
-}
-
-export class CloudAgentLaunchUnconfirmedError extends Error {
-    readonly code = 'CLOUD_AGENT_LAUNCH_UNCONFIRMED';
-
-    constructor(provider: CloudAgentProvider) {
-        super(
-            `The launch could not be confirmed. Inspect the existing work in ${provider === 'claude' ? 'Claude' : 'Cursor'} before starting another run.`
-        );
     }
 }
 
@@ -99,6 +91,14 @@ export async function startCloudAgentWork(input: {
     if (receipt.state === 'held' || isTerminalCloudAgentStatus(receipt.work.status)) {
         return receipt;
     }
+    return await launchRecordedWork(input, receipt, provider);
+}
+
+async function launchRecordedWork(
+    input: Parameters<typeof startCloudAgentWork>[0],
+    receipt: AgentCloudAgentReceipt,
+    provider: CloudAgentExecutor
+): Promise<AgentCloudAgentStartResponse> {
     const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
     const ref: CloudAgentRunRef = {
         provider: receipt.work.provider,
@@ -142,16 +142,19 @@ export async function startCloudAgentWork(input: {
             ]);
             return receipt;
         }
-        throw new CloudAgentLaunchUnconfirmedError(provider.provider);
+        input.supervisor.watch(ref);
+        return receipt;
     }
     if (!(await journal.claim(input.serverId, ref))) {
-        throw new CloudAgentLaunchUnconfirmedError(provider.provider);
+        input.supervisor.watch(ref);
+        return receipt;
     }
+    input.supervisor.watch(ref);
     let launch: CloudAgentLaunch;
     try {
-        launch = await provider.start({
+        launch = await launchCloudAgent(provider, {
             idempotencyKey: receipt.runId,
-            instructions,
+            instructions: input.request.instructions,
             // Server resolved the Server's chosen model, or its Auto fallback, onto the Run.
             model: cloudAgentModelSelectionOf(run?.model),
             ref: receipt.work.startingRef,
@@ -160,29 +163,13 @@ export async function startCloudAgentWork(input: {
             workId: receipt.work.id,
         });
     } catch (cause) {
-        if (cause instanceof CloudAgentLaunchRejectedError) {
-            const rejection = launchRejection(cause);
-            await journal.reject(input.serverId, ref, rejection);
-            input.supervisor.report(ref, {
-                ...rejection,
-                observedAt: new Date().toISOString(),
-                status: 'failed',
-            });
-            throw new CloudAgentLaunchFailedError(receipt, cause);
-        }
-        input.supervisor.report(ref, {
-            errorCode: 'launch-outcome-unknown',
-            observedAt: new Date().toISOString(),
-            status: 'queued',
-            activity: {
-                at: new Date().toISOString(),
-                summary: 'Launch confirmation unavailable; inspect provider before retrying.',
-            },
-        });
-        throw new CloudAgentLaunchUnconfirmedError(provider.provider);
+        return await failLaunch({ input, receipt, journal, ref, cause });
     }
     // Store the address before reporting it. Reconnect can recover a lost socket report.
-    await journal.record(input.serverId, ref, launch);
+    if (!(await journal.record(input.serverId, ref, launch))) {
+        await provider.cancel({ ...ref, ...launch }, AbortSignal.timeout(15_000));
+        throw new CloudAgentLaunchFailedError(receipt, new Error('The launch was stopped.'));
+    }
     input.supervisor.report(ref, {
         observedAt: new Date().toISOString(),
         providerAgentId: launch.providerAgentId,
@@ -212,4 +199,49 @@ export class CloudAgentServerError extends Error {
         this.code = 'code' in body && typeof body.code === 'string' ? body.code : 'SERVER_5XX';
         this.name = 'CloudAgentServerError';
     }
+}
+
+async function failLaunch({
+    input,
+    receipt,
+    journal,
+    ref,
+    cause,
+}: {
+    input: Parameters<typeof startCloudAgentWork>[0];
+    receipt: AgentCloudAgentReceipt;
+    journal: CloudLaunchJournal;
+    ref: CloudAgentRunRef;
+    cause: unknown;
+}): Promise<never> {
+    const rejection =
+        cause instanceof CloudAgentLaunchRejectedError
+            ? launchRejection(cause)
+            : {
+                  errorCode:
+                      cause instanceof DOMException && cause.name === 'TimeoutError'
+                          ? 'launch-timeout'
+                          : 'provider-launch-failed',
+                  summary:
+                      cause instanceof DOMException && cause.name === 'TimeoutError'
+                          ? 'The cloud agent did not start within five minutes.'
+                          : 'The cloud agent launch failed before the provider confirmed it started.',
+              };
+    await journal.reject(input.serverId, ref, rejection);
+    const stopped = await journal.read(input.serverId, ref);
+    const failure =
+        stopped?.phase === 'rejected'
+            ? { errorCode: stopped.errorCode, summary: stopped.summary ?? rejection.summary }
+            : rejection;
+    input.supervisor.report(ref, {
+        ...(stopped?.phase === 'cancelled'
+            ? { summary: 'The cloud agent launch was stopped.' }
+            : failure),
+        observedAt: new Date().toISOString(),
+        status: stopped?.phase === 'cancelled' ? 'cancelled' : 'failed',
+    });
+    throw new CloudAgentLaunchFailedError(
+        receipt,
+        new Error(stopped?.phase === 'cancelled' ? 'The launch was stopped.' : failure.summary)
+    );
 }

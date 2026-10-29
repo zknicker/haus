@@ -3,6 +3,7 @@ import { type FileHandle, mkdir, open, readFile, rename, rm } from 'node:fs/prom
 import { join } from 'node:path';
 import { cloudAgentProviderSchema, cloudAgentStatusSchema } from '@haus/api';
 import * as z from 'zod';
+import { cloudAgentLaunchTimeoutMs } from './launch-attempt.ts';
 import type { CloudAgentLaunch, CloudAgentRunRef } from './provider.ts';
 
 const launchSchema = z.object({
@@ -48,7 +49,11 @@ const recordSchema = z.discriminatedUnion('phase', [
         delivery: deliverySchema.nullable().default(null),
     }),
     z.object({ phase: z.literal('cancelled'), workId: z.string() }),
-    z.object({ phase: z.literal('launching'), workId: z.string() }),
+    z.object({
+        phase: z.literal('launching'),
+        workId: z.string(),
+        deadlineAt: z.iso.datetime().optional(),
+    }),
     z.object({ phase: z.literal('launched'), workId: z.string(), launch: launchSchema }),
     z.object({
         phase: z.literal('rejected'),
@@ -97,7 +102,13 @@ export class CloudLaunchJournal {
         ref: CloudAgentRunRef,
         initial?: z.input<typeof recordSchema>
     ): Promise<boolean> {
-        const record = recordSchema.parse(initial ?? { phase: 'launching', workId: ref.workId });
+        const record = recordSchema.parse(
+            initial ?? {
+                phase: 'launching',
+                workId: ref.workId,
+                deadlineAt: new Date(Date.now() + cloudAgentLaunchTimeoutMs).toISOString(),
+            }
+        );
         await mkdir(this.directory(serverId), { recursive: true, mode: 0o700 });
         let file: FileHandle;
         try {
@@ -117,9 +128,13 @@ export class CloudLaunchJournal {
         return true;
     }
 
-    async record(serverId: string, ref: CloudAgentRunRef, launch: CloudAgentLaunch): Promise<void> {
+    async record(
+        serverId: string,
+        ref: CloudAgentRunRef,
+        launch: CloudAgentLaunch
+    ): Promise<boolean> {
         const record = recordSchema.parse({ phase: 'launched', workId: ref.workId, launch });
-        await this.write(serverId, ref, record);
+        return await this.write(serverId, ref, record);
     }
 
     async reject(
@@ -148,8 +163,22 @@ export class CloudLaunchJournal {
         serverId: string,
         ref: CloudAgentRunRef,
         record: CloudLaunchRecord
-    ): Promise<void> {
+    ): Promise<boolean> {
         const destination = this.path(serverId, ref.runId);
+        return await serializeWrite(destination, async () => {
+            const existing = await this.read(serverId, ref);
+            if (existing?.phase === 'cancelled' || existing?.phase === 'rejected') {
+                return false;
+            }
+            if (existing?.phase === 'launched') {
+                return record.phase === 'launched';
+            }
+            await this.replace(destination, record);
+            return true;
+        });
+    }
+
+    private async replace(destination: string, record: CloudLaunchRecord): Promise<void> {
         const temporary = `${destination}.${randomUUID()}.tmp`;
         const file = await open(temporary, 'wx', 0o600);
         try {
@@ -176,4 +205,22 @@ export class CloudLaunchJournal {
 
 function hasCode(cause: unknown, code: string): boolean {
     return cause instanceof Error && 'code' in cause && cause.code === code;
+}
+
+const writes = new Map<string, Promise<void>>();
+
+/** All journal instances in the attachment share one writer for each Run. */
+async function serializeWrite<T>(path: string, operation: () => Promise<T>): Promise<T> {
+    const previous = writes.get(path) ?? Promise.resolve();
+    const ready = Promise.withResolvers<void>();
+    writes.set(path, ready.promise);
+    await previous;
+    try {
+        return await operation();
+    } finally {
+        ready.resolve();
+        if (writes.get(path) === ready.promise) {
+            writes.delete(path);
+        }
+    }
 }

@@ -90,7 +90,7 @@ private typealias Job = CloudAgentWorkFixture.Job
         #expect(line(try Fixture.work(status: "completed", job: Job.done(startedAt: Fixture.start, settledAt: settled)))
             .text == "Finished 30m ago")
         #expect(line(try Fixture.work(status: "cancelled", job: Job.ended("cancelled", settledAt: settled)))
-            .text == "Cancelled · 30m ago")
+            .text == "Stopped · 30m ago")
         #expect(line(try Fixture.work(status: "expired", job: Job.ended("expired", settledAt: settled)))
             .text == "Expired · 30m ago")
     }

@@ -82,16 +82,16 @@ facts and compatibility risks, not unresolved product decisions.
   to Server idempotently.
 - **Truthful launch failures.** Invalid input, unavailable capability, and missing authorization
   fail before creating a Message. Once Server accepts and records a launch, a definite provider
-  refusal settles the same card as failed. A lost response leaves the launch unconfirmed, not failed:
-  the provider may already be running it. Replaying that request never blindly launches another run.
+  refusal settles the same card as failed. Any launch error settles the recorded Run as failed and notifies its delegating Agent.
+  Provisioning has a five-minute deadline. Replaying that request never launches another run.
 
 Computer journals launch intent and acknowledged provider IDs in its private data directory,
 without credentials. Pending follow-ups retain their instructions and preceding Run IDs in a
 Computer-local file with mode `0600`, so reconciliation can resume the queue after restart.
 Instructions are removed once launched, cancelled, or refused and never reach Server.
 Reconnect recovers acknowledged IDs even if their Server report
-was lost. An intent without an acknowledgement requires inspecting the provider; it cannot prove
-whether the launch occurred. The daemon owns monitoring, retry delays and cancellation retries.
+was lost. An intent without an acknowledgement stops at its recorded launch deadline, or immediately on
+cancellation. A legacy intent with no deadline stops when reconciled. The daemon owns monitoring, retry delays and cancellation retries.
 Disconnect joins local monitoring without cancelling the hosted run.
 
 Cursor SDK 1.0.30 has a pinned Bun patch bounding otherwise unbounded finite fetches to 30 seconds
@@ -229,17 +229,17 @@ hierarchy):
 
 **Job state mirrors the provider.** The chip states the Server-derived `job` (`deriveCloudAgentJob` in
 `packages/haus-api`): the provider's own status for the newest Run the provider has received (the
-Run carries a `providerRunId`), with no Haus logic layered on top. `Working · <elapsed>` with HeroUI's
+Run carries a `providerRunId`), with no Haus logic layered on top. `Starting · <elapsed>` until the first Run leaves its queue, then `Working · <elapsed>` with HeroUI's
 spinner for CREATING or RUNNING, `Done · <duration>` in success for FINISHED (pull request merge
-state stays on the pull request row), `Failed` in danger for ERROR, and `Cancelled` or `Expired`
+state stays on the pull request row), `Failed` in danger for execution ERROR, `Stopped` for a launch failure or CANCELLED, and `Expired`
 muted for CANCELLED or EXPIRED, and `Needs input` in the warning tone for a Run that stopped to
 ask a question (Claude only; see [Claude provider](#claude-provider)). The card never shows the
 question: it is for the delegating Agent, which the inbox wakes to answer it, and a person who
 wants it opens the session in the provider. Once that answer is sent, the follow-up note replaces
 the `Updated <relative>` line, so the card keeps the same rows across every state. A follow-up still in Haus's local queue is not a provider Run yet:
 it never moves the headline and only shows as the follow-up note, so one cancelled before delivery
-leaves a done job Done, while one cancelled after delivery reads Cancelled. `Queued` is never a
-headline: a first Run not yet received or still queued reads working.
+leaves a done job Done, while one cancelled after delivery reads Stopped. `Queued` is never a
+headline: a first Run not yet received or still queued reads Starting.
 The Inbox's Happening now list shows only live work, so a job listed there only because a
 follow-up waits behind a settled Run reads `Follow-up waiting · <d>` with the working spinner. Because the status line never appears or disappears, the card
 changes height only when the pull request row first appears. There is no delegation receipt: on
@@ -545,7 +545,9 @@ the two — never reached Cursor. Its monitor settles it `failed` with `launch-r
 two-minute grace window that covers an in-flight sender, or `cancelled` at once when stopped, and
 an interrupting follow-up claims it as cancelled. Each settlement is an exclusive journal claim, so
 a late sender loses and the outcome survives restart. A `launching` record without an
-acknowledgement stays unconfirmed, because the provider may already be running it.
+acknowledgement settles failed at its persisted five-minute deadline, or cancelled when stopped.
+Settlement creates the ordinary deduplicated inbox attention. A late acknowledgement cannot
+replace that terminal journal record; Computer asks the provider to cancel the late execution.
 
 The delegating Agent, not the card, surfaces delivery failures. Every settled Run creates one inbox
 attention carrying its `errorCode` and `summary`; the Agent explains the failure in the work's
@@ -873,3 +875,12 @@ administrative integration and is outside this Computer capability.
   supplies and Haus starts a Run against, stays `owner/name`.
 - Git metadata is an Agent-workspace snapshot, not guaranteed per-Run diff attribution.
 - Optional provider cost can arrive eventually and does not represent account-plan allowance.
+
+### Launch lifecycle presentation
+
+The first queued Run reads **Starting**, including elapsed time since the work was created.
+A cancellation request reads **Stopping**. A launch error or deadline reads **Stopped**, with
+its failure reason, and leaves Happening now. Internally a failed launch uses the existing terminal
+`failed` Run status; requested cancellation uses `cancelled`, also presented as **Stopped**.
+Provider execution failures after startup still read **Failed**. Follow-up queue presentation is
+unchanged. Both web and iPhone derive these labels from the existing work and Run fields.

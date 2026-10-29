@@ -53,14 +53,14 @@ private typealias Job = CloudAgentWorkFixture.Job
 
     @Test func aRowStatesTheJobInTheCardVocabularyNeverQueued() throws {
         let rows = ThreadCloudAgentRow.rows(try [
-            Fixture.work(id: "a", status: "queued", job: Job.working(startedAt: minutesAgo(4)), updatedAt: minutesAgo(1)),
+            Fixture.work(id: "a", status: "queued", job: Job.working(startedAt: nil), updatedAt: minutesAgo(1), createdAt: minutesAgo(4)),
             Fixture.work(
                 id: "b", status: "queued",
                 job: Job.done(startedAt: nil, settledAt: nil, followUp: Job.followUp("waiting", since: minutesAgo(1))),
-                updatedAt: minutesAgo(1)
+                updatedAt: minutesAgo(1), createdAt: minutesAgo(4)
             )
         ], at: now)
-        #expect(rows.map(\.statusText) == ["Working · 4m", "Done"])
+        #expect(rows.map(\.statusText) == ["Starting · 4m", "Done"])
         #expect(rows.map(\.state) == [.working, .done])
     }
 

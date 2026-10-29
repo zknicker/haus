@@ -1,5 +1,6 @@
 import { Clock, Effect } from 'effect';
 import { type CloudAgentOperationError, foreign } from './foreign-operation.ts';
+import { abortCloudAgentLaunch } from './launch-attempt.ts';
 import type { CloudLaunchJournal, CloudLaunchRecord } from './launch-journal.ts';
 import type {
     CloudAgentLaunch,
@@ -55,12 +56,26 @@ export class CloudAgentLocalRuns {
                         ...(recorded.summary ? { summary: recorded.summary } : {}),
                     });
                 case 'launching':
-                    return unsent(
-                        queued(
-                            observedAt,
-                            'Launch confirmation unavailable; inspect provider before retrying.'
-                        )
-                    );
+                    if (
+                        run.cancelRequested ||
+                        !recorded.deadlineAt ||
+                        nowMs >= Date.parse(recorded.deadlineAt)
+                    ) {
+                        if (run.cancelRequested) {
+                            yield* foreign(() => self.journal.cancel(self.serverId, run.ref));
+                        } else {
+                            yield* foreign(() =>
+                                self.journal.reject(self.serverId, run.ref, {
+                                    errorCode: 'launch-timeout',
+                                    summary:
+                                        'The cloud agent did not start before its launch deadline.',
+                                })
+                            );
+                        }
+                        abortCloudAgentLaunch(run.ref.runId);
+                        return yield* self.resolve(run);
+                    }
+                    return unsent(queued(observedAt, 'Starting the cloud agent.'));
                 case undefined:
                     return yield* self.settleUnrecorded(run, nowMs);
             }

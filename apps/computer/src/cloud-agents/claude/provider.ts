@@ -119,11 +119,11 @@ export function createClaudeCloudAgentProvider(
                 status: 'queued',
             };
         },
-        async start(input): Promise<CloudAgentLaunch> {
+        async start(input, signal): Promise<CloudAgentLaunch> {
             await requireReady(readiness);
             const prompt = `${claudeRunTag({ runId: input.idempotencyKey, workId: input.workId })}\n\n${input.instructions}`;
-            const receipt = await withClaudeCheckout(input, (cwd) =>
-                launchNativeClaudeCloud({ cwd, modelId: input.model?.id ?? null, prompt })
+            const receipt = await withClaudeCheckout({ ...input, signal }, (cwd) =>
+                launchNativeClaudeCloud({ cwd, modelId: input.model?.id ?? null, prompt, signal })
             );
             return {
                 providerAgentId: receipt.sessionId,
