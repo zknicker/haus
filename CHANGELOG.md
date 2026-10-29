@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.11.1 - 2026-10-29
+
+- Cloud Agent launches show Starting, then stop and notify the delegating Agent if startup fails or exceeds five minutes. Stopping a launch no longer leaves it working indefinitely.
+- Cloud Agent elapsed times preserve the provider’s actual start time across reconnects.
+
 ## v15.11.0 - 2026-10-24
 
 - A heartbeat finding that waits for morning now reaches the chat as a post that opens with a heads-up line and reads right without the reminder behind it. A finding no message mentions, such as an expiring certificate in a watched source, still gets its morning reminder, anchored to the latest message in the chat where it belongs.
