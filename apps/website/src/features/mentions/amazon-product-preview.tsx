@@ -1,5 +1,4 @@
 import type { AmazonProductSummary } from '@haus/api';
-import { CopyButton } from '../../components/copy-button.tsx';
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 
 export function AmazonProductPreview({
@@ -15,12 +14,7 @@ export function AmazonProductPreview({
     return (
         <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-center gap-2">
             <div className="hover-card__content haus-hover-card dark flex min-w-0 flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                    <code className="min-w-0 flex-1 truncate font-mono text-muted text-xs">
-                        {asin}
-                    </code>
-                    <CopyButton label="Copy ASIN" value={asin} />
-                </div>
+                <code className="truncate font-mono text-muted text-xs">{asin}</code>
                 <div
                     aria-busy={lookupInProgress(lookup) || undefined}
                     className="flex min-w-0 flex-col gap-0.5"

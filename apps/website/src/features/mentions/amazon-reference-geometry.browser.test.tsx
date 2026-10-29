@@ -159,8 +159,6 @@ const fixtureCss = `
     .max-w-64 { max-width: 16rem; }
     .min-w-0 { min-width: 0; }
     .truncate { overflow: hidden; text-overflow: ellipsis; }
-    /* The library trigger is inline-flex, which blockifies the chip link. */
-    .hover-card__trigger { display: inline-flex; }
     @layer components {
         .chip {
             display: inline-flex;
