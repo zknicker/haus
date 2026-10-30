@@ -26,6 +26,16 @@ export function threadFirstUnreadSequence(userId: string): SQL<number | null> {
 }
 
 /**
+ * The Thread's newest `limit` counted reply ids for `userId`, newest first:
+ * the replies `threadUnreadCount` counts, as the Inbox card renders them.
+ */
+export function threadNewestCountedReplyIds(userId: string, limit: number): SQL<string[]> {
+    return sql<string[]>`array(
+        select reply.id ${countedReplies(userId)} order by reply.sequence desc limit ${limit}
+    )`;
+}
+
+/**
  * Whether the `chat_messages` row in scope is a counted reply for `userId`:
  * the same rule as `threadUnreadCount`, so a Thread row's preview names a
  * reply its count includes, never the viewer's own.

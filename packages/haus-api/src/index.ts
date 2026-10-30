@@ -100,6 +100,7 @@ export * from './chat-events.ts';
 export * from './chat-last-message.ts';
 export * from './chat-message-read.ts';
 export * from './chat-read.ts';
+export * from './chat-unread-preview.ts';
 export * from './cloud-agent.ts';
 export * from './cloud-agent-automation.ts';
 export * from './cloud-agent-job.ts';
