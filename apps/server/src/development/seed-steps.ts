@@ -11,6 +11,7 @@ import {
 import { ensureDevelopmentCove } from './seed-cove.ts';
 import { seedDevelopmentHeartbeats } from './seed-heartbeats.ts';
 import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
+import { seedDevelopmentInboxShowcase } from './seed-inbox-showcase.ts';
 import { seedDevelopmentUiGallery } from './seed-ui-gallery.ts';
 
 export interface SeedDevelopmentServerOptions {
@@ -36,6 +37,7 @@ export async function ensureDevelopmentSeedSteps(
         serverId: server.id,
     });
     await seedDevelopmentInboxActivity(db, { serverId: server.id, userId });
+    await seedDevelopmentInboxShowcase(db, { serverId: server.id, userId });
     await seedDevelopmentUiGallery(db, { serverId: server.id, userId });
     await seedDevelopmentAutomationCauses(db, { serverId: server.id, userId });
     await seedDevelopmentHeartbeats(db, { serverId: server.id, userId });
