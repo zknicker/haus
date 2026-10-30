@@ -78,7 +78,7 @@ test('failed lookups keep the ASIN chip linking to Amazon', () => {
         expect(markup).not.toContain('animate-pulse');
     }
 });
-test('every lookup state leads with a copyable ASIN, and the title follows only when RankWrangler returned one', () => {
+test('every lookup state leads with the ASIN, and the title follows only when RankWrangler returned one', () => {
     const lookups = [
         { status: 'loading' },
         { status: 'retrying' },
@@ -94,7 +94,7 @@ test('every lookup state leads with a copyable ASIN, and the title follows only 
     for (const lookup of lookups) {
         const markup = preview(lookup);
         expect(markup).toMatch(/<code[^>]*class="[^"]*\bfont-mono\b[^"]*"[^>]*>B07XN9T11R<\/code>/);
-        expect(markup).toContain('aria-label="Copy ASIN"');
+        expect(markup).not.toContain('Copy ASIN');
     }
     const titled = preview({ status: 'ready', detailFailed: false, product: summary });
     expect(titled.match(/B07XN9T11R/g)).toEqual(['B07XN9T11R']);
