@@ -36,6 +36,7 @@ test('selecting an inline reply focuses only the shown composer, including resel
         useChatComposerCommands({
             agents: [],
             chatId,
+            focusOnReveal: true,
             focusTextEditor: () => focuses.push(chatId),
             insertMention: () => undefined,
             thread: false,
@@ -67,6 +68,31 @@ test('selecting an inline reply focuses only the shown composer, including resel
     }
 });
 
+test('a composer that does not autofocus is not focused by a reveal either', async () => {
+    const focuses: string[] = [];
+    function Composer({ chatId }: { chatId: string }) {
+        useChatComposerCommands({
+            agents: [],
+            chatId,
+            focusOnReveal: false,
+            focusTextEditor: () => focuses.push(chatId),
+            insertMention: () => undefined,
+            thread: false,
+            updateContent: () => undefined,
+        });
+        return null;
+    }
+    const { show, unmount } = await mountKept((id) => <Composer chatId={id} />);
+    try {
+        await show('a');
+        await show('b');
+        await show('a');
+        expect(focuses).toEqual([]);
+    } finally {
+        await unmount();
+    }
+});
+
 test('only the shown kept composer answers commands, and a reveal focuses it', async () => {
     const drafts: Record<string, string> = {};
     const focuses: string[] = [];
@@ -74,6 +100,7 @@ test('only the shown kept composer answers commands, and a reveal focuses it', a
         useChatComposerCommands({
             agents: [],
             chatId,
+            focusOnReveal: true,
             focusTextEditor: () => focuses.push(chatId),
             insertMention: () => undefined,
             thread: false,

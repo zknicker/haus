@@ -64,7 +64,8 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
     const linking = page.locator(`[data-message-id="${moved.message.id}"]`);
     const card = linking.getByTestId('cloud-agent-work-card');
     await expect(card).toContainText(launchTitle);
-    await expect(card).toContainText('Working');
+    // No Run has reported yet, so the queued launch reads as its stage.
+    await expect(card).toContainText('Starting');
     // The card states the work, so the closing link paragraph is not repeated.
     await expect(linking.getByText(launchTitle, { exact: true })).toHaveCount(1);
     // Every link carries the same actions as the launch Message's card.

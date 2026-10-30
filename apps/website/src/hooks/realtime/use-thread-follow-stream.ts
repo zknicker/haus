@@ -45,6 +45,8 @@ export function applyThreadFollow(
     invalidateUnreadThreads(coalescer, event.serverId);
 }
 
+/** Follow state decides which Threads are unread, and so which Inbox rows preview. */
 function invalidateUnreadThreads(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }

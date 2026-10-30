@@ -1020,22 +1020,54 @@
      * carries the label alone, so it sheds the inset a carded header needs —
      * the page column already owns the gutter and the rhythm between
      * sections — and keeps only the step down to what it names.
-     *
-     * Its rows are email rows: one line, scanned in a column of peers. The
-     * card's own padding around a 32px mark is the band; the list this
-     * replaced pinned a 40px row and then spent rules undoing the component's
-     * spacing to fit it. The parts that fill the band live in
-     * `features/servers/inbox/inbox-row.tsx`.
      */
     .item-card-group--inbox > .item-card-group__header {
         padding-block: 0 calc(var(--spacing) * 2);
         padding-inline: 0;
     }
 
-    /* The description sits beside the title here, not under it, so it sheds
-       the offset that separates two stacked lines. */
-    .item-card--inbox .item-card__description {
+    /*
+     * An Unread row reads as one line (`features/servers/inbox/unread-triage-row.tsx`):
+     * the place, then the newest waiting message — or, once open, a note —
+     * beside it rather than under it. So the description sheds the offset that
+     * separates two stacked lines and takes the title's size, the line reading
+     * as one sentence rather than a label and its caption.
+     */
+    .item-card--inbox-line .item-card__description {
         margin-top: 0;
+        font-size: var(--text-sm);
+        line-height: var(--text-sm--line-height);
+    }
+
+    /*
+     * The one open Unread row is a card of its own: the surface's hairline
+     * ring and resting shadow, a step clear of the hairlines above and below,
+     * on a list that draws no box (`InboxSectionRows` `bare`), so it is the one
+     * outline in the list rather than an outline inside one. Not a fill step:
+     * on light themes a gray selected row read as a hole in the page. The row
+     * group clears every row's own surface, so the ring sits on the open row's
+     * wrapper, keyed here like the warning row.
+     */
+    /* The raised ground eases in and out with the open row's body reveal
+       (`unread-triage-row.tsx`), so the card settles rather than blinking on. */
+    .item-card-group--inbox-rows .inbox-unread-row {
+        border-radius: calc(var(--radius) * 2);
+        transition-duration: 220ms;
+        transition-property: margin, background-color, box-shadow;
+        transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .item-card-group--inbox-rows .inbox-unread-row {
+            transition: none;
+        }
+    }
+
+    .item-card-group--inbox-rows .inbox-unread-open {
+        margin-block: calc(var(--spacing) * 1.5);
+        border-radius: calc(var(--radius) * 2);
+        background-color: var(--surface);
+        box-shadow: var(--surface-shadow);
     }
 
     /* A name/attribution pair beside a 32px avatar (Linear identity preview).
@@ -1059,14 +1091,36 @@
      * `> [data-slot="item-card"]` reset stops reaching it. Without this the
      * wrapper would hand every row its card surface back and the list would
      * read as cards stacked inside a card. The row group restates the same
-     * reset as a descendant rule; the week cards are deliberately out of its
-     * reach, because a card in the strip is meant to keep its edges.
+     * reset as a descendant rule. Unread's cards are deliberately out of its
+     * reach: each is its own stock group, whose header row is a direct child
+     * and takes HeroUI's own reset.
      */
     .item-card-group--inbox-rows [data-slot='item-card'] {
         background-color: transparent;
         border-radius: 0;
         border-width: 0;
         box-shadow: none;
+    }
+
+    /*
+     * Unread's bare triage list (`InboxSectionRows` `bare`) draws no box and no
+     * hairlines, so its collapsed rows are shapes of their own: the card radius
+     * the open row wears, a pressed row's highlight following it, and a small
+     * step between rows in place of a divider.
+     */
+    .item-card-group--transparent.item-card-group--inbox-rows [data-slot='item-card'] {
+        border-radius: calc(var(--radius) * 2);
+    }
+
+    .item-card-group--transparent.item-card-group--inbox-rows {
+        gap: calc(var(--spacing) * 0.5);
+    }
+
+    /* An Agent running away on the Inbox's Agents meter. The reset above clears
+       every row's own surface, so the one row that must stand out gets its
+       ground back here, from the warning role (`inbox-rail-row.tsx`). */
+    .item-card-group--inbox-rows .item-card--inbox-warning {
+        background-color: var(--warning-soft);
     }
 
     /*
@@ -2883,6 +2937,21 @@
     [data-slot="message-scroller"][data-scrollable~="start"]
         > .transcript-edge-blur[data-side="top"],
     .transcript-edge-blur[data-side="bottom"] {
+        visibility: visible;
+    }
+
+    /*
+     * The Inbox runs up under its band (`PageBand overlay`) and borrows the top
+     * band over both its columns. The band's trail sits over it, so it holds
+     * solid through the band's top third and ramps out exactly where the page's
+     * content starts at rest — the band plus the column's top inset — leaving
+     * the trail on near-solid ground while rows still slide visibly up to the
+     * shell's edge. Ending there is also why it is always on, like the bottom
+     * band: at rest nothing it covers is content.
+     */
+    [data-slot="inbox-frame"] > .transcript-edge-blur[data-side="top"] {
+        --edge-solid: calc(var(--app-shell-band-height) / 3);
+        --edge-ramp: calc(var(--app-shell-band-height) * 2 / 3 + var(--spacing) * 8);
         visibility: visible;
     }
 

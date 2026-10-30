@@ -62,6 +62,55 @@ export function threadReplyPreviewLine(
     return line === '' ? `${author} replied in thread` : `${author} replied in thread: ${line}`;
 }
 
+/**
+ * A collapsed Unread row's quote of the newest message waiting in it, split
+ * so the row can set the author apart: `Blippy` then `Thursday release check…`.
+ * It follows `conversationPreviewLine`'s rule: in a DM the peer speaks
+ * unattributed, since the row's title already names them. A waiting message
+ * is never the viewer's own, so there is no `You`. An author no longer named
+ * leaves the quote alone, and a message with no text left to quote states its
+ * author alone, which is all there is left to say about it.
+ */
+export function waitingMessageLine({
+    authorName,
+    content,
+    peerDisplayName,
+}: {
+    authorName: null | string;
+    content: string;
+    peerDisplayName: null | string;
+}): { author: null | string; text: string } {
+    const text = messagePreviewLine(content);
+    const author = authorName && authorName !== peerDisplayName ? authorName : null;
+    if (text === '') {
+        return { author: null, text: authorName ?? 'Attachment' };
+    }
+    return { author, text };
+}
+
+/**
+ * The message an unread Thread hangs off, as its card's muted context line:
+ * `on Beacon: Thursday Christmas check…`. The viewer's own message reads
+ * `on your message: …`, and an author no longer named reads as the quote
+ * alone. A message with no text left to quote names only its author.
+ */
+export function threadAnchorLine({
+    authorName,
+    content,
+    isViewer,
+}: {
+    authorName: null | string;
+    content: string;
+    isViewer: boolean;
+}): string {
+    const who = isViewer ? 'your message' : authorName;
+    const line = messagePreviewLine(content);
+    if (line === '') {
+        return who ? `on ${who}` : 'on a message';
+    }
+    return who ? `on ${who}: ${line}` : `on: ${line}`;
+}
+
 function authorPrefix(author: string, speakers: ConversationSpeakers): null | string {
     if (speakers.viewerDisplayName && author === speakers.viewerDisplayName) {
         return 'You';
