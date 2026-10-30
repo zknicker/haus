@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.11.2 - 2026-10-30
+
+- Merchbase connections use Cloudflare sign-in and the new API addresses. Factory connections continue to use a Factory agent token.
+- Amazon product cards follow the pointer again; right-click a card to copy its ASIN.
+- Threads follow incoming replies when you are reading at the bottom.
+
 ## v15.11.1 - 2026-10-29
 
 - Cloud Agent launches show Starting, then stop and notify the delegating Agent if startup fails or exceeds five minutes. Stopping a launch no longer leaves it working indefinitely.
