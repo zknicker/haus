@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.12.0 - 2026-10-30
+
+- The Inbox shows each unread Channel, DM, and Thread as one line, with one open at a time. The open row shows its newest message as the chat shows it and the conversation's own composer, so you can reply without leaving the Inbox. J and K move between rows, E marks read, R starts a reply, and Return opens the conversation. Marking read or replying opens the next row. A row stays unread until you mark it read, reply, or open it.
+- The Inbox lists every Agent active this week beside Unread, ranked by token spend, and flags an Agent spending far more today than usual. In a narrow pane the list folds into a row of chips above Unread.
+
 ## v15.11.2 - 2026-10-30
 
 - Merchbase connections use Cloudflare sign-in and the new API addresses. Factory connections continue to use a Factory agent token.
