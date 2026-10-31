@@ -40,7 +40,7 @@ Idempotency-Key: <optional, ≤ 200 chars>
 ```
 
 This is the only first-party route authenticated by a per-Trigger bearer secret
-instead of Clerk, a Computer credential, or an Agent runner credential. The
+instead of a human AppSession, a Computer credential, or an Agent runner credential. The
 Server resolves the row by `sha256(secret)` and requires the path id to match
 that row. It is registered before tRPC and before the static App's not-found
 handler.
@@ -90,7 +90,7 @@ X-Hub-Signature-256: sha256=<hex HMAC of the raw body>
 ```
 
 One endpoint serves every installation of the Haus GitHub App. It runs before
-tRPC without Clerk, reads the raw body (10 MiB limit) so the HMAC covers the
+tRPC without a human AppSession, reads the raw body (10 MiB limit) so the HMAC covers the
 exact bytes, compares in constant time, and only then parses JSON.
 
 | Status | Body | When |

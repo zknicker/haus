@@ -19,8 +19,8 @@ interface AttachedComputer {
     slug: string;
 }
 
-async function createServer(harness: HausServerHarness, clerkUserId: string, slug: string) {
-    const client = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function createServer(harness: HausServerHarness, subject: string, slug: string) {
+    const client = createHausClient(harness, await harness.humans.mintSessionToken(subject));
     try {
         return await client.trpc.server.create.mutate({
             displayName: slug,
@@ -33,9 +33,9 @@ async function createServer(harness: HausServerHarness, clerkUserId: string, slu
 
 async function createLoginSession(
     harness: HausServerHarness,
-    clerkUserId: string
+    subject: string
 ): Promise<ComputerLoginSession> {
-    const client = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    const client = createHausClient(harness, await harness.humans.mintSessionToken(subject));
     try {
         const started = await fetch(new URL('/computer/login', harness.url), {
             body: JSON.stringify({ origin: harness.url.origin }),

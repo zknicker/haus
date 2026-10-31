@@ -43,8 +43,8 @@ const connectInput = {
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = await signIn('clerk_secrets_owner');
-    member = await signIn('clerk_secrets_member');
+    owner = await signIn('cf_secrets_owner');
+    member = await signIn('cf_secrets_member');
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Secrets HQ', slug: 'secrets-hq' })
     ).id;
@@ -53,14 +53,14 @@ beforeAll(async () => {
         slug: 'secrets-member-root',
     });
     const [memberRow] = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_secrets_member'
+        select id from users where auth_subject = 'cf_secrets_member'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
         values ('mem_secrets00000000', ${serverId}, ${memberRow?.id}, 'admin')
     `;
     const [ownerRow] = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_secrets_owner'
+        select id from users where auth_subject = 'cf_secrets_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)
@@ -143,8 +143,8 @@ test('the token is never persisted', async () => {
     expect(rows[0]?.inventory ?? '').not.toContain(token);
 });
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
 function answerNextSecretsRequest(connection: WebSocket, result: ComputerSecretsStatus) {

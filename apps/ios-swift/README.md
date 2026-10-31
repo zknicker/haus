@@ -1,10 +1,11 @@
 # Haus iPhone — SwiftUI prototype
 
 This directory is the native SwiftUI prototype for the iPhone client. It keeps
-the existing Haus Server, Computer, Clerk instance, and tRPC API intact. It
-does not introduce a mobile backend.
+the existing Haus Server, Computer, Cloudflare Access Google sign-in, and tRPC
+API intact. It does not introduce a mobile backend.
 
-The prototype currently proves production Google sign-in, Server discovery,
+The prototype currently proves native Google sign-in through Cloudflare Access,
+Haus AppSession renewal, Server discovery,
 channels and Agent DMs, real message history, live Chat event refresh, Agent
 lifecycle presence, optimistic Chat and Thread sends with draft recovery,
 bounded bidirectional history loading, foreground snapshot recovery, Server-backed
@@ -12,16 +13,15 @@ People and Computers, the native sidebar and composer, and one sheet-local
 settings navigation stack backed by Server profile data.
 
 The package targets iOS 18 and uses Swift 6. The XcodeGen app specification
-adds the official Clerk iOS package at the exact, reviewed `1.2.0` release and
-links only `ClerkKit` into the application target. It intentionally does not
-add an OpenAPI generator or a community tRPC client. `HausTransport` sends
-the existing app protocol headers and performs typed tRPC HTTP operations and
-SSE subscriptions directly.
+uses Apple AuthenticationServices and Keychain APIs for native OAuth and secure
+credential storage. It intentionally does not add an OpenAPI generator or a
+community tRPC client. `HausTransport` sends the existing app protocol headers
+and performs typed tRPC HTTP operations and SSE subscriptions directly.
 
 ## Run in Simulator
 
-A Debug build signs in automatically against a local Haus Server, so Simulator
-needs no browser OAuth. See
+A Debug build signs in automatically through the local Haus Server's fixture
+endpoint, so Simulator needs no Google account. See
 [Haus For iPhone In Simulator](../../docs/operations/development.md#haus-for-iphone-in-simulator)
 for the stack, build, install, and launch commands. Release builds always use the
 production Server and its Google sign-in.
@@ -106,5 +106,5 @@ clients cannot offer different icons. The app icon script fails if a name
 
 The application target under `Sources/HausApp` consumes the local
 `HausModels`, `HausTransport`, and `HausUI` products. SwiftUI previews can
-use `HausPreviewFixtures` and `SettingsFixtures` without a Server or Clerk
+use `HausPreviewFixtures` and `SettingsFixtures` without a Server or app
 session.

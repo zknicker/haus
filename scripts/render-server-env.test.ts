@@ -63,7 +63,7 @@ describe('the delivered Server environment', () => {
 });
 
 describe('the released contract guard', () => {
-    const released = ['HAUS_APP_ORIGIN', 'HAUS_CLERK_SECRET_KEY'];
+    const released = ['HAUS_APP_ORIGIN', 'HAUS_CF_ACCESS_AUDIENCE'];
 
     test('accepts native Bun flags absent from the released JavaScript env module', () => {
         expect(() =>
@@ -79,13 +79,11 @@ describe('the released contract guard', () => {
         expect(() => assertContractsAgree(released, [...released], 'a'.repeat(40))).not.toThrow();
     });
 
-    // The first varlock deploy, and every rollback to a release cut before a
-    // rename. Delivering this revision's names to that Server would leave it
-    // falling back to its own defaults for everything it cannot find — no Clerk
-    // secret, the wrong database — silently, in production.
+    // Delivering the current names to an older Server contract would leave it
+    // falling back to defaults for names it expects, silently, in production.
     test('refuses a release whose Server reads a different name set', () => {
         expect(() =>
-            assertContractsAgree(['APP_ORIGIN', 'CLERK_SECRET_KEY'], released, 'b'.repeat(40))
+            assertContractsAgree(['APP_ORIGIN', 'LEGACY_AUTH_SECRET'], released, 'b'.repeat(40))
         ).toThrow(/does not share this revision's environment contract/u);
     });
 

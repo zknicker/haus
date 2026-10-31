@@ -11,7 +11,7 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_reaction_order_owner')
+        await harness.humans.mintSessionToken('user_reaction_order_owner')
     );
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Reaction Order Server',

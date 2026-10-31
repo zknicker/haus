@@ -8,12 +8,10 @@ import {
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 const appOrigin = 'https://haus.chat';
 let application: HausServerApplication;
-let clerk: ClerkTestIssuer;
 let cluster: PostgresCluster;
 let staticAppRoot: string;
 let attachmentRoot: string;
@@ -21,7 +19,6 @@ let attachmentRoot: string;
 beforeAll(async () => {
     cluster = await startPostgresCluster();
     await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
-    clerk = await startClerkTestIssuer(appOrigin);
     attachmentRoot = mkdtempSync(join(tmpdir(), 'haus-production-attachments-'));
     staticAppRoot = mkdtempSync(join(tmpdir(), 'haus-static-app-'));
     writeFileSync(
@@ -38,7 +35,6 @@ beforeAll(async () => {
     application = await createHausServerApplication({
         appOrigin,
         attachmentRoot,
-        clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
         staticAppRoot,
     });
@@ -74,7 +70,6 @@ test('serves the trailing-slash privacy URL instead of the Haus App shell', asyn
 
 afterAll(async () => {
     await application.close();
-    await clerk.close();
     await cluster.stop();
     rmSync(attachmentRoot, { force: true, recursive: true });
     rmSync(staticAppRoot, { force: true, recursive: true });

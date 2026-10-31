@@ -13,12 +13,10 @@ import {
 } from '../src/haus-server-application.ts';
 import type { HostedMcpAccess } from '../src/hosted-mcp/supervisor.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 const appOrigin = 'https://haus.chat';
 let application: HausServerApplication;
-let clerk: ClerkTestIssuer;
 let cluster: PostgresCluster;
 let healthUrl: string;
 let attachmentRoot: string;
@@ -26,12 +24,10 @@ let attachmentRoot: string;
 beforeAll(async () => {
     cluster = await startPostgresCluster();
     await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
-    clerk = await startClerkTestIssuer(appOrigin);
     attachmentRoot = await mkdtemp(join(tmpdir(), 'haus-health-attachments-'));
     application = await createHausServerApplication({
         appOrigin,
         attachmentRoot,
-        clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });
     await application.listen(0);
@@ -41,7 +37,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await application.close();
-    await clerk.close();
     await cluster.stop();
     await rm(attachmentRoot, { force: true, recursive: true });
 });

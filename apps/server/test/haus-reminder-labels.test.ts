@@ -39,7 +39,7 @@ class OfflineTransport implements DeliveryTransport {
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_labels_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_labels_owner'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Reminder Labels',
         slug: 'reminder-labels',
@@ -47,7 +47,7 @@ beforeAll(async () => {
     serverId = server.id;
     channelId = server.channels[0].id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_labels_owner'
+        select id from users where auth_subject = 'user_labels_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)

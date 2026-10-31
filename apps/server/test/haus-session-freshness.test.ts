@@ -3,7 +3,7 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 /**
- * A WebSocket carries the Clerk session it was opened with. The Server must
+ * A WebSocket carries the Haus session it was opened with. The Server must
  * still judge every authenticated operation against a current token, so a
  * socket whose session has expired cannot start a new subscription.
  */
@@ -14,7 +14,7 @@ const openClients: HausClient[] = [];
 beforeAll(async () => {
     harness = await startHausServerHarness();
 
-    const owner = await connect(await harness.clerk.mintSessionToken('user_clerk_freshness'));
+    const owner = await connect(await harness.humans.mintSessionToken('user_cf_freshness'));
     const created = await owner.trpc.server.create.mutate({
         displayName: 'Freshness',
         slug: 'freshness',
@@ -31,16 +31,14 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('refuses a subscription on a socket whose Clerk session expired', async () => {
-    const stale = await connect(
-        await harness.clerk.mintExpiredSessionToken('user_clerk_freshness')
-    );
+test('refuses a subscription on a socket whose Haus session expired', async () => {
+    const stale = await connect(await harness.humans.mintExpiredSessionToken('user_cf_freshness'));
 
     await expect(subscribeStarted(stale)).rejects.toThrow(/sign in/i);
 });
 
 test('accepts the same subscription once the socket carries a current session', async () => {
-    const refreshed = await connect(await harness.clerk.mintSessionToken('user_clerk_freshness'));
+    const refreshed = await connect(await harness.humans.mintSessionToken('user_cf_freshness'));
 
     await expect(subscribeStarted(refreshed)).resolves.toBeUndefined();
 });
@@ -61,8 +59,8 @@ function subscribeStarted(client: HausClient) {
     return started.promise;
 }
 
-async function connect(clerkSessionToken: string) {
-    const client = createHausClient(harness, clerkSessionToken);
+async function connect(sessionToken: string) {
+    const client = createHausClient(harness, sessionToken);
 
     openClients.push(client);
     return client;

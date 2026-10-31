@@ -2,9 +2,9 @@ import * as React from 'react';
 
 /**
  * Re-authenticates the open socket after a stream was refused as
- * `UNAUTHORIZED`: reads the current Clerk token and hands it to the socket in
+ * `UNAUTHORIZED`: refreshes the current Haus access token and hands it to the socket in
  * place (`session.refresh`), reconnecting only if the Server refuses it.
- * Resolves false when Clerk has no session (signed out), which is final.
+ * Resolves false when the App has no session (signed out), which is final.
  * Concurrent callers share one refresh.
  */
 export type HausSessionRefresh = () => Promise<boolean>;

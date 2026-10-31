@@ -45,7 +45,7 @@ export async function seedLinearTriggerWorld(db: HausDatabase): Promise<LinearTr
         teamName: 'Operations',
     });
     const [binder] = await db
-        .select({ clerkUserId: usersTable.clerkUserId, id: usersTable.id })
+        .select({ id: usersTable.id })
         .from(usersTable)
         .where(eq(usersTable.id, world.binderUserId));
     if (!binder) {

@@ -7,7 +7,6 @@ import {
     type QueryClient,
 } from '@tanstack/react-query';
 import * as React from 'react';
-import { getDesktopClerkUserId } from './clerk.tsx';
 import { getDesktopBridge } from './desktop-bridge.ts';
 
 /**
@@ -104,7 +103,7 @@ let claimed: QueryCacheHandoff | null | undefined;
  * once per page load; StrictMode may build the client twice, so the claim is
  * kept for the page.
  */
-export function hydrateClaimedQueryCache(client: QueryClient): void {
+export function hydrateClaimedQueryCache(client: QueryClient, userId: string | null): void {
     if (claimed === undefined) {
         try {
             claimed = parseQueryCacheHandoff(getDesktopBridge()?.queryCacheClaim?.() ?? null);
@@ -113,17 +112,15 @@ export function hydrateClaimedQueryCache(client: QueryClient): void {
             claimed = null;
         }
     }
-    hydrateQueryCacheHandoff(client, claimed, getDesktopClerkUserId());
+    hydrateQueryCacheHandoff(client, claimed, userId);
 }
 
 /** Answers Electron when a window this one opens asks for a copy of the cache. */
-export function useQueryCacheOffer(client: QueryClient): void {
+export function useQueryCacheOffer(client: QueryClient, userId: string | null): void {
     React.useEffect(
         () =>
-            getDesktopBridge()?.onQueryCacheRequest?.(() =>
-                packQueryCacheHandoff(client, getDesktopClerkUserId())
-            ),
-        [client]
+            getDesktopBridge()?.onQueryCacheRequest?.(() => packQueryCacheHandoff(client, userId)),
+        [client, userId]
     );
 }
 

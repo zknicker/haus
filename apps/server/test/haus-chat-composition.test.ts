@@ -23,7 +23,7 @@ beforeAll(async () => {
         slug: 'composition-peer',
     });
     const [peerUser] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_composition_peer'
+        select id from users where auth_subject = 'user_composition_peer'
     `) as { id: string }[];
 
     chatId = server.channels[0].id;
@@ -134,7 +134,7 @@ function subscribeToComposition(
     };
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }

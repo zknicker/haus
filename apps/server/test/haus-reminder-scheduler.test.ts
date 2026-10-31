@@ -26,26 +26,22 @@ import {
 } from '../src/postgres/schema.ts';
 import { createReminderScheduler } from '../src/reminders/reminder-scheduler.ts';
 import { tickReminders } from '../src/reminders/scheduler.ts';
-import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 const appOrigin = 'https://app.haus.test';
 const dueAt = new Date('2026-07-26T13:00:00.000Z');
 const now = new Date('2026-07-26T14:00:00.000Z');
-let clerk: ClerkTestIssuer | null = null;
 let cluster: PostgresCluster | null = null;
 let connection: HausConnection | null = null;
 let attachmentRoot: string | null = null;
 
 afterEach(async () => {
     await connection?.close();
-    await clerk?.close();
     await cluster?.stop();
     if (attachmentRoot) {
         await rm(attachmentRoot, { force: true, recursive: true });
     }
     connection = null;
-    clerk = null;
     cluster = null;
     attachmentRoot = null;
 });
@@ -71,7 +67,6 @@ describe('reminder scheduler lifecycle', () => {
     test('recovers one overdue fire on startup and does not burst after restart', async () => {
         cluster = await startPostgresCluster();
         await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
-        clerk = await startClerkTestIssuer(appOrigin);
         connection = await connectHausDatabase(cluster.databaseUrl);
         attachmentRoot = await mkdtemp(join(tmpdir(), 'haus-reminder-attachments-'));
         await seedOverdueReminder(connection);
@@ -81,7 +76,6 @@ describe('reminder scheduler lifecycle', () => {
         const first = await createHausServerApplication({
             appOrigin,
             attachmentRoot,
-            clerkIssuerUrl: clerk.url,
             databaseUrl: cluster.databaseUrl,
             reminderClock: { now: () => now },
         });
@@ -91,7 +85,6 @@ describe('reminder scheduler lifecycle', () => {
         const restarted = await createHausServerApplication({
             appOrigin,
             attachmentRoot,
-            clerkIssuerUrl: clerk.url,
             databaseUrl: cluster.databaseUrl,
             reminderClock: { now: () => now },
         });
@@ -489,9 +482,7 @@ async function seedOverdueReminder(haus: HausConnection) {
 }
 
 async function configureComputer(haus: HausConnection) {
-    await haus.db
-        .insert(usersTable)
-        .values({ clerkUserId: 'clerk_scheduler', id: 'usr_scheduler' });
+    await haus.db.insert(usersTable).values({ authSubject: 'cf_scheduler', id: 'usr_scheduler' });
     await haus.db.insert(serverMembershipsTable).values({
         id: 'mem_scheduler',
         role: 'owner',

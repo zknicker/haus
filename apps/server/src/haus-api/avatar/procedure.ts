@@ -6,7 +6,7 @@ import {
 } from '../../avatars/avatar-errors.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-/** Avatar writes for one Clerk-authenticated human. */
+/** Avatar writes for one Haus-authenticated human. */
 export const avatarProcedure = memberProcedure.use(async ({ next }) => {
     const result = await next();
 

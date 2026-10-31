@@ -264,14 +264,14 @@ async function manualRequest(
     return { body: (await response.json()) as Record<string, any>, status: response.status };
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const rows = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     return rows[0]?.id ?? '';
 }

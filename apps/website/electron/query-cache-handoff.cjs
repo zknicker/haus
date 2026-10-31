@@ -13,7 +13,7 @@ const handoffTtlMs = 10_000;
  * that one new window, and hands it over once when the window boots
  * (`desktop:query-cache:claim`, synchronous). Memory only: never written to
  * disk. Unclaimed copies drop after `handoffTtlMs`, when the new window goes
- * away, and on any Clerk session change (`clear`). The renderer still checks
+ * away, and on sign-out or identity change (`clear`). The renderer still checks
  * the copy's user before using it.
  */
 function registerQueryCacheHandoff({
@@ -64,7 +64,7 @@ function registerQueryCacheHandoff({
     });
 
     return {
-        /** Drops every unclaimed copy: the Clerk session changed or cleared. */
+        /** Drops every unclaimed copy: the signed-in identity changed or cleared. */
         clear: () => {
             for (const id of [...pending.keys()]) {
                 drop(id);

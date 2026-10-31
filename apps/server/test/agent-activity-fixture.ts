@@ -80,7 +80,7 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
     const chatId = createOpaqueId('cht');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db.insert(serversTable).values({
         displayName: 'Activity',
         id: serverId,

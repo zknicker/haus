@@ -98,11 +98,11 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
 * Keep primary page content mounted during background refreshes.
-* Keep the authenticated Server shell mounted across Clerk token rotation and
+* Keep the authenticated Server shell mounted across AppSession refresh and
   websocket reconnects. Transport credentials and connection generations must not
   become React keys. Only a genuine human identity change may clear hosted query
   ownership or replace the authenticated surface; key that identity-owned provider
-  by the known Clerk user id rather than clearing a shared cache after render.
+  by the known Haus user id rather than clearing a shared cache after render.
 * Load primary destination frames with the authenticated Server shell through
   `server-route-shells.tsx`. The window router's loader imports that chunk and registers it
   with `server-route-modules.ts` (registration, not an import back, keeps the chunk out of an
@@ -443,7 +443,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   retain only attachment metadata, and authenticated byte transfer stays in
   focused attachment hooks.
 * Attachment hooks reserve metadata over tRPC and transfer bytes directly
-  against the app origin with a fresh Clerk token. Do not convert
+  against the app origin with a fresh AppSession access token. Do not convert
   attachment bytes into message-query data.
 
 ## Queries
@@ -467,7 +467,7 @@ pass.
   `invalidateQueries()`/`utils.invalidate()`, and `refetchQueries` outside
   reconnect recovery each appear only in an allowlist entry that names its
   reason. App e2e `idle-silence.spec.ts` checks the same promise on the wire
-  over ten fake-clock minutes, through a Clerk rotation, hide/show, and
+  over ten fake-clock minutes, through an AppSession refresh, hide/show, and
   offline/online.
 
 * Every `useQuery` declares a named `queryPolicy` preset from

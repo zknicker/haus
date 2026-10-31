@@ -24,8 +24,6 @@ test('upgrades the preceding production schema without replaying migrations', as
         await database.unsafe('CREATE DATABASE haus_effect_upgrade_test');
         await migrateHausDatabase(url.toString(), 'haus', 'haus', folder);
         upgraded = new SQL(url.toString());
-        await upgraded`INSERT INTO users (id, clerk_user_id, display_name)
-            VALUES ('usr_upgrade', 'clerk_upgrade', 'Before upgrade')`;
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus')).toEqual([
             '0029_message_bodies_and_asks',
             '0030_reminder_history_and_cause_snapshot',
@@ -60,6 +58,8 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0059_agent_creation_request',
             ...migrationsSince0060,
         ]);
+        await upgraded`INSERT INTO users (id, auth_subject, display_name)
+            VALUES ('usr_upgrade', 'cf-upgrade-user', 'Before upgrade')`;
         const [presetConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'mcp_connections_preset'`;
         expect(presetConstraint.definition).toContain("'skool'");

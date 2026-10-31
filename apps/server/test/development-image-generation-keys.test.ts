@@ -8,7 +8,7 @@ import { readImageGenerationKey } from '../src/image-generation/image-generation
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-const clerkUserId = 'user_dev_image_keys_owner';
+const subject = 'user_dev_image_keys_owner';
 
 let harness: HausServerHarness;
 let database: HausConnection;
@@ -17,8 +17,8 @@ let serverId: string;
 beforeAll(async () => {
     harness = await startHausServerHarness();
     database = await connectHausDatabase(harness.databaseUrl);
-    harness.clerkUsers.setVerifiedEmails(clerkUserId, ['dev@haus.test']);
-    serverId = (await seedDevelopmentServer(database.db, clerkUserId)).id;
+    harness.humans.setVerifiedEmails(subject, ['dev@haus.test']);
+    serverId = (await seedDevelopmentServer(database.db, subject)).id;
 });
 
 afterAll(async () => {

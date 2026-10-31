@@ -2187,7 +2187,7 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
     const imported = importAgentSkill(
         connection.db,
         computers,
-        { clerkUserId: 'user_run_owner', id: ownerUserId },
+        { subject: 'user_run_owner', id: ownerUserId },
         { agentId, serverId, sourceId }
     );
     await sent;
@@ -2207,7 +2207,7 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
 test('a Member cannot relay Agent skill file bytes through the Server', async () => {
     const memberUserId = 'usr_skillmember0000';
     await harness.sql`
-        insert into users (id, clerk_user_id)
+        insert into users (id, auth_subject)
         values (${memberUserId}, 'user_skill_member')
         on conflict do nothing
     `;
@@ -2220,7 +2220,7 @@ test('a Member cannot relay Agent skill file bytes through the Server', async ()
         readAgentSkillFile(
             connection.db,
             makeConnections(),
-            { clerkUserId: 'user_skill_member', id: memberUserId },
+            { subject: 'user_skill_member', id: memberUserId },
             { agentId, name: 'agent-browser', serverId }
         )
     ).rejects.toThrow(/Owner or Admin/u);
@@ -2254,7 +2254,7 @@ test('a human DM send enqueues durable pending work atomically with the message'
     expect(after[0]?.content).toBe('Durable delivery, please.');
 });
 test('keeps MCP credentials on Server and grants one whole connection', async () => {
-    const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
+    const member = { subject: 'user_run_owner', id: ownerUserId };
     const runtime = new McpRuntime(connection.db, serverEffectRuntime);
     const created = await createMcpConnection(connection.db, runtime, mcpIconResolver, member, {
         auth: 'oauth',
@@ -2395,7 +2395,7 @@ test('Server discovers and invokes a granted remote MCP without Computer custody
     });
     const runtime = new McpRuntime(connection.db, serverEffectRuntime);
     try {
-        const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
+        const member = { subject: 'user_run_owner', id: ownerUserId };
         const created = await createMcpConnection(connection.db, runtime, mcpIconResolver, member, {
             auth: 'none',
             headers: {},
@@ -2762,14 +2762,14 @@ async function agentPost(token: string, path: string, body: Record<string, unkno
     };
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const rows = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     return rows[0].id;
 }

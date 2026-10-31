@@ -166,7 +166,7 @@ describe('reminder operator API', () => {
     test('an operator cancellation queued behind removal reauthorizes before writing', async () => {
         const departingAdmin = await addHuman('user_reminder_api_race', 'admin');
         const [departingUser] = (await harness.sql`
-            select id from users where clerk_user_id = 'user_reminder_api_race'
+            select id from users where auth_subject = 'user_reminder_api_race'
         `) as { id: string }[];
         const reminder = await schedule('operator-removal-race', 'Removal race');
         let removal: Promise<unknown> = Promise.resolve();
@@ -200,7 +200,7 @@ describe('reminder operator API', () => {
         const subscription = collectStream(admin.trpc.reminder.onUpdated, { serverId });
         await subscription.started;
         const [adminUser] = (await harness.sql`
-            select id from users where clerk_user_id = 'user_reminder_api_admin'
+            select id from users where auth_subject = 'user_reminder_api_admin'
         `) as { id: string }[];
         await owner.trpc.member.remove.mutate({
             confirmation: 'reminder-api-server',
@@ -220,7 +220,7 @@ describe('reminder operator API', () => {
         const subscription = collectStream(departingAdmin.trpc.reminder.onUpdated, { serverId });
         await subscription.started;
         const [departingUser] = (await harness.sql`
-            select id from users where clerk_user_id = 'user_reminder_api_role_loss'
+            select id from users where auth_subject = 'user_reminder_api_role_loss'
         `) as { id: string }[];
         await owner.trpc.member.changeRole.mutate({
             role: 'member',
@@ -254,23 +254,23 @@ async function schedule(commandId: string, title: string) {
     );
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }
 
-async function addHuman(clerkUserId: string, role: 'admin' | 'member') {
-    const client = await signIn(clerkUserId);
+async function addHuman(subject: string, role: 'admin' | 'member') {
+    const client = await signIn(subject);
     await client.trpc.server.create.mutate({
-        displayName: `${clerkUserId} Root`,
-        slug: `${clerkUserId.replaceAll('_', '-')}-root`,
+        displayName: `${subject} Root`,
+        slug: `${subject.replaceAll('_', '-')}-root`,
     });
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
-        values (${`mem_${clerkUserId}`}, ${serverId}, ${user.id}, ${role})
+        values (${`mem_${subject}`}, ${serverId}, ${user.id}, ${role})
     `;
     return client;
 }

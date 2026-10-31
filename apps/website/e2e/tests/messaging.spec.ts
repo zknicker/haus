@@ -1,10 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { verifyAgentThreadRecovery } from '../support/agent-thread-recovery.ts';
-import {
-    clerkSessionFile,
-    readClerkSessionFixture,
-    signInAsClerkHuman,
-} from '../support/clerk-session.ts';
+import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,
     completeOnboarding,
@@ -17,30 +12,22 @@ import { expect, test } from '../support/test.ts';
 import { openMessageThread } from '../support/thread-actions.ts';
 
 test.beforeAll(async () => {
-    const { databaseUrl, peerToken, token } = JSON.parse(
-        readFileSync(clerkSessionFile(), 'utf8')
-    ) as {
-        databaseUrl: string;
-        peerToken: string;
-        token: string;
-    };
-    const owner = createClient(token);
-    const peer = createClient(peerToken);
+    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const peer = await createAppTestFixture('peer');
+    const owner = createClient(accessToken);
+    const peerClient = createClient(peer.accessToken);
     await owner.server.create.mutate({
         displayName: 'Hosted Messages',
         slug: 'hosted-messages',
     });
-    await peer.server.create.mutate({
+    await peerClient.server.create.mutate({
         displayName: 'Hosted Peer Root',
         slug: 'hosted-peer-root',
     });
     const openedServer = await owner.server.bySlug.query({ slug: 'hosted-messages' });
     const serverId = openedServer.id;
     const allChatId = openedServer.channels.find((channel) => channel.name === 'all')?.id;
-    const peerUserId = runPsql(
-        databaseUrl,
-        "select id from users where clerk_user_id = 'user_e2e_peer'"
-    );
+    const peerUserId = runPsql(databaseUrl, "select id from users where id = 'usr_e2e_peer'");
     assertOpaqueId(serverId);
     assertOpaqueId(allChatId);
     assertOpaqueId(peerUserId);
@@ -58,7 +45,7 @@ test.beforeAll(async () => {
         nonce: 'e2e-owner-baseline-message',
         serverId,
     });
-    await peer.chat.send.mutate({
+    await peerClient.chat.send.mutate({
         chatId: allChatId,
         content: 'Peer-authored hosted message',
         nonce: 'e2e-peer-message',
@@ -79,7 +66,7 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
         }
     });
 
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
 
@@ -133,51 +120,17 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     expect(localProductRequests).toEqual([]);
 });
 
-test('session rotation preserves the mounted chat and its unsent draft', async ({ page }) => {
-    test.setTimeout(100_000);
-    await signInAsClerkHuman(page);
-    await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
+test('signing out closes authenticated routes and returns to sign in', async ({ page }) => {
+    await signInAsAppHuman(page);
+    await page.goto('/s/hosted-messages/settings/profile');
+    await page.getByRole('button', { name: 'Sign out' }).click();
 
-    const composer = page.getByRole('textbox', { name: 'Message all' });
-    await composer.fill('Keep this thought through session rotation');
-    const mountedComposer = await composer.elementHandle();
-    if (!mountedComposer) {
-        throw new Error('The hosted composer did not mount before session rotation.');
-    }
-
-    const nextSocket = page.waitForEvent('websocket', { timeout: 40_000 });
-    const { peerToken, rotatedToken } = readClerkSessionFixture();
-    await page.evaluate((token) => {
-        (
-            window as Window & {
-                __setE2eClerkSessionToken?: (nextToken: string) => void;
-            }
-        ).__setE2eClerkSessionToken?.(token);
-    }, rotatedToken);
-    await nextSocket;
-
-    expect(await mountedComposer.evaluate((element) => element.isConnected)).toBe(true);
-    await expect(composer).toHaveText('Keep this thought through session rotation');
-
-    const server = await createClient(peerToken).server.bySlug.query({
-        slug: 'hosted-messages',
-    });
-    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
-    if (!chatId) {
-        throw new Error('The hosted rotation test did not resolve #all.');
-    }
-    await createClient(peerToken).chat.send.mutate({
-        chatId,
-        content: 'Live peer message after session rotation',
-        nonce: 'e2e-peer-after-session-rotation',
-        serverId: server.id,
-    });
-    await expect(page.getByText('Live peer message after session rotation')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
 });
 
 test('an Agent-authored page fence in a Thread opens the chat Workspace pane', async ({ page }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
     await page.setViewportSize({ height: 720, width: 800 });
@@ -206,7 +159,7 @@ test('an Agent-authored page fence in a Thread opens the chat Workspace pane', a
 test('a hosted Thread panel updates live and catches up after websocket reconnect', async ({
     page,
 }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
 
@@ -260,12 +213,10 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
         page.getByRole('menuitem', { includeHidden: true, name: 'Follow thread' })
     ).toHaveCount(0);
 
-    const { peerToken, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
-        peerToken: string;
-        token: string;
-    };
-    const owner = createClient(token);
-    const peer = createClient(peerToken);
+    const ownerFixture = await createAppTestFixture();
+    const peerFixture = await createAppTestFixture('peer');
+    const owner = createClient(ownerFixture.accessToken);
+    const peer = createClient(peerFixture.accessToken);
     const server = await owner.server.bySlug.query({ slug: 'hosted-messages' });
     const parentChatId = server.channels.find((channel) => channel.name === 'all')?.id;
     if (!parentChatId) {
@@ -369,7 +320,7 @@ test('an Agent reply reaches an already-open Thread live and after reconnect', a
 test('Agent-authored typed references render as interactive Agent and Chat chips', async ({
     page,
 }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
 
@@ -522,7 +473,7 @@ test('Haus App never requests a retired local product endpoint', async ({ page }
         }
     });
 
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
     await expect(page.getByText('First durable human message')).toBeVisible();

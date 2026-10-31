@@ -1,4 +1,4 @@
-import { signInAsClerkHuman } from '../support/clerk-session.ts';
+import { signInAsAppHuman } from '../support/app-session.ts';
 import { attachComputer, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -83,7 +83,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     });
     try {
         const other = await context.newPage();
-        await signInAsClerkHuman(other);
+        await signInAsAppHuman(other);
         await other.goto(page.url());
         const schedule = other.getByText('Daily at 10:00 PM · Next run Mon, Jul 27, 2099', {
             exact: true,
@@ -164,7 +164,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
         `update server_memberships set role = 'member'
          where server_id = '${server.id}'
            and user_id = (
-             select id from users where clerk_user_id = 'user_e2e_human'
+             select id from users where id = 'usr_e2e_human'
            )`
     );
     await page.reload();

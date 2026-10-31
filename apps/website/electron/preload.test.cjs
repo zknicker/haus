@@ -54,9 +54,13 @@ describe('desktop preload bridge', () => {
         const bridge = exposeDesktopBridge().get('hausDesktop');
 
         expect(bridge.loadsApp).toBe(true);
-        expect(typeof bridge.authTokenGet).toBe('function');
         expect(typeof bridge.authSessionPeek).toBe('function');
-        expect(typeof bridge.authSessionShare).toBe('function');
+        expect(typeof bridge.authInitialize).toBe('function');
+        expect(typeof bridge.authRefresh).toBe('function');
+        expect(typeof bridge.authSignIn).toBe('function');
+        expect(typeof bridge.authCancelSignIn).toBe('function');
+        expect(typeof bridge.authSignOut).toBe('function');
+        expect(typeof bridge.onAuthSession).toBe('function');
         expect(typeof bridge.openExternal).toBe('function');
         expect(typeof bridge.browserCommand).toBe('function');
         expect(typeof bridge.browserSnapshot).toBe('function');
@@ -70,7 +74,16 @@ describe('desktop preload bridge', () => {
         expect(bridge.onBrowserReveal).toBeUndefined();
         expect(typeof bridge.focusWindow).toBe('function');
         expect(typeof bridge.setAppIcon).toBe('function');
-        expect(typeof bridge.prepareSsoCallback).toBe('function');
+        for (const name of [
+            'authTokenGet',
+            'authTokenSet',
+            'authSessionShare',
+            'cancelSsoCallback',
+            'onSsoCallback',
+            'prepareSsoCallback',
+        ]) {
+            expect(bridge[name]).toBeUndefined();
+        }
         for (const name of ['tabDragClaim', 'tabDragDetach', 'tabDragEnd', 'tabDragStart']) {
             expect(typeof bridge[name]).toBe('function');
         }

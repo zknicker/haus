@@ -6,7 +6,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-const clerkUserId = 'user_dev_inbox_owner';
+const subject = 'user_dev_inbox_owner';
 
 let harness: HausServerHarness;
 let database: HausConnection;
@@ -16,9 +16,9 @@ let serverId: string;
 beforeAll(async () => {
     harness = await startHausServerHarness();
     database = await connectHausDatabase(harness.databaseUrl);
-    harness.clerkUsers.setVerifiedEmails(clerkUserId, ['dev@haus.test']);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
-    serverId = (await seedDevelopmentServer(database.db, clerkUserId)).id;
+    harness.humans.setVerifiedEmails(subject, ['dev@haus.test']);
+    owner = createHausClient(harness, await harness.humans.mintSessionToken(subject));
+    serverId = (await seedDevelopmentServer(database.db, subject)).id;
 });
 
 afterAll(async () => {
@@ -140,7 +140,7 @@ test('the roster reads seven days of turns for every demo Agent', async () => {
 
 test('seeding again adds nothing', async () => {
     const before = await countActivity();
-    const again = await seedDevelopmentServer(database.db, clerkUserId);
+    const again = await seedDevelopmentServer(database.db, subject);
 
     expect(again.id).toBe(serverId);
     expect(await countActivity()).toEqual(before);

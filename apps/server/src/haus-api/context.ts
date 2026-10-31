@@ -7,8 +7,9 @@ import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { GithubApp } from '../github/github-app.ts';
-import type { ClerkSessions } from '../identity/clerk-sessions.ts';
-import type { ClerkUsers } from '../identity/clerk-users.ts';
+import type { CloudflareAdmissions } from '../identity/cloudflare-access.ts';
+import type { HausSessions } from '../identity/haus-sessions.ts';
+import type { SessionConnections } from '../identity/session-connections.ts';
 import type { LinearRuntime } from '../linear/linear-runtime.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -21,7 +22,7 @@ import { publicOrigin } from '../triggers/trigger-url.ts';
 import type { SocketSession } from './socket-session.ts';
 
 /**
- * Request context for the Haus Server. It carries the Clerk session
+ * Request context for the Haus Server. It carries the Haus App session
  * for this request only — never process-shared identity — plus the Server's
  * PostgreSQL database.
  */
@@ -37,21 +38,17 @@ export interface HausContext {
     artifactThumbnails: ArtifactThumbnails | null;
     attachmentRoot: AttachmentRoot;
     avatarImageService: AvatarImageService;
-    clerkSessions: ClerkSessions;
-    /**
-     * Clerk session token presented by the App. HTTP requests carry it as an
-     * `Authorization: Bearer` header; WebSocket connections pass it via tRPC
-     * connectionParams. Null when the request is unauthenticated.
-     */
-    clerkSessionToken: string | null;
-    /** Verified-email lookup, used only by the invitation boundary. */
-    clerkUsers: ClerkUsers;
+    cloudflareAdmissions: CloudflareAdmissions;
     /** Live attachment sockets for MCP configuration delivery. */
     computerConnections: ComputerConnections;
     computerReleaseManifestUrl: string;
+    developmentAuth: { identitySubject: string; userId: string } | null;
     /** The Haus GitHub App, or null when its credentials are not configured. */
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
+    hausSessions: HausSessions;
+    /** HTTP response handle for ending SSE subscriptions on local sign-out. */
+    httpSessionConnection: HttpSessionConnection | null;
     /** The Linear app (or null), its single refresh owner, and the tool transport. */
     linear: LinearRuntime;
     mcpIconResolver: McpIconResolver;
@@ -69,14 +66,20 @@ export interface HausContext {
      */
     requestOrigin: string;
     runtime: EffectRuntime<never>;
+    sessionConnections: SessionConnections;
+    sessionId: string | null;
+    /** Haus access token from Authorization or tRPC connectionParams. */
+    sessionToken: string | null;
     /**
-     * The App WebSocket's live Clerk session, when this operation rides one.
-     * Its token supersedes `clerkSessionToken` (the opening token) once the App
+     * The App WebSocket's live Haus session, when this operation rides one.
+     * Its token supersedes `sessionToken` (the opening token) once the App
      * refreshes it in place. Null for HTTP requests.
      */
     socketSession: SocketSession | null;
     /** The one in-memory inbound fire budget, shared by the public route and test fires. */
     triggerRateLimiter: TriggerRateLimiter;
+    /** Present only after `humanProcedure` authenticates an opaque App access token. */
+    userId: string | null;
 }
 
 export interface HausContextDependencies {
@@ -88,12 +91,13 @@ export interface HausContextDependencies {
     artifactThumbnails: ArtifactThumbnails | null;
     attachmentRoot: AttachmentRoot;
     avatarImageService: AvatarImageService;
-    clerkSessions: ClerkSessions;
-    clerkUsers: ClerkUsers;
+    cloudflareAdmissions: CloudflareAdmissions;
     computerConnections: ComputerConnections;
     computerReleaseManifestUrl: string;
+    developmentAuth: { identitySubject: string; userId: string } | null;
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
+    hausSessions: HausSessions;
     /** The Linear app (or null), its single refresh owner, and the tool transport. */
     linear: LinearRuntime;
     mcpIconResolver: McpIconResolver;
@@ -102,6 +106,7 @@ export interface HausContextDependencies {
     messageRouter?: MessageRouter;
     postCommitWork: ServerPostCommitWork;
     runtime: EffectRuntime<never>;
+    sessionConnections: SessionConnections;
     triggerRateLimiter: TriggerRateLimiter;
 }
 
@@ -112,19 +117,29 @@ interface ContextCarrier {
         /** Fastify resolves this per connection; a WebSocket upgrade carries none. */
         protocol?: string;
     } | null;
+    res?: { raw?: HttpRawResponse } | null;
+}
+
+interface HttpRawResponse {
+    end(): void;
+    off(event: 'close' | 'finish', listener: () => void): void;
+    once(event: 'close' | 'finish', listener: () => void): void;
 }
 
 export function createHausContextFactory(dependencies: HausContextDependencies) {
     return (opts?: ContextCarrier): HausContext => ({
         ...dependencies,
         appProtocol: readAppProtocol(opts),
-        clerkSessionToken: readClerkSessionToken(opts),
+        sessionToken: readHausSessionToken(opts),
         requestHost: readRequestHost(opts),
         requestOrigin: publicOrigin({
             headers: opts?.req?.headers,
             protocol: opts?.req?.protocol,
         }),
         socketSession: null,
+        userId: null,
+        httpSessionConnection: readHttpSessionConnection(opts),
+        sessionId: null,
     });
 }
 
@@ -155,8 +170,8 @@ function readHeader(
     return Array.isArray(value) ? value[0] : value;
 }
 
-function readClerkSessionToken(opts?: ContextCarrier) {
-    const fromConnection = opts?.info?.connectionParams?.clerkSessionToken;
+function readHausSessionToken(opts?: ContextCarrier) {
+    const fromConnection = opts?.info?.connectionParams?.sessionToken;
 
     if (typeof fromConnection === 'string' && fromConnection.length > 0) {
         return fromConnection;
@@ -166,6 +181,29 @@ function readClerkSessionToken(opts?: ContextCarrier) {
     const value = Array.isArray(header) ? header[0] : header;
 
     return typeof value === 'string' && value.startsWith('Bearer ') ? value.slice(7) : null;
+}
+
+export interface HttpSessionConnection {
+    end(): void;
+    onClose(listener: () => void): () => void;
+}
+
+function readHttpSessionConnection(opts?: ContextCarrier): HttpSessionConnection | null {
+    const raw = opts?.res && 'raw' in opts.res ? opts.res.raw : null;
+    if (!raw) {
+        return null;
+    }
+    return {
+        end: () => raw.end(),
+        onClose(listener) {
+            raw.once('close', listener);
+            raw.once('finish', listener);
+            return () => {
+                raw.off('close', listener);
+                raw.off('finish', listener);
+            };
+        },
+    };
 }
 
 function readRequestHost(opts?: ContextCarrier) {

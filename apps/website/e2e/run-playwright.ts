@@ -31,12 +31,13 @@ function getFreePort() {
 const websiteRoot = fileURLToPath(new URL('../', import.meta.url));
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 const [hausServerPort, websitePort] = await Promise.all([getFreePort(), getFreePort()]);
-const command = [process.execPath, 'x', 'playwright', 'test', ...process.argv.slice(2)];
+const command = [process.execPath, '--bun', 'x', 'playwright', 'test', ...process.argv.slice(2)];
 const env = {
     ...process.env,
     HAUS_E2E_RUN_ID: runId,
     HAUS_SERVER_PORT: `${hausServerPort}`,
     HAUS_WEBSITE_PORT: `${websitePort}`,
+    NODE_ENV: 'test',
 };
 
 await runPreflight(env);

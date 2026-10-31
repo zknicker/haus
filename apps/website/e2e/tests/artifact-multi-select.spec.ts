@@ -159,7 +159,7 @@ test('bulk delete says how many of the selection this member may delete', async 
         session.databaseUrl,
         `update server_memberships set role = 'member'
          where server_id = '${server.id}'
-           and user_id = (select id from users where clerk_user_id = 'user_e2e_human')`
+           and user_id = (select id from users where id = 'usr_e2e_human')`
     );
     await page.goto(`/s/${slug}/artifacts?folder=starter-kit%2Fscripts`);
     const items = libraryRows(page.getByRole('grid', { name: 'Files' }));

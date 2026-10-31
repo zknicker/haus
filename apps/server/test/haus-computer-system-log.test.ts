@@ -11,10 +11,10 @@ const stormComputerId = 'cmp_abcdefghijklmnop';
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    harness.clerkUsers.setVerifiedEmails('user_system_log_owner', ['owner@example.com']);
+    harness.humans.setVerifiedEmails('user_system_log_owner', ['owner@example.com']);
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_system_log_owner')
+        await harness.humans.mintSessionToken('user_system_log_owner')
     );
     serverId = (
         await owner.trpc.server.create.mutate({
@@ -23,7 +23,7 @@ beforeAll(async () => {
         })
     ).id;
     const [ownerRow] = await harness.sql`
-        select id from users where clerk_user_id = 'user_system_log_owner'
+        select id from users where auth_subject = 'user_system_log_owner'
     `;
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)

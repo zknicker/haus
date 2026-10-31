@@ -1,9 +1,9 @@
-import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createAppTestFixture, e2ePeerEmail, signInAsAppHuman } from '../support/app-session.ts';
 import { completeOnboarding, createClient, openChannel, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 /**
- * The membership round trip in a real browser: an Owner invites, a second Clerk
+ * The membership round trip in a real browser: an Owner invites, a second Haus user
  * identity accepts and lands in #all, the Owner promotes and then removes them,
  * and the removed human loses the Server. The last Owner stays protected
  * throughout.
@@ -11,8 +11,9 @@ import { expect, test } from '../support/test.ts';
 const slug = 'membership-hq';
 
 test.beforeAll(async () => {
-    const { databaseUrl, token } = readClerkSessionFixture();
-    const created = await createClient(token).server.create.mutate({
+    const { accessToken, databaseUrl } = await createAppTestFixture();
+    await createAppTestFixture('peer');
+    const created = await createClient(accessToken).server.create.mutate({
         displayName: 'Membership HQ',
         slug,
     });
@@ -20,9 +21,9 @@ test.beforeAll(async () => {
 });
 
 test('an Owner invites, promotes, and removes a human', async ({ browser, page }) => {
-    const { peerEmail } = readClerkSessionFixture();
+    const peerEmail = e2ePeerEmail;
 
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/members/humans`);
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/members/humans$`, 'u'));
 
@@ -44,7 +45,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // The invited human accepts in their own browser context.
     const peerContext = await browser.newContext();
     const peerPage = await peerContext.newPage();
-    await signInAsClerkHuman(peerPage, 'peer');
+    await signInAsAppHuman(peerPage, 'peer');
     await peerPage.goto(invitePath);
     await peerPage.getByRole('button', { name: 'Accept invitation' }).click();
 
@@ -88,7 +89,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     await openChannel(peerPage, 'all');
     await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     const peerListPage = await peerContext.newPage();
-    await signInAsClerkHuman(peerListPage, 'peer');
+    await signInAsAppHuman(peerListPage, 'peer');
     // Settings > Servers is where switching lives now, so that list is what a
     // second open page holds while membership changes underneath it.
     await peerListPage.goto(`/s/${slug}/settings/servers`);
@@ -124,7 +125,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
 });
 
 test('a human outside the Server cannot reach its member management', async ({ page }) => {
-    await signInAsClerkHuman(page, 'peer');
+    await signInAsAppHuman(page, 'peer');
     await page.goto(`/s/${slug}/members`);
 
     await expect(page.getByText('Server unavailable')).toBeVisible();

@@ -14,10 +14,9 @@ import {
     chatMessagesTable,
 } from '../src/postgres/schema.ts';
 import { resolveAgentTurnTriggers } from '../src/server-agents/agent-turn-trigger-previews.ts';
-import { ensureUserByClerkId } from '../src/users/haus-user.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-const clerkUserId = 'user_dev_heartbeats_owner';
+const subject = 'user_dev_heartbeats_owner';
 
 let harness: HausServerHarness;
 let database: HausConnection;
@@ -27,8 +26,9 @@ let userId: string;
 beforeAll(async () => {
     harness = await startHausServerHarness();
     database = await connectHausDatabase(harness.databaseUrl);
-    serverId = (await seedDevelopmentServer(database.db, clerkUserId)).id;
-    userId = (await ensureUserByClerkId(database.db, clerkUserId)).id;
+    await harness.humans.mintSessionToken(subject);
+    userId = harness.humans.userIdForSubject(subject);
+    serverId = (await seedDevelopmentServer(database.db, userId)).id;
 });
 
 afterAll(async () => {

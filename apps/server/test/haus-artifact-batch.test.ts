@@ -16,10 +16,10 @@ let controller: AbortController;
 
 beforeAll(async () => {
     const email = 'batch-member@haus.test';
-    state.harness.clerkUsers.setVerifiedEmails('artifact-batch_member', [email]);
+    state.harness.humans.setVerifiedEmails('artifact-batch_member', [email]);
     member = createHausClient(
         state.harness,
-        await state.harness.clerk.mintSessionToken('artifact-batch_member')
+        await state.harness.humans.mintSessionToken('artifact-batch_member')
     );
     const { token } = await state.owner.trpc.invitation.create.mutate({
         email,
@@ -161,7 +161,7 @@ async function memberPublish(path: string) {
     const response = await fetch(url, {
         body: 'member bytes',
         headers: {
-            authorization: `Bearer ${await state.harness.clerk.mintSessionToken('artifact-batch_member')}`,
+            authorization: `Bearer ${await state.harness.humans.mintSessionToken('artifact-batch_member')}`,
             'content-type': 'application/octet-stream',
         },
         method: 'PUT',

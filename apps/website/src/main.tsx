@@ -6,7 +6,7 @@ import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
 import { installStrayFileDropGuard } from './features/servers/chat/composer-file-drop.ts';
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
-import { HausClerkProvider } from './lib/clerk.tsx';
+import { AppAuthProvider, seedDesktopAppSession } from './lib/app-auth.tsx';
 import { getDesktopBridge, isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import './styles/global.css';
 
@@ -17,6 +17,9 @@ if (!rootElement) {
 }
 
 installStrayFileDropGuard(window);
+if (isElectronDesktopApp()) {
+    seedDesktopAppSession();
+}
 
 if (isElectronDesktopApp() && navigator.userAgent.includes('Mac')) {
     document.documentElement.classList.add('macos-electron');
@@ -31,7 +34,7 @@ if (isElectronDesktopApp() && navigator.userAgent.includes('Mac')) {
 
 createRoot(rootElement).render(
     <StrictMode>
-        <HausClerkProvider>
+        <AppAuthProvider>
             <ThemeProvider>
                 <DevModeProvider>
                     <DesktopEditContextMenuProvider>
@@ -53,6 +56,6 @@ createRoot(rootElement).render(
                     <Toast.Provider placement="top end" width={360} />
                 </DevModeProvider>
             </ThemeProvider>
-        </HausClerkProvider>
+        </AppAuthProvider>
     </StrictMode>
 );

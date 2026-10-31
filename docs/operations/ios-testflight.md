@@ -22,9 +22,9 @@ picker switches to.
 Before the first upload, an Account Holder, Admin, or App Manager must:
 
 1. Accept pending App Store Connect agreements.
-2. Register the explicit App ID `chat.haus.ios` and enable Associated Domains for
-   `webcredentials:clerk.haus.chat`, Push Notifications ([iPhone Push](ios-push.md)), and
-   Communication Notifications. Saving a capability change invalidates the App ID's profiles;
+2. Register the explicit App ID `chat.haus.ios` and enable Push Notifications
+   ([iPhone Push](ios-push.md)) and Communication Notifications. Saving a capability change
+   invalidates the App ID's profiles;
    regenerate **Haus CI App Store** afterwards.
 3. Register the explicit App ID `chat.haus.ios.NotificationService` (description "Haus
    NotificationService") with no capabilities.
@@ -116,8 +116,8 @@ and system uptime for in-app timers (35F9.1). Its collected data types cover wha
 stores for app functionality: messages, photos, other attachments, name, email address, and user
 ID. Keep the App Store Connect privacy answers consistent with it. The Notification Service
 extension references no required-reason API and carries no manifest; re-check its binary with
-`nm -u` when it gains code. Clerk iOS 1.2.0 ships no manifest of its own; its telemetry runs only
-against development Clerk instances.
+`nm -u` when it gains code. Native OAuth uses Apple's AuthenticationServices and does not add an
+external authentication SDK or its telemetry.
 
 ## Credentials
 

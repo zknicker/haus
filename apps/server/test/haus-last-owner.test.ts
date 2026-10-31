@@ -152,12 +152,12 @@ async function countOwners(serverId: string) {
 async function coOwnedServer(): Promise<CoOwnedServer> {
     servers += 1;
     const slug = `last-owner-${servers}`;
-    const firstClerkId = `user_last_owner_${servers}_a`;
-    const secondClerkId = `user_last_owner_${servers}_b`;
-    const secondEmail = `${secondClerkId}@haus.test`;
+    const firstSubject = `subject_last_owner_${servers}_a`;
+    const secondSubject = `subject_last_owner_${servers}_b`;
+    const secondEmail = `${secondSubject}@haus.test`;
 
-    const first = await signIn(firstClerkId, [`${firstClerkId}@haus.test`]);
-    const second = await signIn(secondClerkId, [secondEmail]);
+    const first = await signIn(firstSubject, [`${firstSubject}@haus.test`]);
+    const second = await signIn(secondSubject, [secondEmail]);
 
     const created = await first.trpc.server.create.mutate({ displayName: slug, slug });
     const { token } = await first.trpc.invitation.create.mutate({
@@ -166,8 +166,8 @@ async function coOwnedServer(): Promise<CoOwnedServer> {
     });
     await second.trpc.invitation.accept.mutate({ token });
 
-    const firstUserId = await readUserId(firstClerkId);
-    const secondUserId = await readUserId(secondClerkId);
+    const firstUserId = await readUserId(firstSubject);
+    const secondUserId = await readUserId(secondSubject);
 
     await first.trpc.member.changeRole.mutate({
         confirmation: slug,
@@ -179,18 +179,18 @@ async function coOwnedServer(): Promise<CoOwnedServer> {
     return { first, firstUserId, second, secondUserId, serverId: created.id, slug };
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const [row] = await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `;
 
     return row.id as string;
 }
 
-async function signIn(clerkUserId: string, verifiedEmails: string[]) {
-    harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
+async function signIn(subject: string, verifiedEmails: string[]) {
+    harness.humans.setVerifiedEmails(subject, verifiedEmails);
 
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+    const token = await harness.humans.mintSessionToken(subject);
 
     return createHausClient(harness, token);
 }

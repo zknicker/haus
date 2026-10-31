@@ -14,7 +14,7 @@ Agent keeps its execution runtime, model, tools, and global session, including
 Claude-backed Agents. Its assigned Computer must be healthy and the Agent must
 not be stopped or retired.
 
-Haus Server authenticates the call with Clerk and the current App protocol,
+Haus Server authenticates the call with the Haus session and current App protocol,
 checks DM write access, and connects to OpenAI using `HAUS_OPENAI_API_KEY`.
 The key remains on Server. This credential needs GPT-Live access and billing;
 model-listing permission is not required. Live audio and seeded context leave

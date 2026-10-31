@@ -76,8 +76,8 @@ test('mentions, inline replies and DMs keep their own deterministic reasons', as
 
 test('with a second human, Jev decides the one Agent at the gate and recipients never change', async () => {
     const userId = 'usr_sole_second_human';
-    await fixture.harness.sql`insert into users (id, clerk_user_id, display_name)
-        values (${userId}, 'clerk_sole_second_human', 'Bea')`;
+    await fixture.harness.sql`insert into users (id, auth_subject, display_name)
+        values (${userId}, 'cf_sole_second_human', 'Bea')`;
     await fixture.harness.sql`insert into server_memberships (id, server_id, user_id, role)
         values ('mem_sole_second_human', ${fixture.serverId}, ${userId}, 'member')`;
     await fixture.harness.sql`insert into channel_participants (server_id, chat_id, user_id)

@@ -12,7 +12,7 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_onboarding_owner')
+        await harness.humans.mintSessionToken('user_onboarding_owner')
     );
 });
 
@@ -85,7 +85,7 @@ test('Computer reports advance durable onboarding only after usable inventory', 
     });
     otherSocket.close();
 
-    const token = owner.clerkSessionToken;
+    const token = owner.sessionToken;
     await harness.restart();
     owner.close();
     owner = createHausClient(harness, token);
@@ -215,7 +215,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         from server_memberships membership
         join users on users.id = membership.user_id
         where membership.server_id = ${created.id}
-          and users.clerk_user_id = 'user_onboarding_owner'
+          and users.auth_subject = 'user_onboarding_owner'
           and membership.revoked_at is null
     `;
     const ownerStint = ownerStanding?.stint;

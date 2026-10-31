@@ -166,7 +166,7 @@ test('only Server members can create or read a link', async () => {
     const created = await publish({ body: 'private', path: 'pod/private.txt' });
     const outsider = createHausClient(
         state.harness,
-        await state.harness.clerk.mintSessionToken('artifact-public-links_outsider')
+        await state.harness.humans.mintSessionToken('artifact-public-links_outsider')
     );
     const target = { artifact_id: created.artifact.artifact_id, serverId: state.serverId };
     await expect(outsider.trpc.artifact.share.mutate(target)).rejects.toThrow();

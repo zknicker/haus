@@ -177,7 +177,7 @@ async function seedServer() {
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
     const dmChatId = createOpaqueId('cht');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Server turns', id: serverId, slug: createOpaqueId('slug') });
@@ -226,7 +226,7 @@ async function addUser(serverId: string | null): Promise<HausUser> {
     const userId = createOpaqueId('usr');
     await connection.db
         .insert(usersTable)
-        .values({ clerkUserId: createOpaqueId('clk'), id: userId });
+        .values({ authSubject: createOpaqueId('clk'), id: userId });
     if (serverId) {
         await connection.db.insert(serverMembershipsTable).values({
             handle: `human-${randomBytes(4).toString('hex')}`,

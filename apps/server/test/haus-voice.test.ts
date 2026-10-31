@@ -44,11 +44,11 @@ beforeAll(async () => {
         openAiApiKey: 'test-only',
         connectLive: () => new WebSocket(`ws://127.0.0.1:${address.port}`),
     });
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_voice_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_voice_owner'));
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Voice HQ', slug: 'voice-hq' })
     ).id;
-    const [user] = await harness.sql`select id from users where clerk_user_id = 'user_voice_owner'`;
+    const [user] = await harness.sql`select id from users where auth_subject = 'user_voice_owner'`;
     const inventory = {
         runtimes: [
             {
@@ -89,24 +89,24 @@ test('requires membership, private DM access, and the exact app protocol', async
     await expect(rejectedCall(null)).resolves.toBe(403);
     const stranger = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_voice_stranger')
+        await harness.humans.mintSessionToken('user_voice_stranger')
     );
     await stranger.trpc.server.create.mutate({ displayName: 'Stranger', slug: 'stranger' });
-    await expect(rejectedCall(stranger.clerkSessionToken)).resolves.toBe(403);
-    await expect(rejectedCall(owner.clerkSessionToken, appProtocolVersion + 1)).resolves.toBe(403);
+    await expect(rejectedCall(stranger.sessionToken)).resolves.toBe(403);
+    await expect(rejectedCall(owner.sessionToken, appProtocolVersion + 1)).resolves.toBe(403);
     const channel = (await owner.trpc.chat.list.query({ serverId })).find(
         (chat) => chat.kind === 'channel'
     );
     expect(channel).toBeDefined();
-    await expect(
-        rejectedCall(owner.clerkSessionToken, appProtocolVersion, channel!.id)
-    ).resolves.toBe(403);
+    await expect(rejectedCall(owner.sessionToken, appProtocolVersion, channel!.id)).resolves.toBe(
+        403
+    );
     stranger.close();
 });
 
 test('delegates once into the unchanged Claude session, speaks committed replies, and closes on rotation', async () => {
     const events: Record<string, unknown>[] = [];
-    const socket = openCall(owner.clerkSessionToken);
+    const socket = openCall(owner.sessionToken);
     socket.on('message', (raw) => events.push(JSON.parse(raw.toString())));
     socket.on('error', () => {});
     try {
@@ -171,7 +171,7 @@ test('delegates once into the unchanged Claude session, speaks committed replies
 
 test('hangup gracefully closes the Live session', async () => {
     const events: Record<string, unknown>[] = [];
-    const socket = openCall(owner.clerkSessionToken);
+    const socket = openCall(owner.sessionToken);
     socket.on('message', (raw) => events.push(JSON.parse(raw.toString())));
     socket.on('error', () => {});
     try {
@@ -187,7 +187,7 @@ test('hangup gracefully closes the Live session', async () => {
 
 test('Server shutdown releases an active call before tearing down its database', async () => {
     const events: Record<string, unknown>[] = [];
-    const socket = openCall(owner.clerkSessionToken);
+    const socket = openCall(owner.sessionToken);
     socket.on('message', (raw) => events.push(JSON.parse(raw.toString())));
     socket.on('error', () => {});
     try {

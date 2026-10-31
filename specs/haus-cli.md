@@ -512,7 +512,7 @@ Additive workstream — no data destruction. With the operator, live:
 4. Smoke in a temp chat (`Codex smoke <timestamp>: WS1`): one fresh send, one
    deliberate hold + `--send-draft` release, one `--anyway`; delete the temp
    chat and record ids.
-5. Confirm `/api/agent/*` requires the agent token (runtime token and Clerk
+5. Confirm `/api/agent/*` requires the agent token (runtime token and human AppSession
    sessions rejected).
 
 ## 12. Verification lane

@@ -19,8 +19,8 @@ const credential = 'inventoryrefresh-computer-credential-00000000';
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = await signIn('clerk_inventoryrefresh_owner');
-    member = await signIn('clerk_inventoryrefresh_member');
+    owner = await signIn('cf_inventoryrefresh_owner');
+    member = await signIn('cf_inventoryrefresh_member');
     serverId = (
         await owner.trpc.server.create.mutate({
             displayName: 'Inventory Refresh HQ',
@@ -32,14 +32,14 @@ beforeAll(async () => {
         slug: 'inventoryrefresh-member-root',
     });
     const memberRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_inventoryrefresh_member'
+        select id from users where auth_subject = 'cf_inventoryrefresh_member'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
         values ('mem_inventoryrefresh00000000', ${serverId}, ${memberRows[0]?.id}, 'member')
     `;
     const ownerRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_inventoryrefresh_owner'
+        select id from users where auth_subject = 'cf_inventoryrefresh_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)
@@ -78,8 +78,8 @@ afterAll(async () => {
     await harness?.close();
 });
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
 function digest(value: string) {

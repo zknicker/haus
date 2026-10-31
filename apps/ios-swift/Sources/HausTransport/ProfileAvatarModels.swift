@@ -6,20 +6,17 @@ import Foundation
 /// zone is blank, and the key is optional rather than nullable, so a missing
 /// zone is omitted instead of sent as null.
 public struct SyncHumanIdentityInput: Encodable, Sendable {
-    public let email: String?
     public let name: String?
     public let serverID: String
     public let timezone: String?
 
-    public init(email: String?, name: String?, serverID: String, timezone: String? = nil) {
-        self.email = email
+    public init(name: String?, serverID: String, timezone: String? = nil) {
         self.name = name
         self.serverID = serverID
         self.timezone = timezone
     }
 
     private enum CodingKeys: String, CodingKey {
-        case email
         case name
         case serverID = "serverId"
         case timezone
@@ -27,11 +24,6 @@ public struct SyncHumanIdentityInput: Encodable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        if let email {
-            try container.encode(email, forKey: .email)
-        } else {
-            try container.encodeNil(forKey: .email)
-        }
         if let name {
             try container.encode(name, forKey: .name)
         } else {

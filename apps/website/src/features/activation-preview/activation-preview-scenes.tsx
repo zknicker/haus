@@ -1,7 +1,6 @@
 import type * as React from 'react';
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell } from '../../components/activation/activation-shell.tsx';
-import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { SignInGateFrame, SignInSessionRecovery } from '../auth/sign-in-gate.tsx';
 import { ComputerLoginApproval } from '../computers/computer-login-view.tsx';
 import { ServerChoiceFlow } from '../servers/server-choice-flow.tsx';
@@ -26,27 +25,19 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
         description: 'The signed-out entry with the sign-in action.',
         group: 'Sign in',
         id: 'sign-in',
-        render: () =>
-            isClerkEnabled ? (
-                <SignInGateFrame signIn />
-            ) : (
-                <SignInGateFrame
-                    message="Sign in to open your Haus. (Set VITE_CLERK_PUBLISHABLE_KEY to preview the sign-in action.)"
-                    signIn={false}
-                />
-            ),
+        render: () => <SignInGateFrame signIn />,
     },
     {
-        description: 'Clerk or the session token is still loading.',
+        description: 'The sign-in session is still loading.',
         group: 'Sign in',
         id: 'sign-in-loading',
         render: () => <ActivationLoading />,
     },
     {
-        description: 'Signed in, but the session token is unusable.',
+        description: 'Signed in, but the session needs attention.',
         group: 'Sign in',
         id: 'sign-in-recovery',
-        render: () => <SignInSessionRecovery onRetry={noop} onSignOut={noop} />,
+        render: () => <SignInSessionRecovery onRetry={noop} onSignIn={noop} />,
     },
     {
         description: 'No joined Server yet: offer Create and Join.',

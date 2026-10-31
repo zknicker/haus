@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server';
 import { and, desc, eq, inArray, like, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { dreamDedupeKey, heartbeatDedupeKey } from '../../agent-delivery/heartbeat-keys.ts';
-import { env } from '../../config/env.ts';
 import { appendSeedMessages } from '../../development/seed-inbox-messages.ts';
 import { agentInboxTable, agentLeadsTable, usersTable } from '../../postgres/schema.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
@@ -62,7 +61,7 @@ const evidenceInputSchema = z.object({
 export const startHeartbeatRoute = memberProcedure
     .input(startHeartbeatInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
+        assertHeartbeatTestAllowed(ctx.requestHost, ctx.developmentAuth !== null);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
         const now = new Date();
@@ -96,7 +95,7 @@ export const startHeartbeatRoute = memberProcedure
 export const seedHeartbeatMessagesRoute = memberProcedure
     .input(seedMessagesInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
+        assertHeartbeatTestAllowed(ctx.requestHost, ctx.developmentAuth !== null);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
         const operator = ctx.member;
         if (!operator) {
@@ -143,7 +142,7 @@ export const seedHeartbeatMessagesRoute = memberProcedure
 export const setOperatorTimezoneRoute = memberProcedure
     .input(operatorTimezoneInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
+        assertHeartbeatTestAllowed(ctx.requestHost, ctx.developmentAuth !== null);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
         const operator = ctx.member;
         if (!operator) {
@@ -168,7 +167,7 @@ export const setOperatorTimezoneRoute = memberProcedure
 export const heartbeatEvidenceRoute = memberProcedure
     .input(evidenceInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
+        assertHeartbeatTestAllowed(ctx.requestHost, ctx.developmentAuth !== null);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
         const reports = await ctx.hausDb
@@ -223,12 +222,12 @@ export const heartbeatEvidenceRoute = memberProcedure
 
 export function assertHeartbeatTestAllowed(
     requestHost: string | null,
-    devClerkSignInUserId: string | undefined
+    developmentAuthEnabled: boolean
 ) {
     // The Host header is client-controlled. Only development and test lifecycles
-    // resolve the dev sign-in user (.env.schema), so a hosted non-production
+    // provide the fixed development identity, so a hosted non-production
     // deployment cannot be reached by spoofing a localhost Host.
-    if (!devClerkSignInUserId) {
+    if (!developmentAuthEnabled) {
         throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'Heartbeat test routes are available only in development.',

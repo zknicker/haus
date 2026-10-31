@@ -20,7 +20,7 @@ const codexRuntime = {
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    const token = await harness.clerk.mintSessionToken('user_channel_update');
+    const token = await harness.humans.mintSessionToken('user_channel_update');
     owner = createHausClient(harness, token);
 
     const server = await owner.trpc.server.create.mutate({
@@ -29,7 +29,7 @@ beforeAll(async () => {
     });
     serverId = server.id;
     const rows = (await harness.sql`
-        select id from users where clerk_user_id = 'user_channel_update'
+        select id from users where auth_subject = 'user_channel_update'
     `) as { id: string }[];
     ownerUserId = rows[0].id;
     await harness.sql`

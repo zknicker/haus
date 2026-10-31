@@ -8,7 +8,7 @@ import {
     ServerNotFoundError,
 } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { findUserByClerkId } from '../users/haus-user.ts';
+import { findUserById } from '../users/haus-user.ts';
 import { authenticateComputerLogin } from './login-session-service.ts';
 
 export type ComputerAttachmentErrorCode =
@@ -44,7 +44,7 @@ interface ComputerAttachmentRecord {
 
 export async function attachComputer(db: HausDatabase, input: AttachComputerInput) {
     const login = await authenticateComputerLogin(db, { accessToken: input.accessToken });
-    const member = await findUserByClerkId(db, login.clerkUserId);
+    const member = await findUserById(db, login.userId);
 
     return await db.transaction(async (tx) => {
         const [server] = await tx

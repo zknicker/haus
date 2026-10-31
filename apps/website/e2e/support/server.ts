@@ -6,17 +6,12 @@ import { appProtocolHeaders, appProtocolVersion } from '@haus/api/app-protocol';
 import { expect, type Page } from '@playwright/test';
 import { createTRPCClient, httpLink } from '@trpc/client';
 import type { HausRouter } from '../../../server/src/haus-api/router.ts';
-import {
-    e2eHumanEmail,
-    e2eHumanName,
-    readClerkSessionFixture,
-    signInAsClerkHuman,
-} from './clerk-session.ts';
+import { type E2eIdentity, signInAsAppHuman } from './app-session.ts';
 import { type ServerState, serverStateFile } from './server-state.ts';
 
 /**
- * Restarts only the Server process, like a deploy: PostgreSQL, Clerk, the
- * port, and the browser session survive, and App sockets reconnect. Resolves
+ * Restarts only the Server process, like a deploy: PostgreSQL, the port, and
+ * the browser AppSession survive, and App sockets reconnect. Resolves
  * once the new process answers its health route.
  */
 export async function restartHausServer(timeoutMs = 40_000) {
@@ -45,13 +40,12 @@ function readServerState() {
 export async function createTestServer(
     page: Page,
     input: { displayName: string; slug: string },
-    signIn: Parameters<typeof signInAsClerkHuman>[1] = 'human'
+    signIn: E2eIdentity = 'human'
 ) {
-    await signInAsClerkHuman(page, signIn);
-    const session = readClerkSessionFixture();
-    const client = createClient(session.token);
+    const session = await signInAsAppHuman(page, signIn);
+    const client = createClient(session.accessToken);
     const created = await client.server.create.mutate(input);
-    await seedHumanIdentity(client, created.id);
+    await seedHumanIdentity(client, created.id, session.session.user.displayName ?? '');
     completeOnboarding(session.databaseUrl, created.id);
     const server = await client.server.bySlug.query({ slug: input.slug });
     await page.goto(`/s/${input.slug}`);
@@ -60,14 +54,15 @@ export async function createTestServer(
 }
 
 /**
- * Reports the signed-in human's Clerk identity, which the App does on every
- * real sign-in. clerk-js never loads in e2e, so nothing else would, and the
- * human would stay nameless where the product reads a display name.
+ * Reports the signed-in human's Haus profile on the Server membership.
  */
-export async function seedHumanIdentity(client: ReturnType<typeof createClient>, serverId: string) {
+export async function seedHumanIdentity(
+    client: ReturnType<typeof createClient>,
+    serverId: string,
+    name = ''
+) {
     await client.member.syncIdentity.mutate({
-        email: e2eHumanEmail,
-        name: e2eHumanName,
+        name,
         serverId,
     });
 }

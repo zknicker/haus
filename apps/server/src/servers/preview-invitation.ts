@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import type { ClerkUsers } from '../identity/clerk-users.ts';
+import { listVerifiedEmails } from '../identity/human-identities.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverInvitationsTable, serversTable } from '../postgres/schema.ts';
 import { isLiveInvitation } from './accept-invitation.ts';
@@ -7,7 +7,7 @@ import { InvitationNotAcceptableError } from './invitation-access.ts';
 import { hashInvitationToken } from './invitation-token.ts';
 
 export interface ServerInvitationPreview {
-    /** Whether the caller's verified Clerk addresses include the bound one. */
+    /** Whether the caller's verified addresses include the invitation address. */
     emailMatches: boolean;
     serverDisplayName: string;
     serverSlug: string;
@@ -20,8 +20,7 @@ export interface ServerInvitationPreview {
  */
 export async function previewServerInvitation(
     db: HausDatabase,
-    clerkUsers: ClerkUsers,
-    clerkUserId: string,
+    userId: string,
     token: string
 ): Promise<ServerInvitationPreview> {
     const [invitation] = await db
@@ -40,7 +39,7 @@ export async function previewServerInvitation(
         throw new InvitationNotAcceptableError();
     }
 
-    const verifiedEmails = await clerkUsers.readVerifiedEmails(clerkUserId);
+    const verifiedEmails = await listVerifiedEmails(db, userId);
 
     return {
         emailMatches: verifiedEmails.includes(invitation.email),

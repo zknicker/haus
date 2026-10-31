@@ -286,7 +286,7 @@ captures fall back to the plain page background.
 
 Pages run in sandboxed WebContentsViews without Node integration or the App preload. Only the App's
 main frame can issue browser IPC commands, even when a page visits the Haus origin. Pages share a
-persistent `haus-browser` partition separate from the App's Clerk session, so website logins survive
+persistent `haus-browser` partition separate from the App's sign-in session, so website logins survive
 restarts and Server switches. Downloads and website permission requests are disabled. Personal
 browser cookies, passwords, and history are not imported, and Agents have no browser access; both
 need separate product contracts and access controls.

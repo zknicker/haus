@@ -1,7 +1,6 @@
 import { Button } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
-import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { useSignOut } from '../auth/use-sign-out.ts';
 
 export function ServerSetupWaiting({ serverName }: { serverName: string }) {
@@ -15,7 +14,7 @@ export function ServerSetupWaiting({ serverName }: { serverName: string }) {
                         <Button onPress={() => navigate('/s?choose')} variant="secondary">
                             Choose another Server
                         </Button>
-                        {isClerkEnabled ? <SignOutButton /> : null}
+                        <SignOutButton />
                     </>
                 }
                 title={serverName}

@@ -14,6 +14,5 @@ try {
     process.exitCode = 1;
 } finally {
     await harness.cleanup();
-    // Clerk's headless client keeps token-refresh timers alive after sign-out.
     process.exit(process.exitCode ?? 0);
 }

@@ -4,36 +4,22 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computerProtocolVersion } from '@haus/api';
 import { bootstrapHausDatabase } from '../../server/src/postgres/bootstrap.ts';
-import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
-import {
-    clerkSessionFile,
-    e2eClerkSessionId,
-    e2eClerkUserId,
-    e2eHumanEmail,
-    e2ePeerClerkUserId,
-    e2ePeerEmail,
-} from './support/clerk-session.ts';
 import { type ServerState, serverStateFile } from './support/server-state.ts';
 
 /**
- * Starts the hosted Haus Server for e2e: a throwaway PostgreSQL cluster and a
- * local Clerk issuer, with the session token the browser will present written
- * where the specs read it. The pre-WS6 local sidecar is a separate process.
+ * Starts the hosted Haus Server for e2e with a throwaway PostgreSQL cluster.
+ * The Playwright test runner mints App sessions directly into that test DB.
  */
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const stateDirectory = fileURLToPath(new URL('../../../.context/e2e/', import.meta.url));
-const clerkSessionPath = clerkSessionFile();
 const attachmentRoot = mkdtempSync(join(tmpdir(), 'haus-e2e-attachments-'));
-// The browser is the frontend that asks Clerk for the session, so it is the
-// authorized party the Server binds to.
+// The browser origin is the one the Server accepts for AppSession requests.
 const appOrigin = process.env.HAUS_APP_ORIGIN ?? 'http://127.0.0.1:3101';
 
 mkdirSync(stateDirectory, { recursive: true });
-rmSync(clerkSessionPath, { force: true });
 
 const cluster = await startPostgresCluster();
-const clerk = await startClerkTestIssuer(appOrigin, { sessionTokenLifetimeSeconds: 3600 });
 const computerReleaseServer = Bun.serve({
     async fetch() {
         await Bun.sleep(400);
@@ -53,13 +39,8 @@ const computerReleaseServer = Bun.serve({
 });
 await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
 
-// The invitation boundary asks Clerk which of a human's addresses are verified.
-// The local issuer answers that too, so e2e drives the real acceptance path.
-clerk.setVerifiedEmails(e2eClerkUserId, [e2eHumanEmail]);
-clerk.setVerifiedEmails(e2ePeerClerkUserId, [e2ePeerEmail]);
-
 process.once('exit', () => {
-    rmSync(clerkSessionPath, { force: true });
+    rmSync(serverStatePath, { force: true });
     rmSync(attachmentRoot, { force: true, recursive: true });
     computerReleaseServer.stop(true);
     void cluster.stop();
@@ -71,30 +52,10 @@ process.once('SIGINT', () => {
     void shutdown();
 });
 
-writeFileSync(
-    clerkSessionPath,
-    JSON.stringify({
-        databaseUrl: cluster.databaseUrl,
-        peerEmail: e2ePeerEmail,
-        peerToken: await clerk.mintSessionToken(e2ePeerClerkUserId),
-        rotatedToken: await clerk.mintSessionToken(e2eClerkUserId, { rotation: 'second' }),
-        // A real Clerk session id, so the App refreshes the socket in place on rotation.
-        sessionToken: await clerk.mintSessionToken(e2eClerkUserId, { sid: e2eClerkSessionId }),
-        sessionRotatedToken: await clerk.mintSessionToken(e2eClerkUserId, {
-            rotation: 'second',
-            sid: e2eClerkSessionId,
-        }),
-        token: await clerk.mintSessionToken(e2eClerkUserId),
-    })
-);
-
 const serverEnv = {
     ...process.env,
     HAUS_APP_ORIGIN: appOrigin,
     HAUS_ATTACHMENT_ROOT: attachmentRoot,
-    HAUS_CLERK_API_URL: clerk.url,
-    HAUS_CLERK_ISSUER_URL: clerk.url,
-    HAUS_CLERK_SECRET_KEY: 'sk_test_haus_e2e',
     HAUS_COMPUTER_RELEASE_MANIFEST_URL: `http://127.0.0.1:${computerReleaseServer.port}/latest.json`,
     HAUS_DATABASE_URL: cluster.databaseUrl,
     // Install flows mint a Linear authorize URL; nothing here ever reaches Linear.
@@ -105,7 +66,7 @@ const serverPort = process.env.HAUS_SERVER_PORT ?? '8091';
 const serverStatePath = serverStateFile();
 
 // The Server is a child so a spec can restart it like a deploy: PostgreSQL,
-// Clerk, and the port survive, and App sockets reconnect to the new process.
+// AppSessions, and the port survive, and App sockets reconnect to the new process.
 let server = spawnServer();
 let generation = 0;
 let restarting: Promise<void> | null = null;
@@ -167,8 +128,13 @@ async function waitForHealthy(child: ReturnType<typeof spawnServer>) {
 }
 
 function writeServerState() {
-    const state: ServerState = { generation, harnessPid: process.pid, serverPid: server.pid };
-    writeFileSync(serverStatePath, JSON.stringify(state));
+    const state: ServerState = {
+        databaseUrl: cluster.databaseUrl,
+        generation,
+        harnessPid: process.pid,
+        serverPid: server.pid,
+    };
+    writeFileSync(serverStatePath, JSON.stringify(state), { mode: 0o600 });
 }
 
 async function shutdown(exitCode = 0) {
@@ -179,10 +145,8 @@ async function shutdown(exitCode = 0) {
     shuttingDown = true;
     server.kill('SIGTERM');
     await server.exited;
-    await clerk.close();
     computerReleaseServer.stop(true);
     await cluster.stop();
-    rmSync(clerkSessionPath, { force: true });
     rmSync(serverStatePath, { force: true });
     rmSync(attachmentRoot, { force: true, recursive: true });
     process.exit(exitCode);

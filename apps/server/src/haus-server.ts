@@ -10,6 +10,7 @@ import {
 } from './haus-server-application.ts';
 import { handleStopSignals } from './haus-server-stop.ts';
 import { linearHostedDefinition, skoolHostedDefinition } from './hosted-mcp/catalog.ts';
+import { cloudflareAccessIssuer } from './identity/cloudflare-access.ts';
 import { linearAppFromEnvironment } from './linear/linear-api.ts';
 import { createJevRouter } from './message-routing/jev-client.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
@@ -55,9 +56,7 @@ async function start() {
                 : undefined,
         artifactStorageBytes: env.HAUS_ARTIFACT_STORAGE_BYTES,
         attachmentRoot: env.HAUS_ATTACHMENT_ROOT,
-        clerkApiUrl: env.HAUS_CLERK_API_URL,
-        clerkIssuerUrl: env.HAUS_CLERK_ISSUER_URL,
-        clerkSecretKey: env.HAUS_CLERK_SECRET_KEY,
+        cloudflareAccess: { audience: env.HAUS_CF_ACCESS_AUDIENCE },
         computerReleaseManifestUrl: env.HAUS_COMPUTER_RELEASE_MANIFEST_URL,
         databaseUrl: env.HAUS_DATABASE_URL,
         hostedMcps: {
@@ -88,6 +87,7 @@ async function start() {
         pushSender: push.sender,
         releaseIdentity: release,
         staticAppRoot: env.HAUS_STATIC_APP_ROOT,
+        enableDevelopmentAuth: process.env.HAUS_DEV_STACK === '1',
         thoughtSummarizer: env.HAUS_GEMINI_API_KEY
             ? createGeminiThoughtSummarizer({ apiKey: env.HAUS_GEMINI_API_KEY })
             : null,
@@ -107,14 +107,8 @@ async function start() {
     logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.HAUS_DATABASE_URL));
     logStartupDetail('📎', 'Attachments', env.HAUS_ATTACHMENT_ROOT);
     logStartupDetail('🔗', 'Hosted MCPs', 'Skool ready · private transport · supervised by Server');
-    logStartupDetail('🔑', 'Clerk', env.HAUS_CLERK_ISSUER_URL);
-    logStartupDetail(
-        '✉️',
-        'Invitations',
-        env.HAUS_CLERK_SECRET_KEY
-            ? 'verified-email lookup configured'
-            : 'disabled — set HAUS_CLERK_SECRET_KEY to accept invitations'
-    );
+    logStartupDetail('🔑', 'Cloudflare Access', cloudflareAccessIssuer);
+    logStartupDetail('✉️', 'Invitations', 'verified-email aliases stored in Haus');
     logStartupDetail(
         '💭',
         'Agent thoughts',

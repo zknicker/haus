@@ -123,7 +123,7 @@ windows.
 - **Ask.** `createWindow({ opener })` in `electron/main.cjs` calls
   `electron/query-cache-handoff.cjs`, which sends the opener `desktop:query-cache:request`. The
   opener's `HausServerProvider` answers with `packQueryCacheHandoff` (`lib/query-cache-handoff.ts`):
-  TanStack `dehydrate` of settled tRPC reads plus the Clerk user id.
+  TanStack `dehydrate` of settled tRPC reads plus the Haus user id.
 - **What is copied.** `isShareableQuery` is the one rule. It copies successful tRPC queries only.
   It skips App-local caches such as update checks, and it skips reads that opt
   out of mount refetch (`queryPolicy.volatileState`), because a live subscription keeps those
@@ -132,13 +132,33 @@ outlines live under App-local keys, so a new window reads its own in one request
   not handed off at all.
 - **Carry.** IPC structured clone carries the copy as is, so no transformer is involved (the tRPC
   link has none). Main holds it in memory for the one new window and never writes it to disk. Main
-  drops it once claimed, after 10 seconds, when the new window closes, or when the shared Clerk
-  session changes or clears (`clerk-session-handoff.cjs` `onSessionChange`).
+  drops it once claimed, after 10 seconds, when the new window closes, or when the signed-in
+  Haus user changes or signs out (`native-auth.cjs` `onSessionChange`).
 - **Use.** The new window claims the copy synchronously (`queryCacheClaim`) when its
   `QueryClient` is created, before first render. It hydrates only when the copy's user matches
-  this window's Clerk user: the loaded user, or the handed-off session's user before Clerk loads.
+  this window's Haus user from the AppSession main holds in memory and exposes synchronously to
+  new windows.
   It then invalidates everything without refetching, so the data renders at once and every read
   refetches when it mounts. Realtime subscriptions take over from there.
+
+## App Sign-In
+
+The browser keeps its Server-issued `AppSession` in memory. It reads and refreshes the short-lived
+session through `GET /auth/session` with the same-origin resume cookie, one shot 25 seconds before
+the access token expires and when the page returns online or becomes visible with a missing or
+near-expiry session. A refused socket session also causes one refresh attempt. There is no recurring
+auth poll. The Server owns the `HttpOnly` resume cookie; the App does not persist the access token.
+Browser sign-in starts at `/auth/start` and returns to the requested App path.
+
+Electron's main process owns the Cloudflare OAuth grant and the rotating Haus resume token. It
+encrypts those credentials with Electron `safeStorage`, restores the current `AppSession` before the
+renderer paints, and sends only that `AppSession` to each trusted window. A single main-process
+refresh writer and timer keep every window on the same user; renderers never store provider tokens
+or the resume token. The packaged callback is the exact `haus://sso-callback` URI; unpackaged local
+development uses a one-use loopback callback.
+
+The desktop bridge is covered by `apps/website/electron/native-auth*.test.cjs` and the App session
+store by `apps/website/src/lib/app-auth-session.test.ts`.
 
 ## Window Layouts
 
@@ -153,9 +173,9 @@ The web keeps its column topbar and full-height sidebar.
 
 ## Session Refresh And Reconnect
 
-The App keeps one tRPC client and React provider mounted for the signed-in human. Clerk token
-rotation re-authenticates that client's open websocket in place (`session.refresh`, see
-[Auth](../api/auth.md#socket-sessions)); only an identity change or a refused refresh reconnects,
+The App keeps one tRPC client and React provider mounted for the signed-in human. AppSession access
+token rotation re-authenticates that client's open websocket in place (`session.refresh`, see
+[Auth](../api/auth.md#socket-sessions)); only a Haus user/session change or a refused refresh reconnects,
 and the reconnect reads fresh connection parameters and resumes pending subscriptions. The refresh
 goes through that same client (`lib/haus-connection.ts`, `context: { socket: true }`), never a
 second client on the socket: the socket keys requests by the client's operation id, so a second

@@ -269,14 +269,14 @@ export function cloudAgentFixture() {
         });
     }
 
-    async function signIn(clerkUserId: string, verifiedEmails: string[]) {
-        harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
-        return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    async function signIn(subject: string, verifiedEmails: string[]) {
+        harness.humans.setVerifiedEmails(subject, verifiedEmails);
+        return createHausClient(harness, await harness.humans.mintSessionToken(subject));
     }
 
-    async function readUserId(clerkUserId: string) {
+    async function readUserId(subject: string) {
         const [row] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
         return row?.id ?? '';
     }

@@ -8,7 +8,7 @@ import {
 
 /**
  * Where an invited human lands. The Server decides whether their signed-in
- * Clerk identity carries the verified address this invitation is bound to; the
+ * Verified identity carries the address this invitation is bound to; the
  * page only reports that answer. It never learns whose address it is.
  */
 export function AcceptInvitationPage() {

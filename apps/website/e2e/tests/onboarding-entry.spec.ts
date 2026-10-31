@@ -1,4 +1,4 @@
-import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import { completeOnboarding, createClient } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -7,10 +7,10 @@ const waitingCopy = 'The server owner is still setting up this server. Please ch
 test('fresh owner reload keeps a neutral frame until setup resolves and can switch Servers', async ({
     page,
 }) => {
-    const session = readClerkSessionFixture();
-    const owner = createClient(session.token);
+    const session = await createAppTestFixture();
+    const owner = createClient(session.accessToken);
     await owner.server.create.mutate({ displayName: 'Opening demo', slug: 'opening-demo' });
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
 
     let release: () => void = () => undefined;
     const pending = new Promise<void>((resolve) => {
@@ -86,16 +86,17 @@ for (const role of ['member', 'admin'] as const) {
     test(`${role} waits through reload and enters the intended destination when setup completes`, async ({
         page,
     }) => {
-        const session = readClerkSessionFixture();
-        const owner = createClient(session.token);
-        const peer = createClient(session.peerToken);
+        const session = await createAppTestFixture();
+        const peerSession = await createAppTestFixture('peer');
+        const owner = createClient(session.accessToken);
+        const peer = createClient(peerSession.accessToken);
         const slug = `waiting-${role}`;
         const created = await owner.server.create.mutate({ displayName: `Waiting ${role}`, slug });
         const invitation = await owner.invitation.create.mutate({
-            email: session.peerEmail,
+            email: peerSession.email,
             serverId: created.id,
         });
-        await signInAsClerkHuman(page, 'peer');
+        await signInAsAppHuman(page, 'peer');
         await page.goto(`/invite/${invitation.token}`);
         await page.getByRole('button', { name: 'Accept invitation' }).click();
         await expect(page.getByText(waitingCopy)).toBeVisible();

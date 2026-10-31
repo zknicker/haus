@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
 import { watchActivationMark } from '../support/activation-mark.ts';
-import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import { createClient, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -16,9 +16,9 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     page,
 }) => {
     test.setTimeout(120_000);
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
 
-    const owner = createClient(readClerkSessionFixture().token);
+    const owner = createClient((await createAppTestFixture()).accessToken);
     await page.goto('/s?choose');
     const nameField = page.getByLabel('Name');
     await page.getByRole('button', { name: 'Create a Server' }).click();
@@ -54,7 +54,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         let attachment: Awaited<ReturnType<typeof computer.waitForAttachment>>;
         try {
             const approvalPage = await approvalContext.newPage();
-            await signInAsClerkHuman(approvalPage);
+            await signInAsAppHuman(approvalPage);
             await approvalPage.goto(computer.verificationUrl);
             await expect(
                 approvalPage.getByRole('heading', { name: 'Approve Haus Computer?' })

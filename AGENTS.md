@@ -304,7 +304,7 @@ loads it from `bootstrap.sh cursor-install` and refreshes it from `bootstrap.sh 
   `scripts/dev-postgres.mjs` only auto-discovers Homebrew paths on Linux, so a non-standard install
   needs `HAUS_POSTGRES_BIN`. Do not start a system PostgreSQL service. Each lane owns a throwaway
   cluster. On root hosts, `scripts/postgres-server-account.mjs` runs the server as `postgres`.
-- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`). The first Server boot seeds the
+- Local apps auto sign in through the loopback-only development session. The first Server boot seeds the
   demo Server (Blippy, Tiny, `#all`, `#product`). No manual login.
 - One Claude cloud environment serves every fleet repo. Its Setup script is `zknicker/agents`
   `cloud/setup-script.sh`.

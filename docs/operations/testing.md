@@ -101,9 +101,9 @@ that matches multiple rows, run the union of their required proof.
 
 ## Quality CI And Check Lanes
 
-The App browser suite signs in through a local Clerk issuer. Its fixture session tokens last one
-hour because the browser fixture does not load Clerk's token-refresh client. The shared issuer's
-default remains five minutes for Server identity tests, and expired-token fixtures remain expired.
+The App browser suite uses real Server-issued AppSessions in an isolated loopback test database.
+Its fixture access tokens last one hour; production sessions retain their short access lifetime.
+Server admission tests use a local signed Cloudflare assertion issuer, including expired assertions.
 
 Per-commit CI answers exactly one question: is the contract intact and does the
 fast stuff pass? The `Quality` workflow runs `bun run check:fast` on
@@ -134,7 +134,7 @@ not a list of exclusions:
   fast lane even though the rest of the App is not. They are plain Bun tests
   over extracted `.cjs` modules — no HeroUI dist, no Electron runtime, no
   browser — so the shell's production contracts (the preload bridge globals,
-  trusted-renderer origins, Clerk SSO callback handling, external-link routing)
+  trusted-renderer origins, Cloudflare OAuth callback handling, external-link routing)
   are gated per commit. `test:app-unit` stays heavy because `apps/website/src`
   resolves `@heroui-pro/react`. That is also why the iOS agent-HTML token drift
   test sits in `apps/website/src/agent-html/` rather than beside its generator
@@ -156,10 +156,10 @@ not a list of exclusions:
 | --- | --- | --- |
 | Focused unit/domain tests | Pure logic, view models, hooks, mappers, scheduling rules, validation, or regressions. | Add one targeted regression for behavior changes. Avoid asserting implementation calls. |
 | Computer service tests | Workspaces, queues, execution state, recovery, or execution evidence. | Use real temp directories and the real service boundary. |
-| Hosted Server tests | Haus Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/haus-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
+| Hosted Server tests | Haus Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/haus-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Cloudflare assertion issuer. Never mock PostgreSQL or the transaction. |
 | Contract/API/SDK gates | `packages/haus-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@haus/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `architect-react-features` skill for nontrivial React architecture. |
-| Desktop shell tests | Electron main-process and preload behavior: the injected bridge globals, trusted-renderer origins, Clerk SSO callback and native requests, external-link routing, window state. | Extract the rule into a `.cjs` module beside its caller and cover it with a `*.test.cjs` in `apps/website/electron`; the fast lane runs them. Keep them free of the `electron` runtime. |
+| Desktop shell tests | Electron main-process and preload behavior: the injected bridge globals, trusted-renderer origins, Cloudflare OAuth callback and native requests, external-link routing, window state. | Extract the rule into a `.cjs` module beside its caller and cover it with a `*.test.cjs` in `apps/website/electron`; the fast lane runs them. Keep them free of the `electron` runtime. |
 | App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports and a throwaway PostgreSQL cluster. |
 | Computer executor tests | Execution-runtime mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Computer fixtures, deterministic fake executors, or an opt-in `test:agents` scenario. |
 | Agent tests | Observable Agent behavior across real Server, Computer, and model: attention, routing, tasks, coordination, skills, workspace, reminders, and proven silence. | Headless scenarios under `scripts/agent-tests/scenarios/`. Assert structural Server state plus literal markers; never prose shape, except the shared voice gate (`scripts/agent-tests/voice-gate.mjs`) that rejects a few banned voice patterns in model-authored channel messages. |
@@ -186,7 +186,7 @@ not a list of exclusions:
 ## App E2E
 
 Use Playwright against the real App and hosted Server for browser-level
-contracts. The lane uses isolated ports, PostgreSQL, attachments, and Clerk
+contracts. The lane uses isolated ports, PostgreSQL, attachments, and AppSession
 fixtures. It must not point at developer model-provider credentials or start a
 real Computer.
 
@@ -214,10 +214,10 @@ Run one spec while repairing a focused surface:
 bun e2e/run-playwright.ts e2e/tests/messaging.spec.ts
 ```
 
-The lane starts only the hosted Server, throwaway PostgreSQL, Clerk issuer, and
+The lane starts only the hosted Server, throwaway PostgreSQL and AppSession fixtures, and
 website. Computer inventory and Agent-authored effects use deterministic
 fixtures or public runner contracts; no model runs. The membership spec still
-drives the real invitation round trip across two Clerk identities. Actual
+drives the real invitation round trip across two test identities. Actual
 App-to-Computer-to-model behavior belongs to the agent-test lanes below.
 
 ### Fresh-Server onboarding proof
@@ -229,7 +229,7 @@ acceptance by a member, member/admin gating, and automatic entry at the retained
 setup completes. It also checks that a completed Server with no Computer remains accessible.
 
 `apps/website/e2e/tests/servers.spec.ts` is the one browser tracer for a fresh
-Server. It drives the real App, hosted Server, throwaway PostgreSQL and Clerk
+Server. It drives the real App, hosted Server, throwaway PostgreSQL and AppSession
 fixtures, deterministic Computer protocol, and public Agent runner contract.
 It proves the route gate, actionable inventory/application repair, reload and
 Computer reconnect, replay convergence, immediate unlock before the delayed
@@ -446,7 +446,7 @@ Failed scenarios also capture each Agent's current delivery state, recent turns,
 and retained delivery rows before cleanup. Query failures are recorded beside
 the available evidence rather than replacing the original scenario failure.
 
-The lane needs `bun run dev` and configured development Clerk keys, plus one
+The lane needs `bun run dev` and one
 attached Computer whose reported inventory carries a `codex` runtime with a
 `terra` model — that is what every test Agent is built on, unless
 `HAUS_AGENT_TESTS_MODEL=<runtime>/<model>` names another.
@@ -560,9 +560,8 @@ It restores changed Agent configuration afterward. Internal generation and
 resume bookkeeping remain covered by deterministic Computer tests; this live
 lane asserts only behavior exposed by the hosted product contract.
 
-It requires `bun run dev`, configured development Clerk keys, two applied online Agents, and the
-seeded Channels. Authentication uses a localhost development sign-in ticket and Clerk's headless
-session refresh; it does not use an auth bypass. It shares `scripts/eval-harness.mjs` with
+It requires `bun run dev`, two applied online Agents and the seeded Channels. Authentication uses
+the loopback-only development AppSession endpoint and its normal session refresh. It shares `scripts/eval-harness.mjs` with
 `test:agents` and `bun run eval`.
 
 ## Design Battery

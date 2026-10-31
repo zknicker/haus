@@ -32,6 +32,7 @@ export * from './schema/computer-login.ts';
 export * from './schema/computer-system-events.ts';
 export * from './schema/computers.ts';
 export * from './schema/github.ts';
+export * from './schema/haus-auth.ts';
 export * from './schema/image-generation-keys.ts';
 export * from './schema/image-generation-links.ts';
 export * from './schema/image-generations.ts';

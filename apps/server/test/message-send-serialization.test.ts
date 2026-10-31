@@ -123,7 +123,7 @@ async function agentHandle(claim: BackgroundClaim): Promise<string> {
 
 async function member(claim: BackgroundClaim): Promise<HausUser> {
     const [user] = await connection.db
-        .select({ clerkUserId: usersTable.clerkUserId, id: usersTable.id })
+        .select({ id: usersTable.id })
         .from(usersTable)
         .where(eq(usersTable.id, claim.userId));
     return user;

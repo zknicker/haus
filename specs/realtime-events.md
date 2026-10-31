@@ -438,7 +438,7 @@ invalidating one entity re-renders exactly that row.
 | `FORBIDDEN` + `hausRefusal: 'membership_lost'` | The viewer is no longer a member, or the Server was deleted | Final for every stream of that Server. Run the Server-loss path once (below), fall back to unavailable if it was active, and invalidate `server.list`. |
 | `NOT_FOUND` + `hausRefusal: 'chat_missing'` | A per-Chat stream names a Chat this Server does not have (deleted, possibly before the view mounted) | Run the Chat-loss purge (below) for that Chat; its per-Chat streams stop and never retry. Chat queries keep a plain `NOT_FOUND`. |
 | `FORBIDDEN` + `hausRefusal: 'role_required'` | The viewer lacks the stream's role | Stop that one stream. No cache clear. It remounts if a role change makes it authorized. |
-| `UNAUTHORIZED` | The Clerk session token expired or was rejected | Refresh the token and reconnect, then restart with backoff. Final only when Clerk confirms sign-out. |
+| `UNAUTHORIZED` | The Haus access token expired or was rejected | Refresh the token and reconnect, then restart with backoff. Final when the local session is revoked or sign-in is required. |
 | `FORBIDDEN` or `NOT_FOUND` with no `hausRefusal`, or anything else | Not a refusal | Restart with backoff like any error. |
 
 **Server-loss path** (`membership_lost`), idempotent per Server, in order:
@@ -735,11 +735,11 @@ covering anything the e2e does not.
 `chat-event-recovery.spec.ts`), in `test:app`.
 
 **Harness.** `e2e/start-haus-server.ts` today imports `haus-server.ts` in-process beside its
-PostgreSQL cluster and Clerk issuer. It changes to run the Server as a child process (same env,
+PostgreSQL cluster and AppSession fixtures. It changes to run the Server as a child process (same env,
 same port) and to restart only that child on `SIGUSR2`, writing its own pid to
 `.context/e2e/<runId>-server.json`. `e2e/support/server.ts` gains `restartHausServer()`: signal,
 wait for the old child to exit and the port to answer the Server's health route. PostgreSQL,
-Clerk, and the browser session survive, as in a deploy.
+AppSession storage, and the browser session survive, as in a deploy.
 
 **Setup.** A desktop window with kept tabs (`installDesktopBrowserStub`, `openDesktopWindow`):
 tab A shows `#all`, tab B (kept, hidden) shows `#product` with a Thread anchor and a Cloud Agent

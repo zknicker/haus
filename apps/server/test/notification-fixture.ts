@@ -20,13 +20,13 @@ export async function startNotificationFixture(
 ) {
     const harness = await startHausServerHarness(options);
     const database = await connectHausDatabase(harness.databaseUrl);
-    const signIn = async (clerkUserId: string, verifiedEmails: string[]) => {
-        harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
-        return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    const signIn = async (subject: string, verifiedEmails: string[]) => {
+        harness.humans.setVerifiedEmails(subject, verifiedEmails);
+        return createHausClient(harness, await harness.humans.mintSessionToken(subject));
     };
-    const readUserId = async (clerkUserId: string) => {
+    const readUserId = async (subject: string) => {
         const rows = (await harness.sql`
-            select id from users where clerk_user_id = ${clerkUserId}
+            select id from users where auth_subject = ${subject}
         `) as { id: string }[];
         return rows[0]?.id ?? '';
     };

@@ -102,7 +102,7 @@ writability rules that govern firing apply to the Chat anchor unchanged.
 ## Route contract
 
 The public inbound route is `POST /api/triggers/:triggerId`. It is served before
-tRPC and before the static App's not-found handler, and it does not use Clerk.
+tRPC and before the static App's not-found handler, and it does not use a human AppSession.
 
 - Authentication is `Authorization: Bearer grtt_<base64url>`. A header that is
   missing, not `Bearer`, or whose secret lacks the `grtt_` prefix is refused

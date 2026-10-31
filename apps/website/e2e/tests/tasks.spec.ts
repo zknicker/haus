@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
+import { e2eHumanUserId } from '../support/app-session.ts';
 import { createChannelAgent } from '../support/channel-agent.ts';
-import { e2eClerkUserId } from '../support/clerk-session.ts';
 import { createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -80,7 +80,7 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'tasks',
-        token: session.token,
+        token: session.accessToken,
     });
     await page.reload();
     card = taskCard(page);
@@ -107,7 +107,7 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
 
     const userId = runPsql(
         session.databaseUrl,
-        `select id from users where clerk_user_id = '${e2eClerkUserId}'`
+        `select id from users where id = '${e2eHumanUserId}'`
     );
     runPsql(
         session.databaseUrl,

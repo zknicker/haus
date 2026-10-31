@@ -8,10 +8,10 @@ let outsider: HausClient;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_chat_paging'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_chat_paging'));
     outsider = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_chat_paging_outsider')
+        await harness.humans.mintSessionToken('user_chat_paging_outsider')
     );
 });
 
@@ -28,7 +28,7 @@ test('chat history traverses 1001 messages in both directions without gaps or du
     });
     const chatId = server.channels[0].id;
     const [ownerUser] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_chat_paging'
+        select id from users where auth_subject = 'user_chat_paging'
     `) as Array<{ id: string }>;
 
     await harness.sql`

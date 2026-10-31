@@ -14,9 +14,9 @@ beforeAll(async () => {
         ('srv_mentions', 'mentions', 'Mentions'), ('srv_elsewhere', 'elsewhere', 'Elsewhere')
     `;
     await harness.sql`
-        insert into users (id, clerk_user_id) values
-        ('usr_zach', 'clerk_zach'), ('usr_revoked', 'clerk_revoked'),
-        ('usr_elsewhere', 'clerk_elsewhere'), ('usr_nohandle', 'clerk_nohandle')
+        insert into users (id, auth_subject) values
+        ('usr_zach', 'cf_zach'), ('usr_revoked', 'cf_revoked'),
+        ('usr_elsewhere', 'cf_elsewhere'), ('usr_nohandle', 'cf_nohandle')
     `;
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role, handle, revoked_at) values

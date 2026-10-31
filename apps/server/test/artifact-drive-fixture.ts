@@ -5,7 +5,7 @@ import { publishArtifact } from '../src/artifacts/publish.ts';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../src/artifacts/thumbnails.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
-import { findUserByClerkId } from '../src/users/haus-user.ts';
+import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -73,14 +73,14 @@ export function artifactDriveFixture(slug: string) {
         serverId: string;
         actor: {
             kind: 'human';
-            member: Awaited<ReturnType<typeof findUserByClerkId>>;
+            member: Awaited<ReturnType<typeof findUserById>>;
             serverId: string;
         };
     };
     let requests = 0;
     beforeAll(async () => {
         state.harness = await startHausServerHarness({ artifactStorage: storage });
-        state.ownerToken = await state.harness.clerk.mintSessionToken(`${slug}_owner`);
+        state.ownerToken = await state.harness.humans.mintSessionToken(`${slug}_owner`);
         state.owner = createHausClient(state.harness, state.ownerToken);
         state.serverId = (
             await state.owner.trpc.server.create.mutate({ displayName: slug, slug })
@@ -88,7 +88,10 @@ export function artifactDriveFixture(slug: string) {
         state.connection = await connectHausDatabase(state.harness.databaseUrl);
         state.actor = {
             kind: 'human',
-            member: await findUserByClerkId(state.connection.db, `${slug}_owner`),
+            member: await findUserById(
+                state.connection.db,
+                state.harness.humans.userIdForSubject(`${slug}_owner`)
+            ),
             serverId: state.serverId,
         };
     });

@@ -9,7 +9,7 @@ let owner: HausClient;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    const token = await harness.clerk.mintSessionToken('user_thread_owner');
+    const token = await harness.humans.mintSessionToken('user_thread_owner');
     owner = createHausClient(harness, token);
 });
 
@@ -109,7 +109,7 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
         where server_id = ${server.id} and id = ${threadChatId}
     `;
     const [{ id: peerUserId }] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_thread_peer'
+        select id from users where auth_subject = 'user_thread_peer'
     `) as { id: string }[];
     await harness.sql`
         insert into chat_messages (

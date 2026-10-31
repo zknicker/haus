@@ -1,96 +1,116 @@
 ---
 summary: Authentication boundaries for humans, Computer attachments, managed Agents, and providers.
 read_when:
-  - changing Clerk identity, Server authorization, Computer credentials, or Agent runner access
+  - changing Cloudflare Access identity, Server authorization, Computer credentials, or Agent runner access
   - changing secret custody or provider-session behavior
-  - changing desktop Clerk loading, the sign-in gate, or how a new desktop window starts signed in
-  - changing how the App's WebSocket authenticates, refreshes its Clerk token, or reconnects
+  - changing the browser or native sign-in flow
+  - changing how App WebSockets authenticate, refresh, or close
 ---
 
 # Auth
 
 | Boundary | Credential and authority |
 | --- | --- |
-| Human App → Server | Clerk-authenticated User plus Server membership and role checks |
+| Human App → Server | Short-lived opaque Haus session plus Server membership and role checks |
+| Sign-in → Haus session | Fresh Cloudflare Access assertion for the exact Haus identity |
 | Computer management → Server | Machine-local Computer login session; setup authority only |
 | Computer attachment → Server | Revocable credential scoped to one Server Computer |
 | Computer runner → Server | Per-launch Agent runner credential, held behind the localhost proxy |
 | Managed Agent → Computer | Per-launch local proxy token file; never valid at Server |
 | Computer → provider | Native Codex, Claude Code, Grok Build, or Pi login owned by that runtime |
 
-Server stores Computer, runner, MCP, and hosted OAuth secrets. Computer stores attachment
-credentials and local proxy tokens in private files. Operators authenticate through each execution
-runtime's native flow; provider credentials never reach Server or App.
+Cloudflare Access protects only `/auth/complete` and `/auth/session` on
+`haus.chat`. Haus Server verifies the signed assertion against the configured
+issuer and audience, resolves its exact subject and verified-email alias to a
+canonical Haus User, then mints opaque session credentials. The assertion is
+never sent to tRPC, Computer, Agent, or provider routes. The application uses
+Haus access tokens after admission; every Server operation still applies its
+own membership and role checks.
 
-A Computer Secrets 1Password service account token is the one secret the App hands to a Computer.
-The desktop App creates it, Server relays it once in memory to the Owner's chosen Computer without
-persisting or logging it, and the Computer keeps it only in the login macOS Keychain
+Haus stores SHA-256 hashes of access and resume tokens. Access lasts at most 60
+seconds and is capped at the assertion expiry. The resume credential lasts at
+most 14 days, but it has no independent authority: every resume needs a fresh
+Cloudflare assertion for the same external subject and canonical Haus User.
+The Haus session id stays stable while access rotates. Local sign-out revokes
+that session immediately and closes its tracked WebSocket and SSE connections;
+access expiry closes them without an extra grace period.
+
+## Browser flow
+
+`GET /auth/start` creates a one-use server intent and a short-lived HttpOnly
+state cookie, then redirects to `/auth/complete`. The state cookie uses
+`SameSite=Lax` so the browser sends it on Cloudflare's top-level return. The
+completion route verifies the state, a fresh Access assertion, and the stored
+intent before setting the HttpOnly resume cookie and redirecting to the safe
+local return route.
+
+The browser obtains `AppSession` with `GET /auth/session`. The request includes
+the resume cookie, a fresh Access assertion, `X-Haus-Session-Request: 1`, and
+same-origin provenance. The Server rejects missing markers, cross-origin
+requests, and cross-site fetches. Responses are `no-store`. `POST /auth/logout`
+uses the same provenance check, revokes the session, and clears the cookie.
+
+Production cookies are `Secure`, `HttpOnly`, and `SameSite=Lax`, with the
+`__Host-` prefix. Development uses HTTP-compatible cookie names scoped by the
+Server port so parallel worktrees do not replace one another's cookies.
+
+## Native flow
+
+`GET /auth/config` returns the Cloudflare issuer, public client id, resource,
+and broker callback. Native clients own a PKCE S256 verifier and state. They
+call `GET /auth/start` with the client, exact callback URI, state, and challenge.
+Native callers may also send `switchAccount=true`; it does not change the
+stored callback or PKCE binding. The Server stores the intent and redirects to
+Cloudflare's Managed OAuth authorization endpoint. `/auth/callback` consumes the server state once and
+forwards only the authorization code and the originally stored native state to
+the exact stored callback.
+
+The native client exchanges the code directly with Cloudflare using the
+original verifier and broker callback URI. It keeps Cloudflare access and
+refresh credentials in `safeStorage` or Keychain. It sends a fresh Cloudflare
+assertion to `POST /auth/session`, which returns `NativeAppSession`; the
+Cloudflare credential and Haus resume token never enter a renderer. Native
+sign-out revokes the Haus session through `/auth/logout` and clears its
+protected credential store. The native request includes
+`X-Haus-Session-Request: 1`; the Server also rejects a mismatched `Origin` or a
+`Sec-Fetch-Site` value other than `same-origin` or `none`.
+
+## App sessions and realtime
+
+The App sends its opaque Haus access token as `Authorization: Bearer` for HTTP
+and `sessionToken` in WebSocket connection params. The first authenticated
+operation binds a socket to that canonical Haus User and Haus session id.
+`session.refresh` accepts a rotated access token only for that same user and
+session. The Server checks the current access token at each operation start,
+closes sockets and SSE streams at expiry, and rechecks membership at each
+realtime delivery.
+
+The desktop main process may share an `AppSession` between its own windows for
+fast startup. Cloudflare credentials and the Haus resume token stay in native
+storage and never enter renderer state. Browser and native caches are scoped by
+canonical `user.id`; signing out clears the session, scoped cache, and live
+connections.
+
+## Other credentials
+
+Server stores Computer, runner, MCP, and hosted OAuth secrets. Computer stores
+attachment credentials and local proxy tokens in private files. Operators
+authenticate through each execution runtime's native flow; provider
+credentials never reach Haus Server or App.
+
+A Computer Secrets 1Password service account token is the one secret the App
+hands to a Computer. The desktop App creates it, Server relays it once in
+memory to the Owner's chosen Computer without persisting or logging it, and
+the Computer keeps it only in the login macOS Keychain
 ([Computer Secrets](../features/computer-secrets.md)).
 
-Claude's isolated Agent home cannot read the host's macOS Keychain login directly. At each native
-start, Computer resolves the current host-owned login and supplies its access token only in the
-Claude bridge process environment. It never writes the token into Agent files or persisted bridge
-turn settings, and it leaves explicit native environment authentication intact. Missing native
-credentials fail with a sign-in instruction. Other runtimes reference their native credential
-files while preserving separate Agent homes and sessions.
+Claude's isolated Agent home cannot read the host's macOS Keychain login
+directly. At each native start, Computer resolves the current host-owned login
+and supplies its access token only in the Claude bridge process environment.
+It never writes the token into Agent files or persisted bridge turn settings,
+and it leaves explicit native environment authentication intact. Missing native
+credentials fail with a sign-in instruction. Other runtimes reference their
+native credential files while preserving separate Agent homes and sessions.
 
-Do not place secrets in Messages, prompts, logs, execution reports, e2e fixtures, checked-in env
-files, or App cache. Every Server route rechecks the authority required by its product operation.
-
-## Desktop session handoff
-
-The desktop App runs Clerk natively: main holds Clerk's client JWT in `safeStorage`, and each
-window's renderer loads its own Clerk and mints short-lived session tokens. A new window does not
-wait for Clerk's `/v1/environment` and `/v1/client` before rendering signed in when another window
-already holds a live session token.
-
-- Every App window shares each session token Clerk hands it (`desktop:auth:session-share`), and
-  shares null when its loaded Clerk has no session. Main keeps one token in memory only: the
-  newest by `iat`. An older share is ignored, and a share for a different `sid` must be strictly
-  newer, so a stale window still on the previous account cannot replace the current one. A
-  sign-out clear always applies and keeps the `iat` floor.
-- A booting window peeks it synchronously (`desktop:auth:session-peek`). Shares and peeks are
-  accepted only from an App window's own main frame (matched by `frameTreeNodeId`; a missing
-  frame fails closed), never a subframe or a browser page that visits the App origin.
-- One expiry rule covers both sides: a handed-off token is used only while it has at least
-  15 seconds left. Main hands it out under that rule, and the renderer stops using it at the
-  same point, so a slow request cannot reach the Server expired. Native Clerk runs no token
-  poller, so each window refreshes its shared token 25 seconds before expiry
-  (`getToken({ leewayInSeconds: 25 })`) and shares the new one; main always holds a token a
-  booting window can use.
-- The renderer seeds `ClerkProvider initialState` (Clerk's supported pre-load auth state) from the
-  token's `sub` and `sid` claims, and uses the token for Server calls until Clerk loads or the
-  token reaches that 15-second margin; later reads wait for Clerk. The sign-in gate keeps its session subtree at one
-  position, so Clerk finishing for the same session changes nothing on screen.
-
-Security: the handoff grants nothing new. The token is the same bearer credential any App window
-already reads from Clerk, lives no longer than Clerk's own token, and stays in main memory. Claims
-are read unverified only to choose the first render; Server verifies every request and socket, so
-no private data renders without a token the Server accepted. If Clerk loads signed out, as a
-different session, or fails, the gate falls back to the normal flow and the per-user Server
-provider remounts. A session revoked elsewhere stays usable until its token expires, exactly as in
-an already-open window.
-
-## Socket sessions
-
-The App's Server WebSocket opens with the current Clerk session token in its connection params.
-The first operation the Server verifies on that socket binds it to that Clerk user (`sub`) and
-Clerk session (`sid`) for the socket's whole life (`apps/server/src/haus-api/socket-session.ts`).
-
-Clerk rotates session tokens about every minute. The App reads Clerk's cached token every 10
-seconds and compares identity, not token text: a rotated token for the same `sub` and `sid` goes to
-`session.refresh` over the same socket, so rotation never reconnects. Sign-in, sign-out, a
-different user or Clerk session, or any refused refresh closes the socket instead, and the
-reconnect reads fresh connection params.
-
-- `session.refresh` is valid only over an App WebSocket. It verifies the new token on its own
-  (issuer, `azp`, expiry) and accepts it only for the bound user and session; another user's or
-  another session's token is refused (`FORBIDDEN`) and never replaces the bound one. A socket
-  with no verified operation yet has nothing to refresh (`CONFLICT`).
-- Every later operation start on the socket — query, mutation, or subscription — is verified
-  against the newest token.
-- Each binding or refresh arms an expiry: once the newest token has been expired for 60 seconds
-  without a refresh, the Server closes the socket (code 4401). Revocation therefore ends a socket
-  within one token lifetime plus that grace, because Clerk stops minting tokens for a revoked
-  session; already-running subscriptions cannot outlive their session. Membership is still
-  rechecked at every delivery.
+Do not place secrets in Messages, prompts, logs, execution reports, E2E
+fixtures, checked-in env files, or App cache.

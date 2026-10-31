@@ -1,169 +1,80 @@
-import ClerkKit
-import Foundation
 import HausTransport
 import HausUI
 import SwiftUI
 import UIKit
 
 struct AuthBoundaryView: View {
-    @Environment(Clerk.self) private var clerk
-    /// Follows the Clerk session from `onChange` rather than `body`, so a lost
-    /// session unmounts the authenticated app only once
-    /// `dismissPresentedScreens(then:)` has closed its sheets.
-    @State private var showsAuthenticatedApp: Bool?
+    @State private var model = AuthBoundaryModel()
+    @State private var mountedSession: AppSession?
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
-            #if DEBUG
-            if let development = HausRuntimeConfiguration.development {
-                DevelopmentAuthBoundaryView(development: development)
+            if let session = mountedSession {
+                AuthenticatedHausView(session: session, authClient: model.authClient)
+                    .id(session.user.id)
             } else {
-                productionBoundary
-            }
-            #else
-            productionBoundary
-            #endif
-        }
-        // Deliberately no implicit animation here: its branches are the whole
-        // authenticated app vs the sign-in screen, and animating that value
-        // crossfaded the entire app on any session change.
-    }
-
-    private var productionBoundary: some View {
-        Group {
-            if showsAuthenticatedApp ?? hasUsableSession(clerk.session) {
-                AuthenticatedHausView(clerk: clerk)
-            } else {
-                googleSignIn
+                signedOutContent
             }
         }
-        .onChange(of: hasUsableSession(clerk.session), initial: true) { _, usable in
-            guard !usable else {
-                showsAuthenticatedApp = true
-                return
-            }
-            // A session restored while the sheet closed keeps the app mounted.
-            dismissPresentedScreens { showsAuthenticatedApp = hasUsableSession(clerk.session) }
-        }
-    }
-
-    private var googleSignIn: some View {
-        SignInView(actionTitle: "Continue with Google") {
-            _ = try await clerk.auth.signInWithOAuth(provider: .google)
-        }
-    }
-}
-
-#if DEBUG
-private struct DevelopmentAuthBoundaryView: View {
-    @Environment(Clerk.self) private var clerk
-    let development: HausRuntimeConfiguration.Development
-
-    @State private var state = DevelopmentAuthState.loading
-
-    var body: some View {
-        Group {
-            switch state {
-            case .loading:
-                HausOpeningView()
-            case .authenticated:
-                AuthenticatedHausView(clerk: clerk)
+        .task { await model.start() }
+        .onChange(of: model.phase, initial: true) { _, phase in
+            switch phase {
+            case let .authenticated(session):
+                mountedSession = session
             case .signedOut:
-                SignInView(actionTitle: "Sign in to local Server") {
-                    HausRuntimeConfiguration.clearExplicitSignOut()
-                    state = .loading
-                    await authenticate()
+                guard let outgoingSession = mountedSession else { return }
+                dismissPresentedScreens {
+                    guard model.phase == .signedOut,
+                          mountedSession?.sessionId == outgoingSession.sessionId
+                    else { return }
+                    mountedSession = nil
                 }
-            case let .failed(message):
-                ContentUnavailableView {
-                    Label("Haus couldn't sign you in.", systemImage: "exclamationmark.triangle")
-                } description: {
-                    VStack(spacing: 4) {
-                        Text("Check your connection and try again.")
-                        Text(message)
-                            .font(.footnote)
-                            .foregroundStyle(.tertiary)
-                    }
-                } actions: {
-                    Button("Try again") {
-                        state = .loading
-                        Task { await authenticate() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
+            case .loading, .failed:
+                break
             }
         }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await model.refreshSession() }
+        }
+        // The root branches contain the full authenticated app and the
+        // sign-in flow, so switching them should not crossfade the whole UI.
         .background(Color(uiColor: .systemGroupedBackground))
-        .task(id: clerk.isLoaded) {
-            guard clerk.isLoaded else { return }
-            await authenticate()
-        }
-        // Losing the session while signed in is either the human's Sign Out,
-        // which must not be undone by auto sign-in, or an expiry, which the
-        // localhost ticket renews like a cold start.
-        .onChange(of: hasUsableSession(clerk.session)) { _, usable in
-            guard !usable, state == .authenticated else { return }
-            dismissPresentedScreens {
-                guard !hasUsableSession(clerk.session) else { return }
-                if HausRuntimeConfiguration.hasExplicitlySignedOut {
-                    state = .signedOut
+    }
+
+    @ViewBuilder
+    private var signedOutContent: some View {
+        switch model.phase {
+        case .loading, .authenticated:
+            HausOpeningView()
+        case .signedOut:
+            SignInView(
+                actionTitle: model.development == nil ? "Continue with Google" : "Sign in to local Server"
+            ) {
+                if model.development == nil {
+                    try await model.signIn()
                 } else {
-                    state = .loading
-                    Task { await authenticate() }
+                    await model.signInToDevelopment()
                 }
             }
-        }
-    }
-
-    @MainActor
-    private func authenticate() async {
-        guard clerk.isLoaded else { return }
-
-        do {
-            if hasUsableSession(clerk.session),
-               let token = try? await clerk.auth.getToken(),
-               !token.isEmpty
-            {
-                state = .authenticated
-                return
+        case let .failed(message):
+            ContentUnavailableView {
+                Label("Haus couldn't sign you in.", systemImage: "exclamationmark.triangle")
+            } description: {
+                VStack(spacing: 4) {
+                    Text("Check your connection and try again.")
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                }
+            } actions: {
+                Button("Try again") { Task { await model.retry() } }
+                    .buttonStyle(.borderedProminent)
             }
-            if HausRuntimeConfiguration.hasExplicitlySignedOut {
-                state = .signedOut
-                return
-            }
-
-            let client = TRPCClient(
-                config: AppConfig(
-                    serverOrigin: development.serverOrigin,
-                    productVersion: Bundle.main.object(
-                        forInfoDictionaryKey: "CFBundleShortVersionString"
-                    ) as? String ?? "0.1.0"
-                ),
-                sessionTokenProvider: StaticSessionTokenProvider(token: nil)
-            )
-            let ticket = try await client.createDevClerkSignInTicket()
-            let signIn = try await clerk.auth.signInWithTicket(ticket.ticket)
-            guard let sessionID = signIn.createdSessionId else {
-                throw DevSignInError.missingSession
-            }
-            try await clerk.auth.setActive(sessionId: sessionID)
-            guard let token = try await clerk.auth.getToken(), !token.isEmpty else {
-                throw DevSignInError.missingToken
-            }
-            state = .authenticated
-        } catch {
-            state = .failed("Local sign-in failed: \(error.localizedDescription)")
         }
     }
 }
-
-private enum DevelopmentAuthState: Equatable {
-    case loading
-    case authenticated
-    case signedOut
-    case failed(String)
-}
-#endif
 
 private struct SignInView: View {
     let actionTitle: String
@@ -220,15 +131,12 @@ private struct SignInView: View {
             }
         }
     }
-
 }
 
 /// Dismisses whatever the authenticated app presented, then runs `swap`, which
 /// unmounts it. SwiftUI re-hosts a sheet whose presenter unmounts with fresh
-/// state until it tears the sheet down, so swapping the root out from under
-/// Settings flashed the sheet back to its top for several frames. `swap` runs
-/// inside UIKit's completion, not after an `await`: the hop to a later run loop
-/// turn drew the authenticated app for a frame between the two.
+/// state until it tears the sheet down, so `swap` runs inside UIKit's
+/// completion rather than on a later run-loop turn.
 @MainActor
 private func dismissPresentedScreens(then swap: @escaping @MainActor () -> Void) {
     let root = UIApplication.shared.connectedScenes
@@ -242,9 +150,7 @@ private func dismissPresentedScreens(then swap: @escaping @MainActor () -> Void)
     root.dismiss(animated: false) {
         MainActor.assumeIsolated { once.run() }
     }
-    // UIKit drops the completion of a dismiss requested mid-transition (a
-    // sheet still animating in or being swiped away). Never leave the
-    // authenticated app mounted on a lost session waiting for it.
+    // UIKit can drop this completion if dismissal starts mid-transition.
     Task { @MainActor in
         try? await Task.sleep(for: .seconds(1))
         once.run()
@@ -263,26 +169,5 @@ private final class RunOnce {
         let pending = action
         action = nil
         pending?()
-    }
-}
-
-private func hasUsableSession(_ session: Session?) -> Bool {
-    guard let session else { return false }
-    return session.status == .active
-        && session.expireAt > Date()
-        && session.abandonAt > Date()
-}
-
-private enum DevSignInError: LocalizedError {
-    case missingSession
-    case missingToken
-
-    var errorDescription: String? {
-        switch self {
-        case .missingSession:
-            "Clerk completed ticket sign-in without creating a session."
-        case .missingToken:
-            "Clerk activated the development session without issuing a token."
-        }
     }
 }

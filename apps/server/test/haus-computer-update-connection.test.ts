@@ -14,7 +14,7 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('clerk_offlineupdate_owner')
+        await harness.humans.mintSessionToken('cf_offlineupdate_owner')
     );
     serverId = (
         await owner.trpc.server.create.mutate({
@@ -23,7 +23,7 @@ beforeAll(async () => {
         })
     ).id;
     const users = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_offlineupdate_owner'
+        select id from users where auth_subject = 'cf_offlineupdate_owner'
     `) as { id: string }[];
     const credentialHash = createHash('sha256').update(credential).digest('hex');
     await harness.sql`

@@ -20,7 +20,6 @@ import {
 } from '../postgres/schema.ts';
 import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import { allChannelDescription, type ServerSummary } from '../servers/contracts.ts';
-import { ensureUserByClerkId } from '../users/haus-user.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { developmentComputerCredentialHash } from './seed-computer-attachment.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
@@ -43,13 +42,12 @@ const demoInventory = {
 /** Creates the one idempotent Server-owned demo workspace for a signed-in dev user. */
 export async function seedDevelopmentServer(
     db: HausDatabase,
-    clerkUserId: string,
+    userId: string,
     options: SeedDevelopmentServerOptions = {}
 ): Promise<ServerSummary> {
-    const user = await ensureUserByClerkId(db, clerkUserId);
-    const existing = await listAccessibleServers(db, user.id);
+    const existing = await listAccessibleServers(db, userId);
     if (existing[0]) {
-        await ensureDevelopmentSeedSteps(db, existing[0], user.id, options);
+        await ensureDevelopmentSeedSteps(db, existing[0], userId, options);
         return existing[0];
     }
 
@@ -82,19 +80,19 @@ export async function seedDevelopmentServer(
             id: membershipId,
             role: 'owner',
             serverId,
-            userId: user.id,
+            userId,
         });
         await tx
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
-            .where(eq(usersTable.id, user.id));
+            .where(eq(usersTable.id, userId));
         // Two Agent tasks in different states. The channel's task counter starts
         // past them, or the first real `task.promote` collides with a seeded number.
         const demoTasks = [
             {
                 assigneeAgentId: blippyId,
                 chatId: channelId,
-                createdByUserId: user.id,
+                createdByUserId: userId,
                 messageId: shipTaskMessageId,
                 number: 1,
                 origin: 'composed' as const,
@@ -143,12 +141,12 @@ export async function seedDevelopmentServer(
             [channelId, demoChannelId, onboardingChannelId].map((chatId) => ({
                 chatId,
                 serverId,
-                userId: user.id,
+                userId,
             }))
         );
         await tx.insert(computersTable).values({
             architecture: process.arch,
-            attachedByUserId: user.id,
+            attachedByUserId: userId,
             credentialHash: developmentComputerCredentialHash(serverId, computerId),
             health: 'offline',
             id: computerId,
@@ -168,7 +166,7 @@ export async function seedDevelopmentServer(
             demoAgent({
                 avatarId: avatarIds.blippy,
                 computerId,
-                createdByUserId: user.id,
+                createdByUserId: userId,
                 description: 'Keeps the plan tight and surfaces decisions early.',
                 displayName: 'Blippy',
                 handle: 'blippy',
@@ -180,7 +178,7 @@ export async function seedDevelopmentServer(
             demoAgent({
                 avatarId: avatarIds.tiny,
                 computerId,
-                createdByUserId: user.id,
+                createdByUserId: userId,
                 description: 'Pressure-tests the details and keeps the work grounded.',
                 displayName: 'Tiny',
                 handle: 'tiny',
@@ -193,8 +191,8 @@ export async function seedDevelopmentServer(
         await tx
             .insert(chatsTable)
             .values([
-                demoAgentDm(blippyDmId, blippyId, serverId, user.id, now, 1),
-                demoAgentDm(tinyDmId, tinyId, serverId, user.id, now, 1),
+                demoAgentDm(blippyDmId, blippyId, serverId, userId, now, 1),
+                demoAgentDm(tinyDmId, tinyId, serverId, userId, now, 1),
             ]);
         await tx.insert(channelAgentParticipantsTable).values([
             { agentId: blippyId, chatId: channelId, serverId },
@@ -204,7 +202,7 @@ export async function seedDevelopmentServer(
         ]);
         await tx.insert(chatMessagesTable).values([
             demoMessage(serverId, channelId, 1, {
-                authorUserId: user.id,
+                authorUserId: userId,
                 content: 'Morning team — what should we focus on today?',
             }),
             demoMessage(serverId, channelId, 2, {
@@ -220,7 +218,7 @@ export async function seedDevelopmentServer(
                 channelId,
                 4,
                 {
-                    authorUserId: user.id,
+                    authorUserId: userId,
                     content: 'Here’s the plan for the week — shout if anything looks wrong.',
                 },
                 planMessageId
@@ -230,7 +228,7 @@ export async function seedDevelopmentServer(
                 channelId,
                 5,
                 {
-                    authorUserId: user.id,
+                    authorUserId: userId,
                     content: 'Ship the avatar upload flow end to end.',
                 },
                 shipTaskMessageId
@@ -246,7 +244,7 @@ export async function seedDevelopmentServer(
                 auditTaskMessageId
             ),
             demoMessage(serverId, demoChannelId, 1, {
-                authorUserId: user.id,
+                authorUserId: userId,
                 content: 'What should we polish next?',
             }),
             demoMessage(serverId, demoChannelId, 2, {
@@ -276,7 +274,7 @@ export async function seedDevelopmentServer(
             followed: true,
             serverId,
             threadChatId,
-            userId: user.id,
+            userId,
         });
 
         await tx.insert(chatMessagesTable).values([
@@ -289,7 +287,7 @@ export async function seedDevelopmentServer(
                 content: 'One risk: the upload path needs a size cap before we ship it.',
             }),
             demoMessage(serverId, threadChatId, 3, {
-                authorUserId: user.id,
+                authorUserId: userId,
                 content: 'Good catch — folding that in.',
             }),
         ]);
@@ -319,7 +317,7 @@ export async function seedDevelopmentServer(
 
         return { displayName: 'Dev Server', id: serverId, role: 'owner' as const, slug: 'dev' };
     });
-    await ensureDevelopmentSeedSteps(db, seeded, user.id, options);
+    await ensureDevelopmentSeedSteps(db, seeded, userId, options);
     return seeded;
 }
 

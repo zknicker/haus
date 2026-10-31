@@ -23,7 +23,7 @@ const sweptAt = new Date('2026-09-04T12:00:00.000Z');
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_stale_tasks'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_stale_tasks'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Stale Review Server',
         slug: 'stale-review-server',

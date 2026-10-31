@@ -10,7 +10,6 @@ test('the App captures a device zone once and the human owns it afterwards', asy
 
     expect(await viewerZone()).toBeNull();
     await owner.trpc.member.syncIdentity.mutate({
-        email: 'ada@haus.test',
         name: 'Ada',
         serverId,
         timezone: 'America/New_York',
@@ -19,7 +18,6 @@ test('the App captures a device zone once and the human owns it afterwards', asy
 
     // A later sign-in from another device fills only a blank.
     await owner.trpc.member.syncIdentity.mutate({
-        email: 'ada@haus.test',
         name: 'Ada',
         serverId,
         timezone: 'Asia/Tokyo',
@@ -63,7 +61,6 @@ test('a device-zone fill never overwrites a concurrently chosen zone', async () 
         await fixture.harness.sql`update users set timezone = null where id = ${ownerUserId}`;
         await Promise.all([
             owner.trpc.member.syncIdentity.mutate({
-                email: 'ada@haus.test',
                 name: 'Ada',
                 serverId,
                 timezone: 'Asia/Tokyo',

@@ -79,7 +79,7 @@ test('a Channel mention pushes only mentioned humans with access, never the auth
     const channelId = await createChannel('push-mentions');
     const cassUserId = (
         (await harness.sql`
-            select id from users where clerk_user_id = 'user_notify_outsider'
+            select id from users where auth_subject = 'user_notify_outsider'
         `) as { id: string }[]
     )[0]?.id;
     const long = 'x'.repeat(400);

@@ -21,11 +21,11 @@ beforeAll(async () => {
     });
     await peer.trpc.server.create.mutate({ displayName: 'Peer Server', slug: 'read-peer' });
     const users = (await harness.sql`
-        select clerk_user_id, id from users
-        where clerk_user_id in ('user_read_owner', 'user_read_peer')
-    `) as { clerk_user_id: string; id: string }[];
-    ownerUserId = users.find((user) => user.clerk_user_id === 'user_read_owner')?.id ?? '';
-    peerUserId = users.find((user) => user.clerk_user_id === 'user_read_peer')?.id ?? '';
+        select auth_subject, id from users
+        where auth_subject in ('user_read_owner', 'user_read_peer')
+    `) as { auth_subject: string; id: string }[];
+    ownerUserId = users.find((user) => user.auth_subject === 'user_read_owner')?.id ?? '';
+    peerUserId = users.find((user) => user.auth_subject === 'user_read_peer')?.id ?? '';
 
     chatId = server.channels[0].id;
     serverId = server.id;
@@ -146,7 +146,7 @@ test('search narrows by author and time window', async () => {
     expect(recent).toHaveLength(2);
 });
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }

@@ -17,7 +17,7 @@ let serverId: string;
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_calendar_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_calendar_owner'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Calendar Server',
         slug: 'calendar-server',

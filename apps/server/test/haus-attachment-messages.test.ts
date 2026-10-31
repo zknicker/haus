@@ -11,7 +11,7 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     client = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('attachment_message_owner')
+        await harness.humans.mintSessionToken('attachment_message_owner')
     );
     const server = await client.trpc.server.create.mutate({
         displayName: 'Attachment Messages',
@@ -189,7 +189,7 @@ async function readyAttachment(
         {
             body: new TextEncoder().encode(content),
             headers: {
-                authorization: `Bearer ${client.clerkSessionToken}`,
+                authorization: `Bearer ${client.sessionToken}`,
                 'content-type': 'application/octet-stream',
                 origin: harness.appOrigin,
             },

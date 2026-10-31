@@ -26,7 +26,7 @@ narrow subpaths remain preferred for values. Node-only implementations live unde
 rejects any `node:*` module that enters its browser dependency graph.
 
 `POST /api/triggers/:triggerId` is the one first-party route authenticated by a per-Trigger
-bearer secret instead of Clerk, a Computer credential, or a runner credential; see
+bearer secret instead of a human AppSession, a Computer credential, or a runner credential; see
 [Triggers](triggers.md).
 
 Server is authoritative for collaboration and authorization. Computer is authoritative for local
