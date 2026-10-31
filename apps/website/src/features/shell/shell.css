@@ -204,6 +204,27 @@
     }
 
     /*
+     * A page that runs up under its band (`PageBand overlay`, the Inbox). The
+     * band stays where it is and paints over the page, and the page's frame —
+     * the band's next sibling, on the web and in a desktop tab alike — rises
+     * by the band's height, so its scrollers reach the shell's top edge
+     * instead of clipping at the band's bottom. The page insets its own
+     * content by that height and fades what scrolls under the band.
+     *
+     * Read off the band's own slot, as the empty-band collapse is: the marker
+     * lands in the same frame as the trail, with no registration to lag, and
+     * a kept page's hidden scope does not count.
+     */
+    .app-shell-band:has(> [data-topbar-slot] [data-band-overlay]:not([hidden] *)) {
+        position: relative;
+        z-index: 2;
+    }
+
+    .app-shell-band:has(> [data-topbar-slot] [data-band-overlay]:not([hidden] *)) + * {
+        margin-block-start: calc(var(--app-shell-band-height) * -1);
+    }
+
+    /*
      * The sidebar's lead navigation row meets the shared shell band's midline.
      *
      * Every top-of-column zone is one `--app-shell-band-height` box — the

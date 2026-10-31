@@ -46,6 +46,7 @@ export function InboxRowList<Row extends { id: string }>({
     listId,
     renderRow,
     rows,
+    variant,
 }: {
     /** The fact a settled, empty section states, in the slot. */
     emptyLabel: string;
@@ -53,10 +54,12 @@ export function InboxRowList<Row extends { id: string }>({
     listId: string;
     renderRow: (row: Row) => ReactNode;
     rows: readonly Row[];
+    /** Rows in a bordered box, or straight on the page (`InboxSectionRows`). */
+    variant?: 'bare' | 'boxed';
 }) {
     const layoutKey = inboxLayoutKey(rows.map((row) => row.id));
     return (
-        <InboxSectionRows>
+        <InboxSectionRows variant={variant}>
             <LayoutGroup id={listId}>
                 <AnimatePresence initial={false} mode="popLayout">
                     {rows.length === 0 ? (
@@ -68,7 +71,10 @@ export function InboxRowList<Row extends { id: string }>({
                     ) : (
                         rows.map((row, index) => (
                             <InboxMotionItem key={row.id} layoutKey={layoutKey}>
-                                {index === 0 ? null : <Separator />}
+                                {/* A bare list's rows are shapes of their own, set apart by
+                                    space, so a hairline between them would cut across
+                                    the open row's rounded card. */}
+                                {index > 0 && variant !== 'bare' ? <Separator /> : null}
                                 {renderRow(row)}
                             </InboxMotionItem>
                         ))
@@ -80,20 +86,18 @@ export function InboxRowList<Row extends { id: string }>({
 }
 
 /**
- * One arriving, leaving, or moving thing: a row in a section's list, or a card
- * in the week strip. It fades up a few pixels on arrival and a few pixels away
- * on exit, and `layout` carries it when the list reorders under it, so a row
- * that changes place slides rather than teleports.
+ * One arriving, leaving, or moving row in a section's list. It fades up a few
+ * pixels on arrival and a few pixels away on exit, and `layout` carries it
+ * when the list reorders under it, so a row that changes place slides rather
+ * than teleports. Opening a different Unread row is not a reorder, so it
+ * moves nothing: the open row swaps in place, as fast as J and K press.
  */
 export function InboxMotionItem({
     children,
-    className = 'min-w-0',
     layoutKey,
     ref,
 }: {
     children: ReactNode;
-    /** The track's own sizing: rows fill the column, strip cards keep width. */
-    className?: string;
     /** The list's `inboxLayoutKey`: the only change that may move this item. */
     layoutKey: string;
     /**
@@ -109,7 +113,7 @@ export function InboxMotionItem({
     return (
         <motion.div
             animate={{ opacity: 1, y: 0 }}
-            className={className}
+            className="min-w-0"
             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
             layout={shouldReduceMotion ? false : 'position'}
@@ -127,9 +131,8 @@ export function InboxMotionItem({
 }
 
 /**
- * The settled empty section: one row-shaped slot, in whatever track the
- * section's own body is — inside the row frame for the three boxed sections,
- * bare on the card track for the week strip, which has no frame to sit in.
+ * The settled empty section: one row-shaped slot, inset inside the row frame
+ * every section's rows share.
  *
  * A dashed outline and no fill, because a filled block that pulses is a
  * skeleton, and a skeleton promises that something is loading. This promises
@@ -139,13 +142,10 @@ export function InboxMotionItem({
  * reduced motion.
  */
 export function InboxEmptySlot({
-    className = 'p-1.5',
     label,
     layoutKey,
     ref,
 }: {
-    /** The track's own sizing: the strip's slot fills the track's width. */
-    className?: string;
     label: string;
     /** The list's `inboxLayoutKey`, as `InboxMotionItem` takes it. */
     layoutKey: string;
@@ -157,7 +157,7 @@ export function InboxEmptySlot({
     return (
         <motion.div
             animate={{ opacity: 1, y: 0 }}
-            className={className}
+            className="p-1.5"
             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
             layout={shouldReduceMotion ? false : 'position'}
