@@ -15,15 +15,12 @@ settings:
     # via explicit xcodebuild args from `bun run ios:release`; see
     # docs/operations/ios-testflight.md. Both values mirror the latest
     # published iOS target in releases.json via release:sync-versions.
-    CURRENT_PROJECT_VERSION: "58"
-    MARKETING_VERSION: 8.6.2
+    CURRENT_PROJECT_VERSION: "59"
+    MARKETING_VERSION: 9.0.0
 
 packages:
   HausIOS:
     path: .
-  ClerkKit:
-    url: https://github.com/clerk/clerk-ios
-    exactVersion: 1.2.0
 
 targets:
   Haus:
@@ -49,8 +46,6 @@ targets:
         product: HausTransport
       - package: HausIOS
         product: HausUI
-      - package: ClerkKit
-        product: ClerkKit
       - target: HausNotificationService
     settings:
       base:
@@ -108,8 +103,6 @@ targets:
         # Development here; exporting with the App Store profile re-signs it as
         # production. See docs/operations/ios-testflight.md.
         aps-environment: development
-        com.apple.developer.associated-domains:
-          - webcredentials:clerk.haus.chat
         com.apple.developer.usernotifications.communication: true
     postBuildScripts:
       - name: Install precompiled iOS icon

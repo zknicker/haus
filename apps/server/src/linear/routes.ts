@@ -25,7 +25,7 @@ export interface LinearRouteOptions {
 }
 
 /**
- * Registers the Linear edges ahead of tRPC, without Clerk: both webhooks
+ * Registers the Linear edges ahead of tRPC, without a Haus session: both webhooks
  * (`webhook-route.ts`) and the OAuth callback (`oauth-callback-route.ts`).
  */
 export async function registerLinearRoutes(app: FastifyInstance, options: LinearRouteOptions) {

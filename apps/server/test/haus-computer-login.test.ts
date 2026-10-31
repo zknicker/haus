@@ -51,10 +51,10 @@ async function completeLogin(harness: HausServerHarness, accessToken: string) {
 
 async function createLoginSession(
     harness: HausServerHarness,
-    clerkUserId: string,
+    subject: string,
     complete = true
 ): Promise<ComputerLoginSession> {
-    const client = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    const client = createHausClient(harness, await harness.humans.mintSessionToken(subject));
     try {
         const started = await beginLogin(harness);
         await client.trpc.computer.login.approve.mutate({ userCode: started.userCode });
@@ -111,7 +111,7 @@ test('Computer login grants approve without Server membership and exchange once'
     const harness = await startHausServerHarness();
     const client = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_device_login')
+        await harness.humans.mintSessionToken('user_device_login')
     );
 
     try {
@@ -170,13 +170,13 @@ test('Computer login grants approve without Server membership and exchange once'
         expect(await consumed.json()).toMatchObject({ code: 'computer_login_consumed' });
 
         const rows = await harness.sql`
-            SELECT origin, clerk_user_id, access_token_hash, refresh_token_hash, stored_at
+            SELECT origin, user_id, access_token_hash, refresh_token_hash, stored_at
             FROM computer_login_sessions
         `;
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({
-            clerk_user_id: 'user_device_login',
             origin: harness.url.origin,
+            user_id: harness.humans.userIdForSubject('user_device_login'),
         });
         expect(rows[0].access_token_hash).not.toContain(session.accessToken);
         expect(rows[0].refresh_token_hash).not.toContain(session.refreshToken);
@@ -191,7 +191,7 @@ test('Computer login exchange serializes concurrent polling to one session', asy
     const harness = await startHausServerHarness();
     const client = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_concurrent_login')
+        await harness.humans.mintSessionToken('user_concurrent_login')
     );
 
     try {
@@ -217,7 +217,7 @@ test('setup login stays finishing until the Computer acknowledges durable attach
     const harness = await startHausServerHarness();
     const client = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_setup_login')
+        await harness.humans.mintSessionToken('user_setup_login')
     );
 
     try {
@@ -247,7 +247,7 @@ test('Computer login reports malformed, denied, and expired terminal states', as
     const harness = await startHausServerHarness();
     const client = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_denied_login')
+        await harness.humans.mintSessionToken('user_denied_login')
     );
     const anonymous = createHausClient(harness);
 

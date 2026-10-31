@@ -12,8 +12,6 @@ const trpcWebSocketPath = '/trpc';
 interface HausWebSocketServerOptions {
     createContext(opts: CreateWSSContextFnOptions): HausContext;
     isAllowedOrigin(origin: string | undefined): boolean;
-    /** How long a socket outlives its newest token's expiry; tests shorten it. */
-    socketSessionGraceMs?: number;
 }
 
 export function startHausWebSocketServer(server: Server, options: HausWebSocketServerOptions) {
@@ -35,7 +33,7 @@ export function startHausWebSocketServer(server: Server, options: HausWebSocketS
                 console.warn('[haus] App socket closed', {
                     at: new Date().toISOString(),
                     code,
-                    userId: socketSessions.get(socket)?.clerkUserId ?? null,
+                    userId: socketSessions.get(socket)?.userId ?? null,
                 });
             }
         });
@@ -83,9 +81,9 @@ export function startHausWebSocketServer(server: Server, options: HausWebSocketS
 }
 
 /**
- * Each App socket carries one live Clerk session (see `SocketSession`). The
- * Server closes the socket once that session lapses unrefreshed, and the App
- * reconnects with whatever session it now holds.
+ * Each App socket carries one live Haus session (see `SocketSession`). The
+ * Server closes the socket at access-token expiry and the App reconnects with
+ * a fresh access token.
  */
 function withSocketSession(
     options: HausWebSocketServerOptions,
@@ -95,11 +93,7 @@ function withSocketSession(
     const socket = opts.res;
     const socketSession = new SocketSession({
         close: () => socket.close(socketSessionExpiredCloseCode, 'Haus session expired'),
-        openingToken: ctx.clerkSessionToken,
-        timing:
-            options.socketSessionGraceMs === undefined
-                ? undefined
-                : { graceMs: options.socketSessionGraceMs },
+        openingToken: ctx.sessionToken,
     });
 
     socketSessions.set(socket, socketSession);
@@ -120,7 +114,7 @@ const quietCloseCodes = new Set([1000, 1001, 1005]);
 /**
  * A failed socket procedure — most often a subscription the Server ended — is
  * otherwise invisible: the App only sees the error shape. Logs the procedure
- * path, its tRPC code, the error class, the authenticated Clerk user when the
+ * path, its tRPC code, the error class, the authenticated Haus user when the
  * socket has resolved one, and a timestamp; never input or payloads.
  */
 function reportSocketProcedureError({
@@ -142,7 +136,7 @@ function reportSocketProcedureError({
         errorClass: cause instanceof Error ? cause.name : typeof cause,
         path: path ?? 'unknown',
         type,
-        userId: ctx?.socketSession?.clerkUserId ?? null,
+        userId: ctx?.socketSession?.userId ?? null,
     });
 }
 

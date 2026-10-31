@@ -54,12 +54,11 @@ export const humanTimezoneSchema = z
     .overwrite((value) => canonicalIanaTimezone(value) ?? value);
 
 /**
- * The App reports the signed-in human's Clerk identity so the Server can seed
+ * The App reports the signed-in human's profile so the Server can seed
  * a profile. It never overwrites a name the human has since chosen.
  */
 export const syncHumanIdentityInputSchema = z
     .object({
-        email: z.string().trim().max(320).nullable(),
         name: z.string().trim().max(80).nullable(),
         serverId: idSchema,
         /**
@@ -138,9 +137,9 @@ export const removedServerMemberSchema = z
     .strict();
 
 /**
- * An invitation address is compared to a verified Clerk email by exact match
+ * An invitation address is compared to a verified sign-in email by exact match
  * after trimming and lowercasing. Haus deliberately does not canonicalize
- * provider-specific forms such as plus tags or dots: Clerk verifies the literal
+ * provider-specific forms such as plus tags or dots: The identity provider verifies the literal
  * address, so folding them would let one address consume another's invitation.
  */
 export const serverInvitationEmailSchema = z.string().trim().toLowerCase().max(320).pipe(z.email());

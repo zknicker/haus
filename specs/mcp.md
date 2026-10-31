@@ -84,7 +84,7 @@ connection state before reading the account-scoped cache.
   with the haus.chat callback. It sends no scope, because a GitHub App has permissions instead,
   and issues expiring user tokens that Server refreshes with the client secret. GitHub is the one
   built-in connection: beyond this MCP path it binds App installations and feeds `github`
-  Triggers ([GitHub App connection](github-app-connection.md)). MerchBase, MerchBase Atlas, and MerchBase Fulfillment use Clerk DCR.
+  Triggers ([GitHub App connection](github-app-connection.md)). MerchBase, MerchBase Atlas, and MerchBase Fulfillment use Cloudflare Access OAuth dynamic client registration.
   Atlas uses `https://atlas.merchbase.co/mcp` with `openid profile email` scopes.
   Fulfillment uses `https://fulfillment.merchbase.co/mcp/printful` with the identity scopes
   `openid profile email`; Printful store linking is a separate upstream tool flow.

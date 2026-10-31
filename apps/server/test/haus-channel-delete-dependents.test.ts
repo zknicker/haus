@@ -17,7 +17,7 @@ const runtime = makeTestRuntime();
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('delete-dependents'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('delete-dependents'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Delete Dependents',
         slug: 'delete-dependents',
@@ -53,7 +53,7 @@ test('restores a pre-refusal onboarding channel tombstone instead of purging it'
     await harness.sql`
         update chats
         set deleted_at = now(),
-            deleted_by_user_id = (select id from users where clerk_user_id = 'delete-dependents')
+            deleted_by_user_id = (select id from users where auth_subject = 'delete-dependents')
         where id = ${onboardingChannelId}
     `;
     const root = await openAttachmentRoot(harness.attachmentRoot, runtime);

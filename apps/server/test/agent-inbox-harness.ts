@@ -56,7 +56,7 @@ export async function seedAgent(db: HausDatabase): Promise<Seed> {
         serverId: createOpaqueId('srv'),
         userId: createOpaqueId('usr'),
     };
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: seed.userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: seed.userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Parity', id: seed.serverId, slug: createOpaqueId('slug') });

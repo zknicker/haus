@@ -28,7 +28,7 @@ const code = await main(process.argv.slice(2)).catch((error) => {
     terminal.error(error instanceof UsageError ? error.message : String(error.stack ?? error));
     return error instanceof UsageError ? 2 : 1;
 });
-// Clerk's headless client can leave refresh timers behind in children; this process is done.
+// Eval children may retain connection timers; this process is done.
 setTimeout(() => process.exit(code), 0);
 
 async function main(argv) {

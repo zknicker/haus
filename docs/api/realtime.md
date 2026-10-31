@@ -85,7 +85,7 @@ through their lists' bulk refetch. See [React](../internals/react.md) and the sp
 | `FORBIDDEN` with `hausRefusal: 'membership_lost'` | Run the Server-loss path once: close every stream of that Server, purge its transcript cache, cancel and drop every query scoped to it (`server.bySlug` matched by its cached Server), and invalidate `server.list`. A mounted view's reads reset and fail closed into the unavailable state |
 | `NOT_FOUND` with `hausRefusal: 'chat_missing'` (per-Chat streams) | Run the Chat-loss purge for that Chat, which stops its per-Chat streams; never retry |
 | `FORBIDDEN` with `hausRefusal: 'role_required'` | Stop that one stream; clear nothing |
-| `UNAUTHORIZED` | Refresh the session in place (`session.refresh`), then restart with backoff; final only when Clerk has no session |
+| `UNAUTHORIZED` | Refresh the session in place (`session.refresh`), then restart with backoff; final when the Haus session requires sign-in |
 | Anything else, `FORBIDDEN` or `NOT_FOUND` without `hausRefusal` included | Restart with backoff |
 
 Only a coded `hausRefusal` (`realtimeRefusalDataKey`) is a refusal; the App never infers one from a
@@ -132,7 +132,7 @@ periodic reconnects, refetch timers for event-covered reads, and any client repl
 dropped on a live, error-free stream in a window that never blurs stays missing until the next
 restart, reconnect, focus past the window, or related event; that residual is accepted.
 
-Clerk token rotation does not reconnect: the App hands each rotated token to the open socket
+Haus access-token rotation does not reconnect: the App hands each rotated token to the open socket
 (`session.refresh`, [Auth](auth.md#socket-sessions)). A genuine identity change renders through a
 newly keyed QueryClient and provider. A browser offline → online transition refetches nothing
 (`refetchOnReconnect: false`); the socket reconnect owns recovery.

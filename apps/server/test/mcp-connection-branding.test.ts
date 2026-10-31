@@ -24,21 +24,21 @@ let harness: HausServerHarness;
 let database: HausConnection;
 let owner: HausClient;
 let runtime: McpRuntime;
-let member: { clerkUserId: string; id: string };
+let member: { subject: string; id: string };
 let serverId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
     database = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('branding-owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('branding-owner'));
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Branding', slug: 'branding' })
     ).id;
-    const [user] = await harness.sql`select id from users where clerk_user_id = 'branding-owner'`;
+    const [user] = await harness.sql`select id from users where auth_subject = 'branding-owner'`;
     if (!user?.id) {
         throw new Error('The branding test owner was not saved.');
     }
-    member = { clerkUserId: 'branding-owner', id: user.id };
+    member = { subject: 'branding-owner', id: user.id };
     runtime = new McpRuntime(database.db, effectRuntime, {
         clientFactory: () => Promise.resolve(makeClient('Fulfillment account').client),
     });

@@ -11,7 +11,7 @@ export const developmentBootstrapProcedure = serverProcedure.mutation(async ({ c
     if (process.env.HAUS_DEV_STACK !== '1') {
         throw new TRPCError({ code: 'NOT_FOUND' });
     }
-    const server = await seedDevelopmentServer(ctx.hausDb, ctx.clerkUserId, {
+    const server = await seedDevelopmentServer(ctx.hausDb, ctx.userId!, {
         attachmentRoot: ctx.attachmentRoot,
     });
     await seedDevelopmentImageGenerationKeys(ctx.hausDb, {

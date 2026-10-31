@@ -31,7 +31,7 @@ const base = new Date('2026-08-01T10:00:00.000Z');
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_history_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_history_owner'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Reminder History Server',
         slug: 'reminder-history-server',

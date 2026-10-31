@@ -1,6 +1,7 @@
 import type { components, operations, paths } from './generated/openapi.d.ts';
 
 export * from './amazon-products.ts';
+export * from './app-session.ts';
 export type { components, operations, paths, webhooks } from './generated/openapi.d.ts';
 export * from './voice.ts';
 

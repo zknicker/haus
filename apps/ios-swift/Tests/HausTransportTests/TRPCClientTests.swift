@@ -17,8 +17,8 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.url?.path, "/trpc/server.list")
             XCTAssertEqual(request.value(forHTTPHeaderField: "content-type"), "application/json")
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "10")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "12")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer haus_access_test")
             let body = try XCTUnwrap(request.httpBody ?? request.httpBodyStream.flatMap(readBody))
             XCTAssertEqual(
                 try JSONDecoder().decode(QueryInput.self, from: body),
@@ -32,7 +32,7 @@ final class TRPCClientTests: XCTestCase {
                 serverOrigin: URL(string: "https://haus.test")!,
                 productVersion: "1.2.3"
             ),
-            sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
+            sessionTokenProvider: StaticSessionTokenProvider(token: "haus_access_test"),
             session: session
         )
         let result: QueryOutput = try await client.query("server.list", input: expectedInput)
@@ -132,8 +132,8 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "accept"), "application/json")
             XCTAssertEqual(request.value(forHTTPHeaderField: "content-length"), String(bytes.count))
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "10")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "12")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer haus_access_test")
             let body = try XCTUnwrap(request.httpBody ?? request.httpBodyStream.flatMap(readBody))
             XCTAssertEqual(body, bytes)
             return response(
@@ -148,7 +148,7 @@ final class TRPCClientTests: XCTestCase {
                 serverOrigin: URL(string: "https://haus.test")!,
                 productVersion: "1.2.3"
             ),
-            sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
+            sessionTokenProvider: StaticSessionTokenProvider(token: "haus_access_test"),
             session: makeStubSession(),
             streamSession: makeStubSession()
         )
@@ -178,8 +178,8 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.httpMethod, "GET")
             XCTAssertEqual(request.url?.path, "/attachments/srv_123/att_123")
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "10")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "12")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer haus_access_test")
             return response(headers: ["Content-Type": "text/plain"], data: bytes)
         }
 
@@ -188,7 +188,7 @@ final class TRPCClientTests: XCTestCase {
                 serverOrigin: URL(string: "https://haus.test")!,
                 productVersion: "1.2.3"
             ),
-            sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
+            sessionTokenProvider: StaticSessionTokenProvider(token: "haus_access_test"),
             session: makeStubSession(),
             streamSession: makeStubSession()
         )
@@ -206,30 +206,6 @@ final class TRPCClientTests: XCTestCase {
         XCTAssertEqual(downloadedURL.lastPathComponent, "notes_.txt")
         XCTAssertEqual(try Data(contentsOf: downloadedURL), bytes)
         XCTAssertTrue(downloadedURL.path.contains("/HausAttachments/"))
-    }
-
-    func testDevClerkTicketUsesUnauthenticatedMutation() async throws {
-        StubURLProtocol.requestHandler = { request in
-            XCTAssertEqual(request.httpMethod, "POST")
-            XCTAssertEqual(request.url?.path, "/trpc/dev.createClerkSignInToken")
-            XCTAssertNil(request.value(forHTTPHeaderField: "authorization"))
-            let body = try XCTUnwrap(request.httpBody ?? request.httpBodyStream.flatMap(readBody))
-            XCTAssertEqual(String(decoding: body, as: UTF8.self), "{}")
-            return response(data: Data(#"{"result":{"data":{"ticket":"ticket_test"}}}"#.utf8))
-        }
-        let client = TRPCClient(
-            config: AppConfig(
-                serverOrigin: URL(string: "http://localhost:46051")!,
-                productVersion: "test"
-            ),
-            sessionTokenProvider: StaticSessionTokenProvider(token: nil),
-            session: makeStubSession(),
-            streamSession: makeStubSession()
-        )
-
-        let result = try await client.createDevClerkSignInTicket()
-
-        XCTAssertEqual(result, DevClerkSignInTicket(ticket: "ticket_test"))
     }
 
     func testSubscriptionAcceptsEnvelopeAndBareFramesInOneStream() async throws {

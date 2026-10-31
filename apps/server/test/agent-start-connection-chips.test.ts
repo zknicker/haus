@@ -85,7 +85,7 @@ async function seedAgent() {
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
     const chatId = createOpaqueId('cht');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Chips', id: serverId, slug: createOpaqueId('slug') });

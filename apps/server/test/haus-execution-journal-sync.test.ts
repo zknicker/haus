@@ -26,14 +26,14 @@ const at = (second: number) => `2026-10-14T12:00:${String(second).padStart(2, '0
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('clerk_sync_owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('clerk_sync_out'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('cf_sync_owner'));
+    outsider = createHausClient(harness, await harness.humans.mintSessionToken('cf_sync_out'));
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Journal', slug: 'journal-sync' })
     ).id;
     await outsider.trpc.server.create.mutate({ displayName: 'Elsewhere', slug: 'elsewhere' });
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_sync_owner'
+        select id from users where auth_subject = 'cf_sync_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)

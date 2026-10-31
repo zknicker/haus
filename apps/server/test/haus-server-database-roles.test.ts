@@ -10,7 +10,6 @@ import {
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 const appOrigin = 'https://haus.chat';
@@ -18,7 +17,6 @@ const backupRole = 'haus_backup_test';
 const runtimeRole = 'haus_runtime_test';
 let admin: SQL;
 let application: HausServerApplication;
-let clerk: ClerkTestIssuer;
 let cluster: PostgresCluster;
 let runtimeDatabaseUrl: string;
 let attachmentRoot: string;
@@ -35,12 +33,10 @@ beforeAll(async () => {
     const runtimeUrl = new URL(cluster.databaseUrl);
     runtimeUrl.username = runtimeRole;
     runtimeDatabaseUrl = runtimeUrl.toString();
-    clerk = await startClerkTestIssuer(appOrigin);
     attachmentRoot = await mkdtemp(join(tmpdir(), 'haus-role-attachments-'));
     application = await createHausServerApplication({
         appOrigin,
         attachmentRoot,
-        clerkIssuerUrl: clerk.url,
         databaseUrl: runtimeDatabaseUrl,
     });
     await application.listen(0);
@@ -48,7 +44,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await application.close();
-    await clerk.close();
     await admin.close();
     await cluster.stop();
     await rm(attachmentRoot, { force: true, recursive: true });

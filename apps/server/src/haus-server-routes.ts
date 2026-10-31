@@ -17,6 +17,7 @@ import type { createHausContextFactory, HausContextDependencies } from './haus-a
 import { hausRouter } from './haus-api/router.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import { registerHausReleaseRoute } from './haus-release-route.ts';
+import { registerAuthRoutes } from './identity/auth-routes.ts';
 import { ImageGenerationService } from './image-generation/image-generation-service.ts';
 import {
     failInterruptedImageGenerations,
@@ -30,6 +31,7 @@ import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
 export interface HausServerRouteDependencies extends HausContextDependencies {
+    cloudflareOAuthMetadataFetch?: typeof fetch;
     createContext: ReturnType<typeof createHausContextFactory>;
     /** The GitHub delivery ingest the webhook shares with recovery. */
     githubIngest: GithubRouteOptions['ingest'];
@@ -46,6 +48,7 @@ export async function registerHausServerRoutes(
     dependencies: HausServerRouteDependencies
 ): Promise<void> {
     const db = dependencies.hausDb;
+    registerAuthRoutes(app, dependencies);
     const imageGeneration = new ImageGenerationService({
         adapters: dependencies.imageGenerationAdapters,
         agentDelivery: dependencies.agentDelivery,
@@ -59,7 +62,7 @@ export async function registerHausServerRoutes(
         imageGeneration.sweepPending()
     );
     await registerAttachmentRoutes(app, {
-        clerkSessions: dependencies.clerkSessions,
+        hausSessions: dependencies.hausSessions,
         db,
         root: dependencies.attachmentRoot,
         runtime: dependencies.runtime,
@@ -74,7 +77,7 @@ export async function registerHausServerRoutes(
     registerArtifactPublishRoute(app, {
         appOrigin: dependencies.appOrigin,
         budget: dependencies.artifactStorageBytes,
-        clerkSessions: dependencies.clerkSessions,
+        hausSessions: dependencies.hausSessions,
         db,
         storage: dependencies.artifactStorage,
         thumbnails: dependencies.artifactThumbnails,

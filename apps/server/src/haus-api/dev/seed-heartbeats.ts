@@ -1,6 +1,5 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { env } from '../../config/env.ts';
 import { seedDevelopmentHeartbeats } from '../../development/seed-heartbeats.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
@@ -14,7 +13,7 @@ import { assertHeartbeatTestAllowed } from './heartbeat-test-routes.ts';
 export const seedHeartbeatsRoute = memberProcedure
     .input(z.object({ serverId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
+        assertHeartbeatTestAllowed(ctx.requestHost, ctx.developmentAuth !== null);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
         if (!ctx.member) {
             throw new TRPCError({ code: 'FORBIDDEN', message: 'No operator for this session.' });

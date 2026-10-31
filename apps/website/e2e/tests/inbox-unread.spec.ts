@@ -22,7 +22,7 @@ test('an unread Channel is an Unread row until Mark read, and newer activity bri
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'inbox-unread',
-        token: session.token,
+        token: session.accessToken,
     });
     await agent.send(`[@Ada](user://${agent.ownerUserId}) ${question}`, 'unread-1');
 
@@ -63,7 +63,7 @@ test('a followed Thread is its own Unread row, apart from its Channel, and opens
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'inbox-threads',
-        token: session.token,
+        token: session.accessToken,
     });
     // The viewer wrote the anchor, so the Agent's first reply follows them to its Thread.
     const root = await client.chat.send.mutate({
@@ -124,7 +124,7 @@ test('Unread is a triage list: one open row, moved by keys and pressing, read by
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'inbox-triage',
-        token: session.token,
+        token: session.accessToken,
     });
     const root = await client.chat.send.mutate({
         chatId: agent.chatId,

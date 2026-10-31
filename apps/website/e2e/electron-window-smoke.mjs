@@ -48,7 +48,6 @@ const vite = spawn('bun', ['run', 'dev'], {
 // A smoke-scoped stack id keeps this instance off a running dev app's single-instance lock.
 const electronEnv = {
     ...process.env,
-    HAUS_CLERK_ISSUER_URL: 'https://clerk.window-smoke.test',
     HAUS_DEV_STACK_ID: `window-smoke-${Date.now()}`,
     HAUS_ELECTRON_DEV_URL: viteUrl,
 };

@@ -4,11 +4,11 @@ import {
     ChatArchivedError,
     ChatNotFoundError,
 } from '../chats/chat-access.ts';
-import { type ClerkSessions, ClerkSessionUnavailableError } from '../identity/clerk-sessions.ts';
+import { HausAuthError, type HausSessions } from '../identity/haus-sessions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerRuntime } from '../server-runtime.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
-import { findUserByClerkId } from '../users/haus-user.ts';
+import { findUserById } from '../users/haus-user.ts';
 import { attachmentDisposition } from '../utils/content-disposition.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
 import { openAttachmentDownload } from './download-attachment.ts';
@@ -16,8 +16,8 @@ import { attachmentMaxSizeBytes } from './reserve-attachment.ts';
 import { AttachmentUploadError, uploadAttachment } from './upload-attachment.ts';
 
 interface AttachmentRouteDependencies {
-    clerkSessions: ClerkSessions;
     db: HausDatabase;
+    hausSessions: HausSessions;
     root: AttachmentRoot;
     runtime: ServerRuntime;
 }
@@ -35,11 +35,11 @@ export async function registerAttachmentRoutes(
         '/attachments/:serverId/:attachmentId',
         async (request, reply) => {
             try {
-                const clerkUserId = await authenticate(
-                    dependencies.clerkSessions,
+                const userId = await authenticate(
+                    dependencies.hausSessions,
                     request.headers.authorization
                 );
-                const member = await findUserByClerkId(dependencies.db, clerkUserId);
+                const member = await findUserById(dependencies.db, userId);
                 const download = await openAttachmentDownload(
                     dependencies.db,
                     dependencies.root,
@@ -68,12 +68,12 @@ export async function registerAttachmentRoutes(
             // Consume the raw stream before Fastify's body parser can buffer it.
             onRequest: async (request, reply) => {
                 try {
-                    const clerkUserId = await authenticate(
-                        dependencies.clerkSessions,
+                    const userId = await authenticate(
+                        dependencies.hausSessions,
                         request.headers.authorization
                     );
                     requireOctetStream(request.headers['content-type']);
-                    const member = await findUserByClerkId(dependencies.db, clerkUserId);
+                    const member = await findUserById(dependencies.db, userId);
                     const declaredLength = parseContentLength(request.headers['content-length']);
                     const result = await uploadAttachment(
                         dependencies.db,
@@ -98,16 +98,15 @@ export async function registerAttachmentRoutes(
     );
 }
 
-async function authenticate(sessions: ClerkSessions, authorization: string | undefined) {
+async function authenticate(sessions: HausSessions, authorization: string | undefined) {
     if (!authorization?.startsWith('Bearer ')) {
         throw new RouteError('Sign in to upload attachments.', 401);
     }
 
     try {
-        return (await sessions.verify(authorization.slice(7))).clerkUserId;
+        return (await sessions.authenticate(authorization.slice(7))).userId;
     } catch (cause) {
-        // The signing keys never resolved, so this token was never judged.
-        if (cause instanceof ClerkSessionUnavailableError) {
+        if (cause instanceof HausAuthError && cause.code === 'auth_unavailable') {
             throw new RouteError(cause.message, 503, { cause });
         }
 

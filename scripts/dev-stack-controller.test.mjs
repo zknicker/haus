@@ -4,11 +4,11 @@ import test from 'node:test';
 import { createDesktopDevEnvironment, DevStackController } from './dev-stack-controller.mjs';
 import { signalChildProcessGroup, waitForChildShutdown } from './dev-stack-processes.mjs';
 
-test('App development inherits the schema-resolved Clerk issuer from the dev stack', () => {
+test('App development inherits the schema-resolved Haus Server auth audience', () => {
     assert.deepEqual(
         createDesktopDevEnvironment({
             devStackEnvironment: {
-                HAUS_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
+                HAUS_CF_ACCESS_AUDIENCE: 'haus-development-audience',
                 PATH: '/usr/bin',
             },
             ports: {
@@ -17,7 +17,7 @@ test('App development inherits the schema-resolved Clerk issuer from the dev sta
             },
         }),
         {
-            HAUS_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
+            HAUS_CF_ACCESS_AUDIENCE: 'haus-development-audience',
             PATH: '/usr/bin',
             HAUS_WEBSITE_PORT: '25248',
         }

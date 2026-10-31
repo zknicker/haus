@@ -1,203 +1,70 @@
-import { useAuth, useClerk } from '@clerk/clerk-react';
 import { Button, Spinner } from '@heroui/react';
-import { Fragment, type ReactNode, useEffect, useState } from 'react';
+import { Fragment, type ReactNode, useState } from 'react';
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
-import { getClerkSessionToken, hasClerkSessionSeed, isClerkEnabled } from '../../lib/clerk.tsx';
-import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
-import { useDesktopOAuth } from './use-desktop-oauth.ts';
-import { useSignOut } from './use-sign-out.ts';
+import { useAppAuth } from '../../lib/app-auth.tsx';
+import type { AppAuthSnapshot } from '../../lib/app-auth-session.ts';
+import { getDesktopBridge, isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 
-/**
- * Mandatory sign-in (specs/identity.md): with Clerk configured, the app
- * renders only for a signed-in user. Keyless test builds skip the gate, but a
- * configured Haus App never falls through to authenticated Server routes
- * without a Clerk session.
- */
+/** Every product route uses a current, Server-issued App session. */
 export function SignInGate({ children }: { children: ReactNode }) {
-    if (!isClerkEnabled) {
-        return children;
-    }
+    const { refresh, session, signIn, snapshot } = useAppAuth();
+    const gate = resolveSignInGate(snapshot);
 
-    if (window.location.pathname === '/sso-callback') {
-        return children;
-    }
-
-    return <ClerkStatusGate>{children}</ClerkStatusGate>;
-}
-
-/**
- * Clerk's load status. Loaded (ready or degraded) opens the session gate. A
- * desktop window that booted with a session another window handed off
- * (docs/api/auth.md, "Desktop session handoff") opens it while Clerk still
- * loads; the session gate stays at one tree position either way, so the App
- * does not remount when Clerk finishes. The session gate also requires the
- * token used by the Server client, so stale Clerk UI state cannot open signed
- * API routes without usable authentication.
- */
-function ClerkStatusGate({ children }: { children: ReactNode }) {
-    const clerk = useClerk();
-    const gate = resolveClerkStatusGate({
-        loaded: clerk.loaded,
-        seeded: hasClerkSessionSeed(),
-        status: clerk.status,
-    });
-    if (gate === 'failed') {
-        return <SignInGateFrame signIn />;
-    }
     if (gate === 'loading') {
         return <ActivationLoading />;
     }
-    return <ClerkSessionGate>{children}</ClerkSessionGate>;
-}
-
-export function resolveClerkStatusGate({
-    loaded,
-    seeded,
-    status,
-}: {
-    loaded: boolean;
-    seeded: boolean;
-    status: string | undefined;
-}): 'failed' | 'loading' | 'session' {
-    if (status === 'error') {
-        return 'failed';
-    }
-    return loaded || seeded ? 'session' : 'loading';
-}
-
-function ClerkSessionGate({ children }: { children: ReactNode }) {
-    const { isLoaded, isSignedIn, sessionId, userId } = useAuth();
-    const signOut = useSignOut();
-    const [tokenSnapshot, setTokenSnapshot] = useState<ClerkSessionTokenSnapshot>({
-        sessionId: null,
-        state: 'loading',
-    });
-    const [retryKey, setRetryKey] = useState(0);
-
-    useEffect(() => {
-        // The retry key intentionally starts a fresh token read.
-        void retryKey;
-        let active = true;
-
-        if (!(isLoaded && isSignedIn && sessionId)) {
-            setTokenSnapshot({ sessionId: null, state: 'missing' });
-            return;
-        }
-
-        setTokenSnapshot({ sessionId, state: 'loading' });
-        void readClerkSessionToken(getClerkSessionToken).then((state) => {
-            if (active) {
-                setTokenSnapshot({ sessionId, state });
-            }
-        });
-
-        return () => {
-            active = false;
-        };
-    }, [isLoaded, isSignedIn, retryKey, sessionId]);
-
-    const tokenState = resolveClerkSessionTokenState(tokenSnapshot, sessionId);
-    const gate = resolveClerkSessionGate({ isLoaded, isSignedIn, tokenState, userId });
-
-    if (gate.kind === 'signed-out') {
-        return <SignInGateFrame signIn={isLoaded} />;
-    }
-
-    if (gate.kind === 'loading') {
-        return <ActivationLoading />;
-    }
-
-    if (gate.kind === 'missing') {
+    if (gate === 'recovery' && snapshot.kind === 'failed') {
         return (
             <SignInSessionRecovery
-                onRetry={() => setRetryKey((key) => key + 1)}
-                onSignOut={signOut}
+                message={snapshot.message}
+                onRetry={() => void refresh()}
+                onSignIn={() => void signIn(true)}
             />
         );
     }
-
-    return <Fragment key={gate.userId}>{children}</Fragment>;
+    if (gate === 'signed-out') {
+        return <SignInGateFrame signIn />;
+    }
+    return session ? (
+        <Fragment key={session.user.id}>{children}</Fragment>
+    ) : (
+        <SignInGateFrame signIn />
+    );
 }
 
-/** The signed-in-but-unusable-session repair screen. */
+export function resolveSignInGate(snapshot: AppAuthSnapshot) {
+    if (snapshot.kind === 'loading') {
+        return 'loading';
+    }
+    if (snapshot.kind === 'failed') {
+        return 'recovery';
+    }
+    return snapshot.session ? 'authenticated' : 'signed-out';
+}
+
 export function SignInSessionRecovery({
+    message = 'We couldn’t open your signed-in session.',
     onRetry,
-    onSignOut,
+    onSignIn,
 }: {
+    message?: string;
     onRetry: () => void;
-    onSignOut: () => void;
+    onSignIn: () => void;
 }) {
     return (
         <SignInGateFrame
-            message="We couldn’t open your signed-in session."
+            message={message}
             recovery={
                 <>
                     <Button onPress={onRetry}>Try again</Button>
-                    <Button onPress={onSignOut} variant="outline">
-                        Sign in again
+                    <Button onPress={onSignIn} variant="outline">
+                        Continue with Google
                     </Button>
                 </>
             }
         />
     );
-}
-
-type ClerkSessionTokenState = 'loading' | 'ready' | 'missing';
-interface ClerkSessionTokenSnapshot {
-    sessionId: string | null;
-    state: ClerkSessionTokenState;
-}
-type ClerkSessionGateState =
-    | { kind: 'signed-out' }
-    | { kind: 'loading' }
-    | { kind: 'missing' }
-    | { kind: 'authenticated'; userId: string };
-
-export function resolveClerkSessionGate({
-    isLoaded,
-    isSignedIn,
-    tokenState,
-    userId,
-}: {
-    isLoaded: boolean;
-    isSignedIn: boolean | undefined;
-    tokenState: ClerkSessionTokenState;
-    userId: string | null | undefined;
-}): ClerkSessionGateState {
-    if (!isLoaded) {
-        return { kind: 'loading' };
-    }
-    if (!isSignedIn) {
-        return { kind: 'signed-out' };
-    }
-    if (tokenState === 'missing') {
-        return { kind: 'missing' };
-    }
-    if (tokenState === 'loading' || !userId) {
-        return { kind: 'loading' };
-    }
-    return { kind: 'authenticated', userId };
-}
-
-export function resolveClerkSessionTokenState(
-    snapshot: ClerkSessionTokenSnapshot,
-    currentSessionId: string | null | undefined
-): ClerkSessionTokenState {
-    if (!(currentSessionId && snapshot.sessionId === currentSessionId)) {
-        return 'loading';
-    }
-    return snapshot.state;
-}
-
-export async function readClerkSessionToken(
-    getToken: () => Promise<string | null>
-): Promise<ClerkSessionTokenState> {
-    try {
-        return (await getToken()) ? 'ready' : 'missing';
-    } catch {
-        return 'missing';
-    }
 }
 
 export function SignInGateFrame({
@@ -216,7 +83,7 @@ export function SignInGateFrame({
                 footer={
                     recovery ??
                     (signIn ? (
-                        <SignInAction />
+                        <GoogleSignIn />
                     ) : (
                         <Spinner aria-label="Opening your session" size="sm" />
                     ))
@@ -227,36 +94,41 @@ export function SignInGateFrame({
     );
 }
 
-/**
- * Clerk's `SignInButton` drives its child through a cloned `onClick`, which
- * HeroUI's Button (React Aria) deliberately drops in favour of `onPress`. The
- * modal is opened directly instead — the same call `SignInButton mode="modal"`
- * makes.
- */
-function SignInAction() {
-    const clerk = useClerk();
+function GoogleSignIn() {
+    return isElectronDesktopApp() ? <DesktopGoogleSignIn /> : <BrowserGoogleSignIn />;
+}
 
-    if (isElectronDesktopApp()) {
-        return <DesktopGoogleSignIn />;
-    }
-
-    return <Button onPress={() => clerk.openSignIn()}>Sign in</Button>;
+function BrowserGoogleSignIn() {
+    const { signIn } = useAppAuth();
+    const [error, setError] = useState<string | null>(null);
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <Button
+                onPress={() => {
+                    setError(null);
+                    void signIn().catch((reason: unknown) => setError(errorMessage(reason)));
+                }}
+            >
+                Continue with Google
+            </Button>
+            {error ? <p className="max-w-sm text-center text-danger text-sm">{error}</p> : null}
+        </div>
+    );
 }
 
 function DesktopGoogleSignIn() {
-    const { cancelGoogleSignIn, startGoogleSignIn } = useDesktopOAuth();
+    const { signIn } = useAppAuth();
     const [error, setError] = useState<string | null>(null);
     const [isStarting, setIsStarting] = useState(false);
 
-    const handleSignIn = async () => {
+    const startGoogleSignIn = async () => {
         setError(null);
         setIsStarting(true);
-
         try {
-            await startGoogleSignIn();
-        } catch (signInError) {
-            if (!(signInError instanceof Error && signInError.name === 'AbortError')) {
-                setError(getErrorMessage(signInError));
+            await signIn();
+        } catch (reason) {
+            if (!(reason instanceof Error && reason.name === 'AbortError')) {
+                setError(errorMessage(reason));
             }
         } finally {
             setIsStarting(false);
@@ -266,16 +138,14 @@ function DesktopGoogleSignIn() {
     return (
         <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-2">
-                <Button
-                    isPending={isStarting}
-                    onPress={() => {
-                        void handleSignIn();
-                    }}
-                >
-                    {isStarting ? 'Waiting for Google…' : 'Continue with Google'}
+                <Button isPending={isStarting} onPress={() => void startGoogleSignIn()}>
+                    Continue with Google
                 </Button>
                 {isStarting ? (
-                    <Button onPress={cancelGoogleSignIn} variant="outline">
+                    <Button
+                        onPress={() => void getDesktopBridge()?.authCancelSignIn?.()}
+                        variant="outline"
+                    >
                         Cancel
                     </Button>
                 ) : null}
@@ -285,6 +155,6 @@ function DesktopGoogleSignIn() {
     );
 }
 
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : 'Google sign-in failed. Please try again.';
+function errorMessage(_error: unknown) {
+    return 'Google sign-in didn’t start. Please try again.';
 }

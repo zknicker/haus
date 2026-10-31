@@ -15,8 +15,8 @@ const credential = 'browser-computer-credential-00000000';
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = await signIn('clerk_browser_owner');
-    member = await signIn('clerk_browser_member');
+    owner = await signIn('cf_browser_owner');
+    member = await signIn('cf_browser_member');
     serverId = (
         await owner.trpc.server.create.mutate({
             displayName: 'Browser HQ',
@@ -28,14 +28,14 @@ beforeAll(async () => {
         slug: 'browser-member-root',
     });
     const memberRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_browser_member'
+        select id from users where auth_subject = 'cf_browser_member'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
         values ('mem_browser00000000', ${serverId}, ${memberRows[0]?.id}, 'member')
     `;
     const ownerRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_browser_owner'
+        select id from users where auth_subject = 'cf_browser_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)
@@ -87,8 +87,8 @@ test('only an Owner or Admin can relay Browser settings to this Server Computer'
     );
 });
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
 function answerNextBrowserRequest(connection: WebSocket) {

@@ -23,7 +23,7 @@ beforeAll(async () => {
     connection = await connectHausDatabase(harness.databaseUrl);
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_handle_namespace')
+        await harness.humans.mintSessionToken('user_handle_namespace')
     );
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Handle HQ',
@@ -33,7 +33,6 @@ beforeAll(async () => {
     ownerUserId = server.viewerUserId;
 
     await owner.trpc.member.syncIdentity.mutate({
-        email: 'ada@example.com',
         name: 'Ada Lovelace',
         serverId,
     });
@@ -169,7 +168,7 @@ test('projects the real human handle into Agent-facing messages and DM targets',
 test('an Agent send target materializes the addressed human pair by handle', async () => {
     const targetUserId = 'usr_handle_target';
     await harness.sql`
-        insert into users (id, clerk_user_id, display_name)
+        insert into users (id, auth_subject, display_name)
         values (${targetUserId}, 'user_handle_target', 'Grace Hopper')
     `;
     await harness.sql`

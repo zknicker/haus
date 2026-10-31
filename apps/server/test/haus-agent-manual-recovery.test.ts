@@ -13,13 +13,13 @@ const credentialHash = 'd'.repeat(64);
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_manual_rec'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_manual_rec'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Manual Recovery HQ',
         slug: 'manual-recovery-hq',
     });
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_manual_rec'
+        select id from users where auth_subject = 'user_manual_rec'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.0.0 - 2026-10-31
+
+- Haus on the web, desktop, and iPhone signs in with Google through Cloudflare Access. Your profile, chats, Computers, Agents, and saved connections stay in place.
+- Update the desktop App to 7.0.0 and Haus for iPhone to 9.0.0, then sign in again. The Server requires these versions for the new sign-in system.
+
 ## v15.12.1 - 2026-10-30
 
 - Merchbase connections keep their original addresses with Cloudflare sign-in, including RankWrangler product cards.

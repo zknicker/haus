@@ -54,7 +54,7 @@ test('Agents browse folders, pull a prefix recursively, resolve paths, and move'
 });
 
 test('members publish through the App route with the same CAS contract', async () => {
-    const token = await fixture.harness.clerk.mintSessionToken('user_agent_creation_owner');
+    const token = await fixture.harness.humans.mintSessionToken('user_agent_creation_owner');
     const url = (query: Record<string, string>) => {
         const target = new URL(`/artifacts/${fixture.serverId}/publish`, fixture.harness.url);
         target.search = new URLSearchParams(query).toString();

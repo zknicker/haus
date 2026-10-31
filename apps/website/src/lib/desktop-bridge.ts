@@ -29,22 +29,21 @@ export interface DesktopMenuState {
 export type DesktopEditCommand = 'copy' | 'cut' | 'paste' | 'redo' | 'selectAll' | 'undo';
 
 export interface HausDesktopBridge {
-    /** The Clerk session token another window shared, while it has time left; synchronous. */
+    authCancelSignIn?: () => Promise<void>;
+    /** Ask main to restore the signed-in Haus session from its protected credential store. */
+    authInitialize?: () => Promise<unknown>;
+    /** Ask the single main-process auth manager to refresh and return the current AppSession. */
+    authRefresh?: () => Promise<unknown>;
+    /** The main process's short-lived Haus session, while it has time left; synchronous. */
     authSessionPeek?: () => unknown;
-    /** Shares this window's current Clerk session token with booting windows; null on sign-out. */
-    authSessionShare?: (token: string | null) => Promise<void>;
-    /** Read Clerk's native client JWT from main-process storage. */
-    authTokenGet: () => Promise<string | null>;
-    /** Persist or clear Clerk's native client JWT in main-process storage. */
-    authTokenSet: (token: string | null) => Promise<void>;
+    authSignIn?: (options?: { switchAccount?: boolean }) => Promise<void>;
+    authSignOut?: () => Promise<void>;
     /** Captures a placed web view as an inline image; validate with `parseBrowserCapture`. */
     browserCapture?: (viewId: string) => Promise<unknown>;
     browserCommand?: (command: BrowserCommand) => Promise<unknown>;
     /** ADR 0039: places every visible web view in one call; views not listed hide. */
     browserLayout?: (placements: readonly BrowserViewPlacement[]) => Promise<void>;
     browserSnapshot?: () => Promise<unknown>;
-    /** Stop waiting for a development loopback OAuth callback. */
-    cancelSsoCallback?: () => Promise<void>;
     checkForUpdate: () => Promise<void>;
     closeWindow: () => Promise<void>;
     downloadUpdate: () => Promise<void>;
@@ -53,6 +52,8 @@ export interface HausDesktopBridge {
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
     /** Electron loads the canonical Haus App instead of a bundled renderer. */
     loadsApp?: true;
+    /** Main → renderer: the current AppSession, or null after sign-out. */
+    onAuthSession?: (listener: (session: unknown) => void) => () => void;
     /** Main → renderer: a web page closed itself (`window.close()`); its view id (unvalidated). */
     onBrowserClosed?: (listener: (viewId: unknown) => void) => () => void;
     /** Main → renderer: a web view took key focus; its view id (unvalidated). */
@@ -96,8 +97,6 @@ export interface HausDesktopBridge {
     onQueryCacheRequest?: (listener: () => unknown) => () => void;
     /** Main → renderer: View > Show/Hide Sidebar. */
     onSidebarToggle?: (listener: () => void) => () => void;
-    /** Main → renderer: the system browser returned Clerk's OAuth callback. */
-    onSsoCallback: (listener: (url: string) => void) => () => void;
     /** Main → renderer: `parseTabDragMessage` input. */
     onTabDrag?: (listener: (message: unknown) => void) => () => void;
     onUpdateStatus: (listener: (status: DesktopUpdateBridgeStatus) => void) => () => void;
@@ -111,8 +110,6 @@ export interface HausDesktopBridge {
      */
     openedFromWindow?: boolean;
     openWindow: (route: string) => Promise<void>;
-    /** Reserve the callback URL owned by this desktop process. */
-    prepareSsoCallback?: () => Promise<string>;
     /** The opener's query cache copy this window opened with, once per page load; synchronous. */
     queryCacheClaim?: () => unknown;
     /** What the App menu's Tab and View items can do for this window (`DesktopMenuState`). */

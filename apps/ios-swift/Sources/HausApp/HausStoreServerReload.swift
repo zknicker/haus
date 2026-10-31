@@ -137,7 +137,7 @@ extension HausStore {
     }
 
     /// Identity sync runs ahead of the member read so a first launch lists
-    /// the viewer's Clerk name, but it is never fatal: a failure logs, the
+    /// the viewer's sign-in name, but it is never fatal: a failure logs, the
     /// member list loads anyway, and the sync retries in the background.
     private func identitySyncedMembers(serverID: String) async throws -> MemberList {
         do {

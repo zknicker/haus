@@ -162,7 +162,7 @@ test('a hidden chat tab keeps its draft and leaves its unread alone', async ({ p
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: server.slug,
-        token: session.token,
+        token: session.accessToken,
     });
     await openDesktopWindow(page, `/s/${server.slug}`);
     await openChannel(page, 'all');

@@ -6,19 +6,21 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-const clerkUserId = 'user_dev_inbox_owner';
+const subject = 'user_dev_inbox_owner';
 
 let harness: HausServerHarness;
 let database: HausConnection;
 let owner: HausClient;
 let serverId: string;
+let userId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
     database = await connectHausDatabase(harness.databaseUrl);
-    harness.clerkUsers.setVerifiedEmails(clerkUserId, ['dev@haus.test']);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
-    serverId = (await seedDevelopmentServer(database.db, clerkUserId)).id;
+    harness.humans.setVerifiedEmails(subject, ['dev@haus.test']);
+    owner = createHausClient(harness, await harness.humans.mintSessionToken(subject));
+    userId = harness.humans.userIdForSubject(subject);
+    serverId = (await seedDevelopmentServer(database.db, userId)).id;
 });
 
 afterAll(async () => {
@@ -41,15 +43,16 @@ test('Unread reads the demo Chats with their last line', async () => {
     });
     expect(all?.unreadCount).toBeGreaterThan(0);
     expect(product?.lastMessage).toMatchObject({
-        authorDisplayName: 'Tiny',
-        content: 'Two build questions landed here again; see the thread for the rename idea.',
+        authorDisplayName: 'Blippy',
+        content:
+            'Thursday release check (report only, no changes). Headline: the badge fix cut duplicate digest reminders to zero, but two flaky specs are still blocking the release branch.',
     });
     expect(product?.unreadCount).toBeGreaterThan(0);
     expect(
         dms.map((chat) => chat.lastMessage?.content).filter((content) => content !== undefined)
     ).toEqual(
         expect.arrayContaining([
-            expect.stringContaining('Which of the three stale strings should I fix first?'),
+            expect.stringContaining('Can you price out moving the nightly dream to the mini?'),
             'Sounds right — badge PR first, then the reminders.',
         ])
     );
@@ -63,7 +66,7 @@ test('Unread holds Tiny’s DM question; the claim is on Tasks', async () => {
     const tiny = chats.find((chat) => chat.peerAgentId === agentId('tiny'));
     expect(tiny?.unreadCount).toBeGreaterThan(0);
     expect(tiny?.lastMessage?.content).toContain(
-        'Which of the three stale strings should I fix first?'
+        'Can you price out moving the nightly dream to the mini?'
     );
 
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;
@@ -140,7 +143,7 @@ test('the roster reads seven days of turns for every demo Agent', async () => {
 
 test('seeding again adds nothing', async () => {
     const before = await countActivity();
-    const again = await seedDevelopmentServer(database.db, clerkUserId);
+    const again = await seedDevelopmentServer(database.db, userId);
 
     expect(again.id).toBe(serverId);
     expect(await countActivity()).toEqual(before);

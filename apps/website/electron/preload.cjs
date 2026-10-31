@@ -69,17 +69,17 @@ const bridge = {
         ipcRenderer.on('desktop:query-cache:request', handler);
         return () => ipcRenderer.off('desktop:query-cache:request', handler);
     },
-    authTokenGet: () => ipcRenderer.invoke('desktop:auth:token-get'),
-    authTokenSet: (token) => ipcRenderer.invoke('desktop:auth:token-set', token),
     authSessionPeek: () => ipcRenderer.sendSync('desktop:auth:session-peek'),
-    authSessionShare: (token) => ipcRenderer.invoke('desktop:auth:session-share', token),
-    cancelSsoCallback: () => ipcRenderer.invoke('desktop:auth:sso-callback-cancel'),
-    onSsoCallback: (listener) => {
-        const handler = (_event, url) => listener(url);
-        ipcRenderer.on('desktop:auth:sso-callback', handler);
-        return () => ipcRenderer.off('desktop:auth:sso-callback', handler);
+    authInitialize: () => ipcRenderer.invoke('desktop:auth:initialize'),
+    authRefresh: () => ipcRenderer.invoke('desktop:auth:refresh'),
+    authSignIn: (options) => ipcRenderer.invoke('desktop:auth:sign-in', options),
+    authCancelSignIn: () => ipcRenderer.invoke('desktop:auth:sign-in-cancel'),
+    authSignOut: () => ipcRenderer.invoke('desktop:auth:sign-out'),
+    onAuthSession: (listener) => {
+        const handler = (_event, session) => listener(session);
+        ipcRenderer.on('desktop:auth:session', handler);
+        return () => ipcRenderer.off('desktop:auth:session', handler);
     },
-    prepareSsoCallback: () => ipcRenderer.invoke('desktop:auth:sso-callback-prepare'),
     openExternal: (url) => ipcRenderer.invoke('desktop:open-external', url),
     onDevModeToggle: (listener) => {
         const handler = () => listener();

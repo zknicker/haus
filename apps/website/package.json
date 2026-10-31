@@ -1,7 +1,7 @@
 {
   "name": "@haus/website",
   "private": true,
-  "version": "6.3.1",
+  "version": "7.0.0",
   "type": "module",
   "main": "electron/main.cjs",
   "packageManager": "bun@1.4.2",
@@ -34,8 +34,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/clerk-js": "^5.125.5",
-    "@clerk/clerk-react": "^5.61.3",
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",

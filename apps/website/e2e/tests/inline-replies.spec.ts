@@ -1,4 +1,4 @@
-import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import { completeOnboarding, createClient, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -6,8 +6,8 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     page,
 }, testInfo) => {
     test.setTimeout(90_000);
-    const { token, databaseUrl } = readClerkSessionFixture();
-    const client = createClient(token);
+    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const client = createClient(accessToken);
     const server = await client.server.create.mutate({
         displayName: 'Reply Preview',
         slug: 'reply-preview',
@@ -20,7 +20,7 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
         content: 'How are sales today?',
         nonce: 'reply-root',
     });
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/reply-preview');
     await openChannel(page, server.channels[0].name ?? 'all');
     // A turn's scroller id is its own identity, not a message id, so the row is
@@ -144,8 +144,8 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
 test('task inspection shows its inline conversation without creating a thread', async ({
     page,
 }, testInfo) => {
-    const { token, databaseUrl } = readClerkSessionFixture();
-    const client = createClient(token);
+    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const client = createClient(accessToken);
     const server = await client.server.create.mutate({
         displayName: 'Reply Task',
         slug: 'reply-task',
@@ -172,7 +172,7 @@ test('task inspection shows its inline conversation without creating a thread', 
         nonce: 'task-followup',
         replyToMessageId: root.message.id,
     });
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/reply-task/tasks?task=${root.message.id}`);
     const dialog = page.getByRole('dialog', { name: 'Task #1 thread' });
     await expect(dialog).toBeVisible();

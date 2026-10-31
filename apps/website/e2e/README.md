@@ -4,7 +4,7 @@ This folder holds Playwright coverage for user-facing App behavior.
 
 ## Lane
 
-- The default lane runs the website and hosted Server against throwaway PostgreSQL and Clerk fixtures.
+- The default lane runs the website and hosted Server against throwaway PostgreSQL and real AppSession fixtures.
 - Browser tests fake only external Computer/model effects, normally by reporting inventory or authoring through the public runner contract.
 - Real App-to-Computer-to-model behavior belongs to `bun run test:agents` and `bun run test:tracer`.
 - Tests stay user-shaped: drive behavior through the UI or a public product contract, then assert visible behavior over time.
@@ -13,7 +13,7 @@ This folder holds Playwright coverage for user-facing App behavior.
 
 - `run-playwright.ts`: allocates unique ports and run ids for each Playwright run.
 - `preflight.ts`: verifies Playwright Chromium and builds the SDK before service readiness timers start.
-- `start-haus-server.ts`: boots the hosted Server with run-scoped PostgreSQL, attachments, and Clerk fixtures.
+- `start-haus-server.ts`: boots the hosted Server with run-scoped PostgreSQL and attachments.
 - `support/server.ts`: authenticated Server setup and durable navigation helpers.
 - `support/test.ts`: shared Playwright exports.
 - `tests/*.spec.ts`: user-facing specs grouped by current hosted surface.

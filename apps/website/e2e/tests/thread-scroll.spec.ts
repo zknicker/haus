@@ -16,7 +16,7 @@ test('a Thread opens on its anchor and follows incoming replies only from the bo
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'thread-scrolling',
-        token: session.token,
+        token: session.accessToken,
     });
     const root = await client.chat.send.mutate({
         chatId: agent.chatId,

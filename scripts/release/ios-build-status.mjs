@@ -170,10 +170,15 @@ function readCredentials(environment) {
 }
 
 function parseArgs(argv) {
-    const [version, buildFlag, buildValue, waitFlag, waitValue] = argv;
+    const requireProcessed = argv.at(-1) === '--require-processed';
+    const values = requireProcessed ? argv.slice(0, -1) : argv;
+    const [version, buildFlag, buildValue, waitFlag, waitValue, ...extra] = values;
+    if (extra.length > 0) {
+        throw new Error('Unexpected iOS build status arguments');
+    }
     if (!/^\d+\.\d+\.\d+$/u.test(version ?? '') || buildFlag !== '--build-number') {
         throw new Error(
-            'Usage: ios-build-status.mjs <version> --build-number <number> [--wait-seconds <seconds>]'
+            'Usage: ios-build-status.mjs <version> --build-number <number> [--wait-seconds <seconds>] [--require-processed]'
         );
     }
     const buildNumber = Number.parseInt(buildValue, 10);
@@ -190,7 +195,15 @@ function parseArgs(argv) {
             throw new Error('wait seconds must be a non-negative integer');
         }
     }
-    return { buildNumber, version, waitSeconds };
+    return { buildNumber, requireProcessed, version, waitSeconds };
+}
+
+export function assertIOSBuildProcessed(build) {
+    if (build.processingState !== 'VALID' || build.expired) {
+        throw new Error(
+            `iOS ${build.version} (${build.buildNumber}) is ${build.expired ? 'expired' : build.processingState}; Server publication requires a processed, unexpired build`
+        );
+    }
 }
 
 async function main() {
@@ -202,6 +215,9 @@ async function main() {
     });
     writeIOSBuildStatusSummary(build);
     console.log(JSON.stringify({ ...build, releaseState: releaseState(build.processingState) }));
+    if (args.requireProcessed) {
+        assertIOSBuildProcessed(build);
+    }
     if (terminalFailureStates.has(build.processingState)) {
         process.exitCode = 1;
     }

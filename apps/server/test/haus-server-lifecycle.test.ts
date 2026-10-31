@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { SQL } from 'bun';
 import { createHausServerApplication } from '../src/haus-server-application.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 const appOrigin = 'https://app.haus.test';
@@ -33,7 +32,7 @@ test('closes PostgreSQL when application construction fails', async () => {
         createHausServerApplication({
             appOrigin,
             attachmentRoot,
-            clerkIssuerUrl: 'not-a-clerk-instance',
+            cloudflareAccess: { issuer: 'not-a-cloudflare-instance' },
             databaseUrl: cluster.databaseUrl,
         })
     ).rejects.toThrow();
@@ -42,44 +41,33 @@ test('closes PostgreSQL when application construction fails', async () => {
 });
 
 test('closes PostgreSQL after late static App setup failure', async () => {
-    const clerk = await startClerkTestIssuer(appOrigin);
+    await expect(
+        createHausServerApplication({
+            appOrigin,
+            attachmentRoot,
+            databaseUrl: cluster.databaseUrl,
+            staticAppRoot: 'relative-static-app',
+        })
+    ).rejects.toThrow(/root.*absolute path/i);
 
-    try {
-        await expect(
-            createHausServerApplication({
-                appOrigin,
-                attachmentRoot,
-                clerkIssuerUrl: clerk.url,
-                databaseUrl: cluster.databaseUrl,
-                staticAppRoot: 'relative-static-app',
-            })
-        ).rejects.toThrow(/root.*absolute path/i);
-
-        await expect(waitForIdleBackends()).resolves.toBe(0);
-    } finally {
-        await clerk.close();
-    }
+    await expect(waitForIdleBackends()).resolves.toBe(0);
 });
 
 test('closes PostgreSQL when a started application shuts down', async () => {
-    const clerk = await startClerkTestIssuer(appOrigin);
     const application = await createHausServerApplication({
         appOrigin,
         attachmentRoot,
-        clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });
 
     expect(await countOtherBackends()).toBeGreaterThan(0);
 
     await application.close();
-    await clerk.close();
 
     await expect(waitForIdleBackends()).resolves.toBe(0);
 });
 
 test('closes PostgreSQL when the Server cannot bind its port', async () => {
-    const clerk = await startClerkTestIssuer(appOrigin);
     const occupied = Bun.listen({
         hostname: '127.0.0.1',
         port: 0,
@@ -88,7 +76,6 @@ test('closes PostgreSQL when the Server cannot bind its port', async () => {
     const application = await createHausServerApplication({
         appOrigin,
         attachmentRoot,
-        clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });
 
@@ -98,7 +85,6 @@ test('closes PostgreSQL when the Server cannot bind its port', async () => {
         await expect(waitForIdleBackends()).resolves.toBe(0);
     } finally {
         occupied.stop(true);
-        await clerk.close();
     }
 });
 

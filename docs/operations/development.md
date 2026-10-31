@@ -186,7 +186,8 @@ Reminder, a tidy-only dream, an unchanged dream, a failed and a yielded run, qui
 skip, and a plan-limit pause. Fresh and existing workspaces get it once on bootstrap. To refresh
 it on a running stack without wiping the database (it replaces only its own rows and re-times
 them from now), run `HAUS_DEV_STACK_ID=<stack> bun run seed:heartbeats`; the script calls the
-localhost-only `dev.seedHeartbeats` procedure through the eval harness sign-in.
+localhost-only `dev.seedHeartbeats` procedure through the eval harness's
+loopback-only Haus session fixture.
 
 Computer
 then runs their real Agent turns using the host's Codex, Claude Code, Grok Build, or Pi
@@ -350,22 +351,20 @@ xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/Haus.
 ```
 
 ```bash
-SIMCTL_CHILD_HAUS_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" SIMCTL_CHILD_HAUS_CLERK_PUBLISHABLE_KEY="$(bunx varlock@1.16.1 printenv VITE_CLERK_PUBLISHABLE_KEY)" xcrun simctl launch booted chat.haus.ios
+SIMCTL_CHILD_HAUS_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" xcrun simctl launch booted chat.haus.ios
 ```
 
 `SIMCTL_CHILD_` prefixes pass an environment variable through to the launched
 app. Add `SIMCTL_CHILD_HAUS_DEV_APP_ORIGIN="http://localhost:$(dev-port)"` (the
 website origin) when absolute shared-artifact links should chip; root-relative
 ones chip without it. Haus Server listens on the fourth port of the worktree's group, which is
-`dev-port` plus three; the development Clerk publishable key is the public
-schema literal the App already uses. A Debug build accepts a development origin only on
-`localhost`, `127.0.0.1`, or `::1`, requests the localhost-only
-`dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and
-calls `server.developmentBootstrap` before loading the Server list. It caches the
-last validated configuration, so a later plain `xcrun simctl launch booted
-chat.haus.ios` reuses the same development Server and Clerk instance without
-the environment. Release builds carry no development path and always use the
-production Server.
+`dev-port` plus three. A Debug build accepts a development origin only on
+`localhost`, `127.0.0.1`, or `::1`, uses `POST /auth/dev/session` for the local
+fixed development identity and native AppSession, then calls
+`server.developmentBootstrap` before loading the Server list. It caches the
+last validated loopback configuration, so a later plain `xcrun simctl launch
+booted chat.haus.ios` reuses the same development Server without the environment.
+Release builds carry no development path and always use the production Server.
 
 Launching without those variables on a fresh install leaves the app on
 production sign-in, which needs a real Google account and cannot be automated.

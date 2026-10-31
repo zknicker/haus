@@ -31,7 +31,7 @@ export async function startGithubFixture(name: string): Promise<GithubFixture> {
     const fake = await createFakeGithub();
     const harness = await startHausServerHarness({ githubApp: fake.app });
     const database = await connectHausDatabase(harness.databaseUrl);
-    const owner = createHausClient(harness, await harness.clerk.mintSessionToken(`${name}_owner`));
+    const owner = createHausClient(harness, await harness.humans.mintSessionToken(`${name}_owner`));
     const slug = `${name.replaceAll('_', '-')}-hq`;
     const server = await owner.trpc.server.create.mutate({ displayName: 'GitHub HQ', slug });
     const channelId = server.channels[0].id;
@@ -149,12 +149,12 @@ export async function problemNotices(fixture: GithubFixture, triggerId: string) 
     `) as { content: string; dedupe_key: string }[];
 }
 
-export async function userId(harness: HausServerHarness, clerkUserId: string) {
+export async function userId(harness: HausServerHarness, subject: string) {
     const [row] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     if (!row) {
-        throw new Error(`No Haus user for ${clerkUserId}.`);
+        throw new Error(`No Haus user for ${subject}.`);
     }
     return row.id;
 }

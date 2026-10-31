@@ -27,7 +27,7 @@ bootstrap.
 The first step gives the Owner two Server-specific commands: install Haus Computer, then set it
 up for this Server. `haus-computer setup /<slug>` reuses a valid Computer login or opens and
 prints a complete device URL plus a short code that can also be entered manually. Haus App
-keeps the code through Clerk sign-in, shows the current account with a **Use another account**
+keeps the code through Google sign-in, shows the current account with a **Use another account**
 path, and requires explicit approval. It then reports **Finishing the connection**
 until the CLI durably stores the Server attachment, followed by **Computer connected**.
 A Computer connection records live progress but does not advance setup. The Server advances from `awaiting-computer` to

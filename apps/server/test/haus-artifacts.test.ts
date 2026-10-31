@@ -9,7 +9,7 @@ import {
 import { publishArtifact } from '../src/artifacts/publish.ts';
 import { type ArtifactStorage, artifactMaxBytes } from '../src/artifacts/storage.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
-import { findUserByClerkId } from '../src/users/haus-user.ts';
+import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -20,7 +20,7 @@ let connection: Awaited<ReturnType<typeof connectHausDatabase>>;
 let serverId: string;
 let actor: {
     kind: 'human';
-    member: Awaited<ReturnType<typeof findUserByClerkId>>;
+    member: Awaited<ReturnType<typeof findUserById>>;
     serverId: string;
 };
 const objects = new Map<string, Uint8Array>();
@@ -57,15 +57,21 @@ const storage: ArtifactStorage = {
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ artifactStorage: storage });
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('artifact_owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('artifact_outsider'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('artifact_owner'));
+    outsider = createHausClient(
+        harness,
+        await harness.humans.mintSessionToken('artifact_outsider')
+    );
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Artifact HQ', slug: 'artifact-hq' })
     ).id;
     connection = await connectHausDatabase(harness.databaseUrl);
     actor = {
         kind: 'human',
-        member: await findUserByClerkId(connection.db, 'artifact_owner'),
+        member: await findUserById(
+            connection.db,
+            harness.humans.userIdForSubject('artifact_owner')
+        ),
         serverId,
     };
 });
@@ -163,7 +169,7 @@ test('interrupted uploads and failed deletion recover on restart without exposin
     expect(deleted).toMatchObject({ reserved_bytes: 0, state: 'deleted' });
     await harness.restart();
     owner.close();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('artifact_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('artifact_owner'));
     const listed = await owner.trpc.artifact.list.query({ serverId });
     expect(listed.artifacts.some((item) => item.artifact_id === result.artifact.artifact_id)).toBe(
         false

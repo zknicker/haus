@@ -39,7 +39,7 @@ unchanged except for the [chain budget](#automation-chain-budget).
 
 ## Endpoint
 
-`POST /api/github/webhook` serves every installation. It runs before tRPC, without Clerk, with a
+`POST /api/github/webhook` serves every installation. It runs before tRPC, without a human AppSession, with a
 route-scoped raw body parser and a 10 MiB body limit. It answers in this order:
 
 | Status | Body | When |

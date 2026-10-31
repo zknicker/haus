@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { SocketSession } from './socket-session.ts';
 
-const ada = { clerkSessionId: 'sess_ada', clerkUserId: 'user_ada' };
-
 describe('SocketSession', () => {
     test('binds on the first verification and closes when the newest token lapses', () => {
         const clock = fakeClock();
@@ -15,8 +13,10 @@ describe('SocketSession', () => {
             timing: clock.timing,
         });
 
-        session.observe('token-a', { ...ada, expiresAt: 60_000 });
-        expect(session.refresh('token-b', { ...ada, expiresAt: 120_000 })).toBe('refreshed');
+        session.observe('token-a', sessionIdentity('has_ada', 'usr_ada', 60_000));
+        expect(session.refresh('token-b', sessionIdentity('has_ada', 'usr_ada', 120_000))).toBe(
+            'refreshed'
+        );
         expect(session.token).toBe('token-b');
 
         clock.advanceTo(119_999);
@@ -36,10 +36,10 @@ describe('SocketSession', () => {
             timing: clock.timing,
         });
 
-        session.observe('token-a', { ...ada, expiresAt: 60_000 });
-        session.refresh('token-b', { ...ada, expiresAt: 120_000 });
+        session.observe('token-a', sessionIdentity('has_ada', 'usr_ada', 60_000));
+        session.refresh('token-b', sessionIdentity('has_ada', 'usr_ada', 120_000));
         // A slow operation that verified token-a must not re-arm its earlier expiry.
-        session.observe('token-a', { ...ada, expiresAt: 60_000 });
+        session.observe('token-a', sessionIdentity('has_ada', 'usr_ada', 60_000));
 
         clock.advanceTo(60_000);
         expect(closes).toBe(0);
@@ -52,19 +52,17 @@ describe('SocketSession', () => {
             timing: fakeClock().timing,
         });
 
-        expect(session.refresh('token-b', { ...ada, expiresAt: 1 })).toBe('unbound');
+        expect(session.refresh('token-b', sessionIdentity('has_ada', 'usr_ada', 1))).toBe(
+            'unbound'
+        );
 
-        session.observe('token-a', { ...ada, expiresAt: 60_000 });
-        expect(
-            session.refresh('token-x', {
-                clerkSessionId: 'sess_grace',
-                clerkUserId: 'user_grace',
-                expiresAt: 120_000,
-            })
-        ).toBe('identity-mismatch');
-        expect(
-            session.refresh('token-y', { ...ada, clerkSessionId: 'sess_other', expiresAt: 1 })
-        ).toBe('identity-mismatch');
+        session.observe('token-a', sessionIdentity('has_ada', 'usr_ada', 60_000));
+        expect(session.refresh('token-x', sessionIdentity('has_grace', 'usr_grace', 120_000))).toBe(
+            'identity-mismatch'
+        );
+        expect(session.refresh('token-y', sessionIdentity('has_other', 'usr_ada', 1))).toBe(
+            'identity-mismatch'
+        );
         expect(session.token).toBe('token-a');
     });
 
@@ -79,7 +77,7 @@ describe('SocketSession', () => {
             timing: clock.timing,
         });
 
-        session.observe('token-a', { ...ada, expiresAt: 60_000 });
+        session.observe('token-a', sessionIdentity('has_ada', 'usr_ada', 60_000));
         session.dispose();
         clock.advanceTo(60_000);
         expect(closes).toBe(0);
@@ -112,5 +110,18 @@ function fakeClock() {
                 return handle;
             },
         },
+    };
+}
+
+function sessionIdentity(sessionId: string, userId: string, accessTokenExpiresAt: number) {
+    return {
+        accessTokenExpiresAt,
+        avatarId: null,
+        displayName: null,
+        email: null,
+        identitySubject: `cf:${userId}`,
+        sessionExpiresAt: accessTokenExpiresAt + 86_400_000,
+        sessionId,
+        userId,
     };
 }

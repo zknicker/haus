@@ -11,8 +11,11 @@ let attachmentId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('download_owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('download_outsider'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('download_owner'));
+    outsider = createHausClient(
+        harness,
+        await harness.humans.mintSessionToken('download_outsider')
+    );
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Download Server',
         slug: 'download-server',
@@ -115,7 +118,7 @@ async function download(client: HausClient, scopedServerId: string, scopedAttach
 function headers(client: HausClient) {
     return {
         headers: {
-            authorization: `Bearer ${client.clerkSessionToken}`,
+            authorization: `Bearer ${client.sessionToken}`,
             'content-type': 'application/octet-stream',
             origin: harness.appOrigin,
         },

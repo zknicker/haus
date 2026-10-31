@@ -22,9 +22,9 @@ picker switches to.
 Before the first upload, an Account Holder, Admin, or App Manager must:
 
 1. Accept pending App Store Connect agreements.
-2. Register the explicit App ID `chat.haus.ios` and enable Associated Domains for
-   `webcredentials:clerk.haus.chat`, Push Notifications ([iPhone Push](ios-push.md)), and
-   Communication Notifications. Saving a capability change invalidates the App ID's profiles;
+2. Register the explicit App ID `chat.haus.ios` and enable Push Notifications
+   ([iPhone Push](ios-push.md)) and Communication Notifications. Saving a capability change
+   invalidates the App ID's profiles;
    regenerate **Haus CI App Store** afterwards.
 3. Register the explicit App ID `chat.haus.ios.NotificationService` (description "Haus
    NotificationService") with no capabilities.
@@ -79,6 +79,11 @@ The canonical Info.plist owns the matching icon metadata, including the `CFBundl
 entry that `setAlternateIconName` requires, so Xcode's later plist processing cannot erase it; the
 archive check fails when either the primary or the alternate entry is missing. The artifact remains a compiled form of the canonical source, not a flattened fallback.
 
+When a release publishes both iOS and Server, the Server publication job waits for the exact
+iPhone build to be processed (`VALID`) and unexpired. A pending or unavailable status stops
+Server publication before the database or deployed service changes. Retry the read-only status
+probe, then rerun only the Server publication job when ready; do not re-upload the iOS build.
+
 The stable job signs, archives, and uploads the exact version/build pair. Automatic signing uses
 Apple Development for the archive. CI then downloads the one active **Haus CI App Store** and
 **Haus CI App Store NotificationService** profiles, exports the archive with both and Apple
@@ -116,8 +121,8 @@ and system uptime for in-app timers (35F9.1). Its collected data types cover wha
 stores for app functionality: messages, photos, other attachments, name, email address, and user
 ID. Keep the App Store Connect privacy answers consistent with it. The Notification Service
 extension references no required-reason API and carries no manifest; re-check its binary with
-`nm -u` when it gains code. Clerk iOS 1.2.0 ships no manifest of its own; its telemetry runs only
-against development Clerk instances.
+`nm -u` when it gains code. Native OAuth uses Apple's AuthenticationServices and does not add an
+external authentication SDK or its telemetry.
 
 ## Credentials
 

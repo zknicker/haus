@@ -14,8 +14,8 @@ const credential = 'computer-report-order-credential';
 beforeAll(async () => {
     harness = await startHausServerHarness();
     await harness.sql`
-        insert into users (id, clerk_user_id)
-        values (${userId}, 'clerk_report_order')
+        insert into users (id, auth_subject)
+        values (${userId}, 'cf_report_order')
     `;
     await harness.sql`
         insert into servers (id, slug, display_name)

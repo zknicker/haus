@@ -5,7 +5,7 @@ import { publishArtifact } from '../src/artifacts/publish.ts';
 import { artifactCreator } from '../src/artifacts/read.ts';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
-import { findUserByClerkId } from '../src/users/haus-user.ts';
+import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -36,13 +36,16 @@ const agentCreator: ArtifactCreator = { type: 'agent', agent_id: agentId };
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ artifactStorage: storage });
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('creator_owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('creator_outsider'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('creator_owner'));
+    outsider = createHausClient(harness, await harness.humans.mintSessionToken('creator_outsider'));
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Creator HQ', slug: 'creator-hq' })
     ).id;
     connection = await connectHausDatabase(harness.databaseUrl);
-    const member = await findUserByClerkId(connection.db, 'creator_owner');
+    const member = await findUserById(
+        connection.db,
+        harness.humans.userIdForSubject('creator_owner')
+    );
     if (!member) {
         throw new Error('Owner was not provisioned.');
     }

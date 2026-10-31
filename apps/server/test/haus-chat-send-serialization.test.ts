@@ -13,7 +13,7 @@ test('concurrent Agent DM sends commit while Server-scoped reads keep arriving',
     const harness = await startHausServerHarness();
     const owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_send_serialize_owner')
+        await harness.humans.mintSessionToken('user_send_serialize_owner')
     );
     try {
         const server = await owner.trpc.server.create.mutate({
@@ -22,7 +22,7 @@ test('concurrent Agent DM sends commit while Server-scoped reads keep arriving',
         });
         const serverId = server.id;
         const [{ id: ownerUserId }] = await harness.sql`
-            select id from users where clerk_user_id = 'user_send_serialize_owner'
+            select id from users where auth_subject = 'user_send_serialize_owner'
         `;
         const computerId = 'cmp_sendserializecmp';
         await harness.sql`

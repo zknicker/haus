@@ -230,7 +230,7 @@ async function seedAgent() {
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
     const chatId = createOpaqueId('cht');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Triggers', id: serverId, slug: createOpaqueId('slug') });
@@ -272,7 +272,7 @@ async function addMember(serverId: string): Promise<HausUser> {
     const userId = createOpaqueId('usr');
     await connection.db
         .insert(usersTable)
-        .values({ clerkUserId: createOpaqueId('clk'), id: userId });
+        .values({ authSubject: createOpaqueId('clk'), id: userId });
     await connection.db.insert(serverMembershipsTable).values({
         handle: `human-${randomBytes(4).toString('hex')}`,
         id: createOpaqueId('mem'),

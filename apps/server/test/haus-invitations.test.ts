@@ -251,16 +251,16 @@ test('issuing and revoking an invitation notifies an open Server subscription', 
     subscription.unsubscribe();
 });
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const [row] = await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `;
 
     return row.id as string;
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
 
     return createHausClient(harness, token);
 }

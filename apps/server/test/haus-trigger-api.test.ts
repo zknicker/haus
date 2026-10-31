@@ -569,29 +569,29 @@ async function mintRunner(agentId: string, runId: string) {
     return ((await response.json()) as { runnerToken: string }).runnerToken;
 }
 
-async function addHuman(clerkUserId: string, role: 'admin' | 'member') {
-    const client = await signIn(clerkUserId);
+async function addHuman(subject: string, role: 'admin' | 'member') {
+    const client = await signIn(subject);
     await client.trpc.server.create.mutate({
-        displayName: `${clerkUserId} Root`,
-        slug: `${clerkUserId.replaceAll('_', '-')}-root`,
+        displayName: `${subject} Root`,
+        slug: `${subject.replaceAll('_', '-')}-root`,
     });
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role, handle)
         values (
-            ${`mem_${clerkUserId}`}, ${serverId}, ${await readUserId(clerkUserId)}, ${role},
+            ${`mem_${subject}`}, ${serverId}, ${await readUserId(subject)}, ${role},
             ${`trigger-${role}`}
         )
     `;
     return client;
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     return user.id;
 }
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }

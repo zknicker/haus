@@ -758,15 +758,26 @@
         "timer": 0
       }
     },
-    "apps/server/src/identity/clerk-sessions.ts": {
+    "apps/server/src/identity/cloudflare-access.ts": {
       "disposition": "external-adapter",
-      "reason": "Clerk session verification is the Server's only await on a third-party key set. The deadline timer bounds one jose JWKS fetch, the abandoned fetch's rejection is observed so a late failure cannot become an unhandled rejection, and a missed deadline discards that key set so the next request builds a fresh one.",
+      "reason": "Cloudflare admission verification awaits a third-party key set. The deadline timer bounds one jose JWKS fetch, the abandoned fetch's rejection is observed so a late failure cannot become an unhandled rejection, and a missed deadline discards that key set so the next request builds a fresh one.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 1,
         "finallyBlock": 1,
         "manualPromise": 1,
         "timer": 2
+      }
+    },
+    "apps/server/src/identity/session-connections.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each tracked App socket or SSE response owns one access-expiry timer; fresh admission rearms it and close or local session revocation clears it and detaches its listener. Timers cannot outlive their connections.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
       }
     },
     "apps/computer/src/server-mcp-client.ts": {

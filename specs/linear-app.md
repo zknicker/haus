@@ -431,7 +431,7 @@ correlation also drives hovercard attribution ("Juniper moved this to Design Rev
 ### Endpoints
 
 `POST /api/linear/webhook` (Haus app) and `POST /api/linear/webhook/:identityId` (one identity)
-run before tRPC, without Clerk, with a route-scoped raw body parser and a 1 MiB limit. They answer
+run before tRPC, without a human AppSession, with a route-scoped raw body parser and a 1 MiB limit. They answer
 in this order:
 
 | Status | Body | When |

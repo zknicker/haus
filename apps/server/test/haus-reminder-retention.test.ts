@@ -32,7 +32,7 @@ const sweptAt = new Date('2026-09-04T12:00:00.000Z');
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_retention'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_retention'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Retention Server',
         slug: 'retention-server',

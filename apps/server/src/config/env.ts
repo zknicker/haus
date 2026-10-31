@@ -2,6 +2,7 @@ import os from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { artifactStorageBytes } from '../artifacts/storage.ts';
+import { cloudflareAccessAudience } from '../identity/cloudflare-access.ts';
 
 // There is no env-file loading here on purpose. The committed root
 // `.env.schema` is the environment contract and Varlock is the only loader:
@@ -25,10 +26,6 @@ export function getDefaultDatabaseUrl() {
 
 export function getDefaultHausAttachmentRoot() {
     return join(os.homedir(), '.haus', 'server', 'attachments');
-}
-
-export function getDefaultClerkIssuerUrl() {
-    return 'https://clerk.haus.chat';
 }
 
 function resolveHomePath(value: string) {
@@ -74,10 +71,7 @@ const envSchema = z
         HAUS_AGENT_E2E_AVATAR_FIXTURE: z.literal('1').optional(),
         HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH: z.string().min(1).optional(),
         HAUS_AGENT_E2E_AVATAR_REQUEST_LOG: z.string().min(1).optional(),
-        HAUS_CLERK_API_URL: z.string().url().optional(),
-        HAUS_CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
-        HAUS_CLERK_SECRET_KEY: z.string().min(1).optional(),
-        HAUS_DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
+        HAUS_CF_ACCESS_AUDIENCE: z.string().min(1).default(cloudflareAccessAudience),
         HAUS_ATTACHMENT_ROOT: z
             .string()
             .min(1)
@@ -132,16 +126,6 @@ const envSchema = z
                 code: 'custom',
                 message: 'Shared artifacts require all four R2 configuration values.',
                 path: ['HAUS_ARTIFACT_R2_ENDPOINT'],
-            });
-        }
-        if (
-            value.HAUS_RELEASE_MANIFEST &&
-            (!value.HAUS_CLERK_SECRET_KEY || value.HAUS_CLERK_SECRET_KEY === 'INJECT_ON_HOST')
-        ) {
-            context.addIssue({
-                code: 'custom',
-                message: 'HAUS_CLERK_SECRET_KEY is required for a production Haus release.',
-                path: ['HAUS_CLERK_SECRET_KEY'],
             });
         }
     });

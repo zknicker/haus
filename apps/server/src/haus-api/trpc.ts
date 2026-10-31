@@ -1,10 +1,8 @@
 import { appProtocolVersion } from '@haus/api';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { artifactErrorData } from '../artifacts/error-data.ts';
-import {
-    type ClerkSessionIdentity,
-    ClerkSessionUnavailableError,
-} from '../identity/clerk-sessions.ts';
+import type { HausSessionIdentity } from '../identity/haus-sessions.ts';
+import { HausAuthError } from '../identity/haus-sessions.ts';
 import { realtimeRefusalData } from '../realtime/refusal.ts';
 import type { HausContext } from './context.ts';
 
@@ -45,43 +43,56 @@ export const computerProcedure = appProcedure;
 export const publicProcedure = appProcedure;
 
 /**
- * Verifies the Clerk session and carries its external subject for this request
- * only. Every Server operation — queries, mutations, and each subscription
- * start — is judged against a current token, so an expired session cannot ride
- * an already-open WebSocket. It deliberately touches no database: minting a
- * User is part of Server creation's transaction, never a side effect of
- * reading.
+ * Verifies a short-lived Haus access token on every operation. Identity is a
+ * canonical user id resolved from the persisted session, never a provider id.
  */
 export const humanProcedure = appProcedure.use(async ({ ctx, next }) => {
-    // A WebSocket operation is judged against the socket's newest token, which
-    // the App refreshes in place (`session.refresh`).
-    const token = ctx.socketSession ? ctx.socketSession.token : ctx.clerkSessionToken;
+    const token = ctx.socketSession ? ctx.socketSession.token : ctx.sessionToken;
 
     if (!token) {
         throw unauthorized();
     }
 
-    let identity: ClerkSessionIdentity;
-
+    let identity: HausSessionIdentity;
     try {
-        identity = await ctx.clerkSessions.verify(token);
+        identity = await ctx.hausSessions.authenticate(token);
     } catch (cause) {
-        // The signing keys never resolved, so this token was never judged.
-        // Reporting it as a refusal would sign the human out over a Server
-        // availability failure.
-        if (cause instanceof ClerkSessionUnavailableError) {
+        if (cause instanceof HausAuthError && cause.code === 'auth_unavailable') {
             throw new TRPCError({
                 cause,
                 code: 'SERVICE_UNAVAILABLE',
                 message: cause.message,
             });
         }
-
         throw unauthorized(cause);
     }
 
     ctx.socketSession?.observe(token, identity);
-    return await next({ ctx: { ...ctx, clerkUserId: identity.clerkUserId } });
+    if (ctx.socketSession && ctx.socketSession.token === token) {
+        ctx.sessionConnections.track({
+            close: () => ctx.socketSession?.close(),
+            key: ctx.socketSession,
+            onClose: (listener) => ctx.socketSession?.onClose(listener) ?? (() => undefined),
+            sessionId: identity.sessionId,
+            expiresAt: identity.accessTokenExpiresAt,
+        });
+    } else if (ctx.httpSessionConnection) {
+        ctx.sessionConnections.track({
+            close: () => ctx.httpSessionConnection?.end(),
+            key: ctx.httpSessionConnection,
+            onClose: (listener) =>
+                ctx.httpSessionConnection?.onClose(listener) ?? (() => undefined),
+            sessionId: identity.sessionId,
+            expiresAt: identity.accessTokenExpiresAt,
+        });
+    }
+    return await next({
+        ctx: {
+            ...ctx,
+            sessionId: identity.sessionId,
+            userId: identity.userId,
+        },
+    });
 });
 
 export function unauthorized(cause?: unknown) {

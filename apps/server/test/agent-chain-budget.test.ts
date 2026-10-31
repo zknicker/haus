@@ -197,7 +197,7 @@ async function seedAgent(chain: { advancedAt: Date; turns: number }): Promise<Se
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
     const chatId = createOpaqueId('cht');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Chain', id: serverId, slug: createOpaqueId('slug') });

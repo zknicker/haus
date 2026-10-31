@@ -1,13 +1,9 @@
 // Shared browser plumbing for the scripts/perf tools: CLI flags, defaults,
 // installed-Chrome launch, and the prod-bundle trick.
 //
-// Prod-bundle trick: a `HAUS_HOSTED_APP=1 vite build` (build-prod-bundle.sh) is
-// served by Playwright route interception on the DEV origin. Two reasons it
-// cannot run on its own origin: the Server rejects Clerk tokens whose `azp` is
-// another origin, and dev auto sign-in is compiled out of prod. So the tools
-// sign in once through the dev bundle (`captureAuth`), reuse its cookies, and
-// answer every same-origin request from the dist directory except the Server
-// paths the Vite dev proxy forwards (/trpc, /api, /healthz, /wiki).
+// A production bundle runs on the development origin. The harness forwards
+// its session requests to the loopback-only fixture; production code carries
+// no fixture bypass. Other Server paths pass through the Vite proxy.
 //
 // Installed Google Chrome (channel 'chrome') is required: Playwright's bundled
 // headless shell gets SIGKILLed in agent sandboxes. Run these tools unsandboxed.
@@ -23,7 +19,7 @@ export const perfOutputRoot = path.join(repositoryRoot, '.perf');
 const websiteRequire = createRequire(path.join(repositoryRoot, 'apps/website/package.json'));
 const { chromium } = websiteRequire('@playwright/test');
 
-const serverPaths = /^\/(trpc|api|healthz|wiki)(\/|$)/;
+const serverPaths = /^\/(auth|trpc|api|healthz|wiki)(\/|$)/;
 const contentTypes = {
     '.css': 'text/css',
     '.html': 'text/html',
@@ -93,6 +89,13 @@ export async function serveDist(context, base, distDir) {
     }
     await context.route(`${base}/**`, (route) => {
         const url = new URL(route.request().url());
+        if (
+            url.pathname === '/auth/session' &&
+            route.request().method() === 'GET' &&
+            ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+        ) {
+            return route.continue({ url: new URL('/auth/dev/session', url).toString() });
+        }
         if (serverPaths.test(url.pathname)) {
             return route.fallback();
         }

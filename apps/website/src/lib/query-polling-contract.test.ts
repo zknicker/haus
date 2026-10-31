@@ -48,10 +48,6 @@ const intervalAllowlist: Record<string, { kind: 'clock' | 'dev' | 'poll'; reason
         reason: 'activity log elapsed time',
     },
     'features/turn-trace/use-turn-trace-now.ts': { kind: 'clock', reason: 'turn trace clock' },
-    'lib/haus-server.tsx': {
-        kind: 'poll',
-        reason: 'session refresh watcher: reads the local Clerk token every 10 s and sends one socket session.refresh per rotation, never an HTTP read',
-    },
 };
 
 /**
@@ -60,6 +56,8 @@ const intervalAllowlist: Record<string, { kind: 'clock' | 'dev' | 'poll'; reason
  * that re-arms itself to fetch again; a recurring loop needs a reason here.
  */
 const timerFetchAllowlist: Record<string, string> = {
+    'lib/app-auth.tsx':
+        'one-shot session refresh 25 s before expiry; each successful refresh schedules the next short session once',
     'features/servers/chat/use-composition-draft.ts':
         'one-shot 150 ms debounce of the composition draft publish',
     'features/updates/use-haus-update-run.ts':

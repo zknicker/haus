@@ -51,8 +51,13 @@ test('creates one idempotent Server-owned demo workspace', async () => {
         computerDataRoot,
         serverOrigin: 'http://127.0.0.1:43210',
     };
-    const first = await seedDevelopmentServer(connection.db, 'clerk_dev', options);
-    const second = await seedDevelopmentServer(connection.db, 'clerk_dev', options);
+    const userId = 'usr_dev_bootstrap';
+    await connection.db.insert(usersTable).values({
+        authSubject: 'test:dev-bootstrap',
+        id: userId,
+    });
+    const first = await seedDevelopmentServer(connection.db, userId, options);
+    const second = await seedDevelopmentServer(connection.db, userId, options);
 
     expect(second).toEqual(first);
     expect(await connection.db.select().from(serversTable)).toHaveLength(1);
@@ -61,9 +66,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(agents).toHaveLength(3);
     // Base workspace, the UI gallery channel and its threads, #automations,
     // and #repo-health with its Cloud Agent fan-out Thread. The gallery's three
-    // follow-up works, its pending-input sample, and its five Claude provider
-    // samples each carry a Thread. #shop holds the heartbeat reports' posts.
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(38);
+    // follow-up works, its pending-input sample, its five Claude provider samples,
+    // and two inline-mention samples each carry a Thread. #shop holds the heartbeat reports' posts.
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(40);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -75,8 +80,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     ]);
     // #repo-health adds its anchor and nine Cloud Agent work Messages; the
     // gallery's three follow-up works, pending-input sample, and five Claude
-    // provider samples add one Message each; #shop adds the owner's line and three posts.
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(90);
+    // provider samples add one Message each; inline mentions add six messages;
+    // #shop adds the owner's line and three posts.
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(96);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -184,12 +190,12 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const allChannelId = (await connection.db.select().from(chatsTable)).find(
         (chat) => chat.isAll
     )?.id;
-    // Threads are anchored to real channel messages, and one is followed.
+    // Threads are anchored to real channel messages; three are followed.
     // Includes the #repo-health fan-out Thread, the gallery's follow-up works,
-    // its pending-input sample, and its five Claude provider samples.
-    expect(threads).toHaveLength(28);
+    // its pending-input sample, five Claude provider samples, and two inline-mention samples.
+    expect(threads).toHaveLength(30);
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
-    expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(1);
+    expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(3);
 
     // Every promoted task carries its deterministic Thread. A claim does not:
     // the Thread is materialized when somebody first replies in it, which is

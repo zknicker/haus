@@ -44,8 +44,6 @@ the access boundary.
 
 | Item | Vault | Holds |
 | --- | --- | --- |
-| `Clerk - Haus` | `Development`, `Production` | Haus's own Clerk tenancy — backend key, publishable key, issuer |
-| `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
 | `GitHub App - Haus` | `Development`, `Production` | The Haus GitHub App (**Haus Dev** in Development): `app_id`, `slug`, `client_id`, `client_secret`, `private_key` (PEM), `webhook_secret`; optional |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
@@ -173,9 +171,10 @@ and a cloud agent that can reach none of them still passes `check`.
 
 Release commands run `varlock run --include-internal`, because `varlock run`
 strips `@internal` items by default and every release credential is one.
-The release switch also leaves Clerk, Google, GitHub OAuth, Gemini, OpenAI, and OTLP runtime credentials
-undefined and disables schema-provided OTLP endpoints. This keeps GitHub release jobs on their Tooling-only identity instead
-of making an unrelated Development-vault read part of signing or publication.
+The release switch also leaves Google, GitHub OAuth, Gemini, OpenAI, and OTLP runtime credentials
+undefined and disables schema-provided OTLP endpoints. Human sign-in uses public Cloudflare Access
+configuration and has no release-time credential. This keeps GitHub release jobs on their Tooling-only
+identity instead of making an unrelated Development-vault read part of signing or publication.
 
 ## Source → delivery → runtime
 

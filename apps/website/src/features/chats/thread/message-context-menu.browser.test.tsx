@@ -13,6 +13,9 @@ beforeAll(async () => {
             {
                 name: 'message-menu-fixture',
                 setup(build) {
+                    build.onResolve({ filter: /^react\/jsx(?:-dev)?-runtime$/u }, ({ path }) => ({
+                        path: fileURLToPath(import.meta.resolve(path)),
+                    }));
                     build.onResolve({ filter: /^message-menu-fixture$/u }, () => ({
                         path: 'fixture',
                         namespace: 'fixture',

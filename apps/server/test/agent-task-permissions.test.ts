@@ -18,7 +18,7 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
     delivery = new AgentDelivery(connection.db, new FakeTransport());
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_perm_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_perm_owner'));
 });
 
 afterAll(async () => {

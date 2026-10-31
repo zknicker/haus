@@ -8,7 +8,7 @@ import { ParticipantHandleTakenError } from '../../servers/participant-handles.t
 import { memberProcedure } from '../server/procedure.ts';
 
 /**
- * Membership work for one Clerk-authenticated human. The last-Owner invariant
+ * Membership work for one Haus-authenticated human. The last-Owner invariant
  * is a conflict rather than a permission problem: the request was legitimate,
  * the Server simply cannot lose its final Owner.
  */

@@ -23,7 +23,7 @@ export interface HausConnectionOptions {
     onConnectionState: (state: HausServerConnectionState) => void;
     origin: string;
     productVersion: string;
-    readSessionToken: () => Promise<string | null>;
+    readAccessToken: () => Promise<string | null>;
     /** Tests only: a fake socket. */
     WebSocket?: typeof WebSocket;
 }
@@ -44,7 +44,7 @@ export function createHausConnection({
     onConnectionState,
     origin,
     productVersion,
-    readSessionToken,
+    readAccessToken,
     WebSocket,
 }: HausConnectionOptions): HausConnection {
     const httpUrl = new URL('/trpc', origin).toString();
@@ -54,10 +54,10 @@ export function createHausConnection({
 
     const wsClient = createWSClient({
         connectionParams: async () => {
-            const token = await readSessionToken();
+            const token = await readAccessToken();
             return {
                 appProtocolVersion: String(appProtocolVersion),
-                ...(token ? { clerkSessionToken: token } : {}),
+                ...(token ? { sessionToken: token } : {}),
                 productVersion,
             };
         },
@@ -72,7 +72,7 @@ export function createHausConnection({
     });
 
     const headers = async () => {
-        const token = await readSessionToken();
+        const token = await readAccessToken();
         return {
             [appProtocolHeaders.productVersion]: productVersion,
             [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
@@ -102,7 +102,7 @@ export function createHausConnection({
 }
 
 /**
- * Hands a rotated token to the open socket (`session.refresh`). A socket that
+ * Hands a rotated App access token to the open socket (`session.refresh`). A socket that
  * is not open, or that drops mid-call, needs nothing: its next connection
  * reads the current token from its params. Only the Server refusing the token
  * rejects.
@@ -113,7 +113,7 @@ export async function refreshHausSession(connection: HausConnection, token: stri
     }
     try {
         await connection.client.session.refresh.mutate(
-            { clerkSessionToken: token },
+            { sessionToken: token },
             { context: socketContext }
         );
     } catch (error) {

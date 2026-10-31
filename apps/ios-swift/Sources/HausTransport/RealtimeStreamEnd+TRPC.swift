@@ -10,7 +10,7 @@ extension TRPCError {
         return data[RealtimeRefusal.dataKey]?.stringValue.flatMap(RealtimeRefusal.init(rawValue:))
     }
 
-    /// The Clerk session token expired or was rejected.
+    /// The Haus AppSession token expired or was rejected.
     public var isUnauthorized: Bool {
         domainCode == "UNAUTHORIZED" || httpStatus == 401
     }

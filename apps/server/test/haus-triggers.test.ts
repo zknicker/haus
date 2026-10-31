@@ -28,7 +28,7 @@ beforeAll(async () => {
     serverId = server.id;
     channelId = server.channels[0].id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_trigger_owner'
+        select id from users where auth_subject = 'user_trigger_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
@@ -353,7 +353,7 @@ test('disables a trigger whose anchor Chat can no longer be written', async () =
     const created = await createTrigger('Stranded trigger', { messageId: stranded });
     const triggerId = created.body.trigger?.id ?? '';
     const [archiver] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_trigger_owner'
+        select id from users where auth_subject = 'user_trigger_owner'
     `) as { id: string }[];
     await harness.sql`
         update chats
@@ -464,6 +464,6 @@ async function mintRunner(runId: string) {
     return (await response.json()) as { runnerId: string; runnerToken: string };
 }
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }

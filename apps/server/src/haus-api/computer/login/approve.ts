@@ -8,7 +8,7 @@ export const approveComputerLoginProcedure = humanProcedure
     .input(approveComputerLoginSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            return await approveComputerLogin(ctx.hausDb, ctx.clerkUserId, input);
+            return await approveComputerLogin(ctx.hausDb, ctx.userId!, input);
         } catch (cause) {
             throwComputerLoginTrpcError(cause);
         }

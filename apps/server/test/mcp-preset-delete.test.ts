@@ -9,8 +9,8 @@ let serverId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('preset-owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('preset-outsider'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('preset-owner'));
+    outsider = createHausClient(harness, await harness.humans.mintSessionToken('preset-outsider'));
     serverId = (await owner.trpc.server.create.mutate({ displayName: 'Presets', slug: 'presets' }))
         .id;
     await outsider.trpc.server.create.mutate({ displayName: 'Other', slug: 'other-presets' });

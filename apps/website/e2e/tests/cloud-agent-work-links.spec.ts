@@ -26,7 +26,7 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
         serverId: server.id,
         slug,
         title: 'Fix the first thing',
-        token: session.token,
+        token: session.accessToken,
     });
     const channel = (name: string) =>
         client.chat.createChannel.mutate({ agentIds: [seeded.agentId], name, serverId: server.id });

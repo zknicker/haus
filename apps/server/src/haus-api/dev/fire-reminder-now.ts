@@ -1,7 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { env } from '../../config/env.ts';
 import { remindersTable } from '../../postgres/schema.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { prepareReminderEvent } from '../../reminders/reminder-events.ts';
@@ -22,7 +21,7 @@ const fireReminderNowInputSchema = z.object({
 export const fireReminderNowRoute = memberProcedure
     .input(fireReminderNowInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost, env.HAUS_DEV_CLERK_SIGN_IN_USER_ID);
+        assertHeartbeatTestAllowed(ctx.requestHost, ctx.developmentAuth !== null);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
         const now = new Date();

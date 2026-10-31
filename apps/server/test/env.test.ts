@@ -40,24 +40,16 @@ test('getDefaultAppOrigin ignores an invalid website port override', () => {
     }
 });
 
-test('production releases require a real Clerk secret before opening the Server', () => {
+test('Haus auth uses the configured Cloudflare audience in production and offline tests', () => {
     const production = {
         ...process.env,
-        HAUS_CLERK_SECRET_KEY: undefined,
+        HAUS_CF_ACCESS_AUDIENCE: 'haus-production-audience',
         HAUS_RELEASE_MANIFEST: '/tmp/haus-release.json',
         NODE_ENV: 'test',
     };
 
-    assert.throws(() => parseEnvironment(production), /HAUS_CLERK_SECRET_KEY/u);
-    assert.throws(
-        () => parseEnvironment({ ...production, HAUS_CLERK_SECRET_KEY: 'INJECT_ON_HOST' }),
-        /HAUS_CLERK_SECRET_KEY/u
-    );
-    assert.equal(
-        parseEnvironment({ ...production, HAUS_CLERK_SECRET_KEY: 'sk_test_fixture' })
-            .HAUS_CLERK_SECRET_KEY,
-        'sk_test_fixture'
-    );
+    assert.equal(parseEnvironment(production).HAUS_CF_ACCESS_AUDIENCE, 'haus-production-audience');
+    assert.throws(() => parseEnvironment({ ...production, HAUS_CF_ACCESS_AUDIENCE: '' }));
 });
 
 test('the Server config module never loads an env file of its own', () => {

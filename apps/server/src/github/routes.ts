@@ -20,7 +20,7 @@ export interface GithubRouteOptions {
     ingest(delivery: GithubDelivery): Promise<GithubIngestOutcome>;
 }
 
-/** Registers the GitHub App's delivery edges ahead of tRPC, without Clerk. */
+/** Registers the GitHub App's delivery edges ahead of tRPC, without a Haus session. */
 export async function registerGithubRoutes(app: FastifyInstance, options: GithubRouteOptions) {
     await registerGithubSinkRoute(app, githubRoutePaths.sink);
     await registerGithubWebhookRoute(app, {

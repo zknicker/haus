@@ -715,6 +715,13 @@
       "when": 1792777824828,
       "tag": "0101_kittl-preset",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1793420400000,
+      "tag": "0102_cloudflare-human-auth",
+      "breakpoints": true
     }
   ]
 }

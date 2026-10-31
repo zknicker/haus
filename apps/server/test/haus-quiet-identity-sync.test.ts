@@ -4,7 +4,7 @@ import { memberUpdatedTopic } from '../src/realtime/topics.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-// Every App load syncs the Clerk identity. Only a sync that writes something
+// Every App load syncs the human profile. Only a sync that writes something
 // may wake every member's App with a profile refresh.
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -14,7 +14,7 @@ const stopWatching = new AbortController();
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('clerk_quiet_sync'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('cf_quiet_sync'));
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Quiet Sync', slug: 'quiet-sync' })
     ).id;
@@ -38,7 +38,6 @@ afterAll(async () => {
 });
 
 const identity = {
-    email: 'quiet@haus.test',
     name: 'Quiet Ada',
     timezone: 'America/New_York',
 };
@@ -65,11 +64,11 @@ test('an identical identity sync on the next App load announces nothing', async 
     expect(announced.length).toBe(before);
 });
 
-test('a changed email is a real write and announces once', async () => {
+test('a changed profile is a real write and announces once', async () => {
     const before = announced.length;
-    await owner.trpc.member.syncIdentity.mutate({
-        ...identity,
-        email: 'quiet.ada@haus.test',
+    await owner.trpc.member.updateProfile.mutate({
+        description: 'Quietly builds precise machines.',
+        displayName: 'Quiet Ada',
         serverId,
     });
     await settle();

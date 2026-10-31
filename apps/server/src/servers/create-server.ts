@@ -8,7 +8,6 @@ import {
     serverOnboardingTable,
     serversTable,
 } from '../postgres/schema.ts';
-import { ensureUserByClerkId } from '../users/haus-user.ts';
 import {
     allChannelDescription,
     allChannelName,
@@ -17,9 +16,9 @@ import {
 } from './contracts.ts';
 
 export interface CreateServerInput {
-    clerkUserId: string;
     displayName: string;
     slug: string;
+    userId: string;
 }
 
 export class ServerSlugTakenError extends Error {
@@ -30,8 +29,8 @@ export class ServerSlugTakenError extends Error {
 }
 
 /**
- * One transaction commits the whole Server: the creator's stable Haus User,
- * the opaque Server id, its immutable slug and editable display name, the first
+ * One transaction commits the whole Server: its opaque id, immutable slug and
+ * editable display name, the first
  * human Owner membership, and `#all` with that Owner participating. It creates
  * no Computer, Agent, or execution configuration.
  */
@@ -59,21 +58,20 @@ export async function createServer(
 
     try {
         await db.transaction(async (tx) => {
-            const owner = await ensureUserByClerkId(tx, input.clerkUserId);
-            viewerUserId = owner.id;
+            viewerUserId = input.userId;
 
             await tx.insert(serversTable).values(server);
             await tx.insert(serverMembershipsTable).values({
                 id: createOpaqueId('mem'),
                 role: 'owner',
                 serverId: server.id,
-                userId: owner.id,
+                userId: input.userId,
             });
             await tx.insert(chatsTable).values(channel);
             await tx.insert(chatsTable).values(onboardingChannel);
             await tx.insert(channelParticipantsTable).values([
-                { chatId: channel.id, serverId: server.id, userId: owner.id },
-                { chatId: onboardingChannel.id, serverId: server.id, userId: owner.id },
+                { chatId: channel.id, serverId: server.id, userId: input.userId },
+                { chatId: onboardingChannel.id, serverId: server.id, userId: input.userId },
             ]);
             await tx.insert(serverOnboardingTable).values({
                 channelId: onboardingChannel.id,

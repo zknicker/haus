@@ -18,11 +18,10 @@ import { requireServerMembership } from './server-access.ts';
 import { lockServerRow } from './server-lock.ts';
 
 /**
- * Seeds a human's profile from the Clerk identity and device zone the App
- * reports. It only fills blanks: once a human has chosen a display name or a
- * timezone it is theirs, and a later sign-in must not overwrite it. Every App
- * load syncs, so this reports whether it wrote anything: an unchanged identity
- * must not wake every member's App.
+ * Seeds a human's profile from the App's suggested display name and device
+ * zone. Verified email comes from Cloudflare admission and is never accepted
+ * from the App. Once a human has chosen a display name or timezone, a later
+ * sign-in must not overwrite it.
  */
 export async function syncHumanIdentity(
     db: HausDatabase,
@@ -60,14 +59,8 @@ export async function syncHumanIdentity(
 
         const filledName = existing.displayName ?? input.name?.trim() ?? null;
         const displayName = filledName && filledName.length > 0 ? filledName : null;
-        const email = input.email?.trim() || null;
         const fillsTimezone = Boolean(input.timezone) && existing.timezone === null;
-        if (
-            displayName === existing.displayName &&
-            email === existing.email &&
-            existing.handle !== null &&
-            !fillsTimezone
-        ) {
+        if (displayName === existing.displayName && existing.handle !== null && !fillsTimezone) {
             return false;
         }
         const handle =
@@ -76,14 +69,13 @@ export async function syncHumanIdentity(
                 tx,
                 input.serverId,
                 displayName,
-                input.email?.split('@')[0]
+                existing.email?.split('@')[0]
             ));
 
         await tx
             .update(usersTable)
             .set({
                 displayName,
-                email,
                 // Fill only a blank in this statement: a zone the human sets
                 // while this sync runs must survive it.
                 ...(input.timezone

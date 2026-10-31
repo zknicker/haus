@@ -1,4 +1,4 @@
-import { signInAsClerkHuman } from '../support/clerk-session.ts';
+import { signInAsAppHuman } from '../support/app-session.ts';
 import { expect, test } from '../support/test.ts';
 
 interface DeviceGrant {
@@ -7,10 +7,8 @@ interface DeviceGrant {
     verificationUrl: string;
 }
 
-test('Clerk-backed Computer login preserves its code and finishes after approval', async ({
-    page,
-}) => {
-    await signInAsClerkHuman(page);
+test('Computer login preserves its code and finishes after approval', async ({ page }) => {
+    const fixture = await signInAsAppHuman(page);
     const serverOrigin = `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}`;
     const started = await beginLogin(serverOrigin);
 
@@ -22,7 +20,9 @@ test('Clerk-backed Computer login preserves its code and finishes after approval
     await expect(page.getByLabel('Computer login code')).toHaveValue(
         started.userCode.replace('-', '')
     );
-    await expect(page.getByText('Signed in as your current Clerk account')).toBeVisible();
+    await expect(
+        page.getByText(`Signed in as ${fixture.session.user.displayName ?? fixture.email}`)
+    ).toBeVisible();
 
     await page.getByRole('button', { name: 'Approve Haus Computer' }).click();
     await expect(page.getByRole('heading', { name: 'Finishing the connection' })).toBeVisible();

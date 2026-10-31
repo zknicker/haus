@@ -28,7 +28,7 @@ let serverId: string;
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    const token = await harness.clerk.mintSessionToken('user_reminder_owner');
+    const token = await harness.humans.mintSessionToken('user_reminder_owner');
     owner = createHausClient(harness, token);
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Reminder Server',

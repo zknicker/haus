@@ -77,11 +77,12 @@ struct StubResponse {
 func response(
     status: Int = 200,
     headers: [String: String] = ["Content-Type": "application/json"],
-    data: Data
+    data: Data,
+    url: URL? = nil
 ) -> StubResponse {
     StubResponse(
         response: HTTPURLResponse(
-            url: URL(string: "https://haus.test")!,
+            url: url ?? URL(string: "https://haus.test")!,
             statusCode: status,
             httpVersion: nil,
             headerFields: headers

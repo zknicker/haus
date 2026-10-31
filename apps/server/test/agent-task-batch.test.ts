@@ -13,7 +13,7 @@ let connection: HausConnection;
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_batch_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_batch_owner'));
 });
 
 afterAll(async () => {
