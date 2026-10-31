@@ -70,27 +70,27 @@ const oauthPresets: Record<
     merchbase: {
         auth: { kind: 'oauth', scopes: [] },
         name: 'MerchBase',
-        url: 'https://core-api.merchbase.co/mcp',
+        url: 'https://app.merchbase.co/mcp',
     },
     handmade: {
         auth: { kind: 'oauth', scopes: [] },
         name: 'Handmade',
-        url: 'https://handmade-api.merchbase.co/mcp',
+        url: 'https://handmade.merchbase.co/mcp',
     },
     'merchbase-atlas': {
         auth: { kind: 'oauth', scopes: [] },
         name: 'MerchBase Atlas',
-        url: 'https://atlas-api.merchbase.co/mcp',
+        url: 'https://atlas.merchbase.co/mcp',
     },
     'merchbase-fulfillment': {
         auth: { kind: 'oauth', scopes: [] },
         name: 'MerchBase Fulfillment',
-        url: 'https://fulfillment-api.merchbase.co/mcp/printful',
+        url: 'https://fulfillment.merchbase.co/mcp/printful',
     },
     tmterminal: {
         auth: { kind: 'oauth', scopes: [] },
         name: 'Trademark Terminal',
-        url: 'https://tmterminal-api.merchbase.co/mcp',
+        url: 'https://tmterminal.merchbase.co/mcp',
     },
 };
 

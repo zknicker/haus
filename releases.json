@@ -1020,7 +1020,10 @@
     "targets": {
       "server": "3.1.0",
       "app": null,
-      "ios": { "version": "3.2.0", "buildNumber": 31 },
+      "ios": {
+        "version": "3.2.0",
+        "buildNumber": 31
+      },
       "computer": "3.1.0",
       "agent": "3.1.0"
     }
@@ -1031,7 +1034,10 @@
     "targets": {
       "server": "3.1.1",
       "app": null,
-      "ios": { "version": "3.2.1", "buildNumber": 32 },
+      "ios": {
+        "version": "3.2.1",
+        "buildNumber": 32
+      },
       "computer": "3.1.1",
       "agent": "3.1.1"
     }
@@ -1053,7 +1059,10 @@
     "targets": {
       "server": "3.3.0",
       "app": null,
-      "ios": { "version": "3.3.0", "buildNumber": 33 },
+      "ios": {
+        "version": "3.3.0",
+        "buildNumber": 33
+      },
       "computer": "3.3.0",
       "agent": "3.2.0"
     }
@@ -1075,7 +1084,10 @@
     "targets": {
       "server": "4.0.0",
       "app": null,
-      "ios": { "version": "3.3.1", "buildNumber": 34 },
+      "ios": {
+        "version": "3.3.1",
+        "buildNumber": 34
+      },
       "computer": "4.0.0",
       "agent": "3.3.0"
     }
@@ -1108,7 +1120,10 @@
     "targets": {
       "server": "4.1.0",
       "app": null,
-      "ios": { "version": "3.3.2", "buildNumber": 35 },
+      "ios": {
+        "version": "3.3.2",
+        "buildNumber": 35
+      },
       "computer": "4.1.0",
       "agent": "3.4.0"
     }
@@ -1119,7 +1134,10 @@
     "targets": {
       "server": "4.2.0",
       "app": null,
-      "ios": { "version": "3.4.0", "buildNumber": 36 },
+      "ios": {
+        "version": "3.4.0",
+        "buildNumber": 36
+      },
       "computer": "4.2.0",
       "agent": "3.5.0"
     }
@@ -1177,7 +1195,10 @@
     "targets": {
       "server": "6.0.0",
       "app": "5.0.0",
-      "ios": { "version": "5.0.0", "buildNumber": 38 },
+      "ios": {
+        "version": "5.0.0",
+        "buildNumber": 38
+      },
       "computer": "5.1.0",
       "agent": "5.0.0"
     }
@@ -1188,7 +1209,10 @@
     "targets": {
       "server": "6.0.1",
       "app": null,
-      "ios": { "version": "5.0.1", "buildNumber": 39 },
+      "ios": {
+        "version": "5.0.1",
+        "buildNumber": 39
+      },
       "computer": null,
       "agent": null
     }
@@ -1199,7 +1223,10 @@
     "targets": {
       "server": "6.1.0",
       "app": null,
-      "ios": { "version": "5.1.0", "buildNumber": 40 },
+      "ios": {
+        "version": "5.1.0",
+        "buildNumber": 40
+      },
       "computer": "5.2.0",
       "agent": "5.1.0"
     }
@@ -1210,7 +1237,10 @@
     "targets": {
       "server": "7.0.0",
       "app": "5.1.0",
-      "ios": { "version": "5.2.0", "buildNumber": 41 },
+      "ios": {
+        "version": "5.2.0",
+        "buildNumber": 41
+      },
       "computer": "6.0.0",
       "agent": "6.0.0"
     }
@@ -1232,7 +1262,10 @@
     "targets": {
       "server": "8.0.0",
       "app": "5.1.2",
-      "ios": { "version": "5.2.1", "buildNumber": 42 },
+      "ios": {
+        "version": "5.2.1",
+        "buildNumber": 42
+      },
       "computer": "7.0.0",
       "agent": "7.0.0"
     }
@@ -1254,7 +1287,10 @@
     "targets": {
       "server": "8.1.1",
       "app": null,
-      "ios": { "version": "5.3.0", "buildNumber": 43 },
+      "ios": {
+        "version": "5.3.0",
+        "buildNumber": 43
+      },
       "computer": null,
       "agent": null
     }
@@ -1265,7 +1301,10 @@
     "targets": {
       "server": "8.2.0",
       "app": null,
-      "ios": { "version": "5.4.0", "buildNumber": 44 },
+      "ios": {
+        "version": "5.4.0",
+        "buildNumber": 44
+      },
       "computer": "7.2.0",
       "agent": "7.2.0"
     }
@@ -1276,7 +1315,10 @@
     "targets": {
       "server": "8.3.0",
       "app": null,
-      "ios": { "version": "5.5.0", "buildNumber": 45 },
+      "ios": {
+        "version": "5.5.0",
+        "buildNumber": 45
+      },
       "computer": "7.3.0",
       "agent": "7.3.0"
     }
@@ -1287,7 +1329,10 @@
     "targets": {
       "server": "8.4.0",
       "app": null,
-      "ios": { "version": "5.6.0", "buildNumber": 46 },
+      "ios": {
+        "version": "5.6.0",
+        "buildNumber": 46
+      },
       "computer": "7.4.0",
       "agent": "7.4.0"
     }
@@ -1298,7 +1343,10 @@
     "targets": {
       "server": "9.0.0",
       "app": "6.0.0",
-      "ios": { "version": "6.0.0", "buildNumber": 47 },
+      "ios": {
+        "version": "6.0.0",
+        "buildNumber": 47
+      },
       "computer": "8.0.0",
       "agent": "8.0.0"
     }
@@ -1331,7 +1379,10 @@
     "targets": {
       "server": "9.2.0",
       "app": null,
-      "ios": { "version": "6.1.0", "buildNumber": 48 },
+      "ios": {
+        "version": "6.1.0",
+        "buildNumber": 48
+      },
       "computer": "8.0.1",
       "agent": "8.0.1"
     }
@@ -1342,7 +1393,10 @@
     "targets": {
       "server": "10.0.0",
       "app": null,
-      "ios": { "version": "7.0.0", "buildNumber": 49 },
+      "ios": {
+        "version": "7.0.0",
+        "buildNumber": 49
+      },
       "computer": "8.1.0",
       "agent": "8.1.0"
     }
@@ -1353,7 +1407,10 @@
     "targets": {
       "server": "11.0.0",
       "app": null,
-      "ios": { "version": "8.0.0", "buildNumber": 50 },
+      "ios": {
+        "version": "8.0.0",
+        "buildNumber": 50
+      },
       "computer": "9.0.0",
       "agent": "9.0.0"
     }
@@ -1624,7 +1681,10 @@
     "targets": {
       "server": "14.4.0",
       "app": "6.3.0",
-      "ios": { "version": "8.6.1", "buildNumber": 57 },
+      "ios": {
+        "version": "8.6.1",
+        "buildNumber": 57
+      },
       "computer": null,
       "agent": null
     }
@@ -1780,6 +1840,17 @@
     "date": "2026-10-30",
     "targets": {
       "server": "14.12.0",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "15.12.1",
+    "date": "2026-10-30",
+    "targets": {
+      "server": "14.12.1",
       "app": null,
       "ios": null,
       "computer": null,

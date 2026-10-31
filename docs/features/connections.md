@@ -59,21 +59,21 @@ and ignores further presses meanwhile, and a failed or untrusted sign-in leaves 
 its page as **Sign in required**. Factory and X open the token form instead. Deleting the last account makes the
 preset available in Recommended again; the section is hidden when every preset has been added.
 
-MerchBase Atlas connects to `https://atlas-api.merchbase.co/mcp` through Cloudflare Access
+MerchBase Atlas connects to `https://atlas.merchbase.co/mcp` through Cloudflare Access
 OAuth. It exposes artwork search, asset management, and design exports. Adding it requires
 sign-in and does not grant Agent access.
 
-Handmade connects to `https://handmade-api.merchbase.co/mcp` through Cloudflare Access OAuth.
+Handmade connects to `https://handmade.merchbase.co/mcp` through Cloudflare Access OAuth.
 It exposes Etsy listing management, order lookup, and product mockup tools. Etsy shop linking
 remains in Handmade; existing shops must reconnect there to authorize order reads. Adding the
 connection requires sign-in and does not grant Agent access.
 
-MerchBase Fulfillment connects to `https://fulfillment-api.merchbase.co/mcp/printful` through
+MerchBase Fulfillment connects to `https://fulfillment.merchbase.co/mcp/printful` through
 Cloudflare Access OAuth. It exposes Printful order review and fulfillment tools. Linking a Printful
 store happens through those tools after sign-in; adding the preset does not link a store or enable
 Agent access.
 
-Trademark Terminal connects to `https://tmterminal-api.merchbase.co/mcp` through Cloudflare Access
+Trademark Terminal connects to `https://tmterminal.merchbase.co/mcp` through Cloudflare Access
 OAuth. It exposes trademark search, exact serial or registration lookup, and listing text
 screening. Adding it requires sign-in and does not grant Agent access.
 

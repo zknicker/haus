@@ -82,12 +82,12 @@ test.each([
 });
 
 test.each([
-    ['merchbase', 'https://core-api.merchbase.co/mcp'],
-    ['rankwrangler', 'https://rankwrangler-api.merchbase.co/mcp'],
-    ['merchbase-atlas', 'https://atlas-api.merchbase.co/mcp'],
-    ['handmade', 'https://handmade-api.merchbase.co/mcp'],
-    ['merchbase-fulfillment', 'https://fulfillment-api.merchbase.co/mcp/printful'],
-    ['tmterminal', 'https://tmterminal-api.merchbase.co/mcp'],
+    ['merchbase', 'https://app.merchbase.co/mcp'],
+    ['rankwrangler', 'https://rankwrangler.merchbase.co/mcp'],
+    ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
+    ['handmade', 'https://handmade.merchbase.co/mcp'],
+    ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
+    ['tmterminal', 'https://tmterminal.merchbase.co/mcp'],
 ] as const)('%s awaits discovered OAuth without identity scopes or Agent grants', async (preset, url) => {
     const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
         name: preset,

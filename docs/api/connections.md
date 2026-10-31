@@ -47,17 +47,17 @@ without preset scopes or packaged credentials. Creating an account grants no
 Agent access. `vercel` is not an accepted preset; previously saved Vercel accounts migrate to
 custom connections (`preset: null`) without changing their configuration, secrets, or grants.
 
-`merchbase-atlas` creates an OAuth connection to `https://atlas-api.merchbase.co/mcp`
+`merchbase-atlas` creates an OAuth connection to `https://atlas.merchbase.co/mcp`
 with Cloudflare Managed OAuth discovery and no preset scopes. It needs no
 configured Server client or static token.
 
-`handmade` creates an OAuth connection to `https://handmade-api.merchbase.co/mcp`
+`handmade` creates an OAuth connection to `https://handmade.merchbase.co/mcp`
 with Cloudflare Managed OAuth discovery and no preset scopes. It needs no
 configured Server client or static token. Etsy shop authorization remains upstream in Handmade.
 Creating the connection grants no Agent access.
 
 `merchbase-fulfillment` creates an OAuth connection to
-`https://fulfillment-api.merchbase.co/mcp/printful` without preset scopes.
+`https://fulfillment.merchbase.co/mcp/printful` without preset scopes.
 It uses Cloudflare Managed OAuth discovery, with no configured Server client or static token.
 Printful store linking remains an upstream tool flow after MerchBase authentication.
 
