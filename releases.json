@@ -1796,5 +1796,19 @@
       "computer": null,
       "agent": null
     }
+  },
+  {
+    "version": "16.0.0",
+    "date": "2026-10-31",
+    "targets": {
+      "server": "15.0.0",
+      "app": "7.0.0",
+      "ios": {
+        "version": "9.0.0",
+        "buildNumber": 59
+      },
+      "computer": null,
+      "agent": null
+    }
   }
 ]
