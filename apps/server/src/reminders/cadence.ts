@@ -96,6 +96,52 @@ export function nextReminderFireAt(
     throw new Error('A valid reminder cadence must have a future fire time.');
 }
 
+type CalendarRepeat = Exclude<ReminderRepeat, { kind: 'every' }>;
+
+const weeklySlotLookbackMs = 8 * 86_400_000;
+
+export function isReminderCadenceSlot(
+    repeat: CalendarRepeat,
+    fireAtMs: number,
+    timezone: string
+): boolean {
+    return (
+        Number.isFinite(fireAtMs) && nextReminderFireAt(repeat, fireAtMs - 1, timezone) === fireAtMs
+    );
+}
+
+export function nextReminderFireAfterWake(
+    repeat: ReminderRepeat,
+    scheduledForMs: number,
+    nowMs: number,
+    timezone: string
+): number {
+    if (repeat.kind === 'every') {
+        return nextReminderFireAt(repeat, nowMs, timezone);
+    }
+    let afterMs = nowMs;
+    if (!isReminderCadenceSlot(repeat, scheduledForMs, timezone)) {
+        afterMs = Math.max(afterMs, nearestReminderCadenceSlot(repeat, scheduledForMs, timezone));
+    }
+    return nextReminderFireAt(repeat, afterMs, timezone);
+}
+
+function nearestReminderCadenceSlot(
+    repeat: CalendarRepeat,
+    instantMs: number,
+    timezone: string
+): number {
+    const after = nextReminderFireAt(repeat, instantMs, timezone);
+    let previous = nextReminderFireAt(repeat, instantMs - weeklySlotLookbackMs, timezone);
+    while (true) {
+        const next = nextReminderFireAt(repeat, previous, timezone);
+        if (next > instantMs) {
+            return instantMs - previous <= after - instantMs ? previous : after;
+        }
+        previous = next;
+    }
+}
+
 export function isValidReminderTimezone(timezone: string) {
     try {
         new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format();

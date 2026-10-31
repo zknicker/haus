@@ -56,8 +56,10 @@ new command id.
 - **Stable recurrence.** Supported repeats are `every:<positive>[mhd]`,
   `daily@HH:MM`, and `weekly:days@HH:MM`. Calendar repeats (`daily@`,
   `weekly:`) recur in the reminder's explicit IANA timezone, which the Server
-  requires; it never falls back to the Agent's UTC home time. After downtime the
-  Server fires once and advances from now, never bursts missed slots.
+  requires; it never falls back to the Agent's UTC home time.   After downtime the
+  Server fires once and advances from now, never bursts missed slots. An early
+  snooze before a calendar slot replaces that occurrence — the same-day slot
+  does not fire again after the snooze wakes.
 - **The requester's zone.** Every human has a timezone preference: the App and
   the iPhone app report the device zone when none is set, and Settings > Profile
   (a searchable Timezone row on both) changes it.

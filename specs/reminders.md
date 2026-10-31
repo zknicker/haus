@@ -76,7 +76,10 @@ those is one a human asked for.
 ## Fire semantics
 
 The single-node hosted scheduler checks every 15 seconds and once immediately
-at startup. A logical fire is unique by reminder and scheduled time. In one
+at startup. A logical fire is unique by reminder and scheduled time. After an
+overdue slot the cadence advances from now so missed slots never burst. An
+off-slot snooze fire also consumes its nearest calendar slot, so an early
+snooze before that morning's digest cannot leave the same-day slot due. In one
 transaction it:
 
 1. records the fire;
