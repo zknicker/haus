@@ -7,9 +7,9 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
-const legacySubject = 'user_3GnJW6i7WqInsZt9ERdKUFvgTrm';
-const cloudflareSubject = 'e9a13499-9827-5ea9-aeb3-c46d0d6267f0';
-const verifiedEmail = 'zknicker@gmail.com';
+const legacySubject = 'user_legacy_haus_owner';
+const cloudflareSubject = 'cloudflare-test-owner';
+const verifiedEmail = 'owner@haus.test';
 const migrationTime = 1_793_420_400_000;
 
 let cluster: PostgresCluster;

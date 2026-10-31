@@ -170,13 +170,13 @@ test('Computer login grants approve without Server membership and exchange once'
         expect(await consumed.json()).toMatchObject({ code: 'computer_login_consumed' });
 
         const rows = await harness.sql`
-            SELECT origin, auth_subject, access_token_hash, refresh_token_hash, stored_at
+            SELECT origin, user_id, access_token_hash, refresh_token_hash, stored_at
             FROM computer_login_sessions
         `;
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({
-            auth_subject: 'user_device_login',
             origin: harness.url.origin,
+            user_id: harness.humans.userIdForSubject('user_device_login'),
         });
         expect(rows[0].access_token_hash).not.toContain(session.accessToken);
         expect(rows[0].refresh_token_hash).not.toContain(session.refreshToken);

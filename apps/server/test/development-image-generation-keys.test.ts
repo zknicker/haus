@@ -18,7 +18,9 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     database = await connectHausDatabase(harness.databaseUrl);
     harness.humans.setVerifiedEmails(subject, ['dev@haus.test']);
-    serverId = (await seedDevelopmentServer(database.db, subject)).id;
+    await harness.humans.mintSessionToken(subject);
+    const userId = harness.humans.userIdForSubject(subject);
+    serverId = (await seedDevelopmentServer(database.db, userId)).id;
 });
 
 afterAll(async () => {
