@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import { type AgentCommand, rankWranglerMcpUrl } from '@haus/api';
+import type { AgentCommand } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -63,7 +63,7 @@ async function startChips(rankWrangler: { connected: boolean; tools: string[] } 
             name: 'RankWrangler',
             preset: 'rankwrangler',
             serverId: seed.serverId,
-            url: rankWranglerMcpUrl,
+            url: 'https://rankwrangler.merchbase.co/mcp',
         });
     }
     const transport = new FakeTransport(seed.computerId);

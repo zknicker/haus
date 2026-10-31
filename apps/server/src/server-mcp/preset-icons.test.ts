@@ -23,7 +23,7 @@ function row(
         serverId: 'server_1',
         summary: null,
         tools: [],
-        url: 'https://core-api.merchbase.co/mcp',
+        url: 'https://app.merchbase.co/mcp',
         ...overrides,
     };
 }
@@ -76,10 +76,10 @@ describe('preset icon fallback', () => {
         expect(urls).toEqual([
             'https://mcp.cloudflare.com/mcp',
             'https://mcp.kittl.com/mcp',
-            'https://handmade-api.merchbase.co/mcp',
-            'https://atlas-api.merchbase.co/mcp',
-            'https://fulfillment-api.merchbase.co/mcp/printful',
-            'https://tmterminal-api.merchbase.co/mcp',
+            'https://handmade.merchbase.co/mcp',
+            'https://atlas.merchbase.co/mcp',
+            'https://fulfillment.merchbase.co/mcp/printful',
+            'https://tmterminal.merchbase.co/mcp',
             'https://mcp.linear.app/mcp',
             'https://factory-agent.merchbase.co/mcp',
         ]);

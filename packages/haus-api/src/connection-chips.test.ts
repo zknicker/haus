@@ -21,8 +21,12 @@ const linear = {
 } satisfies ChipSourceConnection;
 
 test('a connected RankWrangler with its product tool provides product chips', () => {
+    expect(rankWranglerMcpUrl).toBe('https://rankwrangler.merchbase.co/mcp');
     expect(availableChipKinds([rankWrangler])).toEqual(['amazon-product']);
     expect(availableChipKinds([rankWrangler, linear])).toEqual(['amazon-product', 'linear-issue']);
+    expect(
+        availableChipKinds([{ ...rankWrangler, url: 'https://rankwrangler-api.merchbase.co/mcp' }])
+    ).toEqual([]);
 });
 
 test('RankWrangler without its product tool, signed out, or at another URL provides nothing', () => {

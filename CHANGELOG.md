@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v15.12.1 - 2026-10-30
+
+- Merchbase connections keep their original addresses with Cloudflare sign-in, including RankWrangler product cards.
+
 ## v15.12.0 - 2026-10-30
 
 - The Inbox shows each unread Channel, DM, and Thread as one line, with one open at a time. The open row shows its newest message as the chat shows it and the conversation's own composer, so you can reply without leaving the Inbox. J and K move between rows, E marks read, R starts a reply, and Return opens the conversation. Marking read or replying opens the next row. A row stays unread until you mark it read, reply, or open it.
