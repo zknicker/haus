@@ -52,7 +52,7 @@ test('Unread reads the demo Chats with their last line', async () => {
         dms.map((chat) => chat.lastMessage?.content).filter((content) => content !== undefined)
     ).toEqual(
         expect.arrayContaining([
-            expect.stringContaining('Which of the three stale strings should I fix first?'),
+            expect.stringContaining('Can you price out moving the nightly dream to the mini?'),
             'Sounds right — badge PR first, then the reminders.',
         ])
     );
