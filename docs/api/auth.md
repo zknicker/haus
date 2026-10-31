@@ -67,8 +67,9 @@ the exact stored callback.
 
 The native client exchanges the code directly with Cloudflare using the
 original verifier and broker callback URI. It keeps Cloudflare access and
-refresh credentials in `safeStorage` or Keychain. It sends a fresh Cloudflare
-assertion to `POST /auth/session`, which returns `NativeAppSession`; the
+refresh credentials in `safeStorage` or Keychain. It sends the Cloudflare access credential to protected `POST /auth/session`.
+Access injects the signed assertion verified by Server, which returns
+`NativeAppSession`; the
 Cloudflare credential and Haus resume token never enter a renderer. Native
 sign-out revokes the Haus session through `/auth/logout` and clears its
 protected credential store. The native request includes

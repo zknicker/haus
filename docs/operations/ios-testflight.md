@@ -79,6 +79,11 @@ The canonical Info.plist owns the matching icon metadata, including the `CFBundl
 entry that `setAlternateIconName` requires, so Xcode's later plist processing cannot erase it; the
 archive check fails when either the primary or the alternate entry is missing. The artifact remains a compiled form of the canonical source, not a flattened fallback.
 
+When a release publishes both iOS and Server, the Server publication job waits for the exact
+iPhone build to be processed (`VALID`) and unexpired. A pending or unavailable status stops
+Server publication before the database or deployed service changes. Retry the read-only status
+probe, then rerun only the Server publication job when ready; do not re-upload the iOS build.
+
 The stable job signs, archives, and uploads the exact version/build pair. Automatic signing uses
 Apple Development for the archive. CI then downloads the one active **Haus CI App Store** and
 **Haus CI App Store NotificationService** profiles, exports the archive with both and Apple
