@@ -1810,5 +1810,16 @@
       "computer": null,
       "agent": null
     }
+  },
+  {
+    "version": "16.1.0",
+    "date": "2026-11-01",
+    "targets": {
+      "server": "15.1.0",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
   }
 ]
