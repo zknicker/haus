@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.1.1 - 2026-11-01
+
+- Haus for Mac automatically restores your session after a temporary connection failure, including after waking from sleep, without asking you to sign in again. Update the desktop App to 7.0.1.
+
 ## v16.1.0 - 2026-11-01
 
 - The Inbox shows every unread Channel, DM, and Thread as an open card with its newest message and the conversation's own composer, so you can reply to any of them without opening it first. J and K move a highlight between cards, and E, R, and Return act on the highlighted card.

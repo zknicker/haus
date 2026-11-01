@@ -20,7 +20,14 @@ function createHarness({
     appUrl = 'https://haus.chat',
     initial = null,
     isPackaged = true,
+    now = () => 1000,
     onRequest = async () => undefined,
+    timers = {
+        clearTimeout() {},
+        setTimeout(callback) {
+            return { callback, unref() {} };
+        },
+    },
 } = {}) {
     const calls = [];
     const events = [];
@@ -55,16 +62,11 @@ function createHarness({
         appUrl,
         fetchImpl,
         isPackaged,
-        now: () => 1000,
+        now,
         onSession: (value) => events.push(value),
         openExternal: async () => undefined,
         store,
-        timers: {
-            clearTimeout() {},
-            setTimeout(callback) {
-                return { callback, unref() {} };
-            },
-        },
+        timers,
     });
     return {
         calls,
