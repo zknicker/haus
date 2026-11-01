@@ -14,28 +14,27 @@ import {
 import { HappeningNowList } from './happening-now-list.tsx';
 import type { HappeningNowRow } from './happening-now-rows.ts';
 import { InboxAgentsList } from './inbox-agents-list.tsx';
-import { inboxLayout } from './inbox-layout.ts';
 import { InboxStripPopover } from './inbox-strip-popover.tsx';
 
 const chipAvatarSize = 16;
 
 /**
- * The narrow Inbox's one line of Agent activity, between the greeting and
- * Unread: the rail folded down to what a glance needs.
+ * The Inbox's one line of Agent activity, beside the greeting: the week's
+ * Agents folded down to what a glance needs.
  *
  * It sits straight on the page, in no box of its own. A filled box here was a
  * third material between the page and the cards, and a spiking chip's warning
- * tint fought its grey. The line opens on the rail's own `Tokens · 7d`, so the
- * numbers say what they count before the first one is read.
+ * tint fought its grey. The line opens on `Tokens · 7d`, so the numbers say
+ * what they count before the first one is read.
  *
  * The busiest few Agents ride as chips — face and week total — and the rest
- * fold into "+N", which opens the same ranked list the rail shows. Ranking puts
- * a runaway first, so a spiking chip, tinted warning with an up arrow, is never
- * the one folded away. At the far end "N running" opens Happening now; when
- * nothing runs it is simply not there.
+ * fold into "+N", which opens the full ranked list with each Agent's bar and
+ * sparkline. Ranking puts a runaway first, so a spiking chip, tinted warning
+ * with an up arrow, is never the one folded away. At the far end "N running"
+ * opens Happening now; when nothing runs it is simply not there.
  *
- * It waits for the week to settle, as the rail's list does, rather than
- * drawing chips that reorder when the rest arrive.
+ * It waits for the week to settle rather than drawing chips that reorder when
+ * the rest arrive.
  */
 export function InboxStrip({
     entries,
@@ -56,7 +55,7 @@ export function InboxStrip({
     const running = happeningNow?.length ?? 0;
 
     return (
-        <aside aria-label="Agent activity" className={inboxLayout.strip}>
+        <aside aria-label="Agent activity" className="min-w-0">
             <div className="flex min-w-0 items-center gap-3">
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     <span className="me-1.5 shrink-0 text-muted text-xs">
@@ -125,7 +124,7 @@ export function InboxStrip({
 
 /**
  * One Agent as a chip: its face and its week total, pressing through to its
- * DM as a rail row does. The face is bare — no presence dot: the strip counts
+ * DM as its row in the full list does. The face is bare — no presence dot: the strip counts
  * tokens, and at chip size the dot sat on the number. A spiking Agent's chip
  * takes the warning tint and an up arrow; its accessible name says how far
  * past usual it ran.

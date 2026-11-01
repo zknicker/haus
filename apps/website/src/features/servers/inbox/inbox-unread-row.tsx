@@ -6,7 +6,6 @@ import {
     conversationPreviewLine,
     threadAnchorLine,
     threadReplyPreviewLine,
-    waitingMessageLine,
 } from './conversation-preview.ts';
 import type { UnreadRowReply } from './unread-row-composer.tsx';
 import { UnreadChatMark } from './unread-row-parts.tsx';
@@ -19,21 +18,18 @@ export interface UnreadAuthors {
 }
 
 /**
- * An unread Channel or DM as a triage row (ADR 0050). Collapsed, it quotes
- * its newest waiting message; open, it renders that message and the Chat's
- * own composer. The name opens the Chat, which lands on its first unread
- * message.
+ * An unread Channel or DM as a card in the Unread feed (ADR 0050): its newest
+ * waiting message and the Chat's own composer. The name opens the Chat, which
+ * lands on its first unread message.
  */
 export function UnreadChatRow({
     agent,
-    authors,
     chat,
     name,
     triage,
     viewerDisplayName,
 }: {
     agent: Agent | null;
-    authors: UnreadAuthors;
     chat: Chat;
     /** The Chat's navigation name: the Channel's name, or the DM peer's. */
     name: string;
@@ -43,7 +39,6 @@ export function UnreadChatRow({
     const isDirect = chat.kind !== 'channel';
     const title = isDirect ? name : `#${name}`;
     const peerDisplayName = isDirect ? name : null;
-    const preview = useUnreadPreview(chat.serverId, chat.id);
     const fallbackLine =
         conversationPreviewLine(chat.lastMessage, { peerDisplayName, viewerDisplayName }) ??
         'no activity yet';
@@ -63,14 +58,6 @@ export function UnreadChatRow({
                 },
                 // A DM names its peer; "DM" says what kind of place that is.
                 note: isDirect ? 'DM' : null,
-                preview: (
-                    <WaitingLine
-                        authors={authors}
-                        fallback={fallbackLine}
-                        message={preview?.messages.at(-1) ?? null}
-                        peerDisplayName={peerDisplayName}
-                    />
-                ),
                 reply: replyInto(chat, name, { agentDmId: chat.peerAgentId ?? null, kind: 'chat' }),
                 time: chat.lastActivityAt,
                 title,
@@ -80,10 +67,10 @@ export function UnreadChatRow({
 }
 
 /**
- * An unread Thread as a triage row: "Thread in #channel" (or "Thread in DM" —
- * a DM context is labeled "DM", never its peer). Open, it names the message
- * the Thread hangs off, renders its newest waiting reply, and replies into
- * the Thread. The name opens the Thread itself, at its first unread reply.
+ * An unread Thread as a card in the Unread feed: "Thread in #channel" (or
+ * "Thread in DM" — a DM context is labeled "DM", never its peer). It names the
+ * message the Thread hangs off, renders its newest waiting reply, and replies
+ * into the Thread. The name opens the Thread itself, at its first unread reply.
  */
 export function UnreadThreadRow({
     agent,
@@ -124,14 +111,6 @@ export function UnreadThreadRow({
                     serverId: thread.serverId,
                 },
                 note: anchor ? anchorLine(anchor, authors) : null,
-                preview: (
-                    <WaitingLine
-                        authors={authors}
-                        fallback={fallbackLine}
-                        message={preview?.messages.at(-1) ?? null}
-                        peerDisplayName={null}
-                    />
-                ),
                 // Addressed as the Thread view's own composer is: "Thread — #all".
                 reply: replyInto(
                     parent,
@@ -142,40 +121,6 @@ export function UnreadThreadRow({
                 title,
             }}
         />
-    );
-}
-
-/**
- * A collapsed row's quote of its newest waiting message: the author a step
- * brighter than what they said, so a column of rows scans by who is waiting.
- * Until the previews settle, or for a row they do not name yet, it quotes the
- * row's own one line.
- */
-function WaitingLine({
-    authors,
-    fallback,
-    message,
-    peerDisplayName,
-}: {
-    authors: UnreadAuthors;
-    fallback: string;
-    message: ChatMessage | null;
-    peerDisplayName: null | string;
-}) {
-    if (!message) {
-        return fallback;
-    }
-    const { author, text } = waitingMessageLine({
-        authorName: messageAuthorName(message, authors),
-        content: message.content,
-        peerDisplayName,
-    });
-    return author ? (
-        <>
-            <span className="text-foreground">{author}:</span> {text}
-        </>
-    ) : (
-        text
     );
 }
 

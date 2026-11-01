@@ -3,7 +3,7 @@ import type { Chat, ChatMessage, UnreadThread } from '@haus/api';
 import {
     earlierUnread,
     initialUnreadSelection,
-    resolveOpenRow,
+    resolveSelectedRow,
     selectionAfterLeaving,
     stepSelection,
     unreadRowReadInput,
@@ -58,27 +58,27 @@ describe('unreadRowReadInput', () => {
     });
 });
 
-describe('the open row', () => {
-    test('the first row is open until the viewer picks another', () => {
-        expect(resolveOpenRow(rowsOf('a', 'b'), initialUnreadSelection)?.row.id).toBe('a');
-        expect(resolveOpenRow([], initialUnreadSelection)).toBeNull();
+describe('the selected card', () => {
+    test('the first card is selected until the viewer picks another', () => {
+        expect(resolveSelectedRow(rowsOf('a', 'b'), initialUnreadSelection)?.row.id).toBe('a');
+        expect(resolveSelectedRow([], initialUnreadSelection)).toBeNull();
     });
 
-    test('the open row stays open while newer activity reorders the list', () => {
+    test('the selected card stays selected while newer activity reorders the list', () => {
         const selection = { carryFocus: false, id: 'b', index: 1 };
-        expect(resolveOpenRow(rowsOf('c', 'a', 'b'), selection)).toMatchObject({
+        expect(resolveSelectedRow(rowsOf('c', 'a', 'b'), selection)).toMatchObject({
             index: 2,
             row: { id: 'b' },
         });
     });
 
-    test('a row read elsewhere hands its place to the row that slid into it', () => {
+    test('a card read elsewhere hands its place to the card that slid into it', () => {
         const selection = { carryFocus: false, id: 'b', index: 1 };
-        expect(resolveOpenRow(rowsOf('a', 'c'), selection)?.row.id).toBe('c');
-        expect(resolveOpenRow(rowsOf('a'), selection)?.row.id).toBe('a');
+        expect(resolveSelectedRow(rowsOf('a', 'c'), selection)?.row.id).toBe('c');
+        expect(resolveSelectedRow(rowsOf('a'), selection)?.row.id).toBe('a');
     });
 
-    test('J and K step one row and stop at either end', () => {
+    test('J and K step one card and stop at either end', () => {
         const rows = rowsOf('a', 'b', 'c');
         const atB = { carryFocus: false, id: 'b', index: 1 };
         expect(stepSelection(rows, atB, 1, false).id).toBe('c');
@@ -87,7 +87,7 @@ describe('the open row', () => {
         expect(stepSelection(rows, { ...atB, id: 'c', index: 2 }, 1, false).id).toBe('c');
     });
 
-    test('reading the open row opens the next, or the one above when it was last', () => {
+    test('reading the selected card selects the next, or the one above when it was last', () => {
         const rows = rowsOf('a', 'b', 'c');
         expect(selectionAfterLeaving(rows, 'b', true)).toEqual({
             carryFocus: true,

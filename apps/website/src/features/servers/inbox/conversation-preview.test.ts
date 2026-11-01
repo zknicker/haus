@@ -3,36 +3,7 @@ import {
     conversationPreviewLine,
     threadAnchorLine,
     threadReplyPreviewLine,
-    waitingMessageLine,
 } from './conversation-preview.ts';
-
-describe('waitingMessageLine', () => {
-    test('sets the author apart from what they said', () => {
-        expect(
-            waitingMessageLine({
-                authorName: 'Blippy',
-                content: 'Thursday release check',
-                peerDisplayName: null,
-            })
-        ).toEqual({ author: 'Blippy', text: 'Thursday release check' });
-    });
-
-    test('in a DM the peer speaks unattributed', () => {
-        expect(
-            waitingMessageLine({
-                authorName: 'Tiny',
-                content: 'Which first?',
-                peerDisplayName: 'Tiny',
-            })
-        ).toEqual({ author: null, text: 'Which first?' });
-    });
-
-    test('a message with nothing to quote names its author alone', () => {
-        expect(
-            waitingMessageLine({ authorName: 'Tiny', content: '', peerDisplayName: null })
-        ).toEqual({ author: null, text: 'Tiny' });
-    });
-});
 
 const createdAt = '2025-05-08T15:00:00.000Z';
 

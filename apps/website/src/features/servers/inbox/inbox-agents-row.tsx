@@ -12,7 +12,7 @@ import {
     agentSpikeLabel,
     agentWeekLabel,
 } from './active-agents.ts';
-import { InboxRailMark, InboxRailRow, inboxMarkSize } from './inbox-rail-row.tsx';
+import { InboxListMark, InboxListRow, inboxMarkSize } from './inbox-list-row.tsx';
 
 const sparklineHeight = 14;
 const sparklineWidth = 48;
@@ -42,14 +42,14 @@ export function InboxAgentsRow({
     const name = activity.agent.displayName;
 
     return (
-        <InboxRailRow
+        <InboxListRow
             label={agentWeekLabel(activity)}
             onOpen={onOpen}
             tone={activity.spike === null ? 'default' : 'warning'}
         >
-            <InboxRailMark>
+            <InboxListMark>
                 <AgentAvatar agent={activity.agent} size={inboxMarkSize} />
-            </InboxRailMark>
+            </InboxListMark>
             <ItemCard.Content className="gap-1.5">
                 <span className="flex min-w-0 items-center gap-2">
                     <ItemCard.Title className="min-w-0 flex-1">{name}</ItemCard.Title>
@@ -82,7 +82,7 @@ export function InboxAgentsRow({
                     <span className="truncate text-accent text-xs">{activity.activityLabel}</span>
                 ) : null}
             </ItemCard.Content>
-        </InboxRailRow>
+        </InboxListRow>
     );
 }
 

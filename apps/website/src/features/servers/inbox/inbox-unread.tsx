@@ -1,6 +1,7 @@
 import type { Chat } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUnreadPreviewsSettled } from '../../../hooks/inbox/use-unread-previews.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
@@ -22,13 +23,13 @@ import { useUnreadTriage } from './use-unread-triage.ts';
 import { type UnreadTriageCommand, useUnreadTriageKeys } from './use-unread-triage-keys.ts';
 
 /**
- * Every Chat and Thread with something unread, newest first, as one triage
- * list (ADR 0038, ADR 0043, ADR 0050): one line per row, and exactly one row
- * open, showing its newest waiting message and the conversation's own
- * composer. The rows are the existing unread state, which this page only
- * reads: seeing a row never reads it. Mark read (E) or a reply from the open
- * row reads it and opens the next; opening the conversation reads it there,
- * a Thread at its first unread reply. J and K move the open row.
+ * Every Chat and Thread with something unread, newest first, as one feed of
+ * open cards (ADR 0038, ADR 0043, ADR 0050): each shows its newest waiting
+ * message and the conversation's own composer, and exactly one is selected.
+ * The cards are the existing unread state, which this page only reads: seeing
+ * a card never reads it. Mark read (E) or a reply from a card reads it and
+ * selects the next; opening the conversation reads it there, a Thread at its
+ * first unread reply. J and K move the selection.
  */
 export function InboxUnread() {
     const { server } = useServerContext();
@@ -46,9 +47,15 @@ export function InboxUnread() {
         () => new Map((agents.data ?? []).map((agent) => [agent.id, agent])),
         [agents.data]
     );
+    const previewsSettled = useUnreadPreviewsSettled(server.id);
+    // Blank until the previews answer too: every card renders its message from
+    // them, and painting the cards first made each one grow a beat later.
     const unread = React.useMemo(
-        () => (chats.data && threads.data ? selectUnreadRows(chats.data, threads.data) : null),
-        [chats.data, threads.data]
+        () =>
+            chats.data && threads.data && previewsSettled
+                ? selectUnreadRows(chats.data, threads.data)
+                : null,
+        [chats.data, threads.data, previewsSettled]
     );
     const triage = useUnreadTriage(unread, listRef);
     const viewerUserId = members.data?.viewerUserId ?? null;
@@ -62,22 +69,29 @@ export function InboxUnread() {
             ? navigate(serverChatRoute(server.slug, row.chat.id))
             : openThread(row.thread.parentChatId, row.thread.anchorMessageId);
     const read = (row: UnreadRow, reason: UnreadRowRead) => {
-        // Advance first, so the next row opens while focus is still in the list.
+        // Advance first, so the next card is selected while focus is still in the list.
         triage.leave(row);
         markRead.mutate(unreadRowReadInput(row, server.id, reason));
     };
-    const triageOf = (row: UnreadRow): UnreadRowTriage => ({
-        composerRef,
-        isOpen: triage.open?.id === row.id,
-        onMarkRead: () => read(row, 'mark-read'),
-        onOpen: () => openConversation(row),
-        onReplySent: () => read(row, 'reply'),
-        onSelect: () => triage.select(row),
-        takesFocus: triage.carryFocus,
-    });
+    const triageOf = (row: UnreadRow): UnreadRowTriage => {
+        const isSelected = triage.selected?.id === row.id;
+        return {
+            composerRef,
+            isSelected,
+            onMarkRead: () => read(row, 'mark-read'),
+            onOpen: () => openConversation(row),
+            onReplySent: () => read(row, 'reply'),
+            onSelect: () => {
+                if (!isSelected) {
+                    triage.select(row);
+                }
+            },
+            takesFocus: isSelected && triage.carryFocus,
+        };
+    };
 
     useUnreadTriageKeys(listRef, (command: UnreadTriageCommand) => {
-        const row = triage.open;
+        const row = triage.selected;
         if (!row) {
             return;
         }
@@ -106,7 +120,6 @@ export function InboxUnread() {
                     row.kind === 'chat' ? (
                         <UnreadChatRow
                             agent={agentOf(row.chat)}
-                            authors={authors}
                             chat={row.chat}
                             name={chatNavigationName(row.chat, agentOf(row.chat))}
                             triage={triageOf(row)}

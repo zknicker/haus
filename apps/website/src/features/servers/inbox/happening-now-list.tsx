@@ -4,7 +4,7 @@ import { CloudAgentKeycap } from '../../cloud-agents/cloud-agent-provider-mark.t
 import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 import type { HappeningNowRow } from './happening-now-rows.ts';
-import { InboxRailMark, InboxRailRow, inboxMarkSize } from './inbox-rail-row.tsx';
+import { InboxListMark, InboxListRow, inboxMarkSize } from './inbox-list-row.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
 
 /**
@@ -12,7 +12,7 @@ import { InboxRowList } from './inbox-section-rows.tsx';
  * left running, then the Agents currently in a turn. Both rows state elapsed
  * time, which is what separates working from stuck.
  *
- * It lives in the rail, or in the strip's popover, so each row stacks its
+ * It lives in the strip's popover, so each row stacks its
  * title over its subline. A work row's subline leads with its status — the
  * fact that changes while the row sits there — so when the column truncates,
  * the Chat and Agent it came from give way first; the status disc holds the
@@ -23,7 +23,7 @@ export function HappeningNowList({
     onOpenRow,
     rows,
 }: {
-    /** Scopes layout animation, so the rail and the popover never pair rows. */
+    /** Scopes layout animation, so this list never pairs rows with another Inbox list. */
     listId: string;
     onOpenRow: (row: HappeningNowRow) => void;
     rows: readonly HappeningNowRow[];
@@ -34,8 +34,8 @@ export function HappeningNowList({
             listId={listId}
             renderRow={(row) =>
                 row.kind === 'work' ? (
-                    <InboxRailRow label={row.work.title} onOpen={() => onOpenRow(row)}>
-                        <InboxRailMark>
+                    <InboxListRow label={row.work.title} onOpen={() => onOpenRow(row)}>
+                        <InboxListMark>
                             <span
                                 className="flex items-center justify-center"
                                 style={{ height: inboxMarkSize, width: inboxMarkSize }}
@@ -45,7 +45,7 @@ export function HappeningNowList({
                                     size={inboxMarkSize}
                                 />
                             </span>
-                        </InboxRailMark>
+                        </InboxListMark>
                         <ItemCard.Content>
                             <ItemCard.Title>{row.work.title}</ItemCard.Title>
                             <ItemCard.Description>
@@ -55,26 +55,26 @@ export function HappeningNowList({
                         <ItemCard.Action>
                             <CloudAgentStatusDisc state={row.work.state} />
                         </ItemCard.Action>
-                    </InboxRailRow>
+                    </InboxListRow>
                 ) : (
                     // Named for the turn, not the Agent alone: the Agents list
                     // beside it already has a row that is the Agent.
-                    <InboxRailRow
+                    <InboxListRow
                         label={`${row.agent.name}: ${row.agent.step}`}
                         onOpen={() => onOpenRow(row)}
                     >
-                        <InboxRailMark>
+                        <InboxListMark>
                             {row.agent.agent ? (
                                 <AgentAvatar agent={row.agent.agent} size={inboxMarkSize} />
                             ) : (
                                 <EntityAvatar name={row.agent.name} size={inboxMarkSize} />
                             )}
-                        </InboxRailMark>
+                        </InboxListMark>
                         <ItemCard.Content>
                             <ItemCard.Title>{row.agent.name}</ItemCard.Title>
                             <ItemCard.Description>{row.agent.label}</ItemCard.Description>
                         </ItemCard.Content>
-                    </InboxRailRow>
+                    </InboxListRow>
                 )
             }
             rows={rows}

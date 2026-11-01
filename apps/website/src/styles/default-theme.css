@@ -24,6 +24,15 @@
   --spacing-base: 0.234375rem;
   --reply-highlight: color-mix(in oklab, var(--accent-soft) 70%, transparent);
   /*
+   * A card in a feed of cards (the Inbox's Unread feed), each holding its own
+   * composer. Light mode keeps the surface, whose white field still reads by
+   * its edge. The ring marks the one selected card: neutral, from the theme's
+   * own foreground, so it marks the card without the accent's weight.
+   */
+  --feed-card: var(--surface);
+  --feed-card-shadow: var(--surface-shadow);
+  --feed-card-ring: color-mix(in oklab, var(--foreground) 24%, transparent);
+  /*
    * The one column every in-chat attachment under a message fills: Cloud Agent
    * cards, thread previews, the working log, workspace changes. Each is
    * `w-full` up to this cap, so a card stacked over a thread preview shares
@@ -214,6 +223,14 @@
 
     /* Supporting copy on a `--danger-soft` fill: the title's red, eased toward the ink. */
     --danger-soft-muted: color-mix(in oklab, var(--danger-soft-foreground) 65%, var(--foreground));
+
+    /* A dark feed card sits one quiet step off the page, rimmed, rather than
+       on `--surface`: that is the composer field's own fill, so a card painted
+       with it swallowed the field inside. The ring takes more of the ink to
+       stand off the card as far as light mode's does. */
+    --feed-card: var(--background-secondary);
+    --feed-card-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent);
+    --feed-card-ring: color-mix(in oklab, var(--foreground) 40%, transparent);
 }
 
 /*
@@ -1027,8 +1044,8 @@
     }
 
     /*
-     * An Unread row reads as one line (`features/servers/inbox/unread-triage-row.tsx`):
-     * the place, then the newest waiting message — or, once open, a note —
+     * An Unread card's header reads as one line (`features/servers/inbox/unread-row-header.tsx`):
+     * the place, then a note — `DM`, or the message a Thread hangs off —
      * beside it rather than under it. So the description sheds the offset that
      * separates two stacked lines and takes the title's size, the line reading
      * as one sentence rather than a label and its caption.
@@ -1040,20 +1057,21 @@
     }
 
     /*
-     * The one open Unread row is a card of its own: the surface's hairline
-     * ring and resting shadow, a step clear of the hairlines above and below,
-     * on a list that draws no box (`InboxSectionRows` `bare`), so it is the one
-     * outline in the list rather than an outline inside one. Not a fill step:
-     * on light themes a gray selected row read as a hole in the page. The row
-     * group clears every row's own surface, so the ring sits on the open row's
-     * wrapper, keyed here like the warning row.
+     * Every Unread conversation is an open card of its own
+     * (`unread-triage-row.tsx`): the feed-card fill and edge on a list
+     * that draws no box (`InboxSectionRows` `bare`), so each card is one
+     * outline rather than an outline inside another. The row group clears
+     * every row's own surface, so the card sits on the row's wrapper, keyed
+     * here like the warning row. The selected card — the one J/K moved to and
+     * E, R, and Return act on — only adds a ring, so selecting never moves a
+     * card; the ring eases between cards rather than blinking.
      */
-    /* The raised ground eases in and out with the open row's body reveal
-       (`unread-triage-row.tsx`), so the card settles rather than blinking on. */
     .item-card-group--inbox-rows .inbox-unread-row {
         border-radius: calc(var(--radius) * 2);
-        transition-duration: 220ms;
-        transition-property: margin, background-color, box-shadow;
+        background-color: var(--feed-card);
+        box-shadow: var(--feed-card-shadow);
+        transition-duration: 160ms;
+        transition-property: box-shadow;
         transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
     }
 
@@ -1063,11 +1081,10 @@
         }
     }
 
-    .item-card-group--inbox-rows .inbox-unread-open {
-        margin-block: calc(var(--spacing) * 1.5);
-        border-radius: calc(var(--radius) * 2);
-        background-color: var(--surface);
-        box-shadow: var(--surface-shadow);
+    .item-card-group--inbox-rows .inbox-unread-selected {
+        box-shadow:
+            var(--feed-card-shadow),
+            0 0 0 1.5px var(--feed-card-ring);
     }
 
     /* A name/attribution pair beside a 32px avatar (Linear identity preview).
@@ -1103,22 +1120,21 @@
     }
 
     /*
-     * Unread's bare triage list (`InboxSectionRows` `bare`) draws no box and no
-     * hairlines, so its collapsed rows are shapes of their own: the card radius
-     * the open row wears, a pressed row's highlight following it, and a small
-     * step between rows in place of a divider.
+     * Unread's bare feed (`InboxSectionRows` `bare`) draws no box and no
+     * hairlines, so its cards are shapes of their own, set apart by a step of
+     * space in place of a divider.
      */
     .item-card-group--transparent.item-card-group--inbox-rows [data-slot='item-card'] {
         border-radius: calc(var(--radius) * 2);
     }
 
     .item-card-group--transparent.item-card-group--inbox-rows {
-        gap: calc(var(--spacing) * 0.5);
+        gap: calc(var(--spacing) * 2.5);
     }
 
     /* An Agent running away on the Inbox's Agents meter. The reset above clears
        every row's own surface, so the one row that must stand out gets its
-       ground back here, from the warning role (`inbox-rail-row.tsx`). */
+       ground back here, from the warning role (`inbox-list-row.tsx`). */
     .item-card-group--inbox-rows .item-card--inbox-warning {
         background-color: var(--warning-soft);
     }
@@ -2942,7 +2958,7 @@
 
     /*
      * The Inbox runs up under its band (`PageBand overlay`) and borrows the top
-     * band over both its columns. The band's trail sits over it, so it holds
+     * band over its column. The band's trail sits over it, so it holds
      * solid through the band's top third and ramps out exactly where the page's
      * content starts at rest — the band plus the column's top inset — leaving
      * the trail on near-solid ground while rows still slide visibly up to the

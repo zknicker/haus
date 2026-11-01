@@ -30,6 +30,29 @@ export function useUnreadPreview(
     return data;
 }
 
+/**
+ * Whether the previews read has answered, success or failure. The Unread list
+ * waits on it as well as on its rows, so the cards and their messages land in
+ * one frame instead of each card growing under a painted list. It
+ * reads only the status, so a refetch that changes the previews never
+ * re-renders the list.
+ */
+export function useUnreadPreviewsSettled(serverId: string): boolean {
+    const { status } = hausTrpc.chat.unreadPreviews.useQuery(
+        { serverId },
+        queryPolicy.syncedSnapshot
+    );
+    return status !== 'pending';
+}
+
+/** Warms the previews read on intent (hovering Inbox), with the freshness its rows read it at. */
+export function usePreloadUnreadPreviews(serverId: string) {
+    const utils = hausTrpc.useUtils();
+    return React.useCallback(() => {
+        void utils.chat.unreadPreviews.prefetch({ serverId }, queryPolicy.syncedSnapshot);
+    }, [serverId, utils]);
+}
+
 /** The row's preview in one settled list, or null when the list does not name it. */
 export function findUnreadPreview(
     list: ChatUnreadPreviewList,

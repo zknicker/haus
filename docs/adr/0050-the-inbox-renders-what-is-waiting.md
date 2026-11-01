@@ -1,11 +1,11 @@
 ---
-summary: Unread becomes a triage list — one-line rows, exactly one open, which renders its newest waiting message (from one `chat.unreadPreviews` read) and the conversation's own composer; J/K/E/R/Return work it like a queue; seeing a row never reads it — Mark read, replying, or opening does, and the first two open the next row; the week's Agents move from a four-card strip to a ranked rail beside the feed (a chip strip when the pane is narrow) that flags a token spike. Amends ADR 0038.
+summary: Every Unread Chat and Thread is an open card rendering its newest waiting message (from one `chat.unreadPreviews` read) over the conversation's own composer, always there to type into; one card is selected, shown as a ring, and J/K/E/R/Return work the feed like a queue; seeing a card never reads it — Mark read, replying, or opening does, and the first two select the next card; the week's Agents ride a chip strip beside the greeting that flags a token spike, with the full ranked list behind "+N". Amends ADR 0038; amended 2026-11-01 (open cards replace the one-open-row triage list; the strip replaces the rail).
 read_when:
-  - changing how an Unread row shows its messages, `chat.unreadPreviews`, or replying from the Inbox
-  - changing which Unread row is open, the Inbox's keyboard keys, or the Inbox composer
+  - changing how an Unread card shows its messages, `chat.unreadPreviews`, or replying from the Inbox
+  - changing which Unread card is selected, the Inbox's keyboard keys, or the Inbox composers
   - changing whether or when seeing something in the Inbox marks it read
-  - changing the Inbox's Agents rail or strip, its ranking, or the token spike flag
-  - changing the Inbox's two-column layout or its narrow-pane switch
+  - changing the Inbox's Agents strip or list, its ranking, or the token spike flag
+  - changing the Inbox's layout, its feed cards, or their light and dark styling
 ---
 
 # ADR 0050: The Inbox Renders What Is Waiting
@@ -15,6 +15,22 @@ read_when:
 Accepted 2026-10-29. Amends [ADR 0038](0038-inbox-is-unread-not-attention.md): its sections and
 its clearing rule stand; how an Unread row shows its messages and where the week's Agents sit
 change. The row set is still [ADR 0043](0043-threads-are-unread-on-their-own.md)'s.
+
+Amended 2026-11-01: every Unread card is open. The one-line rows and the single open row are
+gone. Each unread Chat and Thread is a card of its own: its source line, its newest waiting
+message clamped with "Show more" and "N earlier", and its own composer, always there to type
+into. Nothing expands or collapses. Exactly one card is still selected, now shown only as a ring
+(`--feed-card-ring`), so J and K move the ring and never a card. Focus moving into a card — typing
+in its composer, tabbing to its controls — selects it and leaves the cursor where the reader put
+it. E, R, and Return act on the selected card, and Mark read or a reply selects the next. The
+list paints only once `chat.unreadPreviews` has settled, and hovering the sidebar's Inbox row
+prefetches it, so no card grows under the reader. The rail is gone at every width: the week's
+Agents ride the strip on the greeting's line ("+N" opens the full ranked list, "N running" opens
+Happening now), and the page is one column that scrolls as one. In dark mode a card sits one
+quiet step off the page with a faint rim (`--feed-card`), because a card on `--surface` — the
+composer field's own fill — swallowed the field inside it. Decision 1's collapsed rows and single
+open row, and decisions 4 and 5's rail and its container-query switch, are historical. Decisions 2
+and 3 stand: one read previews every card, and seeing a card never reads it.
 
 ## Context
 
@@ -74,9 +90,17 @@ not show the whole team.
 - `ChatComposer` takes `autoFocus` (default on) and a `ref` with `focus()`; the Inbox passes
   `autoFocus={false}`, which also stops a kept view's reveal from refocusing it.
 - The first version rendered every row as its own card with its newest three messages. It read
-  as a wall: every visit meant reading every card. The triage list keeps the reading in the one
-  open row and leaves the rest scannable.
-- The **Active this week** label and its cap of eight cards are gone; the rail lists every Agent
-  with activity this week.
+  as a wall: every visit meant reading every card. The triage list kept the reading in the one
+  open row and left the rest scannable.
+- The triage list was replaced in turn (2026-11-01). Pressing a row to open it was one step too
+  many, and the open row grew a beat after the page painted as its preview landed. Open cards keep
+  the first version's directness without its wall: each shows only its newest message, clamped,
+  and the selection ring keeps the queue keys. A reading pane beside the feed, a rail of compact
+  rows, and a peek bubble over the selected row were each mocked and rejected, the bubble after a
+  build: the page grew too many columns, or the selected row moved under the reader.
+- Every card mounts a `ChatComposer`. Its only Server read (`chat.mentionOptions`) waits until
+  "@" is typed, and drafts are local, so a feed of composers adds no request per card.
+- The **Active this week** label and its cap of eight cards are gone; the full list behind the
+  strip's "+N" holds every Agent with activity this week.
 - A "recently read" list under Unread was considered and left out: it needs a read-history source
   the Server does not keep.

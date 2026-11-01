@@ -71,9 +71,9 @@ export function InboxRowList<Row extends { id: string }>({
                     ) : (
                         rows.map((row, index) => (
                             <InboxMotionItem key={row.id} layoutKey={layoutKey}>
-                                {/* A bare list's rows are shapes of their own, set apart by
+                                {/* A bare list's rows are cards of their own, set apart by
                                     space, so a hairline between them would cut across
-                                    the open row's rounded card. */}
+                                    their rounded edges. */}
                                 {index > 0 && variant !== 'bare' ? <Separator /> : null}
                                 {renderRow(row)}
                             </InboxMotionItem>
@@ -89,8 +89,8 @@ export function InboxRowList<Row extends { id: string }>({
  * One arriving, leaving, or moving row in a section's list. It fades up a few
  * pixels on arrival and a few pixels away on exit, and `layout` carries it
  * when the list reorders under it, so a row that changes place slides rather
- * than teleports. Opening a different Unread row is not a reorder, so it
- * moves nothing: the open row swaps in place, as fast as J and K press.
+ * than teleports. Selecting a different Unread card is not a reorder, so it
+ * moves nothing: only the ring moves, as fast as J and K press.
  */
 export function InboxMotionItem({
     children,

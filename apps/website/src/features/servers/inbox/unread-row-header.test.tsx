@@ -18,13 +18,13 @@ function renderHeader() {
     );
 }
 
-test('the source line is the collapsed line’s own ItemCard, with no press highlight', () => {
+test('the source line is one ItemCard line, with no press highlight', () => {
     const markup = renderHeader();
 
-    // Same geometry as the collapsed row, so opening it never moves the name.
+    // A fixed name column, so names and notes line up card to card.
     expect(markup).toContain('item-card--inbox-line');
     expect(markup).toContain('w-40');
-    // The row is already open; the line itself is not a control.
+    // The card is already open; the line itself is not a control.
     expect(markup).not.toContain('pressable-feedback');
     expect(markup).not.toContain('aria-expanded');
 });

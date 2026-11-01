@@ -6,9 +6,8 @@ import { InboxRowList } from './inbox-section-rows.tsx';
 
 /**
  * The Agents meter: every Agent that moved this week, ranked, one row each,
- * with each bar measured against the busiest week in the list. The rail shows
- * it whole, and the narrow strip's "+N" opens the same list in a popover, so
- * the two arrangements can never disagree about who is where.
+ * with each bar measured against the busiest week in the list. The strip's
+ * "+N" opens it in a popover, behind the chips it folds down to.
  *
  * It rides the Inbox's row list, so rows arrive, leave, and reorder on the
  * same spring every other Inbox list uses, and a still week settles into the
@@ -20,7 +19,7 @@ export function InboxAgentsList({
     onOpenAgent,
 }: {
     entries: readonly ActiveAgent[];
-    /** Scopes layout animation, so the rail and the popover never pair rows. */
+    /** Scopes layout animation, so this list never pairs rows with another Inbox list. */
     listId: string;
     onOpenAgent: (agent: Agent) => void;
 }) {

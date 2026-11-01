@@ -5,11 +5,11 @@ import type { UnreadRow } from './unread-rows.ts';
 export type UnreadRowRead = 'mark-read' | 'reply';
 
 /**
- * Which Unread row is open (ADR 0050). Exactly one is, whenever any row
- * exists: `id` names it, and `index` is where it sat, so when it leaves —
- * read here or anywhere else — the row that slid into its place opens.
- * `carryFocus` says the change came from inside the list, so focus follows
- * into the newly open row instead of falling to the page.
+ * Which Unread card is selected (ADR 0050). Exactly one is, whenever any
+ * card exists: `id` names it, and `index` is where it sat, so when it leaves
+ * — read here or anywhere else — the card that slid into its place is
+ * selected. `carryFocus` says the change came from inside the list, so focus
+ * follows onto the newly selected card instead of falling to the page.
  */
 export interface UnreadSelection {
     carryFocus: boolean;
@@ -20,11 +20,11 @@ export interface UnreadSelection {
 export const initialUnreadSelection: UnreadSelection = { carryFocus: false, id: null, index: 0 };
 
 /**
- * The open row: the selected one while it is still listed, otherwise the row
- * now at its index (the last row when the list got shorter), and null only
- * when nothing is unread.
+ * The selected row: the one the selection names while it is still listed,
+ * otherwise the row now at its index (the last row when the list got
+ * shorter), and null only when nothing is unread.
  */
-export function resolveOpenRow(
+export function resolveSelectedRow(
     rows: readonly UnreadRow[],
     selection: UnreadSelection
 ): { index: number; row: UnreadRow } | null {
@@ -37,18 +37,18 @@ export function resolveOpenRow(
     return row ? { index, row } : null;
 }
 
-/** J and K: the row below or above the open one, stopping at either end. */
+/** J and K: the row below or above the selected one, stopping at either end. */
 export function stepSelection(
     rows: readonly UnreadRow[],
     selection: UnreadSelection,
     step: -1 | 1,
     carryFocus: boolean
 ): UnreadSelection {
-    const open = resolveOpenRow(rows, selection);
-    if (!open) {
+    const selected = resolveSelectedRow(rows, selection);
+    if (!selected) {
         return selection;
     }
-    const index = Math.min(Math.max(open.index + step, 0), rows.length - 1);
+    const index = Math.min(Math.max(selected.index + step, 0), rows.length - 1);
     return { carryFocus, id: rows[index]?.id ?? null, index };
 }
 
@@ -104,7 +104,7 @@ export function unreadRowReadInput(
 }
 
 /**
- * What an open row's "N earlier" does next. The row shows only the newest
+ * What a card's "N earlier" does next. The card shows only the newest
  * waiting message; the first press reveals the rest the preview carries, in
  * place, and once those show, the counted messages older still open the
  * conversation at the first of them. Null when nothing earlier is waiting.

@@ -112,8 +112,8 @@ export function agentSpikeLabel(spike: AgentSpike): string {
 
 /**
  * An Agent's week as one accessible name — "Scout, 1.2M tokens this week" —
- * shared by its rail row and its strip chip, so the one Agent announces the
- * same way in either arrangement and never as its bare name, which a
+ * shared by its strip chip and its row in the full list, so the one Agent
+ * announces the same way in either place and never as its bare name, which a
  * Happening now row beside it may also start with.
  */
 export function agentWeekLabel(entry: Pick<ActiveAgent, 'agent' | 'spike' | 'totalTokens'>) {

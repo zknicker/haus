@@ -1,8 +1,8 @@
 ---
-summary: The human Inbox page — a sidebar lens over the day, every unread Chat and Thread as a one-line triage row with exactly one open (its newest waiting message, the conversation's own composer, Mark read, and J/K/E/R/Return keys), the week's Agents ranked by tokens with a spike flag, and live Agent work — plus the one rule for desktop, web, and iPhone message notifications.
+summary: The human Inbox page — a sidebar lens over the day, every unread Chat and Thread as an open card (its newest waiting message, the conversation's own composer, Mark read) with one selected for the J/K/E/R/Return keys, the week's Agents as a strip of token chips with a spike flag, and live Agent work — plus the one rule for desktop, web, and iPhone message notifications.
 read_when:
   - changing the Inbox page, its sections, empty states, Mark read, or realtime invalidation
-  - changing the Unread triage list, its open row, its composer, or its keyboard keys
+  - changing the Unread feed, its cards, their composers, the selection, or the keyboard keys
   - changing what counts as unread, the sidebar Inbox badge, or the iPhone badge
   - changing who a new message notifies on desktop, web, or iPhone
   - deciding where background work that outlives an Agent turn becomes visible to humans
@@ -38,22 +38,22 @@ name (`inbox-greeting.ts`). The costume is in the words alone: the header adds n
 sidebar's Inbox row already wears the theme's mascot. Under the header sits **Unread**, the feed
 ([ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md)).
 
-When the Inbox pane is wide, a 19rem **rail** stands beside the feed: **Agents** over
-**Happening now**. When the pane is narrow — a second pane open beside it — the rail folds into
-one **strip** between the header and Unread. The switch is a container query on the page's frame
-at 60rem of pane width (`inbox-layout.ts`), never the window's width, because a split view narrows
-the Inbox on a wide window. Wide, the feed and the rail each scroll on their own under the still
-band, so the rail stays in view while the feed is read; narrow, the page scrolls as one. Both
-arrangements run up under the band (`PageBand overlay`): the band paints over the page and the
+The page is one column that scrolls as one, at every pane width (`inbox-layout.ts`). The week's
+Agent activity is a **strip** on the greeting's line, at its trailing edge; when the pane is too
+narrow for both, it wraps under the greeting. It draws nothing until its reads settle, and the
+greeting sets the line's height, so its arrival moves nothing below it. One owner
+(`InboxActiveAgents`) reads the Agent and Happening now data. A 19rem rail of **Agents** over
+**Happening now** used to stand beside the feed; with the sidebar it gave the page one column too
+many, and it is gone at every width
+([ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md)).
+
+The page runs up under the band (`PageBand overlay`): the band paints over the page and the
 page's frame rises behind it, so scrolled content is cut off at the shell's top edge — the window
-top on the web, the shell card's border on desktop — rather than at the band's bottom. Every top
-inset adds the band's height, so nothing moves at rest. Over both columns the frame carries the
+top on the web, the shell card's border on desktop — rather than at the band's bottom. The
+column's top inset adds the band's height, so nothing moves at rest. The frame carries the
 transcript's own top edge band (`.transcript-edge-blur`), solid through the band's top third and
 ramping out exactly where content starts at rest, so the trail stays legible over whatever slides
-under it and the band covers nothing while the page sits at its top. Both
-arrangements are one tree: one owner (`InboxActiveAgents`) reads the Agent and Happening now data
-once and renders strip and rail, and the query hides whichever does not fit. The rail sits in the
-feed's flow, between the header and Unread, and leaves the feed's scroller by position when wide.
+under it and the band covers nothing while the page sits at its top.
 
 The page fills the shell band the way Settings does: every band's trail leads with a **Haus**
 crumb linking back to the Inbox, and the Inbox band reads **Haus › Inbox** with the current page as
@@ -73,7 +73,8 @@ usage grammar and the one the strip already had.
 
 ## Sections
 
-**Agents** ranks every Agent that processed tokens in the last seven days or is in a turn now:
+**Agents** — the full list behind the strip's `+N` — ranks every Agent that processed tokens in
+the last seven days or is in a turn now:
 spiking first, then working, then the busiest week, then the name, with no cap. Each row is the
 Agent's avatar and name, its seven-day processed tokens (`Tokens · 7d` trails the label), a meter
 sized against the busiest Agent, and that week's daily totals as a sparkline; a working Agent adds
@@ -89,17 +90,18 @@ before its first use that week are left out of the median, and an Agent with no 
 on the floor alone, labeled `Unusual`). A spiking row takes the warning ground and a warning chip
 such as `3.1× usual`, and ranks first.
 
-In the narrow **strip** — one compact line straight on the page, in no box of its own — a muted
-`Tokens · 7d` (the rail's own label) says what the numbers count, then the top five Agents follow
-as chips: a bare face (no presence dot) and the seven-day total, a spiking one in soft warning
-with an up arrow. A `+N` button opens the full Agents list in a popover. A `N running` button at
-the strip's end opens Happening now in a popover, and is absent when nothing runs. The strip used
-to sit in a grey `secondary` card, a third material between the page and the cards that the
-spiking chip's warning tint clashed with, and its numbers carried no label.
+The **strip** is one compact line straight on the page, in no box of its own. A muted
+`Tokens · 7d` says what the numbers count, then the top five Agents follow as chips: a bare face
+(no presence dot) and the seven-day total, a spiking one in soft warning with an up arrow. Ranking
+puts a runaway first, so a spiking chip is never the one folded away. A `+N` button opens the full
+Agents list in a popover; with five or fewer Agents the chips are the whole list and there is no
+`+N`. A `N running` button at the strip's end opens Happening now in a popover, and is absent when
+nothing runs. The strip used to sit in a grey `secondary` card, a third material between the page
+and the cards that the spiking chip's warning tint clashed with, and its numbers carried no label.
 
 Every section shares one grammar: the label above, and the rows below it. Agents and Happening now
-hold theirs in one bordered group with a separator between each pair; Unread sets its rows on the
-page (below). A quiet section says so in one muted row-shaped slot, so it keeps the section's shape
+hold theirs in one bordered group with a separator between each pair, inside their popovers;
+Unread sets its cards on the page (below). A quiet section says so in one muted row-shaped slot, so it keeps the section's shape
 rather than changing it to say so.
 
 **Unread** — every Channel, DM, and Thread with something the viewer has not read, newest
@@ -113,78 +115,80 @@ inline reply, a Thread on their message, or their DM
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); that question is unread here like
 any other message, and it notifies them (see [Notifications](#notifications)).
 
-Unread is a **triage list** ([ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md)): one-line
-rows set straight on the page in a transparent stock `ItemCardGroup`, rounded and a hair apart, with
-no box and no dividers, so the open row's card is the only shape in the list. A collapsed row is a stock `ItemCard` pressed as a button: the place's 24px sidebar
-mark, its name in a fixed column so the quotes line up (`#product`, `Tiny`, `Thread in #product`),
-the newest waiting message quoted with its author a step brighter (`Blippy: Thursday release
-check…`), the time, and the unread count.
+Unread is a **feed of open cards** ([ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md)):
+every unread Chat and Thread is a card of its own, set straight on the page in a transparent stock
+`ItemCardGroup` a few pixels apart, with no box around them and no dividers, so each card is one
+outline rather than an outline inside another. Nothing expands or collapses. A card takes the
+theme layer's feed-card fill and edge (`--feed-card`, `--feed-card-shadow`, keyed as
+`.inbox-unread-row`): in light mode `--surface` with the resting `--surface-shadow`; in dark mode
+one quiet step off the page (`--background-secondary`) with a faint rim, because a dark card on
+`--surface` — the composer field's own fill — swallowed the field inside it. A grey
+`--surface-secondary` fill read wrong on the light shell. Each card reads, top to bottom:
 
-**Exactly one row is open**, lifted into a card: `--surface` with the resting `--surface-shadow`,
-keyed in the theme layer as `.inbox-unread-open`. A grey `--surface-secondary` fill read wrong on
-the light shell, and an outlined row inside an outlined list stacked one border in another.
-Switching rows folds the old body closed as the new one opens (`springs.drawer`, height and
-opacity) while the card's margin and shadow ease over the same span; reduced motion switches at
-once. The open row reads, top to bottom:
-
-- Its **source line**, the collapsed line's own geometry, so the name never moves when a row opens:
-  the name (the one control that opens the conversation), a muted note in the quote's place (`DM`,
-  or the message a Thread hangs off, `on Beacon: Thursday Christmas check…`), then the time,
-  **Mark read**, and the count.
+- Its **source line**: the place's mark and name (the one control that opens the conversation), a
+  muted note (`DM`, or the message a Thread hangs off, `on Beacon: Thursday Christmas check…`),
+  then the time, **Mark read**, and the count.
 - Only the **newest waiting message**, rendered exactly as the transcript renders it
   (`TranscriptEntryView`, agent avatars and all), read-only. A long one is clamped inside a
   clipping box that fades where it cuts, with **Show more** under it; the transcript's own
   rendering is never restyled to clamp it. **N earlier** above it first reveals the other waiting
   messages the preview carries, in place; once those show, the older counted messages open the
   conversation at its first unread message.
-- The conversation's own **composer**: the stock `ChatComposer` in the Chat view's `primary` shell
-  with the conversation's draft key (an Agent DM keys by its Agent, a Thread by its anchor), so a
-  draft started here waits there and the other way round. A Thread row's says `Add a reply…` and
-  is addressed as the Thread view's (`Message Thread — #all`). An archived Channel or a retired
-  Agent's DM shows none, as the Chat does.
+- The conversation's own **composer**, always there to type into: the stock `ChatComposer` in the
+  Chat view's `primary` shell with the conversation's draft key (an Agent DM keys by its Agent, a
+  Thread by its anchor), so a draft started here waits there and the other way round. A Thread
+  card's says `Add a reply…` and is addressed as the Thread view's (`Message Thread — #all`). An
+  archived Channel or a retired Agent's DM shows none, as the Chat does. Every card mounts one;
+  its only Server read (`chat.mentionOptions`) waits until "@" is typed, and drafts are local, so
+  a feed of composers adds no request per card.
 
-The first row is open on arrival. **Pressing a collapsed row opens it in place**; it never
-navigates. The open row stays open while newer activity reorders the list around it, and when it
-leaves — read here or anywhere else — the row that slid into its place opens. **Mark read** and a
-**reply** each read the row and open the next one (the one above, when it was last), so the list is
-worked from the top down like a queue.
+**Exactly one card is selected**, marked by a ring (`--feed-card-ring`, keyed as
+`.inbox-unread-selected`) that eases from card to card; selecting never moves a card. The first
+card is selected on arrival. Focus moving into a card — typing in its composer, tabbing to its
+controls — selects it and leaves the cursor where the reader put it. The selection stays on its
+card while newer activity reorders the list around it, and when that card leaves — read here or
+anywhere else — the card that slid into its place is selected. **Mark read** and a **reply** each
+read the card and select the next one (the one above, when it was last), so the list is worked
+from the top down like a queue.
 
-The composer does not take focus on its own (`autoFocus={false}`, which also keeps a kept tab's
-reveal from refocusing it). A Chat's composer is where that view's keys go, but here the first row
-opens on load and the open row changes as the reader moves, and a self-focusing editor would steal
-the cursor from the page and swallow the keys that move it.
+The composers do not take focus on their own (`autoFocus={false}`, which also keeps a kept tab's
+reveal from refocusing them). A Chat's composer is where that view's keys go, but here every card
+mounts one on load, and a self-focusing editor would steal the cursor from the page and swallow
+the keys that move the selection.
 
 **Keys** (`use-unread-triage-keys.ts`) answer only while focus is on the page itself or inside the
-list — never in the composer or any other field, never in a dialog, never with a modifier held,
-and only while the Inbox is the view on screen: **J** and **K** move the open row down and up,
-**E** marks it read and opens the next, **R** puts the cursor in its composer, and **Return** opens
-its conversation (Return on a focused button is that button's own press). The section's label
-carries the hint `J / K move · E mark read · R reply` at its trailing edge, hidden on a touch
-pointer. A move made from inside the list carries focus onto the newly open row's name, so the
-keyboard stays in the queue; one made from the page leaves focus where it is.
+list — never in a composer or any other field, never in a dialog, never with a modifier held,
+and only while the Inbox is the view on screen: **J** and **K** move the selection down and up,
+**E** marks the selected card read and selects the next, **R** puts the cursor in its composer, and
+**Return** opens its conversation (Return on a focused button is that button's own press). The
+section's label carries the hint `J / K move · E mark read · R reply` at its trailing edge, hidden
+on a touch pointer. A move made from inside the list carries focus onto the newly selected card's
+name, so the keyboard stays in the queue; one made from the page leaves focus where it is.
 
 The messages come from one read, `chat.unreadPreviews({ serverId })`
 (`packages/haus-api/src/chat-unread-preview.ts`): each unread Chat's and Thread's newest counted
 messages, oldest first, how many are older, and a Thread's anchor, filtered by the same predicates
-as `chat.list`, `thread.listUnread`, and the badge. A row never reads messages of its own; a page of
-rows each reading a transcript is the request burst that wedges a Server. Until the preview
-settles, the open row shows its source line only and a collapsed row quotes the fallback line
-below; a row the settled preview does not name falls back to that line too.
+as `chat.list`, `thread.listUnread`, and the badge. A card never reads messages of its own; a page
+of cards each reading a transcript is the request burst that wedges a Server. The feed paints
+nothing until the preview has settled as well as its rows, so the cards and their messages land in
+one frame instead of each card growing a beat later; hovering the sidebar's Inbox row prefetches
+the read. A card the settled preview does not name yet (it arrived a moment before the refetch
+that will) quotes the fallback line below.
 
 That fallback line is flattened by the same helper every other quoting surface uses,
 so a reference reads as `#product` and a visual reads as its title. A Chat holding no message yet
-says so instead. A collapsed row's quote of the preview's newest message follows the same rule.
+says so instead.
 
-The author prefix is dropped when the row's own title already answers it. In a DM the peer Agent
+The author prefix is dropped when the card's own title already answers it. In a DM the peer Agent
 speaks unattributed — `Tiny: Finished the audit` inside Tiny's own DM stated the name twice — and
 only the viewer's own line is marked, as `You:`. A Channel keeps every name, because there the
 author is the fact the reader is scanning for. `ChatLastMessage` carries no author id, so the match
-is by display name; it is a presentation choice inside one row and never identity, and the worst a
-collision does is drop or add a prefix.
+is by display name; it is a presentation choice inside one card and never identity, and the worst
+a collision does is drop or add a prefix.
 
-A row **clears** when the viewer reads the Chat — opening it while Haus is visible and focused —
-presses **Mark read** (or **E**), or replies from the open row. Seeing a row in the Inbox, open or
-not, never reads it, so a row never leaves while it is being read. A reply reads the Chat or Thread as its send starts;
+A card **clears** when the viewer reads the Chat — opening it while Haus is visible and focused —
+presses **Mark read** (or **E**), or replies from the card. Seeing a card in the Inbox never reads
+it, so a card never leaves while it is being read. A reply reads the Chat or Thread as its send starts;
 a failed send keeps its draft in that conversation's composer. Mark read on a Channel or DM row reads the Chat through its newest
 message and every Thread under it, so that Chat's Thread rows clear too; Mark read on a Thread row
 reads that Thread. Newer activity brings a row back.
@@ -210,32 +214,31 @@ owners remain in setup and members and Admins remain on the waiting page, outsid
 
 This is where background work that outlives an Agent turn stays observable.
 
-## Unread row anatomy
+## Unread card anatomy
 
-Every Unread row is one line in `ItemCard`'s own grammar
-([`unread-triage-row.tsx`](../../apps/website/src/features/servers/inbox/unread-triage-row.tsx)),
-collapsed or open, so opening a row changes what follows the name and never where the name sits.
-It reads left to right:
+Every Unread card is an `article` named for its place, holding its source line, its message, and
+its composer ([`unread-triage-row.tsx`](../../apps/website/src/features/servers/inbox/unread-triage-row.tsx)).
+The source line is one line in `ItemCard`'s own grammar
+([`unread-row-header.tsx`](../../apps/website/src/features/servers/inbox/unread-row-header.tsx))
+and reads left to right:
 
 - A 24px **mark**, the sidebar's own: the DM peer's avatar (initials once the Agent is gone) or the
-  Channel's icon box. A Thread row wears its parent's.
+  Channel's icon box. A Thread card wears its parent's.
 - The **name** (`#product`, `Tiny`, `Thread in #product`) in a fixed 10rem column, truncating
-  inside it, so a column of rows lines its quotes up. Collapsed, it is `ItemCard.Title` inside the
-  row's button. Open, it is the one control that opens the conversation: a text button, underlined
-  on hover the way a transcript author's name is, with a `:focus-visible` ring, named for the
-  place (`all`, `Thread in #all`) ([`unread-row-header.tsx`](../../apps/website/src/features/servers/inbox/unread-row-header.tsx)).
-- The **quote** (collapsed) or the **note** (open) as `ItemCard.Description`, muted, filling what
-  the name leaves and truncating first.
-- The **trailing cluster**, which never wraps or shrinks: the time, Mark read when open, and the
-  unread count at the right edge.
+  inside it, so a feed of cards lines its notes up. It is the one control that opens the
+  conversation: a text button, underlined on hover the way a transcript author's name is, with a
+  `:focus-visible` ring, named for the place (`all`, `Thread in #all`).
+- The **note** as `ItemCard.Description`, muted, filling what the name leaves and truncating first.
+- The **trailing cluster**, which never wraps or shrinks: the time, Mark read, and the unread count
+  at the right edge.
 
 The theme layer holds one rule under `item-card--inbox-line`: the description sits beside the
 title rather than under it, so it sheds the stacked-line offset and takes the title's size. The
-row group's existing reset clears each row's own surface; `.inbox-unread-open` gives the open row
-its ground back.
+row group's existing reset clears each row's own surface; `.inbox-unread-row` gives each card its
+ground back, and `.inbox-unread-selected` adds the ring.
 
-Rail rows — Agents and Happening now — stack a title over a subline instead, because the rail is
-19rem wide; each is a pressable `ItemCard` with a 32px mark (`inbox-rail-row.tsx`). A Cloud Agent
+Rows in the Agents and Happening now lists stack a title over a subline instead, because a popover
+is narrow; each is a pressable `ItemCard` with a 32px mark (`inbox-list-row.tsx`). A Cloud Agent
 work row's trailing status disc is 16px, the app's icon size.
 
 ## Current stub
@@ -322,9 +325,9 @@ key pair and a service worker). A closed browser tab learns about new messages o
 - Rows **animate in place**. A row arrives on a fade and a few pixels of upward settle, leaves on a
   fade as its neighbours close the gap, and slides when the list reorders under it, on one calm
   spring with no bounce. Because the slot is exactly one row tall and shares the rows' frame, the
-  first arrival takes the slot's box without the section changing height. Opening a different
-  Unread row is not a reorder: the open row swaps in place with no motion, as fast as J and K
-  press. Under `prefers-reduced-motion` every one of these is an instant swap.
+  first arrival takes the slot's box without the section changing height. Selecting a different
+  Unread card is not a reorder: only the ring moves, as fast as J and K press. Under
+  `prefers-reduced-motion` every one of these is an instant swap.
 - A section stays blank while its reads settle. An unsettled query is not an empty collection, so
   nothing is claimed — and nothing flashes — on the way there. The header reserves its greeting
   line while the name resolves, with the known date underneath. The week strip waits for the
@@ -343,8 +346,8 @@ key pair and a service worker). A closed browser tab learns about new messages o
   Server membership and Chat access of each projected record.
 - iOS mirrors this page's sections and their order: the same header, the week's Agents, and the
   same two lists in the same order. It still shows the Agents as the older **Active this week**
-  strip and Unread as one-line rows; the open row, its composer and keys, and the rail of
-  [ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md) are App-only for now. It reads
+  strip and Unread as one-line rows; the open cards, their composers and keys, and the token-chip
+  strip of [ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md) are App-only for now. It reads
   the same Server records through Store-owned snapshots
   ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
   first iPhone presentation. One row differs, because the phone has nowhere else to send it: an

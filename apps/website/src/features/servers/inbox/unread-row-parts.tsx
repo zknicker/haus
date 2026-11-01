@@ -10,7 +10,7 @@ import { AgentAvatar } from '../../members/agent-avatar.tsx';
 /**
  * An Unread row's mark: the sidebar's own 24px — its Channel box and its DM
  * face — so a row names its place with the same mark the sidebar row does,
- * a step under the 32px faces of the messages an open row renders.
+ * a step under the 32px faces of the messages a card renders.
  */
 const unreadMarkSize = 24;
 

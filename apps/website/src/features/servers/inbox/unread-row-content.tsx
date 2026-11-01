@@ -7,15 +7,16 @@ import { UnreadRowMessages } from './unread-row-messages.tsx';
 import { earlierUnread } from './unread-row-model.ts';
 
 /**
- * What an open row says under its source line: the newest waiting message,
+ * What a card says under its source line: the newest waiting message,
  * rendered as the conversation renders it, and "N earlier" above it when more
  * is waiting (ADR 0050). The newest message is what the reader answers, so it
- * is the one the row shows; "N earlier" first reveals the other waiting
+ * is the one the card shows; "N earlier" first reveals the other waiting
  * messages the preview carries, in place, and past those opens the
  * conversation at its first unread message.
  *
- * Blank until the previews settle — the source line already names the row,
- * and an unsettled read is not an empty one. A settled read that does not
+ * The list waits for the previews before it paints, so this is blank only if
+ * the read is somehow unsettled — an unsettled read is not an empty one, and
+ * the source line already names the card. A settled read that does not
  * name this row yet (it arrived a moment before the previews refetch that
  * will) quotes the row's one line.
  */
@@ -82,8 +83,8 @@ export function UnreadRowContent({
 }
 
 /**
- * The newest waiting message alone, clamped to a few lines so every open row
- * is about the same height and the reader's eye moves row to row. The clamp
+ * The newest waiting message alone, clamped to a few lines so every card
+ * is about the same height and the reader's eye moves card to card. The clamp
  * is a clipping box around the transcript's own rendering, never a restyle
  * of it, fading out where it cuts; "Show more" lifts it, and appears only
  * when the message is actually taller than the box.

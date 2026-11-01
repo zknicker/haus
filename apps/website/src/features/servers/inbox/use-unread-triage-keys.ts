@@ -8,9 +8,9 @@ export type UnreadTriageCommand = 'mark-read' | 'next' | 'open' | 'previous' | '
 export const unreadTriageKeyHint = 'J / K move · E mark read · R reply';
 
 /**
- * The Unread list's keys (ADR 0050): J and K move the open row down and up, E
- * marks it read and moves on, R puts the cursor in its composer, and Return
- * opens its conversation.
+ * The Unread list's keys (ADR 0050): J and K move the selection down and up,
+ * E marks the selected card read and moves on, R puts the cursor in its
+ * composer, and Return opens its conversation.
  *
  * They are single letters, so they answer only while the viewer is on the
  * list or on the page itself — never while typing in the composer or any

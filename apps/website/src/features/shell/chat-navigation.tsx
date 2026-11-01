@@ -5,6 +5,7 @@ import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import { usePreloadUnreadPreviews } from '../../hooks/inbox/use-unread-previews.ts';
 import { useAgentIds } from '../../hooks/members/use-agents.ts';
 import { useChatNavigationLayout } from '../../hooks/servers/use-chats.ts';
 import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -54,6 +55,7 @@ export function ChatNavigation({
     const inboxMark = useSidebarSurface() === 'macos-desktop' ? 'ghost' : 'inbox';
     const layout = useChatNavigationLayout(serverId);
     const agentIds = useAgentIds(serverId);
+    const preloadUnreadPreviews = usePreloadUnreadPreviews(serverId);
 
     return (
         <SidebarNavigateProvider>
@@ -80,7 +82,10 @@ export function ChatNavigation({
                         <SidebarInboxRow
                             isCurrent={location.pathname.startsWith(inboxRoute(slug))}
                             mark={inboxMark}
-                            onPreload={() => onPreloadSection('inbox')}
+                            onPreload={() => {
+                                onPreloadSection('inbox');
+                                preloadUnreadPreviews();
+                            }}
                             slug={slug}
                             unreadCount={inboxUnreadCount}
                         />

@@ -6,9 +6,9 @@ import type { ReactNode } from 'react';
  * whose header carries the title, and whose body is whatever that section
  * shows beneath it.
  *
- * Every section — Unread in the feed, Agents and Happening now in the rail — is
- * this shape, so every label is the same type at the same edge, over one box
- * of rows (`InboxSectionRows`). Unread's box is its triage list, one row open.
+ * Every section is this shape, so every label is the same type at the same
+ * edge, over its rows (`InboxSectionRows`). Unread's rows are its feed of
+ * cards, one selected.
  *
  * The title used to sit inside the bordered box, with a borderless divided list
  * nested under it — a hybrid that put a rule between every pair of rows but
@@ -50,10 +50,10 @@ export function InboxSection({
 /**
  * The rows under a section's label, separated. `boxed` sets them inside one
  * bordered group, which clips so the first and last row's hover fill follows
- * its corners. `bare` sets them straight on the page with only the hairlines
- * between them: Unread's triage list, whose one open row is the only outlined
- * thing in it, so no outline ever sits inside another. Bare does not clip,
- * so that open row's ring keeps its edges.
+ * its corners. `bare` sets them straight on the page with space between them:
+ * Unread's feed, whose rows are each a card of their own, so no outline ever
+ * sits inside another. Bare does not clip, so the selected card's ring keeps
+ * its edges.
  */
 export function InboxSectionRows({
     children,

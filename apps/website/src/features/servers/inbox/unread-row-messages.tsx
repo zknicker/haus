@@ -6,7 +6,7 @@ import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import { useUnreadRowRenderContext } from './unread-row-render-context.tsx';
 
 /**
- * An open row's waiting messages, rendered by the transcript's own entry view
+ * A card's waiting messages, rendered by the transcript's own entry view
  * so mentions, references, lists, attachments, and authors look exactly as
  * they do in the conversation (ADR 0050).
  *
@@ -53,7 +53,7 @@ export function UnreadRowMessages({
     return (
         <TranscriptRenderProvider value={renderContext}>
             {/* A transcript row carries no gutter of its own (the chat's scroller
-                gives it one), so the open row insets its messages to its source
+                gives it one), so the card insets its messages to its source
                 line `ItemCard`'s padding and every avatar sits under the place's
                 mark. The gap is the row's own, between turns: it lifts a few
                 messages out of their conversation, so each speaker's turn gets a

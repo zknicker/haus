@@ -3,7 +3,7 @@ import type { ChatComposerHandle } from '../chat/chat-composer.tsx';
 import { ChatComposer } from '../chat/chat-composer-variants.tsx';
 import { pendingThreadReplyKey } from '../chat/use-pending-messages.ts';
 
-/** Where an open row's reply goes, and whether it can go anywhere. */
+/** Where a card's reply goes, and whether it can go anywhere. */
 export type UnreadRowReply =
     | { kind: 'closed' }
     | {
@@ -25,7 +25,7 @@ export type UnreadRowReply =
       };
 
 /**
- * The open row's input bar: the very composer its conversation renders
+ * A card's input bar: the very composer its conversation renders
  * (ADR 0050) — the stock `ChatComposer` in the Chat view's own `primary`
  * shell, with the conversation's draft key and the Thread view's "Add a
  * reply…" for a Thread — so a draft started here is waiting there, and the
@@ -33,9 +33,9 @@ export type UnreadRowReply =
  * retired Agent's DM) renders none, as the Chat does.
  *
  * It does not take focus when it mounts. A Chat's composer is where that
- * view's keys go, but here the row opens on load and as J and K move, and
- * a self-focusing editor would swallow the very keys that move it. R, or a
- * click into the bar, focuses it (`ref`).
+ * view's keys go, but here every card mounts one on load, and a
+ * self-focusing editor would swallow the very keys that move the selection.
+ * R focuses the selected card's (`ref`); a click focuses any.
  *
  * `onSent` hears a send the moment it starts — sending is optimistic, and the
  * conversation's pending row carries the message from there.

@@ -3,16 +3,15 @@ import { type ReactNode, type RefObject, useEffect, useRef } from 'react';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 
 /**
- * The open row's source line: where its waiting messages are from (ADR 0050).
- * It is the collapsed line's own `ItemCard` geometry — the same mark, the
- * same name column — so opening a row changes what follows the name, never
- * where the name sits: the preview gives way to a muted note (`DM`, or the
- * message a Thread hangs off), and the trailing cluster gains Mark read.
+ * A card's source line: where its waiting messages are from (ADR 0050). One
+ * `ItemCard` line — the place's mark, its name in a fixed column so names and
+ * notes line up card to card, a muted note (`DM`, or the message a Thread
+ * hangs off), and a trailing cluster of the time, Mark read, and the count.
  *
- * It is not pressable and paints no fill: the row is already open. The name
+ * It is not pressable and paints no fill: the card is already open. The name
  * itself opens the conversation, underlined on hover the way a transcript
- * author's name is. When the row opened from inside the list, focus follows
- * onto the name (`takesFocus`), so the keyboard stays in the queue.
+ * author's name is. When the card was selected from inside the list, focus
+ * follows onto the name (`takesFocus`), so the keyboard stays in the queue.
  */
 export function UnreadRowHeader({
     actions,
@@ -76,9 +75,9 @@ export function UnreadRowHeader({
 }
 
 /**
- * The one line every Unread row reads as: a fixed column for the place, then
- * whatever follows it (a preview, a note). The column is fixed so a list of
- * rows lines its previews up; a long name truncates inside it.
+ * The source line's text: a fixed column for the place, then the note. The
+ * column is fixed so a feed of cards lines its notes up; a long name
+ * truncates inside it.
  */
 export function UnreadRowLineText({ name, text }: { name: ReactNode; text: ReactNode }) {
     return (
@@ -89,7 +88,7 @@ export function UnreadRowLineText({ name, text }: { name: ReactNode; text: React
     );
 }
 
-/** Moves focus onto the element when asked to; a row opened from outside the list never asks. */
+/** Moves focus onto the element when asked to; a card selected from outside the list never asks. */
 function useTakeFocus(ref: RefObject<HTMLElement | null>, on: boolean) {
     useEffect(() => {
         if (on) {
