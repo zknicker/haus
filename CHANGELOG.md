@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.1.0 - 2026-11-01
+
+- The Inbox shows every unread Channel, DM, and Thread as an open card with its newest message and the conversation's own composer, so you can reply to any of them without opening it first. J and K move a highlight between cards, and E, R, and Return act on the highlighted card.
+- The Inbox appears with every card's messages in place instead of growing as they load.
+- The week's Agents sit beside the greeting as token chips at every width, with the full ranked list and running work in popovers.
+
 ## v16.0.0 - 2026-10-31
 
 - Haus on the web, desktop, and iPhone signs in with Google through Cloudflare Access. Your profile, chats, Computers, Agents, and saved connections stay in place.
