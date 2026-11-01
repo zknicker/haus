@@ -5,6 +5,7 @@ const { createNativeAuthFlow, emptyCredentials } = require('./native-auth-flow.c
 const { createNativeLoopbackCallback } = require('./native-loopback-callback.cjs');
 
 const refreshLeadMs = 25_000;
+const refreshRetryMs = 5000;
 
 function createNativeAuthManager({
     appUrl,
@@ -24,6 +25,7 @@ function createNativeAuthManager({
     let refreshInFlight = null;
     let signingOut = false;
     let refreshTimer = null;
+    let expiryTimer = null;
     const devFixture = isDevelopmentLoopback(appUrl, isPackaged);
     const client = createNativeAuthClient({ appUrl, fetchImpl, now });
     let flow;
@@ -37,10 +39,10 @@ function createNativeAuthManager({
         }
         onSession(next);
         if (next) {
-            scheduleRefresh(next);
-        } else if (refreshTimer) {
-            timers.clearTimeout(refreshTimer);
-            refreshTimer = null;
+            scheduleRefresh(Math.max(0, Date.parse(next.expiresAt) - now() - refreshLeadMs));
+            scheduleExpiry(next);
+        } else {
+            clearTimers();
         }
         return next;
     };
@@ -65,7 +67,10 @@ function createNativeAuthManager({
         store.clear();
     };
 
-    const invalidate = () => ++generation;
+    const invalidate = () => {
+        clearTimers();
+        return ++generation;
+    };
     const isCurrent = (value) => value === generation;
 
     flow = createNativeAuthFlow({
@@ -98,11 +103,16 @@ function createNativeAuthManager({
             return refreshInFlight.promise;
         }
         const requestGeneration = generation;
-        const promise = refreshSession(requestGeneration).finally(() => {
-            if (refreshInFlight?.promise === promise) {
-                refreshInFlight = null;
-            }
-        });
+        const promise = refreshSession(requestGeneration)
+            .catch((error) => {
+                scheduleRetry(requestGeneration);
+                throw error;
+            })
+            .finally(() => {
+                if (refreshInFlight?.promise === promise) {
+                    refreshInFlight = null;
+                }
+            });
         refreshInFlight = { generation: requestGeneration, promise };
         return promise;
     }
@@ -176,40 +186,70 @@ function createNativeAuthManager({
             if (!isInvalidGrant(error)) {
                 throw error;
             }
-            clearCredentials();
             if (isCurrent(requestGeneration)) {
+                clearCredentials();
                 publish(null);
             }
             return null;
         }
     }
 
-    function scheduleRefresh(value) {
+    function scheduleRefresh(delay) {
         if (refreshTimer) {
             timers.clearTimeout(refreshTimer);
         }
-        const delay = Math.max(0, Date.parse(value.expiresAt) - now() - refreshLeadMs);
+        const requestGeneration = generation;
         refreshTimer = timers.setTimeout(() => {
             refreshTimer = null;
-            void refresh().catch(() => scheduleExpiry(value));
+            if (isCurrent(requestGeneration)) {
+                void refresh().catch(() => undefined);
+            }
         }, delay);
         refreshTimer?.unref?.();
     }
 
-    function scheduleExpiry(value) {
-        if (refreshTimer) {
-            timers.clearTimeout(refreshTimer);
+    function scheduleRetry(requestGeneration) {
+        const saved = readCredentials();
+        if (
+            isCurrent(requestGeneration) &&
+            !signingOut &&
+            (devFixture || saved?.accessToken || saved?.refreshToken)
+        ) {
+            scheduleRefresh(refreshRetryMs);
         }
-        refreshTimer = timers.setTimeout(
+    }
+
+    function scheduleExpiry(value) {
+        if (expiryTimer) {
+            timers.clearTimeout(expiryTimer);
+        }
+        const requestGeneration = generation;
+        expiryTimer = timers.setTimeout(
             () => {
-                refreshTimer = null;
-                if (session === value && Date.parse(value.expiresAt) <= now()) {
+                expiryTimer = null;
+                if (
+                    isCurrent(requestGeneration) &&
+                    session === value &&
+                    Date.parse(value.expiresAt) <= now()
+                ) {
                     publish(null);
+                    scheduleRetry(requestGeneration);
                 }
             },
             Math.max(0, Date.parse(value.expiresAt) - now())
         );
-        refreshTimer?.unref?.();
+        expiryTimer?.unref?.();
+    }
+
+    function clearTimers() {
+        if (refreshTimer) {
+            timers.clearTimeout(refreshTimer);
+            refreshTimer = null;
+        }
+        if (expiryTimer) {
+            timers.clearTimeout(expiryTimer);
+            expiryTimer = null;
+        }
     }
 
     return {

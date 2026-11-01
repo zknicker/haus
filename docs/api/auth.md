@@ -76,6 +76,12 @@ protected credential store. The native request includes
 `X-Haus-Session-Request: 1`; the Server also rejects a mismatched `Origin` or a
 `Sec-Fetch-Site` value other than `same-origin` or `none`.
 
+The desktop retries temporary refresh failures every five seconds while its
+native credential remains available. Short Haus access still expires on time;
+once the network recovers, the retained grant resumes the session without a
+new sign-in. Confirmed revocation or sign-out clears the credential and stops
+automatic refresh.
+
 ## App sessions and realtime
 
 The App sends its opaque Haus access token as `Authorization: Bearer` for HTTP
