@@ -67,7 +67,8 @@ plumbing) and before a release with significant UI work. In order:
    reason per entry; one realtime change renders only the rows it changed.
 2. **App e2e guards**: `bun e2e/run-playwright.ts e2e/tests/idle-silence.spec.ts
    e2e/tests/render-budget.spec.ts`. Idle silence fast-forwards ten fake-clock minutes on a
-   channel, the Inbox, and a profile, plus a Clerk rotation, hide/show, and offline/online, and
+   channel, the Inbox, and a profile, plus an auth credential rotation,
+   hide/show, and offline/online, and
    names any procedure beyond the allowlist. Render budgets count component renders per
    interaction (react-scan's devtools-hook technique, dev bundle) against
    `apps/website/e2e/render-budgets.json`: over by >20% fails with the top components; >20%
@@ -109,17 +110,18 @@ All times are ms from the real `pointerdown`, read on the rAF after the region m
 An App nobody touches should send nothing but its justified polls. Measure with
 `scripts/perf/idle-network.mjs` (scenarios `channel`, `inbox`, `profile`, `hide-show`, `ws-drop`,
 `offline-online`; `--serve-dist` for the prod bundle, `--electron` for the desktop App on the dev
-bundle, run under `varlock run` so Electron gets its Clerk env). It logs every HTTP tRPC procedure,
-socket opens and closes, subscription starts, and in-place `session.refresh` calls, then prints
-counts per minute over a 180 s window.
+bundle, run under `varlock run` so Electron gets its auth environment). It logs every HTTP tRPC
+procedure, socket opens and closes, subscription starts, and in-place `session.refresh` calls,
+then prints counts per minute over a 180 s window.
 
 The allowlist on an idle channel, Inbox, or profile: the website build check (60 s), the Desktop
 release check (10 min), onboarding and sign-in bounded polls, and one
-`session.refresh` per Clerk rotation over the socket (not HTTP). Anything else is a regression;
-the usual causes are a reconnect (token rotation used to force one every 30–60 s) and a recovery
-pass that refetches a read some event stream already recovers. A real socket drop should show one
-reconnect, one subscription start per stream, and one App-wide reconnect pass — never a second pass
-of the same read ([realtime.md](../../../docs/api/realtime.md#recovery)).
+`session.refresh` per auth credential rotation over the socket (not HTTP). Anything else
+is a regression; the usual causes are reconnects (token rotation used to force one every
+30–60 s) and a recovery pass that refetches a read some event stream already recovers. A real
+socket drop should show one reconnect, one subscription start per stream, and one App-wide
+reconnect pass — never a second pass of the same read
+([realtime.md](../../../docs/api/realtime.md#recovery)).
 
 Kept-alive chat views stay in the DOM while hidden, so "a fresh node appeared" detection is wrong
 for warm switches; every probe scopes to the displayed target surface. Passes: **cold** = first
@@ -148,8 +150,8 @@ Hidden kept views leave duplicate DOM; e2e locators scope to the visible surface
   under the Unix limit). Kill the perf stack when done.
 - Installed Google Chrome (`channel: 'chrome'`). Playwright's bundled headless shell is
   SIGKILLed here.
-- Prod bundles are served on the dev origin by route interception: the Server rejects Clerk
-  tokens from another origin and dev auto sign-in is compiled out of prod
+- Prod bundles are served on the dev origin by route interception: the harness forwards
+  session requests to the loopback-only fixture, while production code carries no fixture bypass
   (`scripts/perf/browser-session.mjs`). Chrome launches with
   `--disable-features=LocalNetworkAccessChecks`; without it the route-fulfilled page's websocket
   is blocked (`net::ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`) and prod runs have no realtime.

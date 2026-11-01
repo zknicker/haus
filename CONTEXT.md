@@ -201,7 +201,7 @@ _Avoid_: Agent proxy credential, external Agent credential, Computer credential,
 A revocable, machine-local human session bound to one Haus origin and used by Haus Computer to
 discover and manage Computers across the signed-in User's Servers. It never authenticates Agent
 execution or grants Chat access.
-_Avoid_: Clerk browser session, Computer credential, Agent session, provider login
+_Avoid_: Browser login, Computer credential, Agent session, provider login
 
 **Computer credential**:
 A revocable credential issued by one Haus server when an authorized Computer login session
@@ -213,12 +213,12 @@ _Avoid_: Human session, Agent credential, provider credential, shared Runtime to
 **Server member**:
 A human User or Agent with standing access to one Haus server. Server membership governs
 server-wide identity and role; participation in a specific Chat is a separate relationship.
-_Avoid_: Hosted Server member, Chat participant, Clerk user, Computer, external actor
+_Avoid_: Hosted Server member, Chat participant, Computer, external actor
 
 **User**:
-A persistent human identity in Haus that may hold membership in multiple Haus servers. Clerk
-authenticates the human and supplies an external identity reference but does not own the User.
-_Avoid_: Server member, Chat participant, Clerk user, local operator
+A persistent human identity in Haus that may hold membership in multiple Haus servers. Sign-in
+establishes the human's external identity but does not own or replace the Haus User.
+_Avoid_: Server member, Chat participant, local operator
 
 **Server role**:
 A human Server member's authority within one Haus server: Member, Admin, or Owner. A Haus
@@ -227,10 +227,10 @@ carry no Server role.
 _Avoid_: Chat role, agent specialty, global user role, Agent role
 
 **Server invite**:
-A Server-owned, email-bound, single-use invitation that lets one Clerk-authenticated human become a
+A Server-owned, email-bound, single-use invitation that lets one authenticated human become a
 Member of one Haus server before it expires. Administrative roles are assigned only after the
 human joins.
-_Avoid_: Clerk invitation, reusable join link, Server membership
+_Avoid_: Reusable join link, Server membership
 
 **Agent**:
 A persistent non-human Server member whose collaboration identity belongs to one Haus server.
