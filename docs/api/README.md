@@ -22,5 +22,6 @@ proxy.
 | Agent manual | [Manual](manual.md) |
 | Agent skills | [Skills](skills.md) |
 | Usage and health | [Usage](stats.md) |
+| Christmas advent calendar | [Advent](advent.md) |
 
 There is no standalone SDK package or Runtime-hosted API.

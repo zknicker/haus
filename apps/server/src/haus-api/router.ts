@@ -1,3 +1,4 @@
+import { adventRouter } from './advent/router.ts';
 import { agentRouter } from './agent/router.ts';
 import { artifactRouter } from './artifact/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
@@ -33,6 +34,7 @@ import { createRouter } from './trpc.ts';
  * The whole Haus Server contract.
  */
 export const hausRouter = createRouter({
+    advent: adventRouter,
     artifact: artifactRouter,
     agent: agentRouter,
     attachment: attachmentRouter,
