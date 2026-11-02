@@ -168,7 +168,8 @@ Command means Control off macOS. Middle-click on a link or chip never autoscroll
 
 A **Thread** page shows the same Thread surface the web's side panel hosts, full width like a chat;
 View in chat opens the chat scrolled to the anchor, flashing it. A `?thread=` or `?task=`
-chat link strips its parameter, then opens the Thread page. A chat's **Attachments** page lists the
+chat link strips its parameter, then opens the Thread page; a task inside a Thread opens the Thread
+it sits in with `?task=<messageId>` on the page, so the page states that task. A chat's **Attachments** page lists the
 attachments in its loaded messages. A **workspace** page from an Agent workspace shows the Workspace pane's
 renderers (a file preview with copy, raw, and link actions, or the workspace browser); a target no
 Agent workspace holds shows "File unavailable". A shared file in Files (`artifacts/<id>`)

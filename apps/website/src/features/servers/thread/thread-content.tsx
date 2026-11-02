@@ -38,6 +38,7 @@ import { ThreadConversationHistory } from './thread-conversation-history.tsx';
 import { ThreadEntryView } from './thread-entry-view.tsx';
 import { ThreadReadTracker } from './thread-read-tracker.tsx';
 import { threadTitles } from './thread-target.ts';
+import { threadWorkTask } from './thread-work-task.ts';
 
 const noReplies: readonly ChatMessageLayout[] = [];
 
@@ -57,6 +58,7 @@ export function ThreadContent({
     readOnly,
     summary,
     takeover,
+    taskMessage,
     turnDetailsAccess,
     width,
 }: {
@@ -84,6 +86,8 @@ export function ThreadContent({
     readOnly: boolean;
     summary: ThreadSummary | null;
     takeover: boolean;
+    /** The Task this Thread was opened on when its message sits inside the Thread. */
+    taskMessage?: ChatMessage | null;
     turnDetailsAccess: 'journal' | 'summary';
     width: number | null;
 }) {
@@ -105,7 +109,8 @@ export function ThreadContent({
     const titles = threadTitles(chat, anchor.id, humans);
     // A task Thread is the task's work surface, so its header names the task
     // rather than the chat it hangs in — the metadata panel names the chat.
-    const taskThreadTitle = anchor.task ? `Task #${anchor.task.number}` : null;
+    const workTask = threadWorkTask(anchor, taskMessage);
+    const taskThreadTitle = workTask ? `Task #${workTask.task.number}` : null;
     // Replies show as pending rows the instant they are sent, under a key the
     // anchor owns, so the very first reply — which has no Thread chat id until
     // its receipt lands — is carried the same way every later one is.
@@ -127,7 +132,7 @@ export function ThreadContent({
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
         // The header names the Task and the metadata panel below states it.
-        taskChipHiddenMessageId: anchor.task ? anchor.id : undefined,
+        taskChipHiddenMessageId: workTask?.messageId,
         turnDetailsAccess,
         viewerUserId,
     });
@@ -184,12 +189,12 @@ export function ThreadContent({
             />
             <TranscriptRenderProvider value={renderContext}>
                 <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">
-                    {anchor.task ? (
+                    {workTask ? (
                         <TaskThreadMetadata
                             chat={chat}
                             chatId={chat.id}
-                            fallbackTask={anchor.task}
-                            messageId={anchor.id}
+                            fallbackTask={workTask.task}
+                            messageId={workTask.messageId}
                             serverId={chat.serverId}
                         />
                     ) : null}
@@ -207,7 +212,7 @@ export function ThreadContent({
                         pendingChatId={pendingThreadReplyKey(anchor.id)}
                         readOnly={readOnly}
                         serverId={chat.serverId}
-                        task={Boolean(anchor.task)}
+                        task={workTask !== null}
                         threadChatId={threadChatId}
                     />
                 }

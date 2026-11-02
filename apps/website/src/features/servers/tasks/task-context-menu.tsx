@@ -14,7 +14,7 @@ import { useTaskLabels } from '../../../hooks/servers/use-task-labels.ts';
 import { useTaskUpdate } from '../../../hooks/servers/use-task-update.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { useServerContext } from '../server-context.ts';
-import { serverChatRoute, tasksRoute } from '../server-routes.ts';
+import { tasksRoute } from '../server-routes.ts';
 import { taskAssigneeFromKey } from './task-assignee.tsx';
 import {
     TaskAssigneeSubmenu,
@@ -28,6 +28,7 @@ import {
 } from './task-context-submenus.tsx';
 import { taskAssignmentInput, taskUpdateInput, toggledTaskLabelIds } from './task-input.ts';
 import type { TaskItem } from './task-model.ts';
+import { taskChatRoute } from './task-thread-target.ts';
 
 export function TaskContextMenu({
     children,
@@ -54,7 +55,7 @@ export function TaskContextMenu({
             return;
         }
         if (action === 'view-chat') {
-            navigate(serverChatRoute(server.slug, task.chatId));
+            navigate(taskChatRoute(server.slug, task));
             return;
         }
         if (action === 'copy-link') {

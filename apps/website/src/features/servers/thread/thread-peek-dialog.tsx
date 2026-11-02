@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
 import { useChatReferenceActivation } from '../chat/use-chat-reference-activation.ts';
 import { useServerContext } from '../server-context.ts';
-import { serverChatRoute } from '../server-routes.ts';
+import { serverChatRoute, serverChatThreadRoute } from '../server-routes.ts';
 import { ThreadContent } from './thread-content.tsx';
 
 /**
@@ -21,6 +21,7 @@ export function ThreadPeekDialog({
     initialThreadChatId,
     onClose,
     summary,
+    taskMessage,
 }: {
     anchor: ChatMessage;
     ariaLabel: string;
@@ -29,15 +30,22 @@ export function ThreadPeekDialog({
     initialThreadChatId: string;
     onClose: () => void;
     summary: ThreadSummary | null;
+    /** The Task the peek opened when its message sits inside this Thread. */
+    taskMessage?: ChatMessage | null;
 }) {
     const navigate = useNavigate();
     const { server } = useServerContext();
     const activateReference = useChatReferenceActivation((chatId) =>
         navigate(serverChatRoute(server.slug, chatId))
     );
+    // A task inside a Thread is read in that Thread, so the Chat opens with it.
     const openParentChat = () => {
         onClose();
-        navigate(serverChatRoute(server.slug, chat.id));
+        navigate(
+            taskMessage
+                ? serverChatThreadRoute(server.slug, chat.id, anchor.id)
+                : serverChatRoute(server.slug, chat.id)
+        );
     };
     const readOnly = (chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null;
 
@@ -77,6 +85,7 @@ export function ThreadPeekDialog({
                         readOnly={readOnly}
                         summary={summary}
                         takeover={false}
+                        taskMessage={taskMessage}
                         turnDetailsAccess={getTurnDetailAccess(server.role)}
                         width={null}
                     />

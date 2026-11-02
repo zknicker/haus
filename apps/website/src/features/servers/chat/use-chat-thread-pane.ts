@@ -36,7 +36,7 @@ export function useChatThreadPane({
         chatId,
         openThreadTab ? undefined : initialTask
     );
-    useThreadTabDeepLink(chatId, openThreadTab);
+    useThreadTabDeepLink(chatId, openThreadTab, initialTask);
     // A kept chat view (`KeptChatViews`) keeps its selection while hidden. On
     // reveal, a route with no `?thread=` or `?task=` shows no Thread, as a
     // freshly mounted view would.
@@ -157,10 +157,22 @@ export function useChatThreadPane({
     };
 }
 
-/** Desktop: a `?thread=` or `?task=` link opens that Thread's page, then leaves the URL. */
-function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) {
+/**
+ * Desktop: a `?thread=` or `?task=` link opens that Thread's page, then leaves
+ * the URL. A task's Thread is resolved first: a task inside a Thread opens the
+ * Thread it sits in, whose anchor is not the task's message, and the page
+ * carries that message so it states the task.
+ */
+function useThreadTabDeepLink(
+    chatId: string,
+    openThreadTab: OpenThread | null,
+    initialTask: ChatInitialTask | undefined
+) {
     const [searchParams, setSearchParams] = useSearchParams();
-    const anchorMessageId = searchParams.get('thread') ?? searchParams.get('task');
+    const linkedThread = searchParams.get('thread');
+    const fromTask = linkedThread === null && searchParams.has('task');
+    const anchorMessageId = linkedThread ?? (fromTask ? initialTask?.anchor.id : null);
+    const taskMessageId = fromTask ? initialTask?.taskMessage?.id : undefined;
     React.useEffect(() => {
         if (!(openThreadTab && anchorMessageId)) {
             return;
@@ -177,6 +189,6 @@ function useThreadTabDeepLink(chatId: string, openThreadTab: OpenThread | null) 
             },
             { replace: true }
         );
-        openThreadTab(chatId, anchorMessageId, 'auto');
-    }, [anchorMessageId, chatId, openThreadTab, setSearchParams]);
+        openThreadTab(chatId, anchorMessageId, 'auto', taskMessageId);
+    }, [anchorMessageId, chatId, openThreadTab, setSearchParams, taskMessageId]);
 }

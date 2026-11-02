@@ -87,6 +87,52 @@ test('a task a human made shows in Chat whatever the setting says', () => {
     assert.match(converted, /Task #2/);
 });
 
+// Inside a Thread the transcript renders without Thread actions: a reply an
+// Agent claimed wears its chip on the reply itself, and opens nothing nested.
+const insideThread = { threadActionsEnabled: false } as const;
+
+test('a claimed reply inside a Thread hides its chip while the setting is off', () => {
+    const markup = withTasksInChat(false, () =>
+        renderTranscript(
+            [taskRow('msg_reply', 'On it, checking the script', { origin: 'claimed' })],
+            insideThread
+        )
+    );
+
+    assert.doesNotMatch(markup, /message-task-chip/);
+    assert.doesNotMatch(markup, /Task #1/);
+});
+
+test('a claimed reply inside a Thread shows its chip on the reply, opening no nested Thread', () => {
+    const markup = withTasksInChat(true, () =>
+        renderTranscript(
+            [taskRow('msg_reply', 'On it, checking the script', { origin: 'claimed' })],
+            insideThread
+        )
+    );
+
+    assert.match(markup, /message-task-chip/);
+    assert.match(markup, /Task #1/);
+    assert.doesNotMatch(markup, /Open thread/);
+    assert.doesNotMatch(markup, /Reply in thread/);
+    assert.doesNotMatch(markup, /replies/);
+});
+
+test('a Thread opened on a reply’s task leaves that reply’s chip to the panel', () => {
+    const markup = withTasksInChat(true, () =>
+        renderTranscript(
+            [
+                taskRow('msg_reply', 'On it, checking the script', { origin: 'claimed' }),
+                taskRow('msg_other', 'And the docs', { number: 2, origin: 'claimed' }),
+            ],
+            { ...insideThread, taskChipHiddenMessageId: 'msg_reply' }
+        )
+    );
+
+    assert.doesNotMatch(markup, /Task #1/);
+    assert.match(markup, /Task #2/);
+});
+
 /** The preference is a device-wide store, so a test that flips it puts it back. */
 function withTasksInChat<TResult>(enabled: boolean, render: () => TResult): TResult {
     setShowTasksInChat(enabled);

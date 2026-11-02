@@ -1,14 +1,15 @@
-import * as React from 'react';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
 import { useServerContext } from '../server-context.ts';
 import { ThreadPeekDialog } from '../thread/thread-peek-dialog.tsx';
 import { useTaskView } from './task-view.ts';
+import { useTaskThread } from './use-task-thread.ts';
 
 /**
  * The Task peek: opening a task from the Board or List lenses shows its
  * Thread work surface over the tasks page. `?task=<messageId>` owns the open
- * task, so deep links and Back work.
+ * task, so deep links and Back work. A task on a message inside a Thread
+ * opens the Thread it sits in, under its parent Channel or DM.
  */
 export function TaskThreadDialog() {
     const { server } = useServerContext();
@@ -23,29 +24,26 @@ export function TaskThreadDialog() {
     const item = openTaskId
         ? tasks.data?.tasks.find((candidate) => candidate.task.messageId === openTaskId)
         : undefined;
+    // `task.chatId` is always the top-level Channel or DM, a Thread task's included.
     const chat = item
         ? chats.data?.find((candidate) => candidate.id === item.task.chatId)
         : undefined;
-    // The task-list message may omit the task projection; the Thread's
-    // metadata section keys off `anchor.task`, so attach it explicitly.
-    const anchor = React.useMemo(
-        () => (item ? { ...item.message, task: item.task } : null),
-        [item]
-    );
+    const thread = useTaskThread(server.id, item);
 
-    if (!(item && chat && anchor)) {
+    if (!(item && chat && thread)) {
         return null;
     }
 
     return (
         <ThreadPeekDialog
-            anchor={anchor}
+            anchor={thread.anchor}
             ariaLabel={`Task #${item.task.number} thread`}
             chat={chat}
             headerTitle={`Task #${item.task.number}`}
-            initialThreadChatId={item.task.threadChatId}
+            initialThreadChatId={thread.threadChatId}
             onClose={closeTask}
-            summary={item.threadSummary}
+            summary={thread.summary}
+            taskMessage={thread.taskMessage}
         />
     );
 }
