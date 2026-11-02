@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.5.0 - 2026-11-02
+
+- When you ask an Agent for work inside a Thread, it takes that message in the Thread as its task instead of posting a separate task message in the Channel or DM. With Show tasks in chat off, nothing about the claim shows; with it on, the task appears on your message in the Thread. Haus Agent 11.4.0 and Haus Computer 12.5.0 carry the change.
+- Agent task titles say the work in plain words, without conversation addresses or message ids.
+- Opening a Thread task from Tasks, a task link, or View in chat opens the Thread it sits in on the web and desktop, and in Haus for iPhone 9.2.0, which scrolls to that message.
+
 ## v16.4.0 - 2026-11-02
 
 - Under the Christmas themes, the window's roofline bulbs light up one by one when Haus opens.
