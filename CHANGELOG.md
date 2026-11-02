@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.3.0 - 2026-11-01
+
+- Opening an Inbox card goes to its conversation in the same tab, scrolled to the card's message and briefly highlighted, and Back returns you to the same card. Command-click still opens a new tab.
+- Inbox cards fade out before their space closes and open their space before fading in, so the cards around them no longer jump. The highlight ring shows only while J and K move it.
+- A message's reaction toolbar shows in full inside an Inbox card.
+
 ## v16.2.0 - 2026-11-01
 
 - Two Christmas color themes join Halloween in Settings > Appearance: Christmas Eve (dark, navy and gold) and Christmas Morning (light, frost and candy-cane red). Both greet you as an innkeeper, dress the ghost in a nightcap, and hang a snowy roofline with big bulbs and a light snowfall along the top of the window. A Snow setting picks Puffy, Soft, or Icicles snow.
