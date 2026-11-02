@@ -3,9 +3,11 @@ import { tabPageKey } from './desktop-tabs-model.ts';
 import {
     openWithGesture,
     readTabIntent,
+    readTabStay,
     resolveTabNavigation,
     tabIntentState,
     tabIntentStateKey,
+    tabStayState,
 } from './tab-navigation.ts';
 
 const app = (path: string) => ({ kind: 'app', path }) as const;
@@ -38,6 +40,31 @@ test('a page push to another page is Open; drill-down and redirects stay in the 
             to: app('/s/acme'),
         })
     ).toEqual({ kind: 'navigate', mode: 'replace' });
+});
+
+test('a page push that asks to stay navigates its own tab; modifiers still open tabs', () => {
+    const from = app('/s/acme/inbox');
+    const to = app('/s/acme/chats/c1');
+    const stay = readTabStay(tabStayState());
+    expect(stay).toBe(true);
+    expect(readTabStay({ other: true })).toBe(false);
+    expect(readTabStay(null)).toBe(false);
+    expect(
+        resolveTabNavigation({ from, gesture: 'auto', mode: 'push', policy: 'page', stay, to })
+    ).toEqual({ kind: 'navigate', mode: 'push' });
+    expect(
+        resolveTabNavigation({
+            from,
+            gesture: 'backgroundTab',
+            mode: 'push',
+            policy: 'page',
+            stay,
+            to,
+        })
+    ).toEqual({ background: true, kind: 'openTab' });
+    expect(
+        resolveTabNavigation({ from, gesture: 'newTab', mode: 'push', policy: 'page', stay, to })
+    ).toEqual({ background: false, kind: 'openTab' });
 });
 
 test('window chrome is always Go, even to the page the tab it reads already shows', () => {

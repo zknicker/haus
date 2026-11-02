@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { serverChatThreadRoute } from '../../features/servers/server-routes.ts';
+import { threadPagePath } from '../../routes/app/desktop-page-paths.ts';
 import type { OpenGesture } from '../desktop-tabs/tab-open-gesture.ts';
 import { useOpenThread } from './use-open-thread.ts';
 
@@ -22,5 +23,21 @@ export function useThreadOpener(slug: string) {
             }
         },
         [navigate, openThread, slug]
+    );
+}
+
+/**
+ * A Thread's address for a router push: its page on desktop, its Chat with
+ * `?thread=` on the website. For a caller that navigates its own tab to the
+ * Thread (`tabStayState`) instead of Opening it beside.
+ */
+export function useThreadRoute(slug: string) {
+    const desktop = useOpenThread() !== null;
+    return useCallback(
+        (chatId: string, anchorMessageId: string) =>
+            desktop
+                ? threadPagePath(slug, chatId, anchorMessageId)
+                : serverChatThreadRoute(slug, chatId, anchorMessageId),
+        [desktop, slug]
     );
 }
