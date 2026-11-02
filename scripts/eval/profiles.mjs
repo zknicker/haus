@@ -3,7 +3,7 @@
 // question for that eval. A scenario without a profile is graded on its runner
 // verdict alone.
 
-import { namesKitRules } from '../agent-tests/placement-kit.mjs';
+import { refersToKit } from '../agent-tests/placement-kit.mjs';
 
 export const tailPhrases = [
     'want me to',
@@ -28,7 +28,7 @@ export const placementProfiles = {
         channel: [1, 2],
         maxQuestions: 1,
         requests: 'channel-humans',
-        result: (post) => namesKitRules(post.content),
+        result: (post) => refersToKit(post.content, { paths: ['pod-folder-system-starter-kit'] }),
         spec: 'S1',
     },
     'placement-quick-fact': {

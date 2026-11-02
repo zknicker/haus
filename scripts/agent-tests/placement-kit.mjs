@@ -1,7 +1,8 @@
 // Placement eval S1 ("found the kit"), shared by its Files and workspace
 // variants: an earlier "Not yet" about a missing starter kit, then "check
-// now!". The Agent should answer inline with what the kit changes: at most a
-// pickup note plus one inline `--done` reply naming the seeded rules. Length,
+// now!". The human asked whether the Agent can see the kit, so a yes that
+// points at it answers: at most a pickup note plus one inline `--done` reply
+// that names the kit, links it, or quotes its rules. Length,
 // question count, tails and tone are graded out of band by scripts/eval/grade.mjs.
 
 import {
@@ -24,8 +25,22 @@ export function namesKitRules(text) {
     return kitRuleTerms.filter((term) => term.test(text)).length >= 2;
 }
 
+/**
+ * A post shows the Agent found the kit when it carries something only the kit
+ * gives it: the kit's own title, a Files link, one of `paths` (each variant's
+ * file name the human never typed), or two of its rules.
+ */
+export function refersToKit(text, { paths = [] } = {}) {
+    return (
+        /pod[\s-]folder[\s-]system[\s-]starter[\s-]kit/iu.test(text) ||
+        /\/artifacts\/art_/u.test(text) ||
+        paths.some((kitPath) => text.includes(kitPath)) ||
+        namesKitRules(text)
+    );
+}
+
 export const foundTheKitContract =
-    'Told to check again for a starter kit, the Agent answers inline to the exchange with a post naming at least two of the kit’s seeded rules, at most two channel posts, nothing in the request Thread, and a --done send to the channel replying to the exchange.';
+    'Told to check again for a starter kit, the Agent answers inline to the exchange with a post that names, links, or quotes the kit, at most two channel posts, nothing in the request Thread, and a --done send to the channel replying to the exchange.';
 
 /**
  * Seeds the earlier exchange with delivery held (every human message in a
@@ -34,7 +49,7 @@ export const foundTheKitContract =
  */
 export async function runFoundTheKit(
     { agents, expect, kit, log, settleTurn },
-    { exchange, placeKit }
+    { exchange, kitPaths = [], placeKit }
 ) {
     const [worker] = agents;
     const channel = await kit.createChannel({
@@ -65,7 +80,7 @@ export async function runFoundTheKit(
             `posts: ${[...placement.channelPosts, ...placement.threadPosts].map((entry) => entry.label).join(', ') || 'none'}`
         );
         const result = findResultPost(placement.channelPosts, (entry) =>
-            namesKitRules(entry.message.content)
+            refersToKit(entry.message.content, { paths: kitPaths })
         );
         expectSharedPlacement(expect, placement, result);
         // The reply may quote the human's message or the seeded "Not yet"; all
