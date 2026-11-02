@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.4.0 - 2026-11-02
+
+- Under the Christmas themes, the window's roofline bulbs light up one by one when Haus opens.
+- Once a day, after 5pm (after noon under Christmas Morning), Santa's team of reindeer flies across the Inbox greeting with the nightcap ghost in the sleigh.
+- From December 1, a Day chip beside the Inbox date opens an advent calendar, "Your year in Haus": each day's door reveals an ornament and one fact about your year in that Server, and Christmas Eve opens the year's recap. It shows counts and names only, never message text.
+
 ## v16.3.0 - 2026-11-01
 
 - Opening an Inbox card goes to its conversation in the same tab, scrolled to the card's message and briefly highlighted, and Back returns you to the same card. Command-click still opens a new tab.
