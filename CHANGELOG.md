@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.2.0 - 2026-11-01
+
+- Two Christmas color themes join Halloween in Settings > Appearance: Christmas Eve (dark, navy and gold) and Christmas Morning (light, frost and candy-cane red). Both greet you as an innkeeper, dress the ghost in a nightcap, and hang a snowy roofline with big bulbs and a light snowfall along the top of the window. A Snow setting picks Puffy, Soft, or Icicles snow.
+- Haus for Mac shows the nightcap ghost in the Dock while a Christmas theme is on. Update the desktop App to 7.1.0.
+- Haus for iPhone adds a Nightcap app icon and, from 6 November, offers it once on the ghost; from January it offers the ghost back. Update Haus for iPhone to 9.1.0.
+
 ## v16.1.1 - 2026-11-01
 
 - Haus for Mac automatically restores your session after a temporary connection failure, including after waking from sleep, without asking you to sign in again. Update the desktop App to 7.0.1.
