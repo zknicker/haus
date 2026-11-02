@@ -87,3 +87,23 @@ test('resolves a whole Thread reference and retains it on retry after a Channel 
         })
     ).toBe('Other Server #renamed:12345678.');
 });
+
+test('resolves a Thread reference on a Channel message that has no Thread yet', async () => {
+    const anchor = 'msg_ofWoeFRCxQ2abcdEF_-1';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values ('cht_plans', 'srv_mentions', 'channel', 'plans')
+    `;
+    await harness.sql`
+        insert into chat_messages (id, server_id, chat_id, author_user_id, content, nonce, sequence)
+        values (${anchor}, 'srv_mentions', 'cht_plans', 'usr_zach', 'Plan', 'unthreaded-anchor', 1)
+    `;
+    expect(
+        await canonicalizeAgentMessageContentForPersistence(connection.db, {
+            content: 'Here it is: #plans:ofWoeFRC (Oct 29), not #plans:ofwoefrc.',
+            serverId: 'srv_mentions',
+        })
+    ).toBe(
+        `Here it is: [#plans thread](chat://cht_plans?thread=${anchor}) (Oct 29), not #plans:ofwoefrc.`
+    );
+});

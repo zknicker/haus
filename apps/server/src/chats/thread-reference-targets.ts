@@ -1,6 +1,6 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable } from '../postgres/schema.ts';
+import { chatMessagesTable } from '../postgres/schema.ts';
 import { readBareReferenceTokens } from './bare-reference-tokens.ts';
 
 export interface ThreadReferenceTarget {
@@ -8,42 +8,42 @@ export interface ThreadReferenceTarget {
     parentChatId: string;
 }
 
+/**
+ * The Channel messages an Agent's `#channel:shortid` tokens can name. A thread
+ * target is any message in the Channel, whether or not a Thread has started on
+ * it yet, matching how the CLI sends to the same target.
+ */
 export async function readReferencedThreads(
     db: HausDatabase,
     serverId: string,
     content: string,
     channels: { id: string; name: string }[]
 ): Promise<ThreadReferenceTarget[]> {
-    const names = new Set(
-        readBareReferenceTokens(content)
-            .filter((token) => token.threadAnchor)
-            .map((token) => token.key)
-    );
-    const ids = channels
-        .filter((channel) => names.has(channel.name.toLocaleLowerCase('en-US')))
-        .map((channel) => channel.id);
-    if (ids.length === 0) {
+    const conditions = readBareReferenceTokens(content).flatMap((token) => {
+        const anchor = token.threadAnchor;
+        if (!anchor) {
+            return [];
+        }
+        return channels
+            .filter((channel) => channel.name.toLocaleLowerCase('en-US') === token.key)
+            .map((channel) =>
+                and(
+                    eq(chatMessagesTable.chatId, channel.id),
+                    or(
+                        eq(chatMessagesTable.id, anchor),
+                        // Candidates only; `resolveThreadReference` applies the exact case rule.
+                        sql`starts_with(lower(${chatMessagesTable.id}), ${`msg_${anchor}`.toLowerCase()})`
+                    )
+                )
+            );
+    });
+    if (conditions.length === 0) {
         return [];
     }
-    const rows = await db
-        .select({
-            anchorMessageId: chatsTable.anchorMessageId,
-            parentChatId: chatsTable.parentChatId,
-        })
-        .from(chatsTable)
-        .where(
-            and(
-                eq(chatsTable.serverId, serverId),
-                eq(chatsTable.kind, 'thread'),
-                inArray(chatsTable.parentChatId, ids),
-                isNull(chatsTable.deletedAt)
-            )
-        );
-    return rows.flatMap((row) =>
-        row.anchorMessageId && row.parentChatId
-            ? [{ anchorMessageId: row.anchorMessageId, parentChatId: row.parentChatId }]
-            : []
-    );
+    return await db
+        .select({ anchorMessageId: chatMessagesTable.id, parentChatId: chatMessagesTable.chatId })
+        .from(chatMessagesTable)
+        .where(and(eq(chatMessagesTable.serverId, serverId), or(...conditions)));
 }
 
 export function resolveThreadReference(
