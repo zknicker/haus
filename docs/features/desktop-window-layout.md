@@ -34,7 +34,10 @@ web runs it along the top of the sidebar, behind its titlebar strip, with bulbs 
 Haus mark and Settings. It takes no pointer events and adds no drag box
 (`features/shell/theme-roofline/`), and follows the sky's rules: it pauses while the window is
 unfocused, hidden, or off screen, dims with the sidebar when the window loses focus, and holds one
-still frame under reduced motion.
+still frame under reduced motion. Each window's first roofline, and the first after a Christmas
+theme is switched on, opens with the snow already falling and the bulbs dark, then lights them left
+to right with a short warm flicker (`lights-on.ts`, all lit by 1.5s at display rate); it waits for
+the window's first focus, and reduced motion paints them already lit.
 
 The macOS Dock icon follows the theme while the App runs: `desktop:dock:set-app-icon` (`ghost`,
 `pumpkin`, or `santa`, `electron/dock-app-icon.cjs`) swaps in the compiled pumpkin tile for

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test';
-import { clockStart, frameMs, startFrameLoop } from './frame-loop.ts';
+import { clockStart, type FrameMode, frameMs, startFrameLoop } from './frame-loop.ts';
 
 // The loop's contract, driven against fake browser globals: it draws only
 // while it can be seen, holds its frame while blurred, shows one still frame
@@ -91,13 +91,14 @@ function flushFrames() {
 }
 
 const target = {} as Element;
+const always = { displayRate: () => false, ready: () => true };
 
 test('draws on its own clock while focused, and holds its frame while blurred', async () => {
-    const draw = mock((_time: number) => undefined);
-    const loop = startFrameLoop(target, draw, () => true);
+    const draw = mock((_time: number, _mode: FrameMode) => undefined);
+    const loop = startFrameLoop(target, draw, always);
     flushFrames();
     expect(draw).toHaveBeenCalledTimes(1);
-    expect(draw.mock.calls[0]?.[0]).toBe(clockStart);
+    expect(draw.mock.calls[0]).toEqual([clockStart, 'running']);
 
     // Focused: the next frame is booked one beat later.
     await Bun.sleep(frameMs + 30);
@@ -110,6 +111,7 @@ test('draws on its own clock while focused, and holds its frame while blurred', 
     flushFrames();
     expect(draw).toHaveBeenCalledTimes(3);
     const held = draw.mock.calls[2]?.[0];
+    expect(draw.mock.calls[2]?.[1]).toBe('held');
     // Blurred: the frame is held and nothing more is scheduled.
     await Bun.sleep(frameMs + 30);
     expect(frames.size).toBe(0);
@@ -117,29 +119,60 @@ test('draws on its own clock while focused, and holds its frame while blurred', 
     // A wake while blurred (a resize) redraws the held frame, on the held clock.
     loop.wake();
     flushFrames();
-    expect(draw.mock.calls[3]?.[0]).toBe(held);
+    expect(draw.mock.calls[3]).toEqual([held as number, 'held']);
+    loop.stop();
+});
+
+test('runs every display frame while asked, then returns to its beat', () => {
+    let burst = true;
+    const draw = mock((_time: number, _mode: FrameMode) => undefined);
+    const loop = startFrameLoop(target, draw, { displayRate: () => burst, ready: () => true });
+    flushFrames();
+    // No beat to wait for: the next display frame is already booked.
+    expect(frames.size).toBe(1);
+    flushFrames();
+    expect(draw).toHaveBeenCalledTimes(2);
+    expect(frames.size).toBe(1);
+
+    burst = false;
+    flushFrames();
+    expect(draw).toHaveBeenCalledTimes(3);
+    expect(frames.size).toBe(0);
+    loop.stop();
+});
+
+test('display rate still stops while blurred', () => {
+    focused = false;
+    const draw = mock((_time: number, _mode: FrameMode) => undefined);
+    const loop = startFrameLoop(target, draw, { displayRate: () => true, ready: () => true });
+    flushFrames();
+    expect(draw.mock.calls).toEqual([[clockStart, 'held']]);
+    expect(frames.size).toBe(0);
     loop.stop();
 });
 
 test('reduced motion gets one still frame, redrawn only when woken', async () => {
     reduced = true;
-    const draw = mock((_time: number) => undefined);
-    const loop = startFrameLoop(target, draw, () => true);
+    const draw = mock((_time: number, _mode: FrameMode) => undefined);
+    const loop = startFrameLoop(target, draw, { ...always, displayRate: () => true });
     flushFrames();
     await Bun.sleep(frameMs + 30);
     expect(frames.size).toBe(0);
-    expect(draw.mock.calls).toEqual([[clockStart]]);
+    expect(draw.mock.calls).toEqual([[clockStart, 'still']]);
 
     loop.wake();
     flushFrames();
-    expect(draw.mock.calls).toEqual([[clockStart], [clockStart]]);
+    expect(draw.mock.calls).toEqual([
+        [clockStart, 'still'],
+        [clockStart, 'still'],
+    ]);
     loop.stop();
 });
 
 test('draws nothing until the caller is ready', () => {
     let ready = false;
-    const draw = mock((_time: number) => undefined);
-    const loop = startFrameLoop(target, draw, () => ready);
+    const draw = mock((_time: number, _mode: FrameMode) => undefined);
+    const loop = startFrameLoop(target, draw, { displayRate: () => false, ready: () => ready });
     flushFrames();
     expect(draw).not.toHaveBeenCalled();
 
@@ -151,11 +184,7 @@ test('draws nothing until the caller is ready', () => {
 });
 
 test('stopping cancels the next frame and removes every listener', () => {
-    const loop = startFrameLoop(
-        target,
-        () => undefined,
-        () => true
-    );
+    const loop = startFrameLoop(target, () => undefined, always);
     loop.stop();
 
     expect(frames.size).toBe(0);

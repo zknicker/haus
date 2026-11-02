@@ -1,4 +1,5 @@
 import type { BulbSlot } from './geometry.ts';
+import { type BulbLight, bulbDelay, bulbLight, type LightsOn } from './lights-on.ts';
 
 type Rgb = readonly [number, number, number];
 
@@ -15,11 +16,15 @@ const swellSeconds = 3.4;
 /** A bulb swells once every 9 to 23 seconds, on its own clock. */
 const swellPeriodMin = 9;
 const swellPeriodRange = 14;
+/** Incandescent warm white, which a halo leans toward as its bulb comes on. */
+const warmWhite: Rgb = [255, 214, 150];
 
 export interface BulbPaint {
     dark: boolean;
     /** How far below the window edge the clips grip the snow, in CSS px. */
     hang: number;
+    /** The launch's lights-on sequence; `lit` paints the steady strand. */
+    lights: LightsOn;
     time: number;
 }
 
@@ -46,13 +51,15 @@ export function bulbSwell(slot: number, time: number): number {
 export function paintBulbs(
     ctx: CanvasRenderingContext2D,
     bulbs: readonly BulbSlot[],
-    { dark, hang, time }: BulbPaint
+    { dark, hang, lights, time }: BulbPaint
 ) {
     const socket = socketGradient(ctx, dark);
+    const run = { first: bulbs[0]?.x ?? 0, last: bulbs.at(-1)?.x ?? 0 };
     for (const { slot, x } of bulbs) {
         paintBulb(ctx, {
             color: bulbColor(slot),
             dark,
+            light: bulbLight(lights, time, bulbDelay(x, run)),
             socket,
             swell: bulbSwell(slot, time),
             x,
@@ -64,28 +71,41 @@ export function paintBulbs(
 /**
  * One C9: roofline clip, ribbed socket, teardrop body, one gloss stroke, and
  * its halo. A swell lifts it about 14% brighter and widens the halo a little.
+ * Unlit, the glass is a dim tint of its color with half the gloss and no halo.
  */
 function paintBulb(
     ctx: CanvasRenderingContext2D,
     {
         color,
         dark,
+        light,
         socket,
         swell,
         x,
         y,
-    }: { color: Rgb; dark: boolean; socket: CanvasGradient; swell: number; x: number; y: number }
+    }: {
+        color: Rgb;
+        dark: boolean;
+        light: BulbLight;
+        socket: CanvasGradient;
+        swell: number;
+        x: number;
+        y: number;
+    }
 ) {
     const bright = 0.86 + 0.14 * swell;
+    const { glow, lit, warm } = light;
     ctx.save();
     ctx.translate(x, y);
-    halo(ctx, {
-        alpha: (dark ? 0.4 : 0.24) * (0.85 + 0.35 * swell),
-        color,
-        dark,
-        radius: (dark ? 24 : 14) * (1 + 0.18 * swell),
-        y: 14.5,
-    });
+    if (lit > 0.001) {
+        halo(ctx, {
+            alpha: (dark ? 0.4 : 0.24) * (0.85 + 0.35 * swell) * lit * glow,
+            color: mix(color, warmWhite, warm),
+            dark,
+            radius: (dark ? 24 : 14) * (1 + 0.18 * swell) * (0.75 + 0.25 * glow),
+            y: 14.5,
+        });
+    }
     // The roofline clip.
     ctx.fillStyle = dark ? '#3f6e50' : '#1d4a2e';
     roundRect(ctx, -2.3, -1.4, 4.6, 3.6, 1);
@@ -105,9 +125,9 @@ function paintBulb(
     // The teardrop body.
     ctx.translate(0, 6.8);
     const body = ctx.createRadialGradient(-1.4, 5, 0.5, 0, 6.5, 11.5);
-    body.addColorStop(0, `rgb(${lift(color, 0.5 * bright)})`);
-    body.addColorStop(0.45, `rgb(${lift(color, 0.06 * bright)})`);
-    body.addColorStop(1, `rgb(${dim(color, 0.58 + 0.12 * bright)})`);
+    body.addColorStop(0, rgb(mix(lift(dim(color, 0.55), 0.2), lift(color, 0.5 * bright), lit)));
+    body.addColorStop(0.45, rgb(mix(dim(color, 0.4), lift(color, 0.06 * bright), lit)));
+    body.addColorStop(1, rgb(mix(dim(color, 0.22), dim(color, 0.58 + 0.12 * bright), lit)));
     ctx.fillStyle = body;
     ctx.beginPath();
     ctx.moveTo(-2.9, 0);
@@ -117,13 +137,14 @@ function paintBulb(
     ctx.fill();
     // The gloss: one stroke down the shoulder and a glint near the tip.
     ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    const gloss = 0.5 + 0.5 * lit;
+    ctx.strokeStyle = `rgba(255,255,255,${0.85 * gloss})`;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(-3.3, 3.2);
     ctx.quadraticCurveTo(-4.6, 6.6, -2.7, 9.6);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillStyle = `rgba(255,255,255,${0.75 * gloss})`;
     ctx.beginPath();
     ctx.arc(-1.4, 11.4, 0.75, 0, Math.PI * 2);
     ctx.fill();
@@ -141,11 +162,11 @@ function halo(
         y,
     }: { alpha: number; color: Rgb; dark: boolean; radius: number; y: number }
 ) {
-    const rgb = color.join(',');
+    const channels = rgbChannels(color);
     const glow = ctx.createRadialGradient(0, y, 0, 0, y, radius);
-    glow.addColorStop(0, `rgba(${rgb},${alpha})`);
-    glow.addColorStop(0.35, `rgba(${rgb},${alpha * 0.32})`);
-    glow.addColorStop(1, `rgba(${rgb},0)`);
+    glow.addColorStop(0, `rgba(${channels},${alpha})`);
+    glow.addColorStop(0.35, `rgba(${channels},${alpha * 0.32})`);
+    glow.addColorStop(1, `rgba(${channels},0)`);
     ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over';
     ctx.fillStyle = glow;
     ctx.fillRect(-radius, y - radius, radius * 2, radius * 2);
@@ -178,11 +199,27 @@ function roundRect(
     ctx.closePath();
 }
 
-const lift = (color: Rgb, amount: number) =>
-    color.map((channel) => Math.round(channel + (255 - channel) * amount)).join(',');
+const lift = (color: Rgb, amount: number): Rgb => [
+    color[0] + (255 - color[0]) * amount,
+    color[1] + (255 - color[1]) * amount,
+    color[2] + (255 - color[2]) * amount,
+];
 
-const dim = (color: Rgb, amount: number) =>
-    color.map((channel) => Math.round(channel * amount)).join(',');
+const dim = (color: Rgb, amount: number): Rgb => [
+    color[0] * amount,
+    color[1] * amount,
+    color[2] * amount,
+];
+
+const mix = (from: Rgb, to: Rgb, amount: number): Rgb => [
+    from[0] + (to[0] - from[0]) * amount,
+    from[1] + (to[1] - from[1]) * amount,
+    from[2] + (to[2] - from[2]) * amount,
+];
+
+const rgbChannels = (color: Rgb) => color.map((channel) => Math.round(channel)).join(',');
+
+const rgb = (color: Rgb) => `rgb(${rgbChannels(color)})`;
 
 /** A stable pseudo-random 0..1 per slot. */
 function slotHash(value: number): number {

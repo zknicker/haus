@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useResolvedThemeOptional } from '../../../components/theme-provider.tsx';
 import { useColorThemeDefinition } from '../../../hooks/shell/use-color-theme.ts';
 import { useRooflineSnow } from '../../../hooks/shell/use-roofline-snow.ts';
+import { armLightsOn } from './lights-on.ts';
 import type { RooflinePlacement } from './measure.ts';
 import { type Roofline, startRoofline } from './scene.ts';
 
@@ -25,10 +26,22 @@ import { type Roofline, startRoofline } from './scene.ts';
  *   Halloween sky does; bulbs hang only in the run between the Haus mark and
  *   the Settings gear. The main column's topbar gets none: its breadcrumbs and
  *   actions change with every page, so no stretch of it is reliably clear.
+ *
+ * The bulbs light up once per window launch (lights-on.ts). Switching a
+ * Christmas theme on from another theme lights them up again; switching
+ * between the Christmas themes, the Snow, or the placement does not.
  */
 export function ThemeRoofline({ placement }: { placement: RooflinePlacement }) {
     const { scene } = useColorThemeDefinition();
-    if (scene !== 'snowy-roofline') {
+    const shown = scene === 'snowy-roofline';
+    // The window's lights-on token lives outside React; a theme without the
+    // roofline re-arms it for the next time one is switched on.
+    React.useEffect(() => {
+        if (!shown) {
+            armLightsOn();
+        }
+    }, [shown]);
+    if (!shown) {
         return null;
     }
     // Keyed so a new placement starts a fresh scene with the current look.

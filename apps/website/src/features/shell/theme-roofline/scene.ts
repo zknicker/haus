@@ -2,8 +2,15 @@ import type { RooflineSnow } from '../../../lib/roofline-snow.ts';
 import { artImage, hollyArt, isArtReady, snowArt } from './art.ts';
 import { paintBulbs } from './bulbs.ts';
 import { createFlurriesRenderer, type FlurriesRenderer } from './flurries-gl.ts';
-import { type FrameLoop, startFrameLoop } from './frame-loop.ts';
+import { type FrameLoop, type FrameMode, startFrameLoop } from './frame-loop.ts';
 import { hollySprigs } from './geometry.ts';
+import {
+    initialLightsOn,
+    type LightsOn,
+    lightsOnBurst,
+    spendLightsOn,
+    stepLightsOn,
+} from './lights-on.ts';
 import {
     emptyLayout,
     measureRoofline,
@@ -44,7 +51,9 @@ const maxScale = 2;
  * back, the bulbs over them, and the snow strip with its holly on top, so the
  * bulbs hang from under it. The snow and holly are one static layer, painted
  * again only when the size, the mode, or the snow changes; the flurries and
- * bulbs follow the frame loop's clock.
+ * bulbs follow the frame loop's clock. A window's first roofline starts with
+ * its bulbs dark and lights them on its first running frame (lights-on.ts),
+ * at display rate until the strand is lit.
  */
 export function startRoofline(parts: RooflineParts, placement: RooflinePlacement): Roofline {
     const bulbContext = parts.bulbs.getContext('2d');
@@ -55,6 +64,7 @@ export function startRoofline(parts: RooflineParts, placement: RooflinePlacement
     let flurriesLost = false;
     let look: RooflineLook | null = null;
     let layout: RooflineLayout = emptyLayout;
+    let lights: LightsOn = initialLightsOn();
     let snowDirty = true;
     let stopped = false;
 
@@ -91,12 +101,17 @@ export function startRoofline(parts: RooflineParts, placement: RooflinePlacement
         bulbContext.clearRect(0, 0, parts.bulbs.width, parts.bulbs.height);
         bulbContext.setTransform(scale, 0, 0, scale, 0, 0);
         const { hang } = snowArt[current.snow];
-        paintBulbs(bulbContext, layout.bulbs, { dark: current.dark, hang, time });
+        paintBulbs(bulbContext, layout.bulbs, { dark: current.dark, hang, lights, time });
     };
-    const draw = (time: number) => {
+    const draw = (time: number, mode: FrameMode) => {
         if (!look) {
             return;
         }
+        const next = stepLightsOn(lights, time, mode);
+        if (lights.phase === 'waiting' && next.phase !== 'waiting') {
+            spendLightsOn();
+        }
+        lights = next;
         const scale = Math.min(maxScale, window.devicePixelRatio || 1);
         paintSnow(look, scale);
         paintBulbFrame(look, scale, time);
@@ -105,7 +120,10 @@ export function startRoofline(parts: RooflineParts, placement: RooflinePlacement
             flurries.draw({ height, light: !look.dark, scale, time, width });
         }
     };
-    const loop: FrameLoop = startFrameLoop(parts.root, draw, () => layout.width > 0);
+    const loop: FrameLoop = startFrameLoop(parts.root, draw, {
+        displayRate: () => lightsOnBurst(lights),
+        ready: () => layout.width > 0,
+    });
 
     // Art that has not decoded yet repaints the static layer once it has.
     const requestArt = (source: string) => {
