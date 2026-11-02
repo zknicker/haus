@@ -1,6 +1,7 @@
 import type { ReactNode, Ref } from 'react';
 import { useFocusWithin } from 'react-aria';
 import { UnreadCountChip } from '../../../components/chats/unread-count-chip.tsx';
+import type { ChatMessageJumpTarget } from '../../../hooks/servers/use-chat-message-navigation.ts';
 import type { ChatComposerHandle } from '../chat/chat-composer.tsx';
 import { UnreadRowComposer, type UnreadRowReply } from './unread-row-composer.tsx';
 import { UnreadRowContent } from './unread-row-content.tsx';
@@ -32,10 +33,12 @@ export interface UnreadRowView {
 export interface UnreadRowTriage {
     /** Handed to the selected card's composer only, so R types into that one. */
     composerRef: Ref<ChatComposerHandle>;
+    /** Whether the selection is drawn: only while the keys drive it (`useUnreadTriage`). */
+    isRinged: boolean;
     isSelected: boolean;
     onMarkRead: () => void;
-    /** Opens the conversation, which lands on its first unread message. */
-    onOpen: () => void;
+    /** Opens the conversation scrolled to `message`, by default the card's newest waiting one. */
+    onOpen: (message?: ChatMessageJumpTarget) => void;
     onReplySent: () => void;
     /** Makes this the selected card, as focus moves into it. */
     onSelect: () => void;
@@ -48,9 +51,9 @@ export interface UnreadRowTriage {
  * newest waiting message rendered as the conversation renders it, and the
  * conversation's own composer, always there to type into.
  *
- * Every card is open; nothing expands or collapses. Selecting a card — J and
- * K, or focus moving into it — only rings it, so the cards never move
- * under the reader. The selected card is the one E, R, and Return act on.
+ * Every card is open; nothing expands or collapses. Selecting a card never
+ * moves it, and only a selection the keys made is drawn, as a ring. The
+ * selected card is the one E, R, and Return act on.
  *
  * The `article` carries the place's name, so each card is one landmark.
  */
@@ -68,10 +71,11 @@ export function UnreadTriageRow({
         <article
             aria-label={view.title}
             className={
-                triage.isSelected
+                triage.isRinged
                     ? 'inbox-unread-row inbox-unread-selected min-w-0'
                     : 'inbox-unread-row min-w-0'
             }
+            data-selected={triage.isSelected || undefined}
             {...focusWithinProps}
         >
             <UnreadRowHeader
@@ -80,7 +84,7 @@ export function UnreadTriageRow({
                 label={view.label}
                 mark={view.mark}
                 note={view.note}
-                onOpen={triage.onOpen}
+                onOpen={() => triage.onOpen()}
                 takesFocus={triage.takesFocus}
                 time={<UnreadRowTime value={view.time} />}
                 title={view.title}

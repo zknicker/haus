@@ -34,7 +34,7 @@ export function UnreadRowHeader({
     mark: ReactNode;
     /** Muted beside the name: "DM", or the message a Thread hangs off. */
     note: ReactNode;
-    /** Opens the conversation, which lands on its first unread message. */
+    /** Opens the conversation at the card's message. */
     onOpen: () => void;
     takesFocus: boolean;
     time: ReactNode;

@@ -1,5 +1,5 @@
 ---
-summary: Approved desktop navigation model with two verbs chosen by the surface clicked; Go (a sidebar row or a command menu result) navigates the left pane's selected tab in place, always, and Open (anything activated inside a page, plus notifications, deep links, and Find) opens a new selected tab in the right pane, creating it, reusing only a right-pane tab already on that page; Command-, middle-, and Shift-click open a new tab right after the clicked-from tab in its pane everywhere; Settings is a window singleton.
+summary: Approved desktop navigation model with two verbs chosen by the surface clicked; Go (a sidebar row or a command menu result) navigates the left pane's selected tab in place, always, and Open (anything activated inside a page, plus notifications, deep links, and Find) opens a new selected tab in the right pane, creating it, reusing only a right-pane tab already on that page; Command-, middle-, and Shift-click open a new tab right after the clicked-from tab in its pane everywhere; Settings is a window singleton; an Inbox Unread card's plain open navigates its own tab.
 read_when:
   - changing what a sidebar row, the command menu, a chip, an in-app link, a web link, a notification, or a deep link does on desktop
   - changing Command-, Shift-, or middle-click, or Command-Return, on any desktop link, row, or button
@@ -12,7 +12,8 @@ read_when:
 
 ## Status
 
-Accepted, 2026-10-12. Supersedes the **Navigation rules**, **Which tab is current**, and **Settings
+Accepted, 2026-10-12. Amended 2026-11-01: an Inbox Unread card's open stays in its tab (see
+**Inbox cards stay in their tab**). Supersedes the **Navigation rules**, **Which tab is current**, and **Settings
 is a tab** sections of [ADR 0039 Desktop tabs are equal pages](0039-desktop-tabs-are-equal-pages.md).
 Everything else in ADR 0039 stands: equal tabs, one pane or two, multi-select, drag, tear-off, the
 tab and App menus, shortcuts, the new tab page, unread clearing, mounting, windows, and persistence.
@@ -42,7 +43,7 @@ page included. Go never opens a new tab and never selects an existing tab elsewh
 **Open: anything activated inside a page.** Threads (reply counts, previews, Reply in thread),
 Agent avatars, names, and profile links, reference chips (Agent, chat, Thread), `haus://` resource
 links, artifact cards, Files, web links (App links, `target=_blank`, website and pull request
-chips), Inbox rows and cards, Search results, Activity rows, a sidebar row's View profile, Files,
+chips), Inbox rows other than Unread cards, Search results, Activity rows, a sidebar row's View profile, Files,
 and Tasks, a chat tab's menu actions, notifications, deep links, and Command-F's Search page all
 Open. Open adds a new selected tab to the **right pane**, creating the right pane in a one-pane
 window, and focuses it.
@@ -56,8 +57,16 @@ window, and focuses it.
   pane or another window are never matched.
 - **Web links** follow the same rule. The source is the link's own tab, not the focused one.
 
-So Inbox, Search, and Activity read as master and detail: the list stays on the left, and its rows
-open on the right.
+So Search and Activity read as master and detail: the list stays on the left, and its rows open
+on the right.
+
+**Inbox cards stay in their tab.** An Unread card already holds its newest message and the
+conversation's composer, so opening it (its name, Return, **N earlier**) means leaving triage for
+the conversation, not glancing at a detail. A plain open navigates the Inbox's own tab, in
+whichever pane it sits, pushing onto its history; Back returns to the Inbox on the card that took
+the read card's place. Modifiers keep their table below. The Inbox's other rows (Agents, live
+work) still Open. Mechanically, the card's push carries `tabStayState`, which turns a page's
+plain push into a push in its own tab.
 
 **Stays in its tab.** A page's own drill-down, a push to the same page (a Settings section, an
 Agent profile card or section, a search filter, a task inside Tasks, an Inbox filter), navigates

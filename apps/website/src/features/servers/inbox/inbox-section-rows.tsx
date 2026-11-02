@@ -2,6 +2,7 @@ import { Separator } from '@heroui/react';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import type { ReactNode, Ref } from 'react';
 import { springs } from '../../../lib/springs.ts';
+import { InboxCardMotionItem } from './inbox-card-motion.tsx';
 import { InboxSectionRows } from './inbox-section.tsx';
 
 /** One Inbox row's height, which is the slot's height and the strip's floor. */
@@ -61,7 +62,9 @@ export function InboxRowList<Row extends { id: string }>({
     return (
         <InboxSectionRows variant={variant}>
             <LayoutGroup id={listId}>
-                <AnimatePresence initial={false} mode="popLayout">
+                {/* A bare feed's cards open and close their own room
+                    (`InboxCardMotionItem`), so a leaving card stays in flow. */}
+                <AnimatePresence initial={false} mode={variant === 'bare' ? 'sync' : 'popLayout'}>
                     {rows.length === 0 ? (
                         <InboxEmptySlot
                             key={`${listId}-empty`}
@@ -69,15 +72,21 @@ export function InboxRowList<Row extends { id: string }>({
                             layoutKey={layoutKey}
                         />
                     ) : (
-                        rows.map((row, index) => (
-                            <InboxMotionItem key={row.id} layoutKey={layoutKey}>
-                                {/* A bare list's rows are cards of their own, set apart by
+                        rows.map((row, index) =>
+                            variant === 'bare' ? (
+                                <InboxCardMotionItem key={row.id} layoutKey={layoutKey}>
+                                    {renderRow(row)}
+                                </InboxCardMotionItem>
+                            ) : (
+                                <InboxMotionItem key={row.id} layoutKey={layoutKey}>
+                                    {/* A bare list's rows are cards of their own, set apart by
                                     space, so a hairline between them would cut across
                                     their rounded edges. */}
-                                {index > 0 && variant !== 'bare' ? <Separator /> : null}
-                                {renderRow(row)}
-                            </InboxMotionItem>
-                        ))
+                                    {index > 0 ? <Separator /> : null}
+                                    {renderRow(row)}
+                                </InboxMotionItem>
+                            )
+                        )
                     )}
                 </AnimatePresence>
             </LayoutGroup>

@@ -1122,14 +1122,16 @@
     /*
      * Unread's bare feed (`InboxSectionRows` `bare`) draws no box and no
      * hairlines, so its cards are shapes of their own, set apart by a step of
-     * space in place of a divider.
+     * space in place of a divider. The step rides each card's motion item
+     * (`inbox-card-motion.tsx`) rather than the group's gap, so a card that
+     * closes its room takes its gap with it.
      */
     .item-card-group--transparent.item-card-group--inbox-rows [data-slot='item-card'] {
         border-radius: calc(var(--radius) * 2);
     }
 
     .item-card-group--transparent.item-card-group--inbox-rows {
-        gap: calc(var(--spacing) * 2.5);
+        gap: 0;
     }
 
     /* An Agent running away on the Inbox's Agents meter. The reset above clears

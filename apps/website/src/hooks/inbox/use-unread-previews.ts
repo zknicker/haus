@@ -45,6 +45,21 @@ export function useUnreadPreviewsSettled(serverId: string): boolean {
     return status !== 'pending';
 }
 
+/**
+ * Reads one row's preview from the cached previews when called, for an action
+ * (opening a card at its message) rather than a render, so it subscribes to nothing.
+ */
+export function useUnreadPreviewReader(serverId: string) {
+    const utils = hausTrpc.useUtils();
+    return React.useCallback(
+        (chatId: string): ChatUnreadPreview | null => {
+            const list = utils.chat.unreadPreviews.getData({ serverId });
+            return list ? findUnreadPreview(list, chatId) : null;
+        },
+        [serverId, utils]
+    );
+}
+
 /** Warms the previews read on intent (hovering Inbox), with the freshness its rows read it at. */
 export function usePreloadUnreadPreviews(serverId: string) {
     const utils = hausTrpc.useUtils();

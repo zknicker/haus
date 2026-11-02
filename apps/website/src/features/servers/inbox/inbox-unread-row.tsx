@@ -19,8 +19,8 @@ export interface UnreadAuthors {
 
 /**
  * An unread Channel or DM as a card in the Unread feed (ADR 0050): its newest
- * waiting message and the Chat's own composer. The name opens the Chat, which
- * lands on its first unread message.
+ * waiting message and the Chat's own composer. The name opens the Chat
+ * scrolled to that message, flashed.
  */
 export function UnreadChatRow({
     agent,

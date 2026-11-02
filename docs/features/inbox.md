@@ -125,7 +125,8 @@ one quiet step off the page (`--background-secondary`) with a faint rim, because
 `--surface` — the composer field's own fill — swallowed the field inside it. A grey
 `--surface-secondary` fill read wrong on the light shell. Each card reads, top to bottom:
 
-- Its **source line**: the place's mark and name (the one control that opens the conversation), a
+- Its **source line**: the place's mark and name (the one control that opens the conversation; a
+  Chat opens scrolled to the card's message and flashes it), a
   muted note (`DM`, or the message a Thread hangs off, `on Beacon: Thursday Christmas check…`),
   then the time, **Mark read**, and the count.
 - Only the **newest waiting message**, rendered exactly as the transcript renders it
@@ -133,7 +134,7 @@ one quiet step off the page (`--background-secondary`) with a faint rim, because
   clipping box that fades where it cuts, with **Show more** under it; the transcript's own
   rendering is never restyled to clamp it. **N earlier** above it first reveals the other waiting
   messages the preview carries, in place; once those show, the older counted messages open the
-  conversation at its first unread message.
+  conversation at the oldest of them, with the older ones just above.
 - The conversation's own **composer**, always there to type into: the stock `ChatComposer` in the
   Chat view's `primary` shell with the conversation's draft key (an Agent DM keys by its Agent, a
   Thread by its anchor), so a draft started here waits there and the other way round. A Thread
@@ -164,6 +165,12 @@ and only while the Inbox is the view on screen: **J** and **K** move the selecti
 section's label carries the hint `J / K move · E mark read · R reply` at its trailing edge, hidden
 on a touch pointer. A move made from inside the list carries focus onto the newly selected card's
 name, so the keyboard stays in the queue; one made from the page leaves focus where it is.
+
+**Opening a card** (its name, Return, or **N earlier** past the preview) goes to the conversation in
+the Inbox's own tab, on desktop as on the web; Command-, Shift-, and middle-click still open a new
+tab ([ADR 0046](../adr/0046-the-sidebar-goes-pages-open-to-the-right.md)). A Chat opens scrolled to
+the card's message and flashes it. Back returns to the Inbox with the selection where it was — on
+the card that took the read card's place — scrolled into view.
 
 The messages come from one read, `chat.unreadPreviews({ serverId })`
 (`packages/haus-api/src/chat-unread-preview.ts`): each unread Chat's and Thread's newest counted

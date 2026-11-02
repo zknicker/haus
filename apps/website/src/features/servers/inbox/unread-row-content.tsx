@@ -3,6 +3,8 @@ import { Button } from '@heroui/react';
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useUnreadPreview } from '../../../hooks/inbox/use-unread-previews.ts';
+import type { ChatMessageJumpTarget } from '../../../hooks/servers/use-chat-message-navigation.ts';
+import { cn } from '../../../lib/utils.ts';
 import { UnreadRowMessages } from './unread-row-messages.tsx';
 import { earlierUnread } from './unread-row-model.ts';
 
@@ -12,7 +14,7 @@ import { earlierUnread } from './unread-row-model.ts';
  * is waiting (ADR 0050). The newest message is what the reader answers, so it
  * is the one the card shows; "N earlier" first reveals the other waiting
  * messages the preview carries, in place, and past those opens the
- * conversation at its first unread message.
+ * conversation at the oldest of them, where the older ones sit just above.
  *
  * The list waits for the previews before it paints, so this is blank only if
  * the read is somehow unsettled — an unsettled read is not an empty one, and
@@ -32,8 +34,8 @@ export function UnreadRowContent({
     /** The Channel or DM the messages belong to; a Thread names its parent. */
     conversationChatId: string;
     fallbackLine: string;
-    /** Opens the conversation, which lands on its first unread message. */
-    onOpen: () => void;
+    /** Opens the conversation scrolled to `message`, by default the card's newest waiting one. */
+    onOpen: (message?: ChatMessageJumpTarget) => void;
     serverId: string;
 }) {
     const preview = useUnreadPreview(serverId, chatId);
@@ -55,7 +57,12 @@ export function UnreadRowContent({
                             {earlier.label}
                         </Button>
                     ) : (
-                        <Button onPress={onOpen} size="sm" variant="ghost" {...opensPlace}>
+                        <Button
+                            onPress={() => onOpen(preview.messages[0])}
+                            size="sm"
+                            variant="ghost"
+                            {...opensPlace}
+                        >
                             {earlier.label}
                         </Button>
                     )}
@@ -110,12 +117,15 @@ function NewestMessage({
 
     return (
         <>
+            {/* The message's hover actions float above it (`-top-4`), so the box
+                takes that much room inside its clip and borrows it back from the
+                source line. The borrowed strip passes clicks through to the line. */}
             <div
-                className={
-                    expanded
-                        ? undefined
-                        : `max-h-36 overflow-hidden ${clamped ? 'mask-b-from-70%' : ''}`
-                }
+                className={cn(
+                    'pointer-events-none -mt-4 pt-4 *:pointer-events-auto',
+                    !expanded && 'max-h-40 overflow-hidden',
+                    clamped && 'mask-b-from-70%'
+                )}
                 ref={boxRef}
             >
                 <UnreadRowMessages
