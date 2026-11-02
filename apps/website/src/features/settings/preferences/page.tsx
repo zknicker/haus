@@ -8,6 +8,7 @@ import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ColorThemeRow } from './color-theme-row.tsx';
 import { ModeRow } from './mode-row.tsx';
 import { NotificationsSection } from './notifications-section.tsx';
+import { SnowRow } from './snow-row.tsx';
 import { WindowLayoutRow } from './window-layout-row.tsx';
 
 export function PreferencesSettings() {
@@ -35,6 +36,7 @@ function AppearanceSection() {
             <ItemCardGroup className="overflow-hidden">
                 <ModeRow />
                 <ColorThemeRow />
+                <SnowRow />
                 <WindowLayoutRow />
             </ItemCardGroup>
         </ItemCardGroup>

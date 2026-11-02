@@ -1,0 +1,82 @@
+/*
+ * Christmas Morning color theme: token overrides only (.design/guidelines.md "Color themes").
+ * Decorations live in `christmas-decorations.css`, shared with Christmas Eve.
+ *
+ * Light only: `ThemeProvider` pins the mode to light while Christmas Morning
+ * is active, so these are light values with no mode qualifier.
+ *
+ * How the selectors win. Every default light block they override is
+ * unlayered at (0,1,0): `:root`, `.light`, `.default`, `[data-theme="light"]`
+ * and `[data-theme="default"]` in `default-theme.css`. HeroUI's own light
+ * values (`--surface`, `--overlay`, `--field-background`, `--segment`) sit in
+ * `@layer base`, which any unlayered rule beats. So the unlayered
+ * `:root[data-color-theme]` block, (0,2,0), wins by specificity, not order.
+ *
+ * The two descendant re-seats of `--default` (the sidebar and the window band)
+ * are declared on those elements, so a root value never reaches them and they
+ * need their own rule. Those stay in `@layer components` beside the defaults
+ * they replace: unlayered, they would also beat the band shell's own sidebar
+ * re-seat (`[data-shell-variant="band"] .app-shell [data-slot="sidebar"]`,
+ * (0,3,0)), which must keep winning. `html[data-color-theme]` puts them at
+ * (0,2,1): above the default light re-seats' (0,2,0), below the band's (0,3,0).
+ */
+:root[data-color-theme="christmas-morning"] {
+    /*
+     * The frost tint: one hue and one chroma for every light neutral fill, so
+     * the page, the shell, the sidebar, the secondary surfaces, the default
+     * fills and the tooltip all move together. Each keeps the default light
+     * lightness exactly, so the chrome → content → surface ladder and every
+     * surface edge stay where they are; only hue and chroma change. Chroma 0
+     * is the plain grey ladder. The topmost grounds (98–99 L) sit at the edge
+     * of sRGB at this chroma; an sRGB screen clips them a hair, a P3 screen
+     * shows them as written.
+     *
+     * The white grounds keep no tint: `--surface`, `--overlay`,
+     * `--field-background` and `--segment` are HeroUI's white, and with them
+     * the desktop card, the shown tab and the light `--nested-surface`. White
+     * is L 100%, which carries no in-gamut chroma, so keeping their lightness
+     * keeps them white: clean snow set on the frost.
+     */
+    --christmas-morning-frost-hue: 235; --christmas-morning-frost-chroma: 0.01;
+
+    /*
+     * Candy-cane red accent. A mid red carries white ink (about 4.8:1 against
+     * `--snow`). Soft, hover, focus and the reply highlight derive from
+     * `--accent` and follow on their own.
+     */
+    --accent: oklch(57% 0.21 27);
+    --accent-foreground: var(--snow);
+    --focus: var(--accent);
+
+    /*
+     * The page and the shell ladder. `--shell-canvas` is `var(--sidebar-surface)`
+     * in light and follows it; `--shell-card` and the shown tab are `--surface`.
+     */
+    --background: oklch(98.24% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+    --sidebar-surface: oklch(95.24% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+    --shell-band-canvas: oklch(96.12% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+    --shell-band-sidebar: oklch(98.91% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+
+    /* HeroUI's tinted grounds: nested panels, default fills, the tooltip chip. */
+    --surface-secondary: oklch(93.43% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+    --surface-tertiary: oklch(92.22% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+    --default: oklch(94% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+    --tooltip: oklch(21% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+}
+
+@layer components {
+    /*
+     * The sidebar's and the window band's `--default`, re-seated a step lower
+     * on their grey grounds (`default-theme.css`), frosted to match. Same
+     * lightness, same 4% hover toward `--eclipse`.
+     */
+    html[data-color-theme="christmas-morning"] .sidebar,
+    html[data-color-theme="christmas-morning"] .shell-window-band {
+        --default: oklch(91% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue));
+        --default-hover: color-mix(
+            in oklab,
+            oklch(91% var(--christmas-morning-frost-chroma) var(--christmas-morning-frost-hue)) 96%,
+            var(--eclipse) 4%
+        );
+    }
+}

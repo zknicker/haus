@@ -130,6 +130,9 @@
     opacity: 0.7;
 }
 
+/* A costume's separate pieces of glass (a hat) carry their own rules in
+   `haus-ghost-pieces.css`. */
+
 /* Wide enough to be a glow, tight enough to stay a glow: at 22px this is well
    under a pixel of spread, so it lifts the mark without fogging the row. */
 

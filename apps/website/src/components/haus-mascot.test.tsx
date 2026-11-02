@@ -15,6 +15,7 @@ describe('Haus mascot', () => {
 
         expect(markup).toContain('haus-ghost--iridescent');
         expect(markup).not.toContain('haus-ghost--pumpkin');
+        expect(markup).not.toContain('haus-ghost--santa');
         expect(markup).not.toContain('haus-ghost__tint');
     });
 
@@ -28,5 +29,19 @@ describe('Haus mascot', () => {
         expect(markup).toContain('haus-ghost--animated');
         expect(markup).toContain('height:22px');
         expect(markup).not.toContain('<title>');
+    });
+
+    test('wears the Santa hat on both Christmas themes, with the same props', () => {
+        for (const theme of ['christmas-eve', 'christmas-morning'] as const) {
+            selectColorTheme(theme, null);
+            const markup = render();
+
+            expect(markup).toContain('haus-ghost--santa');
+            expect(markup).toContain('haus-ghost__piece');
+            expect(markup).not.toContain('haus-ghost--pumpkin');
+            expect(markup).toContain('haus-ghost--animated');
+            expect(markup).toContain('height:22px');
+            expect(markup).not.toContain('<title>');
+        }
     });
 });

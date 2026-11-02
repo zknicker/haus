@@ -9,6 +9,9 @@
 @import "./default-theme.css";
 @import "./themes/halloween-tokens.css";
 @import "./themes/halloween-decorations.css";
+@import "./themes/christmas-eve-tokens.css";
+@import "./themes/christmas-morning-tokens.css";
+@import "./themes/christmas-decorations.css";
 @import "../features/chats/chat.css";
 @import "../features/chats/reactions/reaction-stickers.css";
 @import "../features/shell/shell.css";

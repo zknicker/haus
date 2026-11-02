@@ -1,10 +1,11 @@
 import { type ComponentPropsWithoutRef, useId } from 'react';
 import { cn } from '../lib/utils.ts';
-import type { GlassFigure } from './haus-ghost-figure.ts';
+import type { GlassFigure, GlassPiece } from './haus-ghost-figure.ts';
 import { HausGhostGlass } from './haus-ghost-glass.tsx';
 import { ghostGlassIds } from './haus-ghost-glass-defs.tsx';
 import { VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
 import './haus-ghost.css';
+import './haus-ghost-pieces.css';
 
 export type HausMarkProps = {
     /**
@@ -41,6 +42,9 @@ export function HausFigureMark({
     const instanceId = useId().replaceAll(':', '');
     const iridescent = fill === 'iridescent';
     const drifting = iridescent && animated;
+    const span = figure.frame?.scale ?? 1;
+    const spanned = (side: number) => Math.round(side * span * 100) / 100;
+    const pieces = figure.pieces ?? [];
     // A `<title>` is the browser's native tooltip too, and `aria-hidden` does
     // not suppress it — a decorative mark would pop "Haus" on every hover.
     const decorative = props['aria-hidden'] === true || props['aria-hidden'] === 'true';
@@ -59,23 +63,53 @@ export function HausFigureMark({
             // Inline, so chrome rules that force a glyph box — the sidebar
             // pins `.sidebar__menu-icon svg` to 1rem — cannot resize the mark.
             style={{ height: size, width: (size * VIEWBOX_WIDTH) / VIEWBOX_HEIGHT, ...style }}
-            viewBox={`${figure.frame?.x ?? 0} ${figure.frame?.y ?? 0} ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
+            viewBox={`${figure.frame?.x ?? 0} ${figure.frame?.y ?? 0} ${spanned(VIEWBOX_WIDTH)} ${spanned(VIEWBOX_HEIGHT)}`}
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
             {decorative ? null : <title>Haus</title>}
             {iridescent ? (
-                <HausGhostGlass figure={figure} ids={ghostGlassIds(instanceId)} />
+                <>
+                    <HausGhostGlass figure={figure} ids={ghostGlassIds(instanceId)} />
+                    {pieces.map((piece) => (
+                        <g
+                            className="haus-ghost__piece"
+                            key={piece.id}
+                            transform={placement(piece)}
+                        >
+                            <HausGhostGlass
+                                figure={piece.figure}
+                                ids={ghostGlassIds(`${instanceId}-${piece.id}`)}
+                            />
+                        </g>
+                    ))}
+                </>
             ) : (
-                <path
-                    className="haus-ghost__body"
-                    d={`${figure.body} ${figure.eyes}`}
-                    fill="currentColor"
-                    fillRule="evenodd"
-                />
+                <>
+                    <path
+                        className="haus-ghost__body"
+                        d={figure.eyes ? `${figure.body} ${figure.eyes}` : figure.body}
+                        fill="currentColor"
+                        fillRule="evenodd"
+                    />
+                    {pieces.map((piece) => (
+                        <path
+                            className="haus-ghost__body"
+                            d={piece.figure.body}
+                            fill="currentColor"
+                            key={piece.id}
+                            transform={placement(piece)}
+                        />
+                    ))}
+                </>
             )}
         </svg>
     );
+}
+
+/** A piece's own box, moved and scaled into the wearer's space. */
+function placement({ place }: GlassPiece) {
+    return `translate(${place.x} ${place.y}) scale(${place.scale})`;
 }
 
 type MarkFill = 'solid' | 'iridescent';

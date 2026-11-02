@@ -422,7 +422,8 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   their groups.
   Cmd+K includes Light, Dark, and System mode commands and one command per color theme
   (`lib/color-theme.ts`), using the same device-local preferences as Settings. The mode
-  commands are hidden while the color theme pins the mode.
+  commands are hidden while the color theme pins the mode. While a theme with a snowy
+  roofline is on, it also offers one command per roofline snow (`lib/roofline-snow.ts`).
 
 ## Hooks
 

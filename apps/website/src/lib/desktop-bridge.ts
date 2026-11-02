@@ -117,7 +117,7 @@ export interface HausDesktopBridge {
     restartForUpdate: () => Promise<void>;
     runEditCommand: (command: DesktopEditCommand) => Promise<void>;
     /** Show a theme's app icon in the macOS Dock; `ghost` restores the bundle icon. Older shells lack it. */
-    setAppIcon?: (icon: 'ghost' | 'pumpkin') => Promise<void>;
+    setAppIcon?: (icon: 'ghost' | 'pumpkin' | 'santa') => Promise<void>;
     /** Show a count on the macOS Dock icon; 0 clears it. */
     setDockBadge?: (count: number) => Promise<void>;
     setTheme: (theme: 'dark' | 'light' | null) => Promise<void>;

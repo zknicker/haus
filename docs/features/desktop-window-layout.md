@@ -25,10 +25,22 @@ sidebar's titlebar strip. It is a WebGL canvas mounted only under Halloween, wit
 and no drag box (`features/shell/halloween-sky.tsx`); it pauses while the window is unfocused,
 hidden, or the sky is off screen, and holds one still frame under reduced motion.
 
-The macOS Dock icon follows the theme while the App runs: `desktop:dock:set-app-icon` (`ghost` or
-`pumpkin`, `electron/dock-app-icon.cjs`) swaps in the compiled pumpkin tile, and `ghost` restores
-the bundle icon (`app.dock.setIcon(null)`; the compiled dev icon in development). The closed App's
-Finder icon stays the ghost.
+Under the Christmas themes the whole band, from the window's left edge through the tab rows, wears
+a snowy roofline: a painted snow strip along the top edge (the Snow preference), big C9 bulbs
+hanging under it from the lead's end on, leaving room for every tab, a holly sprig at the lead's
+end and at the right edge, and a light flurry falling behind it all. The snow drapes in front of
+the tabs, so they tuck under the eave; the bulbs and flurries sit behind every band control. The
+web runs it along the top of the sidebar, behind its titlebar strip, with bulbs only between the
+Haus mark and Settings. It takes no pointer events and adds no drag box
+(`features/shell/theme-roofline/`), and follows the sky's rules: it pauses while the window is
+unfocused, hidden, or off screen, dims with the sidebar when the window loses focus, and holds one
+still frame under reduced motion.
+
+The macOS Dock icon follows the theme while the App runs: `desktop:dock:set-app-icon` (`ghost`,
+`pumpkin`, or `santa`, `electron/dock-app-icon.cjs`) swaps in the compiled pumpkin tile for
+Halloween or the nightcap ghost's tile for either Christmas theme, and `ghost` restores the bundle
+icon (`app.dock.setIcon(null)`; the compiled dev icon in development). The closed App's Finder icon
+stays the ghost.
 
 Settings is not in the band: a gear leads the sidebar footer, before the update and offline Computer
 marks, its tooltip naming ⌘,. The macOS App menu's Haus › Settings… (⌘,) opens it too, including

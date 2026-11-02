@@ -6,7 +6,7 @@
  * device, never synced. What each theme changes lives in its definition
  * (`color-themes.ts`).
  */
-const colorThemeIds = ['default', 'halloween'] as const;
+const colorThemeIds = ['default', 'halloween', 'christmas-eve', 'christmas-morning'] as const;
 
 export type ColorTheme = (typeof colorThemeIds)[number];
 

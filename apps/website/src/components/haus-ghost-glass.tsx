@@ -157,7 +157,9 @@ export function HausGhostGlass({ figure, ids }: { figure: GlassFigure; ids: Ghos
                 ))}
             </g>
             <path className="haus-ghost__edge" d={body} fill="none" stroke={`url(#${ids.edge})`} />
-            <path className="haus-ghost__eyes" d={figure.eyes} fill={figure.eye} />
+            {figure.eyes ? (
+                <path className="haus-ghost__eyes" d={figure.eyes} fill={figure.eye} />
+            ) : null}
         </>
     );
 }

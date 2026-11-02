@@ -39,7 +39,7 @@ export function ModeField({
             <ItemCard.Action>
                 <Select
                     aria-label="Mode"
-                    className="w-40"
+                    className="w-48"
                     isDisabled={forcedTheme !== null}
                     onChange={(value) => onChange(value as ThemePreference)}
                     value={forcedTheme ?? theme}

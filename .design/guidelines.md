@@ -469,24 +469,35 @@ Each theme is one `ColorThemeDefinition` in `lib/color-themes.ts`:
 | Field | Values | Read by |
 | --- | --- | --- |
 | `id`, `label` | `ColorTheme`, display name | Settings Theme row, Cmd+K |
-| `forcedMode` | `'dark' \| null` | `ThemeProvider` (resolved mode, desktop window) |
-| `mascot` | `'ghost' \| 'pumpkin'` | `HausMascot` |
-| `scene` | `'none' \| 'moonlit-sky'` | `HalloweenSky` mounts on `moonlit-sky` |
+| `forcedMode` | `'dark' \| 'light' \| null` | `ThemeProvider` (resolved mode, desktop window) |
+| `mascot` | `'ghost' \| 'pumpkin' \| 'santa'` | `HausMascot` |
+| `scene` | `'none' \| 'moonlit-sky' \| 'snowy-roofline'` | `HalloweenSky` mounts on `moonlit-sky`; the shell's roofline on `snowy-roofline` |
+| `appIcon` | `'ghost' \| 'pumpkin' \| 'santa'` | `useThemeAppIcon` (favicon, desktop Dock) |
 | `greetings` | `GreetingSet \| null` | Inbox greeting; `null` is the standard line |
 
 Consumers read the live definition (`useColorThemeDefinition()`), never compare theme ids.
 Adding a theme is one definition plus its token CSS; a new mascot or scene is a new union
-member and the one component that renders it.
+member and the one component that renders it. Two themes may share a scene, a mascot, or a
+greeting pool, as the Christmas pair does.
+
+A scene with a per-device option keeps it out of the definition. The roofline's snow (Puffy,
+Soft, Icicles) is app-local presentation in `lib/roofline-snow.ts`, read and set through
+`hooks/shell/use-roofline-snow.ts`, and offered (Settings Snow row, Cmd+K) only while the
+active definition's `scene` is `snowy-roofline`.
 
 - **Tokens only.** A theme's colors live in `styles/themes/<name>-tokens.css` under
   `:root[data-color-theme="<name>"]`, and for one mode under
   `:root[data-color-theme="<name>"]:is([data-theme="dark"], .dark)` (or the light
   equivalent). Those selectors outrank the default theme's `[data-theme]`/`.dark` blocks
   by specificity, not import order. No BEM overrides and no component restyling: a theme
-  that needs a rule the tokens cannot express gets the token first.
-- **Either mode, or dark only.** A theme may override in both modes or only one. Keep the
+  that needs a rule the tokens cannot express gets the token first. The one exception is a
+  token the default theme re-seats on a descendant (light's `--default` on `.sidebar` and
+  `.shell-window-band`): a root value never reaches it, so the theme re-seats the same token
+  in `@layer components` as `html[data-color-theme="<name>"] .sidebar`, (0,2,1), which
+  outranks the default re-seat (0,2,0) and stays under the band shell's own (0,3,0).
+- **Either mode, or one only.** A theme may override in both modes or only one. Keep the
   default ramp's lightness ladder and move hue and chroma, so depth still comes from
-  position. A theme that only reads in one mode declares it as the definition's
+  position. A theme that only reads in one mode, dark or light, declares it as the definition's
   `forcedMode`: while it is active `ThemeProvider` resolves that mode everywhere
   (`data-theme`, `.dark`, `colorScheme`, the desktop window, agent visuals), Settings shows
   the Mode row disabled on it, Cmd+K hides the mode commands, and the stored Mode
@@ -509,6 +520,22 @@ the page, the shell ladder (`--shell-canvas`, `--shell-band-sidebar`, `--shell-c
 Lines (`--border`, `--separator`) and text stay HeroUI's. Chroma `0` is the plain grey
 ladder; the file ships midnight blue (hue 265, chroma 0.010) with aubergine (312, 0.012) as
 the one-line alternative.
+
+The Christmas pair shares a definition shape (Santa nightcap mascot, `snowy-roofline` scene,
+one innkeeper greeting pool, the nightcap ghost app icon) and splits by mode. **Christmas Eve** is dark
+only, Halloween's token shape on a navy night: `--christmas-eve-night-hue` (255) and
+`--christmas-eve-night-chroma` (0.016) in `christmas-eve-tokens.css` feed the same grounds,
+with `--nested-surface` recalibrated to them, and a candle-gold `--accent`
+(`oklch(83% 0.12 85)`, dark ink on it). **Christmas Morning** is light only and runs the same
+idea on the light ladder: `--christmas-morning-frost-hue` (235) and
+`--christmas-morning-frost-chroma` (0.01) in `christmas-morning-tokens.css` feed
+`--background`, `--sidebar-surface` (and through it `--shell-canvas`), `--shell-band-canvas`,
+`--shell-band-sidebar`, `--surface-secondary`, `--surface-tertiary`, `--default` (with its
+sidebar and band re-seats) and `--tooltip`, each at its default light lightness. The white
+grounds (`--surface`, `--overlay`, `--field-background`, `--segment`, so the desktop card and
+the shown tab) stay white: L 100% carries no chroma. Its `--accent` is candy-cane red
+(`oklch(57% 0.21 27)`, white ink on it). Both themes' decorations share
+`christmas-decorations.css`.
 
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.

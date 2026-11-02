@@ -20,6 +20,14 @@ describe('mode setting', () => {
         expect(shownValue(markup)).toBe('Dark');
         expect(markup).toContain('data-disabled="true"');
     });
+
+    test('a pinned light mode shows Light, disabled, over a stored Dark', () => {
+        const markup = renderToStaticMarkup(
+            <ModeField forcedTheme="light" onChange={noop} theme="dark" />
+        );
+        expect(shownValue(markup)).toBe('Light');
+        expect(markup).toContain('data-disabled="true"');
+    });
 });
 
 function shownValue(markup: string) {

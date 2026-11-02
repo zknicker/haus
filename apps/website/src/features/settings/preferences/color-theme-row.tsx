@@ -20,7 +20,7 @@ export function ColorThemeRow() {
                 <ItemCard.Action>
                     <Select
                         aria-label="Theme"
-                        className="w-40"
+                        className="w-48"
                         onChange={applyColorTheme}
                         value={theme}
                         variant="secondary"

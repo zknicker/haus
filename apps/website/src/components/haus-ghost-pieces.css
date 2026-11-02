@@ -1,0 +1,35 @@
+/* A costume's pieces (the Christmas nightcap's cone, brim and pom-pom) are
+   solid satin glass, as the pumpkin is, so a hat sits on the head instead of
+   showing it through. Declared on the piece's own group, so it outranks the
+   dark ground's scatter by inheritance rather than specificity. Their color
+   holds still: a piece's mesh would re-run its whole filter chain on every
+   drift step, for color nobody tracks on a hat.
+
+   Every rule here outranks the `haus-ghost.css` rule it overrides by
+   specificity alone, so the two sheets can load in either order. */
+
+.haus-ghost__piece {
+    --haus-ghost-scatter: 1;
+    --haus-ghost-scatter-peak: 1;
+    --haus-ghost-scatter-mid: 1;
+    --haus-ghost-scatter-outer: 1;
+    --haus-ghost-specular: 0.9;
+    --haus-ghost-halo: 0.1;
+}
+
+.haus-ghost__piece .haus-ghost__rim-color {
+    opacity: 0.6;
+}
+
+.haus-ghost__piece .haus-ghost__rim-light {
+    opacity: 0.1;
+}
+
+.haus-ghost__piece .haus-ghost__rim-core {
+    stroke-width: 7;
+    opacity: 0.7;
+}
+
+.haus-ghost--animated .haus-ghost__piece .haus-ghost__blob {
+    animation-name: none;
+}
