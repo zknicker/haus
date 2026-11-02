@@ -1,0 +1,237 @@
+/*
+ * The advent calendar's painted doors. This is art, not UI color: the doors,
+ * the niche and the ornaments are Codex paintings, and the glow, frost and
+ * sparkle here belong to them the way the roofline's bulbs do
+ * (christmas-decorations.css), so nothing here reads or overrides a HeroUI
+ * token. Motion that moves (the swing, the pop, the card) is Motion's, in the
+ * components; this file owns the resting looks and the two looping glints.
+ *
+ * Each door is a 6:7 cell of the dialog's 6x4 grid. The closed door (the
+ * "leaf") sits on the lit niche and swings open on its left hinge in 3D, so
+ * an opened door stays visible, turned back beside its niche.
+ */
+.advent-door {
+        position: relative;
+        display: block;
+        width: 100%;
+        aspect-ratio: 6 / 7;
+        perspective: 420px;
+        cursor: var(--cursor-interactive);
+    }
+
+    .advent-door[data-state="locked"] {
+        cursor: default;
+    }
+
+    .advent-door__niche,
+    .advent-door__leaf,
+    .advent-door__leaf > img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        pointer-events: none;
+    }
+
+    .advent-door__niche {
+        transition: filter 160ms ease-out;
+    }
+
+    .advent-door[data-hovered]:not([data-state="locked"]) .advent-door__niche {
+        filter: brightness(0.9);
+    }
+
+    .advent-door__leaf {
+        transform-origin: left center;
+        backface-visibility: hidden;
+    }
+
+    /* The ornament inside the niche, centred a little low, as it hangs. */
+    .advent-door__ornament {
+        position: absolute;
+        top: 56%;
+        left: 50%;
+        width: 57%;
+        height: 57%;
+        object-fit: contain;
+        translate: -50% -50%;
+        pointer-events: none;
+        filter: drop-shadow(0 2px 2px rgb(60 20 0 / 0.28));
+    }
+
+    .advent-door__ornament[data-ornament="star"] {
+        width: 68%;
+        height: 68%;
+    }
+
+    /* The day's number, painted on the door below its knob. */
+    .advent-door__number {
+        position: absolute;
+        top: 42%;
+        left: 44%;
+        translate: -50% -50%;
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        color: rgb(255 255 255 / 0.95);
+        text-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    }
+
+    .advent-door[data-color="gold"] .advent-door__number {
+        color: rgb(96 56 0 / 0.9);
+        text-shadow: none;
+    }
+
+    /*
+     * Today's door: a warm candle glow around the closed door, breathing
+     * slowly, and a gold rim on the door itself. It fades as the door opens.
+     */
+    .advent-door__glow {
+        position: absolute;
+        inset: -26%;
+        border-radius: 50%;
+        background: radial-gradient(
+            closest-side,
+            rgb(255 200 96 / 0.85),
+            rgb(255 176 64 / 0.45) 55%,
+            rgb(255 160 48 / 0) 100%
+        );
+        pointer-events: none;
+        transition: opacity 500ms ease-out;
+        animation: advent-glow 2.8s ease-in-out infinite;
+    }
+
+    .advent-door[data-state="today-open"] .advent-door__glow {
+        opacity: 0;
+        animation: none;
+    }
+
+    .advent-door[data-state="today-closed"] .advent-door__leaf > img {
+        filter: drop-shadow(0 0 3px rgb(255 214 120 / 0.95)) drop-shadow(0 0 10px rgb(255 180 70 / 0.7));
+    }
+
+    @keyframes advent-glow {
+        0%,
+        100% {
+            opacity: 0.8;
+            scale: 0.96;
+        }
+
+        50% {
+            opacity: 1;
+            scale: 1.04;
+        }
+    }
+
+    /*
+     * Days to come: the door frosted over, desaturated, its number dimmed and
+     * a small padlock. Christmas Morning's white dialog washed a white frost
+     * out, so light keeps more of the paint and draws the number and lock in
+     * slate; Christmas Eve's night takes the pale-blue frost.
+     */
+    .advent-door[data-state="locked"] .advent-door__leaf > img {
+        filter: blur(1.2px) saturate(0.6) brightness(0.92);
+    }
+
+    .advent-door__frost {
+        position: absolute;
+        inset: 4% 7% 4%;
+        border-radius: 50% 50% 14% 14% / 36% 36% 6% 6%;
+        background: rgb(236 242 250 / 0.42);
+        pointer-events: none;
+    }
+
+    .advent-door[data-state="locked"] .advent-door__number {
+        color: rgb(40 52 76 / 0.78);
+        text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+    }
+
+    .advent-door__lock {
+        position: absolute;
+        top: 66%;
+        left: 50%;
+        translate: -50% -50%;
+        color: rgb(40 52 76 / 0.82);
+        pointer-events: none;
+    }
+
+    :root:is([data-theme="dark"], .dark) .advent-door[data-state="locked"] .advent-door__leaf > img {
+        filter: blur(1.4px) saturate(0.35);
+    }
+
+    :root:is([data-theme="dark"], .dark) .advent-door__frost {
+        background: rgb(210 222 245 / 0.38);
+    }
+
+    :root:is([data-theme="dark"], .dark) .advent-door[data-state="locked"] .advent-door__number {
+        color: rgb(255 255 255 / 0.62);
+        text-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    }
+
+    :root:is([data-theme="dark"], .dark) .advent-door__lock {
+        color: rgb(255 255 255 / 0.92);
+    }
+
+    /* The burst as today's ornament pops out: warm four-point glints that fly out and fade. */
+    .advent-door__sparkle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        margin: -4px 0 0 -4px;
+        background:
+            linear-gradient(rgb(255 226 150) 0 0) center / 100% 1.4px no-repeat,
+            linear-gradient(rgb(255 226 150) 0 0) center / 1.4px 100% no-repeat;
+        opacity: 0;
+        pointer-events: none;
+        animation: advent-sparkle 1s 0.4s ease-out forwards;
+    }
+
+    @keyframes advent-sparkle {
+        0% {
+            opacity: 1;
+            transform: rotate(var(--advent-sparkle-angle)) translateX(12px) scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: rotate(var(--advent-sparkle-angle)) translateX(34px) scale(0.2);
+        }
+    }
+
+    /* The card's ornament stands in a soft pool of the niche's light. */
+    .advent-card__ornament {
+        position: relative;
+        display: grid;
+        place-items: center;
+        flex: none;
+    }
+
+    .advent-card__ornament::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgb(255 200 110 / 0.3), rgb(255 200 110 / 0));
+    }
+
+    :root:is([data-theme="dark"], .dark) .advent-card__ornament::before {
+        background: radial-gradient(closest-side, rgb(255 200 110 / 0.4), rgb(255 200 110 / 0));
+    }
+
+    .advent-card__ornament > img {
+        position: relative;
+        width: 74%;
+        height: 74%;
+        object-fit: contain;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .advent-door__glow,
+        .advent-door__sparkle {
+            animation: none;
+        }
+    }

@@ -2,6 +2,8 @@ import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { useColorThemeDefinition } from '../../../hooks/shell/use-color-theme.ts';
+import { AdventChip } from '../../advent/advent-chip.tsx';
+import { SleighRide } from '../../sleigh-ride/sleigh-ride.tsx';
 import { useServerContext } from '../server-context.ts';
 import { greetingLine } from './inbox-greeting.ts';
 import { todayLabel } from './inbox-today.ts';
@@ -22,6 +24,10 @@ import { todayLabel } from './inbox-today.ts';
  *
  * Reserve the greeting line before the directory arrives, so the date and
  * the sections below it keep their position while the name resolves.
+ *
+ * Under a Christmas theme the header carries two seasonal pieces: the advent
+ * calendar's chip after the date (docs/features/advent-calendar.md) and the
+ * sleigh ride flying the air above the greeting.
  */
 export function InboxHeader() {
     const { server } = useServerContext();
@@ -35,11 +41,17 @@ export function InboxHeader() {
     const { greetings } = useColorThemeDefinition();
 
     return (
-        <header className="flex flex-col gap-1.5">
+        // Positioned for the sleigh ride, which flies the air above the greeting.
+        <header className="relative flex flex-col gap-1.5">
+            <SleighRide />
             <h1 className="min-h-[1lh] font-semibold text-2xl text-foreground tracking-tight">
                 {viewerUserId ? greetingLine(now, humans.name(viewerUserId), greetings) : null}
             </h1>
-            <p className="text-muted text-sm">{todayLabel(now)}</p>
+            {/* The advent chip is the line's own height, so the date line never grows. */}
+            <div className="flex h-5 items-center gap-2.5">
+                <p className="text-muted text-sm">{todayLabel(now)}</p>
+                <AdventChip />
+            </div>
         </header>
     );
 }
