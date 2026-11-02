@@ -319,7 +319,7 @@ them, and `bun run eval` always passes it:
 
 Scenarios that place answers (`placement-*`, `ack-reaction-thanks`,
 `thread-reply-stays-in-thread`, `solo-progress-threads-on-ack`, `mention-wakes-only-addressed`,
-`task-thread-routing`, `cloud-launch-and-link`, `github-trigger-*`) preserve every child conversation and all
+`task-thread-routing`, `thread-claim-dm`, `thread-claim-channel`, `cloud-launch-and-link`, `github-trigger-*`) preserve every child conversation and all
 available execution journals under `.context/agent-tests/evidence/<stamp>/` before cleanup, so
 the eval grader can read placement and `--done` flags. One clean run is limited evidence.
 
@@ -484,7 +484,7 @@ rendered as the report's "What was changed" section). The registry is
 | Eval | Measures |
 | --- | --- |
 | `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops. |
-| `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; a reminder fires once. Serial. |
+| `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; tool-using work asked in a DM or Channel Thread is claimed on that Thread message and answered in the Thread with a `--done` send and no `--reply-to`; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
 | `triggers` | GitHub and Linear Triggers on an `acme` GitHub installation and a Linear workspace seeded on the eval stack (no GitHub or Linear account; a loopback fake Linear resolves names): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger, and "ping me when a Design issue goes from Design Review to Changes Requested" one state-transition `linear` Trigger, each with a short confirmation; a signed `workflow_run` failure or Issue update gets one top-level `--cause` answer naming the workflow and branch, or the issue. Serial. |
 | `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live Thread exchange is answered at its anchor with `--cause`, not in the Thread; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
