@@ -1,9 +1,7 @@
 'use strict';
 
-const path = require('node:path');
 const { describe, expect, test } = require('bun:test');
-const { packagedIconsDirectory, pumpkinIconFile } = require('./dock-app-icon.cjs');
-const { macAppIconConfiguration, pumpkinDockIconResource } = require('./mac-app-icon-config.cjs');
+const { macAppIconConfiguration, themeDockIconResources } = require('./mac-app-icon-config.cjs');
 
 describe('macOS app icon packaging', () => {
     test('names the asset-catalog icon when the catalog is packaged', () => {
@@ -15,7 +13,7 @@ describe('macOS app icon packaging', () => {
                 from: 'electron/generated-icons/Assets.car',
                 to: 'Assets.car',
             },
-            pumpkinDockIconResource,
+            ...themeDockIconResources,
         ]);
     });
 
@@ -23,13 +21,13 @@ describe('macOS app icon packaging', () => {
         const configuration = macAppIconConfiguration(false);
 
         expect(configuration.extendInfo.CFBundleIconName).toBeUndefined();
-        expect(configuration.extraResources).toEqual([pumpkinDockIconResource]);
+        expect(configuration.extraResources).toEqual(themeDockIconResources);
     });
 
-    test('packages the pumpkin Dock icon where the packaged App reads it', () => {
-        expect(pumpkinDockIconResource).toEqual({
-            from: `electron/icons/${pumpkinIconFile}`,
-            to: path.posix.join(packagedIconsDirectory, pumpkinIconFile),
-        });
+    test('packages every theme Dock icon where the packaged App reads it', () => {
+        expect(themeDockIconResources).toEqual([
+            { from: 'electron/icons/AppIcon-pumpkin.png', to: 'app-icons/AppIcon-pumpkin.png' },
+            { from: 'electron/icons/AppIcon-santa.png', to: 'app-icons/AppIcon-santa.png' },
+        ]);
     });
 });

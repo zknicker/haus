@@ -118,23 +118,29 @@ opens on a centered identity header that pushes the viewer's profile. Rows carry
 show a single-line current value trailing, dropping it under the title only when it cannot fit;
 long-form values such as descriptions preview as a subtitle. An up/down chevron marks an in-place
 picker and a right chevron marks navigation. Explanations live in section footers. Preferences'
-App icon picker (`AppIconRow`: Ghost or Pumpkin) is a per-device choice with no Server or theme
-coupling; iOS has no color themes. It reads `UIApplication.alternateIconName` each time rather than
-mirroring it into `@AppStorage`, calls `setAlternateIconName` (`nil` for the ghost,
-`halloween-icon` for the pumpkin), and on failure logs and shows the icon the system still reports.
+App icon picker (`AppIconRow`: Ghost, Pumpkin, or Nightcap) is a per-device choice with no Server
+or theme coupling; iOS has no color themes. It reads `UIApplication.alternateIconName` each time
+rather than mirroring it into `@AppStorage`, calls `setAlternateIconName` (`nil` for the ghost,
+`halloween-icon` for the pumpkin, `christmas-icon` for the ghost in its nightcap), and on failure
+logs and shows the icon the system still reports.
 iOS's own "You have changed the icon" alert is expected. The icon never switches by itself; a
 seasonal offer only asks. `.seasonalIconOffer()` sits on the authenticated shell (never onboarding
 or sign-in) and, each time the app becomes active and nothing else is presented, asks the pure rule
 `SeasonalIconOffer.eligible(on:calendar:currentIcon:records:)`. In October on the local calendar,
 on the ghost, it offers the pumpkin ("Happy Halloween!"). After October, on a pumpkin that
-season's offer chose, it offers the ghost back ("Same time next year?"). A pumpkin picked in
-Settings, or kept from an earlier season, is never nagged. The offer is a medium-detent sheet with
-a bundled preview (`Resources/app-icon-preview-*`, since catalog app icons cannot load as images).
-Showing an offer records it in `UserDefaults` whatever the answer — `haus.appIcon.halloweenOffersShown`
-and `haus.appIcon.halloweenReturnOffersShown`, keyed by season year (the year of its October) — so
-declining is final for the season. `haus.appIcon.pumpkinFromOfferSeason` marks a pumpkin the offer
-chose; any Settings switch clears it. Debug builds take `-HausSeasonDate yyyy-MM-dd` and
-`-HausSeasonReset YES` launch arguments. All
+season's offer chose, it offers the ghost back ("Same time next year?"). From 6 November through
+December it does the same for Christmas: on the ghost it offers the nightcap ("Merry Christmas!"), and from January, on a
+nightcap that season's offer chose, it offers the ghost back ("Packing up the decorations"). A
+seasonal icon picked in Settings, or kept from an earlier season, is never nagged. The offer is a
+medium-detent sheet with a bundled preview (`Resources/app-icon-preview-*`, since catalog app icons
+cannot load as images). Showing an offer records it in `UserDefaults` whatever the answer —
+`haus.appIcon.halloweenOffersShown` and `haus.appIcon.halloweenReturnOffersShown`, keyed by season
+year (the year of its October), and `haus.appIcon.christmasOffersShown` and
+`haus.appIcon.christmasReturnOffersShown`, keyed by the year of its December — so declining is
+final for the season. `haus.appIcon.pumpkinFromOfferSeason` and
+`haus.appIcon.nightcapFromOfferSeason` mark an icon the offer chose; any Settings switch clears
+both. Debug builds take `-HausSeasonDate yyyy-MM-dd` and `-HausSeasonReset YES` launch arguments.
+All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
 state. On startup, iOS reports the signed-in Haus display name through `member.syncIdentity` before
 reading the member list, matching the web app's default-handle bootstrap. The sync runs beside the

@@ -3,10 +3,11 @@
 const { existsSync } = require('node:fs');
 const path = require('node:path');
 
-/** Color themes pick the live Dock icon. Mirrors `DesktopAppIcon` in `src/lib/desktop-bridge.ts`. */
-const appIcons = ['ghost', 'pumpkin'];
+/** Color themes pick the live Dock icon. Mirrors `AppIcon` in `src/lib/color-themes.ts`. */
+const appIcons = ['ghost', 'pumpkin', 'santa'];
 const packagedIconsDirectory = 'app-icons';
-const pumpkinIconFile = 'AppIcon-pumpkin.png';
+/** The compiled Dock PNG for every theme icon other than the bundle's own ghost. */
+const themeIconFiles = { pumpkin: 'AppIcon-pumpkin.png', santa: 'AppIcon-santa.png' };
 
 function isAppIcon(value) {
     return appIcons.includes(value);
@@ -26,15 +27,18 @@ function createDockAppIcon({
     resourcesPath = process.resourcesPath,
 }) {
     const developmentGhostPath = path.join(electronDirectory, 'icons', 'AppIcon.png');
-    const iconPaths = app.isPackaged
-        ? {
-              ghost: null,
-              pumpkin: path.join(resourcesPath, packagedIconsDirectory, pumpkinIconFile),
-          }
-        : {
-              ghost: fileExists(developmentGhostPath) ? developmentGhostPath : null,
-              pumpkin: path.join(electronDirectory, 'icons', pumpkinIconFile),
-          };
+    const themeIconDirectory = app.isPackaged
+        ? path.join(resourcesPath, packagedIconsDirectory)
+        : path.join(electronDirectory, 'icons');
+    const iconPaths = {
+        ghost: app.isPackaged || !fileExists(developmentGhostPath) ? null : developmentGhostPath,
+        ...Object.fromEntries(
+            Object.entries(themeIconFiles).map(([icon, file]) => [
+                icon,
+                path.join(themeIconDirectory, file),
+            ])
+        ),
+    };
 
     /** Startup: packaged builds already show the bundle icon; development builds need the ghost. */
     function install() {
@@ -64,4 +68,4 @@ function createDockAppIcon({
     return { install, set };
 }
 
-module.exports = { createDockAppIcon, isAppIcon, packagedIconsDirectory, pumpkinIconFile };
+module.exports = { createDockAppIcon, isAppIcon, packagedIconsDirectory, themeIconFiles };

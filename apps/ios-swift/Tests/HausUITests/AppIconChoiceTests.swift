@@ -15,6 +15,11 @@ final class AppIconChoiceTests: XCTestCase {
         XCTAssertEqual(AppIconChoice(alternateIconName: "halloween-icon"), .pumpkin)
     }
 
+    func testNightcapIsTheChristmasAlternate() {
+        XCTAssertEqual(AppIconChoice.nightcap.alternateIconName, "christmas-icon")
+        XCTAssertEqual(AppIconChoice(alternateIconName: "christmas-icon"), .nightcap)
+    }
+
     func testEveryChoiceRoundTrips() {
         for choice in AppIconChoice.allCases {
             XCTAssertEqual(AppIconChoice(alternateIconName: choice.alternateIconName), choice)
@@ -26,6 +31,6 @@ final class AppIconChoiceTests: XCTestCase {
     }
 
     func testTitlesAreShort() {
-        XCTAssertEqual(AppIconChoice.allCases.map(\.title), ["Ghost", "Pumpkin"])
+        XCTAssertEqual(AppIconChoice.allCases.map(\.title), ["Ghost", "Pumpkin", "Nightcap"])
     }
 }

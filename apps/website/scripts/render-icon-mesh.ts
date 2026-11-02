@@ -11,7 +11,8 @@
  *   bun run icon:render-mesh        (from apps/website)
  *   bun run icons:render-mesh       (from the repository root)
  *
- * Then recompile the `.icon` with `node scripts/build-macos-app-icon.mjs` and
+ * Then copy it into the Christmas icon with `render-icon-mesh-christmas.ts`,
+ * recompile the `.icon`s with `node scripts/build-macos-app-icon.mjs`, and
  * refresh the iOS catalog with `bun run ios:prepare-icon`.
  */
 
@@ -266,7 +267,7 @@ const VEIL_FADE: readonly { gray: string; offset: number }[] = [
 
 /** The committed layer's footprint: Icon Composer positions this exact canvas,
     with the silhouette on this exact rectangle. */
-const GHOST_FOOTPRINT: MeshFootprint = {
+export const GHOST_FOOTPRINT: MeshFootprint = {
     canvas: { height: 2464, width: 1805 },
     content: { bottom: 2031, left: 113, right: 1640, top: 410 },
 };

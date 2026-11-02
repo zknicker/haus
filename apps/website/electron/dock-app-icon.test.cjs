@@ -36,14 +36,16 @@ function ipcFixture(options) {
 }
 
 describe('live Dock app icon', () => {
-    test('packaged pumpkin reads the Resources PNG; ghost restores the bundle icon', () => {
+    test('packaged theme icons read their Resources PNGs; ghost restores the bundle icon', () => {
         const { dockIcons, setAppIcon } = ipcFixture({ isPackaged: true });
 
         setAppIcon(trustedEvent, 'pumpkin');
+        setAppIcon(trustedEvent, 'santa');
         setAppIcon(trustedEvent, 'ghost');
 
         expect(dockIcons).toEqual([
             { iconPath: '/Haus.app/Contents/Resources/app-icons/AppIcon-pumpkin.png' },
+            { iconPath: '/Haus.app/Contents/Resources/app-icons/AppIcon-santa.png' },
             null,
         ]);
     });
@@ -53,11 +55,13 @@ describe('live Dock app icon', () => {
 
         dockAppIcon.install();
         setAppIcon(trustedEvent, 'pumpkin');
+        setAppIcon(trustedEvent, 'santa');
         setAppIcon(trustedEvent, 'ghost');
 
         expect(dockIcons).toEqual([
             { iconPath: '/haus/electron/icons/AppIcon.png' },
             { iconPath: '/haus/electron/icons/AppIcon-pumpkin.png' },
+            { iconPath: '/haus/electron/icons/AppIcon-santa.png' },
             { iconPath: '/haus/electron/icons/AppIcon.png' },
         ]);
     });
@@ -70,13 +74,14 @@ describe('live Dock app icon', () => {
         expect(dockIcons).toEqual([]);
     });
 
-    test('a missing pumpkin build fails loudly; a missing dev ghost falls back to the default', () => {
+    test('a missing theme icon build fails loudly; a missing dev ghost falls back to the default', () => {
         const { dockIcons, setAppIcon } = ipcFixture({
             fileExists: () => false,
             isPackaged: false,
         });
 
         expect(() => setAppIcon(trustedEvent, 'pumpkin')).toThrow('Missing Dock icon');
+        expect(() => setAppIcon(trustedEvent, 'santa')).toThrow('Missing Dock icon');
         setAppIcon(trustedEvent, 'ghost');
 
         expect(dockIcons).toEqual([null]);
@@ -89,7 +94,7 @@ describe('live Dock app icon', () => {
             setAppIcon({ senderFrame: { url: 'https://evil.example' } }, 'pumpkin')
         ).toThrow('Untrusted page');
         for (const icon of ['witch', '', null, undefined, 1, { icon: 'pumpkin' }]) {
-            expect(() => setAppIcon(trustedEvent, icon)).toThrow('ghost or pumpkin');
+            expect(() => setAppIcon(trustedEvent, icon)).toThrow('ghost, pumpkin or santa');
         }
 
         expect(dockIcons).toEqual([]);

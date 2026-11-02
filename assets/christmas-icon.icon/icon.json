@@ -1,0 +1,240 @@
+{
+  "features": [
+    "refractivity"
+  ],
+  "fill": {
+    "linear-gradient": [
+      "display-p3:0.11125,0.11071,0.11180,1.00000",
+      "display-p3:0.07147,0.07147,0.07147,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "blur-material": null,
+      "layers": [
+        {
+          "hidden": false,
+          "image-name": "pom.png",
+          "name": "pom",
+          "position": {
+            "scale": 0.432,
+            "translation-in-points": [
+              0,
+              40
+            ]
+          }
+        },
+        {
+          "hidden": false,
+          "image-name": "brim.png",
+          "name": "brim",
+          "position": {
+            "scale": 0.432,
+            "translation-in-points": [
+              0,
+              40
+            ]
+          }
+        },
+        {
+          "hidden": false,
+          "image-name": "cone.png",
+          "name": "cone",
+          "opacity-specializations": [
+            {
+              "appearance": "tinted",
+              "value": 0
+            }
+          ],
+          "position": {
+            "scale": 0.432,
+            "translation-in-points": [
+              0,
+              40
+            ]
+          }
+        },
+        {
+          "hidden": false,
+          "image-name": "cone-shell.png",
+          "name": "cone-shell",
+          "opacity-specializations": [
+            {
+              "value": 0
+            },
+            {
+              "appearance": "tinted",
+              "value": 0.75
+            }
+          ],
+          "position": {
+            "scale": 0.432,
+            "translation-in-points": [
+              0,
+              40
+            ]
+          }
+        }
+      ],
+      "refractivity": {
+        "depth": 0,
+        "enabled": true,
+        "strength": 0.3
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.8
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0
+      }
+    },
+    {
+      "blur-material": null,
+      "hidden": false,
+      "layers": [
+        {
+          "glass-specializations": [
+            {
+              "value": true
+            },
+            {
+              "appearance": "tinted",
+              "value": false
+            }
+          ],
+          "image-name": "eyes.png",
+          "name": "eyes",
+          "position": {
+            "scale": 0.468,
+            "translation-in-points": [
+              74.79,
+              -51.73
+            ]
+          }
+        }
+      ],
+      "refractivity": {
+        "depth": 0.968828125,
+        "enabled": false,
+        "strength": 0.4397265625
+      },
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.88
+      },
+      "translucency-specializations": [
+        {
+          "value": {
+            "enabled": true,
+            "value": 0.39
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "enabled": false,
+            "value": 0.39
+          }
+        }
+      ]
+    },
+    {
+      "blend-mode-specializations": [
+        {
+          "value": "soft-light"
+        },
+        {
+          "appearance": "tinted",
+          "value": "normal"
+        }
+      ],
+      "blur-material": null,
+      "layers": [
+        {
+          "glass": false,
+          "hidden": false,
+          "image-name": "transparent-ghost.png",
+          "name": "transparent-ghost",
+          "position": {
+            "scale": 1.026,
+            "translation-in-points": [
+              -31.5,
+              32.8
+            ]
+          }
+        }
+      ],
+      "opacity": 1,
+      "refractivity": {
+        "depth": 0.09015625,
+        "enabled": true,
+        "strength": 1
+      },
+      "shadow": {
+        "kind": "none",
+        "opacity": 2
+      },
+      "translucency-specializations": [
+        {
+          "value": {
+            "enabled": true,
+            "value": 0.1
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "enabled": true,
+            "value": 1
+          }
+        }
+      ]
+    },
+    {
+      "blur-material": 0.5,
+      "layers": [
+        {
+          "hidden": false,
+          "image-name": "mesh-gradient.png",
+          "name": "mesh-gradient",
+          "position": {
+            "scale": 0.432,
+            "translation-in-points": [
+              0,
+              40
+            ]
+          }
+        }
+      ],
+      "opacity-specializations": [
+        {
+          "appearance": "tinted",
+          "value": 0
+        }
+      ],
+      "refractivity": {
+        "depth": 0,
+        "enabled": true,
+        "strength": 0.5
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 1.1
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

@@ -3,6 +3,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { themeIconFiles as themeDockIconFiles } from '../../apps/website/electron/dock-app-icon.cjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,19 +23,18 @@ const main = async () => {
     const packagedIconPath = path.join(appPath, 'Contents', 'Resources', 'icon.icns');
     const buildIconsDir = path.join(repoRoot, 'apps', 'website', 'electron', 'icons');
     const buildIconPath = path.join(buildIconsDir, 'AppIcon.icns');
-    const packagedPumpkinPath = path.join(
-        appPath,
-        'Contents',
-        'Resources',
-        'app-icons',
-        'AppIcon-pumpkin.png'
-    );
-    const buildPumpkinPath = path.join(buildIconsDir, 'AppIcon-pumpkin.png');
+    const packagedThemeIconsDir = path.join(appPath, 'Contents', 'Resources', 'app-icons');
 
     await assertDirectory(appPath, 'Haus.app');
     await assertDoesNotExist(sidecarPath, 'retired haus-server sidecar');
     await assertMatchingFiles(packagedIconPath, buildIconPath, 'packaged app icon');
-    await assertMatchingFiles(packagedPumpkinPath, buildPumpkinPath, 'packaged pumpkin Dock icon');
+    for (const [icon, file] of Object.entries(themeDockIconFiles)) {
+        await assertMatchingFiles(
+            path.join(packagedThemeIconsDir, file),
+            path.join(buildIconsDir, file),
+            `packaged ${icon} Dock icon`
+        );
+    }
     await assertFileHasContent(dmgPath, path.basename(dmgPath));
     await assertFileHasContent(zipPath, path.basename(zipPath));
 

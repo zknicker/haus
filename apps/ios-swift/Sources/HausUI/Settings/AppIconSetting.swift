@@ -14,12 +14,15 @@ import UIKit
 public enum AppIconChoice: String, CaseIterable, Sendable {
     case ghost
     case pumpkin
+    /// The ghost in its Christmas nightcap.
+    case nightcap
 
     /// `nil` selects the primary icon, the ghost.
     public var alternateIconName: String? {
         switch self {
         case .ghost: nil
         case .pumpkin: "halloween-icon"
+        case .nightcap: "christmas-icon"
         }
     }
 
@@ -27,6 +30,7 @@ public enum AppIconChoice: String, CaseIterable, Sendable {
         switch self {
         case .ghost: "Ghost"
         case .pumpkin: "Pumpkin"
+        case .nightcap: "Nightcap"
         }
     }
 

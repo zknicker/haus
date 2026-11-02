@@ -8,7 +8,7 @@ export const iosIconArtifactDirectory = path.join(repoRoot, 'assets', 'ios-icon'
 export const iosPrimaryIconName = 'mac-icon';
 // Alternate icons the user picks in Settings > App icon. actool emits no loose PNGs for
 // them; they ship only inside Assets.car plus the CFBundleAlternateIcons entry.
-export const iosAlternateIconNames = ['halloween-icon'];
+export const iosAlternateIconNames = ['halloween-icon', 'christmas-icon'];
 export const iosIconNames = [iosPrimaryIconName, ...iosAlternateIconNames];
 export const iosIconSourceDirectories = Object.fromEntries(
     iosIconNames.map((name) => [name, path.join(repoRoot, 'assets', `${name}.icon`)])
