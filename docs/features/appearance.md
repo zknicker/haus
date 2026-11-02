@@ -33,6 +33,16 @@ The Christmas themes' roofline is a run of big glowing C9 bulbs strung along the
 edge under a line of snow, with a light flurry falling behind it. The Snow row picks how that
 snow looks; the pick is per device and kept while another theme is on.
 
+Once a day under either Christmas theme, Santa's team flies across the Inbox: the ghost in its
+nightcap in a sleigh, four pairs of reindeer, and Rudolph's red nose in the lead, about eight
+seconds left to right through the empty air between the "Haus › Inbox" trail and the greeting
+(`features/sleigh-ride/`). It flies the first time the Inbox is shown after 5pm, or after noon
+under Christmas Morning, never in a window's first second, and only once the Inbox is focused,
+visible, and at its top; an unfocused window freezes it mid-flight until focus returns. It covers
+no text or control, never takes the pointer or focus, and never flies under Reduce Motion. The
+day it flew is kept per device. In development, setting `haus.debug-sleigh` in localStorage
+forces a ride on the next Inbox show.
+
 Each theme also names an app icon (`appIcon`: the ghost, Halloween's pumpkin, or `santa`, the
 ghost in its nightcap, which both Christmas themes show), and `useThemeAppIcon`, mounted once by
 `ThemeProvider`, applies it outside the page. The browser tab's favicon links point at that icon's set: `index.html` links the
