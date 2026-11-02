@@ -4,11 +4,20 @@ import SwiftUI
 ///
 /// The anchor remains the canonical task title and the navigation bar names
 /// the Task by number, so this view renders only the Server-owned task fields.
+/// A Thread opened for a reply's task titles itself "Thread", so the card
+/// names its own number and is never read as the task the reader opened.
 struct ThreadTaskMetadataView: View {
     let task: TaskPresentation
+    var namesTask = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if namesTask {
+                LabeledContent("Task") {
+                    Text("#\(task.number)").font(.subheadline.weight(.semibold))
+                }
+            }
+
             LabeledContent("Status") {
                 TaskStatusLabel(status: task.status)
             }

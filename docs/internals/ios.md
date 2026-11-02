@@ -959,6 +959,12 @@ so the ingress states `Task #N · status` even under a hidden claim. The prefere
 like appearance — `@AppStorage` under the App's own `haus.chat.showTasks` key — and Settings →
 Preferences → **Show tasks in chat** is the switch.
 
+A task an Agent claimed on a Thread reply (`message.chatID != task.chatID`) has no Thread of its
+own, so it builds no preview; the reply itself carries `ThreadTaskMark` (`Task #N · status`) under
+the same visibility rule. Opening such a task goes through `TaskOpening`: it resolves the Thread's
+real anchor with `thread.get` and lands on the task message, where a top-level task opens the
+Thread anchored on itself.
+
 The Task list reads the Store's own Server-wide lens rather than a second copy of the same query,
 so a durable `task.created` or `task.updated` repaints it without a pull to refresh; only the
 widened background lens is the screen's, because it is a different question the reader asked for a

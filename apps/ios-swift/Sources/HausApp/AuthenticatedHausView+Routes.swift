@@ -181,16 +181,25 @@ extension AuthenticatedHausView {
     /// Tasks list pops, so this route leaves the canvas selection alone. The
     /// Thread needs no selection of its own: its route carries the parent Chat
     /// id and the Task carries the child Chat id.
+    ///
+    /// A task on a Thread message works in the Thread it sits in, so it opens
+    /// that Thread on its own anchor, which `thread.get` names, and lands on
+    /// the task message. It never opens a Thread anchored on the task message.
     func openTask(_ item: TaskListItem) {
-        guard let anchor = store.taskMessagePresentation(item) else { return }
-        pushThread(
-            ThreadSelection(
-                parentChatID: item.message.chatID,
-                threadChatID: item.task.threadChatID,
-                anchor: anchor
-            ),
-            selectingParent: nil
-        )
+        switch TaskOpening(item) {
+        case .anchoredThread(let parentChatID, let threadChatID):
+            guard let anchor = store.taskMessagePresentation(item) else { return }
+            pushThread(
+                ThreadSelection(parentChatID: parentChatID, threadChatID: threadChatID, anchor: anchor),
+                selectingParent: nil
+            )
+        case .containingThread(_, let threadChatID, let landingMessageID):
+            Task {
+                guard var selection = await store.threadSelection(threadChatID: threadChatID) else { return }
+                selection.taskMessageID = landingMessageID
+                pushThread(selection, selectingParent: nil)
+            }
+        }
     }
 
     /// Every Thread push, whichever row opened it. Nothing but the route is

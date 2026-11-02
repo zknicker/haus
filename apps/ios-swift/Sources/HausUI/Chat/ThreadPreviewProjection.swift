@@ -27,6 +27,25 @@ public enum ThreadPreviewProjection {
         )
     }
 
+    /// The preview a task's message carries before its Thread has a summary.
+    ///
+    /// A top-level task works in the Thread that would hang off its message,
+    /// so the message offers that way in before the first reply. A task on a
+    /// Thread message already sits in its work surface, and Threads never
+    /// nest, so it states no Thread of its own.
+    public static func taskThread(
+        _ task: MessageTask,
+        messageChatID: String
+    ) -> ThreadPreviewPresentation? {
+        guard !task.sitsInThread(messageChatID: messageChatID) else { return nil }
+        return ThreadPreviewPresentation(
+            threadChatID: task.threadChatID,
+            replyCount: 0,
+            unreadCount: 0,
+            recentReplies: []
+        )
+    }
+
     /// The task the ingress states, under the reader's Chat preference.
     ///
     /// An Agent's claim on a message is bookkeeping it keeps on its own work,

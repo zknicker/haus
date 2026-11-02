@@ -43,6 +43,10 @@ struct ThreadSelection: Hashable, Identifiable {
     let parentChatID: String
     var threadChatID: String?
     let anchor: MessagePresentation
+    /// The reply whose task this Thread was opened for
+    /// (`TaskOpening.containingThread`). The Thread lands on it instead of the
+    /// unread landing and always marks its task.
+    var taskMessageID: String?
 
     var id: String { anchor.id }
 }

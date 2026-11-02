@@ -8,7 +8,12 @@ extension ThreadDetailView {
             messageRow(message, emphasized: true)
                 .padding(.bottom, hasReplies ? 2 : 0)
         case .taskMetadata(let task, let hasReplies):
-            ThreadTaskMetadataView(task: task)
+            // Opened for a reply's task, the title no longer names the
+            // anchor's, so the card names its own.
+            ThreadTaskMetadataView(
+                task: task,
+                namesTask: ThreadOpening.opensForReplyTask(anchor: anchor, taskMessageID: taskMessageID)
+            )
                 .padding(.top, 12)
                 .padding(.bottom, hasReplies ? 2 : 0)
         case .inlineReplies(let isEmpty):
@@ -31,7 +36,7 @@ extension ThreadDetailView {
         case .threadHeader:
             ThreadRegionHeader(title: "Thread")
         case .reply(let message):
-            messageRow(message)
+            messageRow(message, marksTask: true, isOpenedTask: message.id == taskMessageID)
                 .padding(.top, 10)
         case .dayDivider(let date, _):
             TranscriptDayDivider(date: date)
@@ -41,11 +46,15 @@ extension ThreadDetailView {
 
     func messageRow(
         _ message: MessagePresentation,
-        emphasized: Bool = false
+        emphasized: Bool = false,
+        marksTask: Bool = false,
+        isOpenedTask: Bool = false
     ) -> ThreadMessageRow {
         ThreadMessageRow(
             message: message,
             emphasized: emphasized,
+            marksTask: marksTask,
+            isOpenedTask: isOpenedTask,
             onOpenAttachment: onOpenAttachment,
             preview: $attachmentPreview,
             tiles: attachmentTiles,

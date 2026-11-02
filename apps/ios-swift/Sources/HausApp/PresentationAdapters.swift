@@ -83,16 +83,12 @@ extension HausStore {
         )
         return page.messages.compactMap { message in
             guard let author = authorPresentation(message.author) else { return nil }
-            // Task records carry the canonical child Chat created with the task;
-            // ordinary messages only gain a child id once a Thread exists.
+            // A top-level task names the Thread anchored on it before the
+            // first reply; ordinary messages only gain a child id once a Thread
+            // exists, and a task inside a Thread has no Thread of its own.
             let thread = threadByAnchor[message.id].map(threadPresentation)
-                ?? message.task.map { task in
-                    ThreadPreviewPresentation(
-                        threadChatID: task.threadChatID,
-                        replyCount: 0,
-                        unreadCount: 0,
-                        recentReplies: []
-                    )
+                ?? message.task.flatMap { task in
+                    ThreadPreviewProjection.taskThread(task, messageChatID: message.chatID)
                 }
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
