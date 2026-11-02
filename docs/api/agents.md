@@ -262,7 +262,11 @@ activity first, at most 50, and `omitted` counts the matching rows the limit lef
 `POST /api/agent/tasks/create`, `/claim`, `/unclaim`, `/assign`, `/unassign`, and `/update`
 mutate tasks. Every task row carries `version`, the revision `haus task list` prints as `rev=`. `claim` takes
 `target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no task
-promotes the message first, so the claim is what creates the task. A `heartbeat` or `dream` run
+promotes the message first, so the claim is what creates the task. `target` may be a Thread
+target (`#channel:anchorShort`, `dm:@peer:anchorShort`): a Thread message is claimed in place and
+numbered by the Thread's parent, and `numbers` resolve against that parent from either target.
+`create` refuses a Thread target, and a `create` assigned to the caller is `origin` `claimed`.
+A `heartbeat` or `dream` run
 may not claim (`403 REGULAR_TURN_REQUIRED`); it claims leads instead.
 
 `create` takes `{ target, content | titles, assignee?, nonce }`. The `nonce` (1–128) is the
