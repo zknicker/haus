@@ -42,6 +42,10 @@ export const messageTaskSchema = z
     .object({
         /** Tasks are Agent work (ADR 0037): only an Agent ever holds one. */
         assigneeAgentId: taskIdSchema.nullable(),
+        /**
+         * The task's top-level Channel or DM, which numbers it. A task on a
+         * Thread message names that Thread's parent here.
+         */
         chatId: taskIdSchema,
         claimedAt: z.iso.datetime({ offset: true }).nullable(),
         createdAt: z.iso.datetime({ offset: true }),
@@ -55,6 +59,11 @@ export const messageTaskSchema = z
         origin: z.enum(taskOrigins),
         priority: z.enum(taskPriorities),
         status: z.enum(taskStatuses),
+        /**
+         * Where the task's work happens: the Thread its message sits in, or for
+         * a top-level message the Thread anchored on it (empty until a reply).
+         * A Thread task's message has `chatId !== task.chatId`.
+         */
         threadChatId: taskIdSchema,
         tier: z.enum(taskTiers),
         updatedAt: z.iso.datetime({ offset: true }),

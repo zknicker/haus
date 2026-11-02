@@ -10,9 +10,13 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
-import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { projectMessageTasks } from './task-shape.ts';
+import {
+    type TaskWorkThreadRow,
+    taskWorkThreadAnchorId,
+    taskWorkThreadChatId,
+} from './task-work-thread.ts';
 
 /**
  * The Board and List lens. Background claims are an Agent's own bookkeeping,
@@ -62,8 +66,10 @@ export async function listTasks(
         .where(and(...predicates))
         .orderBy(desc(messageTasksTable.updatedAt));
 
+    // A task's chat is always its top-level Channel or DM, Thread tasks included.
     const visible = rows.filter((row) => row.chatKind === 'channel' || row.chatKind === 'dm');
     const messageIds = visible.map((row) => row.task.messageId);
+    const workAnchorIds = [...new Set(visible.map((row) => taskWorkThreadAnchorId(row.task)))];
     const [projected, bodies, works, images, reactions, summaries] = await Promise.all([
         projectMessageTasks(
             db,
@@ -75,12 +81,12 @@ export async function listTasks(
         readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         listThreadSummaries(db, member, {
-            anchorMessageIds: messageIds,
+            anchorMessageIds: workAnchorIds,
             serverId: input.serverId,
         }),
     ]);
     const taskByMessageId = new Map(projected.map((task) => [task.messageId, task]));
-    const summaryByMessageId = new Map(
+    const summaryByAnchorId = new Map(
         summaries.map((summary) => [summary.anchorMessageId, summary])
     );
     const tasks: TaskListItem[] = [];
@@ -108,9 +114,10 @@ export async function listTasks(
                 task,
             },
             task,
+            // A Thread task's summary is the Thread it sits in.
             threadSummary:
-                summaryByMessageId.get(row.task.messageId) ??
-                emptyThreadSummary(row.task.messageId),
+                summaryByAnchorId.get(taskWorkThreadAnchorId(row.task)) ??
+                emptyThreadSummary(row.task),
         });
     }
     return { backgroundCount, tasks };
@@ -120,14 +127,14 @@ export async function listTasks(
  * A task whose Thread nobody has replied in yet has no Thread row, and its work
  * surface reads as exactly that: no replies, nothing unread, nothing followed.
  */
-function emptyThreadSummary(anchorMessageId: string): ThreadSummary {
+function emptyThreadSummary(task: TaskWorkThreadRow): ThreadSummary {
     return {
-        anchorMessageId,
+        anchorMessageId: taskWorkThreadAnchorId(task),
         followed: false,
         latestReplyAt: null,
         recentReplies: [],
         replyCount: 0,
-        threadChatId: threadChatIdForAnchor(anchorMessageId),
+        threadChatId: taskWorkThreadChatId(task),
         unreadCount: 0,
     };
 }

@@ -7,14 +7,19 @@ import {
     chatMessagesTable,
     chatsTable,
 } from '../postgres/schema.ts';
-import { threadChatIdForAnchor } from '../threads/thread-id.ts';
+import { type TaskWorkThreadRow, taskWorkThreadChatId } from '../tasks/task-work-thread.ts';
 
+/**
+ * Whether the task's work Thread holds context from someone else that this
+ * Agent has not seen: the Thread anchored on a top-level task, or the Thread a
+ * Thread task sits in.
+ */
 export async function hasUnseenTaskThreadContext(
     db: HausDatabase,
     runner: ResolvedRunner,
-    messageId: string
+    task: TaskWorkThreadRow
 ) {
-    const threadChatId = threadChatIdForAnchor(messageId);
+    const threadChatId = taskWorkThreadChatId(task);
     const [thread] = await db
         .select({ latest: chatsTable.lastMessageSequence })
         .from(chatsTable)

@@ -32,10 +32,14 @@ test('auth migration rolls back on unresolved owners and supports forward-recove
         await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
         const journalPath = join(folder, 'meta/_journal.json');
         const journal = JSON.parse(await readFile(journalPath, 'utf8'));
-        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 101);
+        const allEntries = journal.entries;
+        journal.entries = allEntries.filter((entry: { idx: number }) => entry.idx <= 101);
         await writeFile(journalPath, JSON.stringify(journal));
         await clusterDatabase.unsafe('CREATE DATABASE haus_auth_migration_test');
         await migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus', folder);
+        // Later migrations stay out: the 0102 rollback refuses once any are applied.
+        journal.entries = allEntries.filter((entry: { idx: number }) => entry.idx <= 102);
+        await writeFile(journalPath, JSON.stringify(journal));
         database = new SQL(databaseUrl.toString());
         await seedLegacyIdentity(database);
         const receiptPath = join(folder, 'identity-import.json');
@@ -52,9 +56,9 @@ test('auth migration rolls back on unresolved owners and supports forward-recove
         runIdentityImport('--stage', receiptPath, databaseUrl.toString());
         runIdentityImport('--stage', receiptPath, databaseUrl.toString());
 
-        await expect(migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus')).rejects.toThrow(
-            /unresolved legacy Clerk identity/u
-        );
+        await expect(
+            migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus', folder)
+        ).rejects.toThrow(/unresolved legacy Clerk identity/u);
         expect(
             await database`SELECT clerk_user_id FROM users WHERE id = 'usr_aaaaaaaaaaaaaaaa'`
         ).toEqual([{ clerk_user_id: legacySubject }]);
@@ -67,7 +71,7 @@ test('auth migration rolls back on unresolved owners and supports forward-recove
         const computerCredentials = await database`
             SELECT id, access_token_hash, refresh_token_hash FROM computer_login_sessions
         `;
-        expect(await migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus')).toEqual([
+        expect(await migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus', folder)).toEqual([
             '0102_cloudflare-human-auth',
         ]);
         await expectCanonicalAuthSchema(database);
@@ -113,7 +117,7 @@ test('auth migration rolls back on unresolved owners and supports forward-recove
 
         runIdentityImport('--check', receiptPath, databaseUrl.toString());
         runIdentityImport('--stage', receiptPath, databaseUrl.toString());
-        expect(await migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus')).toEqual([
+        expect(await migrateHausDatabase(databaseUrl.toString(), 'haus', 'haus', folder)).toEqual([
             '0102_cloudflare-human-auth',
         ]);
         await expectCanonicalAuthSchema(database);

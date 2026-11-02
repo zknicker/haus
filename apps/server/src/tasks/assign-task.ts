@@ -130,6 +130,7 @@ export async function assignTask(
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
+            threadChatId: current.threadChatId,
             type: 'task.updated',
         });
         const events: PreparedRealtimeEvent[] = taskEvent ? [taskEvent] : [];

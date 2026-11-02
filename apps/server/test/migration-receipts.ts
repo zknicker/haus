@@ -43,4 +43,5 @@ export const migrationsSince0060 = [
     '0100_heartbeat-checks',
     '0101_kittl-preset',
     '0102_cloudflare-human-auth',
+    '0103_thread-message-tasks',
 ];

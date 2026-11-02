@@ -43,7 +43,11 @@ export async function taskRows(
     );
     // Sequential: `db` is often the caller's transaction connection.
     const targets = new Map<string, string>();
-    for (const chatId of new Set(rows.map((row) => row.task.chatId))) {
+    // A task's target is the Chat its message sits in: the top-level Channel or
+    // DM, or for a Thread task its Thread (`dm:@x:<anchor>`), which also finds
+    // the task by number because a Thread target numbers through its parent.
+    const chatIds = rows.map(({ task }) => task.threadChatId ?? task.chatId);
+    for (const chatId of new Set(chatIds)) {
         targets.set(chatId, await targetForChat(db, runner.serverId, chatId));
     }
     return rows.map(({ task }, index) => ({
@@ -51,7 +55,7 @@ export async function taskRows(
         message: messages[index] as (typeof messages)[number],
         number: task.number,
         status: task.status,
-        target: targets.get(task.chatId) ?? '#unknown',
+        target: targets.get(task.threadChatId ?? task.chatId) ?? '#unknown',
         version: task.version,
     }));
 }

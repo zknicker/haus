@@ -120,7 +120,8 @@ export const taskMutationSchema = z
 /**
  * `task.onChanged`: a task was created on, or changed on, its Message. Chat
  * access scoped. Ids only: the App invalidates that Message entry (`chat.message`)
- * and `task.list`.
+ * and `task.list`. `chatId` is the Message's Chat: for a Thread task, its
+ * Thread, not the task's own top-level `chatId`.
  */
 export const taskChangedEventSchema = z
     .object({

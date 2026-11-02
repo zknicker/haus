@@ -11,10 +11,9 @@ import {
     taskStatusColumns,
 } from '../tasks/task-status-transitions.ts';
 import { messageSelection } from './message-view.ts';
-import { resolveAgentTarget } from './resolve-target.ts';
 import { AgentTaskError } from './task-error.ts';
 import { hasUnseenTaskThreadContext } from './task-freshness.ts';
-import { findAgentTasks } from './task-lookup.ts';
+import { findAgentTasks, resolveAgentTaskTarget } from './task-lookup.ts';
 import { taskRow } from './task-row.ts';
 
 export async function unclaimAgentTask(
@@ -22,8 +21,8 @@ export async function unclaimAgentTask(
     runner: ResolvedRunner,
     input: { number: number; target: string }
 ) {
-    const chatId = await resolveAgentTarget(db, runner, input.target);
-    const [task] = await findAgentTasks(db, runner, chatId, { numbers: [input.number] });
+    const { taskChatId } = await resolveAgentTaskTarget(db, runner, input.target);
+    const [task] = await findAgentTasks(db, runner, taskChatId, { numbers: [input.number] });
     return await mutateAgentTask(db, runner, task.messageId, task.version, 'unclaim');
 }
 
@@ -32,8 +31,8 @@ export async function updateAgentTask(
     runner: ResolvedRunner,
     input: { number: number; status: TaskStatus; target: string }
 ) {
-    const chatId = await resolveAgentTarget(db, runner, input.target);
-    const [task] = await findAgentTasks(db, runner, chatId, { numbers: [input.number] });
+    const { taskChatId } = await resolveAgentTaskTarget(db, runner, input.target);
+    const [task] = await findAgentTasks(db, runner, taskChatId, { numbers: [input.number] });
     return await mutateAgentTask(db, runner, task.messageId, task.version, 'update', input.status);
 }
 
@@ -89,6 +88,7 @@ async function mutateAgentTask(
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: runner.serverId,
+            threadChatId: current.threadChatId,
             type: 'task.updated',
         });
         const [next] = await tx
@@ -133,7 +133,7 @@ async function requireMayMutate(
         }
         return;
     }
-    if (await hasUnseenTaskThreadContext(tx, runner, current.messageId)) {
+    if (await hasUnseenTaskThreadContext(tx, runner, current)) {
         throw new AgentTaskError(
             'New context exists in this task thread. Run haus message check before retrying.'
         );
