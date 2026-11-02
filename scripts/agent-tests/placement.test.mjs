@@ -72,6 +72,8 @@ test('a found-the-kit result names at least two seeded rules', () => {
 test('thread targets carry a message short ID', () => {
     expect(isThreadTarget('#all:1a2b3c4d')).toBe(true);
     expect(isThreadTarget('dm:@zach:1a2b3c4d')).toBe(true);
+    expect(isThreadTarget('dm:@zach:-NSrvCA3')).toBe(true);
+    expect(isThreadTarget('#all:Id0_WvSZ')).toBe(true);
     expect(isThreadTarget('#all')).toBe(false);
     expect(isThreadTarget('dm:@zach')).toBe(false);
 });
