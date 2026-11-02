@@ -19,6 +19,9 @@ services:
     restart: unless-stopped
     stop_signal: SIGINT
     stop_grace_period: 60s
+    # CVE-2026-98432: MPTCP is per network namespace; host-off is not enough.
+    sysctls:
+      net.mptcp.enabled: "0"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

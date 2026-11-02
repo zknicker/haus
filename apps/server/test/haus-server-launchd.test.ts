@@ -84,6 +84,7 @@ test('ships one private PostgreSQL Compose service with durable state', () => {
     expect(postgres?.ports).toEqual(['127.0.0.1:5438:5432']);
     expect(postgres?.restart).toBe('unless-stopped');
     expect(postgres?.stop_signal).toBe('SIGINT');
+    expect(postgres?.sysctls).toEqual({ 'net.mptcp.enabled': '0' });
     expect(postgres?.volumes).toEqual(['postgres_data:/var/lib/postgresql/data']);
     expect(compose.volumes.postgres_data?.name).toBe('haus_postgres_data');
     expect((postgres?.environment as Record<string, string>).POSTGRES_PASSWORD).toBe(
