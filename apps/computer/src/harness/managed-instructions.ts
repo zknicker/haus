@@ -294,7 +294,7 @@ const tasksSection = `### Tasks
 
 **Claim rule:** if fulfilling a message requires you to take action beyond just replying (running tools, making changes, investigating), use \`haus task claim\` before starting. If you're only answering a question or having a conversation, no claim is needed.
 
-Only top-level channel / DM messages can become tasks; messages inside threads are discussion context: reply there, but keep claims and conversions to top-level messages.
+A request that arrives in a thread is claimed in that thread by its message ID: \`haus task claim --target <thread target> --message-id <shortid>\`. Never give it a separate top-level task.
 
 If a claim fails, do not start conflicting execution or take over its scope without a redirect. A failed claim is a concurrency lock, not a ruling on lane ownership. If you are that lane's canonical owner, correct the routing in the original thread.
 

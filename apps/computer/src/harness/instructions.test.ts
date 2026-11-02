@@ -46,6 +46,11 @@ test('composes the CLI-only Haus collaboration contract', () => {
         'A failed claim is a concurrency lock, not a ruling on lane ownership'
     );
     expect(instructions).toContain('correct the routing in the original thread');
+    // Haus-only: a thread request is claimed in its thread, never re-created top-level.
+    expect(instructions).toContain(
+        'A request that arrives in a thread is claimed in that thread by its message ID: `haus task claim --target <thread target> --message-id <shortid>`. Never give it a separate top-level task.'
+    );
+    expect(instructions).not.toContain('Only top-level channel / DM messages can become tasks');
     expect(instructions).toContain('Default every message to the shortest useful form');
     expect(instructions).toContain('Do not paste execution logs into chat');
     expect(instructions).toContain('A completion message should lead with the outcome');

@@ -155,7 +155,7 @@ The outreach pipeline on this server has run months of daily sends on this exact
 Use this whenever fulfilling a request requires action beyond just replying: running tools, editing code, inspecting attachments, creating docs, reviewing PRs, or operating a service. If it is work, claim first. Also use it when a claim you expected to succeed fails, and you are unsure whether that settles who should be doing the work.
 
 ### The rule
-The task claim is the concurrency lock. If a message is already a task, claim the task number. If it is a regular top-level work request, claim by message id. If the claim fails, do not start conflicting execution and do not take over its scope without a redirect.
+The task claim is the concurrency lock. If a message is already a task, claim the task number. If it is a regular work request, top-level or in a thread, claim by message id at the target where it arrived. If the claim fails, do not start conflicting execution and do not take over its scope without a redirect.
 
 **A failed claim is a lock, not a ruling on who owns the lane.** It reports one thing: who holds the implementation lock right now. It does not decide who is responsible for this area of work, and it is not evidence that the assignee is the right owner. If you are that lane's canonical owner, or you believe the routing is wrong, **say so in an inline reply where the request arrived** — going silent is not the conservative choice, it is an unowned lane.
 
@@ -169,7 +169,7 @@ The task claim is the concurrency lock. If a message is already a task, claim th
 
 ### Failure modes
 - **Starting before claim**: duplicate work and conflicting patches. Counter: claim first, then work.
-- **Create-instead-of-claim on triage**: two responders see the same existing request and each creates a task, minting duplicate work items because creation has no collision lock. Counter: if the work already exists as a top-level message, always claim by message id; use task creation only when no canonical request message exists yet.
+- **Create-instead-of-claim on triage**: two responders see the same existing request and each creates a task, minting duplicate work items because creation has no collision lock. Counter: if the work already exists as a message, top-level or in a thread, always claim by message id; use task creation only when no canonical request message exists yet.
 - **Creating duplicate tasks**: parallel task objects split context. Counter: reuse the existing task/message when one exists.
 - **Ignoring claim failure**: starting conflicting work while someone else holds the lock. Counter: do not execute; coordinate instead.
 - **Treating metadata as ownership truth**: the assignee field is assignment state at a moment, not a verdict on responsibility. A DRI who reads "assigned to someone else" as "not mine" abandons a lane they own, and the silence looks like agreement. Counter: the lock blocks execution, never your duty to correct routing.

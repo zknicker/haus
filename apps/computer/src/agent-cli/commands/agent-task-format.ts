@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { agentMessageSchema, taskActorSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
+import { isThreadTarget } from '../agent-render.ts';
 
 export const taskRowSchema = z.object({
     assignee: taskActorSchema.nullable(),
@@ -48,7 +49,8 @@ export function formatTasksCreated(tasks: TaskRow[], fallbackTarget: string): st
  * One row per requested task. Granted rows name the inline reply to the task's
  * message as a fact of the task, never its task thread and never routing
  * advice: the requester follows that thread, so every post there becomes
- * their unread (ADR 0029).
+ * their unread (ADR 0029). A Thread task's message sits in a Thread, which
+ * refuses `--reply-to`, so its row names that Thread's target instead.
  */
 export function formatTaskClaims(results: TaskClaimResult[], fallbackTarget: string): string {
     const counts = [
@@ -95,10 +97,15 @@ function claimLine(row: TaskClaimResult, fallbackTarget: string) {
         return `#${row.number}${id}: refused — ${refusalReason(row)}`;
     }
     const outcome = row.outcome === 'claimed' ? 'claimed' : 'already yours';
-    const reply = row.task
-        ? ` · inline reply --target "${row.task.target ?? fallbackTarget}" --reply-to ${shortMessageId(row.task.message.id)}`
-        : '';
+    const reply = row.task ? ` · ${replyFact(row.task, fallbackTarget)}` : '';
     return `#${row.number}${id}: ${outcome}${reply}`;
+}
+
+function replyFact(task: TaskRow, fallbackTarget: string) {
+    const target = task.target ?? fallbackTarget;
+    return isThreadTarget(target)
+        ? `thread reply --target "${target}", no --reply-to`
+        : `inline reply --target "${target}" --reply-to ${shortMessageId(task.message.id)}`;
 }
 
 function refusalReason(row: TaskClaimResult) {
@@ -115,8 +122,10 @@ function countLabel(
     return count > 0 ? `${count} ${label}` : '';
 }
 
+/** A Thread task's thread address is the Thread it sits in, whose target the row carries. */
 function threadRef(task: TaskRow, fallbackTarget: string) {
-    return `"${task.target ?? fallbackTarget}:${shortMessageId(task.message.id)}"`;
+    const target = task.target ?? fallbackTarget;
+    return `"${isThreadTarget(target) ? target : `${target}:${shortMessageId(task.message.id)}`}"`;
 }
 
 function taskLine(task: TaskRow): string {

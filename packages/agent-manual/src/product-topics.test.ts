@@ -222,6 +222,20 @@ test('publishes the tasks topic the prompt points to for task mechanics', () => 
     );
     expect(tasks?.body).toContain('The receipt is not a second task.');
     expect(tasks?.body).toContain('claim that message instead of creating a new one');
+    // A thread request is claimed in its thread, never re-created top-level.
+    expect(tasks?.body).not.toContain('Messages inside threads are discussion context');
+    expect(tasks?.body).toContain(
+        'A request that arrived in a thread is claimed at that thread\'s target by its message ID, `haus task claim --target "#channel:abc12345" --message-id def67890`, never re-created as a top-level task'
+    );
+    expect(tasks?.body).toContain(
+        "A thread task takes its number from the thread's channel or DM."
+    );
+    expect(tasks?.body).toContain(
+        'A task title is the work in plain words: people read the task message, so it never carries targets, message IDs, or source references.'
+    );
+    expect(getManualTopic('recipes/technique/task-claim-lock')?.body).toContain(
+        'If it is a regular work request, top-level or in a thread, claim by message id'
+    );
     expect(
         searchManualTopics('task create assignee', { limit: 5, scope: 'all' }).map(({ id }) => id)
     ).toContain('tasks');
