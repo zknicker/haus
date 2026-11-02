@@ -18,9 +18,15 @@ export default defineScenario({
         const [worker] = agents;
         const channel = await kit.createChannel({ agentIds: [worker.id] });
 
-        // An unmentioned human anchor, as in thread-reply-stays-in-thread.
+        // The anchor is the Agent's own earlier post: a human anchor in a
+        // one-Agent channel is addressed to it, and the Agent claims it too.
         log('anchoring the Thread');
-        const anchor = await kit.harness.send(channel.id, `Bluebird launch numbers ${kit.stamp}`);
+        const anchor = await kit.authorAsAgent(
+            worker.id,
+            `#${channel.name}`,
+            `Bluebird launch numbers ${kit.stamp} are up.`,
+            { chatId: channel.id }
+        );
 
         await runThreadClaim(context, {
             anchorMessageId: anchor.message.id,
