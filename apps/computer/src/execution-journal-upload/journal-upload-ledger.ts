@@ -71,6 +71,10 @@ export async function markJournalSynced(
     );
 }
 
+export async function isJournalSynced(agentRoot: string, runId: string): Promise<boolean> {
+    return await stat(markerPath(agentRoot, runId)).then(() => true, whenMissing(false));
+}
+
 export async function clearJournalSynced(agentRoot: string, runId: string): Promise<void> {
     await rm(markerPath(agentRoot, runId), { force: true });
 }

@@ -30,6 +30,7 @@ import {
 import { fitRecord, packFrames } from './journal-upload-frames.ts';
 import {
     clearJournalSynced,
+    isJournalSynced,
     listUnsyncedJournals,
     markJournalSynced,
     type UnsyncedJournal,
@@ -240,9 +241,13 @@ export class ExecutionJournalUploader {
     /** Uploads one run whole from disk and waits until the Server stored it. */
     private async resend(journal: UnsyncedJournal): Promise<void> {
         const key = runKey(journal.agentId, journal.runId);
-        const document = this.runs.has(key)
-            ? null
-            : await readComputerExecutionJournal(journal.agentRoot, journal.runId);
+        // A live upload the Server stored after this pass listed it is settled, not lost:
+        // its mark is queued on the ledger, so wait for it rather than resend into silence.
+        await this.ledger;
+        if (this.runs.has(key) || (await isJournalSynced(journal.agentRoot, journal.runId))) {
+            return;
+        }
+        const document = await readComputerExecutionJournal(journal.agentRoot, journal.runId);
         if (!document || this.runs.has(key)) {
             return;
         }
