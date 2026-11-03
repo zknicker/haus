@@ -9,6 +9,8 @@ const sendReceiptSchema = z.object({
     session_id: sessionIdSchema,
     url: z.url(),
 });
+const terminalTailLines = 20;
+const terminalTailCharacters = 4000;
 
 export interface ClaudeCloudReceipt {
     sessionId: string;
@@ -67,8 +69,10 @@ export async function launchNativeClaudeCloud(input: {
         const match = output.match(/https:\/\/claude\.ai\/code\/(session_[A-Za-z0-9]+)/u);
         const sessionId = sessionIdSchema.safeParse(match?.[1]);
         if (exitCode !== 0 || !sessionId.success) {
-            // The launch owner settles this failed attempt and notifies its delegating Agent.
-            throw new Error('Claude Code did not report the hosted session it started.');
+            // The launch owner settles this failed attempt and logs Claude's own words on this Computer.
+            throw new Error(
+                `Claude Code did not report the hosted session it started (exit ${exitCode}). Terminal output:\n${terminalTail(output)}`
+            );
         }
         return { sessionId: sessionId.data, url: `https://claude.ai/code/${sessionId.data}` };
     } finally {
@@ -116,6 +120,19 @@ export async function sendNativeClaudeCloud(input: {
         throw new Error('Claude Code delivered the follow-up to a different session.');
     }
     return { sessionId, url: receipt.url };
+}
+
+/**
+ * The last readable lines the launcher printed. Column moves stand in for
+ * spaces in Claude's TUI, so they become spaces before the codes are stripped.
+ */
+export function terminalTail(output: string): string {
+    const lines = stripVTControlCharacters(output.replace(/\u001b\[\d*[CG]/gu, ' '))
+        .split(/\r\n|\r|\n/u)
+        .map((line) => line.replace(/\s+/gu, ' ').trim())
+        .filter((line) => line.length > 0);
+    const tail = lines.slice(-terminalTailLines).join('\n');
+    return tail.length > 0 ? tail.slice(-terminalTailCharacters) : '(no output)';
 }
 
 function asksForFolderTrust(output: string): boolean {
