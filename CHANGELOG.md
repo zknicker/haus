@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.6.1 - 2026-11-03
+
+- Heartbeats and background sub-agent tracking work again on hosted Haus.
+- Haus Computer 13.0.1 no longer stalls uploading an Agent's run history when the Server has just stored that run.
+
 ## v16.6.0 - 2026-11-03
 
 - Claude Code Agents can start sub-agents that keep working in the background after the turn ends, and stay reachable in chat meanwhile. When a sub-agent finishes, its Agent wakes to pick up the result. An Agent's hover card shows how many sub-agents it has running, for example "Online · 2 sub-agents running".
