@@ -84,6 +84,7 @@ beforeEach(async () => {
         hausAgentStatus: 'current',
         hausAgentVersion: null,
         instructionFingerprint: null,
+        launchedInstructionFingerprint: null,
         resumeState: mainResume,
         runtimeSessionId: 'main_session',
     });

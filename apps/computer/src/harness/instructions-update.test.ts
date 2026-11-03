@@ -101,21 +101,59 @@ test('an update leads the turn with the full current instructions, marked as rep
     expect(withInstructionsUpdate({ kind: 'deferred' }, 'Hello there')).toBe('Hello there');
 });
 
+const stored = {
+    deliveredInstructionFingerprint: 'old_stable',
+    instructionFingerprint: 'old',
+    launchedInstructionFingerprint: 'launch_stable',
+};
+const composed = { fingerprint: 'new', stableFingerprint: 'new_stable' };
+const inject: InstructionsUpdatePlan = { block: 'b', kind: 'inject' };
+
+function receipt(plan: InstructionsUpdatePlan, turn: { compacted?: boolean; completed?: boolean }) {
+    return deliveredInstructionReceipt(plan, stored, composed, {
+        compacted: turn.compacted ?? false,
+        completed: turn.completed ?? true,
+    });
+}
+
 test('only a delivery advances the receipt', () => {
-    const stored = { deliveredInstructionFingerprint: 'old_stable', instructionFingerprint: 'old' };
-    const composed = { fingerprint: 'new', stableFingerprint: 'new_stable' };
     const advanced = {
         deliveredInstructionFingerprint: 'new_stable',
         instructionFingerprint: 'new',
     };
-    const receipt = (plan: InstructionsUpdatePlan, completed = true) =>
-        deliveredInstructionReceipt(plan, stored, composed, { completed });
 
-    expect(receipt({ kind: 'fresh' })).toEqual(advanced);
-    expect(receipt({ block: 'b', kind: 'inject' })).toEqual(advanced);
-    expect(receipt({ kind: 'deferred' })).toEqual(stored);
-    expect(receipt({ kind: 'current' })).toEqual(stored);
+    expect(receipt({ kind: 'fresh' }, {})).toEqual({
+        ...advanced,
+        launchedInstructionFingerprint: 'new_stable',
+    });
+    expect(receipt(inject, {})).toEqual({ ...stored, ...advanced });
+    expect(receipt({ kind: 'deferred' }, {})).toEqual(stored);
+    expect(receipt({ kind: 'current' }, {})).toEqual(stored);
     // A launch delivers even when its turn is interrupted; an interrupted update may not have.
-    expect(receipt({ kind: 'fresh' }, false)).toEqual(advanced);
-    expect(receipt({ block: 'b', kind: 'inject' }, false)).toEqual(stored);
+    expect(receipt({ kind: 'fresh' }, { completed: false })).toMatchObject(advanced);
+    expect(receipt(inject, { completed: false })).toEqual(stored);
+});
+
+test('a compaction sets the receipt back to the launch instructions', () => {
+    const launched = { deliveredInstructionFingerprint: 'launch_stable' };
+
+    expect(receipt({ kind: 'current' }, { compacted: true })).toMatchObject(launched);
+    expect(receipt({ kind: 'deferred' }, { compacted: true })).toMatchObject(launched);
+    // Compacted on the update turn itself: the update may be gone, so it goes again.
+    expect(receipt(inject, { compacted: true })).toMatchObject(launched);
+    expect(receipt(inject, { compacted: true, completed: false })).toMatchObject(launched);
+    // A session launched in this turn is on the current instructions either way.
+    expect(receipt({ kind: 'fresh' }, { compacted: true })).toMatchObject({
+        deliveredInstructionFingerprint: 'new_stable',
+        launchedInstructionFingerprint: 'new_stable',
+    });
+    // A session that predates the launch record re-delivers after any compaction.
+    expect(
+        deliveredInstructionReceipt(
+            { kind: 'current' },
+            { ...stored, launchedInstructionFingerprint: null },
+            composed,
+            { compacted: true, completed: true }
+        ).deliveredInstructionFingerprint
+    ).toBeNull();
 });

@@ -35,6 +35,12 @@ export interface AgentSessionState {
      * user declining it. Any completed turn clears it.
      */
     interruptedTurn?: true;
+    /**
+     * The stable instruction fingerprint this native session launched on, written by its fresh
+     * launch. A compaction can drop a delivered update, so a compacted turn sets the delivery
+     * receipt back to this. Null means unknown: a session that predates the record.
+     */
+    launchedInstructionFingerprint: string | null;
     resumeState: RuntimeResumeState | null;
     runtimeSessionId: string | null;
 }
@@ -71,6 +77,9 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
                 hausAgentStatus: parseHausAgentStatus(parsed.hausAgentStatus),
                 hausAgentVersion: parseSemver(parsed.hausAgentVersion),
                 instructionFingerprint: parseFingerprint(parsed.instructionFingerprint),
+                launchedInstructionFingerprint: parseFingerprint(
+                    parsed.launchedInstructionFingerprint
+                ),
             };
         }
         return null;
@@ -115,6 +124,7 @@ export function resolveTurnSession(
             hausAgentStatus: 'pending',
             hausAgentVersion: null,
             instructionFingerprint: null,
+            launchedInstructionFingerprint: null,
             resumeState: null,
             runtimeSessionId: null,
         };

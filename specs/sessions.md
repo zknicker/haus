@@ -142,6 +142,14 @@ the way Raft does (`standingPromptRefresh.ts`), at the executor for every runtim
   carries the block again.
 - A sub-agent wake neither carries nor records it, because Claude Code's adopted wake turn replaces
   the prompt; the next ordinary turn does.
+- The block is ordinary conversation history, so the runtime's own context compaction can
+  summarize it away. A fresh launch also records `launchedInstructionFingerprint`, and any turn
+  whose stream reports a compaction (the drivers' reserved `compaction` tool event) sets the record
+  back to it, wherever in the turn the compaction fell. The next turn then carries the block again
+  unless the launch instructions are still current. This is conservative for Claude Code, which
+  re-records its system prompt from the compacting process's launch instructions; Codex rebuilds
+  from the instructions its thread kept. A session without a launch record re-delivers after every
+  compaction until it rotates.
 - The `updating_instructions` activity shows on a resumed turn that carries the block, a Restart,
   bootstrap drift, or Haus Agent version drift that turn can apply.
 

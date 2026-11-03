@@ -65,7 +65,8 @@ model session. Per-turn message delivery is an inbox concern; see
   remain visible as failed instruction-update activity while the turn continues.
 - Fingerprints advance only after the refreshed turn successfully detaches with new resume state,
   and the instruction receipt only on a turn that launched on or carried the current instructions
-  (a sub-agent wake defers the update to the next ordinary turn).
+  (a sub-agent wake defers the update to the next ordinary turn). A turn the runtime compacted sets
+  the receipt back to the launch instructions, since compaction can summarize the update away.
   A bootstrap or turn failure keeps the previous receipt and session generation so a later delivery
   can retry. Only rejection of the stored native resume state enters Server-authorized session
   recovery; Computer never silently discards conversation context.

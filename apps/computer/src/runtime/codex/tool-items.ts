@@ -1,5 +1,5 @@
 import { unwrapShell } from '../../harness/haus-cli-command.ts';
-import type { TurnEvent } from '../turn-event.ts';
+import { compactionToolName, type TurnEvent } from '../turn-event.ts';
 import type { CodexItem } from './protocol.ts';
 
 export interface ToolItemContext {
@@ -44,7 +44,9 @@ export function toolItemStarted(item: CodexItem, context: ToolItemContext): Turn
         case 'imageGeneration':
             return [{ ...builtin(id, 'image_gen'), input: { id }, type: 'tool-call' }];
         case 'contextCompaction':
-            return [{ ...builtin(id, 'compaction'), dynamic: true, input: {}, type: 'tool-call' }];
+            return [
+                { ...builtin(id, compactionToolName), dynamic: true, input: {}, type: 'tool-call' },
+            ];
         case 'collabAgentToolCall':
             return [
                 {
@@ -103,7 +105,7 @@ export function toolItemCompleted(item: CodexItem, context: ToolItemContext): Tu
         case 'imageGeneration':
             return [imageResult(item, id)];
         case 'contextCompaction':
-            return [result({ ...builtin(id, 'compaction'), dynamic: true }, {}, false)];
+            return [result({ ...builtin(id, compactionToolName), dynamic: true }, {}, false)];
         case 'collabAgentToolCall':
             return [result(builtin(id, 'collab_agent'), { status: item.status }, failed)];
         default:

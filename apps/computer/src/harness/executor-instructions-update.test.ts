@@ -1,9 +1,8 @@
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { hausAgentVersion } from '@haus/api';
-import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import type { TurnEvent } from '../runtime/turn-event.ts';
@@ -12,15 +11,21 @@ import {
     runHarnessTurn,
     setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
+import {
+    instructionsTurnInput,
+    instructionsWakeInput,
+    readSessionFile,
+    type TestTurnOverrides,
+    updateOpening,
+    updateTag,
+    writeSessionFile,
+} from './executor-instructions-fixtures.ts';
 import { harnessSessionOwner } from './session-lifecycle.ts';
 import type { AgentSessionState } from './session-store.ts';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
-const updateOpening =
-    '<haus-instructions-update>\nHaus updated your standing instructions since this session started. The instructions below replace the earlier standing instructions (system or developer prompt) for the rest of this session; where they differ, follow these.\n\n';
-const updateTag = '<haus-instructions-update>';
 const productVersion = process.env.HAUS_COMPUTER_PRODUCT_VERSION;
 
 let agentRoot: string;
@@ -216,68 +221,18 @@ test('a sub-agent wake neither carries nor records an update; the next ordinary 
     expect(await readSession()).toMatchObject({ hausAgentStatus: 'current', hausAgentVersion });
 });
 
-type TestTurnOverrides = Partial<Omit<HarnessTurnInput, 'activity'>> & { activity?: string[] };
-
 function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
-    const { activity, ...rest } = overrides;
-    return {
-        activity: new AgentActivityRun(runtime, ({ category, phase }) =>
-            activity?.push(`${category}:${phase}`)
-        ),
-        agentId: 'agt_test',
-        agentName: 'Cove',
-        agentRoot,
-        dataRoot: agentRoot,
-        drainItemIds: ['msg_test'],
-        env: {},
-        factoryKind: 'ordinary',
-        homeDir: join(agentRoot, 'home'),
-        homeTimezone: 'UTC',
-        inbox: [
-            {
-                chatId: 'cht_test',
-                content: 'Hello Cove',
-                createdAt: '2026-07-27T00:00:00.000Z',
-                id: 'msg_test',
-                senderHandle: 'operator',
-                senderType: 'human',
-                sequence: 1,
-                target: 'dm:@operator',
-            },
-        ],
-        inboxDelivery: 'concrete',
-        initialRole: null,
-        modelId: 'claude-opus-4-8',
-        reasoningEffort: 'medium',
-        runId: 'run_test',
-        runtime,
-        runtimeId: 'claude-code',
-        serverId: 'srv_test',
-        sessionGeneration: 1,
-        skillsDir: join(agentRoot, 'skills'),
-        tools: [],
-        totalPending: 1,
-        unreadElsewhere: [],
-        warmDrainItemIds: [],
-        workspaceDir: join(agentRoot, 'workspace'),
-        ...rest,
-    };
+    return instructionsTurnInput({ agentRoot, runtime }, overrides);
 }
 
 function wakeInput(overrides: TestTurnOverrides): HarnessTurnInput {
-    return turnInput({
-        drainItemIds: [],
-        inbox: [],
-        subagentWake: { createdAt: '2026-10-21T10:00:00.000Z', id: 'subagent:agt_test:wake_1' },
-        totalPending: 0,
-        ...overrides,
-    });
+    return instructionsWakeInput({ agentRoot, runtime }, overrides);
 }
 
-async function readSession(): Promise<AgentSessionState> {
-    return JSON.parse(await readFile(join(agentRoot, 'session.json'), 'utf8')) as AgentSessionState;
+function readSession(): Promise<AgentSessionState> {
+    return readSessionFile(agentRoot);
 }
 
-async function writeSession(session: AgentSessionState): Promise<void> {
-    await writeFile(join(agentRoot, 'session.json'), `${JSON.stringify(session)}\n`);
+function writeSession(session: AgentSessionState): Promise<void> {
+    return writeSessionFile(agentRoot, session);
 }

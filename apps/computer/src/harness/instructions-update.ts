@@ -18,6 +18,11 @@ import type { AgentSessionState } from './session-store.ts';
  * baseline (operator decision): such a session predates the record and may run on old
  * instructions. A sub-agent wake defers it, because Claude Code's adopted wake turn replaces the
  * prompt; the next ordinary turn carries it.
+ *
+ * The update is ordinary conversation history, so a runtime's context compaction can summarize
+ * it away. A compacted turn therefore sets the receipt back to the instructions the session
+ * launched on (`launchedInstructionFingerprint`), and the next turn re-delivers whenever those
+ * are no longer current.
  */
 export type InstructionsUpdatePlan =
     /** A fresh session, launched on the current instructions. */
@@ -63,25 +68,34 @@ export function formatInstructionsUpdate(instructions: string): string {
     ].join('\n');
 }
 
+export type InstructionReceipt = Pick<
+    AgentSessionState,
+    'deliveredInstructionFingerprint' | 'instructionFingerprint' | 'launchedInstructionFingerprint'
+>;
+
 /**
  * The instruction receipt a turn on `plan` leaves: the current fingerprints when the session
  * launched on them, or a completed turn handed them over; otherwise the stored ones. A launch
- * delivers even when the turn is then interrupted; an interrupted update may not have.
+ * delivers even when the turn is then interrupted; an interrupted update may not have. After a
+ * compaction the session is known to hold only what it launched on, wherever in the turn the
+ * compaction fell.
  */
 export function deliveredInstructionReceipt(
     plan: InstructionsUpdatePlan,
-    session: Pick<AgentSessionState, 'deliveredInstructionFingerprint' | 'instructionFingerprint'>,
+    session: InstructionReceipt,
     composed: Pick<ComposedInstructions, 'fingerprint' | 'stableFingerprint'>,
-    turn: { completed: boolean }
-): Pick<AgentSessionState, 'deliveredInstructionFingerprint' | 'instructionFingerprint'> {
-    if (plan.kind === 'fresh' || (turn.completed && plan.kind === 'inject')) {
-        return {
-            deliveredInstructionFingerprint: composed.stableFingerprint,
-            instructionFingerprint: composed.fingerprint,
-        };
-    }
+    turn: { compacted: boolean; completed: boolean }
+): InstructionReceipt {
+    const launchedInstructionFingerprint =
+        plan.kind === 'fresh' ? composed.stableFingerprint : session.launchedInstructionFingerprint;
+    const delivered = plan.kind === 'fresh' || (turn.completed && plan.kind === 'inject');
     return {
-        deliveredInstructionFingerprint: session.deliveredInstructionFingerprint,
-        instructionFingerprint: session.instructionFingerprint,
+        deliveredInstructionFingerprint: turn.compacted
+            ? launchedInstructionFingerprint
+            : delivered
+              ? composed.stableFingerprint
+              : session.deliveredInstructionFingerprint,
+        instructionFingerprint: delivered ? composed.fingerprint : session.instructionFingerprint,
+        launchedInstructionFingerprint,
     };
 }

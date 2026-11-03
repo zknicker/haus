@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import type { TurnEvent } from '../turn-event.ts';
+import { compactionToolName, type TurnEvent } from '../turn-event.ts';
 import { grokRetryStateFailure } from './grok-failure.ts';
 import { createGrokToolTracker } from './grok-tool-events.ts';
 import { readGrokRequestUsage } from './grok-usage.ts';
@@ -20,6 +20,11 @@ const chunkSchema = z.looseObject({
 
 const responseCompletedSchema = z.looseObject({ usage: z.unknown() });
 
+const autoCompactCompletedSchema = z.looseObject({
+    tokens_after: z.number().optional(),
+    tokens_before: z.number().optional(),
+});
+
 /**
  * Normalizes one turn's Grok notifications into `TurnEvent`s. Every notification for the session
  * yields at least one event; a payload Haus does not read is `progress`. Replayed history from a
@@ -33,6 +38,7 @@ export function createGrokTurnNormalizer(options: {
     const tools = createGrokToolTracker(options);
     let block: { id: string; kind: 'reasoning' | 'text' } | null = null;
     let blocks = 0;
+    let compactions = 0;
 
     const closeBlock = (): TurnEvent[] => {
         const open = block;
@@ -74,6 +80,9 @@ export function createGrokTurnNormalizer(options: {
             }
             case 'response_completed':
                 return [...closeBlock(), stepFinish(value)];
+            case 'auto_compact_completed':
+                compactions += 1;
+                return [...closeBlock(), ...compaction(`grok-compaction-${compactions}`, value)];
             case 'retry_state':
                 return [grokRetryStateFailure(value) ?? progress(kind)];
             default:
@@ -122,6 +131,34 @@ function stepFinish(value: unknown): TurnEvent {
         type: 'step-finish',
         usage: step?.usage ?? null,
     };
+}
+
+/**
+ * Grok's `auto_compact_completed` (Grok Build's `SessionUpdate`, read from its binary: no ACP
+ * schema publishes it) as the reserved compaction pair every driver reports.
+ */
+function compaction(toolCallId: string, value: unknown): TurnEvent[] {
+    const completed = autoCompactCompletedSchema.safeParse(value);
+    const tokens = completed.success ? completed.data : {};
+    const facts = {
+        dynamic: true,
+        providerExecuted: true,
+        toolCallId,
+        toolName: compactionToolName,
+    } as const;
+    return [
+        { ...facts, input: {}, type: 'tool-call' },
+        {
+            ...facts,
+            output: {
+                ...(tokens.tokens_after === undefined ? {} : { tokensAfter: tokens.tokens_after }),
+                ...(tokens.tokens_before === undefined
+                    ? {}
+                    : { tokensBefore: tokens.tokens_before }),
+            },
+            type: 'tool-result',
+        },
+    ];
 }
 
 function progress(nativeType: string): TurnEvent {

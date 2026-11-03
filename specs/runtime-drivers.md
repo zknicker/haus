@@ -64,6 +64,19 @@ promise about instructions on resume. The executor keeps resumed sessions curren
 same way for every runtime (`harness/instructions-update.ts`, specs/sessions.md "Instruction
 updates").
 
+Each driver reports its runtime's context compaction as the reserved `compaction` tool pair
+(`compactionToolName` in `runtime/turn-event.ts`), which the executor reads to re-deliver an update
+the compaction may have dropped: Claude Code's `compact_boundary`, Codex's `contextCompaction`
+item, and Grok Build's `auto_compact_completed` session update. Grok publishes no schema for that
+update; the name and its `tokens_before`/`tokens_after` fields come from the Grok Build binary's
+`SessionUpdate` variants and are not yet proven against a live compaction.
+
+Claude Code also has `--system-prompt-snapshot off` (documented in `claude --help` and the Agent
+SDK's `systemPrompt.snapshot`), which renders the system prompt fresh on every request instead of
+recording it, so a resumed launch would carry new `--append-system-prompt-file` text natively.
+Haus does not use it: an unrecorded prompt changes with every CLI upgrade, invalidating the
+prompt cache and, with extended thinking, earlier reasoning.
+
 ## Session lifecycle
 
 | Runtime | Native process | Turn | Busy delivery |

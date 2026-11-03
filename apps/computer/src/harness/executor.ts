@@ -269,7 +269,7 @@ async function executeHarnessTurn(
             wake,
         });
         const notices = openTurnNotices(live, input, prompt.notice);
-        let observation: HarnessTurnResult;
+        let observation: Awaited<ReturnType<typeof observeTurnStream>>;
         // The turn input carries the projector's activity run, thoughts, runtime, and workspace.
         const projector = createHarnessActivityProjector({ ...input, journal });
         try {
@@ -328,16 +328,16 @@ async function executeHarnessTurn(
             await settleStoppedTurn(turn, input.runtimeId);
         }
         await returnUnconsumedNotices(turn, input);
-        const resumeState = await lease.checkpoint();
+        const ended = { compacted: observation.compacted, resumeState: await lease.checkpoint() };
         observation = { ...observation, aborted: observation.aborted || lease.stopping };
         if (observation.aborted) {
-            await writeAgentSessionState(input.agentRoot, record.interrupted(resumeState));
+            await writeAgentSessionState(input.agentRoot, record.interrupted(ended));
             await input.activity.finish(instructionActivityKey, 'interrupted');
             return { ...observation, stalled: noProgress.signal.aborted && !input.signal?.aborted };
         }
         await writeAgentSessionState(
             input.agentRoot,
-            record.completed(resumeState, {
+            record.completed(ended, {
                 bootstrapFingerprint,
                 coveGuidanceCanApply: coveGuidance.versionCanApply,
                 modelId: input.modelId,

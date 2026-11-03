@@ -12,6 +12,13 @@ export interface TurnSessionFacts {
     runtimeSessionId: string;
 }
 
+/** How a turn that reached the model left its native session. */
+export interface EndedTurn {
+    /** The runtime compacted the session's context during the turn. */
+    compacted: boolean;
+    resumeState: RuntimeResumeState;
+}
+
 export interface CompletedTurnFacts {
     bootstrapFingerprint: string | null;
     /** False when a Cove factory-guidance conflict keeps the version unapplied. */
@@ -23,18 +30,17 @@ export interface CompletedTurnFacts {
 /**
  * The session record a turn on a live session leaves, for each way the turn can end. Only a
  * completed turn that delivered the instructions advances the instruction receipt, except that a
- * fresh launch already runs on them however its turn ends.
+ * fresh launch already runs on them however its turn ends; a compaction sets it back to the
+ * launch instructions (`deliveredInstructionReceipt`).
  */
 export function turnSessionRecord(session: AgentSessionState, facts: TurnSessionFacts) {
-    const receipt = (completed: boolean) =>
-        deliveredInstructionReceipt(facts.instructionsUpdate, session, facts.composed, {
-            completed,
-        });
+    const receipt = (turn: { compacted: boolean; completed: boolean }) =>
+        deliveredInstructionReceipt(facts.instructionsUpdate, session, facts.composed, turn);
     return {
         /** Stopped before its prompt: parked where it opened. */
         stopped: (resumeState: RuntimeResumeState): AgentSessionState => ({
             ...session,
-            ...receipt(false),
+            ...receipt({ compacted: false, completed: false }),
             resumeState,
             runtimeSessionId: facts.runtimeSessionId,
         }),
@@ -42,9 +48,9 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
          * Interrupted: the resume point moves, so the next turn re-delivers any update this one
          * carried. Version drift reads failed.
          */
-        interrupted: (resumeState: RuntimeResumeState): AgentSessionState => ({
+        interrupted: ({ compacted, resumeState }: EndedTurn): AgentSessionState => ({
             ...session,
-            ...receipt(false),
+            ...receipt({ compacted, completed: false }),
             effectiveReasoningEffort: facts.reasoningEffort,
             hausAgentStatus:
                 session.hausAgentVersion === hausAgentVersion ? session.hausAgentStatus : 'failed',
@@ -58,24 +64,23 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
          * pending for the next ordinary turn. Any completed turn clears `interruptedTurn`.
          */
         completed: (
-            resumeState: RuntimeResumeState,
-            completed: CompletedTurnFacts
+            { compacted, resumeState }: EndedTurn,
+            run: CompletedTurnFacts
         ): AgentSessionState => {
             const versionDrift = session.hausAgentVersion !== hausAgentVersion;
             const instructionsDelivered = facts.instructionsUpdate.kind !== 'deferred';
-            const applies =
-                !versionDrift || (completed.coveGuidanceCanApply && instructionsDelivered);
+            const applies = !versionDrift || (run.coveGuidanceCanApply && instructionsDelivered);
             return {
-                ...receipt(true),
-                bootstrapFingerprint: completed.bootstrapFingerprint,
-                effectiveModel: { modelId: completed.modelId, runtimeId: completed.runtimeId },
+                ...receipt({ compacted, completed: true }),
+                bootstrapFingerprint: run.bootstrapFingerprint,
+                effectiveModel: { modelId: run.modelId, runtimeId: run.runtimeId },
                 effectiveReasoningEffort: facts.reasoningEffort,
                 generation: session.generation,
                 hausAgentAppliedAt:
                     versionDrift && applies ? new Date().toISOString() : session.hausAgentAppliedAt,
                 hausAgentStatus: applies
                     ? 'current'
-                    : completed.coveGuidanceCanApply
+                    : run.coveGuidanceCanApply
                       ? 'pending'
                       : 'failed',
                 hausAgentVersion: applies ? hausAgentVersion : session.hausAgentVersion,

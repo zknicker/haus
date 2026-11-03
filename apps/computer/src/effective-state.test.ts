@@ -29,6 +29,7 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
         hausAgentStatus: 'current',
         hausAgentVersion,
         instructionFingerprint: 'instructions_current',
+        launchedInstructionFingerprint: 'instructions_stable',
         resumeState: { threadId: 'thread-local' },
         runtimeSessionId: 'session-local',
     });
