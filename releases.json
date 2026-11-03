@@ -1954,5 +1954,16 @@
       "computer": "14.0.0",
       "agent": "12.0.0"
     }
+  },
+  {
+    "version": "17.0.1",
+    "date": "2026-11-03",
+    "targets": {
+      "server": "16.0.1",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
   }
 ]
