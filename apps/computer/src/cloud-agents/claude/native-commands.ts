@@ -1,7 +1,7 @@
 import { stripVTControlCharacters } from 'node:util';
 import * as z from 'zod';
 import { resolveRuntimeExecutable } from '../../runtime-discovery.ts';
-import { ClaudeCodeMissingError } from './native-auth.ts';
+import { ClaudeCodeMissingError, claudeCloudCredentials } from './native-auth.ts';
 
 const sessionIdSchema = z.string().regex(/^session_[A-Za-z0-9]+$/u);
 const sendReceiptSchema = z.object({
@@ -42,7 +42,7 @@ export async function launchNativeClaudeCloud(input: {
         ],
         {
             cwd: input.cwd,
-            env: { ...process.env, PATH: executable.searchPath },
+            env: await cloudEnv(executable.searchPath),
             terminal: {
                 cols: 120,
                 data(terminal, chunk) {
@@ -104,7 +104,7 @@ export async function sendNativeClaudeCloud(input: {
             input.prompt,
         ],
         {
-            env: { ...process.env, PATH: executable.searchPath },
+            env: await cloudEnv(executable.searchPath),
             stderr: 'ignore',
             stdout: 'pipe',
             timeout: 30_000,
@@ -150,4 +150,12 @@ function requireClaude() {
         throw new ClaudeCodeMissingError();
     }
     return executable;
+}
+
+/**
+ * The CLI runs with the login Haus's Claude Code Agents use, passed as a token,
+ * so a stale copy in the CLI's own keychain entry is never read.
+ */
+async function cloudEnv(searchPath: string): Promise<Record<string, string | undefined>> {
+    return { ...process.env, ...(await claudeCloudCredentials()), PATH: searchPath };
 }

@@ -577,8 +577,13 @@ reference onto the work header; that is a later read if the preview line proves 
 
 The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code's cloud sessions.
 
-- **Sign-in.** It uses this Computer's own Claude Code sign-in (`claude auth status`, the claude.ai
-  login). Haus stores no Claude credential and never signs Claude Code out. No hook, callback,
+- **Sign-in.** It uses the same claude.ai subscription login this Computer's Claude Code Agents run
+  with: the host credentials file or keychain entry, refreshed as the Claude Code runtime refreshes
+  it. Every `claude` cloud command receives that login as `CLAUDE_CODE_OAUTH_TOKEN`, so a stale copy
+  in the CLI's own store is never read. Readiness asks Claude's OAuth profile whether the login still
+  works and takes the session controller's organization from it; `claude auth status` only proves a
+  login is stored. An API key is never a Claude Cloud login. Haus stores no Claude credential of its
+  own and never signs Claude Code out. No hook, callback,
   network secret, or Haus credential runs inside Claude's environment; an earlier design that did
   was dropped.
 - **Launch.** `claude --cloud <prompt>` runs in a throwaway checkout of the repository at the
