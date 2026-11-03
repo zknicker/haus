@@ -263,7 +263,6 @@ function parseArgv(argv) {
     return parsed;
 }
 
-/** Clerk's headless client keeps refresh timers alive after the run finishes. */
 function exit(code) {
     process.exitCode = code;
     setTimeout(() => process.exit(code), 0);

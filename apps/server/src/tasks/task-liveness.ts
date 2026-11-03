@@ -1,17 +1,17 @@
 import { and, eq, inArray, ne, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentInboxTable } from '../postgres/schema.ts';
-import { threadChatIdForAnchor } from '../threads/thread-id.ts';
+import { type TaskWorkThreadRow, taskWorkThreadChatId } from './task-work-thread.ts';
 
 /** The task columns liveness reads. */
-export interface TaskLivenessRow {
+export interface TaskLivenessRow extends TaskWorkThreadRow {
     assigneeAgentId: string | null;
-    messageId: string;
 }
 
 /**
  * A task is live while its assignee Agent's one in-flight run holds an inbox
- * row anchored on the task's own message or on its Thread — attached to the
+ * row anchored on the task's own message or on its work Thread (the Thread a
+ * Thread task sits in, which several tasks can share) — attached to the
  * run by a pull, or offered to it as a notice in the run's own Chat. Liveness
  * is volatile execution state derived at read time, never a stored task
  * column; the run's start and its settlement both emit `task.updated`, so the
@@ -26,13 +26,13 @@ export async function loadLiveTaskMessageIds(
     if (assigned.length === 0) {
         return new Set();
     }
-    const anchorByKey = new Map<string, string>();
+    const tasksByKey = new Map<string, string[]>();
+    const hold = (key: string, messageId: string) => {
+        tasksByKey.set(key, [...(tasksByKey.get(key) ?? []), messageId]);
+    };
     for (const row of assigned) {
-        anchorByKey.set(`${row.assigneeAgentId} ${row.messageId}`, row.messageId);
-        anchorByKey.set(
-            `${row.assigneeAgentId} ${threadChatIdForAnchor(row.messageId)}`,
-            row.messageId
-        );
+        hold(`${row.assigneeAgentId} ${row.messageId}`, row.messageId);
+        hold(`${row.assigneeAgentId} ${taskWorkThreadChatId(row)}`, row.messageId);
     }
     const agentIds = [...new Set(assigned.map((row) => row.assigneeAgentId as string))];
     const served = await db
@@ -64,13 +64,10 @@ export async function loadLiveTaskMessageIds(
         );
     const live = new Set<string>();
     for (const row of served) {
-        const byMessage = anchorByKey.get(`${row.agentId} ${row.dedupeKey}`);
-        if (byMessage) {
-            live.add(byMessage);
-        }
-        const byThread = anchorByKey.get(`${row.agentId} ${row.chatId}`);
-        if (byThread) {
-            live.add(byThread);
+        for (const key of [`${row.agentId} ${row.dedupeKey}`, `${row.agentId} ${row.chatId}`]) {
+            for (const messageId of tasksByKey.get(key) ?? []) {
+                live.add(messageId);
+            }
         }
     }
     return live;

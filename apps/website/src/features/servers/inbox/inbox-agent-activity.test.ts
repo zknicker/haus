@@ -90,6 +90,12 @@ describe('happeningNowAgentRows', () => {
         expect(row?.label).toBe('Editing files · 3m 0s elapsed');
     });
 
+    test('carries the step alone, which holds still while the clock ticks', () => {
+        const at = (time: number) => happeningNowAgentRows([activity()], noLifecycles, [], time);
+        expect(at(now)[0]?.step).toBe('Editing files');
+        expect(at(now + 1000)[0]?.step).toBe('Editing files');
+    });
+
     test('names the Agent when the roster knows it, and its id tail when it does not', () => {
         const agent = { displayName: 'Blippy', id: 'agt_blippy' } as Agent;
         expect(happeningNowAgentRows([activity()], noLifecycles, [agent], now)[0]?.name).toBe(

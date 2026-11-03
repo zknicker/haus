@@ -21,6 +21,7 @@ export async function clearTaskAssignments(
         .select({
             chatId: messageTasksTable.chatId,
             messageId: messageTasksTable.messageId,
+            threadChatId: messageTasksTable.threadChatId,
         })
         .from(messageTasksTable)
         .where(and(eq(messageTasksTable.serverId, serverId), eq(assigneeColumn, agentId)))
@@ -48,6 +49,7 @@ export async function clearTaskAssignments(
                 chatId: task.chatId,
                 messageId: task.messageId,
                 serverId,
+                threadChatId: task.threadChatId,
                 type: 'task.updated',
             })
         );

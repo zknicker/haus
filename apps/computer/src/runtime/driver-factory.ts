@@ -28,14 +28,19 @@ export function createDriver(
         processes: context.processes,
         reasoningEffort: input.reasoningEffort,
         tools: input.tools,
-        // One Agent, one session: the Agent root keys its warm process.
-        warm: { key: input.agentRoot, pool: context.warm },
+        // One Agent, one session: the Agent root keys its warm process. A throwaway
+        // heartbeat session keys its own, so it never evicts the main one.
+        warm: { key: options.throwawayKey ?? input.agentRoot, pool: context.warm },
         workspaceDir: input.workspaceDir,
     };
     switch (input.runtimeId) {
         case 'claude-code':
-            // Only Claude Code runs background work past a turn (specs/runtime-drivers.md).
-            return createClaudeCodeDriver({ ...shared, background: context.background });
+            // Only Claude Code runs background work past a turn (specs/runtime-drivers.md); a
+            // throwaway session is destroyed with its turn, so it reports none.
+            return createClaudeCodeDriver({
+                ...shared,
+                background: options.throwawayKey ? undefined : context.background,
+            });
         case 'codex':
             return createCodexDriver({ ...shared, hostHomeDir: hostHome() });
         case 'grok-build':

@@ -1,47 +1,20 @@
 import { eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { usersTable } from '../postgres/schema.ts';
 
 export interface HausUser {
-    clerkUserId: string;
     id: string;
 }
 
 type UserReader = Pick<HausDatabase, 'select'>;
-type UserWriter = UserReader & Pick<HausDatabase, 'insert'>;
 
-/** The Haus User behind an authenticated Clerk session, if one exists yet. */
-export async function findUserByClerkId(
-    db: UserReader,
-    clerkUserId: string
-): Promise<HausUser | null> {
+/** Finds the canonical Haus User already bound to an authenticated session. */
+export async function findUserById(db: UserReader, userId: string): Promise<HausUser | null> {
     const [user] = await db
-        .select({ clerkUserId: usersTable.clerkUserId, id: usersTable.id })
+        .select({ id: usersTable.id })
         .from(usersTable)
-        .where(eq(usersTable.clerkUserId, clerkUserId))
+        .where(eq(usersTable.id, userId))
         .limit(1);
 
     return user ?? null;
-}
-
-/**
- * Mints the stable Haus User for one Clerk user. Only Server creation calls
- * this, inside its own transaction, so a rolled-back creation leaves no User
- * behind. The unique `clerk_user_id` constraint settles concurrent first
- * writes, so the same Clerk user always resolves to the same Haus User id.
- */
-export async function ensureUserByClerkId(db: UserWriter, clerkUserId: string): Promise<HausUser> {
-    await db
-        .insert(usersTable)
-        .values({ clerkUserId, id: createOpaqueId('usr') })
-        .onConflictDoNothing({ target: usersTable.clerkUserId });
-
-    const user = await findUserByClerkId(db, clerkUserId);
-
-    if (!user) {
-        throw new Error('Failed to resolve the Haus User for the authenticated Clerk user.');
-    }
-
-    return user;
 }

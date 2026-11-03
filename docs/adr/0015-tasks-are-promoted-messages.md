@@ -14,6 +14,18 @@ Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8 in
 `specs/raft-alignment/README.md`, ruled 2026-07-20/21). Supersedes the retired
 pre-flip tracker (tasks/epics/T-numbers/dispatch).
 
+Amended 2026-11-02: an Agent may claim a Thread message. "Thread messages cannot become tasks"
+existed because a task's work surface was its own Thread and Threads cannot nest; the 2026-09-08
+amendment ("Tasks never own Threads") removed that reason. With no Thread message claimable, an
+Agent working a request inside a Thread created a separate top-level task in the parent Chat with
+a back-reference in its title, which showed in Chat regardless of Show tasks in chat. Now the
+Thread message is the task: `message_tasks.chat_id` stays the top-level Chat (number, assignees,
+access, lenses), the new `thread_chat_id` records the Thread, and that Thread is the work surface.
+People still create and convert tasks on top-level messages only, `haus task create` stays
+top-level, and an Agent's self-assigned `create` is `origin` `claimed`, since `composed` means a
+person made it. This diverges from Raft's top-level-only rule
+([register](../../specs/raft-alignment/prompt-divergences.md)).
+
 Amended 2026-09-29 by [ADR 0037](0037-humans-are-addressed-by-mention.md): tasks are Agent
 work. Only an Agent holds a task — `message_tasks.assignee_user_id` is gone, humans never claim,
 unclaim, or receive an assignment, and any member may assign a task to an Agent of its Chat. An
@@ -132,8 +144,9 @@ count.
   lens died.
 - Epics, dependency edges, per-task work chats, attachment promotion, and the
   `tasks_*` engine tools all retired with the old tracker.
-- Thread and system messages cannot become tasks; task numbers are
-  per-conversation and rendered `task #N`.
+- System messages cannot become tasks; Thread messages can only by an Agent's
+  claim (2026-11-02 amendment). Task numbers are per top-level conversation
+  and rendered `task #N`.
 - The noise that got the claim rule removed was the eager Thread, not the
   claim: promotion rendered a full work surface for work that was over in one
   turn. Splitting the Thread from the task removes the surface without

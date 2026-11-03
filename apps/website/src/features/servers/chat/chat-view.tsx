@@ -73,7 +73,7 @@ export function ChatView({
     });
     const pendingMessages = usePendingChatMessages(chat.id, messages.data?.entries);
     const sourceMessages = messages.data?.entries;
-    const anchorMessage = initialTask?.message;
+    const anchorMessage = initialTask?.anchor;
     // An older task anchor joins the listed ids; its row reads (or fetches) its entity.
     const anchorLayout = React.useMemo(
         () => (anchorMessage ? toChatMessageLayout(anchorMessage) : undefined),
@@ -129,6 +129,7 @@ export function ChatView({
             readOnly={readOnly}
             summary={threadSummary}
             takeover={threadTakeover}
+            taskMessage={threadSelection.taskMessage}
             turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
         />
     ) : null;

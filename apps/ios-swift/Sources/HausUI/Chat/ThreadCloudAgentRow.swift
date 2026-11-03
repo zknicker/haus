@@ -39,10 +39,10 @@ public struct ThreadCloudAgentRow: Identifiable, Hashable, Sendable {
         let statusText: String
         if let quiet {
             statusText = "No update in \(CloudAgentPresentation.duration(seconds: Int(quiet)))"
-        } else if case .working(let startedAt?, _) = job {
-            statusText = "\(CloudAgentPresentation.jobLabel(.working)) · \(CloudAgentPresentation.duration(from: startedAt, to: now))"
+        } else if job.state == .done {
+            statusText = CloudAgentPresentation.jobLabel(.done)
         } else {
-            statusText = CloudAgentPresentation.jobLabel(job.state)
+            statusText = agent.jobText(at: now)
         }
         return ThreadCloudAgentRow(
             agent: agent,

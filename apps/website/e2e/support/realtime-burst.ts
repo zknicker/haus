@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
+import { createAppTestFixture } from './app-session.ts';
 import { type AppTraffic, describeTraffic } from './app-traffic.ts';
-import { readClerkSessionFixture } from './clerk-session.ts';
 import { createClient } from './server.ts';
 import { expect } from './test.ts';
 
@@ -49,7 +49,7 @@ export async function expectBurstCoalesced(
     posts: string[][],
     slug: string
 ) {
-    const device = createClient(readClerkSessionFixture().token);
+    const device = createClient((await createAppTestFixture()).accessToken);
     const server = await device.server.bySlug.query({ slug });
     const chatId = server.channels.find((channel) => channel.name === 'all')?.id ?? '';
     const send = (content: string, thread?: { anchorMessageId: string }) =>

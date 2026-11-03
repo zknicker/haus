@@ -103,6 +103,6 @@ function agentView(runner: { token: string }, attachmentId: string) {
 
 function humanDownload(client: HausClient, attachmentId: string) {
     return fetch(new URL(`/attachments/${fixture.serverId}/${attachmentId}`, fixture.harness.url), {
-        headers: { authorization: `Bearer ${client.clerkSessionToken}` },
+        headers: { authorization: `Bearer ${client.sessionToken}` },
     });
 }

@@ -61,4 +61,5 @@ export function invalidateChatLifecycleReads(
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.agent.chats, { serverId }) });
     // A Thread row needs a listed parent: archiving, deleting, or hiding one drops its Threads.
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }

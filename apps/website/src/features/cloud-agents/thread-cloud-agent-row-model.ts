@@ -3,7 +3,7 @@ import {
     cloudAgentBranchPullRequestNumber,
     cloudAgentJobLabels,
     cloudAgentWorkBranch,
-    elapsedSince,
+    cloudAgentWorkText,
     formatCloudAgentDuration,
     quietFor,
 } from './cloud-agent-presentation.ts';
@@ -50,12 +50,11 @@ function toRow(work: CloudAgentWork, now: number): ThreadCloudAgentRow {
             work,
         };
     }
-    const label = cloudAgentJobLabels[work.job.state];
-    const elapsed = work.job.state === 'working' ? elapsedSince(work.job.startedAt, now) : null;
     return {
         pullRequestNumber,
         state: work.job.state,
-        statusText: elapsed === null ? label : `${label} · ${elapsed}`,
+        statusText:
+            work.job.state === 'done' ? cloudAgentJobLabels.done : cloudAgentWorkText(work, now),
         tone: work.job.state === 'pending-input' ? 'warning' : 'default',
         work,
     };

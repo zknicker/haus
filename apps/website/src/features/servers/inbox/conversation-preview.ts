@@ -62,6 +62,29 @@ export function threadReplyPreviewLine(
     return line === '' ? `${author} replied in thread` : `${author} replied in thread: ${line}`;
 }
 
+/**
+ * The message an unread Thread hangs off, as its card's muted context line:
+ * `on Beacon: Thursday Christmas check…`. The viewer's own message reads
+ * `on your message: …`, and an author no longer named reads as the quote
+ * alone. A message with no text left to quote names only its author.
+ */
+export function threadAnchorLine({
+    authorName,
+    content,
+    isViewer,
+}: {
+    authorName: null | string;
+    content: string;
+    isViewer: boolean;
+}): string {
+    const who = isViewer ? 'your message' : authorName;
+    const line = messagePreviewLine(content);
+    if (line === '') {
+        return who ? `on ${who}` : 'on a message';
+    }
+    return who ? `on ${who}: ${line}` : `on: ${line}`;
+}
+
 function authorPrefix(author: string, speakers: ConversationSpeakers): null | string {
     if (speakers.viewerDisplayName && author === speakers.viewerDisplayName) {
         return 'You';

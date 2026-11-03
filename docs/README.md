@@ -41,7 +41,6 @@ Memory, Wiki, cron automations, and the first task tracker were retired; see
 | Agent execution | [Agent daemon delivery](internals/agent-daemon-delivery.md) |
 | Chat/session decision | [ADR 0007](adr/0007-chat-participants-own-agent-sessions.md) |
 | Data model | [Data Model](internals/data-model.md) |
-| Chat API | [Chat API](api/chat.md) |
 | Agents API | [Agents API](api/agents.md) |
 | Models, skills, tools | [Skills API](api/skills.md), [Agent daemon delivery](internals/agent-daemon-delivery.md) |
 | Testing | [Testing](operations/testing.md) |

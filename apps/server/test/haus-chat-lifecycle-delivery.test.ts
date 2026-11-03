@@ -29,7 +29,7 @@ test('a deleted channel reaches every Server member live, participant or not', a
         slug: 'events-delete-peer',
     });
     const [peerUser] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_events_delete_peer'
+        select id from users where auth_subject = 'user_events_delete_peer'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
@@ -58,7 +58,7 @@ test('a deleted channel reaches every Server member live, participant or not', a
     peer.close();
 });
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }

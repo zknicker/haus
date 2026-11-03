@@ -21,7 +21,7 @@ test('desktop Cloud Agent work opens as a Thread page with working actions', asy
         slug: 'cloud-agent-tabs',
         startingRef: 'main',
         title,
-        token: session.token,
+        token: session.accessToken,
     });
 
     await page.goto('/s/cloud-agent-tabs');

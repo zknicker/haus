@@ -160,6 +160,16 @@ inline reply (only its cause line shows), a Trigger answer, an archived Reminder
 The weekly Reminder's next fire is a week out and the Trigger's secret is discarded, so nothing
 there wakes an Agent on its own.
 
+An idempotent seed (`seed-heartbeats.ts`) fills the **Activity** log across today and
+yesterday with every heartbeat and dream state its rows show: reported heartbeats (some posted in a new `#shop`
+Channel, one read with nothing posted), dreams with lessons, memory changes, and a follow-up
+Reminder, a tidy-only dream, an unchanged dream, a failed and a yielded run, quiet runs, a busy
+skip, and a plan-limit pause. Fresh and existing workspaces get it once on bootstrap. To refresh
+it on a running stack without wiping the database (it replaces only its own rows and re-times
+them from now), run `HAUS_DEV_STACK_ID=<stack> bun run seed:heartbeats`; the script calls the
+localhost-only `dev.seedHeartbeats` procedure through the eval harness's
+loopback-only Haus session fixture.
+
 Computer
 then runs their real Agent turns using the host's Codex, Claude Code, or Grok Build
 sign-in.
@@ -255,7 +265,7 @@ attachment and Agent workspace for an explicit later `start`.
 `bun run dev` runs the whole stack on Linux, including Agent turns. Haus
 Computer keeps its macOS-only pieces behind platform seams:
 
-- Agent workspaces are plain directories, not capped sparsebundles (see
+- Agent workspaces are plain directories on every platform (see
   [Workspace](../../specs/workspace.md#capacity)); workspace maintenance
   commands stay macOS-only.
 - Computer Secrets stores its 1Password token in the macOS Keychain, so
@@ -321,22 +331,20 @@ xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/Haus.
 ```
 
 ```bash
-SIMCTL_CHILD_HAUS_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" SIMCTL_CHILD_HAUS_CLERK_PUBLISHABLE_KEY="$(bunx varlock@1.16.1 printenv VITE_CLERK_PUBLISHABLE_KEY)" xcrun simctl launch booted chat.haus.ios
+SIMCTL_CHILD_HAUS_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" xcrun simctl launch booted chat.haus.ios
 ```
 
 `SIMCTL_CHILD_` prefixes pass an environment variable through to the launched
 app. Add `SIMCTL_CHILD_HAUS_DEV_APP_ORIGIN="http://localhost:$(dev-port)"` (the
 website origin) when absolute shared-artifact links should chip; root-relative
 ones chip without it. Haus Server listens on the fourth port of the worktree's group, which is
-`dev-port` plus three; the development Clerk publishable key is the public
-schema literal the App already uses. A Debug build accepts a development origin only on
-`localhost`, `127.0.0.1`, or `::1`, requests the localhost-only
-`dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and
-calls `server.developmentBootstrap` before loading the Server list. It caches the
-last validated configuration, so a later plain `xcrun simctl launch booted
-chat.haus.ios` reuses the same development Server and Clerk instance without
-the environment. Release builds carry no development path and always use the
-production Server.
+`dev-port` plus three. A Debug build accepts a development origin only on
+`localhost`, `127.0.0.1`, or `::1`, uses `POST /auth/dev/session` for the local
+fixed development identity and native AppSession, then calls
+`server.developmentBootstrap` before loading the Server list. It caches the
+last validated loopback configuration, so a later plain `xcrun simctl launch
+booted chat.haus.ios` reuses the same development Server without the environment.
+Release builds carry no development path and always use the production Server.
 
 Launching without those variables on a fresh install leaves the app on
 production sign-in, which needs a real Google account and cannot be automated.

@@ -5,7 +5,10 @@ import SwiftUI
 /// The parent chat owns fetching and mutation. This view only presents the
 /// anchor, task metadata, and current reply state.
 public struct ThreadDetailView: View {
-    private let anchor: MessagePresentation
+    let anchor: MessagePresentation
+    /// The reply whose task the Thread was opened for, when a Thread task
+    /// opened it (`TaskOpening.containingThread`). Its mark always shows.
+    let taskMessageID: String?
     private let replyProvider: () -> [MessagePresentation]
     private let isConnected: Bool
     /// Whether this conversation refuses new Messages — an archived Chat, or a
@@ -63,42 +66,6 @@ public struct ThreadDetailView: View {
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
 
-    public init(
-        anchor: MessagePresentation,
-        replies: [MessagePresentation],
-        isConnected: Bool = true,
-        isReadOnly: Bool = false,
-        onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
-        onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
-            guard let localURL = attachment.localURL else { throw CancellationError() }
-            return localURL
-        },
-        history: MessageHistoryNavigation = .init(),
-        inlineReplies: ThreadInlineReplies? = nil,
-        onOpenAgent: @escaping (String) -> Void = { _ in },
-        follow: ThreadFollow? = nil,
-        contextLabel: String? = nil,
-        engagementChatID: String? = nil,
-        engagementStyle: HeaderEngagementStyle = .roster,
-        onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
-    ) {
-        self.anchor = anchor
-        self.replyProvider = { replies }
-        self.contextLabel = contextLabel
-        _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
-        self.isConnected = isConnected
-        self.isReadOnly = isReadOnly
-        self.onSend = onSend
-        self.onOpenAttachment = onOpenAttachment
-        self.history = history
-        self.inlineReplies = inlineReplies
-        self.onOpenAgent = onOpenAgent
-        self.follow = follow
-        self.engagementChatID = engagementChatID
-        self.engagementStyle = engagementStyle
-        self.onVisibleMessagesChange = onVisibleMessagesChange
-    }
-
     /// Resolves replies while this view's body is being evaluated so an
     /// observation-backed store can invalidate the thread after its first
     /// network load.
@@ -120,9 +87,11 @@ public struct ThreadDetailView: View {
         engagementChatID: String? = nil,
         engagementStyle: HeaderEngagementStyle = .roster,
         landingMessageID: String? = nil,
+        taskMessageID: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
+        self.taskMessageID = taskMessageID
         self.replyProvider = replies
         self.contextLabel = contextLabel
         _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
@@ -216,7 +185,7 @@ public struct ThreadDetailView: View {
             }
         }
         .threadNavigationTitle(
-            ThreadOpening.title(anchor: anchor),
+            ThreadOpening.title(anchor: anchor, taskMessageID: taskMessageID),
             subtitle: showsOutage ? ConnectionOutage.title : contextLabel
         )
         .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)

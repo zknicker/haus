@@ -207,7 +207,7 @@ export function cloudAgentFixture() {
     async function readWork(workId: string) {
         const [row] = (await harness.sql`
         select activity_summary, cancel_requested_by_agent_id, cancel_requested_by_user_id,
-               provider_agent_id, provider_url, status, terminal_at
+               provider_agent_id, provider_url, started_at, status, terminal_at
         from cloud_agent_work where id = ${workId}
     `) as Record<string, unknown>[];
         return row;
@@ -215,7 +215,7 @@ export function cloudAgentFixture() {
 
     async function readRun(runId: string) {
         const [row] = (await harness.sql`
-        select branches, raw_status, status, summary, terminal_at
+        select branches, raw_status, started_at, status, summary, terminal_at
         from cloud_agent_runs where id = ${runId}
     `) as Record<string, unknown>[];
         return row;
@@ -269,14 +269,14 @@ export function cloudAgentFixture() {
         });
     }
 
-    async function signIn(clerkUserId: string, verifiedEmails: string[]) {
-        harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
-        return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    async function signIn(subject: string, verifiedEmails: string[]) {
+        harness.humans.setVerifiedEmails(subject, verifiedEmails);
+        return createHausClient(harness, await harness.humans.mintSessionToken(subject));
     }
 
-    async function readUserId(clerkUserId: string) {
+    async function readUserId(subject: string) {
         const [row] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
         return row?.id ?? '';
     }

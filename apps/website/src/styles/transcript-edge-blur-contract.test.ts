@@ -108,6 +108,27 @@ describe('transcript edge blur contract', () => {
         expect(scrollerTsx.match(/aria-hidden="true"/gu)?.length).toBeGreaterThanOrEqual(2);
     });
 
+    test('the Inbox runs under its band and fades only past its resting content', () => {
+        // The band paints over a page that asks for it, and that page's frame
+        // rises by the band's height, so its scrollers clip at the shell's edge.
+        const lifted = ruleBody(
+            shellCss,
+            '.app-shell-band:has(> [data-topbar-slot] [data-band-overlay]:not([hidden] *)) + *'
+        );
+        expect(lifted).toContain('margin-block-start: calc(var(--app-shell-band-height) * -1);');
+        // The borrowed top band ends where the page's content starts at rest
+        // (the band plus the column's pt-8), so being always on hides nothing.
+        const inbox = ruleBody(
+            themeCss,
+            '[data-slot="inbox-frame"] > .transcript-edge-blur[data-side="top"]'
+        );
+        expect(inbox).toContain('visibility: visible;');
+        expect(inbox).toContain('--edge-solid: calc(var(--app-shell-band-height) / 3);');
+        expect(inbox).toContain(
+            '--edge-ramp: calc(var(--app-shell-band-height) * 2 / 3 + var(--spacing) * 8);'
+        );
+    });
+
     test('the desktop window shell never rounds its clip', () => {
         // A rounded clip (border-radius or clip-path) on an ancestor made Chromium
         // drop the blur's mask in the desktop app: full-strength blur, hard cutoff.

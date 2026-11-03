@@ -33,18 +33,6 @@ export async function attestVisibleMessages(
     return messages.filter((message) => accepted.has(message.id));
 }
 
-/** A freshness receipt that never holds the proxied response more than 250ms. */
-export async function awaitBestEffortAttestation(
-    serverOrigin: string,
-    runnerToken: string,
-    messages: VisibleMessageIdentity[]
-): Promise<void> {
-    await Promise.race([
-        attestVisibleMessages(serverOrigin, runnerToken, messages),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
-    ]);
-}
-
 /** Binds the composed receipt to one launch's runner authority. */
 export function visibilityReceipt(serverOrigin: string, runnerToken: string) {
     return (identities: VisibleMessageIdentity[], signal: AbortSignal) =>

@@ -5,7 +5,16 @@ import {
     resolveServerMemberAuthority,
     type ServerMemberAuthorityRequest,
     serverRoleSchema,
+    syncHumanIdentityInputSchema,
 } from './membership.ts';
+
+test('profile synchronization cannot supply a verified email address', () => {
+    const input = { name: 'Fixture', serverId: 'srv_fixture' };
+    expect(syncHumanIdentityInputSchema.parse(input)).toEqual(input);
+    expect(() =>
+        syncHumanIdentityInputSchema.parse({ ...input, email: 'other@example.test' })
+    ).toThrow();
+});
 
 const owner = 'usr_owner';
 const secondOwner = 'usr_owner_two';

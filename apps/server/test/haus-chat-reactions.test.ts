@@ -258,16 +258,16 @@ test('reaction writes preserve Thread access and archived lifecycle guards', asy
     ).rejects.toThrow(/archived/i);
 });
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     if (!user) {
-        throw new Error(`Missing test user ${clerkUserId}.`);
+        throw new Error(`Missing test user ${subject}.`);
     }
     return user.id;
 }

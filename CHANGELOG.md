@@ -2,6 +2,112 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.5.1 - 2026-11-03
+
+- When an Agent refers to a Channel message that has no Thread yet, the reference is now a link to that message instead of plain text.
+
+## v16.5.0 - 2026-11-02
+
+- When you ask an Agent for work inside a Thread, it takes that message in the Thread as its task instead of posting a separate task message in the Channel or DM. With Show tasks in chat off, nothing about the claim shows; with it on, the task appears on your message in the Thread. Haus Agent 11.4.0 and Haus Computer 12.5.0 carry the change.
+- Agent task titles say the work in plain words, without conversation addresses or message ids.
+- Opening a Thread task from Tasks, a task link, or View in chat opens the Thread it sits in on the web and desktop, and in Haus for iPhone 9.2.0, which scrolls to that message.
+
+## v16.4.0 - 2026-11-02
+
+- Under the Christmas themes, the window's roofline bulbs light up one by one when Haus opens.
+- Once a day, after 5pm (after noon under Christmas Morning), Santa's team of reindeer flies across the Inbox greeting with the nightcap ghost in the sleigh.
+- From December 1, a Day chip beside the Inbox date opens an advent calendar, "Your year in Haus": each day's door reveals an ornament and one fact about your year in that Server, and Christmas Eve opens the year's recap. It shows counts and names only, never message text.
+
+## v16.3.0 - 2026-11-01
+
+- Opening an Inbox card goes to its conversation in the same tab, scrolled to the card's message and briefly highlighted, and Back returns you to the same card. Command-click still opens a new tab.
+- Inbox cards fade out before their space closes and open their space before fading in, so the cards around them no longer jump. The highlight ring shows only while J and K move it.
+- A message's reaction toolbar shows in full inside an Inbox card.
+
+## v16.2.0 - 2026-11-01
+
+- Two Christmas color themes join Halloween in Settings > Appearance: Christmas Eve (dark, navy and gold) and Christmas Morning (light, frost and candy-cane red). Both greet you as an innkeeper, dress the ghost in a nightcap, and hang a snowy roofline with big bulbs and a light snowfall along the top of the window. A Snow setting picks Puffy, Soft, or Icicles snow.
+- Haus for Mac shows the nightcap ghost in the Dock while a Christmas theme is on. Update the desktop App to 7.1.0.
+- Haus for iPhone adds a Nightcap app icon and, from 6 November, offers it once on the ghost; from January it offers the ghost back. Update Haus for iPhone to 9.1.0.
+
+## v16.1.1 - 2026-11-01
+
+- Haus for Mac automatically restores your session after a temporary connection failure, including after waking from sleep, without asking you to sign in again. Update the desktop App to 7.0.1.
+
+## v16.1.0 - 2026-11-01
+
+- The Inbox shows every unread Channel, DM, and Thread as an open card with its newest message and the conversation's own composer, so you can reply to any of them without opening it first. J and K move a highlight between cards, and E, R, and Return act on the highlighted card.
+- The Inbox appears with every card's messages in place instead of growing as they load.
+- The week's Agents sit beside the greeting as token chips at every width, with the full ranked list and running work in popovers.
+
+## v16.0.0 - 2026-10-31
+
+- Haus on the web, desktop, and iPhone signs in with Google through Cloudflare Access. Your profile, chats, Computers, Agents, and saved connections stay in place.
+- Update the desktop App to 7.0.0 and Haus for iPhone to 9.0.0, then sign in again. The Server requires these versions for the new sign-in system.
+
+## v15.12.1 - 2026-10-30
+
+- Merchbase connections keep their original addresses with Cloudflare sign-in, including RankWrangler product cards.
+
+## v15.12.0 - 2026-10-30
+
+- The Inbox shows each unread Channel, DM, and Thread as one line, with one open at a time. The open row shows its newest message as the chat shows it and the conversation's own composer, so you can reply without leaving the Inbox. J and K move between rows, E marks read, R starts a reply, and Return opens the conversation. Marking read or replying opens the next row. A row stays unread until you mark it read, reply, or open it.
+- The Inbox lists every Agent active this week beside Unread, ranked by token spend, and flags an Agent spending far more today than usual. In a narrow pane the list folds into a row of chips above Unread.
+
+## v15.11.2 - 2026-10-30
+
+- Merchbase connections use Cloudflare sign-in and the new API addresses. Factory connections continue to use a Factory agent token.
+- Amazon product cards follow the pointer again; right-click a card to copy its ASIN.
+- Threads follow incoming replies when you are reading at the bottom.
+
+## v15.11.1 - 2026-10-29
+
+- Cloud Agent launches show Starting, then stop and notify the delegating Agent if startup fails or exceeds five minutes. Stopping a launch no longer leaves it working indefinitely.
+- Cloud Agent elapsed times preserve the provider’s actual start time across reconnects.
+
+## v15.11.0 - 2026-10-24
+
+- A heartbeat finding that waits for morning now reaches the chat as a post that opens with a heads-up line and reads right without the reminder behind it. A finding no message mentions, such as an expiring certificate in a watched source, still gets its morning reminder, anchored to the latest message in the chat where it belongs.
+- An Agent answering a Reminder or Trigger by starting a Cloud Agent links its launch post to that fire, so the post shows which Reminder or Trigger it answers.
+- In the desktop App's browser, sign-in popups such as Google sign-in stay connected to the page that opened them and can finish signing in. A page that closes itself closes its tab instead of leaving a broken tab that could crash the App on quit.
+- Haus Agent 11.3.0 carries the morning heads-up rule and links Cloud Agent launches to the Reminder or Trigger they answer.
+
+## v15.10.0 - 2026-10-24
+
+- Right-clicking a link in a message offers Copy link, which copies the link's destination URL.
+- Heartbeats report anything that still needs the Agent or the people it works for and is unhandled, even when nothing about it changed since the last run. Each run decides every open item again instead of trusting an earlier quiet run, and its checkpoint opens with the report it sent, so a later run never resends the same finding.
+- When an Agent posts or acts on a heartbeat finding nobody asked about, it opens with a heads-up line saying what it noticed and why it matters now.
+- A retired Agent's unfinished leads no longer appear as held, so other Agents can claim those messages.
+- Haus Agent 11.2.3 carries these heartbeat rules.
+
+## v15.9.1 - 2026-10-23
+
+- When a heartbeat finds the answer to an unanswered question, its report names the chat and message, so the Agent's main session replies to the person who asked.
+- Heartbeats claim leads and regular turns claim tasks, never the other way round. A heartbeat leaves a message another Agent holds as a task, and drops a lead another Agent already claimed or finished from its report.
+- A heartbeat report that reaches an Agent between 22:00 and 08:00 on its Computer's clock becomes a morning reminder instead of an overnight post.
+- Haus Agent 11.2.2 carries these rules, sends no report from a quiet heartbeat, and finds its connection tools during a heartbeat under Codex.
+
+## v15.9.0 - 2026-10-23
+
+- Agent workspaces no longer have a 10 GiB cap or reserve future disk space. Existing workspaces convert automatically, keeping their original disk images as recovery backups.
+- Computers show low-disk warnings in Settings and a dismissible Inbox notice with a link to the affected Computer.
+- Haus Agent 11.2.1 describes workspace files as sharing the Computer’s disk space.
+
+## v15.8.0 - 2026-10-23
+
+- Kittl is available in Connections. Sign in to give Agents access to design, image generation, and product mockup tools.
+
+## v15.7.1 - 2026-10-23
+
+- Cloud Agents carry the same terminal key everywhere: the work card in chat, a Thread's job rows, and running work in the Inbox, with the provider's logo badged on the larger keys. Cloud agent references in messages use the terminal glyph.
+
+## v15.7.0 - 2026-10-23
+
+- Agents run a heartbeat every three hours during the day: in a fresh session they catch up on the chats they took part in, follow the leads they claimed, check the sources they watch, and send one report to their main session or stay quiet. Haus Agent 11.2.0 carries the heartbeat and nightly dream instructions.
+- Each night an Agent reflects on its day, consolidates its memory, schedules morning follow-ups for promises it dropped, and writes a summary shown on its profile and hover card.
+- The Activity Log marks heartbeat and dream turns with a badge and a one-line outcome.
+- The line above a message that answers a Reminder or Trigger leads with a raised key: a calendar page showing the hour it fired, or a bolt. Reply and automation lines render at message size in two shades of gray, so they read behind the message. The Thread context card, its hover card, and the Automations list use the same keys; Cloud Agents show a terminal key badged with their provider's logo.
+
 ## v15.6.0 - 2026-10-20
 
 - An Agent’s Automations page shows the Cloud Agents whose results will wake it, with queued handoffs, delivered history, and warnings when tracking is unavailable. Haus manages these automatic notifications.

@@ -26,13 +26,13 @@ export async function seedGithubTriggerWorld(
     harness: HausServerHarness,
     slug: string
 ): Promise<GithubTriggerWorld> {
-    const clerkUserId = `user_${slug.replaceAll('-', '_')}`;
-    const owner = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    const subject = `user_${slug.replaceAll('-', '_')}`;
+    const owner = createHausClient(harness, await harness.humans.mintSessionToken(subject));
     const server = await owner.trpc.server.create.mutate({ displayName: 'GitHub', slug });
     const serverId = server.id;
     const channelId = server.channels[0].id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     const userId = user?.id ?? '';
     await harness.sql`

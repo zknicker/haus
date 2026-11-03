@@ -19,7 +19,13 @@ export interface DesktopPageOpeners {
      * that navigates after an `await` reads `currentOpenGesture()` first and passes it.
      */
     openPage: (path: string, gesture?: OpenGesture) => void;
-    openThread: (chatId: string, anchorMessageId: string, gesture?: OpenGesture) => void;
+    /** `taskMessageId` names a task message inside the Thread that the page states. */
+    openThread: (
+        chatId: string,
+        anchorMessageId: string,
+        gesture?: OpenGesture,
+        taskMessageId?: string
+    ) => void;
 }
 
 /**
@@ -43,8 +49,8 @@ export function useDesktopPageOpeners(): DesktopPageOpeners | null {
             openArtifact: (target, title) => openPage(artifactPagePath(slug, target, title)),
             openFiles: (chatId) => openPage(filesPagePath(slug, chatId)),
             openPage,
-            openThread: (chatId, anchorMessageId, gesture) =>
-                openPage(threadPagePath(slug, chatId, anchorMessageId), gesture),
+            openThread: (chatId, anchorMessageId, gesture, taskMessageId) =>
+                openPage(threadPagePath(slug, chatId, anchorMessageId, taskMessageId), gesture),
         };
     }, [slug, tabId, tabs]);
 }

@@ -3,15 +3,16 @@ import { AlertCircleIcon, StopCircleIcon } from '@hugeicons-pro/core-stroke-roun
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
+import { cn } from '../../../lib/utils.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
+import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import {
     formatTurnDuration,
-    formatTurnOutcome,
     getTurnRowStatus,
     type TurnRowStatus,
     type TurnRowTitle,
 } from './agent-turn-row-model.ts';
-import type { RecentActivityRow } from './recent-activity-rows.ts';
+import { isQuietHeartbeat, type RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
  * One turn as one log line on fixed columns: start time, a status glyph only
@@ -39,7 +40,7 @@ export function TurnRowContent({ row, title }: { row: RecentActivityRow; title: 
                 {status ? <TurnStatusGlyph status={status} /> : null}
             </span>
             <TurnRowTitleLine
-                count={status?.kind === 'failed' ? status.count : 1}
+                count={status?.kind === 'failed' || isQuietHeartbeat(turn) ? row.count : 1}
                 title={title}
                 turn={turn}
             />
@@ -64,13 +65,22 @@ export function TurnRowTitleLine({
     title,
     turn,
 }: {
-    /** Folded repeats of a failure: `3×`. */
+    /** Folded repeats of a failure (red) or of quiet heartbeats (muted): `3×`. */
     count: number;
     title: TurnRowTitle;
     turn: AgentActivityTurn;
 }) {
     const repeats =
-        count > 1 ? <span className="shrink-0 text-danger tabular-nums">{count}×</span> : null;
+        count > 1 ? (
+            <span
+                className={cn(
+                    'shrink-0 tabular-nums',
+                    isQuietHeartbeat(turn) ? 'text-muted' : 'text-danger'
+                )}
+            >
+                {count}×
+            </span>
+        ) : null;
     if (title.kind === 'none') {
         return (
             <span className="flex min-w-0 items-baseline gap-1.5">
@@ -81,7 +91,14 @@ export function TurnRowTitleLine({
     }
     return (
         <span className="flex min-w-0 items-baseline gap-1.5">
-            <span className="min-w-0 truncate text-foreground">
+            <span
+                className={cn(
+                    'min-w-0 truncate',
+                    title.kind === 'text' && title.quiet
+                        ? 'font-normal text-muted'
+                        : 'text-foreground'
+                )}
+            >
                 {title.kind === 'text' ? title.text : null}
             </span>
             {/* Regular weight even after a log header's semibold title. */}

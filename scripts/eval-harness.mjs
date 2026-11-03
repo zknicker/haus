@@ -1,12 +1,9 @@
-// Shared Server behavioral-eval plumbing: authenticates as the configured development
-// Clerk user, then drives real Server -> Computer -> model turns through the public tRPC contract.
-import { createRequire } from 'node:module';
+// Shared Server behavioral-eval plumbing: uses the loopback-only development
+// session, then drives real Server -> Computer -> model turns through tRPC.
 import { appProtocolHeaders, appProtocolVersion } from '../packages/haus-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
 import { syncEvalHumanIdentity } from './eval-human-identity.mjs';
-import { loadHeadlessClerk } from './headless-clerk.mjs';
 export class InfraError extends Error {}
-const devClerkAuthByServer = new Map();
 
 export async function createEvalHarness({ evalName, repositoryRoot = process.cwd() }) {
     const serverUrl = resolveServerUrl(repositoryRoot);
@@ -19,7 +16,7 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
     const trackedAgentIds = new Set();
     const profileRestores = new Map();
     const configRestores = new Map();
-    const auth = await createDevClerkAuth(serverUrl);
+    const auth = await createDevAuthSession(serverUrl);
 
     async function trpc(path, input = {}) {
         const token = await auth.getToken();
@@ -86,8 +83,6 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
         if (failed.length > 0) {
             process.exitCode = 1;
         }
-        // Clerk's headless client keeps token-refresh timers alive after its
-        // native session ends. This CLI has finished once the report is written.
         setTimeout(() => process.exit(process.exitCode ?? 0), 0);
     }
 
@@ -301,117 +296,76 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
     };
 }
 
-async function createDevClerkAuth(serverUrl) {
-    const publishableKey = process.env.VITE_CLERK_PUBLISHABLE_KEY;
+export async function createDevAuthSession(serverUrl, fetcher = fetch) {
+    const origin = new URL(serverUrl);
     assert(
-        publishableKey,
-        'Hosted eval auth needs the dev Clerk publishable key used by bun run dev'
+        ['localhost', '127.0.0.1', '::1'].includes(origin.hostname),
+        'Development auth requires a loopback Haus Server URL'
     );
-    const cacheKey = `${serverUrl}\0${publishableKey}`;
-    let entry = devClerkAuthByServer.get(cacheKey);
-    if (entry?.closeTimer) {
-        clearTimeout(entry.closeTimer);
-        entry.closeTimer = undefined;
-    }
 
-    if (!entry) {
-        entry = {
-            auth: createDevClerkAuthSession(serverUrl, publishableKey),
-            closeTimer: undefined,
-        };
-        devClerkAuthByServer.set(cacheKey, entry);
-    }
+    const endpoint = new URL('/auth/dev/session', origin);
+    let current = await requestSession(null);
+    let refreshing;
 
-    try {
-        const auth = await entry.auth;
-        return {
-            getToken: auth.getToken,
-            close: async () => {
-                if (entry.closeTimer) {
-                    clearTimeout(entry.closeTimer);
-                }
-                entry.closeTimer = setTimeout(async () => {
-                    if (devClerkAuthByServer.get(cacheKey) !== entry) {
-                        return;
-                    }
-                    devClerkAuthByServer.delete(cacheKey);
-                    await auth.close();
-                }, 5000);
-            },
-        };
-    } catch (error) {
-        if (devClerkAuthByServer.get(cacheKey) === entry) {
-            devClerkAuthByServer.delete(cacheKey);
+    async function requestSession(sessionToken) {
+        let response;
+        try {
+            response = await fetcher(endpoint, {
+                body: JSON.stringify({
+                    client: 'desktop',
+                    ...(sessionToken ? { sessionToken } : {}),
+                }),
+                headers: { 'content-type': 'application/json' },
+                method: 'POST',
+            });
+        } catch (error) {
+            throw new InfraError(`Local Haus auth request failed: ${String(error)}`, {
+                cause: error,
+            });
         }
-        throw error;
+        const payload = await response.json().catch(() => null);
+        if (!(response.ok && payload?.session?.accessToken && payload?.sessionToken)) {
+            throw new Error(
+                `Local Haus sign-in failed (${response.status}): ${formatPayload(payload)}`
+            );
+        }
+        return payload;
     }
-}
-
-async function createDevClerkAuthSession(serverUrl, publishableKey) {
-    let ticketResponse;
-    try {
-        ticketResponse = await fetch(`${serverUrl}/trpc/dev.createClerkSignInToken`, {
-            body: '{}',
-            headers: { ...protocolHeaders(), 'content-type': 'application/json' },
-            method: 'POST',
-        });
-    } catch (error) {
-        throw new InfraError(
-            `Dev Clerk sign-in request to ${serverUrl} failed: ${formatError(error)}`,
-            { cause: error }
-        );
-    }
-    const ticketPayload = await ticketResponse.json().catch(() => null);
-    if (!ticketResponse.ok) {
-        throw new Error(
-            `Dev Clerk sign-in failed (${ticketResponse.status}): ${formatPayload(ticketPayload)}`
-        );
-    }
-    const ticket = ticketPayload?.result?.data?.ticket;
-    assert(ticket, 'Dev Clerk sign-in did not return a ticket');
-
-    const websiteRequire = createRequire(new URL('../apps/website/package.json', import.meta.url));
-    const { Clerk } = loadHeadlessClerk(websiteRequire);
-    const clerk = new Clerk(publishableKey);
-    let nativeAuthorization = '';
-
-    clerk.__unstable__onBeforeRequest(async (requestInit) => {
-        requestInit.credentials = 'omit';
-        requestInit.url?.searchParams.append('_is_native', '1');
-        requestInit.headers.set('authorization', nativeAuthorization);
-    });
-    clerk.__unstable__onAfterResponse(async (_requestInit, response) => {
-        nativeAuthorization = response?.headers.get('authorization') ?? nativeAuthorization;
-    });
-
-    try {
-        await clerk.load({ standardBrowser: false });
-    } catch (error) {
-        throw new InfraError(`Clerk client failed to load: ${formatError(error)}`, {
-            cause: error,
-        });
-    }
-    let attempt;
-    try {
-        attempt = await clerk.client.signIn.create({ strategy: 'ticket', ticket });
-    } catch (error) {
-        throw new InfraError(`Clerk ticket exchange failed: ${formatError(error)}`, {
-            cause: error,
-        });
-    }
-    assert(attempt.status === 'complete', `Dev Clerk sign-in stopped at ${attempt.status}`);
-    await clerk.setActive({ session: attempt.createdSessionId });
 
     return {
-        close: async () => {
-            await Promise.race([clerk.session?.end(), sleep(5000)]);
-        },
-        getToken: async () => {
-            const token = await clerk.session?.getToken();
-            if (!token) {
-                throw new InfraError('Clerk did not provide a session token');
+        async close() {
+            const session = current;
+            current = null;
+            if (!session) {
+                return;
             }
-            return token;
+            const response = await fetcher(new URL('/auth/logout', origin), {
+                body: JSON.stringify({ client: 'desktop', sessionToken: session.sessionToken }),
+                headers: {
+                    'content-type': 'application/json',
+                    'x-haus-session-request': '1',
+                },
+                method: 'POST',
+            });
+            if (!response.ok) {
+                throw new Error(`Local Haus sign-out failed (${response.status}).`);
+            }
+        },
+        async getToken() {
+            if (!current) {
+                throw new Error('Local Haus auth session is closed.');
+            }
+            if (Date.parse(current.session.expiresAt) - Date.now() <= 15_000) {
+                refreshing ??= requestSession(current.sessionToken)
+                    .then((session) => {
+                        current = session;
+                    })
+                    .finally(() => {
+                        refreshing = undefined;
+                    });
+                await refreshing;
+            }
+            return current.session.accessToken;
         },
     };
 }
@@ -448,23 +402,6 @@ export function selectServer(servers, requestedServerId) {
 
 function formatPayload(payload) {
     return JSON.stringify(payload)?.slice(0, 400) ?? 'no response body';
-}
-
-function formatError(error) {
-    if (!(error instanceof Error)) {
-        return String(error);
-    }
-    const details = JSON.stringify({
-        code: error.code,
-        errors: error.errors,
-        retryAfter: error.retryAfter,
-        status: error.status,
-    });
-    const causes =
-        error.cause instanceof AggregateError
-            ? error.cause.errors.map((cause) => String(cause)).join('; ')
-            : String(error.cause ?? '');
-    return [error.message, causes, details === '{}' ? '' : details].filter(Boolean).join(' — ');
 }
 
 export function assert(condition, message) {

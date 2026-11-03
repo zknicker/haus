@@ -6,7 +6,7 @@ import type { ComputerSocketLivenessTiming } from './computers/socket-liveness.t
 import type { GithubApp } from './github/github-app.ts';
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 import type { HostedMcpDefinition } from './hosted-mcp/catalog.ts';
-import type { ClerkUsers } from './identity/clerk-users.ts';
+import type { CloudflareAccessOptions } from './identity/cloudflare-access.ts';
 import type { ImageProviderAdapters } from './image-generation/run-image-generation.ts';
 import type { LinearApp } from './linear/linear-api.ts';
 import type { LinearOutboxTransport } from './linear/outbox-calls.ts';
@@ -15,7 +15,7 @@ import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 import type { ThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 
-/** PostgreSQL- and Clerk-backed Haus Server HTTP and WebSocket application. */
+/** PostgreSQL- and Cloudflare-authenticated Haus Server HTTP and WebSocket application. */
 export interface HausServerApplicationOptions {
     appOrigin: string;
     artifactR2?: ArtifactR2Config;
@@ -27,14 +27,10 @@ export interface HausServerApplicationOptions {
     avatarGenerationLogger?: AvatarGenerationLogger;
     /** Testable Server-owned image provider; production uses OpenAI when configured. */
     avatarImageProvider?: AvatarImageProvider;
-    /** Clerk Backend API origin; defaults to Clerk's production endpoint. */
-    clerkApiUrl?: string;
-    /** Origin of the Clerk instance that authenticates humans. */
-    clerkIssuerUrl: string;
-    /** Clerk secret for the verified-email lookup invitations depend on. */
-    clerkSecretKey?: string;
-    /** Overrides the Clerk verified-email boundary; tests stand in for it. */
-    clerkUsers?: ClerkUsers;
+    /** Cloudflare Access assertion verifier configuration; production uses the Haus Access app. */
+    cloudflareAccess?: CloudflareAccessOptions;
+    /** Test seam for local Managed OAuth metadata; production discovers Cloudflare metadata. */
+    cloudflareOAuthMetadataFetch?: typeof fetch;
     /** Signed latest-production Computer release descriptor. */
     computerReleaseManifestUrl?: string;
     /** Attachment socket ping cadence and silence limit; tests shorten it. */
@@ -43,6 +39,8 @@ export interface HausServerApplicationOptions {
     connectLive?: () => WebSocket;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
+    /** Enables the fixed, loopback-only local sign-in fixture. */
+    enableDevelopmentAuth?: boolean;
     /** The Haus GitHub App; absent or null when its credentials are not configured. */
     githubApp?: GithubApp | null;
     /**
@@ -73,8 +71,6 @@ export interface HausServerApplicationOptions {
     releaseIdentity?: HausReleaseIdentity | null;
     /** Controlled time seam for deterministic reminder and sweep lifecycle tests. */
     reminderClock?: ReminderClock;
-    /** How long an App WebSocket outlives its newest Clerk token's expiry; tests shorten it. */
-    socketSessionGraceMs?: number;
     /** Built Haus App assets. Omit only when another process serves the App in development. */
     staticAppRoot?: string;
     /** Interval seam for the boot sweeps; tests pass inert timers. */

@@ -25,7 +25,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug,
-        token: session.token,
+        token: session.accessToken,
     });
     await client.chat.createChannel.mutate({
         agentIds: [orbit.agentId],
@@ -42,7 +42,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
         serverId: server.id,
         slug,
         title: 'Rebuild the search index',
-        token: session.token,
+        token: session.accessToken,
     });
     const anchor = await client.chat.send.mutate({
         chatId: work.chatId,
@@ -70,7 +70,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
     // real Agent send. An Agent send also announces a `sending` lifecycle, which
     // owns activity only: nothing but the message stream's own start recovers
     // a missed message, whoever wrote it.
-    const device = createClient(session.token);
+    const device = createClient(session.accessToken);
     const changes = {
         /** An Agent reply in `#product` (the kept tab) through the Agent API. */
         agentReply: (content: string, nonce: string) => orbit.send(content, nonce, '#product'),

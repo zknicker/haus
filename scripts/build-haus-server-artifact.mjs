@@ -7,17 +7,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packageHostedMcp, packageLinearHostedMcp } from './package-hosted-mcp.mjs';
-import { assertReleasePublishableKey } from './release/app-release-environment.mjs';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 const releaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 const stageRoot = path.join(releaseRoot, 'stage');
-if (!process.env.VITE_CLERK_PUBLISHABLE_KEY?.trim()) {
-    throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for the Haus App artifact.');
-}
-// The vite build below inlines the key into the App every visitor loads, so this
-// is the last point at which a non-production Clerk instance can still be caught.
-assertReleasePublishableKey();
 const sourceRevision = process.env.HAUS_SOURCE_REVISION?.trim() ?? '';
 if (!/^[0-9a-f]{40}$/.test(sourceRevision)) {
     throw new Error('HAUS_SOURCE_REVISION must be a full lowercase Git commit SHA.');
@@ -96,6 +89,11 @@ await fs.cp(path.join(repoRoot, 'apps', 'server', 'config'), path.join(stageRoot
 await fs.cp(
     path.join(repoRoot, 'apps', 'server', 'drizzle', 'postgres'),
     path.join(stageRoot, 'share', 'haus-server', 'migrations'),
+    { recursive: true }
+);
+await fs.cp(
+    path.join(repoRoot, 'apps', 'server', 'recovery'),
+    path.join(stageRoot, 'share', 'haus-server', 'recovery'),
     { recursive: true }
 );
 await fs.cp(

@@ -40,7 +40,10 @@ export async function settleAgentBackgroundClaims(
                 isNull(messageTasksTable.trackedAt)
             )
         );
-    const changed = new Map<string, { chatId: string; messageId: string }>();
+    const changed = new Map<
+        string,
+        { chatId: string; messageId: string; threadChatId: string | null }
+    >();
     for (const task of candidates) {
         await db
             .update(messageTasksTable)
@@ -55,23 +58,12 @@ export async function settleAgentBackgroundClaims(
                     eq(messageTasksTable.messageId, task.messageId)
                 )
             );
-        changed.set(task.messageId, { chatId: task.chatId, messageId: task.messageId });
+        changed.set(task.messageId, task);
     }
     for (const held of await tasksHeldByRun(db, scope)) {
         changed.set(held.messageId, held);
     }
-    const events: PreparedRealtimeEvent[] = [];
-    for (const task of changed.values()) {
-        events.push(
-            prepareTaskEvent({
-                chatId: task.chatId,
-                messageId: task.messageId,
-                serverId: scope.serverId,
-                type: 'task.updated',
-            })
-        );
-    }
-    return events;
+    return [...changed.values()].map((task) => taskUpdatedEvent(scope, task));
 }
 
 /** `task.updated` for every task this run holds — the liveness edge, either way. */
@@ -79,21 +71,27 @@ export async function runLivenessTaskEvents(
     db: TaskWriter,
     scope: RunScope
 ): Promise<PreparedRealtimeEvent[]> {
-    const events: PreparedRealtimeEvent[] = [];
-    for (const task of await tasksHeldByRun(db, scope)) {
-        events.push(
-            prepareTaskEvent({
-                chatId: task.chatId,
-                messageId: task.messageId,
-                serverId: scope.serverId,
-                type: 'task.updated',
-            })
-        );
-    }
-    return events;
+    return (await tasksHeldByRun(db, scope)).map((task) => taskUpdatedEvent(scope, task));
 }
 
-/** The tasks this run's inbox rows anchor on, by message or by Thread. */
+function taskUpdatedEvent(
+    scope: RunScope,
+    task: { chatId: string; messageId: string; threadChatId: string | null }
+) {
+    return prepareTaskEvent({
+        chatId: task.chatId,
+        messageId: task.messageId,
+        serverId: scope.serverId,
+        threadChatId: task.threadChatId,
+        type: 'task.updated',
+    });
+}
+
+/**
+ * The tasks this run's inbox rows anchor on, by message or by Thread. A Thread
+ * row holds both the task on the Thread's anchor and every task posted inside
+ * that Thread: the Thread is their shared work surface.
+ */
 async function tasksHeldByRun(db: TaskWriter, scope: RunScope) {
     const rows = await db
         .select({ chatId: agentInboxTable.chatId, dedupeKey: agentInboxTable.dedupeKey })
@@ -113,23 +111,31 @@ async function tasksHeldByRun(db: TaskWriter, scope: RunScope) {
         return [];
     }
     const anchors = new Set<string>();
+    const threadChatIds = new Set<string>();
     for (const row of rows) {
         anchors.add(row.dedupeKey);
         const threadAnchor = row.chatId ? anchorMessageIdForThreadChatId(row.chatId) : null;
-        if (threadAnchor) {
+        if (row.chatId && threadAnchor) {
             anchors.add(threadAnchor);
+            threadChatIds.add(row.chatId);
         }
     }
     return await db
         .select({
             chatId: messageTasksTable.chatId,
             messageId: messageTasksTable.messageId,
+            threadChatId: messageTasksTable.threadChatId,
         })
         .from(messageTasksTable)
         .where(
             and(
                 eq(messageTasksTable.serverId, scope.serverId),
-                inArray(messageTasksTable.messageId, [...anchors])
+                threadChatIds.size > 0
+                    ? or(
+                          inArray(messageTasksTable.messageId, [...anchors]),
+                          inArray(messageTasksTable.threadChatId, [...threadChatIds])
+                      )
+                    : inArray(messageTasksTable.messageId, [...anchors])
             )
         );
 }

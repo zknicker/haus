@@ -244,12 +244,12 @@ async function addAdmin(label: string) {
 }
 
 async function addMember(label: string) {
-    const clerkUserId = `user_membership_serialize_${label}`;
+    const subject = `user_membership_serialize_${label}`;
     const email = `membership-serialize-${label}@haus.test`;
-    const client = await signIn(clerkUserId, [email]);
+    const client = await signIn(subject, [email]);
     const { token } = await owner.trpc.invitation.create.mutate({ email, serverId });
     await client.trpc.invitation.accept.mutate({ token });
-    return { client, userId: await readUserId(clerkUserId) };
+    return { client, userId: await readUserId(subject) };
 }
 
 function remove(userId: string) {
@@ -273,15 +273,15 @@ async function whileServerRowIsHeld(run: () => Promise<void>) {
     }
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const [row] = await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `;
     return row.id as string;
 }
 
-async function signIn(clerkUserId: string, verifiedEmails: string[]) {
-    harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string, verifiedEmails: string[]) {
+    harness.humans.setVerifiedEmails(subject, verifiedEmails);
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }

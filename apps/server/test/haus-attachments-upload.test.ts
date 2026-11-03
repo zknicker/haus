@@ -6,7 +6,7 @@ import {
     uploadAttachment,
 } from '../src/attachments/upload-attachment.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
-import { findUserByClerkId } from '../src/users/haus-user.ts';
+import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -19,8 +19,8 @@ const runtime = makeTestRuntime();
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('upload_owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('upload_outsider'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('upload_owner'));
+    outsider = createHausClient(harness, await harness.humans.mintSessionToken('upload_outsider'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Upload Server',
         slug: 'upload-server',
@@ -105,7 +105,10 @@ test('accepts missing Content-Length and rejects streamed overflow without a rea
     );
     const connection = await connectHausDatabase(harness.databaseUrl);
     try {
-        const member = await findUserByClerkId(connection.db, 'upload_owner');
+        const member = await findUserById(
+            connection.db,
+            harness.humans.userIdForSubject('upload_owner')
+        );
         const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
         await expect(
             uploadAttachment(connection.db, root, runtime, {
@@ -153,7 +156,7 @@ test('upload fails closed for a foreign member and foreign Server id', async () 
         {
             body: new Uint8Array(),
             headers: {
-                authorization: `Bearer ${owner.clerkSessionToken}`,
+                authorization: `Bearer ${owner.sessionToken}`,
                 'content-type': 'text/plain',
                 origin: harness.appOrigin,
             },
@@ -177,7 +180,10 @@ test('accepts zero bytes and marks a dishonest Content-Length attempt failed', a
     );
     const connection = await connectHausDatabase(harness.databaseUrl);
     try {
-        const member = await findUserByClerkId(connection.db, 'upload_owner');
+        const member = await findUserById(
+            connection.db,
+            harness.humans.userIdForSubject('upload_owner')
+        );
         const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
         await expect(
             uploadAttachment(connection.db, root, runtime, {
@@ -220,7 +226,7 @@ async function upload(
     return await fetch(new URL(`/attachments/${scopedServerId}/${attachmentId}`, harness.url), {
         body,
         headers: {
-            authorization: `Bearer ${client.clerkSessionToken}`,
+            authorization: `Bearer ${client.sessionToken}`,
             'content-type': 'application/octet-stream',
             origin: harness.appOrigin,
         },

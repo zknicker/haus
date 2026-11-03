@@ -6,7 +6,7 @@ import {
     parseDoneSends,
     refersTo,
 } from './placement.mjs';
-import { namesKitRules, starterKit } from './placement-kit.mjs';
+import { namesKitRules, refersToKit, starterKit } from './placement-kit.mjs';
 
 test('parses --done anywhere in the invocation, with every target spelling', () => {
     const sends = parseDoneSends([
@@ -69,9 +69,29 @@ test('a found-the-kit result names at least two seeded rules', () => {
     expect(namesKitRules('On it.')).toBe(false);
 });
 
+test('a found-the-kit result names, links, or quotes the kit', () => {
+    const paths = ['pod-folder-system-starter-kit'];
+    expect(
+        refersToKit(
+            'Yep. I can see and open [Pod Folder System Starter Kit](http://localhost:46324/s/dev/artifacts/art_dZdyxnsN_4fNDT63).',
+            { paths }
+        )
+    ).toBe(true);
+    expect(
+        refersToKit('Yes, it is at `design-factory/pod-folder-system-starter-kit.md`.', { paths })
+    ).toBe(true);
+    expect(refersToKit('Titles now cap at 50 chars and art must be pure black or white.')).toBe(
+        true
+    );
+    expect(refersToKit('Still nothing named kit.', { paths })).toBe(false);
+    expect(refersToKit('Yep, I can see it.', { paths })).toBe(false);
+});
+
 test('thread targets carry a message short ID', () => {
     expect(isThreadTarget('#all:1a2b3c4d')).toBe(true);
     expect(isThreadTarget('dm:@zach:1a2b3c4d')).toBe(true);
+    expect(isThreadTarget('dm:@zach:-NSrvCA3')).toBe(true);
+    expect(isThreadTarget('#all:Id0_WvSZ')).toBe(true);
     expect(isThreadTarget('#all')).toBe(false);
     expect(isThreadTarget('dm:@zach')).toBe(false);
 });

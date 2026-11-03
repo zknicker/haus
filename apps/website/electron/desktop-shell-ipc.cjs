@@ -26,7 +26,7 @@ function registerDesktopShellIpc({ app, appUrl, dockAppIcon, ipcMain, nativeThem
     ipcMain.handle('desktop:dock:set-app-icon', (event, icon) => {
         assertTrustedRenderer(event, appUrl);
         if (!isAppIcon(icon)) {
-            throw new TypeError('App icon must be ghost or pumpkin');
+            throw new TypeError('App icon must be ghost, pumpkin or santa');
         }
 
         dockAppIcon.set(icon);

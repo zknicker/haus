@@ -10,7 +10,7 @@ import {
 import { memberProcedure } from '../server/procedure.ts';
 
 /**
- * Invitation work for one Clerk-authenticated human, with invitation refusals
+ * Invitation work for one Haus-authenticated human, with invitation refusals
  * reported as the tRPC codes the App reacts to. Server membership refusals are
  * already mapped upstream, so a non-member never learns an invitation exists.
  */

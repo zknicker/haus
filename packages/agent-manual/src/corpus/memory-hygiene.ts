@@ -5,7 +5,7 @@ export const memoryHygieneRecipe = createManualRecipe({
 # Keep MEMORY.md hot and notes/ current
 
 ### Trigger
-Use this when MEMORY.md or notes/ start to harm recovery: MEMORY.md runs long, Active Context reads like a diary, finished work still looks current, or one fact lives in several places. A Haus nightly dreaming turn calls for a dreaming pass.
+Use this when MEMORY.md or notes/ start to harm recovery: MEMORY.md runs long, Active Context reads like a diary, finished work still looks current, or one fact lives in several places. The nightly heartbeat run applies these rules (see recipes/technique/heartbeat).
 
 ### Use When / Don't Use When
 Use it after finishing work, before long tasks, and whenever you catch yourself appending. Do not use memory as a task queue or alarm clock; tasks and reminders own work and wakeups, and Haus chats own history.
@@ -22,6 +22,7 @@ Standing Preferences are rules you follow, not a log of feedback.
 - Add one short "because …" clause only when the reason isn't obvious. No sources (who said it), dates, or caveats; chat holds the evidence, and handles are for work state.
 - Record confirmed approaches too, not only corrections: what worked and the person liked becomes a rule.
 - Do not restate rules your system prompt already enforces.
+- Keep every standing rule. Drop one only when you merge it into another or something newer contradicts it; a rewrite of MEMORY.md carries every Standing Preference forward.
 
 Before: \`- Exercise more agency: carry authorized work through, choose routine next steps, and avoid unnecessary questions. @dana will redirect when needed. This does not authorize irreversible actions. Source: #ops msg 8f3k2a.\`
 After: \`- High agency: own sequencing and routine calls; ask only for real decisions.\`
@@ -37,17 +38,7 @@ After: \`- High agency: own sequencing and routine calls; ask only for real deci
 8. Never store secrets or raw credentials. Redact credential-shaped strings.
 
 ### Dreaming
-Dreaming is your own periodic consolidation pass: short, silent, and centered on MEMORY.md. Haus starts a nightly dreaming turn for it when your memory changed or MEMORY.md outgrew its index; handle any messages that arrive during it as usual.
-1. Re-read all of MEMORY.md and skim every Key Knowledge hook and sub-index.
-2. Fold lessons from recent work into Standing Preferences and Key Knowledge as terse general rules (see Write rules, not records): merge, don't append.
-3. Re-check each Active Context line is still true; rewrite it or drop it.
-4. Move detail out of MEMORY.md into the note that owns it, or a new topic note.
-5. Link every note you touched from MEMORY.md with a path + hook line.
-6. Delete what is finished or no longer true.
-Edit only what is stale, overlapping, or too broad, old untouched notes included: merge a note that duplicates another, fix one that overgeneralizes. Never rewrite notes for their own sake. Say nothing about it in chat.
-- **Keep every standing rule.** Drop one only when you merge it into another or something newer contradicts it; a rewrite of MEMORY.md carries every Standing Preference forward.
-- **Edit memory only.** The pass itself changes only MEMORY.md and notes/: no reminders, tasks, or messages.
-- **Keep what is hard to re-derive.** Preferences, the reason behind a decision, who handles what. Drop what a \`haus\` command looks up on demand: other Agents' status, task details, chat contents; keep a handle instead. Another Agent's state is a claim: check it cheaply or drop it (see Memory as proof).
+The nightly heartbeat run consolidates memory using these rules; its steps live in \`recipes/technique/heartbeat\`. Keep what is hard to re-derive (preferences, the reason behind a decision, who handles what), and drop what a \`haus\` command looks up on demand.
 
 ### Verify
 Cold-start self-check: reading only MEMORY.md, can future-you say who you are, how people want you to work, what is in flight now, and which note to open for any topic? Then: every index line is one line with a path; no area of more than a handful of notes is listed file by file in MEMORY.md; no note is a dated log; Active Context names nothing finished; no fact appears twice.
@@ -77,7 +68,7 @@ Agents whose MEMORY.md grew as an append-only diary carried stale "currently wor
     title: 'Keep MEMORY.md hot and notes/ current',
     triggers: [
         'my MEMORY.md is bloating or over its size limit',
-        'a nightly dreaming turn asks me to consolidate my memory',
+        'a nightly heartbeat asks me to consolidate my memory',
         'where should this preference or fact live in memory',
         'someone gave me feedback to remember as a standing preference',
         'Active Context reads like a diary',

@@ -7,5 +7,5 @@ export const previewInvitationProcedure = invitationProcedure
     .output(serverInvitationPreviewSchema)
     .query(
         async ({ ctx, input }) =>
-            await previewServerInvitation(ctx.hausDb, ctx.clerkUsers, ctx.clerkUserId, input.token)
+            await previewServerInvitation(ctx.hausDb, ctx.userId!, input.token)
     );

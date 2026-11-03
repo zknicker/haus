@@ -32,9 +32,9 @@ function buildWebServers() {
             url: `http://127.0.0.1:${hausServerPort}/healthz`,
         },
         {
-            // VITE_CLERK_PUBLISHABLE_KEY is forced empty so e2e always runs the
-            // keyless signed-out dev mode, even when .env.local has a key.
-            command: `VITE_CLERK_PUBLISHABLE_KEY= VITE_HAUS_SERVER_ORIGIN=http://127.0.0.1:${hausServerPort} HAUS_WEBSITE_PORT=${websitePort} bun run dev -- --host 127.0.0.1 --port ${websitePort}`,
+            // The test mode accepts only an in-memory AppSession injected by
+            // the Playwright test runner on this loopback origin.
+            command: `VITE_HAUS_SERVER_ORIGIN=http://127.0.0.1:${hausServerPort} HAUS_WEBSITE_PORT=${websitePort} bun run dev -- --host 127.0.0.1 --port ${websitePort} --mode test`,
             reuseExistingServer: false,
             stderr: 'pipe',
             stdout: 'pipe',

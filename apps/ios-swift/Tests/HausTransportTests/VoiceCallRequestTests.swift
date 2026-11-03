@@ -7,7 +7,7 @@ final class VoiceCallRequestTests: XCTestCase {
     func testVoiceRequestUsesSecureSocketAndCurrentAuthentication() async throws {
         let client = TRPCClient(
             config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
-            sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_voice")
+            sessionTokenProvider: StaticSessionTokenProvider(token: "haus_access_test")
         )
         let request = try await client.voiceCallRequest(serverID: "srv_voice", chatID: "cht_voice")
         XCTAssertEqual(request.url?.scheme, "wss")
@@ -15,8 +15,8 @@ final class VoiceCallRequestTests: XCTestCase {
         let parameters = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems
         XCTAssertEqual(parameters?.first(where: { $0.name == "serverId" })?.value, "srv_voice")
         XCTAssertEqual(parameters?.first(where: { $0.name == "chatId" })?.value, "cht_voice")
-        XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_voice")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer haus_access_test")
         XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "test")
-        XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "10")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "12")
     }
 }

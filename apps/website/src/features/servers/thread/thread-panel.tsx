@@ -17,6 +17,7 @@ export function ThreadPanel({
     readOnly,
     summary,
     takeover,
+    taskMessage,
     turnDetailsAccess,
 }: {
     active: boolean;
@@ -31,6 +32,8 @@ export function ThreadPanel({
     readOnly: boolean;
     summary: ThreadSummary | null;
     takeover: boolean;
+    /** The Task the Thread was opened on when its message sits inside the Thread. */
+    taskMessage?: ChatMessage | null;
     turnDetailsAccess: 'journal' | 'summary';
 }) {
     return (
@@ -55,6 +58,7 @@ export function ThreadPanel({
                     readOnly={readOnly}
                     summary={summary}
                     takeover={takeover}
+                    taskMessage={taskMessage}
                     turnDetailsAccess={turnDetailsAccess}
                     width={width}
                 />

@@ -87,12 +87,13 @@ checksum, deploy verification, and startup logs carry the product and Server
 versions, full revision, and content digest. The narrow activation output carries
 only the activated revision, and public `/healthz` carries no release identity.
 
-The `Release` workflow builds the Server artifact once; the non-secret
-`VITE_CLERK_PUBLISHABLE_KEY` it inlines is a public literal in `.env.schema`.
-The mini never installs Bun dependencies, resets the deploy root, or rebuilds
-the Server. PostgreSQL and runtime secrets do not enter the artifact, Actions
-inputs, or output — they resolve from 1Password during the deploy and land only
-in `config/server.env`. See [environment.md](environment.md).
+The `Release` workflow builds the Server artifact once. Human sign-in uses
+public Cloudflare Access configuration; no provider credential is embedded in
+the Server or App artifact. The mini never installs Bun dependencies, resets
+the deploy root, or rebuilds the Server. PostgreSQL and runtime secrets do not
+enter the artifact, Actions inputs, or output — they resolve from 1Password
+during deploy and land only in `config/server.env`. See
+[environment.md](environment.md).
 
 The Apple Silicon archive and SHA-256 file are built under
 `apps/server/release/`, verified by the publisher, and attached to the GitHub
@@ -127,10 +128,9 @@ entirely: the first varlock deploy necessarily promotes a version built before
 contract from the artifact could never run the first time.
 
 The cost is that the two revisions can disagree, and a silent disagreement is
-worse than a failed deploy: a Server that cannot find `HAUS_CLERK_SECRET_KEY`
-because it was built when the name was `CLERK_SECRET_KEY` does not crash — it
-falls back to its own defaults and serves production without a Clerk secret and
-against the wrong database. So the render step reads the released revision's own
+worse than a failed deploy: a Server that cannot find a required database or
+auth setting can fall back to its defaults or fail after restart. So the render
+step reads the released revision's own
 `apps/server/src/config/env.ts` out of git history and refuses to render unless
 the name sets match exactly, naming both sides of the drift when they do not.
 Post-bootstrap the two revisions normally agree and the check is a no-op.
@@ -372,11 +372,10 @@ secret source, and rollback release before changing the host.
    admin password in the `Postgres - Haus` Production 1Password item.
 9. Own `config/` as `zknicker`, mode `0755`, so the deploy job can write
    `config/server.env` and `_haus_server` can traverse to it. That file is
-   rendered by the deploy job, never by hand: it carries the production
-   database URL, the `https://haus.chat` origin, the Haus Clerk issuer, and
-   the Haus production `HAUS_CLERK_SECRET_KEY`, which invitation acceptance needs
-   for verified-email lookup. Every one of those values lives in 1Password and
-   reaches the host only through `varlock run`.
+   rendered by the deploy job, never by hand. Keep a protected copy of the
+   pre-auth-cutover `config/server.env` on the host until the Cloudflare sign-in
+   flow is proven live; it contains the old runtime contract needed if the old
+   Server artifact must be restored.
 10. Build the approved release once, then install its
     `bin/activate-haus-server` as root-owned mode `0755` at
     `/usr/local/libexec/haus/activate-haus-server`. Verify every path
@@ -389,8 +388,11 @@ secret source, and rollback release before changing the host.
     these privileged assets. The helper owns only the contained path switch,
     system-service restart, health check, and rollback. Reinstall it through
     this operator gate only when that narrow activation contract changes.
-11. Manually dispatch the exact published Haus `vX.Y.Z`, its Server artifact `X.Y.Z`, and the
-    release source SHA in `deploy` mode. This seeds
+11. Before migration 0102 on a nonempty database, validate and stage the
+    protected identity receipt on the old schema. It contains `userId`,
+    `legacySubject`, `subject`, and `verifiedEmails`. Then dispatch the exact
+    published Haus `vX.Y.Z`, its Server artifact `X.Y.Z`, and the release source
+    SHA in `deploy` mode. This seeds
     the first immutable release through the same download, verification,
     install, helper-owned Server bootstrap, health, and rollback path used by
     later published releases.
@@ -408,19 +410,64 @@ Each step needs the operator's explicit approval before the corresponding
 material host or Cloudflare change. Do not delete old state or overwrite a
 database.
 
+## Human auth schema cutover
+
+Migration 0102 replaces the legacy external subject with the Cloudflare Access
+subject and converts Computer login owners to canonical Haus User ids. It
+preserves Haus User ids, Computer login ids, credential hashes, refresh
+families, and the Computer protocol. The migration fails and rolls back as one
+unit if any User or Computer login owner is unmapped. The small
+`haus_auth_rollback_recovery` table keeps the old subject mapping; this cutover
+does not use a bulk database copy.
+
+Before migration, check and stage the exact protected receipt with the
+migration credential:
+
+```sh
+varlock run --include-internal -- \
+  bun apps/server/scripts/stage-cloudflare-identity.mjs --check <protected-receipt.json>
+varlock run --include-internal -- \
+  bun apps/server/scripts/stage-cloudflare-identity.mjs --stage <protected-receipt.json>
+```
+
+The receipt must match the existing Haus User and legacy subject and contain
+the exact Cloudflare subject and verified-email aliases. These commands are
+for the authorized production cutover only; ordinary deploys and tests do not
+run them against production.
+
+The previous Server artifact expects the columns removed by migration 0102.
+An automatic artifact rollback alone cannot restore that schema. If migration
+completes but candidate activation or health fails, keep Tunnel ingress
+stopped and do not activate the previous artifact yet. First run the candidate
+artifact's recovery SQL at:
+
+```text
+current/share/haus-server/recovery/0102_restore_legacy_auth.sql
+```
+
+If `current` already points to the previous release, use the same file under
+the failed candidate's immutable `releases/<full-source-sha>/share/haus-server/recovery/`
+directory. Run it with the migration credential against the same database.
+The SQL is transactional and stops if any User or Computer login owner has no
+recovery mapping. It also removes only migration 0102's exact Drizzle history
+marker in that transaction, and refuses to run if any later migration marker
+exists. Verify the old subjects, stable Haus User ids, Computer owners, and
+credential hashes; restore the protected pre-cutover
+`config/server.env`; activate the previous full-SHA artifact; verify local
+health; then restore Tunnel ingress. Keep the recovery SQL and mapping table
+until browser, native, Computer, and MCP checks pass.
+
 ## Rollback
 
 Keep the previous full-SHA release and all state untouched. Activation switches
-`current` atomically, restarts only `com.haus.server`, and restores the exact
-previous SHA automatically when local health fails. `config/server.env` is
-rendered before activation and is *not* reverted by a rollback: the rolled-back
-release runs with the new release's delivered environment. That is safe as long
-as a rename lands together with the code that reads it — which is what
-`env:contract` enforces — but a release that renames a variable should be rolled
-back by dispatching `deploy` on the previous version rather than `activate`. A manual rollback selects
-an already installed published version in the Actions workflow and uses
-`activate`; it never rebuilds. If a wider cutover fails, stop Tunnel ingress or
-restore its previously recorded route without changing application state.
+`current` atomically and restarts only `com.haus.server`. Its automatic failure
+path changes the artifact pointer; it does not restore `config/server.env` or
+reverse a database migration. After migration 0102, the old artifact cannot
+serve the restored schema until the recovery procedure above has run. For a
+schema-compatible release, a manual rollback selects an already installed
+published version in the Actions workflow and uses `activate`; it never
+rebuilds. If a wider cutover fails, stop Tunnel ingress or restore its
+previously recorded route without changing application state.
 Stop the database with `docker compose -p haus down` without `--volumes`;
 preserve `haus_postgres_data`. Never roll back PostgreSQL
 by deleting or overwriting its data. Keep shared system Colima supervision in

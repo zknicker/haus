@@ -8,6 +8,7 @@ import { useTheme } from '../../components/theme-provider.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
+import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { serverChatRoute, serverSearchRoute } from '../servers/server-routes.ts';
 import { setShowTasksInChat, useShowTasksInChat } from '../tasks/show-tasks-in-chat.ts';
@@ -20,6 +21,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { devMode, setDevMode } = useDevMode();
     const { forcedTheme, setTheme } = useTheme();
     const modeLocked = forcedTheme !== null;
+    const { scene } = useColorThemeDefinition();
     const showTasksInChat = useShowTasksInChat();
     const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(server.id);
@@ -46,7 +48,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
                 setDevMode,
             }),
             buildTaskCommandGroup({ setShowTasksInChat, showTasksInChat }),
-            buildThemeCommandGroup({ modeLocked, setTheme }),
+            buildThemeCommandGroup({ modeLocked, scene, setTheme }),
         ],
         [
             agentItems,
@@ -56,6 +58,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
             navigate,
             openAgentProfile,
             pathname,
+            scene,
             server,
             setDevMode,
             setTheme,

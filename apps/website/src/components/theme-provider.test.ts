@@ -18,6 +18,13 @@ describe('resolved mode', () => {
         expect(resolveTheme('dark', 'halloween', 'light')).toBe('dark');
     });
 
+    test('a definition that forces light pins it over every preference', () => {
+        expect(colorThemeDefinition('christmas-morning').forcedMode).toBe('light');
+        expect(resolveTheme('dark', 'christmas-morning', 'dark')).toBe('light');
+        expect(resolveTheme('system', 'christmas-morning', 'dark')).toBe('light');
+        expect(resolveTheme('light', 'christmas-morning', 'dark')).toBe('light');
+    });
+
     test('switching back to Default restores the stored preference', () => {
         const preference = 'light';
         expect(resolveTheme(preference, 'halloween', 'light')).toBe('dark');

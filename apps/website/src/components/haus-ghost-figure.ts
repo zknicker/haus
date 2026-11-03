@@ -15,19 +15,26 @@ export interface GlassFigure {
     body: string;
     edgeStops: readonly { color: string; offset: number; opacity: number }[];
     eye: string;
-    eyes: string;
+    /** Opaque marks over the glass. A costume piece (`GlassPiece`) has none. */
+    eyes?: string;
     /** Form shading painted over the color mesh and under the white light:
         core shadow, lobe crowns, occlusion, bounce, a stem's cylinder. A
         solid figure needs it; the ghost is see-through glass and has none. */
     form?: readonly FormPaint[];
     /** Where the 192×204 viewBox starts, so a figure whose mass does not sit
         where its outline's box does can still center optically in every slot
-        without the rendered box changing. The ghost's is the origin. */
-    frame?: { x: number; y: number };
+        without the rendered box changing. The ghost's is the origin. `scale`
+        widens the viewBox about that corner, for a costume that reaches past
+        the box (a hat): the rendered box keeps its size and aspect, and the
+        whole figure draws a little smaller inside it. */
+    frame?: { scale?: number; x: number; y: number };
     /** Drifting color patches painted straight onto the interior, outside the
         rim mask: color moving through an opaque body rather than pooled at a
         glass rim. The ghost has none. */
     patches?: readonly MeshBlob[];
+    /** Separate pieces of glass a costume wears over the figure, painted after
+        it in order, each with its own rim. The ghost and the pumpkin have none. */
+    pieces?: readonly GlassPiece[];
     /** Soft grooves inside the glass, like a pumpkin's ribs. */
     ribs?: { color: string; path: string };
     rimStops: readonly { color: string; offset: number }[];
@@ -48,6 +55,18 @@ export interface GlassFigure {
         y1: number;
         y2: number;
     };
+}
+
+/** A costume piece, like a hat's brim. It is drawn as a whole figure in its
+    own 192×204 box, so every rim width, mask and blur keeps the proportions
+    the stack was tuned at, then placed into the wearer's space: `x`, `y` is
+    where its box's corner lands, and `scale` is its box's size against the
+    full one. It has no eyes. */
+export interface GlassPiece {
+    figure: GlassFigure;
+    /** Stable, per costume; scopes the piece's defs. */
+    id: string;
+    place: { scale: number; x: number; y: number };
 }
 
 /** A form paint shape of `FORM_BODY` stands for the figure's own silhouette,

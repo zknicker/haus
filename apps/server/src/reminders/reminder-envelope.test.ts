@@ -8,7 +8,8 @@ const base = {
 };
 
 /** Every fire envelope ends with the command that answers it with provenance. */
-const replyLine = 'reply with: haus message send --cause rmf_fire';
+const replyLine =
+    'reply with: --cause rmf_fire on the command that posts (haus message send or haus cloud-agent start)';
 
 describe('reminder envelope', () => {
     test('names the reminder, the fire, and the command that answers it', () => {

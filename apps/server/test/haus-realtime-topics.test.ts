@@ -273,16 +273,16 @@ function send(content: string, nonce: string, replyToMessageId?: string) {
     });
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }
 
 /** Mints the human's User through their own Server, then adds them as a member. */
-async function joinAsMember(client: HausClient, clerkUserId: string, target: string, slug: string) {
+async function joinAsMember(client: HausClient, subject: string, target: string, slug: string) {
     await client.trpc.server.create.mutate({ displayName: `${slug} root`, slug: `${slug}-root` });
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     const userId = user?.id ?? '';
     await harness.sql`

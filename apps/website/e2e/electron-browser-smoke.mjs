@@ -22,7 +22,6 @@ try {
         env: {
             ...process.env,
             HAUS_ELECTRON_DEV_URL: url,
-            HAUS_CLERK_ISSUER_URL: 'https://clerk.browser-smoke.test',
             HAUS_DEV_STACK_ID: `browser-smoke-${Date.now()}`,
         },
     });

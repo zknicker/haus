@@ -147,7 +147,9 @@ export async function createAgentTasks(
                 createdByAgentId: runner.agentId,
                 messageId: message.id,
                 number: numberedChat.taskNumber,
-                origin: 'composed',
+                // Taking your own new work is a claim on a fresh message, not
+                // work a person composed for someone.
+                origin: selfClaim ? 'claimed' : 'composed',
                 serverId: runner.serverId,
                 status: selfClaim ? 'in_progress' : 'todo',
             });
@@ -228,6 +230,7 @@ export async function createAgentTasks(
                     chatId,
                     messageId: message.id,
                     serverId: runner.serverId,
+                    threadChatId: null,
                     type: 'task.created',
                 }),
                 ...(await prepareMessageLinkEvents(tx, {

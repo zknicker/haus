@@ -26,7 +26,7 @@ beforeAll(async () => {
     connection = await connectHausDatabase(harness.databaseUrl);
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_trigger_retention')
+        await harness.humans.mintSessionToken('user_trigger_retention')
     );
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Trigger Retention Server',

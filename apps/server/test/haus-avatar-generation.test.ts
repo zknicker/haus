@@ -146,13 +146,13 @@ async function countAvatars() {
     return rows[0]?.count ?? 0;
 }
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const rows = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     return rows[0]?.id ?? '';
 }

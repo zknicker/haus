@@ -3,12 +3,11 @@ import XCTest
 @testable import HausTransport
 
 final class ProfileAvatarModelsTests: XCTestCase {
-    func testHumanIdentitySyncEncodesNullableClerkFieldsAndServerID() throws {
-        let input = SyncHumanIdentityInput(email: nil, name: nil, serverID: "srv_123")
+    func testHumanIdentitySyncEncodesNullableNameAndServerID() throws {
+        let input = SyncHumanIdentityInput(name: nil, serverID: "srv_123")
         let object = try jsonObject(input)
 
-        XCTAssertEqual(Set(object.keys), ["email", "name", "serverId"])
-        XCTAssertTrue(object["email"] is NSNull)
+        XCTAssertEqual(Set(object.keys), ["name", "serverId"])
         XCTAssertTrue(object["name"] is NSNull)
         XCTAssertEqual(object["serverId"] as? String, "srv_123")
     }
@@ -17,11 +16,11 @@ final class ProfileAvatarModelsTests: XCTestCase {
     /// phone skipped must be omitted, never sent as null.
     func testHumanIdentitySyncSendsTheDeviceZoneOnlyWhenPresent() throws {
         let withZone = try jsonObject(
-            SyncHumanIdentityInput(email: nil, name: "Zach", serverID: "srv_123", timezone: "America/New_York")
+            SyncHumanIdentityInput(name: "Zach", serverID: "srv_123", timezone: "America/New_York")
         )
         XCTAssertEqual(withZone["timezone"] as? String, "America/New_York")
 
-        let withoutZone = try jsonObject(SyncHumanIdentityInput(email: nil, name: "Zach", serverID: "srv_123"))
+        let withoutZone = try jsonObject(SyncHumanIdentityInput(name: "Zach", serverID: "srv_123"))
         XCTAssertNil(withoutZone["timezone"])
     }
 

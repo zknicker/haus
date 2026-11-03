@@ -204,6 +204,6 @@ test('documents version publication as the only production promotion', () => {
     expect(releaseDocs).toContain('`activate` verifies and switches');
     expect(deployDocs).toContain('/Users/zknicker/srv/haus');
     expect(deployDocs).toContain('never run `git clean`');
-    expect(deployDocs).toContain('Haus production `HAUS_CLERK_SECRET_KEY`');
+    expect(deployDocs).toContain('public Cloudflare Access configuration');
     expect(deployDocs).not.toContain('/opt/haus-server');
 });

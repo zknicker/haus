@@ -5,7 +5,8 @@ import { cn } from '../../../lib/utils.ts';
 import type { ActivityLogDay } from './agent-activity-log-entries.ts';
 import type { TimelineBreak, TimelineTick } from './agent-activity-log-overview-model.ts';
 import { useLinkedHover } from './agent-activity-log-stores.ts';
-import { formatTurnDuration, formatTurnOutcome } from './agent-turn-row-model.ts';
+import { formatTurnOutcome } from './agent-turn-outcome.ts';
+import { formatTurnDuration } from './agent-turn-row-model.ts';
 
 /**
  * The strip's one line of text: the day's

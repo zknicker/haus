@@ -162,7 +162,10 @@ export const agentInboxTable = pgTable(
          */
         addressedReason: text('addressed_reason').$type<AddressedReason>(),
         agentId: text('agent_id').notNull(),
-        /** Null exactly for a `dream` or a `subagent` wake, the attentions with no Chat. */
+        /**
+         * Null exactly for the chatless attentions: `dream`, `heartbeat`, `heartbeat_report`,
+         * and a `subagent` wake.
+         */
         chatId: text('chat_id'),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -230,7 +233,7 @@ export const agentInboxTable = pgTable(
         ),
         check(
             'agent_inbox_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('dream', 'subagent'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('dream', 'heartbeat', 'heartbeat_report', 'subagent'))`
         ),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),

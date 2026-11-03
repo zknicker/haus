@@ -85,7 +85,7 @@ has moved; reusing a `request_id` for another path, title, or content type fails
 
 Writes travel as raw bytes with query metadata: Agents through
 `POST /api/agent/artifacts/publish-artifact-raw`, members through
-`PUT /artifacts/:serverId/publish` with a Clerk session. Both take `path`, optional
+`PUT /artifacts/:serverId/publish` with a Haus AppSession. Both take `path`, optional
 `base_revision_id` or `replace=true`, `request_id`, and optional `title` (default: the file name)
 and `content_type`.
 

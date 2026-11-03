@@ -26,7 +26,13 @@ import { useChatComposerCommands } from './use-chat-composer-commands.ts';
 import { useChatDraft } from './use-chat-draft.ts';
 import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
 
+/** What a host can ask of a mounted composer: to take focus, as R does in the Inbox. */
+export interface ChatComposerHandle {
+    focus: () => void;
+}
+
 export function ServerChatComposer({
+    autoFocus = true,
     chatId,
     chatName,
     draftKey,
@@ -38,12 +44,15 @@ export function ServerChatComposer({
     onThreadCreated,
     pendingChatId,
     placeholder,
+    ref,
     serverId,
     status,
     thread,
     target,
     variant = 'primary',
 }: {
+    /** Focus on mount and on a kept view's reveal; an Inbox row passes false and focuses via `ref`. */
+    autoFocus?: boolean;
     chatId?: string;
     chatName: string;
     draftKey: string;
@@ -60,6 +69,7 @@ export function ServerChatComposer({
      */
     pendingChatId?: string;
     placeholder?: string;
+    ref?: React.Ref<ChatComposerHandle>;
     serverId: string;
     /** The typing row; the composer reserves its height above the shell. */
     status?: React.ReactNode;
@@ -117,9 +127,11 @@ export function ServerChatComposer({
     const upload = useUploadServerAttachment();
     const activeInlineReply = thread ? null : inlineReply;
 
+    React.useImperativeHandle(ref, () => ({ focus: mentionComposer.focusTextEditor }));
     useChatComposerCommands({
         agents: agentList,
         chatId,
+        focusOnReveal: autoFocus,
         focusTextEditor: mentionComposer.focusTextEditor,
         insertMention: mentionComposer.handleMentionSelect,
         thread: Boolean(thread),
@@ -222,7 +234,7 @@ export function ServerChatComposer({
                         >
                             <MentionComposerEditor
                                 ariaLabel={`Message ${chatName}`}
-                                autoFocus
+                                autoFocus={autoFocus}
                                 composer={mentionComposer}
                                 key={draftKey}
                                 mentions={mentions}

@@ -7,7 +7,7 @@ import { installRenderCounter } from './render-audit-counter.mjs';
 
 const websiteRequire = createRequire(path.join(repositoryRoot, 'apps/website/package.json'));
 const { _electron } = websiteRequire('@playwright/test');
-const serverPaths = /^\/(trpc|api|healthz|wiki)(\/|$)/;
+const serverPaths = /^\/(auth|trpc|api|healthz|wiki)(\/|$)/;
 const contentTypes = {
     '.css': 'text/css',
     '.html': 'text/html',
@@ -44,7 +44,7 @@ export async function launchAuditedElectron({ base, dist, serverPort, source }) 
         `globalThis.__hausAuditServerPort = ${serverPort}; globalThis.__hausAuditSource = ${JSON.stringify(source ?? null)};`
     );
     await page.addInitScript(installRenderCounter);
-    // Dev bundle first: native Clerk signs in; then serve the prod bundle.
+    // Dev bundle first: the local session signs in; then serve the prod bundle.
     await page.waitForSelector('[data-slot="sidebar-menu-item"]', { timeout: 90_000 });
     await serveDist(page, base, dist);
     await page.reload();
@@ -142,7 +142,14 @@ export async function openSender(base) {
 
 // In page: channels by name, Agent DMs by Agent name.
 async function readTargets(headers) {
-    const token = await globalThis.Clerk.session.getToken();
+    const sessionResponse = await fetch('/auth/dev/session', {
+        credentials: 'include',
+        headers: { 'X-Haus-Session-Request': '1' },
+    });
+    if (!sessionResponse.ok) {
+        throw new Error('Local Haus session is unavailable for the render audit.');
+    }
+    const { accessToken: token } = await sessionResponse.json();
     const authorized = { ...headers, authorization: `Bearer ${token}` };
     const read = (path) => fetch(path, { headers: authorized }).then((response) => response.json());
     const servers = await read('/trpc/server.list');
@@ -166,7 +173,14 @@ async function readTargets(headers) {
 
 // In page: one `chat.send`.
 async function postMessage({ headers, input }) {
-    const token = await globalThis.Clerk.session.getToken();
+    const sessionResponse = await fetch('/auth/dev/session', {
+        credentials: 'include',
+        headers: { 'X-Haus-Session-Request': '1' },
+    });
+    if (!sessionResponse.ok) {
+        throw new Error('Local Haus session is unavailable for the render audit.');
+    }
+    const { accessToken: token } = await sessionResponse.json();
     const response = await fetch('/trpc/chat.send', {
         body: JSON.stringify(input),
         headers: {

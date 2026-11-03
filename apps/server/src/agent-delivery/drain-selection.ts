@@ -1,7 +1,7 @@
 import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatlessStartFrame } from './chatless-run.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
+import { heartbeatStartFrame } from './heartbeat-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
     isConcreteInboxSource as isConcreteSource,
@@ -43,7 +43,7 @@ export async function startFrame(
         : [];
     const chatlessRow = runRows.find((row) => isChatlessInboxSource(row.source));
     if (chatlessRow) {
-        return chatlessStartFrame(state, config, chatlessRow);
+        return await heartbeatStartFrame(db, state, config, chatlessRow);
     }
     const noticeRows =
         runRows.length === 0 && state.activeRunId

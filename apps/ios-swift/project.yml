@@ -15,15 +15,12 @@ settings:
     # via explicit xcodebuild args from `bun run ios:release`; see
     # docs/operations/ios-testflight.md. Both values mirror the latest
     # published iOS target in releases.json via release:sync-versions.
-    CURRENT_PROJECT_VERSION: "57"
-    MARKETING_VERSION: 8.6.1
+    CURRENT_PROJECT_VERSION: "61"
+    MARKETING_VERSION: 9.2.0
 
 packages:
   HausIOS:
     path: .
-  ClerkKit:
-    url: https://github.com/clerk/clerk-ios
-    exactVersion: 1.2.0
 
 targets:
   Haus:
@@ -38,8 +35,11 @@ targets:
         # after the checkout directory, so XcodeGen's name-derived reference IDs
         # would change per worktree and churn the checked-in project.
         createIntermediateGroups: false
-      # Alternate app icon, chosen per device in Settings > App icon.
+      # Alternate app icons, chosen per device in Settings > App icon.
       - path: ../../assets/halloween-icon.icon
+        buildPhase: resources
+        createIntermediateGroups: false
+      - path: ../../assets/christmas-icon.icon
         buildPhase: resources
         createIntermediateGroups: false
     dependencies:
@@ -49,14 +49,12 @@ targets:
         product: HausTransport
       - package: HausIOS
         product: HausUI
-      - package: ClerkKit
-        product: ClerkKit
       - target: HausNotificationService
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: chat.haus.ios
         ASSETCATALOG_COMPILER_APPICON_NAME: mac-icon
-        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: halloween-icon
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: halloween-icon christmas-icon
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"
@@ -73,6 +71,8 @@ targets:
           CFBundleAlternateIcons:
             halloween-icon:
               CFBundleIconName: halloween-icon
+            christmas-icon:
+              CFBundleIconName: christmas-icon
           CFBundlePrimaryIcon:
             CFBundleIconFiles:
               - mac-icon60x60
@@ -108,8 +108,6 @@ targets:
         # Development here; exporting with the App Store profile re-signs it as
         # production. See docs/operations/ios-testflight.md.
         aps-environment: development
-        com.apple.developer.associated-domains:
-          - webcredentials:clerk.haus.chat
         com.apple.developer.usernotifications.communication: true
     postBuildScripts:
       - name: Install precompiled iOS icon

@@ -14,7 +14,7 @@ export async function createAgentThreadSender(input: {
     assertOpaqueId(chatId);
     const ownerUserId = runPsql(
         input.databaseUrl,
-        "select id from users where clerk_user_id = 'user_e2e_human'"
+        "select id from users where id = 'usr_e2e_human'"
     );
     assertOpaqueId(ownerUserId);
 

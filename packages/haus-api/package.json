@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./agent-activity": "./src/agent-activity.ts",
     "./app-protocol": "./src/app-protocol.ts",
+    "./app-session": "./src/app-session.ts",
     "./avatar": "./src/avatar.ts",
     "./avatar-generation": "./src/avatar-generation.ts",
     "./node/config": {

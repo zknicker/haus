@@ -140,7 +140,7 @@ test('right-clicking an item selects it and offers only the actions this member 
         session.databaseUrl,
         `update server_memberships set role = 'member'
          where server_id = '${server.id}'
-           and user_id = (select id from users where clerk_user_id = 'user_e2e_human')`
+           and user_id = (select id from users where id = 'usr_e2e_human')`
     );
     await page.reload();
     await agentFile.click({ button: 'right' });

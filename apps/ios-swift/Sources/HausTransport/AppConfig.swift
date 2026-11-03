@@ -2,7 +2,7 @@ import Foundation
 
 /// The headers that gate the App ↔ Server wire contract.
 public enum HausAppProtocol {
-    public static let version = 11
+    public static let version = 12
     public static let productVersionHeader = "x-haus-product-version"
     public static let protocolVersionHeader = "x-haus-app-protocol-version"
 }

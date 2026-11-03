@@ -104,9 +104,10 @@ export interface TranscriptRenderContextValue {
     /**
      * The one Message whose task chip a surrounding panel already states. A
      * Thread opened on a Task names it in the header and states its status,
-     * assignee, and creator in the metadata panel above the anchor, so the
-     * anchor's own chip would repeat all of it — while a reply promoted to its
-     * own Task inside that Thread still wears one.
+     * assignee, and creator in the metadata panel above the anchor, so that
+     * Task's own chip — on the anchor, or on the reply an Agent claimed inside
+     * the Thread — would repeat all of it. Any other claimed reply in the
+     * Thread still wears its chip, by the Show tasks in chat rule.
      */
     taskChipHiddenMessageId?: string;
     threadActionsEnabled: boolean;

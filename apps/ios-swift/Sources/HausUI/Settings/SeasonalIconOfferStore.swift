@@ -7,13 +7,19 @@ enum SeasonalIconOfferStore {
     static let halloweenOffersShownKey = "haus.appIcon.halloweenOffersShown"
     static let returnOffersShownKey = "haus.appIcon.halloweenReturnOffersShown"
     static let pumpkinFromOfferSeasonKey = "haus.appIcon.pumpkinFromOfferSeason"
+    static let christmasOffersShownKey = "haus.appIcon.christmasOffersShown"
+    static let christmasReturnOffersShownKey = "haus.appIcon.christmasReturnOffersShown"
+    static let nightcapFromOfferSeasonKey = "haus.appIcon.nightcapFromOfferSeason"
 
     static func load() -> SeasonalIconRecords {
         let defaults = UserDefaults.standard
         return SeasonalIconRecords(
             halloweenOffersShown: years(defaults, halloweenOffersShownKey),
             returnOffersShown: years(defaults, returnOffersShownKey),
-            pumpkinFromOfferSeason: defaults.object(forKey: pumpkinFromOfferSeasonKey) as? Int
+            pumpkinFromOfferSeason: defaults.object(forKey: pumpkinFromOfferSeasonKey) as? Int,
+            christmasOffersShown: years(defaults, christmasOffersShownKey),
+            christmasReturnOffersShown: years(defaults, christmasReturnOffersShownKey),
+            nightcapFromOfferSeason: defaults.object(forKey: nightcapFromOfferSeasonKey) as? Int
         )
     }
 
@@ -21,16 +27,16 @@ enum SeasonalIconOfferStore {
         let defaults = UserDefaults.standard
         defaults.set(records.halloweenOffersShown.sorted(), forKey: halloweenOffersShownKey)
         defaults.set(records.returnOffersShown.sorted(), forKey: returnOffersShownKey)
-        if let season = records.pumpkinFromOfferSeason {
-            defaults.set(season, forKey: pumpkinFromOfferSeasonKey)
-        } else {
-            defaults.removeObject(forKey: pumpkinFromOfferSeasonKey)
-        }
+        defaults.set(records.christmasOffersShown.sorted(), forKey: christmasOffersShownKey)
+        defaults.set(records.christmasReturnOffersShown.sorted(), forKey: christmasReturnOffersShownKey)
+        setSeason(defaults, records.pumpkinFromOfferSeason, pumpkinFromOfferSeasonKey)
+        setSeason(defaults, records.nightcapFromOfferSeason, nightcapFromOfferSeasonKey)
     }
 
     /// A Settings switch makes the icon the user's own choice again.
     static func forgetOfferSwitch() {
         UserDefaults.standard.removeObject(forKey: pumpkinFromOfferSeasonKey)
+        UserDefaults.standard.removeObject(forKey: nightcapFromOfferSeasonKey)
     }
 
     /// The date the offer rule reads. Debug builds take `-HausSeasonDate
@@ -65,5 +71,13 @@ enum SeasonalIconOfferStore {
 
     private static func years(_ defaults: UserDefaults, _ key: String) -> Set<Int> {
         Set(defaults.array(forKey: key)?.compactMap { $0 as? Int } ?? [])
+    }
+
+    private static func setSeason(_ defaults: UserDefaults, _ season: Int?, _ key: String) {
+        if let season {
+            defaults.set(season, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
     }
 }

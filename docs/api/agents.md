@@ -99,12 +99,29 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or
-`{ kind: 'dream' }`: the Agent's private nightly memory pass ([workspace](../../specs/workspace.md#dreaming)),
-or `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped
-([runtime drivers](../../specs/runtime-drivers.md#background-work)). These two have no Chat and
-need no Chat visibility to read. `preview`
-quotes the waking message so a turn row is titled from the same read:
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or one of the chatless
+sources (`dream`, `heartbeat`, `heartbeat_report`, `subagent`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
+[heartbeat](../../specs/heartbeat.md), [runtime drivers](../../specs/runtime-drivers.md#background-work)).
+The heartbeat family carries what the run came to, so the Activity Log can say it under the
+row's title:
+
+- `{ kind: 'dream', learned, added, removed }`: the Agent's private nightly heartbeat. `learned`
+  is the first non-empty line of its `agent_dream_summaries` text with a leading `- ` removed
+  (null when it wrote none); `added` and `removed` total `agent_dreams.files`.
+- `{ kind: 'heartbeat', report, yielded }`: a daytime check-in. `report` is
+  `{ text, posted, postedChatId }` when a `heartbeat-report:<runId>` inbox row exists (`text` is
+  its head, at most 1,000 UTF-16 units; `posted` is whether the report run's Agent sent any
+  message, whatever the reader can see; `postedChatId` the Chat of the first such message, null
+  when it stayed quiet or the Chat is not one the reader can see), else null.
+  `yielded` marks a run `yieldHeartbeatToAddressed` stopped, which `agent_heartbeat_checks`
+  records because nothing else tells a stopped run from a finished one.
+- `{ kind: 'heartbeat_report', heartbeatRunId }`: a heartbeat's report arriving in the main session.
+- `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped.
+
+The dream and heartbeat facts for a page come from a few bounded reads keyed by the page's run
+ids, never one per turn.
+
+`preview` quotes the waking message so a turn row is titled from the same read:
 `{ content, attachmentCount }`, where `content` is the head of the message's raw
 Markdown (at most 1,000 UTF-16 units; the reader collapses it to one line), or `null`
 when the message no longer exists in that Chat. A trigger in a Chat the reader cannot
@@ -144,7 +161,9 @@ returns `{ dreams, nextCursor }`: each dream carries `runId` (the dream turn's r
 `startedAt`, `finishedAt`, `files` (`[{ path, change: 'added' | 'modified' | 'deleted',
 added, removed, omitted? }]`, where `omitted` is `binary` or `too-large` for a file whose text
 is not in the patch), and the `added` and `removed` line totals. A dream that changed nothing
-is still listed, with no files. `agent.dream` (`{ serverId, agentId, runId }`) returns one dream
+is still listed, with no files. Each dream also carries `summary` (the run's `haus heartbeat
+learned` text, or null) and `followUps` (`[{ reminderId, title, anchorChatId, fireAt }]`, the
+reminders the Agent created during the run, derived at read). `agent.dream` (`{ serverId, agentId, runId }`) returns one dream
 with its `patch`, or null when the Server has no record for that run. The patch is one unified
 diff, a `diff --git a/<path> b/<path>` block per file, whose hunk headers name the enclosing
 `## ` section as git's function context does; a file's text is dropped past 64 KiB and the
@@ -153,6 +172,22 @@ view the Agent, with denied and unknown Agents as `NOT_FOUND`. The Computer send
 as an `agent-dream-record` frame just before the dream turn's summary; the Server stores it in
 `agent_dreams` only for the assigned Computer and a run it started as a dream. There is no
 dream event: a settled run already invalidates the App's dream reads.
+
+Heartbeat writes use runner-token routes under `/api/agent/*`, scoped to the run that calls
+them ([heartbeat spec](../../specs/heartbeat.md#wire-contract); routes in
+`apps/server/src/agent-api/heartbeat-routes.ts`):
+
+- `POST /api/agent/heartbeat/report { text }` files the run's one heartbeat report as a
+  chatless `heartbeat_report` inbox item. Only a `heartbeat` or `dream` run may file one; a second
+  report from the same run is refused with 409.
+- `POST /api/agent/heartbeat/learned { text }` stores the nightly summary on the run's
+  `agent_dream_summaries` row. Only a `dream` run may.
+- `POST /api/agent/leads { topic, messageId? }` claims a shared lead, refused while another Agent
+  holds a claim on the same message within seven days. Only an active `heartbeat` or `dream` run
+  may claim (`403 HEARTBEAT_RUN_REQUIRED`), and a message an Agent holds as an open task answers
+  `409 LEAD_HELD_AS_TASK` naming the holder. `GET /api/agent/leads` lists this Server's
+  leads from the last seven days. `POST /api/agent/leads/:id/done { finding }` records the finding.
+  Leads live in `agent_leads` and expire after fourteen days.
 
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries
@@ -229,7 +264,12 @@ activity first, at most 50, and `omitted` counts the matching rows the limit lef
 `POST /api/agent/tasks/create`, `/claim`, `/unclaim`, `/assign`, `/unassign`, and `/update`
 mutate tasks. Every task row carries `version`, the revision `haus task list` prints as `rev=`. `claim` takes
 `target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no task
-promotes the message first, so the claim is what creates the task.
+promotes the message first, so the claim is what creates the task. `target` may be a Thread
+target (`#channel:anchorShort`, `dm:@peer:anchorShort`): a Thread message is claimed in place and
+numbered by the Thread's parent, and `numbers` resolve against that parent from either target.
+`create` refuses a Thread target, and a `create` assigned to the caller is `origin` `claimed`.
+A `heartbeat` or `dream` run
+may not claim (`403 REGULAR_TURN_REQUIRED`); it claims leads instead.
 
 `create` takes `{ target, content | titles, assignee?, nonce }`. The `nonce` (1–128) is the
 idempotency key: `haus task create` mints one per invocation and, on a request that got no
@@ -448,8 +488,11 @@ local: they reach the provider and never Server.
 a question settles as `pending_input` and wakes the Agent once; it answers with
 `haus cloud-agent send --work <workId>`.
 
-`POST /api/agent/cloud-agents` takes `{ content, nonce, provider, replyToMessageId?, repository,
-startingRef, target, title }`. The target is a Channel or DM, or a Thread that already holds
+`POST /api/agent/cloud-agents` takes `{ cause?, content, nonce, provider, replyToMessageId?,
+repository, startingRef, target, title }`. `cause` (`start --cause <fireId>`) is the Trigger or
+Reminder fire the launch answers; the Server validates and records it on the launch Message as
+`haus message send --cause` does, and infers it the same way when absent
+([Automation provenance](../../specs/automation-provenance.md)). The target is a Channel or DM, or a Thread that already holds
 conversation: a launch never opens a Thread, so a `<target>:<shortId>` anchor without one, or
 whose Thread holds no Messages, fails with
 `CLOUD_AGENT_NEW_THREAD` before anything is written, and its message names the inline

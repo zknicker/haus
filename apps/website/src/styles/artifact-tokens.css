@@ -114,7 +114,7 @@
      * is gone.
      *
      * Written as literal sRGB hex rather than Tailwind aliases: these values
-     * are mirrored into the iOS token table and into DESIGN.md's palette, and
+     * are mirrored into the iOS token table and into .design/guidelines.md's palette, and
      * a hex a human can read is the one contract both can carry. The neutral
      * is zinc, not stone: every other neutral in the system
      * (`--muted-foreground`, `--border-strong`, `--surface-secondary`) is

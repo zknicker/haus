@@ -27,7 +27,7 @@ beforeAll(async () => {
         slug: 'refusals-member-root',
     });
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_refusals_member'
+        select id from users where auth_subject = 'user_refusals_member'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
@@ -103,6 +103,6 @@ test('a non-stream access failure carries no refusal class', async () => {
     expect(failure?.data?.hausRefusal).toBeUndefined();
 });
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }

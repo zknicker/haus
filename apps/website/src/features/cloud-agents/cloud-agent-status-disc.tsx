@@ -4,8 +4,9 @@ import { cn } from '../../lib/utils.ts';
 import { type CloudAgentTone, cloudAgentJobTone } from './cloud-agent-presentation.ts';
 
 // A literal size, not a spacing step: a status glyph should not shrink because
-// the row around it tightened.
-const glyphSize = 'size-[15px]';
+// the row around it tightened. 16px is the app's icon size, so a trailing disc
+// reads at the weight of the glyphs beside it; a chip passes its own smaller box.
+const glyphSize = 'size-[16px]';
 
 const settledGlyphs = {
     done: 'M5.1 8.3l2 2 3.8-4.2',

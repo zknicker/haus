@@ -35,6 +35,7 @@
     "gen:ios-tokens": "bun scripts/agent-html-tokens/generate-ios-tokens.ts",
     "icons:render-mesh": "bun run --filter @haus/website icon:render-mesh",
     "icons:render-favicon": "bun run --filter @haus/website icon:render-favicon",
+    "seed:heartbeats": "varlock run -- bun scripts/seed-heartbeats.mjs",
     "hosted-mcp": "bun scripts/hosted-mcp.mjs",
     "hosted-mcp:connect": "varlock run -- bun scripts/hosted-mcp-connect.mjs",
     "ios:release": "HAUS_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/publish-ios.mjs",

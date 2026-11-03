@@ -1,22 +1,63 @@
 import type { AgentTurnSummary } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { requestAgentDream } from '../src/agent-delivery/dream-request.ts';
+import { requestAgentHeartbeat } from '../src/agent-delivery/heartbeat-request.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
-import { agentInboxTable } from '../src/postgres/schema.ts';
+import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import { agentInboxTable, chatMessagesTable } from '../src/postgres/schema.ts';
 import type { Seed } from './agent-inbox-harness.ts';
 
-export function requestDream(
+let agentSequence = 1_000_000;
+
+/** One durable message the Agent itself posted, so it counts as having taken part. */
+export async function agentSpeaks(
+    db: HausDatabase,
+    seed: Seed,
+    chatId: string = seed.channelId,
+    createdAt: Date = new Date()
+) {
+    agentSequence += 1;
+    await db.insert(chatMessagesTable).values({
+        authorAgentId: seed.agentId,
+        chatId,
+        content: 'on it',
+        createdAt,
+        id: createOpaqueId('msg'),
+        nonce: createOpaqueId('nonce'),
+        sequence: agentSequence,
+        serverId: seed.serverId,
+    });
+}
+
+export function requestHeartbeat(
+    db: HausDatabase,
+    delivery: AgentDelivery,
+    seed: Seed,
+    kind: 'daytime' | 'nightly',
+    options: { computerId?: string; localDate?: string; slot?: string } = {}
+) {
+    return requestAgentHeartbeat(db, delivery, {
+        computerId: options.computerId ?? seed.computerId,
+        request: {
+            agentId: seed.agentId,
+            kind,
+            localDate: options.localDate ?? '2026-10-11',
+            slot: options.slot ?? (kind === 'nightly' ? '03:00' : '08:00'),
+            type: 'agent-heartbeat-request',
+        },
+        serverId: seed.serverId,
+    });
+}
+
+/** A nightly request from an Agent that spoke today, the shape the dream tests need. */
+export async function requestDream(
     db: HausDatabase,
     delivery: AgentDelivery,
     seed: Seed,
     localDate = '2026-10-11'
 ) {
-    return requestAgentDream(db, delivery, {
-        computerId: seed.computerId,
-        request: { agentId: seed.agentId, localDate, type: 'agent-dream-request' },
-        serverId: seed.serverId,
-    });
+    await agentSpeaks(db, seed);
+    return await requestHeartbeat(db, delivery, seed, 'nightly', { localDate });
 }
 
 export function settledTurn(

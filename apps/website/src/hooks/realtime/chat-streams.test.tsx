@@ -76,12 +76,16 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onEvent)).toEqual([
             listKey('chat.list', { serverId }),
             listKey('chat.search', { serverId }),
+            // Any message can join an unread row's waiting messages (ADR 0050).
+            listKey('chat.unreadPreviews', { serverId }),
         ]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         // A missed Thread reply may have made a Thread unread (ADR 0043).
         expect(invalidated(onRecovery)).toEqual([
-            ...invalidated(onEvent),
+            listKey('chat.list', { serverId }),
+            listKey('chat.search', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('chat.unreadPreviews', { serverId }),
         ]);
     });
 
@@ -108,6 +112,7 @@ describe('Chat stream hooks', () => {
             listKey('chat.list', { serverId }),
             listKey('chat.search', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('chat.unreadPreviews', { serverId }),
         ]);
     });
 
@@ -143,7 +148,10 @@ describe('Chat stream hooks', () => {
             event
         );
         // A Thread is unread on its own: its read leaves the parent's row alone (ADR 0043).
-        expect(invalidated(onEvent)).toEqual([listKey('thread.listUnread', { serverId })]);
+        expect(invalidated(onEvent)).toEqual([
+            listKey('thread.listUnread', { serverId }),
+            listKey('chat.unreadPreviews', { serverId }),
+        ]);
         expect<unknown>(onEvent.at(-1)).toEqual({
             op: 'noteMessageAnnotated',
             target: { chatId: 'cht_a', messageId: 'msg_anchor', serverId },
@@ -152,6 +160,7 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual([
             listKey('chat.list', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('chat.unreadPreviews', { serverId }),
         ]);
     });
 
@@ -172,9 +181,13 @@ describe('Chat stream hooks', () => {
             op: 'noteMessageAnnotated',
             target: { chatId: 'cht_a', messageId: 'msg_anchor', serverId },
         });
-        expect(invalidated(onEvent)).toEqual([listKey('thread.listUnread', { serverId })]);
+        const reads = [
+            listKey('thread.listUnread', { serverId }),
+            listKey('chat.unreadPreviews', { serverId }),
+        ];
+        expect(invalidated(onEvent)).toEqual(reads);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        expect(invalidated(onRecovery)).toEqual([listKey('thread.listUnread', { serverId })]);
+        expect(invalidated(onRecovery)).toEqual(reads);
     });
 
     test('chat.onLifecycle deleted purges the Chat and invalidates the Chat reads', async () => {
@@ -194,6 +207,7 @@ describe('Chat stream hooks', () => {
             listKey('chat.get', { chatId: 'cht_a', serverId }),
             listKey('agent.chats', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('chat.unreadPreviews', { serverId }),
             // Linked Cloud Agent work may leave the viewer's lists (ADR 0044).
             listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),

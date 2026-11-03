@@ -181,3 +181,76 @@ test('a Run that never reached the provider settles with the reason its Agent re
     expect(await fixture.readAttentions(runId)).toHaveLength(1);
     socket.close();
 });
+
+test('reconciliation corrects a first-observed start with the provider Run time', async () => {
+    const runner = await fixture.mintRunner('run_cloud_sleep');
+    const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-sleep' }));
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    const report = (observation: Record<string, unknown>) =>
+        socket.send(
+            JSON.stringify({
+                type: 'cloud-agent-observation',
+                observation: { runId, workId: work.id, ...observation },
+            })
+        );
+    const startedAt = '2026-10-26T22:23:00.000Z';
+    const firstObservedAt = '2026-10-26T23:06:00.000Z';
+    report({ observedAt: firstObservedAt, status: 'running' });
+    await fixture.waitForWorkStatus(work.id, 'running');
+    report({ observedAt: '2026-10-26T23:06:01.000Z', startedAt, status: 'running' });
+    await fixture.waitFor(async () => {
+        const run = await fixture.readRun(runId);
+        return new Date(String(run.started_at)).toISOString() === startedAt;
+    });
+    expect(new Date(String((await fixture.readWork(work.id)).started_at)).toISOString()).toBe(
+        startedAt
+    );
+    // Later stream messages omit the provider timestamp and must not restart the clock.
+    report({ observedAt: '2026-10-26T23:07:00.000Z', status: 'completed' });
+    await fixture.waitForWorkStatus(work.id, 'completed');
+    expect(new Date(String((await fixture.readRun(runId)).started_at)).toISOString()).toBe(
+        startedAt
+    );
+    socket.close();
+});
+
+test('a failed launch settles without provider ids and notifies its delegating Agent once', async () => {
+    const runner = await fixture.mintRunner('run_launch_failed');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'launch-failed-notify' })
+    );
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    const observation = {
+        errorCode: 'provider-launch-failed',
+        observedAt: new Date().toISOString(),
+        runId,
+        status: 'failed',
+        summary: 'The cloud agent launch failed before the provider confirmed it started.',
+        workId: work.id,
+    };
+    socket.send(JSON.stringify({ type: 'cloud-agent-observation', observation }));
+    await fixture.waitForWorkStatus(work.id, 'failed');
+    expect(await fixture.readRun(runId)).toMatchObject({
+        status: 'failed',
+        summary: observation.summary,
+    });
+    expect(await fixture.readAttentions(runId)).toHaveLength(1);
+    socket.send(
+        JSON.stringify({
+            type: 'cloud-agent-observation',
+            observation: { ...observation, observedAt: new Date(Date.now() + 1000).toISOString() },
+        })
+    );
+    await Bun.sleep(100);
+    expect(await fixture.readAttentions(runId)).toHaveLength(1);
+    expect(await fixture.readWork(work.id)).toMatchObject({
+        status: 'failed',
+        provider_agent_id: null,
+    });
+    socket.close();
+});

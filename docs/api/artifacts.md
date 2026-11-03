@@ -39,7 +39,7 @@ the upload lands, so of two writers from one base exactly one wins.
 [Artifact drive](../../specs/artifact-drive.md) owns path rules, folders, moves, error codes, and
 the migration from names. Raft's `name` upserts; Haus has no name, and a path never upserts
 blindly: `replace` is the only overwrite. Members publish through `PUT /artifacts/:serverId/publish`
-with the same query metadata and a Clerk session.
+with the same query metadata and a Haus AppSession.
 
 Path routes beside the actions: `GET /api/agent/artifacts` lists a folder (`prefix`,
 `recursive`, `order`, `limit`, `offset`, `query`, `mine`), `GET /api/agent/artifacts/by-path?path=`

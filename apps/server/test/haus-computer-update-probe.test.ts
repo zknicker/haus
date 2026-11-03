@@ -17,12 +17,12 @@ let serverId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ computerSocketLiveness: liveness });
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('clerk_probe_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('cf_probe_owner'));
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Presence Probe', slug: 'probe' })
     ).id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_probe_owner'
+        select id from users where auth_subject = 'cf_probe_owner'
     `) as { id: string }[];
     for (const [computerId, credential] of Object.entries(credentials)) {
         await harness.sql`

@@ -31,7 +31,7 @@ export function WindowLayoutField({ variant }: { variant: ShellVariant | null })
                 <ItemCard.Action>
                     <Select
                         aria-label="Window layout"
-                        className="w-40"
+                        className="w-48"
                         onChange={applyWindowLayout}
                         value={variant}
                         variant="secondary"

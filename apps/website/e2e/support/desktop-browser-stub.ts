@@ -29,6 +29,14 @@ export async function installDesktopBrowserStub(page: Page) {
         let state: BrowserWorkspaceState = { tabs: [] };
         const listeners = new Set<(state: BrowserWorkspaceState) => void>();
         const openRequests = new Set<(request: unknown) => void>();
+        const authListeners = new Set<(session: unknown) => void>();
+        const readAuthSession = () => window.__hausE2eAppSession ?? null;
+        const publishAuthSession = (session: unknown) => {
+            window.__hausE2eAppSession = session;
+            for (const listener of authListeners) {
+                listener(session);
+            }
+        };
         const openView = (url: string, viewId: string) => {
             if (state.tabs.some((tab) => tab.id === viewId)) {
                 return;
@@ -117,7 +125,16 @@ export async function installDesktopBrowserStub(page: Page) {
                     return () => openRequests.delete(listener);
                 },
                 getInfo: async () => ({ platform: 'darwin', isPackaged: false, version: '0.0.0' }),
-                authTokenGet: async () => null,
+                authSessionPeek: readAuthSession,
+                authInitialize: async () => readAuthSession(),
+                authRefresh: async () => readAuthSession(),
+                authSignIn: async () => undefined,
+                authCancelSignIn: async () => undefined,
+                authSignOut: async () => publishAuthSession(null),
+                onAuthSession: (listener: (session: unknown) => void) => {
+                    authListeners.add(listener);
+                    return () => authListeners.delete(listener);
+                },
                 setTheme: async () => undefined,
                 setDockBadge: async () => undefined,
                 onUpdateStatus: () => () => undefined,
@@ -145,7 +162,6 @@ export async function installDesktopBrowserStub(page: Page) {
                 closeWindow: async () => {
                     document.documentElement.dataset.windowClosed = 'true';
                 },
-                onSsoCallback: () => () => undefined,
                 runEditCommand: async () => undefined,
                 checkForUpdate: async () => undefined,
             },

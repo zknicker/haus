@@ -15,7 +15,7 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_trigger_dm_owner')
+        await harness.humans.mintSessionToken('user_trigger_dm_owner')
     );
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Trigger DM Server',
@@ -23,7 +23,7 @@ beforeAll(async () => {
     });
     serverId = server.id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_trigger_dm_owner'
+        select id from users where auth_subject = 'user_trigger_dm_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)

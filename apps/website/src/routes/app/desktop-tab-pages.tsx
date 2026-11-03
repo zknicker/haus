@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { openDesktopArtifact } from '../../features/chats/artifact-panel-context.tsx';
 import type { HausResourceTarget } from '../../features/chats/haus-resource-link.ts';
 import { getTurnDetailAccess } from '../../features/members/agent-profile/agent-activity-model.ts';
@@ -9,6 +9,7 @@ import { serverChatRoute } from '../../features/servers/server-routes.ts';
 import { ThreadContent } from '../../features/servers/thread/thread-content.tsx';
 import { useTabPresence } from '../../hooks/desktop-tabs/tab-presence.ts';
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
+import { useChatMessage } from '../../hooks/servers/use-chat-message.ts';
 import { useChatMessages } from '../../hooks/servers/use-chat-messages.ts';
 import { requestMessageReveal } from '../../hooks/servers/use-pending-message-reveal.ts';
 import { useThreadAnchor } from '../../hooks/threads/use-thread-anchor.ts';
@@ -26,6 +27,14 @@ export function ThreadPageRoute() {
     const shown = useTabPresence().shown;
     const openers = useDesktopPageOpeners();
     const thread = useThreadAnchor(server.id, chatId, anchorMessageId);
+    // A Thread opened on a task inside it (`?task=`) states that task, as the
+    // Tasks page's Thread dialog does.
+    const [searchParams] = useSearchParams();
+    const taskMessageId = searchParams.get('task');
+    const threadChatId = thread.summary?.threadChatId ?? '';
+    const taskEntity = useChatMessage(server.id, threadChatId, taskMessageId ?? '', {
+        enabled: taskMessageId !== null && threadChatId !== '',
+    });
     const openChat = (id: string) => navigate(serverChatRoute(server.slug, id));
     const activateReference = useChatReferenceActivation(openChat);
     const { anchor, chat } = thread;
@@ -55,6 +64,7 @@ export function ThreadPageRoute() {
                 readOnly={(chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null}
                 summary={thread.summary}
                 takeover={false}
+                taskMessage={taskEntity?.message ?? null}
                 turnDetailsAccess={getTurnDetailAccess(server.role)}
                 width={null}
             />

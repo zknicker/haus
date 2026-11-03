@@ -1,4 +1,4 @@
-import { Disclosure } from '@heroui/react';
+import { Chip, Disclosure } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
@@ -8,6 +8,7 @@ import { TraceNested } from '../../turn-trace/turn-trace-depth.tsx';
 import {
     traceRowClass,
     traceRowHoverClass,
+    traceTextInset,
     traceTurnClass,
 } from '../../turn-trace/turn-trace-grid.tsx';
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
@@ -27,8 +28,10 @@ import {
     TurnRuler,
 } from './agent-activity-log-turn-parts.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
+import { readRunOutcomeLine, type TurnRunBadge } from './agent-run-mark.ts';
+import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
-import { formatTurnOutcome, getTurnRowStatus } from './agent-turn-row-model.ts';
+import { getTurnRowStatus } from './agent-turn-row-model.ts';
 
 /**
  * One turn as a group in the flat log: a header row on the log's columns
@@ -83,6 +86,8 @@ export function ActivityLogTurn({
     const status = getTurnRowStatus(row);
     const chatTarget = readChatTarget(title, turn.trigger);
     const isSettledDream = turn.trigger?.kind === 'dream' && turn.kind === 'settled';
+    const run = title.kind === 'text' ? title.run : undefined;
+    const outcomeLine = run ? readRunOutcomeLine(run, turn) : null;
 
     return (
         <div
@@ -134,6 +139,7 @@ export function ActivityLogTurn({
                                         title={title}
                                         turn={turn}
                                     />
+                                    {run ? <RunBadge badge={run.badge} /> : null}
                                     {chatTarget || isSettledDream ? <ChatButtonRoom /> : null}
                                 </span>
                                 {/* The track column stays empty: the Chat button shows here on hover. */}
@@ -165,6 +171,15 @@ export function ActivityLogTurn({
                             />
                         ) : null}
                     </div>
+                    {outcomeLine ? (
+                        <p
+                            className="truncate pe-(--trace-pad) pt-0.5 pb-1 text-muted text-sm"
+                            data-log-outcome
+                            style={{ paddingInlineStart: traceTextInset }}
+                        >
+                            {outcomeLine}
+                        </p>
+                    ) : null}
                     <Disclosure.Content>
                         {ruler ? <TurnRuler scale={ruler} /> : null}
                         <TurnSteps
@@ -177,6 +192,15 @@ export function ActivityLogTurn({
                 </Disclosure>
             </TurnTraceScopeProvider>
         </div>
+    );
+}
+
+/** Marks a heartbeat or dream run among the log's turns; a dream wears its own violet wash. */
+function RunBadge({ badge }: { badge: TurnRunBadge }) {
+    return (
+        <Chip className={badge === 'Dream' ? 'chip--dream' : undefined} size="sm" variant="soft">
+            {badge}
+        </Chip>
     );
 }
 

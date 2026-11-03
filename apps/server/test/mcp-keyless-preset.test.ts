@@ -12,19 +12,19 @@ let harness: HausServerHarness;
 let connection: HausConnection;
 let owner: HausClient;
 let runtime: McpRuntime;
-let member: { clerkUserId: string; id: string };
+let member: { subject: string; id: string };
 let serverId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('crypto-owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('crypto-owner'));
     serverId = (await owner.trpc.server.create.mutate({ displayName: 'Crypto', slug: 'crypto' }))
         .id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'crypto-owner'
+        select id from users where auth_subject = 'crypto-owner'
     `) as { id: string }[];
-    member = { clerkUserId: 'crypto-owner', id: user?.id ?? '' };
+    member = { subject: 'crypto-owner', id: user?.id ?? '' };
     runtime = new McpRuntime(connection.db, serverEffectRuntime, {
         clientFactory: () => Promise.resolve(makeClient('coingecko').client),
     });

@@ -179,7 +179,7 @@ test('reconnect recovers a lost launch address from disk before cancelling', asy
     expect(f.observations.at(-1)?.status).toBe('cancelled');
 });
 
-test('an unknown launch reports recovery needed and never reads or cancels null addresses', async () => {
+test('stopping a launch without a provider address settles instead of remaining queued', async () => {
     const f = await fixture();
     // Claimed `launching` without an acknowledgement: the provider may hold the Run.
     await new CloudLaunchJournal(f.dataRoot).claim('srv_cloud', entry);
@@ -196,8 +196,10 @@ test('an unknown launch reports recovery needed and never reads or cancels null 
         { ...entry, cancelRequested: true, providerAgentId: null, providerRunId: null },
     ]);
     expect(called).toBe(false);
-    expect(f.observations[0]?.activity?.summary).toContain('Launch confirmation unavailable');
-    expect(f.observations[0]?.status).toBe('queued');
+    expect(f.observations[0]?.status).toBe('cancelled');
+    expect((await new CloudLaunchJournal(f.dataRoot).read('srv_cloud', entry))?.phase).toBe(
+        'cancelled'
+    );
 });
 
 test('slow pull request evidence stays before later terminal observations', async () => {

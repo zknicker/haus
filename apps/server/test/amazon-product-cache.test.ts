@@ -4,7 +4,7 @@ import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
-import { findUserByClerkId } from '../src/users/haus-user.ts';
+import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient } from './haus-client.ts';
 import { startHausServerHarness } from './haus-server-harness.ts';
 
@@ -12,7 +12,10 @@ test('product cache shares lookups and rechecks connection state before serving 
     const harness = await startHausServerHarness();
     const db = await connectHausDatabase(harness.databaseUrl);
     const effects = makeServerRuntime();
-    const client = createHausClient(harness, await harness.clerk.mintSessionToken('product-cache'));
+    const client = createHausClient(
+        harness,
+        await harness.humans.mintSessionToken('product-cache')
+    );
     let reads = 0;
     const unknownAsin = 'B000000000';
     const upstream = makeClient('RankWrangler', {
@@ -64,7 +67,7 @@ test('product cache shares lookups and rechecks connection state before serving 
             preset: 'rankwrangler',
             name: 'RankWrangler',
         });
-        const member = await findUserByClerkId(db.db, 'product-cache');
+        const member = await findUserById(db.db, harness.humans.userIdForSubject('product-cache'));
         const input = {
             serverId: server.id,
             product: { asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' as const },

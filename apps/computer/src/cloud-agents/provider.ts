@@ -73,6 +73,8 @@ export interface CloudAgentLaunch {
     /** Null when the provider acknowledges delivery before naming the execution. */
     providerRunId: string | null;
     providerUrl: string | null;
+    /** Provider-reported Run creation time, when available. */
+    startedAt?: string;
     status: CloudAgentStatus;
 }
 
@@ -95,6 +97,8 @@ export interface CloudAgentProviderObservation {
     providerRunId?: string;
     providerUrl?: string;
     rawStatus?: string;
+    /** Provider-reported Run creation time, when available. */
+    startedAt?: string;
     status: CloudAgentStatus;
     summary?: string;
     usage?: CloudAgentUsage;
@@ -129,7 +133,7 @@ export interface CloudAgentProvider {
     read(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
     send(input: CloudAgentSendInput): Promise<CloudAgentLaunch>;
-    start(input: CloudAgentStartInput): Promise<CloudAgentLaunch>;
+    start(input: CloudAgentStartInput, signal?: AbortSignal): Promise<CloudAgentLaunch>;
     subscribe(
         ref: CloudAgentRunRef,
         onObservation: (observation: CloudAgentProviderObservation) => void,

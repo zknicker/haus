@@ -46,8 +46,21 @@ export function listedChats(userId: string, archive: ChatListArchive): SQL {
  * on the parent.
  */
 export function chatUnreadCount(userId: string): SQL<number> {
-    return sql<number>`(
-        select count(*)::integer
+    return sql<number>`(select count(*)::integer ${unreadMessages(userId)})`;
+}
+
+/**
+ * A listed Chat's newest `limit` unread message ids for `userId`, newest first:
+ * the messages `chatUnreadCount` counts, as the Inbox card renders them.
+ */
+export function chatNewestUnreadMessageIds(userId: string, limit: number): SQL<string[]> {
+    return sql<string[]>`array(
+        select message.id ${unreadMessages(userId)} order by message.sequence desc limit ${limit}
+    )`;
+}
+
+function unreadMessages(userId: string): SQL {
+    return sql`
         from chat_messages message
         where message.server_id = ${chatsTable.serverId}
             and message.chat_id = ${chatsTable.id}
@@ -62,7 +75,7 @@ export function chatUnreadCount(userId: string): SQL<number> {
                 ),
                 0
             )
-    )`;
+    `;
 }
 
 function archiveFilter(archive: ChatListArchive): SQL {

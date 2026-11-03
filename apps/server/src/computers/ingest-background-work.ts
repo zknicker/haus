@@ -1,11 +1,11 @@
 import {
     agentBackgroundWorkReportSchema,
-    agentDreamRequestSchema,
+    agentHeartbeatRequestSchema,
     agentSubagentWakeRequestSchema,
     agentSubagentWakeRetireSchema,
 } from '@haus/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { requestAgentDream } from '../agent-delivery/dream-request.ts';
+import { requestAgentHeartbeat } from '../agent-delivery/heartbeat-request.ts';
 import {
     requestSubagentWake,
     retireSubagentWake,
@@ -16,7 +16,7 @@ import { recordAgentBackgroundWork } from '../server-agents/record-agent-backgro
 import type { ComputerConnections } from './connections.ts';
 
 /**
- * A Computer's work outside any run: a turn it cannot start itself (a nightly dream or a
+ * A Computer's work outside any run: a turn it cannot start itself (a heartbeat slot or a
  * sub-agent wake, whose admission is answered on the same socket), a wake a non-wake run made
  * moot, or the background sub-agents its Agents run between turns. Returns whether `frame` was
  * one.
@@ -39,9 +39,13 @@ export async function ingestBackgroundWorkFrame(
         }
         return true;
     }
-    const dreamRequest = agentDreamRequestSchema.safeParse(frame);
-    if (dreamRequest.success) {
-        await requestAgentDream(db, delivery, { computerId, request: dreamRequest.data, serverId });
+    const heartbeatRequest = agentHeartbeatRequestSchema.safeParse(frame);
+    if (heartbeatRequest.success) {
+        await requestAgentHeartbeat(db, delivery, {
+            computerId,
+            request: heartbeatRequest.data,
+            serverId,
+        });
         return true;
     }
     const subagentWake = agentSubagentWakeRequestSchema.safeParse(frame);

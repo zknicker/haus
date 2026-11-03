@@ -1,5 +1,5 @@
-import ClerkKit
 import HausModels
+import HausTransport
 import HausUI
 import SwiftUI
 
@@ -29,8 +29,8 @@ struct AuthenticatedHausView: View {
     @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
-    init(clerk: Clerk) {
-        let store = HausStore(clerk: clerk)
+    init(session: AppSession, authClient: NativeAuthClient) {
+        let store = HausStore(session: session, authClient: authClient)
         let restored = UserDefaults.standard
             .string(forKey: ChatDestination.ID.lastOpenDefaultsKey)
             .flatMap(ChatDestination.ID.init(storageValue:))

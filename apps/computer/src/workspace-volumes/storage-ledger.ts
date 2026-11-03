@@ -1,21 +1,14 @@
-import { lstat, mkdir, readdir, readFile, rename, statfs, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { withPidLock } from '../pid-lock.ts';
 
-export const GiB = 1024 ** 3;
-export const workspaceDefaults = {
-    capacityBytes: 10 * GiB,
-    cacheBytes: 2 * GiB,
-    reserveBytes: 10 * GiB,
-};
-export type WorkspaceOptions = typeof workspaceDefaults;
 const ledgerSchema = z.object({
     budgetBytes: z.number().int().nonnegative(),
     allocations: z.record(z.string(), z.number().int().positive()),
 });
 
-/** Serializes ledger reservations across attachment daemons sharing one data root. */
+/** Serializes workspace conversion and legacy-ledger cleanup across attachment daemons. */
 export async function withStorageLock<T>(
     dataRoot: string,
     operation: () => Promise<T>
@@ -30,46 +23,6 @@ export async function withStorageLock<T>(
         },
         operation
     );
-}
-
-export async function reserveWorkspace(
-    dataRoot: string,
-    agentRoot: string,
-    options: WorkspaceOptions
-) {
-    for (const value of Object.values(options)) {
-        if (!Number.isSafeInteger(value) || value <= 0) {
-            throw new Error('Workspace storage limits must be positive integer bytes.');
-        }
-    }
-    const free = await availableBytes(dataRoot);
-    const file = join(dataRoot, 'workspace-storage.json');
-    const ledger = (await readJson(file, ledgerSchema)) ?? {
-        allocations: {},
-        budgetBytes: Math.max(0, free - options.cacheBytes - options.reserveBytes),
-    };
-    const capacity =
-        options.capacityBytes + Math.max(64 * 1024 ** 2, Math.ceil(options.capacityBytes * 0.02));
-    const existing = ledger.allocations[agentRoot];
-    if (existing !== undefined && existing !== capacity) {
-        throw new Error('Workspace capacity differs from its existing reservation.');
-    }
-    const allocations = { ...ledger.allocations, [agentRoot]: capacity };
-    const reserved = Object.values(allocations).reduce((sum, value) => sum + value, 0);
-    let outstanding = 0;
-    for (const [root, maximum] of Object.entries(allocations)) {
-        outstanding += Math.max(
-            0,
-            maximum - (await allocatedBytes(join(root, 'workspace.sparsebundle')))
-        );
-    }
-    if (
-        reserved > ledger.budgetBytes ||
-        outstanding + options.cacheBytes + options.reserveBytes > free
-    ) {
-        throw new Error('Computer has insufficient reserved capacity for this workspace.');
-    }
-    await writeJson(file, { ...ledger, allocations });
 }
 
 export async function releaseWorkspace(dataRoot: string, agentRoot: string) {
@@ -126,29 +79,4 @@ export async function readJson<T>(file: string, schema: z.ZodType<T>): Promise<T
 
 export function isMissing(error: unknown) {
     return error instanceof Error && 'code' in error && error.code === 'ENOENT';
-}
-
-async function availableBytes(root: string) {
-    const info = await statfs(root);
-    return info.bavail * info.bsize;
-}
-
-async function allocatedBytes(root: string): Promise<number> {
-    const info = await lstat(root).catch((error: unknown) => {
-        if (isMissing(error)) {
-            return null;
-        }
-        throw error;
-    });
-    if (!info) {
-        return 0;
-    }
-    if (!info.isDirectory()) {
-        return info.blocks * 512;
-    }
-    let bytes = info.blocks * 512;
-    for (const entry of await readdir(root)) {
-        bytes += await allocatedBytes(join(root, entry));
-    }
-    return bytes;
 }

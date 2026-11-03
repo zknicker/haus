@@ -398,7 +398,8 @@ and [Agent Inbox](../../specs/inbox.md).
   Name & description, Icon & color, and participant dialogs (color is chosen only in Icon &
   color); DM menus link to their scoped tasks and Agent profile.
 * **Message and Thread context.** Right-clicking a durable message offers copy,
-  reply-in-Thread, and quick reactions. Agent messages additionally open Turn
+  reply-in-Thread, and quick reactions. Right-clicking a link in a message also
+  offers Copy link, which copies its destination URL. Agent messages additionally open Turn
   Details. A Thread header offers View in chat, Copy reference, and Follow/Stop
   following through both its name dropdown and its context menu. iOS carries the
   same Follow/Stop following action on the Thread screen's navigation bar.

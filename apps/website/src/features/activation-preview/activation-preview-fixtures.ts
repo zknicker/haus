@@ -20,6 +20,8 @@ export const previewServerSummaries: ServerSummary[] = [
 ];
 
 const previewComputer: ComputerSummary = {
+    attachedByCurrentUser: true,
+    diskStatus: null,
     architecture: 'arm64',
     createdAt: fixedTimestamp,
     health: 'healthy',

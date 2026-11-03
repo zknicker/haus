@@ -23,10 +23,10 @@ const tokenGuides: Record<
 > = {
     factory: {
         name: 'Factory',
-        portalLabel: 'Create a Merchbase API Key in your Account Center',
-        portalUrl: 'https://merchbase.co/account/api-keys',
+        portalLabel: 'Create an agent credential in Factory',
+        portalUrl: 'https://factory.merchbase.co/settings/agents',
         summary:
-            'Paste a Merchbase API Key from your Account Center at merchbase.co/account/api-keys. Factory records this agent under that key.',
+            'Paste the fa_ credential for your Factory agent. Its Factory permissions and current owner access apply.',
     },
     x: {
         name: 'X',

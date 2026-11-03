@@ -63,7 +63,7 @@ describe('Haus connection', () => {
             onConnectionState: () => undefined,
             origin: 'http://localhost:1',
             productVersion: 'test',
-            readSessionToken: async () => 'token-1',
+            readAccessToken: async () => 'token-1',
             WebSocket: FakeSocket as unknown as typeof WebSocket,
         });
         const received: unknown[] = [];
@@ -99,7 +99,7 @@ describe('Haus connection', () => {
             onConnectionState: () => undefined,
             origin: 'http://localhost:1',
             productVersion: 'test',
-            readSessionToken: async () => 'token-1',
+            readAccessToken: async () => 'token-1',
             WebSocket: FakeSocket as unknown as typeof WebSocket,
         });
         const subscriptions = [

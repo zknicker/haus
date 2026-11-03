@@ -31,6 +31,12 @@ export interface RuntimeDriverOptions {
     env: Record<string, string>;
     /** The composed Agent instructions, mounted on the runtime's native instruction layer. */
     instructions: string;
+    /**
+     * Set for a throwaway session (a heartbeat): its process parks under this key instead of
+     * the Agent root and reports no background work, so it never closes or replaces the
+     * Agent's main warm process.
+     */
+    throwawayKey?: string;
 }
 
 export interface OpenSessionOptions {

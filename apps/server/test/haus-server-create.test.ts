@@ -18,7 +18,7 @@ afterAll(async () => {
 });
 
 test('atomically creates a Server, its first Owner, #all, and private onboarding', async () => {
-    const client = await signIn('user_clerk_owner');
+    const client = await signIn('user_cf_owner');
 
     const created = await client.trpc.server.create.mutate({
         displayName: 'Haus HQ',
@@ -64,22 +64,19 @@ test('atomically creates a Server, its first Owner, #all, and private onboarding
     ]);
 });
 
-test('maps every Clerk session of one human to the same Haus User', async () => {
-    const other = await signIn('user_clerk_second', {
-        org_id: 'org_ignored',
-        org_role: 'org:admin',
-    });
+test('maps each Haus session of one external subject to the same user', async () => {
+    const other = await signIn('user_cf_second');
 
     await other.trpc.server.create.mutate({ displayName: 'Second', slug: 'second' });
 
-    const laterSession = await signIn('user_clerk_second', { org_id: 'org_changed' });
+    const laterSession = await signIn('user_cf_second');
     const servers = await laterSession.trpc.server.list.query();
 
     expect(servers.map((server) => server.slug)).toEqual(['second']);
 });
 
 test('rejects a slug that is already taken', async () => {
-    const client = await signIn('user_clerk_taken');
+    const client = await signIn('user_cf_taken');
 
     await expect(
         client.trpc.server.create.mutate({ displayName: 'Duplicate', slug: 'haus-hq' })
@@ -88,7 +85,7 @@ test('rejects a slug that is already taken', async () => {
 });
 
 test('rejects a slug that is not a valid Server address', async () => {
-    const client = await signIn('user_clerk_invalid');
+    const client = await signIn('user_cf_invalid');
 
     await expect(
         client.trpc.server.create.mutate({ displayName: 'Bad', slug: 'Not A Slug' })
@@ -96,7 +93,7 @@ test('rejects a slug that is not a valid Server address', async () => {
 });
 
 test('creates no Computer or Agent alongside the Server', async () => {
-    const client = await signIn('user_clerk_bare');
+    const client = await signIn('user_cf_bare');
     const created = await client.trpc.server.create.mutate({
         displayName: 'Bare',
         slug: 'bare',
@@ -128,7 +125,7 @@ test('creates no Computer or Agent alongside the Server', async () => {
 });
 
 test('PostgreSQL refuses a Server role outside owner, admin, and member', async () => {
-    const client = await signIn('user_clerk_roles');
+    const client = await signIn('user_cf_roles');
     const created = await client.trpc.server.create.mutate({
         displayName: 'Roles',
         slug: 'roles',
@@ -145,8 +142,8 @@ test('PostgreSQL refuses a Server role outside owner, admin, and member', async 
     });
 });
 
-async function signIn(clerkUserId: string, claims?: Record<string, unknown>) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId, claims);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     const client = createHausClient(harness, token);
 
     openClients.push(client);

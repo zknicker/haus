@@ -28,9 +28,11 @@ export const computerCommands: ComputerCommandHelp[] = [
     {
         group: 'Service',
         name: 'workspace-migrate',
-        summary: 'Migrate one existing Agent workspace to a capped filesystem',
+        summary: 'Remove the cap from one older Agent workspace',
         usage: 'workspace-migrate /server-slug <agent-id>',
-        notes: ['Stop the whole Computer first. The verified original stays in workspace.backup.'],
+        notes: [
+            'Stop the whole Computer first. The original stays in workspace.backup.sparsebundle.',
+        ],
     },
     {
         group: 'Service',

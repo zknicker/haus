@@ -56,6 +56,8 @@ export interface CursorRunReading {
     rawStatus: CursorRunStatus;
     result: string | null;
     runId: string;
+    /** Cursor Run creation time, independent of when Computer reads it. */
+    startedAt?: string;
     usage: CursorUsageReading | null;
 }
 

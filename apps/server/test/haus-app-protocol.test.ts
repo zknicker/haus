@@ -47,7 +47,7 @@ test('pre-unread-Inbox App protocol 7 receives an update requirement', async () 
     expect(await response.text()).toContain('Update required');
 });
 
-test('development mode still requires a Clerk session', async () => {
+test('development mode still requires a Haus session', async () => {
     const previous = process.env.HAUS_DEV_STACK;
     process.env.HAUS_DEV_STACK = '1';
 
@@ -77,17 +77,18 @@ test('the WebSocket gate rejects a stale subscription before serving it', async 
     }
 });
 
-// Protocol 11 links Cloud Agent work instead of embedding it (ADR 0044): Messages
+// Protocol 12 carries opaque Haus sessions and links Cloud Agent work instead of embedding it:
+// Messages
 // drop the `cloud-agent-work` body, and Happening now work carries a `location`
 // and its Agent's name in place of its launch Message, which a protocol 10 App
 // cannot decode, so it must hit the update gate on both transports.
-test('a protocol 10 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
-    expect(appProtocolVersion).toBe(11);
-    const response = await request(10);
+test('a protocol 11 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
+    expect(appProtocolVersion).toBe(12);
+    const response = await request(11);
     expect(response.status).toBe(412);
     expect(await response.text()).toContain('PRECONDITION_FAILED');
 
-    const client = createHausClient(harness, null, { protocolVersion: 10 });
+    const client = createHausClient(harness, null, { protocolVersion: 11 });
     try {
         await expect(startServerSubscription(client)).rejects.toMatchObject({
             data: { code: 'PRECONDITION_FAILED' },
@@ -101,7 +102,7 @@ test('the WebSocket gate admits the exact App protocol, then runs auth', async (
     const client = createHausClient(harness, null);
 
     try {
-        // The gate passes, so the very next check — the Clerk session — is what
+        // The gate passes, so the very next check — the Haus session — is what
         // refuses this unauthenticated subscription. A stale client never gets here.
         await expect(startServerSubscription(client)).rejects.toThrow(/sign in/i);
     } finally {

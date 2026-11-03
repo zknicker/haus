@@ -29,12 +29,12 @@ test('retiring Pi moves its Agents to the default runtime their Computer reports
         await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
         const journalPath = join(folder, 'meta/_journal.json');
         const journal = JSON.parse(await readFile(journalPath, 'utf8'));
-        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 99);
+        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 104);
         await writeFile(
             journalPath,
             JSON.stringify({
                 ...journal,
-                entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= 98),
+                entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= 103),
             })
         );
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
@@ -108,7 +108,7 @@ test('retiring Pi moves its Agents to the default runtime their Computer reports
 
         await writeFile(journalPath, JSON.stringify(journal));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0099_retire-pi-runtime',
+            '0104_retire-pi-runtime',
         ]);
         expect(
             await database`SELECT id, desired_runtime_id, desired_model_id, desired_reasoning_effort

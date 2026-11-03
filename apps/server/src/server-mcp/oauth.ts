@@ -183,11 +183,9 @@ export async function createMcpOAuthProvider(
                 response_types: ['code'],
                 ...(configured
                     ? { scope: configured.scope }
-                    : connection.preset === 'merchbase'
-                      ? { scope: 'openid profile email' }
-                      : secret.oauthScopes.length > 0
-                        ? { scope: secret.oauthScopes.join(' ') }
-                        : {}),
+                    : secret.oauthScopes.length > 0
+                      ? { scope: secret.oauthScopes.join(' ') }
+                      : {}),
                 token_endpoint_auth_method:
                     configured?.tokenEndpointAuthMethod ??
                     (typeof configuredSecret === 'string' ? 'client_secret_basic' : 'none'),

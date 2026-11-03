@@ -271,3 +271,23 @@ test('Browser relay accepts a response only from the requested Computer', async 
     ).toBe(true);
     expect(await pending).toEqual(result);
 });
+
+test('disk samples are live attachment state, announce only changes, and never survive reconnect', () => {
+    const connections = makeConnections();
+    const attached = {
+        ordinary: true,
+        serverId: 'srv_1234567890123456',
+        updatePhase: 'idle',
+        send: () => undefined,
+    } satisfies Parameters<typeof connections.register>[1];
+    connections.register(computerId, attached);
+    const disk = { availableBytes: 100, totalBytes: 1000 };
+    expect(connections.diskStatus(computerId)).toBeNull();
+    expect(connections.reportDisk(computerId, disk)).toBe(true);
+    expect(connections.reportDisk(computerId, { ...disk })).toBe(false);
+    expect(connections.diskStatus(computerId)).toEqual(disk);
+    connections.unregister(computerId);
+    expect(connections.diskStatus(computerId)).toBeNull();
+    connections.register(computerId, { ...attached, diskStatus: null });
+    expect(connections.diskStatus(computerId)).toBeNull();
+});

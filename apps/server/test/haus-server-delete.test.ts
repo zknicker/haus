@@ -6,7 +6,7 @@ import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { markServerDeleting, purgeDeletedServer } from '../src/servers/delete-server.ts';
-import { findUserByClerkId } from '../src/users/haus-user.ts';
+import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -221,7 +221,10 @@ test('keeps a failed asynchronous purge observable without restoring access', as
     });
     const connection = await connectHausDatabase(harness.databaseUrl);
     try {
-        const user = await findUserByClerkId(connection.db, 'server-delete-failure-owner');
+        const user = await findUserById(
+            connection.db,
+            harness.humans.userIdForSubject('server-delete-failure-owner')
+        );
         const deletion = await markServerDeleting(connection.db, user, {
             confirmation: server.slug,
             serverId: server.id,
@@ -265,15 +268,15 @@ async function waitForDeletion(deletionId: string) {
     throw new Error('Server deletion did not finish.');
 }
 
-async function signIn(clerkUserId: string) {
-    const client = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    const client = createHausClient(harness, await harness.humans.mintSessionToken(subject));
     clients.push(client);
     return client;
 }
 
-async function userId(clerkUserId: string) {
+async function userId(subject: string) {
     const [row] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     return row.id;
 }

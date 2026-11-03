@@ -8,7 +8,7 @@ const openClients: HausClient[] = [];
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = await signIn('user_clerk_access_owner');
+    owner = await signIn('user_cf_access_owner');
     await owner.trpc.server.create.mutate({ displayName: 'Haus HQ', slug: 'haus-hq' });
     await owner.trpc.server.create.mutate({ displayName: 'Side Quest', slug: 'side-quest' });
 });
@@ -75,7 +75,7 @@ test('exposes no way to change an immutable Server slug', async () => {
 
 test('denies a human without membership every Server boundary', async () => {
     const server = await owner.trpc.server.bySlug.query({ slug: 'haus-hq' });
-    const outsider = await signIn('user_clerk_outsider');
+    const outsider = await signIn('user_cf_outsider');
 
     await expect(outsider.trpc.server.list.query()).resolves.toEqual([]);
     await expect(outsider.trpc.server.bySlug.query({ slug: 'haus-hq' })).rejects.toThrow(
@@ -134,8 +134,8 @@ function subscribeToServer(client: HausClient, serverId: string) {
     return { nextEvent: nextEvent.promise, started: started.promise };
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     const client = createHausClient(harness, token);
 
     openClients.push(client);

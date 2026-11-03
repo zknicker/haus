@@ -5,7 +5,7 @@ import { collectStream } from './realtime-stream.ts';
 
 /**
  * Acceptance is one PostgreSQL transaction: the invitation is validated and
- * consumed, the verified Clerk email must match, and the human lands as a
+ * consumed, the verified Cloudflare email must match, and the human lands as a
  * Member joined to exactly `#all`. The token is single-use under concurrency.
  */
 let harness: HausServerHarness;
@@ -232,24 +232,16 @@ test('concurrent acceptances of one token yield exactly one membership', async (
     expect(participantCount.total).toBe(1);
 });
 
-test('two humans sharing a verified address cannot both consume one invitation', async () => {
+test('a verified email remains bound to one Haus user', async () => {
     const shared = 'shared@haus.test';
-    const first = await signIn('user_accept_shared_one', [shared]);
-    const second = await signIn('user_accept_shared_two', [shared]);
-    const { token } = await owner.trpc.invitation.create.mutate({ email: shared, serverId });
-
-    const attempts = await Promise.allSettled([
-        first.trpc.invitation.accept.mutate({ token }),
-        second.trpc.invitation.accept.mutate({ token }),
-    ]);
-
-    expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1);
-
-    const [accepted] = await harness.sql`
-        select count(*)::int as total from server_invitations
-        where server_id = ${serverId} and email = ${shared} and accepted_at is not null
+    await signIn('user_accept_shared_one', [shared]);
+    await expect(signIn('user_accept_shared_two', [shared])).rejects.toThrow(
+        /belongs to another human/i
+    );
+    const [alias] = await harness.sql`
+        select user_id from user_verified_emails where email = ${shared}
     `;
-    expect(accepted.total).toBe(1);
+    expect(alias.user_id).toBe(await readUserId('user_accept_shared_one'));
 });
 
 test('acceptance publishes the new member id and the invitation change', async () => {
@@ -271,18 +263,18 @@ test('acceptance publishes the new member id and the invitation change', async (
     invitations.stop();
 });
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const [row] = await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `;
 
     return row.id as string;
 }
 
-async function signIn(clerkUserId: string, verifiedEmails: string[]) {
-    harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
+async function signIn(subject: string, verifiedEmails: string[]) {
+    harness.humans.setVerifiedEmails(subject, verifiedEmails);
 
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+    const token = await harness.humans.mintSessionToken(subject);
 
     return createHausClient(harness, token);
 }

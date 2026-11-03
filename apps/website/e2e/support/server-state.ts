@@ -7,6 +7,7 @@ export function serverStateFile(runId = process.env.HAUS_E2E_RUN_ID ?? 'default'
 
 export interface ServerState {
     /** Increments each time a restarted Server child is healthy again. */
+    databaseUrl: string;
     generation: number;
     harnessPid: number;
     serverPid: number;

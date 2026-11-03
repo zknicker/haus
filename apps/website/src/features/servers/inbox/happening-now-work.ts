@@ -5,7 +5,7 @@ import type {
     CloudAgentJobState,
     CloudAgentProvider,
 } from '@haus/api';
-import { cloudAgentJobText, elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
+import { cloudAgentWorkText, elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
@@ -43,7 +43,7 @@ export function toHappeningNowWork(
         id: item.work.id,
         location: item.location,
         provider: item.work.provider,
-        ...liveStatus(item.work.job, now),
+        ...liveStatus(item.work, now),
         title: item.work.title,
     }));
 }
@@ -53,11 +53,12 @@ export function toHappeningNowWork(
  * is live reads as that follow-up, not as the settled job behind it.
  */
 function liveStatus(
-    job: ActiveCloudAgentWork['work']['job'],
+    work: ActiveCloudAgentWork['work'],
     now: number
 ): Pick<HappeningNowWork, 'state' | 'statusText'> {
+    const { job } = work;
     if (job.state === 'working' || !job.followUp) {
-        return { state: job.state, statusText: cloudAgentJobText(job, now) };
+        return { state: job.state, statusText: cloudAgentWorkText(work, now) };
     }
     const elapsed = elapsedSince(job.followUp.since, now);
     const label = `Follow-up ${job.followUp.state}`;

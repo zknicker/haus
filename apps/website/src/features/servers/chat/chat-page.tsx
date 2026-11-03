@@ -7,6 +7,7 @@ import { useListedChat } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
+import { useTaskThread } from '../tasks/use-task-thread.ts';
 import { ChatPagePending } from './chat-page-pending.tsx';
 import { resolveChatPageChat } from './chat-page-state.ts';
 import { useChatViewModule } from './chat-view-module.ts';
@@ -82,17 +83,8 @@ const ChatPageView = React.memo(function ChatPageView({
         includeBackground: true,
     });
     const task = tasks.data?.tasks.find((item) => item.task.messageId === taskMessageId);
-    const initialTask = React.useMemo(
-        () =>
-            task
-                ? {
-                      message: task.message,
-                      summary: task.threadSummary,
-                      threadChatId: task.task.threadChatId,
-                  }
-                : undefined,
-        [task]
-    );
+    // A task inside a Thread opens the Thread it sits in, never one of its own.
+    const initialTask = useTaskThread(server.id, task);
 
     if (!chat && chatQuery.isPending) {
         return <ChatPagePending />;

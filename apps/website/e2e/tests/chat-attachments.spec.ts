@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
-import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,
     completeOnboarding,
@@ -10,11 +9,8 @@ import {
 import { expect, test } from '../support/test.ts';
 
 test.beforeAll(async () => {
-    const { databaseUrl, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
-        databaseUrl: string;
-        token: string;
-    };
-    const owner = createClient(token);
+    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const owner = createClient(accessToken);
     // A worker restarted after a failure runs this again against the same stack.
     const existing = await owner.server.bySlug
         .query({ slug: 'attachment-images' })
@@ -34,7 +30,7 @@ test.beforeAll(async () => {
 test('an image send renders as an image while pending and after the Server confirms it', async ({
     page,
 }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
     await openChannel(page, 'all');
 
@@ -71,7 +67,7 @@ test('an image send renders as an image while pending and after the Server confi
 test('a PNG uploaded with no type and no extension is stored and shown as an image', async ({
     page,
 }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
     await openChannel(page, 'all');
 
@@ -95,7 +91,7 @@ test('a PNG uploaded with no type and no extension is stored and shown as an ima
 test('the image viewer steps through a message’s images and keeps focus at the last one', async ({
     page,
 }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
     await openChannel(page, 'all');
 

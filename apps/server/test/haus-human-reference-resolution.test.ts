@@ -14,9 +14,9 @@ beforeAll(async () => {
         ('srv_mentions', 'mentions', 'Mentions'), ('srv_elsewhere', 'elsewhere', 'Elsewhere')
     `;
     await harness.sql`
-        insert into users (id, clerk_user_id) values
-        ('usr_zach', 'clerk_zach'), ('usr_revoked', 'clerk_revoked'),
-        ('usr_elsewhere', 'clerk_elsewhere'), ('usr_nohandle', 'clerk_nohandle')
+        insert into users (id, auth_subject) values
+        ('usr_zach', 'cf_zach'), ('usr_revoked', 'cf_revoked'),
+        ('usr_elsewhere', 'cf_elsewhere'), ('usr_nohandle', 'cf_nohandle')
     `;
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role, handle, revoked_at) values
@@ -86,4 +86,24 @@ test('resolves a whole Thread reference and retains it on retry after a Channel 
             serverId: 'srv_elsewhere',
         })
     ).toBe('Other Server #renamed:12345678.');
+});
+
+test('resolves a Thread reference on a Channel message that has no Thread yet', async () => {
+    const anchor = 'msg_ofWoeFRCxQ2abcdEF_-1';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values ('cht_plans', 'srv_mentions', 'channel', 'plans')
+    `;
+    await harness.sql`
+        insert into chat_messages (id, server_id, chat_id, author_user_id, content, nonce, sequence)
+        values (${anchor}, 'srv_mentions', 'cht_plans', 'usr_zach', 'Plan', 'unthreaded-anchor', 1)
+    `;
+    expect(
+        await canonicalizeAgentMessageContentForPersistence(connection.db, {
+            content: 'Here it is: #plans:ofWoeFRC (Oct 29), not #plans:ofwoefrc.',
+            serverId: 'srv_mentions',
+        })
+    ).toBe(
+        `Here it is: [#plans thread](chat://cht_plans?thread=${anchor}) (Oct 29), not #plans:ofwoefrc.`
+    );
 });

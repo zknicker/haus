@@ -8,6 +8,7 @@ import {
     type VisibleMessageIdentity,
 } from '../inbox-store.ts';
 import { renderedThreadContexts, threadContextVisibleMessages } from '../thread-context-format.ts';
+import { composeHeartbeatReportInput } from './heartbeat-prompt.ts';
 
 /** What the frame offers this turn, independent of how the turn was started. */
 export interface TurnDelivery {
@@ -22,10 +23,12 @@ export interface TurnDelivery {
     dataRoot: string;
     /** Inbox identities drainable on any start; the warm set needs a live session. */
     drainItemIds: string[];
-    /** A dream run: the turn exists only for the Agent's memory consolidation pass. */
-    dream?: AgentStartCommand['dream'];
     /** An Agent another Agent created with a standing brief introduces itself once. */
     greetsOnFirstTurn?: boolean;
+    /** A heartbeat run: composed by `composeHeartbeatInput` in its own throwaway session. */
+    heartbeat?: AgentStartCommand['heartbeat'];
+    /** A report run: the Agent's own heartbeat report, handed to its main session. */
+    heartbeatReport?: AgentStartCommand['heartbeatReport'];
     homeTimezone: string;
     inbox: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';
@@ -62,10 +65,6 @@ const resetContextLine =
 const firstTurnGreetingLine =
     'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.';
 
-/** The whole input of a dream run, composed here so no Chat or inbox frames it. */
-export const dreamTurnLine =
-    '[Haus dreaming turn] Haus started this turn for your nightly dreaming pass: consolidate your memory following `haus manual get recipes/technique/memory-hygiene --intent "nightly dreaming pass" --reason "I am consolidating my memory"`. Post nothing in any chat about the dream itself. If new messages arrive meanwhile, handle them normally.';
-
 /**
  * The input of a sub-agent wake run when no turn of the runtime's own is there to adopt: the
  * report landed while nothing could act on it (its turn already ended, or the Computer
@@ -78,7 +77,8 @@ export const subagentWakeTurnLine =
 export function turnDeliveryOf(command: AgentStartCommand) {
     return {
         connectionChips: command.connectionChips ?? [],
-        ...(command.dream ? { dream: command.dream } : {}),
+        ...(command.heartbeat ? { heartbeat: command.heartbeat } : {}),
+        ...(command.heartbeatReport ? { heartbeatReport: command.heartbeatReport } : {}),
         ...(command.subagentWake ? { subagentWake: command.subagentWake } : {}),
         drainItemIds: command.drainItemIds ?? [],
         inbox: command.inbox ?? [],
@@ -105,8 +105,8 @@ export interface TurnPrompt {
  * and notices the rest, which is Raft's hybrid shape (specs/inbox.md).
  */
 export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): TurnPrompt {
-    const chatlessLine = input.dream
-        ? dreamTurnLine
+    const chatlessLine = input.heartbeatReport
+        ? composeHeartbeatReportInput(input.heartbeatReport)
         : input.subagentWake
           ? subagentWakeTurnLine
           : null;

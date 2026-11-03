@@ -57,6 +57,7 @@ export async function launchNativeClaudeCloud(input: {
                 },
                 rows: 40,
             },
+            killSignal: 'SIGKILL',
             timeout: 120_000,
             ...(input.signal ? { signal: input.signal } : {}),
         }
@@ -66,7 +67,7 @@ export async function launchNativeClaudeCloud(input: {
         const match = output.match(/https:\/\/claude\.ai\/code\/(session_[A-Za-z0-9]+)/u);
         const sessionId = sessionIdSchema.safeParse(match?.[1]);
         if (exitCode !== 0 || !sessionId.success) {
-            // The session may exist without Haus learning its id, so this stays unconfirmed.
+            // The launch owner settles this failed attempt and notifies its delegating Agent.
             throw new Error('Claude Code did not report the hosted session it started.');
         }
         return { sessionId: sessionId.data, url: `https://claude.ai/code/${sessionId.data}` };

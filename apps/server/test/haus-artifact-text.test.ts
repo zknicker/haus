@@ -4,7 +4,7 @@ import { artifactPublishInputSchema, artifactTextMaxBytes } from '@haus/api';
 import { publishArtifact } from '../src/artifacts/publish.ts';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
-import { findUserByClerkId } from '../src/users/haus-user.ts';
+import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -36,20 +36,20 @@ let connection: Awaited<ReturnType<typeof connectHausDatabase>>;
 let serverId: string;
 let actor: {
     kind: 'human';
-    member: Awaited<ReturnType<typeof findUserByClerkId>>;
+    member: Awaited<ReturnType<typeof findUserById>>;
     serverId: string;
 };
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ artifactStorage: storage });
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('text_owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('text_outsider'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('text_owner'));
+    outsider = createHausClient(harness, await harness.humans.mintSessionToken('text_outsider'));
     serverId = (await owner.trpc.server.create.mutate({ displayName: 'Text HQ', slug: 'text-hq' }))
         .id;
     connection = await connectHausDatabase(harness.databaseUrl);
     actor = {
         kind: 'human',
-        member: await findUserByClerkId(connection.db, 'text_owner'),
+        member: await findUserById(connection.db, harness.humans.userIdForSubject('text_owner')),
         serverId,
     };
 });

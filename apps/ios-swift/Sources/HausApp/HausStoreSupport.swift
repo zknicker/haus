@@ -1,4 +1,3 @@
-import ClerkKit
 import Foundation
 import HausModels
 import HausTransport
@@ -34,11 +33,11 @@ final class EventTaskBag: @unchecked Sendable {
     }
 }
 
-struct ClerkSessionTokenProvider: SessionTokenProvider, @unchecked Sendable {
-    let clerk: Clerk
+struct HausSessionTokenProvider: SessionTokenProvider, Sendable {
+    let authClient: NativeAuthClient
 
     func readSessionToken() async throws -> String? {
-        try await clerk.auth.getToken()
+        try await authClient.readAccessToken()
     }
 }
 

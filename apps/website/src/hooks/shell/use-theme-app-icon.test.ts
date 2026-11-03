@@ -31,10 +31,13 @@ const INDEX_HREFS = [
 ];
 
 describe('theme app icon', () => {
-    test('the ghost keeps the index.html set; the pumpkin reads its own folder', () => {
+    test('the ghost keeps the index.html set; each theme icon reads its own folder', () => {
         expect(themeFaviconHref('/favicon.svg', 'ghost')).toBe('/favicon.svg');
         expect(themeFaviconHref('/apple-touch-icon.png', 'pumpkin')).toBe(
             '/app-icons/pumpkin/apple-touch-icon.png'
+        );
+        expect(themeFaviconHref('/apple-touch-icon.png', 'santa')).toBe(
+            '/app-icons/santa/apple-touch-icon.png'
         );
     });
 
@@ -52,6 +55,22 @@ describe('theme app icon', () => {
         expect(links.map((link) => link.getAttribute('href'))).toEqual(
             INDEX_HREFS.map((href) => `/app-icons/pumpkin${href}`)
         );
+
+        applyThemeFavicons(links, colorThemeDefinition('default').appIcon);
+        expect(links.map((link) => link.getAttribute('href'))).toEqual(INDEX_HREFS);
+    });
+
+    test('both Christmas themes wear the nightcap set, and a switch keeps the ghost original', () => {
+        const fakes = INDEX_HREFS.map(fakeLink);
+        const links = fakes.map((fake) => fake.link);
+        const santaHrefs = INDEX_HREFS.map((href) => `/app-icons/santa${href}`);
+
+        applyThemeFavicons(links, colorThemeDefinition('christmas-eve').appIcon);
+        expect(links.map((link) => link.getAttribute('href'))).toEqual(santaHrefs);
+
+        applyThemeFavicons(links, colorThemeDefinition('halloween').appIcon);
+        applyThemeFavicons(links, colorThemeDefinition('christmas-morning').appIcon);
+        expect(links.map((link) => link.getAttribute('href'))).toEqual(santaHrefs);
 
         applyThemeFavicons(links, colorThemeDefinition('default').appIcon);
         expect(links.map((link) => link.getAttribute('href'))).toEqual(INDEX_HREFS);
@@ -83,8 +102,9 @@ describe('theme app icon', () => {
         };
 
         await syncDesktopAppIcon(bridge, colorThemeDefinition('halloween').appIcon);
+        await syncDesktopAppIcon(bridge, colorThemeDefinition('christmas-eve').appIcon);
         await syncDesktopAppIcon(bridge, colorThemeDefinition('default').appIcon);
-        expect(calls).toEqual(['pumpkin', 'ghost']);
+        expect(calls).toEqual(['pumpkin', 'santa', 'ghost']);
     });
 
     test('is a no-op on the web and on a shell without the capability', () => {

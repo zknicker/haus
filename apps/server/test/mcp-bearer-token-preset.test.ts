@@ -19,19 +19,19 @@ let harness: HausServerHarness;
 let connection: HausConnection;
 let owner: HausClient;
 let runtime: McpRuntime;
-let member: { clerkUserId: string; id: string };
+let member: { subject: string; id: string };
 let serverId: string;
 let skoolRequest: typeof fetch;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('x-owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('x-owner'));
     serverId = (await owner.trpc.server.create.mutate({ displayName: 'X', slug: 'x-preset' })).id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'x-owner'
+        select id from users where auth_subject = 'x-owner'
     `) as { id: string }[];
-    member = { clerkUserId: 'x-owner', id: user?.id ?? '' };
+    member = { subject: 'x-owner', id: user?.id ?? '' };
     // Discovery never leaves the process: the fixture client stands in for api.x.com.
     runtime = new McpRuntime(connection.db, serverEffectRuntime, {
         clientFactory: () => Promise.resolve(makeClient('xmcp').client),
@@ -52,7 +52,7 @@ afterAll(async () => {
 
 test.each([
     ['x', 'X', 'https://api.x.com/mcp'],
-    ['factory', 'Factory', 'https://factory.merchbase.co/mcp'],
+    ['factory', 'Factory', 'https://factory-agent.merchbase.co/mcp'],
 ] as const)('%s stores its token as a Server-only Authorization header', async (preset, name, url) => {
     const created = await createMcpPresetAccount(connection.db, runtime, noIcon, member, {
         bearerToken: token,

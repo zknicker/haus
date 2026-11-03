@@ -1,12 +1,12 @@
 /**
- * The color theme (DESIGN.md "Color themes"): a palette family layered over
+ * The color theme (.design/guidelines.md "Color themes"): a palette family layered over
  * the Light/Dark/System mode, picked in Settings > Preferences. Stamped as
  * `data-color-theme` on the document root, where token and decoration layers
  * under `styles/themes/` key off it. App-local presentation: persisted per
  * device, never synced. What each theme changes lives in its definition
  * (`color-themes.ts`).
  */
-const colorThemeIds = ['default', 'halloween'] as const;
+const colorThemeIds = ['default', 'halloween', 'christmas-eve', 'christmas-morning'] as const;
 
 export type ColorTheme = (typeof colorThemeIds)[number];
 

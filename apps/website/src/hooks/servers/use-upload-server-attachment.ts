@@ -1,6 +1,6 @@
 import type { AttachmentUploadResult } from '@haus/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getClerkSessionToken } from '../../lib/clerk.tsx';
+import { getAppSessionAccessToken } from '../../lib/app-auth.tsx';
 import { getHausServerOrigin, hausTrpc } from '../../lib/haus-server.tsx';
 import { seedHostedAttachmentImage } from './attachment-image.ts';
 
@@ -33,7 +33,7 @@ export function useUploadServerAttachment() {
                 nonce,
                 serverId,
             });
-            const token = await getClerkSessionToken();
+            const token = getAppSessionAccessToken();
             if (!token) {
                 throw new Error('Sign in to upload attachments.');
             }

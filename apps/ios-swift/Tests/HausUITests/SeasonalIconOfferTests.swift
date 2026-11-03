@@ -43,9 +43,11 @@ final class SeasonalIconOfferTests: XCTestCase {
     }
 
     func testOtherMonthsOnTheGhostOfferNothing() {
-        for month in [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12] {
+        for month in [1, 2, 3, 4, 5, 6, 7, 8, 9] {
             XCTAssertNil(offer(2026, month, 15, .ghost), "month \(month)")
         }
+        XCTAssertNil(offer(2026, 11, 1, .ghost))
+        XCTAssertNil(offer(2026, 11, 5, .ghost))
     }
 
     func testTheReturnOfferCarriesIntoTheNewYear() {
@@ -85,13 +87,130 @@ final class SeasonalIconOfferTests: XCTestCase {
         var records = SeasonalIconRecords()
         records.recordShown(.halloween(season: 2026))
         records.recordShown(.halloweenReturn(season: 2026))
+        records.recordShown(.christmas(season: 2026))
+        records.recordShown(.christmasReturn(season: 2026))
         XCTAssertEqual(records.halloweenOffersShown, [2026])
         XCTAssertEqual(records.returnOffersShown, [2026])
+        XCTAssertEqual(records.christmasOffersShown, [2026])
+        XCTAssertEqual(records.christmasReturnOffersShown, [2026])
     }
 
     func testOffersSuggestTheOtherIcon() {
         XCTAssertEqual(SeasonalIconOffer.halloween(season: 2026).suggestedIcon, .pumpkin)
         XCTAssertEqual(SeasonalIconOffer.halloweenReturn(season: 2026).suggestedIcon, .ghost)
+        XCTAssertEqual(SeasonalIconOffer.christmas(season: 2026).suggestedIcon, .nightcap)
+        XCTAssertEqual(SeasonalIconOffer.christmasReturn(season: 2026).suggestedIcon, .ghost)
+    }
+
+    // MARK: Christmas
+
+    func testFromSixNovemberTheGhostIsOfferedTheNightcap() {
+        XCTAssertEqual(offer(2026, 11, 6, .ghost), .christmas(season: 2026))
+        XCTAssertEqual(offer(2026, 11, 30, .ghost), .christmas(season: 2026))
+        XCTAssertEqual(offer(2026, 12, 1, .ghost), .christmas(season: 2026))
+        XCTAssertEqual(offer(2026, 12, 24, .ghost), .christmas(season: 2026))
+        XCTAssertEqual(offer(2026, 12, 31, .ghost), .christmas(season: 2026))
+    }
+
+    func testDecemberOnASeasonalIconOffersNoNightcap() {
+        XCTAssertNil(offer(2026, 12, 24, .nightcap))
+        XCTAssertNil(offer(2026, 12, 24, .pumpkin))
+    }
+
+    func testAShownChristmasOfferDoesNotRepeat() {
+        let records = SeasonalIconRecords(christmasOffersShown: [2026])
+        XCTAssertNil(offer(2026, 12, 26, .ghost, records))
+    }
+
+    func testAShownHalloweenOfferDoesNotSilenceChristmas() {
+        let records = SeasonalIconRecords(halloweenOffersShown: [2026], returnOffersShown: [2026])
+        XCTAssertEqual(offer(2026, 12, 1, .ghost, records), .christmas(season: 2026))
+    }
+
+    func testJanuaryOnAnOfferNightcapOffersTheGhostBack() {
+        let records = SeasonalIconRecords(christmasOffersShown: [2026], nightcapFromOfferSeason: 2026)
+        XCTAssertEqual(offer(2027, 1, 2, .nightcap, records), .christmasReturn(season: 2026))
+        XCTAssertEqual(offer(2027, 6, 1, .nightcap, records), .christmasReturn(season: 2026))
+    }
+
+    func testTheNightcapIsNotOfferedBackBeforeJanuary() {
+        let records = SeasonalIconRecords(christmasOffersShown: [2026], nightcapFromOfferSeason: 2026)
+        XCTAssertNil(offer(2026, 11, 6, .nightcap, records))
+        XCTAssertNil(offer(2026, 12, 31, .nightcap, records))
+    }
+
+    func testAManuallyChosenNightcapIsNeverNagged() {
+        let records = SeasonalIconRecords(christmasOffersShown: [2026])
+        XCTAssertNil(offer(2027, 1, 2, .nightcap, records))
+        XCTAssertNil(offer(2027, 1, 2, .nightcap))
+    }
+
+    func testAShownChristmasReturnOfferDoesNotRepeat() {
+        let records = SeasonalIconRecords(
+            christmasReturnOffersShown: [2026],
+            nightcapFromOfferSeason: 2026
+        )
+        XCTAssertNil(offer(2027, 2, 1, .nightcap, records))
+    }
+
+    func testANightcapKeptFromLastSeasonIsNotOfferedBackNextSeason() {
+        let records = SeasonalIconRecords(christmasOffersShown: [2026], nightcapFromOfferSeason: 2026)
+        XCTAssertNil(offer(2028, 1, 2, .nightcap, records))
+    }
+
+    func testNextDecemberOffersAgainAfterLastYearsOffer() {
+        let records = SeasonalIconRecords(christmasOffersShown: [2026], christmasReturnOffersShown: [2026])
+        XCTAssertEqual(offer(2027, 11, 6, .ghost, records), .christmas(season: 2027))
+    }
+
+    func testDecemberIsReadOnTheLocalCalendar() {
+        // 03:30 UTC on 1 January 2027 is still 31 December in New York.
+        let date = Date(timeIntervalSince1970: 1_798_774_200)
+        let offer = SeasonalIconOffer.eligible(
+            on: date,
+            calendar: calendar,
+            currentIcon: .ghost,
+            records: SeasonalIconRecords()
+        )
+        XCTAssertEqual(offer, .christmas(season: 2026))
+    }
+
+    // MARK: Switching
+
+    func testAnAcceptedOfferRemembersWhichSeasonPutTheIconOn() {
+        var records = SeasonalIconRecords()
+        records.recordSwitch(.halloween(season: 2026))
+        XCTAssertEqual(records.pumpkinFromOfferSeason, 2026)
+        XCTAssertNil(records.nightcapFromOfferSeason)
+
+        records.recordSwitch(.halloweenReturn(season: 2026))
+        XCTAssertNil(records.pumpkinFromOfferSeason)
+
+        records.recordSwitch(.christmas(season: 2026))
+        XCTAssertEqual(records.nightcapFromOfferSeason, 2026)
+        XCTAssertNil(records.pumpkinFromOfferSeason)
+
+        records.recordSwitch(.christmasReturn(season: 2026))
+        XCTAssertNil(records.nightcapFromOfferSeason)
+    }
+
+    func testTheSeasonsHandOffThroughTheYear() {
+        var records = SeasonalIconRecords()
+        var icon = AppIconChoice.ghost
+        // Accept every offer, the way a festive device would.
+        for (year, month) in [(2026, 10), (2026, 11), (2026, 12), (2027, 1)] {
+            guard let next = offer(year, month, 15, icon, records) else {
+                return XCTFail("no offer in \(year)-\(month)")
+            }
+            records.recordShown(next)
+            records.recordSwitch(next)
+            icon = next.suggestedIcon
+        }
+        XCTAssertEqual(icon, .ghost)
+        XCTAssertEqual(records.halloweenOffersShown, [2026])
+        XCTAssertEqual(records.returnOffersShown, [2026])
+        XCTAssertEqual(records.christmasOffersShown, [2026])
+        XCTAssertEqual(records.christmasReturnOffersShown, [2026])
     }
 
     func testOfferCopy() {
@@ -106,6 +225,18 @@ final class SeasonalIconOfferTests: XCTestCase {
         XCTAssertEqual(goodbye.body, "The pumpkin's heading back to the patch. Bring back the ghost?")
         XCTAssertEqual(goodbye.accept, "Bring Back Ghost")
         XCTAssertEqual(goodbye.decline, "Keep Pumpkin")
+
+        let christmas = SeasonalIconOfferCopy(.christmas(season: 2026))
+        XCTAssertEqual(christmas.title, "Merry Christmas!")
+        XCTAssertEqual(christmas.body, "Deck the Home Screen with a nightcap ghost.")
+        XCTAssertEqual(christmas.accept, "Switch to Nightcap")
+        XCTAssertEqual(christmas.decline, "Keep Ghost")
+
+        let packUp = SeasonalIconOfferCopy(.christmasReturn(season: 2026))
+        XCTAssertEqual(packUp.title, "Packing up the decorations")
+        XCTAssertEqual(packUp.body, "The nightcap goes back in the box. Bring back the ghost?")
+        XCTAssertEqual(packUp.accept, "Bring Back Ghost")
+        XCTAssertEqual(packUp.decline, "Keep Nightcap")
     }
 
     private func offer(

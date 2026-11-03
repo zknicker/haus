@@ -3,7 +3,7 @@
 Judge each battery screenshot against these checks. The battery passes when
 every item passes every applicable check without per-item coaching. Source of
 truth for the rules: the seeded visuals skill
-(`packages/agent-workspace/src/visuals-skill/`) and DESIGN.md.
+(`packages/agent-workspace/src/visuals-skill/`) and .design/guidelines.md.
 
 ## Every item
 

@@ -2,9 +2,9 @@ import type { MessageTask, TaskLabel } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable, taskLabelsTable } from '../postgres/schema.ts';
-import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 import { loadLiveTaskMessageIds } from './task-liveness.ts';
 import { resolveTaskTier } from './task-tier.ts';
+import { taskWorkThreadChatId } from './task-work-thread.ts';
 
 export type MessageTaskRow = typeof messageTasksTable.$inferSelect;
 
@@ -112,7 +112,7 @@ export function toMessageTaskWithDerivation(
         origin: row.origin,
         priority: row.priority,
         status: row.status,
-        threadChatId: threadChatIdForAnchor(row.messageId),
+        threadChatId: taskWorkThreadChatId(row),
         tier: derivation.tier,
         updatedAt: row.updatedAt.toISOString(),
         version: row.version,

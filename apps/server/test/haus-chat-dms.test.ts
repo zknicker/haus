@@ -27,7 +27,7 @@ beforeAll(async () => {
     outsider = await signIn('user_dm_outsider');
     peer = await signIn('user_dm_peer');
     await harness.sql`
-        insert into users (id, clerk_user_id) values
+        insert into users (id, auth_subject) values
             (${byteFirstUserId}, 'user_dm_byte_first'),
             (${byteSecondUserId}, 'user_dm_byte_second')
     `;
@@ -249,14 +249,14 @@ test('a revoked member cannot be opened as a DM peer', async () => {
     ).rejects.toThrow(/not a member/i);
 });
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }
 
-async function readUserId(clerkUserId: string) {
+async function readUserId(subject: string) {
     const rows = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
 
     return rows[0].id;

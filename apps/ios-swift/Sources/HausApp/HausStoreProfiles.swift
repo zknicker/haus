@@ -27,16 +27,10 @@ extension HausStore {
     }
 
     func syncHumanIdentity(serverID: String) async throws {
-        let user = clerk.user
-        let name = [user?.firstName, user?.lastName]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank }
-            .joined(separator: " ")
-            .nilIfBlank
         let _: TRPCNoContent = try await client.mutation(
             "member.syncIdentity",
             input: SyncHumanIdentityInput(
-                email: user?.primaryEmailAddress?.emailAddress,
-                name: name,
+                name: viewer.displayName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank,
                 serverID: serverID,
                 timezone: HumanTimezone.deviceZone()
             )

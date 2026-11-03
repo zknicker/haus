@@ -1,40 +1,23 @@
-import type { ClerkSessionIdentity } from '../identity/clerk-sessions.ts';
+import type { HausSessionIdentity } from '../identity/haus-sessions.ts';
 
-/** Close code a Server WebSocket carries when its Clerk session lapsed unrefreshed. */
 export const socketSessionExpiredCloseCode = 4401;
-
-/**
- * How long past its newest token's expiry a socket stays open. Clerk rotates
- * tokens before they expire and the App pushes each rotation within seconds;
- * the grace only covers a slow push, never a session Clerk stopped renewing.
- */
-export const defaultSocketSessionGraceMs = 60_000;
 
 export interface SocketSessionTiming {
     clearTimer(handle: unknown): void;
-    graceMs: number;
     now(): number;
     setTimer(run: () => void, ms: number): unknown;
 }
 
 export type SocketSessionRefreshResult = 'identity-mismatch' | 'refreshed' | 'unbound';
 
-/**
- * The Clerk session one App WebSocket presents (docs/api/auth.md, "Socket
- * sessions"). The socket opens with a token; the first operation the Server
- * verifies binds the socket to that Clerk user and session for its whole life.
- * The App then hands each rotated token over the same socket, and every later
- * operation start is judged against the newest one. A token for another user
- * or another Clerk session never replaces it: identity changes take a new
- * socket. A socket whose newest token expires without a refresh is closed, so
- * subscriptions that started under a session cannot outlive it.
- */
+/** One open App socket, bound to one canonical user and Haus session. */
 export class SocketSession {
-    private bound: Pick<ClerkSessionIdentity, 'clerkSessionId' | 'clerkUserId'> | null = null;
+    private bound: Pick<HausSessionIdentity, 'sessionId' | 'userId'> | null = null;
     private currentToken: string | null;
     private expiryTimer: unknown = null;
     private isClosed = false;
-    private readonly close: () => void;
+    private readonly closeSocket: () => void;
+    private readonly closeListeners = new Set<() => void>();
     private readonly timing: SocketSessionTiming;
 
     constructor(options: {
@@ -42,79 +25,81 @@ export class SocketSession {
         openingToken: string | null;
         timing?: Partial<SocketSessionTiming>;
     }) {
-        this.close = options.close;
+        this.closeSocket = options.close;
         this.currentToken = options.openingToken;
         this.timing = {
             clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
-            graceMs: defaultSocketSessionGraceMs,
             now: Date.now,
             setTimer: (run, ms) => setTimeout(run, ms),
             ...options.timing,
         };
     }
 
-    /** The Clerk user this socket is bound to, once a verification resolved one. */
-    get clerkUserId(): string | null {
-        return this.bound?.clerkUserId ?? null;
+    get userId() {
+        return this.bound?.userId ?? null;
     }
 
-    /** The token every new operation on this socket is judged against. */
-    get token(): string | null {
+    get token() {
         return this.currentToken;
     }
 
-    /**
-     * Records a verification of `token`. The first one binds the socket's
-     * identity; a verification of a token that is no longer current (a refresh
-     * landed meanwhile) changes nothing.
-     */
-    observe(token: string, identity: ClerkSessionIdentity) {
+    observe(token: string, identity: HausSessionIdentity) {
         if (this.isClosed || token !== this.currentToken) {
             return;
         }
         if (!this.bound) {
-            this.bound = {
-                clerkSessionId: identity.clerkSessionId,
-                clerkUserId: identity.clerkUserId,
-            };
-            this.armExpiry(identity.expiresAt);
+            this.bound = { sessionId: identity.sessionId, userId: identity.userId };
+            this.armExpiry(identity.accessTokenExpiresAt);
         }
     }
 
-    /** Swaps in a verified rotated token for the identity this socket is bound to. */
-    refresh(token: string, identity: ClerkSessionIdentity): SocketSessionRefreshResult {
+    refresh(token: string, identity: HausSessionIdentity): SocketSessionRefreshResult {
         if (!this.bound) {
             return 'unbound';
         }
-        if (
-            identity.clerkUserId !== this.bound.clerkUserId ||
-            identity.clerkSessionId !== this.bound.clerkSessionId
-        ) {
+        if (identity.userId !== this.bound.userId || identity.sessionId !== this.bound.sessionId) {
             return 'identity-mismatch';
         }
         if (!this.isClosed) {
             this.currentToken = token;
-            this.armExpiry(identity.expiresAt);
+            this.armExpiry(identity.accessTokenExpiresAt);
         }
         return 'refreshed';
     }
 
-    /** The socket closed; nothing more to enforce. */
     dispose() {
+        if (this.isClosed) {
+            return;
+        }
         this.isClosed = true;
         this.clearExpiry();
+        for (const listener of this.closeListeners) {
+            listener();
+        }
+        this.closeListeners.clear();
+    }
+
+    close() {
+        if (this.isClosed) {
+            return;
+        }
+        this.dispose();
+        this.closeSocket();
+    }
+
+    onClose(listener: () => void) {
+        if (this.isClosed) {
+            listener();
+            return () => undefined;
+        }
+        this.closeListeners.add(listener);
+        return () => this.closeListeners.delete(listener);
     }
 
     private armExpiry(expiresAt: number) {
         this.clearExpiry();
-        const delay = Math.max(0, expiresAt + this.timing.graceMs - this.timing.now());
-        this.expiryTimer = this.timing.setTimer(() => {
-            this.expiryTimer = null;
-            if (!this.isClosed) {
-                this.isClosed = true;
-                this.close();
-            }
-        }, delay);
+        const delay = Math.max(0, expiresAt - this.timing.now());
+        this.expiryTimer = this.timing.setTimer(() => this.close(), delay);
     }
 
     private clearExpiry() {

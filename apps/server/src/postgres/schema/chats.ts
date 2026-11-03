@@ -49,6 +49,7 @@ export const chatsTable = pgTable(
     (table) => [
         unique('chats_server_id_key').on(table.serverId, table.id),
         unique('chats_server_id_kind_key').on(table.serverId, table.id, table.kind),
+        unique('chats_server_id_parent_key').on(table.serverId, table.id, table.parentChatId),
         uniqueIndex('chats_server_channel_name_key')
             .on(table.serverId, table.name)
             .where(sql`${table.kind} = 'channel'`),

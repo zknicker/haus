@@ -15,13 +15,17 @@ export default defineScenario({
         const token = marker('THREAD');
 
         const channel = await kit.createChannel({ agentIds: [worker.id] });
-        const channelHead = await kit.readHead(channel.id);
 
+        // The anchor is the Agent's own earlier post: a human anchor in a
+        // one-Agent channel is addressed to it and earns its own reply.
         log('anchoring a Thread');
-        const anchor = await send(kit, {
-            chatId: channel.id,
-            content: `Bluebird thread anchor ${kit.stamp}`,
-        });
+        const anchor = await kit.authorAsAgent(
+            worker.id,
+            `#${channel.name}`,
+            `Bluebird launch notes ${kit.stamp} are up.`,
+            { chatId: channel.id }
+        );
+        const channelHead = await kit.readHead(channel.id);
         const threadReceipt = await send(kit, {
             chatId: channel.id,
             content: `@${worker.handle} Reply in this Thread only with ${token}.`,

@@ -9,7 +9,7 @@ let owner: HausClient;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_task_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_task_owner'));
 });
 
 afterAll(async () => {
@@ -223,14 +223,14 @@ test('rejects task creation in a Thread as a bad request', async () => {
     ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
 });
 
-test('maps task creation by an unknown Haus User to not found', async () => {
+test('blocks a nonmember from creating a task', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Unknown User',
         slug: 'task-unknown-user',
     });
     const stranger = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_task_stranger')
+        await harness.humans.mintSessionToken('user_task_stranger')
     );
 
     await expect(
@@ -240,7 +240,7 @@ test('maps task creation by an unknown Haus User to not found', async () => {
             nonce: 'task-unknown-user-create',
             serverId: server.id,
         })
-    ).rejects.toMatchObject({ data: { code: 'NOT_FOUND' } });
+    ).rejects.toMatchObject({ data: { code: 'FORBIDDEN' } });
     stranger.close();
 });
 
@@ -581,7 +581,7 @@ test('recovers task state after a Server restart', async () => {
 
     owner.close();
     await harness.restart();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_task_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_task_owner'));
 
     const recovered = await owner.trpc.task.list.query({ serverId: server.id });
     expect(recovered.tasks).toMatchObject([
@@ -596,14 +596,14 @@ test('recovers task state after a Server restart', async () => {
 });
 
 async function addTaskPeer(serverId: string, chatId: string) {
-    const clerkUserId = `user_task_peer_${crypto.randomUUID()}`;
-    const client = createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    const subject = `user_task_peer_${crypto.randomUUID()}`;
+    const client = createHausClient(harness, await harness.humans.mintSessionToken(subject));
     await client.trpc.server.create.mutate({
         displayName: 'Task Peer Root',
         slug: `task-peer-${crypto.randomUUID().slice(0, 8)}`,
     });
     const [{ id: userId }] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)

@@ -38,7 +38,8 @@ export function useAgentsTurnRowTitles(
     const titleOf = useTriggerTitles(serverId);
     return (turn) =>
         titleOf(
-            turn.trigger ?? (runTriggerOf.has(turn.runId) ? runTriggerOf.get(turn.runId) : null)
+            turn.trigger ?? (runTriggerOf.has(turn.runId) ? runTriggerOf.get(turn.runId) : null),
+            turn.kind === 'active'
         );
 }
 
@@ -57,19 +58,19 @@ export function useTurnRowTitles(
 /** The title of one run that is still working, for the hover card's live line. */
 export function useRunTitle(serverId: string, agentId: string, runId: string): TurnRowTitle {
     const trigger = useAgentRunTrigger(serverId, agentId, runId);
-    return useTriggerTitles(serverId)(trigger);
+    return useTriggerTitles(serverId)(trigger, true);
 }
 
 /** `undefined` is a trigger still being read: the title holds blank, never the outcome. */
 function useTriggerTitles(
     serverId: string
-): (trigger: AgentTurnTrigger | null | undefined) => TurnRowTitle {
+): (trigger: AgentTurnTrigger | null | undefined, live: boolean) => TurnRowTitle {
     const chats = useChats(serverId);
     const chatsById = new Map<string, Pick<Chat, 'kind' | 'name'>>(
         (chats.data ?? []).map((chat) => [chat.id, chat])
     );
-    return (trigger) =>
+    return (trigger, live) =>
         trigger === undefined
             ? { kind: 'pending', place: null }
-            : resolveTurnRowTitle(trigger, chatsById);
+            : resolveTurnRowTitle(trigger, chatsById, live);
 }

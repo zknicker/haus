@@ -7,12 +7,7 @@ export const acceptInvitationProcedure = invitationProcedure
     .input(serverInvitationTokenInputSchema)
     .output(acceptedServerInvitationSchema)
     .mutation(async ({ ctx, input }) => {
-        const accepted = await acceptServerInvitation(
-            ctx.hausDb,
-            ctx.clerkUsers,
-            ctx.clerkUserId,
-            input.token
-        );
+        const accepted = await acceptServerInvitation(ctx.hausDb, ctx.userId!, input.token);
 
         // A new member changes the directory and retires an invitation, so any
         // members page already open elsewhere refreshes instead of going stale.

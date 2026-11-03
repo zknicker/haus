@@ -7,7 +7,7 @@ let owner: HausClient;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    const token = await harness.clerk.mintSessionToken('user_thread_owner');
+    const token = await harness.humans.mintSessionToken('user_thread_owner');
     owner = createHausClient(harness, token);
 });
 
@@ -36,14 +36,14 @@ test('Thread authorization derives only from the parent and nesting is rejected'
         thread: { anchorMessageId: anchor.message.id },
     });
     const threadChatId = reply.threadChatId as string;
-    const outsiderToken = await harness.clerk.mintSessionToken('user_thread_outsider');
+    const outsiderToken = await harness.humans.mintSessionToken('user_thread_outsider');
     const outsider = createHausClient(harness, outsiderToken);
     const outsiderServer = await outsider.trpc.server.create.mutate({
         displayName: 'Thread Outsider',
         slug: 'thread-outsider',
     });
     const [{ id: outsiderUserId }] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_thread_outsider'
+        select id from users where auth_subject = 'user_thread_outsider'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)

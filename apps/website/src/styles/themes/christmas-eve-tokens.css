@@ -1,0 +1,66 @@
+/*
+ * Christmas Eve color theme: token overrides only (.design/guidelines.md "Color themes").
+ * Decorations live in `christmas-decorations.css`, shared with Christmas Morning.
+ *
+ * Dark only: `ThemeProvider` pins the mode to dark while Christmas Eve is
+ * active, so these are dark values with no mode qualifier.
+ * `:root[data-color-theme]` is (0,2,0) and outranks the default theme's
+ * `[data-theme]`/`.dark` blocks (0,1,0) without relying on order.
+ */
+:root[data-color-theme="christmas-eve"] {
+    /*
+     * The night tint: one hue and one chroma for every dark neutral ground, so
+     * the page, the shell, the sidebar, surfaces, fields, overlays and fills
+     * all move together. Each ground keeps the default dark lightness (the
+     * desktop sidebar and card below excepted, as in Halloween), so the ramp
+     * and every surface edge stay where they are; only hue and chroma change.
+     * Chroma 0 is the plain grey ladder. Navy sits a little
+     * bluer and a little deeper in chroma than Halloween's midnight, a winter
+     * sky rather than a haunted one.
+     */
+    --christmas-eve-night-hue: 255; --christmas-eve-night-chroma: 0.016;
+
+    /*
+     * Candle gold accent. A light warm gold carries dark ink (about 10:1
+     * against `--eclipse`); snow on it would sit near 1.7:1. Soft, hover,
+     * focus and the reply highlight derive from `--accent` and follow on
+     * their own.
+     */
+    --accent: oklch(83% 0.12 85);
+    --accent-foreground: var(--eclipse);
+    --focus: var(--accent);
+
+    /*
+     * The page and the desktop shell ladder: canvas → sidebar → card → shown tab.
+     * As in Halloween, the night sits deeper than Default: sidebar and card each
+     * drop 2–2.5 L so the desktop card stays close to the web page's near-black
+     * instead of reading as a lit blue-grey; the canvas → sidebar → card steps
+     * are kept.
+     */
+    --background: oklch(12% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --shell-canvas: oklch(10.5% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --shell-band-sidebar: oklch(12% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --shell-card: oklch(14% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --shell-tab-active-background: oklch(21% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --shell-field-background: oklch(21% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+
+    /* HeroUI's raised grounds: cards, popovers and menus, fields, nested panels, fills. */
+    --surface: oklch(21.03% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --overlay: oklch(21.03% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --field-background: oklch(21.03% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --surface-secondary: oklch(25.7% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --surface-tertiary: oklch(27.21% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --default: oklch(27.4% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --tooltip: oklch(29% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+    --segment: oklch(39.64% var(--christmas-eve-night-chroma) var(--christmas-eve-night-hue));
+
+    /*
+     * The nested-box wash, recalibrated to the tinted grounds: 10% of it over
+     * the page reads as `--surface` at rest. Solved as (surface − 0.9 × page)
+     * / 0.1 in sRGB for this knob: L 80.2%, chroma about 2.6× the night
+     * chroma, because a 10% wash carries a tenth of the difference.
+     */
+    --nested-surface: oklch(
+        80.2% calc(var(--christmas-eve-night-chroma) * 2.6) var(--christmas-eve-night-hue) / 10%
+    );
+}

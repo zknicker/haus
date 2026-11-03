@@ -14,8 +14,7 @@ import {
     clearManagedSkillChangeNotice,
     readManagedSkillChangeNotice,
 } from '../managed-skill-changes.ts';
-import type { RuntimeDriverFactory, RuntimeSession } from '../runtime/driver.ts';
-import { createRuntimeDriver } from '../runtime/driver-factory.ts';
+import type { RuntimeSession } from '../runtime/driver.ts';
 import { isRuntimeResumeRejection } from '../runtime/resume-rejected.ts';
 import {
     claimClaudeSdkUsageRefresh,
@@ -29,9 +28,11 @@ import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
 } from './execution-journal.ts';
+import { currentRuntimeDriverFactory, type TurnDriverFactory } from './executor-seams.ts';
+import { clearQuietRunNote, quietRunLine, readQuietRunNote } from './heartbeat-note.ts';
+import { runHeartbeatTurn } from './heartbeat-turn.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
-import { settleDreamBaseline } from './memory-dream.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
@@ -91,6 +92,7 @@ export interface HarnessTurnResult {
     tokenUsage: HarnessTokenUsage | null;
 }
 
+export { setRuntimeDriverFactoryForTesting, type TurnDriverFactory } from './executor-seams.ts';
 export type { HarnessTokenUsage } from './token-usage.ts';
 export { HarnessTurnFailedError } from './turn-stream.ts';
 
@@ -100,6 +102,14 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
     const operation = Effect.tryPromise({
         catch: (cause) => new HarnessStreamForeignError({ cause }),
         try: async () => {
+            if (input.heartbeat) {
+                // A heartbeat opens its own throwaway session; the main session is not read or written.
+                return await runHeartbeatTurn(
+                    { ...input, heartbeat: input.heartbeat },
+                    input.runtimeDriverFactory ?? currentRuntimeDriverFactory(),
+                    journal
+                );
+            }
             const stored = await readAgentSessionState(input.agentRoot);
             const session = resolveTurnSession(stored, {
                 generation: input.sessionGeneration,
@@ -159,7 +169,7 @@ async function executeHarnessTurn(
     });
     const collectClaudePlanUsage =
         input.runtimeId === 'claude-code' && (await claimClaudeSdkUsageRefresh(input.dataRoot));
-    const driver = (input.runtimeDriverFactory ?? runtimeDriverFactory)(input, {
+    const driver = (input.runtimeDriverFactory ?? currentRuntimeDriverFactory())(input, {
         env: collectClaudePlanUsage ? { ...input.env, HAUS_CLAUDE_USAGE_REFRESH: '1' } : input.env,
         instructions,
     });
@@ -237,12 +247,15 @@ async function executeHarnessTurn(
         const turnContent = prompt.turnContent;
         // Cleared only after a completed turn, so a turn that fails before the model sees it retries.
         const skillNotice = await readManagedSkillChangeNotice(input.agentRoot);
+        // Any main-session turn hears what its heartbeats did; a report run clears it unrendered.
+        const quietNote = await readQuietRunNote(input.agentRoot);
+        const quietLine = quietNote && !input.heartbeatReport ? quietRunLine(quietNote) : null;
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await live.startTurn({
             prompt: projectMessageForAgent({
-                content: [coveGuidance.notice, turnContent, skillNotice?.text]
+                content: [quietLine, coveGuidance.notice, turnContent, skillNotice?.text]
                     .filter(Boolean)
                     .join('\n\n'),
                 enabledSkillIds: skillNames,
@@ -346,7 +359,9 @@ async function executeHarnessTurn(
         if (skillNotice) {
             await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
         }
-        await settleDreamBaseline(input);
+        if (quietNote) {
+            await clearQuietRunNote(input.agentRoot);
+        }
         await input.activity.finish(instructionActivityKey, 'completed');
         return observation;
     } catch (error) {
@@ -363,17 +378,4 @@ async function executeHarnessTurn(
         });
         throw error;
     }
-}
-
-// Tests inject a fake driver at this construction seam.
-export type TurnDriverFactory = RuntimeDriverFactory<HarnessTurnInput>;
-
-let runtimeDriverFactory: TurnDriverFactory = createRuntimeDriver;
-
-export function setRuntimeDriverFactoryForTesting(factory: TurnDriverFactory) {
-    const previous = runtimeDriverFactory;
-    runtimeDriverFactory = factory;
-    return () => {
-        runtimeDriverFactory = previous;
-    };
 }

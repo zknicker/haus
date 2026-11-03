@@ -170,7 +170,7 @@ Status values:
 - `bun run eval:sessions` drives real session behavior through the same hosted
   contract.
 - `bun run test:app` drives the real App against an isolated hosted Server,
-  PostgreSQL, and Clerk stack. Computer inventory and Agent-authored effects are
+  PostgreSQL, and local AppSession stack. Computer inventory and Agent-authored effects are
   deterministic fixtures; it never calls a real model.
 
 The executable browser-driven Agent specs were retired in favor of the headless

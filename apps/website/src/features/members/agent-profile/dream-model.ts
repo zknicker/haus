@@ -1,5 +1,6 @@
 import type { AgentDreamFile, AgentDreamSummary } from '@haus/api';
 import type { DiffHunk, DiffLine } from '../../../components/diff/diff-hunks.ts';
+import { dreamSummaryHeadline } from './dream-summary-model.ts';
 
 /**
  * A dream as the profile reads it. The Server stores what the Computer measured:
@@ -8,9 +9,30 @@ import type { DiffHunk, DiffLine } from '../../../components/diff/diff-hunks.ts'
  * here, so the wording can change without a contract change.
  */
 
-/** A dream that changed nothing is a quiet row; a truncated one still opens to say why. */
-export function isQuietDream(dream: Pick<AgentDreamSummary, 'files' | 'truncated'>): boolean {
-    return dream.files.length === 0 && !dream.truncated;
+/**
+ * A dream that changed nothing and wrote nothing is a quiet row; a truncated
+ * one, or one with a summary or follow-ups, still opens.
+ */
+export function isQuietDream(
+    dream: Pick<AgentDreamSummary, 'files' | 'truncated'> &
+        Partial<Pick<AgentDreamSummary, 'followUps' | 'summary'>>
+): boolean {
+    return (
+        dream.files.length === 0 &&
+        !dream.truncated &&
+        !dream.summary &&
+        (dream.followUps?.length ?? 0) === 0
+    );
+}
+
+/** A dream row's lead: the Agent's own first line, else what memory changed. */
+export function formatDreamRowHeadline(
+    dream: Pick<AgentDreamSummary, 'files' | 'summary' | 'truncated'>
+): string {
+    return (
+        dreamSummaryHeadline(dream.summary) ||
+        formatDreamHeadline(dream.files, null, dream.truncated)
+    );
 }
 
 /** The sheet's body when a dream has no file diffs to show, or null when it has some. */

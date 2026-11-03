@@ -61,7 +61,9 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
         `
         );
         await page.goto('/s/activity-clock/inbox');
-        const row = page.getByRole('button', { name: 'Scout', exact: true });
+        // The Happening now row, named for the step it is on: the Agents list
+        // beside it has its own row for Scout, named for its week.
+        const row = page.getByRole('button', { name: /^Scout: /u });
         await expect(row).toContainText(/1m \d+s elapsed/u);
         const firstLabel = await row.innerText();
         await expect.poll(() => row.innerText(), { timeout: 2500 }).not.toBe(firstLabel);
@@ -78,6 +80,7 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
             })
         );
         await expect(row).toContainText('Using browser');
+        await expect(row).toHaveAccessibleName('Scout: Using browser');
         await expect(row).toContainText(/1m \d+s elapsed/u);
         computer.send(
             JSON.stringify({

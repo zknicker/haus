@@ -11,6 +11,7 @@ import { BrowserCapabilityCard } from './browser-capability-card.tsx';
 import { CloudAgentCapabilityCard } from './cloud-agent-capability-card.tsx';
 import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
+import { ComputerDiskChip, ComputerDiskWarning } from './computer-disk-warning.tsx';
 import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
 import { ComputerSystemLog } from './computer-system-log-card.tsx';
@@ -106,6 +107,7 @@ export function ComputerDetail({
                         <Chip color={computerHealthColor(computer.health)} size="sm" variant="soft">
                             <Chip.Label>{computerHealthLabel(computer.health)}</Chip.Label>
                         </Chip>
+                        <ComputerDiskChip computerId={computerId} serverId={serverId} />
                         <Chip size="sm" variant="soft">
                             <Icon icon={computerPlatformIcon(computer)} size={12} />
                             <Chip.Label className="min-w-0 truncate">
@@ -118,6 +120,7 @@ export function ComputerDetail({
                 title={computerLabel(computer)}
             />
 
+            <ComputerDiskWarning computerId={computerId} serverId={serverId} />
             <ComputerRuntimeIssues computerId={computerId} serverId={serverId} />
             <section>
                 <ItemCardGroup variant="transparent">

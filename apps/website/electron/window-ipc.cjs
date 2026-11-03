@@ -1,6 +1,5 @@
 'use strict';
 
-const { registerClerkSessionHandoff } = require('./clerk-session-handoff.cjs');
 const { registerQueryCacheHandoff } = require('./query-cache-handoff.cjs');
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { showWindow } = require('./window-lifecycle.cjs');
@@ -8,17 +7,11 @@ const { isSafeWindowRoute } = require('./window-routing.cjs');
 
 /**
  * The App's window commands: open a window on a route, close or focus its own,
- * and hand a booting window the session the others hold and its opener's
- * query cache. Returns the cache handoff `createWindow` requests through.
+ * and hand a booting window its opener's query cache. Returns the cache
+ * handoff `createWindow` requests through.
  */
 function registerWindowIpc({ app, appUrl, BrowserWindow, createWindow, ipcMain }) {
     const queryCache = registerQueryCacheHandoff({ appUrl, BrowserWindow, ipcMain });
-    registerClerkSessionHandoff({
-        appUrl,
-        BrowserWindow,
-        ipcMain,
-        onSessionChange: queryCache.clear,
-    });
     ipcMain.handle('desktop:window:open', (event, route) => {
         assertTrustedRenderer(event, appUrl);
         if (!isSafeWindowRoute(route)) {

@@ -16,7 +16,7 @@ const generatedIconsDirectory = path.join(
     'generated-icons'
 );
 
-// The ghost is the bundle icon. Theme icons (pumpkin) only ship a Dock PNG that the
+// The ghost is the bundle icon. Theme icons (pumpkin, santa) only ship a Dock PNG that the
 // running App swaps in with `app.dock.setIcon`.
 const macIcons = [
     {
@@ -26,6 +26,7 @@ const macIcons = [
         png: 'AppIcon.png',
     },
     { source: 'halloween-icon.icon', icns: [], png: 'AppIcon-pumpkin.png' },
+    { source: 'christmas-icon.icon', icns: [], png: 'AppIcon-santa.png' },
 ];
 
 const actoolPath = execFileSync('/usr/bin/xcrun', ['-f', 'actool'], { encoding: 'utf8' }).trim();

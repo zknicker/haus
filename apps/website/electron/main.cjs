@@ -16,9 +16,7 @@ const {
 } = require('electron');
 const path = require('node:path');
 const electronUpdater = require('electron-updater');
-const { registerClerkAuth } = require('./clerk-auth.cjs');
-const { resolveClerkAuthOrigins } = require('./clerk-auth-origins.cjs');
-const { registerNativeClerkRequestHeaders } = require('./clerk-native-requests.cjs');
+const { registerNativeAuth } = require('./native-auth.cjs');
 const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
 const { registerBrowserWorkspace } = require('./browser-workspace-ipc.cjs');
@@ -53,11 +51,6 @@ const macosTrafficLightPosition = { x: 16, y: 16 };
 const { autoUpdater } = electronUpdater;
 const useMockUpdater = !app.isPackaged && process.env.HAUS_ELECTRON_UPDATER_MOCK === '1';
 const appUrl = (app.isPackaged ? null : process.env.HAUS_ELECTRON_DEV_URL) ?? productionAppUrl;
-const clerkAuthOrigins = resolveClerkAuthOrigins({
-    appUrl,
-    clerkIssuerUrl: process.env.HAUS_CLERK_ISSUER_URL,
-    isPackaged: app.isPackaged,
-});
 const dockAppIcon = require('./dock-app-icon.cjs').createDockAppIcon({ app });
 
 const windows = new Set();
@@ -80,7 +73,15 @@ if (process.env.HAUS_ELECTRON_DEV_URL) {
 app.setName('Haus');
 app.setAppUserModelId('chat.haus.desktop');
 
-registerClerkAuth({ app, appUrl, BrowserWindow, ipcMain, safeStorage, shell, webContents });
+const nativeAuth = registerNativeAuth({
+    app,
+    appUrl,
+    BrowserWindow,
+    ipcMain,
+    safeStorage,
+    shell,
+    webContents,
+});
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
@@ -274,6 +275,7 @@ function registerIpcHandlers() {
         createWindow,
         ipcMain,
     }));
+    nativeAuth?.setQueryCacheHandoff(queryCacheHandoff);
     registerTabDrag({
         app,
         appUrl,
@@ -427,11 +429,6 @@ function getErrorMessage(error) {
 
 app.whenReady().then(() => {
     dockAppIcon.install();
-    registerNativeClerkRequestHeaders(
-        session.defaultSession.webRequest,
-        clerkAuthOrigins.clerkOrigin,
-        clerkAuthOrigins.appOrigin
-    );
     registerIpcHandlers();
     installMenu();
     createWindow();

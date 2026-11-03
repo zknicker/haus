@@ -6,7 +6,6 @@ import * as React from 'react';
 import { useHumanAvatar } from '../../../hooks/members/use-human-avatar.ts';
 import { useHumanIdentity } from '../../../hooks/members/use-human-identity.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
-import { isClerkEnabled } from '../../../lib/clerk.tsx';
 import { useSignOut } from '../../auth/use-sign-out.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName } from '../../servers/human-identity.ts';
@@ -185,12 +184,6 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
  * pairing screen, neither of which a signed-in reader can reach on purpose.
  */
 function AccountSection() {
-    // The gate has to come before the hook: `useSignOut` reads Clerk context,
-    // and a keyless build (dev, e2e) mounts no ClerkProvider for it to read.
-    if (!isClerkEnabled) {
-        return null;
-    }
-
     return <SignOutSection />;
 }
 

@@ -18,10 +18,10 @@ export interface ComputerLoginSessionResponse {
 
 export interface ComputerManagementSession {
     accessTokenExpiresAt: Date;
-    clerkUserId: string;
     origin: string;
     refreshTokenExpiresAt: Date;
     sessionId: string;
+    userId: string;
 }
 
 export async function refreshComputerLogin(
@@ -117,7 +117,7 @@ export async function authenticateComputerLogin(
     const [session] = await db
         .select({
             accessTokenExpiresAt: computerLoginSessionsTable.accessTokenExpiresAt,
-            clerkUserId: computerLoginSessionsTable.clerkUserId,
+            userId: computerLoginSessionsTable.userId,
             origin: computerLoginSessionsTable.origin,
             refreshTokenExpiresAt: computerLoginSessionsTable.refreshTokenExpiresAt,
             revokedAt: computerLoginSessionsTable.revokedAt,

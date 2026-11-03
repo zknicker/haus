@@ -36,6 +36,15 @@ test('two Threads in one chat are different pages; Attachments is its own page',
     expect(tabPageKey({ kind: 'app', path: filesPagePath('acme', 'c1') })).toBe('files/c1');
 });
 
+test('a Thread opened on a task inside it carries the task and stays the same page', () => {
+    const plain = threadPagePath('acme', 'c1', 'm1');
+    const onTask = threadPagePath('acme', 'c1', 'm1', 'msg_reply');
+    expect(onTask).toBe('/s/acme/threads/c1/m1?task=msg_reply');
+    expect(tabPageKey({ kind: 'app', path: onTask })).toBe(
+        tabPageKey({ kind: 'app', path: plain })
+    );
+});
+
 test('only desktop tabs route Thread, Attachments, and artifact pages', () => {
     const paths = (desktop: boolean) =>
         serverPageRoutes({ desktop }).map((route) => route.path ?? '(index)');

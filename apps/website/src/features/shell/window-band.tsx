@@ -8,6 +8,7 @@ import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
 import { HalloweenSky } from './halloween-sky.tsx';
 import { WindowHistoryButtons } from './history-buttons.tsx';
 import { TabRowsDrag } from './tab-drag/tab-rows-drag.tsx';
+import { ThemeRoofline } from './theme-roofline/theme-roofline.tsx';
 import { useSplitRowGeometry } from './use-split-row-geometry.ts';
 import { WorkspaceTabStrip } from './workspace-tab-strip.tsx';
 
@@ -27,6 +28,8 @@ export function WindowBand({
     // The window's one drag region; its controls opt out on themselves (shell.css).
     return (
         <div className="shell-window-band" data-window-drag-region="">
+            {/* Spans the whole band, behind the lead and the tab rows alike. */}
+            <ThemeRoofline placement="band" />
             <WindowBandLead>{desktop ? <WindowHistoryButtons /> : null}</WindowBandLead>
             {desktop ? <DesktopTabBand /> : children}
         </div>

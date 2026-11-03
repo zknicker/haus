@@ -141,7 +141,7 @@ async function openKeptChannels(page: Page, slug: string, options: { desktop?: b
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug,
-        token: session.token,
+        token: session.accessToken,
     });
     const channelIds: Record<string, string> = { all: agent.chatId };
     for (const name of ['design', 'ops']) {
@@ -153,7 +153,7 @@ async function openKeptChannels(page: Page, slug: string, options: { desktop?: b
         channelIds[name] = created.id;
     }
     // The human's other device: same identity, a different client.
-    const device = createClient(session.token);
+    const device = createClient(session.accessToken);
     const sendAsPeerDevice = (channel: string, content: string) =>
         device.chat.send.mutate({
             chatId: channelIds[channel] as string,

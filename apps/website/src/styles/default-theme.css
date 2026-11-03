@@ -24,6 +24,15 @@
   --spacing-base: 0.234375rem;
   --reply-highlight: color-mix(in oklab, var(--accent-soft) 70%, transparent);
   /*
+   * A card in a feed of cards (the Inbox's Unread feed), each holding its own
+   * composer. Light mode keeps the surface, whose white field still reads by
+   * its edge. The ring marks the one selected card: neutral, from the theme's
+   * own foreground, so it marks the card without the accent's weight.
+   */
+  --feed-card: var(--surface);
+  --feed-card-shadow: var(--surface-shadow);
+  --feed-card-ring: color-mix(in oklab, var(--foreground) 24%, transparent);
+  /*
    * The one column every in-chat attachment under a message fills: Cloud Agent
    * cards, thread previews, the working log, workspace changes. Each is
    * `w-full` up to this cap, so a card stacked over a thread preview shares
@@ -53,7 +62,7 @@
   /*
    * Every radius in the product derives from this: HeroUI's utilities compile
    * to `calc(var(--radius) * n)` and its shells to `min(32px, --radius-3xl)`.
-   * See the radius tier table in DESIGN.md before picking a step.
+   * See the radius tier table in .design/guidelines.md before picking a step.
    */
   --radius-base: 0.375rem;
   --radius: var(--radius-base);
@@ -214,6 +223,14 @@
 
     /* Supporting copy on a `--danger-soft` fill: the title's red, eased toward the ink. */
     --danger-soft-muted: color-mix(in oklab, var(--danger-soft-foreground) 65%, var(--foreground));
+
+    /* A dark feed card sits one quiet step off the page, rimmed, rather than
+       on `--surface`: that is the composer field's own fill, so a card painted
+       with it swallowed the field inside. The ring takes more of the ink to
+       stand off the card as far as light mode's does. */
+    --feed-card: var(--background-secondary);
+    --feed-card-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent);
+    --feed-card-ring: color-mix(in oklab, var(--foreground) 40%, transparent);
 }
 
 /*
@@ -1020,22 +1037,54 @@
      * carries the label alone, so it sheds the inset a carded header needs —
      * the page column already owns the gutter and the rhythm between
      * sections — and keeps only the step down to what it names.
-     *
-     * Its rows are email rows: one line, scanned in a column of peers. The
-     * card's own padding around a 32px mark is the band; the list this
-     * replaced pinned a 40px row and then spent rules undoing the component's
-     * spacing to fit it. The parts that fill the band live in
-     * `features/servers/inbox/inbox-row.tsx`.
      */
     .item-card-group--inbox > .item-card-group__header {
         padding-block: 0 calc(var(--spacing) * 2);
         padding-inline: 0;
     }
 
-    /* The description sits beside the title here, not under it, so it sheds
-       the offset that separates two stacked lines. */
-    .item-card--inbox .item-card__description {
+    /*
+     * An Unread card's header reads as one line (`features/servers/inbox/unread-row-header.tsx`):
+     * the place, then a note — `DM`, or the message a Thread hangs off —
+     * beside it rather than under it. So the description sheds the offset that
+     * separates two stacked lines and takes the title's size, the line reading
+     * as one sentence rather than a label and its caption.
+     */
+    .item-card--inbox-line .item-card__description {
         margin-top: 0;
+        font-size: var(--text-sm);
+        line-height: var(--text-sm--line-height);
+    }
+
+    /*
+     * Every Unread conversation is an open card of its own
+     * (`unread-triage-row.tsx`): the feed-card fill and edge on a list
+     * that draws no box (`InboxSectionRows` `bare`), so each card is one
+     * outline rather than an outline inside another. The row group clears
+     * every row's own surface, so the card sits on the row's wrapper, keyed
+     * here like the warning row. The selected card — the one J/K moved to and
+     * E, R, and Return act on — only adds a ring, so selecting never moves a
+     * card; the ring eases between cards rather than blinking.
+     */
+    .item-card-group--inbox-rows .inbox-unread-row {
+        border-radius: calc(var(--radius) * 2);
+        background-color: var(--feed-card);
+        box-shadow: var(--feed-card-shadow);
+        transition-duration: 160ms;
+        transition-property: box-shadow;
+        transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .item-card-group--inbox-rows .inbox-unread-row {
+            transition: none;
+        }
+    }
+
+    .item-card-group--inbox-rows .inbox-unread-selected {
+        box-shadow:
+            var(--feed-card-shadow),
+            0 0 0 1.5px var(--feed-card-ring);
     }
 
     /* A name/attribution pair beside a 32px avatar (Linear identity preview).
@@ -1059,14 +1108,37 @@
      * `> [data-slot="item-card"]` reset stops reaching it. Without this the
      * wrapper would hand every row its card surface back and the list would
      * read as cards stacked inside a card. The row group restates the same
-     * reset as a descendant rule; the week cards are deliberately out of its
-     * reach, because a card in the strip is meant to keep its edges.
+     * reset as a descendant rule. Unread's cards are deliberately out of its
+     * reach: each is its own stock group, whose header row is a direct child
+     * and takes HeroUI's own reset.
      */
     .item-card-group--inbox-rows [data-slot='item-card'] {
         background-color: transparent;
         border-radius: 0;
         border-width: 0;
         box-shadow: none;
+    }
+
+    /*
+     * Unread's bare feed (`InboxSectionRows` `bare`) draws no box and no
+     * hairlines, so its cards are shapes of their own, set apart by a step of
+     * space in place of a divider. The step rides each card's motion item
+     * (`inbox-card-motion.tsx`) rather than the group's gap, so a card that
+     * closes its room takes its gap with it.
+     */
+    .item-card-group--transparent.item-card-group--inbox-rows [data-slot='item-card'] {
+        border-radius: calc(var(--radius) * 2);
+    }
+
+    .item-card-group--transparent.item-card-group--inbox-rows {
+        gap: 0;
+    }
+
+    /* An Agent running away on the Inbox's Agents meter. The reset above clears
+       every row's own surface, so the one row that must stand out gets its
+       ground back here, from the warning role (`inbox-list-row.tsx`). */
+    .item-card-group--inbox-rows .item-card--inbox-warning {
+        background-color: var(--warning-soft);
     }
 
     /*
@@ -1458,27 +1530,24 @@
     }
 
     /*
-     * An Automation's kind mark (Reminder or Trigger row). Pro's bare slot is a
+     * An Automation's keycap (Reminder or Trigger row). Pro's bare slot is a
      * neutral `--default` box around a 16px glyph, which reads as a
-     * placeholder at 36px. The mark takes its automation's own soft fill and
-     * ink — the same vocabulary as a caused message's context line, so a
-     * Reminder is the same rose and a Trigger the same yellow wherever it
-     * appears — and a 20px glyph, the catalog tile's ~60% glyph-to-box ratio.
-     * Paired selectors outrank the secondary group's icon wash.
+     * placeholder at 36px. The slot becomes the same raised key a caused
+     * message's context line leads with — face, edge, highlight, and lip from
+     * `--automation-keycap-*` — keeping its stock box and radius, so the key and
+     * its corner stay paired. `AutomationKeycapFace` prints on it: a Reminder's
+     * rose band over its next hour, a Trigger's source glyph in its ink, a
+     * Cloud Agent's terminal with its provider badged in the corner. The
+     * face stacks band over body, so the slot lays out as a column. Paired
+     * selectors outrank the secondary group's icon wash.
      */
-    .item-card__icon.automation-mark--reminder {
-        background-color: var(--reminder-mark-soft);
-        color: var(--reminder-mark);
-    }
-
-    .item-card__icon.automation-mark--trigger {
-        background-color: var(--trigger-mark-soft);
-        color: var(--trigger-mark);
-    }
-
-    .item-card__icon.automation-mark svg {
-        width: 1.25rem;
-        height: 1.25rem;
+    .item-card__icon.automation-mark {
+        position: relative;
+        flex-direction: column;
+        overflow: hidden;
+        background-color: transparent;
+        background-image: var(--automation-keycap-face);
+        box-shadow: var(--automation-keycap-shadow);
     }
 
     /*
@@ -2254,6 +2323,12 @@
         --chip-fg: var(--channel-color-light, var(--foreground));
     }
 
+    /* The dream's chip: a soft wash in the dream violet, like a soft status chip. */
+    .chip.chip--soft.chip--dream {
+        background-color: var(--dream-soft);
+        color: var(--dream-soft-foreground);
+    }
+
     .chip.reference-chip--skill {
         --chip-fg: var(--skill-reference);
     }
@@ -2880,6 +2955,21 @@
     [data-slot="message-scroller"][data-scrollable~="start"]
         > .transcript-edge-blur[data-side="top"],
     .transcript-edge-blur[data-side="bottom"] {
+        visibility: visible;
+    }
+
+    /*
+     * The Inbox runs up under its band (`PageBand overlay`) and borrows the top
+     * band over its column. The band's trail sits over it, so it holds
+     * solid through the band's top third and ramps out exactly where the page's
+     * content starts at rest — the band plus the column's top inset — leaving
+     * the trail on near-solid ground while rows still slide visibly up to the
+     * shell's edge. Ending there is also why it is always on, like the bottom
+     * band: at rest nothing it covers is content.
+     */
+    [data-slot="inbox-frame"] > .transcript-edge-blur[data-side="top"] {
+        --edge-solid: calc(var(--app-shell-band-height) / 3);
+        --edge-ramp: calc(var(--app-shell-band-height) * 2 / 3 + var(--spacing) * 8);
         visibility: visible;
     }
 

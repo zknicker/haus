@@ -176,7 +176,7 @@ export async function inboxRows(db: HausDatabase, serverId: string) {
 
 async function user(db: HausDatabase): Promise<string> {
     const id = createOpaqueId('usr');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id });
     return id;
 }
 

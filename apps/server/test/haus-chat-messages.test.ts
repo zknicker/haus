@@ -7,7 +7,7 @@ let client: HausClient;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    const token = await harness.clerk.mintSessionToken('user_hosted_messages');
+    const token = await harness.humans.mintSessionToken('user_hosted_messages');
     client = createHausClient(harness, token);
 });
 
@@ -115,7 +115,7 @@ test('the Chat list quotes the newest top-level Message with its resolved author
     });
     const chatId = server.channels[0].id;
     const [user] = (await harness.sql`
-        select id from users where clerk_user_id = 'user_hosted_messages'
+        select id from users where auth_subject = 'user_hosted_messages'
     `) as { id: string }[];
     await harness.sql`
         update users set display_name = 'Quinn Reader' where id = ${user.id}

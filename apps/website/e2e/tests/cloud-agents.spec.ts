@@ -29,7 +29,7 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
         slug: 'cloud-agent-work',
         startingRef: 'main',
         title: workTitle,
-        token: session.token,
+        token: session.accessToken,
     });
 
     // The Inbox is where background work that outlives a turn stays visible.

@@ -65,8 +65,10 @@ import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
 import { startCloudAgentModelCatalogRefresh } from './cloud-agents/model-catalog.ts';
 import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
+import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
+import { startComputerReportSchedule } from './computer-report-schedule.ts';
 import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
@@ -78,6 +80,7 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
+import { startHeartbeatSchedule } from './heartbeat-schedule.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
     acceptHostSkillImport,
@@ -117,7 +120,6 @@ import {
     revokeComputerLoginSession,
     runComputerLogin,
 } from './login.ts';
-import { startNightlyDreamCheck } from './nightly-dream.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { createRuntimePrewarmer } from './runtime/runtime-prewarm.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
@@ -906,15 +908,15 @@ async function connect(
         if (resettingAgents.has(command.agentId) || retiredAgents.has(command.agentId)) {
             return;
         }
-        // Reserve the run synchronously, before any async marker I/O, so a
-        // duplicate start frame that arrives mid-launch is deduped here
-        // instead of racing into a second concurrent child.
+        // Reserve synchronously, before any async marker I/O, so a duplicate start
+        // mid-launch is deduped here; a start behind a stopping run waits for it.
         const reservation = agentWork.reserve(command.agentId, command.runId);
         if (reservation.kind === 'duplicate') {
             sendFrame({ agentId: command.agentId, runId: command.runId, type: 'ack' });
             return;
         }
         if (reservation.kind === 'busy') {
+            void reservation.stopping?.then(() => startAgent(command));
             return;
         }
         const releaseRun = () => {
@@ -1002,7 +1004,7 @@ async function connect(
     };
     let lastProgress = JSON.stringify(initialProgress);
     let heartbeat: AttachmentHeartbeat | null = null;
-    let usageLoopStarted = false;
+    let reportLoopsStarted = false;
     connectionWork.startLoop(
         500,
         async () => {
@@ -1079,6 +1081,7 @@ async function connect(
                         await Promise.all([
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
                             sendSystemEventReport(dataRoot, sendFrame, attachment.serverId),
+                            sendComputerDiskReport(dataRoot, sendFrame),
                         ]);
                         const acceptedImports = await listAcceptedHostSkillImports(
                             dataRoot,
@@ -1097,20 +1100,16 @@ async function connect(
                             socket.close();
                         }
                     });
-                    if (process.env.HAUS_COMPUTER_USAGE_DISABLED !== '1' && !usageLoopStarted) {
-                        usageLoopStarted = true;
-                        connectionWork.startLoop(
-                            '15 minutes',
-                            async () => {
-                                await trackWriter(sendUsageReport(sendFrame));
-                            },
-                            reportStateError
+                    if (!reportLoopsStarted) {
+                        reportLoopsStarted = true;
+                        startComputerReportSchedule(connectionWork, dataRoot, sendFrame, () =>
+                            trackWriter(sendUsageReport(sendFrame))
                         );
                     }
                     startCloudAgentModelCatalogRefresh(connectionWork, () =>
                         trackWriter(reportComputer())
                     );
-                    startNightlyDreamCheck(connectionWork, { agentsDir, daemonWork, runtime });
+                    startHeartbeatSchedule(connectionWork, { agentsDir, daemonWork, runtime });
                     return;
                 }
                 if (process.env.HAUS_COMPUTER_ONESHOT === '1') {

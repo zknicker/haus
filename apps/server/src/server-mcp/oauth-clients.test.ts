@@ -36,22 +36,24 @@ afterEach(() => {
 
 describe('configured OAuth clients', () => {
     test.each([
+        ['merchbase', 'https://app.merchbase.co/mcp'],
+        ['rankwrangler', 'https://rankwrangler.merchbase.co/mcp'],
         ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
+        ['handmade', 'https://handmade.merchbase.co/mcp'],
         ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
         ['tmterminal', 'https://tmterminal.merchbase.co/mcp'],
-    ] as const)('%s uses identity scopes without a configured client', async (preset, url) => {
+    ] as const)('%s discovers OAuth without preset identity scopes', async (preset, url) => {
         const runtime = fakeRuntime(preset, url, {
             ...emptySecret(),
-            oauthScopes: ['openid', 'profile', 'email'],
         });
         const provider = await createMcpOAuthProvider(runtime, 'mcp_fulfillment', redirectUrl, {
             allowAuthorizationServerOrigin: false,
             onRedirect() {},
         });
         expect(await provider.clientInformation()).toBeUndefined();
+        expect(provider.clientMetadata.scope).toBeUndefined();
         expect(provider.clientMetadata).toMatchObject({
             redirect_uris: [redirectUrl],
-            scope: 'openid profile email',
             token_endpoint_auth_method: 'none',
         });
     });

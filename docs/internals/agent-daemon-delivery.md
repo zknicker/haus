@@ -282,7 +282,7 @@ not itself a Chat message, keyed by fire identity: an idle Agent wakes with the
 envelope in its first prompt and the row is served the moment the Computer accepts
 that run, while a busy Agent still gets only the content-free notice and the item in
 its next turn. Both envelopes end with
-`reply with: haus message send --cause <fireId>`. That flag is the only way a
+`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. That flag is the only way a
 fire reaches the transcript: the Server validates the fire against the sending
 Agent and records the provenance with the message. A fire the Agent does not
 answer stays in the automation's fire history and nowhere else.
@@ -308,7 +308,12 @@ and session reset retire queued wakes.
 
 ## Bounds And Failures
 
-One Agent admits one turn at a time; different Agents run concurrently.
+One Agent admits one turn at a time; different Agents run concurrently. A heartbeat
+(daytime or nightly) takes that one run slot as a chatless run, but it executes in a throwaway
+harness session that never touches the main session's resume state
+([ADR 0049](../adr/0049-heartbeats-run-in-throwaway-sessions.md)). A daytime heartbeat is skipped
+when the Agent is busy and yields its slot when a message addressed to the Agent is waiting; the
+nightly run queues and retires after four hours.
 Sixteen consecutive drains containing only automation-authored work (Agent
 messages, Trigger fires, Trigger problem notices, Linear session events
 another Agent's write started, and sub-agent wakes: sources `agent:*`, `trigger`,

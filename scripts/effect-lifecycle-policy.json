@@ -166,12 +166,12 @@
     },
     "apps/computer/src/cloud-agents/launch-journal.ts": {
       "disposition": "finite-cleanup",
-      "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts.",
+      "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts. A finite per-Run write lock serializes terminal settlement with late acknowledgements across journal instances; the lock is released before the Promise returns.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
+        "finallyBlock": 3,
+        "manualPromise": 1,
         "timer": 0
       }
     },
@@ -274,17 +274,6 @@
         "timer": 0
       }
     },
-    "apps/computer/src/host-tools/mcp-server.ts": {
-      "disposition": "external-adapter",
-      "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
-      "risks": {
-        "abortController": 4,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
     "apps/computer/src/harness/execution-journal-file.ts": {
       "disposition": "finite-cleanup",
       "reason": "The per-journal Promise tail serializes finite atomic writes, and callers await the current write failure.",
@@ -303,6 +292,17 @@
         "abortController": 1,
         "catchAndIgnore": 2,
         "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/harness/heartbeat-turn.ts": {
+      "disposition": "effect-owned",
+      "reason": "The daemon runtime owns the heartbeat turn's throwaway session across the foreign runtime driver boundary. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
         "manualPromise": 0,
         "timer": 0
       }
@@ -373,9 +373,9 @@
         "timer": 0
       }
     },
-    "apps/computer/src/proxy-runner-hold.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Holds Agent requests between turns until a wake run's runner arrives: each waiter's Promise resolves on release or on its own bounded timer, which it clears; proxy close releases every waiter.",
+    "apps/computer/src/proxy-support.ts": {
+      "disposition": "external-adapter",
+      "reason": "Launch resources own the loopback server; its Promise and timer form a bounded best-effort HTTP attestation deadline.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -492,17 +492,6 @@
         "finallyBlock": 1,
         "manualPromise": 0,
         "timer": 0
-      }
-    },
-    "apps/computer/src/visibility-receipt.ts": {
-      "disposition": "external-adapter",
-      "reason": "The proxy's best-effort freshness receipt races the Server's HTTP answer against a bounded 250ms Promise timer, so a slow receipt never holds the proxied response.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
       }
     },
     "apps/computer/src/workspace-files.ts": {
@@ -736,15 +725,26 @@
         "timer": 0
       }
     },
-    "apps/server/src/identity/clerk-sessions.ts": {
+    "apps/server/src/identity/cloudflare-access.ts": {
       "disposition": "external-adapter",
-      "reason": "Clerk session verification is the Server's only await on a third-party key set. The deadline timer bounds one jose JWKS fetch, the abandoned fetch's rejection is observed so a late failure cannot become an unhandled rejection, and a missed deadline discards that key set so the next request builds a fresh one.",
+      "reason": "Cloudflare admission verification awaits a third-party key set. The deadline timer bounds one jose JWKS fetch, the abandoned fetch's rejection is observed so a late failure cannot become an unhandled rejection, and a missed deadline discards that key set so the next request builds a fresh one.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 1,
         "finallyBlock": 1,
         "manualPromise": 1,
         "timer": 2
+      }
+    },
+    "apps/server/src/identity/session-connections.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Each tracked App socket or SSE response owns one access-expiry timer; fresh admission rearms it and close or local session revocation clears it and detaches its listener. Timers cannot outlive their connections.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
       }
     },
     "apps/computer/src/server-mcp-client.ts": {
@@ -987,6 +987,39 @@
         "finallyBlock": 2,
         "manualPromise": 0,
         "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/launch-attempt.ts": {
+      "disposition": "external-adapter",
+      "reason": "Request-local AbortController bridge to provider provisioning. The existing Effect-owned work monitor owns the persisted deadline and cancellation; this finite adapter owns no timer, retry loop, or detached task and joins late acknowledgement cancellation before returning.",
+      "risks": {
+        "abortController": 2,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/host-tools/mcp-server.ts": {
+      "disposition": "external-adapter",
+      "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
+      "risks": {
+        "abortController": 4,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/proxy-runner-hold.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Holds Agent requests between turns until a wake run's runner arrives: each waiter's Promise resolves on release or on its own bounded timer, which it clears; proxy close releases every waiter.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 1
       }
     },
     "apps/computer/src/harness/turn-notices.ts": {

@@ -13,8 +13,9 @@ const staleMs = TASK_IN_REVIEW_STALE_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * Closes every `in_review` task nobody has touched for the stale window: the
- * task row itself unchanged, and its inline reply chain and anchored Thread
- * without a new message. Review that went quiet is finished work
+ * task row itself unchanged, and its inline reply chain and work Thread (the
+ * Thread anchored on it, or the Thread a Thread task sits in) without a new
+ * message. Review that went quiet is finished work
  * nobody said so about, and `closed` is reversible: a human reopens it through
  * the ordinary update path.
  *
@@ -32,6 +33,7 @@ export async function closeStaleInReviewTasks(
     const candidates = await db
         .select({
             chatId: messageTasksTable.chatId,
+            threadChatId: messageTasksTable.threadChatId,
             messageId: messageTasksTable.messageId,
             serverId: messageTasksTable.serverId,
         })
@@ -66,7 +68,7 @@ export function startStaleTaskSweep(
 
 async function closeStaleTask(
     db: HausDatabase,
-    task: { chatId: string; messageId: string; serverId: string },
+    task: { chatId: string; messageId: string; serverId: string; threadChatId: string | null },
     window: { now: Date; quietBefore: Date }
 ): Promise<PreparedRealtimeEvent | null> {
     return await db.transaction(async (tx) => {
@@ -109,6 +111,7 @@ async function closeStaleTask(
             chatId: task.chatId,
             messageId: task.messageId,
             serverId: task.serverId,
+            threadChatId: task.threadChatId,
             type: 'task.updated',
         });
     });
@@ -140,7 +143,13 @@ function staleTaskFilter(quietBefore: Date) {
             where stale_thread.server_id = ${messageTasksTable.serverId}
               and stale_thread.kind = 'thread'
               and stale_thread.parent_chat_id = ${messageTasksTable.chatId}
-              and stale_thread.anchor_message_id = ${messageTasksTable.messageId}
+              and (
+                  stale_thread.id = ${messageTasksTable.threadChatId}
+                  or (
+                      ${messageTasksTable.threadChatId} is null
+                      and stale_thread.anchor_message_id = ${messageTasksTable.messageId}
+                  )
+              )
               and stale_message.created_at >= ${quietBefore}
         )`
     );

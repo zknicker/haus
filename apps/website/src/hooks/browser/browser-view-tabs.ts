@@ -16,9 +16,12 @@ export function browserOpenGesture(request: BrowserOpenRequest): 'auto' | 'backg
     return request.background ? 'backgroundTab' : 'auto';
 }
 
-/** A new web tab's location: a fresh view named by the App, titled by host until it loads. */
-export function newBrowserLocation(url: string): BrowserTabLocation {
-    return { kind: 'browser', title: new URL(url).hostname, url, viewId: newBrowserViewId() };
+/**
+ * A new web tab's location, titled by host until it loads: a fresh view named by the App, or
+ * the live popup view `viewId` Electron already opened.
+ */
+export function newBrowserLocation(url: string, viewId = newBrowserViewId()): BrowserTabLocation {
+    return { kind: 'browser', title: new URL(url).hostname, url, viewId };
 }
 
 /** The tab whose current page is `viewId`, so a view's focus or popup maps to its tab. */

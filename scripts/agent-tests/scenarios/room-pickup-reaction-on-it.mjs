@@ -3,7 +3,8 @@
 // work that runs commands gets the signature-emoji reaction on the request, and
 // several steps also get a one-line "on it" note with no plan; the answer is an
 // inline `--done` reply to the request. The addressed Agent reacts once, posts
-// exactly one pickup note inline, then answers inline. Decoys: the bystander
+// at most one pickup note inline, then answers inline. The note is optional:
+// for work that finishes in under a minute the answer itself is the update. Decoys: the bystander
 // chiming in, and working notes posted as inline replies to the request (each
 // one notifies the requester) or in the request's Thread instead of in the
 // Thread on the Agent's own pickup note. Progress itself is not required here;
@@ -42,7 +43,7 @@ const step1 = seal(
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'An @mentioned multi-step shell request in a two-Agent channel gets exactly one signature-emoji reaction from the addressed Agent, exactly one one-line inline pickup note before an inline --done answer carrying the marker, no post in the request Thread or elsewhere outside its own working Thread, and nothing from the other Agent.',
+        'An @mentioned multi-step shell request in a two-Agent channel gets exactly one signature-emoji reaction from the addressed Agent, at most one one-line inline pickup note before an inline --done answer carrying the marker, no post in the request Thread or elsewhere outside its own working Thread, and nothing from the other Agent.',
     name: 'room-pickup-reaction-on-it',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, bystander] = agents;
@@ -92,16 +93,17 @@ export default defineScenario({
         expect(answer.label, 'answer placement').toBe('inline-reply');
 
         const notes = channelPosts.filter((entry) => entry !== answer);
-        expect(notes, 'pickup notes in the channel').toHaveLength(1);
-        const [note] = notes;
-        expect(note.label, 'pickup note placement').toBe('inline-reply');
-        expect(note.message.content.trim().includes('\n'), 'pickup note spans one line').toBe(
-            false
-        );
-        expect(
-            note.message.sequence < answer.message.sequence,
-            'pickup note precedes the answer'
-        ).toBe(true);
+        expect(notes.length <= 1, 'at most one pickup note in the channel').toBe(true);
+        for (const note of notes) {
+            expect(note.label, 'pickup note placement').toBe('inline-reply');
+            expect(note.message.content.trim().includes('\n'), 'pickup note spans one line').toBe(
+                false
+            );
+            expect(
+                note.message.sequence < answer.message.sequence,
+                'pickup note precedes the answer'
+            ).toBe(true);
+        }
 
         // Working notes are optional, but when present they live only in the
         // Thread on the Agent's own post: never the request's Thread.
@@ -120,9 +122,9 @@ export default defineScenario({
             placement.doneInThread.map((send) => send.target),
             '--done sends that went to a Thread'
         ).toHaveLength(0);
-        const noteBody = note.message.content.trim();
+        const noteBodies = new Set(notes.map((note) => note.message.content.trim()));
         expect(
-            placement.doneSends.filter((send) => send.body !== '' && send.body === noteBody),
+            placement.doneSends.filter((send) => send.body !== '' && noteBodies.has(send.body)),
             '--done sends carrying the pickup note'
         ).toHaveLength(0);
 

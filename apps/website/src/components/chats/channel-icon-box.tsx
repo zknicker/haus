@@ -4,12 +4,13 @@ import { Icon } from '../ui/icon.tsx';
 import { getChannelColorStyle } from './channel-color-options.ts';
 import { useChannelIconGlyph } from './channel-icon-catalog.ts';
 
-// Sidebar, topbar and Inbox-row boxes match the agent avatars beside them, right
-// down to the shape: an exact box pairs its own radius, so a channel stays as
-// round as the Agents beside it at every scale step. `inline` serves compact
-// text rows, `reference` serves rich inline references and compact hover-card
-// titles, and `modal` fills a Modal.Icon slot so a dialog header can preview
-// the channel itself. `preview` matches the Agent identity mark.
+// Sidebar and topbar boxes match the agent avatars beside them, right down to
+// the shape: an exact box pairs its own radius, so a channel stays as round as
+// the Agents beside it at every scale step. `inline` serves compact text rows
+// and an Inbox card's header, `reference` serves rich inline references and
+// compact hover-card titles, and `modal` fills a Modal.Icon slot so a dialog
+// header can preview the channel itself. `preview` matches the Agent identity
+// mark.
 //
 // Variants carry geometry plus the sidebar's named surface role. Box and glyph
 // colors resolve per theme on the `channel-icon-box` classes in
@@ -17,8 +18,6 @@ import { useChannelIconGlyph } from './channel-icon-catalog.ts';
 // the always-dark reference preview can rebind it — Tailwind's `dark:` variant
 // cannot.
 const channelIconBoxVariants = {
-    /** An Inbox row's leading mark, matching the 32px Agent avatars beside it. */
-    inboxRow: { boxSize: 32, iconSize: 20 },
     inline: { boxSize: 20, iconSize: 14 },
     modal: { boxClassName: 'size-10 rounded-3xl', iconSize: 20 },
     preview: { boxSize: 44, iconSize: 22 },

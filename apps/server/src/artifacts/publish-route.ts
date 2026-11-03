@@ -2,10 +2,10 @@ import { artifactPublishInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { sendArtifactError } from '../agent-api/artifact-errors.ts';
-import { type ClerkSessions, ClerkSessionUnavailableError } from '../identity/clerk-sessions.ts';
+import { HausAuthError, type HausSessions } from '../identity/haus-sessions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
-import { findUserByClerkId } from '../users/haus-user.ts';
+import { findUserById } from '../users/haus-user.ts';
 import { publishArtifact } from './publish.ts';
 import { ArtifactError, type ArtifactStorage } from './storage.ts';
 import type { ArtifactThumbnails } from './thumbnails.ts';
@@ -34,7 +34,7 @@ export function registerArtifactPublishRoute(
     options: {
         appOrigin: string;
         budget: number;
-        clerkSessions: ClerkSessions;
+        hausSessions: HausSessions;
         db: HausDatabase;
         storage: ArtifactStorage | null;
         thumbnails: ArtifactThumbnails | null;
@@ -46,8 +46,8 @@ export function registerArtifactPublishRoute(
             // Consume the raw stream before Fastify's body parser can buffer it.
             onRequest: async (request, reply) => {
                 try {
-                    const clerkUserId = await authenticate(
-                        options.clerkSessions,
+                    const userId = await authenticate(
+                        options.hausSessions,
                         request.headers.authorization
                     );
                     if (
@@ -64,7 +64,7 @@ export function registerArtifactPublishRoute(
                     const result = await publishArtifact({
                         actor: {
                             kind: 'human',
-                            member: await findUserByClerkId(options.db, clerkUserId),
+                            member: await findUserById(options.db, userId),
                             serverId: request.params.serverId,
                         },
                         budget: options.budget,
@@ -85,14 +85,14 @@ export function registerArtifactPublishRoute(
     );
 }
 
-async function authenticate(sessions: ClerkSessions, authorization: string | undefined) {
+async function authenticate(sessions: HausSessions, authorization: string | undefined) {
     if (!authorization?.startsWith('Bearer ')) {
         throw new ArtifactError('Sign in to publish shared files.', 401, 'UNAUTHORIZED');
     }
     try {
-        return (await sessions.verify(authorization.slice(7))).clerkUserId;
+        return (await sessions.authenticate(authorization.slice(7))).userId;
     } catch (cause) {
-        if (cause instanceof ClerkSessionUnavailableError) {
+        if (cause instanceof HausAuthError && cause.code === 'auth_unavailable') {
             throw new ArtifactError(cause.message, 503, 'AUTH_UNAVAILABLE');
         }
         throw new ArtifactError('Sign in to publish shared files.', 401, 'UNAUTHORIZED');

@@ -9,12 +9,15 @@ acquires a cause, what a cause says, and how the App renders it.
 ## Sending with a cause
 
 An Agent that speaks because a fire woke it sends with
-`haus message send --cause <fireId>`, on every send mode. The fire id is the
+`haus message send --cause <fireId>`, on every send mode, or delegates with
+`haus cloud-agent start --cause <fireId>`, whose `--say` post carries the cause
+under the same validation and inference. The fire id is the
 one the wake envelope's final `reply with:` line printed. It never appears in the
 envelope header's `msg=` slot, which is `-` for a fire: a fire has no Chat
 message to read, thread on, or name as `--message-id`.
 
-`cause` is optional on the send route (`POST /api/agent/messages/send`); a
+`cause` is optional on the send route (`POST /api/agent/messages/send`) and the
+Cloud Agent launch route (`POST /api/agent/cloud-agents`); a
 send without it is an ordinary message. When present the Server validates, before
 committing anything, that:
 

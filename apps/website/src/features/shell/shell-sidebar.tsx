@@ -7,6 +7,7 @@ import {
 } from '../../hooks/shell/use-app-sidebar-width.ts';
 import { HalloweenSky } from './halloween-sky.tsx';
 import { SidebarTitlebarStrip } from './sidebar-titlebar-strip.tsx';
+import { ThemeRoofline } from './theme-roofline/theme-roofline.tsx';
 
 /**
  * HeroUI's compact-sidebar spacing, taken from the design system's own scale
@@ -106,9 +107,10 @@ export function ShellSidebar({
                     title="Resize sidebar"
                     width={sidebarWidth.width}
                 />
-                {/* The web has no window band, so the Halloween sky lives
-                    behind its titlebar strip instead. */}
+                {/* The web has no window band, so the Halloween sky and the
+                    Christmas roofline live behind its titlebar strip instead. */}
                 {surface === 'web' ? <HalloweenSky placement="sidebar" /> : null}
+                {surface === 'web' ? <ThemeRoofline placement="sidebar" /> : null}
                 {/* Every surface reserves the strip; only the web puts the Haus
                     mark in it. On the macOS desktop the traffic lights already
                     lead that line, so the mark stays down on the Inbox row and

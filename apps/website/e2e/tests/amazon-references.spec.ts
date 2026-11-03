@@ -107,7 +107,7 @@ test('Amazon chips resolve prose and links, preview on focus, and turn back into
     await expect(chips.first().locator('svg')).toHaveCount(0);
     await expect(chips.first().locator('img')).toHaveCSS('width', '18px');
     await expect(chips.first()).toHaveText('Freaky Lunch Lady');
-    const card = page.getByRole('dialog', { name: 'Freaky Lunch Lady details' });
+    const card = page.getByRole('tooltip');
     await expect(async () => {
         await page.mouse.move(0, 0);
         await chips.first().hover();
@@ -119,26 +119,31 @@ test('Amazon chips resolve prose and links, preview on focus, and turn back into
     const asin = card.locator('code').filter({ hasText: 'B07XN9T11R' });
     await expect(asin).toBeVisible();
     await expect(asin).toHaveClass(/font-mono/);
-    await expect(card.getByRole('button', { name: 'Copy ASIN' })).toBeVisible();
+    await expect(card.getByRole('button')).toHaveCount(0);
     await expect(card.locator('img')).toHaveAttribute('src', summary.cutoutThumbnail.url);
-    await asin.hover();
-    await page.waitForTimeout(400);
-    await expect(card).toBeVisible();
+    const chipBox = await chips.first().boundingBox();
+    if (!chipBox) {
+        throw new Error('The product chip has no box.');
+    }
+    const cardLeft = async () => (await card.boundingBox())?.x ?? Number.NaN;
+    const midY = chipBox.y + chipBox.height / 2;
+    await page.mouse.move(chipBox.x + 8, midY);
+    const before = await cardLeft();
+    await page.mouse.move(chipBox.x + 48, midY);
+    await expect.poll(cardLeft).toBeCloseTo(before + 40, 0);
     await page.evaluate(() => navigator.clipboard.writeText('not-the-asin'));
-    await card.getByRole('button', { name: 'Copy ASIN' }).click();
+    await chips.first().click({ button: 'right' });
+    await expect(card).toBeHidden();
+    await page.getByRole('menuitem', { name: 'Copy ASIN' }).click();
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('B07XN9T11R');
-    await expect(card.getByRole('button', { name: 'Copied' })).toBeVisible();
     await page.mouse.move(0, 0);
     await expect(card).toBeHidden();
-    await chips.last().focus();
+    await chips.first().focus();
+    await page.keyboard.press('Tab');
+    await expect(chips.last()).toBeFocused();
     await expect(card).toBeVisible();
     await expect(card.getByText('Soft fabric')).toHaveCount(0);
     expect(detailCalls).toBe(1);
-    await page.evaluate(() => navigator.clipboard.writeText('not-the-asin'));
-    await page.keyboard.press('Tab');
-    await expect(card.getByRole('button', { name: 'Copy ASIN' })).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('B07XN9T11R');
     await page.keyboard.press('Escape');
     await expect(card).toBeHidden();
     summary.shortName = null;

@@ -6,7 +6,6 @@ import {
     type TrafficEntry,
 } from '../support/app-traffic.ts';
 import { createChannelAgent } from '../support/channel-agent.ts';
-import { readClerkSessionFixture } from '../support/clerk-session.ts';
 import { expectBurstCoalesced, recordPosts } from '../support/realtime-burst.ts';
 import { createTestServer, openChannel, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -74,32 +73,6 @@ test.describe('an idle App stays silent', () => {
         await page.getByRole('menuitem', { exact: true, name: 'View agent profile' }).click();
         await expect(page.getByRole('heading', { exact: true, name: 'Orbit' })).toBeVisible();
         await expectIdleSilence(page, traffic);
-    });
-
-    test('through a Clerk session token rotation', async ({ page }) => {
-        // Real Clerk tokens carry a session id; rotation keeps it.
-        const traffic = await openIdleApp(page, 'idle-rotation', { signIn: 'human-session' });
-        await openChannel(page, 'all');
-        await expect(composer(page)).toBeVisible();
-        await traffic.settled();
-        const mark = traffic.mark();
-        await page.evaluate((token) => {
-            (
-                window as Window & { __setE2eClerkSessionToken?: (next: string) => void }
-            ).__setE2eClerkSessionToken?.(token);
-        }, readClerkSessionFixture().sessionRotatedToken);
-        await idleFor(page, 60_000);
-        const entries = traffic.since(mark);
-        // One in-place socket refresh, never a reconnect or a refetch burst.
-        expect(
-            count(entries, 'ws-open'),
-            `A token rotation reopened the socket, restarting every stream and its recovery reads. Rotation must refresh in place (lib/haus-session-refresh.ts):\n${describeTraffic(entries)}`
-        ).toBe(0);
-        expect(count(entries, 'ws-call', 'session.refresh'), describeTraffic(entries)).toBe(1);
-        expectWithinAllowance(
-            entries.filter((entry) => !isSessionRefresh(entry)),
-            1
-        );
     });
 
     test('through hide and show', async ({ page }) => {
@@ -181,26 +154,18 @@ test.describe('an idle App stays silent', () => {
     });
 });
 
-async function openIdleApp(
-    page: Page,
-    slug: string,
-    options: { signIn?: 'human' | 'human-session'; withAgent?: boolean } = {}
-) {
+async function openIdleApp(page: Page, slug: string, options: { withAgent?: boolean } = {}) {
     // Installed before load so every App timer runs on the fake clock.
     await page.clock.install();
     const traffic = recordAppTraffic(page);
-    const { server, session } = await createTestServer(
-        page,
-        { displayName: slug, slug },
-        options.signIn
-    );
+    const { server, session } = await createTestServer(page, { displayName: slug, slug });
     if (options.withAgent) {
         await createChannelAgent({
             channelName: 'all',
             databaseUrl: session.databaseUrl,
             serverId: server.id,
             slug,
-            token: session.token,
+            token: session.accessToken,
         });
         await page.reload();
     }
@@ -267,10 +232,6 @@ function count(entries: TrafficEntry[], kind: TrafficEntry['kind'], procedure?: 
 function duplicates(entries: TrafficEntry[], kind: TrafficEntry['kind']) {
     const seen = entries.filter((entry) => entry.kind === kind).map(key);
     return [...new Set(seen.filter((name, index) => seen.indexOf(name) !== index))];
-}
-
-function isSessionRefresh(entry: TrafficEntry) {
-    return entry.kind === 'ws-call' && entry.procedure === 'session.refresh';
 }
 
 function setVisibility(page: Page, state: 'hidden' | 'visible') {

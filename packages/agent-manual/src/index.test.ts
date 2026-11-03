@@ -36,6 +36,7 @@ const recipeIds = [
     'recipes/technique/group-chat-debug',
     'recipes/technique/html-artifact-discussion',
     'recipes/technique/memory-hygiene',
+    'recipes/technique/heartbeat',
     'recipes/technique/preview-env',
     'recipes/technique/proof-of-work-receipts',
     'recipes/technique/reminder-cron',
@@ -77,11 +78,11 @@ test('publishes the complete adapted corpus with source metadata', () => {
     const published = recipes();
 
     expect(published.map((topic) => topic.id)).toEqual([...recipeIds]);
-    expect(new Set(published.map((topic) => topic.id)).size).toBe(33);
+    expect(new Set(published.map((topic) => topic.id)).size).toBe(34);
     expect(published.filter((topic) => topic.tier === 'seeded').map((topic) => topic.id)).toEqual([
         ...seededIds,
     ]);
-    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(21);
+    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(22);
     expect(published.filter((topic) => topic.class === 'archetype')).toHaveLength(7);
     expect(
         published

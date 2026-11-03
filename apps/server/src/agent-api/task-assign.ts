@@ -7,9 +7,8 @@ import { assignTask, type TaskAssigneeInput, TaskClosedAssignError } from '../ta
 import { InvalidTaskAssigneeError } from '../tasks/resolve-task-assignee.ts';
 import { TaskConflictError, TaskNotFoundError } from '../tasks/task-errors.ts';
 import { messageSelection } from './message-view.ts';
-import { resolveAgentTarget } from './resolve-target.ts';
 import { AgentTaskError } from './task-error.ts';
-import { findAgentTasks } from './task-lookup.ts';
+import { findAgentTasks, resolveAgentTaskTarget } from './task-lookup.ts';
 import { stripAt, taskRow } from './task-row.ts';
 
 /**
@@ -24,8 +23,8 @@ export async function assignAgentTask(
     agentDelivery: AgentDelivery,
     input: { assignee: null | string; expectedRevision?: number; number: number; target: string }
 ) {
-    const chatId = await resolveAgentTarget(db, runner, input.target);
-    const [found] = await findAgentTasks(db, runner, chatId, { numbers: [input.number] });
+    const { taskChatId } = await resolveAgentTaskTarget(db, runner, input.target);
+    const [found] = await findAgentTasks(db, runner, taskChatId, { numbers: [input.number] });
     const assignee = input.assignee
         ? await resolveAssigneeHandle(db, runner, input.assignee)
         : null;

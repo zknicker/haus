@@ -1672,5 +1672,226 @@
       "computer": null,
       "agent": null
     }
+  },
+  {
+    "version": "15.7.0",
+    "date": "2026-10-23",
+    "targets": {
+      "server": "14.7.0",
+      "app": null,
+      "ios": null,
+      "computer": "12.2.0",
+      "agent": "11.2.0"
+    }
+  },
+  {
+    "version": "15.7.1",
+    "date": "2026-10-23",
+    "targets": {
+      "server": "14.7.1",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "15.8.0",
+    "date": "2026-10-23",
+    "targets": {
+      "server": "14.8.0",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "15.9.0",
+    "date": "2026-10-23",
+    "targets": {
+      "server": "14.9.0",
+      "app": null,
+      "ios": null,
+      "computer": "12.3.0",
+      "agent": "11.2.1"
+    }
+  },
+  {
+    "version": "15.9.1",
+    "date": "2026-10-23",
+    "targets": {
+      "server": "14.9.1",
+      "app": null,
+      "ios": null,
+      "computer": "12.3.1",
+      "agent": "11.2.2"
+    }
+  },
+  {
+    "version": "15.10.0",
+    "date": "2026-10-24",
+    "targets": {
+      "server": "14.10.0",
+      "app": null,
+      "ios": null,
+      "computer": "12.3.2",
+      "agent": "11.2.3"
+    }
+  },
+  {
+    "version": "15.11.0",
+    "date": "2026-10-24",
+    "targets": {
+      "server": "14.11.0",
+      "app": "6.3.1",
+      "ios": null,
+      "computer": "12.4.0",
+      "agent": "11.3.0"
+    }
+  },
+  {
+    "version": "15.11.1",
+    "date": "2026-10-29",
+    "targets": {
+      "server": "14.11.1",
+      "app": null,
+      "ios": {
+        "version": "8.6.2",
+        "buildNumber": 58
+      },
+      "computer": "12.4.1",
+      "agent": null
+    }
+  },
+  {
+    "version": "15.11.2",
+    "date": "2026-10-30",
+    "targets": {
+      "server": "14.11.2",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "15.12.0",
+    "date": "2026-10-30",
+    "targets": {
+      "server": "14.12.0",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "15.12.1",
+    "date": "2026-10-30",
+    "targets": {
+      "server": "14.12.1",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "16.0.0",
+    "date": "2026-10-31",
+    "targets": {
+      "server": "15.0.0",
+      "app": "7.0.0",
+      "ios": {
+        "version": "9.0.0",
+        "buildNumber": 59
+      },
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "16.1.0",
+    "date": "2026-11-01",
+    "targets": {
+      "server": "15.1.0",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "16.1.1",
+    "date": "2026-11-01",
+    "targets": {
+      "server": null,
+      "app": "7.0.1",
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "16.2.0",
+    "date": "2026-11-01",
+    "targets": {
+      "server": "15.2.0",
+      "app": "7.1.0",
+      "ios": {
+        "version": "9.1.0",
+        "buildNumber": 60
+      },
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "16.3.0",
+    "date": "2026-11-01",
+    "targets": {
+      "server": "15.3.0",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "16.4.0",
+    "date": "2026-11-02",
+    "targets": {
+      "server": "15.4.0",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
+  },
+  {
+    "version": "16.5.0",
+    "date": "2026-11-02",
+    "targets": {
+      "server": "15.5.0",
+      "app": null,
+      "ios": {
+        "version": "9.2.0",
+        "buildNumber": 61
+      },
+      "computer": "12.5.0",
+      "agent": "11.4.0"
+    }
+  },
+  {
+    "version": "16.5.1",
+    "date": "2026-11-03",
+    "targets": {
+      "server": "15.5.1",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
   }
 ]

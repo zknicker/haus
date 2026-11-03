@@ -1,0 +1,82 @@
+/* Christmas color themes: decorative layers, shown only under the Christmas themes (the roofline). */
+
+/*
+ * One decoration: a snowy roofline along the window's top edge, Toy Box bulbs
+ * hanging from under it, a holly sprig, and a light flurry behind it all. It
+ * is art, not UI color, so nothing here reads or overrides a HeroUI token.
+ *
+ * The roofline is three canvases (`features/shell/theme-roofline/`), mounted
+ * only while the theme's scene is `snowy-roofline`; every rule below keys off
+ * its own class, so it is inert under any other theme. These rules only place
+ * it.
+ *
+ * Drag contract (shell.css → the one window-drag contract): the roofline takes
+ * no pointer events and has no `app-region`, and it stacks behind the band's
+ * controls. It adds no drag or no-drag box.
+ */
+@layer components {
+    /* Canvases are replaced elements: absolute insets alone leave them at their intrinsic 300px. */
+    .theme-roofline {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-start: 0;
+        width: 100%;
+        pointer-events: none;
+    }
+
+    .theme-roofline > canvas {
+        position: absolute;
+        display: block;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    /*
+     * Desktop (Band and Canvas): the whole window band, from the window's left
+     * edge across the sidebar lead and the tab rows. The band is the stacking
+     * context and the roofline adds none of its own, so its canvases stack
+     * among the band's controls one by one: the flurries and the bulbs sit
+     * behind every control, and the snow drapes in front of the tabs, which
+     * tuck under the eave instead of cutting through it. The snow takes no
+     * pointer events, so every tab and button under it still works.
+     */
+    .shell-window-band:has(> .theme-roofline) {
+        position: relative;
+        isolation: isolate;
+    }
+
+    .theme-roofline--band {
+        height: 100%;
+    }
+
+    .theme-roofline--band > .theme-roofline__flurries,
+    .theme-roofline--band > .theme-roofline__bulbs {
+        z-index: -1;
+    }
+
+    .theme-roofline--band > .theme-roofline__snow {
+        z-index: 1;
+    }
+
+    /* Mute with the sidebar when the window loses focus, as native chrome does. */
+    html.macos-electron.window-blurred .theme-roofline {
+        opacity: 0.55;
+    }
+
+    /*
+     * Web: no window band, so the roofline runs along the sidebar's top edge,
+     * over the titlebar strip's mask (shell.css) and under the strip's Haus
+     * mark and Settings gear, as the Halloween sky does. It reaches a little
+     * past the strip, so the halos and the last flakes fade out over the first
+     * row's top air instead of stopping on a line.
+     */
+    .app-shell [data-slot="sidebar"] > .theme-roofline--sidebar {
+        z-index: 1;
+        height: calc(var(--app-shell-titlebar-inset) + 0.875rem);
+    }
+
+    .app-shell [data-slot="sidebar"].sidebar--default > .theme-roofline--sidebar {
+        width: calc(100% - 1px);
+    }
+}

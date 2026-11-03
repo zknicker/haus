@@ -10,7 +10,7 @@ read_when:
 
 `apps/ios-swift` is Haus's native iPhone client. It is a SwiftUI application, not a wrapper around
 the website. Android is not a supported target. The app reuses the same production Haus Server,
-Computer, Clerk instance, and tRPC procedures; it does not add a mobile backend.
+Computer, Cloudflare Access Google sign-in, and tRPC procedures; it does not add a mobile backend.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ The app is split into four focused layers:
 
 - `HausModels` owns small Codable projections of the existing first-party wire contracts.
 - `HausTransport` owns authenticated tRPC HTTP operations, SSE subscriptions, app protocol headers,
-  and Clerk session-token access.
+  native OAuth, Cloudflare token renewal, Keychain credentials, and Haus AppSession access.
 - `HausUI` owns reusable SwiftUI shell, Chat, thread, and settings presentation with stock semantic
   controls.
 - `HausApp` composes authentication, Server state, event streams, cache-like snapshots, navigation,
@@ -39,8 +39,8 @@ noticed within one window. The SSE reader drops `ping` frames. A loopback-socket
 streams than the stock pool are held.
 
 The transport intentionally calls the existing tRPC procedures directly rather than introducing an
-OpenAPI mirror or community Swift tRPC dependency. The app uses the official Clerk iOS SDK and
-the production-authorized `haus://sso-callback` OAuth return. Chat history remains canonical Server
+OpenAPI mirror or community Swift tRPC dependency. Native sign-in uses Apple's
+`ASWebAuthenticationSession` and the production-authorized `haus://sso-callback` return. Chat history remains canonical Server
 state. Agent lifecycle events project `working`, `reading`, and `sending` to the same yellow working
 presence used by the desktop App; `settled` immediately projects the terminal idle, error, or stopped
 state. The app separately subscribes to semantic Agent activity and presents current plus recent work
@@ -103,17 +103,14 @@ notice, not send status: a stopped Agent will not see what is sent. An Agent
 the Server paused after repeated failures (`wakePause`) explains why on its Chat-details profile,
 in the App's `agent-wake-pause-model.ts` copy; the phone offers no Restart.
 
-Debug builds mirror the web App's local authentication flow. When launched with
-`HAUS_DEV_SERVER_ORIGIN` and `HAUS_CLERK_PUBLISHABLE_KEY`, the app requests the existing
-localhost-only `dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and calls
-the idempotent `server.developmentBootstrap` procedure before loading the ordinary Server list. This
-avoids a browser dependency in Simulator without adding fixture auth or shipping a development path in
-Release builds. A Debug build remembers the last validated localhost configuration so Simulator,
-preview, and rebuild launchers that omit process environment still use the same development Clerk
-instance and Server. A later explicit environment replaces that local cache.
-The Debug authentication boundary validates that a persisted Clerk session can still issue a token
-before loading Server-backed UI. If it cannot, the app renews the session through the same localhost
-ticket procedure. A configured local build never falls back to browser OAuth.
+Debug builds use a local-only auth fixture. With `HAUS_DEV_SERVER_ORIGIN` set to a loopback origin,
+the app posts to `/auth/dev/session`, which returns the fixed development user and the same opaque Haus
+AppSession and resume-token shape as production. It calls the idempotent `server.developmentBootstrap`
+procedure before loading the ordinary Server list. This avoids a Google account in Simulator and does
+not add a development path to Release builds. A Debug build remembers the last validated loopback
+configuration so launchers that omit process environment still use the same local Server. Restoring a
+Debug session uses the same `/auth/dev/session` endpoint with its Keychain resume token. An explicit
+sign-out keeps auto sign-in disabled across relaunches until the human taps “Sign in to local Server.”
 
 Swift settings use one native sheet with one `NavigationStack`. Focused screens push within that
 sheet, single-line identity values edit inline, and long-form values use a dedicated editor. The root
@@ -121,25 +118,31 @@ opens on a centered identity header that pushes the viewer's profile. Rows carry
 show a single-line current value trailing, dropping it under the title only when it cannot fit;
 long-form values such as descriptions preview as a subtitle. An up/down chevron marks an in-place
 picker and a right chevron marks navigation. Explanations live in section footers. Preferences'
-App icon picker (`AppIconRow`: Ghost or Pumpkin) is a per-device choice with no Server or theme
-coupling; iOS has no color themes. It reads `UIApplication.alternateIconName` each time rather than
-mirroring it into `@AppStorage`, calls `setAlternateIconName` (`nil` for the ghost,
-`halloween-icon` for the pumpkin), and on failure logs and shows the icon the system still reports.
+App icon picker (`AppIconRow`: Ghost, Pumpkin, or Nightcap) is a per-device choice with no Server
+or theme coupling; iOS has no color themes. It reads `UIApplication.alternateIconName` each time
+rather than mirroring it into `@AppStorage`, calls `setAlternateIconName` (`nil` for the ghost,
+`halloween-icon` for the pumpkin, `christmas-icon` for the ghost in its nightcap), and on failure
+logs and shows the icon the system still reports.
 iOS's own "You have changed the icon" alert is expected. The icon never switches by itself; a
 seasonal offer only asks. `.seasonalIconOffer()` sits on the authenticated shell (never onboarding
 or sign-in) and, each time the app becomes active and nothing else is presented, asks the pure rule
 `SeasonalIconOffer.eligible(on:calendar:currentIcon:records:)`. In October on the local calendar,
 on the ghost, it offers the pumpkin ("Happy Halloween!"). After October, on a pumpkin that
-season's offer chose, it offers the ghost back ("Same time next year?"). A pumpkin picked in
-Settings, or kept from an earlier season, is never nagged. The offer is a medium-detent sheet with
-a bundled preview (`Resources/app-icon-preview-*`, since catalog app icons cannot load as images).
-Showing an offer records it in `UserDefaults` whatever the answer — `haus.appIcon.halloweenOffersShown`
-and `haus.appIcon.halloweenReturnOffersShown`, keyed by season year (the year of its October) — so
-declining is final for the season. `haus.appIcon.pumpkinFromOfferSeason` marks a pumpkin the offer
-chose; any Settings switch clears it. Debug builds take `-HausSeasonDate yyyy-MM-dd` and
-`-HausSeasonReset YES` launch arguments. All
+season's offer chose, it offers the ghost back ("Same time next year?"). From 6 November through
+December it does the same for Christmas: on the ghost it offers the nightcap ("Merry Christmas!"), and from January, on a
+nightcap that season's offer chose, it offers the ghost back ("Packing up the decorations"). A
+seasonal icon picked in Settings, or kept from an earlier season, is never nagged. The offer is a
+medium-detent sheet with a bundled preview (`Resources/app-icon-preview-*`, since catalog app icons
+cannot load as images). Showing an offer records it in `UserDefaults` whatever the answer —
+`haus.appIcon.halloweenOffersShown` and `haus.appIcon.halloweenReturnOffersShown`, keyed by season
+year (the year of its October), and `haus.appIcon.christmasOffersShown` and
+`haus.appIcon.christmasReturnOffersShown`, keyed by the year of its December — so declining is
+final for the season. `haus.appIcon.pumpkinFromOfferSeason` and
+`haus.appIcon.nightcapFromOfferSeason` mark an icon the offer chose; any Settings switch clears
+both. Debug builds take `-HausSeasonDate yyyy-MM-dd` and `-HausSeasonReset YES` launch arguments.
+All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
-state. On startup, iOS reports the signed-in Clerk name and email through `member.syncIdentity` before
+state. On startup, iOS reports the signed-in Haus display name through `member.syncIdentity` before
 reading the member list, matching the web app's default-handle bootstrap. The sync runs beside the
 Chat and Agent list reads and is never fatal: a failure logs, the member list loads anyway, and the
 sync retries with backoff, refreshing the member list once it lands. The same sync reports the device zone
@@ -956,6 +959,12 @@ so the ingress states `Task #N · status` even under a hidden claim. The prefere
 like appearance — `@AppStorage` under the App's own `haus.chat.showTasks` key — and Settings →
 Preferences → **Show tasks in chat** is the switch.
 
+A task an Agent claimed on a Thread reply (`message.chatID != task.chatID`) has no Thread of its
+own, so it builds no preview; the reply itself carries `ThreadTaskMark` (`Task #N · status`) under
+the same visibility rule. Opening such a task goes through `TaskOpening`: it resolves the Thread's
+real anchor with `thread.get` and lands on the task message, where a top-level task opens the
+Thread anchored on itself.
+
 The Task list reads the Store's own Server-wide lens rather than a second copy of the same query,
 so a durable `task.created` or `task.updated` repaints it without a pull to refresh; only the
 widened background lens is the screen's, because it is a different question the reader asked for a
@@ -1108,7 +1117,7 @@ snapshot still decodes; without it the strip popped in after the paint and shove
 up to three bounded latest-message pages (the canvas and open Chats first), written as versioned JSON to Application Support atomically (file protection until first unlock, the
 directory excluded from iCloud and Finder backups; Application Support rather than Caches so storage
 pressure cannot purge the paint), off the main actor, at most once per two
-seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Clerk
+seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Haus
 user, discarded on a version, user, or decode mismatch, cleared on sign-out, and replaced by the
 live load. The live launch is `server.list`, then the Chat list, Agent list, and identity-synced
 member list together, then the mounted pages, then the streams, whose first starts reconcile
@@ -1193,7 +1202,7 @@ the Server's state is purged, and the Server list reloads (`handleMembershipLost
 Server deletion publish `server.updated`, so the `server.onUpdated` sentinel delivers that refusal
 even while no Chat event is flowing; a `server.list` read that no longer holds the active Server runs
 the same purge. `role_required` stops one stream and clears nothing. `UNAUTHORIZED` refreshes the
-Clerk token and restarts with backoff; anything else restarts with backoff. A `chat.onLifecycle`
+Haus AppSession and restarts with backoff; anything else restarts with backoff. A `chat.onLifecycle`
 `deleted` purges one Chat the same way.
 
 Agent creation stays inside that same canonical message pipeline. `HausModels` decodes the
@@ -1679,16 +1688,23 @@ failure rolls the summary back to the value the press replaced and logs the erro
 copy of the state: the durable `thread.follow.updated` event already refetches the parent Chat page and
 the Chat list, which is what converges this client with every other one.
 
-Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
-Haus starts Clerk's direct Google SSO flow from a native SwiftUI action instead of routing through the
-hosted Account Portal. The provider browser returns through the production-authorized
-`haus://sso-callback` product URL. `HausTransport` asks the native Clerk session for a fresh token
-for every request, while `HausStore` keeps the active user's in-memory Server snapshots. A user
-change therefore discards the previous user's cache. Cold-start offline access needs an explicit secure
-auth bootstrap contract before persisted query data can be enabled safely.
-Sign Out is the Settings root's last group and confirms first. `HausStore.signOut()` owns it: it
-ends the Clerk session (a failure throws and leaves the viewer signed in), then stops event streams,
-drops the restored last-open Chat, and empties the avatar image cache (decoded and on-disk bytes),
+Haus starts Google sign-in in `ASWebAuthenticationSession` by opening Server `/auth/start` with a
+random state and an S256 PKCE challenge. The exact custom callback is `haus://sso-callback`; the app
+checks the returned state, then exchanges the code directly with Cloudflare Access using the original
+verifier and the HTTPS `redirect_uri` returned by `/auth/config`. It does not use a client secret.
+`/auth/session` exchanges the Cloudflare bearer for a short-lived Haus AppSession and a rotating resume
+token. The AppSession stays in memory and supplies every tRPC, SSE, voice, and attachment request.
+Cloudflare access and refresh tokens plus the Haus resume token live only in the Keychain actor. One
+refresh task renews each Cloudflare grant; the rotated refresh token is saved before concurrent callers
+receive it. Haus renews its AppSession before its 60-second expiry and on foreground return. A user
+change remounts the Store, so the previous user's snapshots and profile identity cannot carry across
+accounts.
+
+Sign Out is the Settings root's last group and confirms first. `HausStore.signOut()` stops SSE and
+owns it: it clears the Keychain credentials, publishes local sign-out immediately, and best-effort
+posts `/auth/logout` with the resume token and revokes the Cloudflare grant. A Keychain failure throws
+and leaves the viewer signed in. It also drops the restored last-open Chat and empties the avatar image
+cache (decoded and on-disk bytes),
 the in-memory attachment decodes (`AttachmentImageMemory`: timeline thumbnails, viewer pages, staged
 composer files), and the attachment disk cache; a load already in flight cannot repopulate any of
 them. The auth boundary discards the Store's in-memory snapshots. On any session loss the auth
@@ -1755,5 +1771,5 @@ identity mutations; and long-form values use dedicated editors. Appearance is ap
 Server state. Desktop-only operational surfaces remain out of the iPhone information architecture until
 a concrete mobile workflow needs them.
 
-The Swift client uses Apple platform frameworks for photos, camera, files, and Quick Look, plus the
-official Clerk iOS SDK. It does not carry a second web or JavaScript UI system.
+The Swift client uses Apple's AuthenticationServices, Keychain, photos, camera, files, and Quick Look
+frameworks. It does not carry a second web or JavaScript UI system.

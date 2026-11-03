@@ -120,7 +120,7 @@ test('human sends jump to latest; agent messages preserve following across backg
     async function agentSender() {
         const userId = runPsql(
             session.databaseUrl,
-            "select id from users where clerk_user_id = 'user_e2e_human'"
+            "select id from users where id = 'usr_e2e_human'"
         );
         assertOpaqueId(userId);
         const credentialHash = 'c'.repeat(64);

@@ -22,13 +22,29 @@ import { PageTopbar } from './shell-topbar.tsx';
  * Chats are the one exception: a conversation runs full height under its tab
  * on desktop, and on the web its band carries the chat's identity instead.
  * The row is the `band` container controls may size themselves against.
+ *
+ * `overlay` lets the page run up under the band instead of starting below it:
+ * the band paints over the page, whose scrollers then reach the shell's top
+ * edge rather than being cut off at the band's bottom (`shell.css`). A page
+ * that asks for it owns the rest: it insets its content by the band's height,
+ * and fades what scrolls under the band so the trail stays legible (the
+ * Inbox, `inbox-layout.ts`).
  */
-export function PageBand({ children }: { children: ReactNode }) {
+export function PageBand({
+    children,
+    overlay = false,
+}: {
+    children: ReactNode;
+    overlay?: boolean;
+}) {
     return (
         <PageTopbar>
             {/* With a centered slot the row becomes three columns, equal flexible
                 sides anchoring the center to the band's true middle. */}
-            <div className="@container/band flex min-w-0 flex-1 items-center gap-3 [&:has(>[data-band-center])]:grid [&:has(>[data-band-center])]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+            <div
+                className="@container/band flex min-w-0 flex-1 items-center gap-3 [&:has(>[data-band-center])]:grid [&:has(>[data-band-center])]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+                data-band-overlay={overlay ? '' : undefined}
+            >
                 {children}
             </div>
         </PageTopbar>

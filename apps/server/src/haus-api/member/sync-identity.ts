@@ -4,8 +4,8 @@ import { serverMemberProcedure } from './procedure.ts';
 import { announceHumanProfileChange } from './profile-signals.ts';
 
 /**
- * The App reports its Clerk identity on every load so a human has a name others
- * can read. Only a sync that wrote something announces the profile change.
+ * The App syncs a human's editable profile on load. Only a sync that wrote
+ * something announces the profile change.
  */
 export const syncHumanIdentityProcedure = serverMemberProcedure
     .input(syncHumanIdentityInputSchema)

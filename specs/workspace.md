@@ -8,8 +8,6 @@ agents/<agent-id>/
   home/
   skills/
   runtime/
-  workspace.sparsebundle
-  workspace-volume.json
 ```
 
 The Server owns the Agent's identity, desired configuration, membership, and
@@ -20,85 +18,46 @@ security boundary.
 
 ## Capacity
 
-On macOS, newly provisioned workspaces use a finite, case-sensitive APFS
-sparsebundle mounted at the existing `workspace/` path. Other hosts, such as Linux
-development and cloud sessions, provision `workspace/` as an ordinary uncapped
-directory with no image, manifest, or reservation, and refuse to replace a
-capped workspace they cannot mount.
-The default image capacity is 10 GiB. Writes encounter ordinary filesystem
-`ENOSPC`; the Agent chooses what to remove or explicitly publish. Computer
-does not upload or delete personal files automatically. The cap applies to
-`workspace/`, not arbitrary host writes: the trusted shell remains unrestricted.
+Agent workspaces are ordinary directories on the Computer's host filesystem on
+all supported platforms. There is no per-Agent disk cap, advance reservation,
+or admission budget. Creating an Agent does not promise space for future writes.
+The host filesystem reports `ENOSPC` when actual storage is exhausted.
 
-`home/`, `runtime/`, `skills/`, session state, and Computer recovery records stay
-outside the image. A full workspace therefore does not prevent saving turn
-state or invoking the Haus CLI to publish and recover. Shared-file caches are
-Computer-owned, outside personal workspaces.
+Computer reports actual available and total bytes at attachment and hourly.
+Server keeps the latest sample with the live attachment, clears it on disconnect,
+and exposes it to Owners and Admins through `computer.list`. Measurement failure
+clears the sample and never blocks Agent execution. Disk is low only when both
+less than 10% and less than 20 GiB remain. `computer.onUpdated` invalidates the
+Computer query when the sample changes.
 
-Computer reserves each image's full capacity plus filesystem overhead in a
-persisted, cross-process-locked storage ledger. Admission checks both that fixed
-budget and current host free space, retaining 10 GiB of host headroom and a
-2 GiB shared-cache allowance. Sparse allocation does not justify overcommitting
-workspace ceilings. These defaults are explicit Computer implementation options.
+The App shows a Low disk chip in the Computers list and profile, plus a profile
+warning with free bytes and percentage. The person who attached the Computer
+also sees a dismissible Inbox warning linking to its profile. Dismissal stays
+local to the App and survives reload; the notice returns only at a worse band
+(below 10%, 5%, 2%, or 1%). Offline Computers and unknown measurements show no
+current disk warning. These are warnings, not execution gates.
 
-Mount identity is verified before execution. A missing image, foreign mount, or
-unverified image blocks launch instead of creating an uncapped replacement.
-Existing ordinary workspace directories remain explicitly legacy until the
-operator invokes migration with the Computer stopped. Migration copies and
-verifies file contents, modes, and symlinks, records recoverable stages, and
-retains the original at `workspace.backup`. It never deletes that backup. Verification ignores
-macOS-created `.fseventsd`, `.Spotlight-V100`, and `.Trashes` directories only at the new volume
-root and only when absent from the source. Source entries with those names remain verified.
+### Removing older workspace caps
 
-Offline compaction detaches normally, returns unused image blocks to the host,
-and restores a previously mounted workspace. It requires the Computer stopped;
-busy-volume failures are reported rather than forced. Session reset preserves
-the volume. Full reset clears its contents without removing the mounted root.
+Before executing an Agent with an older macOS sparsebundle, Computer converts
+its verified, idle volume into an ordinary directory under the same workspace
+path. It copies personal files, hidden files, symlinks, modes, and timestamps;
+verifies content hashes and modes; detaches normally; then promotes the copy.
+macOS volume metadata (`.fseventsd`, `.Spotlight-V100`, `.Trashes`) is excluded.
+A busy, foreign, missing, or unverified image fails without replacing its files.
+An on-disk `workspace-directory.json` receipt resumes interrupted conversion.
+The original image and manifest remain as `workspace.backup.sparsebundle` and
+`workspace-volume.backup.json` for operator recovery. No backup is automatically
+deleted. Conversion releases the old ledger allocation; new workspaces never
+allocate one. Older unfinished migrations remain recovery artifacts and must
+be resolved before conversion.
 
-A volume is mounted only while its Computer attachment runs. Retirement stops the
-Agent's runtime session, waits for the processes still holding the volume (a
-stopped runtime's process tree can outlive the stop call by a moment), then
-retries a plain detach with backoff. Only a retired Agent's volume is forced as a
-last resort, with a warning naming its holders. Holder waits and detach retries
-run outside the storage lock, which guards only ledger writes. Retirement also
-detaches any mount left in the Agent partition without a manifest, deletes the
-partition only once nothing in it is mounted, and releases the reservation only
-after deletion succeeds; a replay whose partition is already gone still releases a
-reservation an earlier attempt leaked. A volume that still will not detach keeps
-both, the failure is logged against the Agent, and the Server's retirement
-tombstone replays the purge on the next connection.
-
-Server deletion stops the attachment's sessions and sandbox processes the way
-shutdown does, then writes a `pending-purge` marker holding its pid into the
-Server partition, force-detaches every mount under the partition (manifest or
-not), deletes the partition with the marker last, and releases the reservations
-it held. A purge that fails or is killed midway keeps its marker; every
-attachment start replays the purge of a marked partition whose purging process
-is no longer running. Attachment shutdown detaches the Server's volumes after its
-sessions stop, never forcing, within a 10-second deadline; a volume still busy or
-unfinished at the deadline stays mounted and is reused on the next start, and a
-detach failure is logged without changing the daemon's exit. At start the
-Computer detaches any mounted workspace whose Agent partition has no volume
-manifest and releases reservations whose partition holds no image, manifest, or
-migration receipt, logging each reclaim.
-
-### Existing-workspace migration
-
-Migrate after the shared-artifact rollout, one Agent at a time. First inventory
-each workspace and confirm its files fit the 10 GiB ceiling and the Computer
-can reserve the full image capacity while retaining the original backup.
-Have the Agent consolidate or explicitly publish files before migration if needed.
-
-Run `haus-computer stop`, then
-`haus-computer workspace-migrate /server-slug <agent-id>`. Maintenance refuses a
-running Computer or an open workspace. Restart Computer with its normal start
-command, verify the Agent can read its existing files and run a turn, and retain
-`workspace.backup` until the operator has verified recovery. Re-running migration
-resumes its durable receipt; do not manually remove that receipt or image.
-
-Use `haus-computer workspace-compact /server-slug <agent-id>` only while Computer
-is stopped to reclaim deleted sparse-image blocks. Neither migration nor
-compaction publishes personal files.
+For explicit offline conversion, stop Computer and run
+`haus-computer workspace-migrate /server-slug <agent-id>`. This command now
+removes an older cap; it never creates a capped image. `workspace-compact` is
+only for older unconverted images. Other platforms refuse to replace a macOS
+image they cannot mount. Full reset clears the active directory; session reset
+preserves it. Existing recovery images remain outside the active workspace.
 
 ## Durable knowledge
 
@@ -147,61 +106,32 @@ communication style, standing preferences and directives, and Active Context, wh
 rather than appended), then a Key Knowledge index whose lines are a `notes/` path plus a one-line
 hook. `notes/` holds deeper knowledge not in use right now, as topic files that each hold the
 current truth on one subject. History stays in Haus chats and tasks, referenced by handle. The
-Manual topic `recipes/technique/memory-hygiene` carries the full guidance, including dreaming:
+Manual topic `recipes/technique/memory-hygiene` carries the full guidance, including the nightly pass:
 the Agent's own short, silent consolidation pass that folds recent lessons into MEMORY.md, rewrites
 Active Context, moves detail into notes, and touches only what changed since the last pass.
 
 ### Dreaming
 
-Dreaming runs overnight as its own private turn, never at the end of a conversation turn. Computer
-checks each Agent on it once per Computer-local night: at the first ten-minute tick inside a fixed
-quiet window, 03:00 to 05:00 in the machine's local time, while the machine is awake. A machine
-that wakes at 04:20 checks then; one awake only after 05:00 skips that night. An Agent is due when
-its memory (`MEMORY.md` plus every file under `notes/`) changed since its last dream, or
-`MEMORY.md` exceeds a fixed 16 KiB (16,384 bytes, Raft v1.21's 4,000-token target), and it has not
-dreamed in the last 20 hours. Change is a fingerprint of path, size, and mtime, with no content
-reads. The first look only records a baseline, so a new Agent's first dream comes on a later night,
-roughly 24 to 48 hours after it starts. Computer keeps the fingerprint, last dream time, and last
-checked date in `runtime/memory-dream.json`, so a restart never checks the same night twice. A
-due Agent's request that cannot be sent is retried on the next tick that night.
+Dreaming is the nightly heartbeat: the Agent's own memory consolidation, run once per
+Computer-local night in a fresh throwaway session, never at the end of a conversation turn.
+[specs/heartbeat.md](heartbeat.md) is normative for its schedule, skip rules, turn input,
+recipe, summary, and follow-ups. Two facts belong here:
 
-Each check logs one `nightly-dream.check` line and exports one `haus.dream.check` span
-([observability](../docs/internals/observability.md#nightly-dream-checks)) with the Agent, the
-local date, the outcome (`baselined`, `requested`, `not-due`, or `skipped` with a reason:
-`retired`, `resetting`, or `not-configured`), and `MEMORY.md`'s size. Skips are not persisted.
-Only Agent folders are checked; dot-directories such as an older Computer's `.harness-bridge-prewarm` are Computer
-scratch, not Agents.
+- Only the nightly run writes `MEMORY.md` and `notes/` on the heartbeat's behalf. Daytime
+  heartbeats leave memory alone and suggest changes in their report.
+- Each nightly run leaves a dream record. Computer snapshots `MEMORY.md` and every file under
+  `notes/` when the run launches, diffs the two when it settles, whatever the outcome, and sends
+  the diff as an `agent-dream-record` frame just before the turn summary. Symlinks are skipped;
+  a file over 1 MiB or not UTF-8 text is compared by size and mtime or by digest. Text leaves
+  the patch past 64 KiB, and the patch stops growing at 256 KiB. A dream that changed nothing
+  still records, with no files. Server stores one row per run in `agent_dreams`, keeps the
+  newest 60 per Agent, and serves them through `agent.dreams` and `agent.dream`
+  ([Agents API](../docs/api/agents.md)). Each row also carries the Agent's `haus heartbeat
+  learned` summary and the follow-up reminders the run scheduled. A record failure is logged
+  and never fails the turn.
 
-A due Agent gets one `agent-dream-request` frame, even while it is busy. Server queues a `dream`
-inbox item (identity `dream:<agentId>:<Computer-local date>`, so one per night) for any
-configured, running Agent on that Computer, whether it has an active run, waiting work, a wake
-pause, or a backoff, then dispatches through the normal path. A stopped Agent is never queued a
-dream.
-
-From there a dream is an ordinary concrete inbox item: it takes its turn like a reminder or any
-other concrete item, busy notices reach its run, and settlement, failure, backoff, Stop, and
-requeue treat it like any other. Two rules are its own: the night's identity means it cannot
-queue twice, and a dream still queued four hours after it was requested has missed its night, so
-it is retired as `seen` instead of leading a run.
-
-The dream run is the one chatless run ([sessions.md](sessions.md)). Its whole input is an
-instruction Computer composes: Haus started the turn for the nightly dreaming pass per the Manual
-topic, the Agent posts nothing in chat about the dream itself, and messages that arrive meanwhile
-are handled normally. When the dream turn completes, Computer re-records the fingerprint, so the
-Agent's own dreaming edits never make the next dream due. Check, request, and baseline failures
-are logged as warnings and never stop the loop or fail a turn. There is no setting and no adjustable threshold.
-
-Each dream leaves a record members can read on the Agent's profile. When a dream run launches,
-Computer snapshots the text of `MEMORY.md` and every file under `notes/` (symlinks skipped; a
-file over 1 MiB, or one that is not UTF-8 text, is compared only by size and mtime or by digest).
-When the run settles, whatever its outcome, Computer diffs the two snapshots into per-file line
-counts and one unified patch whose hunk headers name the enclosing `## ` section, and sends it as
-an `agent-dream-record` frame just before the turn summary. A file's text leaves the patch past
-64 KiB, and the patch stops growing at 256 KiB; such files, and binary ones, keep a marker and no
-text. A dream that changed nothing still records, with no files. Server stores one row per dream
-run in `agent_dreams`, keeps the newest 60 per Agent, and serves them through `agent.dreams` and
-`agent.dream` ([Agents API](../docs/api/agents.md)). A record failure is logged and never fails
-the turn. A dream relaunched after a Computer restart records only what changed after the relaunch.
+The dream run is one of the chatless runs ([sessions.md](sessions.md)). It posts nothing in
+chat, and messages that arrive meanwhile are handled normally.
 
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
 automatic extraction pipeline, Computer-run memory rewrite, or separate Wiki primitive; dreaming is

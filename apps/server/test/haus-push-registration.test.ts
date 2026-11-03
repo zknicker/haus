@@ -74,13 +74,25 @@ test('registration needs a signed-in human and a well-formed device', async () =
 
     const stranger = await fixture.signIn('user_push_stranger', ['stranger@haus.test']);
     try {
-        await expect(
+        expect(
             stranger.trpc.push.registerDevice.mutate({
                 bundleId: 'chat.haus.ios',
                 environment: 'sandbox',
                 token: deviceToken('f6'),
             })
-        ).rejects.toMatchObject({ data: { code: 'FORBIDDEN' } });
+        ).resolves.toEqual({ ok: true });
+        expect(await devices()).toEqual([
+            {
+                bundle_id: 'chat.haus.ios',
+                environment: 'sandbox',
+                token: deviceToken('f6'),
+                user_id: fixture.harness.humans.userIdForSubject('user_push_stranger'),
+            },
+        ]);
+        await fixture.owner.trpc.push.unregisterDevice.mutate({ token: deviceToken('f6') });
+        expect(await devices()).toHaveLength(1);
+        await stranger.trpc.push.unregisterDevice.mutate({ token: deviceToken('f6') });
+        expect(await devices()).toEqual([]);
     } finally {
         stranger.close();
     }

@@ -80,10 +80,18 @@ test('a moved page answers to its new window: state, focus, popups, and menus', 
     contents.emit('focus');
     expect(sent(to, 'desktop:browser:focus')).toEqual(['a']);
 
-    contents.popup({ url: 'https://example.net/', disposition: 'foreground-tab' });
-    expect(sent(to, 'desktop:browser:open-request')).toEqual([
-        { background: false, openerId: 'a', url: 'https://example.net/' },
-    ]);
+    const popup = new FakeContents();
+    contents
+        .popup({ url: 'https://example.net/', disposition: 'foreground-tab' })
+        .createWindow({ webContents: popup });
+    const [request] = sent(to, 'desktop:browser:open-request');
+    expect(request).toMatchObject({
+        background: false,
+        openerId: 'a',
+        url: 'https://example.net/',
+    });
+    expect([...to.children].map((view) => view.webContents)).toContain(popup);
+    expect(from.children.size).toBe(0);
 
     const popups = [];
     services.Menu.buildFromTemplate = () => ({ popup: (options) => popups.push(options) });

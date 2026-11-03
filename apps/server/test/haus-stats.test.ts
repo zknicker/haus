@@ -74,7 +74,7 @@ beforeAll(async () => {
     });
     await member.trpc.invitation.accept.mutate({ token: invitation.token });
     const [ownerRow] = await harness.sql`
-        select id from users where clerk_user_id = 'user_stats_owner'
+        select id from users where auth_subject = 'user_stats_owner'
     `;
     await harness.sql`
         insert into computers (
@@ -216,15 +216,15 @@ test('Stats remain readable after the Server restarts', async () => {
     await harness.sql`update computers set health = 'healthy' where id = ${computerId}`;
     member.close();
     await harness.restart();
-    member = createHausClient(harness, await harness.clerk.mintSessionToken('user_stats_member'));
+    member = createHausClient(harness, await harness.humans.mintSessionToken('user_stats_member'));
 
     await expect(member.trpc.stats.live.query({ serverId })).resolves.toMatchObject({
         computers: [{ computerId, health: 'offline', usage: normalizedUsage }],
     });
 });
 
-async function signIn(clerkUserId: string, verifiedEmails: string[]) {
-    harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string, verifiedEmails: string[]) {
+    harness.humans.setVerifiedEmails(subject, verifiedEmails);
+    const token = await harness.humans.mintSessionToken(subject);
     return createHausClient(harness, token);
 }

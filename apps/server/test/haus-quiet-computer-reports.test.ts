@@ -22,7 +22,7 @@ const stopWatching = new AbortController();
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    await harness.sql`insert into users (id, clerk_user_id) values (${userId}, 'clerk_quiet_reports')`;
+    await harness.sql`insert into users (id, auth_subject) values (${userId}, 'cf_quiet_reports')`;
     await harness.sql`
         insert into servers (id, slug, display_name)
         values (${serverId}, 'quiet-reports', 'Quiet Reports')

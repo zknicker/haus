@@ -14,17 +14,17 @@ build number that increases for every upload. The app embeds one extension,
 communication notifications with the sender's avatar. Both bundles share one version and build:
 `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` are project-level settings. The checked-in XcodeGen project is canonical. The
 shared `assets/mac-icon.icon` Icon Composer source supplies the iPhone and App Store icon, and
-`assets/halloween-icon.icon` supplies the `halloween-icon` alternate icon the Settings App icon
-picker switches to.
+`assets/halloween-icon.icon` and `assets/christmas-icon.icon` supply the `halloween-icon` and
+`christmas-icon` alternate icons the Settings App icon picker switches to.
 
 ## One-time Apple setup
 
 Before the first upload, an Account Holder, Admin, or App Manager must:
 
 1. Accept pending App Store Connect agreements.
-2. Register the explicit App ID `chat.haus.ios` and enable Associated Domains for
-   `webcredentials:clerk.haus.chat`, Push Notifications ([iPhone Push](ios-push.md)), and
-   Communication Notifications. Saving a capability change invalidates the App ID's profiles;
+2. Register the explicit App ID `chat.haus.ios` and enable Push Notifications
+   ([iPhone Push](ios-push.md)) and Communication Notifications. Saving a capability change
+   invalidates the App ID's profiles;
    regenerate **Haus CI App Store** afterwards.
 3. Register the explicit App ID `chat.haus.ios.NotificationService` (description "Haus
    NotificationService") with no capabilities.
@@ -61,13 +61,13 @@ record or attempt according to the release record contract.
 
 When `ios` is `publish`, the single `Release` workflow runs the iOS target job after the release PR
 merges. The repository contains the compiled catalog in `assets/ios-icon`: the primary app icon,
-the `halloween-icon` alternate (compiled with `--alternate-app-icon`, so it ships only inside
-`Assets.car` with no loose PNGs), and the `LaunchGhost` launch image from
+the `halloween-icon` and `christmas-icon` alternates (compiled with `--alternate-app-icon`, so they
+ship only inside `Assets.car` with no loose PNGs), and the `LaunchGhost` launch image from
 `apps/ios-swift/Sources/HausApp/Launch.xcassets`. The archive excludes every catalog source and
 installs this one `Assets.car`, so an image that is not in it never ships. Its manifest records each
 icon source's digest, the launch catalog digest, the exact Xcode compiler build, and every output
 checksum. Source and artifact drift fails the release tests. Regenerate it with `bun run
-ios:prepare-icon` whenever either icon or the launch catalog changes.
+ios:prepare-icon` whenever any icon or the launch catalog changes.
 
 The stable-Xcode job verifies that the catalog contains the authored light, dark, tinted, specular,
 and 1024px renditions for every icon and the light and dark launch image, and that each
@@ -77,7 +77,12 @@ schema, so the source/artifact binding carries that part of the proof. The job e
 `.icon` from older `actool` and installs the committed catalog during the archive before signing.
 The canonical Info.plist owns the matching icon metadata, including the `CFBundleAlternateIcons`
 entry that `setAlternateIconName` requires, so Xcode's later plist processing cannot erase it; the
-archive check fails when either the primary or the alternate entry is missing. The artifact remains a compiled form of the canonical source, not a flattened fallback.
+archive check fails when the primary or any alternate entry is missing. The artifact remains a compiled form of the canonical source, not a flattened fallback.
+
+When a release publishes both iOS and Server, the Server publication job waits for the exact
+iPhone build to be processed (`VALID`) and unexpired. A pending or unavailable status stops
+Server publication before the database or deployed service changes. Retry the read-only status
+probe, then rerun only the Server publication job when ready; do not re-upload the iOS build.
 
 The stable job signs, archives, and uploads the exact version/build pair. Automatic signing uses
 Apple Development for the archive. CI then downloads the one active **Haus CI App Store** and
@@ -116,8 +121,8 @@ and system uptime for in-app timers (35F9.1). Its collected data types cover wha
 stores for app functionality: messages, photos, other attachments, name, email address, and user
 ID. Keep the App Store Connect privacy answers consistent with it. The Notification Service
 extension references no required-reason API and carries no manifest; re-check its binary with
-`nm -u` when it gains code. Clerk iOS 1.2.0 ships no manifest of its own; its telemetry runs only
-against development Clerk instances.
+`nm -u` when it gains code. Native OAuth uses Apple's AuthenticationServices and does not add an
+external authentication SDK or its telemetry.
 
 ## Credentials
 

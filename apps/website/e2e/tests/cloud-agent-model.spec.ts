@@ -157,7 +157,7 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
         session.databaseUrl,
         `update server_memberships set role = 'member'
          where server_id = '${server.id}'
-           and user_id = (select id from users where clerk_user_id = 'user_e2e_human')`
+           and user_id = (select id from users where id = 'usr_e2e_human')`
     );
     await page.reload();
     await expect(group.getByText('Claude Opus 5.5', { exact: true })).toBeVisible();

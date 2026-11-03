@@ -28,7 +28,14 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 - An Agent claims a message before doing any tool-using work on it. Claiming a message nobody had
   promoted promotes it, with `origin` `claimed` — distinct from a human's `converted` (Convert to
   Task) and `composed` (created as a task). A claim is a concurrency lock, so it fails closed
-  against a claim someone else holds.
+  against a claim someone else holds. An Agent's `haus task create --assignee @itself` is a claim
+  on a fresh message and is `claimed` too; `composed` and `converted` always mean a person made it.
+- A request that arrives inside a Thread is claimed there: the Thread message becomes the task, its
+  work surface is the Thread it already sits in, and its number comes from the Thread's parent
+  Channel or DM, so `Task #N` stays unique in that conversation. Only Agents claim Thread
+  messages; people create and convert tasks on top-level messages, and `haus task create` makes
+  top-level messages only.
+- Heartbeat runs cannot claim tasks; they claim leads ([heartbeat spec](../../specs/heartbeat.md)).
 - The Agent sets its own finished work `done`. It uses `in_review` only when the requester asked to
   sign off or a human decision is still pending, and says in the conversation what to check. The
   composed Agent prompt under `apps/computer/src/harness/` carries this rule and its tests.
@@ -167,7 +174,9 @@ metadata and reply previews together. Cloud Agent work delegated inside the Thre
 same card as compact informational rows.
 
 **Chat hides Agent claim metadata by default.** A task with `origin` `claimed` shows no task
-label unless the reader enables Show tasks in chat, even when its Thread has replies. The Thread
+label unless the reader enables Show tasks in chat, even when its Thread has replies. With the
+setting on, a Thread task's chip sits on its message inside that Thread; it has no Thread of its
+own, so it carries no reply count, and opening it opens the Thread it is in. The Thread
 card still shows its reply count and previews and opens normally. Human-created tasks (`composed`
 or `converted`) remain visible because a person made them deliberately. Tier remains a Board and
 List concern. The opened Thread still shows the full task metadata above its anchor.

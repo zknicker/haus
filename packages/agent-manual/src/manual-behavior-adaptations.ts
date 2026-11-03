@@ -32,6 +32,21 @@ export const manualBehaviorAdaptations = new Map<string, ReadonlyArray<readonly 
             ],
         ],
     ],
+    // A request inside a thread is claimed there by message id; Raft keeps claims top-level
+    // because its tasks once owned their Thread (specs/tasks.md, 2026-11-02).
+    [
+        'recipes/technique/task-claim-lock',
+        [
+            [
+                'If it is a regular top-level work request, claim by message id.',
+                'If it is a regular work request, top-level or in a thread, claim by message id at the target where it arrived.',
+            ],
+            [
+                'if the work already exists as a top-level message, always claim by message id;',
+                'if the work already exists as a message, top-level or in a thread, always claim by message id;',
+            ],
+        ],
+    ],
     [
         'recipes/archetype/patrol',
         [

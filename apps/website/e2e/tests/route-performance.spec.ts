@@ -140,7 +140,7 @@ test('Inbox labels stay mounted while its section code loads', async ({ page }) 
     await createTestServer(page, { displayName: 'Inbox performance', slug: 'inbox-performance' });
     try {
         await page.getByRole('row', { name: 'Inbox', exact: true }).click();
-        for (const name of ['Active this week', 'Unread', 'Happening now']) {
+        for (const name of ['Agents', 'Unread', 'Happening now']) {
             await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
         }
         await expect(page.getByText('All caught up.', { exact: true })).toHaveCount(0);

@@ -2,15 +2,12 @@ import Foundation
 
 enum HausRuntimeConfiguration {
     struct Development {
-        let clerkPublishableKey: String
         let serverOrigin: URL
         /// The dev stack's website origin, when the launch named one.
         let appOrigin: URL?
     }
 
-    private static let productionClerkPublishableKey = "pk_live_Y2xlcmsuaGF1cy5jaGF0JA"
     private static let productionServerOrigin = URL(string: "https://haus.chat")!
-    private static let cachedClerkPublishableKey = "haus.debug.clerk-publishable-key"
     private static let cachedServerOrigin = "haus.debug.server-origin"
     private static let cachedAppOrigin = "haus.debug.app-origin"
     private static let explicitSignOutKey = "haus.debug.explicit-sign-out"
@@ -19,7 +16,6 @@ enum HausRuntimeConfiguration {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
         if let configured = validatedDevelopment(
-            clerkPublishableKey: environment["HAUS_CLERK_PUBLISHABLE_KEY"],
             serverOrigin: environment["HAUS_DEV_SERVER_ORIGIN"],
             appOrigin: environment["HAUS_DEV_APP_ORIGIN"]
         ) {
@@ -29,7 +25,6 @@ enum HausRuntimeConfiguration {
 
         let defaults = UserDefaults.standard
         return validatedDevelopment(
-            clerkPublishableKey: defaults.string(forKey: cachedClerkPublishableKey),
             serverOrigin: defaults.string(forKey: cachedServerOrigin),
             appOrigin: defaults.string(forKey: cachedAppOrigin)
         )
@@ -61,10 +56,6 @@ enum HausRuntimeConfiguration {
         #endif
     }
 
-    static var clerkPublishableKey: String {
-        development?.clerkPublishableKey ?? productionClerkPublishableKey
-    }
-
     static var serverOrigin: URL {
         development?.serverOrigin ?? productionServerOrigin
     }
@@ -78,17 +69,9 @@ enum HausRuntimeConfiguration {
     }
 
     #if DEBUG
-    private static func validatedDevelopment(
-        clerkPublishableKey: String?,
-        serverOrigin: String?,
-        appOrigin: String?
-    ) -> Development? {
-        guard let clerkPublishableKey,
-              !clerkPublishableKey.isEmpty,
-              let serverOrigin = localOrigin(serverOrigin)
-        else { return nil }
+    private static func validatedDevelopment(serverOrigin: String?, appOrigin: String?) -> Development? {
+        guard let serverOrigin = localOrigin(serverOrigin) else { return nil }
         return Development(
-            clerkPublishableKey: clerkPublishableKey,
             serverOrigin: serverOrigin,
             appOrigin: localOrigin(appOrigin)
         )
@@ -98,14 +81,19 @@ enum HausRuntimeConfiguration {
         guard let origin = value.flatMap(URL.init(string:)),
               origin.scheme == "http",
               let host = origin.host,
-              ["localhost", "127.0.0.1", "::1"].contains(host)
+              ["localhost", "127.0.0.1", "::1"].contains(host),
+              origin.user == nil,
+              origin.password == nil,
+              origin.query == nil,
+              origin.fragment == nil,
+              origin.path.isEmpty || origin.path == "/"
         else { return nil }
         return origin
     }
 
     private static func cache(_ development: Development) {
         let defaults = UserDefaults.standard
-        defaults.set(development.clerkPublishableKey, forKey: cachedClerkPublishableKey)
+        defaults.removeObject(forKey: "haus.debug.clerk-publishable-key")
         defaults.set(development.serverOrigin.absoluteString, forKey: cachedServerOrigin)
         defaults.set(development.appOrigin?.absoluteString, forKey: cachedAppOrigin)
     }

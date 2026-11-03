@@ -1,104 +1,97 @@
 # Identity And Membership
 
-Haus users are real authenticated humans. Clerk is the identity provider;
-Haus mints its own user ids and keys everything on those. One Runtime is
-owned by one user and serves that owner plus invited members. This is
-greenfield: no adoption or migration flows exist — a runtime without an owner
-is simply unclaimed.
+Haus identifies a human with a stable canonical Haus User id. Cloudflare Access
+is the external identity provider; its signed subject is a unique external
+reference on that user. Names, avatars, and email are profile data and never
+choose or merge identities.
 
 ## Product boundary
 
-- A `user` is one authenticated human with a stable `haus user id`.
-  Clerk's user id is a unique external reference on the user record, never a
-  key anywhere else. Profile fields (name, avatar, email) are refreshable
-  snapshots from Clerk, never identity.
-- Each active membership may claim one Server-scoped handle. Human and Agent
-  handles share one case-insensitive namespace; display names remain separate
-  presentation and never become identity.
-- The Runtime is the tenant. There is no separate workspace/tenant record in
-  v1: membership, chats, agents, and settings all belong to the runtime.
-- A `member` is one user's standing on a runtime: role `owner` or `member`.
-  Exactly one owner exists. The explicit bind is `haus claim --clerk-key
-  <key> --user <clerk-user-id>` run on the runtime host — it configures
-  Clerk verification and records the owner in one step; the app's
-  connect-runtime page generates this command for the signed-in user. As a
-  convenience, a runtime that already has a Clerk key configured is also
-  claimed by the first verified user to connect. Ownership never transfers;
-  resetting means deleting the runtime database (greenfield).
-- Agents, model credentials, MCP connections, skills, secrets, and runtime
-  settings are owner-administered. Members converse; the owner runs the house.
+- `users.id` is the canonical Haus identity used by memberships, authorship,
+  Computer management, chats, preferences, and realtime authorization.
+- `users.auth_subject` stores the exact Cloudflare Access subject. It is unique
+  and is never used as a Haus resource id.
+- `user_verified_emails` stores the exact normalized verified-email aliases
+  accepted for a user. Email can confirm an invitation or a prevalidated import;
+  it cannot automatically link an unknown Cloudflare subject to a Haus User.
+- `users.email` is a display/contact snapshot refreshed from a signed Access
+  assertion. It is not an identity key.
+- A human handle lives on the active Server membership. Human and Agent handles
+  share one case-insensitive Server-scoped namespace; display names stay
+  presentation fields.
+- A member has role `owner` or `member`. Each Server has one Owner; its Owner
+  administers the Server, Computers, Agents, connections, and settings.
 
-## Ownership vs access
+Cloudflare Access is configured for Google identity and the approved Haus
+account. Public signup is disabled. A person is admitted only when their exact
+signed subject is already linked to a canonical Haus User and the assertion's
+verified email matches one of that user's stored aliases. No email-only lookup,
+fuzzy normalization, or provider-role claim can create or reassign a user.
 
-Single-owner does not mean single-user. The owner administers the runtime and
-supplies the compute and model credentials agents run on. Members are
-authenticated clients of that runtime: they join chats, talk to agents, and
-read shared history. Agent execution always runs under the owner's runtime,
-never under a member's credentials.
+The production identity import preserves canonical Haus ids and explicit
+legacy subject/email mappings. It is staged against the old schema before the
+auth migration. The migration fails if any User or Computer login owner is not
+mapped. A compact rollback map preserves the exact old subject mapping so the
+old Server schema can be restored if the candidate artifact cannot be
+activated.
 
-## Authentication
+## Authentication and sessions
 
-- Haus App requires sign-in. With no locally cached identity the app shows
-  only the sign-in gate.
-- The App attaches the Clerk session token to every server and Runtime
-  request. Runtime verifies tokens against Clerk's JWKS (cached), resolves
-  `clerk_user_id` to a user get-or-create, and rejects non-members.
-- Offline or Clerk-unreachable: the app renders local synced data on the
-  cached identity and re-verifies opportunistically. Forced re-auth happens
-  only on explicit sign-out or after 14 days without a successful
-  verification.
-- Sign-out detaches the app surface only. Runtime work (turns, automations,
-  cron) continues; it belongs to the runtime, not the session.
-- Keyless dev builds (`VITE_CLERK_PUBLISHABLE_KEY` absent) run a signed-out
-  dev mode with no gate; e2e and the mock runtime use this path. Packaged
-  builds bake the production publishable key and always gate.
+- Browser sign-in starts at `/auth/start`. The Server binds a short-lived state
+  and safe return route, then accepts a fresh Cloudflare Access assertion at
+  `/auth/complete` before creating a Haus session.
+- Native sign-in uses Cloudflare Managed OAuth with PKCE S256. The Server
+  brokers a one-use authorization code to the exact callback and state saved
+  by the native client.
+- The Server issues short-lived opaque Haus access tokens. It stores token
+  hashes, caps access at the signed assertion's expiry, and requires a fresh
+  assertion for every browser or native resume.
+- A resume credential may last up to 14 days, but cannot authorize a request by
+  itself. It must match the same Cloudflare subject and canonical Haus User on
+  a fresh admission.
+- Local sign-out revokes the stable Haus session immediately and closes its
+  WebSocket and SSE connections. Session expiry has no grace period.
+- The App sends only the Haus access token on Server APIs and sockets. Native
+  clients keep Cloudflare and Haus resume credentials in Keychain or
+  `safeStorage`; renderer code receives `AppSession` only.
+
+Computer login is a separate management credential. Its user and approval
+owners reference canonical Haus ids. The auth migration preserves existing
+Computer token hashes, refresh families, Computer attachment credentials,
+stable ids, and Computer wire protocol.
 
 ## Membership flow
 
-- The owner creates invites (single-use code or link) from settings.
-- A user signs in with Clerk, redeems an invite against the runtime, and
-  becomes a `member`. A signed-in non-member sees an invite-entry gate
-  instead of the app.
-- The owner can revoke membership; revocation closes that user's access
-  immediately. Their authored history remains.
-- The runtime token remains the owner's transport/bootstrap credential and
-  the escape hatch for headless administration. Members never hold it.
+- A Server Owner creates a single-use invitation bound to an email address.
+- The invited person must sign in with the prelinked Cloudflare identity whose
+  verified address exactly matches that invitation.
+- Acceptance creates or resets the membership into a fresh Member stint and
+  joins exactly `#all`.
+- Removing a member revokes access immediately. Authored history remains on
+  the canonical Haus User id.
+- Public signup and automatic email-based account linking are not supported.
 
 ## Data keying
 
-- Human authorship: messages, reads, receipts, reactions, and app
-  preferences key on `haus user id`. A user's haus id is their chat
-  participant id (`usr_…`). The server stamps the acting user resolved from
-  the request's Clerk session token.
-- Keyless dev/e2e builds may use the synthetic user id `usr_haus`; Agent-facing
-  identity still projects that membership's real Server handle, never `@operator`.
-- Owner-scoped surfaces keep single-operator actors for now: session
-  evidence views (`profile:self`), task work-order seeding, and
-  channel-relay ingress. They key per-user when those surfaces gain
-  member-facing semantics.
-- Externally observed identities (Discord, iMessage, …) remain
-  `participants` per [participants.md](participants.md). A member is not a
-  participant; no automatic linking between members and observed identities.
+- Human authorship, reads, receipts, reactions, and App preferences use the
+  canonical Haus User id (`usr_…`). The Server derives it from the persisted
+  Haus session, never from client input.
+- Every active membership may claim one Server-scoped handle. Display names do
+  not become identity and never link two records.
+- Externally observed identities (Discord, iMessage, …) remain `participants`
+  per [participants.md](participants.md). A member is not a participant; there
+  is no automatic linking between the two.
 - Read state is per user per chat. Channel membership is all members by
   default; DMs are visible to their human participants only. Every active
   Agent is an implicit private-DM peer for each active human membership, but
-  selecting that peer is app-local and creates no Chat. The first durable send
+  selecting that peer is App-local and creates no Chat. The first durable send
   materializes the id-bound human-membership-stint/Agent pair atomically.
-  This is
-  UI/API-level scoping, not encryption — the owner physically holds the
-  database and members must expect that.
+  This is UI/API-level scoping, not encryption — the Owner physically holds
+  the database and members must expect that.
 
-## Non-goals (v1)
+## Non-goals
 
-- Multiple owners or ownership transfer.
-- Multiple workspaces per runtime, or one user spanning runtimes with merged
-  state.
-- Member-supplied compute or model credentials (Raft-style "bring your own
-  agent" is a possible later layer).
-- Per-member agent permissioning beyond chat participation.
-
-## Open questions
-
-- Presence and typing indicators for multiple humans in one channel.
-- Whether members may start new channels.
-- Billing/spend visibility when members drive owner-credentialed agents.
+- Multiple Owners or ownership transfer.
+- Multiple workspaces per Haus User, or merged identity across Servers.
+- Member-supplied compute or model credentials.
+- Email-only identity lookup or automatic account merging.

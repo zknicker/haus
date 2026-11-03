@@ -9,6 +9,9 @@
 @import "./default-theme.css";
 @import "./themes/halloween-tokens.css";
 @import "./themes/halloween-decorations.css";
+@import "./themes/christmas-eve-tokens.css";
+@import "./themes/christmas-morning-tokens.css";
+@import "./themes/christmas-decorations.css";
 @import "../features/chats/chat.css";
 @import "../features/chats/reactions/reaction-stickers.css";
 @import "../features/shell/shell.css";
@@ -59,7 +62,7 @@
     }
 
     /*
-     * Text selection, the native rule (DESIGN.md → "Text selection").
+     * Text selection, the native rule (.design/guidelines.md → "Text selection").
      *
      * App chrome never selects: rows, tiles, labels, bands, tabs, menus and
      * buttons ignore click-drag, double-click and Shift-click, as in a Mac

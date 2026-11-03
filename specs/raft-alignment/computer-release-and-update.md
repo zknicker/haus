@@ -124,7 +124,7 @@ compatibility with previously published App builds, the installer still accepts 
 Setup reuses or refreshes the machine-local Computer login session. When login is needed, it opens
 the complete device URL in the default browser, always prints that URL and the short code for manual
 entry, and lets an interactive operator press Enter to retry the handoff. The command continues
-polling after Clerk-backed approval, attaches the selected Server with a persisted idempotency key,
+polling after Cloudflare-backed human approval, attaches the selected Server with a persisted idempotency key,
 and completes automatically. The browser distinguishes **Finishing the connection**
 from the final **Computer connected** state.
 

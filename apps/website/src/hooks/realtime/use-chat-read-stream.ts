@@ -16,7 +16,8 @@ type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat' | 'thread'>;
  * `chat.onRead` (the viewer's own reads). A Chat read refreshes `chat.list`;
  * a Thread read refreshes `thread.listUnread` and its anchor's summary
  * (per-viewer unread count) — a Thread is unread on its own (ADR 0043). Each
- * skips the list when its settled row already shows the read. `onEvent` hears
+ * skips the list when its settled row already shows the read; a read that
+ * moves a list also refreshes the Inbox's unread previews. `onEvent` hears
  * each live read (message notifications).
  */
 export function useChatReadStream(
@@ -36,6 +37,9 @@ export function useChatReadStream(
             coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.list, { serverId }) });
             coalescer.invalidate({
                 queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }),
+            });
+            coalescer.invalidate({
+                queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }),
             });
         }
     });
@@ -75,6 +79,8 @@ export function applyChatRead({
                     ? getQueryKey(hausTrpc.chat.list, { serverId })
                     : getQueryKey(hausTrpc.thread.listUnread, { serverId }),
         });
+        // A read short of the newest message leaves the row with fewer waiting messages.
+        coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
     }
     if (event.parentChatId && event.threadAnchorMessageId) {
         coalescer.noteMessageAnnotated({

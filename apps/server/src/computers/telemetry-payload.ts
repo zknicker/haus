@@ -1,6 +1,7 @@
 import { agentReasoningEffortSchema } from '@haus/api';
-import { dreamCheckOutcomes, dreamSkipReasons, type OtlpSignal } from '@haus/effect';
+import type { OtlpSignal } from '@haus/effect';
 import { z } from 'zod';
+import { isRelayableHeartbeatAttribute } from './telemetry-heartbeat-attributes.ts';
 import {
     metricsPayloadSchema,
     type TelemetryAttributes,
@@ -21,12 +22,9 @@ export interface TelemetryComputer {
 const spanNames = new Set([
     'haus.agent.turn',
     'haus.browser.operation',
-    'haus.dream.check',
+    'haus.heartbeat.check',
     'haus.mcp.operation',
 ]);
-const dreamOutcomes = new Set<string>(dreamCheckOutcomes);
-const dreamSkips = new Set<string>(dreamSkipReasons);
-const localDate = /^\d{4}-\d{2}-\d{2}$/u;
 const metricNames = new Set([
     'haus.operation.count',
     'haus.operation.duration',
@@ -227,12 +225,12 @@ function safeSpanAttributes(
                     return failures.has(value.stringValue ?? '');
                 case 'haus.reasoning.effort':
                     return agentReasoningEffortSchema.safeParse(value.stringValue).success;
-                case 'haus.dream.local_date':
-                    return localDate.test(value.stringValue ?? '');
-                case 'haus.dream.outcome':
-                    return dreamOutcomes.has(value.stringValue ?? '');
-                case 'haus.dream.skip_reason':
-                    return dreamSkips.has(value.stringValue ?? '');
+                case 'haus.heartbeat.kind':
+                case 'haus.heartbeat.local_date':
+                case 'haus.heartbeat.outcome':
+                case 'haus.heartbeat.skip_reason':
+                case 'haus.heartbeat.slot':
+                    return isRelayableHeartbeatAttribute(key, value.stringValue ?? '');
                 case 'haus.memory.bytes':
                     return /^\d{1,12}$/u.test(value.intValue ?? String(value.doubleValue));
                 case 'haus.turn.harness_ready_ms':

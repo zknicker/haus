@@ -50,7 +50,7 @@ async function seedChannel(agentNames = ['Ada', 'Bo']): Promise<Channel> {
     const userId = createOpaqueId('usr');
     const chatId = createOpaqueId('cht');
     const messageId = createOpaqueId('msg');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Routing', id: serverId, slug: createOpaqueId('slug') });
@@ -177,7 +177,7 @@ async function addHuman(channel: Channel) {
     const userId = createOpaqueId('usr');
     await connection.db
         .insert(usersTable)
-        .values({ clerkUserId: createOpaqueId('clk'), id: userId });
+        .values({ authSubject: createOpaqueId('clk'), id: userId });
     await connection.db.insert(serverMembershipsTable).values({
         id: createOpaqueId('mem'),
         role: 'member',

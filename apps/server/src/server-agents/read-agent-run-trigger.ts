@@ -21,7 +21,9 @@ export async function readAgentRunTrigger(
     await requireMemberAgent(db, member, input);
 
     const [row] = await readTriggerRows(db, member, { ...input, runIds: [input.runId] });
-    const [trigger = null] = await resolveAgentTurnTriggers(db, input.serverId, [row ?? null]);
+    const [trigger = null] = await resolveAgentTurnTriggers(db, viewerOf(member, input), [
+        row ?? null,
+    ]);
     return { trigger };
 }
 
@@ -39,9 +41,14 @@ export async function readAgentRunTriggers(
         return [];
     }
     const rows = await readTriggerRows(db, member, { ...input, runIds });
-    const triggers = await resolveAgentTurnTriggers(db, input.serverId, rows);
+    const triggers = await resolveAgentTurnTriggers(db, viewerOf(member, input), rows);
     const byRunId = new Map(rows.map((row, index) => [row.runId, triggers[index] ?? null]));
     return runIds.map((runId) => ({ runId, trigger: byRunId.get(runId) ?? null }));
+}
+
+/** Membership was required by the caller, so a null member never reaches here. */
+function viewerOf(member: HausUser | null, input: { serverId: string }) {
+    return { serverId: input.serverId, userId: member?.id ?? '' };
 }
 
 async function readTriggerRows(

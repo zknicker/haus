@@ -10,11 +10,11 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_attachment_owner')
+        await harness.humans.mintSessionToken('user_attachment_owner')
     );
     outsider = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_attachment_outsider')
+        await harness.humans.mintSessionToken('user_attachment_outsider')
     );
 });
 

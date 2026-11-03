@@ -16,11 +16,10 @@ const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const schemaItems = readSchemaItems(join(repositoryRoot, '.env.schema'));
 const deliveredSet = deliveredEnvironmentNames(repositoryRoot);
 
-// Required credentials and the native Bun flag, plus public app configuration.
+// Required credentials and the native Bun flag, plus public auth configuration.
 const productionFixture: NodeJS.ProcessEnv = {
     BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING: '1',
     HAUS_APP_ORIGIN: 'https://haus.example',
-    HAUS_CLERK_SECRET_KEY: 'sk_live_fixture',
     HAUS_DATABASE_URL: 'postgres://haus_runtime:fixture@127.0.0.1:5432/haus',
     HAUS_OPENAI_API_KEY: 'sk_live_avatar_fixture',
     HAUS_SERVER_PORT: '18791',
@@ -88,23 +87,23 @@ describe('the delivered-environment guard, against a rendered fixture', () => {
     });
 
     test('still fails when a delivered production-required name is absent', () => {
-        const { HAUS_CLERK_SECRET_KEY, ...withoutClerk } = productionFixture;
-        const guard = runGuard(renderFixture(withoutClerk));
+        const { HAUS_OPENAI_API_KEY, ...withoutOpenAi } = productionFixture;
+        const guard = runGuard(renderFixture(withoutOpenAi));
 
         expect(guard.exitCode).toBe(1);
         expect(guard.stderr.toString()).toContain(
-            'HAUS_CLERK_SECRET_KEY is required in production but is missing'
+            'HAUS_OPENAI_API_KEY is required in production but is missing'
         );
     });
 
     test('fails when a delivered production-required name arrives empty', () => {
         const target = renderFixture(productionFixture);
-        writeFileSync(target, "HAUS_CLERK_SECRET_KEY=''\nHAUS_DATABASE_URL='postgres://x'\n");
+        writeFileSync(target, "HAUS_OPENAI_API_KEY=''\nHAUS_DATABASE_URL='postgres://x'\n");
         const guard = runGuard(target);
 
         expect(guard.exitCode).toBe(1);
         expect(guard.stderr.toString()).toContain(
-            'HAUS_CLERK_SECRET_KEY is required in production but was delivered with an empty value'
+            'HAUS_OPENAI_API_KEY is required in production but was delivered with an empty value'
         );
     });
 
@@ -115,9 +114,8 @@ describe('the delivered-environment guard, against a rendered fixture', () => {
             )
             .map((candidate) => candidate.name);
 
-        expect(demanded).toContain('HAUS_CLERK_SECRET_KEY');
-        expect(demanded).toContain('HAUS_DATABASE_URL');
         expect(demanded).toContain('HAUS_OPENAI_API_KEY');
+        expect(demanded).toContain('HAUS_DATABASE_URL');
         expect(demanded).toContain('BUN_FEATURE_FLAG_DISABLE_SQL_AUTO_PIPELINING');
         expect(demanded).not.toContain('HAUS_DATABASE_MIGRATION_URL');
         expect(demanded).not.toContain('HAUS_POSTGRES_ADMIN_PASSWORD');

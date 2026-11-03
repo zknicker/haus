@@ -82,24 +82,34 @@ colored rim, the azure core that lights the body from behind the eyes, and the w
 pools opaque white along the right and lower-right silhouette so the tile reads as thick glass lit
 from the left — so tune the icon there; the sidebar mark never reads that profile. The App release job uses GitHub's `xcode-27` image
 because older Xcode versions cannot compile the current Icon Composer 2 source.
-`assets/halloween-icon.icon` is the Halloween theme's pumpkin tile. The same script compiles it
-with the same `actool` flow into `electron/icons/AppIcon-pumpkin.png` only (no `Assets.car`/ICNS);
-electron-builder ships it as `Resources/app-icons/AppIcon-pumpkin.png`, and
-`electron/dock-app-icon.cjs` swaps it into the running App's Dock. `release:check-desktop-artifacts`
-asserts the packaged copy matches the build.
+`assets/halloween-icon.icon` is the Halloween theme's pumpkin tile, rendered by
+`apps/website/scripts/render-icon-mesh-pumpkin.ts`, and `assets/christmas-icon.icon` is the
+Christmas themes' tile: the standard ghost's own layers under the in-app nightcap's cone, brim, and
+pom-pom, each rendered through the same mesh pipeline by
+`apps/website/scripts/render-icon-mesh-christmas.ts` (re-run it after the ghost's mesh changes).
+Its `icon.json` places the whole composition at 0.9× the standard tile's layer scales around the
+tile center, 40pt lower, so the hat's crown clears the top edge.
+The same build script compiles each with the same `actool` flow into
+`electron/icons/AppIcon-pumpkin.png` and `electron/icons/AppIcon-santa.png` only (no
+`Assets.car`/ICNS); electron-builder ships them under `Resources/app-icons/`, and
+`electron/dock-app-icon.cjs` swaps them into the running App's Dock.
+`release:check-desktop-artifacts` asserts each packaged copy matches the build.
 The web favicon set in `apps/website/public/` (`favicon.svg`, `favicon-32.png`,
 `favicon-192.png`, `apple-touch-icon.png`) is generated the same way, from the mark itself:
 `bun run icons:render-favicon` renders `HausGhost` to a standalone SVG and its rasters. The same
 run renders every other theme app icon's set with the same names under
-`apps/website/public/app-icons/<icon>/` (today `pumpkin`, from `HausPumpkin`), which
-`useThemeAppIcon` swaps in while that theme is active; commit both sets together.
+`apps/website/public/app-icons/<icon>/` (today `pumpkin`, from `HausPumpkin`, and `santa`, from
+`HausSantaGhost`), which `useThemeAppIcon` swaps in while that theme is active; commit every set
+together.
 The iOS app commits the full-fidelity compiled catalog under `assets/ios-icon`. It carries the ghost
-as the primary icon and `assets/halloween-icon.icon` as the `halloween-icon` alternate that iOS
-Settings' App icon picker selects. Its manifest binds the catalog to both canonical `.icon` sources,
-exact Xcode build, and output checksums. When either icon source changes, regenerate the catalog with `bun run ios:prepare-icon` under the Xcode build named
-in the manifest and commit both changes. Routine releases do not compile it again.
+as the primary icon and `assets/halloween-icon.icon` and `assets/christmas-icon.icon` as the
+`halloween-icon` and `christmas-icon` alternates that iOS Settings' App icon picker selects. Its
+manifest binds the catalog to every canonical `.icon` source, exact Xcode build, and output
+checksums. When any icon source changes, regenerate the catalog with `bun run ios:prepare-icon`
+under the Xcode build named in the manifest and commit both changes. Routine releases do not
+compile it again.
 
-The stable Xcode 26.6 job validates the committed artifact, rejects catalogs where either icon lacks
+The stable Xcode 26.6 job validates the committed artifact, rejects catalogs where any icon lacks
 light, dark, tinted, specular, or 1024px renditions, verifies that each checksum-bound Icon Composer
 source keeps an active refractive layer, then archives without recompiling the `.icon`.
 It installs the verified catalog before code signing and confirms that archive and export preserve

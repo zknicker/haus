@@ -70,15 +70,44 @@ export const agentDreamsInputSchema = agentDetailInputSchema.extend({
 
 export type AgentDreamsInput = z.infer<typeof agentDreamsInputSchema>;
 
+/** Who a follow-up is for: the author of the reminder's anchor message. */
+export const agentDreamFollowUpRequesterSchema = z
+    .object({
+        displayName: z.string(),
+        handle: z.string().nullable(),
+        kind: z.enum(['agent', 'human']),
+    })
+    .strict();
+
+export type AgentDreamFollowUpRequester = z.infer<typeof agentDreamFollowUpRequesterSchema>;
+
+/** A reminder the Agent set for itself while dreaming. */
+export const agentDreamFollowUpSchema = z
+    .object({
+        anchorChatId: idSchema,
+        fireAt: timestampSchema,
+        reminderId: idSchema,
+        /** Null when the anchor message or its author no longer exists. */
+        requester: agentDreamFollowUpRequesterSchema.nullable(),
+        title: z.string(),
+    })
+    .strict();
+
+export type AgentDreamFollowUp = z.infer<typeof agentDreamFollowUpSchema>;
+
 /** One dream in a list: when it ran and what it touched, without the patch. */
 export const agentDreamSummarySchema = z
     .object({
         added: z.number().int().nonnegative(),
         files: dreamFilesSchema,
         finishedAt: timestampSchema,
+        /** Reminders the Agent created during the run, derived at read. */
+        followUps: z.array(agentDreamFollowUpSchema),
         removed: z.number().int().nonnegative(),
         runId: idSchema,
         startedAt: timestampSchema,
+        /** The "what I learned" text from `haus heartbeat learned`; null when it wrote none. */
+        summary: z.string().nullable(),
         /** Memory held too many files to compare; `files` is empty. */
         truncated: z.boolean(),
     })

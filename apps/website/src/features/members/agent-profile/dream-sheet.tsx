@@ -9,6 +9,7 @@ import { useAgentDream } from '../../../hooks/members/use-agent-dreams.ts';
 import { formatShortTime } from '../../../lib/format.ts';
 import { formatDayLabel, formatTurnDuration } from './agent-turn-row-model.ts';
 import { dreamEmptyState, formatDreamHeadline, parseDreamPatch } from './dream-model.ts';
+import { DreamFollowUpsGroup, DreamSummaryGroup } from './dream-sheet-sections.tsx';
 
 /**
  * One dream's detail, in the same right sheet a Reminder or a Trigger opens in
@@ -50,6 +51,7 @@ export function DreamSheet({
                                 dream={dream.data}
                                 key={dream.data.runId}
                                 onClose={() => onOpenChange(false)}
+                                serverId={serverId}
                             />
                         ) : dream.data === null || dream.error ? (
                             <Sheet.Header>
@@ -68,19 +70,28 @@ export function DreamSheet({
     );
 }
 
-function DreamDetail({ dream, onClose }: { dream: AgentDreamDetail; onClose: () => void }) {
+function DreamDetail({
+    dream,
+    onClose,
+    serverId,
+}: {
+    dream: AgentDreamDetail;
+    onClose: () => void;
+    serverId: string;
+}) {
     const now = useRelativeNow();
+    const summary = dream.summary?.trim() || null;
     const hunks = React.useMemo(() => parseDreamPatch(dream.patch), [dream.patch]);
     const fileCount = dream.files.length;
     const emptyState = dreamEmptyState(dream);
     const durationMs = Date.parse(dream.finishedAt) - Date.parse(dream.startedAt);
+    const fileHeadline = formatDreamHeadline(dream.files, hunks, dream.truncated);
 
     return (
         <>
             <Sheet.Header>
-                <Sheet.Heading>
-                    {formatDreamHeadline(dream.files, hunks, dream.truncated)}
-                </Sheet.Heading>
+                {/* With a summary the heading stays short; the file headline moves under Memory changes. */}
+                <Sheet.Heading>{summary ? 'Dream' : fileHeadline}</Sheet.Heading>
                 <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 text-muted text-sm tabular-nums leading-5">
                     <span>
                         {`${formatDayLabel(new Date(dream.startedAt), now)} at ${formatShortTime(dream.startedAt)} · ${formatTurnDuration(durationMs)} · ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`}
@@ -90,10 +101,30 @@ function DreamDetail({ dream, onClose }: { dream: AgentDreamDetail; onClose: () 
             </Sheet.Header>
             <Sheet.Body>
                 <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
-                    {emptyState ? <p className="text-muted text-sm">{emptyState}</p> : null}
-                    {dream.files.map((file) => (
-                        <DreamFileDiff file={file} hunks={hunks.get(file.path)} key={file.path} />
-                    ))}
+                    {summary ? <DreamSummaryGroup summary={summary} /> : null}
+                    {dream.followUps.length > 0 ? (
+                        <DreamFollowUpsGroup followUps={dream.followUps} serverId={serverId} />
+                    ) : null}
+                    <ItemCardGroup variant="transparent">
+                        <ItemCardGroup.Header>
+                            <ItemCardGroup.Title>Memory changes</ItemCardGroup.Title>
+                            {summary ? (
+                                <ItemCardGroup.Description>
+                                    {fileHeadline}
+                                </ItemCardGroup.Description>
+                            ) : null}
+                        </ItemCardGroup.Header>
+                        <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
+                            {emptyState ? <p className="text-muted text-sm">{emptyState}</p> : null}
+                            {dream.files.map((file) => (
+                                <DreamFileDiff
+                                    file={file}
+                                    hunks={hunks.get(file.path)}
+                                    key={file.path}
+                                />
+                            ))}
+                        </div>
+                    </ItemCardGroup>
                 </div>
             </Sheet.Body>
             <Sheet.Footer>

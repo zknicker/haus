@@ -1,5 +1,6 @@
 'use strict';
 
+const { randomUUID } = require('node:crypto');
 const { captureBrowserPage } = require('./browser-capture.cjs');
 const { browserUrl } = require('./browser-url.cjs');
 const { findInPage, runPageAction, stopFindInPage } = require('./browser-page-actions.cjs');
@@ -15,11 +16,14 @@ const { waitForSkoolSession } = require('./skool-login.cjs');
 const maxViews = 20;
 
 /**
- * One window's web views (ADR 0039). The App names every view (`open` with a
- * `viewId`), places the visible ones with `setLayout`, and owns all tab
+ * One window's web views (ADR 0039). The App names the views it opens (`open`
+ * with a `viewId`), places the visible ones with `setLayout`, and owns all tab
  * selection; views keep only their live pages. A page's own links and popups
- * do not open views here: they ask the App (`desktop:browser:open-request`),
- * which places the new tab and then opens its view.
+ * ask the App for a tab (`desktop:browser:open-request`). Chromium opens the
+ * popup page itself so it keeps its opener; that view is named here and the
+ * request carries its `viewId`, so the App's tab adopts the live page. A page
+ * that closes itself leaves, and the App closes its tab
+ * (`desktop:browser:closed`).
  *
  * `page` carries the page-facing Electron services: `Menu` and `clipboard` for
  * the context menu, `openExternal` for mail links, and `inspect` (development
@@ -50,15 +54,58 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page,
         ]);
     const isPlaced = (id) => placements.some((placement) => placement.viewId === id);
     const focusedId = () => placements.find((placement) => placement.focused)?.viewId ?? null;
-    /** Asks the App to open `url` in a new tab beside `openerId` (null: the App window itself). */
-    const requestOpen = (url, openerId, { background = false } = {}) =>
-        send('desktop:browser:open-request', { url: browserUrl(url), openerId, background });
+    /**
+     * Asks the App to open `url` in a new tab beside `openerId` (null: the App window itself),
+     * showing the live popup view `viewId` (null: the App names and opens a view).
+     */
+    const requestOpen = (url, openerId, { background = false } = {}, viewId = null) =>
+        send('desktop:browser:open-request', {
+            url: browserUrl(url),
+            openerId,
+            background,
+            viewId,
+        });
+    /** `options` may name a session or carry a popup's `webContents` (`createBrowserView`). */
+    const add = (viewId, url, options) => {
+        const entry = createBrowserView(hostFor(viewId), url, {
+            WebContentsView,
+            browserSession,
+            page,
+            ...options,
+        });
+        views.set(viewId, entry);
+        window.contentView.addChildView(entry.view);
+        layout();
+        publish();
+        return entry;
+    };
+    /** Electron's `createWindow` for a page's popup; null when no tab can take one. */
+    const openPopup = (openerId, url, options) => {
+        if (!mounted || views.size >= maxViews) {
+            return null;
+        }
+        return ({ webContents }) => {
+            const viewId = randomUUID();
+            const entry = add(viewId, url, { webContents });
+            requestOpen(url, openerId, options, viewId);
+            return entry.view.webContents;
+        };
+    };
+    /** The page closed itself: its view leaves and the App closes the tab showing it. */
+    const closed = (viewId, entry) => {
+        if (views.get(viewId) === entry) {
+            detach(viewId);
+            send('desktop:browser:closed', viewId);
+        }
+    };
     /** The window-facing side of one view: everything its page listeners reach (`createBrowserView`). */
     const hostFor = (viewId) => ({
         window,
         isLive: (entry) => views.get(viewId) === entry,
         publish,
         requestOpen: (target, options) => requestOpen(target, viewId, options),
+        openPopup: (target, options) => openPopup(viewId, target, options),
+        onClosed: (entry) => closed(viewId, entry),
         // Keys pressed inside a page act on that page, whichever pane the App has focused.
         runShortcut: (action) => runBrowserWindowAction(window, scopedTo(viewId), action),
         onFocus: () => send('desktop:browser:focus', viewId),
@@ -70,16 +117,7 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page,
         if (views.size >= maxViews) {
             throw new Error('Close a browser tab before opening another.');
         }
-        const entry = createBrowserView(hostFor(viewId), url, {
-            WebContentsView,
-            browserSession: selectedSession,
-            page,
-        });
-        views.set(viewId, entry);
-        window.contentView.addChildView(entry.view);
-        layout();
-        publish();
-        void entry.load();
+        void add(viewId, url, { browserSession: selectedSession }).load();
     };
     /** Takes a view out of this window, page alive; null when it is not here. */
     const detach = (id) => {
@@ -87,8 +125,9 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page,
         if (!entry) {
             return null;
         }
-        // Losing the focused page would leave App shortcuts dead until a click.
-        const hadFocus = entry.view.webContents.isFocused();
+        // Losing the focused page would leave App shortcuts dead until a click. A page that
+        // closed itself has no contents left.
+        const hadFocus = entry.view.webContents?.isFocused() === true;
         window.contentView.removeChildView(entry.view);
         views.delete(id);
         if (hadFocus && !window.webContents.isDestroyed()) {
@@ -184,12 +223,11 @@ function createBrowserWorkspace(window, { WebContentsView, browserSession, page,
     };
     window.on('resize', layout);
     window.on('closed', () => {
-        for (const entry of views.values()) {
-            if (!entry.view.webContents.isDestroyed()) {
-                entry.view.webContents.close();
-            }
-        }
+        const entries = [...views.values()];
         views.clear();
+        for (const entry of entries) {
+            entry.view.webContents.close();
+        }
     });
     window.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
         if (isMainFrame && !isInPlace) {

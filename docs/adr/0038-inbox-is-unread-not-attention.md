@@ -20,6 +20,10 @@ Amended 2026-10-11 by [ADR 0043](0043-threads-are-unread-on-their-own.md): Threa
 roll up into the parent Chat's `unreadCount`; unread Threads are their own Unread rows and count
 toward the badge.
 
+Amended 2026-10-29 by [ADR 0050](0050-the-inbox-renders-what-is-waiting.md): Unread rows render
+their waiting messages with an inline reply, seeing a card never reads it, and the week's Agents
+move to a ranked rail beside the feed.
+
 ## Context
 
 ADR 0037 gave the Inbox a **Needs you** tier above unread: one row per Chat holding addressing the

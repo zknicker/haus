@@ -6,8 +6,8 @@ import {
     endChatEngagement,
 } from '../agent-delivery/chat-engagement-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
-import { inferMessageCause } from '../automations/infer-message-cause.ts';
-import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
+import { resolveAgentMessageCause } from '../automations/infer-message-cause.ts';
+import { MessageCauseError } from '../automations/message-cause.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { InvalidInlineReplyError } from '../chats/reply-context.ts';
 import { sendAgentMessage } from '../chats/send-agent-message.ts';
@@ -66,16 +66,11 @@ export function registerAgentMessageSendRoute(
                 // borrowed fire id is refused outright, never held. Without an
                 // explicit `--cause`, a sole served fire answered in its anchor
                 // Chat is inferred instead.
-                const cause = input.cause
-                    ? {
-                          attribution: 'explicit' as const,
-                          fire: await resolveMessageCause(tx, {
-                              agentId: runner.agentId,
-                              cause: input.cause,
-                              serverId: runner.serverId,
-                          }),
-                      }
-                    : await inferMessageCause(tx, { ...runner, chatId });
+                const cause = await resolveAgentMessageCause(tx, {
+                    ...runner,
+                    cause: input.cause,
+                    chatId,
+                });
                 const prepared = await prepareAgentSend(tx, runner, chatId, input);
                 if (prepared.kind === 'held') {
                     return { kind: 'held' as const, response: prepared.response };

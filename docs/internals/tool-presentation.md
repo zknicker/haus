@@ -66,7 +66,7 @@ step quiet, and a failure or warning paints danger or warning over any hue. Labe
 An unread turn's overview segments come from its Computer outline, whose tool steps carry the
 `toolKind` that `readExecutionToolKind` in `@haus/api` assigns, the same classifier the trace
 uses, so an unread turn colors its calls as a read one does (tokens in `product-tokens.css`,
-palette in `DESIGN.md`). Bookkeeping is shared the same way: `isExecutionBookkeeping` in
+palette in `.design/guidelines.md`). Bookkeeping is shared the same way: `isExecutionBookkeeping` in
 `@haus/api` (a script of only `haus` CLI calls once `cd`/`echo` setup is set aside, a native
 message send, or root `MEMORY.md` upkeep) sets the trace's `isBookkeeping` and the outline's
 `bookkeeping` step kind, and both test against `@haus/api/execution-bookkeeping-fixtures`. A
@@ -224,7 +224,7 @@ settled outlines reused across days and revisits and never read again, missing o
 read again the next time the query runs. An opened turn's journal marks replace its outline's.
 
 Row labels stay in sentence case. Body sections are named on the one micro-label tier
-(`DESIGN.md` → Turn trace); `default-theme.css` moves stock `ChatTool`'s own section labels
+(`.design/guidelines.md` → Turn trace); `default-theme.css` moves stock `ChatTool`'s own section labels
 from an off-scale 10px onto that tier's `xs` step.
 
 ## Rules

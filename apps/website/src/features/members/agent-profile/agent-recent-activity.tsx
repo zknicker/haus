@@ -40,7 +40,8 @@ export function AgentRecentActivity({
             groupAgentActivityTurns(activity.events, settledTurns.data ?? []),
             activity.runTriggers
         ),
-        recentRowLimit
+        recentRowLimit,
+        { foldHeartbeats: true }
     );
 
     const isPending = activity.isPending || settledTurns.isPending;

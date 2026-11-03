@@ -202,7 +202,7 @@ _Avoid_: Agent proxy credential, external Agent credential, Computer credential,
 A revocable, machine-local human session bound to one Haus origin and used by Haus Computer to
 discover and manage Computers across the signed-in User's Servers. It never authenticates Agent
 execution or grants Chat access.
-_Avoid_: Clerk browser session, Computer credential, Agent session, provider login
+_Avoid_: Browser login, Computer credential, Agent session, provider login
 
 **Computer credential**:
 A revocable credential issued by one Haus server when an authorized Computer login session
@@ -214,12 +214,12 @@ _Avoid_: Human session, Agent credential, provider credential, shared Runtime to
 **Server member**:
 A human User or Agent with standing access to one Haus server. Server membership governs
 server-wide identity and role; participation in a specific Chat is a separate relationship.
-_Avoid_: Hosted Server member, Chat participant, Clerk user, Computer, external actor
+_Avoid_: Hosted Server member, Chat participant, Computer, external actor
 
 **User**:
-A persistent human identity in Haus that may hold membership in multiple Haus servers. Clerk
-authenticates the human and supplies an external identity reference but does not own the User.
-_Avoid_: Server member, Chat participant, Clerk user, local operator
+A persistent human identity in Haus that may hold membership in multiple Haus servers. Sign-in
+establishes the human's external identity but does not own or replace the Haus User.
+_Avoid_: Server member, Chat participant, local operator
 
 **Server role**:
 A human Server member's authority within one Haus server: Member, Admin, or Owner. A Haus
@@ -228,10 +228,10 @@ carry no Server role.
 _Avoid_: Chat role, agent specialty, global user role, Agent role
 
 **Server invite**:
-A Server-owned, email-bound, single-use invitation that lets one Clerk-authenticated human become a
+A Server-owned, email-bound, single-use invitation that lets one authenticated human become a
 Member of one Haus server before it expires. Administrative roles are assigned only after the
 human joins.
-_Avoid_: Clerk invitation, reusable join link, Server membership
+_Avoid_: Reusable join link, Server membership
 
 **Agent**:
 A persistent non-human Server member whose collaboration identity belongs to one Haus server.
@@ -651,11 +651,28 @@ loaded into that agent's prompt and refreshed from Memory by background workers.
 _Avoid_: root-level briefing files, Vault page
 
 **Dreaming**:
-An Agent's own periodic memory consolidation pass over `MEMORY.md` and recently changed `notes/`,
-run overnight as its own private, chatless dream turn that Computer requests when memory changed
-and Server starts only for an idle, running Agent (Manual topic
-`recipes/technique/memory-hygiene`). The Agent does the work; nothing rewrites memory for it.
+The nightly heartbeat: an Agent's own memory consolidation, run once per night as a private,
+chatless dream turn in a throwaway session. It reflects on the day, consolidates `MEMORY.md` and
+`notes/` (Manual topic `recipes/technique/memory-hygiene`), follows up dropped promises, and writes
+a summary. The Agent does the work; nothing rewrites memory for it.
 _Avoid_: Tidy pass, nightly memory review, background extraction, compaction
+
+**Heartbeat**:
+A daytime check-in: a chatless run, every three hours from 08:00 to 20:00 Computer-local, in a
+throwaway session. It catches up on the Chats the Agent took part in, follows leads, and files at
+most one heartbeat report; it posts nothing in a Chat. Skipped while the Agent is busy, and it
+yields to a message addressed to the Agent. Spec: `specs/heartbeat.md`.
+_Avoid_: Ping, poll, cron, scout
+
+**Heartbeat report**:
+The one report a heartbeat run files, queued as a chatless inbox item for the Agent's main session.
+The main session decides whether anyone hears it.
+_Avoid_: Notification, alert, digest
+
+**Lead**:
+A shared, Server-owned claim on a question or thread an Agent is researching, so two Agents do not
+research the same thing. Claimed for seven days, kept fourteen; a finished lead records its finding.
+_Avoid_: Task, ticket, claim (alone)
 
 **Charts**:
 The Widget family for agent-authored chart displays.

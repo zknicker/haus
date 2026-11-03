@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { createHausContextFactory } from '../src/haus-api/context.ts';
+import { createHausContextFactory, type HausContextDependencies } from '../src/haus-api/context.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -18,22 +18,18 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('Server requests keep the Clerk session on the request context', () => {
-    const createContext = createHausContextFactory({
-        clerkSessions: unavailable('Clerk session verification'),
-        avatarImageService: unavailable('avatar image generation'),
-        hausDb: unavailable('the Haus PostgreSQL database'),
-    });
+test('Server requests keep the Haus access session on the request context', () => {
+    const createContext = createHausContextFactory(unavailable<HausContextDependencies>());
 
     const context = createContext({
-        req: { headers: { authorization: 'Bearer clerk-session-from-one-human' } },
+        req: { headers: { authorization: 'Bearer haus-access-token' } },
     });
 
-    expect(context.clerkSessionToken).toBe('clerk-session-from-one-human');
+    expect(context.sessionToken).toBe('haus-access-token');
 });
 
 test('concurrent humans each see only their own Servers', async () => {
-    const [ada, grace] = await Promise.all([signIn('user_clerk_ada'), signIn('user_clerk_grace')]);
+    const [ada, grace] = await Promise.all([signIn('cf:ada-human'), signIn('cf:grace-human')]);
 
     await Promise.all([
         ada.trpc.server.create.mutate({ displayName: 'Ada HQ', slug: 'ada-hq' }),
@@ -62,8 +58,8 @@ function unavailable<T extends object>(subject: string): T {
     });
 }
 
-async function signIn(clerkUserId: string) {
-    const token = await harness.clerk.mintSessionToken(clerkUserId);
+async function signIn(subject: string) {
+    const token = await harness.humans.mintSessionToken(subject);
     const client = createHausClient(harness, token);
 
     openClients.push(client);

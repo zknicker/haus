@@ -25,7 +25,7 @@ Pushing publishes to every member of the Server. What someone shared with you in
 
 ## Pull, edit, push
 
-\`haus files pull <folder>\` copies the folder into \`./<folder-name>\` (or a local path you name) with its subfolders; \`pull <file>\` copies one file. Edit the copies like any workspace file. Pull records what it fetched in \`.haus-artifacts.json\`. It is bookkeeping: do not edit or push it. Pulled copies take space in your workspace, and new macOS workspaces have finite capacity, so remove copies you are done with.
+\`haus files pull <folder>\` copies the folder into \`./<folder-name>\` (or a local path you name) with its subfolders; \`pull <file>\` copies one file. Edit the copies like any workspace file. Pull records what it fetched in \`.haus-artifacts.json\`. It is bookkeeping: do not edit or push it. Pulled copies use the Computer's shared disk space, so remove copies you are done with.
 
 \`haus files push <local-file-or-folder>\` shares them: a new file is created, a changed file becomes a new revision, and an unchanged file is skipped. A new file goes to the path in Files you name (\`push ./report.md reports/q4.md\`), or into the folder it was pulled with, or under the pushed folder's name. Give files their real extension (\`report.md\`, \`chart.png\`); the content type is inferred from it. \`--dry-run\` shows the plan first. Push skips symlinks, \`.git\`, \`node_modules\`, \`__pycache__\`, and \`.DS_Store\`. Rerunning a push is safe, including after ARTIFACT_PUBLISH_UNCONFIRMED: it reuses request ids, so nothing is published twice. The default limit is 256 MiB per file; production uploads to haus.chat are limited to 100 MB.
 

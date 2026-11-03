@@ -30,7 +30,7 @@ export interface SubscriptionRestartOptions {
     onChatMissing: () => void;
     /** `membership_lost`: final for every stream of the Server. */
     onMembershipLost: () => void;
-    /** `UNAUTHORIZED`: refresh the session token; false when Clerk confirms sign-out. */
+    /** `UNAUTHORIZED`: refresh the App session; false when Haus confirms sign-out. */
     refreshSession: () => Promise<boolean>;
     report: (message: string, error: unknown) => void;
     schedule: (run: () => void, delayMs: number) => ReturnType<typeof setTimeout>;

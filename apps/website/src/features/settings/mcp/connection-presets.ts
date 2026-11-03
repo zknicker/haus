@@ -68,6 +68,11 @@ export const connectionPresets: readonly ConnectionPreset[] = [
         name: 'Factory',
     },
     {
+        description: 'Create designs, generate images, and render product mockups.',
+        id: 'kittl',
+        name: 'Kittl',
+    },
+    {
         description: 'Search and read public posts on X.',
         id: 'x',
         name: 'X',

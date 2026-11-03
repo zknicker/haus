@@ -1,3 +1,7 @@
+// The attentions with no Chat (dream, heartbeat, heartbeat report, sub-agent wake) are a
+// first-party contract; `@haus/api` owns the list.
+import { chatlessInboxSources } from '@haus/api';
+
 /**
  * Which inbox items ride the concrete lane. A concrete item's envelope is
  * composed into the run's own first prompt and is served the moment the
@@ -18,6 +22,8 @@ export const concreteInboxSources = [
     'reminder',
     'task_assignment',
     'dream',
+    'heartbeat',
+    'heartbeat_report',
     'subagent',
     'linear_session',
     'linear_session_automated',
@@ -37,18 +43,17 @@ export const bodilessInboxSources = [
     'cloud_agent_work',
     'trigger_problem',
     'image_generation_failed',
-    'dream',
-    'subagent',
+    ...chatlessInboxSources,
     'linear_session',
     'linear_session_automated',
 ] as const;
 
 /**
  * Concrete attentions no busy notice, unread digest, or `haus inbox check` lists,
- * because each leads its own run: Cove's bootstrap, a `dream`, and a `subagent` wake,
+ * because each leads its own run: Cove's bootstrap, and the chatless attentions,
  * which have no Chat to list them under.
  */
-export const noticelessInboxSources = ['onboarding', 'dream', 'subagent'] as const;
+export const noticelessInboxSources = ['onboarding', ...chatlessInboxSources] as const;
 
 export function isNoticelessInboxSource(source: string): boolean {
     return (noticelessInboxSources as readonly string[]).includes(source);

@@ -1,5 +1,8 @@
 # Results: October 2026 idle traffic pass
 
+Historical measurement from the Clerk runtime. Current session lifetimes and
+Google sign-in follow the Cloudflare/Haus session contract.
+
 `scripts/perf/idle-network.mjs`, 180 s windows after a 15 s settle, dev stack with the live demo
 Computer. Web runs are prod bundles in installed Chrome; Electron runs the dev bundle. Counts are
 HTTP tRPC procedures per minute (requests per minute in parentheses where recorded). Before is

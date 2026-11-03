@@ -14,7 +14,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
     assertOpaqueId(chatId);
     const ownerUserId = runPsql(
         session.databaseUrl,
-        "select id from users where clerk_user_id = 'user_e2e_human'"
+        "select id from users where id = 'usr_e2e_human'"
     );
     assertOpaqueId(ownerUserId);
     const inventory = {

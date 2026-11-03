@@ -32,7 +32,7 @@ header, and the `+` action on the Agents section header of Settings →
 Members.
 
 The supported runtimes are Codex, Claude Code, and Grok Build. Pi is retired: migration
-`0099_retire-pi-runtime` moved every Agent configured on Pi to Claude Code when its Computer
+`0104_retire-pi-runtime` moved every Agent configured on Pi to Claude Code when its Computer
 reports it (otherwise the Computer's first other reported runtime, or Claude Code when the
 Computer never reported), with that runtime's first model.
 

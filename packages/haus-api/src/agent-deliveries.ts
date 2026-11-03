@@ -3,6 +3,17 @@ import { agentDetailInputSchema } from './agent.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 /**
+ * Inbox sources with no Chat: the nightly dream, a daytime heartbeat, a heartbeat's
+ * report to the main session, and the sub-agent wake. Each leads its own chatless run
+ * (specs/heartbeat.md), and the Server schema's chat checks name exactly these sources.
+ */
+export const chatlessInboxSources = ['dream', 'heartbeat', 'heartbeat_report', 'subagent'] as const;
+
+export function isChatlessInboxSource(source: string): boolean {
+    return (chatlessInboxSources as readonly string[]).includes(source);
+}
+
+/**
  * One durable delivery of one unit of work to one Agent. `seen` rows are
  * retained after settlement with the `turnId` that consumed them, so an
  * observer can tell "the Agent never received it" from "the Agent received it
@@ -12,7 +23,7 @@ export const agentDeliveryRecordSchema = z
     .object({
         acceptedAt: timestampSchema.nullable(),
         agentId: idSchema,
-        /** Null only for a `dream` or `subagent` wake, the deliveries with no Chat. */
+        /** Null only for a chatless source: `dream`, `heartbeat`, `heartbeat_report`, `subagent`. */
         chatId: idSchema.nullable(),
         createdAt: timestampSchema,
         /** Null for typed work that carries no Chat message. */
@@ -26,16 +37,10 @@ export const agentDeliveryRecordSchema = z
     })
     .strict()
     .refine((record) => (record.chatId === null) === isChatlessInboxSource(record.source), {
-        message: 'Only a dream or sub-agent wake delivery is chatless.',
+        message:
+            'Only a dream, heartbeat, heartbeat report, or sub-agent wake delivery is chatless.',
         path: ['chatId'],
     });
-
-/** Inbox sources with no Chat: the nightly dream and the sub-agent wake. */
-export const chatlessInboxSources = ['dream', 'subagent'] as const;
-
-export function isChatlessInboxSource(source: string): boolean {
-    return (chatlessInboxSources as readonly string[]).includes(source);
-}
 
 export type AgentDeliveryRecord = z.infer<typeof agentDeliveryRecordSchema>;
 

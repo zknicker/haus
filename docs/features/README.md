@@ -20,7 +20,6 @@ implementation ownership, and runtime details live under
 | Context management | [Context management](context-management.md) |
 | Dreams | [Dreams](dreams.md) |
 | Rich references | [Rich references](rich-references.md) |
-| Clarifications | [Clarifications](clarifications.md) |
 | Tasks | [Tasks](tasks.md) |
 | Activity | [Activity](activity.md) |
 | Reminders | [Reminders](reminders.md) |

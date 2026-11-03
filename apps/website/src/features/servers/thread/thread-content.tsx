@@ -2,6 +2,7 @@ import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import * as React from 'react';
 import {
     MessageScroller,
+    MessageScrollerButton,
     MessageScrollerContent,
     MessageScrollerItem,
     MessageScrollerProvider,
@@ -22,15 +23,9 @@ import {
     chatFooterClearanceClassName,
 } from '../../chats/chat-footer-surface.tsx';
 import { getTranscriptEntrySequences } from '../../chats/chat-read-visibility.ts';
-import type {
-    ConversationMessageLayout,
-    TranscriptEntry,
-} from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
-import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
-import { useEntityTranscriptEntry } from '../../chats/use-entity-transcript-entry.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ChatSendScroll } from '../chat/chat-send-scroll.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
@@ -40,8 +35,10 @@ import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
 import { ThreadContentComposer } from './thread-content-composer.tsx';
 import { threadConversationEntries } from './thread-conversation.ts';
 import { ThreadConversationHistory } from './thread-conversation-history.tsx';
+import { ThreadEntryView } from './thread-entry-view.tsx';
 import { ThreadReadTracker } from './thread-read-tracker.tsx';
 import { threadTitles } from './thread-target.ts';
+import { threadWorkTask } from './thread-work-task.ts';
 
 const noReplies: readonly ChatMessageLayout[] = [];
 
@@ -61,6 +58,7 @@ export function ThreadContent({
     readOnly,
     summary,
     takeover,
+    taskMessage,
     turnDetailsAccess,
     width,
 }: {
@@ -88,6 +86,8 @@ export function ThreadContent({
     readOnly: boolean;
     summary: ThreadSummary | null;
     takeover: boolean;
+    /** The Task this Thread was opened on when its message sits inside the Thread. */
+    taskMessage?: ChatMessage | null;
     turnDetailsAccess: 'journal' | 'summary';
     width: number | null;
 }) {
@@ -99,6 +99,9 @@ export function ThreadContent({
     const inline = useThreadInlineReplies(chat.serverId, chat.id, anchor.id);
     const inlineMessages = inline.messages;
     const replies = messages.data?.entries ?? noReplies;
+    // The anchor renders before its replies load and fits on screen, so
+    // following from the start would chase the replies to the bottom.
+    const followsReplies = threadChatId === undefined || messages.data !== undefined;
     const anchorLayout = React.useMemo(() => toChatMessageLayout(anchor), [anchor]);
     const follow = useThreadFollow({ chatId: chat.id, messageId: anchor.id });
     const humans = useHumanDirectory(chat.serverId);
@@ -106,7 +109,8 @@ export function ThreadContent({
     const titles = threadTitles(chat, anchor.id, humans);
     // A task Thread is the task's work surface, so its header names the task
     // rather than the chat it hangs in — the metadata panel names the chat.
-    const taskThreadTitle = anchor.task ? `Task #${anchor.task.number}` : null;
+    const workTask = threadWorkTask(anchor, taskMessage);
+    const taskThreadTitle = workTask ? `Task #${workTask.task.number}` : null;
     // Replies show as pending rows the instant they are sent, under a key the
     // anchor owns, so the very first reply — which has no Thread chat id until
     // its receipt lands — is carried the same way every later one is.
@@ -128,7 +132,7 @@ export function ThreadContent({
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
         // The header names the Task and the metadata panel below states it.
-        taskChipHiddenMessageId: anchor.task ? anchor.id : undefined,
+        taskChipHiddenMessageId: workTask?.messageId,
         turnDetailsAccess,
         viewerUserId,
     });
@@ -185,12 +189,12 @@ export function ThreadContent({
             />
             <TranscriptRenderProvider value={renderContext}>
                 <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">
-                    {anchor.task ? (
+                    {workTask ? (
                         <TaskThreadMetadata
                             chat={chat}
                             chatId={chat.id}
-                            fallbackTask={anchor.task}
-                            messageId={anchor.id}
+                            fallbackTask={workTask.task}
+                            messageId={workTask.messageId}
                             serverId={chat.serverId}
                         />
                     ) : null}
@@ -208,13 +212,18 @@ export function ThreadContent({
                         pendingChatId={pendingThreadReplyKey(anchor.id)}
                         readOnly={readOnly}
                         serverId={chat.serverId}
-                        task={Boolean(anchor.task)}
+                        task={workTask !== null}
                         threadChatId={threadChatId}
                     />
                 }
             >
                 <TranscriptRenderProvider value={renderContext}>
-                    <MessageScrollerProvider autoScroll={false} defaultScrollPosition="start">
+                    {/* Opens on the anchor, then follows new replies like a
+                    channel once the reader is at the bottom. */}
+                    <MessageScrollerProvider
+                        autoScroll={followsReplies}
+                        defaultScrollPosition="start"
+                    >
                         <MessageScroller>
                             {/* px-5 matches the main chat viewport gutter so the
                             rows' full-width hover bleed stays contained. */}
@@ -254,7 +263,7 @@ export function ThreadContent({
                                                         : renderContext
                                                 }
                                             >
-                                                <EntityTranscriptEntryView
+                                                <ThreadEntryView
                                                     conversationLayout={
                                                         renderContext.conversationLayout
                                                     }
@@ -265,6 +274,11 @@ export function ThreadContent({
                                     ))}
                                 </MessageScrollerContent>
                             </MessageScrollerViewport>
+                            <MessageScrollerButton
+                                aria-label="Jump to latest reply"
+                                className="z-10 data-[direction=end]:bottom-[calc(var(--chat-footer-height,0px)+1rem)]"
+                                direction="end"
+                            />
                         </MessageScroller>
                         <ThreadReadTracker
                             active={active}
@@ -279,22 +293,4 @@ export function ThreadContent({
             </ChatFooterSurface>
         </div>
     );
-}
-
-/** One Thread entry rendered from its message entity (`useEntityTranscriptEntry`). */
-function EntityTranscriptEntryView({
-    conversationLayout,
-    entry,
-}: {
-    conversationLayout: ConversationMessageLayout;
-    entry: TranscriptEntry;
-}) {
-    const rendered = useEntityTranscriptEntry(entry);
-    return rendered ? (
-        <TranscriptEntryView
-            activeReply={null}
-            conversationLayout={conversationLayout}
-            entry={rendered}
-        />
-    ) : null;
 }

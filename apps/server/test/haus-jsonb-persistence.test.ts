@@ -21,8 +21,8 @@ beforeAll(async () => {
     harness = await startHausServerHarness();
     connection = await connectHausDatabase(harness.databaseUrl);
     await harness.sql`
-        insert into users (id, clerk_user_id)
-        values ('usr_jsonbtest000000', 'clerk_jsonbtest')
+        insert into users (id, auth_subject)
+        values ('usr_jsonbtest000000', 'cf_jsonbtest')
     `;
     await harness.sql`
         insert into servers (id, slug, display_name)

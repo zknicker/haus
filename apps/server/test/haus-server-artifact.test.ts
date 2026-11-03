@@ -30,7 +30,6 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
             ...process.env,
             HAUS_SERVER_VERSION: serverVersion,
             HAUS_SOURCE_REVISION: sourceRevision,
-            VITE_CLERK_PUBLISHABLE_KEY: 'pk_test_ZXhhbXBsZS5jb20k',
         },
         stderr: 'pipe',
         stdout: 'pipe',
@@ -138,20 +137,4 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     } finally {
         rmSync(unpacked, { force: true, recursive: true });
     }
-}, 120_000);
-
-test('refuses to build an App that cannot sign in', async () => {
-    const build = Bun.spawn([Bun.which('bun') ?? 'bun', 'scripts/build-haus-server-artifact.mjs'], {
-        cwd: repoRoot,
-        env: {
-            ...process.env,
-            VITE_CLERK_PUBLISHABLE_KEY: '',
-        },
-        stderr: 'pipe',
-        stdout: 'pipe',
-    });
-    const [exitCode, stderr] = await Promise.all([build.exited, new Response(build.stderr).text()]);
-
-    expect(exitCode).not.toBe(0);
-    expect(stderr).toContain('VITE_CLERK_PUBLISHABLE_KEY');
 }, 120_000);

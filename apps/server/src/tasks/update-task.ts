@@ -96,6 +96,7 @@ export async function updateTask(
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
+            threadChatId: current.threadChatId,
             type: 'task.updated',
         });
         const task = await findMessageTask(tx, input.serverId, input.messageId);

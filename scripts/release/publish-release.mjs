@@ -5,7 +5,6 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { loadAppReleaseEnvironment } from './app-release-environment.mjs';
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
 import { findHausServerReleaseAssets } from './haus-server-release-assets.mjs';
 import {
@@ -32,7 +31,6 @@ const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 const serverReleaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 
 const main = async () => {
-    loadAppReleaseEnvironment();
     const version = await readReleaseVersion();
     const tagName = `v${version}`;
 

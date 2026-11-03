@@ -9,6 +9,7 @@ import type {
     BrowserResult,
     CloudAgentCapabilityRequest,
     CloudAgentCapabilityResult,
+    ComputerDiskStatus,
     ComputerUpdatePhase,
     SignedComputerRelease,
 } from '@haus/api';
@@ -23,6 +24,7 @@ import { SecretsReplyOffice } from './secrets-reply-office.ts';
 
 interface AttachedComputer {
     disconnect?(reason: string): void;
+    diskStatus?: ComputerDiskStatus | null;
     /** Whether the transport can still carry a frame; absent means always (in-process transports). */
     isOpen?(): boolean;
     ordinary: boolean;
@@ -103,6 +105,23 @@ export class ComputerConnections implements DeliveryTransport {
             // The credential is already revoked; disconnect is best-effort.
         }
         return true;
+    }
+
+    reportDisk(computerId: string, disk: ComputerDiskStatus | null): boolean {
+        const computer = this.live(computerId);
+        if (
+            !computer ||
+            (computer.diskStatus?.availableBytes === disk?.availableBytes &&
+                computer.diskStatus?.totalBytes === disk?.totalBytes)
+        ) {
+            return false;
+        }
+        computer.diskStatus = disk;
+        return true;
+    }
+
+    diskStatus(computerId: string): ComputerDiskStatus | null {
+        return this.live(computerId)?.diskStatus ?? null;
     }
 
     isOnline(computerId: string): boolean {

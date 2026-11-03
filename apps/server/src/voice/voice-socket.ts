@@ -3,7 +3,8 @@ import type { Duplex } from 'node:stream';
 import { appProtocolHeaders, appProtocolVersion, voiceCallInputSchema } from '@haus/api';
 import { type WebSocket, WebSocketServer } from 'ws';
 import type { HausContext } from '../haus-api/context.ts';
-import { findUserByClerkId } from '../users/haus-user.ts';
+import { socketSessionExpiredCloseCode } from '../haus-api/socket-session.ts';
+import { findUserById } from '../users/haus-user.ts';
 import { startVoiceCall } from './voice-call.ts';
 import { readVoiceTarget } from './voice-context.ts';
 
@@ -38,11 +39,11 @@ export function startVoiceSocket(server: Server, options: VoiceSocketOptions) {
             throw new Error('Invalid app');
         }
         const ctx = options.createContext({ req: request });
-        if (!ctx.clerkSessionToken) {
+        if (!ctx.sessionToken) {
             throw new Error('Sign in required');
         }
-        const identity = await ctx.clerkSessions.verify(ctx.clerkSessionToken);
-        const member = await findUserByClerkId(ctx.hausDb, identity.clerkUserId);
+        const identity = await ctx.hausSessions.authenticate(ctx.sessionToken);
+        const member = await findUserById(ctx.hausDb, identity.userId);
         if (!member) {
             throw new Error('Membership required');
         }
@@ -56,6 +57,16 @@ export function startVoiceSocket(server: Server, options: VoiceSocketOptions) {
             wss.handleUpgrade(request, socket, head, (client) => {
                 client.on('error', () => client.terminate());
                 client.once('close', () => callers.delete(member.id));
+                ctx.sessionConnections.track({
+                    close: () => client.close(socketSessionExpiredCloseCode, 'Haus session ended'),
+                    key: client,
+                    onClose: (listener) => {
+                        client.once('close', listener);
+                        return () => client.off('close', listener);
+                    },
+                    sessionId: identity.sessionId,
+                    expiresAt: identity.accessTokenExpiresAt,
+                });
                 if (!options.apiKey) {
                     client.send(
                         JSON.stringify({

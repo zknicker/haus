@@ -95,9 +95,12 @@ function doneSendsIn(logical, bodies) {
     return sends;
 }
 
-/** A thread target is a parent target plus a message short ID: `#general:1a2b3c4d`. */
+/**
+ * A thread target is a parent target plus a message short ID: `#general:1a2b3c4d`.
+ * Short IDs are URL-safe base64, so they can carry `-` and `_`.
+ */
 export function isThreadTarget(target) {
-    return /^(?:#[^:\s]+|dm:@[^:\s]+):\w+$/u.test(target.trim());
+    return /^(?:#[^:\s]+|dm:@[^:\s]+):[\w-]+$/u.test(target.trim());
 }
 
 /** Whitespace-separated words in a post. */

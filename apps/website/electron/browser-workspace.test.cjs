@@ -168,26 +168,26 @@ describe('desktop browser workspace', () => {
         workspace.command({ kind: 'close', id: 'two' });
         expect(window.webContents.calls).toEqual(['focus']);
     });
-    test('popups and App-window links ask the App for a tab instead of opening a view', () => {
+    test('App-window links ask the App for a tab instead of opening a view', () => {
         const { workspace, window } = fixture();
         open(workspace, 'https://example.com', 'one');
         const contents = [...window.children][0].webContents;
         window.webContents.sent = [];
-        expect(contents.popup({ url: 'https://example.com/login' })).toEqual({ action: 'deny' });
         workspace.open('https://example.org/app-link');
         workspace.command({ kind: 'open', url: 'https://example.net' });
         expect(window.webContents.sent).toEqual([
             [
                 'desktop:browser:open-request',
-                { url: 'https://example.com/login', openerId: 'one', background: false },
+                {
+                    url: 'https://example.org/app-link',
+                    openerId: null,
+                    background: false,
+                    viewId: null,
+                },
             ],
             [
                 'desktop:browser:open-request',
-                { url: 'https://example.org/app-link', openerId: null, background: false },
-            ],
-            [
-                'desktop:browser:open-request',
-                { url: 'https://example.net/', openerId: null, background: false },
+                { url: 'https://example.net/', openerId: null, background: false, viewId: null },
             ],
         ]);
         expect(workspace.snapshot().tabs).toHaveLength(1);
@@ -204,7 +204,10 @@ describe('desktop browser workspace', () => {
         window.webContents.sent = [];
         workspace.open(url);
         expect(window.webContents.sent).toEqual([
-            ['desktop:browser:open-request', { url, openerId: null, background: false }],
+            [
+                'desktop:browser:open-request',
+                { url, openerId: null, background: false, viewId: null },
+            ],
         ]);
         workspace.command({ kind: 'open', url, viewId: 'oauth' });
         expect([...window.children][0].webContents.loads).toEqual([url]);

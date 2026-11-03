@@ -1,12 +1,11 @@
-// The agent-test kit: everything a scenario needs to drive real Server →
-// Computer → model behavior headlessly, and nothing that requires a browser.
-//
-// Model: Agents provisioned per scenario and retired after its verdict, turn
-// settlement instead of content polling, and assertions made of structural
-// gates plus marker containment.
+// The agent-test kit: everything a scenario needs to drive real Server → Computer → model
+// behavior headlessly, and nothing that requires a browser. Agents are provisioned per scenario
+// and retired after its verdict; turns settle instead of polling content; assertions are
+// structural gates plus marker containment.
 
 import { createAgentAuthor } from './author.mjs';
 import { cleanupEvalChats } from './cleanup-chats.mjs';
+import { heartbeatKitMembers } from './heartbeat.mjs';
 import { provisionAgents, retireAgents } from './provisioner.mjs';
 import { createRunLedger } from './state.mjs';
 import { createTurnObserver } from './turns.mjs';
@@ -251,6 +250,7 @@ export function createAgentTestKit(
         createChannel,
         expectNoAgentMessages,
         harness,
+        ...heartbeatKitMembers({ serverId, settleTurn, trpc }),
         marker,
         provision,
         readHead: (chatId) => harness.readHead(chatId),

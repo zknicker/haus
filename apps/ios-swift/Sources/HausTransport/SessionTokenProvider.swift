@@ -1,6 +1,6 @@
-/// Supplies the current Clerk session token for a request.
+/// Supplies the current Haus AppSession access token for a request.
 ///
-/// The provider is queried for every operation so a renewed Clerk session is
+/// The provider is queried for every operation so a renewed Haus session is
 /// used without recreating the transport client.
 public protocol SessionTokenProvider: Sendable {
     /// Matches the existing App client's token-reader contract.

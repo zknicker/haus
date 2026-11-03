@@ -1526,15 +1526,15 @@ test('ChatTranscript states what woke the Agent on a context line above its mess
     const markup = renderTranscript([causedRow()], causedOverrides());
 
     assert.match(markup, /Deploy finished/);
-    assert.match(markup, /text-trigger-mark/);
+    assert.match(markup, /data-automation-keycap="trigger"/);
     assert.match(markup, /aria-label="Open trigger: Deploy finished"/);
     assert.match(markup, /href="[^"]*\/agents\/blippy\/automations"/);
     // The line sits above the identity, not in the header beside the name.
     assert.ok(markup.indexOf('message-cause-line') < markup.indexOf('Blippy</'));
     const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
     assert.doesNotMatch(header, /Deploy finished/);
-    // Standing alone, the cause line draws the elbow, tinted toward its ink.
-    assert.match(markup, /border-trigger-mark-line/);
+    // Standing alone, the cause line draws the elbow a reply line does.
+    assert.match(markup, /data-turn-context-elbow=""/);
 });
 
 test('ChatTranscript keeps an ordinary Agent header to a name and a time', () => {
@@ -1543,7 +1543,7 @@ test('ChatTranscript keeps an ordinary Agent header to a name and a time', () =>
     const context = { ...causedOverrides(), chatId: 'chat-1' };
     const markup = renderTranscript([plain], context);
 
-    assert.doesNotMatch(markup, /Deploy finished|text-trigger-mark|data-turn-context-line=""/);
+    assert.doesNotMatch(markup, /Deploy finished|data-automation-keycap|data-turn-context-line=""/);
     // No description tagline: what an Agent is generally for belongs to its
     // hover card and profile, not to every message it writes.
     const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
@@ -1564,7 +1564,7 @@ test('ChatTranscript shows only the cause line when a caused turn is also a repl
     assert.doesNotMatch(markup, /data-inline-reply-preview|Did it land\?/);
     assert.equal(markup.match(/data-turn-context-line=""/g)?.length, 1);
     assert.equal(markup.match(/data-turn-context-elbow=""/g)?.length, 1);
-    assert.match(markup, /border-trigger-mark-line/);
+    assert.match(markup, /data-automation-keycap="trigger"/);
 });
 
 test('ChatTranscript drops the cause line where a context card already states it', () => {
@@ -1573,7 +1573,7 @@ test('ChatTranscript drops the cause line where a context card already states it
         causeLineHidden: true,
     });
 
-    assert.doesNotMatch(markup, /text-trigger-mark|message-cause-line/);
+    assert.doesNotMatch(markup, /data-automation-keycap|message-cause-line/);
 });
 
 function replyToZach(): NonNullable<TranscriptMessageRow['message']['reply']> {

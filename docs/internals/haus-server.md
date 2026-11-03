@@ -5,7 +5,7 @@ read_when:
   - changing hosted PostgreSQL schema or Server authorization
   - changing reminder scheduler lifecycle or hosted Agent attention
   - changing the hosted Server / local sidecar application boundary
-  - changing how Clerk authentication maps to a Haus User
+  - changing Cloudflare Access identity mapping or Haus sessions
   - changing hosted attachment storage, recovery, or inventory
   - changing Server shutdown order, bounds, or signal handling
 ---
@@ -56,56 +56,45 @@ kill. A second `SIGTERM` or `SIGINT` during the stop exits 1 at once. The
 explicit exit matters: a signal handler cancels the default exit, and
 `bun --watch` keeps a drained process alive waiting for file changes.
 
-## Identity
+## Identity and sessions
 
-Clerk authenticates humans and nothing more. A verified session token's subject
-is the external reference used to find the stable Haus User. Clerk
-Organizations and Clerk role claims are never read and carry no authority.
+Cloudflare Access authenticates humans at the sign-in boundary. The Server
+accepts signed assertions only at `/auth/complete` and `/auth/session`, verifies
+the exact issuer and audience, and resolves the exact subject to a prelinked
+Haus User plus one of that User's exact verified-email aliases. Email, name,
+avatar, and provider role claims never create or merge identities. Public
+signup is disabled.
 
-Authentication carries that subject for one browser request only. It never
-publishes the Clerk token to shared process state, so concurrent humans cannot
-bleed into each other. Browser-approved device login mints a separate,
-revocable Computer login session for human management; Server attachment daemons
-authenticate only with their own Server-scoped Computer credentials.
+Browser sign-in binds a one-use state cookie and safe return route before the
+Cloudflare round trip. The top-level return uses `SameSite=Lax`; completion
+consumes the stored intent, checks the Access assertion, then issues an opaque
+Haus session and an HttpOnly resume cookie. Browser resume also requires a
+fresh assertion, `X-Haus-Session-Request: 1`, and same-origin provenance.
 
-A Haus User is minted in exactly one place: inside Server creation's
-transaction. Reads resolve an existing User or find none — asking never mints
-one, so an authenticated human who has done nothing leaves no row behind.
+Native sign-in uses Cloudflare Managed OAuth with PKCE S256. The Server stores
+the original native callback, state, and code challenge, then brokers the
+one-use authorization code back to that exact callback. Native clients
+exchange the code directly with Cloudflare and keep Cloudflare credentials in
+Keychain or `safeStorage`; these credentials never enter renderer state or the
+Haus database.
 
-Human profile fields live on that stable User. A human handle lives on the
-active Server membership because humans and Agents share a Server-scoped,
-case-insensitive namespace. PostgreSQL triggers and partial unique indexes
-serialize cross-kind claims; App availability or suggestion UI is never the
-authority. Departure clears the active membership handle while authored history
-continues to point at the immutable User id.
+The Server stores SHA-256 hashes of opaque Haus access and resume tokens.
+Access lasts at most 60 seconds and never past the signed assertion expiry.
+The resume token lasts at most 14 days, but every resume needs a fresh Access
+assertion for the same subject and Haus User. The session id stays stable
+across access rotation. Local sign-out revokes the session immediately and
+closes its WebSocket and SSE connections; access expiry has no grace period.
 
-`HAUS_CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
-Haus App attaches the token as `Authorization: Bearer` on HTTP and as
-`connectionParams.clerkSessionToken` on the WebSocket.
+The App sends the opaque Haus access token as `Authorization: Bearer` for HTTP
+and `connectionParams.sessionToken` for WebSockets. Each request and socket
+operation resolves the canonical Haus User id before applying membership and
+role checks. The Server never publishes an identity token to shared request
+state, so concurrent humans cannot bleed into each other.
 
-### Authorized party
-
-One Clerk instance signs tokens for every frontend attached to it, so a valid
-signature and issuer do not say a token was minted for this Haus App origin. The `azp`
-claim names the frontend that asked for it, and the Server judges it after
-signature, configured issuer, expiry, and subject all pass:
-
-| `azp` | Outcome |
-| --- | --- |
-| Absent | Accepted — Clerk omits it when no browser Origin took part, as with the native header-authenticated desktop session |
-| Exactly `HAUS_APP_ORIGIN` | Accepted |
-| Another origin | Rejected — a same-instance token minted for someone else's frontend |
-| `null`, non-string, or empty | Rejected |
-
-The only authorized party is `HAUS_APP_ORIGIN`'s exact origin. A `file://` origin, a
-loopback or localhost guess, and the CORS origin predicate are never authorized
-parties — CORS decides which browsers may call the Server, not whose tokens it
-trusts.
-
-Accepting an absent `azp` is a deliberate trade for native desktop sessions,
-and matches `@clerk/backend`, which also skips the check when the claim is
-missing. The issuer check still bounds it: the token must come from the
-configured Clerk instance.
+Computer management uses its separate, revocable Computer login session. Its
+owner fields reference canonical Haus User ids. Server attachment daemons
+authenticate only with their Server-scoped Computer credentials; those hashes
+and the Computer protocol remain independent of human sign-in.
 
 ## State
 
@@ -135,12 +124,16 @@ PostgreSQL owns the hosted collaboration tables
 
 | Table | Owns |
 | --- | --- |
-| `users` | Haus Users keyed by a unique `clerk_user_id`, plus the avatar they wear (`avatar_id`) |
+| `users` | Haus Users keyed by a unique `auth_subject`, plus the avatar they wear (`avatar_id`) |
+| `user_verified_emails` | Exact normalized, verified email aliases linked to a canonical Haus User |
+| `haus_sessions` / `haus_session_access_tokens` | Revocable Haus sessions and hashed short-lived access tokens |
+| `browser_auth_intents` / `native_auth_intents` | One-use browser state and native PKCE callback bindings |
+| `haus_auth_rollback_recovery` | Small old-subject mapping retained to restore the pre-cutover auth columns if rollback is needed |
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
 | `servers` / `server_onboarding` | Opaque id, address/display fields, and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `push_devices` | One human's iPhone APNs registrations keyed by device token: environment, bundle id, and the last APNs refusal ([iPhone Push](../operations/ios-push.md)) |
-| `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, Clerk owner, and the CLI's post-persistence acknowledgement |
+| `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, canonical Haus User owner, and the CLI's post-persistence acknowledgement |
 | `computers` | Server-scoped Computer credentials (hash only), durable attachment idempotency, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
@@ -505,7 +498,7 @@ Admin inside the transaction. Haus sends no email — delivery is manual.
 
 `invitation.accept` commits one transaction. It locks the invitation row,
 refuses anything unknown, revoked, consumed, or lapsed with one indistinguishable
-answer, requires a Clerk-verified email equal to the bound address, then creates
+answer, requires a Cloudflare-signed verified email equal to the bound address, then creates
 or resets the membership into a fresh Member stint joined to exactly `#all`.
 Concurrent acceptances of one token serialize on that row lock, so only the
 first commits.
@@ -518,17 +511,11 @@ former DM or its Threads, while the peer who did not leave retains that
 history. Removal clears `channel_participants`, `chat_reads`, and
 `thread_follows`, and live composition state for every departed Chat, including Threads.
 
-`HAUS_CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
-human's addresses Clerk has verified; it is the only Haus surface that reads a
-human's addresses. Without it the Server still runs and invitations simply
-cannot be accepted. `HAUS_CLERK_API_URL` overrides the Clerk Backend origin for a
-non-production instance.
-
-The one address Haus stores is `server_invitations.email`, the address an
-invitation is bound to, supplied by the Owner or Admin who issued it. It is a
-target for that invitation, never an identity: Clerk alone decides which
-addresses a human has verified, `users` holds no email, and an accepted
-invitation copies nothing onto the membership.
+The invitation address is a target, never an identity. Cloudflare's signed
+email claim is compared to the exact aliases in `user_verified_emails`; the
+Server does not look up an account by email or merge two Haus Users. The
+profile's `users.email` value is a display/contact snapshot and cannot grant
+access.
 
 ## Creation
 
@@ -630,19 +617,19 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   artifact without loading the signed-in App shell.
 
 Haus App uses `apps/website/src/lib/haus-server.tsx`: the browser's same origin
-in production and `VITE_HAUS_SERVER_ORIGIN` in development, with the Clerk
-session attached per request and per WebSocket connection. Product operations
-never use a local sidecar or Electron IPC. Electron supplies native window, link,
-authentication-storage, and desktop-update
-behavior only. Hooks live in
+in production and `VITE_HAUS_SERVER_ORIGIN` in development, with its opaque
+Haus access session attached per request and WebSocket connection. Cloudflare
+assertions are used only at the sign-in routes. Product operations never use a
+local sidecar or Electron IPC. Electron supplies native window, link,
+authentication-storage, and desktop-update behavior only. Hooks live in
 `apps/website/src/hooks/servers/`.
 
-A socket presents the Clerk session it was opened with, so the provider watches
-the current session and opens a fresh connection when Clerk rotates the token;
-subscriptions re-register against it while cached query data stays put. The
-Server independently verifies a current token on every operation, including
-each subscription start, so an expired session is refused rather than
-tolerated.
+The App opens a socket with the current Haus access token. A refresh rotates
+access within the same Haus session id, so `session.refresh` can update the
+existing socket; a different session or User closes it. The Server verifies
+the current token at each operation start, tracks socket and SSE expiry, and
+closes them immediately on local sign-out. Membership still rechecks at each
+delivery.
 
 ## Realtime
 

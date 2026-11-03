@@ -34,6 +34,5 @@ try {
     );
 } finally {
     await harness.cleanup();
-    // The development Clerk client retains refresh timers after cleanup.
     setTimeout(() => process.exit(process.exitCode ?? 0), 0);
 }

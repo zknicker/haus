@@ -12,6 +12,12 @@ export interface HappeningNowAgent {
     /** Current activity alongside elapsed time for the whole turn. */
     label: string;
     name: string;
+    /**
+     * The current step alone, without the elapsed clause: what the row's
+     * accessible name says, so the name changes when the step does rather
+     * than every second.
+     */
+    step: string;
 }
 
 /**
@@ -42,15 +48,13 @@ export function happeningNowAgentRows(
 
     return filterCurrentAgentActivityByLifecycle(activities, lifecycles).map((activity) => {
         const agent = agentById.get(activity.agentId) ?? null;
+        const step = formatCurrentAgentActivityLabel(activity);
         return {
             agent,
             id: activity.agentId,
-            label: stepWithElapsed(
-                formatCurrentAgentActivityLabel(activity),
-                activity.runStartedAt,
-                now
-            ),
+            label: stepWithElapsed(step, activity.runStartedAt, now),
             name: agent?.displayName ?? `Agent ${activity.agentId.slice(-6)}`,
+            step: withoutEllipsis(step),
         };
     });
 }
@@ -67,5 +71,9 @@ function stepWithElapsed(label: string, runStartedAt: string | null, now: number
     const seconds = Math.max(0, Math.floor((now - Date.parse(runStartedAt)) / 1000));
     const minutes = Math.floor(seconds / 60);
     const elapsed = minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
-    return `${label.replace(/…$/u, '')} · ${elapsed} elapsed`;
+    return `${withoutEllipsis(label)} · ${elapsed} elapsed`;
+}
+
+function withoutEllipsis(label: string): string {
+    return label.replace(/…$/u, '');
 }

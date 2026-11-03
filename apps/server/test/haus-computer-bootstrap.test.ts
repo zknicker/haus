@@ -18,8 +18,8 @@ const idleCredential = 'idle-computer-bootstrap-credential-00';
 beforeAll(async () => {
     harness = await startHausServerHarness();
     await harness.sql`
-        insert into users (id, clerk_user_id)
-        values (${userId}, 'clerk_bootstrap_user')
+        insert into users (id, auth_subject)
+        values (${userId}, 'cf_bootstrap_user')
     `;
     await harness.sql`
         insert into servers (id, slug, display_name)

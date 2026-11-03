@@ -28,10 +28,6 @@ mock.module('../../lib/haus-server.tsx', () => ({
     },
 }));
 
-mock.module('../auth/dev-auto-sign-in.tsx', () => ({
-    DevAutoSignIn: () => <div data-testid="dev-auto-sign-in" />,
-}));
-
 mock.module('../auth/sign-in-gate.tsx', () => ({
     SignInGate: ({ children }: React.PropsWithChildren) => (
         <div data-testid="sign-in-gate">{children}</div>
@@ -56,7 +52,7 @@ test('mounts authenticated Server state inside the sign-in gate', () => {
     const markup = renderToStaticMarkup(<HausServerRoutes />);
 
     expect(markup).toContain(
-        '<div data-testid="dev-auto-sign-in"></div><div data-testid="sign-in-gate"><div data-testid="haus-server-provider">'
+        '<div data-testid="sign-in-gate"><div data-testid="haus-server-provider">'
     );
     expect(markup).toContain('server-event-listeners');
 });

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * Guarded contract for text selection (DESIGN.md → "Text selection").
+ * Guarded contract for text selection (.design/guidelines.md → "Text selection").
  *
  * The App reads like a native Mac app: chrome never selects, content does.
  * That is one policy in `global.css` — a `none` default on the body and one

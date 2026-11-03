@@ -1,12 +1,15 @@
 import { type AmazonProductIdentity, amazonProductUrl, parseAmazonProduct } from '@haus/api';
-import { HoverCard } from '@heroui-pro/react';
+import { Label, toast } from '@heroui/react';
+import { ContextMenu } from '@heroui-pro/react';
+import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { hausHoverCardClassName } from '../../components/ui/cursor-hover-card.tsx';
+import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 import {
     type RenderedChipAvailability,
     useConnectionChip,
 } from '../../hooks/servers/use-connection-chip.ts';
-import { cn } from '../../lib/utils.ts';
+import { writeClipboardText } from '../../lib/clipboard.ts';
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 import { AmazonProductPreview, lookupInProgress, productImage } from './amazon-product-preview.tsx';
 import { ReferenceChip } from './reference-chip.tsx';
@@ -71,8 +74,12 @@ export function AmazonReferenceChip({
     const summary = lookup.status === 'ready' ? lookup.product : undefined;
     const label = summary?.shortName ?? product.asin;
     return (
-        <HoverCard onOpenChange={onPreviewOpenChange} openDelay={250}>
-            <HoverCard.Trigger className="align-middle">
+        <CursorHoverCard
+            className="haus-product-hover w-96 max-w-[calc(100vw-2rem)]"
+            content={<AmazonProductPreview asin={product.asin} lookup={lookup} />}
+            onOpenChange={onPreviewOpenChange}
+        >
+            <AmazonProductContextMenu asin={product.asin}>
                 <a
                     aria-busy={lookupInProgress(lookup) || undefined}
                     aria-label={`Open ${label} on Amazon`}
@@ -92,18 +99,33 @@ export function AmazonReferenceChip({
                         }}
                     />
                 </a>
-            </HoverCard.Trigger>
-            <HoverCard.Content
-                aria-label={`${label} details`}
-                className={cn(
-                    hausHoverCardClassName,
-                    'haus-product-hover w-96 max-w-[calc(100vw-2rem)]'
-                )}
-                placement="bottom start"
-            >
-                <AmazonProductPreview asin={product.asin} lookup={lookup} />
-            </HoverCard.Content>
-        </HoverCard>
+            </AmazonProductContextMenu>
+        </CursorHoverCard>
+    );
+}
+
+/** A pointer-following preview cannot host controls, so copying the ASIN lives on right-click. */
+function AmazonProductContextMenu({ asin, children }: { asin: string; children: React.ReactNode }) {
+    return (
+        <ContextMenu>
+            <ContextMenu.Trigger<'span'> render={(props) => <span {...props} />}>
+                {children}
+            </ContextMenu.Trigger>
+            <ContextMenu.Popover>
+                <ContextMenu.Menu
+                    onAction={() =>
+                        writeClipboardText(asin)
+                            .then(() => toast.success('ASIN copied'))
+                            .catch(() => toast.danger('Could not copy the ASIN'))
+                    }
+                >
+                    <ContextMenu.Item id="copy-asin" textValue="Copy ASIN">
+                        <Icon aria-hidden="true" icon={Copy01Icon} size={16} />
+                        <Label>Copy ASIN</Label>
+                    </ContextMenu.Item>
+                </ContextMenu.Menu>
+            </ContextMenu.Popover>
+        </ContextMenu>
     );
 }
 

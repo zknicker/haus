@@ -1,4 +1,4 @@
-import { getClerkSessionToken } from '../../lib/clerk.tsx';
+import { getAppSessionAccessToken } from '../../lib/app-auth.tsx';
 import { getHausServerOrigin } from '../../lib/haus-server.tsx';
 
 /**
@@ -25,7 +25,7 @@ export async function fetchAttachmentBlob({
     serverId: string;
     signal?: AbortSignal;
 }) {
-    const token = await getClerkSessionToken();
+    const token = getAppSessionAccessToken();
     if (!token) {
         throw new AttachmentFetchError('Sign in to download attachments.', true);
     }

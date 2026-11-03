@@ -30,7 +30,7 @@ const infraPatterns = [
     /fetch failed|ECONNREFUSED|ECONNRESET|socket hang up/iu,
     /Execution journal for run \S+ stayed/iu,
     /failed \(5\d\d\)/u,
-    /Dev Clerk sign-in|Clerk (?:client failed|ticket exchange|did not provide)/iu,
+    /Dev Haus sign-in|Local Haus session|Haus session (?:failed|unavailable)/iu,
 ];
 
 export function isInfraFailure(error) {

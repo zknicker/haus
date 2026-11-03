@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+    assertIOSBuildProcessed,
     releaseState,
     waitForIOSBuildStatus,
     writeIOSBuildStatusErrorSummary,
@@ -49,6 +50,21 @@ test('waits for the exact build to finish processing', async () => {
     } finally {
         rmSync(directory, { force: true, recursive: true });
     }
+});
+
+test('Server publication requires a processed, unexpired iPhone build', () => {
+    const build = { buildNumber: 15, expired: false, version: '1.3.1' };
+    for (const processingState of ['PROCESSING', 'NOT_FOUND', 'FAILED', 'INVALID']) {
+        assert.throws(
+            () => assertIOSBuildProcessed({ ...build, processingState }),
+            /Server publication requires a processed, unexpired build/
+        );
+    }
+    assert.throws(
+        () => assertIOSBuildProcessed({ ...build, expired: true, processingState: 'VALID' }),
+        /expired/
+    );
+    assert.doesNotThrow(() => assertIOSBuildProcessed({ ...build, processingState: 'VALID' }));
 });
 
 test('reports processing without inventing distribution evidence', () => {

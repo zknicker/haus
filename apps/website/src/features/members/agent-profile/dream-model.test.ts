@@ -4,10 +4,25 @@ import {
     dreamEmptyState,
     formatDreamFiles,
     formatDreamHeadline,
+    formatDreamRowHeadline,
     hunkSection,
     isQuietDream,
     parseDreamPatch,
 } from './dream-model.ts';
+import {
+    dreamSummaryHeadline,
+    dreamSummaryMarkdown,
+    formatFollowUpDetail,
+    formatFollowUpWhen,
+} from './dream-summary-model.ts';
+
+test('the summary headline drops a leading bullet, and plain lines keep their breaks', () => {
+    expect(dreamSummaryHeadline('- Priya taught me tone.\n- Sam fixed dates.')).toBe(
+        'Priya taught me tone.'
+    );
+    expect(dreamSummaryMarkdown('a\nb\n\nc')).toBe('a  \nb\n\nc');
+    expect(dreamSummaryMarkdown('- a\n- b')).toBe('- a\n- b');
+});
 
 const patch = [
     'diff --git a/MEMORY.md b/MEMORY.md',
@@ -102,6 +117,50 @@ test('a section added or removed whole is named, not counted', () => {
             sectioned
         )
     ).toBe('Added Open Questions · removed Scratch');
+});
+
+test('a row leads with the summary first line, falling back to the file headline', () => {
+    const base = { files, summary: null, truncated: false };
+    expect(formatDreamRowHeadline(base)).toBe('Updated memory · added 2 notes');
+    expect(
+        formatDreamRowHeadline({ ...base, summary: '\n- Mira wants **short** recaps.\nMore' })
+    ).toBe('Mira wants short recaps.');
+    expect(formatDreamRowHeadline({ ...base, summary: '   ' })).toBe(
+        'Updated memory · added 2 notes'
+    );
+});
+
+test('a dream with a summary or follow-ups is not quiet even with no file changes', () => {
+    const empty = { files: [], truncated: false };
+    expect(isQuietDream({ ...empty, followUps: [], summary: null })).toBe(true);
+    expect(isQuietDream({ ...empty, followUps: [], summary: 'Learned a thing.' })).toBe(false);
+    const followUp = {
+        anchorChatId: 'cht_one',
+        fireAt: '2026-10-21T09:00:00.000Z',
+        reminderId: 'rem_one',
+        requester: null,
+        title: 'Check the invoice',
+    };
+    expect(isQuietDream({ ...empty, followUps: [followUp], summary: null })).toBe(false);
+});
+
+test('a follow-up names who it is for, then where, and drops what it does not know', () => {
+    const maya = { displayName: 'Maya Chen', handle: 'maya', kind: 'human' } as const;
+    expect(formatFollowUpDetail(maya, '#product')).toBe('for @maya · #product');
+    expect(formatFollowUpDetail(maya, null)).toBe('for @maya');
+    expect(formatFollowUpDetail({ ...maya, handle: null }, '#product')).toBe(
+        'for Maya Chen · #product'
+    );
+    expect(formatFollowUpDetail(null, '#product')).toBe('#product');
+    expect(formatFollowUpDetail(null, null)).toBe('');
+});
+
+test('a follow-up reads Tomorrow, Today, or the date, then its local time', () => {
+    const now = new Date(2026, 9, 20, 22, 0).getTime();
+    const at = (day: number) => new Date(2026, 9, day, 9, 0).toISOString();
+    expect(formatFollowUpWhen(at(21), now)).toBe('Tomorrow 9:00 am');
+    expect(formatFollowUpWhen(at(20), now)).toBe('Today 9:00 am');
+    expect(formatFollowUpWhen(at(23), now)).toMatch(/^Oct 23 9:00 am$/);
 });
 
 test('a truncated dream is not quiet: its row opens and both say why it shows no changes', () => {

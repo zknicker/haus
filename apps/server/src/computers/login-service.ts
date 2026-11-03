@@ -117,7 +117,7 @@ export async function readComputerLoginStatus(db: HausDatabase, input: { userCod
 
 export async function approveComputerLogin(
     db: HausDatabase,
-    clerkUserId: string,
+    userId: string,
     input: { userCode: string }
 ) {
     const normalized = requireComputerLoginUserCode(input.userCode);
@@ -138,7 +138,7 @@ export async function approveComputerLogin(
             throw computerLoginError('computer_login_consumed');
         }
         if (grant.status === 'approved') {
-            if (grant.approvedByClerkUserId === clerkUserId) {
+            if (grant.approvedByUserId === userId) {
                 return loginStatus('approved', grant.purpose);
             }
             throw computerLoginError('computer_login_already_approved');
@@ -147,7 +147,7 @@ export async function approveComputerLogin(
             .update(computerLoginGrantsTable)
             .set({
                 approvedAt: new Date(),
-                approvedByClerkUserId: clerkUserId,
+                approvedByUserId: userId,
                 status: 'approved',
             })
             .where(eq(computerLoginGrantsTable.id, grant.id));
@@ -157,7 +157,7 @@ export async function approveComputerLogin(
 
 export async function denyComputerLogin(
     db: HausDatabase,
-    clerkUserId: string,
+    userId: string,
     input: { userCode: string }
 ) {
     const normalized = requireComputerLoginUserCode(input.userCode);
@@ -184,7 +184,7 @@ export async function denyComputerLogin(
             .update(computerLoginGrantsTable)
             .set({
                 deniedAt: new Date(),
-                deniedByClerkUserId: clerkUserId,
+                deniedByUserId: userId,
                 status: 'denied',
             })
             .where(eq(computerLoginGrantsTable.id, grant.id));
@@ -224,8 +224,8 @@ export async function pollComputerLogin(db: HausDatabase, input: { deviceCode: s
         if (grant.status === 'consumed') {
             throw computerLoginError('computer_login_consumed');
         }
-        if (!grant.approvedByClerkUserId) {
-            throw new Error('Approved Computer login grant has no Clerk owner.');
+        if (!grant.approvedByUserId) {
+            throw new Error('Approved Computer login grant has no Haus owner.');
         }
 
         const now = new Date();
@@ -237,7 +237,7 @@ export async function pollComputerLogin(db: HausDatabase, input: { deviceCode: s
         await tx.insert(computerLoginSessionsTable).values({
             accessTokenExpiresAt,
             accessTokenHash: hashComputerSecret(accessToken),
-            clerkUserId: grant.approvedByClerkUserId,
+            userId: grant.approvedByUserId,
             grantId: grant.id,
             id: sessionId,
             origin: grant.origin,

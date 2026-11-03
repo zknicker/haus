@@ -111,6 +111,7 @@ export async function promoteMessageTask(
             chatId: message.chatId,
             messageId: message.id,
             serverId: input.serverId,
+            threadChatId: null,
             type: 'task.created',
         });
         return { event, idempotent: false, task };

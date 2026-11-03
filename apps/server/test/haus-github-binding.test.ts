@@ -48,7 +48,7 @@ beforeAll(async () => {
 
     member = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('github_binding_member')
+        await harness.humans.mintSessionToken('github_binding_member')
     );
     await member.trpc.server.create.mutate({
         displayName: 'Member',
@@ -61,7 +61,7 @@ beforeAll(async () => {
     `;
     outsider = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('github_binding_out')
+        await harness.humans.mintSessionToken('github_binding_out')
     );
     outsiderServerId = (
         await outsider.trpc.server.create.mutate({

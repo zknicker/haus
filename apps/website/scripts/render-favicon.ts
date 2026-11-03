@@ -3,10 +3,11 @@
  * mark components, so the tab mark is the same figure the sidebar and the app
  * icon draw rather than a separately maintained raster. One set per app icon
  * a color theme can pick: `HausGhost` at the root, `HausPumpkin` (Halloween)
- * under `app-icons/pumpkin/` with the same file names.
+ * under `app-icons/pumpkin/` and `HausSantaGhost` (Christmas) under
+ * `app-icons/santa/`, with the same file names.
  *
- * The component is server-rendered to SVG markup, the static half of
- * `haus-ghost.css` is inlined into the file, and the drift keyframes and the
+ * The component is server-rendered to SVG markup, the static half of its
+ * stylesheets is inlined into the file, and the drift keyframes and the
  * `--animated` rules are dropped: a favicon has no main thread to spend and
  * every browser rasterizes it once. The mark is then cropped to its own
  * silhouette with a small pad — a favicon is already a 16px tile, so the
@@ -36,6 +37,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { HausGhost } from '../src/components/haus-ghost.tsx';
 import type { HausMarkProps } from '../src/components/haus-ghost-mark.tsx';
 import { HausPumpkin } from '../src/components/haus-pumpkin.tsx';
+import { HausSantaGhost } from '../src/components/haus-santa-ghost.tsx';
 import { faviconDir } from '../src/hooks/shell/use-theme-app-icon.ts';
 import type { AppIcon } from '../src/lib/color-themes.ts';
 
@@ -50,6 +52,7 @@ export const PNG_TARGETS: readonly { name: string; size: number }[] = [
 const FAVICON_MARKS: Readonly<Record<AppIcon, ComponentType<HausMarkProps>>> = {
     ghost: HausGhost,
     pumpkin: HausPumpkin,
+    santa: HausSantaGhost,
 };
 
 export async function renderFavicon({
@@ -60,7 +63,8 @@ export async function renderFavicon({
     outDir?: string;
 } = {}): Promise<readonly string[]> {
     const mark = markMarkup(FAVICON_MARKS[icon]);
-    const css = staticMarkCss(await readFile(GHOST_CSS_PATH, 'utf8'), mark);
+    const sheets = await Promise.all(MARK_CSS_PATHS.map((file) => readFile(file, 'utf8')));
+    const css = staticMarkCss(sheets.join('\n'), mark);
     const setDir = path.join(outDir, faviconDir(icon));
     const browser = await chromium.launch();
 
@@ -113,16 +117,35 @@ ${mark.body}
 }
 
 /** The silhouette's own bounds, so the crop follows the artwork rather than
-    the component's layout viewBox. */
+    the component's layout viewBox. A costume's pieces (a hat) draw their own
+    outline inside a placed group, so the crop is the union of every outline,
+    each mapped into the mark's user space. */
 async function measureBody(page: Page, mark: Markup, css: string): Promise<Box> {
     await page.setContent(
         `<svg id="probe" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 204" class="${mark.rootClass}"><style>${css}</style>${mark.body}</svg>`
     );
     const box = await page.evaluate(() => {
-        const edge = document.querySelector('.haus-ghost__edge') as unknown as SVGGraphicsElement;
-        const { height, width, x, y } = edge.getBBox();
+        const corners = [
+            ...document.querySelectorAll<SVGGraphicsElement>('.haus-ghost__edge'),
+        ].flatMap((edge) => {
+            const { height, width, x, y } = edge.getBBox();
+            const piece = edge.closest<SVGGraphicsElement>('.haus-ghost__piece');
+            const placement = piece?.transform.baseVal.consolidate()?.matrix ?? new DOMMatrix();
+            return [new DOMPoint(x, y), new DOMPoint(x + width, y + height)].map((point) =>
+                point.matrixTransform(placement)
+            );
+        });
+        const xs = corners.map((point) => point.x);
+        const ys = corners.map((point) => point.y);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
 
-        return { height, width, x, y };
+        return {
+            height: Math.max(...ys) - top,
+            width: Math.max(...xs) - left,
+            x: left,
+            y: top,
+        };
     });
 
     return { height: round(box.height), width: round(box.width), x: round(box.x), y: round(box.y) };
@@ -143,14 +166,15 @@ async function rasterize(page: Page, svg: string, size: number): Promise<Buffer>
 }
 
 /**
- * The static half of `haus-ghost.css`: the custom properties, the stroke
- * weights and the layer opacities, with the drift keyframes, the `--animated`
- * rules, the tempo switch and the ground-dependent theme blocks dropped, and
- * every rule naming a class the mark does not draw — another costume's
- * modifier, or a layer only another figure has — left out, so each file
- * carries only its own figure's styles.
+ * The static half of the mark's stylesheets (`haus-ghost.css`, plus
+ * `haus-ghost-pieces.css` for a costume's hat): the custom properties, the
+ * stroke weights and the layer opacities, with the drift keyframes, the
+ * `--animated` rules, the tempo switch and the ground-dependent theme blocks
+ * dropped, and every rule naming a class the mark does not draw — another
+ * costume's modifier, or a layer only another figure has — left out, so each
+ * file carries only its own figure's styles.
  *
- * Read from the stylesheet rather than restated here, so a change to a stroke
+ * Read from the stylesheets rather than restated here, so a change to a stroke
  * weight or a layer opacity reaches the favicon on the next render.
  */
 function staticMarkCss(source: string, mark: Markup): string {
@@ -241,7 +265,10 @@ const SKIPPED_SELECTOR = /^@|--animated|--lively|\[data-theme|\.dark |^html\./;
 /** Roughly a twenty-fifth of the mark on every side. */
 const PAD_RATIO = 0.04;
 
-const GHOST_CSS_PATH = fileURLToPath(new URL('../src/components/haus-ghost.css', import.meta.url));
+/** The mark's stylesheets: the glass stack's, then a costume's pieces'. */
+const MARK_CSS_PATHS = ['haus-ghost.css', 'haus-ghost-pieces.css'].map((file) =>
+    fileURLToPath(new URL(`../src/components/${file}`, import.meta.url))
+);
 const DEFAULT_OUT_DIR = fileURLToPath(new URL('../public', import.meta.url));
 
 if (import.meta.main) {

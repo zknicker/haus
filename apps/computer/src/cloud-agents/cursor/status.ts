@@ -53,6 +53,7 @@ export function observationOf(
         ...(branches.length > 0 ? { branches } : {}),
         ...(errorCode ? { errorCode } : {}),
         observedAt: context.observedAt,
+        ...(reading.startedAt ? { startedAt: reading.startedAt } : {}),
         providerAgentId: context.agentId,
         providerRunId: reading.runId,
         providerUrl: cursorAgentUrl(context.agentId),

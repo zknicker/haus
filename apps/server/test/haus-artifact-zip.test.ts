@@ -63,7 +63,7 @@ test('zips refuse oversize selections, paths outside the root, and outsiders', a
     });
     const outsider = createHausClient(
         state.harness,
-        await state.harness.clerk.mintSessionToken('artifact-zip_outsider')
+        await state.harness.humans.mintSessionToken('artifact-zip_outsider')
     );
     await expect(
         outsider.trpc.artifact.zip.mutate({

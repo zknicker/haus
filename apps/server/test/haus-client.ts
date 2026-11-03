@@ -13,12 +13,12 @@ import type { HausServerHarness } from './haus-server-harness.ts';
 
 /**
  * Speaks the same wire the App speaks: HTTP for queries and mutations, the
- * tRPC WebSocket for subscriptions, with the Clerk session token attached
+ * tRPC WebSocket for subscriptions, with the Haus access token attached
  * exactly as the App attaches it.
  */
 export interface HausClient {
-    clerkSessionToken: string | null;
     close(): void;
+    sessionToken: string | null;
     trpc: TRPCClient<HausRouter>;
 }
 
@@ -29,7 +29,7 @@ export interface HausClientOptions {
 
 export function createHausClient(
     harness: HausServerHarness,
-    clerkSessionToken: string | null = null,
+    sessionToken: string | null = null,
     options: HausClientOptions = {}
 ): HausClient {
     const declaredProtocolVersion = options.protocolVersion ?? appProtocolVersion;
@@ -42,7 +42,7 @@ export function createHausClient(
         WebSocket: createOriginWebSocket(harness.appOrigin),
         connectionParams: () => ({
             appProtocolVersion: String(declaredProtocolVersion),
-            ...(clerkSessionToken ? { clerkSessionToken } : {}),
+            ...(sessionToken ? { sessionToken } : {}),
             productVersion: 'test',
         }),
         url: socketUrl.toString(),
@@ -50,11 +50,11 @@ export function createHausClient(
     const headers = () => ({
         [appProtocolHeaders.productVersion]: 'test',
         [appProtocolHeaders.protocolVersion]: String(declaredProtocolVersion),
-        ...(clerkSessionToken ? { authorization: `Bearer ${clerkSessionToken}` } : {}),
+        ...(sessionToken ? { authorization: `Bearer ${sessionToken}` } : {}),
     });
 
     return {
-        clerkSessionToken,
+        sessionToken,
         close: () => wsClient.close(),
         trpc: createTRPCClient<HausRouter>({
             links: [

@@ -3,7 +3,7 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { messageSelection, visibleChatSql } from './message-view.ts';
-import { resolveAgentTarget } from './resolve-target.ts';
+import { resolveAgentTaskTarget } from './task-lookup.ts';
 import { taskRows } from './task-row.ts';
 
 export const TASK_LIST_STATUSES = [
@@ -25,7 +25,10 @@ export async function listAgentTasks(
     runner: ResolvedRunner,
     input: { mine?: boolean; status?: TaskListStatus; target?: string }
 ) {
-    const chatId = input.target ? await resolveAgentTarget(db, runner, input.target) : null;
+    // A Thread target lists its parent's tasks: the parent numbers them all.
+    const chatId = input.target
+        ? (await resolveAgentTaskTarget(db, runner, input.target)).taskChatId
+        : null;
     const where = and(
         eq(messageTasksTable.serverId, runner.serverId),
         chatId ? eq(messageTasksTable.chatId, chatId) : visibleChatSql(runner),

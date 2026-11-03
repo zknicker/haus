@@ -39,7 +39,7 @@ export const mcpConnectionsTable = pgTable(
         check('mcp_connections_auth', sql`${table.auth} in ('none', 'headers', 'oauth')`),
         check(
             'mcp_connections_preset',
-            sql`${table.preset} is null or ${table.preset} in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool', 'cloudflare', 'handmade', 'tmterminal', 'linear', 'factory')`
+            sql`${table.preset} is null or ${table.preset} in ('github', 'google-calendar', 'merchbase', 'merchbase-atlas', 'merchbase-fulfillment', 'rankwrangler', 'x', 'coingecko', 'skool', 'cloudflare', 'handmade', 'tmterminal', 'linear', 'factory', 'kittl')`
         ),
     ]
 );

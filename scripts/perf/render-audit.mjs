@@ -11,9 +11,9 @@
 // Setup: a perf stack (ensure-dev-stack.sh with its own HAUS_DEV_STACK_ID and
 // port base) seeded with seed-perf.sql. Run under the env loader, unsandboxed:
 //   agent-varlock -- ./node_modules/.bin/varlock run -- node scripts/perf/render-audit.mjs ...
-// Electron's main process needs the Clerk env, and Electron's binary must be
+// Electron's main process needs the resolved development environment, and Electron's binary must be
 // installed (`node apps/website/node_modules/electron/install.js` if missing).
-// Electron first loads the dev bundle (native Clerk sign-in), then the prod
+// Electron first loads the dev bundle (local development sign-in), then the prod
 // bundle is served on the dev origin via CDP Fetch (browser-session.mjs says
 // why). The prod socket dials the website origin, which Chrome's Local Network
 // Access checks block here, so Electron runs with

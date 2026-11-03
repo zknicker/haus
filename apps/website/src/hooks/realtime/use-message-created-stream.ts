@@ -51,18 +51,25 @@ export function applyMessageCreated(coalescer: TargetedReadCoalescer, event: Mes
     if (event.parentChatId) {
         invalidateUnreadThreads(coalescer, event.serverId);
     }
+    // Any message can join an unread row's waiting messages (ADR 0050).
+    invalidateUnreadPreviews(coalescer, event.serverId);
 }
 
 /**
  * Owned reads on every start: every cached transcript list, Chat ordering,
- * search, and unread Threads. A list, not a tail read: a missed Thread reply
- * changes its parent anchor's summary, which only the parent list's reread
- * reseeds.
+ * search, unread Threads, and the Inbox's unread previews. A list, not a tail
+ * read: a missed Thread reply changes its parent anchor's summary, which only
+ * the parent list's reread reseeds.
  */
 export function recoverMessageCreatedReads(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.recoverTranscriptLists({ serverId });
     invalidateChatListAndSearch(coalescer, serverId);
     invalidateUnreadThreads(coalescer, serverId);
+    invalidateUnreadPreviews(coalescer, serverId);
+}
+
+function invalidateUnreadPreviews(coalescer: TargetedReadCoalescer, serverId: string) {
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }
 
 function invalidateUnreadThreads(coalescer: TargetedReadCoalescer, serverId: string) {

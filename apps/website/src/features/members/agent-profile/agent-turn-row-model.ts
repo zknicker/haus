@@ -1,8 +1,7 @@
-import type { AgentTurnOperationCategory, AgentTurnTrigger, Chat } from '@haus/api';
+import type { AgentTurnTrigger, Chat } from '@haus/api';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { chatPlace } from '../../shell/tab-identity.ts';
-import { formatAgentActivityEvent } from './agent-activity-model.ts';
-import type { AgentActivityTurn } from './agent-activity-turns.ts';
+import { resolveRunMark, type TurnRunMark } from './agent-run-mark.ts';
 import type { RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
@@ -15,19 +14,38 @@ import type { RecentActivityRow } from './recent-activity-rows.ts';
 export type TurnRowTitle =
     | { readonly kind: 'none' }
     | { readonly kind: 'pending'; readonly place: string | null }
-    | { readonly kind: 'text'; readonly place: string | null; readonly text: string };
+    | {
+          readonly kind: 'text';
+          readonly place: string | null;
+          /** Background check-ins read muted, so they never outweigh real work. */
+          readonly quiet?: boolean;
+          /** A heartbeat or dream run: the Log's badge and outcome line. */
+          readonly run?: TurnRunMark;
+          readonly text: string;
+      };
 
-/** A message or task trigger quotes its message (`preview`), so a title is never a second read. */
+/**
+ * A message or task trigger quotes its message (`preview`), so a title is never
+ * a second read. `live` is a run still working: a heartbeat then reads
+ * `Checking in` and a dream `Dreaming`; settled, `Checked in` (muted when it
+ * had nothing to report) and `Dreamed`.
+ */
 export function resolveTurnRowTitle(
     trigger: AgentTurnTrigger | null,
-    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>
+    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>,
+    live = false
 ): TurnRowTitle {
     if (!trigger || trigger.kind === 'private') {
         return { kind: 'none' };
     }
-    // The nightly dream and a sub-agent wake have no Chat, so they have no place.
-    if (trigger.kind === 'dream') {
-        return { kind: 'text', place: null, text: 'Dreaming' };
+    // The nightly dream, heartbeats, their reports, and a sub-agent wake have no Chat, so
+    // they have no place.
+    if (
+        trigger.kind === 'dream' ||
+        trigger.kind === 'heartbeat' ||
+        trigger.kind === 'heartbeat_report'
+    ) {
+        return resolveRunTitle(trigger, chats, live);
     }
     if (trigger.kind === 'subagent') {
         return { kind: 'text', place: null, text: 'Sub-agent finished' };
@@ -48,6 +66,32 @@ export function resolveTurnRowTitle(
     return { kind: 'text', place, text: title };
 }
 
+/** A dream, heartbeat, or heartbeat report: no Chat, so no place, but a badge and an outcome. */
+function resolveRunTitle(
+    trigger: Extract<AgentTurnTrigger, { kind: 'dream' | 'heartbeat' | 'heartbeat_report' }>,
+    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>,
+    live: boolean
+): TurnRowTitle {
+    const run = resolveRunMark(trigger, chats, live) ?? undefined;
+    switch (trigger.kind) {
+        case 'dream':
+            return { kind: 'text', place: null, run, text: live ? 'Dreaming' : 'Dreamed' };
+        case 'heartbeat': {
+            // A heartbeat that sent a report is news, so it reads at normal emphasis.
+            const quiet = live || (trigger.report === null && !trigger.yielded);
+            return {
+                kind: 'text',
+                place: null,
+                quiet,
+                run,
+                text: live ? 'Checking in' : 'Checked in',
+            };
+        }
+        case 'heartbeat_report':
+            return { kind: 'text', place: null, run, text: 'Heartbeat report' };
+    }
+}
+
 /**
  * The open row's way back to its Chat: `View in #product`. A DM is always a
  * person and this Agent, so it names the Agent (`View in DM with Tiny`), where
@@ -58,59 +102,6 @@ export function turnChatActionLabel(place: string, agentName: string): string {
 }
 
 const dmPlace = chatPlace({ kind: 'dm', name: null });
-
-/**
- * What a turn did, in words, most telling first: `Ran 2 sub-agents · edited 3
- * files · read 4 · sent 1 message`. A noun the previous action already named
- * is not repeated. Failed or interrupted calls follow their count.
- */
-export function formatTurnOutcome(turn: AgentActivityTurn): string {
-    const actions = [...turn.operations]
-        .sort(
-            (left, right) =>
-                outcomeOrder.indexOf(left.category) - outcomeOrder.indexOf(right.category)
-        )
-        .map((operation) => {
-            const total = operation.completed + operation.failed + operation.interrupted;
-            const exceptions = [
-                operation.failed > 0 ? `${operation.failed} failed` : null,
-                operation.interrupted > 0 ? `${operation.interrupted} interrupted` : null,
-            ].filter(Boolean);
-            return {
-                ...outcomeAction(operation.category, total),
-                suffix: exceptions.length > 0 ? ` (${exceptions.join(', ')})` : '',
-            };
-        });
-    if (turn.messageCount > 0) {
-        actions.push({ ...outcomeAction('sending_message', turn.messageCount), suffix: '' });
-    }
-    const parts = [
-        // The row's status mark already says "Failed"; only a known reason adds anything.
-        ...(turn.kind === 'settled' && turn.status === 'failed' && turn.failureKind
-            ? [failureReasons[turn.failureKind]].filter((reason) => reason !== undefined)
-            : []),
-        ...actions.map((action, index) => {
-            // `Searched the web` needs no count of one, and its `times` never carries over.
-            if (action.isRepeat) {
-                const count = action.count === 1 ? '' : ` ${action.count} ${action.noun}`;
-                return `${action.verb}${count}${action.suffix}`;
-            }
-            const repeated = index > 0 && actions[index - 1]?.noun === action.noun;
-            return `${action.verb} ${action.count}${repeated ? '' : ` ${action.noun}`}${action.suffix}`;
-        }),
-    ];
-    if (parts.length > 0) {
-        return parts.map((part, index) => (index === 0 ? part : lowerFirst(part))).join(' · ');
-    }
-    if (turn.kind === 'active') {
-        // Nothing has settled yet: say what the Agent is doing right now.
-        const latest = turn.events.at(-1);
-        return latest ? formatAgentActivityEvent(latest) : 'Starting…';
-    }
-    // `outputProduced` is false here (no messages), so a completed turn is the
-    // Agent's positive choice to stay quiet, not a lost run.
-    return turn.status === 'completed' ? 'Stayed quiet' : 'Ended before any action';
-}
 
 /** Status only when it is news: a completed turn says nothing. */
 export type TurnRowStatus =
@@ -204,55 +195,3 @@ const workTitles: Record<'cloud_agent' | 'onboarding' | 'reminder' | 'trigger', 
     reminder: 'Reminder',
     trigger: 'Trigger',
 };
-
-const failureReasons: Readonly<Record<string, string>> = {
-    authentication: 'Needs sign-in',
-    configuration: 'Configuration error',
-    input: 'Invalid input',
-    'rate-limit': 'Rate limited',
-    'session-resume': 'Session could not resume',
-    timeout: 'Timed out',
-    transport: 'Connection lost',
-};
-
-const outcomeOrder: readonly AgentTurnOperationCategory[] = [
-    'delegating',
-    'generating_image',
-    'generating_video',
-    'editing_files',
-    'running_command',
-    'searching_web',
-    'browsing',
-    'reading_files',
-    'using_tool',
-    'updating_instructions',
-    'checking_messages',
-];
-
-/** Verb, then the singular and plural noun its count takes. */
-const outcomeWords: Record<
-    AgentTurnOperationCategory | 'sending_message',
-    readonly [string, string, string]
-> = {
-    browsing: ['Took', 'browser action', 'browser actions'],
-    checking_messages: ['Checked messages', 'time', 'times'],
-    delegating: ['Ran', 'sub-agent', 'sub-agents'],
-    editing_files: ['Edited', 'file', 'files'],
-    generating_image: ['Generated', 'image', 'images'],
-    generating_video: ['Generated', 'video', 'videos'],
-    reading_files: ['Read', 'file', 'files'],
-    running_command: ['Ran', 'command', 'commands'],
-    searching_web: ['Searched the web', 'time', 'times'],
-    sending_message: ['Sent', 'message', 'messages'],
-    updating_instructions: ['Updated instructions', 'time', 'times'],
-    using_tool: ['Used', 'tool', 'tools'],
-};
-
-function outcomeAction(category: keyof typeof outcomeWords, count: number) {
-    const [verb, one, many] = outcomeWords[category];
-    return { count, isRepeat: one === 'time', noun: count === 1 ? one : many, verb };
-}
-
-function lowerFirst(value: string): string {
-    return value.charAt(0).toLowerCase() + value.slice(1);
-}

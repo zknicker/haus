@@ -5,8 +5,14 @@
 
 import { createServer } from 'node:http';
 
-export async function startControlledMcp() {
-    /** @type {Array<{ key: string }>} */
+/**
+ * `recent` also exposes `list_recent_audit_records`, which returns every defined
+ * record in definition order, for scenarios where an Agent watches the ledger
+ * without being told a key (the heartbeat evals). Off by default so the lookup-only
+ * scenarios keep their one-tool server.
+ */
+export async function startControlledMcp({ recent = false } = {}) {
+    /** @type {Array<{ caller: string | null, key: string | null, tool: string }>} */
     const calls = [];
     /** @type {Map<string, { owner: string, title: string }>} */
     const records = new Map();
@@ -24,7 +30,10 @@ export async function startControlledMcp() {
             return;
         }
 
-        const result = respond(message, records, calls);
+        // A path suffix (`/mcp/<caller>`) names the caller: each Agent that needs
+        // attributable calls gets its own connection URL from `urlFor`.
+        const caller = (request.url ?? '').split('?')[0].split('/').filter(Boolean)[1] ?? null;
+        const result = respond(message, records, calls, recent, caller);
         // An unknown method is a JSON-RPC error, never a null result: the Server's
         // client probes newer protocol methods during version negotiation and
         // rejects `result: null` as a malformed response.
@@ -64,6 +73,8 @@ export async function startControlledMcp() {
         },
         define: (key, record) => records.set(key, record),
         url: `http://127.0.0.1:${address.port}/mcp`,
+        /** The same server under a caller-named path, so its calls log who made them. */
+        urlFor: (caller) => `http://127.0.0.1:${address.port}/mcp/${caller}`,
     };
 }
 
@@ -79,7 +90,14 @@ const lookupTool = {
     name: 'lookup_audit_record',
 };
 
-function respond(message, records, calls) {
+const recentTool = {
+    description:
+        'List the most recent private audit records, newest last, each with its key, title, owner, and status. Use this to see what is new in the Audit Ledger.',
+    inputSchema: { additionalProperties: false, properties: {}, type: 'object' },
+    name: 'list_recent_audit_records',
+};
+
+function respond(message, records, calls, recent, caller) {
     switch (message.method) {
         case 'initialize':
             return {
@@ -90,17 +108,19 @@ function respond(message, records, calls) {
         case 'ping':
             return {};
         case 'tools/list':
-            return { tools: [lookupTool] };
+            return { tools: recent ? [lookupTool, recentTool] : [lookupTool] };
         case 'tools/call':
-            return lookupResult(message, records, calls);
+            return message.params?.name === recentTool.name
+                ? recentResult(records, calls, caller)
+                : lookupResult(message, records, calls, caller);
         default:
             return null;
     }
 }
 
-function lookupResult(message, records, calls) {
+function lookupResult(message, records, calls, caller) {
     const key = message.params?.arguments?.key ?? '';
-    calls.push({ key });
+    calls.push({ caller, key, tool: lookupTool.name });
     const record = records.get(key);
     return {
         content: [
@@ -112,6 +132,12 @@ function lookupResult(message, records, calls) {
             },
         ],
     };
+}
+
+function recentResult(records, calls, caller) {
+    calls.push({ caller, key: null, tool: recentTool.name });
+    const listed = [...records.entries()].map(([key, record]) => ({ key, ...record }));
+    return { content: [{ text: JSON.stringify({ records: listed }), type: 'text' }] };
 }
 
 async function readBody(request) {

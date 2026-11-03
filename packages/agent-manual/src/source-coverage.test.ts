@@ -76,7 +76,7 @@ test('pinned source inventory accounts for every card, omission and Haus additio
         if (topic.id === 'recipes/technique/memory-hygiene') {
             expect(topic.triggers).toEqual([
                 'my MEMORY.md is bloating or over its size limit',
-                'a nightly dreaming turn asks me to consolidate my memory',
+                'a nightly heartbeat asks me to consolidate my memory',
                 'where should this preference or fact live in memory',
                 'someone gave me feedback to remember as a standing preference',
                 'Active Context reads like a diary',

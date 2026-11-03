@@ -31,9 +31,11 @@ export async function deliverTaskAssignment(
         serverId,
     });
     // Follow first: thread delivery is gated on this row, so without it the
-    // Agent would wake, claim, and then never see a single reply. A Thread
-    // nobody has replied in has no row to point at yet; the first reply
-    // materializes it and attaches the assignee's follow.
+    // Agent would wake, claim, and then never see a single reply. `threadChatId`
+    // is the task's work Thread: the Thread a Thread task sits in (always
+    // present), or the one anchored on a top-level task. A Thread nobody has
+    // replied in has no row to point at yet; the first reply materializes it
+    // and attaches the assignee's follow.
     const [thread] = await tx
         .select({ id: chatsTable.id })
         .from(chatsTable)
@@ -43,14 +45,18 @@ export async function deliverTaskAssignment(
         await followAgentThread(tx, { agentId, serverId, threadChatId: task.threadChatId });
     }
 
-    // The task's title is its canonical message's content.
-    const [anchor] = await tx
-        .select({ content: chatMessagesTable.content })
+    // The task's title is its canonical message's content, and its target is
+    // that message's Chat: the Thread a Thread task sits in, or the parent.
+    const [message] = await tx
+        .select({ chatId: chatMessagesTable.chatId, content: chatMessagesTable.content })
         .from(chatMessagesTable)
         .where(
             and(eq(chatMessagesTable.serverId, serverId), eq(chatMessagesTable.id, task.messageId))
         )
         .limit(1);
+    if (!message) {
+        throw new Error(`Task message ${task.messageId} is missing.`);
+    }
     // The handoff is a private Agent delivery, so it is typed pending work and
     // never a Chat message. The delivery key carries the new version: a task
     // can be reassigned many times.
@@ -60,8 +66,8 @@ export async function deliverTaskAssignment(
         content: taskAssignmentEnvelope({
             assignedByHandle: input.assignedByHandle,
             number: task.number,
-            target: await targetForChat(tx, serverId, task.chatId),
-            title: anchor?.content ?? '',
+            target: await targetForChat(tx, serverId, message.chatId),
+            title: message.content,
         }),
         dedupeKey: taskAssignmentKey(task.messageId, task.version),
         mentioned: true,

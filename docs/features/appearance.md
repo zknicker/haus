@@ -1,48 +1,71 @@
 ---
-summary: Appearance preferences — Mode (Light/Dark/System) and color Theme (Default/Halloween), per device.
+summary: Appearance preferences — Mode (Light/Dark/System), color Theme (Default, Halloween, Christmas Eve, Christmas Morning), and the Christmas roofline's Snow, per device.
 read_when:
-  - changing Settings > Preferences > Appearance, the Mode or Theme rows, or their Cmd+K commands
+  - changing Settings > Preferences > Appearance, the Mode, Theme, or Snow rows, or their Cmd+K commands
   - adding or changing a color theme
 ---
 
 # Appearance
 
 Settings > Preferences > Appearance holds how Haus looks on this device. Every row applies
-instantly and is remembered per device (never synced to the Server); a Theme pick also follows
-into other open windows.
+instantly and is remembered per device (never synced to the Server); a Theme or Snow pick also
+follows into other open windows.
 
 - **Mode**: Light, Dark, or System (follows the OS).
 - **Theme**: a color family layered over the mode, VSCode-style. **Default** is the standard Haus
   palette; **Halloween** is dark only: it swaps the accent for pumpkin orange, tints the window a
   faint midnight indigo, and adds a few seasonal touches: a moonlit, slowly clouding sky at the top
   of the sidebar and a haunted-house host's welcome in the Inbox greeting, a different line each
-  day. More themes are added over time.
+  day. **Christmas Eve** is dark only, with a navy night tint and a candle-gold accent;
+  **Christmas Morning** is light only, with a faint frost tint and a candy-cane red accent. Both
+  greet you as an innkeeper by the fire and hang a snowy roofline along the top of the window
+  (see below). More themes are added over time.
+- **Snow** (only while a Christmas theme is on): the snow on the roofline, **Puffy**, **Soft**, or
+  **Icicles**.
 - **Window layout** (desktop only): see [Desktop Window Layout](desktop-window-layout.md).
 
 While Halloween is on, the Haus mascot wears a costume: every place the ghost appears (the
 sidebar mark, the web titlebar mark, the startup screen) shows a glass pumpkin with the ghost's
-own eyes, drawn in the same box with the same drifting glass (`HausMascot`).
+own eyes, drawn in the same box with the same drifting glass (`HausMascot`). Under either
+Christmas theme the ghost stays itself and wears a Santa nightcap.
 
-Each theme also names an app icon (`appIcon`: the ghost, or Halloween's pumpkin), and
-`useThemeAppIcon`, mounted once by `ThemeProvider`, applies it outside the page. The browser tab's
-favicon links point at that icon's set: `index.html` links the ghost set at the `public/` root,
-and another icon's set sits under `public/app-icons/<icon>/` with the same file names, rendered by
-`bun run icons:render-favicon`. On desktop it asks the shell to wear the same icon in the Dock
-(`setAppIcon`), on launch as well as on every switch, so the Dock matches the stored theme from
-the start. Switching back to Default restores the ghost on both.
+The Christmas themes' roofline is a run of big glowing C9 bulbs strung along the window's top
+edge under a line of snow, with a light flurry falling behind it. The Snow row picks how that
+snow looks; the pick is per device and kept while another theme is on.
 
-A theme may be dark only, as Halloween is. While it is active, Haus is dark everywhere (every page,
-the desktop window, agent visuals), and the Mode row shows Dark, disabled. The saved Mode is kept:
-switching back to Default restores Light, Dark, or System exactly.
+Once a day under either Christmas theme, Santa's team flies across the Inbox: the ghost in its
+nightcap in a sleigh, four pairs of reindeer, and Rudolph's red nose in the lead, about eight
+seconds left to right through the empty air between the "Haus › Inbox" trail and the greeting
+(`features/sleigh-ride/`). It flies the first time the Inbox is shown after 5pm, or after noon
+under Christmas Morning, never in a window's first second, and only once the Inbox is focused,
+visible, and at its top; an unfocused window freezes it mid-flight until focus returns. It covers
+no text or control, never takes the pointer or focus, and never flies under Reduce Motion. The
+day it flew is kept per device. In development, setting `haus.debug-sleigh` in localStorage
+forces a ride on the next Inbox show.
 
-Cmd+K offers the same choices under Appearance: Use Light/Dark/System Mode and Use Default/Halloween
-Theme. The mode commands are hidden while a dark-only theme is active.
+Each theme also names an app icon (`appIcon`: the ghost, Halloween's pumpkin, or `santa`, the
+ghost in its nightcap, which both Christmas themes show), and `useThemeAppIcon`, mounted once by
+`ThemeProvider`, applies it outside the page. The browser tab's favicon links point at that icon's set: `index.html` links the
+ghost set at the `public/` root, and another icon's set sits under `public/app-icons/<icon>/` with
+the same file names, rendered by `bun run icons:render-favicon`. On desktop it asks the shell to
+wear the same icon in the Dock (`setAppIcon`), on launch as well as on every switch, so the Dock
+matches the stored theme from the start. Switching back to Default restores the ghost on both.
+
+A theme may pin a mode: Halloween and Christmas Eve are dark only, Christmas Morning is light
+only. While one is active, Haus is in that mode everywhere (every page, the desktop window, agent
+visuals), and the Mode row shows the pinned mode, disabled. The saved Mode is kept: switching back
+to Default restores Light, Dark, or System exactly.
+
+Cmd+K offers the same choices under Appearance: Use Light/Dark/System Mode, Use
+Default/Halloween/Christmas Eve/Christmas Morning Theme, and, while a Christmas theme is on, Use
+Puffy/Soft/Icicles Snow. The mode commands are hidden while a theme pins the mode.
 
 Agent visuals in chat follow the web's mode and theme. The iOS app uses the Default theme.
 
 Each theme is one definition in `apps/website/src/lib/color-themes.ts`: its label, whether it
-forces a mode, its mascot, its app icon, its scene, and its greeting pools. Every surface above reads the active
-definition, never the theme's name, so Default stays exactly the plain app (the ghost, no sky,
-"Good morning, Name", your own mode) and adding a theme is one definition plus its token CSS.
+forces a mode, its mascot, its app icon, its scene, and its greeting pools. Every surface above
+reads the active definition, never the theme's name, so Default stays exactly the plain app (the
+ghost, no scene, "Good morning, Name", your own mode) and adding a theme is one definition plus its
+token CSS.
 
-Design contract: [DESIGN.md → Color themes](../../DESIGN.md#color-themes).
+Design contract: [.design/guidelines.md → Color themes](../../.design/guidelines.md#color-themes).

@@ -86,7 +86,7 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
     const agentId = createOpaqueId('agt');
     const agentHandle = `ada-${randomBytes(4).toString('hex')}`;
     const chatId = createOpaqueId('cht');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Delivery', id: serverId, slug: createOpaqueId('slug') });
@@ -233,7 +233,7 @@ async function addDmChat(seed: Seed): Promise<string> {
     const db = connection.db;
     const userId = createOpaqueId('usr');
     const chatId = createOpaqueId('cht');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db.insert(serverMembershipsTable).values({
         handle: `human-${randomBytes(4).toString('hex')}`,
         id: createOpaqueId('mem'),
@@ -1847,7 +1847,7 @@ test('defers a public Agent configuration change until the active run settles', 
     const configured = await configureAgent(
         connection.db,
         {
-            clerkUserId: 'config-switch-owner',
+            subject: 'config-switch-owner',
             id: seed.userId,
         },
         {
@@ -1990,7 +1990,7 @@ test.each([
     const configured = await configureAgent(
         connection.db,
         {
-            clerkUserId: 'effort-switch-owner',
+            subject: 'effort-switch-owner',
             id: seed.userId,
         },
         {
@@ -2069,7 +2069,7 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
     const configured = await configureAgent(
         connection.db,
         {
-            clerkUserId: 'config-stop-owner',
+            subject: 'config-stop-owner',
             id: seed.userId,
         },
         {
@@ -2155,7 +2155,7 @@ test('applies deferred configuration before Restart redrives pending work', asyn
     const configured = await configureAgent(
         connection.db,
         {
-            clerkUserId: 'config-restart-owner',
+            subject: 'config-restart-owner',
             id: seed.userId,
         },
         {
@@ -2239,7 +2239,7 @@ test('applies deferred configuration with one strongest Reset generation', async
     const configured = await configureAgent(
         connection.db,
         {
-            clerkUserId: 'config-reset-owner',
+            subject: 'config-reset-owner',
             id: seed.userId,
         },
         {

@@ -12,6 +12,7 @@ import {
 import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { countOps, diffLines, formatHunks, splitLines } from './dream-diff.ts';
+import type { DreamMemoryChange } from './heartbeat-note.ts';
 
 /**
  * A memory file's digest, plus its text when it is small enough to hold; a binary
@@ -134,8 +135,24 @@ function diffFile(
 }
 
 export interface DreamRecording {
-    /** Diffs memory against the start and reports it; never throws. */
-    finish(): Promise<void>;
+    /**
+     * Diffs memory against the start and reports it; never throws. Returns what changed,
+     * or null when nothing did or the diff failed, for the main session's quiet-run note.
+     */
+    finish(): Promise<DreamMemoryChange | null>;
+}
+
+/** Line totals and which of MEMORY.md and `notes/` moved; null when no file changed. */
+export function summarizeMemoryChange(files: readonly AgentDreamFile[]): DreamMemoryChange | null {
+    if (files.length === 0) {
+        return null;
+    }
+    return {
+        added: files.reduce((sum, file) => sum + file.added, 0),
+        memory: files.some((file) => file.path === 'MEMORY.md'),
+        notes: files.some((file) => file.path.startsWith('notes/')),
+        removed: files.reduce((sum, file) => sum + file.removed, 0),
+    };
 }
 
 /**
@@ -144,13 +161,13 @@ export interface DreamRecording {
  * failure is logged and never fails the turn; it only costs the record.
  */
 export async function openDreamRecording(input: {
-    command: { agentId: string; dream?: unknown; runId: string };
+    command: { agentId: string; heartbeat?: { kind: 'daytime' | 'nightly' }; runId: string };
     runtime: DaemonRuntime;
     sendFrame(frame: AgentDreamRecord): void;
     startedAt: string;
     workspaceDir: string;
 }): Promise<DreamRecording | null> {
-    if (!input.command.dream) {
+    if (input.command.heartbeat?.kind !== 'nightly') {
         return null;
     }
     let before: MemorySnapshot;
@@ -172,8 +189,10 @@ export async function openDreamRecording(input: {
                     startedAt: input.startedAt,
                     type: 'agent-dream-record',
                 });
+                return summarizeMemoryChange(changes.files);
             } catch (error) {
                 await logRecordFailure(input.runtime, error);
+                return null;
             }
         },
     };

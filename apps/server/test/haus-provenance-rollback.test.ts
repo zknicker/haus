@@ -13,7 +13,7 @@ const firedAt = new Date('2026-09-07T12:00:00Z');
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('rollback_owner'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('rollback_owner'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Rollback writes',
         slug: 'rollback-writes',

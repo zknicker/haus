@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { conversationPreviewLine, threadReplyPreviewLine } from './conversation-preview.ts';
+import {
+    conversationPreviewLine,
+    threadAnchorLine,
+    threadReplyPreviewLine,
+} from './conversation-preview.ts';
 
 const createdAt = '2025-05-08T15:00:00.000Z';
 
@@ -104,5 +108,32 @@ describe('threadReplyPreviewLine', () => {
 
     test('a reply that no longer resolves still says the Thread has news', () => {
         expect(threadReplyPreviewLine(null, 'Zach')).toBe('New replies in thread');
+    });
+});
+
+describe('threadAnchorLine', () => {
+    test('names the anchor author, then quotes the anchor flattened', () => {
+        expect(
+            threadAnchorLine({
+                authorName: 'Beacon',
+                content: '**Thursday** Christmas check in [#ops](haus:chat/cht_1)',
+                isViewer: false,
+            })
+        ).toBe('on Beacon: Thursday Christmas check in #ops');
+    });
+
+    test("the viewer's own anchor reads as theirs", () => {
+        expect(threadAnchorLine({ authorName: 'Zach', content: 'Ship it?', isViewer: true })).toBe(
+            'on your message: Ship it?'
+        );
+    });
+
+    test('an anchor with no text names its author, and an unnamed one still quotes', () => {
+        expect(threadAnchorLine({ authorName: 'Tiny', content: '', isViewer: false })).toBe(
+            'on Tiny'
+        );
+        expect(threadAnchorLine({ authorName: null, content: 'Hello', isViewer: false })).toBe(
+            'on: Hello'
+        );
     });
 });

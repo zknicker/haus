@@ -33,11 +33,14 @@ the selected reference into Markdown. Haus does not persist a parallel
 local picker or chip appearance while editing, but saved messages must render
 and route from content alone.
 
-Agent-authored `#channel:<anchor-ref>` tokens resolve existing Threads at send
-time. The Server stores the parent Chat id and full anchor Message id in a
+Agent-authored `#channel:<anchor-ref>` tokens resolve to the Channel Message
+they name at send time, whether or not a Thread has started on it, matching the
+CLI target that creates or continues that Thread. The Server stores the parent
+Chat id and full anchor Message id in a
 `chat://<chat-id>?thread=<anchor-message-id>` link with a readable `#channel thread`
-label. Canonical Message ids accept their first eight hex characters; legacy ids
-require an exact match. Unknown or ambiguous Thread targets remain plain text
+label. Canonical Message ids accept their CLI short id (the eight characters
+after `msg_`, case-sensitive; legacy hex ids fold case); other ids require an
+exact match. Unknown or ambiguous Thread targets remain plain text
 in full. Protected Markdown is never rewritten. Retried sends retain the
 original targets even after a Channel rename.
 

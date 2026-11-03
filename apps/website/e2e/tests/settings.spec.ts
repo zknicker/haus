@@ -1,21 +1,18 @@
 import { randomBytes } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import { assertOpaqueId, completeOnboarding, createClient, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const slug = 'settings-hq';
 
 test.beforeAll(async () => {
-    const { databaseUrl, token } = readClerkSessionFixture();
-    const owner = createClient(token);
+    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const owner = createClient(accessToken);
     await owner.server.create.mutate({ displayName: 'Settings HQ', slug });
     const server = await owner.server.bySlug.query({ slug });
     completeOnboarding(databaseUrl, server.id);
-    const ownerUserId = runPsql(
-        databaseUrl,
-        "select id from users where clerk_user_id = 'user_e2e_human'"
-    );
+    const ownerUserId = runPsql(databaseUrl, "select id from users where id = 'usr_e2e_human'");
     assertOpaqueId(ownerUserId);
     runPsql(
         databaseUrl,
@@ -54,7 +51,7 @@ test.beforeAll(async () => {
 });
 
 test('aligns the Settings escape row with the first Chat navigation row', async ({ page }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}`);
 
     // Inbox leads the chat navigation, so it is the line the escape row has to
@@ -81,7 +78,7 @@ test('aligns the Settings escape row with the first Chat navigation row', async 
 test('settings navigation names the page and reaches Server deletion', async ({
     page,
 }, testInfo) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     const personal = page.getByRole('treegrid', { name: 'Preferences', exact: true });
     const shared = page.getByRole('treegrid', { name: 'Server', exact: true });
@@ -130,7 +127,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
  * is a chat list with its own route, so that row leaves Settings.
  */
 test('Usage keeps the settings rail and Archived chats links out', async ({ page }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Usage' }).click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/usage$`, 'u'));
@@ -143,7 +140,7 @@ test('Usage keeps the settings rail and Archived chats links out', async ({ page
 });
 
 test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     const name = page.getByRole('textbox', { name: 'Display name' });
 
@@ -153,11 +150,11 @@ test('reads and updates the canonical human identity in Profile settings', async
     await name.fill('Zach');
     await name.press('Tab');
     await expect
-        .poll(() => {
-            const { databaseUrl } = readClerkSessionFixture();
+        .poll(async () => {
+            const { databaseUrl } = await createAppTestFixture();
             return runPsql(
                 databaseUrl,
-                "select display_name from users where clerk_user_id = 'user_e2e_human'"
+                "select display_name from users where id = 'usr_e2e_human'"
             );
         })
         .toBe('Zach');
@@ -168,7 +165,7 @@ test('reads and updates the canonical human identity in Profile settings', async
 });
 
 test('reports current Computer models and skills in Server Settings', async ({ page }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/models`);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Models' })).toBeVisible();
@@ -188,7 +185,7 @@ test('reports current Computer models and skills in Server Settings', async ({ p
 
 test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     const name = 'durable-smoke-mcp';
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/connections`);
 
     await page.getByRole('button', { name: 'Add connection' }).click();
@@ -216,7 +213,7 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
 });
 
 test('hides added presets and allows deleting every preset account', async ({ page }) => {
-    await signInAsClerkHuman(page);
+    await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/connections`);
 
     const recommendation = (description: string) =>

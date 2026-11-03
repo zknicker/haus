@@ -23,7 +23,7 @@ export interface TriggerRouteOptions {
 }
 
 /**
- * The public inbound edge. No Clerk, no session, no Computer: an outside system
+ * The public inbound edge. No Haus session or Computer: an outside system
  * proves one trigger's bearer secret and the Server records the delivery. The
  * body is captured raw for every content type — it is stored and relayed
  * verbatim, and the Server never parses it for meaning.

@@ -1,12 +1,11 @@
-import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { createAgentThreadSender } from './agent-thread.ts';
-import { clerkSessionFile, signInAsClerkHuman } from './clerk-session.ts';
+import { signInAsAppHuman } from './app-session.ts';
 import { openChannel } from './server.ts';
 import { expect } from './test.ts';
 
 export async function verifyAgentThreadRecovery(page: Page) {
-    await signInAsClerkHuman(page);
+    const fixture = await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
 
@@ -30,11 +29,11 @@ export async function verifyAgentThreadRecovery(page: Page) {
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await expect(panel).toBeVisible();
 
-    const { databaseUrl, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
-        databaseUrl: string;
-        token: string;
-    };
-    const agent = await createAgentThreadSender({ anchorText, databaseUrl, token });
+    const agent = await createAgentThreadSender({
+        anchorText,
+        databaseUrl: fixture.databaseUrl,
+        token: fixture.accessToken,
+    });
 
     // The durable row arrives live through `chat.onMessageCreated`. A dead
     // message stream recovers on its own restart (realtime-server-restart A2);

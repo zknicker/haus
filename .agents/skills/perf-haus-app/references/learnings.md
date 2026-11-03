@@ -249,5 +249,5 @@ Each of these shipped green in unit tests and failed a realtime scenario:
   any fetched after that start (`lib/start-reconciliation.ts`).
 - `utils.x.fetch()` honors the client's default `staleTime` (30 s). A catch-up read keyed by cursor
   must pass `staleTime: 0`, or a second gap at the same cursor gets the first gap's cached answer.
-- Idle reconnects usually mean credentials: Clerk rotation must refresh the socket in place
+- Idle reconnects usually mean credentials: auth token rotation must refresh the socket in place
   (`session.refresh`), never reopen it.

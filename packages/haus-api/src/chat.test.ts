@@ -43,7 +43,7 @@ test('Chat sends accept only client intent and never an authoritative actor', ()
     ).toThrow();
 });
 
-test('Chat reads derive the reader from the verified Clerk member', () => {
+test('Chat reads derive the reader from the authenticated Haus member', () => {
     expect(
         chatMarkReadInputSchema.parse({
             chatId: 'cht_all',

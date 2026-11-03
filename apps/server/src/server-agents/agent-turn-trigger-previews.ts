@@ -7,24 +7,33 @@ import {
     type AgentTurnTriggerRecord,
     agentTurnTrigger,
     agentTurnTriggerMessageRef,
+    agentTurnTriggerRunIds,
+    previewHead,
 } from './agent-turn-trigger.ts';
+import { readAgentTurnOutcomes } from './agent-turn-trigger-outcomes.ts';
 
 /**
- * Names each record's trigger, quoting the waking messages in one read. Only
- * visible triggers are quoted, so a Chat the reader cannot see never leaks
- * text; the caller must already have gated `visible` by Chat visibility.
+ * Names each record's trigger, quoting the waking messages in one read and
+ * reading what heartbeat and dream runs came to in a few more, none per run.
+ * Only visible triggers are quoted, so a Chat the reader cannot see never leaks
+ * text; the caller must already have gated `visible` by Chat visibility. A
+ * heartbeat's `postedChatId` is limited to Chats `userId` can see.
  */
 export async function resolveAgentTurnTriggers(
     db: HausDatabase,
-    serverId: string,
+    input: { serverId: string; userId: string },
     records: readonly (AgentTurnTriggerRecord | null)[]
 ): Promise<(AgentTurnTrigger | null)[]> {
-    const previews = await readTriggerPreviews(
-        db,
-        serverId,
-        records.map(agentTurnTriggerMessageRef).filter((ref) => ref !== null)
-    );
-    return records.map((record) => agentTurnTrigger(record, previews));
+    const { serverId, userId } = input;
+    const [previews, outcomes] = await Promise.all([
+        readTriggerPreviews(
+            db,
+            serverId,
+            records.map(agentTurnTriggerMessageRef).filter((ref) => ref !== null)
+        ),
+        readAgentTurnOutcomes(db, { ...agentTurnTriggerRunIds(records), serverId, userId }),
+    ]);
+    return records.map((record) => agentTurnTrigger(record, previews, outcomes));
 }
 
 async function readTriggerPreviews(
@@ -64,17 +73,3 @@ async function readTriggerPreviews(
             ])
     );
 }
-
-/**
- * The contract bounds UTF-16 units while Postgres `left` counts characters, so
- * the head is cut again here without splitting a surrogate pair.
- */
-export function previewHead(content: string): string {
-    if (content.length <= AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH) {
-        return content;
-    }
-    const head = content.slice(0, AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH);
-    return highSurrogateAtEnd.test(head) ? head.slice(0, -1) : head;
-}
-
-const highSurrogateAtEnd = /[\uD800-\uDBFF]$/u;

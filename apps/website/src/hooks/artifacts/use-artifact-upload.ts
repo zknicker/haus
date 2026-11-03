@@ -9,7 +9,7 @@ import {
     type UploadPlan,
     type UploadSource,
 } from '../../features/artifacts/upload-plan.ts';
-import { getClerkSessionToken } from '../../lib/clerk.tsx';
+import { getAppSessionAccessToken } from '../../lib/app-auth.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { ArtifactUploadCancelled, publishArtifactFile } from './publish-artifact-file.ts';
 import { uploadDigests } from './upload-digests.ts';
@@ -134,7 +134,7 @@ export function useArtifactUpload(serverId: string) {
                 publish();
             };
             try {
-                const token = await getClerkSessionToken();
+                const token = getAppSessionAccessToken();
                 if (!token) {
                     throw new Error('Sign in to upload files.');
                 }

@@ -8,6 +8,7 @@ import {
     agentTurnSummarySchema,
     agentWorkspaceResultSchema,
     browserResultSchema,
+    computerDiskReportSchema,
     computerInventoryRefreshResultSchema,
     computerInventorySchema,
     computerSecretsResultSchema,
@@ -152,7 +153,7 @@ export async function ingestReport(
         return;
     }
 
-    await recordComputerReport(db, computerId, serverId, frame);
+    await recordComputerReport(db, connections, computerId, serverId, frame);
 }
 
 /**
@@ -161,10 +162,19 @@ export async function ingestReport(
  */
 async function recordComputerReport(
     db: HausDatabase,
+    connections: ComputerConnections,
     computerId: string,
     serverId: string,
     frame: unknown
 ) {
+    const disk = computerDiskReportSchema.safeParse(frame);
+    if (disk.success) {
+        if (connections.reportDisk(computerId, disk.data.disk)) {
+            computerUpdatedTopic.announce({ computerId, serverId });
+        }
+        return;
+    }
+
     if (await recordStateReport(db, computerId, serverId, frame)) {
         computerUpdatedTopic.announce({ computerId, serverId });
     }

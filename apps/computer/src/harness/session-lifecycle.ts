@@ -17,6 +17,8 @@ export function harnessSessionOwner(runtime: DaemonRuntime): HarnessSessionOwner
 /** Owns live handles and parked sessions until the attachment daemon exits. */
 export class HarnessSessionOwner {
     private readonly sessions = new Map<string, HarnessSessionLease>();
+    /** Live throwaway heartbeat sessions; they never replace or park the Agent's main lease. */
+    private readonly throwaways = new Set<HarnessSessionLease>();
     private closing: Promise<void> | null = null;
     private stopping = false;
 
@@ -24,20 +26,40 @@ export class HarnessSessionOwner {
         if (this.stopping) {
             throw new Error('The Computer is shutting down.');
         }
-        const lease = new HarnessSessionLease();
+        const lease = new HarnessSessionLease(agentRoot);
         this.sessions.set(agentRoot, lease);
+        return lease;
+    }
+
+    /**
+     * A lease for a throwaway heartbeat session. It is tracked apart from the Agent's
+     * main lease, so the main session's parked state is never replaced, and it leaves
+     * the set when its turn finishes.
+     */
+    beginThrowaway(agentRoot: string): HarnessSessionLease {
+        if (this.stopping) {
+            throw new Error('The Computer is shutting down.');
+        }
+        const lease = new HarnessSessionLease(agentRoot);
+        this.throwaways.add(lease);
+        void lease.whenFinished().then(() => this.throwaways.delete(lease));
         return lease;
     }
 
     beginShutdown(): void {
         this.stopping = true;
-        for (const session of this.sessions.values()) {
+        for (const session of [...this.sessions.values(), ...this.throwaways]) {
             session.stopping = true;
         }
     }
 
     /** Waits out an Agent's running turn before resetting or retiring its workspace. */
     async stopAgent(agentRoot: string): Promise<void> {
+        for (const lease of this.throwaways) {
+            if (lease.root === agentRoot) {
+                lease.stopping = true;
+            }
+        }
         const session = this.sessions.get(agentRoot);
         if (!session) {
             return;
@@ -53,7 +75,9 @@ export class HarnessSessionOwner {
         this.beginShutdown();
         this.closing ??= (async () => {
             const results = await Promise.allSettled(
-                [...this.sessions.values()].map((session) => session.stop(signal))
+                [...this.sessions.values(), ...this.throwaways].map((session) =>
+                    session.stop(signal)
+                )
             );
             const errors = results.flatMap((result) =>
                 result.status === 'rejected' ? [result.reason] : []
@@ -71,6 +95,16 @@ export class HarnessSessionLease {
     private transition: Promise<RuntimeResumeState> | null = null;
     private readonly settled = Promise.withResolvers<void>();
     stopping = false;
+
+    constructor(private readonly agentRoot: string) {}
+
+    get root(): string {
+        return this.agentRoot;
+    }
+
+    whenFinished(): Promise<void> {
+        return this.settled.promise;
+    }
 
     attach(live: Session): void {
         this.live = live;

@@ -31,6 +31,25 @@ export function tabIntentState(
     return { [tabIntentStateKey]: gesture };
 }
 
+/**
+ * Router state key for a push that navigates its own tab instead of Opening to the right:
+ * an Inbox card going to its conversation (ADR 0046). Modified clicks still open tabs.
+ */
+export const tabStayStateKey = 'hausTabStay';
+
+/** `navigate(to, { state: tabStayState() })`: a plain push stays in the source's tab. */
+export function tabStayState(): Record<typeof tabStayStateKey, true> {
+    return { [tabStayStateKey]: true };
+}
+
+export function readTabStay(state: unknown): boolean {
+    return (
+        typeof state === 'object' &&
+        state !== null &&
+        (state as Record<string, unknown>)[tabStayStateKey] === true
+    );
+}
+
 export function readTabIntent(state: unknown): OpenGesture | null {
     if (state && typeof state === 'object' && tabIntentStateKey in state) {
         const value = (state as Record<string, unknown>)[tabIntentStateKey];
@@ -44,13 +63,15 @@ export function readTabIntent(state: unknown): OpenGesture | null {
 /**
  * The one routing decision for a navigator call. Replace stays in the tab; a modified push
  * opens a tab beside the source (never deduped); window chrome's plain push is always Go; a
- * page's plain push stays in the tab for its own page key and is Open for another.
+ * page's plain push stays in the tab for its own page key, or when it asks to (`stay`), and
+ * is Open for another.
  */
 export function resolveTabNavigation(input: {
     from: TabLocation;
     gesture: OpenGesture;
     mode: 'push' | 'replace';
     policy: TabNavigationPolicy;
+    stay?: boolean;
     to: TabLocation;
 }): TabNavigationOutcome {
     if (input.mode === 'replace') {
@@ -62,7 +83,7 @@ export function resolveTabNavigation(input: {
     if (input.policy === 'shell') {
         return { kind: 'goTo' };
     }
-    return tabPageKey(input.from) === tabPageKey(input.to)
+    return input.stay || tabPageKey(input.from) === tabPageKey(input.to)
         ? { kind: 'navigate', mode: 'push' }
         : { kind: 'open' };
 }

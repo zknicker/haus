@@ -12,9 +12,19 @@ import { resolveDevPorts } from '../dev-ports.mjs';
 const bootTimeoutMs = 6 * 60_000;
 const stopTimeoutMs = 90_000;
 
-/** The environment every eval child runs with: this stack's id, no inherited port overrides. */
+/**
+ * The environment every eval child runs with: this stack's id, no inherited port overrides,
+ * and the heartbeat clock switched off (no schedule loop, no quiet hours), so a run does
+ * not depend on the time of day.
+ */
 export function stackEnvironment(stackId, extra = {}) {
-    const env = { ...process.env, ...extra, HAUS_DEV_STACK_ID: stackId };
+    const env = {
+        ...process.env,
+        HAUS_HEARTBEAT_QUIET_HOURS: 'off',
+        HAUS_HEARTBEAT_SCHEDULE: 'off',
+        ...extra,
+        HAUS_DEV_STACK_ID: stackId,
+    };
     for (const key of ['HAUS_DEV_PORT_BASE', 'HAUS_WEBSITE_PORT', 'HAUS_SERVER_PORT']) {
         delete env[key];
     }
@@ -38,7 +48,8 @@ export async function bootStack({ logFile, root, stackId }) {
         );
     }
     const log = createWriteStream(logFile, { flags: 'a' });
-    const child = spawn('node', ['scripts/run-dev-stack.mjs', 'web'], {
+    // `./scripts`, not `scripts`: peer sessions' cleanup kills `node scripts/run-dev-stack.mjs web`.
+    const child = spawn('node', ['./scripts/run-dev-stack.mjs', 'web'], {
         cwd: root,
         // Linear scenarios serve a fake Linear here; nothing reaches api.linear.app.
         env: stackEnvironment(stackId, { HAUS_LINEAR_API_ORIGIN: fakeLinearOrigin(ports) }),

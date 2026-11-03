@@ -37,17 +37,20 @@ test('the release archive excludes every catalog source it installs precompiled'
     assert.deepEqual(iosCatalogSourceFileNames, [
         'mac-icon.icon',
         'halloween-icon.icon',
+        'christmas-icon.icon',
         'Launch.xcassets',
     ]);
 });
 
 test('requires primary and alternate icon metadata in the archived app', () => {
     const primary = { CFBundleIconName: 'mac-icon' };
+    const halloween = { 'halloween-icon': { CFBundleIconName: 'halloween-icon' } };
     assert.doesNotThrow(() =>
         assertIOSIconBundleMetadata({
             CFBundleIcons: {
                 CFBundleAlternateIcons: {
-                    'halloween-icon': { CFBundleIconName: 'halloween-icon' },
+                    ...halloween,
+                    'christmas-icon': { CFBundleIconName: 'christmas-icon' },
                 },
                 CFBundlePrimaryIcon: primary,
             },
@@ -56,6 +59,13 @@ test('requires primary and alternate icon metadata in the archived app', () => {
     assert.throws(
         () => assertIOSIconBundleMetadata({ CFBundleIcons: { CFBundlePrimaryIcon: primary } }),
         /missing the halloween-icon alternate icon metadata/
+    );
+    assert.throws(
+        () =>
+            assertIOSIconBundleMetadata({
+                CFBundleIcons: { CFBundleAlternateIcons: halloween, CFBundlePrimaryIcon: primary },
+            }),
+        /missing the christmas-icon alternate icon metadata/
     );
 });
 
@@ -124,7 +134,7 @@ test('installs the compiled catalog before signing', () => {
     writeIOSIconArtifactManifest(artifact, requiredIOSIconXcodeBuild);
     writeFileSync(
         path.join(app, 'Info.plist'),
-        '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Haus</string><key>CFBundleIcons</key><dict><key>CFBundleAlternateIcons</key><dict><key>halloween-icon</key><dict><key>CFBundleIconName</key><string>halloween-icon</string></dict></dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'
+        '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Haus</string><key>CFBundleIcons</key><dict><key>CFBundleAlternateIcons</key><dict><key>christmas-icon</key><dict><key>CFBundleIconName</key><string>christmas-icon</string></dict><key>halloween-icon</key><dict><key>CFBundleIconName</key><string>halloween-icon</string></dict></dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'
     );
 
     const result = spawnSync(

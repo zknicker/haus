@@ -8,7 +8,7 @@ import {
     useRoutes,
 } from 'react-router-dom';
 import { expect, test } from 'vitest';
-import { tabIntentState } from '../../hooks/desktop-tabs/tab-navigation.ts';
+import { tabIntentState, tabStayState } from '../../hooks/desktop-tabs/tab-navigation.ts';
 import {
     type OpenGesture,
     type OpenGestureEvent,
@@ -126,6 +126,21 @@ test('a gesture stated in router state (read before an await) wins over the in-f
     shell.navigator.push('/s/acme/tasks', tabIntentState('auto'));
     expect(page.calls).toEqual([['openTab', 't1', at('/s/acme/chats/c2'), { background: true }]]);
     expect(shell.calls).toEqual([['goTo', at('/s/acme/tasks')]]);
+});
+
+test('an Inbox card push that asks to stay navigates its own tab; a modified click still opens a tab', () => {
+    const plain = recordingNavigator('page', '/s/acme/inbox');
+    plain.navigator.push('/s/acme/chats/c2', tabStayState());
+    plain.navigator.push('/s/acme/threads/c3/m1', tabStayState());
+    const modified = recordingNavigator('page', '/s/acme/inbox', () => 'backgroundTab');
+    modified.navigator.push('/s/acme/chats/c2', tabStayState());
+    expect(plain.calls).toEqual([
+        ['navigate', 't1', at('/s/acme/chats/c2'), 'push'],
+        ['navigate', 't1', at('/s/acme/threads/c3/m1'), 'push'],
+    ]);
+    expect(modified.calls).toEqual([
+        ['openTab', 't1', at('/s/acme/chats/c2'), { background: true }],
+    ]);
 });
 
 test('a push takes the in-flight click gesture; a replace does not', () => {

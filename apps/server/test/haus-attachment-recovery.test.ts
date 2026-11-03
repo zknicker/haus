@@ -4,7 +4,7 @@ import { type AttachmentRoot, openAttachmentRoot } from '../src/attachments/atta
 import { reconcileAttachments } from '../src/attachments/reconcile-attachments.ts';
 import { uploadAttachment } from '../src/attachments/upload-attachment.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { findUserByClerkId, type HausUser } from '../src/users/haus-user.ts';
+import { findUserById, type HausUser } from '../src/users/haus-user.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -19,7 +19,7 @@ const runtime = makeTestRuntime();
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    client = createHausClient(harness, await harness.clerk.mintSessionToken('recovery_owner'));
+    client = createHausClient(harness, await harness.humans.mintSessionToken('recovery_owner'));
     const server = await client.trpc.server.create.mutate({
         displayName: 'Recovery Server',
         slug: 'recovery-server',
@@ -28,7 +28,10 @@ beforeAll(async () => {
     chatId = server.channels[0].id;
     connection = await connectHausDatabase(harness.databaseUrl);
     root = await openAttachmentRoot(harness.attachmentRoot, runtime);
-    const found = await findUserByClerkId(connection.db, 'recovery_owner');
+    const found = await findUserById(
+        connection.db,
+        harness.humans.userIdForSubject('recovery_owner')
+    );
     if (!found) {
         throw new Error('Recovery test owner was not created.');
     }

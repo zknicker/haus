@@ -1,5 +1,5 @@
 import { and, eq, type SQL, sql } from 'drizzle-orm';
-import type { ClerkUsers } from '../identity/clerk-users.ts';
+import { listVerifiedEmails } from '../identity/human-identities.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -7,7 +7,6 @@ import {
     serverMembershipsTable,
     serversTable,
 } from '../postgres/schema.ts';
-import { ensureUserByClerkId } from '../users/haus-user.ts';
 import {
     AlreadyServerMemberError,
     InvitationEmailMismatchError,
@@ -32,17 +31,15 @@ export interface AcceptedServerInvitation {
  * accept-versus-revoke deadlock while the invitation lock still makes the token
  * single-use.
  *
- * The verified-email lookup happens before the transaction opens: it is an
- * outbound Clerk call, and holding a row lock across the network would let a
- * slow Clerk response block every other acceptance on the Server.
+ * Verified email aliases were captured from the signed Cloudflare identity at
+ * admission time, so acceptance reads them locally before opening its lock.
  */
 export async function acceptServerInvitation(
     db: HausDatabase,
-    clerkUsers: ClerkUsers,
-    clerkUserId: string,
+    userId: string,
     token: string
 ): Promise<AcceptedServerInvitation> {
-    const verifiedEmails = await clerkUsers.readVerifiedEmails(clerkUserId);
+    const verifiedEmails = await listVerifiedEmails(db, userId);
     const tokenHash = hashInvitationToken(token);
     const [located] = await db
         .select({ serverId: serverInvitationsTable.serverId })
@@ -92,14 +89,13 @@ export async function acceptServerInvitation(
             throw new InvitationNotAcceptableError();
         }
 
-        const user = await ensureUserByClerkId(tx, clerkUserId);
         const [standing] = await tx
             .select({ id: serverMembershipsTable.id, revokedAt: serverMembershipsTable.revokedAt })
             .from(serverMembershipsTable)
             .where(
                 and(
                     eq(serverMembershipsTable.serverId, invitation.serverId),
-                    eq(serverMembershipsTable.userId, user.id)
+                    eq(serverMembershipsTable.userId, userId)
                 )
             )
             .limit(1)
@@ -128,19 +124,19 @@ export async function acceptServerInvitation(
                 id: createOpaqueId('mem'),
                 role: 'member',
                 serverId: invitation.serverId,
-                userId: user.id,
+                userId,
             });
         }
 
-        await clearPersonalWork(tx, invitation.serverId, user.id);
-        await joinAllChannel(tx, invitation.serverId, user.id);
+        await clearPersonalWork(tx, invitation.serverId, userId);
+        await joinAllChannel(tx, invitation.serverId, userId);
 
         await tx
             .update(serverInvitationsTable)
-            .set({ acceptedAt: sql`now()`, acceptedUserId: user.id })
+            .set({ acceptedAt: sql`now()`, acceptedUserId: userId })
             .where(eq(serverInvitationsTable.id, invitation.id));
 
-        return { serverId: invitation.serverId, serverSlug: server.slug, userId: user.id };
+        return { serverId: invitation.serverId, serverSlug: server.slug, userId };
     });
 }
 

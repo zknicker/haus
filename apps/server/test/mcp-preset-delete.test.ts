@@ -9,8 +9,8 @@ let serverId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('preset-owner'));
-    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('preset-outsider'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('preset-owner'));
+    outsider = createHausClient(harness, await harness.humans.mintSessionToken('preset-outsider'));
     serverId = (await owner.trpc.server.create.mutate({ displayName: 'Presets', slug: 'presets' }))
         .id;
     await outsider.trpc.server.create.mutate({ displayName: 'Other', slug: 'other-presets' });
@@ -57,6 +57,7 @@ test('Linear is a built-in connection, never an OAuth preset account', async () 
 
 test.each([
     ['cloudflare', 'https://mcp.cloudflare.com/mcp'],
+    ['kittl', 'https://mcp.kittl.com/mcp'],
 ] as const)('%s awaits OAuth without credentials or Agent grants', async (preset, url) => {
     const created = await owner.trpc.mcp.addPresetAccount.mutate({
         name: preset,
@@ -81,11 +82,13 @@ test.each([
 });
 
 test.each([
+    ['merchbase', 'https://app.merchbase.co/mcp'],
+    ['rankwrangler', 'https://rankwrangler.merchbase.co/mcp'],
     ['merchbase-atlas', 'https://atlas.merchbase.co/mcp'],
     ['handmade', 'https://handmade.merchbase.co/mcp'],
     ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
     ['tmterminal', 'https://tmterminal.merchbase.co/mcp'],
-] as const)('%s awaits OAuth with identity scopes and no Agent grants', async (preset, url) => {
+] as const)('%s awaits discovered OAuth without identity scopes or Agent grants', async (preset, url) => {
     const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
         name: preset,
         preset,
@@ -103,7 +106,7 @@ test.each([
     const [stored] = await harness.sql`
         select secret from mcp_secrets where connection_id = ${fulfillment.id}
     `;
-    expect(stored?.secret.oauthScopes).toEqual(['openid', 'profile', 'email']);
+    expect(stored?.secret.oauthScopes).toEqual([]);
     expect(stored?.secret.headers).toEqual({});
     await owner.trpc.mcp.delete.mutate({ connectionId: fulfillment.id, serverId });
 });
@@ -118,6 +121,7 @@ test.each([
     'google-calendar',
     'rankwrangler',
     'cloudflare',
+    'kittl',
 ] as const)('deletes a %s account and its secrets without removing another account', async (preset) => {
     const first = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
     const second = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });

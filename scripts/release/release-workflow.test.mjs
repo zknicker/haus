@@ -264,8 +264,6 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
 
 test('release context skips development-only runtime and App values', () => {
     for (const name of [
-        'HAUS_CLERK_SECRET_KEY',
-        'HAUS_DEV_CLERK_SIGN_IN_USER_ID',
         'HAUS_GEMINI_API_KEY',
         'HAUS_GITHUB_APP_CLIENT_ID',
         'HAUS_GITHUB_APP_CLIENT_SECRET',
@@ -287,14 +285,5 @@ test('release context skips development-only runtime and App values', () => {
         environmentSchema,
         /HAUS_OPENAI_API_KEY=.+op\(development, "op:\/\/Development\/OpenAI API - Haus\/credential"\)/,
         'development avatar generation must resolve its own lifecycle credential'
-    );
-    const autoSignIn = environmentSchema
-        .split('\n')
-        .find((line) => line.startsWith('VITE_DEV_CLERK_AUTO_SIGN_IN='));
-    assert.ok(autoSignIn, 'VITE_DEV_CLERK_AUTO_SIGN_IN must remain declared');
-    assert.match(
-        autoSignIn,
-        /^.+ifs\(eq\(\$HAUS_RESOLVE_RELEASE_TOKENS, true\), undefined,/,
-        'release artifacts must disable development auto sign-in'
     );
 });

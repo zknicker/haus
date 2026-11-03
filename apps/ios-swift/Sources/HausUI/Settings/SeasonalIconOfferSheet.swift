@@ -62,7 +62,7 @@ private struct SeasonalIconOfferPresenter: ViewModifier {
             let shown = await AppIconSwitcher.set(accepted.suggestedIcon)
             guard shown == accepted.suggestedIcon else { return }
             var records = SeasonalIconOfferStore.load()
-            records.pumpkinFromOfferSeason = shown == .pumpkin ? accepted.season : nil
+            records.recordSwitch(accepted)
             SeasonalIconOfferStore.save(records)
         }
     }
@@ -86,6 +86,8 @@ extension SeasonalIconOffer: Identifiable {
         switch self {
         case .halloween(let season): "halloween-\(season)"
         case .halloweenReturn(let season): "halloween-return-\(season)"
+        case .christmas(let season): "christmas-\(season)"
+        case .christmasReturn(let season): "christmas-return-\(season)"
         }
     }
 }
@@ -150,6 +152,16 @@ struct SeasonalIconOfferCopy: Equatable {
             body = "The pumpkin's heading back to the patch. Bring back the ghost?"
             accept = "Bring Back Ghost"
             decline = "Keep Pumpkin"
+        case .christmas:
+            title = "Merry Christmas!"
+            body = "Deck the Home Screen with a nightcap ghost."
+            accept = "Switch to Nightcap"
+            decline = "Keep Ghost"
+        case .christmasReturn:
+            title = "Packing up the decorations"
+            body = "The nightcap goes back in the box. Bring back the ghost?"
+            accept = "Bring Back Ghost"
+            decline = "Keep Nightcap"
         }
     }
 }

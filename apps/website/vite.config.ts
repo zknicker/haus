@@ -40,6 +40,9 @@ export default defineConfig(({ command }) => ({
         port: websitePort,
         strictPort: true,
         proxy: {
+            '/auth': {
+                target: serverOrigin,
+            },
             '/api/avatars': {
                 target: hausServerOrigin,
             },

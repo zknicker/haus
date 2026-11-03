@@ -4,6 +4,7 @@ import {
     Activity01Icon,
     BubbleChatIcon,
     Copy01Icon,
+    Link01Icon,
     ReplyIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
@@ -37,6 +38,16 @@ export function MessageContextMenu({
     const canReplyInline = Boolean(context?.onSelectInlineReply && isThreadAnchorRow(row));
     const canReact = Boolean(context?.onToggleReaction && isThreadAnchorRow(row));
     const [open, setOpen] = useState(false);
+    const [linkUrl, setLinkUrl] = useState<string | null>(null);
+
+    const captureLink = (event: React.SyntheticEvent<HTMLDivElement>) => {
+        const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+        setLinkUrl(
+            anchor instanceof HTMLAnchorElement && event.currentTarget.contains(anchor)
+                ? anchor.href
+                : null
+        );
+    };
 
     const react = (emoji: string) => {
         setOpen(false);
@@ -48,6 +59,12 @@ export function MessageContextMenu({
     };
 
     const onAction = (key: React.Key) => {
+        if (key === 'copy-link' && linkUrl) {
+            writeClipboardText(linkUrl)
+                .then(() => toast.success('Link copied'))
+                .catch(() => toast.danger('Could not copy the link'));
+            return;
+        }
         if (key === 'copy') {
             writeClipboardText(getMessageCopyText(context, row.message))
                 .then(() => toast.success('Message copied'))
@@ -72,7 +89,9 @@ export function MessageContextMenu({
             <ContextMenu.Trigger
                 className={cn('group/message-row relative block min-w-0 rounded-lg', className)}
                 data-message-id={row.message.id}
+                onContextMenuCapture={captureLink}
                 onMouseEnter={onMessageHover}
+                onPointerDownCapture={captureLink}
             >
                 {children}
             </ContextMenu.Trigger>
@@ -104,6 +123,12 @@ export function MessageContextMenu({
                     </>
                 ) : null}
                 <ContextMenu.Menu aria-label="Message actions" onAction={onAction}>
+                    {linkUrl ? (
+                        <ContextMenu.Item id="copy-link" textValue="Copy link">
+                            <Icon aria-hidden="true" icon={Link01Icon} size={16} />
+                            <Label>Copy link</Label>
+                        </ContextMenu.Item>
+                    ) : null}
                     <ContextMenu.Item id="copy" textValue="Copy message">
                         <Icon aria-hidden="true" icon={Copy01Icon} size={16} />
                         <Label>Copy message</Label>

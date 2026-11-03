@@ -7,11 +7,11 @@ test('Computer attach queued behind Admin removal reauthorizes before issuance',
     const harness = await startHausServerHarness();
     const owner = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_attach_serialize_owner')
+        await harness.humans.mintSessionToken('user_attach_serialize_owner')
     );
     const admin = createHausClient(
         harness,
-        await harness.clerk.mintSessionToken('user_attach_serialize_admin')
+        await harness.humans.mintSessionToken('user_attach_serialize_admin')
     );
     try {
         const server = await owner.trpc.server.create.mutate({

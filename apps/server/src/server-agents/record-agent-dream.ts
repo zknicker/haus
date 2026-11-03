@@ -1,7 +1,12 @@
 import { type AgentDreamRecord, dreamRetentionPerAgent } from '@haus/api';
-import { and, desc, eq, notInArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, notInArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentDreamsTable, agentRunTriggersTable, agentsTable } from '../postgres/schema.ts';
+import {
+    agentDreamSummariesTable,
+    agentDreamsTable,
+    agentRunTriggersTable,
+    agentsTable,
+} from '../postgres/schema.ts';
 
 /**
  * Persists what a dream changed in the Agent's memory, then keeps only the newest
@@ -58,9 +63,19 @@ export async function recordAgentDream(
             .where(scope)
             .orderBy(desc(agentDreamsTable.startedAt), desc(agentDreamsTable.runId))
             .limit(dreamRetentionPerAgent);
-        await tx
+        const pruned = await tx
             .delete(agentDreamsTable)
-            .where(and(scope, notInArray(agentDreamsTable.runId, kept)));
+            .where(and(scope, notInArray(agentDreamsTable.runId, kept)))
+            .returning({ runId: agentDreamsTable.runId });
+        if (pruned.length > 0) {
+            // A pruned dream's "learned" text goes with it.
+            await tx.delete(agentDreamSummariesTable).where(
+                inArray(
+                    agentDreamSummariesTable.runId,
+                    pruned.map((dream) => dream.runId)
+                )
+            );
+        }
     });
     return true;
 }

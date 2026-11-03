@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import type { AgentTurnOperationCount } from '@haus/api';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
+import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import {
     formatTurnDuration,
-    formatTurnOutcome,
     getTurnRowStatus,
     groupTurnRowsByDay,
     resolveTurnRowTitle,
@@ -16,6 +16,7 @@ const chats = new Map([
     ['cht_dm', { kind: 'dm' as const, name: 'Tiny' }],
     ['cht_product', { kind: 'channel' as const, name: 'product' }],
 ]);
+const dream = { added: 0, kind: 'dream', learned: null, removed: 0 } as const;
 const dmMessage = {
     author: 'human',
     chatId: 'cht_dm',
@@ -54,10 +55,10 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     expect(resolveTurnRowTitle({ kind: 'private' }, chats)).toEqual({ kind: 'none' });
     expect(resolveTurnRowTitle(null, chats)).toEqual({ kind: 'none' });
     // The nightly dream has no Chat, so it names itself without a place.
-    expect(resolveTurnRowTitle({ kind: 'dream' }, chats)).toEqual({
+    expect(resolveTurnRowTitle(dream, chats)).toMatchObject({
         kind: 'text',
         place: null,
-        text: 'Dreaming',
+        text: 'Dreamed',
     });
     // Neither does the wake for a background sub-agent that finished.
     expect(resolveTurnRowTitle({ kind: 'subagent' }, chats)).toEqual({

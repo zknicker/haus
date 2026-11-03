@@ -40,7 +40,7 @@ Idempotency-Key: <optional, ≤ 200 chars>
 ```
 
 This is the only first-party route authenticated by a per-Trigger bearer secret
-instead of Clerk, a Computer credential, or an Agent runner credential. The
+instead of a human AppSession, a Computer credential, or an Agent runner credential. The
 Server resolves the row by `sha256(secret)` and requires the path id to match
 that row. It is registered before tRPC and before the static App's not-found
 handler.
@@ -52,7 +52,7 @@ NUL byte, since PostgreSQL `text` cannot hold one. Only the excerpt carried in
 the Agent's envelope is altered: it arrives under a provenance line marking it as
 untrusted data, with every payload line indented two spaces so a body cannot forge
 an envelope header line, and the envelope's last line is
-`reply with: haus message send --cause <fireId>`. See
+`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. See
 [specs/triggers.md](../../specs/triggers.md) for the exact envelope.
 
 A fire writes no Chat message and emits no durable event. It records the fire and
@@ -90,7 +90,7 @@ X-Hub-Signature-256: sha256=<hex HMAC of the raw body>
 ```
 
 One endpoint serves every installation of the Haus GitHub App. It runs before
-tRPC without Clerk, reads the raw body (10 MiB limit) so the HMAC covers the
+tRPC without a human AppSession, reads the raw body (10 MiB limit) so the HMAC covers the
 exact bytes, compares in constant time, and only then parses JSON.
 
 | Status | Body | When |

@@ -85,10 +85,10 @@ temporarily unavailable. We’ll try again shortly." once they give up on a
 transient problem, and "Product details unavailable" for an unknown ASIN or a
 permanent failure. Once a lookup has explained a problem it never falls back to
 the bare loading copy.
-The card is anchored below the chip. Its first line is the ASIN in monospace
-with a Copy ASIN button in every lookup state (loading and failure), then the title when RankWrangler has one, brand, and price. The
-pointer can move into the card. Tab from the chip reaches Copy ASIN. Escape
-closes it. The transparent product cutout floats beside the text, tilted
+The card follows the pointer like other reference previews and opens on
+keyboard focus. Its first line is the ASIN in monospace in every lookup state
+(loading and failure), then the title when RankWrangler has one, brand, and
+price. Right-click the chip for Copy ASIN. Escape closes the card. The transparent product cutout floats beside the text, tilted
 slightly, with a brief settling entrance and sparkle. Reduced motion disables
 the decoration. Clicking the chip still opens Amazon.
 

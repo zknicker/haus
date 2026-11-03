@@ -44,8 +44,6 @@ the access boundary.
 
 | Item | Vault | Holds |
 | --- | --- | --- |
-| `Clerk - Haus` | `Development`, `Production` | Haus's own Clerk tenancy — backend key, publishable key, issuer |
-| `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
 | `GitHub App - Haus` | `Development`, `Production` | The Haus GitHub App (**Haus Dev** in Development): `app_id`, `slug`, `client_id`, `client_secret`, `private_key` (PEM), `webhook_secret`; optional |
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
@@ -95,6 +93,13 @@ an absolute `HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute
 metadata without the concept or image bytes. The fixture path is runtime input,
 so the PNG is not bundled into the Server artifact. Do not enable the fixture in
 a released Server environment.
+
+Two dev and test switches make heartbeat runs independent of the time of day, read only by the
+Computer: `HAUS_HEARTBEAT_QUIET_HOURS=off` makes a daytime heartbeat report always take the
+daytime branch, and `HAUS_HEARTBEAT_SCHEDULE=off` keeps the schedule loop from starting. Both are
+declared `undefined` in every lifecycle, accept only `on` or `off` (unset means `on`), and are
+never set in production. `scripts/eval/stack.mjs` sets both on every eval stack; a normal
+`bun run dev` keeps the defaults ([Heartbeat](../../specs/heartbeat.md#outputs)).
 
 Agent thought summaries use `HAUS_GEMINI_API_KEY`, resolved per lifecycle from
 `Google AI Studio - Haus` and delivered only to the Server; a Computer never holds it. It is
@@ -166,9 +171,10 @@ and a cloud agent that can reach none of them still passes `check`.
 
 Release commands run `varlock run --include-internal`, because `varlock run`
 strips `@internal` items by default and every release credential is one.
-The release switch also leaves Clerk, Google, GitHub OAuth, Gemini, OpenAI, and OTLP runtime credentials
-undefined and disables schema-provided OTLP endpoints. This keeps GitHub release jobs on their Tooling-only identity instead
-of making an unrelated Development-vault read part of signing or publication.
+The release switch also leaves Google, GitHub OAuth, Gemini, OpenAI, and OTLP runtime credentials
+undefined and disables schema-provided OTLP endpoints. Human sign-in uses public Cloudflare Access
+configuration and has no release-time credential. This keeps GitHub release jobs on their Tooling-only
+identity instead of making an unrelated Development-vault read part of signing or publication.
 
 ## Source → delivery → runtime
 

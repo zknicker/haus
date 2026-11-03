@@ -18,7 +18,7 @@ const liveness = { intervalMs: 50, probeTimeoutMs: 3000, timeoutMs: 250 };
 beforeAll(async () => {
     harness = await startHausServerHarness({ computerSocketLiveness: liveness });
     await harness.sql`
-        insert into users (id, clerk_user_id) values (${userId}, 'clerk_liveness_user')
+        insert into users (id, auth_subject) values (${userId}, 'cf_liveness_user')
     `;
     await harness.sql`
         insert into servers (id, slug, display_name)

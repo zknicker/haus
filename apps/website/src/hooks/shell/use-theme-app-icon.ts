@@ -64,6 +64,7 @@ export type FaviconLink = Pick<HTMLLinkElement, 'dataset' | 'getAttribute' | 'se
 const FAVICON_DIRS: Readonly<Record<AppIcon, string>> = {
     ghost: '',
     pumpkin: 'app-icons/pumpkin',
+    santa: 'app-icons/santa',
 };
 
 const FAVICON_LINKS = 'link[rel="icon"], link[rel="apple-touch-icon"]';

@@ -8,7 +8,7 @@ export const createServerProcedure = serverProcedure
     .mutation(
         async ({ ctx, input }) =>
             await createServer(ctx.hausDb, {
-                clerkUserId: ctx.clerkUserId,
+                userId: ctx.userId!,
                 displayName: input.displayName,
                 slug: input.slug,
             })

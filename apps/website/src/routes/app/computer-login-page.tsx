@@ -1,97 +1,39 @@
-import {
-    ClerkFailed,
-    ClerkLoaded,
-    ClerkLoading,
-    useAuth,
-    useClerk,
-    useUser,
-} from '@clerk/clerk-react';
-import * as React from 'react';
+import { Button } from '@heroui/react';
 import {
     ComputerLoginApproval,
     LoginFrame,
 } from '../../features/computers/computer-login-view.tsx';
-import { getClerkSessionToken, isClerkEnabled } from '../../lib/clerk.tsx';
+import { useAppAuth } from '../../lib/app-auth.tsx';
 
 export function ComputerLoginPage() {
-    return isClerkEnabled ? <ClerkComputerLoginPage /> : <KeylessComputerLoginPage />;
-}
-
-function ClerkComputerLoginPage() {
-    return (
-        <>
-            <ClerkLoading>
-                <LoginFrame
-                    description="Opening your sign-in session…"
-                    title="Sign in Haus Computer"
-                />
-            </ClerkLoading>
-            <ClerkFailed>
-                <LoginFrame
-                    description="Haus could not open sign-in. Reload this page and try again."
-                    title="Sign-in unavailable"
-                />
-            </ClerkFailed>
-            <ClerkLoaded>
-                <ClerkComputerLoginContent />
-            </ClerkLoaded>
-        </>
-    );
-}
-
-function ClerkComputerLoginContent() {
-    const { isLoaded, isSignedIn } = useAuth();
-    const clerk = useClerk();
-    const { user } = useUser();
-
-    if (!isLoaded) {
+    const { refresh, session, signIn, snapshot } = useAppAuth();
+    if (snapshot.kind === 'loading') {
         return (
             <LoginFrame description="Opening your sign-in session…" title="Sign in Haus Computer" />
         );
     }
-
-    const accountLabel =
-        user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? 'your Clerk account';
-    return (
-        <ComputerLoginApproval
-            accountLabel={isSignedIn ? accountLabel : null}
-            onSignIn={() => void clerk.openSignIn({})}
-            onSwitchAccount={() => void clerk.signOut({ redirectUrl: window.location.href })}
-            signedIn={Boolean(isSignedIn)}
-        />
-    );
-}
-
-function KeylessComputerLoginPage() {
-    const [signedIn, setSignedIn] = React.useState<boolean | null>(null);
-
-    React.useEffect(() => {
-        let active = true;
-        void getClerkSessionToken().then((token) => {
-            if (active) {
-                setSignedIn(Boolean(token));
-            }
-        });
-        return () => {
-            active = false;
-        };
-    }, []);
-
-    if (signedIn === null) {
+    if (snapshot.kind === 'failed') {
         return (
             <LoginFrame
-                description="Checking your sign-in session…"
-                title="Sign in Haus Computer"
+                description={snapshot.message}
+                footer={
+                    <div className="flex items-center gap-2">
+                        <Button onPress={() => void refresh()} variant="outline">
+                            Try again
+                        </Button>
+                        <Button onPress={() => void signIn()}>Continue with Google</Button>
+                    </div>
+                }
+                title="Sign-in unavailable"
             />
         );
     }
-
     return (
         <ComputerLoginApproval
-            accountLabel={signedIn ? 'your current Clerk account' : null}
-            onSignIn={undefined}
-            onSwitchAccount={undefined}
-            signedIn={signedIn}
+            accountLabel={session ? (session.user.displayName ?? session.user.email) : null}
+            onSignIn={() => void signIn()}
+            onSwitchAccount={() => void signIn(true)}
+            signedIn={Boolean(session)}
         />
     );
 }

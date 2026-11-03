@@ -229,6 +229,16 @@ jobs:
         uses: ./.github/actions/setup-release-dependencies
         with:
           ci-op-token: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+      - name: Require processed iOS before Server publication
+        if: ${{ needs.plan.outputs.publish_ios == 'true' }}
+        env:
+          IOS_VERSION: ${{ needs.plan.outputs.ios_version }}
+          IOS_BUILD_NUMBER: ${{ needs.plan.outputs.ios_build_number }}
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          HAUS_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+            node scripts/release/ios-build-status.mjs "${IOS_VERSION}" \
+              --build-number "${IOS_BUILD_NUMBER}" --wait-seconds 900 --require-processed
       - name: Set up frozen Python connector builder
         run: brew install uv
       - name: Publish Server

@@ -134,15 +134,16 @@ Where a click lands depends on the surface you click, not on the destination
   whatever that tab shows (a web page or the new tab page included). Back returns. Go never opens
   a new tab and never jumps to a tab already showing that page.
 - **Open: anything inside a page.** A Thread, an Agent avatar, name, or chip, a chat or Thread
-  chip, a `haus://` link, a page card, a chat's Attachments, a web link, an Inbox row or card, a Search
+  chip, a `haus://` link, a page card, a chat's Attachments, a web link, an Inbox row (not an Unread card), a Search
   result, an Activity row, a sidebar row's View profile, Attachments, or Tasks, a chat tab's menu
   actions, a notification, a deep link, and Command-F (Search) all open a new selected tab in the
   **right pane**, which appears if the window has one pane and becomes focused. Opens from inside
   the right pane stack there too. If a right-pane tab already shows that page, it is selected
   instead (a deeper address, such as a task, opens in it); tabs in the left pane are never reused.
-  Inbox, Search, and Activity therefore work as a list on the left with details on the right.
+  Search and Activity therefore work as a list on the left with details on the right.
 - **Stays in its tab.** A page's own drill-down (a Settings section, an Agent profile section, a
-  search filter, a task inside Tasks, an Inbox filter) navigates its tab. A plain link inside a
+  search filter, a task inside Tasks, an Inbox filter) navigates its tab. So does opening an Inbox
+  Unread card: its conversation replaces the Inbox in that tab, and Back returns to the Inbox. A plain link inside a
   web page navigates that page.
 - **Several opens from one tab keep their order**, as in Chrome: three opens give the source tab,
   then A, B, C. Selecting another tab starts over right after the selected tab.
@@ -167,7 +168,8 @@ Command means Control off macOS. Middle-click on a link or chip never autoscroll
 
 A **Thread** page shows the same Thread surface the web's side panel hosts, full width like a chat;
 View in chat opens the chat scrolled to the anchor, flashing it. A `?thread=` or `?task=`
-chat link strips its parameter, then opens the Thread page. A chat's **Attachments** page lists the
+chat link strips its parameter, then opens the Thread page; a task inside a Thread opens the Thread
+it sits in with `?task=<messageId>` on the page, so the page states that task. A chat's **Attachments** page lists the
 attachments in its loaded messages. A **workspace** page from an Agent workspace shows the Workspace pane's
 renderers (a file preview with copy, raw, and link actions, or the workspace browser); a target no
 Agent workspace holds shows "File unavailable". A shared file in Files (`artifacts/<id>`)
@@ -286,7 +288,7 @@ captures fall back to the plain page background.
 
 Pages run in sandboxed WebContentsViews without Node integration or the App preload. Only the App's
 main frame can issue browser IPC commands, even when a page visits the Haus origin. Pages share a
-persistent `haus-browser` partition separate from the App's Clerk session, so website logins survive
+persistent `haus-browser` partition separate from the App's sign-in session, so website logins survive
 restarts and Server switches. Downloads and website permission requests are disabled. Personal
 browser cookies, passwords, and history are not imported, and Agents have no browser access; both
 need separate product contracts and access controls.

@@ -67,10 +67,10 @@ export function imageGenerationFixture() {
 
     beforeAll(async () => {
         harness = await startHausServerHarness({ imageGenerationAdapters: adapters });
-        harness.clerkUsers.setVerifiedEmails('user_img_owner', ['ada@haus.test']);
-        harness.clerkUsers.setVerifiedEmails('user_img_peer', ['bo@haus.test']);
-        owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_img_owner'));
-        peer = createHausClient(harness, await harness.clerk.mintSessionToken('user_img_peer'));
+        harness.humans.setVerifiedEmails('user_img_owner', ['ada@haus.test']);
+        harness.humans.setVerifiedEmails('user_img_peer', ['bo@haus.test']);
+        owner = createHausClient(harness, await harness.humans.mintSessionToken('user_img_owner'));
+        peer = createHausClient(harness, await harness.humans.mintSessionToken('user_img_peer'));
         serverId = (
             await owner.trpc.server.create.mutate({ displayName: 'Img HQ', slug: 'img-hq' })
         ).id;
@@ -159,9 +159,9 @@ export function imageGenerationFixture() {
         settled,
     };
 
-    async function readUserId(clerkUserId: string) {
+    async function readUserId(subject: string) {
         const [row] = (await harness.sql`
-            select id from users where clerk_user_id = ${clerkUserId}
+            select id from users where auth_subject = ${subject}
         `) as { id: string }[];
         return row?.id ?? '';
     }

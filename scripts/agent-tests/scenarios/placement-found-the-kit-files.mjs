@@ -23,6 +23,7 @@ export default defineScenario({
                 })
             );
             await runFoundTheKit(context, {
+                kitPaths: ['pod-folder-system-starter-kit'],
                 exchange: {
                     notYet: 'Not yet. `haus artifact list` shows only the factory plan. Searching for "kit" finds nothing.',
                     question: "Oh! So I added Philip's starter kit to our files. Can you see it?",

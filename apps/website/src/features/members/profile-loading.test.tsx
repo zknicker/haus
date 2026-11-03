@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
-import { ClerkProvider } from '@clerk/clerk-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { AppAuthProvider } from '../../lib/app-auth.tsx';
 import { hausTrpc, type ServerDetail } from '../../lib/haus-server.tsx';
 import { SettingsHumanRoute } from '../../routes/app/settings-route.tsx';
 import { ComputerPage } from '../computers/computer-page.tsx';
@@ -67,9 +67,9 @@ function render(children: ReactNode) {
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <ClerkProvider publishableKey="pk_test_Y2xlcmstdGVzdC5oYXVzLmludmFsaWQk">
+                <AppAuthProvider>
                     <MemoryRouter initialEntries={['/user_one']}>{children}</MemoryRouter>
-                </ClerkProvider>
+                </AppAuthProvider>
             </hausTrpc.Provider>
         </QueryClientProvider>
     );

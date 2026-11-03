@@ -160,6 +160,7 @@ export async function createTask(
             chatId: input.chatId,
             messageId: message.id,
             serverId: input.serverId,
+            threadChatId: null,
             type: 'task.created',
         });
         const recipients = await planAgentMessageRecipients(tx, {

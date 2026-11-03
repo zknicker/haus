@@ -7,7 +7,7 @@ let owner: HausClient;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = createHausClient(harness, await harness.clerk.mintSessionToken('user_reply_history'));
+    owner = createHausClient(harness, await harness.humans.mintSessionToken('user_reply_history'));
 });
 afterAll(async () => {
     owner.close();

@@ -3,11 +3,11 @@ import { RealtimeRefusalError } from '../../realtime/refusal.ts';
 import { ServerSlugTakenError } from '../../servers/create-server.ts';
 import { ServerDeleteDeniedError } from '../../servers/delete-server.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../../servers/server-access.ts';
-import { findUserByClerkId } from '../../users/haus-user.ts';
+import { findUserById } from '../../users/haus-user.ts';
 import { humanProcedure } from '../trpc.ts';
 
 /**
- * Server work for one Clerk-authenticated human, with Server domain refusals
+ * Server work for one authenticated Haus user, with Server domain refusals
  * reported as the tRPC codes the App reacts to.
  */
 export const serverProcedure = humanProcedure.use(async ({ next }) => {
@@ -50,7 +50,7 @@ export const serverProcedure = humanProcedure.use(async ({ next }) => {
  * mints one.
  */
 export const memberProcedure = serverProcedure.use(async ({ ctx, next }) => {
-    const member = await findUserByClerkId(ctx.hausDb, ctx.clerkUserId);
+    const member = await findUserById(ctx.hausDb, ctx.userId!);
 
     return await next({ ctx: { ...ctx, member } });
 });

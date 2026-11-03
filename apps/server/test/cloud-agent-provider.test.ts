@@ -15,8 +15,8 @@ const credential = 'cloud-agent-computer-credential-0000';
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = await signIn('clerk_cloud_agent_owner');
-    member = await signIn('clerk_cloud_agent_member');
+    owner = await signIn('cf_cloud_agent_owner');
+    member = await signIn('cf_cloud_agent_member');
     serverId = (
         await owner.trpc.server.create.mutate({
             displayName: 'Cloud Agent HQ',
@@ -28,14 +28,14 @@ beforeAll(async () => {
         slug: 'cloud-agent-member-root',
     });
     const memberRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_cloud_agent_member'
+        select id from users where auth_subject = 'cf_cloud_agent_member'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
         values ('mem_cloudagent000000', ${serverId}, ${memberRows[0]?.id}, 'member')
     `;
     const ownerRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_cloud_agent_owner'
+        select id from users where auth_subject = 'cf_cloud_agent_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)
@@ -173,8 +173,8 @@ test('only an Owner or Admin can connect a Computer to a Cloud Agent provider', 
     ).rejects.toThrow(/Owner or Admin/i);
 });
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
 function answerNextCapabilityRequest(

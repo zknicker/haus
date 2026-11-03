@@ -13,13 +13,19 @@ message itself.
 ## Hosted model
 
 `message_tasks` keys metadata by `(server_id, message_id)` and also binds the canonical
-`chat_id`: monotonic per-Chat task number, status, optional Agent assignee (`assignee_agent_id`) and claim time,
+`chat_id`, always the top-level Channel or DM: monotonic per-Chat task number, status, optional Agent assignee (`assignee_agent_id`) and claim time,
 priority, origin, creator, monotonic version, and a nullable `tracked_at`. The work-surface Thread
 id is derived deterministically from the message id; it is not stored on the task row, and the
-Thread itself does not exist until someone replies in it.
+Thread itself does not exist until someone replies in it. A task on a Thread message also records
+that Thread in `thread_chat_id`; the message's own Chat is the generated
+`message_chat_id = coalesce(thread_chat_id, chat_id)`, which the message foreign key uses, and a
+foreign key to `chats (id, parent_chat_id)` keeps the Thread a child of `chat_id`. The Thread it
+sits in is its work surface (`threadChatId` on the wire), since Threads never nest. Only an Agent's
+claim creates one; the number comes from the parent's counter.
 
 `origin` is `composed` (a human composed the message as a task), `converted` (a human promoted an
-existing message), or `claimed` (an Agent claimed a message nobody had promoted). Reads derive two
+existing message), or `claimed` (an Agent claimed a message nobody had promoted, or created one
+already assigned to itself). Reads derive two
 more fields. `tier` is `background` for a `claimed` task in `in_progress` or `done` that carries
 has no `tracked_at`. Inline and Thread messages leave the tier alone; everything else is `tracked`,
 and only the default Board and List lenses distinguish them. `live` is true while the assignee
@@ -37,7 +43,8 @@ decision; claims left open when a run settles remain
 to tasks. Composite foreign keys keep task, message, Chat, assignee, and labels in one
 Server tenant. `chat_messages.task` and task-list reads project the same row.
 
-Channel or DM messages, including inline replies, can be promoted. Promotion is idempotent by canonical
+Channel or DM messages, including inline replies, can be promoted; an Agent can also claim a
+Thread message. Promotion is idempotent by canonical
 message identity. Atomic create uses the message nonce for replay and creates the message, task,
 and durable events in one transaction — not the Thread. Creation and promotion do not append a
 user-visible state-change message; the canonical task message is the record. A task whose Thread was never needed still answers

@@ -104,7 +104,7 @@ test('settled jobs say when they settled', () => {
     ).toBe('Finished 30m ago');
     expect(
         line(work({ runs: [run({ status: 'cancelled', terminalAt: minutesAgo(30) })] })).text
-    ).toBe('Cancelled · 30m ago');
+    ).toBe('Stopped · 30m ago');
     expect(
         line(work({ runs: [run({ status: 'expired', terminalAt: minutesAgo(30) })] })).text
     ).toBe('Expired · 30m ago');

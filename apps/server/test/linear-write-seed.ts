@@ -26,7 +26,7 @@ export async function seedLinearWorkspace(db: HausDatabase): Promise<LinearWrite
     const agentId = createOpaqueId('agt');
     const connectionId = createOpaqueId('mcp');
     const workspaceId = createOpaqueId('lnw');
-    await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
+    await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
         .values({ displayName: 'Linear', id: serverId, slug: createOpaqueId('slug') });

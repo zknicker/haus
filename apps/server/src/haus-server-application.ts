@@ -27,8 +27,10 @@ import {
 } from './haus-server-shutdown.ts';
 import { registerHausStaticApp } from './haus-static-app.ts';
 import { startHostedMcps } from './hosted-mcp/supervisor.ts';
-import { createClerkSessions } from './identity/clerk-sessions.ts';
-import { createClerkUsers } from './identity/clerk-users.ts';
+import { createCloudflareAdmissions } from './identity/cloudflare-access.ts';
+import { ensureDevelopmentAuthUser } from './identity/development-auth.ts';
+import { createHausSessions } from './identity/haus-sessions.ts';
+import { SessionConnections } from './identity/session-connections.ts';
 import { createLinearServices } from './linear/linear-runtime.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
@@ -80,7 +82,12 @@ export async function createHausServerApplication(
         await purgeDeletedChannels(connectedHaus.db, attachmentRoot);
         await purgeDeletedServers(connectedHaus.db, attachmentRoot, artifactStorage);
         await markAllComputersOffline(connectedHaus.db);
-        const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
+        const cloudflareAdmissions = createCloudflareAdmissions(options.cloudflareAccess);
+        const hausSessions = createHausSessions(connectedHaus.db);
+        const sessionConnections = new SessionConnections();
+        const developmentAuth = options.enableDevelopmentAuth
+            ? await ensureDevelopmentAuthUser(connectedHaus.db)
+            : null;
         const computerConnections = new ComputerConnections(runtime);
         const agentDelivery = new AgentDelivery(connectedHaus.db, computerConnections, runtime);
         const startedPostCommitWork = new ServerPostCommitWork(runtime);
@@ -131,13 +138,10 @@ export async function createHausServerApplication(
             attachmentRoot,
             ...artifacts,
             avatarImageService,
-            clerkSessions,
-            clerkUsers:
-                options.clerkUsers ??
-                createClerkUsers({
-                    apiUrl: options.clerkApiUrl,
-                    secretKey: options.clerkSecretKey,
-                }),
+            cloudflareAdmissions,
+            developmentAuth,
+            hausSessions,
+            sessionConnections,
             computerConnections,
             computerReleaseManifestUrl:
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
@@ -176,6 +180,9 @@ export async function createHausServerApplication(
 
         await registerHausServerRoutes(startedApp, {
             ...contextDependencies,
+            ...(options.cloudflareOAuthMetadataFetch
+                ? { cloudflareOAuthMetadataFetch: options.cloudflareOAuthMetadataFetch }
+                : {}),
             createContext,
             githubIngest,
             imageGenerationAdapters: options.imageGenerationAdapters,
@@ -186,7 +193,6 @@ export async function createHausServerApplication(
         const startedWebSocketServer = startHausWebSocketServer(startedApp.server, {
             createContext,
             isAllowedOrigin,
-            socketSessionGraceMs: options.socketSessionGraceMs,
         });
         handles.webSocketServer = startedWebSocketServer;
         handles.voiceSocket = startVoiceSocket(startedApp.server, {

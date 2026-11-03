@@ -11,9 +11,9 @@ private typealias Job = CloudAgentWorkFixture.Job
 @Suite struct CloudAgentPresentationTests {
     private let now = Fixture.date("2026-09-04T12:04:00.000Z")
 
-    @Test func aJobWhoseFirstRunIsStillQueuedReadsAsWorkingNeverQueued() throws {
+    @Test func aJobWhoseFirstRunIsStillQueuedReadsAsStarting() throws {
         let agent = try Fixture.work(status: "queued", job: Job.working(startedAt: nil))
-        #expect(agent.jobText(at: now) == "Working")
+        #expect(agent.jobText(at: now) == "Starting · 4m")
     }
 
     @Test func aWorkingJobCountsUpFromWhenTheProviderStartedIt() throws {
@@ -50,7 +50,7 @@ private typealias Job = CloudAgentWorkFixture.Job
         #expect(try Fixture.work(status: "expired", job: Job.ended("expired", settledAt: Fixture.start))
             .jobText(at: now) == "Expired")
         #expect(try Fixture.work(status: "cancelled", job: Job.ended("cancelled", settledAt: Fixture.start))
-            .jobText(at: now) == "Cancelled")
+            .jobText(at: now) == "Stopped")
     }
 
     @Test func anyLiveRunThatHasNotReportedForTenMinutesReadsAsQuiet() throws {

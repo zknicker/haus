@@ -19,8 +19,8 @@ const credential = 'hostskillfile-computer-credential-00000000';
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    owner = await signIn('clerk_hostskillfile_owner');
-    member = await signIn('clerk_hostskillfile_member');
+    owner = await signIn('cf_hostskillfile_owner');
+    member = await signIn('cf_hostskillfile_member');
     serverId = (
         await owner.trpc.server.create.mutate({
             displayName: 'Host Skill HQ',
@@ -32,14 +32,14 @@ beforeAll(async () => {
         slug: 'hostskillfile-member-root',
     });
     const memberRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_hostskillfile_member'
+        select id from users where auth_subject = 'cf_hostskillfile_member'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
         values ('mem_hostskillfile000000000', ${serverId}, ${memberRows[0]?.id}, 'member')
     `;
     const ownerRows = (await harness.sql`
-        select id from users where clerk_user_id = 'clerk_hostskillfile_owner'
+        select id from users where auth_subject = 'cf_hostskillfile_owner'
     `) as { id: string }[];
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)
@@ -78,8 +78,8 @@ afterAll(async () => {
     await harness?.close();
 });
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
 function digest(value: string) {

@@ -44,7 +44,7 @@ function delivery(overrides: Partial<TurnDelivery> = {}): TurnDelivery {
     };
 }
 
-test('a sub-agent wake frame parses chatless, and never beside a dream or a Chat', () => {
+test('a sub-agent wake frame parses chatless, and never beside a heartbeat report or a Chat', () => {
     const command = parseStartCommand(wakeFrame);
     expect(command).toMatchObject({ chatId: null, inboxDelivery: 'concrete', subagentWake });
     expect(command && turnDeliveryOf(command).subagentWake).toEqual(subagentWake);
@@ -54,7 +54,16 @@ test('a sub-agent wake frame parses chatless, and never beside a dream or a Chat
     expect(parseStartCommand({ ...wakeFrame, drainItemIds: ['msg_1'] })).toBeNull();
     expect(parseStartCommand({ ...wakeFrame, subagentWake: { id: 'x' } })).toBeNull();
     expect(
-        parseStartCommand({ ...wakeFrame, dream: { ...subagentWake, id: 'dream:agt_test:d' } })
+        parseStartCommand({
+            ...wakeFrame,
+            heartbeatReport: {
+                createdAt: subagentWake.createdAt,
+                heartbeatKind: 'daytime',
+                heartbeatRunId: 'run_hb',
+                id: 'heartbeat-report:run_hb',
+                text: 'Nothing new.',
+            },
+        })
     ).toBeNull();
 });
 

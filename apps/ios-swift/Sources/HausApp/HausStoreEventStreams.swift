@@ -167,9 +167,9 @@ extension HausStore {
             streamRestartTasks[stream] = nil
             guard case .loaded = state, activeServer?.id == serverID, realtimeServerID == serverID else { return }
             if reauthenticate {
-                // The next connect reads whatever token Clerk now holds.
+                // The next connect reads the refreshed Haus AppSession token.
                 do {
-                    _ = try await clerk.auth.getToken(.init(skipCache: true))
+                    try await authClient.refreshAfterUnauthorized()
                 } catch {
                     Self.logger.warning("Session token refresh failed: \(error.localizedDescription, privacy: .public)")
                 }

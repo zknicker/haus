@@ -26,7 +26,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
         serverId: server.id,
         slug: server.slug,
         title: 'Show cloud-agent handoffs in Automations',
-        token: session.token,
+        token: session.accessToken,
     });
     await client.agent.updateProfile.mutate({
         agentId: seeded.agentId,

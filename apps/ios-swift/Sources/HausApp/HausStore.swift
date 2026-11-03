@@ -1,4 +1,3 @@
-import ClerkKit
 import Foundation
 import HausModels
 import HausTransport
@@ -166,22 +165,24 @@ final class HausStore {
     /// The Chat the App wants warm first — its restored last-open Chat — so
     /// the initial page load readies the screen the user actually lands on.
     var preferredInitialChatID: String?
-    let clerk: Clerk
+    let authClient: NativeAuthClient
+    let viewer: AppSessionUser
     let client: TRPCClient
     /// Downloaded attachment bytes are app cache state, like every other
     /// snapshot the Store holds; the transport stays a pure transfer boundary.
     let attachmentFiles = AttachmentFileCache()
     nonisolated let eventTasks = EventTaskBag()
 
-    init(clerk: Clerk) {
-        self.clerk = clerk
+    init(session: AppSession, authClient: NativeAuthClient) {
+        self.authClient = authClient
+        viewer = session.user
         let config = AppConfig(
             serverOrigin: HausRuntimeConfiguration.serverOrigin,
             productVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
         )
         client = TRPCClient(
             config: config,
-            sessionTokenProvider: ClerkSessionTokenProvider(clerk: clerk),
+            sessionTokenProvider: HausSessionTokenProvider(authClient: authClient),
             decoder: HausJSON.decoder()
         )
     }

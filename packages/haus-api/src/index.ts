@@ -1,6 +1,8 @@
 import type { components, operations, paths } from './generated/openapi.d.ts';
 
+export * from './advent.ts';
 export * from './amazon-products.ts';
+export * from './app-session.ts';
 export type { components, operations, paths, webhooks } from './generated/openapi.d.ts';
 export * from './voice.ts';
 
@@ -100,6 +102,7 @@ export * from './chat-events.ts';
 export * from './chat-last-message.ts';
 export * from './chat-message-read.ts';
 export * from './chat-read.ts';
+export * from './chat-unread-preview.ts';
 export * from './cloud-agent.ts';
 export * from './cloud-agent-automation.ts';
 export * from './cloud-agent-job.ts';
@@ -107,6 +110,7 @@ export * from './cloud-agent-model.ts';
 export * from './cloud-agent-model-choice.ts';
 export * from './cloud-agent-shared.ts';
 export * from './cloud-agent-work-link.ts';
+export * from './computer-disk.ts';
 export * from './computer-inventory-refresh.ts';
 export * from './computer-runtime.ts';
 export * from './computer-secrets.ts';
@@ -121,6 +125,7 @@ export * from './github.ts';
 export * from './github-trigger-events.ts';
 export * from './haus-agent-version.ts';
 export * from './haus-release.ts';
+export * from './heartbeat.ts';
 export * from './host-skill-file.ts';
 export * from './image-generation.ts';
 export * from './image-generation-models.ts';

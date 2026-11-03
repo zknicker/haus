@@ -1,11 +1,14 @@
 'use strict';
 
+const path = require('node:path');
+const { packagedIconsDirectory, themeIconFiles } = require('./dock-app-icon.cjs');
+
 const assetCatalogPath = 'electron/generated-icons/Assets.car';
-// The live Dock icon for the Halloween theme; `dock-app-icon.cjs` reads it from Resources.
-const pumpkinDockIconResource = {
-    from: 'electron/icons/AppIcon-pumpkin.png',
-    to: 'app-icons/AppIcon-pumpkin.png',
-};
+// The live Dock icons for the seasonal themes; `dock-app-icon.cjs` reads them from Resources.
+const themeDockIconResources = Object.values(themeIconFiles).map((file) => ({
+    from: `electron/icons/${file}`,
+    to: path.posix.join(packagedIconsDirectory, file),
+}));
 
 function macAppIconConfiguration(hasAssetCatalog) {
     return {
@@ -15,9 +18,9 @@ function macAppIconConfiguration(hasAssetCatalog) {
         },
         extraResources: [
             ...(hasAssetCatalog ? [{ from: assetCatalogPath, to: 'Assets.car' }] : []),
-            pumpkinDockIconResource,
+            ...themeDockIconResources,
         ],
     };
 }
 
-module.exports = { assetCatalogPath, macAppIconConfiguration, pumpkinDockIconResource };
+module.exports = { assetCatalogPath, macAppIconConfiguration, themeDockIconResources };

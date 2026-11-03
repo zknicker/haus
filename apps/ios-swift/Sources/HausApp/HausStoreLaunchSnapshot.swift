@@ -11,8 +11,8 @@ extension HausStore {
     /// Paints the last state this user saw, if a usable snapshot exists.
     /// Returns whether it did; the live load follows either way.
     func restoreLaunchSnapshot() async -> Bool {
-        guard let userID = clerk.user?.id,
-              let snapshot = await launchSnapshots.load(userID: userID),
+        guard !viewer.id.isEmpty,
+              let snapshot = await launchSnapshots.load(userID: viewer.id),
               snapshot.serverID != nil,
               case .idle = state
         else { return false }
@@ -71,12 +71,12 @@ extension HausStore {
     }
 
     private func makeLaunchSnapshot() -> LaunchSnapshot? {
-        guard hasLiveServerState, let userID = clerk.user?.id, !servers.isEmpty else { return nil }
+        guard hasLiveServerState, !servers.isEmpty else { return nil }
         // The surfaces the user lands on first, then the most recently used.
         let priority = [canvasChatID, openChatID, preferredInitialChatID].compactMap { $0 }
             + historyNavigation.retention.orderedChatIDs.reversed()
         return LaunchSnapshot(
-            userID: userID,
+            userID: viewer.id,
             servers: servers,
             chats: chats,
             agents: agents,

@@ -124,7 +124,7 @@ test('archives a regular channel as preserved, searchable, frozen history', asyn
         {
             body: 'too late',
             headers: {
-                authorization: `Bearer ${owner.clerkSessionToken}`,
+                authorization: `Bearer ${owner.sessionToken}`,
                 'content-type': 'application/octet-stream',
             },
             method: 'PUT',
@@ -175,7 +175,7 @@ test('deletes the channel aggregate and announces its deletion', async () => {
         {
             body: 'delete these bytes',
             headers: {
-                authorization: `Bearer ${owner.clerkSessionToken}`,
+                authorization: `Bearer ${owner.sessionToken}`,
                 'content-type': 'application/octet-stream',
             },
             method: 'PUT',
@@ -253,13 +253,13 @@ async function send(chatId: string, content: string) {
     });
 }
 
-async function signIn(clerkUserId: string) {
-    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+async function signIn(subject: string) {
+    return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }
 
-async function userId(clerkUserId: string) {
+async function userId(subject: string) {
     const [row] = (await harness.sql`
-        select id from users where clerk_user_id = ${clerkUserId}
+        select id from users where auth_subject = ${subject}
     `) as Array<{ id: string }>;
     return row.id;
 }

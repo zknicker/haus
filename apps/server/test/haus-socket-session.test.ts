@@ -7,24 +7,20 @@ import { createHausClient, createOriginWebSocket, type HausClient } from './haus
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 /**
- * Clerk rotates session tokens every minute. The App hands each rotation to its
- * open WebSocket (`session.refresh`) instead of reconnecting, so the Server must
- * keep that socket bound to one Clerk user and session, judge new operations
+ * The App hands each short-lived Haus access-token rotation to its open
+ * WebSocket (`session.refresh`) instead of reconnecting, so the Server must
+ * keep that socket bound to one Haus user and session, judge new operations
  * against the newest token, and close a socket whose session lapses.
  */
 let harness: HausServerHarness;
 let serverId: string;
-const owner = 'user_clerk_socket_owner';
-const ownerSession = { sid: 'sess_owner' };
+const owner = 'user_cf_socket_owner';
 const sockets: SocketClient[] = [];
 const httpClients: HausClient[] = [];
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ socketSessionGraceMs: 0 });
-    const client = createHausClient(
-        harness,
-        await harness.clerk.mintSessionToken(owner, ownerSession)
-    );
+    harness = await startHausServerHarness();
+    const client = createHausClient(harness, await harness.humans.mintSessionToken(owner));
     httpClients.push(client);
     serverId = (await client.trpc.server.create.mutate({ displayName: 'Socket', slug: 'socket' }))
         .id;
@@ -41,13 +37,15 @@ afterAll(async () => {
 });
 
 test('a rotated token for the same session replaces the old one in place', async () => {
-    // Expires (with no grace) one second from now: the socket would close then.
-    const socket = openSocket(await harness.clerk.mintSessionToken(owner, ownerSession, 1));
+    // Expires one second from now: the socket would close then.
+    const socket = openSocket(
+        await harness.humans.mintSessionToken(owner, { accessLifetimeSeconds: 1 })
+    );
     await subscribeStarted(socket);
 
     await expect(
         socket.trpc.session.refresh.mutate({
-            clerkSessionToken: await harness.clerk.mintSessionToken(owner, ownerSession),
+            sessionToken: await harness.humans.mintSessionToken(owner),
         })
     ).resolves.toEqual({ ok: true });
 
@@ -58,14 +56,14 @@ test('a rotated token for the same session replaces the old one in place', async
 });
 
 test('a token for another user never replaces the socket session', async () => {
-    const socket = openSocket(await harness.clerk.mintSessionToken(owner, ownerSession, 1));
+    const socket = openSocket(
+        await harness.humans.mintSessionToken(owner, { accessLifetimeSeconds: 1 })
+    );
     await subscribeStarted(socket);
 
     await expect(
         socket.trpc.session.refresh.mutate({
-            clerkSessionToken: await harness.clerk.mintSessionToken('user_clerk_intruder', {
-                sid: 'sess_intruder',
-            }),
+            sessionToken: await harness.humans.mintSessionToken('user_cf_intruder'),
         })
     ).rejects.toMatchObject({ data: { code: 'FORBIDDEN' } });
 
@@ -73,23 +71,23 @@ test('a token for another user never replaces the socket session', async () => {
     expect(await socket.nextClose()).toBe(socketSessionExpiredCloseCode);
 });
 
-test('a token from another Clerk session of the same user is refused too', async () => {
-    const socket = openSocket(await harness.clerk.mintSessionToken(owner, ownerSession));
+test('a token from another Haus session of the same user is refused too', async () => {
+    const socket = openSocket(await harness.humans.mintSessionToken(owner));
     await subscribeStarted(socket);
 
     await expect(
         socket.trpc.session.refresh.mutate({
-            clerkSessionToken: await harness.clerk.mintSessionToken(owner, { sid: 'sess_other' }),
+            sessionToken: await harness.humans.mintSessionToken(owner, { newSession: true }),
         })
     ).rejects.toMatchObject({ data: { code: 'FORBIDDEN' } });
 });
 
 test('an expired token is refused', async () => {
-    const socket = openSocket(await harness.clerk.mintSessionToken(owner, ownerSession));
+    const socket = openSocket(await harness.humans.mintSessionToken(owner));
     await subscribeStarted(socket);
 
     const refused = await socket.trpc.session.refresh
-        .mutate({ clerkSessionToken: await harness.clerk.mintExpiredSessionToken(owner) })
+        .mutate({ sessionToken: await harness.humans.mintExpiredSessionToken(owner) })
         .catch((error: unknown) => error);
 
     expect(refused).toBeInstanceOf(TRPCClientError);
@@ -97,7 +95,9 @@ test('an expired token is refused', async () => {
 });
 
 test('a socket whose session lapses unrefreshed is closed', async () => {
-    const socket = openSocket(await harness.clerk.mintSessionToken(owner, ownerSession, 1));
+    const socket = openSocket(
+        await harness.humans.mintSessionToken(owner, { accessLifetimeSeconds: 1 })
+    );
     await subscribeStarted(socket);
 
     expect(await socket.nextClose()).toBe(socketSessionExpiredCloseCode);
@@ -108,21 +108,18 @@ test('a socket with no verified session has nothing to refresh', async () => {
 
     await expect(
         socket.trpc.session.refresh.mutate({
-            clerkSessionToken: await harness.clerk.mintSessionToken(owner, ownerSession),
+            sessionToken: await harness.humans.mintSessionToken(owner),
         })
     ).rejects.toMatchObject({ data: { code: 'CONFLICT' } });
 });
 
 test('refresh is refused over HTTP', async () => {
-    const client = createHausClient(
-        harness,
-        await harness.clerk.mintSessionToken(owner, ownerSession)
-    );
+    const client = createHausClient(harness, await harness.humans.mintSessionToken(owner));
     httpClients.push(client);
 
     await expect(
         client.trpc.session.refresh.mutate({
-            clerkSessionToken: await harness.clerk.mintSessionToken(owner, ownerSession),
+            sessionToken: await harness.humans.mintSessionToken(owner),
         })
     ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
 });
@@ -136,7 +133,7 @@ interface SocketClient {
 }
 
 /** The App's socket alone: every operation, mutations included, rides the WebSocket. */
-function openSocket(clerkSessionToken: string | null): SocketClient {
+function openSocket(sessionToken: string | null): SocketClient {
     const closeWaiters: ((code: number) => void)[] = [];
     const client: SocketClient = {
         close: () => {
@@ -151,7 +148,7 @@ function openSocket(clerkSessionToken: string | null): SocketClient {
         WebSocket: createOriginWebSocket(harness.appOrigin),
         connectionParams: () => ({
             appProtocolVersion: String(appProtocolVersion),
-            ...(clerkSessionToken ? { clerkSessionToken } : {}),
+            ...(sessionToken ? { sessionToken } : {}),
             productVersion: 'test',
         }),
         onClose: (event) => {

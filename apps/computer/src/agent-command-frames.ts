@@ -1,3 +1,8 @@
+import {
+    agentHeartbeatAttentionSchema,
+    agentHeartbeatReportAttentionSchema,
+    agentSubagentWakeAttentionSchema,
+} from '@haus/api';
 import type {
     AgentNoticeCommand,
     AgentResetCommand,
@@ -179,45 +184,39 @@ export function parseStopBackgroundCommand(frame: unknown): AgentStopBackgroundC
 }
 
 /**
- * Only a dream or sub-agent wake run is chatless, and it carries nothing but that attention.
+ * Only a heartbeat, report, or sub-agent wake run is chatless, and it carries nothing but
+ * its one attention.
  */
 function parseRunChat(
     frame: Record<string, unknown>,
     itemCount: number
-): Pick<AgentStartCommand, 'chatId' | 'dream' | 'subagentWake'> | null {
-    if (frame.dream === undefined && frame.subagentWake === undefined) {
+): Pick<AgentStartCommand, 'chatId' | 'heartbeat' | 'heartbeatReport' | 'subagentWake'> | null {
+    const attentions = [frame.heartbeat, frame.heartbeatReport, frame.subagentWake].filter(
+        (attention) => attention !== undefined
+    ).length;
+    if (attentions === 0) {
         return typeof frame.chatId === 'string' && frame.chatId.length > 0
             ? { chatId: frame.chatId }
             : null;
     }
     if (
-        (frame.dream !== undefined && frame.subagentWake !== undefined) ||
+        attentions > 1 ||
         frame.chatId !== null ||
         frame.inboxDelivery !== 'concrete' ||
         itemCount !== 0
     ) {
         return null;
     }
-    if (frame.dream !== undefined) {
-        const dream = parseAttention(frame.dream);
-        return dream ? { chatId: null, dream } : null;
+    if (frame.heartbeat !== undefined) {
+        const heartbeat = agentHeartbeatAttentionSchema.safeParse(frame.heartbeat);
+        return heartbeat.success ? { chatId: null, heartbeat: heartbeat.data } : null;
     }
-    const subagentWake = parseAttention(frame.subagentWake);
-    return subagentWake ? { chatId: null, subagentWake } : null;
-}
-
-function parseAttention(value: unknown): { createdAt: string; id: string } | null {
-    if (
-        !isRecord(value) ||
-        Object.keys(value).length !== 2 ||
-        typeof value.id !== 'string' ||
-        value.id.length === 0 ||
-        typeof value.createdAt !== 'string' ||
-        Number.isNaN(Date.parse(value.createdAt))
-    ) {
-        return null;
+    if (frame.heartbeatReport !== undefined) {
+        const report = agentHeartbeatReportAttentionSchema.safeParse(frame.heartbeatReport);
+        return report.success ? { chatId: null, heartbeatReport: report.data } : null;
     }
-    return { createdAt: value.createdAt, id: value.id };
+    const wake = agentSubagentWakeAttentionSchema.safeParse(frame.subagentWake);
+    return wake.success ? { chatId: null, subagentWake: wake.data } : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

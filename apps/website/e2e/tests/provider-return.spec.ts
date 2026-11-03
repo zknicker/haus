@@ -1,4 +1,4 @@
-import { signInAsClerkHuman } from '../support/clerk-session.ts';
+import { signInAsAppHuman } from '../support/app-session.ts';
 import { createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -26,8 +26,8 @@ test("on the web, Linear's install return closes its tab and shows the outcome w
     await expect.poll(() => linear.url()).toContain('https://linear.app/');
 
     // Linear's callback redirects the install tab back to Settings with the outcome.
-    // The same browser session: Clerk signs the landing in like the starting tab.
-    await signInAsClerkHuman(linear);
+    // The same AppSession signs the landing in like the starting tab.
+    await signInAsAppHuman(linear);
     const closed = linear.waitForEvent('close');
     await linear.goto(`/s/${server.slug}/settings/connections?linear_setup=linear_denied`);
     await closed;

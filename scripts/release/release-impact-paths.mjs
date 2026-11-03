@@ -13,13 +13,19 @@ export const requiredPrefixes = {
         'apps/website/public/',
         'packages/agent-manual/src/',
     ],
-    app: ['apps/website/electron/', 'assets/mac-icon.icon/', 'assets/halloween-icon.icon/'],
+    app: [
+        'apps/website/electron/',
+        'assets/mac-icon.icon/',
+        'assets/halloween-icon.icon/',
+        'assets/christmas-icon.icon/',
+    ],
     ios: [
         'apps/ios-swift/Sources/',
         'apps/ios-swift/Config/',
         'apps/ios-swift/Package.swift',
         'assets/mac-icon.icon/',
         'assets/halloween-icon.icon/',
+        'assets/christmas-icon.icon/',
     ],
     computer: [
         'apps/computer/src/',

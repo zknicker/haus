@@ -15,6 +15,7 @@ import type { DesktopTabsApi } from '../../hooks/desktop-tabs/desktop-tabs-conte
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import {
     readTabIntent,
+    readTabStay,
     resolveTabNavigation,
     type TabNavigationPolicy,
 } from '../../hooks/desktop-tabs/tab-navigation.ts';
@@ -76,7 +77,8 @@ export function IsolatedTabRouter({
  * selected tab). A push takes the gesture its router state names
  * (`tabIntentState`, for a handler that awaited), else the in-flight click's
  * (`gesture`), so Command-, Shift-, or middle-click on any press handler opens a
- * new tab beside the source: the page's own tab, or for chrome the left pane's.
+ * new tab beside the source: the page's own tab, or for chrome the left pane's. A page's
+ * push with `tabStayState` navigates its own tab instead of Opening.
  * Paths outside this Server (`/s`, another slug, `/invite/…`) leave the tab
  * model and go to the window router.
  */
@@ -101,6 +103,7 @@ export function createTabNavigator(input: {
             gesture: readTabIntent(state) ?? input.gesture(),
             mode,
             policy: input.policy,
+            stay: readTabStay(state),
             to: location,
         });
         // Chrome has no source tab of its own: its new tabs open from the left pane's.
