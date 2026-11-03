@@ -467,7 +467,7 @@ Creation emits `server.updated{scope:'agent'}`, channel membership lifecycle eve
 Creating an Agent wakes only the new Agent, once: both creation paths queue one bodiless,
 noticeless `greeting` inbox attention in `#all` (identity `greeting:<agentId>`) and dispatch after
 `agent-configure`. The run that carries it sets the start frame's `greets: true`, and the Computer
-adds the one-time `#all` greeting to that run's first-generation cold start. Nothing DMs it.
+adds the one-time `#all` greeting to that run's prompt, warm or cold. Nothing DMs it.
 
 ### Asking a human
 

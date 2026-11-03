@@ -1,8 +1,8 @@
 import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
-import { attachQueuedGreeting, isGreetingRow } from './greeting.ts';
-import { heartbeatStartFrame } from './heartbeat-run.ts';
+import { attachQueuedGreeting, isGreetingRow, retireSpentGreeting } from './greeting.ts';
+import { heartbeatLeadGate, heartbeatStartFrame } from './heartbeat-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
     isConcreteInboxSource as isConcreteSource,
@@ -125,18 +125,53 @@ export async function claimRunItems(
 }
 
 /**
+ * The candidates a fresh drain chooses from, the row it prefers to lead, and
+ * which rows may lead now. Attentions that may no longer run (a stale
+ * heartbeat, a spent greeting) are retired first, so neither can lead an empty
+ * run. `mayLead` applies to the candidates and again to the admitted lead,
+ * since admission at the chain ceiling may widen to a row it was not offered.
+ */
+export async function readDrainCandidates(tx: HausDatabase, agentId: string) {
+    const heartbeatMayLead = await heartbeatLeadGate(tx, agentId);
+    await retireSpentGreeting(tx, agentId);
+    // Sequential: planning runs inside the transaction holding the Server
+    // row, and overlapping reads on its one connection wedge it.
+    const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
+    const concreteRows = await store.listQueuedConcreteItems(tx, agentId, maxDrainRows);
+    const queued = [
+        ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
+    ];
+    const greetingWaits = queued.some(isGreetingRow);
+    const mayLead = (row: Pick<store.InboxItemRow, 'source'>) =>
+        heartbeatMayLead(row) && !(greetingWaits && waitsForGreeting(row.source));
+    const candidates = queued.filter(mayLead);
+    return { candidates, lead: preferredDrainLead(candidates), mayLead };
+}
+
+/**
  * The row a drain prefers to lead with. Concrete work leads its own run: its
  * envelope exists nowhere but the inbox, so it enters the first prompt instead
  * of waiting behind a notice the Agent may never pull. A greeting leads only
  * when nothing else waits; otherwise it rides whatever run does lead.
  */
-export function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | undefined {
+function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | undefined {
     return (
         rows.find((row) => row.source === 'onboarding') ??
         rows.find((row) => isConcreteSource(row.source)) ??
         rows.find((row) => !isGreetingRow(row)) ??
         rows[0]
     );
+}
+
+/**
+ * A chatless run cannot carry the greeting, so while one waits a dream,
+ * heartbeat, or heartbeat report does not lead: a report would otherwise open
+ * the new Agent's main session without it. A sub-agent wake is never held
+ * (specs/heartbeat.md): it exists only after the main session ran, and the
+ * greeting rides the next ordinary run, which shows it warm or cold.
+ */
+function waitsForGreeting(source: string): boolean {
+    return isChatlessInboxSource(source) && source !== 'subagent';
 }
 
 /**

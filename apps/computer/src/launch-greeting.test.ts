@@ -55,15 +55,15 @@ test('the start frame carries the greeting the Server attached to the run', () =
     expect(parseStartCommand({ ...wakeFrame(), greets: 'yes' })).toBeNull();
 });
 
-test('an App-created Agent with no brief greets on its first-generation cold start only', async () => {
+test('an App-created Agent with no brief greets on the run the Server attached its greeting to', async () => {
     // No agent-configure ran, so there is no seeded brief: the Server's flag alone decides.
     const first = await launchPrompt({ ...wakeFrame(), greets: true });
     expect(first).toStartWith(`Start.\n${greetingLead}`);
 
-    // A later generation's cold start gets the reset line instead, even if a greeting rode it.
+    // A greeting that rides a later generation's cold start shows beside the reset line.
     const reset = await launchPrompt({ ...wakeFrame(), greets: true, sessionGeneration: 2 });
-    expect(reset).not.toContain(greetingLead);
-    expect(reset).toContain('Fresh session:');
+    expect(reset).toStartWith('Start.\nFresh session:');
+    expect(reset).toContain(greetingLead);
 
     // A first turn the Server did not attach a greeting to never greets.
     expect(await launchPrompt(wakeFrame())).not.toContain(greetingLead);

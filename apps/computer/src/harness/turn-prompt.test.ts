@@ -142,28 +142,34 @@ test('an empty digest renders nothing', () => {
     expect(prompt.turnContent).toBe('Start.');
 });
 
-test('a new Agent is told to greet only on its first-generation cold start', () => {
+test('a new Agent is told to greet on every run the Server attached its greeting to', () => {
     // Raft's agentic #all greeting, verbatim: one short self-introduction, then normal work.
     const greeting = [
         'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.',
         'Write it in your own voice, one or two sentences. Do NOT paste a fixed template. If a conversation is already going there, read the room and keep it brief.',
         'This is a one-time greeting; after you post it, go back to normal work.',
     ].join('\n');
-    const greets = delivery({ greetsOnFirstTurn: true });
+    const greets = delivery({ greets: true });
     const first = composeTurnPrompt(greets, cold).turnContent;
     expect(first.startsWith(greeting)).toBe(true);
     expect(first).not.toContain('what your first output will be');
     expect(first).toContain('Can you look at the deploy?');
-    const idle = delivery({ drainItemIds: [], greetsOnFirstTurn: true, inbox: [] });
+    const idle = delivery({ drainItemIds: [], greets: true, inbox: [] });
     expect(composeTurnPrompt({ ...idle, totalPending: 0 }, cold).turnContent).toStartWith(
         `Start.\n${greeting}`
     );
-    // Resumed turns, later generations, and runs the Server attached no greeting to never see it.
-    expect(composeTurnPrompt(greets, warm).turnContent).not.toContain(greeting);
+    // The Server consumes the greeting with the run that carries it, so a warm
+    // run (a greeting requeued after a Stop) and a later generation show it too.
+    const resumed = composeTurnPrompt(greets, warm).turnContent;
+    expect(resumed.startsWith(greeting)).toBe(true);
+    expect(resumed).toContain('Can you look at the deploy?');
+    expect(composeTurnPrompt({ ...idle, totalPending: 0 }, warm).turnContent).toBe(greeting);
     const reset = composeTurnPrompt(greets, { isColdStart: true, sessionGeneration: 2 });
-    expect(reset.turnContent).not.toContain(greeting);
-    expect(reset.turnContent).toContain('Fresh session:');
+    expect(reset.turnContent).toStartWith('Fresh session:');
+    expect(reset.turnContent).toContain(greeting);
+    // A run the Server attached no greeting to never sees it.
     expect(composeTurnPrompt(delivery(), cold).turnContent).not.toContain(greeting);
+    expect(composeTurnPrompt(delivery(), warm).turnContent).not.toContain(greeting);
 });
 
 test('a composed drain records exact run visibility and consumes its notice rows', async () => {

@@ -3,9 +3,11 @@ import type { AgentTurnSummary } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { enqueueAgentGreeting, greetingDedupeKey } from '../src/agent-delivery/greeting.ts';
+import { heartbeatReportDedupeKey } from '../src/agent-delivery/heartbeat-keys.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { agentDeliveryTable, agentInboxTable } from '../src/postgres/schema.ts';
+import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import { agentDeliveryTable, agentInboxTable, chatMessagesTable } from '../src/postgres/schema.ts';
 import {
     addChannel,
     deliverHuman,
@@ -123,6 +125,84 @@ test('the greeting is claimed once per Agent and survives a resend and a failed 
     expect(await greetingRows(seed)).toHaveLength(1);
     expect(await greetingState(seed)).toBe('seen');
 });
+
+test('a queued heartbeat report never runs the main session ahead of the greeting', async () => {
+    const seed = await seedAgent(connection.db);
+    const allChannelId = await greet(seed);
+    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    // The Computer was offline at creation and reconnects near a heartbeat slot,
+    // so the heartbeat's report is already waiting for the main session.
+    await connection.db.transaction(async (tx) => {
+        await delivery.enqueue(tx, {
+            agentId: seed.agentId,
+            chatId: null,
+            content: 'Nothing needed attention.',
+            dedupeKey: heartbeatReportDedupeKey(`run_${seed.agentId}`),
+            serverId: seed.serverId,
+            source: 'heartbeat_report',
+        });
+    });
+
+    // The greeting leads, so the main session's first run is the one that greets.
+    const first = await wake();
+    expect(first).toMatchObject({ chatId: allChannelId, greets: true });
+    expect(first?.heartbeatReport).toBeUndefined();
+    await settle(delivery, seed, first?.runId ?? '');
+    expect(await greetingState(seed)).toBe('seen');
+
+    // The report runs next, carrying no greeting.
+    const report = transport.framesOfType('start').at(-1);
+    expect(report?.heartbeatReport).toBeDefined();
+    expect(report?.greets).toBeUndefined();
+});
+
+test('a greeting a stopped run already posted is spent; one it never posted rides the next run', async () => {
+    const seed = await seedAgent(connection.db);
+    const allChannelId = await greet(seed);
+    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+
+    // Stopped after the session was saved but before posting: the greeting is
+    // requeued and rides the next run, which the Computer shows even when warm.
+    const first = await wake();
+    await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
+    await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
+    expect(await greetingState(seed)).toBe('queued');
+    await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
+    const second = transport.framesOfType('start').at(-1);
+    expect(second?.runId).not.toBe(first?.runId);
+    expect(second?.greets).toBe(true);
+
+    // This run posts its introduction and is stopped before it settles.
+    await delivery.onAck({ agentId: seed.agentId, runId: second?.runId ?? '' });
+    await postAsAgent(seed, allChannelId, second?.runId ?? '');
+    await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
+    await deliverHuman(connection.db, delivery, seed, {
+        addressedReason: 'mention',
+        chatId: seed.channelId,
+        mentioned: true,
+    });
+    await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
+
+    // The introduction is already in #all, so no later run greets again.
+    const third = transport.framesOfType('start').at(-1);
+    expect(third?.runId).not.toBe(second?.runId);
+    expect(third?.greets).toBeUndefined();
+    expect(await greetingState(seed)).toBe('seen');
+});
+
+async function postAsAgent(seed: Seed, chatId: string, runId: string) {
+    await connection.db.insert(chatMessagesTable).values({
+        authorAgentId: seed.agentId,
+        chatId,
+        content: 'Hi all, I am Ada.',
+        id: createOpaqueId('msg'),
+        nonce: createOpaqueId('nonce'),
+        runId,
+        sequence: 1,
+        serverId: seed.serverId,
+        sessionGeneration: 1,
+    });
+}
 
 async function greet(seed: Seed): Promise<string> {
     const [existing] = await greetingRows(seed);

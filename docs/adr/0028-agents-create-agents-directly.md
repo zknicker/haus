@@ -122,7 +122,7 @@ new Agent's first-turn line told it to say hello there too. When Forge created S
 an introduction, then Sentry posted a second, longer one. Every `#all` post wakes every Agent in it:
 19 extra turns in 3 minutes and 4 welcome replies carrying side requests.
 
-- The new Agent's first-generation cold start carries Raft's private greeting instruction
+- The run that carries the greeting (see the last bullet) opens with Raft's private greeting instruction
   (`buildAllChannelAgenticGreetingInstruction`, Raft `db5e399`): one short, natural
   self-introduction to `#all` in its own voice, one or two sentences, no fixed template, brief if a
   conversation is already going, then back to normal work. Haus drops Raft's preamble line ("You
@@ -141,6 +141,11 @@ an introduction, then Sentry posted a second, longer one. Every `#all` post wake
   lane: it rides the next ordinary run whatever leads it, which sets the start frame's `greets`,
   and leads a run of its own only when nothing else waits. So the creator's reply that @mentions the
   new Agent and the wake become one first turn; a mention that lands mid-turn reaches it as a busy
-  notice. The Computer adds the greeting on that run's first-generation cold start. Cove never takes
-  this seam and keeps its own onboarding attention. Haus has no `agentAllChannelGreetingEnabled`
-  setting and no hidden-`#all` phase, so neither gate is ported.
+  notice. Cove never takes this seam and keeps its own onboarding attention. Haus has no
+  `agentAllChannelGreetingEnabled` setting and no hidden-`#all` phase, so neither gate is ported.
+- The greeting is consumed only by a run that showed it. The Computer shows it on every run whose
+  start frame sets `greets`, warm or cold, in any session generation; settlement consumes it with
+  that run's rows. While it waits, no chatless run leads, because a heartbeat report would open the
+  main session without it. A Stop or reset returns it to the queue with the run's other rows, so a
+  queued greeting whose `#all` already holds a message from the new Agent is retired, never shown
+  twice.

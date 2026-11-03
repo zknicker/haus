@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, exists } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentInboxTable } from '../postgres/schema.ts';
+import { agentInboxTable, chatMessagesTable } from '../postgres/schema.ts';
 import { enqueueInboxItem, ensureDeliveryState, queuedFor } from './store.ts';
 
 /**
@@ -9,7 +9,9 @@ import { enqueueInboxItem, ensureDeliveryState, queuedFor } from './store.ts';
  * run that carries it tells the Agent to introduce itself. The row is bodiless
  * and noticeless, and it leads no lane of its own: a queued greeting rides the
  * next ordinary run whatever leads it, so the creator's @mention and the wake
- * become one first turn. Alone, it leads a run of its own.
+ * become one first turn. Alone, it leads a run of its own. It is consumed only
+ * by a run that showed it: no chatless run leads while it waits, and the
+ * Computer shows it on every run that carries it, warm or cold.
  */
 export const greetingInboxSource = 'greeting';
 
@@ -39,8 +41,39 @@ export function isGreetingRow(row: { source: string }): boolean {
 }
 
 /**
+ * Retires a queued greeting the Agent already acted on. A Stop or reset
+ * requeues a run's rows even after the run posted its introduction, and the
+ * Computer shows the greeting on any run that carries it, so a greeting whose
+ * Chat already has a message from this Agent is spent rather than shown again.
+ */
+export async function retireSpentGreeting(tx: HausDatabase, agentId: string): Promise<void> {
+    await tx
+        .update(agentInboxTable)
+        .set({ seenAt: new Date(), state: 'seen' })
+        .where(
+            and(
+                queuedFor(agentId),
+                eq(agentInboxTable.source, greetingInboxSource),
+                exists(
+                    tx
+                        .select({ id: chatMessagesTable.id })
+                        .from(chatMessagesTable)
+                        .where(
+                            and(
+                                eq(chatMessagesTable.serverId, agentInboxTable.serverId),
+                                eq(chatMessagesTable.chatId, agentInboxTable.chatId),
+                                eq(chatMessagesTable.authorAgentId, agentId)
+                            )
+                        )
+                )
+            )
+        );
+}
+
+/**
  * Claims a queued greeting for the run being planned. Settlement consumes it
- * with the run's other rows, and a run that fails without output requeues it.
+ * with the run's other rows; a run that fails without output, or a Stop,
+ * requeues it.
  */
 export async function attachQueuedGreeting(
     tx: HausDatabase,

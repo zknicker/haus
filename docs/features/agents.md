@@ -163,9 +163,8 @@ Message, and it rides every configure command to the Computer, which renders it
 into the `MEMORY.md` it seeds under a `## Standing brief from @<creator>`
 heading. Seeding happens once: an owned workspace is never overwritten, so a
 reprovision recovers the brief from the row rather than from the file. The
-greeting is not memory: the Agent's first turn (the cold start of its first
-session generation) carries Raft's one-time instruction to post one short
-self-introduction in `#all`. That greeting is the new Agent's only introduction,
+greeting is not memory: the run that carries it opens with Raft's one-time
+instruction to post one short self-introduction in `#all`. That greeting is the new Agent's only introduction,
 and every newly created Agent gets it, from the App or from another Agent, with
 or without a brief.
 
@@ -212,7 +211,9 @@ run it rather than at its first delivery. Both creation paths queue one
 after configuring the Computer. The greeting rides whichever run starts first:
 when the creator's reply @mentions the new Agent, that mention and the wake are
 one first turn, and a mention that lands mid-turn reaches it as a busy notice.
-Cove keeps its own onboarding greeting. Nothing DMs the new Agent — a DM is
+A heartbeat report never runs ahead of a waiting greeting. A Stop returns the
+greeting to the queue unless the Agent already posted in `#all`, so it is shown
+until the Agent has greeted and never twice. Cove keeps its own onboarding greeting. Nothing DMs the new Agent — a DM is
 between a human and an Agent.
 
 `haus agent update --agent @handle --description <text>` and

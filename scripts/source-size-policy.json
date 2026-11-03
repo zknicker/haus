@@ -47,7 +47,7 @@
     "apps/computer/src/update.test.ts": 340,
     "apps/ios-swift/Sources/HausUI/Chat/MessageComposerView.swift": 356,
     "apps/ios-swift/Tests/HausTransportTests/TRPCClientTests.swift": 322,
-    "apps/server/src/agent-delivery/delivery.ts": 1065,
+    "apps/server/src/agent-delivery/delivery.ts": 1057,
     "apps/server/src/agent-delivery/store.ts": 733,
     "apps/server/src/computers/login-service.ts": 321,
     "apps/server/src/computers/service.ts": 362,
