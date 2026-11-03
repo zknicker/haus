@@ -4,7 +4,7 @@ import { buildInboxItems } from '../agent-delivery/inbox-items.ts';
 import { chatOf, isNoticelessInboxSource } from '../agent-delivery/inbox-lanes.ts';
 import {
     attachQueuedItemsToRun,
-    listInboxItemsForRun,
+    listInboxItemsByDedupeKeys,
     listQueuedItems,
     listQueuedMessageItems,
     markInboxItemsServed,
@@ -109,7 +109,7 @@ export async function attestAgentEvents(
             messages.push(message);
         }
         if (!options.composed) {
-            await serveReceiptRows(tx, runner, requested);
+            await serveReceiptRows(tx, runner, [...requested.keys()]);
         }
         await recordExactMessagesServed(tx, {
             agentId: runner.agentId,
@@ -140,30 +140,24 @@ export async function serveHeldMessages(
     if (delivery?.activeRunId !== runner.runId || delivery.acceptedAt === null) {
         return;
     }
-    await serveReceiptRows(tx, runner, new Set(messageIds));
+    await serveReceiptRows(tx, runner, messageIds);
 }
 
-async function serveReceiptRows(
-    tx: HausDatabase,
-    runner: ResolvedRunner,
-    requested: { has(messageId: string): boolean }
-) {
-    const [pending, attached] = await Promise.all([
-        listQueuedMessageItems(tx, runner.agentId, 1000),
-        listInboxItemsForRun(tx, { agentId: runner.agentId, runId: runner.runId }),
-    ]);
-    await attachQueuedItemsToRun(tx, {
-        agentId: runner.agentId,
-        itemIds: pending.filter((row) => requested.has(row.dedupeKey)).map((row) => row.id),
-        runId: runner.runId,
-    });
-    await markInboxItemsServed(tx, {
-        agentId: runner.agentId,
-        itemIds: [...pending, ...attached]
-            .filter((row) => requested.has(row.dedupeKey))
-            .map((row) => row.id),
-        runId: runner.runId,
-    });
+/**
+ * Serves the rows of exactly these messages, looked up by identity so a
+ * backlog of any depth cannot hide one: queued rows attach to the run, and
+ * the run's own rows are marked served.
+ */
+async function serveReceiptRows(tx: HausDatabase, runner: ResolvedRunner, messageIds: string[]) {
+    const itemIds = (
+        await listInboxItemsByDedupeKeys(tx, {
+            agentId: runner.agentId,
+            dedupeKeys: messageIds,
+            runId: runner.runId,
+        })
+    ).map((row) => row.id);
+    await attachQueuedItemsToRun(tx, { agentId: runner.agentId, itemIds, runId: runner.runId });
+    await markInboxItemsServed(tx, { agentId: runner.agentId, itemIds, runId: runner.runId });
 }
 
 /**
