@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.0.1 - 2026-11-03
+
+- Haus Server 16.0.1 makes the 17.0.0 Server deployable. Server 16.0.0 never went live: its upgrade stopped while removing existing Linear data. 16.0.1 completes that removal and ships the 17.0.0 changes, which still require Haus Computer 14.0.0.
+
 ## v17.0.0 - 2026-11-03
 
 - The built-in Linear integration is removed. Settings > Connections no longer offers Linear, Linear Triggers and Linear issue previews are gone, and existing Linear connections, Triggers, and pending Linear session work are deleted. Haus for iPhone 9.2.2 stops showing Linear Trigger details.
