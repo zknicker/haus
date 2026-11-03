@@ -76,7 +76,7 @@ test('a resumed session hears changed instructions at the front of its next turn
     );
     // The same native conversation resumed; nothing parked or rotated it.
     expect(fake.record.opens[1]).toEqual({
-        resumeFrom: first.resumeState,
+        resumeFrom: first.resumeState ?? undefined,
         sessionId: 'agt_test-1',
     });
     expect(fake.record.counts).toMatchObject({ refresh: 0, stop: 0 });
@@ -98,7 +98,7 @@ test('a resumed session hears changed instructions at the front of its next turn
     await runHarnessTurn(turnInput({ initialRole: 'Own the updated lane.', activity: settled }));
 
     expect(fake.record.prompts[2]).not.toContain(updateTag);
-    expect(fake.record.opens[2]?.resumeFrom).toEqual(session.resumeState);
+    expect(fake.record.opens[2]?.resumeFrom).toEqual(session.resumeState ?? undefined);
     expect(settled).toEqual(['thinking:started', 'thinking:completed']);
     expect(fake.record.counts).toMatchObject({ refresh: 0, stop: 0 });
 });
