@@ -190,6 +190,31 @@ test('a greeting a stopped run already posted is spent; one it never posted ride
     expect(await greetingState(seed)).toBe('seen');
 });
 
+test('a replayed run whose introduction is already posted resends without the greeting', async () => {
+    const seed = await seedAgent(connection.db);
+    const allChannelId = await greet(seed);
+    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const mentionId = await deliverHuman(connection.db, delivery, seed, {
+        addressedReason: 'mention',
+        chatId: seed.channelId,
+        mentioned: true,
+    });
+    const first = await wake();
+    expect(first?.greets).toBe(true);
+
+    // The turn posts its introduction, then the Computer loses the process and
+    // reconnects, replaying the accepted run into its saved session.
+    await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
+    await postAsAgent(seed, allChannelId, first?.runId ?? '');
+    await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
+
+    const replay = transport.framesOfType('start').at(-1);
+    expect(replay?.runId).toBe(first?.runId);
+    expect(replay?.greets).toBeUndefined();
+    expect(replay?.drainItemIds).toEqual([mentionId]);
+    expect(await greetingState(seed)).toBe('seen');
+});
+
 async function postAsAgent(seed: Seed, chatId: string, runId: string) {
     await connection.db.insert(chatMessagesTable).values({
         authorAgentId: seed.agentId,

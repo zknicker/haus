@@ -1,4 +1,4 @@
-import { and, eq, exists } from 'drizzle-orm';
+import { and, eq, exists, ne } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatMessagesTable } from '../postgres/schema.ts';
 import { enqueueInboxItem, ensureDeliveryState, queuedFor } from './store.ts';
@@ -41,10 +41,11 @@ export function isGreetingRow(row: { source: string }): boolean {
 }
 
 /**
- * Retires a queued greeting the Agent already acted on. A Stop or reset
- * requeues a run's rows even after the run posted its introduction, and the
- * Computer shows the greeting on any run that carries it, so a greeting whose
- * Chat already has a message from this Agent is spent rather than shown again.
+ * Retires a greeting the Agent already acted on. A Stop or reset requeues a
+ * run's rows even after the run posted its introduction, a reconnect replays an
+ * accepted run into its saved session, and the Computer shows the greeting on
+ * any run that carries it; so a greeting whose Chat already has a message from
+ * this Agent is spent, queued or attached, rather than shown again.
  */
 export async function retireSpentGreeting(tx: HausDatabase, agentId: string): Promise<void> {
     await tx
@@ -52,8 +53,9 @@ export async function retireSpentGreeting(tx: HausDatabase, agentId: string): Pr
         .set({ seenAt: new Date(), state: 'seen' })
         .where(
             and(
-                queuedFor(agentId),
+                eq(agentInboxTable.agentId, agentId),
                 eq(agentInboxTable.source, greetingInboxSource),
+                ne(agentInboxTable.state, 'seen'),
                 exists(
                     tx
                         .select({ id: chatMessagesTable.id })

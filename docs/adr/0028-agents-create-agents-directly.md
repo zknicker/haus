@@ -146,9 +146,9 @@ an introduction, then Sentry posted a second, longer one. Every `#all` post wake
 - The greeting is consumed only by a run that showed it. The Computer shows it on every run whose
   start frame sets `greets`, warm or cold, in any session generation; settlement consumes it with
   that run's rows. While it waits, no chatless run leads, because a heartbeat report would open the
-  main session without it. A Stop or reset returns it to the queue with the run's other rows, so a
-  queued greeting whose `#all` already holds a message from the new Agent is retired, never shown
-  twice.
+  main session without it. A Stop or reset returns it to the queue with the run's other rows, and a
+  reconnect replays an accepted run into its saved session, so a greeting whose `#all` already
+  holds a message from the new Agent is retired, queued or attached, and never shown twice.
 - `greets` raised the Computer protocol to 33. An older Computer would drop the unknown flag and
   consume the greeting without showing it, so it connects in `update-required` mode and runs
   nothing until it upgrades, while the greeting waits queued. The Computer artifact ships before the

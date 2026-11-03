@@ -36,6 +36,8 @@ export async function startFrame(
         | 'sessionGeneration'
     >
 ): Promise<AgentCommand> {
+    // A replay into a session that already posted the introduction must not greet again.
+    await retireSpentGreeting(db, state.agentId);
     const attachedRows = state.activeRunId
         ? await store.listInboxItemsForRun(db, {
               agentId: state.agentId,
