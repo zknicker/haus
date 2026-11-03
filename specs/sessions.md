@@ -48,11 +48,12 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   A heartbeat report run resumes the main session.
 - A fresh session with no pending delivery starts with bare `Start.`. After a
   reset, the recovery line precedes either `Start.` or the pending notice/typed
-  attention that becomes the first prompt. An Agent created with a standing
-  brief gets, in that same position on its first-generation cold start only,
-  Raft's one-time instruction to post one short self-introduction in `#all`. Creating an Agent configures its
-  executor but never schedules an empty bootstrap turn. Startup never races a
-  second mid-turn delivery.
+  attention that becomes the first prompt. A newly created Agent gets, in that
+  same position on its first-generation cold start only, Raft's one-time
+  instruction to post one short self-introduction in `#all`. Creating an Agent
+  configures its executor and queues that greeting as one wake, which rides the
+  first run whatever else it carries (ADR 0028). Startup never races a second
+  mid-turn delivery.
 - A Computer starts at most five Agent runtimes at once; further starts queue. A runtime that
   has not produced a live session within two minutes fails the turn as a retryable timeout.
   A warm runtime process parked by the previous turn is reused when its runtime, native

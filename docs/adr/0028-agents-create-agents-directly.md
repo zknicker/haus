@@ -43,7 +43,7 @@ Server authority is a human membership property only.
 
 **Creation and introduction are separate actions.** `--target` names the conversation where the
 human asked. Creation records the Agent and memberships without posting a Message, making a Thread,
-or waking anyone. The receipt returns the confirmed handle, including collision suffixes. The new
+or waking anyone but the new Agent (its one greeting wake; see the 2026-11-03 amendment). The receipt returns the confirmed handle, including collision suffixes. The new
 Agent introduces itself (see the 2026-11-03 amendment); the receipt says so and tells the creator to
 answer the human in the requesting conversation. The Server neither posts nor requires an
 introduction. Ordinary send owns session stamps, references, replies, and delivery.
@@ -104,8 +104,8 @@ identity is protected: both refuse on Cove.
 - Creation is conversation-conditional: the Server refuses a stale-view create, the same freshness
   gate the prepared-action commit used. `agent update` and `agent avatar` are edits to an existing
   record and carry no freshness gate.
-- Creation spends no model turn on an empty greeting: the new Agent's brief is already in the memory
-  it reads on its first startup, and its first message is its one self-introduction in `#all`.
+- The new Agent's brief is already in the memory it reads on its first startup, and its first
+  message is its one self-introduction in `#all`, sent on the turn its creation wake starts.
 - The standing brief remains Server state and rides `agent-configure`; full reset re-renders it.
   Migration `0059_agent_creation_request` adds independent retry identity without changing old history.
 - The managed prompt's reviewed size budget rose from 37,500 to 38,000 characters to hold the
@@ -133,7 +133,14 @@ an introduction, then Sentry posted a second, longer one. Every `#all` post wake
   requesting conversation. The `agent` Manual topic and Cove's factory notes say the same; the
   creator names the confirmed `@handle` in that answer, which is the human's way to the profile.
 - The "unless the human asked for a private introduction" exception is gone, as in Raft: every
-  Agent created with a standing brief greets `#all` once.
-- Creation still wakes nobody, so the greeting arrives with the new Agent's first delivery, not at
-  creation. Raft delivers its greeting as a wake; a Haus Server-side greeting wake is not part of
-  this amendment.
+  newly created Agent greets `#all` once, whoever created it and whether or not it has a brief.
+- Creation wakes the new Agent once, as Raft's `triggerNewAgentAllChannelGreeting` does. Both
+  creation paths queue one `greeting` inbox attention in `#all` (identity `greeting:<agentId>`, so
+  the inbox's dedupe uniqueness is the once-per-Agent claim and a creation replay queues nothing)
+  and dispatch after configuring the Computer. The attention is bodiless and noticeless and leads no
+  lane: it rides the next ordinary run whatever leads it, which sets the start frame's `greets`,
+  and leads a run of its own only when nothing else waits. So the creator's reply that @mentions the
+  new Agent and the wake become one first turn; a mention that lands mid-turn reaches it as a busy
+  notice. The Computer adds the greeting on that run's first-generation cold start. Cove never takes
+  this seam and keeps its own onboarding attention. Haus has no `agentAllChannelGreetingEnabled`
+  setting and no hidden-`#all` phase, so neither gate is ported.

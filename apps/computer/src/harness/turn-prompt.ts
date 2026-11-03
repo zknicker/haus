@@ -23,7 +23,7 @@ export interface TurnDelivery {
     dataRoot: string;
     /** Inbox identities drainable on any start; the warm set needs a live session. */
     drainItemIds: string[];
-    /** An Agent another Agent created with a standing brief introduces itself once. */
+    /** The Server attached the new Agent's one-time greeting to this run. */
     greetsOnFirstTurn?: boolean;
     /** A heartbeat run: composed by `composeHeartbeatInput` in its own throwaway session. */
     heartbeat?: AgentStartCommand['heartbeat'];
@@ -86,6 +86,7 @@ export function turnDeliveryOf(command: AgentStartCommand) {
         ...(command.heartbeatReport ? { heartbeatReport: command.heartbeatReport } : {}),
         ...(command.subagentWake ? { subagentWake: command.subagentWake } : {}),
         drainItemIds: command.drainItemIds ?? [],
+        greetsOnFirstTurn: command.greets === true,
         inbox: command.inbox ?? [],
         inboxDelivery: command.inboxDelivery,
         totalPending: command.totalPending,

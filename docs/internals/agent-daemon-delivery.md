@@ -354,8 +354,8 @@ commits. Start, Restart, a session reset, and a configure that changes runtime
 or model also lift it, without rotating the session beyond what that action
 already does. Outside a pause, a human message releases a counted hold only
 after its window passes and never cuts a short or rate-limit backoff short.
-Agent-authored, reminder, trigger, task-assignment, Cloud Agent, and onboarding
-work never lifts a pause or releases a hold; it waits behind it. `agent.get`
+Agent-authored, reminder, trigger, task-assignment, Cloud Agent, onboarding, and
+greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
 and `agent.list` project the pause as `wakePause` (failure count, last failure
 kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);
 availability stays `error`. Raw failure evidence remains Computer-local; only the

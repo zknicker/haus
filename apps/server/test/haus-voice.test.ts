@@ -137,7 +137,7 @@ test('delegates once into the unchanged Claude session, speaks committed replies
         expect(messages[0].content).toBe('Please review the launch copy.');
         expect(messages[0].author_user_id).toBeTruthy();
         expect(
-            await harness.sql`select id from agent_inbox where agent_id = ${agentId}`
+            await harness.sql`select id from agent_inbox where agent_id = ${agentId} and source <> 'greeting'`
         ).toHaveLength(1);
         expect(
             (

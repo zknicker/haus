@@ -1,6 +1,7 @@
 import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
+import { attachQueuedGreeting, isGreetingRow } from './greeting.ts';
 import { heartbeatStartFrame } from './heartbeat-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
@@ -35,12 +36,15 @@ export async function startFrame(
         | 'sessionGeneration'
     >
 ): Promise<AgentCommand> {
-    const runRows = state.activeRunId
+    const attachedRows = state.activeRunId
         ? await store.listInboxItemsForRun(db, {
               agentId: state.agentId,
               runId: state.activeRunId,
           })
         : [];
+    // A greeting rides the run without being one of its items (greeting.ts).
+    const greets = attachedRows.some(isGreetingRow);
+    const runRows = attachedRows.filter((row) => !isGreetingRow(row));
     const chatlessRow = runRows.find((row) => isChatlessInboxSource(row.source));
     if (chatlessRow) {
         return await heartbeatStartFrame(db, state, config, chatlessRow);
@@ -61,6 +65,7 @@ export async function startFrame(
         agentName: config.agentName,
         chatId: state.activeRunChatId ?? '',
         drainItemIds: [...runRows, ...humanDrain.drainRows].map((row) => row.dedupeKey),
+        ...(greets ? { greets: true as const } : {}),
         homeTimezone: config.homeTimezone,
         inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows, state.agentId),
         inboxDelivery: runRows.length > 0 ? 'concrete' : 'notice',
@@ -81,14 +86,55 @@ export async function startFrame(
 }
 
 /**
+ * Claims the rows a fresh run carries: concrete rows attach to it, notice-lane
+ * rows are offered within the notice window, and a queued greeting rides it
+ * whatever leads (greeting.ts). {@link startFrame} rebuilds the same sets from
+ * these persisted claims on every resend.
+ */
+export async function claimRunItems(
+    tx: HausDatabase,
+    input: { agentId: string; concrete: boolean; runId: string; selected: store.InboxItemRow[] }
+) {
+    const { agentId, runId } = input;
+    const greets = await attachQueuedGreeting(tx, { agentId, runId });
+    const selected = input.selected.filter((row) => !isGreetingRow(row));
+    if (input.concrete) {
+        await store.attachQueuedItemsToRun(tx, {
+            agentId,
+            itemIds: selected.map((row) => row.id),
+            runId,
+        });
+        return { drainRows: selected, greets, noticeRows: [], selected, warmDrainRows: [] };
+    }
+    const noticeRows = noticeWindow(
+        (await store.listQueuedItems(tx, agentId, 1000)).filter(
+            (row) => !isConcreteSource(row.source)
+        ),
+        selected
+    );
+    await store.markInboxItemsNoticed(tx, {
+        agentId,
+        initial: true,
+        itemIds: noticeRows.map((row) => row.id),
+        runId,
+    });
+    // Derived from the rows this frame carries, not from the candidate slice,
+    // so a resend rebuilding from those same persisted rows reproduces them.
+    const { drainRows, warmDrainRows } = await humanDrainSets(tx, noticeRows);
+    return { drainRows, greets, noticeRows, selected, warmDrainRows };
+}
+
+/**
  * The row a drain prefers to lead with. Concrete work leads its own run: its
  * envelope exists nowhere but the inbox, so it enters the first prompt instead
- * of waiting behind a notice the Agent may never pull.
+ * of waiting behind a notice the Agent may never pull. A greeting leads only
+ * when nothing else waits; otherwise it rides whatever run does lead.
  */
 export function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | undefined {
     return (
         rows.find((row) => row.source === 'onboarding') ??
         rows.find((row) => isConcreteSource(row.source)) ??
+        rows.find((row) => !isGreetingRow(row)) ??
         rows[0]
     );
 }

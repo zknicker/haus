@@ -142,7 +142,7 @@ test('an empty digest renders nothing', () => {
     expect(prompt.turnContent).toBe('Start.');
 });
 
-test('a created Agent is told to greet only on its first-generation cold start', () => {
+test('a new Agent is told to greet only on its first-generation cold start', () => {
     // Raft's agentic #all greeting, verbatim: one short self-introduction, then normal work.
     const greeting = [
         'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.',
@@ -158,7 +158,7 @@ test('a created Agent is told to greet only on its first-generation cold start',
     expect(composeTurnPrompt({ ...idle, totalPending: 0 }, cold).turnContent).toStartWith(
         `Start.\n${greeting}`
     );
-    // Resumed turns, later generations, and Agents without a brief never see it.
+    // Resumed turns, later generations, and runs the Server attached no greeting to never see it.
     expect(composeTurnPrompt(greets, warm).turnContent).not.toContain(greeting);
     const reset = composeTurnPrompt(greets, { isColdStart: true, sessionGeneration: 2 });
     expect(reset.turnContent).not.toContain(greeting);

@@ -45,6 +45,8 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
+    // The ledger below holds only the rows this file inserts, not the creation greeting wake.
+    await harness.sql`delete from agent_inbox where agent_id = ${agentId} and source = 'greeting'`;
     chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
 
     await insertTurn(1, { outputProduced: true, status: 'completed' });

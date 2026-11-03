@@ -463,8 +463,10 @@ Creation nonces and request hashes live on `agents`; announcements are not retry
 A request that changes any creation input under an existing nonce is refused before avatar generation.
 Creation emits `server.updated{scope:'agent'}`, channel membership lifecycle events, and
 `chat.lifecycle{action:'created'}` for the owner DM it opens, never `message.created`. Historical `agent-created` bodies remain readable; new introductions are ordinary text.
-Creating an Agent does not wake it. Its standing brief is already in the memory the Computer seeds,
-so its first turn is its next ordinary delivery and nothing DMs it.
+Creating an Agent wakes only the new Agent, once: both creation paths queue one bodiless,
+noticeless `greeting` inbox attention in `#all` (identity `greeting:<agentId>`) and dispatch after
+`agent-configure`. The run that carries it sets the start frame's `greets: true`, and the Computer
+adds the one-time `#all` greeting to that run's first-generation cold start. Nothing DMs it.
 
 ### Asking a human
 

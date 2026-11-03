@@ -165,7 +165,9 @@ heading. Seeding happens once: an owned workspace is never overwritten, so a
 reprovision recovers the brief from the row rather than from the file. The
 greeting is not memory: the Agent's first turn (the cold start of its first
 session generation) carries Raft's one-time instruction to post one short
-self-introduction in `#all`. That greeting is the new Agent's only introduction.
+self-introduction in `#all`. That greeting is the new Agent's only introduction,
+and every newly created Agent gets it, from the App or from another Agent, with
+or without a brief.
 
 Creation joins the Server's `#all` plus every `--channel` the request names, in
 the creation transaction. `#all` is guaranteed by the Server's one creation
@@ -204,9 +206,14 @@ a missing Computer, or an unreported runtime/model refuses the create before any
 is written. Retries use the creation nonce stored on the Agent, independently of any
 later introduction.
 
-Creating an Agent does not wake it. Its brief is already in its memory, so no
-model turn is spent on an empty greeting and nothing DMs it — a DM is between a
-human and an Agent.
+Creating an Agent wakes it once, so it greets `#all` as soon as its Computer can
+run it rather than at its first delivery. Both creation paths queue one
+`greeting` inbox attention in `#all`, claimed once per Agent, and dispatch it
+after configuring the Computer. The greeting rides whichever run starts first:
+when the creator's reply @mentions the new Agent, that mention and the wake are
+one first turn, and a mention that lands mid-turn reaches it as a busy notice.
+Cove keeps its own onboarding greeting. Nothing DMs the new Agent — a DM is
+between a human and an Agent.
 
 `haus agent update --agent @handle --description <text>` and
 `haus agent avatar --agent @handle --concept <text>` edit an existing Agent

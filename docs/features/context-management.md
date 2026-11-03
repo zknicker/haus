@@ -80,13 +80,13 @@ model session. Per-turn message delivery is an inbox concern; see
 - A fresh session with pending work uses its notice or typed attention as the
   first prompt. `Start.` is used only when no delivery is pending. Later
   deliveries resume the same session without replaying that marker.
-- Creating an Agent schedules no continuation for its creator and no bootstrap
-  turn for the new Agent. The create receipt is returned in the same command, and
-  the new Agent's first turn is its next ordinary delivery — by then its standing
-  brief is already in the workspace memory the Computer seeded. When that Agent
-  has a brief, its first-generation cold start opens with Raft's one-time
-  instruction to post one short self-introduction in `#all`, its only
-  introduction; resumed turns and later generations never repeat it.
+- Creating an Agent schedules no continuation for its creator. The create receipt
+  is returned in the same command, and the new Agent is woken once for its
+  greeting — by then its standing brief, if any, is already in the workspace
+  memory the Computer seeded. That first-generation cold start opens with Raft's
+  one-time instruction to post one short self-introduction in `#all`, its only
+  introduction; a delivery already waiting, such as the creator's @mention, rides
+  the same turn, and resumed turns and later generations never repeat it.
 - Restart recreates the Agent runner and resumes the same native conversation.
   Its next delivery uses the same refresh path without rotating the session generation or
   replaying `Start.`.

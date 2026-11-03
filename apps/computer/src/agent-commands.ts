@@ -24,6 +24,8 @@ export interface AgentStartCommand {
     connectionChips?: ConnectionChipKind[];
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
+    /** This run carries the new Agent's one-time `#all` greeting, claimed once by the Server. */
+    greets?: true;
     /** A heartbeat run (daytime or nightly): a fresh throwaway session, no inbox. */
     heartbeat?: AgentHeartbeatAttention;
     /** A report run: the Agent's own heartbeat report, delivered to the main session. */
