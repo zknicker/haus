@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.5.1 - 2026-11-03
+
+- When an Agent refers to a Channel message that has no Thread yet, the reference is now a link to that message instead of plain text.
+
 ## v16.5.0 - 2026-11-02
 
 - When you ask an Agent for work inside a Thread, it takes that message in the Thread as its task instead of posting a separate task message in the Channel or DM. With Show tasks in chat off, nothing about the claim shows; with it on, the task appears on your message in the Thread. Haus Agent 11.4.0 and Haus Computer 12.5.0 carry the change.
