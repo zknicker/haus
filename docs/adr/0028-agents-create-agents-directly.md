@@ -149,3 +149,7 @@ an introduction, then Sentry posted a second, longer one. Every `#all` post wake
   main session without it. A Stop or reset returns it to the queue with the run's other rows, so a
   queued greeting whose `#all` already holds a message from the new Agent is retired, never shown
   twice.
+- `greets` raised the Computer protocol to 33. An older Computer would drop the unknown flag and
+  consume the greeting without showing it, so it connects in `update-required` mode and runs
+  nothing until it upgrades, while the greeting waits queued. The Computer artifact ships before the
+  Server, per the protocol prerequisite in [Releases](../operations/releases.md#prerequisites).
