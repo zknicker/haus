@@ -84,10 +84,12 @@ export function buildClaudeArgs(launch: ClaudeLaunch): string[] {
 
 /**
  * The harness default is adaptive thinking with summarized display; Haiku 4.5 runs extended
- * thinking enabled, which the CLI spells `--thinking adaptive` with no display override.
+ * thinking enabled, which the CLI spells `--thinking adaptive` with no display override. Haiku
+ * 5.5 takes the default: Claude Code 2.1.317 reports it `supportsAdaptiveThinking` with effort
+ * levels, and a live turn streams summarized thinking.
  */
 function thinkingArgs(modelId: string): string[] {
-    return modelId === 'claude-haiku-4-5'
+    return modelId.startsWith('claude-haiku-4-5')
         ? ['--thinking', 'adaptive']
         : ['--thinking', 'adaptive', '--thinking-display', 'summarized'];
 }
@@ -132,6 +134,9 @@ export function buildClaudeEnv(input: {
         ...input.launchEnv,
         ...input.credentials,
         CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: String(CLAUDE_MAX_CONCURRENT_SUBAGENTS),
+        // Sub-agents start blank-slate: a fork inherits the whole Agent conversation (every chat
+        // the global session spans), which a delegated task must not carry.
+        CLAUDE_CODE_FORK_SUBAGENT: '0',
         // The Agent SDK's entrypoint: Claude Code shapes its built-in system prompt for a
         // programmatic host rather than an interactive terminal user. Without it, Agents read
         // sender prefixes like `@name:` as addressing someone else (placement-quick-fact eval).

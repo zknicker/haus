@@ -58,6 +58,20 @@ test('claude launch args leave reasoning effort unset by default; Haiku thinks e
     const haiku = buildClaudeArgs({ ...launch, modelId: 'claude-haiku-4-5' });
     expect(value(haiku, '--thinking')).toBe('adaptive');
     expect(haiku).not.toContain('--thinking-display');
+    const dated = buildClaudeArgs({ ...launch, modelId: 'claude-haiku-4-5-20251001' });
+    expect(dated).not.toContain('--thinking-display');
+});
+
+test('Haiku 5.5 takes the default adaptive thinking with summarized display', () => {
+    // Claude Code 2.1.317 lists it with adaptive thinking and effort levels, unlike Haiku 4.5.
+    const args = buildClaudeArgs({
+        ...launch,
+        modelId: 'claude-haiku-5-5',
+        reasoningEffort: 'low',
+    });
+    expect(value(args, '--thinking')).toBe('adaptive');
+    expect(value(args, '--thinking-display')).toBe('summarized');
+    expect(value(args, '--effort')).toBe('low');
 });
 
 test('claude launch resume passes the session id directly; a fresh launch fixes its id', () => {
@@ -108,12 +122,14 @@ test('claude launch reads settings from the Agent HOME only and MCP from Haus on
     });
 });
 
-test('claude env isolates HOME, drops the nested-session marker, and caps concurrent sub-agents', () => {
+test('claude env isolates HOME, drops the nested-session marker, caps concurrent sub-agents, and turns fork sub-agents off', () => {
     const env = buildClaudeEnv({
         base: {
             CLAUDECODE: '1',
             // Background work is the driver's contract; the operator's shell cannot turn it off.
             CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
+            // Nor can it turn forks on: a sub-agent starts blank-slate.
+            CLAUDE_CODE_FORK_SUBAGENT: '1',
             HOME: '/Users/operator',
             PATH: '/usr/bin',
         },
@@ -124,6 +140,7 @@ test('claude env isolates HOME, drops the nested-session marker, and caps concur
     });
     expect(env).toEqual({
         CLAUDE_CODE_ENTRYPOINT: 'sdk-ts',
+        CLAUDE_CODE_FORK_SUBAGENT: '0',
         CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: '4',
         CLAUDE_CODE_OAUTH_TOKEN: 'token',
         HAUS_AGENT_ID: 'agt_1',
