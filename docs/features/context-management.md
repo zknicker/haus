@@ -130,11 +130,23 @@ background sub-agent or shell outlives the turn that starts it: that turn ends, 
 reachable for new messages, and when the work finishes Claude Code starts a turn of its own to
 report it, which Haus runs as a sub-agent wake (specs/runtime-drivers.md "Background work"). The
 one long-lived `claude` process per Agent session carries the work between turns, so the warm
-pool never closes it for idleness while work runs. At most four sub-agents run at once
+pool never closes it for idleness while work runs. Since Claude Code 2.1.317 an Agent call that
+does not set `run_in_background` runs in the background. Every sub-agent starts blank-slate: fork
+sub-agents, which would inherit the whole global session, are off
+(`CLAUDE_CODE_FORK_SUBAGENT=0`). At most four sub-agents run at once
 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`). `Monitor` stays in the disallowed tools
 (`CLAUDE_DISALLOWED_TOOLS` in `claude-launch.ts`). Codex launches with `agents.enabled = false`
 and `features.multi_agent = false` in its thread config (`codexThreadConfig`), and Grok Build with
 `GROK_SUBAGENTS=0`, so neither offers a spawn tool.
+
+Compaction is the runtime's own. Claude Code compacts a session that nears its context window
+during a turn, and the turn reports it as the synthetic `compaction` tool pair. Its idle
+compaction (2.1.299+, a session over 100K tokens idle for about 54 minutes) does not run for a
+Haus Agent: Claude Code arms it only for an attended session, and the `sdk-ts` entrypoint Haus
+launches with is not one. The driver still tolerates one between turns: it wakes nobody and never
+settles the next turn (specs/runtime-drivers.md "Background work"). A parked `claude` process
+closes after an hour idle, matching its one-hour prompt cache; the next turn resumes the same
+conversation in a new process.
 
 The Server stores desired configuration and canonical history. Computer stores
 effective runtime session state and resume evidence. The App reports that distinction
