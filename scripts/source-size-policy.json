@@ -63,7 +63,7 @@
     "apps/server/test/haus-computer-login.test.ts": 425,
     "apps/server/test/haus-reinvitation.test.ts": 301,
     "apps/server/test/haus-reminder-scheduler.test.ts": 506,
-    "apps/server/test/haus-reminders.test.ts": 902,
+    "apps/server/test/haus-reminders.test.ts": 862,
     "apps/server/test/haus-server-onboarding.test.ts": 783,
     "apps/server/test/haus-tasks.test.ts": 772,
     "apps/server/test/haus-trigger-api.test.ts": 597,

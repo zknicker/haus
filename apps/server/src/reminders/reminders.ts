@@ -14,6 +14,7 @@ import { parseReminderRepeat } from './cadence.ts';
 import { lockReminderCommand, parseReminderCommandResult } from './mutations.ts';
 import { prepareReminderEvent } from './reminder-events.ts';
 import {
+    agentCanAccessAnchor,
     type Reminder,
     type ReminderClock,
     ReminderCommandConflictError,
@@ -42,12 +43,18 @@ export { ReminderCommandConflictError } from './reminder-model.ts';
 export {
     listReminderAgentAttention,
     listReminderFires,
+    readOwnedReminder,
 } from './reminder-queries.ts';
 export {
     snoozeReminder,
     updateReminder,
 } from './reschedule.ts';
 export { tickReminders } from './scheduler.ts';
+
+/** Reminder row for the owning Agent, with whether its anchor Chat is still reachable. */
+export interface AuthorReminder extends Reminder {
+    anchorAccessible: boolean;
+}
 
 export async function scheduleReminder(
     db: HausDatabase,
@@ -221,13 +228,19 @@ export async function scheduleReminder(
     return { idempotent: result.idempotent, reminder: result.reminder };
 }
 
+/**
+ * Author-facing reminder list. Access is checked per reminder: settled
+ * reminders whose anchor the author can no longer reach are omitted; still-
+ * scheduled ones stay visible so the author can cancel or see that the
+ * anchor is gone. One inaccessible sibling must not fail the whole list.
+ */
 export async function listReminders(
     db: HausDatabase,
     input: {
         actor: { agentId: string; kind: 'agent' };
         serverId: string;
     }
-): Promise<Reminder[]> {
+): Promise<AuthorReminder[]> {
     await requireActiveAgent(db, input.serverId, input.actor.agentId);
     const rows = await db
         .select({ agent: agentsTable, reminder: remindersTable })
@@ -246,15 +259,21 @@ export async function listReminders(
             )
         )
         .orderBy(asc(remindersTable.fireAt), asc(remindersTable.id));
-    await Promise.all(
-        rows.map(({ reminder }) =>
-            requireAgentAnchor(db, {
-                agentId: input.actor.agentId,
-                anchorChatId: reminder.anchorChatId,
-                anchorMessageId: reminder.anchorMessageId,
-                serverId: input.serverId,
-            })
-        )
-    );
-    return rows.map(({ agent, reminder }) => toReminder(reminder, agent.handle));
+    const listed: AuthorReminder[] = [];
+    for (const { agent, reminder } of rows) {
+        const anchorAccessible = await agentCanAccessAnchor(db, {
+            agentId: input.actor.agentId,
+            anchorChatId: reminder.anchorChatId,
+            anchorMessageId: reminder.anchorMessageId,
+            serverId: input.serverId,
+        });
+        if (!(anchorAccessible || reminder.status === 'scheduled')) {
+            continue;
+        }
+        listed.push({
+            ...toReminder(reminder, agent.handle),
+            anchorAccessible,
+        });
+    }
+    return listed;
 }

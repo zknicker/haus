@@ -12,7 +12,6 @@ import {
     ReminderCommandConflictError,
     readReminder,
     requireActiveAgent,
-    requireAgentAnchor,
     toReminder,
 } from './reminder-model.ts';
 import { retireQueuedReminderFires } from './retire-fires.ts';
@@ -41,12 +40,8 @@ export async function cancelReminder(
         await lockReminderCommand(tx, input.serverId, 'agent', agentId, input.commandId);
         const existing = await readExistingCommand(tx, input, agentId, fingerprint);
         if (existing) {
-            await requireAgentAnchor(tx, {
-                agentId,
-                anchorChatId: existing.anchorChatId,
-                anchorMessageId: existing.anchorMessageId,
-                serverId: input.serverId,
-            });
+            // Cancel is allowed after the author leaves the anchor Chat so the
+            // reminder can be cleaned up; do not re-check anchor access on replay.
             return { event: null, idempotent: true, reminder: existing };
         }
         const [reminder] = await tx
@@ -64,12 +59,6 @@ export async function cancelReminder(
         if (!reminder) {
             throw new Error('The reminder is not owned by this Agent.');
         }
-        await requireAgentAnchor(tx, {
-            agentId,
-            anchorChatId: reminder.anchorChatId,
-            anchorMessageId: reminder.anchorMessageId,
-            serverId: input.serverId,
-        });
         if (reminder.version !== input.expectedVersion) {
             throw new ReminderVersionConflictError(reminder.version);
         }
