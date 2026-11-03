@@ -14,6 +14,7 @@ import { resolveClaudeCredentials } from './claude-credentials.ts';
 import { claudeInitializeFailure } from './claude-errors.ts';
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import {
+    CLAUDE_CODE_VERSION,
     type ClaudeInstallTarget,
     claudeInstallFingerprint,
     claudeInstallTarget,
@@ -145,11 +146,18 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
                     wake: () => background.wake(warmKey),
                 }
             );
+            let version: string | undefined;
             try {
-                await connection.initialize();
+                version = await connection.initialize();
             } catch (error) {
                 await connection.stop();
                 throw claudeInitializeFailure(error, child.stderrTail());
+            }
+            if (target && version && version !== CLAUDE_CODE_VERSION) {
+                // The pinned install answered as another release: a stale or replaced binary.
+                console.error(
+                    `[claude-code] pinned ${CLAUDE_CODE_VERSION} reports version ${version}`
+                );
             }
             return connection;
         } catch (error) {

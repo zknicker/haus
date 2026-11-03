@@ -61,9 +61,10 @@ export const captureScenarios: Record<string, CaptureScenario> = {
         processes: [
             {
                 steps: [
-                    send('Reply with exactly: ok'),
+                    // With uuids, as the driver writes: the results name their messages.
+                    send('Reply with exactly: ok', { uuid: true }),
                     until(results(1)),
-                    send('/compact'),
+                    send('/compact', { uuid: true }),
                     until(results(2)),
                     end,
                 ],
@@ -188,8 +189,10 @@ export const captureScenarios: Record<string, CaptureScenario> = {
         processes: [
             {
                 steps: [
+                    // Since 2.1.317 an Agent call without `run_in_background` runs in the
+                    // background; this scenario is the foreground one.
                     send(
-                        'Use the Agent tool (subagent_type "general-purpose") to have a sub-agent run `echo sub-ok` with Bash, then reply with what it reported.'
+                        'Use the Agent tool (subagent_type "general-purpose", run_in_background set to false) to have a sub-agent run `echo sub-ok` with Bash, then reply with what it reported.'
                     ),
                     until(results(1), 300_000),
                     end,

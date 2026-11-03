@@ -7,8 +7,8 @@ import type { ClaudeSystemMessage, ParsedClaudeLine } from './claude-messages.ts
  * not activity, as Claude Code documents, so they never count.
  */
 export class ClaudeBackgroundTasks {
-    /** task id → its type and when this connection first saw it live (epoch ms). */
-    private live = new Map<string, { since: number; type: string }>();
+    /** task id → its type, run, and when this connection first saw that run live (epoch ms). */
+    private live = new Map<string, { run?: string; since: number; type: string }>();
 
     get work(): BackgroundWork {
         const types = [...this.live.values()].map((task) => task.type);
@@ -34,13 +34,19 @@ export class ClaudeBackgroundTasks {
                 .filter((task) => task.ambient !== true)
                 .map((task) => {
                     const known = this.live.get(task.task_id);
-                    const since = known?.type === task.task_type ? known.since : now;
-                    return [task.task_id, { since, type: task.task_type }] as const;
+                    // A continued sub-agent keeps its task id under a new run: its lifetime
+                    // (the hung-work bound) starts over with that run.
+                    const same = known?.type === task.task_type && known.run === task.run_id;
+                    const since = same && known ? known.since : now;
+                    return [
+                        task.task_id,
+                        { run: task.run_id, since, type: task.task_type },
+                    ] as const;
                 })
         );
         const changed =
             next.size !== this.live.size ||
-            [...next].some(([id, task]) => this.live.get(id)?.type !== task.type);
+            [...next].some(([id, task]) => this.live.get(id)?.since !== task.since);
         this.live = next;
         return changed;
     }

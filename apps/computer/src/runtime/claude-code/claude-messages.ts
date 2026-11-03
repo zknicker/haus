@@ -70,6 +70,8 @@ const resultSchema = z.looseObject({
     api_error_status: z.number().nullish(),
     errors: z.array(z.unknown()).nullish(),
     is_error: z.boolean().optional(),
+    /** Model turns the result spans; 0 for a local command or a notice recorded without one. */
+    num_turns: z.number().nullish(),
     /** `task-notification`: Claude Code started this turn itself to report background work. */
     origin: z.looseObject({ kind: z.string() }).nullish(),
     result: z.string().nullish(),
@@ -97,6 +99,8 @@ const systemSchema = z.looseObject({
     patch: z
         .looseObject({ error: z.string().optional(), status: z.string().optional() })
         .optional(),
+    /** `status`: the request phase (`requesting`); a task notification: its outcome. */
+    status: z.unknown().optional(),
     subtype: z.string(),
     task_id: z.string().optional(),
     /** `background_tasks_changed`: every live background task, replacing the previous set. */
@@ -104,6 +108,10 @@ const systemSchema = z.looseObject({
         .array(
             z.looseObject({
                 ambient: z.boolean().optional(),
+                /** The task that started this one (a sub-agent's own background shell). */
+                parent_task_id: z.string().optional(),
+                /** One run of the task (2.1.317+); a continued sub-agent gets a new one. */
+                run_id: z.string().optional(),
                 task_id: z.string(),
                 task_type: z.string(),
             })

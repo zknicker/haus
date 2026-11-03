@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import * as z from 'zod';
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
 import type { BackgroundWork } from '../background-work.ts';
 import type { WarmProcess } from '../warm-pool.ts';
@@ -16,6 +17,8 @@ const initializeTimeoutMs = 30_000;
 
 /** How long a fenced self-started turn may take to stop before the process is ended. */
 const fenceGraceMs = 5000;
+
+const initializeResponseSchema = z.looseObject({ claude_code_version: z.string().optional() });
 
 /** Where the connection reports work that outlives a turn (the daemon's listener, bound). */
 export interface ClaudeBackgroundHooks {
@@ -103,12 +106,14 @@ export class ClaudeConnection implements WarmProcess {
      * The SDK handshake. `perTaskStopAffordance` makes an interrupt stop only the turn: Claude
      * Code otherwise kills every background task on interrupt (it assumes a host with no other
      * way to stop one). Haus ends background work by ending the process (Stop, reset, shutdown).
+     * Resolves with the version the CLI reports (2.1.317+), when it reports one.
      */
-    async initialize(): Promise<void> {
-        await this.control(
+    async initialize(): Promise<string | undefined> {
+        const response = await this.control(
             { perTaskStopAffordance: true, subtype: 'initialize' },
             initializeTimeoutMs
         );
+        return initializeResponseSchema.safeParse(response).data?.claude_code_version;
     }
 
     /**
