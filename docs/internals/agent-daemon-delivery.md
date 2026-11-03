@@ -260,9 +260,12 @@ as resume rejection, so only Server-authorized recovery may advance the session 
 
 The release-owned Haus Agent version groups those managed behavior inputs into one public SemVer.
 When it differs from the session receipt, the next accepted turn enters the same
-`updating_instructions` lifecycle even when the lower-level fingerprints are unchanged. Success
-stores the new version and application time; failure or a Cove factory-guidance conflict preserves
-the old version and reports failed. Computer includes that receipt in effective state so Server and
+`updating_instructions` lifecycle even when the lower-level fingerprints are unchanged, unless it
+is a sub-agent wake deferring a due instruction update: that turn neither shows the activity nor
+applies the version, which stays pending for the next ordinary turn
+([sessions spec](../../specs/sessions.md#instruction-updates)). Success stores the new version and
+application time; failure or a Cove factory-guidance conflict preserves the old version and reports
+failed. Computer includes that receipt in effective state so Server and
 the App can distinguish pending, current, and failed application.
 
 Reminders are canonical Server schedules anchored to an Agent and Chat
